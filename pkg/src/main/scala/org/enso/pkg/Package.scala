@@ -9,13 +9,14 @@ import scala.util.Try
 object CouldNotCreateDirectory extends Exception
 
 case class Package(root: File, config: Config) {
-  val sourceDirName = "src"
-  val mainFileName = "Main.luna"
-  val sourceDir = new File(root, sourceDirName)
+
+  val sourceDir = new File(root, Package.sourceDirName)
+  val configFile = new File(root, Package.configFileName)
+  val thumbFile = new File(root, Package.thumbFileName)
 
   def save(): Unit = {
-    if (!root.exists()) createDirectories()
-    if (!sourceDir.exists()) createSourceDir()
+    if (!root.exists) createDirectories()
+    if (!sourceDir.exists) createSourceDir()
     saveConfig()
   }
 
@@ -27,22 +28,28 @@ case class Package(root: File, config: Config) {
 
   def createSourceDir(): Unit = {
     if (!Try(sourceDir.mkdir).getOrElse(false)) throw CouldNotCreateDirectory
-    val lunaCodeSrc = Source.fromResource(mainFileName)
-    val writer = new PrintWriter(new File(sourceDir, mainFileName))
+    val lunaCodeSrc = Source.fromResource(Package.mainFileName)
+    val writer = new PrintWriter(new File(sourceDir, Package.mainFileName))
     writer.write(lunaCodeSrc.mkString)
     writer.close()
     lunaCodeSrc.close()
   }
 
   def saveConfig(): Unit = {
-    val writer = new PrintWriter(new File(root, Package.configFileName))
+    val writer = new PrintWriter(configFile)
     Try(writer.write(config.toYaml))
     writer.close()
   }
+
+  def hasThumb: Boolean = thumbFile.exists
+  def name: String = config.name
 }
 
 object Package {
   val configFileName = "package.yaml"
+  val sourceDirName = "src"
+  val mainFileName = "Main.luna"
+  val thumbFileName = "thumb.png"
 
   def create(root: File, config: Config): Package = {
     val pkg = Package(root, config)
