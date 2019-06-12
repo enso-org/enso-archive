@@ -41,5 +41,6 @@ lazy val pkg = (project in file("pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     libraryDependencies ++= Seq("circe-core", "circe-generic", "circe-yaml")
-      .map("io.circe" %% _ % "0.10.0")
+      .map("io.circe" %% _ % "0.10.0"),
+    libraryDependencies += "commons-io" % "commons-io" % "2.6"
   )

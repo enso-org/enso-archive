@@ -3,6 +3,8 @@ package org.enso.pkg
 import java.io.File
 import java.io.PrintWriter
 
+import org.apache.commons.io.FileUtils
+
 import scala.io.Source
 import scala.util.Try
 
@@ -24,6 +26,27 @@ case class Package(root: File, config: Config) {
     val created = Try(root.mkdirs).getOrElse(false)
     if (!created) throw CouldNotCreateDirectory
     createSourceDir()
+  }
+
+  def rename(newName: String): Package = {
+    val newPkg = copy(config = config.copy(name = newName))
+    newPkg.save()
+    newPkg
+  }
+
+  def remove(): Unit = {
+    FileUtils.deleteDirectory(root)
+  }
+
+  def move(newRoot: File): Package = {
+    val newPkg = copyPackage(newRoot)
+    remove()
+    newPkg
+  }
+
+  def copyPackage(newRoot: File): Package = {
+    FileUtils.copyDirectory(root, newRoot)
+    copy(root = newRoot)
   }
 
   def createSourceDir(): Unit = {
