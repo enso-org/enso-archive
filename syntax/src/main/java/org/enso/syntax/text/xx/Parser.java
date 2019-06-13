@@ -32,9 +32,9 @@
 
 /* First part of user declarations.  */
 
-/* "../../text/../../../../../../../target/Parser.java":36  */ /* lalr1.java:91  */
+/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":36  */ /* lalr1.java:91  */
 
-/* "../../text/../../../../../../../target/Parser.java":38  */ /* lalr1.java:92  */
+/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":38  */ /* lalr1.java:92  */
 /* "%code imports" blocks.  */
 /* "rules.y":7  */ /* lalr1.java:93  */
 
@@ -42,7 +42,7 @@ package org.enso.syntax.text.xx;
 import org.enso.syntax.text.parser.AST;
 import org.enso.syntax.text.lexer.Token;
 
-/* "../../text/../../../../../../../target/Parser.java":46  */ /* lalr1.java:93  */
+/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":46  */ /* lalr1.java:93  */
 
 /**
  * A Bison parser, automatically generated from <tt>rules.y</tt>.
@@ -75,13 +75,19 @@ public class Parser
     /** Token number,to be returned by the scanner.  */
     static final int VAR = 258;
     /** Token number,to be returned by the scanner.  */
-    static final int EOL = 259;
+    static final int CONS = 259;
     /** Token number,to be returned by the scanner.  */
-    static final int BLOCK_BEGIN = 260;
+    static final int EOL = 260;
     /** Token number,to be returned by the scanner.  */
-    static final int BLOCK_END = 261;
+    static final int GROUP_BEGIN = 261;
     /** Token number,to be returned by the scanner.  */
-    static final int CONS = 262;
+    static final int GROUP_END = 262;
+    /** Token number,to be returned by the scanner.  */
+    static final int BLOCK_BEGIN = 263;
+    /** Token number,to be returned by the scanner.  */
+    static final int BLOCK_END = 264;
+    /** Token number,to be returned by the scanner.  */
+    static final int BLOCK_INVALID = 265;
 
 
     
@@ -319,62 +325,111 @@ public class Parser
       {
           case 2:
   if (yyn == 2)
-    /* "rules.y":49  */ /* lalr1.java:489  */
+    /* "rules.y":57  */ /* lalr1.java:489  */
     {result=((AST)(yystack.valueAt (1-(1))));};
   break;
     
 
   case 4:
   if (yyn == 4)
-    /* "rules.y":53  */ /* lalr1.java:489  */
+    /* "rules.y":61  */ /* lalr1.java:489  */
     {yyval=((AST)(yystack.valueAt (1-(1))));};
   break;
     
 
   case 5:
   if (yyn == 5)
-    /* "rules.y":54  */ /* lalr1.java:489  */
+    /* "rules.y":62  */ /* lalr1.java:489  */
     {yyval=AST.app(((AST)(yystack.valueAt (2-(1)))),((AST)(yystack.valueAt (2-(2)))));};
   break;
     
 
   case 6:
   if (yyn == 6)
-    /* "rules.y":55  */ /* lalr1.java:489  */
-    {yyval=AST.app(((AST)(yystack.valueAt (2-(1)))),((AST)(yystack.valueAt (2-(2)))));};
+    /* "rules.y":65  */ /* lalr1.java:489  */
+    {yyval=((AST)(yystack.valueAt (1-(1))));};
   break;
     
 
   case 7:
   if (yyn == 7)
-    /* "rules.y":58  */ /* lalr1.java:489  */
-    {yyval=((AST)(yystack.valueAt (2-(2))));};
+    /* "rules.y":66  */ /* lalr1.java:489  */
+    {yyval=((AST)(yystack.valueAt (1-(1))));};
   break;
     
 
   case 8:
   if (yyn == 8)
-    /* "rules.y":61  */ /* lalr1.java:489  */
-    {yyval=((AST)(yystack.valueAt (3-(1))));};
+    /* "rules.y":67  */ /* lalr1.java:489  */
+    {yyval=AST.grouped(((Token)(yystack.valueAt (3-(1)))),((AST)(yystack.valueAt (3-(2)))),((Token)(yystack.valueAt (3-(3)))));};
   break;
     
 
   case 9:
   if (yyn == 9)
-    /* "rules.y":62  */ /* lalr1.java:489  */
-    {yyval=AST.emptyBlock();};
+    /* "rules.y":68  */ /* lalr1.java:489  */
+    {yyval=AST.grouped(((Token)(yystack.valueAt (2-(1)))),((AST)(yystack.valueAt (2-(2)))));};
   break;
     
 
   case 10:
   if (yyn == 10)
-    /* "rules.y":65  */ /* lalr1.java:489  */
+    /* "rules.y":71  */ /* lalr1.java:489  */
+    {yyval=((AST)(yystack.valueAt (1-(1))));};
+  break;
+    
+
+  case 11:
+  if (yyn == 11)
+    /* "rules.y":72  */ /* lalr1.java:489  */
+    {yyval=AST.app(((AST)(yystack.valueAt (2-(1)))),((AST)(yystack.valueAt (2-(2)))));};
+  break;
+    
+
+  case 12:
+  if (yyn == 12)
+    /* "rules.y":73  */ /* lalr1.java:489  */
+    {yyval=AST.grouped(((Token)(yystack.valueAt (3-(1)))),((AST)(yystack.valueAt (3-(2)))),((Token)(yystack.valueAt (3-(3)))));};
+  break;
+    
+
+  case 13:
+  if (yyn == 13)
+    /* "rules.y":77  */ /* lalr1.java:489  */
+    {yyval=((AST)(yystack.valueAt (2-(2))));};
+  break;
+    
+
+  case 14:
+  if (yyn == 14)
+    /* "rules.y":80  */ /* lalr1.java:489  */
+    {yyval=((AST)(yystack.valueAt (3-(1))));};
+  break;
+    
+
+  case 15:
+  if (yyn == 15)
+    /* "rules.y":81  */ /* lalr1.java:489  */
+    {yyval=AST.emptyBlock();};
+  break;
+    
+
+  case 16:
+  if (yyn == 16)
+    /* "rules.y":84  */ /* lalr1.java:489  */
+    {yyval=AST.fromToken(((Token)(yystack.valueAt (1-(1)))));};
+  break;
+    
+
+  case 17:
+  if (yyn == 17)
+    /* "rules.y":85  */ /* lalr1.java:489  */
     {yyval=AST.fromToken(((Token)(yystack.valueAt (1-(1)))));};
   break;
     
 
 
-/* "../../text/../../../../../../../target/Parser.java":378  */ /* lalr1.java:489  */
+/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":433  */ /* lalr1.java:489  */
         default: break;
       }
 
@@ -681,7 +736,7 @@ public class Parser
     return yyvalue == yytable_ninf_;
   }
 
-  private static final byte yypact_ninf_ = -4;
+  private static final byte yypact_ninf_ = -5;
   private static final byte yytable_ninf_ = -1;
 
   /* YYPACT[STATE-NUM] -- Index in YYTABLE of the portion describing
@@ -691,8 +746,9 @@ public class Parser
   {
     return new byte[]
     {
-       5,    -4,     9,     2,    -4,    -4,     5,    -4,    -4,    -2,
-      -4,     5,    -4,    -4
+      14,    -5,    -5,     0,    14,     1,    14,    -5,    -5,    -5,
+       0,    20,    -5,     7,    -5,    -5,    -5,    22,    -5,    -5,
+      14,    -5,    -5,    -5
     };
   }
 
@@ -704,8 +760,9 @@ public class Parser
   {
     return new byte[]
     {
-       3,    10,     0,     2,     4,     1,     0,     6,     5,     0,
-       7,     0,     9,     8
+       3,    16,    17,     0,     0,     0,     2,     4,     7,     6,
+       0,     9,    10,     0,    13,     1,     5,     0,     8,    11,
+       0,    15,    12,    14
     };
   }
 
@@ -715,7 +772,7 @@ public class Parser
   {
     return new byte[]
     {
-      -4,    -4,    10,    -4,     0,    -3
+      -5,    -5,     5,    -4,     9,    -5,     8,    -3
     };
   }
 
@@ -725,7 +782,7 @@ public class Parser
   {
     return new byte[]
     {
-      -1,     2,     9,     7,    10,     4
+      -1,     5,    13,     7,    11,     8,    14,     9
     };
   }
 
@@ -737,8 +794,9 @@ public class Parser
   {
     return new byte[]
     {
-       8,     1,    11,     6,    12,     1,     8,     6,     1,     5,
-       3,    13
+      12,    15,    16,     1,     2,     6,    10,    12,    19,    16,
+       1,     2,    20,     3,    19,     4,    21,     1,     2,    17,
+       3,     0,     4,     1,     2,     1,     2,    18,    23,    22
     };
   }
 
@@ -747,8 +805,9 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new byte[]
     {
-       3,     3,     4,     5,     6,     3,     9,     5,     3,     0,
-       0,    11
+       3,     0,     6,     3,     4,     0,     6,    10,    11,    13,
+       3,     4,     5,     6,    17,     8,     9,     3,     4,    10,
+       6,    -1,     8,     3,     4,     3,     4,     7,    20,     7
     };
   }
 
@@ -759,8 +818,9 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new byte[]
     {
-       0,     3,     9,    10,    13,     0,     5,    11,    13,    10,
-      12,     4,     6,    12
+       0,     3,     4,     6,     8,    12,    13,    14,    16,    18,
+       6,    15,    18,    13,    17,     0,    14,    15,     7,    18,
+       5,     9,     7,    17
     };
   }
 
@@ -770,8 +830,8 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new byte[]
     {
-       0,     8,     9,     9,    10,    10,    10,    11,    12,    12,
-      13
+       0,    11,    12,    12,    13,    13,    14,    14,    14,    14,
+      15,    15,    15,    16,    17,    17,    18,    18
     };
   }
 
@@ -781,8 +841,8 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new byte[]
     {
-       0,     2,     1,     0,     1,     2,     2,     2,     3,     2,
-       1
+       0,     2,     1,     0,     1,     2,     1,     1,     3,     2,
+       1,     2,     3,     2,     3,     2,     1,     1
     };
   }
 
@@ -793,7 +853,8 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new short[]
     {
-       0,   256,   257,   258,   259,   260,   261,   262
+       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
+     265
     };
   }
 
@@ -804,8 +865,9 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new String[]
     {
-  "$end", "error", "$undefined", "VAR", "EOL", "BLOCK_BEGIN", "BLOCK_END",
-  "CONS", "$accept", "program", "expr", "block", "blockBody", "tok", null
+  "$end", "error", "$undefined", "VAR", "CONS", "EOL", "GROUP_BEGIN",
+  "GROUP_END", "BLOCK_BEGIN", "BLOCK_END", "BLOCK_INVALID", "$accept",
+  "program", "expr", "exprItem", "expr_group", "block", "blockBody", "tok", null
     };
   }
 
@@ -815,8 +877,8 @@ private static final byte yycheck_[] = yycheck_init();
   {
     return new byte[]
     {
-       0,    49,    49,    50,    53,    54,    55,    58,    61,    62,
-      65
+       0,    57,    57,    58,    61,    62,    65,    66,    67,    68,
+      71,    72,    73,    77,    80,    81,    84,    85
     };
   }
 
@@ -872,7 +934,7 @@ private static final byte yycheck_[] = yycheck_init();
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     2,     2,     2,     2,
        2,     2,     2,     2,     2,     2,     1,     2,     3,     4,
-       5,     6,     7
+       5,     6,     7,     8,     9,    10
     };
   }
 
@@ -884,15 +946,15 @@ private static final byte yycheck_[] = yycheck_init();
       return yyundef_token_;
   }
 
-  private static final int yylast_ = 11;
-  private static final int yynnts_ = 6;
+  private static final int yylast_ = 29;
+  private static final int yynnts_ = 8;
   private static final int yyempty_ = -2;
-  private static final int yyfinal_ = 5;
+  private static final int yyfinal_ = 15;
   private static final int yyterror_ = 1;
   private static final int yyerrcode_ = 256;
-  private static final int yyntokens_ = 8;
+  private static final int yyntokens_ = 11;
 
-  private static final int yyuser_token_number_max_ = 262;
+  private static final int yyuser_token_number_max_ = 265;
   private static final int yyundef_token_ = 2;
 
 /* User implementation code.  */
@@ -901,11 +963,11 @@ private static final byte yycheck_[] = yycheck_init();
 
     public AST result;
 
-/* "../../text/../../../../../../../target/Parser.java":905  */ /* lalr1.java:1066  */
+/* "../../../../../../java/org/enso/syntax/text/xx/Parser.java":967  */ /* lalr1.java:1066  */
 
 }
 
-/* "rules.y":88  */ /* lalr1.java:1070  */
+/* "rules.y":108  */ /* lalr1.java:1070  */
 
 // class CalcLexer implements Calc.Lexer {
 
