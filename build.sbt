@@ -1,10 +1,14 @@
 // Global Configuration
-version := "1.0"
 organization := "org.enso"
 scalaVersion := "2.12.8"
 
 // Compiler Options
-scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-Xlint")
+scalacOptions ++= Seq(
+  "-deprecation",
+  "-feature",
+  "-unchecked",
+  "-Xlint"
+)
 
 // Benchmark Configuration
 lazy val Benchmark = config("bench") extend Test
