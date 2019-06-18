@@ -74,12 +74,18 @@ lazy val interpreter = (project in file("interpreter"))
   )
   .settings(
     libraryDependencies ++= Seq(
-      "com.chuusai"       %% "shapeless"  % "2.3.3",
-      "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
-      "org.graalvm.sdk"   % "graal-sdk"   % "19.0.0",
-      "org.scalacheck"    %% "scalacheck" % "1.14.0" % Test,
-      "org.scalatest"     %% "scalatest"  % "3.2.0-SNAP10" % Test,
-      "org.typelevel"     %% "cats-core"  % "2.0.0-M4"
+      "com.chuusai"         %% "shapeless"            % "2.3.3",
+      "com.storm-enroute"   %% "scalameter"           % "0.17" % "bench",
+      "org.graalvm.sdk"     % "graal-sdk"             % "19.0.0",
+      "org.graalvm.sdk"     % "polyglot-tck"          % "19.0.0",
+      "org.graalvm.truffle" % "truffle-api"           % "19.0.0",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % "19.0.0",
+      "org.graalvm.truffle" % "truffle-nfi"           % "19.0.0",
+      "org.graalvm.truffle" % "truffle-tck"           % "19.0.0",
+      "org.graalvm.truffle" % "truffle-tck-common"    % "19.0.0",
+      "org.scalacheck"      %% "scalacheck"           % "1.14.0" % Test,
+      "org.scalatest"       %% "scalatest"            % "3.2.0-SNAP10" % Test,
+      "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
     )
   )
   .dependsOn(syntax)
