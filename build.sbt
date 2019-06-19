@@ -112,10 +112,8 @@ lazy val interpreter = (project in file("interpreter"))
   )
   .settings(Stage0 / genTruffle := {
     val classPath = (Stage0 / fullClasspath).value.files.mkString(":")
-
     val destinationDir =
       (Stage0 / classDirectory).value.getAbsolutePath
-
     def recursiveGetClasses(root: File, pkgName: String = ""): Seq[String] = {
       val subdirs = root.listFiles(_.isDirectory).toSeq
       val classes = root.listFiles(_.getName.endsWith(".class")).toSeq
@@ -133,11 +131,12 @@ lazy val interpreter = (project in file("interpreter"))
       }
       classNames ++ recur
     }
-
     val classesToProcess =
       recursiveGetClasses((Stage0 / classDirectory).value, "").mkString(" ")
-
     val processor = "com.oracle.truffle.dsl.processor.TruffleProcessor"
+
+    val managedSourceDir = (Stage0 / sourceManaged).value
+    managedSourceDir.mkdirs()
 
     val command = Seq(
       "javac",
@@ -145,6 +144,7 @@ lazy val interpreter = (project in file("interpreter"))
       s"-processor $processor",
       "-XprintRounds",
       s"-d $destinationDir",
+      s"-s $managedSourceDir",
       classesToProcess
     ).mkString(" ")
 
