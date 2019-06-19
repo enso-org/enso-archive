@@ -1,4 +1,4 @@
-package org.enso.interpreter.nodes.expression;
+package org.enso.interpreter.nodes;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.NodeChild;
