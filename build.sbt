@@ -1,3 +1,6 @@
+import xsbti.compile.CompileAnalysis
+
+import sys.process._
 // Global Configuration
 organization := "org.enso"
 scalaVersion := "2.12.8"
@@ -97,6 +100,35 @@ lazy val interpreter = (project in file("interpreter"))
     bench := (test in Benchmark).value,
     parallelExecution in Benchmark := false
   )
+  .settings(processTruffleDsl := {
+    val cmps = (Compile / compilers).value
+    val javac = cmps
+    val originalCompile = (Compile / compile).value
+    val classPath = (Compile / fullClasspath).value.files.mkString(":")
+
+    val destinationDir =
+      (Compile / classDirectory).value.getAbsolutePath
+
+    val classesToProcess = Seq(
+      "org.enso.interpreter.nodes.expression.AddNode"
+    ).mkString(" ")
+
+    val processor = "com.oracle.truffle.dsl.processor.TruffleProcessor"
+
+    val command = Seq(
+      "javac",
+      s"-cp $classPath",
+      s"-processor $processor",
+      "-XprintRounds",
+      s"-d $destinationDir",
+      classesToProcess
+    ).mkString(" ")
+
+    command!
+  })
+
+val processTruffleDsl =
+  taskKey[Unit]("Run annotations processor on .class files")
 
 // Configuration Options
 lazy val graalOptions = Seq(
