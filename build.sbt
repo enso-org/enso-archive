@@ -88,6 +88,7 @@ lazy val interpreter = (project in file("interpreter"))
       "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
     )
   )
+  .settings(javaOptions ++= graalOptions)
   .dependsOn(syntax)
   .configs(Test)
   .configs(Benchmark)
@@ -96,3 +97,8 @@ lazy val interpreter = (project in file("interpreter"))
     bench := (test in Benchmark).value,
     parallelExecution in Benchmark := false
   )
+
+// Configuration Options
+lazy val graalOptions = Seq(
+  "-XX:UseJVMCIClassLoader"
+)
