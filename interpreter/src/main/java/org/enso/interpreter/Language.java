@@ -4,8 +4,8 @@ import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import org.enso.interpreter.nodes.expression.operator.AddOperatorNode;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.nodes.expression.operator.AddOperatorNodeGen;
+import org.enso.interpreter.runtime.Context;
 
 @TruffleLanguage.Registration(
         id = Constants.LANGUAGE_ID,
