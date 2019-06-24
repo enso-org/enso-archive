@@ -13,7 +13,7 @@ import org.enso.interpreter.nodes.util.SourceLoc;
 )
 //@GenerateWrapper TODO [AA] Fix this
 @ReportPolymorphism
-public abstract class ExpressionNode extends Node implements InstrumentableNode {
+public abstract class ExpressionNode extends Node {
     // TODO [AA] Base of the node hierarchy
 
     private SourceLoc sourceLocation = SourceLoc.empty();
