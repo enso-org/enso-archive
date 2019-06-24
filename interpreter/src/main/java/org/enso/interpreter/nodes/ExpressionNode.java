@@ -1,9 +1,22 @@
 package org.enso.interpreter.nodes;
 
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.InstrumentableNode;
 import com.oracle.truffle.api.nodes.Node;
+import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.nodes.util.SourceLoc;
 
+@NodeInfo(
+        shortName = "EnsoExpression",
+        description = "The base node for all enso expressions."
+)
+//@GenerateWrapper TODO [AA] Fix this
+@ReportPolymorphism
 public abstract class ExpressionNode extends Node implements InstrumentableNode {
     // TODO [AA] Base of the node hierarchy
-    // TODO [AA] A simple sum type for source positions (pos, span)
+
+    private SourceLoc sourceLocation = SourceLoc.empty();
+
+    public abstract Object execute(VirtualFrame frame);
 }
