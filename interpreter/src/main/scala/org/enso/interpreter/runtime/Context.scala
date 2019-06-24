@@ -2,6 +2,6 @@ package org.enso.interpreter.runtime
 
 import com.oracle.truffle.api.`object`.Layout
 
-object Context {
+class Context {
   final val ObjectLayout: Layout = Layout.createLayout
 }

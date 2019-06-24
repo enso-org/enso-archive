@@ -103,6 +103,7 @@ lazy val interpreter = (project in file("interpreter"))
   .settings(inConfig(Stage0)(Defaults.compileSettings))
   .settings(inConfig(Stage1)(Defaults.compileSettings))
   .settings(inConfig(Stage0)(AnnotationProcessorPlugin.baseSettings))
+  .settings(inConfig(Stage1)(AnnotationProcessorPlugin.baseSettings))
   .settings(Stage0 / classDirectory := (Compile / classDirectory).value)
   .settings(Stage1 / classDirectory := (Compile / classDirectory).value)
   .settings(
@@ -117,11 +118,24 @@ lazy val interpreter = (project in file("interpreter"))
     )
   )
   .settings(
+    Stage1 / annotationProcessors := Seq(
+      "com.oracle.truffle.dsl.processor.LanguageRegistrationProcessor"
+    )
+  )
+  .settings(
     Compile / compile := (Stage1 / compile)
       .dependsOn(Stage0 / processAnnotations)
       .dependsOn(Stage0 / compile)
       .value
   )
+  .settings(
+    fullCompile := (Stage1 / processAnnotations)
+      .dependsOn(Compile / compile)
+      .value
+  )
+
+// Temporary
+lazy val fullCompile = taskKey[Unit]("compile & generate")
 
 // Configuration Options
 lazy val graalOptions = Seq(
