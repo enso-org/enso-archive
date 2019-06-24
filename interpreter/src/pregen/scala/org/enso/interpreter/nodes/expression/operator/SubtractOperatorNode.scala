@@ -4,10 +4,10 @@ import com.oracle.truffle.api.dsl.Specialization
 import com.oracle.truffle.api.nodes.NodeInfo
 import org.enso.interpreter.nodes.expression.BinaryOperatorNode
 
-@NodeInfo(shortName = "+")
-abstract class AddOperatorNode extends BinaryOperatorNode {
+@NodeInfo(shortName = "-")
+abstract class SubtractOperatorNode extends BinaryOperatorNode {
 
   @Specialization
-  protected def add(left: Long, right: Long): Long =
-    Math.addExact(left, right)
+  protected def subtract(left: Long, right: Long): Long =
+    left - right
 }
