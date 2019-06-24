@@ -1,3 +1,4 @@
+import sys.process._
 // Global Configuration
 organization := "org.enso"
 scalaVersion := "2.12.8"
@@ -12,6 +13,8 @@ scalacOptions ++= Seq(
 
 // Benchmark Configuration
 lazy val Benchmark = config("bench") extend Test
+lazy val Stage0    = config("stage0") extend Compile
+lazy val Stage1    = config("stage1") extend Compile
 lazy val bench     = taskKey[Unit]("Run Benchmarks")
 
 // Global Project
@@ -97,6 +100,68 @@ lazy val interpreter = (project in file("interpreter"))
     bench := (test in Benchmark).value,
     parallelExecution in Benchmark := false
   )
+  .settings(inConfig(Stage0)(Defaults.compileSettings))
+  .settings(inConfig(Stage1)(Defaults.compileSettings))
+  .settings(Stage0 / classDirectory := (Compile / classDirectory).value)
+  .settings(Stage1 / classDirectory := (Compile / classDirectory).value)
+  .settings(
+    Stage1 / sourceDirectory := new File(thisProject.value.base, "src/main")
+  )
+  .settings(
+    Stage0 / sourceDirectory := new File(thisProject.value.base, "src/stage0")
+  )
+  .settings(Stage0 / genTruffle := {
+    val classPath = (Stage0 / fullClasspath).value.files.mkString(":")
+    val destinationDir =
+      (Stage0 / classDirectory).value.getAbsolutePath
+    def recursiveGetClasses(root: File, pkgName: String = ""): Seq[String] = {
+      val subdirs = root.listFiles(_.isDirectory).toSeq
+      val classes = root.listFiles(_.getName.endsWith(".class")).toSeq
+      val recur =
+        subdirs.flatMap { dir =>
+          val dirName = dir.getName
+          val newPkgName =
+            if (pkgName.isEmpty) dirName else s"$pkgName.$dirName"
+          recursiveGetClasses(dir, newPkgName)
+        }
+      val classNames = classes.map { classFile =>
+        val name      = classFile.getName
+        val className = name.split("\\.")
+        s"$pkgName.${className.head}"
+      }
+      classNames ++ recur
+    }
+    val classDir = classDirectory.in(Stage0).value
+    if (classDir.exists()) {
+      val classesToProcess =
+        recursiveGetClasses((Stage0 / classDirectory).value, "").mkString(" ")
+      val processor = "com.oracle.truffle.dsl.processor.TruffleProcessor"
+
+      val managedSourceDir = (Stage0 / sourceManaged).value
+      managedSourceDir.mkdirs()
+
+      val command = Seq(
+        "javac",
+        s"-cp $classPath",
+        s"-processor $processor",
+        "-XprintRounds",
+        s"-d $destinationDir",
+        s"-s $managedSourceDir",
+        classesToProcess
+      ).mkString(" ")
+
+      command !
+    }
+  })
+  .settings(
+    Compile / compile := (Stage1 / compile)
+      .dependsOn(Stage0 / genTruffle)
+      .dependsOn(Stage0 / compile)
+      .value
+  )
+
+val genTruffle =
+  taskKey[Unit]("Run annotations processor on .class files")
 
 // Configuration Options
 lazy val graalOptions = Seq(
