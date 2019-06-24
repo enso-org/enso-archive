@@ -108,7 +108,7 @@ lazy val interpreter = (project in file("interpreter"))
     Stage1 / sourceDirectory := new File(thisProject.value.base, "src/main")
   )
   .settings(
-    Stage0 / sourceDirectory := new File(thisProject.value.base, "src/stage0")
+    Stage0 / sourceDirectory := new File(thisProject.value.base, "src/pregen")
   )
   .settings(Stage0 / genTruffle := {
     val classPath = (Stage0 / fullClasspath).value.files.mkString(":")

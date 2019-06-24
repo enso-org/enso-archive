@@ -3,6 +3,7 @@ package org.enso.interpreter;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import org.enso.interpreter.nodes.expression.operator.AddOperatorNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.nodes.expression.operator.AddOperatorNodeGen;
 
@@ -28,6 +29,7 @@ public final class Language extends TruffleLanguage<Context> {
     // TODO [AA] Unimplemented
     @Override
     protected Context createContext(Env env) {
+        AddOperatorNode foo  = AddOperatorNodeGen.create(null, null);
         return null;
     }
 
