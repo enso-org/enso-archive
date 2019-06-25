@@ -10,6 +10,8 @@ scalacOptions ++= Seq(
   "-Xlint"
 )
 
+javacOptions ++= Seq("-source", "12", "-target", "1.8")
+
 // Benchmark Configuration
 lazy val Benchmark = config("bench") extend Test
 lazy val Stage0    = config("stage0") extend Compile
