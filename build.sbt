@@ -93,7 +93,6 @@ lazy val interpreter = (project in file("interpreter"))
       "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
     )
   )
-  .settings(javaOptions ++= graalOptions)
   .dependsOn(syntax)
   .configs(Test)
   .configs(Benchmark)
@@ -130,16 +129,6 @@ lazy val interpreter = (project in file("interpreter"))
       .dependsOn(Stage0 / compile)
       .value
   )
-  .settings(
-    fullCompile := (Stage1 / processAnnotations)
-      .dependsOn(Compile / compile)
-      .value
-  )
 
 // Temporary
 lazy val fullCompile = taskKey[Unit]("compile & generate")
-
-// Configuration Options
-lazy val graalOptions = Seq(
-  "-XX:UseJVMCIClassLoader"
-)
