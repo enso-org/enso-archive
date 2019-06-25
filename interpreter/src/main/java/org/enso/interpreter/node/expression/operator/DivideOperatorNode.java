@@ -7,8 +7,8 @@ import org.enso.interpreter.node.expression.BinaryOperatorNode;
 @NodeInfo(shortName = "/")
 public abstract class DivideOperatorNode extends BinaryOperatorNode {
 
-    @Specialization
-    protected long divide(long left, long right) {
-        return left / right;
-    }
+  @Specialization
+  protected long divide(long left, long right) {
+    return left / right;
+  }
 }

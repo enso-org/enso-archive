@@ -6,15 +6,12 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.util.SourceLoc;
 
-@NodeInfo(
-        shortName = "EnsoExpression",
-        description = "The base node for all enso expressions."
-)
-//@GenerateWrapper TODO [AA] Fix this.
+@NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
+// @GenerateWrapper TODO [AA] Fix this.
 @ReportPolymorphism
 public abstract class ExpressionNode extends Node {
-    // TODO [AA] Base of the node hierarchy.
-    private SourceLoc sourceLocation = SourceLoc.empty();
+  // TODO [AA] Base of the node hierarchy.
+  private SourceLoc sourceLocation = SourceLoc.empty();
 
-    public abstract Object execute(VirtualFrame frame);
+  public abstract Object execute(VirtualFrame frame);
 }
