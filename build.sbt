@@ -14,8 +14,6 @@ javacOptions ++= Seq("-source", "12", "-target", "1.8")
 
 // Benchmark Configuration
 lazy val Benchmark = config("bench") extend Test
-lazy val Stage0    = config("stage0") extend Compile
-lazy val Stage1    = config("stage1") extend Compile
 lazy val bench     = taskKey[Unit]("Run Benchmarks")
 
 // Global Project
@@ -72,7 +70,6 @@ lazy val pkg = (project in file("pkg"))
   )
 
 lazy val interpreter = (project in file("interpreter"))
-  .enablePlugins(AnnotationProcessorPlugin)
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
     version := "0.1"
@@ -93,6 +90,17 @@ lazy val interpreter = (project in file("interpreter"))
       "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
     )
   )
+  .settings(
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath
+    )
+  )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
+  )
   .dependsOn(syntax)
   .configs(Test)
   .configs(Benchmark)
@@ -101,34 +109,3 @@ lazy val interpreter = (project in file("interpreter"))
     bench := (test in Benchmark).value,
     parallelExecution in Benchmark := false
   )
-  .settings(inConfig(Stage0)(Defaults.compileSettings))
-  .settings(inConfig(Stage1)(Defaults.compileSettings))
-  .settings(inConfig(Stage0)(AnnotationProcessorPlugin.baseSettings))
-  .settings(inConfig(Stage1)(AnnotationProcessorPlugin.baseSettings))
-  .settings(Stage0 / classDirectory := (Compile / classDirectory).value)
-  .settings(Stage1 / classDirectory := (Compile / classDirectory).value)
-  .settings(
-    Stage0 / sourceDirectory := new File(thisProject.value.base, "src/pregen")
-  )
-  .settings(
-    Stage1 / sourceDirectory := new File(thisProject.value.base, "src/main")
-  )
-  .settings(
-    Stage0 / annotationProcessors := Seq(
-      "com.oracle.truffle.dsl.processor.TruffleProcessor"
-    )
-  )
-  .settings(
-    Stage1 / annotationProcessors := Seq(
-      "com.oracle.truffle.dsl.processor.LanguageRegistrationProcessor"
-    )
-  )
-  .settings(
-    Compile / compile := (Stage1 / compile)
-      .dependsOn(Stage0 / processAnnotations)
-      .dependsOn(Stage0 / compile)
-      .value
-  )
-
-// Temporary
-lazy val fullCompile = taskKey[Unit]("compile & generate")
