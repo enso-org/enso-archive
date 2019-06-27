@@ -8,8 +8,11 @@ import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.expression.ForeignCallNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.util.FileDetector;
 
@@ -47,10 +50,17 @@ public final class Language extends TruffleLanguage<Context> {
 
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
-    ExpressionNode test = AddOperatorNodeGen.create(new IntegerLiteralNode(1), new IntegerLiteralNode(2));
-    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(),test,null,"foo");
+    ExpressionNode jsExpr = new ForeignCallNode("js", "[1,2,3].length");
+    ExpressionNode pyExpr = new ForeignCallNode("python", "len([1,2])");
+    ExpressionNode rubyExpr = new ForeignCallNode("ruby", "\"helloruby\".length");
+
+    ExpressionNode test =
+        SubtractOperatorNodeGen.create(
+            MultiplyOperatorNodeGen.create(
+                AddOperatorNodeGen.create(new IntegerLiteralNode(1), jsExpr), pyExpr),
+            rubyExpr);
+
+    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), test, null, "foo");
     return Truffle.getRuntime().createCallTarget(root);
   }
-
-
-  }
+}
