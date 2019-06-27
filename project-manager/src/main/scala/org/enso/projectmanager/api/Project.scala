@@ -13,7 +13,6 @@ case class Project(
   name: String,
   path: String,
   thumb: Option[String],
-  lastOpenTime: Option[Long],
   persisted: Boolean)
 
 case class ProjectFactory(routeHelper: RouteHelper) {
@@ -27,13 +26,12 @@ case class ProjectFactory(routeHelper: RouteHelper) {
       id.toString,
       project.pkg.name,
       project.pkg.root.getAbsolutePath,
-      thumbUri.map(_.toString()),
-      None,
+      thumbUri.map(_.toString),
       project.isPersistent
     )
   }
 }
 
 trait ProjectJsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
-  implicit val projectFormat = jsonFormat6(Project.apply)
+  implicit val projectFormat = jsonFormat5(Project.apply)
 }
