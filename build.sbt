@@ -101,6 +101,10 @@ lazy val interpreter = (project in file("interpreter"))
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
       .value
   )
+  .settings(
+    (Compile / run / fork) := true,
+    (Compile / run / javaOptions) += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}"
+  )
   .dependsOn(syntax)
   .configs(Test)
   .configs(Benchmark)

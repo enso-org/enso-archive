@@ -6,15 +6,18 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
 import org.graalvm.polyglot.Context;
+import org.graalvm.polyglot.Value;
 
 public class Main {
   public static void main(String[] args) {
     // This is all for testing purposes only.
-    Context context;
+    Context context = null;
     Map<String, String> options = new HashMap<>();
     InputStream in = System.in;
     OutputStream out = System.out;
@@ -30,12 +33,16 @@ public class Main {
       System.exit(1);
     }
 
-    ExpressionNode test = AddOperatorNodeGen.create(new IntegerLiteralNode(1), new IntegerLiteralNode(2));
+    //ExpressionNode test = AddOperatorNodeGen.create(new IntegerLiteralNode(1), new IntegerLiteralNode(2));
 
-    Object result = test.execute(null);
 
-    System.out.println(result);
+    //Object result = test.execute(null);
 
+    //System.out.println(result);
+
+    Value value = context.eval(Constants.LANGUAGE_ID, "");
+
+    System.out.println(value);
     System.out.println("Executed!");
   }
 }

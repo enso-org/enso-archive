@@ -1,8 +1,15 @@
 package org.enso.interpreter;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
+import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.util.FileDetector;
 
@@ -37,4 +44,13 @@ public final class Language extends TruffleLanguage<Context> {
   protected boolean isThreadAccessAllowed(Thread thread, boolean singleThreaded) {
     return super.isThreadAccessAllowed(thread, singleThreaded);
   }
-}
+
+  @Override
+  protected CallTarget parse(ParsingRequest request) throws Exception {
+    ExpressionNode test = AddOperatorNodeGen.create(new IntegerLiteralNode(1), new IntegerLiteralNode(2));
+    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(),test,null,"foo");
+    return Truffle.getRuntime().createCallTarget(root);
+  }
+
+
+  }
