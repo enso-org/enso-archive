@@ -7,6 +7,7 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
 import org.graalvm.polyglot.Context;
 
@@ -29,7 +30,11 @@ public class Main {
       System.exit(1);
     }
 
-    ExpressionNode test = AddOperatorNodeGen.create(null, null);
+    ExpressionNode test = AddOperatorNodeGen.create(new IntegerLiteralNode(1), new IntegerLiteralNode(2));
+
+    Object result = test.execute(null);
+
+    System.out.println(result);
 
     System.out.println("Executed!");
   }
