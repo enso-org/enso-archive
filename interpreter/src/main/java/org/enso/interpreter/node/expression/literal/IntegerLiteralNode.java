@@ -14,7 +14,7 @@ public final class IntegerLiteralNode extends LiteralNode {
     }
 
     @Override
-    public Object execute(VirtualFrame frame) {
+    public Object executeGeneric(VirtualFrame frame) {
         return this.value;
     }
 }

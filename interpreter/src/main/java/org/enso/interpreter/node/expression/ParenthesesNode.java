@@ -9,7 +9,7 @@ public class ParenthesesNode extends ExpressionNode {
   @Child ExpressionNode expression;
 
   @Override
-  public Object execute(VirtualFrame frame) {
-    return expression.execute(frame);
+  public Object executeGeneric(VirtualFrame frame) {
+    return expression.executeGeneric(frame);
   }
 }

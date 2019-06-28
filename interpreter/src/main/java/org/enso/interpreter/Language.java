@@ -16,6 +16,7 @@ import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.util.ExpressionFactory;
 import org.enso.interpreter.util.FileDetector;
+import scala.reflect.api.Exprs;
 
 @TruffleLanguage.Registration(
     id = Constants.LANGUAGE_ID,
@@ -51,9 +52,13 @@ public final class Language extends TruffleLanguage<Context> {
 
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
-    ExpressionNode result =
-        new EnsoParser<>(new ExpressionFactory())
-            .parseEnso(request.getSource().getCharacters().toString());
+    //    ExpressionNode result =
+    //        new EnsoParser<>(new ExpressionFactory())
+    //            .parseEnso(request.getSource().getCharacters().toString());
+    //    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "root");
+    //    return Truffle.getRuntime().createCallTarget(root);
+    EnsoAst parsed = new EnsoParser().parseEnso(request.getSource().getCharacters().toString());
+    ExpressionNode result = new ExpressionFactory(this).run(parsed);
     EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "root");
     return Truffle.getRuntime().createCallTarget(root);
   }
