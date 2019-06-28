@@ -51,19 +51,10 @@ public final class Language extends TruffleLanguage<Context> {
 
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
-    ExpressionNode jsExpr = new ForeignCallNode("js", "[1,2,3].length");
-    ExpressionNode pyExpr = new ForeignCallNode("js", "0");
-    ExpressionNode rubyExpr = new ForeignCallNode("js", "[1,3,3].reduce(function(acc, foo) { return acc + foo; })");
-
-//    ExpressionNode test =
-//        SubtractOperatorNodeGen.create(
-//            MultiplyOperatorNodeGen.create(
-//                AddOperatorNodeGen.create(new IntegerLiteralNode(1), jsExpr), pyExpr),
-//            rubyExpr);
-
-    System.out.println("WAAAT");
-    ExpressionNode result = new EnsoParser<>(new ExpressionFactory()).parseEnso(request.getSource().getCharacters().toString());
-    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "foo");
+    ExpressionNode result =
+        new EnsoParser<>(new ExpressionFactory())
+            .parseEnso(request.getSource().getCharacters().toString());
+    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "root");
     return Truffle.getRuntime().createCallTarget(root);
   }
 }

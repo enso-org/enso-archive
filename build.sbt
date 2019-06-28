@@ -69,6 +69,12 @@ lazy val pkg = (project in file("pkg"))
     libraryDependencies += "commons-io" % "commons-io" % "2.6"
   )
 
+val truffleRunOptions = Seq(
+  fork := true,
+  javaOptions += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}",
+  javaOptions += s"-XX:-UseJVMCIClassLoader"
+)
+
 lazy val interpreter = (project in file("interpreter"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
@@ -87,6 +93,7 @@ lazy val interpreter = (project in file("interpreter"))
       "org.graalvm.truffle"    % "truffle-tck-common"        % "19.0.0",
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
+      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4"
     )
@@ -103,9 +110,8 @@ lazy val interpreter = (project in file("interpreter"))
       .value
   )
   .settings(
-    (Compile / run / fork) := true,
-    (Compile / run / javaOptions) += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}",
-    (Compile / run / javaOptions) += s"-XX:-UseJVMCIClassLoader"
+    inConfig(Compile)(truffleRunOptions),
+    inConfig(Test)(truffleRunOptions)
   )
   .dependsOn(syntax)
   .configs(Test)
