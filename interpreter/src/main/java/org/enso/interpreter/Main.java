@@ -9,6 +9,8 @@ import java.util.Map;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
 
+import scala.util.parsing.combinator.JavaTokenParsers;
+
 public class Main {
   public static void main(String[] args) {
     // This is all for testing purposes only.
@@ -16,7 +18,6 @@ public class Main {
     Map<String, String> options = new HashMap<>();
     InputStream in = System.in;
     OutputStream out = System.out;
-
     try {
       context = Context.newBuilder(Constants.LANGUAGE_ID).in(in).out(out).options(options).build();
 
@@ -31,8 +32,10 @@ public class Main {
     // TODO [AA] Try polyglot stuff
     // TODO ForeignCallNode Ruby, Python, JS
 
-    Value value = context.eval(Constants.LANGUAGE_ID, "");
+    String code = "(3 + js >>[1,2,3].length<<) * js >>({a: 20})[\"a\"]<<";
+    Value value = context.eval(Constants.LANGUAGE_ID, code);
 
+    System.out.println(code);
     System.out.println(value);
     System.out.println("Executed!");
   }

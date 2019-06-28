@@ -14,6 +14,7 @@ import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.util.ExpressionFactory;
 import org.enso.interpreter.util.FileDetector;
 
 @TruffleLanguage.Registration(
@@ -51,16 +52,18 @@ public final class Language extends TruffleLanguage<Context> {
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
     ExpressionNode jsExpr = new ForeignCallNode("js", "[1,2,3].length");
-    ExpressionNode pyExpr = new ForeignCallNode("python", "len([1,2])");
-    ExpressionNode rubyExpr = new ForeignCallNode("ruby", "\"helloruby\".length");
+    ExpressionNode pyExpr = new ForeignCallNode("js", "0");
+    ExpressionNode rubyExpr = new ForeignCallNode("js", "[1,3,3].reduce(function(acc, foo) { return acc + foo; })");
 
-    ExpressionNode test =
-        SubtractOperatorNodeGen.create(
-            MultiplyOperatorNodeGen.create(
-                AddOperatorNodeGen.create(new IntegerLiteralNode(1), jsExpr), pyExpr),
-            rubyExpr);
+//    ExpressionNode test =
+//        SubtractOperatorNodeGen.create(
+//            MultiplyOperatorNodeGen.create(
+//                AddOperatorNodeGen.create(new IntegerLiteralNode(1), jsExpr), pyExpr),
+//            rubyExpr);
 
-    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), test, null, "foo");
+    System.out.println("WAAAT");
+    ExpressionNode result = new EnsoParser<>(new ExpressionFactory()).parseEnso(request.getSource().getCharacters().toString());
+    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "foo");
     return Truffle.getRuntime().createCallTarget(root);
   }
 }
