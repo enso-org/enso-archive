@@ -19,7 +19,9 @@ case object Temporary extends ProjectType {
   override def isPersistent: Boolean = false
 }
 
-case class ProjectId(uid: UUID)
+case class ProjectId(uid: UUID) {
+  override def toString: String = uid.toString
+}
 
 case class Project(kind: ProjectType, pkg: Package) {
   def isPersistent: Boolean = kind.isPersistent
