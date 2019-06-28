@@ -27,7 +27,7 @@ import scala.concurrent.Future
 import scala.util.Try
 
 case class GithubTutorial(name: String, lastPushString: String) {
-  val lastPush: Long = Instant.parse(lastPushString).toEpochMilli
+  val lastPush: Instant = Instant.parse(lastPushString)
 }
 
 trait GithubJsonProtocol extends SprayJsonSupport with DefaultJsonProtocol {
@@ -97,7 +97,7 @@ case class TutorialsDownloader(
     }
 
   def needsUpdate(tutorial: GithubTutorial): Boolean =
-    zipFileFor(tutorial).lastModified < tutorial.lastPush
+    zipFileFor(tutorial).lastModified < tutorial.lastPush.toEpochMilli
 
   def downloadZip(tutorial: GithubTutorial): Future[File] = {
     val downloadUrl = downloadUrlFor(tutorial)
@@ -112,7 +112,7 @@ case class TutorialsDownloader(
   def unzip(source: File): Unit = {
     logging.debug(s"Unzipping $source\n")
     val zipFileTry = Try(new ZipFile(source))
-    zipFileTry.map { zipFile =>
+    val result = zipFileTry.map { zipFile =>
       zipFile.entries.asScala.foreach { entry =>
         logging.debug(s"Extracting ${entry.getName}\n")
         val target = new File(tutorialsDir, entry.getName)
@@ -127,6 +127,7 @@ case class TutorialsDownloader(
       }
     }
     zipFileTry.map(_.close())
+    result.get
   }
 
   def run(): Future[Unit] = {

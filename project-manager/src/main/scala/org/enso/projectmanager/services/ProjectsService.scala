@@ -7,6 +7,7 @@ import akka.actor.typed.scaladsl.StashBuffer
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.model.ProjectId
 import org.enso.projectmanager.model.ProjectsRepository
 
 import scala.collection.immutable.HashMap
@@ -18,9 +19,9 @@ case class ListTutorialsRequest(replyTo: ActorRef[ListProjectsResponse])
     extends ProjectsCommand
 case class ListProjectsRequest(replyTo: ActorRef[ListProjectsResponse])
     extends ProjectsCommand
-case class ListProjectsResponse(projects: HashMap[UUID, Project])
+case class ListProjectsResponse(projects: HashMap[ProjectId, Project])
 
-case class GetProjectById(id: UUID, replyTo: ActorRef[GetProjectResponse])
+case class GetProjectById(id: ProjectId, replyTo: ActorRef[GetProjectResponse])
     extends ProjectsCommand
 case class GetProjectResponse(project: Option[Project])
 
@@ -28,7 +29,7 @@ case class CreateTemporary(
   name: String,
   replyTo: ActorRef[CreateTemporaryResponse])
     extends ProjectsCommand
-case class CreateTemporaryResponse(id: UUID, project: Project)
+case class CreateTemporaryResponse(id: ProjectId, project: Project)
 
 case object TutorialsReady extends InternalProjectsCommand
 
