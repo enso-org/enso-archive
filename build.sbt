@@ -72,6 +72,7 @@ lazy val pkg = (project in file("pkg"))
 val truffleRunOptions = Seq(
   fork := true,
   javaOptions += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}",
+  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false",
   javaOptions += s"-XX:-UseJVMCIClassLoader"
 )
 
@@ -94,6 +95,7 @@ lazy val interpreter = (project in file("interpreter"))
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
+      "com.storm-enroute"      %% "scalameter"               % "0.17" % Benchmark,
       "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.apache.commons"     % "commons-lang3"             % "3.9"
@@ -114,11 +116,12 @@ lazy val interpreter = (project in file("interpreter"))
     inConfig(Compile)(truffleRunOptions),
     inConfig(Test)(truffleRunOptions)
   )
-  .dependsOn(syntax)
-  .configs(Test)
   .configs(Benchmark)
   .settings(
+    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
+    logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(truffleRunOptions),
     bench := (test in Benchmark).value,
     parallelExecution in Benchmark := false
   )

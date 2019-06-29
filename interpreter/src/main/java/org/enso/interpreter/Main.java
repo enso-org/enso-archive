@@ -38,13 +38,12 @@ public class Main {
 
 //    String code = "(3 + js >>[1,2,3].length<<) * js >>({a: 20})[\"a\"]<<";
     List<String> codeLs = new ArrayList<>();
-    codeLs.add("@{ x = 10;");
+    codeLs.add("{ x = 10;");
     codeLs.add("   newBlock = { |arg1|");
     codeLs.add("       y = x;");
-    codeLs.add("       print: y + arg1;");
     codeLs.add("       y + arg1");
     codeLs.add("   };");
-    codeLs.add("   jsCall: **(function (callback, callback2) { console.log(callback(), callback2(3)); })** [{ @newBlock[12]; 25 }, newBlock];");
+   // codeLs.add("   jsCall: **(function (callback, callback2) { console.log(callback(), callback2(3)); })** [{ @newBlock[12]; 25 }, newBlock];");
     codeLs.add("   (@newBlock[1]) + (@newBlock[2])");
 //    codeLs.add("   print: newBlock;");
 //    codeLs.add("   print: newBlock;");
@@ -57,8 +56,11 @@ public class Main {
 
     System.out.println("Starting execution...");
 
-    Value value = context.eval(Constants.LANGUAGE_ID, code);
+    Value value = context.eval(Constants.LANGUAGE_ID, /*{|x| x+2}"*/ code);
+    for (int i = 0; i < 1000000; i++) {
+      value.execute(2);
+    }
 
-    System.out.println("Executed, result is: " + value);
+    System.out.println("Executed, result is: " + value.execute(2));
   }
 }

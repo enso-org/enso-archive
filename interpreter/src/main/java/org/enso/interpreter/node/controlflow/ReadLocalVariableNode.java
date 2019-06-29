@@ -19,8 +19,8 @@ public final class ReadLocalVariableNode extends ExpressionNode {
   public Object executeGeneric(VirtualFrame frame) {
     Frame currentFrame = frame;
     while (currentFrame != null) {
-      Object result = pointer.lookup(currentFrame);
-      if (result != null) return result;
+      if (pointer.getFrameDescriptor() == currentFrame.getFrameDescriptor())
+        return frame.getValue(pointer.getFrameSlot());
       currentFrame = (Frame) currentFrame.getArguments()[0];
     }
     return null;

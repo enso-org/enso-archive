@@ -12,16 +12,16 @@ import scala.reflect.internal.Trees;
 public final class AssignmentNode extends StatementNode {
 
   @Child private ExpressionNode expression;
-  private FramePointer framePtr;
+  private final FrameSlot frameSlot;
 
-  public AssignmentNode(FramePointer framePtr, ExpressionNode expression) {
-    this.framePtr = framePtr;
+  public AssignmentNode(FrameSlot frameSlot, ExpressionNode expression) {
     this.expression = expression;
+    this.frameSlot = frameSlot;
   }
 
   @Override
   public void execute(VirtualFrame frame) {
     Object result = expression.executeGeneric(frame);
-    framePtr.store(frame, result);
+    frame.setObject(frameSlot, result);
   }
 }

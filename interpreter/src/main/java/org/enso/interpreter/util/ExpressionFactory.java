@@ -1,5 +1,6 @@
 package org.enso.interpreter.util;
 
+import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import org.enso.interpreter.*;
@@ -9,14 +10,14 @@ import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.ForeignCallNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.*;
-import org.enso.interpreter.runtime.ArgPointer;
 import org.enso.interpreter.runtime.FramePointer;
-import org.enso.interpreter.runtime.VarPointer;
 import scala.collection.JavaConversions;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class ExpressionFactory {
 
@@ -33,7 +34,7 @@ public class ExpressionFactory {
   }
 
   public static class LocalScope {
-    private Map<String, FramePointer> items;
+    private Map<String, FrameSlot> items;
     private FrameDescriptor frameDescriptor;
 
     public LocalScope getParent() {
@@ -57,26 +58,18 @@ public class ExpressionFactory {
       return new LocalScope(this);
     }
 
-    public FramePointer createVarSlot(String name) {
+    public FrameSlot createVarSlot(String name) {
       if (items.containsKey(name)) throw new VariableRedefinitionException(name);
       FrameSlot slot = frameDescriptor.addFrameSlot(name);
-      FramePointer ptr = new VarPointer(frameDescriptor, slot);
-      items.put(name, ptr);
-      return ptr;
-    }
-
-    public FramePointer createArgSlot(String name, int idx) {
-      if (items.containsKey(name)) throw new VariableRedefinitionException(name);
-      FramePointer ptr = new ArgPointer(frameDescriptor, idx);
-      items.put(name, ptr);
-      return ptr;
+      items.put(name, slot);
+      return slot;
     }
 
     public FramePointer getSlot(String name) {
       LocalScope scope = this;
       while (scope != null) {
-        FramePointer ptr = scope.items.get(name);
-        if (ptr != null) return ptr;
+        FrameSlot slot = scope.items.get(name);
+        if (slot != null) return new FramePointer(scope.frameDescriptor, slot);
         scope = scope.parent;
       }
       throw new VariableDoesNotExistException(name);
@@ -97,8 +90,8 @@ public class ExpressionFactory {
 
   public StatementNode runStmt(EnsoAst root) {
     if (root instanceof EnsoAssign) {
-      FramePointer ptr = scope.createVarSlot(((EnsoAssign) root).name());
-      return new AssignmentNode(ptr, run(((EnsoAssign) root).body()));
+      FrameSlot slot = scope.createVarSlot(((EnsoAssign) root).name());
+      return new AssignmentNode(slot, run(((EnsoAssign) root).body()));
     }
     if (root instanceof EnsoPrint) {
       return new PrintNode(run(((EnsoPrint) root).body()));
@@ -130,14 +123,24 @@ public class ExpressionFactory {
     if (root instanceof EnsoBlock) {
       scope = scope.createChild();
       List<String> arguments = JavaConversions.seqAsJavaList(((EnsoBlock) root).arguments());
+      List<StatementNode> argRewrites = new ArrayList<>();
       for (int i = 0; i < arguments.size(); i++) {
-        scope.createArgSlot(arguments.get(i), i + 1);
+        FrameSlot slot = scope.createVarSlot(arguments.get(i));
+        ReadArgumentNode readArg = new ReadArgumentNode(i + 1);
+        AssignmentNode assignArg = new AssignmentNode(slot, readArg);
+        argRewrites.add(assignArg);
       }
       List<EnsoAst> statements = JavaConversions.seqAsJavaList(((EnsoBlock) root).statements());
-      StatementNode[] statementNodes =
-          statements.stream().map(this::runStmt).toArray(StatementNode[]::new);
+      List<StatementNode> statementNodes =
+          statements.stream().map(this::runStmt).collect(Collectors.toList());
+      argRewrites.addAll(statementNodes);
       ExpressionNode expr = run(((EnsoBlock) root).ret());
-      BlockNode blockNode = new BlockNode(language, scope.frameDescriptor, statementNodes, expr);
+      BlockNode blockNode =
+          new BlockNode(
+              language,
+              scope.frameDescriptor,
+              argRewrites.stream().toArray(StatementNode[]::new),
+              expr);
       ExpressionNode result = new CreateBlockNode(blockNode);
       scope = scope.getParent();
       return result;
