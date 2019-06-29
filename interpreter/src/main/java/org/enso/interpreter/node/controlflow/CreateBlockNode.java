@@ -1,9 +1,6 @@
 package org.enso.interpreter.node.controlflow;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -15,15 +12,14 @@ import org.enso.interpreter.runtime.Context;
 
 
 public class CreateBlockNode extends ExpressionNode {
-  @Child private BlockNode expr;
+  private final RootCallTarget callTarget;
 
-  public CreateBlockNode(BlockNode expr) {
-    this.expr = expr;
+  public CreateBlockNode(RootCallTarget callTarget) {
+    this.callTarget = callTarget;
   }
 
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(expr);
     MaterializedFrame scope = frame.materialize();
     return new Block(callTarget, scope);
   }

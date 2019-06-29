@@ -1,5 +1,7 @@
 package org.enso.interpreter.util;
 
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
@@ -67,9 +69,11 @@ public class ExpressionFactory {
 
     public FramePointer getSlot(String name) {
       LocalScope scope = this;
+      System.out.println("looking up " + name);
       while (scope != null) {
         FrameSlot slot = scope.items.get(name);
-        if (slot != null) return new FramePointer(scope.frameDescriptor, slot);
+        if (slot != null) { System.out.println("Found it!"); return new FramePointer(scope.frameDescriptor, slot);}
+        System.out.println("parenting");
         scope = scope.parent;
       }
       throw new VariableDoesNotExistException(name);
@@ -134,6 +138,7 @@ public class ExpressionFactory {
       List<StatementNode> statementNodes =
           statements.stream().map(this::runStmt).collect(Collectors.toList());
       argRewrites.addAll(statementNodes);
+      System.out.println(argRewrites);
       ExpressionNode expr = run(((EnsoBlock) root).ret());
       BlockNode blockNode =
           new BlockNode(
@@ -141,7 +146,8 @@ public class ExpressionFactory {
               scope.frameDescriptor,
               argRewrites.stream().toArray(StatementNode[]::new),
               expr);
-      ExpressionNode result = new CreateBlockNode(blockNode);
+      RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(blockNode);
+      ExpressionNode result = new CreateBlockNode(callTarget);
       scope = scope.getParent();
       return result;
     }

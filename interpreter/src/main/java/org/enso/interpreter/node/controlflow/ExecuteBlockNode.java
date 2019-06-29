@@ -11,7 +11,7 @@ import scala.reflect.api.Exprs;
 @NodeInfo(shortName = "@", description = "Executes block from children expression")
 public final class ExecuteBlockNode extends ExpressionNode {
   @Child private ExpressionNode expression;
-  @Children private ExpressionNode[] arguments;
+  @Children private final ExpressionNode[] arguments;
   @Child private IndirectCallNode callNode;
 
   public ExecuteBlockNode(ExpressionNode expression, ExpressionNode[] arguments) {

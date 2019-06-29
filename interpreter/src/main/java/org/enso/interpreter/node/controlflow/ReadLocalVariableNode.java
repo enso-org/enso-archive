@@ -3,6 +3,7 @@ package org.enso.interpreter.node.controlflow;
 import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.FramePointer;
@@ -16,11 +17,13 @@ public final class ReadLocalVariableNode extends ExpressionNode {
   }
 
   @Override
+  @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
     Frame currentFrame = frame;
     while (currentFrame != null) {
-      if (pointer.getFrameDescriptor() == currentFrame.getFrameDescriptor())
-        return frame.getValue(pointer.getFrameSlot());
+      if (pointer.getFrameDescriptor() == currentFrame.getFrameDescriptor()) {
+        return currentFrame.getValue(pointer.getFrameSlot());
+      }
       currentFrame = (Frame) currentFrame.getArguments()[0];
     }
     return null;
