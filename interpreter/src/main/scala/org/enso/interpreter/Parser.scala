@@ -4,18 +4,22 @@ import scala.util.parsing.combinator._
 
 sealed trait EnsoAst
 
-case class EnsoLong(l: Long)                                  extends EnsoAst
-case class EnsoArithOp(op: String, l: EnsoAst, r: EnsoAst)    extends EnsoAst
-case class EnsoForeign(lang: String, code: String)            extends EnsoAst
-case class EnsoVariable(name: String)                         extends EnsoAst
-case class EnsoFunction(body: EnsoAst)                        extends EnsoAst
-case class EnsoReadVar(name: String)                          extends EnsoAst
-case class EnsoApply(fun: EnsoAst, args: List[EnsoAst])       extends EnsoAst
-case class EnsoBlock(statements: List[EnsoAst], ret: EnsoAst) extends EnsoAst
-case class EnsoAssign(name: String, body: EnsoAst)            extends EnsoAst
-case class EnsoPrint(body: EnsoAst)                           extends EnsoAst
-case class EnsoRunBlock(block: EnsoAst)                       extends EnsoAst
-case class EnsoJsCall(code: String, args: List[EnsoAst])      extends EnsoAst
+case class EnsoLong(l: Long)                               extends EnsoAst
+case class EnsoArithOp(op: String, l: EnsoAst, r: EnsoAst) extends EnsoAst
+case class EnsoForeign(lang: String, code: String)         extends EnsoAst
+case class EnsoVariable(name: String)                      extends EnsoAst
+case class EnsoFunction(body: EnsoAst)                     extends EnsoAst
+case class EnsoReadVar(name: String)                       extends EnsoAst
+case class EnsoApply(fun: EnsoAst, args: List[EnsoAst])    extends EnsoAst
+case class EnsoBlock(
+  arguments: List[String],
+  statements: List[EnsoAst],
+  ret: EnsoAst)
+    extends EnsoAst
+case class EnsoAssign(name: String, body: EnsoAst)           extends EnsoAst
+case class EnsoPrint(body: EnsoAst)                          extends EnsoAst
+case class EnsoRunBlock(block: EnsoAst, args: List[EnsoAst]) extends EnsoAst
+case class EnsoJsCall(code: String, args: List[EnsoAst])     extends EnsoAst
 
 class EnsoParserInternal extends JavaTokenParsers {
 
@@ -30,16 +34,25 @@ class EnsoParserInternal extends JavaTokenParsers {
       case lang ~ code => EnsoForeign(lang, code)
     }
 
-  def argList: Parser[List[EnsoAst]] =
-    "[" ~> expression <~ "]" ^^ {
-      case expr => List(expr)
+  def delimited[T](beg: String, end: String, parser: Parser[T]): Parser[T] =
+    beg ~> parser <~ end
+
+  def nonEmptyList[T](parser: Parser[T]): Parser[List[T]] =
+    parser ~ (("," ~> parser) *) ^^ {
+      case e ~ es => e :: es
     }
+
+  def argList: Parser[List[EnsoAst]] =
+    delimited("[", "]", nonEmptyList(expression))
+
+  def inArgList: Parser[List[String]] = delimited("|", "|", nonEmptyList(ident))
 
   def foreignLiteral: Parser[String] = "**" ~> "[^\\*]*".r <~ "**"
 
-  def jsCall: Parser[EnsoAst] = "jsCall:" ~> foreignLiteral ~ argList ^^ {
-    case code ~ args => EnsoJsCall(code, args)
-  }
+  def jsCall: Parser[EnsoAst] =
+    "jsCall:" ~> foreignLiteral ~ argList ^^ {
+      case code ~ args => EnsoJsCall(code, args)
+    }
 
   def variable: Parser[EnsoAst] = ident ^^ EnsoReadVar
 
@@ -54,7 +67,9 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def expression: Parser[EnsoAst] = arith | block
 
-  def call: Parser[EnsoAst] = "@" ~> expression ^^ EnsoRunBlock
+  def call: Parser[EnsoAst] = "@" ~> expression ~ (argList ?) ^^ {
+    case expr ~ args => EnsoRunBlock(expr, args.getOrElse(Nil))
+  }
 
   def assignment: Parser[EnsoAst] = ident ~ ("=" ~> expression) ^^ {
     case v ~ exp => EnsoAssign(v, exp)
@@ -63,8 +78,8 @@ class EnsoParserInternal extends JavaTokenParsers {
   def print: Parser[EnsoAst] = "print:" ~> expression ^^ EnsoPrint
 
   def block: Parser[EnsoAst] =
-    "{" ~> (((statement <~ ";") *) ~ expression) <~ "}" ^^ {
-      case stmts ~ expr => EnsoBlock(stmts, expr)
+    ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {
+      case args ~ stmts ~ expr => EnsoBlock(args.getOrElse(Nil), stmts, expr)
     }
 
   def statement: Parser[EnsoAst] = assignment | print | jsCall | expression
@@ -79,19 +94,4 @@ class EnsoParser {
   def parseEnso(code: String): EnsoAst = {
     new EnsoParserInternal().parse(code)
   }
-
-  def example: EnsoAst =
-    EnsoRunBlock(
-      EnsoBlock(
-        List(
-          EnsoAssign(
-            "foo",
-            EnsoBlock(List(EnsoPrint(EnsoLong(20))), EnsoLong(20))
-          ),
-          EnsoRunBlock(EnsoReadVar("foo")),
-          EnsoRunBlock(EnsoReadVar("foo"))
-        ),
-        EnsoLong(30)
-      )
-    )
 }

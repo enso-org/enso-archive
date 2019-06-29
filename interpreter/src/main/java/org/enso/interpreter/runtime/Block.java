@@ -38,7 +38,11 @@ public final class Block implements TruffleObject {
     @Specialization
     protected static Object callIndirect(
         Block block, Object[] arguments, @Cached IndirectCallNode callNode) {
-      Object[] args = {block.getScope()};
+      Object[] args = new Object[arguments.length+1];
+      args[0] = block.getScope();
+      for (int i = 0; i < arguments.length; i++) {
+        args[i + 1] = arguments[i];
+      }
       return callNode.call(block.getCallTarget(), args);
     }
   }

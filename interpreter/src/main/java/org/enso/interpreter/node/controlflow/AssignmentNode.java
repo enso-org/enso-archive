@@ -5,22 +5,23 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.StatementNode;
+import org.enso.interpreter.runtime.FramePointer;
 import scala.reflect.internal.Trees;
 
 @NodeInfo(shortName="=", description = "Assigns variable to an expression.")
 public final class AssignmentNode extends StatementNode {
 
   @Child private ExpressionNode expression;
-  private FrameSlot frameSlot;
+  private FramePointer framePtr;
 
-  public AssignmentNode(FrameSlot frameSlot, ExpressionNode expression) {
-    this.frameSlot = frameSlot;
+  public AssignmentNode(FramePointer framePtr, ExpressionNode expression) {
+    this.framePtr = framePtr;
     this.expression = expression;
   }
 
   @Override
   public void execute(VirtualFrame frame) {
     Object result = expression.executeGeneric(frame);
-    frame.setObject(frameSlot, result);
+    framePtr.store(frame, result);
   }
 }

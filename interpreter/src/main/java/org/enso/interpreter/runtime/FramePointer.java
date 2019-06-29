@@ -4,18 +4,9 @@ import com.oracle.truffle.api.frame.Frame;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 
-public class FramePointer {
-  private FrameDescriptor descriptor;
-  private FrameSlot slot;
+public interface FramePointer {
+  Object lookup(Frame frame);
 
-
-  public FramePointer(FrameDescriptor descriptor, FrameSlot slot) {
-    this.descriptor = descriptor;
-    this.slot = slot;
-  }
-
-  public Object lookup(Frame frame) {
-    if (frame.getFrameDescriptor() == descriptor) return frame.getValue(slot);
-    return null;
-  }
+  void store(Frame frame, Object val);
 }
+

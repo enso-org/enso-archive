@@ -8,6 +8,15 @@ import org.enso.interpreter.node.expression.BinaryOperatorNode;
 public abstract class AddOperatorNode extends BinaryOperatorNode {
 
   @Specialization
+  protected long add(int left, int right) { return left + right; }
+
+  @Specialization
+  protected long add(long left, int right) { return left + right; }
+
+  @Specialization
+  protected long add(int left, long right) { return left + right; }
+
+  @Specialization
   protected long add(long left, long right) {
     return left + right;
   }
