@@ -1,10 +1,15 @@
 package org.enso.interpreter
 
 import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.PolyglotException
 import org.graalvm.polyglot.Value
 import org.scalactic.Equality
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
+
+case class RichValue(value: Value) {
+  def call(l: Long): Value = value.execute(l.asInstanceOf[AnyRef])
+}
 
 abstract class LanguageTest extends FlatSpec with Matchers {
   val ctx = Context.newBuilder(Constants.LANGUAGE_ID).build()
@@ -15,6 +20,8 @@ abstract class LanguageTest extends FlatSpec with Matchers {
       case _: Int  => a.isNumber && a.fitsInInt && a.asInt == b
       case _       => false
     }
+
+  implicit def valueToRich(v: Value): RichValue = RichValue(v)
 
   def eval(code: String): Value = ctx.eval(Constants.LANGUAGE_ID, code)
 }

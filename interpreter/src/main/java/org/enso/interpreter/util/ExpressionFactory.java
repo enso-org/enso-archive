@@ -2,8 +2,10 @@ package org.enso.interpreter.util;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleException;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.*;
 import org.enso.interpreter.node.EnsoRootNode;
@@ -26,15 +28,27 @@ public class ExpressionFactory
     implements AstExpressionVisitor<ExpressionNode>,
         AstStatementVisitor<StatementNode, ExpressionNode> {
 
-  public static class VariableRedefinitionException extends RuntimeException {
+  public static class VariableRedefinitionException extends RuntimeException
+      implements TruffleException {
     public VariableRedefinitionException(String name) {
       super("Variable " + name + " was already defined in this scope.");
     }
+
+    @Override
+    public Node getLocation() {
+      return null;
+    }
   }
 
-  public static class VariableDoesNotExistException extends RuntimeException {
+  public static class VariableDoesNotExistException extends RuntimeException
+      implements TruffleException {
     public VariableDoesNotExistException(String name) {
       super("Variable " + name + " is not defined.");
+    }
+
+    @Override
+    public Node getLocation() {
+      return null;
     }
   }
 
@@ -148,7 +162,8 @@ public class ExpressionFactory
     allStatements.addAll(statementNodes);
     ExpressionNode expr = retValue.visitExpression(this);
     BlockNode blockNode = new BlockNode(allStatements.toArray(new StatementNode[0]), expr);
-    RootNode rootNode = new EnsoRootNode(language, scope.frameDescriptor, blockNode, null, "<lambda>");
+    RootNode rootNode =
+        new EnsoRootNode(language, scope.frameDescriptor, blockNode, null, "<lambda>");
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     ExpressionNode result = new CreateBlockNode(callTarget);
     return result;

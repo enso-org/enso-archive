@@ -69,15 +69,15 @@ public class Main {
 //    System.out.println(TruffleStackTrace.fillIn(new Exception()));
 
 //    System.out.println(Truffle.getRuntime().getCapability(TVMCI.class));
-//    Value value = context.eval(Constants.LANGUAGE_ID, new EnsoParser().internalSummatorCode());//"{|x| x+2}");
+    Value value = context.eval(Constants.LANGUAGE_ID, "@{ x = 10; x = 5; x }"); //new EnsoParser().internalSummatorCode());//"{|x| x+2}");
 //    for (int i = 0; i < 100000; i++) {
 //      value.execute(2);
 //    }
 
 
-    String jsCode = "(function (arg) { var recursiver = function (i) { return (i == 0 ? 0 : i + recursiver(i-1)); } ; return recursiver(arg); })";
+//    String jsCode = "(function (arg) { var recursiver = function (i) { return (i == 0 ? 0 : i + recursiver(i-1)); } ; return recursiver(arg); })";
 
-    Value value = jsContext.eval("js", jsCode);
+//    Value value = jsContext.eval("js", jsCode);
 
     System.out.println("Executed, result is: " + value.execute(600));
   }
