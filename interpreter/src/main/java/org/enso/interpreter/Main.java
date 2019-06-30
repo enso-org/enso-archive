@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleStackTrace;
+import com.oracle.truffle.api.impl.TVMCI;
 import org.apache.commons.lang3.StringUtils;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Value;
@@ -19,11 +22,14 @@ public class Main {
   public static void main(String[] args) {
     // This is all for testing purposes only.
     Context context = null;
+    Context jsContext = null;
     Map<String, String> options = new HashMap<>();
     InputStream in = System.in;
     OutputStream out = System.out;
     try {
       context = Context.newBuilder(Constants.LANGUAGE_ID).in(in).out(out).options(options).build();
+      jsContext = Context.newBuilder("js").in(in).out(out).options(options).build();
+
 
       System.out.println(context.getEngine());
 
@@ -56,15 +62,23 @@ public class Main {
 //    codeLs.add("   0");
     codeLs.add("}");
     String code = StringUtils.join(codeLs, "\n");
-    System.out.println(code);
+//    System.out.println(code);
 
     System.out.println("Starting execution...");
 
-    Value value = context.eval(Constants.LANGUAGE_ID, "{|x| x+2}");
-    for (int i = 0; i < 100000; i++) {
-      value.execute(2);
-    }
+//    System.out.println(TruffleStackTrace.fillIn(new Exception()));
 
-    System.out.println("Executed, result is: " + value.execute(2));
+//    System.out.println(Truffle.getRuntime().getCapability(TVMCI.class));
+//    Value value = context.eval(Constants.LANGUAGE_ID, new EnsoParser().internalSummatorCode());//"{|x| x+2}");
+//    for (int i = 0; i < 100000; i++) {
+//      value.execute(2);
+//    }
+
+
+    String jsCode = "(function (arg) { var recursiver = function (i) { return (i == 0 ? 0 : i + recursiver(i-1)); } ; return recursiver(arg); })";
+
+    Value value = jsContext.eval("js", jsCode);
+
+    System.out.println("Executed, result is: " + value.execute(600));
   }
 }

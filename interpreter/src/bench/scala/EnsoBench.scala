@@ -10,8 +10,9 @@ class EnsoBench extends Bench.LocalTime {
        |(function (callback) {
        |    var res = 0;
        |    var i = 0;
+       |    var adder = function(a, b) { return a + b; }
        |    for (i = 0; i < $size; i++) {
-       |        res = callback(res, i);
+       |        res = adder(res, i);
        |    }
        |    console.log(res);
        |})
@@ -34,19 +35,29 @@ class EnsoBench extends Bench.LocalTime {
 //      |    jsCall: **(function (callback, callback2) { console.log(callback(), callback2(3)); })** [{ @newBlock[12]; 25 }, newBlock];
 //      |    (@newBlock[1]) + (@newBlock[2])
 //      | }""".stripMargin
-  println(ensoCode)
+//  println(ensoCode)
   val gen = Gen.unit("foo")
 
-  val value = ctx.eval(Constants.LANGUAGE_ID, ensoCode)
+  val internalSummatorCode =
+    """
+      |{ |sumTo|
+      |    summator = { |current|
+      |        ifZero: [current, 0, current + (@summator [current - 1])]
+      |    };
+      |    @summator [sumTo]
+      |}
+    """.stripMargin
 
-  value.execute()
-  performance of "FFI" in {
-    measure method "foo" in {
-      using(gen) in { _ =>
-        value.execute()
-      }
-    }
-  }
+  val value = ctx.eval(Constants.LANGUAGE_ID, internalSummatorCode)
+
+  println(value.execute((100: Long).asInstanceOf[Object]))
+//  performance of "FFI" in {
+//    measure method "foo" in {
+//      using(gen) in { _ =>
+//        value.execute(10.asInstanceOf[Long].asInstanceOf[Object])
+//      }
+//    }
+//  }
 
 //  val sizes = Gen.range("size")(300000, 1500000, 300000)
 //

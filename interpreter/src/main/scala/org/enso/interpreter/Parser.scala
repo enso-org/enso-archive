@@ -1,38 +1,107 @@
 package org.enso.interpreter
 
 import scala.util.parsing.combinator._
+import scala.collection.JavaConverters._
 
-sealed trait EnsoAst
+trait AstExpressionVisitor[+T] {
+  def visitLong(l: Long): T
+  def visitArithOp(op: String, left: AstExpression, right: AstExpression): T
+  def visitForeign(lang: String, code: String): T
+  def visitVariable(name: String): T
 
-case class EnsoLong(l: Long)                               extends EnsoAst
-case class EnsoArithOp(op: String, l: EnsoAst, r: EnsoAst) extends EnsoAst
-case class EnsoForeign(lang: String, code: String)         extends EnsoAst
-case class EnsoVariable(name: String)                      extends EnsoAst
-case class EnsoFunction(body: EnsoAst)                     extends EnsoAst
-case class EnsoReadVar(name: String)                       extends EnsoAst
-case class EnsoApply(fun: EnsoAst, args: List[EnsoAst])    extends EnsoAst
-case class EnsoBlock(
+  def visitFunction(
+    arguments: java.util.List[String],
+    statements: java.util.List[AstStatement],
+    retValue: AstExpression
+  ): T
+
+  def visitApplication(
+    function: AstExpression,
+    arguments: java.util.List[AstExpression]
+  ): T
+
+  def visitIf(
+    cond: AstExpression,
+    ifTrue: AstExpression,
+    ifFalse: AstExpression
+  ): T
+}
+
+trait AstStatementVisitor[+S, +E <: S] extends AstExpressionVisitor[E] {
+  def visitAssignment(varName: String, expr: AstExpression): S
+  def visitPrint(body: AstExpression): S
+}
+
+sealed trait AstStatement {
+  def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T
+}
+
+sealed trait AstExpression extends AstStatement {
+  def visitExpression[T](visitor: AstExpressionVisitor[T]): T
+
+  def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T =
+    visitExpression(visitor)
+}
+
+case class AstLong(l: Long) extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitLong(l)
+}
+
+case class AstArithOp(op: String, left: AstExpression, right: AstExpression)
+    extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitArithOp(op, left, right)
+}
+
+case class AstForeign(lang: String, code: String) extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitForeign(lang, code)
+}
+
+case class AstVariable(name: String) extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitVariable(name)
+}
+
+case class AstApply(fun: AstExpression, args: List[AstExpression])
+    extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitApplication(fun, args.asJava)
+}
+
+case class AstFunction(
   arguments: List[String],
-  statements: List[EnsoAst],
-  ret: EnsoAst)
-    extends EnsoAst
-case class EnsoAssign(name: String, body: EnsoAst)           extends EnsoAst
-case class EnsoPrint(body: EnsoAst)                          extends EnsoAst
-case class EnsoRunBlock(block: EnsoAst, args: List[EnsoAst]) extends EnsoAst
-case class EnsoJsCall(code: String, args: List[EnsoAst])     extends EnsoAst
+  statements: List[AstStatement],
+  ret: AstExpression)
+    extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitFunction(arguments.asJava, statements.asJava, ret)
+}
+
+case class AstAssignment(name: String, body: AstExpression)
+    extends AstStatement {
+  override def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T =
+    visitor.visitAssignment(name, body)
+}
+
+case class AstPrint(body: AstExpression) extends AstStatement {
+  override def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T =
+    visitor.visitPrint(body)
+}
+
+case class AstIfZero(
+  cond: AstExpression,
+  ifTrue: AstExpression,
+  ifFalse: AstExpression)
+    extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitIf(cond, ifTrue, ifFalse)
+}
 
 class EnsoParserInternal extends JavaTokenParsers {
 
   override def skipWhitespace: Boolean = true
-
-  def long: Parser[EnsoAst] = wholeNumber ^^ { numStr =>
-    EnsoLong(numStr.toLong)
-  }
-
-  def foreign: Parser[EnsoAst] =
-    ("js" | "rb" | "py") ~ foreignLiteral ^^ {
-      case lang ~ code => EnsoForeign(lang, code)
-    }
 
   def delimited[T](beg: String, end: String, parser: Parser[T]): Parser[T] =
     beg ~> parser <~ end
@@ -42,56 +111,74 @@ class EnsoParserInternal extends JavaTokenParsers {
       case e ~ es => e :: es
     }
 
-  def argList: Parser[List[EnsoAst]] =
+  def long: Parser[AstLong] = wholeNumber ^^ { numStr =>
+    AstLong(numStr.toLong)
+  }
+
+  def foreign: Parser[AstForeign] =
+    ("js" | "rb" | "py") ~ foreignLiteral ^^ {
+      case lang ~ code => AstForeign(lang, code)
+    }
+
+  def argList: Parser[List[AstExpression]] =
     delimited("[", "]", nonEmptyList(expression))
 
   def inArgList: Parser[List[String]] = delimited("|", "|", nonEmptyList(ident))
 
   def foreignLiteral: Parser[String] = "**" ~> "[^\\*]*".r <~ "**"
 
-  def jsCall: Parser[EnsoAst] =
-    "jsCall:" ~> foreignLiteral ~ argList ^^ {
-      case code ~ args => EnsoJsCall(code, args)
-    }
+  def variable: Parser[AstVariable] = ident ^^ AstVariable
 
-  def variable: Parser[EnsoAst] = ident ^^ EnsoReadVar
+  def operand: Parser[AstExpression] =
+    long | foreign | variable | "(" ~> expression <~ ")" | call
 
-  def operand: Parser[EnsoAst] =
-    long | foreign | variable | "(" ~> arith <~ ")" | call
-
-  def arith: Parser[EnsoAst] =
+  def arith: Parser[AstExpression] =
     operand ~ ((("+" | "-" | "*" | "/") ~ operand) ?) ^^ {
-      case a ~ Some(op ~ b) => EnsoArithOp(op, a, b)
+      case a ~ Some(op ~ b) => AstArithOp(op, a, b)
       case a ~ None         => a
     }
 
-  def expression: Parser[EnsoAst] = arith | block
+  def expression: Parser[AstExpression] = ifZero | arith | function
 
-  def call: Parser[EnsoAst] = "@" ~> expression ~ (argList ?) ^^ {
-    case expr ~ args => EnsoRunBlock(expr, args.getOrElse(Nil))
+  def call: Parser[AstApply] = "@" ~> expression ~ (argList ?) ^^ {
+    case expr ~ args => AstApply(expr, args.getOrElse(Nil))
   }
 
-  def assignment: Parser[EnsoAst] = ident ~ ("=" ~> expression) ^^ {
-    case v ~ exp => EnsoAssign(v, exp)
+  def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
+    case v ~ exp => AstAssignment(v, exp)
   }
 
-  def print: Parser[EnsoAst] = "print:" ~> expression ^^ EnsoPrint
+  def print: Parser[AstPrint] = "print:" ~> expression ^^ AstPrint
 
-  def block: Parser[EnsoAst] =
+  def ifZero: Parser[AstIfZero] = "ifZero:" ~> argList ^^ {
+    case List(cond, ift, iff) => AstIfZero(cond, ift, iff)
+  }
+
+  def function: Parser[AstFunction] =
     ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {
-      case args ~ stmts ~ expr => EnsoBlock(args.getOrElse(Nil), stmts, expr)
+      case args ~ stmts ~ expr => AstFunction(args.getOrElse(Nil), stmts, expr)
     }
 
-  def statement: Parser[EnsoAst] = assignment | print | jsCall | expression
+  def statement: Parser[AstStatement] = assignment | print | expression
 
-  def parse(code: String): EnsoAst = {
-    parseAll(expression | block, code).get
+  def parse(code: String): AstExpression = {
+    parseAll(expression | function, code).get
   }
 }
 
 class EnsoParser {
 
-  def parseEnso(code: String): EnsoAst = {
+  def parseEnso(code: String): AstExpression = {
     new EnsoParserInternal().parse(code)
   }
+
+  val internalSummatorCode =
+    """
+      |{ |sumTo|
+      |    summator = { |current|
+      |        ifZero: [current, 0, current + (@summator [current - 1])]
+      |    };
+      |    @summator [sumTo]
+      |}
+    """.stripMargin
 }

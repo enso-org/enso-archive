@@ -23,11 +23,12 @@ public final class ExecuteBlockNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     Block block = (Block) expression.executeGeneric(frame);
-    Object[] positionalArguments = new Object[arguments.length + 1];
-    positionalArguments[0] = block.getScope();
+    Object[] positionalArguments = new Object[arguments.length];
+//    positionalArguments[0] = block.getScope();
     for (int i = 0; i < arguments.length; i++) {
-      positionalArguments[i + 1] = arguments[i].executeGeneric(frame);
+      positionalArguments[i] = arguments[i].executeGeneric(frame);
     }
-    return callNode.call(block.getCallTarget(), positionalArguments);
+    Object[] args = {block.getScope(), positionalArguments};
+    return callNode.call(block.getCallTarget(), args);
   }
 }

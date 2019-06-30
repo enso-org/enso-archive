@@ -10,22 +10,21 @@ import org.enso.interpreter.runtime.FramePointer;
 
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
 public final class ReadLocalVariableNode extends ExpressionNode {
-  private FramePointer pointer;
+  private final FrameSlot slot;
+  private final int parentLevel;
 
   public ReadLocalVariableNode(FramePointer pointer) {
-    this.pointer = pointer;
+    this.slot = pointer.getFrameSlot();
+    this.parentLevel = pointer.getParentLevel();
   }
 
   @Override
   @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
     Frame currentFrame = frame;
-    while (currentFrame != null) {
-      if (pointer.getFrameDescriptor() == currentFrame.getFrameDescriptor()) {
-        return currentFrame.getValue(pointer.getFrameSlot());
-      }
+    for (int i = 0; i < parentLevel; i++) {
       currentFrame = (Frame) currentFrame.getArguments()[0];
     }
-    return null;
+    return currentFrame.getValue(slot);
   }
 }

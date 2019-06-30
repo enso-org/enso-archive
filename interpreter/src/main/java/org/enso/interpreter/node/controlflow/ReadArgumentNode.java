@@ -15,6 +15,6 @@ public class ReadArgumentNode extends ExpressionNode {
 
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    return frame.getArguments()[index];
+    return ((Object[]) frame.getArguments()[1])[index];
   }
 }

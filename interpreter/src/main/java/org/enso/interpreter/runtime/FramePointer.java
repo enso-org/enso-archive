@@ -5,20 +5,20 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 
 public class FramePointer {
-  private final FrameDescriptor frameDescriptor;
-  private final FrameSlot frameSlot;
-
-  public FrameDescriptor getFrameDescriptor() {
-    return frameDescriptor;
+  public int getParentLevel() {
+    return parentLevel;
   }
 
   public FrameSlot getFrameSlot() {
     return frameSlot;
   }
 
-  public FramePointer(FrameDescriptor frameDescriptor, FrameSlot frameSlot) {
-    this.frameDescriptor = frameDescriptor;
+  public FramePointer(int parentLevel, FrameSlot frameSlot) {
+    this.parentLevel = parentLevel;
     this.frameSlot = frameSlot;
   }
+
+  private final int parentLevel;
+  private final FrameSlot frameSlot;
 }
 

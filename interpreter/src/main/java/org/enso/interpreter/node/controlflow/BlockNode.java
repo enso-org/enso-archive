@@ -12,20 +12,21 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.StatementNode;
 
 @NodeInfo(shortName = "{}.exec", description = "Suspended computation")
-public class BlockNode extends RootNode {
+public class BlockNode extends ExpressionNode {
 
   @Children private final StatementNode[] statements;
   @Child private ExpressionNode returnExpr;
 
-  public BlockNode(Language language, FrameDescriptor frameDescriptor, StatementNode[] statements, ExpressionNode returnExpr) {
-    super(language, frameDescriptor);
+  public BlockNode(StatementNode[] statements, ExpressionNode returnExpr) {
     this.statements = statements;
     this.returnExpr = returnExpr;
   }
 
+
+
   @Override
   @ExplodeLoop
-  public Object execute(VirtualFrame frame) {
+  public Object executeGeneric(VirtualFrame frame) {
     for (StatementNode statement : statements) {
       statement.execute(frame);
     }

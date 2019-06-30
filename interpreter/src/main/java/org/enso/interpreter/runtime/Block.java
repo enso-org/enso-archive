@@ -38,28 +38,29 @@ public final class Block implements TruffleObject {
   @ExportMessage
   abstract static class Execute {
 
-//    @Specialization(guards = "block.getCallTarget() == cachedTarget")
-//    protected static Object callDirect(
-//        Block block,
-//        Object[] arguments,
-//        @Cached("block.getCallTarget()") RootCallTarget cachedTarget,
-//        @Cached("create(cachedTarget)") DirectCallNode callNode) {
+    @Specialization(guards = "block.getCallTarget() == cachedTarget")
+    protected static Object callDirect(
+        Block block,
+        Object[] arguments,
+        @Cached("block.getCallTarget()") RootCallTarget cachedTarget,
+        @Cached("create(cachedTarget)") DirectCallNode callNode) {
+      Object[] args = {block.getScope(), arguments};
+//      args[0] = block.getScope();
+//      for (int i = 0; i < arguments.length; i++) {
+//        args[i + 1] = arguments[i];
+//      }
+      return callNode.call(args);
+    }
+
+    @Specialization(replaces = "callDirect")
+    protected static Object callIndirect(
+        Block block, Object[] arguments, @Cached IndirectCallNode callNode) {
 //      Object[] args = new Object[arguments.length + 1];
 //      args[0] = block.getScope();
 //      for (int i = 0; i < arguments.length; i++) {
 //        args[i + 1] = arguments[i];
 //      }
-//      return callNode.call(args);
-//    }
-
-    @Specialization //(replaces = "callDirect")
-    protected static Object callIndirect(
-        Block block, Object[] arguments, @Cached IndirectCallNode callNode) {
-      Object[] args = new Object[arguments.length + 1];
-      args[0] = block.getScope();
-      for (int i = 0; i < arguments.length; i++) {
-        args[i + 1] = arguments[i];
-      }
+      Object[] args = {block.getScope(), arguments};
       return callNode.call(block.getCallTarget(), args);
     }
   }

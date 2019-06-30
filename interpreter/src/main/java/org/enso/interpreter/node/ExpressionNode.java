@@ -4,6 +4,8 @@ import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
+import org.enso.interpreter.TypesGen;
 import org.enso.interpreter.node.util.SourceLoc;
 
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
@@ -11,6 +13,10 @@ import org.enso.interpreter.node.util.SourceLoc;
 @ReportPolymorphism
 public abstract class ExpressionNode extends StatementNode {
   public abstract Object executeGeneric(VirtualFrame frame);
+
+  public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
+    return TypesGen.expectLong(executeGeneric(frame));
+  }
 
   public void execute(VirtualFrame frame) {
     executeGeneric(frame);
