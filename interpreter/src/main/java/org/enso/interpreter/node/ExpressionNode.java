@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
@@ -13,6 +14,20 @@ import org.enso.interpreter.node.util.SourceLoc;
 @ReportPolymorphism
 public abstract class ExpressionNode extends StatementNode {
   public abstract Object executeGeneric(VirtualFrame frame);
+
+  @CompilerDirectives.CompilationFinal private boolean isTail = false;
+
+  public void markTail() {
+    isTail = true;
+  }
+
+  public void markNotTail() {
+    isTail = false;
+  }
+
+  public boolean isTail() {
+    return isTail;
+  }
 
   public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectLong(executeGeneric(frame));

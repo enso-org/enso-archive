@@ -3,61 +3,43 @@ import org.graalvm.polyglot.Context
 import org.scalameter.api._
 
 class EnsoBench extends Bench.LocalTime {
-  val ctx = Context.newBuilder(Constants.LANGUAGE_ID).build()
+  val ctx = Context.newBuilder(Constants.LANGUAGE_ID, "js").build()
 
-  def jsCallbackTester(size: Int) =
-    s"""
-       |(function (callback) {
-       |    var res = 0;
-       |    var i = 0;
-       |    var adder = function(a, b) { return a + b; }
-       |    for (i = 0; i < $size; i++) {
-       |        res = adder(res, i);
-       |    }
-       |    console.log(res);
-       |})
-    """.stripMargin
-
-  val ensoCode =
-    s"""
-       |{ myBlock = { |a1,a2| a1 + a2 };
-       |  jsCall: **${jsCallbackTester(1000000)}** [myBlock];
-       |  0
-       |}
-    """.stripMargin
-//  val myCode =
-//    """{ x = 10;
-//      |    newBlock = { |arg1|
-//      |      y = x;
-//      |        print: y + arg1;
-//      |        y + arg1
-//      |    };
-//      |    jsCall: **(function (callback, callback2) { console.log(callback(), callback2(3)); })** [{ @newBlock[12]; 25 }, newBlock];
-//      |    (@newBlock[1]) + (@newBlock[2])
-//      | }""".stripMargin
-//  println(ensoCode)
   val gen = Gen.unit("foo")
 
   val internalSummatorCode =
     """
       |{ |sumTo|
-      |    summator = { |current|
-      |        ifZero: [current, 0, current + (@summator [current - 1])]
+      |    summator = { |acc, current|
+      |        ifZero: [current, acc, @summator [acc + current, current - 1]]
       |    };
-      |    @summator [sumTo]
+      |    @summator [0, sumTo]
       |}
     """.stripMargin
 
   val value = ctx.eval(Constants.LANGUAGE_ID, internalSummatorCode)
 
-  println(value.execute((100: Long).asInstanceOf[Object]))
-//  performance of "FFI" in {
-//    measure method "foo" in {
-//      using(gen) in { _ =>
-//        value.execute(10.asInstanceOf[Long].asInstanceOf[Object])
-//      }
-//    }
-//  }
+  val jsValue = ctx.eval(
+    "js",
+    "(function (i) { var res = 0; for (var j = 0; j <= i; j++) res += j; return res; })"
+  )
+
+//  println(value.execute((100: Long).asInstanceOf[Object]))
+  performance of "Enso TCO" in {
+    measure method "sum numbers upto a million" in {
+      using(gen) in { _ =>
+        value.execute(1000000.asInstanceOf[Long].asInstanceOf[Object])
+      }
+    }
+  }
+
+  performance of "JS Loop" in {
+    measure method "sum numbers upto a million" in {
+      using(gen) in { _ =>
+        jsValue.execute(1000000.asInstanceOf[Long].asInstanceOf[Object])
+      }
+    }
+  }
 
 //  val sizes = Gen.range("size")(300000, 1500000, 300000)
 //

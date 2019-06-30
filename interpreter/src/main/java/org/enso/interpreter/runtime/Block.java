@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime;
 
+import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,6 +12,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
+import org.enso.interpreter.TailCallException;
 
 @ExportLibrary(InteropLibrary.class)
 public final class Block implements TruffleObject {
@@ -37,22 +39,22 @@ public final class Block implements TruffleObject {
 
   @ExportMessage
   abstract static class Execute {
+//
+//    @Specialization(guards = "block.getCallTarget() == cachedTarget")
+//    protected static Object callDirect(
+//        Block block,
+//        Object[] arguments,
+//        @Cached("block.getCallTarget()") RootCallTarget cachedTarget,
+//        @Cached("create(cachedTarget)") DirectCallNode callNode) {
+//      Object[] args = {block.getScope(), arguments};
+////      args[0] = block.getScope();
+////      for (int i = 0; i < arguments.length; i++) {
+////        args[i + 1] = arguments[i];
+////      }
+//      return callNode.call(args);
+//    }
 
-    @Specialization(guards = "block.getCallTarget() == cachedTarget")
-    protected static Object callDirect(
-        Block block,
-        Object[] arguments,
-        @Cached("block.getCallTarget()") RootCallTarget cachedTarget,
-        @Cached("create(cachedTarget)") DirectCallNode callNode) {
-      Object[] args = {block.getScope(), arguments};
-//      args[0] = block.getScope();
-//      for (int i = 0; i < arguments.length; i++) {
-//        args[i + 1] = arguments[i];
-//      }
-      return callNode.call(args);
-    }
-
-    @Specialization(replaces = "callDirect")
+    @Specialization//(replaces = "callDirect")
     protected static Object callIndirect(
         Block block, Object[] arguments, @Cached IndirectCallNode callNode) {
 //      Object[] args = new Object[arguments.length + 1];
@@ -61,7 +63,18 @@ public final class Block implements TruffleObject {
 //        args[i + 1] = arguments[i];
 //      }
       Object[] args = {block.getScope(), arguments};
-      return callNode.call(block.getCallTarget(), args);
+      return doCall(callNode, block.getCallTarget(), args);
+    }
+
+    private static Object doCall(IndirectCallNode callNode, CallTarget target, Object[] args) {
+      while (true) {
+        try {
+          return callNode.call(target, args);
+        } catch (TailCallException e) {
+          target = e.getCallTarget();
+          args = e.getArguments();
+        }
+      }
     }
   }
 }

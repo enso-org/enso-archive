@@ -58,4 +58,5 @@ class LexicalScopeTest extends LanguageTest {
       """.stripMargin
     the[PolyglotException] thrownBy eval(code) should have message "Variable y is not defined."
   }
+
 }

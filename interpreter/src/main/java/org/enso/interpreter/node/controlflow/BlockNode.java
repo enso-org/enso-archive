@@ -20,9 +20,8 @@ public class BlockNode extends ExpressionNode {
   public BlockNode(StatementNode[] statements, ExpressionNode returnExpr) {
     this.statements = statements;
     this.returnExpr = returnExpr;
+    returnExpr.markTail();
   }
-
-
 
   @Override
   @ExplodeLoop

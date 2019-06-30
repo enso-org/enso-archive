@@ -116,7 +116,9 @@ public class ExpressionFactory
   }
 
   public ExpressionNode run(AstExpression body) {
-    return body.visitExpression(this);
+    ExpressionNode result = body.visitExpression(this);
+    result.markNotTail();
+    return result;
   }
 
   public ExpressionNode visitLong(long l) {

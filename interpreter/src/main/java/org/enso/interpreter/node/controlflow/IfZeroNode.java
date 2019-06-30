@@ -39,4 +39,10 @@ public class IfZeroNode extends ExpressionNode {
       throw new TypeError("Type error, expected long", this);
     }
   }
+
+  @Override
+  public void markTail() {
+    ifTrue.markTail();
+    ifFalse.markTail();
+  }
 }
