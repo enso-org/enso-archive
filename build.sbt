@@ -99,6 +99,7 @@ val akkaHttp    = "com.typesafe.akka" %% "akka-http"            % "10.1.8"
 val akkaSpray   = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.8"
 val akkaTyped   = "com.typesafe.akka" %% "akka-actor-typed"     % "2.5.23"
 val akkaTestkit = "com.typesafe.akka" %% "akka-testkit"         % "2.5.23"
+val akkaTestkitTyped = "com.typesafe.akka" %% "akka-actor-testkit-typed" % "2.5.23" % Test
 
 val akka = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
 
@@ -114,7 +115,8 @@ lazy val fileManager = (project in file("file-manager"))
     libraryDependencies ++= akka,
     libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.0-SNAP10" % Test,
     libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
-    libraryDependencies += akkaTestkit
+    libraryDependencies += akkaTestkitTyped,
+    libraryDependencies += "commons-io" % "commons-io" % "2.6"
   )
 
 lazy val projectManager = (project in file("project-manager"))

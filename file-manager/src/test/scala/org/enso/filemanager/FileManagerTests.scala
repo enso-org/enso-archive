@@ -1,43 +1,149 @@
 package org.enso.filemanager
 
-import akka.actor.ActorSystem
-import org.scalatest.Matchers
-import akka.testkit.{TestKit, TestProbe}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import java.io.File
-import java.nio.file.Files
+import java.nio.charset.Charset
+import java.nio.file.{Files, NoSuchFileException, Path, Paths}
 
-import org.enso.filemanager.FileManager.{ExistsRequest, ListRequest}
+import org.apache.commons.io.FileUtils
+import akka.actor.testkit.typed.CapturedLogEvent
+import akka.actor.testkit.typed.Effect._
+import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
+import akka.actor.testkit.typed.scaladsl.TestInbox
+import akka.actor.typed.scaladsl.AskPattern._
+import akka.actor.typed._
+import akka.actor.typed.scaladsl._
+import akka.event.Logging
+import org.enso.filemanager.FileManager.RequestContents
+import org.scalatest.FunSuite
 
-import scala.language.postfixOps
-import scala.concurrent.duration._
+import scala.reflect.ClassTag
+//#imports
+import org.scalatest.Matchers
+import org.scalatest.WordSpec
 
-class FileManagerTests(_system: ActorSystem)
-  extends TestKit(_system)
-    with Matchers
-    with WordSpecLike
-    with BeforeAndAfterAll {
+//object HelperIO {
+//  def withTempDir[T](prefix: String = "file-manager-test", f: Path => T): T = {
+//    val tempDir = Files.createTempDirectory("file-manager-test")
+//    try {
+//      f(tempDir)
+//    }
+//    finally {
+//      FileUtils.deleteDirectory(tempDir.toFile)
+//    }
+//  }
+//}
 
-  def this() = this(ActorSystem("FileManagerTests"))
+class SyncTestingExampleSpec extends FunSuite with Matchers {
+  var tempDir: Path = _
+  var testKit: BehaviorTestKit[FileManager.Request] = _
+  var inbox: TestInbox[FileManager.Response] = _
 
-  override def afterAll: Unit = {
-    shutdown(system)
+  override def withFixture(test: NoArgTest) = {
+    tempDir = Files.createTempDirectory("file-manager-test")
+    testKit = BehaviorTestKit(FileManager.fileManager)
+    inbox = TestInbox[FileManager.Response]()
+    println("Fixture prepared " + tempDir.toString)
+    try test()
+    finally FileUtils.deleteDirectory(tempDir.toFile)
   }
 
-  "A Greeter Actor" should {
-    "pass on a greeting message when instructed to" in {
-      val temp = Files.createTempDirectory("file-manager-test")
+  def createSubFile(): Path = {
+    Files.createTempFile(tempDir, "foo", "")
+  }
+  def createSubDir(): Path = {
+    Files.createTempDirectory(tempDir, "foo")
+  }
+  def expect[T: ClassTag](sth: Any) = {
+    sth shouldBe a [T]
+    sth.asInstanceOf[T]
+  }
+  def responseShouldCome[T: ClassTag](): T = {
+    expect[T](inbox.receiveMessage())
+  }
+  def expectExceptionInResponse[T: ClassTag](): T = {
+    val e = responseShouldCome[FileManager.ErrorResponse].exception
+    e shouldBe a [T]
+    e.asInstanceOf[T]
+  }
 
-      val testProbe = TestProbe()
-      val fileManager = system.actorOf(FileManager.props)
+  def runRequest(contents: FileManager.RequestContents): Unit =
+    testKit.run(FileManager.Request(inbox.ref, contents))
 
-      fileManager ! FileManager.Request(testProbe.ref, ListRequest(temp.toFile))
-      testProbe.expectMsg(500 millis, FileManager.ListResponse(Array()))
+  test("List: empty directory") {
+    val requestContents = FileManager.ListRequest(tempDir)
+    runRequest(requestContents)
+    val response = responseShouldCome[FileManager.ListResponse]()
+    response shouldBe a [FileManager.ListResponse]
+    response.entries should have length 0
+  }
+  test("List: missing directory") {
+    val path = tempDir.resolve("bar")
+    val requestContents = FileManager.ListRequest(path)
+    runRequest(requestContents)
+    expectExceptionInResponse[NoSuchFileException]()
+  }
 
-      fileManager ! FileManager.Request(testProbe.ref, ExistsRequest(new File(temp.toFile, "foo.txt")))
-      testProbe.expectMsg(500 millis, FileManager.ExistsResponse(false))
+  test("List: non-empty directory") {
+    val filePath = createSubFile()
+    val subdirPath = createSubDir()
+
+    val requestContents = FileManager.ListRequest(tempDir)
+    runRequest(requestContents)
+    val response = responseShouldCome[FileManager.ListResponse]()
+
+    def expectPath(path: Path): Path = {
+      response.entries.find(_.toString == path.toString) match {
+        case Some(entry) => entry
+        case _           => fail("cannot find entry for path " + path.toString)
+      }
     }
+
+    response.entries should have length 2
+    expectPath(filePath)
+    expectPath(subdirPath)
   }
-  //#first-test
+
+  test("Exists: existing file") {
+    val filePath = createSubFile()
+    runRequest(FileManager.ExistsRequest(filePath))
+    val response = responseShouldCome[FileManager.ExistsResponse]()
+    response.exists should be (true)
+  }
+  test("Exists: existing directory") {
+    val filePath = createSubDir()
+    runRequest(FileManager.ExistsRequest(filePath))
+    val response = responseShouldCome[FileManager.ExistsResponse]()
+    response.exists should be (true)
+  }
+
+  test("Exists: missing file") {
+    val filePath = tempDir.resolve("bar")
+    runRequest(FileManager.ExistsRequest(filePath))
+    val response = responseShouldCome[FileManager.ExistsResponse]()
+    response.exists should be (false)
+  }
+
+  test("Stat: missing file") {
+    val filePath = tempDir.resolve("bar")
+    runRequest(FileManager.StatRequest(filePath))
+    expectExceptionInResponse[NoSuchFileException]()
+  }
+
+  test("Stat: normal file") {
+    val filePath = createSubFile()
+    val contents = "aaa"
+    Files.write(filePath, contents.getBytes())
+
+    runRequest(FileManager.StatRequest(filePath))
+    val response = responseShouldCome[FileManager.StatResponse]()
+    response.isDirectory should be (false)
+    response.path.toString should be (filePath.toString)
+    response.size should be (contents.length)
+  }
+
+  test("Stat: ask is file a dir") {
+    val filePath = createSubFile()
+    //testKit.ref.ask[FileManager.StatResponse](ref => FileManager.Request(ref, FileManager.StatRequest(filePath)))
+
+  }
 }
-//#full-example
