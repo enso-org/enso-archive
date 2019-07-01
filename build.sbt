@@ -21,7 +21,8 @@ lazy val enso = (project in file("."))
     syntax,
     pkg,
     interpreter,
-    projectManager
+    projectManager,
+    fileManager
   )
 
 // Sub-Projects
@@ -92,17 +93,29 @@ lazy val interpreter = (project in file("interpreter"))
     parallelExecution in Benchmark := false
   )
 
-val akkaActor  = "com.typesafe.akka" %% "akka-actor"           % "2.5.23"
-val akkaStream = "com.typesafe.akka" %% "akka-stream"          % "2.5.23"
-val akkaHttp   = "com.typesafe.akka" %% "akka-http"            % "10.1.8"
-val akkaSpray  = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.8"
-val akkaTyped  = "com.typesafe.akka" %% "akka-actor-typed"     % "2.5.23"
+val akkaActor   = "com.typesafe.akka" %% "akka-actor"           % "2.5.23"
+val akkaStream  = "com.typesafe.akka" %% "akka-stream"          % "2.5.23"
+val akkaHttp    = "com.typesafe.akka" %% "akka-http"            % "10.1.8"
+val akkaSpray   = "com.typesafe.akka" %% "akka-http-spray-json" % "10.1.8"
+val akkaTyped   = "com.typesafe.akka" %% "akka-actor-typed"     % "2.5.23"
+val akkaTestkit = "com.typesafe.akka" %% "akka-testkit"         % "2.5.23"
 
 val akka = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
 
 val circe = Seq("circe-core", "circe-generic", "circe-yaml").map(
   "io.circe" %% _ % "0.10.0"
 )
+
+lazy val fileManager = (project in file("file-manager"))
+  .settings(
+    (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
+  )
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.0-SNAP10" % Test,
+    libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
+    libraryDependencies += akkaTestkit
+  )
 
 lazy val projectManager = (project in file("project-manager"))
   .settings(
