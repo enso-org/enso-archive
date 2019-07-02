@@ -11,8 +11,13 @@ case class RichValue(value: Value) {
   def call(l: Long): Value = value.execute(l.asInstanceOf[AnyRef])
 }
 
-abstract class LanguageTest extends FlatSpec with Matchers {
-  val ctx = Context.newBuilder(Constants.LANGUAGE_ID).build()
+trait LanguageRunner {
+  val ctx = Context.newBuilder(Constants.LANGUAGE_ID, "js").build()
+  implicit def valueToRich(v: Value): RichValue = RichValue(v)
+  def eval(code: String):             Value     = ctx.eval(Constants.LANGUAGE_ID, code)
+}
+
+abstract class LanguageTest extends FlatSpec with Matchers with LanguageRunner {
 
   implicit val valueEquality: Equality[Value] = (a: Value, b: Any) =>
     b match {
@@ -20,8 +25,4 @@ abstract class LanguageTest extends FlatSpec with Matchers {
       case _: Int  => a.isNumber && a.fitsInInt && a.asInt == b
       case _       => false
     }
-
-  implicit def valueToRich(v: Value): RichValue = RichValue(v)
-
-  def eval(code: String): Value = ctx.eval(Constants.LANGUAGE_ID, code)
 }

@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.controlflow;
+package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.*;
 import com.oracle.truffle.api.frame.FrameDescriptor;
@@ -11,10 +11,10 @@ import org.enso.interpreter.runtime.Block;
 import org.enso.interpreter.runtime.Context;
 
 
-public class CreateBlockNode extends ExpressionNode {
+public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
 
-  public CreateBlockNode(RootCallTarget callTarget) {
+  public CreateFunctionNode(RootCallTarget callTarget) {
     this.callTarget = callTarget;
   }
 

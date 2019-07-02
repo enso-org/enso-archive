@@ -16,6 +16,13 @@ public class Context {
   private final PrintWriter output;
 //  private final Shape emptyShape;
 
+  public Context() {
+    language = null;
+    environment = null;
+    input = new BufferedReader(new InputStreamReader(System.in));
+    output = new PrintWriter(System.out, true);
+  }
+
   public Context(Language language, Env environment) {
     this.language = language;
     this.environment = environment;

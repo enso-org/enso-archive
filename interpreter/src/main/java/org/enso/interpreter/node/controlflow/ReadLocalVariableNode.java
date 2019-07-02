@@ -19,8 +19,6 @@ public final class ReadLocalVariableNode extends ExpressionNode {
   private final FrameSlot slot;
   private final int parentLevel;
 
-
-
   public ReadLocalVariableNode(FramePointer pointer) {
     this.slot = pointer.getFrameSlot();
     this.parentLevel = pointer.getParentLevel();
@@ -34,8 +32,6 @@ public final class ReadLocalVariableNode extends ExpressionNode {
     for (int i = 1; i < parentLevel; i++) {
       currentFrame = (MaterializedFrame) currentFrame.getArguments()[0];
     }
-    CompilerDirectives.transferToInterpreterAndInvalidate();
-    this.replace(ReadResolvedLexicalVariableNodeGen.create(slot, currentFrame));
     return currentFrame.getValue(slot);
   }
 

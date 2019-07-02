@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.controlflow;
+package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
@@ -11,13 +11,13 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.StatementNode;
 
-@NodeInfo(shortName = "{}.exec", description = "Suspended computation")
-public class BlockNode extends ExpressionNode {
+@NodeInfo(shortName = "{}", description = "Suspended computation")
+public class FunctionBodyNode extends ExpressionNode {
 
   @Children private final StatementNode[] statements;
   @Child private ExpressionNode returnExpr;
 
-  public BlockNode(StatementNode[] statements, ExpressionNode returnExpr) {
+  public FunctionBodyNode(StatementNode[] statements, ExpressionNode returnExpr) {
     this.statements = statements;
     this.returnExpr = returnExpr;
     returnExpr.markTail();

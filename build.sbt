@@ -72,7 +72,13 @@ lazy val pkg = (project in file("pkg"))
 val truffleRunOptions = Seq(
   fork := true,
   javaOptions += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}",
+  javaOptions += s"-Dgraal.PrintGraph=Network",
+  javaOptions += s"-Dgraal.Dump=Truffle:2",
   javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false",
+  javaOptions += s"-Dgraal.TraceTruffleCompilation=true",
+  javaOptions += s"-Dgraal.TraceTruffleCompilationCallTree=true",
+  javaOptions += s"-Dgraal.TraceTruffleInlining=true",
+  javaOptions += s"-Dgraal.TraceTrufflePerformanceWarnings=true",
   javaOptions += s"-XX:-UseJVMCIClassLoader"
 )
 

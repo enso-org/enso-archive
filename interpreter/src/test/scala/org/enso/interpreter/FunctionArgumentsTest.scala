@@ -13,7 +13,8 @@ class FunctionArgumentsTest extends LanguageTest {
       """
         |{ |a|
         |  adder = { |b| a + b };
-        |  @adder [2]
+        |  res = @adder [2];
+        |  res
         |}  
       """.stripMargin
 

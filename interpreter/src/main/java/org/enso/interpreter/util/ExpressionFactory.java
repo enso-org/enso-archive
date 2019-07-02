@@ -12,11 +12,13 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.StatementNode;
 import org.enso.interpreter.node.controlflow.*;
-import org.enso.interpreter.node.expression.ForeignCallNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.*;
+import org.enso.interpreter.node.function.CreateFunctionNode;
+import org.enso.interpreter.node.function.FunctionBodyNode;
+import org.enso.interpreter.node.function.InvokeNode;
+import org.enso.interpreter.node.function.ReadArgumentNode;
 import org.enso.interpreter.runtime.FramePointer;
-import scala.collection.JavaConverters;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -163,12 +165,11 @@ public class ExpressionFactory
     allStatements.addAll(argRewrites);
     allStatements.addAll(statementNodes);
     ExpressionNode expr = retValue.visitExpression(this);
-    BlockNode blockNode = new BlockNode(allStatements.toArray(new StatementNode[0]), expr);
+    FunctionBodyNode functionBodyNode = new FunctionBodyNode(allStatements.toArray(new StatementNode[0]), expr);
     RootNode rootNode =
-        new EnsoRootNode(language, scope.frameDescriptor, blockNode, null, "<lambda>");
+        new EnsoRootNode(language, scope.frameDescriptor, functionBodyNode, null, "<lambda>");
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    ExpressionNode result = new CreateBlockNode(callTarget);
-    return result;
+    return new CreateFunctionNode(callTarget);
   }
 
   @Override
@@ -180,7 +181,7 @@ public class ExpressionFactory
 
   @Override
   public ExpressionNode visitApplication(AstExpression function, List<AstExpression> arguments) {
-    return new ExecuteBlockNode(
+    return new InvokeNode(
         function.visitExpression(this),
         arguments.stream().map(arg -> arg.visitExpression(this)).toArray(ExpressionNode[]::new));
   }
