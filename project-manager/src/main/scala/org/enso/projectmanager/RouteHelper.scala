@@ -7,8 +7,9 @@ import akka.http.scaladsl.model.Uri.Path
 import akka.http.scaladsl.server.PathMatcher0
 import akka.http.scaladsl.server.PathMatcher1
 import akka.http.scaladsl.server.PathMatchers.JavaUUID
+import org.enso.projectmanager.model.ProjectId
 
-trait RouteHelper {
+class RouteHelper {
 
   val tutorials: String = "tutorials"
   val projects: String  = "projects"
@@ -20,13 +21,13 @@ trait RouteHelper {
   val projectsPath: Path                = Path / projects
   val projectsPathMatcher: PathMatcher0 = projects
 
-  def projectPath(id: UUID): Path = projectsPath / id.toString
-  val projectPathMatcher: PathMatcher1[UUID] = projectsPathMatcher / JavaUUID
+  def projectPath(id: ProjectId): Path = projectsPath / id.toString
 
-  def thumbPath(id: UUID): Path = projectPath(id) / thumb
-  val thumbPathMatcher: PathMatcher1[UUID] = projectPathMatcher / thumb
+  val projectPathMatcher: PathMatcher1[ProjectId] =
+    (projectsPathMatcher / JavaUUID).map(ProjectId)
+
+  def thumbPath(id: ProjectId): Path = projectPath(id) / thumb
+  val thumbPathMatcher: PathMatcher1[ProjectId] = projectPathMatcher / thumb
 
   def uriFor(base: Uri, path: Path): Uri = base.withPath(path)
 }
-
-object RouteHelper extends RouteHelper

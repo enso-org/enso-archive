@@ -22,15 +22,15 @@ case class StorageManager(
   tmpProjectsPath.mkdirs()
   tutorialsPath.mkdirs()
 
-  def persist(project: Project, newName: Option[String]): Project = {
+  def moveToLocal(project: Project, newName: Option[String]): Project = {
     val pkg     = project.pkg
     val renamed = newName.map(pkg.rename).getOrElse(pkg)
-    val root    = assignRootForName(localProjectsPath, renamed.name)
+    val root    = createRootForName(localProjectsPath, renamed.name)
     val moved   = renamed.move(root)
     Project(Local, moved)
   }
 
-  def assignRootForName(
+  def createRootForName(
     rootDir: File,
     name: String,
     idx: Option[Int] = None
@@ -39,10 +39,12 @@ case class StorageManager(
     val nameToTry = name + idxSuffix
     val rootToTry = new File(rootDir, nameToTry)
 
-    if (rootToTry.exists()) {
-      assignRootForName(rootDir, name, Some(idx.map(_ + 1).getOrElse(0)))
+    if (rootToTry.mkdirs()) rootToTry
+    else {
+      val nextIdx = idx.map(_ + 1).getOrElse(0)
+      createRootForName(rootDir, name, Some(nextIdx))
     }
-    else rootToTry
+
   }
 
   def readLocalProjects: ProjectsRepository =
@@ -57,11 +59,11 @@ case class StorageManager(
   ): ProjectsRepository = {
     val candidates = dir.listFiles(_.isDirectory).toList
     val projects   = candidates.map(Package.getOrCreate).map(Project(kind, _))
-    ProjectsRepository(HashMap(projects.map(UUID.randomUUID() -> _): _*))
+    ProjectsRepository(projects)
   }
 
   def createTemporary(name: String): Project = {
-    val root = assignRootForName(tmpProjectsPath, name)
+    val root = createRootForName(tmpProjectsPath, name)
     val pkg  = Package.create(root, name)
     Project(Temporary, pkg)
   }

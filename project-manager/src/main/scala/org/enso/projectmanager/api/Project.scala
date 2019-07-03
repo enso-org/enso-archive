@@ -6,6 +6,7 @@ import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import akka.http.scaladsl.model.Uri
 import org.enso.projectmanager.RouteHelper
 import org.enso.projectmanager.model
+import org.enso.projectmanager.model.ProjectId
 import spray.json.DefaultJsonProtocol
 
 case class Project(
@@ -17,7 +18,11 @@ case class Project(
 
 case class ProjectFactory(routeHelper: RouteHelper) {
 
-  def fromModel(id: UUID, project: model.Project, baseUri: Uri): Project = {
+  def fromModel(
+    id: ProjectId,
+    project: model.Project,
+    baseUri: Uri
+  ): Project = {
     val thumbUri =
       if (project.hasThumb)
         Some(routeHelper.uriFor(baseUri, routeHelper.thumbPath(id)))

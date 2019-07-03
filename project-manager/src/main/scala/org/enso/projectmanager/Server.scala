@@ -21,6 +21,7 @@ import akka.util.Timeout
 import org.enso.projectmanager.api.ProjectFactory
 import org.enso.projectmanager.api.ProjectJsonSupport
 import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.model.ProjectId
 import org.enso.projectmanager.services.CreateTemporary
 import org.enso.projectmanager.services.CreateTemporaryResponse
 import org.enso.projectmanager.services.GetProjectById
@@ -54,7 +55,7 @@ case class Server(
 
   implicit val scheduler: Scheduler = system.scheduler
 
-  def projectDoesNotExistResponse(id: UUID): HttpResponse =
+  def projectDoesNotExistResponse(id: ProjectId): HttpResponse =
     HttpResponse(StatusCodes.NotFound, entity = s"Project $id does not exist")
 
   def thumbDoesNotExistResponse: HttpResponse =
@@ -71,10 +72,12 @@ case class Server(
     }
   }
 
-  def withProject(id: UUID)(route: Project => Route): Route = {
+  def withProject(id: ProjectId)(route: Project => Route): Route = {
     val projectFuture =
       repository
-        .ask((ref: ActorRef[GetProjectResponse]) => GetProjectById(id, ref))
+        .ask(
+          (ref: ActorRef[GetProjectResponse]) => GetProjectById(id, ref)
+        )
         .map(_.project)
     withSuccess(projectFuture) {
       case Some(project) => route(project)
@@ -105,7 +108,7 @@ case class Server(
     }
   }
 
-  def getThumb(projectId: UUID): Route = {
+  def getThumb(projectId: ProjectId): Route = {
     withProject(projectId) { project =>
       if (project.pkg.hasThumb) getFromFile(project.pkg.thumbFile)
       else complete(thumbDoesNotExistResponse)
@@ -150,17 +153,15 @@ object Server {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val askTimeout: Timeout             = new Timeout(timeout)
 
-    val rootProjectsPath = new File(storageConfig.getString("projects-root"))
     val localProjectsPath =
-      new File(rootProjectsPath, storageConfig.getString("local-projects-dir"))
+      new File(storageConfig.getString("local-projects-path"))
     val tmpProjectsPath = new File(
-      rootProjectsPath,
-      storageConfig.getString("temporary-projects-dir")
+      storageConfig.getString("temporary-projects-path")
     )
     val tutorialsPath =
-      new File(rootProjectsPath, storageConfig.getString("tutorials-dir"))
+      new File(storageConfig.getString("tutorials-path"))
     val tutorialsCachePath =
-      new File(rootProjectsPath, storageConfig.getString("tutorials-cache-dir"))
+      new File(storageConfig.getString("tutorials-cache-path"))
 
     val tutorialsDownloader =
       TutorialsDownloader(
@@ -179,7 +180,7 @@ object Server {
       "projects-repository"
     )
 
-    val routeHelper = RouteHelper
+    val routeHelper = new RouteHelper
     val apiFactory  = ProjectFactory(routeHelper)
 
     val server = Server(host, port, repoActor, routeHelper, apiFactory)
