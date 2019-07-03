@@ -21,23 +21,30 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
     this.parentLevel = pointer.getParentLevel();
   }
 
-  @ExplodeLoop
-  @Specialization(rewriteOn = FrameSlotTypeException.class)
-  protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
-    if (parentLevel == 0) return frame.getLong(slot);
-    MaterializedFrame currentFrame = (MaterializedFrame) frame.getArguments()[0];
-    for (int i = 1; i < parentLevel; i++)
-      currentFrame = (MaterializedFrame) currentFrame.getArguments()[0];
-    return currentFrame.getLong(slot);
+  public MaterializedFrame getParentFrame(Frame frame) {
+    return (MaterializedFrame) frame.getArguments()[0];
   }
 
   @ExplodeLoop
+  public MaterializedFrame getProperFrame(Frame frame) {
+    MaterializedFrame currentFrame = getParentFrame(frame);
+    for (int i = 1; i < parentLevel; i++) {
+      currentFrame = getParentFrame(frame);
+    }
+    return currentFrame;
+  }
+
+  @Specialization(rewriteOn = FrameSlotTypeException.class)
+  protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
+    if (parentLevel == 0) return frame.getLong(slot);
+    MaterializedFrame currentFrame = getProperFrame(frame);
+    return currentFrame.getLong(slot);
+  }
+
   @Specialization
   protected Object readGeneric(VirtualFrame frame) {
     if (parentLevel == 0) return FrameUtil.getObjectSafe(frame, slot);
-    MaterializedFrame currentFrame = (MaterializedFrame) frame.getArguments()[0];
-    for (int i = 1; i < parentLevel; i++)
-      currentFrame = (MaterializedFrame) currentFrame.getArguments()[0];
+    MaterializedFrame currentFrame = getProperFrame(frame);
     return FrameUtil.getObjectSafe(currentFrame, slot);
   }
 }
