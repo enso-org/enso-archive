@@ -13,8 +13,8 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed._
 import akka.actor.typed.scaladsl._
 import akka.event.Logging
-import org.enso.filemanager.FileManager.RequestContents
-import org.scalatest.FunSuite
+import org.enso.filemanager.FileManager.RequestPayload
+import org.scalatest.{FunSuite, Outcome}
 
 import scala.reflect.ClassTag
 //#imports
@@ -33,12 +33,16 @@ import org.scalatest.WordSpec
 //  }
 //}
 
-class SyncTestingExampleSpec extends FunSuite with Matchers {
+trait TempDirFixture {
+
+}
+
+class FileManagerTests extends FunSuite with Matchers {
   var tempDir: Path = _
   var testKit: BehaviorTestKit[FileManager.Request] = _
   var inbox: TestInbox[FileManager.Response] = _
 
-  override def withFixture(test: NoArgTest) = {
+  override def withFixture(test: NoArgTest): Outcome = {
     tempDir = Files.createTempDirectory("file-manager-test")
     testKit = BehaviorTestKit(FileManager.fileManager)
     inbox = TestInbox[FileManager.Response]()
@@ -50,23 +54,27 @@ class SyncTestingExampleSpec extends FunSuite with Matchers {
   def createSubFile(): Path = {
     Files.createTempFile(tempDir, "foo", "")
   }
+
   def createSubDir(): Path = {
     Files.createTempDirectory(tempDir, "foo")
   }
-  def expect[T: ClassTag](sth: Any) = {
+
+  def expect[T: ClassTag](sth: Any): T = {
     sth shouldBe a [T]
     sth.asInstanceOf[T]
   }
+
   def responseShouldCome[T: ClassTag](): T = {
     expect[T](inbox.receiveMessage())
   }
+
   def expectExceptionInResponse[T: ClassTag](): T = {
-    val e = responseShouldCome[FileManager.ErrorResponse].exception
+    val e = responseShouldCome[FileManager.ErrorResponse]().exception
     e shouldBe a [T]
     e.asInstanceOf[T]
   }
 
-  def runRequest(contents: FileManager.RequestContents): Unit =
+  def runRequest(contents: FileManager.RequestPayload): Unit =
     testKit.run(FileManager.Request(inbox.ref, contents))
 
   test("List: empty directory") {
@@ -129,6 +137,27 @@ class SyncTestingExampleSpec extends FunSuite with Matchers {
     expectExceptionInResponse[NoSuchFileException]()
   }
 
+  test("Read: file") {
+    val filePath = tempDir.resolve("bar")
+    val contents = "gfhniugdzhbuiobf".getBytes
+    Files.write(filePath, contents)
+
+    runRequest(FileManager.ReadRequest(filePath))
+    val response = responseShouldCome[FileManager.ReadResponse]()
+    response.contents should be (contents)
+  }
+
+  test("Write: file") {
+    val filePath = tempDir.resolve("bar")
+    val contents = "gfhniugdzhbuiobf".getBytes
+
+    runRequest(FileManager.WriteRequest(filePath, contents))
+    responseShouldCome[FileManager.WriteResponse]()
+
+    val actualFileContents = Files.readAllBytes(filePath)
+    actualFileContents should be (contents)
+  }
+
   test("Stat: normal file") {
     val filePath = createSubFile()
     val contents = "aaa"
@@ -141,9 +170,11 @@ class SyncTestingExampleSpec extends FunSuite with Matchers {
     response.size should be (contents.length)
   }
 
-  test("Stat: ask is file a dir") {
-    val filePath = createSubFile()
-    //testKit.ref.ask[FileManager.StatResponse](ref => FileManager.Request(ref, FileManager.StatRequest(filePath)))
-
-  }
+//  test("Stat: ask is file a dir") {
+//    val filePath = createSubFile()
+//
+//    var inbox: TestInbox[FileManager.Response] = TestInbox()
+//    testKit.ref.ask[FileManager.StatResponse](ref =>
+//      FileManager.Request(ref, FileManager.StatRequest(filePath)))
+//  }
 }
