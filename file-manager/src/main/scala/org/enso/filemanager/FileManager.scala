@@ -8,6 +8,7 @@ import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
+import org.apache.commons.io.FileUtils
 
 object API {
   final case class PathOutsideProject(projectRoot: Path, accessedPath: Path)
@@ -40,12 +41,7 @@ object API {
 
   case class ListRequest(path: Path) extends RequestPayload {}
 
-  case class ListResponse(entries: Array[Path]) extends Response {
-    override def equals(obj: Any): Boolean = obj match {
-      case rhs: ListResponse => this.entries.deep == rhs.entries.deep
-      case _                 => false
-    }
-  }
+  case class ListResponse(entries: Array[Path]) extends Response {}
 
   case class StatRequest(path: Path) extends RequestPayload {}
 
@@ -55,17 +51,52 @@ object API {
     size: Long,
     isDirectory: Boolean)
       extends Response {}
+
+  case class TouchFileRequest(path: Path) extends RequestPayload {}
+
+  case class TouchFileResponse() extends Response {}
+
+  case class CopyFileRequest(from: Path, to: Path) extends RequestPayload {}
+
+  case class CopyFileResponse() extends Response {}
+
+  case class MoveFileRequest(from: Path, to: Path) extends RequestPayload {}
+
+  case class MoveFileResponse() extends Response {}
+
+  case class DeleteFileRequest(path: Path) extends RequestPayload {}
+
+  case class DeleteFileResponse() extends Response {}
+
+  case class CopyDirectoryRequest(from: Path, to: Path) extends RequestPayload {}
+
+  case class CopyDirectoryResponse() extends Response {}
+
+  case class MoveDirectoryRequest(from: Path, to: Path) extends RequestPayload {}
+
+  case class MoveDirectoryResponse() extends Response {}
+
+  case class DeleteDirectoryRequest(path: Path) extends RequestPayload {}
+
+  case class DeleteDirectoryResponse() extends Response {}
 }
 
-object FileManager {
+object Detail {
   import API._
 
   def extractPaths(request: RequestPayload): Array[Path] = request match {
-    case WriteRequest(p, _) => Array(p)
-    case ReadRequest(p)     => Array(p)
-    case ExistsRequest(p)   => Array(p)
-    case ListRequest(p)     => Array(p)
-    case StatRequest(p)     => Array(p)
+    case WriteRequest(p, _)             => Array(p)
+    case ReadRequest(p)                 => Array(p)
+    case ExistsRequest(p)               => Array(p)
+    case ListRequest(p)                 => Array(p)
+    case StatRequest(p)                 => Array(p)
+    case TouchFileRequest(p)            => Array(p)
+    case CopyFileRequest(from, to)      => Array(from, to)
+    case MoveFileRequest(from, to)      => Array(from, to)
+    case DeleteFileRequest(p)           => Array(p)
+    case CopyDirectoryRequest(from, to) => Array(from, to)
+    case MoveDirectoryRequest(from, to) => Array(from, to)
+    case DeleteDirectoryRequest(p)      => Array(p)
   }
 
   def validatePath(validatedPath: Path, projectRoot: Path): Unit = {
@@ -74,13 +105,17 @@ object FileManager {
       throw PathOutsideProject(projectRoot, validatedPath)
   }
 
+  def validateRequest(request: RequestPayload, projectRoot: Path): Unit = {
+    extractPaths(request).foreach(validatePath(_, projectRoot))
+  }
+
   def handleSpecific(
     context: ActorContext[Request],
     request: RequestPayload,
     projectRoot: Path
   ): Response = {
     try {
-      extractPaths(request).foreach(validatePath(_, projectRoot))
+      Detail.validateRequest(request, projectRoot)
       request match {
         case msg: ListRequest =>
           val str = Files.list(msg.path)
@@ -98,24 +133,47 @@ object FileManager {
           val size         = Files.size(path)
           val isDirectory  = Files.isDirectory(path)
           StatResponse(path, lastModified, size, isDirectory)
+        case msg: TouchFileRequest =>
+          FileUtils.touch(msg.path.toFile)
+          TouchFileResponse()
         case msg: ReadRequest =>
           val path     = msg.path.toRealPath()
           val contents = Files.readAllBytes(path)
           ReadResponse(contents)
+        case msg: CopyFileRequest =>
+          Files.copy(msg.from, msg.to)
+          CopyFileResponse()
+        case msg: MoveFileRequest =>
+          Files.move(msg.from, msg.to)
+          MoveFileResponse()
+        case msg: DeleteFileRequest =>
+          Files.delete(msg.path)
+          DeleteFileResponse()
+        case msg: CopyDirectoryRequest =>
+          FileUtils.copyDirectory(msg.from.toFile, msg.to.toFile)
+          CopyDirectoryResponse()
+        case msg: MoveDirectoryRequest =>
+          FileUtils.moveDirectory(msg.from.toFile, msg.to.toFile)
+          MoveDirectoryResponse()
+        case msg: DeleteDirectoryRequest =>
+          FileUtils.deleteDirectory(msg.path.toFile)
+          DeleteDirectoryResponse()
       }
     } catch {
       case ex: Throwable =>
-        context.log.warning(
-          "Encountered an exception when handling request: " + ex.toString
-        )
+        context.log.warning(s"Failed to handle request $request: $ex")
         ErrorResponse(ex)
     }
   }
+}
 
-  def fileManager(projectRoot: Path): Behavior[Request] =
+object FileManager {
+  def fileManager(projectRoot: Path): Behavior[API.Request] =
     Behaviors.receive { (context, request) =>
-      context.log.info("Received {}", request.toString)
-      val response = handleSpecific(context, request.contents, projectRoot)
+      context.log.info(s"Received $request")
+      val response =
+        Detail.handleSpecific(context, request.contents, projectRoot)
+      context.log.info(s"Replying: $response")
       request.replyTo ! response
       Behaviors.same
     }

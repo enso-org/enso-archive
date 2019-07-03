@@ -36,7 +36,7 @@ class FileManagerTests extends FunSuite with Matchers {
     tempDir = Files.createTempDirectory("file-manager-test")
     testKit = BehaviorTestKit(FileManager.fileManager(tempDir))
     inbox   = TestInbox[API.Response]()
-    println("Fixture prepared " + tempDir.toString)
+    //println("Fixture prepared " + tempDir.toString)
     try test()
     finally FileUtils.deleteDirectory(tempDir.toFile)
   }
@@ -89,7 +89,7 @@ class FileManagerTests extends FunSuite with Matchers {
 
   test("List: missing directory") {
     val path = tempDir.resolve("bar")
-    ask[NoSuchFileException](API.ListRequest(path))
+    abet[NoSuchFileException](API.ListRequest(path))
   }
 
   test("List: non-empty directory") {
