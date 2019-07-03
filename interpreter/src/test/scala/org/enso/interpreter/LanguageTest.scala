@@ -7,14 +7,12 @@ import org.scalactic.Equality
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 
-case class RichValue(value: Value) {
-  def call(l: Long): Value = value.execute(l.asInstanceOf[AnyRef])
-}
-
 trait LanguageRunner {
+  implicit class RichValue(value: Value) {
+    def call(l: Long): Value = value.execute(l.asInstanceOf[AnyRef])
+  }
   val ctx = Context.newBuilder(Constants.LANGUAGE_ID, "js").build()
-  implicit def valueToRich(v: Value): RichValue = RichValue(v)
-  def eval(code: String):             Value     = ctx.eval(Constants.LANGUAGE_ID, code)
+  def eval(code: String): Value = ctx.eval(Constants.LANGUAGE_ID, code)
 }
 
 abstract class LanguageTest extends FlatSpec with Matchers with LanguageRunner {

@@ -147,7 +147,7 @@ public class ExpressionFactory
   @Override
   public ExpressionNode visitVariable(String name) {
     FramePointer slot = scope.getSlot(name);
-    return new ReadLocalVariableNode(slot);
+    return ReadLocalVariableNodeGen.create(slot);
   }
 
   public ExpressionNode processFunctionBody(
