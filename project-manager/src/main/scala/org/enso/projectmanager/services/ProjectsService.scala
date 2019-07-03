@@ -12,8 +12,9 @@ import org.enso.projectmanager.model.ProjectsRepository
 
 import scala.collection.immutable.HashMap
 
-sealed trait InternalProjectsCommand
-sealed trait ProjectsCommand extends InternalProjectsCommand
+sealed trait ProjectsServiceCommand
+sealed trait ProjectsCommand extends ProjectsServiceCommand
+sealed trait ControlCommand  extends ProjectsServiceCommand
 
 case class ListTutorialsRequest(replyTo: ActorRef[ListProjectsResponse])
     extends ProjectsCommand
@@ -31,20 +32,20 @@ case class CreateTemporary(
     extends ProjectsCommand
 case class CreateTemporaryResponse(id: ProjectId, project: Project)
 
-case object TutorialsReady extends InternalProjectsCommand
+case object TutorialsReady extends ProjectsServiceCommand
 
 object ProjectsService {
 
   def behavior(
     storageManager: StorageManager,
     tutorialsDownloader: TutorialsDownloader
-  ): Behavior[InternalProjectsCommand] = Behaviors.setup { context =>
-    val buffer = StashBuffer[InternalProjectsCommand](capacity = 100)
+  ): Behavior[ProjectsServiceCommand] = Behaviors.setup { context =>
+    val buffer = StashBuffer[ProjectsServiceCommand](capacity = 100)
 
     def handle(
       localRepo: ProjectsRepository,
       tutorialsRepo: Option[ProjectsRepository]
-    ): Behavior[InternalProjectsCommand] = Behaviors.receiveMessage {
+    ): Behavior[ProjectsServiceCommand] = Behaviors.receiveMessage {
       case ListProjectsRequest(replyTo) =>
         replyTo ! ListProjectsResponse(localRepo.projects)
         Behaviors.same
