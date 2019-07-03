@@ -2,7 +2,6 @@ package org.enso.filemanager
 
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.time.Instant
 
 import akka.actor.typed.scaladsl.ActorContext
@@ -10,7 +9,11 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 
-object FileManager {
+object API {
+  final case class PathOutsideProject(projectRoot: Path, accessedPath: Path)
+      extends Exception(
+        s"Cannot access path $accessedPath because it does not belong to the project under root directory $projectRoot"
+      ) {}
 
   sealed case class Request(
     replyTo: ActorRef[Response],
@@ -52,18 +55,32 @@ object FileManager {
     size: Long,
     isDirectory: Boolean)
       extends Response {}
+}
+
+object FileManager {
+  import API._
 
   def extractPaths(request: RequestPayload): Array[Path] = request match {
     case WriteRequest(p, _) => Array(p)
+    case ReadRequest(p)     => Array(p)
     case ExistsRequest(p)   => Array(p)
     case ListRequest(p)     => Array(p)
+    case StatRequest(p)     => Array(p)
+  }
+
+  def validatePath(validatedPath: Path, projectRoot: Path): Unit = {
+    val normalized = validatedPath.toAbsolutePath.normalize()
+    if (!normalized.startsWith(projectRoot))
+      throw PathOutsideProject(projectRoot, validatedPath)
   }
 
   def handleSpecific(
-    context: ActorContext[FileManager.Request],
-    request: RequestPayload
+    context: ActorContext[Request],
+    request: RequestPayload,
+    projectRoot: Path
   ): Response = {
     try {
+      extractPaths(request).foreach(validatePath(_, projectRoot))
       request match {
         case msg: ListRequest =>
           val str = Files.list(msg.path)
@@ -95,11 +112,11 @@ object FileManager {
     }
   }
 
-  val fileManager: Behavior[FileManager.Request] = Behaviors.receive {
-    (context, request) =>
+  def fileManager(projectRoot: Path): Behavior[Request] =
+    Behaviors.receive { (context, request) =>
       context.log.info("Received {}", request.toString)
-      val response = handleSpecific(context, request.contents)
+      val response = handleSpecific(context, request.contents, projectRoot)
       request.replyTo ! response
       Behaviors.same
-  }
+    }
 }

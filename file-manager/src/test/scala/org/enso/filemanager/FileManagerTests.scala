@@ -16,7 +16,7 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed._
 import akka.actor.typed.scaladsl._
 import akka.event.Logging
-import org.enso.filemanager.FileManager.RequestPayload
+import org.enso.filemanager.API._
 import org.scalatest.FunSuite
 import org.scalatest.Outcome
 
@@ -28,14 +28,14 @@ import org.scalatest.WordSpec
 trait TempDirFixture {}
 
 class FileManagerTests extends FunSuite with Matchers {
-  var tempDir: Path                                 = _
-  var testKit: BehaviorTestKit[FileManager.Request] = _
-  var inbox: TestInbox[FileManager.Response]        = _
+  var tempDir: Path                         = _
+  var testKit: BehaviorTestKit[API.Request] = _
+  var inbox: TestInbox[API.Response]        = _
 
   override def withFixture(test: NoArgTest): Outcome = {
     tempDir = Files.createTempDirectory("file-manager-test")
-    testKit = BehaviorTestKit(FileManager.fileManager)
-    inbox   = TestInbox[FileManager.Response]()
+    testKit = BehaviorTestKit(FileManager.fileManager(tempDir))
+    inbox   = TestInbox[API.Response]()
     println("Fixture prepared " + tempDir.toString)
     try test()
     finally FileUtils.deleteDirectory(tempDir.toFile)
@@ -49,45 +49,54 @@ class FileManagerTests extends FunSuite with Matchers {
     Files.createTempDirectory(tempDir, "foo")
   }
 
+  def homeDirectory(): Path = Paths.get(System.getProperty("user.home"))
+
   def expect[T: ClassTag](sth: Any): T = {
     sth shouldBe a[T]
     sth.asInstanceOf[T]
   }
 
-  def responseShouldCome[T: ClassTag](): T = {
+  def expectResponse[T: ClassTag](): T = {
     expect[T](inbox.receiveMessage())
   }
 
   def expectExceptionInResponse[T: ClassTag](): T = {
-    val e = responseShouldCome[FileManager.ErrorResponse]().exception
+    val e = expectResponse[API.ErrorResponse]().exception
     e shouldBe a[T]
     e.asInstanceOf[T]
   }
 
-  def runRequest(contents: FileManager.RequestPayload): Unit =
-    testKit.run(FileManager.Request(inbox.ref, contents))
+  def runRequest(contents: API.RequestPayload): Unit =
+    testKit.run(API.Request(inbox.ref, contents))
+
+  def ask[response: ClassTag](contents: API.RequestPayload): response = {
+    runRequest(contents)
+    expectResponse[response]()
+  }
+
+  // ask for something that is not allowed and is expected to cause exception
+  def abet[exception: ClassTag](contents: API.RequestPayload): exception = {
+    runRequest(contents)
+    expectExceptionInResponse[exception]()
+  }
 
   test("List: empty directory") {
-    val requestContents = FileManager.ListRequest(tempDir)
-    runRequest(requestContents)
-    val response = responseShouldCome[FileManager.ListResponse]()
-    response shouldBe a[FileManager.ListResponse]
+    val requestContents = API.ListRequest(tempDir)
+    val response        = ask[API.ListResponse](requestContents)
     response.entries should have length 0
+    response shouldBe a[API.ListResponse]
   }
+
   test("List: missing directory") {
-    val path            = tempDir.resolve("bar")
-    val requestContents = FileManager.ListRequest(path)
-    runRequest(requestContents)
-    expectExceptionInResponse[NoSuchFileException]()
+    val path = tempDir.resolve("bar")
+    ask[NoSuchFileException](API.ListRequest(path))
   }
 
   test("List: non-empty directory") {
     val filePath   = createSubFile()
     val subdirPath = createSubDir()
 
-    val requestContents = FileManager.ListRequest(tempDir)
-    runRequest(requestContents)
-    val response = responseShouldCome[FileManager.ListResponse]()
+    val response = ask[API.ListResponse](API.ListRequest(tempDir))
 
     def expectPath(path: Path): Path = {
       response.entries.find(_.toString == path.toString) match {
@@ -101,30 +110,43 @@ class FileManagerTests extends FunSuite with Matchers {
     expectPath(subdirPath)
   }
 
+  test("List: outside project") {
+    runRequest(API.ListRequest(homeDirectory()))
+    expectExceptionInResponse[API.PathOutsideProject]()
+  }
+
+  test("Exists: outside project by relative path") {
+    val path = tempDir.resolve("../foo")
+    // make sure that our path seemingly may look like something under the project
+    assert(path.startsWith(tempDir))
+    abet[API.PathOutsideProject](API.ExistsRequest(path))
+  }
+
+  test("Exists: outside project by absolute path") {
+    abet[API.PathOutsideProject](API.ExistsRequest(homeDirectory()))
+  }
+
   test("Exists: existing file") {
     val filePath = createSubFile()
-    runRequest(FileManager.ExistsRequest(filePath))
-    val response = responseShouldCome[FileManager.ExistsResponse]()
+    val response = ask[API.ExistsResponse](API.ExistsRequest(filePath))
     response.exists should be(true)
   }
+
   test("Exists: existing directory") {
-    val filePath = createSubDir()
-    runRequest(FileManager.ExistsRequest(filePath))
-    val response = responseShouldCome[FileManager.ExistsResponse]()
+    val dirPath = createSubDir()
+    val response = ask[API.ExistsResponse](API.ExistsRequest(dirPath))
     response.exists should be(true)
   }
 
   test("Exists: missing file") {
     val filePath = tempDir.resolve("bar")
-    runRequest(FileManager.ExistsRequest(filePath))
-    val response = responseShouldCome[FileManager.ExistsResponse]()
+    val response = ask[API.ExistsResponse](API.ExistsRequest(filePath))
     response.exists should be(false)
   }
 
   test("Stat: missing file") {
     val filePath = tempDir.resolve("bar")
-    runRequest(FileManager.StatRequest(filePath))
-    expectExceptionInResponse[NoSuchFileException]()
+    abet[NoSuchFileException](API.StatRequest(filePath))
   }
 
   test("Read: file") {
@@ -132,8 +154,7 @@ class FileManagerTests extends FunSuite with Matchers {
     val contents = "gfhniugdzhbuiobf".getBytes
     Files.write(filePath, contents)
 
-    runRequest(FileManager.ReadRequest(filePath))
-    val response = responseShouldCome[FileManager.ReadResponse]()
+    val response = ask[API.ReadResponse](API.ReadRequest(filePath))
     response.contents should be(contents)
   }
 
@@ -141,8 +162,7 @@ class FileManagerTests extends FunSuite with Matchers {
     val filePath = tempDir.resolve("bar")
     val contents = "gfhniugdzhbuiobf".getBytes
 
-    runRequest(FileManager.WriteRequest(filePath, contents))
-    responseShouldCome[FileManager.WriteResponse]()
+    ask[API.WriteResponse](API.WriteRequest(filePath, contents))
 
     val actualFileContents = Files.readAllBytes(filePath)
     actualFileContents should be(contents)
@@ -153,8 +173,7 @@ class FileManagerTests extends FunSuite with Matchers {
     val contents = "aaa"
     Files.write(filePath, contents.getBytes())
 
-    runRequest(FileManager.StatRequest(filePath))
-    val response = responseShouldCome[FileManager.StatResponse]()
+    val response = ask[API.StatResponse](API.StatRequest(filePath))
     response.isDirectory should be(false)
     response.path.toString should be(filePath.toString)
     response.size should be(contents.length)
@@ -163,8 +182,8 @@ class FileManagerTests extends FunSuite with Matchers {
 //  test("Stat: ask is file a dir") {
 //    val filePath = createSubFile()
 //
-//    var inbox: TestInbox[FileManager.Response] = TestInbox()
-//    testKit.ref.ask[FileManager.StatResponse](ref =>
-//      FileManager.Request(ref, FileManager.StatRequest(filePath)))
+//    var inbox: TestInbox[API.Response] = TestInbox()
+//    testKit.ref.ask[API.StatResponse](ref =>
+//      API.Request(ref, API.StatRequest(filePath)))
 //  }
 }
