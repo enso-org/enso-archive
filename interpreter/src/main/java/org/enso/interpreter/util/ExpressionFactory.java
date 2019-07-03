@@ -156,7 +156,7 @@ public class ExpressionFactory
     for (int i = 0; i < arguments.size(); i++) {
       FrameSlot slot = scope.createVarSlot(arguments.get(i));
       ReadArgumentNode readArg = new ReadArgumentNode(i);
-      AssignmentNode assignArg = new AssignmentNode(slot, readArg);
+      AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
       argRewrites.add(assignArg);
     }
     List<StatementNode> statementNodes =
@@ -195,7 +195,7 @@ public class ExpressionFactory
   @Override
   public StatementNode visitAssignment(String varName, AstExpression expr) {
     FrameSlot slot = scope.createVarSlot(varName);
-    return new AssignmentNode(slot, expr.visitExpression(this));
+    return AssignmentNodeGen.create(expr.visitExpression(this), slot);
   }
 
   @Override
