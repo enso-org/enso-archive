@@ -28,4 +28,9 @@ public class EnsoRootNode extends RootNode {
   public Object execute(VirtualFrame frame) {
     return body.executeGeneric(frame);
   }
+
+  @Override
+  public String toString() {
+    return this.name;
+  }
 }

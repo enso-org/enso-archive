@@ -3,7 +3,6 @@ package org.enso.interpreter.util;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleException;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
@@ -21,100 +20,31 @@ import org.enso.interpreter.node.function.ReadArgumentNode;
 import org.enso.interpreter.runtime.FramePointer;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ExpressionFactory
     implements AstExpressionVisitor<ExpressionNode>,
         AstStatementVisitor<StatementNode, ExpressionNode> {
 
-  public static class VariableRedefinitionException extends RuntimeException
-      implements TruffleException {
-    public VariableRedefinitionException(String name) {
-      super("Variable " + name + " was already defined in this scope.");
-    }
-
-    @Override
-    public Node getLocation() {
-      return null;
-    }
-  }
-
-  public static class VariableDoesNotExistException extends RuntimeException
-      implements TruffleException {
-    public VariableDoesNotExistException(String name) {
-      super("Variable " + name + " is not defined.");
-    }
-
-    @Override
-    public Node getLocation() {
-      return null;
-    }
-  }
-
-  public static class LocalScope {
-    private Map<String, FrameSlot> items;
-    private FrameDescriptor frameDescriptor;
-
-    public LocalScope getParent() {
-      return parent;
-    }
-
-    private LocalScope parent;
-
-    public LocalScope() {
-      items = new HashMap<>();
-      frameDescriptor = new FrameDescriptor();
-      parent = null;
-    }
-
-    public LocalScope(LocalScope parent) {
-      this();
-      this.parent = parent;
-    }
-
-    public LocalScope createChild() {
-      return new LocalScope(this);
-    }
-
-    public FrameSlot createVarSlot(String name) {
-      if (items.containsKey(name)) throw new VariableRedefinitionException(name);
-      FrameSlot slot = frameDescriptor.addFrameSlot(name);
-      items.put(name, slot);
-      return slot;
-    }
-
-    public FramePointer getSlot(String name) {
-      LocalScope scope = this;
-      int parentCounter = 0;
-      while (scope != null) {
-        FrameSlot slot = scope.items.get(name);
-        if (slot != null) {
-          return new FramePointer(parentCounter, slot);
-        }
-        scope = scope.parent;
-        parentCounter++;
-      }
-      throw new VariableDoesNotExistException(name);
-    }
-  }
-
   private final LocalScope scope;
   private final Language language;
+  private final String scopeName;
 
-  public ExpressionFactory(Language language, LocalScope scope) {
+  private String currentVarName = "annonymous";
+
+  public ExpressionFactory(Language language, LocalScope scope, String name) {
     this.language = language;
     this.scope = scope;
+    this.scopeName = name;
   }
 
   public ExpressionFactory(Language language) {
-    this(language, new LocalScope());
+    this(language, new LocalScope(), "<root>");
   }
 
-  public ExpressionFactory createChild() {
-    return new ExpressionFactory(language, scope.createChild());
+  public ExpressionFactory createChild(String name) {
+    return new ExpressionFactory(language, scope.createChild(), name);
   }
 
   public ExpressionNode run(AstExpression body) {
@@ -165,9 +95,10 @@ public class ExpressionFactory
     allStatements.addAll(argRewrites);
     allStatements.addAll(statementNodes);
     ExpressionNode expr = retValue.visitExpression(this);
-    FunctionBodyNode functionBodyNode = new FunctionBodyNode(allStatements.toArray(new StatementNode[0]), expr);
+    FunctionBodyNode functionBodyNode =
+        new FunctionBodyNode(allStatements.toArray(new StatementNode[0]), expr);
     RootNode rootNode =
-        new EnsoRootNode(language, scope.frameDescriptor, functionBodyNode, null, "<lambda>");
+        new EnsoRootNode(language, scope.getFrameDescriptor(), functionBodyNode, null, "lambda::" + scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new CreateFunctionNode(callTarget);
   }
@@ -175,7 +106,7 @@ public class ExpressionFactory
   @Override
   public ExpressionNode visitFunction(
       List<String> arguments, List<AstStatement> statements, AstExpression retValue) {
-    ExpressionFactory child = createChild();
+    ExpressionFactory child = createChild(currentVarName);
     return child.processFunctionBody(arguments, statements, retValue);
   }
 
@@ -194,6 +125,7 @@ public class ExpressionFactory
 
   @Override
   public StatementNode visitAssignment(String varName, AstExpression expr) {
+    currentVarName = varName;
     FrameSlot slot = scope.createVarSlot(varName);
     return AssignmentNodeGen.create(expr.visitExpression(this), slot);
   }
