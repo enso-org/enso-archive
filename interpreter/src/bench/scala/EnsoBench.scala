@@ -67,27 +67,27 @@ class EnsoBench extends Bench.LocalTime with LanguageRunner {
     }
   }
 
-//  performance of "JS Loop" in {
-//    measure method "sum numbers upto a million" in {
-//      using(gen) in { _ =>
-//        jsSumLoop.call(100000000)
-//      }
-//    }
-//  }
-//
-//  performance of "Enso Recursive" in {
-//    measure method "sum numbers upto 100" in {
-//      using(gen) in { _ =>
-//        sumRecursive.call(100)
-//      }
-//    }
-//  }
-//
-//  performance of "JS Recursive" in {
-//    measure method "sum numbers upto 100" in {
-//      using(gen) in { _ =>
-//        jsSumRecur.call(100)
-//      }
-//    }
-//  }
+  performance of "JS Loop" in {
+    measure method "sum numbers upto a million" in {
+      using(gen) in { _ =>
+        jsSumLoop.call(100000000)
+      }
+    }
+  }
+
+  performance of "Enso Recursive" in {
+    measure method "sum numbers upto 100" in {
+      using(gen) in { _ =>
+        sumRecursive.call(100)
+      }
+    }
+  }
+
+  performance of "JS Recursive" in {
+    measure method "sum numbers upto 100" in {
+      using(gen) in { _ =>
+        jsSumRecur.call(100)
+      }
+    }
+  }
 }
