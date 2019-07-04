@@ -13,7 +13,6 @@ import org.enso.interpreter.node.util.SourceLoc;
 // @GenerateWrapper TODO [AA] Fix this.
 @ReportPolymorphism
 public abstract class ExpressionNode extends StatementNode {
-  public abstract Object executeGeneric(VirtualFrame frame);
 
   @CompilerDirectives.CompilationFinal private boolean isTail = false;
 
@@ -32,6 +31,7 @@ public abstract class ExpressionNode extends StatementNode {
   public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectLong(executeGeneric(frame));
   }
+  public abstract Object executeGeneric(VirtualFrame frame);
 
   public void execute(VirtualFrame frame) {
     executeGeneric(frame);

@@ -29,7 +29,7 @@ public abstract class ReadLocalVariableNode extends ExpressionNode {
   public MaterializedFrame getProperFrame(Frame frame) {
     MaterializedFrame currentFrame = getParentFrame(frame);
     for (int i = 1; i < parentLevel; i++) {
-      currentFrame = getParentFrame(frame);
+      currentFrame = getParentFrame(currentFrame);
     }
     return currentFrame;
   }
