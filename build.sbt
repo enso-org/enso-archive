@@ -5,6 +5,8 @@ scalaVersion in ThisBuild := "2.12.8"
 
 // Compiler Options
 scalacOptions ++= Seq(
+  "-verbose",
+  "-Ymacro-debug-lite",
   "-deprecation",
   "-feature",
   "-unchecked",
@@ -33,9 +35,23 @@ lazy val macros = (project in file("macro"))
   .settings(
     libraryDependencies ++= Seq(
       "org.scala-lang" % "scala-reflect"  % "2.12.8",
-      "org.scala-lang" % "scala-compiler" % "2.12.8"
+      "org.scala-lang" % "scala-compiler" % "2.12.8",
     )
   )
+
+lazy val macros2 = (project in file("macro2"))
+  .settings(
+    version := "0.1",
+    scalacOptions += "-language:experimental.macros"
+  )
+  .settings(
+    libraryDependencies ++= Seq(
+      "org.scala-lang" % "scala-reflect"  % "2.12.8",
+      "org.scala-lang" % "scala-compiler" % "2.12.8",
+      "org.feijoas"    %% "mango"         % "0.14"
+    )
+  )
+  .dependsOn(macros) //depends logger macro
 
 lazy val syntax = (project in file("syntax"))
   .settings(
@@ -62,6 +78,7 @@ lazy val syntax = (project in file("syntax"))
     )
   )
   .dependsOn(macros)
+  .dependsOn(macros2)
   .configs(Test)
   .settings(
     testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),

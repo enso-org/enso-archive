@@ -2,8 +2,6 @@ package org.enso.syntax.text.lexer
 
 import org.scalameter.api._
 import scala.math.pow
-import org.enso.syntax.text.parser.Parser
-import org.enso.syntax.text.parser.BParser
 import java.io.StringReader
 
 object RangeBenchmark extends Bench.OfflineReport {
@@ -38,28 +36,12 @@ object RangeBenchmark extends Bench.OfflineReport {
     //   }
     // }
 
-//    measure method "Parser-multipleVars" in {
-//      using(multipleVars) in { input =>
-//        {
-//          (new Parser(new StringReader(input))).parse
-//        }
-//      }
-//    }
-
-    measure method "BParser-multipleVars" in {
-      using(multipleVars) in { input =>
-        {
-          (new BParser(new StringReader(input))).parse
-        }
-      }
-    }
-
-    measure method "SParser-multipleVars" in {
-      using(multipleVars) in { input =>
-        {
-          (new SParser(new StringReader(input))).parse
-        }
-      }
-    }
+    //    measure method "Parser-multipleVars" in {
+    //      using(multipleVars) in { input =>
+    //        {
+    //          (new Parser(new StringReader(input))).parse
+    //        }
+    //      }
+    //    }
   }
 }

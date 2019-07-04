@@ -2,7 +2,6 @@ package org.enso.macros
 
 import scala.reflect.macros.blackbox.Context
 import scala.language.experimental.macros
-import scala.reflect.runtime.universe._
 
 object Func {
   implicit def apply[P, R](fn: Function1[P, R]): Func[P, R] =

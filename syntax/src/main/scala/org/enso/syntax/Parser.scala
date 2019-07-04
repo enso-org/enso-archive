@@ -1,40 +1,8 @@
 package org.enso.syntax
 
-import org.enso.macros.Func0
-import org.enso.syntax.Main.p1
-import org.enso.syntax.Flexer
+import org.enso.syntax.Flexer.ParserBase
 
-class Parser extends Flexer.ParserBase[AST] {
-  import org.enso.syntax.AST
-
-  implicit final def charToExpr(char: Char): Flexer.Pattern =
-    Flexer.Ran(char, char)
-  implicit final def stringToExpr(s: String): Flexer.Pattern =
-    s.tail.foldLeft(char(s.head))(_ >> _)
-
-  class ExtendedChar(_this: Char) {
-    final def ||(that: Char): Flexer.Pattern =
-      Flexer.Or(char(_this), char(that))
-  }
-  implicit final def extendChar(i: Char): ExtendedChar   = new ExtendedChar(i)
-  final def char(c: Char):                Flexer.Pattern = range(c, c)
-  final def range(start: Char, end: Char): Flexer.Pattern =
-    Flexer.Ran(start, end)
-  final def range(start: Int, end: Int): Flexer.Pattern = Flexer.Ran(start, end)
-  val any: Flexer.Pattern  = range(0, Int.MaxValue)
-  val pass: Flexer.Pattern = Flexer.Pass
-  val eof: Flexer.Pattern  = char('\3')
-
-  final def replaceGroupSymbols(
-    s: String,
-    lst: List[Flexer.Group[Unit]]
-  ): String = {
-    var out = s
-    for ((grp, ix) <- lst.zipWithIndex) {
-      out = out.replaceAll(s"___${ix}___", grp.index.toString)
-    }
-    out
-  }
+class Parser extends ParserBase[AST] {
 
   ////////////////////////////////////
 
@@ -216,116 +184,6 @@ class Parser extends Flexer.ParserBase[AST] {
     onBlockEnd(0)
     submitBlock()
     result = AST.Module(result.asInstanceOf[AST.Block])
-  }
-
-  final def description(): Unit = {
-
-    ///////////////////////////////////////////
-
-    val lowerLetter = range('a', 'z')
-    val upperLetter = range('A', 'Z')
-    val digit       = range('0', '9')
-    val alphanum    = digit | lowerLetter | upperLetter
-
-    val decimal     = digit.many1
-    val indentChar  = lowerLetter | upperLetter | digit | '_'
-    val identBody   = indentChar.many >> '\''.many
-    val variable    = lowerLetter >> identBody
-    val constructor = upperLetter >> identBody
-    val whitespace  = ' '.many1
-    val newline     = '\n'
-
-    val kwDef = "def"
-
-    val NORMAL        = defineGroup[Unit]("Normal")
-    val PARENSED      = defineGroup[Unit]("Parensed")
-    val NEWLINE       = defineGroup[Unit]("Newline")
-    val NUMBER_PHASE2 = defineGroup[Unit]("Number Phase 2")
-    val NUMBER_PHASE3 = defineGroup[Unit]("Number Phase 3")
-
-    // format: off
-    
-    ////// NORMAL //////
-    NORMAL rule whitespace run Func0 {onWhitespace()}
-    NORMAL rule kwDef      run Func0 {println("def!!!")}
-    NORMAL rule variable   run Func0 {app(AST.Var)}
-    NORMAL rule newline    run Func0 {beginGroup(NEWLINE)}
-    NORMAL rule "("        run Func0 {onGroupBegin(); beginGroup(PARENSED)}
-    
-    NORMAL rule eof        run Func0 {onEOF()}
-
-    ////// PARENSED //////
-    PARENSED.cloneRulesFrom(NORMAL)
-    PARENSED rule ")" run Func0 {
-      onGroupEnd()
-      endGroup()
-    }
-
-    // format: on
-
-    ////////////////////////////////
-    // NUMBER (e.g. 16_ff0000.ff) //
-    ////////////////////////////////
-
-    NORMAL rule decimal run Func0 {
-      numberPart2 = currentMatch
-      beginGroup(NUMBER_PHASE2)
-    }
-
-    NUMBER_PHASE2 rule ("_" >> alphanum.many1) run Func0 {
-      endGroup()
-      numberPart1 = numberPart2
-      numberPart2 = currentMatch.substring(1)
-      beginGroup(NUMBER_PHASE3)
-    }
-
-    NUMBER_PHASE2 rule pass run Func0 {
-      endGroup()
-      submitNumber()
-    }
-
-    NUMBER_PHASE3 rule ("." >> alphanum.many1) run Func0 {
-      endGroup()
-      numberPart3 = currentMatch.substring(1)
-      submitNumber()
-    }
-
-    NUMBER_PHASE3 rule pass run Func0 {
-      endGroup()
-      submitNumber()
-    }
-
-    ////////////
-    // String //
-    ////////////
-
-    NORMAL rule "'".many1 run Func0 {
-      val size = currentMatch.length
-      if (size == 2) submitEmptyText()
-//      else {
-//        pushQuoteSize(size)
-//        textBegin()
-//        beginGroup(STRING)
-//      }
-    }
-
-    ////// NEWLINE //////
-    NEWLINE rule ((whitespace | pass) >> newline) run Func0 {
-      onWhitespace(-1)
-      onEmptyLine()
-    }
-
-    NEWLINE rule (whitespace | pass) run Func0 {
-      onWhitespace()
-      if (lastOffset == currentBlock.indent) {
-        onBlockNewline()
-      } else if (lastOffset > currentBlock.indent) {
-        onBlockBegin(useLastOffset())
-      } else {
-        onBlockEnd(useLastOffset())
-      }
-      endGroup()
-    }
   }
 
   final def initialize(): Unit =
