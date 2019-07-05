@@ -25,7 +25,7 @@ import org.scalatest.Matchers
 trait TempDirFixture {}
 
 class FileManagerTests extends FunSuite with Matchers {
-  import API2._
+  import API._
   
   var tempDir: Path                                         = _
   var testKit: BehaviorTestKit[Request[SuccessResponse]] = _
@@ -68,11 +68,17 @@ class FileManagerTests extends FunSuite with Matchers {
   def runRequest(contents: RequestPayload): Unit =
     testKit.run(Request(inbox.ref, contents))
 
-  def ask(contents: RequestPayload): contents.ResponseType = {
+  def ask[req <: RequestPayload](contents: req): contents.ResponseType = {
     runRequest(contents)
     inbox.receiveMessage() match {
       case Left(msg) =>
-        msg shouldBe a[contents.ResponseType]
+//        msg match {
+//          case msgT: contents.ResponseType =>
+//            msgT
+//          case _ =>
+//            fail("Wrong response message type!")
+//        }
+        msg shouldBe a[contents.ResponseType](contents.responseClassTag)
       case Right(msg) =>
         fail("Unexpected error message " + msg.toString)
     }
@@ -89,11 +95,11 @@ class FileManagerTests extends FunSuite with Matchers {
     val path = tempDir.resolve("../foo")
     // make sure that our path seemingly may look like something under the project
     assert(path.startsWith(tempDir))
-    abet[PathOutsideProject](ExistsRequest(path))
+    abet[PathOutsideProjectException](ExistsRequest(path))
   }
 
   test("Exists: outside project by absolute path") {
-    abet[PathOutsideProject](ExistsRequest(homeDirectory()))
+    abet[PathOutsideProjectException](ExistsRequest(homeDirectory()))
   }
 
   test("Exists: existing file") {

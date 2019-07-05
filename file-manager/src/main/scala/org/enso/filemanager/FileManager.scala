@@ -9,15 +9,17 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import org.apache.commons.io.FileUtils
-import org.enso.filemanager.API2.SuccessResponse
+import org.enso.filemanager.API.SuccessResponse
 
 import scala.concurrent.Future
-import scala.reflect.ClassTag
+import scala.reflect.{ClassTag, classTag}
 
-object API2 {
+object API {
   type Response[specific >: AnyResponse] = Either[ErrorResponse, specific]
 
-  final case class PathOutsideProject(projectRoot: Path, accessedPath: Path)
+  final case class PathOutsideProjectException(
+    projectRoot: Path,
+    accessedPath: Path)
       extends Exception(
         s"Cannot access path $accessedPath because it does not belong to the project under root directory $projectRoot"
       )
@@ -27,10 +29,11 @@ object API2 {
     contents: RequestPayload)
 
   sealed abstract class AnyResponse
-  sealed abstract class SuccessResponse extends AnyResponse
+  sealed abstract class SuccessResponse          extends AnyResponse
   case class ErrorResponse(exception: Throwable) extends AnyResponse
 
   trait RequestPayload {
+    implicit val responseClassTag: ClassTag[ResponseType] = classTag[ResponseType]
     type ResponseType <: SuccessResponse
   }
 
@@ -46,7 +49,7 @@ object API2 {
 }
 
 object Detail {
-  import API2._
+  import API._
 
   def extractPaths(request: RequestPayload): Array[Path] = request match {
     case ExistsRequest(p)    => Array(p)
@@ -56,7 +59,7 @@ object Detail {
   def validatePath(validatedPath: Path, projectRoot: Path): Unit = {
     val normalized = validatedPath.toAbsolutePath.normalize()
     if (!normalized.startsWith(projectRoot))
-      throw PathOutsideProject(projectRoot, validatedPath)
+      throw PathOutsideProjectException(projectRoot, validatedPath)
   }
 
   def validateRequest(request: RequestPayload, projectRoot: Path): Unit = {
@@ -87,16 +90,18 @@ object Detail {
 }
 
 object FileManager {
-  import API2._
+  import API._
 
-  def fileManager(projectRoot: Path): Behavior[API2.Request[API2.SuccessResponse]] =
+  def fileManager(
+    projectRoot: Path
+  ): Behavior[API.Request[API.SuccessResponse]] =
     Behaviors.receive { (context, request) =>
       context.log.info(s"Received $request")
       val response =
         Detail.handleSpecific(context, request.contents, projectRoot)
       context.log.info(s"Replying: $response")
       val responsePacked = response match {
-        case msg: ErrorResponse => Left(msg)
+        case msg: ErrorResponse   => Left(msg)
         case msg: SuccessResponse => Right(msg)
       }
       request.replyTo ! responsePacked
