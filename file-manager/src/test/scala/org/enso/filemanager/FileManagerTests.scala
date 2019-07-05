@@ -6,30 +6,33 @@ import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 import org.apache.commons.io.FileUtils
 import akka.actor.testkit.typed.CapturedLogEvent
 import akka.actor.testkit.typed.Effect._
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
 import akka.actor.testkit.typed.scaladsl.TestInbox
+import akka.actor.typed.{ActorRef, ActorSystem}
 import akka.actor.typed.scaladsl.AskPattern._
-import akka.actor.typed._
-import akka.actor.typed.scaladsl._
-import akka.event.Logging
+import akka.util.Timeout
 import org.scalatest.FunSuite
 import org.scalatest.Outcome
 
 import scala.reflect.ClassTag
 import org.scalatest.Matchers
 
+import scala.concurrent.duration.FiniteDuration
+
 trait TempDirFixture {}
 
 class FileManagerTests extends FunSuite with Matchers {
   import API._
-  
-  var tempDir: Path                                         = _
-  var testKit: BehaviorTestKit[Request[SuccessResponse]] = _
-  var inbox: TestInbox[Either[ErrorResponse, SuccessResponse]]                       = _
+
+  var tempDir: Path                                            = _
+  var testKit: BehaviorTestKit[Request[SuccessResponse]]       = _
+  var inbox: TestInbox[Either[ErrorResponse, SuccessResponse]] = _
 
   override def withFixture(test: NoArgTest): Outcome = {
     tempDir = Files.createTempDirectory("file-manager-test")
@@ -50,45 +53,42 @@ class FileManagerTests extends FunSuite with Matchers {
 
   def homeDirectory(): Path = Paths.get(System.getProperty("user.home"))
 
-  def expect[T: ClassTag](sth: Any): T = {
-    sth shouldBe a[T]
-    sth.asInstanceOf[T]
+  def expectSuccess[T <: SuccessResponse: ClassTag](): T = {
+    inbox.receiveMessage() match {
+      case Left(err) =>
+        fail(s"Unexpected error message: $err")
+      case Right(msg) =>
+        msg shouldBe a[T]
+        msg.asInstanceOf[T]
+    }
   }
 
-  def expectResponse[T: ClassTag](): T = {
-    expect[T](inbox.receiveMessage())
+  def expectError[T <: Throwable: ClassTag](): T = {
+    inbox.receiveMessage() match {
+      case Left(err) =>
+        err.exception shouldBe a[T]
+        err.exception.asInstanceOf[T]
+      case Right(msg) =>
+        fail(s"Unexpected non-error message: $msg")
+    }
   }
 
-  def expectExceptionInResponse[T: ClassTag](): T = {
-    val e = expectResponse[ErrorResponse]().exception
-    e shouldBe a[T]
-    e.asInstanceOf[T]
-  }
-
-  def runRequest(contents: RequestPayload): Unit =
+  def runRequest(contents: RequestPayload[SuccessResponse]): Unit =
     testKit.run(Request(inbox.ref, contents))
 
-  def ask[req <: RequestPayload](contents: req): contents.ResponseType = {
+  def ask[res <: SuccessResponse: ClassTag](
+    contents: RequestPayload[res]
+  ): res = {
     runRequest(contents)
-    inbox.receiveMessage() match {
-      case Left(msg) =>
-//        msg match {
-//          case msgT: contents.ResponseType =>
-//            msgT
-//          case _ =>
-//            fail("Wrong response message type!")
-//        }
-        msg shouldBe a[contents.ResponseType](contents.responseClassTag)
-      case Right(msg) =>
-        fail("Unexpected error message " + msg.toString)
-    }
-    expectResponse[contents.ResponseType]()
+    expectSuccess[res]
   }
 
   // ask for something that is not allowed and is expected to cause exception
-  def abet[exception: ClassTag](contents: RequestPayload): exception = {
+  def abet[exception <: Throwable: ClassTag](
+    contents: RequestPayload[SuccessResponse]
+  ): exception = {
     runRequest(contents)
-    expectExceptionInResponse[exception]()
+    expectError[exception]
   }
 
   test("Exists: outside project by relative path") {
@@ -122,9 +122,15 @@ class FileManagerTests extends FunSuite with Matchers {
 
 //  test("Stat: ask is file a dir") {
 //    val filePath = createSubFile()
+//    val system = ActorSystem[API.Request[API.SuccessResponse]](
+//      FileManager.fileManager(Paths.get("")),
+//      "hello"
+//    )
 //
-//    var inbox: TestInbox[AnyResponse] = TestInbox()
-//    testKit.ref.ask[StatResponse](ref =>
-//      Request(ref, StatRequest(filePath)))
+//    implicit val askTimeout: Timeout = new Timeout(50, TimeUnit.MILLISECONDS)
+//    system.ask(
+//      (ref: ActorRef[Either[ErrorResponse, TouchFileResponse]]) =>
+//        Request(ref, TouchFileRequest(filePath))
+//    )
 //  }
 }

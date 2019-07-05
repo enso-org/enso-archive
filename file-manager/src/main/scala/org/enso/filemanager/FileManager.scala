@@ -12,7 +12,8 @@ import org.apache.commons.io.FileUtils
 import org.enso.filemanager.API.SuccessResponse
 
 import scala.concurrent.Future
-import scala.reflect.{ClassTag, classTag}
+import scala.reflect.ClassTag
+import scala.reflect.classTag
 
 object API {
   type Response[specific >: AnyResponse] = Either[ErrorResponse, specific]
@@ -24,26 +25,35 @@ object API {
         s"Cannot access path $accessedPath because it does not belong to the project under root directory $projectRoot"
       )
 
-  sealed case class Request[SpecificResponse](
+  sealed case class Request[SpecificResponse <: SuccessResponse: ClassTag](
     replyTo: ActorRef[Either[ErrorResponse, SpecificResponse]],
-    contents: RequestPayload)
+    contents: RequestPayload[SpecificResponse])
 
   sealed abstract class AnyResponse
   sealed abstract class SuccessResponse          extends AnyResponse
   case class ErrorResponse(exception: Throwable) extends AnyResponse
 
-  trait RequestPayload {
-    implicit val responseClassTag: ClassTag[ResponseType] = classTag[ResponseType]
-    type ResponseType <: SuccessResponse
+  abstract class RequestPayload[+ResponseType <: SuccessResponse: ClassTag] {
+    def touchedPaths: Seq[Path]
+    def handle: ResponseType
+
+    def validate(projectRoot: Path) =
+      touchedPaths.foreach(Detail.validatePath(_, projectRoot))
   }
 
-  case class ExistsRequest(p: Path) extends RequestPayload {
-    override type ResponseType = ExistsResponse
+  case class ExistsRequest(p: Path) extends RequestPayload[ExistsResponse] {
+    override def touchedPaths = Seq(p)
+    override def handle       = ExistsResponse(Files.exists(p))
   }
   case class ExistsResponse(exists: Boolean) extends SuccessResponse
 
-  case class TouchFileRequest(p: Path) extends RequestPayload {
-    override type ResponseType = TouchFileResponse
+  case class TouchFileRequest(p: Path)
+      extends RequestPayload[TouchFileResponse] {
+    override def touchedPaths = Seq(p)
+    override def handle = {
+      FileUtils.touch(p.toFile)
+      TouchFileResponse()
+    }
   }
   case class TouchFileResponse() extends SuccessResponse
 }
@@ -51,41 +61,10 @@ object API {
 object Detail {
   import API._
 
-  def extractPaths(request: RequestPayload): Array[Path] = request match {
-    case ExistsRequest(p)    => Array(p)
-    case TouchFileRequest(p) => Array(p)
-  }
-
   def validatePath(validatedPath: Path, projectRoot: Path): Unit = {
     val normalized = validatedPath.toAbsolutePath.normalize()
     if (!normalized.startsWith(projectRoot))
       throw PathOutsideProjectException(projectRoot, validatedPath)
-  }
-
-  def validateRequest(request: RequestPayload, projectRoot: Path): Unit = {
-    extractPaths(request).foreach(validatePath(_, projectRoot))
-  }
-
-  def handleSpecific(
-    context: ActorContext[Request[SuccessResponse]],
-    request: RequestPayload,
-    projectRoot: Path
-  ): AnyResponse = {
-    try {
-      Detail.validateRequest(request, projectRoot)
-      request match {
-
-        case msg: ExistsRequest =>
-          ExistsResponse(Files.exists(msg.p))
-        case msg: TouchFileRequest =>
-          FileUtils.touch(msg.p.toFile)
-          TouchFileResponse()
-      }
-    } catch {
-      case ex: Throwable =>
-        context.log.warning(s"Failed to handle request $request: $ex")
-        ErrorResponse(ex)
-    }
   }
 }
 
@@ -97,14 +76,14 @@ object FileManager {
   ): Behavior[API.Request[API.SuccessResponse]] =
     Behaviors.receive { (context, request) =>
       context.log.info(s"Received $request")
-      val response =
-        Detail.handleSpecific(context, request.contents, projectRoot)
-      context.log.info(s"Replying: $response")
-      val responsePacked = response match {
-        case msg: ErrorResponse   => Left(msg)
-        case msg: SuccessResponse => Right(msg)
+      val response = try {
+        request.contents.validate(projectRoot)
+        Right(request.contents.handle)
+      } catch {
+        case ex: Throwable =>
+          Left(ErrorResponse(ex))
       }
-      request.replyTo ! responsePacked
+      request.replyTo ! response
       Behaviors.same
     }
 }
