@@ -37,20 +37,20 @@ object API {
     def touchedPaths: Seq[Path]
     def handle: ResponseType
 
-    def validate(projectRoot: Path) =
+    def validate(projectRoot: Path): Unit =
       touchedPaths.foreach(Detail.validatePath(_, projectRoot))
   }
 
   case class ExistsRequest(p: Path) extends RequestPayload[ExistsResponse] {
-    override def touchedPaths = Seq(p)
+    override def touchedPaths: Seq[Path] = Seq(p)
     override def handle       = ExistsResponse(Files.exists(p))
   }
   case class ExistsResponse(exists: Boolean) extends SuccessResponse
 
   case class TouchFileRequest(p: Path)
       extends RequestPayload[TouchFileResponse] {
-    override def touchedPaths = Seq(p)
-    override def handle = {
+    override def touchedPaths: Seq[Path] = Seq(p)
+    override def handle: TouchFileResponse = {
       FileUtils.touch(p.toFile)
       TouchFileResponse()
     }
