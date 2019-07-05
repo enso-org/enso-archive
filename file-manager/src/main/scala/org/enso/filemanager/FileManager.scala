@@ -16,7 +16,8 @@ import scala.reflect.ClassTag
 import scala.reflect.classTag
 
 object API {
-  type Response[specific >: AnyResponse] = Either[ErrorResponse, specific]
+  type InputMessage  = API.Request[API.SuccessResponse]
+  type OutputMessage = Either[ErrorResponse, SuccessResponse]
 
   final case class PathOutsideProjectException(
     projectRoot: Path,
@@ -35,7 +36,10 @@ object API {
 
   abstract class RequestPayload[+ResponseType <: SuccessResponse: ClassTag] {
     def touchedPaths: Seq[Path]
-    def handle: ResponseType
+    def handleStateless: ResponseType
+
+    def handle: (ResponseType, Behavior[InputMessage]) =
+      (handleStateless, Behaviors.same)
 
     def validate(projectRoot: Path): Unit =
       touchedPaths.foreach(Detail.validatePath(_, projectRoot))
@@ -43,14 +47,14 @@ object API {
 
   case class ExistsRequest(p: Path) extends RequestPayload[ExistsResponse] {
     override def touchedPaths: Seq[Path] = Seq(p)
-    override def handle       = ExistsResponse(Files.exists(p))
+    override def handleStateless = ExistsResponse(Files.exists(p))
   }
   case class ExistsResponse(exists: Boolean) extends SuccessResponse
 
   case class TouchFileRequest(p: Path)
       extends RequestPayload[TouchFileResponse] {
     override def touchedPaths: Seq[Path] = Seq(p)
-    override def handle: TouchFileResponse = {
+    override def handleStateless: TouchFileResponse = {
       FileUtils.touch(p.toFile)
       TouchFileResponse()
     }
@@ -71,14 +75,14 @@ object Detail {
 object FileManager {
   import API._
 
-  def fileManager(
-    projectRoot: Path
-  ): Behavior[API.Request[API.SuccessResponse]] =
+  case class State(projectRoot: Path) {}
+
+  def fileManager(projectRoot: Path): Behavior[InputMessage] =
     Behaviors.receive { (context, request) =>
       context.log.info(s"Received $request")
       val response = try {
         request.contents.validate(projectRoot)
-        Right(request.contents.handle)
+        Right(request.contents.handleStateless)
       } catch {
         case ex: Throwable =>
           Left(ErrorResponse(ex))
