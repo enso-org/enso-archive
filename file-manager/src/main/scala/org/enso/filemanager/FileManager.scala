@@ -9,64 +9,40 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import org.apache.commons.io.FileUtils
+import org.enso.filemanager.API2.SuccessResponse
 
 import scala.concurrent.Future
-
-object API {
-  final case class PathOutsideProject(projectRoot: Path, accessedPath: Path)
-      extends Exception(
-        s"Cannot access path $accessedPath because it does not belong to the project under root directory $projectRoot"
-      )
-
-  sealed case class Request(
-    replyTo: ActorRef[Response],
-    contents: RequestPayload)
-
-  sealed abstract class Response
-
-  case class ErrorResponse(exception: Throwable) extends Response
-
-  abstract class RequestPayload
-
-  case class ExistsRequest(path: Path) extends RequestPayload
-
-  case class ExistsResponse(exists: Boolean) extends Response
-
-  case class TouchFileRequest(path: Path) extends RequestPayload
-
-  case class TouchFileResponse() extends Response
-}
+import scala.reflect.ClassTag
 
 object API2 {
+  type Response[specific >: AnyResponse] = Either[ErrorResponse, specific]
+
   final case class PathOutsideProject(projectRoot: Path, accessedPath: Path)
       extends Exception(
         s"Cannot access path $accessedPath because it does not belong to the project under root directory $projectRoot"
       )
 
   sealed case class Request[SpecificResponse](
-    replyTo: ActorRef[Option[SpecificResponse]],
+    replyTo: ActorRef[Either[ErrorResponse, SpecificResponse]],
     contents: RequestPayload)
 
-  sealed abstract class Response
-
-  case class ErrorResponse(exception: Throwable) extends Response
+  sealed abstract class AnyResponse
+  sealed abstract class SuccessResponse extends AnyResponse
+  case class ErrorResponse(exception: Throwable) extends AnyResponse
 
   trait RequestPayload {
-    type ResponseType
+    type ResponseType <: SuccessResponse
   }
 
   case class ExistsRequest(p: Path) extends RequestPayload {
     override type ResponseType = ExistsResponse
   }
-  case class ExistsResponse(exists: Boolean) extends Response
+  case class ExistsResponse(exists: Boolean) extends SuccessResponse
 
   case class TouchFileRequest(p: Path) extends RequestPayload {
     override type ResponseType = TouchFileResponse
   }
-  case class TouchFileResponse() extends Response
-
-//  def ask[T, R](actorRef: ActorRef[T], reqMaker: ActorRef[R] => T): Future[T] = ???
-//  ask(ListRequest(???)): Option[ListResponse]
+  case class TouchFileResponse() extends SuccessResponse
 }
 
 object Detail {
@@ -88,10 +64,10 @@ object Detail {
   }
 
   def handleSpecific(
-    context: ActorContext[Request[Response]],
+    context: ActorContext[Request[SuccessResponse]],
     request: RequestPayload,
     projectRoot: Path
-  ): Response = {
+  ): AnyResponse = {
     try {
       Detail.validateRequest(request, projectRoot)
       request match {
@@ -110,30 +86,20 @@ object Detail {
   }
 }
 
-object FFF {
-  trait Foo {}
-  case class Der1() extends Foo
-  case class Der2() extends Foo
-
-  def handle[T](t: T) {}
-
-  def dispatch(f: Foo) = {
-    f match {
-      case d: Der1 => handle(d)
-      case d: Der2 => handle(d)
-    }
-  }
-}
-
 object FileManager {
+  import API2._
 
-  def fileManager(projectRoot: Path): Behavior[API2.Request[API2.Response]] =
+  def fileManager(projectRoot: Path): Behavior[API2.Request[API2.SuccessResponse]] =
     Behaviors.receive { (context, request) =>
       context.log.info(s"Received $request")
       val response =
         Detail.handleSpecific(context, request.contents, projectRoot)
       context.log.info(s"Replying: $response")
-      request.replyTo ! Some(response)
+      val responsePacked = response match {
+        case msg: ErrorResponse => Left(msg)
+        case msg: SuccessResponse => Right(msg)
+      }
+      request.replyTo ! responsePacked
       Behaviors.same
     }
 }
