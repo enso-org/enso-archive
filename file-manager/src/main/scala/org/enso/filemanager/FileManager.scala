@@ -3,6 +3,7 @@ package org.enso.filemanager
 import java.nio.file.FileSystem
 import java.nio.file.FileSystems
 import java.nio.file.Files
+import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.attribute.UserPrincipal
 import java.time.Instant
@@ -21,7 +22,7 @@ import scala.util.Success
 import scala.util.Try
 
 object API {
-  type InputMessage  = API.Request[API.SuccessResponse]
+  type InputMessage  = Request[SuccessResponse]
   type OutputMessage = Try[SuccessResponse]
 
   final case class PathOutsideProjectException(
@@ -43,21 +44,23 @@ object API {
       touchedPaths.foreach(Detail.validatePath(_, projectRoot))
   }
 
-  sealed abstract class AnyResponse
-  sealed abstract class SuccessResponse          extends AnyResponse
-  case class ErrorResponse(exception: Throwable) extends AnyResponse
+  sealed abstract class SuccessResponse
 
-  case class CopyDirectoryRequest(from: Path, to: Path) extends RequestPayload[CopyDirectoryResponse] {
+  case class CopyDirectoryRequest(from: Path, to: Path)
+      extends RequestPayload[CopyDirectoryResponse] {
     override def touchedPaths: Seq[Path] = Seq(from, to)
 
-    override def handle(fileManager: FileManagerBehavior): CopyDirectoryResponse = {
+    override def handle(
+      fileManager: FileManagerBehavior
+    ): CopyDirectoryResponse = {
       FileUtils.copyDirectory(from.toFile, to.toFile)
       CopyDirectoryResponse()
     }
   }
   case class CopyDirectoryResponse() extends SuccessResponse {}
 
-  case class CopyFileRequest(from: Path, to: Path) extends RequestPayload[CopyFileResponse] {
+  case class CopyFileRequest(from: Path, to: Path)
+      extends RequestPayload[CopyFileResponse] {
     override def touchedPaths: Seq[Path] = Seq(from, to)
 
     override def handle(fileManager: FileManagerBehavior): CopyFileResponse = {
@@ -67,22 +70,29 @@ object API {
   }
   case class CopyFileResponse() extends SuccessResponse {}
 
-
-
-  case class DeleteDirectoryRequest(path: Path) extends RequestPayload[SuccessResponse] {
+  case class DeleteDirectoryRequest(path: Path)
+      extends RequestPayload[SuccessResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
 
     override def handle(fileManager: FileManagerBehavior): SuccessResponse = {
+      // despite what commons-io documentation says, the exception is not thrown
+      // when directory is missing, so we do it by hand.
+      if (!Files.exists(path))
+        throw new NoSuchFileException(path.toString)
+
       FileUtils.deleteDirectory(path.toFile)
       DeleteDirectoryResponse()
     }
   }
   case class DeleteDirectoryResponse() extends SuccessResponse
 
-  case class DeleteFileRequest(path: Path) extends RequestPayload[DeleteFileResponse] {
+  case class DeleteFileRequest(path: Path)
+      extends RequestPayload[DeleteFileResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
 
-    override def handle(fileManager: FileManagerBehavior): DeleteFileResponse = {
+    override def handle(
+      fileManager: FileManagerBehavior
+    ): DeleteFileResponse = {
       Files.delete(path)
       DeleteFileResponse()
     }
@@ -109,17 +119,21 @@ object API {
 
   case class ListResponse(entries: Array[Path]) extends SuccessResponse {}
 
-  case class MoveDirectoryRequest(from: Path, to: Path) extends RequestPayload[MoveDirectoryResponse] {
+  case class MoveDirectoryRequest(from: Path, to: Path)
+      extends RequestPayload[MoveDirectoryResponse] {
     override def touchedPaths: Seq[Path] = Seq(from, to)
 
-    override def handle(fileManager: FileManagerBehavior): MoveDirectoryResponse = {
+    override def handle(
+      fileManager: FileManagerBehavior
+    ): MoveDirectoryResponse = {
       FileUtils.moveDirectory(from.toFile, to.toFile)
       MoveDirectoryResponse()
     }
   }
   case class MoveDirectoryResponse() extends SuccessResponse
 
-  case class MoveFileRequest(from: Path, to: Path) extends RequestPayload[MoveFileResponse] {
+  case class MoveFileRequest(from: Path, to: Path)
+      extends RequestPayload[MoveFileResponse] {
     override def touchedPaths: Seq[Path] = Seq(from, to)
 
     override def handle(fileManager: FileManagerBehavior): MoveFileResponse = {
@@ -228,6 +242,7 @@ class FileManagerBehavior(
 }
 
 object FileManager {
+
   def fileManager(projectRoot: Path): Behavior[API.InputMessage] =
     Behaviors.setup(context => new FileManagerBehavior(projectRoot, context))
 }

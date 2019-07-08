@@ -2,10 +2,7 @@ package org.enso.filemanager
 
 import java.io.File
 import java.nio.charset.Charset
-import java.nio.file.Files
-import java.nio.file.NoSuchFileException
-import java.nio.file.Path
-import java.nio.file.Paths
+import java.nio.file.{FileAlreadyExistsException, Files, NoSuchFileException, Path, Paths}
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -28,11 +25,13 @@ import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
 
-trait FilesystemFixture {
+trait FilesystemHelpers {
   var tempDir: Path = _
+  val contents      = "葦垣の中の和草にこやかに我れと笑まして人に知らゆな\nzażółć gęślą jaźń".getBytes
 
   def createSubFile(): Path = {
-    Files.createTempFile(tempDir, "foo", "")
+    val path = Files.createTempFile(tempDir, "foo", "")
+    Files.write(path, contents)
   }
 
   def createSubDir(): Path = {
@@ -49,9 +48,23 @@ trait FilesystemFixture {
       tempDir = null
     }
   }
+
+  case class Subtree(root: Path, children: Seq[Path])
+
+  def createSubtree(): Subtree = {
+    val root      = createSubDir()
+    val rootFile1 = root.resolve("file1")
+    val rootDir   = root.resolve("dir")
+    val rootFile2 = root.resolve("dir/file2")
+
+    Files.write(rootFile1, contents)
+    Files.createDirectory(rootDir)
+    Files.write(rootFile2, contents)
+    Subtree(root, Seq(rootFile1, rootFile2))
+  }
 }
 
-class FileManagerTests extends FunSuite with Matchers with FilesystemFixture {
+class FileManagerTests extends FunSuite with Matchers with FilesystemHelpers {
   import API._
 
   var testKit: BehaviorTestKit[Request[SuccessResponse]] = _
@@ -85,6 +98,17 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemFixture {
     }
   }
 
+  def expectSubtree(subtree: Subtree): Unit = {
+    assert(Files.exists(subtree.root))
+    subtree.children.foreach(
+      elem => assert(Files.exists(subtree.root.resolve(elem)))
+    )
+
+    val listStream = Files.list(subtree.root)
+    try listStream.count() should be(2)
+    finally listStream.close()
+  }
+
   def runRequest(contents: RequestPayload[SuccessResponse]): Unit =
     testKit.run(Request(inbox.ref, contents))
 
@@ -92,7 +116,7 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemFixture {
     contents: RequestPayload[res]
   ): res = {
     runRequest(contents)
-    expectSuccess[res]
+    expectSuccess[res]()
   }
 
   // ask for something that is not allowed and is expected to cause exception
@@ -100,7 +124,77 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemFixture {
     contents: RequestPayload[SuccessResponse]
   ): exception = {
     runRequest(contents)
-    expectError[exception]
+    expectError[exception]()
+  }
+
+  test("Copy directory: empty directory") {
+    val subdir      = createSubDir()
+    val destination = tempDir.resolve("target")
+    ask(CopyDirectoryRequest(subdir, destination))
+
+    assert(Files.exists(destination))
+  }
+
+  test("Copy directory: non-empty directory") {
+    val subtree     = createSubtree()
+    val destination = tempDir.resolve("target")
+    ask(CopyDirectoryRequest(subtree.root, destination))
+    val subtreeExpected = Subtree(destination, subtree.children)
+    expectSubtree(subtreeExpected)
+  }
+
+  test("Copy directory: target already exists") {
+    val subtree     = createSubtree()
+    val destination = tempDir.resolve("target")
+    Files.createDirectory(destination)
+    // no exception should happen, but merge
+    ask(CopyDirectoryRequest(subtree.root, destination))
+    val subtreeExpected = Subtree(destination, subtree.children)
+    expectSubtree(subtreeExpected)
+  }
+
+  test("Copy file: plain") {
+    val srcFile = createSubFile()
+    val dstFile = tempDir.resolve("file2")
+
+    ask(CopyFileRequest(srcFile, dstFile))
+
+    assert(Files.exists(dstFile))
+    assert(Files.readAllBytes(dstFile).sameElements(contents))
+  }
+
+  test("Copy file: target already exists") {
+    val srcFile = createSubFile()
+    val dstFile = createSubFile()
+    abet[FileAlreadyExistsException](CopyFileRequest(srcFile, dstFile))
+  }
+
+  test("Delete directory: empty directory") {
+    val dir = createSubDir()
+    ask(DeleteDirectoryRequest(dir))
+    assert(!Files.exists(dir))
+  }
+
+  test("Delete directory: non-empty directory") {
+    val subtree = createSubtree()
+    ask(DeleteDirectoryRequest(subtree.root))
+    assert(!Files.exists(subtree.root))
+  }
+
+  test("Delete directory: missing directory") {
+    val missingPath = tempDir.resolve("foo")
+    abet[NoSuchFileException](DeleteDirectoryRequest(missingPath))
+  }
+
+  test("Delete file: simple") {
+    val file = createSubFile()
+    ask(DeleteFileRequest(file))
+    assert(!Files.exists(file))
+  }
+
+  test("Delete file: missing file") {
+    val missingPath = tempDir.resolve("foo")
+    abet[NoSuchFileException](DeleteFileRequest(missingPath))
   }
 
   test("Exists: outside project by relative path") {
@@ -171,7 +265,6 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemFixture {
 
   test("Read: file") {
     val filePath = tempDir.resolve("bar")
-    val contents = "gfhniugdzhbuiobf".getBytes
     Files.write(filePath, contents)
 
     val response = ask(ReadRequest(filePath))
@@ -180,7 +273,6 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemFixture {
 
   test("Write: file") {
     val filePath = tempDir.resolve("bar")
-    val contents = "gfhniugdzhbuiobf".getBytes
 
     ask(WriteRequest(filePath, contents))
 
