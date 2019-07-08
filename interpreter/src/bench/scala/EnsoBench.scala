@@ -54,12 +54,15 @@ class EnsoBench extends Bench.LocalTime with LanguageRunner {
       |})
     """.stripMargin
 
+//  1.to(1000).foreach(_ => sumTCO.call(100))
+//  1.to(1000).foreach(_ => sumRecursive.call(100))
+
   val jsSumRecur = ctx.eval("js", jsSumRecurCode)
 
   performance of "Enso TCO" in {
     measure method "sum numbers upto a million" in {
       using(gen) in { _ =>
-        sumTCO.call(1000000)
+        sumTCO.call(100000000)
       }
     }
   }
@@ -67,7 +70,7 @@ class EnsoBench extends Bench.LocalTime with LanguageRunner {
   performance of "JS Loop" in {
     measure method "sum numbers upto a million" in {
       using(gen) in { _ =>
-        jsSumLoop.call(1000000)
+        jsSumLoop.call(100000000)
       }
     }
   }

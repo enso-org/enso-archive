@@ -1,6 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -11,15 +10,13 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
-import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.TailCallException;
 
 @ExportLibrary(InteropLibrary.class)
-public final class Block implements TruffleObject {
+public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
 
-  public Block(RootCallTarget callTarget, MaterializedFrame scope) {
+  public Function(RootCallTarget callTarget, MaterializedFrame scope) {
     this.callTarget = callTarget;
     this.scope = scope;
   }
@@ -40,14 +37,14 @@ public final class Block implements TruffleObject {
   @ExportMessage
   abstract static class Execute {
 //
-    @Specialization(guards = "block.getCallTarget() == cachedTarget")
+    @Specialization(guards = "function.getCallTarget() == cachedTarget")
     protected static Object callDirect(
-        Block block,
+        Function function,
         Object[] arguments,
-        @Cached("block.getCallTarget()") RootCallTarget cachedTarget,
+        @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
         @Cached("create(cachedTarget)") DirectCallNode callNode) {
-      Object[] args = {block.getScope(), arguments};
-//      args[0] = block.getScope();
+      Object[] args = {function.getScope(), arguments};
+//      args[0] = function.getScope();
 //      for (int i = 0; i < arguments.length; i++) {
 //        args[i + 1] = arguments[i];
 //      }
@@ -56,15 +53,15 @@ public final class Block implements TruffleObject {
 
     @Specialization(replaces = "callDirect")
     protected static Object callIndirect(
-        Block block, Object[] arguments, @Cached IndirectCallNode callNode) {
+            Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
 //      Object[] args = new Object[arguments.length + 1];
-//      args[0] = block.getScope();
+//      args[0] = function.getScope();
 //      for (int i = 0; i < arguments.length; i++) {
 //        args[i + 1] = arguments[i];
 //      }
-      System.out.println("Block " + block + " goes slow");
-      Object[] args = {block.getScope(), arguments};
-      return callNode.call(block.getCallTarget(), args);
+      System.out.println("Function " + function + " goes slow");
+      Object[] args = {function.getScope(), arguments};
+      return callNode.call(function.getCallTarget(), args);
     }
   }
 }

@@ -1,6 +1,6 @@
 package org.enso.interpreter
 
-import org.enso.interpreter.util.ExpressionFactory.VariableRedefinitionException
+import org.enso.interpreter.util.VariableRedefinitionException
 import org.graalvm.polyglot.PolyglotException
 
 class LexicalScopeTest extends LanguageTest {

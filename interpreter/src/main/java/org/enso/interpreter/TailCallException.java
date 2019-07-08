@@ -1,23 +1,22 @@
 package org.enso.interpreter;
 
-import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.nodes.ControlFlowException;
-import org.enso.interpreter.runtime.Block;
+import org.enso.interpreter.runtime.Function;
 
 public class TailCallException extends ControlFlowException {
-  private final Block block;
+  private final Function function;
   private final Object[] arguments;
 
-  public Block getBlock() {
-    return block;
+  public Function getFunction() {
+    return function;
   }
 
   public Object[] getArguments() {
     return arguments;
   }
 
-  public TailCallException(Block block, Object[] arguments) {
-    this.block = block;
+  public TailCallException(Function function, Object[] arguments) {
+    this.function = function;
     this.arguments = arguments;
   }
 }
