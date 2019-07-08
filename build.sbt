@@ -116,7 +116,8 @@ lazy val fileManager = (project in file("file-manager"))
     libraryDependencies += "org.scalatest"  %% "scalatest"  % "3.2.0-SNAP10" % Test,
     libraryDependencies += "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
     libraryDependencies += akkaTestkitTyped,
-    libraryDependencies += "commons-io" % "commons-io" % "2.6"
+    libraryDependencies += "commons-io" % "commons-io" % "2.6",
+    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
 lazy val projectManager = (project in file("project-manager"))

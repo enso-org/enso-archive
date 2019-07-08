@@ -7,7 +7,10 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 import java.nio.file.attribute.UserPrincipal
 import java.time.Instant
+import java.util.UUID
 
+import io.methvin.watcher.DirectoryChangeEvent
+import io.methvin.watcher.DirectoryWatcher
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
@@ -16,6 +19,7 @@ import akka.actor.typed.scaladsl.AbstractBehavior
 import org.apache.commons.io.FileUtils
 import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
+import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
@@ -186,15 +190,24 @@ object API {
   }
   case class TouchFileResponse() extends SuccessResponse
 
-  case class WatchPathRequest(p: Path, observer: ActorRef[FileSystemEvent])
+  case class WatchPathRequest(path: Path, observer: ActorRef[FileSystemEvent])
       extends RequestPayload[WatchPathResponse] {
-    override def touchedPaths: Seq[Path] = Seq(p)
+    override def touchedPaths: Seq[Path] = Seq(path)
     override def handle(fileManager: FileManagerBehavior): WatchPathResponse = {
-      throw new NotImplementedException()
-      WatchPathResponse()
+      val id = UUID.randomUUID()
+      val watcher = DirectoryWatcher
+        .builder()
+        .path(path)
+        .listener(event => {
+          observer ! FileSystemEvent(event)
+        })
+        .build()
+      watcher.watchAsync()
+      fileManager.watchers += (id -> watcher)
+      WatchPathResponse(id)
     }
   }
-  case class WatchPathResponse() extends SuccessResponse
+  case class WatchPathResponse(id: UUID) extends SuccessResponse
 
   case class WriteRequest(path: Path, contents: Array[Byte])
       extends RequestPayload[WriteResponse] {
@@ -206,7 +219,7 @@ object API {
   }
   case class WriteResponse() extends SuccessResponse
 
-  case class FileSystemEvent()
+  case class FileSystemEvent(event: DirectoryChangeEvent)
 }
 
 object Detail {
@@ -224,6 +237,8 @@ class FileManagerBehavior(
   context: ActorContext[API.InputMessage])
     extends AbstractBehavior[API.InputMessage] {
   import API._
+
+  val watchers: mutable.Map[UUID, DirectoryWatcher] = mutable.Map()
 
   override def onMessage(message: InputMessage): Behavior[InputMessage] = {
     context.log.info(s"Received $message")
