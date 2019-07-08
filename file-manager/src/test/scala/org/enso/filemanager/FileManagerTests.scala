@@ -14,7 +14,8 @@ import akka.actor.testkit.typed.CapturedLogEvent
 import akka.actor.testkit.typed.Effect._
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
 import akka.actor.testkit.typed.scaladsl.TestInbox
-import akka.actor.typed.{ActorRef, ActorSystem}
+import akka.actor.typed.ActorRef
+import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
 import org.scalatest.FunSuite
@@ -24,24 +25,11 @@ import scala.reflect.ClassTag
 import org.scalatest.Matchers
 
 import scala.concurrent.duration.FiniteDuration
-import scala.util.{Failure, Success}
+import scala.util.Failure
+import scala.util.Success
 
-
-class FileManagerTests extends FunSuite with Matchers {
-  import API._
-
-  var tempDir: Path                                            = _
-  var testKit: BehaviorTestKit[Request[SuccessResponse]]       = _
-  var inbox: TestInbox[OutputMessage] = _
-
-  override def withFixture(test: NoArgTest): Outcome = {
-    tempDir = Files.createTempDirectory("file-manager-test")
-    testKit = BehaviorTestKit(FileManager.fileManager(tempDir))
-    inbox   = TestInbox[OutputMessage]()
-    //println("Fixture prepared " + tempDir.toString)
-    try test()
-    finally FileUtils.deleteDirectory(tempDir.toFile)
-  }
+trait FilesystemFixture {
+  var tempDir: Path = _
 
   def createSubFile(): Path = {
     Files.createTempFile(tempDir, "foo", "")
@@ -52,6 +40,30 @@ class FileManagerTests extends FunSuite with Matchers {
   }
 
   def homeDirectory(): Path = Paths.get(System.getProperty("user.home"))
+
+  def withTemporaryDirectory[ret](f: Path => ret): ret = {
+    tempDir = Files.createTempDirectory("file-manager-test")
+    try f(tempDir)
+    finally {
+      FileUtils.deleteDirectory(tempDir.toFile)
+      tempDir = null
+    }
+  }
+}
+
+class FileManagerTests extends FunSuite with Matchers with FilesystemFixture {
+  import API._
+
+  var testKit: BehaviorTestKit[Request[SuccessResponse]] = _
+  var inbox: TestInbox[OutputMessage]                    = _
+
+  override def withFixture(test: NoArgTest): Outcome = {
+    withTemporaryDirectory(_ => {
+      testKit = BehaviorTestKit(FileManager.fileManager(tempDir))
+      inbox   = TestInbox[OutputMessage]()
+      test()
+    })
+  }
 
   def expectSuccess[T <: SuccessResponse: ClassTag](): T = {
     inbox.receiveMessage() match {
@@ -120,17 +132,71 @@ class FileManagerTests extends FunSuite with Matchers {
     response.exists should be(false)
   }
 
-//  test("Stat: ask is file a dir") {
-//    val filePath = createSubFile()
-//    val system = ActorSystem[API.Request[API.SuccessResponse]](
-//      FileManager.fileManager(Paths.get("")),
-//      "hello"
-//    )
-//
-//    implicit val askTimeout: Timeout = new Timeout(50, TimeUnit.MILLISECONDS)
-//    system.ask(
-//      (ref: ActorRef[Either[ErrorResponse, TouchFileResponse]]) =>
-//        Request(ref, TouchFileRequest(filePath))
-//    )
-//  }
+  test("List: empty directory") {
+    val requestContents = ListRequest(tempDir)
+    val response        = ask(requestContents)
+    response.entries should have length 0
+  }
+
+  test("List: missing directory") {
+    val path = tempDir.resolve("bar")
+    abet[NoSuchFileException](ListRequest(path))
+  }
+
+  test("List: non-empty directory") {
+    val filePath   = createSubFile()
+    val subdirPath = createSubDir()
+    val response   = ask(ListRequest(tempDir))
+
+    def expectPath(path: Path): Path = {
+      response.entries.find(_.toString == path.toString) match {
+        case Some(entry) => entry
+        case _           => fail(s"cannot find entry for path $path")
+      }
+    }
+
+    response.entries should have length 2
+    expectPath(filePath)
+    expectPath(subdirPath)
+  }
+
+  test("List: outside project") {
+    abet[PathOutsideProjectException](ListRequest(homeDirectory()))
+  }
+
+  test("Stat: missing file") {
+    val filePath = tempDir.resolve("bar")
+    abet[NoSuchFileException](StatRequest(filePath))
+  }
+
+  test("Read: file") {
+    val filePath = tempDir.resolve("bar")
+    val contents = "gfhniugdzhbuiobf".getBytes
+    Files.write(filePath, contents)
+
+    val response = ask(ReadRequest(filePath))
+    response.contents should be(contents)
+  }
+
+  test("Write: file") {
+    val filePath = tempDir.resolve("bar")
+    val contents = "gfhniugdzhbuiobf".getBytes
+
+    ask(WriteRequest(filePath, contents))
+
+    val actualFileContents = Files.readAllBytes(filePath)
+    actualFileContents should be(contents)
+  }
+
+  test("Stat: normal file") {
+    val filePath = createSubFile()
+    val contents = "aaa"
+    Files.write(filePath, contents.getBytes())
+
+    val response = ask(StatRequest(filePath))
+
+    response.isDirectory should be(false)
+    response.path.toString should be(filePath.toString)
+    response.size should be(contents.length)
+  }
 }
