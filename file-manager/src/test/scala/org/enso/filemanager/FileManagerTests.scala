@@ -24,20 +24,20 @@ import scala.reflect.ClassTag
 import org.scalatest.Matchers
 
 import scala.concurrent.duration.FiniteDuration
+import scala.util.{Failure, Success}
 
-trait TempDirFixture {}
 
 class FileManagerTests extends FunSuite with Matchers {
   import API._
 
   var tempDir: Path                                            = _
   var testKit: BehaviorTestKit[Request[SuccessResponse]]       = _
-  var inbox: TestInbox[Either[ErrorResponse, SuccessResponse]] = _
+  var inbox: TestInbox[OutputMessage] = _
 
   override def withFixture(test: NoArgTest): Outcome = {
     tempDir = Files.createTempDirectory("file-manager-test")
     testKit = BehaviorTestKit(FileManager.fileManager(tempDir))
-    inbox   = TestInbox[Either[ErrorResponse, SuccessResponse]]()
+    inbox   = TestInbox[OutputMessage]()
     //println("Fixture prepared " + tempDir.toString)
     try test()
     finally FileUtils.deleteDirectory(tempDir.toFile)
@@ -55,9 +55,9 @@ class FileManagerTests extends FunSuite with Matchers {
 
   def expectSuccess[T <: SuccessResponse: ClassTag](): T = {
     inbox.receiveMessage() match {
-      case Left(err) =>
+      case Failure(err) =>
         fail(s"Unexpected error message: $err")
-      case Right(msg) =>
+      case Success(msg) =>
         msg shouldBe a[T]
         msg.asInstanceOf[T]
     }
@@ -65,10 +65,10 @@ class FileManagerTests extends FunSuite with Matchers {
 
   def expectError[T <: Throwable: ClassTag](): T = {
     inbox.receiveMessage() match {
-      case Left(err) =>
-        err.exception shouldBe a[T]
-        err.exception.asInstanceOf[T]
-      case Right(msg) =>
+      case Failure(exception) =>
+        exception shouldBe a[T]
+        exception.asInstanceOf[T]
+      case Success(msg) =>
         fail(s"Unexpected non-error message: $msg")
     }
   }
