@@ -3,14 +3,15 @@ package org.enso.interpreter.node;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.TypesGen;
+import org.enso.interpreter.runtime.Unit;
 
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
-// @GenerateWrapper TODO [AA] Fix this.
 @ReportPolymorphism
-public abstract class ExpressionNode extends StatementNode {
+public abstract class ExpressionNode extends Node {
 
   @CompilerDirectives.CompilationFinal private boolean isTail = false;
 
@@ -31,7 +32,9 @@ public abstract class ExpressionNode extends StatementNode {
   }
   public abstract Object executeGeneric(VirtualFrame frame);
 
-  public void execute(VirtualFrame frame) {
+  public Unit executeUnit(VirtualFrame frame) {
     executeGeneric(frame);
+
+    return Unit.instance();
   }
 }

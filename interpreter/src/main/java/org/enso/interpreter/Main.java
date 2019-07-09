@@ -1,31 +1,13 @@
 package org.enso.interpreter;
 
-import static java.lang.System.err;
-
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleException;
-import com.oracle.truffle.api.TruffleStackTrace;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.impl.TVMCI;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
-import org.apache.commons.lang3.StringUtils;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.util.ExpressionFactory;
-import org.graalvm.polyglot.Value;
-
-import scala.util.parsing.combinator.JavaTokenParsers;
 
 public class Main {
 
@@ -63,9 +45,6 @@ public class Main {
 //
 //      System.exit(1);
 //    }
-//
-//    // TODO [AA] Try polyglot stuff
-//    // TODO ForeignCallNode Ruby, Python, JS
 //
 ////    String code = "(3 + js >>[1,2,3].length<<) * js >>({a: 20})[\"a\"]<<";
 //    List<String> codeLs = new ArrayList<>();

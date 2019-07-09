@@ -8,24 +8,29 @@ import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.Unit;
 
 @NodeInfo(shortName="=", description = "Assigns variable to an expression.")
-@NodeChild(value = "rhsNode", type = ExpressionNode.class)
+@NodeChild(value = "rhsNode")
 @NodeField(name="frameSlot", type=FrameSlot.class)
 public abstract class AssignmentNode extends ExpressionNode {
 
   public abstract FrameSlot getFrameSlot();
 
   @Specialization
-  protected void writeLong(VirtualFrame frame, long value) {
+  protected Object writeLong(VirtualFrame frame, long value) {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Long);
     frame.setLong(getFrameSlot(), value);
+
+    return Unit.instance();
   }
 
   @Specialization
-  protected void writeObject(VirtualFrame frame, Object value) {
+  protected Object writeObject(VirtualFrame frame, Object value) {
     frame.getFrameDescriptor().setFrameSlotKind(getFrameSlot(), FrameSlotKind.Object);
     frame.setObject(getFrameSlot(), value);
+
+    return Unit.instance();
   }
 
 }

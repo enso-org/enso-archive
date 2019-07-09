@@ -13,7 +13,6 @@ import org.enso.interpreter.AstExpressionVisitor;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.StatementNode;
 import org.enso.interpreter.node.controlflow.AssignmentNode;
 import org.enso.interpreter.node.controlflow.AssignmentNodeGen;
 import org.enso.interpreter.node.controlflow.IfZeroNode;
@@ -87,21 +86,21 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
   public ExpressionNode processFunctionBody(
       List<String> arguments, List<AstExpression> statements, AstExpression retValue) {
-    List<StatementNode> argRewrites = new ArrayList<>();
+    List<ExpressionNode> argRewrites = new ArrayList<>();
     for (int i = 0; i < arguments.size(); i++) {
       FrameSlot slot = scope.createVarSlot(arguments.get(i));
       ReadArgumentNode readArg = new ReadArgumentNode(i);
       AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
       argRewrites.add(assignArg);
     }
-    List<StatementNode> statementNodes =
+    List<ExpressionNode> statementNodes =
         statements.stream().map(stmt -> stmt.visit(this)).collect(Collectors.toList());
-    List<StatementNode> allStatements = new ArrayList<>();
+    List<ExpressionNode> allStatements = new ArrayList<>();
     allStatements.addAll(argRewrites);
     allStatements.addAll(statementNodes);
     ExpressionNode expr = retValue.visit(this);
     FunctionBodyNode functionBodyNode =
-        new FunctionBodyNode(allStatements.toArray(new StatementNode[0]), expr);
+        new FunctionBodyNode(allStatements.toArray(new ExpressionNode[0]), expr);
     RootNode rootNode =
         new EnsoRootNode(
             language, scope.getFrameDescriptor(), functionBodyNode, null, "lambda::" + scopeName);
@@ -129,10 +128,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   }
 
   @Override
-  public ExpressionNode visitGlobalScope(
-      scala.collection.immutable.List<AstAssignment> bindings, AstExpression expression) {
-    // TODO [AA] This needs to actually construct a node of the appropriate type
-    return null;
+  public ExpressionNode visitGlobalScope(List<AstAssignment> bindings, AstExpression expression) {
+    return new GlobalScope(bindings, expression);
   }
 
   @Override

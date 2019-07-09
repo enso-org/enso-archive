@@ -27,7 +27,7 @@ trait AstExpressionVisitor[+T] {
   ): T
 
   def visitGlobalScope(
-    bindings: List[AstAssignment],
+    bindings: java.util.List[AstAssignment],
     expression: AstExpression
   ): T
 
@@ -72,7 +72,7 @@ case class AstGlobalScope(
   expression: AstExpression)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitGlobalScope(bindings, expression)
+    visitor.visitGlobalScope(bindings.asJava, expression)
 }
 
 case class AstFunction(
@@ -166,7 +166,7 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def statement: Parser[AstExpression] = assignment | print | expression
 
-  def globalScope: Parser[AstExpression] = rep1(assignment) ~ expression ^^ {
+  def globalScope: Parser[AstExpression] = ((assignment) *) ~ expression ^^ {
     case assignments ~ expr => AstGlobalScope(assignments, expr)
   }
 
