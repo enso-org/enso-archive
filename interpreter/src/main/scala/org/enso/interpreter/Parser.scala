@@ -201,7 +201,6 @@ class EnsoParser {
 }
 
 /* TODO [AA]
-6. Create a `Unit` type.
 7. Make all possible language statements into expressions.
 8. Create a GlobalScope node.
 9. Validate assignments in the global scope on construction (use LexicalScope as
