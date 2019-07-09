@@ -2,26 +2,35 @@ package org.enso.interpreter.util;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleException;
 import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RootNode;
-import org.enso.interpreter.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import org.enso.interpreter.AstAssignment;
+import org.enso.interpreter.AstExpression;
+import org.enso.interpreter.AstExpressionVisitor;
+import org.enso.interpreter.AstStatement;
+import org.enso.interpreter.AstStatementVisitor;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.StatementNode;
-import org.enso.interpreter.node.controlflow.*;
+import org.enso.interpreter.node.controlflow.AssignmentNode;
+import org.enso.interpreter.node.controlflow.AssignmentNodeGen;
+import org.enso.interpreter.node.controlflow.IfZeroNode;
+import org.enso.interpreter.node.controlflow.PrintNode;
+import org.enso.interpreter.node.controlflow.ReadLocalVariableNodeGen;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.operator.*;
+import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.ReadArgumentNode;
 import org.enso.interpreter.runtime.FramePointer;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 public class ExpressionFactory
     implements AstExpressionVisitor<ExpressionNode>,
@@ -98,7 +107,8 @@ public class ExpressionFactory
     FunctionBodyNode functionBodyNode =
         new FunctionBodyNode(allStatements.toArray(new StatementNode[0]), expr);
     RootNode rootNode =
-        new EnsoRootNode(language, scope.getFrameDescriptor(), functionBodyNode, null, "lambda::" + scopeName);
+        new EnsoRootNode(
+            language, scope.getFrameDescriptor(), functionBodyNode, null, "lambda::" + scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
     return new CreateFunctionNode(callTarget);
   }
@@ -121,6 +131,13 @@ public class ExpressionFactory
   public ExpressionNode visitIf(AstExpression cond, AstExpression ifTrue, AstExpression ifFalse) {
     return new IfZeroNode(
         cond.visitExpression(this), ifTrue.visitExpression(this), ifFalse.visitExpression(this));
+  }
+
+  @Override
+  public ExpressionNode visitGlobalScope(
+      scala.collection.immutable.List<AstAssignment> bindings, AstExpression expression) {
+    // TODO [AA] This needs to actually construct a node of the appropriate type
+    return null;
   }
 
   @Override

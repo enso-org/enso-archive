@@ -25,6 +25,11 @@ trait AstExpressionVisitor[+T] {
     ifTrue: AstExpression,
     ifFalse: AstExpression
   ): T
+
+  def visitGlobalScope(
+    bindings: List[AstAssignment],
+    expression: AstExpression
+  ): T
 }
 
 trait AstStatementVisitor[+S, +E <: S] extends AstExpressionVisitor[E] {
@@ -68,6 +73,14 @@ case class AstApply(fun: AstExpression, args: List[AstExpression])
     extends AstExpression {
   override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitApplication(fun, args.asJava)
+}
+
+case class AstGlobalScope(
+  bindings: List[AstAssignment],
+  expression: AstExpression)
+    extends AstExpression {
+  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitGlobalScope(bindings, expression)
 }
 
 case class AstFunction(
@@ -161,8 +174,12 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def statement: Parser[AstStatement] = assignment | print | expression
 
+  def globalScope: Parser[AstExpression] = rep1(assignment) ~ expression ^^ {
+    case assignments ~ expr => AstGlobalScope(assignments, expr)
+  }
+
   def parse(code: String): AstExpression = {
-    parseAll(expression | function, code).get
+    parseAll(globalScope, code).get
   }
 }
 
@@ -182,3 +199,11 @@ class EnsoParser {
       |}
     """.stripMargin
 }
+
+/* TODO [AA]
+6. Create a `Unit` type.
+7. Make all possible language statements into expressions.
+8. Create a GlobalScope node.
+9. Validate assignments in the global scope on construction (use LexicalScope as
+   an example).
+ */
