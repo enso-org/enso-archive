@@ -1,28 +1,19 @@
 package org.enso.interpreter;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.nodes.IndirectCallNode;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.util.ExpressionFactory;
-
 public class Main {
 
   public static void main(String[] args) {
-    Context context = new Context();
-    String code = "@{ adder = { |acc, i| ifZero: [i, acc, @adder [i+acc, i-1]] } ; print: @adder[0, 1000000]; 0 }";
-    EnsoParser parser = new EnsoParser();
-    ExpressionFactory fac = new ExpressionFactory(null);
-    ExpressionNode result = fac.run(parser.parseEnso(code));
-    FrameDescriptor d = new FrameDescriptor();
-    EnsoRootNode root = new EnsoRootNode(null, d, result, null, "root");
-    CallTarget tgt = Truffle.getRuntime().createCallTarget(root);
-//    MaterializedFrame vFrame = Truffle.getRuntime().createMaterializedFrame(new Object[] {});
-    IndirectCallNode node = Truffle.getRuntime().createIndirectCallNode();
-    node.call(tgt, new Object[]{});
+//    Context context = new Context();
+//    String code = "@{ adder = { |acc, i| ifZero: [i, acc, @adder [i+acc, i-1]] } ; print: @adder[0, 1000000]; 0 }";
+//    EnsoParser parser = new EnsoParser();
+//    ExpressionFactory fac = new ExpressionFactory(null);
+//    ExpressionNode result = fac.run(parser.parseEnso(code));
+//    FrameDescriptor d = new FrameDescriptor();
+//    EnsoRootNode root = new EnsoRootNode(null, d, result, null, "root");
+//    CallTarget tgt = Truffle.getRuntime().createCallTarget(root);
+////    MaterializedFrame vFrame = Truffle.getRuntime().createMaterializedFrame(new Object[] {});
+//    IndirectCallNode node = Truffle.getRuntime().createIndirectCallNode();
+//    node.call(tgt, new Object[]{});
 
   }
 

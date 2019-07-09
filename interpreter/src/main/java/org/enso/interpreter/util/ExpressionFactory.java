@@ -6,8 +6,8 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
-import org.enso.interpreter.AstAssignment;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.AstExpressionVisitor;
 import org.enso.interpreter.Language;
@@ -17,17 +17,21 @@ import org.enso.interpreter.node.controlflow.AssignmentNode;
 import org.enso.interpreter.node.controlflow.AssignmentNodeGen;
 import org.enso.interpreter.node.controlflow.IfZeroNode;
 import org.enso.interpreter.node.controlflow.PrintNode;
+import org.enso.interpreter.node.controlflow.ReadGlobalTargetNode;
 import org.enso.interpreter.node.controlflow.ReadLocalVariableNodeGen;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.ReadArgumentNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.FramePointer;
+import org.enso.interpreter.runtime.GlobalCallTarget;
 
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
@@ -43,16 +47,20 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     this.scopeName = name;
   }
 
+  public ExpressionFactory(Language lang, String scopeName) {
+    this(lang, new LocalScope(), scopeName);
+  }
+
   public ExpressionFactory(Language language) {
-    this(language, new LocalScope(), "<root>");
+    this(language, "<root>");
   }
 
   public ExpressionFactory createChild(String name) {
     return new ExpressionFactory(language, scope.createChild(), name);
   }
 
-  public ExpressionNode run(AstExpression body) {
-    ExpressionNode result = body.visit(this);
+  public ExpressionNode run(AstExpression expr) {
+    ExpressionNode result = expr.visit(this);
     result.markNotTail();
     return result;
   }
@@ -70,6 +78,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     if (operator.equals("-")) return SubtractOperatorNodeGen.create(left, right);
     if (operator.equals("*")) return MultiplyOperatorNodeGen.create(left, right);
     if (operator.equals("/")) return DivideOperatorNodeGen.create(left, right);
+    if (operator.equals("%")) return ModOperatorNodeGen.create(left, right);
     return null;
   }
 
@@ -80,8 +89,20 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
   @Override
   public ExpressionNode visitVariable(String name) {
-    FramePointer slot = scope.getSlot(name);
-    return ReadLocalVariableNodeGen.create(slot);
+    Optional<FramePointer> slot = scope.getSlot(name);
+    Context ctx = this.language.getCurrentContext();
+
+    if (slot.isPresent()) {
+      return ReadLocalVariableNodeGen.create(slot.get());
+    } else {
+      Optional<GlobalCallTarget> tgt = ctx.getGlobalCallTarget(name);
+
+      if (tgt.isPresent()) {
+        return new ReadGlobalTargetNode(tgt.get());
+      } else {
+        throw new VariableDoesNotExistException(name);
+      }
+    }
   }
 
   public ExpressionNode processFunctionBody(
@@ -125,11 +146,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitIf(AstExpression cond, AstExpression ifTrue, AstExpression ifFalse) {
     return new IfZeroNode(cond.visit(this), ifTrue.visit(this), ifFalse.visit(this));
-  }
-
-  @Override
-  public ExpressionNode visitGlobalScope(List<AstAssignment> bindings, AstExpression expression) {
-    return new GlobalScope(bindings, expression);
   }
 
   @Override

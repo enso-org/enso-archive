@@ -26,14 +26,26 @@ trait AstExpressionVisitor[+T] {
     ifFalse: AstExpression
   ): T
 
+  def visitAssignment(varName: String, expr: AstExpression): T
+
+  def visitPrint(body: AstExpression): T
+}
+
+trait AstGlobalScopeVisitor[+T] {
+
   def visitGlobalScope(
     bindings: java.util.List[AstAssignment],
     expression: AstExpression
   ): T
+}
 
-  def visitAssignment(varName: String, expr: AstExpression): T
+case class AstGlobalScope(
+  bindings: List[AstAssignment],
+  expression: AstExpression)
+    extends {
 
-  def visitPrint(body: AstExpression): T
+  def visit[T](visitor: AstGlobalScopeVisitor[T]): T =
+    visitor.visitGlobalScope(bindings.asJava, expression)
 }
 
 sealed trait AstExpression {
@@ -65,14 +77,6 @@ case class AstApply(fun: AstExpression, args: List[AstExpression])
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitApplication(fun, args.asJava)
-}
-
-case class AstGlobalScope(
-  bindings: List[AstAssignment],
-  expression: AstExpression)
-    extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitGlobalScope(bindings.asJava, expression)
 }
 
 case class AstFunction(
@@ -138,7 +142,7 @@ class EnsoParserInternal extends JavaTokenParsers {
     long | foreign | variable | "(" ~> expression <~ ")" | call
 
   def arith: Parser[AstExpression] =
-    operand ~ ((("+" | "-" | "*" | "/") ~ operand) ?) ^^ {
+    operand ~ ((("+" | "-" | "*" | "/" | "%") ~ operand) ?) ^^ {
       case a ~ Some(op ~ b) => AstArithOp(op, a, b)
       case a ~ None         => a
     }
@@ -166,19 +170,23 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def statement: Parser[AstExpression] = assignment | print | expression
 
-  def globalScope: Parser[AstExpression] = ((assignment) *) ~ expression ^^ {
+  def globalScope: Parser[AstGlobalScope] = ((assignment) *) ~ expression ^^ {
     case assignments ~ expr => AstGlobalScope(assignments, expr)
   }
 
-  def parse(code: String): AstExpression = {
+  def parseGlobalScope(code: String): AstGlobalScope = {
     parseAll(globalScope, code).get
+  }
+
+  def parse(code: String): AstExpression = {
+    parseAll(expression | function, code).get
   }
 }
 
 class EnsoParser {
 
-  def parseEnso(code: String): AstExpression = {
-    new EnsoParserInternal().parse(code)
+  def parseEnso(code: String): AstGlobalScope = {
+    new EnsoParserInternal().parseGlobalScope(code)
   }
 
   val internalSummatorCode =

@@ -2,10 +2,10 @@ package org.enso.interpreter.util;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
-import org.enso.interpreter.runtime.FramePointer;
-
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import org.enso.interpreter.runtime.FramePointer;
 
 public class LocalScope {
   private Map<String, FrameSlot> items;
@@ -44,17 +44,17 @@ public class LocalScope {
     return slot;
   }
 
-  public FramePointer getSlot(String name) {
+  public Optional<FramePointer> getSlot(String name) {
     LocalScope scope = this;
     int parentCounter = 0;
     while (scope != null) {
       FrameSlot slot = scope.items.get(name);
       if (slot != null) {
-        return new FramePointer(parentCounter, slot);
+        return Optional.of(new FramePointer(parentCounter, slot));
       }
       scope = scope.parent;
       parentCounter++;
     }
-    throw new VariableDoesNotExistException(name);
+    return Optional.empty();
   }
 }
