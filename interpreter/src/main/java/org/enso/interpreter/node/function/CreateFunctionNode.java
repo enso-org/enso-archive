@@ -6,7 +6,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Function;
 
-
 public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
 

@@ -6,15 +6,15 @@ import org.enso.interpreter.node.expression.LiteralNode;
 
 @NodeInfo(shortName = "IntegerLiteral")
 public final class IntegerLiteralNode extends LiteralNode {
-    // We don't need to zero init this as it's always constructed with a value.
-    private final long value;
+  // We don't need to zero init this as it's always constructed with a value.
+  private final long value;
 
-    public IntegerLiteralNode(long value) {
-        this.value = value;
-    }
+  public IntegerLiteralNode(long value) {
+    this.value = value;
+  }
 
-    @Override
-    public Object executeGeneric(VirtualFrame frame) {
-        return this.value;
-    }
+  @Override
+  public Object executeGeneric(VirtualFrame frame) {
+    return this.value;
+  }
 }

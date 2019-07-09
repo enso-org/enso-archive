@@ -30,6 +30,7 @@ public abstract class ExpressionNode extends Node {
   public long executeLong(VirtualFrame frame) throws UnexpectedResultException {
     return TypesGen.expectLong(executeGeneric(frame));
   }
+
   public abstract Object executeGeneric(VirtualFrame frame);
 
   public Unit executeUnit(VirtualFrame frame) {

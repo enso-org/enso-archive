@@ -1,7 +1,5 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.frame.Frame;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
 
 public class FramePointer {
@@ -21,4 +19,3 @@ public class FramePointer {
   private final int parentLevel;
   private final FrameSlot frameSlot;
 }
-

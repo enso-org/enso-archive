@@ -1,5 +1,7 @@
 package org.enso.interpreter
 
+import org.graalvm.polyglot.PolyglotException
+
 class GlobalScopeTest extends LanguageTest {
   // TODO [AA] Should work with bare vars.
   "Variables" should "be able to be read from the global scope" in {
@@ -59,13 +61,13 @@ class GlobalScopeTest extends LanguageTest {
   "Functions" should "be able to mutually recurse in the global scope" in {
     val code =
       """
-        |fn1 = { |number|
-        |  ifZero: [number % 3, number, @decrementCall [x]]
-        |}
-        |
         |decrementCall = { |number|
         |  res = number - 1;
         |  @fn1 [res]
+        |}
+        |
+        |fn1 = { |number|
+        |  ifZero: [number % 3, number, @decrementCall [number]]
         |}
         |
         |@fn1 [5]
@@ -74,16 +76,28 @@ class GlobalScopeTest extends LanguageTest {
     eval(code) shouldEqual 3
   }
 
-//  "Functions" should "be suspended within blocks" in {
-//    val code =
-//      """
-//        |a = 10/0
-//        |
-//        |b = { @a }
-//        |b
-//    """.stripMargin
-//
-//    noException should be thrownBy eval(code)
-//  }
+  "Functions" should "be suspended within blocks" in {
+    val code =
+      """
+        |a = 10/0
+        |
+        |b = { @a }
+        |b
+    """.stripMargin
+
+    noException should be thrownBy eval(code)
+  }
+
+  "Exceptions" should "be thrown when called" in {
+    val code =
+      """
+        |a = 10/0
+        |
+        |b = { @a }
+        |@b
+      """.stripMargin
+
+    a[PolyglotException] should be thrownBy eval(code)
+  }
 
 }

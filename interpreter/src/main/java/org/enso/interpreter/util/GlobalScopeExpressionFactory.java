@@ -11,11 +11,10 @@ import org.enso.interpreter.AstGlobalScopeVisitor;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Context;
 
 public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
 
-  public final Language language;
+  private final Language language;
 
   public GlobalScopeExpressionFactory(Language language) {
     this.language = language;
@@ -27,26 +26,24 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
 
   @Override
   public ExpressionNode visitGlobalScope(List<AstAssignment> bindings, AstExpression expression) {
-    Context ctx = language.getCurrentContext();
+    GlobalScope globalScope = new GlobalScope();
 
-    bindings.stream().forEach(binding -> ctx.registerName(binding.name()));
+    bindings.forEach(binding -> globalScope.registerName(binding.name()));
 
     for (AstAssignment binding : bindings) {
       String name = binding.name();
       AstExpression body = binding.body();
-      ExpressionFactory exprFactory = new ExpressionFactory(language, name);
 
+      ExpressionFactory exprFactory = new ExpressionFactory(language, name, globalScope);
       ExpressionNode node = exprFactory.run(body);
 
       EnsoRootNode root = new EnsoRootNode(this.language, new FrameDescriptor(), node, null, name);
-
       RootCallTarget target = Truffle.getRuntime().createCallTarget(root);
 
-      ctx.updateCallTarget(name, target);
+      globalScope.updateCallTarget(name, target);
     }
 
-    ExpressionFactory factory = new ExpressionFactory(this.language);
-
+    ExpressionFactory factory = new ExpressionFactory(this.language, globalScope);
     return factory.run(expression);
   }
 }

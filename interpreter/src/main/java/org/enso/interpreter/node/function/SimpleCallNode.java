@@ -12,7 +12,6 @@ import org.enso.interpreter.TypeError;
 public class SimpleCallNode extends CallNode {
   @Child private InteropLibrary library = InteropLibrary.getFactory().createDispatched(3);
 
-
   @Override
   public Object doCall(VirtualFrame frame, Object receiver, Object[] arguments) {
     try {

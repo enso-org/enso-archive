@@ -1,7 +1,12 @@
 package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.FrameSlotTypeException;
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
@@ -11,7 +16,6 @@ import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
 import org.enso.interpreter.TailCallException;
 import org.enso.interpreter.TypeError;
-import org.enso.interpreter.runtime.Function;
 
 public class LoopingCallNode extends CallNode {
 
@@ -23,8 +27,7 @@ public class LoopingCallNode extends CallNode {
 
   @Override
   public Object doCall(VirtualFrame frame, Object receiver, Object[] arguments) {
-    ((RepeatedCallNode) loopNode.getRepeatingNode())
-            .setNextCall(frame, receiver, arguments);
+    ((RepeatedCallNode) loopNode.getRepeatingNode()).setNextCall(frame, receiver, arguments);
     loopNode.executeLoop(frame);
     return ((RepeatedCallNode) loopNode.getRepeatingNode()).getResult(frame);
   }

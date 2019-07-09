@@ -29,7 +29,6 @@ import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.ReadArgumentNode;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.FramePointer;
 import org.enso.interpreter.runtime.GlobalCallTarget;
 
@@ -38,25 +37,28 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   private final LocalScope scope;
   private final Language language;
   private final String scopeName;
+  private final GlobalScope globalScope;
 
   private String currentVarName = "annonymous";
 
-  public ExpressionFactory(Language language, LocalScope scope, String name) {
+  public ExpressionFactory(
+      Language language, LocalScope scope, String name, GlobalScope globalScope) {
     this.language = language;
     this.scope = scope;
     this.scopeName = name;
+    this.globalScope = globalScope;
   }
 
-  public ExpressionFactory(Language lang, String scopeName) {
-    this(lang, new LocalScope(), scopeName);
+  public ExpressionFactory(Language lang, String scopeName, GlobalScope globalScope) {
+    this(lang, new LocalScope(), scopeName, globalScope);
   }
 
-  public ExpressionFactory(Language language) {
-    this(language, "<root>");
+  public ExpressionFactory(Language language, GlobalScope globalScope) {
+    this(language, "<root>", globalScope);
   }
 
   public ExpressionFactory createChild(String name) {
-    return new ExpressionFactory(language, scope.createChild(), name);
+    return new ExpressionFactory(language, scope.createChild(), name, this.globalScope);
   }
 
   public ExpressionNode run(AstExpression expr) {
@@ -90,12 +92,11 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitVariable(String name) {
     Optional<FramePointer> slot = scope.getSlot(name);
-    Context ctx = this.language.getCurrentContext();
 
     if (slot.isPresent()) {
       return ReadLocalVariableNodeGen.create(slot.get());
     } else {
-      Optional<GlobalCallTarget> tgt = ctx.getGlobalCallTarget(name);
+      Optional<GlobalCallTarget> tgt = this.globalScope.getGlobalCallTarget(name);
 
       if (tgt.isPresent()) {
         return new ReadGlobalTargetNode(tgt.get());

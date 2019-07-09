@@ -36,7 +36,7 @@ public final class Function implements TruffleObject {
 
   @ExportMessage
   abstract static class Execute {
-//
+
     @Specialization(guards = "function.getCallTarget() == cachedTarget")
     protected static Object callDirect(
         Function function,
@@ -44,21 +44,21 @@ public final class Function implements TruffleObject {
         @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
         @Cached("create(cachedTarget)") DirectCallNode callNode) {
       Object[] args = {function.getScope(), arguments};
-//      args[0] = function.getScope();
-//      for (int i = 0; i < arguments.length; i++) {
-//        args[i + 1] = arguments[i];
-//      }
+      //      args[0] = function.getScope();
+      //      for (int i = 0; i < arguments.length; i++) {
+      //        args[i + 1] = arguments[i];
+      //      }
       return callNode.call(args);
     }
 
     @Specialization(replaces = "callDirect")
     protected static Object callIndirect(
-            Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
-//      Object[] args = new Object[arguments.length + 1];
-//      args[0] = function.getScope();
-//      for (int i = 0; i < arguments.length; i++) {
-//        args[i + 1] = arguments[i];
-//      }
+        Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
+      //      Object[] args = new Object[arguments.length + 1];
+      //      args[0] = function.getScope();
+      //      for (int i = 0; i < arguments.length; i++) {
+      //        args[i + 1] = arguments[i];
+      //      }
       System.out.println("Function " + function + " goes slow");
       Object[] args = {function.getScope(), arguments};
       return callNode.call(function.getCallTarget(), args);

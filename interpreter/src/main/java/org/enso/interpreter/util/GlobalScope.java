@@ -1,22 +1,30 @@
 package org.enso.interpreter.util;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
-import java.util.List;
-import org.enso.interpreter.AstAssignment;
-import org.enso.interpreter.AstExpression;
-import org.enso.interpreter.node.ExpressionNode;
+import com.oracle.truffle.api.RootCallTarget;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import org.enso.interpreter.runtime.GlobalCallTarget;
 
-public class GlobalScope extends ExpressionNode {
-  private final List<AstAssignment> assignments;
-  private final AstExpression expression;
+public class GlobalScope {
 
-  public GlobalScope(List<AstAssignment> assignments, AstExpression expression) {
-    this.assignments = assignments;
-    this.expression = expression;
+  private final Map<String, GlobalCallTarget> globalNames = new HashMap<>();
+
+  public void registerName(String name) {
+    this.globalNames.put(name, new GlobalCallTarget(null));
   }
 
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
-    return null;
+  public void updateCallTarget(String name, RootCallTarget rootBinding) {
+    GlobalCallTarget globalTarget = this.globalNames.get(name);
+
+    if (globalTarget == null) {
+      this.globalNames.put(name, new GlobalCallTarget(rootBinding));
+    } else {
+      globalTarget.setTarget(rootBinding);
+    }
+  }
+
+  public Optional<GlobalCallTarget> getGlobalCallTarget(String name) {
+    return Optional.ofNullable(this.globalNames.get(name));
   }
 }

@@ -1,6 +1,5 @@
 import org.enso.interpreter.Constants
 import org.enso.interpreter.LanguageRunner
-import org.graalvm.polyglot.Context
 import org.scalameter.api._
 
 class EnsoBench extends Bench.LocalTime with LanguageRunner {
@@ -8,10 +7,11 @@ class EnsoBench extends Bench.LocalTime with LanguageRunner {
 
   val sumTCOCode =
     """
+      |summator = { |acc, current|
+      |    ifZero: [current, acc, @summator [acc + current, current - 1]]
+      |}
+      |
       |{ |sumTo|
-      |  summator = { |acc, current|
-      |      ifZero: [current, acc, @summator [acc + current, current - 1]]
-      |  };
       |  res = @summator [0, sumTo];
       |  res
       |}
