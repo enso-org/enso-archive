@@ -10,8 +10,6 @@ import java.util.stream.Collectors;
 import org.enso.interpreter.AstAssignment;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.AstExpressionVisitor;
-import org.enso.interpreter.AstStatement;
-import org.enso.interpreter.AstStatementVisitor;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -32,9 +30,7 @@ import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.ReadArgumentNode;
 import org.enso.interpreter.runtime.FramePointer;
 
-public class ExpressionFactory
-    implements AstExpressionVisitor<ExpressionNode>,
-        AstStatementVisitor<StatementNode, ExpressionNode> {
+public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
   private final LocalScope scope;
   private final Language language;
@@ -57,7 +53,7 @@ public class ExpressionFactory
   }
 
   public ExpressionNode run(AstExpression body) {
-    ExpressionNode result = body.visitExpression(this);
+    ExpressionNode result = body.visit(this);
     result.markNotTail();
     return result;
   }
@@ -69,8 +65,8 @@ public class ExpressionFactory
   @Override
   public ExpressionNode visitArithOp(
       String operator, AstExpression leftAst, AstExpression rightAst) {
-    ExpressionNode left = leftAst.visitExpression(this);
-    ExpressionNode right = rightAst.visitExpression(this);
+    ExpressionNode left = leftAst.visit(this);
+    ExpressionNode right = rightAst.visit(this);
     if (operator.equals("+")) return AddOperatorNodeGen.create(left, right);
     if (operator.equals("-")) return SubtractOperatorNodeGen.create(left, right);
     if (operator.equals("*")) return MultiplyOperatorNodeGen.create(left, right);
@@ -90,7 +86,7 @@ public class ExpressionFactory
   }
 
   public ExpressionNode processFunctionBody(
-      List<String> arguments, List<AstStatement> statements, AstExpression retValue) {
+      List<String> arguments, List<AstExpression> statements, AstExpression retValue) {
     List<StatementNode> argRewrites = new ArrayList<>();
     for (int i = 0; i < arguments.size(); i++) {
       FrameSlot slot = scope.createVarSlot(arguments.get(i));
@@ -103,7 +99,7 @@ public class ExpressionFactory
     List<StatementNode> allStatements = new ArrayList<>();
     allStatements.addAll(argRewrites);
     allStatements.addAll(statementNodes);
-    ExpressionNode expr = retValue.visitExpression(this);
+    ExpressionNode expr = retValue.visit(this);
     FunctionBodyNode functionBodyNode =
         new FunctionBodyNode(allStatements.toArray(new StatementNode[0]), expr);
     RootNode rootNode =
@@ -115,7 +111,7 @@ public class ExpressionFactory
 
   @Override
   public ExpressionNode visitFunction(
-      List<String> arguments, List<AstStatement> statements, AstExpression retValue) {
+      List<String> arguments, List<AstExpression> statements, AstExpression retValue) {
     ExpressionFactory child = createChild(currentVarName);
     return child.processFunctionBody(arguments, statements, retValue);
   }
@@ -123,14 +119,13 @@ public class ExpressionFactory
   @Override
   public ExpressionNode visitApplication(AstExpression function, List<AstExpression> arguments) {
     return new InvokeNode(
-        function.visitExpression(this),
-        arguments.stream().map(arg -> arg.visitExpression(this)).toArray(ExpressionNode[]::new));
+        function.visit(this),
+        arguments.stream().map(arg -> arg.visit(this)).toArray(ExpressionNode[]::new));
   }
 
   @Override
   public ExpressionNode visitIf(AstExpression cond, AstExpression ifTrue, AstExpression ifFalse) {
-    return new IfZeroNode(
-        cond.visitExpression(this), ifTrue.visitExpression(this), ifFalse.visitExpression(this));
+    return new IfZeroNode(cond.visit(this), ifTrue.visit(this), ifFalse.visit(this));
   }
 
   @Override
@@ -141,14 +136,14 @@ public class ExpressionFactory
   }
 
   @Override
-  public StatementNode visitAssignment(String varName, AstExpression expr) {
+  public ExpressionNode visitAssignment(String varName, AstExpression expr) {
     currentVarName = varName;
     FrameSlot slot = scope.createVarSlot(varName);
-    return AssignmentNodeGen.create(expr.visitExpression(this), slot);
+    return AssignmentNodeGen.create(expr.visit(this), slot);
   }
 
   @Override
-  public StatementNode visitPrint(AstExpression body) {
-    return new PrintNode(body.visitExpression(this));
+  public ExpressionNode visitPrint(AstExpression body) {
+    return new PrintNode(body.visit(this));
   }
 }

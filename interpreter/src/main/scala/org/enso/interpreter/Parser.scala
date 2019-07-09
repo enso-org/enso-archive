@@ -11,7 +11,7 @@ trait AstExpressionVisitor[+T] {
 
   def visitFunction(
     arguments: java.util.List[String],
-    statements: java.util.List[AstStatement],
+    statements: java.util.List[AstExpression],
     retValue: AstExpression
   ): T
 
@@ -30,48 +30,40 @@ trait AstExpressionVisitor[+T] {
     bindings: List[AstAssignment],
     expression: AstExpression
   ): T
+
+  def visitAssignment(varName: String, expr: AstExpression): T
+
+  def visitPrint(body: AstExpression): T
 }
 
-trait AstStatementVisitor[+S, +E <: S] extends AstExpressionVisitor[E] {
-  def visitAssignment(varName: String, expr: AstExpression): S
-  def visitPrint(body: AstExpression): S
-}
-
-sealed trait AstStatement {
-  def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T
-}
-
-sealed trait AstExpression extends AstStatement {
-  def visitExpression[T](visitor: AstExpressionVisitor[T]): T
-
-  def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T =
-    visitExpression(visitor)
+sealed trait AstExpression {
+  def visit[T](visitor: AstExpressionVisitor[T]): T
 }
 
 case class AstLong(l: Long) extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitLong(l)
 }
 
 case class AstArithOp(op: String, left: AstExpression, right: AstExpression)
     extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitArithOp(op, left, right)
 }
 
 case class AstForeign(lang: String, code: String) extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitForeign(lang, code)
 }
 
 case class AstVariable(name: String) extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitVariable(name)
 }
 
 case class AstApply(fun: AstExpression, args: List[AstExpression])
     extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitApplication(fun, args.asJava)
 }
 
@@ -79,27 +71,27 @@ case class AstGlobalScope(
   bindings: List[AstAssignment],
   expression: AstExpression)
     extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitGlobalScope(bindings, expression)
 }
 
 case class AstFunction(
   arguments: List[String],
-  statements: List[AstStatement],
+  statements: List[AstExpression],
   ret: AstExpression)
     extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitFunction(arguments.asJava, statements.asJava, ret)
 }
 
 case class AstAssignment(name: String, body: AstExpression)
-    extends AstStatement {
-  override def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T =
+    extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitAssignment(name, body)
 }
 
-case class AstPrint(body: AstExpression) extends AstStatement {
-  override def visit[T, E <: T](visitor: AstStatementVisitor[T, E]): T =
+case class AstPrint(body: AstExpression) extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitPrint(body)
 }
 
@@ -108,7 +100,7 @@ case class AstIfZero(
   ifTrue: AstExpression,
   ifFalse: AstExpression)
     extends AstExpression {
-  override def visitExpression[T](visitor: AstExpressionVisitor[T]): T =
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitIf(cond, ifTrue, ifFalse)
 }
 
@@ -172,7 +164,7 @@ class EnsoParserInternal extends JavaTokenParsers {
       case args ~ stmts ~ expr => AstFunction(args.getOrElse(Nil), stmts, expr)
     }
 
-  def statement: Parser[AstStatement] = assignment | print | expression
+  def statement: Parser[AstExpression] = assignment | print | expression
 
   def globalScope: Parser[AstExpression] = rep1(assignment) ~ expression ^^ {
     case assignments ~ expr => AstGlobalScope(assignments, expr)
