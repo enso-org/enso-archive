@@ -26,7 +26,11 @@ import scala.util.Success
 import scala.util.Try
 
 object API {
-  type InputMessage  = Request[SuccessResponse]
+  abstract class InputMessage {
+    def handle(fileManager: FileManagerBehavior): Unit
+    def validate(projectRoot: Path): Unit
+  }
+
   type OutputMessage = Try[SuccessResponse]
 
   final case class PathOutsideProjectException(
@@ -38,7 +42,12 @@ object API {
 
   sealed case class Request[SpecificResponse <: SuccessResponse: ClassTag](
     replyTo: ActorRef[Try[SpecificResponse]],
-    contents: RequestPayload[SpecificResponse])
+    contents: RequestPayload[SpecificResponse]) extends InputMessage {
+    override def handle(fileManager: FileManagerBehavior): Unit = {
+      fileManager.onMessageTyped(this)
+    }
+    override def validate(projectRoot: Path): Unit = contents.validate(projectRoot)
+  }
 
   abstract class RequestPayload[+ResponseType <: SuccessResponse: ClassTag] {
     def touchedPaths: Seq[Path]
@@ -190,10 +199,10 @@ object API {
   }
   case class TouchFileResponse() extends SuccessResponse
 
-  case class WatchPathRequest(path: Path, observer: ActorRef[FileSystemEvent])
-      extends RequestPayload[WatchPathResponse] {
+  case class CreateWatcherRequest(path: Path, observer: ActorRef[FileSystemEvent])
+      extends RequestPayload[CreateWatcherResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
-    override def handle(fileManager: FileManagerBehavior): WatchPathResponse = {
+    override def handle(fileManager: FileManagerBehavior): CreateWatcherResponse = {
       val id = UUID.randomUUID()
       val watcher = DirectoryWatcher
         .builder()
@@ -204,10 +213,22 @@ object API {
         .build()
       watcher.watchAsync()
       fileManager.watchers += (id -> watcher)
-      WatchPathResponse(id)
+      CreateWatcherResponse(id)
     }
   }
-  case class WatchPathResponse(id: UUID) extends SuccessResponse
+  case class CreateWatcherResponse(id: UUID) extends SuccessResponse
+
+  case class WatcherRemoveRequest(id: UUID) extends RequestPayload[WatcherRemoveResponse] {
+    override def touchedPaths: Seq[Path] = Seq()
+    override def handle(fileManager: FileManagerBehavior): WatcherRemoveResponse = {
+      val watcher = fileManager.watchers(id)
+      watcher.close()
+      fileManager.watchers -= id
+      WatcherRemoveResponse()
+    }
+  }
+
+  case class WatcherRemoveResponse() extends SuccessResponse
 
   case class WriteRequest(path: Path, contents: Array[Byte])
       extends RequestPayload[WriteResponse] {
@@ -240,11 +261,9 @@ class FileManagerBehavior(
 
   val watchers: mutable.Map[UUID, DirectoryWatcher] = mutable.Map()
 
-  override def onMessage(message: InputMessage): Behavior[InputMessage] = {
-    context.log.info(s"Received $message")
+  def onMessageTyped[response <: SuccessResponse : ClassTag](message: Request[response]): Unit = {
     val response = try {
       message.contents.validate(projectRoot)
-      // Note: `handle` signature guarantees that for derived request we get derived response type
       val result = message.contents.handle(this)
       Success(result)
     } catch {
@@ -252,12 +271,16 @@ class FileManagerBehavior(
         Failure(ex)
     }
     message.replyTo ! response
+  }
+
+  override def onMessage(message: InputMessage): Behavior[InputMessage] = {
+    context.log.info(s"Received $message")
+    message.handle(this)
     this
   }
 }
 
 object FileManager {
-
   def fileManager(projectRoot: Path): Behavior[API.InputMessage] =
     Behaviors.setup(context => new FileManagerBehavior(projectRoot, context))
 }

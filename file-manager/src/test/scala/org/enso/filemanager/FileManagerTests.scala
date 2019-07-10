@@ -9,31 +9,48 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Duration
 import java.time.Instant
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
+import akka.actor.Scheduler
 import org.apache.commons.io.FileExistsException
 import org.apache.commons.io.FileUtils
 import akka.actor.testkit.typed.CapturedLogEvent
+import akka.actor.testkit.typed.FishingOutcome
 import akka.actor.testkit.typed.Effect._
+import akka.actor.testkit.typed.scaladsl.TestProbe
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
 import akka.actor.testkit.typed.scaladsl.TestInbox
 import akka.actor.typed.ActorRef
 import akka.actor.typed.ActorSystem
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.util.Timeout
+import io.methvin.watcher.DirectoryChangeEvent
+import org.enso.filemanager.API.CreateWatcherRequest
+import org.enso.filemanager.API.CreateWatcherResponse
+import org.enso.filemanager.API.FileSystemEvent
+import org.enso.filemanager.API.InputMessage
+import org.enso.filemanager.API.SuccessResponse
+import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
+import org.scalatest.Matchers
 import org.scalatest.Outcome
 
+import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.reflect.ClassTag
-import org.scalatest.Matchers
-
 import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
+import scala.util.Try
 
-trait FilesystemHelpers {
+trait FileSystemHelpers {
   var tempDir: Path = _
-  val contents      = "葦垣の中の和草にこやかに我れと笑まして人に知らゆな\nzażółć gęślą jaźń".getBytes
+
+  val contents: Array[Byte] =
+    "葦垣の中の和草にこやかに我れと笑まして人に知らゆな\nzażółć gęślą jaźń".getBytes
 
   def createSubFile(): Path = {
     val path = Files.createTempFile(tempDir, "foo", "")
@@ -46,16 +63,32 @@ trait FilesystemHelpers {
 
   def homeDirectory(): Path = Paths.get(System.getProperty("user.home"))
 
-  def withTemporaryDirectory[ret](f: Path => ret): ret = {
+  def setupTemp(): Unit = {
     tempDir = Files.createTempDirectory("file-manager-test")
-    try f(tempDir)
-    finally {
-      FileUtils.deleteDirectory(tempDir.toFile)
-      tempDir = null
-    }
   }
 
-  case class Subtree(root: Path, children: Seq[Path])
+  def cleanTemp(): Unit = {
+    FileUtils.deleteDirectory(tempDir.toFile)
+    tempDir = null
+  }
+
+  def withTemporaryDirectory[ret](f: Path => ret): ret = {
+    setupTemp()
+    try f(tempDir)
+    finally cleanTemp()
+  }
+
+  case class Subtree(
+    root: Path,
+    childrenFiles: Seq[Path],
+    childrenDirs: Seq[Path]) {
+
+    val elements: Seq[Path] =
+      (Seq(root) ++ childrenDirs ++ childrenFiles).map(root.resolve(_))
+
+    def rebase(otherRoot: Path): Subtree =
+      Subtree(otherRoot, childrenFiles, childrenDirs)
+  }
 
   def createSubtree(): Subtree = {
     val root       = createSubDir()
@@ -66,15 +99,15 @@ trait FilesystemHelpers {
     Files.write(root.resolve(rootFile1), contents)
     Files.createDirectory(root.resolve(rootSubDir))
     Files.write(root.resolve(rootFile2), contents)
-    Subtree(root, Seq(rootFile1, rootSubDir, rootFile2))
+    Subtree(root, Seq(rootFile1, rootFile2), Seq(rootSubDir))
   }
 }
 
-class FileManagerTests extends FunSuite with Matchers with FilesystemHelpers {
+class FileManagerTests extends FunSuite with Matchers with FileSystemHelpers {
   import API._
 
-  var testKit: BehaviorTestKit[Request[SuccessResponse]] = _
-  var inbox: TestInbox[OutputMessage]                    = _
+  var testKit: BehaviorTestKit[InputMessage] = _
+  var inbox: TestInbox[OutputMessage]        = _
 
   override def withFixture(test: NoArgTest): Outcome = {
     withTemporaryDirectory(_ => {
@@ -106,7 +139,7 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemHelpers {
 
   def expectSubtree(subtree: Subtree): Unit = {
     assert(Files.exists(subtree.root))
-    subtree.children.foreach(
+    subtree.elements.foreach(
       elem => expectExist(subtree.root.resolve(elem))
     )
 
@@ -154,7 +187,7 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemHelpers {
     val subtree     = createSubtree()
     val destination = tempDir.resolve("target")
     ask(CopyDirectoryRequest(subtree.root, destination))
-    val subtreeExpected = Subtree(destination, subtree.children)
+    val subtreeExpected = subtree.rebase(destination)
     expectSubtree(subtree)
     expectSubtree(subtreeExpected)
   }
@@ -165,7 +198,7 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemHelpers {
     Files.createDirectory(destination)
     // no exception should happen, but merge
     ask(CopyDirectoryRequest(subtree.root, destination))
-    val subtreeExpected = Subtree(destination, subtree.children)
+    val subtreeExpected = subtree.rebase(destination)
     expectSubtree(subtree)
     expectSubtree(subtreeExpected)
   }
@@ -293,7 +326,7 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemHelpers {
     val subtree     = createSubtree()
     val destination = tempDir.resolve("target")
     ask(MoveDirectoryRequest(subtree.root, destination))
-    val subtreeExpected = Subtree(destination, subtree.children)
+    val subtreeExpected = subtree.rebase(destination)
     assert(!Files.exists(subtree.root))
     expectSubtree(subtreeExpected)
   }
@@ -367,15 +400,135 @@ class FileManagerTests extends FunSuite with Matchers with FilesystemHelpers {
     response.path.toString should be(filePath.toString)
     response.size should be(contents.length)
   }
+}
 
-  test("Watch: WIP") {
-    val eventsInbox = TestInbox[FileSystemEvent]()
-    ask(WatchPathRequest(tempDir, eventsInbox.ref))
+// needs to be separate because watcher message are asynchronous
+class FileManagerWatcherTests
+    extends FunSuite
+    with BeforeAndAfterAll
+    with Matchers
+    with FileSystemHelpers {
+  import API._
 
-    createSubFile()
-    createSubDir()
-    val msg = eventsInbox.receiveMessage()
-    assert(eventsInbox.hasMessages)
-    eventsInbox.receiveAll().foreach(msg => println(s"$msg"))
+  var testKit: ActorTestKit         = ActorTestKit()
+  implicit val timeout: Timeout     = 3.seconds
+  implicit val scheduler: Scheduler = testKit.scheduler
+
+  var fileManager: ActorRef[InputMessage]   = _
+  var testProbe: TestProbe[FileSystemEvent] = _
+  var watcherID: UUID                       = _
+
+  override def withFixture(test: NoArgTest): Outcome = {
+    withTemporaryDirectory(_ => {
+      fileManager = testKit.spawn(FileManager.fileManager(tempDir))
+      testProbe   = testKit.createTestProbe[FileSystemEvent]("file-observer")
+      watcherID   = observe(tempDir)
+      super.withFixture(test)
+    })
+  }
+
+  override def afterAll() {
+    testKit.shutdownTestKit()
+  }
+
+  def matchesEvent(
+    path: Path,
+    eventType: DirectoryChangeEvent.EventType
+  ): FileSystemEvent => Boolean = { message: FileSystemEvent =>
+    message.event.path() == path && message.event.eventType() == eventType
+  }
+
+  def expectEventPresentIn(
+    path: Path,
+    eventType: DirectoryChangeEvent.EventType,
+    events: Seq[FileSystemEvent]
+  ): Unit = {
+    assert(
+      events.exists(matchesEvent(path, eventType)),
+      s"not received message about $path"
+    )
+  }
+
+  def expectNextEvent(
+    path: Path,
+    eventType: DirectoryChangeEvent.EventType
+  ): Unit = {
+    val message = testProbe.receiveMessage()
+    assert(
+      matchesEvent(path, eventType)(message),
+      s"expected of type $eventType for $path, got $message"
+    )
+  }
+
+  def ask[response <: SuccessResponse: ClassTag](
+    requestPayload: RequestPayload[response]
+  ): Future[Try[response]] = {
+    val futureResponse = fileManager.ask(
+      (replyTo: ActorRef[Try[response]]) => {
+        val request =
+          Request(replyTo, requestPayload)
+        request: InputMessage
+      }
+    )
+    futureResponse
+  }
+
+  def observe(path: Path): UUID = {
+    val futureResponse = ask(CreateWatcherRequest(path, testProbe.ref))
+    Await.result(futureResponse, 50.millis).get.id
+  }
+
+  test("Watcher: observe subtree creation and deletion") {
+    val subtree = createSubtree()
+    val events  = testProbe.receiveMessages(subtree.elements.size)
+    subtree.elements.foreach(
+      expectEventPresentIn(_, DirectoryChangeEvent.EventType.CREATE, events)
+    )
+
+    FileUtils.deleteDirectory(subtree.root.toFile)
+
+    val deletionEvents = testProbe.receiveMessages(subtree.elements.size)
+    subtree.elements.foreach(
+      expectEventPresentIn(
+        _,
+        DirectoryChangeEvent.EventType.DELETE,
+        deletionEvents
+      )
+    )
+
+    testProbe.expectNoMessage(50.millis)
+  }
+
+  test("Watcher: observe file modification") {
+    // should generate two events
+    val dir10 = tempDir.resolve("dir10")
+    val dir20 = dir10.resolve("dir20")
+    // create two directories at once - we should get two notifications
+    Files.createDirectories(dir20)
+    expectNextEvent(dir10, DirectoryChangeEvent.EventType.CREATE)
+    expectNextEvent(dir20, DirectoryChangeEvent.EventType.CREATE)
+
+    val someFile = dir20.resolve("file.dat")
+    Files.createFile(someFile)
+    expectNextEvent(someFile, DirectoryChangeEvent.EventType.CREATE)
+    Files.write(someFile, "blahblah".getBytes)
+    expectNextEvent(someFile, DirectoryChangeEvent.EventType.MODIFY)
+
+    // deleting dir removes the file first
+    FileUtils.deleteDirectory(dir20.toFile)
+    expectNextEvent(someFile, DirectoryChangeEvent.EventType.DELETE)
+    expectNextEvent(dir20, DirectoryChangeEvent.EventType.DELETE)
+    testProbe.expectNoMessage(50.millis)
+  }
+
+  test("Watcher: disabling watch") {
+    val subtree = createSubtree()
+    testProbe.receiveMessages(subtree.elements.size)
+    val stopResponse =
+      Await.result(ask(WatcherRemoveRequest(watcherID)), 1.second)
+    stopResponse should be(Success(WatcherRemoveResponse()))
+
+    FileUtils.deleteDirectory(subtree.root.toFile)
+    testProbe.expectNoMessage(50.millis)
   }
 }
