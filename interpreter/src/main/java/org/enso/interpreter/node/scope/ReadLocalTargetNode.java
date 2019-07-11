@@ -1,22 +1,23 @@
-package org.enso.interpreter.node.controlflow;
+package org.enso.interpreter.node.scope;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.dsl.NodeChildren;
-import com.oracle.truffle.api.dsl.NodeField;
-import com.oracle.truffle.api.dsl.NodeFields;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.frame.Frame;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotTypeException;
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.FramePointer;
 
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
-public abstract class ReadLocalVariableNode extends ExpressionNode {
+public abstract class ReadLocalTargetNode extends ExpressionNode {
   private final FrameSlot slot;
   private final int parentLevel;
 
-  public ReadLocalVariableNode(FramePointer pointer) {
+  public ReadLocalTargetNode(FramePointer pointer) {
     this.slot = pointer.getFrameSlot();
     this.parentLevel = pointer.getParentLevel();
   }

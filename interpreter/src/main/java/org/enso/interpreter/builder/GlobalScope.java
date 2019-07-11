@@ -1,4 +1,4 @@
-package org.enso.interpreter.util;
+package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.RootCallTarget;
 import java.util.HashMap;

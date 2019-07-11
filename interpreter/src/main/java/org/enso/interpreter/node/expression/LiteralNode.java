@@ -1,7 +1,0 @@
-package org.enso.interpreter.node.expression;
-
-import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.node.ExpressionNode;
-
-@NodeInfo(shortName = "Literal", description = "A representation of literal values.")
-public abstract class LiteralNode extends ExpressionNode {}

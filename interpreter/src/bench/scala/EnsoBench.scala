@@ -1,6 +1,4 @@
-import org.enso.interpreter.Constants
-import org.enso.interpreter.LanguageRunner
-import org.graalvm.polyglot.Context
+import org.enso.interpreter.{Constants, LanguageRunner}
 import org.scalameter.api._
 
 class EnsoBench extends Bench.LocalTime with LanguageRunner {
