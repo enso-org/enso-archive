@@ -3,13 +3,13 @@ The JVM (and hence, GraalVM) do not have support for segmented stacks, and hence
 do not allow for computation of unbounded recursion - if you make too many
 recursive function calls you can cause your stack to overflow. Quite obviously,
 this is a big problem for a functional language where recursion is the primary
-construct for looping. 
+construct for looping.
 
 There are two main categories of solution for working with unbounded recursion:
 
 - **Segmented Stacks:** If you have the ability to allocate stacks on the heap
   you can allocate the stack in segments as it grows, meaning that the upper
-  limit on the size of your stack is 
+  limit on the size of your stack is
 - **Continuation Passing Style (CPS):** A program in CPS is one in which the
   flow of control is passed explicitly as a function of one argument (the
   continuation). The significant benefit of this is that it means that all calls
@@ -35,7 +35,7 @@ use of unbounded recursion in Enso on GraalVM.
 ## Emulating Stack Segmentation with Threads
 As each new thread has its own stack, we can exploit this to emulate the notion
 of split stacks as used in many functional programming languages. The basic idea
-is to work out when you're about to run out of stack space, 
+is to work out when you're about to run out of stack space,
 
 ### When to Spawn a Thread
 One of the main problems with this approach is that you want to make as much use
@@ -56,16 +56,25 @@ perspective there is very little that could actually be relied upon.
 
 ### Conservative Counting
 A naive and obvious solution is to maintain a counter that tracks the depth of
-your call stack. This would allow you to make a conservative estimate of 
+your call stack. This would allow you to make a conservative estimate of the 
+amount of stack you have remaining, and spawn a new thread at some threshold.
 
-<benchmarks>
+Of course, the main issue with this is that the stacks you have available become
+significantly under-utilised as the threshold has to be set such that overflow
+is impossible. 
+
+We tested this scenario in pure Java to get an idea of the ideal performance,
+and obtained the following results.
+
+```
+```
 
 ### Catching the Overflow
 Though it is heavily recommended against by the Java documentation, it is indeed
 possible to catch the `StackOverflowError`. While this provides accurate info
-about when you run out of stack space, it has one major problem: unless you 
+about when you run out of stack space, it has one major problem: unless you
 unwind further than catching the error, you don't have enough stack space to
-even spawn a new thread to continue execution. 
+even spawn a new thread to continue execution.
 
 The following is a potential algorithm that ignores this problem for the moment:
 
@@ -74,22 +83,22 @@ The following is a potential algorithm that ignores this problem for the moment:
 <benchmarks>
 
 ### Thread Pools
-As this approach relies on the ability 
+As this approach relies on the ability
 
 ### Project Loom
 If project loom's coroutines and / or fibres were stable, these would likely
 help somewhat by reducing the thread creation overhead that is primarily down to
-OS-level context switches. 
+OS-level context switches.
 
 However, Loom doesn't currently seem like a viable solution to this approach as
 it is not only far from stable, but also has no guarantee that it will actually
 make it into the JVM.
 
 ## Avoiding Stack Usage via a CPS Transform
-If we can globally (or for specific instances) transform recursive calls into 
+If we can globally (or for specific instances) transform recursive calls into
 
 ### CPS Performance
-One of the main issues with interpreting Enso in CPS is that the nature of 
+One of the main issues with interpreting Enso in CPS is that the nature of
 continuation passing is fairly mismatched with the GraalVM execution model.
 
 ## Alternatives
