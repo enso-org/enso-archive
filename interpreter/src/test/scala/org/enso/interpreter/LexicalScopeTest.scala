@@ -45,7 +45,7 @@ class LexicalScopeTest extends LanguageTest {
         |}
       """.stripMargin
     the[PolyglotException] thrownBy eval(code) should have message
-      "Variable y was already defined in this scope."
+    "Variable y was already defined in this scope."
   }
 
   "Reference to an undefined variable" should "throw error" in {
@@ -57,7 +57,7 @@ class LexicalScopeTest extends LanguageTest {
         |}
       """.stripMargin
     the[PolyglotException] thrownBy eval(code) should have message
-      "Variable y is not defined."
+    "Variable y is not defined."
   }
 
 }

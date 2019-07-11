@@ -1,7 +1,11 @@
 package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.*;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
@@ -18,8 +22,8 @@ import org.enso.interpreter.runtime.TailCallException;
  */
 public class LoopingDispatchNode extends DispatchNode {
 
-  @Child private LoopNode loopNode;
   private final FrameDescriptor loopFrameDescriptor = new FrameDescriptor();
+  @Child private LoopNode loopNode;
 
   public LoopingDispatchNode() {
     loopNode = Truffle.getRuntime().createLoopNode(new RepeatedCallNode(loopFrameDescriptor));

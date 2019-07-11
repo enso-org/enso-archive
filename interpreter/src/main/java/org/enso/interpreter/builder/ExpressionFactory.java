@@ -17,8 +17,6 @@ import org.enso.interpreter.node.controlflow.AssignmentNode;
 import org.enso.interpreter.node.controlflow.AssignmentNodeGen;
 import org.enso.interpreter.node.controlflow.IfZeroNode;
 import org.enso.interpreter.node.expression.builtin.PrintNode;
-import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
-import org.enso.interpreter.node.controlflow.ReadLocalTargetNodeGen;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
@@ -29,6 +27,8 @@ import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.ReadArgumentNode;
+import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
+import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
 import org.enso.interpreter.runtime.FramePointer;
 import org.enso.interpreter.runtime.GlobalCallTarget;
 

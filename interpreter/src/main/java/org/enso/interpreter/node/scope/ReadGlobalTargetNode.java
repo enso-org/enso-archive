@@ -11,9 +11,8 @@ import org.enso.interpreter.runtime.GlobalCallTarget;
 @NodeInfo(shortName = "Global Call Target")
 public class ReadGlobalTargetNode extends ExpressionNode {
 
-  @Child private DirectCallNode directCallNode = null;
-
   private final GlobalCallTarget globalCallTarget;
+  @Child private DirectCallNode directCallNode = null;
 
   public ReadGlobalTargetNode(GlobalCallTarget globalCallTarget) {
     this.globalCallTarget = globalCallTarget;

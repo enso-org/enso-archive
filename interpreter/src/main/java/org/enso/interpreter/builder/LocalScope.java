@@ -2,7 +2,6 @@ package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -10,17 +9,7 @@ import org.enso.interpreter.runtime.FramePointer;
 
 public class LocalScope {
   private Map<String, FrameSlot> items;
-
-  public FrameDescriptor getFrameDescriptor() {
-    return frameDescriptor;
-  }
-
   private FrameDescriptor frameDescriptor;
-
-  public LocalScope getParent() {
-    return parent;
-  }
-
   private LocalScope parent;
 
   public LocalScope() {
@@ -32,6 +21,14 @@ public class LocalScope {
   public LocalScope(LocalScope parent) {
     this();
     this.parent = parent;
+  }
+
+  public FrameDescriptor getFrameDescriptor() {
+    return frameDescriptor;
+  }
+
+  public LocalScope getParent() {
+    return parent;
   }
 
   public LocalScope createChild() {

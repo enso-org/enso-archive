@@ -7,10 +7,10 @@ import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import org.enso.interpreter.builder.FileDetector;
+import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
 
 @TruffleLanguage.Registration(
     id = Constants.LANGUAGE_ID,

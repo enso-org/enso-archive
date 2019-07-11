@@ -11,13 +11,13 @@ public class SourceLoc {
     this.span = span;
   }
 
+  public static SourceLoc empty() {
+    return new SourceLoc();
+  }
+
   public void add(SourceLoc that) {
     this.position += that.position;
     this.span += that.span;
-  }
-
-  public static SourceLoc empty() {
-    return new SourceLoc();
   }
 
   public boolean isEmpty() {
