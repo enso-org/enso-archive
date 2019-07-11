@@ -63,11 +63,17 @@ Of course, the main issue with this is that the stacks you have available become
 significantly under-utilised as the threshold has to be set such that overflow
 is impossible. 
 
-We tested this scenario in pure Java to get an idea of the ideal performance,
-and obtained the following results.
+We did some brief testing to experiment with the 'depth limit' (shown here as
+'interruptions') to see the kind of times we were looking at.
 
 ```
+Benchmark                 (interruptions)  Mode  Cnt   Score   Error  Units
+Main.testCountedExecutor               10  avgt    5  61.822 ± 7.031  ms/op
+Main.testCountedExecutor              100  avgt    5   6.471 ± 0.286  ms/op
+Main.testCountedExecutor             1000  avgt    5   1.320 ± 0.253  ms/op
 ```
+
+<analysis>
 
 ### Catching the Overflow
 Though it is heavily recommended against by the Java documentation, it is indeed
@@ -83,7 +89,8 @@ The following is a potential algorithm that ignores this problem for the moment:
 <benchmarks>
 
 ### Thread Pools
-As this approach relies on the ability
+As this approach relies on the ability to spawn significant numbers of threads,
+
 
 ### Project Loom
 If project loom's coroutines and / or fibres were stable, these would likely
@@ -104,13 +111,6 @@ continuation passing is fairly mismatched with the GraalVM execution model.
 ## Alternatives
 
 <!--
-  Need to test:
-  - Tradeoff between thread creation overhead and thread stack size (can we make it less costly by
-    increasing the stack size).
-    - Creation of a thread may not actually allocate the full maximum stack size.
-    - The `Thread` constructor is also free, by the specification, to ignore the stack size argument
-      if it sees fit.
-
   - The details of how the JVM manages thread stacks and how they are implemented.
     - The specification makes no claims as to how the stacks are implemented, and we shouldn't rely
       on any HotSpot implementation details.
