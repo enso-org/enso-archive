@@ -1,7 +1,7 @@
 package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.runtime.TailCallException;
+import org.enso.interpreter.optimiser.TailCallException;
 
 /**
  * Optimistic version of {@link DispatchNode} for the non tail call recursive case. Tries to just

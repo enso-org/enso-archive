@@ -29,7 +29,6 @@ import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.ReadArgumentNode;
 import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
-import org.enso.interpreter.runtime.FramePointer;
 import org.enso.interpreter.runtime.GlobalCallTarget;
 
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
@@ -94,7 +93,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     Optional<FramePointer> slot = scope.getSlot(name);
 
     if (slot.isPresent()) {
-      return ReadLocalTargetNodeGen.create(slot.get());
+      return ReadLocalTargetNodeGen.create(slot.get().getFrameSlot(), slot.get().getParentLevel());
     } else {
       Optional<GlobalCallTarget> tgt = this.globalScope.getGlobalCallTarget(name);
 

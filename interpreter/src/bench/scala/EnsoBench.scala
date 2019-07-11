@@ -5,13 +5,25 @@ import org.scalameter.api._
 class EnsoBench extends Bench.LocalTime with LanguageRunner {
   val gen = Gen.unit("")
 
+  // Currently unused as we know this is very slow.
+  val mutRecursiveCode =
+    """
+    |summator = { |acc, current|
+    |    ifZero: [current, acc, @summator [acc + current, current - 1]]
+    |}
+    |
+    |{ |sumTo|
+    |  res = @summator [0, sumTo];
+    |  res
+    |}
+    |"""
+
   val sumTCOCode =
     """
-      |summator = { |acc, current|
-      |    ifZero: [current, acc, @summator [acc + current, current - 1]]
-      |}
-      |
       |{ |sumTo|
+      |  summator = { |acc, current|
+      |      ifZero: [current, acc, @summator [acc + current, current - 1]]
+      |  };
       |  res = @summator [0, sumTo];
       |  res
       |}

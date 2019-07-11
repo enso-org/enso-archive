@@ -1,35 +1,29 @@
 package org.enso.interpreter.node.scope;
 
+import com.oracle.truffle.api.dsl.NodeField;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.frame.Frame;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotTypeException;
-import com.oracle.truffle.api.frame.FrameUtil;
-import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.FramePointer;
+import org.enso.interpreter.runtime.Function;
 
 @NodeInfo(shortName = "readVar", description = "Access local variable value.")
+@NodeField(name = "slot", type = FrameSlot.class)
+@NodeField(name = "parentLevel", type = int.class)
 public abstract class ReadLocalTargetNode extends ExpressionNode {
-  private final FrameSlot slot;
-  private final int parentLevel;
+  public abstract int getParentLevel();
 
-  public ReadLocalTargetNode(FramePointer pointer) {
-    this.slot = pointer.getFrameSlot();
-    this.parentLevel = pointer.getParentLevel();
-  }
+  public abstract FrameSlot getSlot();
 
   public MaterializedFrame getParentFrame(Frame frame) {
-    return (MaterializedFrame) frame.getArguments()[0];
+    return Function.ArgumentsHelper.getLocalScope(frame.getArguments());
   }
 
   @ExplodeLoop
   public MaterializedFrame getProperFrame(Frame frame) {
     MaterializedFrame currentFrame = getParentFrame(frame);
-    for (int i = 1; i < parentLevel; i++) {
+    for (int i = 1; i < getParentLevel(); i++) {
       currentFrame = getParentFrame(currentFrame);
     }
     return currentFrame;
@@ -37,15 +31,15 @@ public abstract class ReadLocalTargetNode extends ExpressionNode {
 
   @Specialization(rewriteOn = FrameSlotTypeException.class)
   protected long readLong(VirtualFrame frame) throws FrameSlotTypeException {
-    if (parentLevel == 0) return frame.getLong(slot);
+    if (getParentLevel() == 0) return frame.getLong(getSlot());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return currentFrame.getLong(slot);
+    return currentFrame.getLong(getSlot());
   }
 
   @Specialization
   protected Object readGeneric(VirtualFrame frame) {
-    if (parentLevel == 0) return FrameUtil.getObjectSafe(frame, slot);
+    if (getParentLevel() == 0) return FrameUtil.getObjectSafe(frame, getSlot());
     MaterializedFrame currentFrame = getProperFrame(frame);
-    return FrameUtil.getObjectSafe(currentFrame, slot);
+    return FrameUtil.getObjectSafe(currentFrame, getSlot());
   }
 }

@@ -6,7 +6,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import org.enso.interpreter.TypesGen;
+import org.enso.interpreter.runtime.TypesGen;
 import org.enso.interpreter.runtime.Unit;
 
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
@@ -37,5 +37,9 @@ public abstract class ExpressionNode extends Node {
     executeGeneric(frame);
 
     return Unit.instance();
+  }
+
+  public void executeVoid(VirtualFrame frame) {
+    executeGeneric(frame);
   }
 }

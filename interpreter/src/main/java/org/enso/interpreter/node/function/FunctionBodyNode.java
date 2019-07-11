@@ -5,7 +5,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 
-@NodeInfo(shortName = "{}", description = "Suspended computation")
+@NodeInfo(shortName = "{}")
 public class FunctionBodyNode extends ExpressionNode {
 
   @Children private final ExpressionNode[] statements;
@@ -21,7 +21,7 @@ public class FunctionBodyNode extends ExpressionNode {
   @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {
     for (ExpressionNode statement : statements) {
-      statement.executeUnit(frame);
+      statement.executeVoid(frame);
     }
     return returnExpr.executeGeneric(frame);
   }

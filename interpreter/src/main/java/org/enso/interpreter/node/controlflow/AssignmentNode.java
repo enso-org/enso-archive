@@ -10,8 +10,8 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Unit;
 
-@NodeInfo(shortName = "=", description = "Assigns variable to an expression.")
-@NodeChild(value = "rhsNode")
+@NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
+@NodeChild(value = "rhsNode", type = ExpressionNode.class)
 @NodeField(name = "frameSlot", type = FrameSlot.class)
 public abstract class AssignmentNode extends ExpressionNode {
 

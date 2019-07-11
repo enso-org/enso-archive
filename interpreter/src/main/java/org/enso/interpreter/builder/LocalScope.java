@@ -5,7 +5,6 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.enso.interpreter.runtime.FramePointer;
 
 public class LocalScope {
   private Map<String, FrameSlot> items;

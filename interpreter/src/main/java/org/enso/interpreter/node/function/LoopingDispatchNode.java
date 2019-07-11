@@ -9,7 +9,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
-import org.enso.interpreter.runtime.TailCallException;
+import org.enso.interpreter.optimiser.TailCallException;
 
 /**
  * A version of {@link DispatchNode} that is fully prepared to handle tail calls. Tail calls are

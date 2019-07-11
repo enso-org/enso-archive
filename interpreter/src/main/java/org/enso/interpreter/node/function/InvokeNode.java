@@ -6,7 +6,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Function;
-import org.enso.interpreter.runtime.TailCallException;
+import org.enso.interpreter.optimiser.TailCallException;
 
 @NodeInfo(shortName = "@", description = "Executes function")
 public final class InvokeNode extends ExpressionNode {
