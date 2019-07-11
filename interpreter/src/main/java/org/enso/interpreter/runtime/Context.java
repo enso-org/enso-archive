@@ -8,8 +8,6 @@ import java.io.PrintWriter;
 import org.enso.interpreter.Language;
 
 public class Context {
-  private final Layout objectLayout = Layout.createLayout();
-
   private final Language language;
   private final Env environment;
   private final BufferedReader input;

@@ -9,6 +9,7 @@ import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.AstGlobalScope;
 import org.enso.interpreter.AstGlobalScopeVisitor;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.builder.ExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 

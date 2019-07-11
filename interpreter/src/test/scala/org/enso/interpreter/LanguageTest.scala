@@ -11,7 +11,7 @@ trait LanguageRunner {
   implicit class RichValue(value: Value) {
     def call(l: Long): Value = value.execute(l.asInstanceOf[AnyRef])
   }
-  val ctx = Context.newBuilder(Constants.LANGUAGE_ID, "js").build()
+  val ctx = Context.newBuilder(Constants.LANGUAGE_ID).build()
   def eval(code: String): Value = ctx.eval(Constants.LANGUAGE_ID, code)
 }
 

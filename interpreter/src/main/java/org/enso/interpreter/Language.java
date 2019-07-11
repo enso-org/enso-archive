@@ -3,14 +3,13 @@ package org.enso.interpreter;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.TruffleLanguage.ContextPolicy;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
+import org.enso.interpreter.builder.FileDetector;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.util.FileDetector;
 import org.enso.interpreter.util.GlobalScopeExpressionFactory;
 
 @TruffleLanguage.Registration(
@@ -20,7 +19,7 @@ import org.enso.interpreter.util.GlobalScopeExpressionFactory;
     version = Constants.LANGUAGE_VERSION,
     defaultMimeType = Constants.MIME_TYPE,
     characterMimeTypes = Constants.MIME_TYPE,
-    contextPolicy = ContextPolicy.SHARED,
+    contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     fileTypeDetectors = FileDetector.class)
 @ProvidedTags({
   StandardTags.CallTag.class,
@@ -47,11 +46,6 @@ public final class Language extends TruffleLanguage<Context> {
 
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
-    //    ExpressionNode result =
-    //        new EnsoParser<>(new ExpressionFactory())
-    //            .parseEnso(request.getSource().getCharacters().toString());
-    //    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "root");
-    //    return Truffle.getRuntime().createCallTarget(root);
     AstGlobalScope parsed =
         new EnsoParser().parseEnso(request.getSource().getCharacters().toString());
     ExpressionNode result = new GlobalScopeExpressionFactory(this).run(parsed);

@@ -1,4 +1,4 @@
-package org.enso.interpreter.util;
+package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
@@ -31,6 +31,7 @@ import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.ReadArgumentNode;
 import org.enso.interpreter.runtime.FramePointer;
 import org.enso.interpreter.runtime.GlobalCallTarget;
+import org.enso.interpreter.util.GlobalScope;
 
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 

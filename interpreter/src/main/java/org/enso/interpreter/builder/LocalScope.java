@@ -1,7 +1,8 @@
-package org.enso.interpreter.util;
+package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;

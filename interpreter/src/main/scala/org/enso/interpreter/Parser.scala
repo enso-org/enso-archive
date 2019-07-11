@@ -188,21 +188,4 @@ class EnsoParser {
   def parseEnso(code: String): AstGlobalScope = {
     new EnsoParserInternal().parseGlobalScope(code)
   }
-
-  val internalSummatorCode =
-    """
-      |{ |sumTo|
-      |    summator = { |current|
-      |        ifZero: [current, 0, current + (@summator [current - 1])]
-      |    };
-      |    @summator [sumTo]
-      |}
-    """.stripMargin
 }
-
-/* TODO [AA]
-7. Make all possible language statements into expressions.
-8. Create a GlobalScope node.
-9. Validate assignments in the global scope on construction (use LexicalScope as
-   an example).
- */

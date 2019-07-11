@@ -1,32 +1,33 @@
 package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.FrameSlot;
-import com.oracle.truffle.api.frame.FrameSlotKind;
-import com.oracle.truffle.api.frame.FrameSlotTypeException;
-import com.oracle.truffle.api.frame.FrameUtil;
-import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
-import org.enso.interpreter.TailCallException;
-import org.enso.interpreter.TypeError;
+import org.enso.interpreter.runtime.TailCallException;
 
-public class LoopingCallNode extends CallNode {
+/**
+ * A version of {@link DispatchNode} that is fully prepared to handle tail calls. Tail calls are
+ * handled through exceptions – whenever a tail-recursive call would be executed, an exception
+ * containing the next unevaluated call and arguments is thrown instead (see: {@link
+ * TailCallException}).
+ *
+ * <p>This node executes the function in a loop, following all the continuations, until obtaining
+ * the actual return value.
+ */
+public class LoopingDispatchNode extends DispatchNode {
 
   @Child private LoopNode loopNode;
+  private final FrameDescriptor loopFrameDescriptor = new FrameDescriptor();
 
-  public LoopingCallNode(FrameDescriptor descriptor) {
-    loopNode = Truffle.getRuntime().createLoopNode(new RepeatedCallNode(descriptor));
+  public LoopingDispatchNode() {
+    loopNode = Truffle.getRuntime().createLoopNode(new RepeatedCallNode(loopFrameDescriptor));
   }
 
   @Override
-  public Object doCall(VirtualFrame frame, Object receiver, Object[] arguments) {
+  public Object executeDispatch(Object receiver, Object[] arguments) {
+    VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, loopFrameDescriptor);
     ((RepeatedCallNode) loopNode.getRepeatingNode()).setNextCall(frame, receiver, arguments);
     loopNode.executeLoop(frame);
     return ((RepeatedCallNode) loopNode.getRepeatingNode()).getResult(frame);
@@ -36,17 +37,13 @@ public class LoopingCallNode extends CallNode {
     private final FrameSlot resultSlot;
     private final FrameSlot functionSlot;
     private final FrameSlot argsSlot;
-    @Child private InteropLibrary library;
-
-    //    BranchProfile normalProfile = BranchProfile.create();
-    //    BranchProfile tailProfile = BranchProfile.create();
-    //    LoopConditionProfile loopConditionProfile = LoopConditionProfile.createCountingProfile();
+    @Child private CallNode dispatchNode;
 
     public RepeatedCallNode(FrameDescriptor descriptor) {
       functionSlot = descriptor.findOrAddFrameSlot("<TCO Function>", FrameSlotKind.Object);
       resultSlot = descriptor.findOrAddFrameSlot("<TCO Result>", FrameSlotKind.Object);
       argsSlot = descriptor.findOrAddFrameSlot("<TCO Arguments>", FrameSlotKind.Object);
-      library = InteropLibrary.getFactory().createDispatched(3);
+      dispatchNode = CallNodeGen.create();
     }
 
     public void setNextCall(VirtualFrame frame, Object function, Object[] arguments) {
@@ -65,12 +62,7 @@ public class LoopingCallNode extends CallNode {
     }
 
     public Object[] getNextArgs(VirtualFrame frame) {
-      Object[] result = new Object[0];
-      try {
-        result = (Object[]) frame.getObject(argsSlot);
-      } catch (FrameSlotTypeException e) {
-        e.printStackTrace();
-      }
+      Object[] result = (Object[]) FrameUtil.getObjectSafe(frame, argsSlot);
       frame.setObject(argsSlot, null);
       return result;
     }
@@ -80,15 +72,11 @@ public class LoopingCallNode extends CallNode {
       try {
         Object function = getNextFunction(frame);
         Object[] arguments = getNextArgs(frame);
-        frame.setObject(resultSlot, library.execute(function, arguments));
-        //        normalProfile.enter();
+        frame.setObject(resultSlot, dispatchNode.executeCall(function, arguments));
         return false;
       } catch (TailCallException e) {
         setNextCall(frame, e.getFunction(), e.getArguments());
-        //        tailProfile.enter();
         return true;
-      } catch (UnsupportedTypeException | UnsupportedMessageException | ArityException e) {
-        throw new TypeError("Function expected.", this);
       }
     }
   }

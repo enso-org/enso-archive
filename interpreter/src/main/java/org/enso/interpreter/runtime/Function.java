@@ -43,25 +43,27 @@ public final class Function implements TruffleObject {
         Object[] arguments,
         @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
         @Cached("create(cachedTarget)") DirectCallNode callNode) {
-      Object[] args = {function.getScope(), arguments};
-      //      args[0] = function.getScope();
-      //      for (int i = 0; i < arguments.length; i++) {
-      //        args[i + 1] = arguments[i];
-      //      }
-      return callNode.call(args);
+      return callNode.call(function.getScope(), arguments);
     }
 
     @Specialization(replaces = "callDirect")
     protected static Object callIndirect(
         Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
-      //      Object[] args = new Object[arguments.length + 1];
-      //      args[0] = function.getScope();
-      //      for (int i = 0; i < arguments.length; i++) {
-      //        args[i + 1] = arguments[i];
-      //      }
-      System.out.println("Function " + function + " goes slow");
-      Object[] args = {function.getScope(), arguments};
-      return callNode.call(function.getCallTarget(), args);
+      return callNode.call(function.getCallTarget(), function.getScope(), arguments);
+    }
+  }
+
+  public static class ArgumentsHelper {
+    public static Object[] buildArguments(Function function, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), positionalArguments};
+    }
+
+    public static Object[] getPositionalArguments(Object[] arguments) {
+      return (Object[]) arguments[1];
+    }
+
+    public static MaterializedFrame getLocalScope(Object[] arguments) {
+      return (MaterializedFrame) arguments[0];
     }
   }
 }
