@@ -263,16 +263,15 @@ class FileManagerBehaviorTests
   test("Touch: update file") {
     val filePath         = createSubFile()
     val initialTimestamp = Files.getLastModifiedTime(filePath).toInstant
-
     val beforeRequest = Instant.now()
-    assert(initialTimestamp.isBefore(beforeRequest))
+    assert(!initialTimestamp.isAfter(beforeRequest))
     // [mwu] I'm not really happy about these sleeps but without them all 3
     // times (before, after, timestamp) usually got the same read and the
     // point of this test is to make sure that touch sensibly updates the
     // last modified timestamp
-    Thread.sleep(25)
+    Thread.sleep(250)
     ask(TouchFileRequest(filePath))
-    Thread.sleep(25)
+    Thread.sleep(250)
     val afterRequest   = Instant.now()
     val finalTimestamp = Files.getLastModifiedTime(filePath).toInstant
     assert(finalTimestamp.isAfter(beforeRequest))
@@ -297,7 +296,7 @@ class FileManagerBehaviorTests
     val response = ask(StatRequest(filePath))
 
     response.isDirectory should be(false)
-    response.path.toString should be(filePath.toString)
+    response.path should be(filePath)
     response.size should be(contents.length)
   }
 }
