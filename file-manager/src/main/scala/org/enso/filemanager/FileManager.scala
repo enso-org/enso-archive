@@ -1,7 +1,5 @@
 package org.enso.filemanager
 
-import java.nio.file.FileSystem
-import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
@@ -9,17 +7,21 @@ import java.nio.file.attribute.UserPrincipal
 import java.time.Instant
 import java.util.UUID
 
+import akka.actor.Scheduler
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
+import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
+import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
-import akka.actor.typed.scaladsl.AbstractBehavior
+import akka.util.Timeout
 import org.apache.commons.io.FileUtils
-import sun.reflect.generics.reflectiveObjects.NotImplementedException
 
 import scala.collection.mutable
+import scala.concurrent.Future
+import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
@@ -42,11 +44,13 @@ object API {
 
   sealed case class Request[SpecificResponse <: SuccessResponse: ClassTag](
     replyTo: ActorRef[Try[SpecificResponse]],
-    contents: RequestPayload[SpecificResponse]) extends InputMessage {
+    contents: RequestPayload[SpecificResponse])
+      extends InputMessage {
     override def handle(fileManager: FileManagerBehavior): Unit = {
       fileManager.onMessageTyped(this)
     }
-    override def validate(projectRoot: Path): Unit = contents.validate(projectRoot)
+    override def validate(projectRoot: Path): Unit =
+      contents.validate(projectRoot)
   }
 
   abstract class RequestPayload[+ResponseType <: SuccessResponse: ClassTag] {
@@ -199,10 +203,14 @@ object API {
   }
   case class TouchFileResponse() extends SuccessResponse
 
-  case class CreateWatcherRequest(path: Path, observer: ActorRef[FileSystemEvent])
+  case class CreateWatcherRequest(
+    path: Path,
+    observer: ActorRef[FileSystemEvent])
       extends RequestPayload[CreateWatcherResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
-    override def handle(fileManager: FileManagerBehavior): CreateWatcherResponse = {
+    override def handle(
+      fileManager: FileManagerBehavior
+    ): CreateWatcherResponse = {
       val id = UUID.randomUUID()
       val watcher = DirectoryWatcher
         .builder()
@@ -218,9 +226,12 @@ object API {
   }
   case class CreateWatcherResponse(id: UUID) extends SuccessResponse
 
-  case class WatcherRemoveRequest(id: UUID) extends RequestPayload[WatcherRemoveResponse] {
+  case class WatcherRemoveRequest(id: UUID)
+      extends RequestPayload[WatcherRemoveResponse] {
     override def touchedPaths: Seq[Path] = Seq()
-    override def handle(fileManager: FileManagerBehavior): WatcherRemoveResponse = {
+    override def handle(
+      fileManager: FileManagerBehavior
+    ): WatcherRemoveResponse = {
       val watcher = fileManager.watchers(id)
       watcher.close()
       fileManager.watchers -= id
@@ -261,7 +272,9 @@ class FileManagerBehavior(
 
   val watchers: mutable.Map[UUID, DirectoryWatcher] = mutable.Map()
 
-  def onMessageTyped[response <: SuccessResponse : ClassTag](message: Request[response]): Unit = {
+  def onMessageTyped[response <: SuccessResponse: ClassTag](
+    message: Request[response]
+  ): Unit = {
     val response = try {
       message.contents.validate(projectRoot)
       val result = message.contents.handle(this)
@@ -281,6 +294,21 @@ class FileManagerBehavior(
 }
 
 object FileManager {
+  import API._
+
   def fileManager(projectRoot: Path): Behavior[API.InputMessage] =
     Behaviors.setup(context => new FileManagerBehavior(projectRoot, context))
+
+  def ask[response <: SuccessResponse: ClassTag](
+    actor: ActorRef[API.InputMessage],
+    requestPayload: RequestPayload[response]
+  )(implicit timeout: Timeout,
+    scheduler: Scheduler
+  ): Future[Try[response]] = {
+    actor.ask(
+      (replyTo: ActorRef[Try[response]]) => {
+        Request(replyTo, requestPayload)
+      }
+    )
+  }
 }
