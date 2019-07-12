@@ -92,7 +92,7 @@ class FileManagerWatcherTests
 
   def observe(path: Path): UUID = {
     val futureResponse = ask(CreateWatcherRequest(path, testProbe.ref))
-    Await.result(futureResponse, 50.millis).get.id
+    Await.result(futureResponse, timeout.duration).get.id
   }
 
   test("Watcher: observe subtree creation and deletion") {
