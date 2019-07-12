@@ -1,8 +1,21 @@
 
+#############
+## GraalVM ##
+#############
+
+graal_dumps
+
+##########
+## Java ##
+##########
+
+*.class
+
 ###########
 ## Scala ##
 ###########
 
+graal_dumps/
 target/
 *.class
 *.log
