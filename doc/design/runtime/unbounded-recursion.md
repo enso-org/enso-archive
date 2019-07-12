@@ -22,13 +22,13 @@ use of unbounded recursion in Enso on GraalVM.
 
 - [A Baseline](#a-baseline)
 - [Emulating Stack Segmentation with Threads](#emulating-stack-segmentation-with-threads)
-    - [When to Spawn a Thread](#when-to-spawn-a-thread)
-    - [Conservative Counting](#conservative-counting)
-    - [Catching the Overflow](#catching-the-overflow)
-    - [Thread Pools](#thread-pools)
-    - [Project Loom](#project-loom)
+  - [When to Spawn a Thread](#when-to-spawn-a-thread)
+  - [Conservative Counting](#conservative-counting)
+  - [Catching the Overflow](#catching-the-overflow)
+  - [Thread Pools](#thread-pools)
+  - [Project Loom](#project-loom)
 - [Avoiding Stack Usage via a CPS Transform](#avoiding-stack-usage-via-a-cps-transform)
-    - [The CPS Transform](#the-cps-transform)
+  - [The CPS Transform](#the-cps-transform)
 - [Alternatives](#alternatives)
 - [Open Questions](#open-questions)
 
@@ -108,7 +108,9 @@ Main.testCountedExecutor      1000000  avgt    5  107.034 ±  2.076  ms/op
 ```
 
 As is obvious, this is a significant slowdown from the pure loop case, with
-roughly a three orders of magnitude growth. A significant amount
+roughly a three orders of magnitude growth. A significant amount of time seems
+to be spent in the OS-level context switches, contributing to the performance
+cost of this approach.
 
 ### Catching the Overflow
 Though it is heavily recommended against by the Java documentation, it is indeed
