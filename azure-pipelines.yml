@@ -70,6 +70,9 @@ jobs:
       inputs:
         testResultsFormat: 'JUnit'
         testResultsFiles: '**/TEST-*.xml'
+    - script: |
+        echo "##vso[task.complete result=Failed;]DONE"
+      condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
 - job: Windows
   pool:
     vmImage: windows-2019
