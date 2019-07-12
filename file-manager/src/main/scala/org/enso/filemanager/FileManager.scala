@@ -1,15 +1,6 @@
 package org.enso.filemanager
 
-import java.nio.file.Files
-import java.nio.file.NoSuchFileException
-import java.nio.file.Path
-import java.nio.file.attribute.UserPrincipal
-import java.time.Instant
-import java.util.UUID
-
 import akka.actor.Scheduler
-import io.methvin.watcher.DirectoryChangeEvent
-import io.methvin.watcher.DirectoryWatcher
 import akka.actor.typed.scaladsl.AbstractBehavior
 import akka.actor.typed.scaladsl.ActorContext
 import akka.actor.typed.scaladsl.AskPattern.Askable
@@ -17,11 +8,21 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.util.Timeout
+
+import io.methvin.watcher.DirectoryChangeEvent
+import io.methvin.watcher.DirectoryWatcher
+
+import java.nio.file.Files
+import java.nio.file.NoSuchFileException
+import java.nio.file.Path
+import java.nio.file.attribute.UserPrincipal
+import java.time.Instant
+import java.util.UUID
+
 import org.apache.commons.io.FileUtils
 
 import scala.collection.mutable
 import scala.concurrent.Future
-import scala.concurrent.duration._
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success

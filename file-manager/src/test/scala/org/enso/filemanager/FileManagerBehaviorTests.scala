@@ -1,49 +1,23 @@
 package org.enso.filemanager
 
-import java.io.File
-import java.nio.charset.Charset
+import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
+import akka.actor.testkit.typed.scaladsl.TestInbox
+
 import java.nio.file.FileAlreadyExistsException
 import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.Path
-import java.nio.file.Paths
-import java.time.Duration
 import java.time.Instant
-import java.util.UUID
-import java.util.concurrent.TimeUnit
 
-import akka.actor.Scheduler
 import org.apache.commons.io.FileExistsException
-import org.apache.commons.io.FileUtils
-import akka.actor.testkit.typed.CapturedLogEvent
-import akka.actor.testkit.typed.FishingOutcome
-import akka.actor.testkit.typed.Effect._
-import akka.actor.testkit.typed.scaladsl.TestProbe
-import akka.actor.testkit.typed.scaladsl.ActorTestKit
-import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
-import akka.actor.testkit.typed.scaladsl.TestInbox
-import akka.actor.typed.ActorRef
-import akka.actor.typed.ActorSystem
-import akka.actor.typed.scaladsl.AskPattern._
-import akka.util.Timeout
-import io.methvin.watcher.DirectoryChangeEvent
-import org.enso.filemanager.API.CreateWatcherRequest
-import org.enso.filemanager.API.CreateWatcherResponse
-import org.enso.filemanager.API.FileSystemEvent
-import org.enso.filemanager.API.InputMessage
-import org.enso.filemanager.API.SuccessResponse
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
 import org.scalatest.Outcome
 
-import scala.concurrent.Await
-import scala.concurrent.Future
 import scala.reflect.ClassTag
-import scala.concurrent.duration.FiniteDuration
 import scala.util.Failure
 import scala.util.Success
-import scala.util.Try
+
 
 class FileManagerBehaviorTests
     extends FunSuite

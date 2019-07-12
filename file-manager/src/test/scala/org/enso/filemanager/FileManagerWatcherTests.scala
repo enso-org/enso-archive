@@ -1,21 +1,29 @@
 package org.enso.filemanager
 
-import java.nio.file.{Files, Path}
-import java.util.UUID
-
 import akka.actor.Scheduler
-import akka.actor.testkit.typed.scaladsl.{ActorTestKit, TestProbe}
+import akka.actor.testkit.typed.scaladsl.ActorTestKit
+import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
 import akka.util.Timeout
-import io.methvin.watcher.DirectoryChangeEvent
-import org.apache.commons.io.FileUtils
-import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers, Outcome}
 
-import scala.concurrent.{Await, Future}
+import io.methvin.watcher.DirectoryChangeEvent
+
+import java.nio.file.Files
+import java.nio.file.Path
+import java.util.UUID
+
+import org.apache.commons.io.FileUtils
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.FunSuite
+import org.scalatest.Matchers
+import org.scalatest.Outcome
+
+import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.reflect.ClassTag
-import scala.util.{Success, Try}
-
+import scala.util.Success
+import scala.util.Try
 
 // needs to be separate because watcher message are asynchronous
 class FileManagerWatcherTests
@@ -49,14 +57,15 @@ class FileManagerWatcherTests
   def matchesEvent(
     path: Path,
     eventType: DirectoryChangeEvent.EventType
-  ): FileSystemEvent => Boolean = { message: FileSystemEvent =>
+  )(message: FileSystemEvent
+  ): Boolean = {
     message.event.path() == path && message.event.eventType() == eventType
   }
 
-  def expectEventPresentIn(
-    path: Path,
+  def expectEventFor(
     eventType: DirectoryChangeEvent.EventType,
     events: Seq[FileSystemEvent]
+  )(path: Path
   ): Unit = {
     assert(
       events.exists(matchesEvent(path, eventType)),
@@ -90,15 +99,14 @@ class FileManagerWatcherTests
     val subtree = createSubtree()
     val events  = testProbe.receiveMessages(subtree.elements.size)
     subtree.elements.foreach(
-      expectEventPresentIn(_, DirectoryChangeEvent.EventType.CREATE, events)
+      expectEventFor(DirectoryChangeEvent.EventType.CREATE, events)
     )
 
     FileUtils.deleteDirectory(subtree.root.toFile)
 
     val deletionEvents = testProbe.receiveMessages(subtree.elements.size)
     subtree.elements.foreach(
-      expectEventPresentIn(
-        _,
+      expectEventFor(
         DirectoryChangeEvent.EventType.DELETE,
         deletionEvents
       )
@@ -136,6 +144,7 @@ class FileManagerWatcherTests
       Await.result(ask(WatcherRemoveRequest(watcherID)), 1.second)
     stopResponse should be(Success(WatcherRemoveResponse()))
 
+    // we disabled watch, so no further messages should come
     FileUtils.deleteDirectory(subtree.root.toFile)
     testProbe.expectNoMessage(50.millis)
   }
