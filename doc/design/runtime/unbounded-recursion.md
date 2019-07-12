@@ -35,31 +35,19 @@ use of unbounded recursion in Enso on GraalVM.
 <!-- /MarkdownTOC -->
 
 ## A Baseline
-In an ideal world, we'd want our tail-called recursive loops to execute as
-quickly as an optimised iterative loop. In order to get some idea of where the
-tests below fall on the performance spectrum, the results below are for a simple
-for loop.
+In an ideal world, we'd like the performance of Enso's recursive calls to
+approximate that of Haskell, which can be made to have fairly optimal
+performance for a functional language. Basic measurements for a Haskell program
+that sums the numbers up to 1 million are as follows:
 
-All benchmarks in this section are written in pure Java rather than as part of
-Enso itself in order to get an idea of the maximum theoretical performance
-possible. They run using GraalVM as the JVM, and test summing integers up to a
-given threshold.
+- **Non-TCO:** 20-25 ms/op
+- **TCO:** 0.8-1 ms/op
 
-The following results are for a simple loop:
-
-```
-Benchmark            (inputSize)  Mode  Cnt   Score    Error  Units
-Main.basicLoopBench          100  avgt    5  ≈ 10⁻⁵           ms/op
-Main.basicLoopBench         1000  avgt    5  ≈ 10⁻⁴           ms/op
-Main.basicLoopBench        10000  avgt    5   0.001 ±  0.001  ms/op
-Main.basicLoopBench        50000  avgt    5   0.006 ±  0.001  ms/op
-Main.basicLoopBench       100000  avgt    5   0.013 ±  0.002  ms/op
-Main.basicLoopBench      1000000  avgt    5   0.131 ±  0.050  ms/op
-```
-
-This is the theoretical maximum performance on the JVM for summing the numbers
-up to each threshold. While this would be ideal, we recognise that we're not
-going to achieve this performance. This is mainly for information.
+All benchmarks in the sections below are written in pure Java rather than in
+Enso itself. This is to allow us to estimate the maximum theoretical performance
+possible when executing on the JVM. They have been run on GraalVM 19.1.0, and
+perform the same summation of integers. They have a variable threshold, listed
+in the results as `inputSize`.
 
 ## Emulating Stack Segmentation with Threads
 As each new thread has its own stack, we can exploit this to emulate the notion
@@ -107,10 +95,11 @@ Main.testCountedExecutor       100000  avgt    5   12.790 ±  1.101  ms/op
 Main.testCountedExecutor      1000000  avgt    5  107.034 ±  2.076  ms/op
 ```
 
-As is obvious, this is a significant slowdown from the pure loop case, with
-roughly a three orders of magnitude growth. A significant amount of time seems
-to be spent in the OS-level context switches, contributing to the performance
-cost of this approach.
+As is obvious this is quite slow when compared to the Haskell case, with around
+a 5x slowdown. A significant amount of the time appears to be spent on OS-level
+context switches, as the smaller cases that fit into the stack of a single
+thread are approximately equal to Haskell. It is hence possible that a method
+that reduces the cost of context switching could make this approach feasible.
 
 ### Catching the Overflow
 Though it is heavily recommended against by the Java documentation, it is indeed
@@ -151,7 +140,7 @@ Main.testSOExecutor      1000000  avgt    5  104.719 ± 11.411  ms/op
 This performs slightly better than the conservative option discussed above. As
 we're guaranteed total utilisation of the stack of each thread we spawn less
 threads and hence reduce the context switching overhead. Nevertheless, this is
-still very slow compared to the pure loop case.
+still very slow compared to Haskell baseline.
 
 ### Thread Pools
 While a thread pool is conventionally seen as a way to amortise the cost of
@@ -186,7 +175,8 @@ Main.testCPS      1000000  avgt    5  29.634 ± 6.873  ms/op
 The CPS-based approach is very much a trade-off. The code that is actually being
 executed is more complex, showing an order of magnitude slowdown in the cases
 where the execution profile fits into a single stack. However, once the input
-size grows to the point that additional stack segments are needed
+size grows to the point that additional stack segments are needed, the execution
+performance is within spitting distance of the Haskell code.
 
 ### The CPS Transform
 While it is tempting to perform the CPS transform globally for the whole
