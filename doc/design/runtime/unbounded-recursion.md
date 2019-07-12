@@ -29,6 +29,7 @@ use of unbounded recursion in Enso on GraalVM.
   - [Project Loom](#project-loom)
 - [Avoiding Stack Usage via a CPS Transform](#avoiding-stack-usage-via-a-cps-transform)
   - [The CPS Transform](#the-cps-transform)
+  - [A Hybrid Approach](#a-hybrid-approach)
 - [Alternatives](#alternatives)
 - [Open Questions](#open-questions)
 
@@ -164,12 +165,12 @@ transformation, or as a local one only for recursive calls.
 
 ```
 Benchmark     (inputSize)  Mode  Cnt   Score   Error  Units
-Main.testCPS          100  avgt    5   0.002 ± 0.001  ms/op
-Main.testCPS         1000  avgt    5   0.018 ± 0.001  ms/op
-Main.testCPS        10000  avgt    5   0.233 ± 0.037  ms/op
-Main.testCPS        50000  avgt    5   1.240 ± 0.012  ms/op
-Main.testCPS       100000  avgt    5   2.547 ± 0.055  ms/op
-Main.testCPS      1000000  avgt    5  29.634 ± 6.873  ms/op
+Main.testCPS          100  avgt    5   0.001 ±  0.001  ms/op
+Main.testCPS         1000  avgt    5   0.014 ±  0.004  ms/op
+Main.testCPS        10000  avgt    5   0.197 ±  0.038  ms/op
+Main.testCPS        50000  avgt    5   1.075 ±  0.269  ms/op
+Main.testCPS       100000  avgt    5   2.258 ±  0.310  ms/op
+Main.testCPS      1000000  avgt    5  27.002 ±  2.059  ms/op
 ```
 
 The CPS-based approach is very much a trade-off. The code that is actually being
@@ -184,10 +185,6 @@ program, this has some major drawbacks:
 
 - As shown above, the code becomes an order of magnitude slower within the space
   of a single stack.
-- Continuation passing is a bad match for the Graal execution style as it
-  requires the allocation of a new `CallTarget` for every continuation. This
-  means that it gains no benefit from the inbuilt caching mechanisms, and can
-  increase memory pressure significantly through all the allocations.
 - It may be difficult to maintain a mapping from the original code to the CPS'd
   execution. This would greatly impact our ability to use the debugging and
   introspection tools which are necessary for implementing Enso Studio.
@@ -197,6 +194,41 @@ transformation on code which is _actually_ recursive. While you can detect this
 statically via whole-program analysis, you can also track execution on the
 program stack in a thread-safe manner and perform the transformation at runtime
 (e.g. `private static ThreadLocal<Boolean> isExecuting;`).
+
+### A Hybrid Approach
+As we clearly don't want to CPS transform the program globally, we need some
+mechanism by which we can rewrite only when necessary. As discussed above, we 
+could do this via a dynamic runtime analysis, but we could also potentially make
+use of the Java stack at least in part.
+
+The hybrid approach works as follows:
+
+1. Execute the code using standard recursion on the Java stack until we catch a
+   `StackOverflowError`.
+2. Spawn a new thread to rewrite the original code to CPS, and then continue
+   execution in that style.
+
+This avoids the CPS overhead as much as possible (when the computation fits into
+the Java stack), but allows for unbounded recursion in the general case. The
+performance profile is as follows.
+
+```
+Benchmark        (inputSize)  Mode  Cnt   Score    Error  Units
+Main.testHybrid          100  avgt    5  ≈ 10⁻⁴           ms/op
+Main.testHybrid         1000  avgt    5   0.003 ±  0.001  ms/op
+Main.testHybrid        10000  avgt    5   0.013 ±  0.003  ms/op
+Main.testHybrid        50000  avgt    5   0.069 ±  0.013  ms/op
+Main.testHybrid       100000  avgt    5   1.765 ±  0.056  ms/op
+Main.testHybrid      1000000  avgt    5  25.961 ±  2.775  ms/op
+```
+
+This hybrid implementation makes things faster overall, with some particularly
+good performance wins for the smaller cases. 
+
+An open question for this is how you work out exactly _what_ code to CPS
+transform at the point of the stack overflow. In the simply-recursive case this
+is trivial, but it may require some more sophisticated tracing in the case of
+mutually-recursive functions.
 
 ## Alternatives
 At the current time there are no apparent alternatives to the two approaches
@@ -211,6 +243,3 @@ The following are questions for which we don't yet have answers:
   stack overflow?
 - Based on our investigation, what would your recommendation be for us to
   proceed?
-- Is there a better way to achieve the _effect_ of CPS without the need to
-  allocate a new `CallTarget`? Being able to do so may allow us to utilise the
-  cache again, as well as reduce memory pressure.
