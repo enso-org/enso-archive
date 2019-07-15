@@ -162,7 +162,6 @@ Transforming recursive calls into CPS allows us to avoid the _need_ for using
 the stack instead of trying to augment it. This could be implemented as a global
 transformation, or as a local one only for recursive calls.
 
-
 ```
 Benchmark     (inputSize)  Mode  Cnt   Score   Error  Units
 Main.testCPS          100  avgt    5   0.001 ±  0.001  ms/op
