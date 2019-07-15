@@ -284,6 +284,7 @@ class FileManagerBehavior(
       case ex: Throwable =>
         Failure(ex)
     }
+    context.log.info(s"Responding with $response")
     message.replyTo ! response
   }
 

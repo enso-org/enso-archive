@@ -5,11 +5,8 @@ import akka.actor.testkit.typed.scaladsl.ActorTestKit
 import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
 import akka.util.Timeout
-
 import io.methvin.watcher.DirectoryChangeEvent
-
-import java.nio.file.Files
-import java.nio.file.Path
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 import org.apache.commons.io.FileUtils
@@ -147,5 +144,11 @@ class FileManagerWatcherTests
     // we disabled watch, so no further messages should come
     FileUtils.deleteDirectory(subtree.root.toFile)
     testProbe.expectNoMessage(50.millis)
+  }
+
+  test("symlink test") {
+    val subtree = createSubtree()
+    val symlinkToSubtree = tempDir.resolve("mylink")
+    Files.createSymbolicLink(symlinkToSubtree, subtree.root)
   }
 }
