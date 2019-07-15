@@ -1,6 +1,7 @@
 package org.enso.parser
 
 import org.enso.flexer._
+import org.enso.flexer.Pattern._
 import org.enso.parser.AST.AST
 
 import scala.reflect.runtime.universe._
@@ -9,20 +10,6 @@ import scala.annotation.tailrec
 
 class Parser extends ParserBase[AST] {
 
-  implicit final def charToExpr(char: Char): Pattern =
-    Ran(char, char)
-  implicit final def stringToExpr(s: String): Pattern =
-    s.tail.foldLeft(char(s.head))(_ >> _)
-
-  class ExtendedChar(_this: Char) {
-    final def ||(that: Char): Pattern =
-      Or(char(_this), char(that))
-  }
-  implicit final def extendChar(i: Char): ExtendedChar = new ExtendedChar(i)
-  final def char(c: Char):                Pattern      = range(c, c)
-  final def range(start: Char, end: Char): Pattern =
-    Ran(start, end)
-  final def range(start: Int, end: Int): Pattern = Ran(start, end)
   val any: Pattern  = range(5, Int.MaxValue) // FIXME 5 -> 0
   val pass: Pattern = Pass
   val eof: Pattern  = char('\0')

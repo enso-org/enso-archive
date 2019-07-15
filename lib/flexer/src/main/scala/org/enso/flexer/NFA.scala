@@ -1,7 +1,8 @@
 package org.enso.flexer
 
 import java.awt.Desktop
-import java.net.{URI, URLEncoder}
+import java.net.URI
+import java.net.URLEncoder
 
 import org.enso.Logger
 import org.enso.flexer.State._
@@ -51,15 +52,15 @@ class NFA {
     lines += "node [shape=circle width=0.8]"
     for ((state, source) <- states.zipWithIndex) {
       if (state.links2.isEmpty) {
-        lines += s"""${source} [color="${gray}" fontcolor="${gray}"]"""
+        lines += s"""$source [color="$gray" fontcolor="$gray"]"""
       } else {
-        lines += s"""${source}"""
+        lines += s"""$source"""
       }
       for ((range, target) <- state.links2.asMapOfRanges()) {
-        lines += s"""${source} -> ${target} [label="${range}"]"""
+        lines += s"""$source -> $target [label="$range"]"""
       }
       for (target <- state.isoLinks) {
-        lines += s"""${source} -> ${target} [style="dashed" color="${gray}"]"""
+        lines += s"""$source -> $target [style="dashed" color="$gray"]"""
       }
     }
 
@@ -140,10 +141,8 @@ class NFA {
         dfaIsoMap += (key -> id)
         dfaIsoKeys += key
         dfaRows += 1
-        dfaMatrix :+= Array.fill(vocabulary.size) {
-          -1
-        }
-        logger.log(s"DFA[${id}] = ${key}")
+        dfaMatrix :+= Array.fill(vocabulary.size)(-1)
+        logger.log(s"DFA[$id] = $key")
         id
       }
 
@@ -155,24 +154,22 @@ class NFA {
       var i = 0
       while (i < dfaRows) {
         val isos = dfaIsoKeys(i)
-        logger.group(s"Computing DFA[${i}]") {
+        logger.group(s"Computing DFA[$i]") {
 
           for ((voc, vocIx) <- vocabulary.iter) {
-            logger.group(s"Vocabulary '${voc}'") {
+            logger.group(s"Vocabulary '$voc'") {
               var tt = Set[Int]()
-              isos.foreach(iso => {
+              for (iso <- isos) {
                 val tgt = nfaMatrix(iso)(vocIx)
-                if (tgt != -1) {
+                if (tgt != -1)
                   tt = tt ++ state(tgt).isos
-                }
-              })
-              if (!tt.isEmpty) {
+              }
+              if (tt.nonEmpty) {
                 dfaMatrix(i)(vocIx) = dfaIsoMap.get(tt) match {
                   case None => addDFAKey(tt)
-                  case Some(id) => {
-                    logger.log(s"Existing DFA ID ${id}")
+                  case Some(id) =>
+                    logger.log(s"Existing DFA ID $id")
                     id
-                  }
                 }
               }
             }
@@ -191,19 +188,11 @@ class NFA {
 
       val dfaEndStatePriorityMap = mutable.Map[Int, StateDesc]()
       for ((isos, dfaIx) <- dfaIsoKeys.zipWithIndex) {
-        var priority = -1
-        var code     = q""
-        isos.foreach(iso => {
-          nfaEndStatePriorityMap.get(iso) match {
-            case None =>
-            case Some(p) if p > priority =>
-              priority = p
-              code     = state(iso).code
-            case _ =>
-          }
-        })
-        if (priority >= 0) {
-          dfaEndStatePriorityMap += dfaIx -> StateDesc(priority, code)
+        val iso = isos.maxBy(nfaEndStatePriorityMap.getOrElse(_, -1))
+        nfaEndStatePriorityMap.get(iso) match {
+          case None =>
+          case Some(p) =>
+            dfaEndStatePriorityMap += dfaIx -> StateDesc(p, state(iso).code)
         }
       }
 
