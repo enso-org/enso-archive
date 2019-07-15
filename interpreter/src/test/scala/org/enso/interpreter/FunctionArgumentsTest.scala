@@ -5,7 +5,7 @@ class FunctionArgumentsTest extends LanguageTest {
     val code     = "{ |x| x * x }"
     val function = eval(code)
     function.call(1) shouldEqual 1
-    function.call(4) shouldEqual 16
+    function.call(2) shouldEqual 7
   }
 
   "Function arguments from outer scope" should "be visible in the inner scope" in {
