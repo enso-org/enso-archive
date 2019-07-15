@@ -296,7 +296,6 @@ class FileManagerBehaviorTests
     val response = ask(StatRequest(filePath))
 
     response.isDirectory should be(false)
-    response.path should be(filePath)
     response.size should be(contents.length)
   }
 }

@@ -177,17 +177,15 @@ object API {
 
     override def handle(fileManager: FileManagerBehavior): StatResponse = {
       // warning: might be race'y
-      val realPath     = path.toRealPath()
       val lastModified = Files.getLastModifiedTime(path).toInstant
       val owner        = Files.getOwner(path)
       val size         = Files.size(path)
       val isDirectory  = Files.isDirectory(path)
-      StatResponse(realPath, lastModified, owner, size, isDirectory)
+      StatResponse(lastModified, owner, size, isDirectory)
     }
   }
 
   case class StatResponse(
-    path: Path,
     lastModified: Instant,
     owner: UserPrincipal,
     size: Long,
@@ -217,6 +215,7 @@ object API {
         .builder()
         .path(path)
         .listener(event => {
+          fileManager.context.log.info(s"Notifying $observer with $event")
           observer ! FileSystemEvent(event)
         })
         .build()
@@ -265,7 +264,7 @@ object Detail {
   }
 }
 
-class FileManagerBehavior(
+case class FileManagerBehavior(
   projectRoot: Path,
   context: ActorContext[API.InputMessage])
     extends AbstractBehavior[API.InputMessage] {
@@ -299,7 +298,7 @@ object FileManager {
   import API._
 
   def fileManager(projectRoot: Path): Behavior[API.InputMessage] =
-    Behaviors.setup(context => new FileManagerBehavior(projectRoot, context))
+    Behaviors.setup(context => FileManagerBehavior(projectRoot, context))
 
   def ask[response <: SuccessResponse: ClassTag](
     actor: ActorRef[API.InputMessage],

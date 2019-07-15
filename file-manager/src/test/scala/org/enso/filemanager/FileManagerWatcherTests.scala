@@ -6,7 +6,9 @@ import akka.actor.testkit.typed.scaladsl.TestProbe
 import akka.actor.typed.ActorRef
 import akka.util.Timeout
 import io.methvin.watcher.DirectoryChangeEvent
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import java.util.UUID
 
 import org.apache.commons.io.FileUtils
@@ -72,9 +74,10 @@ class FileManagerWatcherTests
 
   def expectNextEvent(
     path: Path,
-    eventType: DirectoryChangeEvent.EventType
+    eventType: DirectoryChangeEvent.EventType,
+    probe: TestProbe[FileSystemEvent] = testProbe
   ): Unit = {
-    val message = testProbe.receiveMessage()
+    val message = probe.receiveMessage()
     assert(
       matchesEvent(path, eventType)(message),
       s"expected of type $eventType for $path, got $message"
@@ -87,8 +90,11 @@ class FileManagerWatcherTests
     FileManager.ask(fileManager, requestPayload)
   }
 
-  def observe(path: Path): UUID = {
-    val futureResponse = ask(CreateWatcherRequest(path, testProbe.ref))
+  def observe(
+    path: Path,
+    replyTo: ActorRef[FileSystemEvent] = testProbe.ref
+  ): UUID = {
+    val futureResponse = ask(CreateWatcherRequest(path, replyTo))
     Await.result(futureResponse, timeout.duration).get.id
   }
 
@@ -146,9 +152,37 @@ class FileManagerWatcherTests
     testProbe.expectNoMessage(50.millis)
   }
 
-  test("symlink test") {
-    val subtree = createSubtree()
+  test("Watcher: observing through symlink") {
+    // when we observe a directory through symlink,
+    // the reported events should not resolve the paths
+    val subtree          = createSubtree()
     val symlinkToSubtree = tempDir.resolve("mylink")
+
+    val symlinkEventProbe =
+      testKit.createTestProbe[FileSystemEvent]("observe-symlink-dir")
+
     Files.createSymbolicLink(symlinkToSubtree, subtree.root)
+    observe(symlinkToSubtree, symlinkEventProbe.ref)
+
+    val createdFileName  = "hallo!"
+    val realFilePath     = subtree.root.resolve(createdFileName)
+    val observedFileName = symlinkToSubtree.resolve(createdFileName)
+
+    val expectedOfType = (eventType: DirectoryChangeEvent.EventType) => expectNextEvent(
+      observedFileName,
+      eventType,
+      symlinkEventProbe
+    )
+
+    Files.createFile(realFilePath)
+    expectedOfType(DirectoryChangeEvent.EventType.CREATE)
+
+    Files.write(realFilePath, contents)
+    expectedOfType(DirectoryChangeEvent.EventType.MODIFY)
+
+    Files.delete(realFilePath)
+    expectedOfType(DirectoryChangeEvent.EventType.DELETE)
+
+    symlinkEventProbe.expectNoMessage(50.millis)
   }
 }
