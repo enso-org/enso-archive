@@ -18,7 +18,6 @@ import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
 
-
 class FileManagerBehaviorTests
     extends FunSuite
     with Matchers
@@ -263,19 +262,11 @@ class FileManagerBehaviorTests
   test("Touch: update file") {
     val filePath         = createSubFile()
     val initialTimestamp = Files.getLastModifiedTime(filePath).toInstant
-    val beforeRequest = Instant.now()
-    assert(!initialTimestamp.isAfter(beforeRequest))
-    // [mwu] I'm not really happy about these sleeps but without them all 3
-    // times (before, after, timestamp) usually got the same read and the
-    // point of this test is to make sure that touch sensibly updates the
-    // last modified timestamp
-    Thread.sleep(250)
+
+    Thread.sleep(1000)
     ask(TouchFileRequest(filePath))
-    Thread.sleep(250)
-    val afterRequest   = Instant.now()
     val finalTimestamp = Files.getLastModifiedTime(filePath).toInstant
-    assert(finalTimestamp.isAfter(beforeRequest))
-    assert(finalTimestamp.isBefore(afterRequest))
+    assert(initialTimestamp.isBefore(finalTimestamp))
     expectExist(filePath)
   }
 
@@ -299,5 +290,3 @@ class FileManagerBehaviorTests
     response.size should be(contents.length)
   }
 }
-
-
