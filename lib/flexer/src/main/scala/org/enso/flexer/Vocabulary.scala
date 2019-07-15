@@ -12,17 +12,14 @@ class Vocabulary {
     divisions = divisions + (range.end + 1)
   }
 
-  def size(): Int = divisions.size - 1
+  def size: Int = divisions.size - 1
 
   override def toString: String =
     "Vocabulary(" + divisions.toList.map(_.toString).mkString(",") + ")"
 
   def iter[U]: Iterator[(Range, Int)] = {
-    var lastDiv = 0
-    for ((i, ix) <- divisions.iterator.drop(1).zipWithIndex) yield {
-      val r = (Range(lastDiv, i - 1), ix)
-      lastDiv = i
-      r
+    divisions.iterator.zip(divisions.iterator.drop(1)).zipWithIndex.map {
+      case ((start, end), ix) => (Range(start, end - 1), ix)
     }
   }
 }
