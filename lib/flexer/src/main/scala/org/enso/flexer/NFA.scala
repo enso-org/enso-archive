@@ -6,11 +6,9 @@ import java.net.URLEncoder
 
 import org.enso.Logger
 import org.enso.flexer.State._
-import org.enso.flexer.Vocabulary.Range
 import org.feijoas.mango.common.{collect => RRR}
 
 import scala.collection.mutable
-import scala.reflect.runtime.universe._
 
 case class DFA(
   vocabulary: Vocabulary,
@@ -117,7 +115,7 @@ class NFA {
       val matrix = Array.ofDim[Int](states.length, vocabulary.size)
       for (stateIx <- states.indices) {
         val s = state(stateIx)
-        for ((range, vocIx) <- vocabulary.iter) {
+        for ((range, vocIx) <- vocabulary) {
           s.links2.get(range.start) match {
             case Some(tgt) => matrix(stateIx)(vocIx) = tgt
             case None      => matrix(stateIx)(vocIx) = -1
@@ -156,7 +154,7 @@ class NFA {
         val isos = dfaIsoKeys(i)
         logger.group(s"Computing DFA[$i]") {
 
-          for ((voc, vocIx) <- vocabulary.iter) {
+          for ((voc, vocIx) <- vocabulary) {
             logger.group(s"Vocabulary '$voc'") {
               var tt = Set[Int]()
               for (iso <- isos) {

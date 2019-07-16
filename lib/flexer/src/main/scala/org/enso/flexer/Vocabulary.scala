@@ -1,10 +1,8 @@
 package org.enso.flexer
 
-import org.enso.flexer.Vocabulary.Range
-
 import scala.collection.immutable
 
-class Vocabulary {
+class Vocabulary extends Iterable[(Range, Int)] {
   var divisions = immutable.SortedSet[Int](0, Int.MaxValue)
 
   def insert(range: Range): Unit = {
@@ -12,20 +10,13 @@ class Vocabulary {
     divisions = divisions + (range.end + 1)
   }
 
-  def size: Int = divisions.size - 1
+  override def size: Int = divisions.size - 1
 
   override def toString: String =
     "Vocabulary(" + divisions.toList.map(_.toString).mkString(",") + ")"
 
-  def iter[U]: Iterator[(Range, Int)] = {
+  override def iterator: Iterator[(Range, Int)] =
     divisions.iterator.zip(divisions.iterator.drop(1)).zipWithIndex.map {
-      case ((start, end), ix) => (Range(start, end - 1), ix)
+      case ((start, end), ix) => (start to end - 1, ix)
     }
-  }
-}
-
-object Vocabulary {
-
-  case class Range(start: Int, end: Int)
-
 }
