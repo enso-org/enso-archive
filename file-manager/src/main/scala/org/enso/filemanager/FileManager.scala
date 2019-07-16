@@ -231,7 +231,7 @@ object API {
         .builder()
         .path(path)
         .listener(event => {
-          fileManager.context.log.info(s"Notifying $observer with $event")
+          fileManager.context.log.debug(s"Notifying $observer with $event")
           observer ! FileSystemEvent(event)
         })
         .build()
@@ -301,12 +301,12 @@ case class FileManagerBehavior(
       case ex: Throwable =>
         Failure(ex)
     }
-    context.log.info(s"Responding with $response")
+    context.log.debug(s"Responding with $response")
     message.replyTo ! response
   }
 
   override def onMessage(message: InputMessage): Behavior[InputMessage] = {
-    context.log.info(s"Received $message")
+    context.log.debug(s"Received $message")
     message.handle(this)
     this
   }
