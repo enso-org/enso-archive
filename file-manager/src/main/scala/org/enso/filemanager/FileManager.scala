@@ -201,6 +201,12 @@ object API {
   }
   case class TouchFileResponse() extends SuccessResponse
 
+  // NOTE
+  // The watched path must designate a directory (i.e. not a regular file and
+  // not a symlink). The parent path components may include symlink. Watch is
+  // recursive. On removal, it is not guaranteed that delete notifications will
+  // be emitted for all elements, it might happen that only parent elements'
+  // deletion will be observed.
   case class CreateWatcherRequest(
     path: Path,
     observer: ActorRef[FileSystemEvent])

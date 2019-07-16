@@ -141,6 +141,7 @@ class FileManagerWatcherTests
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.MODIFY)
 
     // deleting dir removes the file first
+    Files.delete(someFile)
     FileUtils.deleteDirectory(dir20.toFile)
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.DELETE)
     expectNextEvent(dir20, DirectoryChangeEvent.EventType.DELETE)
