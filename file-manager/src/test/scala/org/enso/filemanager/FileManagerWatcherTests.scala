@@ -143,10 +143,10 @@ class FileManagerWatcherTests
     Files.write(someFile, "blahblah".getBytes)
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.MODIFY)
 
-    // deleting dir removes the file first
     Files.delete(someFile)
-    FileUtils.deleteDirectory(dir20.toFile)
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.DELETE)
+
+    FileUtils.deleteDirectory(dir20.toFile)
     expectNextEvent(dir20, DirectoryChangeEvent.EventType.DELETE)
     testProbe.expectNoMessage(50.millis)
   }

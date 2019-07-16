@@ -207,6 +207,8 @@ object API {
   // recursive. On removal, it is not guaranteed that delete notifications will
   // be emitted for all elements, it might happen that only parent elements'
   // deletion will be observed.
+  // Also, if the parent is removed quickly after an item, the event for the
+  // item might not get emitted as well.
   case class CreateWatcherRequest(
     path: Path,
     observer: ActorRef[FileSystemEvent])
