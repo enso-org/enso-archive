@@ -29,20 +29,18 @@ class LexerSpec extends FlatSpec with Matchers {
   def assertExpr(input: String, result: AST): Assertion = {
     val tt = parse(input)
     tt match {
-      case Flexer.Success(value, offset) => {
+      case Flexer.Success(value, offset) =>
         val module = value.asInstanceOf[Module]
         module.lines match {
           case Nil =>
             module.firstLine.elem match {
               case None => fail("Empty expression")
-              case Some(e) => {
+              case Some(e) =>
                 assert(e == result)
                 assert(value.show() == input)
-              }
             }
           case _ => fail("Multi-line block")
         }
-      }
       case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
     }
   }
