@@ -46,7 +46,10 @@ class FileManagerWatcherTests
       fileManager = testKit.spawn(FileManager.fileManager(tempDir))
       testProbe   = testKit.createTestProbe[FileSystemEvent]("file-observer")
       watcherID   = observe(tempDir)
-      super.withFixture(test)
+
+      try super.withFixture(test)
+      finally if(watcherID != null) unobserve(watcherID)
+      // ^^ otherwise we might end up blocking the directory on Windows
     })
   }
 
@@ -100,7 +103,7 @@ class FileManagerWatcherTests
   }
   def unobserve(
                id: UUID
-             ): Unit = {
+             ): WatcherRemoveResponse = {
     val futureResponse = ask(WatcherRemoveRequest(id))
     Await.result(futureResponse, timeout.duration).get
   }
@@ -152,9 +155,9 @@ class FileManagerWatcherTests
     val subtree = createSubtree()
     testProbe.receiveMessages(subtree.elements.size)
     testProbe.expectNoMessage(50.millis)
-    val stopResponse =
-      Await.result(ask(WatcherRemoveRequest(watcherID)), 1.second)
-    stopResponse should be(Success(WatcherRemoveResponse()))
+    val stopResponse = unobserve(watcherID)
+    watcherID = null
+    stopResponse should be(WatcherRemoveResponse())
 
     // we disabled watch, so no further messages should come
     FileUtils.deleteDirectory(subtree.root.toFile)
