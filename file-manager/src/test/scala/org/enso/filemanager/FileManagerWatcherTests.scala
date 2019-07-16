@@ -7,6 +7,7 @@ import akka.actor.typed.ActorRef
 import akka.util.Timeout
 import io.methvin.watcher.DirectoryChangeEvent
 import java.nio.file.Files
+import java.nio.file.NotDirectoryException
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.UUID
@@ -97,6 +98,12 @@ class FileManagerWatcherTests
     val futureResponse = ask(CreateWatcherRequest(path, replyTo))
     Await.result(futureResponse, timeout.duration).get.id
   }
+  def unobserve(
+               id: UUID
+             ): Unit = {
+    val futureResponse = ask(WatcherRemoveRequest(id))
+    Await.result(futureResponse, timeout.duration).get
+  }
 
   test("Watcher: observe subtree creation and deletion") {
     val subtree = createSubtree()
@@ -143,6 +150,7 @@ class FileManagerWatcherTests
   test("Watcher: disabling watch") {
     val subtree = createSubtree()
     testProbe.receiveMessages(subtree.elements.size)
+    testProbe.expectNoMessage(50.millis)
     val stopResponse =
       Await.result(ask(WatcherRemoveRequest(watcherID)), 1.second)
     stopResponse should be(Success(WatcherRemoveResponse()))
@@ -152,37 +160,92 @@ class FileManagerWatcherTests
     testProbe.expectNoMessage(50.millis)
   }
 
-  test("Watcher: observing through symlink") {
-    // when we observe a directory through symlink,
-    // the reported events should not resolve the paths
-    val subtree          = createSubtree()
-    val symlinkToSubtree = tempDir.resolve("mylink")
+  test("Watcher: cannot watch ordinary file") {
+    val file = createSubFile()
+    assertThrows[NotDirectoryException]({ observe(file, testProbe.ref) })
+  }
+
+  test("Watcher: cannot watch symlink") {
+    val dir     = createSubDir()
+    val dirLink = tempDir.resolve("mylink")
+    Files.createSymbolicLink(dirLink, dir)
+    assertThrows[NotDirectoryException]({ observe(dirLink, testProbe.ref) })
+  }
+
+  test("Watcher: can watch under symlink") {
+    // The observed directory is not and does not contain symlink,
+    // however the path we observe it through contains symlink
+
+    val top = createSubDir()
+    val linkToTop = top.resolve("link")
+    Files.createSymbolicLink(linkToTop, top)
+
+    val realSub = top.resolve("sub")
+    val linkSub = linkToTop.resolve("sub")
+
+    Files.createDirectory(realSub)
 
     val symlinkEventProbe =
       testKit.createTestProbe[FileSystemEvent]("observe-symlink-dir")
 
-    Files.createSymbolicLink(symlinkToSubtree, subtree.root)
-    observe(symlinkToSubtree, symlinkEventProbe.ref)
+    val id = observe(linkSub, symlinkEventProbe.ref)
+    try {
+      // create file through "real" path
+      val filename = "testfile"
+      val realFilePath = realSub.resolve(filename)
+      val observedFilePath = linkSub.resolve(filename)
 
-    val createdFileName  = "hallo!"
-    val realFilePath     = subtree.root.resolve(createdFileName)
-    val observedFileName = symlinkToSubtree.resolve(createdFileName)
 
-    val expectedOfType = (eventType: DirectoryChangeEvent.EventType) => expectNextEvent(
-      observedFileName,
-      eventType,
-      symlinkEventProbe
-    )
+      val expectedOfType = (eventType: DirectoryChangeEvent.EventType) => expectNextEvent(
+        observedFilePath,
+        eventType,
+        symlinkEventProbe
+      )
 
-    Files.createFile(realFilePath)
-    expectedOfType(DirectoryChangeEvent.EventType.CREATE)
+      Files.createFile(realFilePath)
+      expectedOfType(DirectoryChangeEvent.EventType.CREATE)
 
-    Files.write(realFilePath, contents)
-    expectedOfType(DirectoryChangeEvent.EventType.MODIFY)
+      Files.write(realFilePath, contents)
+      expectedOfType(DirectoryChangeEvent.EventType.MODIFY)
 
-    Files.delete(realFilePath)
-    expectedOfType(DirectoryChangeEvent.EventType.DELETE)
+      Files.delete(realFilePath)
+      expectedOfType(DirectoryChangeEvent.EventType.DELETE)
 
-    symlinkEventProbe.expectNoMessage(50.millis)
+      symlinkEventProbe.expectNoMessage(50.millis)
+    }
+    finally unobserve(id)
   }
+//  test("Watcher: observing through symlink") {
+//    // when we observe a directory through symlink,
+//    // the reported events should not resolve the paths
+//    val subtree          = createSubtree()
+//    val symlinkToSubtree = tempDir.resolve("mylink")
+//
+//    val symlinkEventProbe =
+//      testKit.createTestProbe[FileSystemEvent]("observe-symlink-dir")
+//
+//    Files.createSymbolicLink(symlinkToSubtree, subtree.root)
+//    observe(symlinkToSubtree, symlinkEventProbe.ref)
+//
+//    val createdFileName  = "hallo!"
+//    val realFilePath     = subtree.root.resolve(createdFileName)
+//    val observedFileName = symlinkToSubtree.resolve(createdFileName)
+//
+//    val expectedOfType = (eventType: DirectoryChangeEvent.EventType) => expectNextEvent(
+//      observedFileName,
+//      eventType,
+//      symlinkEventProbe
+//    )
+//
+//    Files.createFile(realFilePath)
+//    expectedOfType(DirectoryChangeEvent.EventType.CREATE)
+//
+//    Files.write(realFilePath, contents)
+//    expectedOfType(DirectoryChangeEvent.EventType.MODIFY)
+//
+//    Files.delete(realFilePath)
+//    expectedOfType(DirectoryChangeEvent.EventType.DELETE)
+//
+//    symlinkEventProbe.expectNoMessage(50.millis)
+//  }
 }

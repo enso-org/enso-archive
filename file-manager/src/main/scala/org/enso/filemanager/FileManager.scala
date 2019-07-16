@@ -8,21 +8,20 @@ import akka.actor.typed.scaladsl.Behaviors
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.util.Timeout
-
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
-
-import java.nio.file.Files
-import java.nio.file.NoSuchFileException
-import java.nio.file.Path
+import java.nio.file.{Files, NoSuchFileException, NotDirectoryException, Path}
 import java.nio.file.attribute.UserPrincipal
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 
 import org.apache.commons.io.FileUtils
+//import sun.security.provider.JavaKeyStore.DualFormatJKS
 
 import scala.collection.mutable
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.{Duration, MILLISECONDS}
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
@@ -210,6 +209,9 @@ object API {
     override def handle(
       fileManager: FileManagerBehavior
     ): CreateWatcherResponse = {
+      if(Files.isSymbolicLink(path))
+        throw new NotDirectoryException(path.toString)
+
       val id = UUID.randomUUID()
       val watcher = DirectoryWatcher
         .builder()
@@ -271,6 +273,8 @@ case class FileManagerBehavior(
   import API._
 
   val watchers: mutable.Map[UUID, DirectoryWatcher] = mutable.Map()
+
+  override def finalize(): Unit = super.finalize()
 
   def onMessageTyped[response <: SuccessResponse: ClassTag](
     message: Request[response]
