@@ -209,7 +209,15 @@ object API {
     override def handle(
       fileManager: FileManagerBehavior
     ): CreateWatcherResponse = {
+      // Watching a symlink target works only on Windows, presumably thanks to
+      // recursive watch being natively supported. We block it until we know it
+      // works on all supported platforms.
       if(Files.isSymbolicLink(path))
+        throw new NotDirectoryException(path.toString)
+
+      // Watching ordinary file throws an exception on Windows. Similarly, to
+      // unify observed behavior we check for this here.
+      if(!Files.isDirectory(path))
         throw new NotDirectoryException(path.toString)
 
       val id = UUID.randomUUID()
