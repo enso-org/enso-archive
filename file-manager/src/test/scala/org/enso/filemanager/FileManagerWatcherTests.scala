@@ -137,6 +137,10 @@ class FileManagerWatcherTests
     val someFile = dir20.resolve("file.dat")
     Files.createFile(someFile)
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.CREATE)
+
+    // need to wait a moment, as change soon after creation might be missed
+    // otherwise by some subpar watch implementations
+    Thread.sleep(2000)
     Files.write(someFile, "blahblah".getBytes)
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.MODIFY)
 
