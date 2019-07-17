@@ -1,6 +1,8 @@
 package org.enso.filemanager
 
-import java.nio.file.{Files, Path, Paths}
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 
 import org.apache.commons.io.FileUtils
 
@@ -44,7 +46,7 @@ trait FileSystemHelpers extends Matchers {
     childrenDirs: Seq[Path]) {
 
     val elements: Seq[Path] =
-      (Seq(root) ++ childrenDirs ++ childrenFiles).map(root.resolve(_))
+      (Seq(root) ++ childrenDirs ++ childrenFiles).map(root.resolve)
 
     def rebase(otherRoot: Path): Subtree =
       Subtree(otherRoot, childrenFiles, childrenDirs)

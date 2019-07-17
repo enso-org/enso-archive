@@ -10,18 +10,18 @@ import akka.actor.typed.Behavior
 import akka.util.Timeout
 import io.methvin.watcher.DirectoryChangeEvent
 import io.methvin.watcher.DirectoryWatcher
-import java.nio.file.{Files, NoSuchFileException, NotDirectoryException, Path}
+import java.nio.file.Files
+import java.nio.file.NoSuchFileException
+import java.nio.file.NotDirectoryException
+import java.nio.file.Path
 import java.nio.file.attribute.UserPrincipal
 import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.TimeUnit
 
 import org.apache.commons.io.FileUtils
-//import sun.security.provider.JavaKeyStore.DualFormatJKS
 
 import scala.collection.mutable
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration.{Duration, MILLISECONDS}
+import scala.concurrent.Future
 import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
@@ -220,21 +220,41 @@ object API {
       // Watching a symlink target works only on Windows, presumably thanks to
       // recursive watch being natively supported. We block it until we know it
       // works on all supported platforms.
-      if(Files.isSymbolicLink(path))
+      if (Files.isSymbolicLink(path))
         throw new NotDirectoryException(path.toString)
 
       // Watching ordinary file throws an exception on Windows. Similarly, to
       // unify observed behavior we check for this here.
-      if(!Files.isDirectory(path))
+      if (!Files.isDirectory(path))
         throw new NotDirectoryException(path.toString)
+
+      // macOS generates events containing resolved path, i.e. with symlinks
+      // resolved. We don't really want this, as we want to be completely
+      // indifferent to symlink presence and still be able to easily compare
+      // paths. Therefore if we are under symlink and generated event uses
+      // real path, we replace it with path prefix that was observation target
+      val realPath = path.toRealPath()
+      val fixPath = (p: Path) => {
+        if (realPath != path && p.startsWith(realPath)) {
+          val relative = realPath.relativize(p)
+          path.resolve(relative)
+        }
+        else
+          p
+      }
 
       val id = UUID.randomUUID()
       val watcher = DirectoryWatcher
         .builder()
         .path(path)
         .listener(event => {
-          fileManager.context.log.debug(s"Notifying $observer with $event")
-          observer ! FileSystemEvent(event)
+          val message =
+            FileSystemEvent(event.eventType(), fixPath(event.path()))
+          if (message.path != path) {
+            fileManager.context.log
+              .debug(s"Notifying $observer with $message")
+            observer ! message
+          }
         })
         .build()
       watcher.watchAsync()
@@ -269,7 +289,9 @@ object API {
   }
   case class WriteResponse() extends SuccessResponse
 
-  case class FileSystemEvent(event: DirectoryChangeEvent)
+  case class FileSystemEvent(
+    eventType: DirectoryChangeEvent.EventType,
+    path: Path)
 }
 
 object Detail {
