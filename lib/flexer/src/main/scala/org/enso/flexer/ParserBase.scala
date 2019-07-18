@@ -4,6 +4,7 @@ import org.enso.Logger
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.reflect.runtime.universe.Tree
 
 trait ParserBase[T] {
   import java.io.Reader
@@ -11,13 +12,12 @@ trait ParserBase[T] {
 
   import scala.collection.mutable.StringBuilder
 
-  val BUFFERSIZE = 16384
-
   var sreader: Reader     = null
-  val buffer: Array[Char] = new Array(BUFFERSIZE)
-  var bufferLen: Int      = 0
+  val buffer: Array[Char] = new Array(ParserBase.BUFFERSIZE)
+  var bufferLen: Int      = 1
 
-  var offset: Int       = -1
+  var offset: Int       = 0
+  var retreatN: Int     = 1
   var codePoint: Int    = 0
   val eofChar: Char     = '\0'
   val etxChar: Char     = '\3'
@@ -34,11 +34,8 @@ trait ParserBase[T] {
 
   def run(input: String): Result[T] = {
     initialize()
-    sreader = new StringReader(input)
-    val numRead = sreader.read(buffer, 0, buffer.length)
-    bufferLen = numRead
-    if (numRead == -1) bufferLen = 0
-    currentChar = getNextChar
+    sreader     = new StringReader(input)
+    currentChar = getNextChar()
     var r = -1
     while (r == -1) {
       r = step()
@@ -66,7 +63,7 @@ trait ParserBase[T] {
     beginGroup(group.groupIx)
 
   def beginGroup(g: Int): Unit = {
-    println(s"Begin ${groupLabel(g)}")
+    logger.log(s"Begin ${groupLabel(g)}")
     groupStack +:= group
     group = g
   }
@@ -75,7 +72,7 @@ trait ParserBase[T] {
     val oldGroup = group
     group      = groupStack.head
     groupStack = groupStack.tail
-    println(s"End ${groupLabel(oldGroup)}, back to ${groupLabel(group)}")
+    logger.log(s"End ${groupLabel(oldGroup)}, back to ${groupLabel(group)}")
   }
 
   def step(): Int = {
@@ -115,14 +112,19 @@ trait ParserBase[T] {
       if (ch.isControl) "\\0" + Integer.toOctalString(ch.toInt)
       else String.valueOf(ch)
   }
-
-  def getNextChar: Char = {
+  def getNextChar(): Char = {
     offset += 1
-    val nextChar = if (offset >= bufferLen) {
-      if (offset == bufferLen) eofChar
-      else etxChar
-    } else buffer(offset)
-    println(s"Next char '${escapeChar(nextChar)}'")
+    if (offset > bufferLen) return etxChar
+    if (offset == bufferLen) {
+      val numRead = sreader.read(buffer, retreatN, buffer.length - retreatN)
+      if (numRead == -1)
+        return eofChar
+      offset    = retreatN
+      bufferLen = numRead + offset
+      for (i <- 1 to offset) buffer(offset - i) = buffer(bufferLen - i)
+    }
+    val nextChar = buffer(offset)
+    logger.log(s"Next char '${escapeChar(nextChar)}'")
     nextChar
   }
 
@@ -134,4 +136,16 @@ trait ParserBase[T] {
     offset -= i + 1
     currentChar = getNextChar
   }
+
+  final def retreat(): Unit = logger.trace {
+    offset      = offset - retreatN
+    retreatN    = 1
+    currentChar = getNextChar()
+  }
+
+  def debugGeneratedOutput: Seq[Tree] = groupsx.map(_.generate())
+}
+
+object ParserBase {
+  val BUFFERSIZE = 16384
 }

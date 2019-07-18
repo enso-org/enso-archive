@@ -1,7 +1,7 @@
 package org.enso.flexer
 
-import State.StateDesc
-import Utils._
+import org.enso.flexer.State.StateDesc
+import org.enso.flexer.Utils._
 
 import scala.collection.immutable.Range
 import scala.collection.mutable
@@ -17,22 +17,18 @@ case class CodeGen(dfa: DFA) {
     (trgState, st, offset) match {
       case (-1, None, _)        => q"-2"
       case (-1, Some(state), 0) => q"{..${state.code}; -1}"
-      case (-1, Some(state), o) => q"""{
-          offset = offset - ${Literal(Constant(o))}
-          currentChar = buffer(offset) 
-          ..${state.code}
-          -1
-        }"""
-
-      case (targetState, Some(state), _) =>
-        if (!dfa.endStatePriorityMap.contains(targetState)) {
-          dfa.endStatePriorityMap += targetState -> state
-          offsets += targetState -> (offset + 1)
-        }
-        q"${Literal(Constant(targetState))}"
+      case (-1, Some(state), _) => q"{retreat(); ..${state.code}; -1}"
 
       case (targetState, _, _) =>
-        q"${Literal(Constant(targetState))}"
+        st match {
+          case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
+            dfa.endStatePriorityMap += targetState -> state
+            offsets += targetState -> (offset + 1)
+          case _ =>
+        }
+        val trgState = Literal(Constant(targetState))
+
+        if (offset == 0) q"$trgState" else q"{retreatN += 1; $trgState}"
     }
   }
 
@@ -91,7 +87,7 @@ case class CodeGen(dfa: DFA) {
 
         q"${Match(q"codePoint", body.toList)}"
       case _ =>
-        q"${genIf(utf1 :+ b1).body}"
+        genIf(utf1 :+ b1).body
     }
   }
 
@@ -115,7 +111,7 @@ case class CodeGen(dfa: DFA) {
           state = ${Match(q"state", cases)}
           if(state >= 0) {
             matchBuilder.append(currentChar)
-            currentChar = getNextChar
+            currentChar = getNextChar()
           }
         }
         state

@@ -5,9 +5,9 @@ trait Pattern {
 
   def >>(that: Pattern) = Seq_(this, that)
 
-  def many(): Pattern = Many(this)
+  def many: Pattern = Many(this)
 
-  def many1(): Pattern = this >> many
+  def many1: Pattern = this >> many
 }
 
 case object None_ extends Pattern

@@ -1,8 +1,8 @@
 package org.enso.syntax.text.test
 
 import org.enso.flexer.Macro
+import org.enso.flexer.ParserBase
 import org.enso.parser.AST._
-import org.enso.parser.AST
 import org.enso.parser.Parser
 import org.enso.{flexer => Flexer}
 import org.scalatest._
@@ -133,11 +133,17 @@ class LexerSpec extends FlatSpec with Matchers {
   "16_"   ?== Number.DanglingBase("16")
   "7.5"   ?== 7 $ "." $ 5
 
+  /////////////////
+  // Large Input //
+  /////////////////
+
+  "ENSO" * ParserBase.BUFFERSIZE ?== "ENSO" * ParserBase.BUFFERSIZE
+
   //////////
   // Text //
   //////////
 
-  "'"       ?== Text.Unclosed(Text())
+//  "'"       ?== Text.Unclosed(Text())
   "''"      ?== Text()
   "'''"     ?== Text.Unclosed(Text(Text.TripleQuote))
   "''''"    ?== Text.Unclosed(Text(Text.TripleQuote, "'"))
@@ -172,7 +178,6 @@ class LexerSpec extends FlatSpec with Matchers {
     Text("a", Text.Segment.Interpolated(Some(bd)), "g")
   }
 //  "'`a(`'" ?== Text(Text.Segment.Interpolated(Some("a" $ Group.Unclosed())))
-
   //  // Comments
   //  expr("#"              , Comment)
   //  expr("#c"             , Comment :: CommentBody("c"))

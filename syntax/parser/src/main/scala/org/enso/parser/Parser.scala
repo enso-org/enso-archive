@@ -10,6 +10,8 @@ import scala.annotation.tailrec
 
 case class Parser() extends ParserBase[AST] {
 
+  val ast = AST
+
   val any: Pattern  = range(5, Int.MaxValue) // FIXME 5 -> 0
   val pass: Pattern = Pass
   val eof: Pattern  = char('\0')
@@ -186,7 +188,7 @@ case class Parser() extends ParserBase[AST] {
 
   final def onNoIdentErrSfx(): Unit = logger.trace {
     submitIdent()
-    endGroup();
+    endGroup()
   }
 
   final def finalizeIdent(): Unit = logger.trace {
@@ -203,9 +205,9 @@ case class Parser() extends ParserBase[AST] {
   val IDENT_SFX_CHECK = defineGroup("Identifier Suffix Check")
 
   // format: off
-  NORMAL          rule variable    run reify { onIdent(AST.Var) }
-  NORMAL          rule constructor run reify { onIdent(AST.Cons) }
-  NORMAL          rule "_"         run reify { onIdent(AST.Wildcard) }
+  NORMAL          rule variable    run reify { onIdent(ast.Var) }
+  NORMAL          rule constructor run reify { onIdent(ast.Cons) }
+  NORMAL          rule "_"         run reify { onIdent(ast.Wildcard) }
   IDENT_SFX_CHECK rule identErrSfx run reify { onIdentErrSfx() }
   IDENT_SFX_CHECK rule pass        run reify { onNoIdentErrSfx() }
   // format: on
@@ -252,8 +254,8 @@ case class Parser() extends ParserBase[AST] {
   OPERATOR_MOD_CHECK.setParent(OPERATOR_SFX_CHECK)
 
   // format: off
-  NORMAL             rule operator       run reify { onOp(AST.Operator) }
-  NORMAL             rule noModOperator  run reify { onNoModOp(AST.Operator) }
+  NORMAL             rule operator       run reify { onOp(ast.Operator) }
+  NORMAL             rule noModOperator  run reify { onNoModOp(ast.Operator) }
   OPERATOR_MOD_CHECK rule "="            run reify { onModifier() }
   OPERATOR_SFX_CHECK rule operatorErrSfx run reify { onIdentErrSfx() }
   OPERATOR_SFX_CHECK rule pass           run reify { onNoIdentErrSfx() }
@@ -482,13 +484,13 @@ case class Parser() extends ParserBase[AST] {
 
   AST.Text.Segment.Escape.Character.codes.foreach { ctrl =>
     val name = TermName(ctrl.toString)
-    val func = q"onTextEscape(AST.Text.Segment.Escape.Character.$name)"
+    val func = q"onTextEscape(ast.Text.Segment.Escape.Character.$name)"
     TEXT rule s"\\$ctrl" run func
   }
 
   AST.Text.Segment.Escape.Control.codes.foreach { ctrl =>
     val name = TermName(ctrl.toString)
-    val func = q"onTextEscape(AST.Text.Segment.Escape.Control.$name)"
+    val func = q"onTextEscape(ast.Text.Segment.Escape.Control.$name)"
     TEXT rule s"\\$ctrl" run func
   }
 
