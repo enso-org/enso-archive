@@ -133,12 +133,17 @@ class ParserSpec extends FlatSpec with Matchers {
   "16_"   ?== Number.DanglingBase("16")
   "7.5"   ?== 7 $ "." $ 5
 
+  ////////////////////
+  // UTF Surrogates //
+  ////////////////////
+
+  "\uD800\uDF1E" ?== Unrecognized("\uD800\uDF1E")
+
   /////////////////
   // Large Input //
   /////////////////
 
-  "II" * ParserBase.BUFFERSIZE           ?== "II" * ParserBase.BUFFERSIZE
-  "\uD800\uDF1E" * ParserBase.BUFFERSIZE ?== "\uD800\uDF1E" * ParserBase.BUFFERSIZE
+  "II" * ParserBase.BUFFERSIZE ?== "II" * ParserBase.BUFFERSIZE
 
   //////////
   // Text //

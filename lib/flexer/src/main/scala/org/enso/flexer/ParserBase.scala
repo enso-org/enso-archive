@@ -117,8 +117,6 @@ trait ParserBase[T] {
     if (offset >= bufferLen)
       return etxChar
     offset += charSize
-    if (offset == bufferLen)
-      return eofChar
     if (offset >= ParserBase.BUFFERSIZE - 1) {
       val keep = Math.max(retreatN, currentMatch.length) + 1
       for (i <- 1 to keep) buffer(keep - i) = buffer(bufferLen - i)
@@ -127,7 +125,8 @@ trait ParserBase[T] {
         return eofChar
       offset    = keep - (if (offset == ParserBase.BUFFERSIZE) 0 else 1)
       bufferLen = keep + numRead
-    }
+    } else if (offset == bufferLen)
+      return eofChar
     logger.log(s"Next char '${escapeChar(buffer(offset))}'")
     Character.codePointAt(buffer, offset)
   }
