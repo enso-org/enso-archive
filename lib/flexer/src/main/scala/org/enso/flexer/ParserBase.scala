@@ -1,6 +1,7 @@
 package org.enso.flexer
 
 import org.enso.Logger
+import org.enso.flexer.ParserBase._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -13,7 +14,7 @@ trait ParserBase[T] {
   import scala.collection.mutable.StringBuilder
 
   var sreader: Reader     = null
-  val buffer: Array[Char] = new Array(ParserBase.BUFFERSIZE)
+  val buffer: Array[Char] = new Array(BUFFERSIZE)
   var bufferLen: Int      = 1
 
   var offset: Int    = 0
@@ -117,14 +118,14 @@ trait ParserBase[T] {
     if (offset >= bufferLen)
       return etxChar
     offset += charSize
-    if (offset >= ParserBase.BUFFERSIZE - 1) {
-      val keep = Math.max(retreatN, currentMatch.length) + 1
-      for (i <- 1 to keep) buffer(keep - i) = buffer(bufferLen - i)
-      val numRead = sreader.read(buffer, keep, buffer.length - keep)
+    if (offset > BUFFERSIZE - UTFCHARSIZE) {
+      val keepChars = Math.max(retreatN, currentMatch.length) + UTFCHARSIZE - 1
+      for (i <- 1 to keepChars) buffer(keepChars - i) = buffer(bufferLen - i)
+      val numRead = sreader.read(buffer, keepChars, buffer.length - keepChars)
       if (numRead == -1)
         return eofChar
-      offset    = keep - (if (offset == ParserBase.BUFFERSIZE) 0 else 1)
-      bufferLen = keep + numRead
+      offset    = keepChars - (if (offset == ParserBase.BUFFERSIZE) 0 else 1)
+      bufferLen = keepChars + numRead
     } else if (offset == bufferLen)
       return eofChar
     logger.log(s"Next char '${escapeChar(buffer(offset))}'")
@@ -154,5 +155,8 @@ trait ParserBase[T] {
 }
 
 object ParserBase {
-  val BUFFERSIZE = 16384
+
+  val BUFFERSIZE  = 16384
+  val UTFCHARSIZE = 2
+
 }

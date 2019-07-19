@@ -1,5 +1,7 @@
 package org.enso.flexer
 
+import org.enso.flexer.CodeGen.MAX_ASCII_CODE
+import org.enso.flexer.CodeGen.MIN_ASCII_CODE
 import org.enso.flexer.State.StateDesc
 import org.enso.flexer.Utils._
 
@@ -9,28 +11,32 @@ import scala.reflect.runtime.universe._
 
 case class CodeGen(dfa: DFA) {
 
-  val offsets = mutable.Map(0 -> 0)
+  val stateHasOverlappingRules = mutable.Map(0 -> false)
 
   case class Branch(range: Range, body: Tree)
 
-  def genBranchBody(trgState: Int, st: Option[StateDesc], offset: Int): Tree = {
-    (trgState, st, offset) match {
-      case (-1, None, _)        => q"-2"
-      case (-1, Some(state), 0) => q"..${state.code}; -1"
-      case (-1, Some(state), _) => q"retreat(); ..${state.code}; -1"
+  def genBranchBody(
+    trgState: Int,
+    maybeState: Option[StateDesc],
+    rulesOverlap: Boolean
+  ): Tree = {
+    (trgState, maybeState, rulesOverlap) match {
+      case (-1, None, _)            => q"-2"
+      case (-1, Some(state), false) => q"..${state.code}; -1"
+      case (-1, Some(state), _)     => q"retreat(); ..${state.code}; -1"
 
       case (targetState, _, _) =>
-        val retreat = st match {
+        val rulesOverlap_ = maybeState match {
           case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
             dfa.endStatePriorityMap += targetState -> state
-            offsets += targetState -> (offset + 1)
+            stateHasOverlappingRules += targetState -> true
             true
           case _ => false
         }
-        if (offset == 0 && !retreat)
-          q"${Literal(Constant(targetState))}"
-        else
+        if (rulesOverlap || rulesOverlap_)
           q"retreatN += charSize; ${Literal(Constant(targetState))}"
+        else
+          q"${Literal(Constant(targetState))}"
     }
   }
 
@@ -54,7 +60,7 @@ case class CodeGen(dfa: DFA) {
   }
 
   def generateCaseBody(stateIx: Int): Tree = {
-    val offset   = offsets.getOrElse(stateIx, 0)
+    val overlaps = stateHasOverlappingRules.getOrElse(stateIx, false)
     val state    = dfa.endStatePriorityMap.get(stateIx)
     var trgState = dfa.links(stateIx)(0)
     var rStart   = Int.MinValue
@@ -63,29 +69,31 @@ case class CodeGen(dfa: DFA) {
       newTrgState = dfa.links(stateIx)(vocIx)
       rEnd        = range.start - 1
       if newTrgState != trgState
-    } yield Branch(rStart to rEnd, genBranchBody(trgState, state, offset))
+    } yield Branch(rStart to rEnd, genBranchBody(trgState, state, overlaps))
       .thenDo {
         trgState = newTrgState
         rStart   = range.start
       }
     val allBranches = branches :+
-      Branch(rStart to Int.MaxValue, genBranchBody(trgState, state, offset))
+      Branch(rStart to Int.MaxValue, genBranchBody(trgState, state, overlaps))
 
-    val (utf1 :+ b1, remBranches) = allBranches.span(_.range.start < 0)
-    val (asci, utf2)              = remBranches.span(_.range.end < 256)
+    val (utf1 :+ b1, rest) = allBranches.span(_.range.start < MIN_ASCII_CODE)
+    val (asci, utf2)       = rest.span(_.range.end <= MAX_ASCII_CODE)
 
     utf2 match {
       case b2 +: utf2 =>
-        val b11 = Branch(b1.range.start to -1, b1.body)
-        val b12 = Branch(0 to b1.range.end, b1.body)
-        val b21 = Branch(b2.range.start to 255, b2.body)
-        val b22 = Branch(256 to b2.range.end, b2.body)
+        val b1UTF = Branch(b1.range.start to MIN_ASCII_CODE - 1, b1.body)
+        val b1ASC = Branch(MIN_ASCII_CODE to b1.range.end, b1.body)
+        val b2ASC = Branch(b2.range.start to MAX_ASCII_CODE, b2.body)
+        val b2UTF = Branch(MAX_ASCII_CODE + 1 to b2.range.end, b2.body)
 
-        val ascii = (if (b12.range.end < 0) asci else b12 +: asci) :+ b21
-        val utf = (utf1 :+ b11) ++ (if (b22.range.start < 256) utf2
-                                    else b22 +: utf2)
+        val emptyB1ASC = b1ASC.range.end < MIN_ASCII_CODE
+        val emptyB2UTF = b2UTF.range.start <= MAX_ASCII_CODE
 
-        val body = genSwitch(ascii) :+ cq"_ => ${genIf(utf).body}"
+        val ascii     = if (emptyB1ASC) asci :+ b2ASC else b1ASC +: asci :+ b2ASC
+        val utfMiddle = if (emptyB2UTF) Vector(b1UTF) else Vector(b1UTF, b2UTF)
+        val utf       = utf1 ++ utfMiddle ++ utf2
+        val body      = genSwitch(ascii) :+ cq"_ => ${genIf(utf).body}"
 
         q"${Match(q"codePoint", body.toList)}"
       case _ =>
@@ -122,5 +130,12 @@ case class CodeGen(dfa: DFA) {
       ..$bodies
     """
   }
+
+}
+
+object CodeGen {
+
+  val MIN_ASCII_CODE = 0
+  val MAX_ASCII_CODE = 255
 
 }
