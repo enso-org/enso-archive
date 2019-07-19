@@ -23,7 +23,7 @@ case class CodeGen(dfa: DFA) {
     (trgState, maybeState, rulesOverlap) match {
       case (-1, None, _)            => q"-2"
       case (-1, Some(state), false) => q"..${state.code}; -1"
-      case (-1, Some(state), _)     => q"retreat(); ..${state.code}; -1"
+      case (-1, Some(state), true)  => q"rewindToLastRule(); ..${state.code}; -1"
 
       case (targetState, _, _) =>
         val rulesOverlap_ = maybeState match {
@@ -34,7 +34,7 @@ case class CodeGen(dfa: DFA) {
           case _ => false
         }
         if (rulesOverlap || rulesOverlap_)
-          q"retreatN += charSize; ${Literal(Constant(targetState))}"
+          q"charsToLastRule += charSize; ${Literal(Constant(targetState))}"
         else
           q"${Literal(Constant(targetState))}"
     }

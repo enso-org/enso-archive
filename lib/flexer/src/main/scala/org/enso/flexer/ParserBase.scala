@@ -17,11 +17,11 @@ trait ParserBase[T] {
   val buffer: Array[Char] = new Array(BUFFERSIZE)
   var bufferLen: Int      = 1
 
-  var offset: Int    = 0
-  var retreatN: Int  = 0
-  val eofChar: Char  = '\0'
-  val etxChar: Char  = '\3'
-  var codePoint: Int = etxChar.toInt
+  var offset: Int          = 0
+  var charsToLastRule: Int = 0
+  val eofChar: Char        = '\0'
+  val etxChar: Char        = '\3'
+  var codePoint: Int       = etxChar.toInt
 
   var matchBuilder = new StringBuilder(64)
   var currentMatch = ""
@@ -119,12 +119,12 @@ trait ParserBase[T] {
       return etxChar
     offset += charSize
     if (offset > BUFFERSIZE - UTFCHARSIZE) {
-      val keepChars = Math.max(retreatN, currentMatch.length) + UTFCHARSIZE - 1
+      val keepChars = Math.max(charsToLastRule, currentMatch.length) + UTFCHARSIZE - 1
       for (i <- 1 to keepChars) buffer(keepChars - i) = buffer(bufferLen - i)
       val numRead = sreader.read(buffer, keepChars, buffer.length - keepChars)
       if (numRead == -1)
         return eofChar
-      offset    = keepChars - (if (offset == ParserBase.BUFFERSIZE) 0 else 1)
+      offset    = keepChars - (BUFFERSIZE - offset)
       bufferLen = keepChars + numRead
     } else if (offset == bufferLen)
       return eofChar
@@ -137,15 +137,14 @@ trait ParserBase[T] {
   }
 
   final def rewind(i: Int): Unit = logger.trace {
-    offset -= i + 1
+    offset -= i
     codePoint = getNextCodePoint()
   }
 
-  final def retreat(): Unit = logger.trace {
-    logger.log(s"RETREAT $retreatN")
-    offset -= retreatN
-    retreatN  = 0
-    codePoint = getNextCodePoint()
+  final def rewindToLastRule(): Unit = logger.trace {
+    logger.log(s"RETREAT $charsToLastRule")
+    rewind(charsToLastRule)
+    charsToLastRule = 0
   }
 
   final def charSize: Int =
