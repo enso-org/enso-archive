@@ -1,4 +1,4 @@
-package org.enso.syntax.text.test
+package org.enso.syntax
 
 import org.enso.flexer.Macro
 import org.enso.flexer.ParserBase
@@ -7,12 +7,12 @@ import org.enso.parser.Parser
 import org.enso.{flexer => Flexer}
 import org.scalatest._
 
-class LexerSpec extends FlatSpec with Matchers {
+class ParserSpec extends FlatSpec with Matchers {
 
-  val parserCons = Macro.compile(new Parser())
+  val newParser = Macro.compile(new Parser())
 
   def parse(input: String) = {
-    val parser = parserCons()
+    val parser = newParser()
     parser.run(input)
   }
 
@@ -137,7 +137,8 @@ class LexerSpec extends FlatSpec with Matchers {
   // Large Input //
   /////////////////
 
-  "ENSO" * ParserBase.BUFFERSIZE ?== "ENSO" * ParserBase.BUFFERSIZE
+  "II" * ParserBase.BUFFERSIZE           ?== "II" * ParserBase.BUFFERSIZE
+  "\uD800\uDF1E" * ParserBase.BUFFERSIZE ?== "\uD800\uDF1E" * ParserBase.BUFFERSIZE
 
   //////////
   // Text //

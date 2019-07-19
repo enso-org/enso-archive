@@ -16,19 +16,21 @@ case class CodeGen(dfa: DFA) {
   def genBranchBody(trgState: Int, st: Option[StateDesc], offset: Int): Tree = {
     (trgState, st, offset) match {
       case (-1, None, _)        => q"-2"
-      case (-1, Some(state), 0) => q"{..${state.code}; -1}"
-      case (-1, Some(state), _) => q"{retreat(); ..${state.code}; -1}"
+      case (-1, Some(state), 0) => q"..${state.code}; -1"
+      case (-1, Some(state), _) => q"retreat(); ..${state.code}; -1"
 
       case (targetState, _, _) =>
-        st match {
+        val retreat = st match {
           case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
             dfa.endStatePriorityMap += targetState -> state
             offsets += targetState -> (offset + 1)
-          case _ =>
+            true
+          case _ => false
         }
-        val trgState = Literal(Constant(targetState))
-
-        if (offset == 0) q"$trgState" else q"{retreatN += 1; $trgState}"
+        if (offset == 0 && !retreat)
+          q"${Literal(Constant(targetState))}"
+        else
+          q"retreatN += charSize; ${Literal(Constant(targetState))}"
     }
   }
 
@@ -107,11 +109,12 @@ case class CodeGen(dfa: DFA) {
         var state: Int = 0
         matchBuilder.setLength(0)
         while(state >= 0) {
-          codePoint = currentChar.toInt
           state = ${Match(q"state", cases)}
           if(state >= 0) {
-            matchBuilder.append(currentChar)
-            currentChar = getNextChar()
+            matchBuilder.append(buffer(offset))
+            if (buffer(offset).isHighSurrogate)
+              matchBuilder.append(buffer(offset+1))
+            codePoint = getNextCodePoint()
           }
         }
         state

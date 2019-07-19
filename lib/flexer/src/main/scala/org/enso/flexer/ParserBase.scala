@@ -16,12 +16,11 @@ trait ParserBase[T] {
   val buffer: Array[Char] = new Array(ParserBase.BUFFERSIZE)
   var bufferLen: Int      = 1
 
-  var offset: Int       = 0
-  var retreatN: Int     = 1
-  var codePoint: Int    = 0
-  val eofChar: Char     = '\0'
-  val etxChar: Char     = '\3'
-  var currentChar: Char = etxChar
+  var offset: Int    = 0
+  var retreatN: Int  = 0
+  val eofChar: Char  = '\0'
+  val etxChar: Char  = '\3'
+  var codePoint: Int = etxChar.toInt
 
   var matchBuilder = new StringBuilder(64)
   var currentMatch = ""
@@ -34,8 +33,10 @@ trait ParserBase[T] {
 
   def run(input: String): Result[T] = {
     initialize()
-    sreader     = new StringReader(input)
-    currentChar = getNextChar()
+    sreader = new StringReader(input)
+    val numRead = sreader.read(buffer, 1, buffer.length - 1)
+    bufferLen = if (numRead == -1) 1 else numRead + 1
+    codePoint = getNextCodePoint()
     var r = -1
     while (r == -1) {
       r = step()
@@ -112,20 +113,23 @@ trait ParserBase[T] {
       if (ch.isControl) "\\0" + Integer.toOctalString(ch.toInt)
       else String.valueOf(ch)
   }
-  def getNextChar(): Char = {
-    offset += 1
-    if (offset > bufferLen) return etxChar
-    if (offset == bufferLen) {
-      val numRead = sreader.read(buffer, retreatN, buffer.length - retreatN)
+  def getNextCodePoint(): Int = {
+    if (offset >= bufferLen)
+      return etxChar
+    offset += charSize
+    if (offset == bufferLen)
+      return eofChar
+    if (offset >= ParserBase.BUFFERSIZE - 1) {
+      val keep = Math.max(retreatN, currentMatch.length) + 1
+      for (i <- 1 to keep) buffer(keep - i) = buffer(bufferLen - i)
+      val numRead = sreader.read(buffer, keep, buffer.length - keep)
       if (numRead == -1)
         return eofChar
-      offset    = retreatN
-      bufferLen = numRead + offset
-      for (i <- 1 to offset) buffer(offset - i) = buffer(bufferLen - i)
+      offset    = keep - (if (offset == ParserBase.BUFFERSIZE) 0 else 1)
+      bufferLen = keep + numRead
     }
-    val nextChar = buffer(offset)
-    logger.log(s"Next char '${escapeChar(nextChar)}'")
-    nextChar
+    logger.log(s"Next char '${escapeChar(buffer(offset))}'")
+    Character.codePointAt(buffer, offset)
   }
 
   final def rewind(): Unit = logger.trace {
@@ -134,14 +138,18 @@ trait ParserBase[T] {
 
   final def rewind(i: Int): Unit = logger.trace {
     offset -= i + 1
-    currentChar = getNextChar
+    currentChar = getNextCodePoint()
   }
 
   final def retreat(): Unit = logger.trace {
-    offset      = offset - retreatN
-    retreatN    = 1
-    currentChar = getNextChar()
+    logger.log(s"RETREAT $retreatN")
+    offset -= retreatN
+    retreatN  = 0
+    codePoint = getNextCodePoint()
   }
+
+  final def charSize: Int =
+    if (buffer(offset).isHighSurrogate) 2 else 1
 
   def debugGeneratedOutput: Seq[Tree] = groupsx.map(_.generate())
 }

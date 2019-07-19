@@ -1,4 +1,4 @@
-package org.enso.syntax.text.lexer
+package org.enso.syntax
 
 import org.enso.flexer.Macro
 import org.enso.parser.Parser
@@ -6,7 +6,7 @@ import org.scalameter.api._
 
 import scala.math.pow
 
-object ParserBenchmark extends Bench.OfflineReport {
+object ParserBenchmark extends Bench.OfflineRegressionReport {
   val exp14 = Gen.exponential("size")(pow(2, 11).toInt, pow(2, 14).toInt, 2)
   val exp18 = Gen.exponential("size")(pow(2, 15).toInt, pow(2, 18).toInt, 2)
 
