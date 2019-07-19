@@ -122,7 +122,7 @@ trait ParserBase[T] {
       if (offset == bufferLen) eofChar
       else etxChar
     } else buffer(offset)
-    println(s"Next char '${escapeChar(nextChar)}'")
+    //println(s"Next char '${escapeChar(nextChar)}'")
     nextChar
   }
 

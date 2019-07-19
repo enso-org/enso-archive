@@ -29,6 +29,7 @@ class DocParserTests extends FlatSpec with Matchers {
         println("value.generateHTML() : " + value.generateHTML())
         println()
         assert(value == result)
+        assert(value.show() == input)
       }
       case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
     }
@@ -342,7 +343,7 @@ class DocParserTests extends FlatSpec with Matchers {
   ///// other /////
   /////////////////
 
-  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n !important\n\n ? Hi \n\n > Example " ?== Documentation(
+  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n? Hi \n\n> Example" ?== Documentation(
     Synopsis(
       TextBlock(
         "Foo ",
@@ -351,14 +352,14 @@ class DocParserTests extends FlatSpec with Matchers {
         Formatter(Strikethrough, UnclosedFormatter(Bold, "Bar")),
         " ",
         CodeLine("foo bar baz bo"),
-        " "
+        " ","\n"
       )
     ),
     Body(
-      TextBlock("Hello Section"),
-      Important("important"),
-      Info(" Hi "),
-      Example(" Example ")
+      TextBlock("Hello Section","\n"),
+      Important("important","\n"),
+      Info(" Hi ","\n"),
+      Example(" Example ","\n")
     )
   )
 
@@ -367,24 +368,21 @@ class DocParserTests extends FlatSpec with Matchers {
   ////////////////
 
   "DEPRECATED" ?== Documentation(
-    Tags(Deprecated()),
-    Synopsis(TextBlock(""))
+    Tags(Deprecated())
   )
-  "MODIFIED" ?== Documentation(Tags(Modified()), Synopsis(TextBlock("")))
-  "ADDED"    ?== Documentation(Tags(Added()), Synopsis(TextBlock("")))
-  "REMOVED"  ?== Documentation(Tags(Removed()), Synopsis(TextBlock("")))
+  "MODIFIED" ?== Documentation(Tags(Modified()))
+  "ADDED"    ?== Documentation(Tags(Added()))
+  "REMOVED"  ?== Documentation(Tags(Removed()))
   "REMOVED\nFoo" ?== Documentation(
     Tags(Removed()),
     Synopsis(TextBlock("Foo"))
   )
 
   "DEPRECATED in 1.0" ?== Documentation(
-    Tags(Deprecated("in 1.0")),
-    Synopsis(TextBlock(""))
+    Tags(Deprecated("in 1.0"))
   )
   "DEPRECATED in 1.0\nMODIFIED" ?== Documentation(
-    Tags(Deprecated("in 1.0"), Modified()),
-    Synopsis(TextBlock(""))
+    Tags(Deprecated("in 1.0"), Modified())
   )
 
 }

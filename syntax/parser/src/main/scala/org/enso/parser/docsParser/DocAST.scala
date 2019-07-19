@@ -161,7 +161,7 @@ object DocAST {
   ////////////////////
 
   final case class Header(elem: AST) extends AST {
-    val textRepr: Repr = Repr("\n\n") + elem.textRepr
+    val textRepr: Repr = Repr("\n") + elem.textRepr
 
     val htmlRepr: Repr = Repr("<h1>") + elem.htmlRepr + "</h1>"
   }
@@ -223,7 +223,9 @@ object DocAST {
           _repr += " " * indent
           _repr += listType.readableMarker
           _repr += elem.textRepr
-          _repr += '\n'
+          if (elems.last != elem) {
+            _repr += '\n'
+          }
         }
       })
       _repr
@@ -261,10 +263,10 @@ object DocAST {
     val elems: List[AST]
 
     val textRepr: Repr = {
-      var _repr = Repr("\n") + readableMarker
+      var _repr = Repr("\n")
+      _repr += readableMarker
       elems.foreach(elem => {
         _repr += elem.textRepr
-        _repr += "\n"
       })
       _repr
     }
@@ -280,6 +282,15 @@ object DocAST {
   ///// Important /////
   final case class Important(elems: List[AST]) extends Section {
     val readableMarker: Char = '!'
+    /// FIXME - I dont know why but it can only display readableMarkers if val is overriden, even though it is the same code
+    override val textRepr: Repr = {
+      var _repr = Repr("\n")
+      _repr += readableMarker
+      elems.foreach(elem => {
+        _repr += elem.textRepr
+      })
+      _repr
+    }
   }
 
   object Important {
@@ -291,6 +302,14 @@ object DocAST {
   ///// Info /////
   final case class Info(elems: List[AST]) extends Section {
     val readableMarker: Char = '?'
+    override val textRepr: Repr = {
+      var _repr = Repr("\n")
+      _repr += readableMarker
+      elems.foreach(elem => {
+        _repr += elem.textRepr
+      })
+      _repr
+    }
   }
 
   object Info {
@@ -302,6 +321,14 @@ object DocAST {
   ///// Example /////
   final case class Example(elems: List[AST]) extends Section {
     val readableMarker: Char = '>'
+    override val textRepr: Repr = {
+      var _repr = Repr("\n")
+      _repr += readableMarker
+      elems.foreach(elem => {
+        _repr += elem.textRepr
+      })
+      _repr
+    }
   }
 
   object Example {
@@ -315,11 +342,10 @@ object DocAST {
     val readableMarker: Char = ' '
 
     override val textRepr: Repr = {
-      var _repr = Repr("\n")
+      var _repr = Repr()
       elems.foreach(elem => {
-        _repr += readableMarker * 4
+        _repr += readableMarker.toString * 4
         _repr += elem.textRepr
-        _repr += '\n'
       })
       _repr
     }
@@ -332,7 +358,7 @@ object DocAST {
   }
 
   ///// Text Block /////
-  final case class TextBlock(elems: List[AST]) extends Section { // types
+  final case class TextBlock(elems: List[AST]) extends Section {
     val readableMarker: Char = '\0'
   }
 
@@ -392,7 +418,13 @@ object DocAST {
   trait TagType extends AST {
     val version: Option[String]
     val name: String   = this.getClass.getSimpleName.toUpperCase
-    val textRepr: Repr = Repr(name) + ' ' + version.textRepr
+    val textRepr: Repr = {
+      if (version.textRepr == Repr()) {
+        Repr(name)
+      } else {
+        Repr(name) + ' ' + version.textRepr
+      }
+    }
     val htmlRepr
       : Repr = Repr("<div class=\"") + name + "\">" + name + ' ' + version.htmlRepr + "</div>"
   }
@@ -428,7 +460,9 @@ object DocAST {
       var _repr = Repr()
       elems.foreach(elem => {
         _repr += elem.textRepr
-        _repr += "\n"
+        if (elems.last != elem) {
+          _repr += "\n"
+        }
       })
       _repr
     }
@@ -461,7 +495,29 @@ object DocAST {
   final case class Documentation(tags: Tags, synopsis: Synopsis, body: Body)
       extends AST {
     val textRepr
-      : Repr = Repr() + tags.textRepr + synopsis.textRepr + body.textRepr
+      : Repr = {
+     var _repr = Repr()
+      if (tags != Tags()) {
+        // commented out code used for debugging purposes
+        //_repr += "[TAGS]\n"
+        _repr += tags.textRepr
+        //_repr += "[END TAGS]\n"
+      }
+
+      if (synopsis != Synopsis()) {
+        //_repr += "[SYNOPSIS]\n"
+        _repr += synopsis.textRepr
+        //_repr += "[END SYNOPSIS]\n"
+      }
+
+      if (body != Body()) {
+        //_repr += "[BODY]\n"
+        _repr += body.textRepr
+        //_repr += "[END BODY]\n"
+      }
+      _repr
+    }
+
     val htmlRepr
       : Repr = Repr("<!DOCTYPE html><html><body>") + tags.htmlRepr + synopsis.htmlRepr + body.htmlRepr + "</body></html>"
   }

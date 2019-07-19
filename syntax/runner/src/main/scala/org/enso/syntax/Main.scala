@@ -195,7 +195,7 @@ val dataToParse =
     case Success(v, _) => {
       pprint(v)
       print(v.show())
-      println()
+      println("\n\n")
       print(v.generateHTML())
     }
   }

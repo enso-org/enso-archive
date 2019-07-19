@@ -266,7 +266,11 @@ case class DocParser() extends ParserBase[AST] {
   }
 
   def cleanupEndOfSection(): Unit = logger.trace {
-    sectionsStack +:= Some(currentSection(workingASTStack)).orNull
+    if (workingASTStack.nonEmpty) {
+      sectionsStack +:= Some(currentSection(workingASTStack)).orNull
+    } else {
+      sectionsStack +:= Some(currentSection(Nil)).orNull
+    }
     result          = None
     workingASTStack = Nil
 
@@ -291,24 +295,33 @@ case class DocParser() extends ParserBase[AST] {
     reverseFinalASTStack()
     reverseTagsStack()
 
-    sectionsStack.length match {
-      case 0 => result = None
-      case 1 =>
-        result = Some(
-          Documentation(
-            Tags(tagsStack),
-            Synopsis(sectionsStack),
-            Body(Nil)
-          )
+    if (sectionsStack.head == TextBlock()) {
+      result = Some(
+        Documentation(
+          Tags(tagsStack),
+          Synopsis(Nil),
+          Body(Nil)
         )
-      case _ =>
-        result = Some(
-          Documentation(
-            Tags(tagsStack),
-            Synopsis(sectionsStack.head),
-            Body(sectionsStack.tail)
+      )
+    } else {
+      sectionsStack.length match {
+        case 1 =>
+          result = Some(
+            Documentation(
+              Tags(tagsStack),
+              Synopsis(sectionsStack),
+              Body(Nil)
+            )
           )
-        )
+        case _ =>
+          result = Some(
+            Documentation(
+              Tags(tagsStack),
+              Synopsis(sectionsStack.head),
+              Body(sectionsStack.tail)
+            )
+          )
+      }
     }
   }
 
@@ -318,8 +331,8 @@ case class DocParser() extends ParserBase[AST] {
 
   // format: off
   NORMAL rule importantTrigger run reify { onNewSection(Important(_)) }
-  NORMAL rule infoTrigger      run reify { onNewSection(Info(_)) }
-  NORMAL rule exampleTrigger   run reify { onNewSection(Example(_)) }
+  NORMAL rule infoTrigger      run reify { onNewSection(Info(_))}
+  NORMAL rule exampleTrigger   run reify { onNewSection(Example(_))}
 
   NORMAL rule newline          run reify { checksOnLineEnd(); beginGroup(NEWLINE) }
   NORMAL rule eof              run reify { onEOF() }
@@ -334,15 +347,19 @@ case class DocParser() extends ParserBase[AST] {
     if (result.contains(Text(newline.toString))) {
       popAST()
       result = Some(DocAST.Header(result.get))
+      pushAST()
+    } else if (result == Some(Text(""))) {
+      popAST()
+    } else {
+      pushAST()
     }
-    pushAST()
   }
 
   ///////////////////
   ////// Links //////
   ///////////////////
 
-  def createURL(name: String, url: String, linkType: LinkType): Unit = {
+  def createURL(name: String, url: String, linkType: LinkType): Unit = logger.trace {
     result = Some(Link(name, url, linkType))
     pushAST()
   }
@@ -408,6 +425,7 @@ case class DocParser() extends ParserBase[AST] {
       lastDiff = diff
       addOneListToAnother()
     } else {
+      lastDiff = diff
       endGroup()
     }
 
@@ -419,6 +437,7 @@ case class DocParser() extends ParserBase[AST] {
       addOneListToAnother()
       inListFlag = false
     }
+    pushNewLine()
     onEndOfSection()
     endGroup()
   }
@@ -433,8 +452,16 @@ case class DocParser() extends ParserBase[AST] {
       pushNewLine()
       endGroup()
     } else {
+      popAST()
+      if (!result.contains(Text(newline.toString))) {
+        pushAST()
+        pushNewLine()
+      } else {
+        pushAST()
+      }
       onIndent()
     }
+
   }
 
   NEWLINE rule eof run reify { onEOF() }
@@ -448,6 +475,9 @@ case class DocParser() extends ParserBase[AST] {
       val diff = indent - lastOffset
 
       if (diff == listIndent) {
+        if (!inListFlag) {
+          pushNewLine()
+        }
         inListFlag = true
         lastDiff   = diff
         addList(indent, listType, content)
