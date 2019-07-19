@@ -24,7 +24,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
                                             | fib  n = fib n-1 + fib n-2
                                             """.stripMargin * i
 
-  val newParser = Macro.compile(new Parser())
+  val newParser = Macro.compile(Parser)
 
   performance of "parser" in {
     measure method "variable" in (using(variable) in (newParser().run(_)))

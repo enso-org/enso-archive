@@ -138,7 +138,7 @@ trait ParserBase[T] {
 
   final def rewind(i: Int): Unit = logger.trace {
     offset -= i + 1
-    currentChar = getNextCodePoint()
+    codePoint = getNextCodePoint()
   }
 
   final def retreat(): Unit = logger.trace {

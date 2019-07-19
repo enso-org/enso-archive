@@ -9,7 +9,7 @@ import org.scalatest._
 
 class ParserSpec extends FlatSpec with Matchers {
 
-  val newParser = Macro.compile(new Parser())
+  val newParser = Macro.compile(Parser)
 
   def parse(input: String) = {
     val parser = newParser()
@@ -165,8 +165,8 @@ class ParserSpec extends FlatSpec with Matchers {
 
   //// Escapes ////
 
-  AST.Text.Segment.Escape.Character.codes.foreach(i => s"'\\$i'" ?== Text(i))
-  AST.Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'"   ?== Text(i))
+  Text.Segment.Escape.Character.codes.foreach(i => s"'\\$i'" ?== Text(i))
+  Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'"   ?== Text(i))
 
   "'\\\\'"   ?== Text(Text.Segment.Escape.Slash)
   "'\\''"    ?== Text(Text.Segment.Escape.Quote)

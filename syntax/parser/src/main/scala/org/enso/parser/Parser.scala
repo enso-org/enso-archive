@@ -471,14 +471,14 @@ case class Parser() extends ParserBase[AST] {
   INTERPOLATE.setParent(NORMAL)
 
   // format: off
-  NORMAL rule "'"           run reify { onTextBegin(AST.Text.SingleQuote) }
-  NORMAL rule "''"          run reify { submitEmptyText(AST.Text.SingleQuote) } // FIXME: Remove after fixing DFA Gen
-  NORMAL rule "'''"         run reify { onTextBegin(AST.Text.TripleQuote) }
+  NORMAL rule "'"           run reify { onTextBegin(ast.Text.SingleQuote) }
+  NORMAL rule "''"          run reify { submitEmptyText(ast.Text.SingleQuote) } // FIXME: Remove after fixing DFA Gen
+  NORMAL rule "'''"         run reify { onTextBegin(ast.Text.TripleQuote) }
   NORMAL rule '`'           run reify { onInterpolateEnd() }
   TEXT   rule '`'           run reify { onInterpolateBegin() }
-  TEXT   rule "'"           run reify { onTextQuote(AST.Text.SingleQuote) }
+  TEXT   rule "'"           run reify { onTextQuote(ast.Text.SingleQuote) }
   TEXT   rule "''"          run reify { fixme_onTextDoubleQuote() } // FIXME: Remove after fixing DFA Gen
-  TEXT   rule "'''"         run reify { onTextQuote(AST.Text.TripleQuote) }
+  TEXT   rule "'''"         run reify { onTextQuote(ast.Text.TripleQuote) }
   TEXT   rule stringSegment run reify { onPlainTextSegment() }
   TEXT   rule eof           run reify { onTextEOF() }
 
