@@ -5,6 +5,9 @@ import org.enso.parser.Parser
 import org.enso.flexer._
 import org.enso.parser.AST
 
+import org.enso.parser.docsParser.DocParser
+import org.enso.parser.docsParser.DocAST
+
 import scala.reflect.runtime.universe
 
 object Main extends App {
@@ -139,4 +142,61 @@ object Main extends App {
 
   println()
 
+val dataToParse =
+    """ DEPRECATED
+      | Construct and manage a graphical, event-driven user interface for your iOS or
+      | tvOS app.
+      |
+      | The UIKit framework provides the required infrastructure for your iOS or tvOS
+      | apps. It provides the window and view architecture for implementing your
+      | interface, the event handling infrastructure for delivering Multi-Touch and
+      | other types of input to your app, and the main run loop needed to manage
+      | interactions among the user, the system, and your app. Other features offered
+      | by the framework include animation support, document support, drawing and
+      | printing support, information about the current device, text management and
+      | display, search support, accessibility support, app extension support, and
+      | resource management. [Some inline link](http://google.com). *Bold test*,
+      | or _italics_ are allowed. ~Strikethrough as well~. *_~Combined is funny~_*.
+      | ![Images are allowed as well](http://link-to-image.jpg).
+      |
+      | You can use ordered or unordered lists as well:
+      |   - First unordered item
+      |   - Second unordered item
+      |     * First ordered sub item
+      |     * Second ordered sub item
+      |
+      | ! Important
+      |   An example wargning block. Use UIKit classes only from your app’s main thread
+      |   or main dispatch queue, unless otherwise indicated. This restriction
+      |   particularly applies to classes derived from UIResponder or that involve
+      |   manipulating your app’s user interface in any way.
+      |
+      | ? An example info block.
+      |   `Inline code is allowed everywhere`. It can span a single line only
+      |
+      |
+      | A new section title is after 2 newlines
+      | Now we can write a new
+      |
+      | > Title of an example
+      |   This is an example displayed as a button in the docs. The first line is its
+      |   name and this is its description. Code has to be indented.
+      |       import Std.Math.Vector
+      |       v = Vec3 1 2 'foo' : Vector (Int | String)
+      |       print v """.stripMargin
+
+  val docParserCons        = compile(DocParser)
+  val docParserConsApplied = docParserCons()
+
+  println(docParserConsApplied.bufferLen)
+
+  val outDoc = docParserConsApplied.run(dataToParse)
+  outDoc match {
+    case Success(v, _) => {
+      pprint(v)
+      print(v.show())
+      println()
+      print(v.generateHTML())
+    }
+  }
 }
