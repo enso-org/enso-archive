@@ -9,7 +9,7 @@ import org.scalatest._
 
 class LexerSpec extends FlatSpec with Matchers {
 
-  val parserCons = Macro.compile(new Parser())
+  val parserCons = Macro.compile(Parser)
 
   def parse(input: String) = {
     val parser = parserCons()
