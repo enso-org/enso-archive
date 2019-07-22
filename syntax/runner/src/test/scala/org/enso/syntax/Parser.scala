@@ -1,18 +1,18 @@
-package org.enso.syntax.text.test
+package org.enso.syntax
 
 import org.enso.flexer.Macro
+import org.enso.flexer.ParserBase
 import org.enso.parser.AST._
-import org.enso.parser.AST
 import org.enso.parser.Parser
 import org.enso.{flexer => Flexer}
 import org.scalatest._
 
-class LexerSpec extends FlatSpec with Matchers {
+class ParserSpec extends FlatSpec with Matchers {
 
-  val parserCons = Macro.compile(Parser)
+  val newParser = Macro.compile(Parser)
 
   def parse(input: String) = {
-    val parser = parserCons()
+    val parser = newParser()
     parser.run(input)
   }
 
@@ -29,20 +29,18 @@ class LexerSpec extends FlatSpec with Matchers {
   def assertExpr(input: String, result: AST): Assertion = {
     val tt = parse(input)
     tt match {
-      case Flexer.Success(value, offset) => {
+      case Flexer.Success(value, offset) =>
         val module = value.asInstanceOf[Module]
         module.lines match {
           case Nil =>
             module.firstLine.elem match {
               case None => fail("Empty expression")
-              case Some(e) => {
+              case Some(e) =>
                 assert(e == result)
                 assert(value.show() == input)
-              }
             }
           case _ => fail("Multi-line block")
         }
-      }
       case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
     }
   }
@@ -135,11 +133,23 @@ class LexerSpec extends FlatSpec with Matchers {
   "16_"   ?== Number.DanglingBase("16")
   "7.5"   ?== 7 $ "." $ 5
 
+  ////////////////////
+  // UTF Surrogates //
+  ////////////////////
+
+  "\uD800\uDF1E" ?== Unrecognized("\uD800\uDF1E")
+
+  /////////////////
+  // Large Input //
+  /////////////////
+
+  "II" * ParserBase.BUFFERSIZE ?== "II" * ParserBase.BUFFERSIZE
+
   //////////
   // Text //
   //////////
 
-  "'"       ?== Text.Unclosed(Text())
+//  "'"       ?== Text.Unclosed(Text())
   "''"      ?== Text()
   "'''"     ?== Text.Unclosed(Text(Text.TripleQuote))
   "''''"    ?== Text.Unclosed(Text(Text.TripleQuote, "'"))
@@ -155,8 +165,8 @@ class LexerSpec extends FlatSpec with Matchers {
 
   //// Escapes ////
 
-  AST.Text.Segment.Escape.Character.codes.foreach(i => s"'\\$i'" ?== Text(i))
-  AST.Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'"   ?== Text(i))
+  Text.Segment.Escape.Character.codes.foreach(i => s"'\\$i'" ?== Text(i))
+  Text.Segment.Escape.Control.codes.foreach(i => s"'\\$i'"   ?== Text(i))
 
   "'\\\\'"   ?== Text(Text.Segment.Escape.Slash)
   "'\\''"    ?== Text(Text.Segment.Escape.Quote)
@@ -174,7 +184,6 @@ class LexerSpec extends FlatSpec with Matchers {
     Text("a", Text.Segment.Interpolated(Some(bd)), "g")
   }
 //  "'`a(`'" ?== Text(Text.Segment.Interpolated(Some("a" $ Group.Unclosed())))
-
   //  // Comments
   //  expr("#"              , Comment)
   //  expr("#c"             , Comment :: CommentBody("c"))

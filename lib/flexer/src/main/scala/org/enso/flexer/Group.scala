@@ -43,24 +43,17 @@ class Group(val groupIx: Int, val finish: () => Unit) {
     nfa
   }
 
-  def buildRuleAutomata(
-    nfa: NFA,
-    previous: Int,
-    ruleIx: Int,
-    rule: Rule
-  ): Int = {
-    val end           = buildExprAutomata(nfa, previous, rule.expr)
-    val resultCompute = q"currentMatch = matchBuilder.result()"
-    val ruleEval      = ruleName(ruleIx)
-    val code          = q"{$resultCompute; $ruleEval()}"
+  def buildRuleAutomata(nfa: NFA, last: Int, ruleIx: Int, rule: Rule): Int = {
+    val end          = buildExprAutomata(nfa, last, rule.expr)
+    val currentMatch = q"currentMatch = matchBuilder.result()"
     nfa.state(end).end  = true
-    nfa.state(end).code = code
+    nfa.state(end).code = q"{$currentMatch; ${ruleName(ruleIx)}()}"
     end
   }
 
-  def buildExprAutomata(nfa: NFA, previous: Int, expr: Pattern): Int = {
+  def buildExprAutomata(nfa: NFA, last: Int, expr: Pattern): Int = {
     val current = nfa.addState()
-    nfa.link(previous, current)
+    nfa.link(last, current)
     expr match {
       case None_ => nfa.addState()
       case Pass  => current

@@ -4,6 +4,7 @@ import org.enso.flexer.Success
 import org.enso.parser.Parser
 import org.enso.flexer._
 import org.enso.parser.AST
+import org.enso.parser.Renamer
 
 import scala.reflect.runtime.universe
 
@@ -83,24 +84,19 @@ object Main extends App {
   println(p1.bufferLen)
   println(p2.bufferLen)
 
-  val out = p1.run("a , b , c")
+//  val out = p1.run("+ * ^")
+  val out = p1.run("a b")
   out match {
     case Success(v, _) =>
       pprint(v)
       println(v.show())
-      val spaceGroups = AST.Ops.partitionExprToSpaceGroups(
-        v.asInstanceOf[AST.Module].firstLine.elem.get
-      )
-      pprint(spaceGroups)
 
-      println("-----")
-//      val out = AST.Ops.add2x(part.segs.head.expr)
+      val module  = v.asInstanceOf[AST.Module]
+      val module2 = Renamer.run(module)
 
-      val flatExpr = spaceGroups.segs.map(s => AST.Ops.add2x(s.expr))
+      pprint(module2)
+      println(module2.show())
 
-      println("----------------")
-      val out = AST.Ops.add2x(flatExpr)
-      pprint(out)
   }
 
 //  import scala.reflect.runtime.universe._
