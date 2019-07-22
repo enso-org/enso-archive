@@ -33,7 +33,7 @@ object API {
     def validate(projectRoot: Path): Unit
   }
 
-  type OutputMessage = Try[SuccessResponse]
+  type OutputMessage = Try[Success]
 
   final case class PathOutsideProjectException(
     projectRoot: Path,
@@ -42,69 +42,91 @@ object API {
         s"Cannot access path $accessedPath because it does not belong to the project under root directory $projectRoot"
       )
 
-  sealed case class Request[SpecificResponse <: SuccessResponse: ClassTag](
+  ////////////////////////
+  //// RPC Definition ////
+  ////////////////////////
+  
+  sealed case class Request[SpecificResponse <: Success: ClassTag](
     replyTo: ActorRef[Try[SpecificResponse]],
-    contents: RequestPayload[SpecificResponse])
+    contents: Request.Payload[SpecificResponse])
       extends InputMessage {
+
+    // FIXME: remove curly braces
     override def handle(fileManager: FileManagerBehavior): Unit = {
       fileManager.onMessageTyped(this)
     }
     override def validate(projectRoot: Path): Unit =
       contents.validate(projectRoot)
   }
+  
+  object Request {
+    abstract class Payload[+ResponseType <: Success: ClassTag] {
+      def touchedPaths: Seq[Path]
+      def handle(fileManager: FileManagerBehavior): ResponseType
 
-  abstract class RequestPayload[+ResponseType <: SuccessResponse: ClassTag] {
-    def touchedPaths: Seq[Path]
-    def handle(fileManager: FileManagerBehavior): ResponseType
-
-    def validate(projectRoot: Path): Unit =
-      touchedPaths.foreach(Detail.validatePath(_, projectRoot))
+      def validate(projectRoot: Path): Unit =
+        touchedPaths.foreach(Detail.validatePath(_, projectRoot))
+    }
   }
 
-  sealed abstract class SuccessResponse
+  object Response {
+    sealed abstract class Success
+  }
+
+  import Request.Payload
+  import Response.Success
+
+  //////////////////////////////
+  //// Requests / Responses ////
+  //////////////////////////////
 
   case class CopyDirectoryRequest(from: Path, to: Path)
-      extends RequestPayload[CopyDirectoryResponse] {
+      extends Request.Payload[CopyDirectory.Response] {
     override def touchedPaths: Seq[Path] = Seq(from, to)
 
     override def handle(
-      fileManager: FileManagerBehavior
-    ): CopyDirectoryResponse = {
+      fileManager: FileManager.Behavior
+    ): CopyDirectory.Response = {
       FileUtils.copyDirectory(from.toFile, to.toFile)
-      CopyDirectoryResponse()
+      CopyDirectory.Response()
     }
   }
-  case class CopyDirectoryResponse() extends SuccessResponse {}
+  case class CopyDirectory.Response() extends Success {}
 
-  case class CopyFileRequest(from: Path, to: Path)
-      extends RequestPayload[CopyFileResponse] {
-    override def touchedPaths: Seq[Path] = Seq(from, to)
 
-    override def handle(fileManager: FileManagerBehavior): CopyFileResponse = {
-      Files.copy(from, to)
-      CopyFileResponse()
+  object CopyFile {
+    case object Response extends Success
+    case class Request(from: Path, to: Path) extends Payload[Response] {
+      override def touchedPaths: Seq[Path] = 
+        Seq(from, to)
+      override def handle(fileManager: FileManager.Behavior): Response = {
+        Files.copy(from, to)
+        Response
+      }
     }
   }
-  case class CopyFileResponse() extends SuccessResponse {}
 
   case class DeleteDirectoryRequest(path: Path)
-      extends RequestPayload[SuccessResponse] {
+      extends Request.Payload[Success] {
     override def touchedPaths: Seq[Path] = Seq(path)
 
-    override def handle(fileManager: FileManagerBehavior): SuccessResponse = {
-      // despite what commons-io documentation says, the exception is not thrown
+    override def handle(fileManager: FileManagerBehavior): Success = {
+      // Despite what commons-io documentation says, the exception is not thrown
       // when directory is missing, so we do it by hand.
-      if (!Files.exists(path))
+      if (Files.notExists(path))
         throw new NoSuchFileException(path.toString)
 
       FileUtils.deleteDirectory(path.toFile)
-      DeleteDirectoryResponse()
+      DeleteDirectoryResponse
     }
   }
-  case class DeleteDirectoryResponse() extends SuccessResponse
+  case object DeleteDirectoryResponse extends Success
+
+
+
 
   case class DeleteFileRequest(path: Path)
-      extends RequestPayload[DeleteFileResponse] {
+      extends Request.Payload[DeleteFileResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
 
     override def handle(
@@ -114,30 +136,30 @@ object API {
       DeleteFileResponse()
     }
   }
-  case class DeleteFileResponse() extends SuccessResponse
+  case class DeleteFileResponse() extends Success
 
-  case class ExistsRequest(path: Path) extends RequestPayload[ExistsResponse] {
+  case class ExistsRequest(path: Path) extends Request.Payload[ExistsResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
     override def handle(fileManager: FileManagerBehavior) =
       ExistsResponse(Files.exists(path))
   }
-  case class ExistsResponse(exists: Boolean) extends SuccessResponse
+  case class ExistsResponse(exists: Boolean) extends Success
 
-  case class ListRequest(path: Path) extends RequestPayload[ListResponse] {
+  case class ListRequest(path: Path) extends Request.Payload[ListResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
 
     override def handle(fileManager: FileManagerBehavior): ListResponse = {
       val str = Files.list(path)
       try {
-        ListResponse(str.toArray.map(_.asInstanceOf[Path]))
+        ListResponse(str.to[Seq].map(_.asInstanceOf[Path]))
       } finally str.close()
     }
   }
 
-  case class ListResponse(entries: Array[Path]) extends SuccessResponse {}
+  case class ListResponse(entries: Seq[Path]) extends Success {}
 
   case class MoveDirectoryRequest(from: Path, to: Path)
-      extends RequestPayload[MoveDirectoryResponse] {
+      extends Request.Payload[MoveDirectoryResponse] {
     override def touchedPaths: Seq[Path] = Seq(from, to)
 
     override def handle(
@@ -147,10 +169,10 @@ object API {
       MoveDirectoryResponse()
     }
   }
-  case class MoveDirectoryResponse() extends SuccessResponse
+  case class MoveDirectoryResponse() extends Success
 
   case class MoveFileRequest(from: Path, to: Path)
-      extends RequestPayload[MoveFileResponse] {
+      extends Request.Payload[MoveFileResponse] {
     override def touchedPaths: Seq[Path] = Seq(from, to)
 
     override def handle(fileManager: FileManagerBehavior): MoveFileResponse = {
@@ -159,9 +181,9 @@ object API {
     }
   }
 
-  case class MoveFileResponse() extends SuccessResponse
+  case class MoveFileResponse() extends Success
 
-  case class ReadRequest(path: Path) extends RequestPayload[ReadResponse] {
+  case class ReadRequest(path: Path) extends Request.Payload[ReadResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
     override def handle(fileManager: FileManagerBehavior): ReadResponse = {
       val contents = Files.readAllBytes(path)
@@ -169,12 +191,15 @@ object API {
     }
   }
 
-  case class ReadResponse(contents: Array[Byte]) extends SuccessResponse
+  case class ReadResponse(contents: Array[Byte]) extends Success
 
-  case class StatRequest(path: Path) extends RequestPayload[StatResponse] {
+  case class StatRequest(path: Path) extends Request.Payload[StatResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
 
     override def handle(fileManager: FileManagerBehavior): StatResponse = {
+      // FIXME: Comments starting with upper case char pls! :)
+      // FIXME: If thats not in guidelines, pls add it there :)
+
       // warning: might be race'y
       val lastModified = Files.getLastModifiedTime(path).toInstant
       val owner        = Files.getOwner(path)
@@ -189,17 +214,18 @@ object API {
     owner: UserPrincipal,
     size: Long,
     isDirectory: Boolean)
-      extends SuccessResponse
+      extends Success
 
+  // FIXME: lets write better var names than "p" pls :)
   case class TouchFileRequest(p: Path)
-      extends RequestPayload[TouchFileResponse] {
+      extends Request.Payload[TouchFileResponse] {
     override def touchedPaths: Seq[Path] = Seq(p)
     override def handle(fileManager: FileManagerBehavior): TouchFileResponse = {
       FileUtils.touch(p.toFile)
       TouchFileResponse()
     }
   }
-  case class TouchFileResponse() extends SuccessResponse
+  case class TouchFileResponse() extends Success
 
   // NOTE
   // The watched path must designate a directory (i.e. not a regular file and
@@ -212,7 +238,7 @@ object API {
   case class CreateWatcherRequest(
     path: Path,
     observer: ActorRef[FileSystemEvent])
-      extends RequestPayload[CreateWatcherResponse] {
+      extends Request.Payload[CreateWatcherResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
     override def handle(
       fileManager: FileManagerBehavior
@@ -225,6 +251,9 @@ object API {
 
       // Watching ordinary file throws an exception on Windows. Similarly, to
       // unify observed behavior we check for this here.
+      
+      // FIXME: isNotDirectory?
+      
       if (!Files.isDirectory(path))
         throw new NotDirectoryException(path.toString)
 
@@ -234,38 +263,45 @@ object API {
       // paths. Therefore if we are under symlink and generated event uses
       // real path, we replace it with path prefix that was observation target
       val realPath = path.toRealPath()
-      val fixPath = (p: Path) => {
-        if (realPath != path && p.startsWith(realPath)) {
-          val relative = realPath.relativize(p)
-          path.resolve(relative)
+
+
+      // val fixPath = (p: Path) => {
+      //   if (realPath != path && p.startsWith(realPath)) {
+      //     val relative = realPath.relativize(p)
+      //     path.resolve(relative)
+      //   } else p
+      // }
+
+      // FIXME: The ^^^ code to vvv
+      val fixPath = (path: Path) => {
+        val isCorrect = realPath != path && p.startsWith(realPath)
+        isCorrect match {
+          True  => path.resolve(realPath.relativize(path))
+          False => path
         }
-        else
-          p
       }
 
       val id = UUID.randomUUID()
       val watcher = DirectoryWatcher
-        .builder()
+        .builder
         .path(path)
-        .listener(event => {
-          val message =
-            FileSystemEvent(event.eventType(), fixPath(event.path()))
+        .listener { event => 
+          val message = FileSystemEvent(event.eventType, fixPath(event.path)) // FIXME: things like getters: event.eventType() => event.eventType
           if (message.path != path) {
-            fileManager.context.log
-              .debug(s"Notifying $observer with $message")
+            fileManager.context.log.debug(s"Notifying $observer with $message")
             observer ! message
           }
-        })
+        }
         .build()
       watcher.watchAsync()
       fileManager.watchers += (id -> watcher)
       CreateWatcherResponse(id)
     }
   }
-  case class CreateWatcherResponse(id: UUID) extends SuccessResponse
+  case class CreateWatcherResponse(id: UUID) extends Success
 
   case class WatcherRemoveRequest(id: UUID)
-      extends RequestPayload[WatcherRemoveResponse] {
+      extends Request.Payload[WatcherRemoveResponse] {
     override def touchedPaths: Seq[Path] = Seq()
     override def handle(
       fileManager: FileManagerBehavior
@@ -277,17 +313,17 @@ object API {
     }
   }
 
-  case class WatcherRemoveResponse() extends SuccessResponse
+  case class WatcherRemoveResponse() extends Success
 
   case class WriteRequest(path: Path, contents: Array[Byte])
-      extends RequestPayload[WriteResponse] {
+      extends Request.Payload[WriteResponse] {
     override def touchedPaths: Seq[Path] = Seq(path)
     override def handle(fileManager: FileManagerBehavior): WriteResponse = {
       Files.write(path, contents)
       WriteResponse()
     }
   }
-  case class WriteResponse() extends SuccessResponse
+  case class WriteResponse() extends Success
 
   case class FileSystemEvent(
     eventType: DirectoryChangeEvent.EventType,
@@ -314,44 +350,23 @@ case class FileManagerBehavior(
 
   override def finalize(): Unit = super.finalize()
 
-  def onMessageTyped[response <: SuccessResponse: ClassTag](
+  def onMessageTyped[response <: Success: ClassTag](
     message: Request[response]
   ): Unit = {
     val response = try {
       message.contents.validate(projectRoot)
       val result = message.contents.handle(this)
       Success(result)
-    } catch {
-      case ex: Throwable =>
-        Failure(ex)
-    }
+    } catch { case ex: Throwable => Failure(ex) }
     context.log.debug(s"Responding with $response")
     message.replyTo ! response
   }
 
-  override def onMessage(message: InputMessage): Behavior[InputMessage] = {
+  override def onMessage(message: InputMessage): this.type = { // FIXME: check if works this. type instead of Behavior[InputMessage]
     context.log.debug(s"Received $message")
     message.handle(this)
     this
   }
 }
 
-object FileManager {
-  import API._
 
-  def fileManager(projectRoot: Path): Behavior[API.InputMessage] =
-    Behaviors.setup(context => FileManagerBehavior(projectRoot, context))
-
-  def ask[response <: SuccessResponse: ClassTag](
-    actor: ActorRef[API.InputMessage],
-    requestPayload: RequestPayload[response]
-  )(implicit timeout: Timeout,
-    scheduler: Scheduler
-  ): Future[Try[response]] = {
-    actor.ask(
-      (replyTo: ActorRef[Try[response]]) => {
-        Request(replyTo, requestPayload)
-      }
-    )
-  }
-}

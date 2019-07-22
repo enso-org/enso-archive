@@ -36,7 +36,7 @@ class FileManagerBehaviorTests
 
   def expectSuccess[T <: SuccessResponse: ClassTag](): T = {
     inbox.receiveMessage() match {
-      case Failure(err) =>
+      case Failure(err) => 
         fail(s"Unexpected error message: $err")
       case Success(msg) =>
         msg shouldBe a[T]
@@ -104,7 +104,7 @@ class FileManagerBehaviorTests
   test("Copy file: plain") {
     val srcFile = createSubFile()
     val dstFile = tempDir.resolve("file2")
-
+    // FIXME: remove emoty lines, or addd them everywhere. Its beter to remove.
     ask(CopyFileRequest(srcFile, dstFile))
 
     expectExist(srcFile)
