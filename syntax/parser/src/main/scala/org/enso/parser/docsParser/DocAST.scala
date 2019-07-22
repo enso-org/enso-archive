@@ -223,9 +223,7 @@ object DocAST {
           _repr += " " * indent
           _repr += listType.readableMarker
           _repr += elem.textRepr
-          if (elems.last != elem) {
-            _repr += '\n'
-          }
+          _repr += '\n'
         }
       })
       _repr
@@ -259,15 +257,22 @@ object DocAST {
   //////////////////////
 
   trait Section extends Symbol {
-    val readableMarker: Char
+    val readableMarker: Char = this.getClass.getSimpleName match {
+      case "Important" => '!'
+      case "Info"      => '?'
+      case "Example"   => '>'
+      case "Code"      => ' '
+      case "TextBlock" => '\0'
+    }
     val elems: List[AST]
 
     val textRepr: Repr = {
-      var _repr = Repr("\n")
+      var _repr = Repr()
       _repr += readableMarker
       elems.foreach(elem => {
         _repr += elem.textRepr
       })
+      _repr += "\n"
       _repr
     }
 
@@ -280,19 +285,7 @@ object DocAST {
   }
 
   ///// Important /////
-  final case class Important(elems: List[AST]) extends Section {
-    val readableMarker: Char = '!'
-    /// FIXME - I dont know why but it can only display readableMarkers if val is overriden, even though it is the same code
-    override val textRepr: Repr = {
-      var _repr = Repr("\n")
-      _repr += readableMarker
-      elems.foreach(elem => {
-        _repr += elem.textRepr
-      })
-      _repr
-    }
-  }
-
+  final case class Important(elems: List[AST]) extends Section
   object Important {
     def apply():            Important = Important(Nil)
     def apply(elem: AST):   Important = Important(elem :: Nil)
@@ -300,18 +293,7 @@ object DocAST {
   }
 
   ///// Info /////
-  final case class Info(elems: List[AST]) extends Section {
-    val readableMarker: Char = '?'
-    override val textRepr: Repr = {
-      var _repr = Repr("\n")
-      _repr += readableMarker
-      elems.foreach(elem => {
-        _repr += elem.textRepr
-      })
-      _repr
-    }
-  }
-
+  final case class Info(elems: List[AST]) extends Section
   object Info {
     def apply():            Info = Info(Nil)
     def apply(elem: AST):   Info = Info(elem :: Nil)
@@ -319,18 +301,7 @@ object DocAST {
   }
 
   ///// Example /////
-  final case class Example(elems: List[AST]) extends Section {
-    val readableMarker: Char = '>'
-    override val textRepr: Repr = {
-      var _repr = Repr("\n")
-      _repr += readableMarker
-      elems.foreach(elem => {
-        _repr += elem.textRepr
-      })
-      _repr
-    }
-  }
-
+  final case class Example(elems: List[AST]) extends Section
   object Example {
     def apply():            Example = Example(Nil)
     def apply(elem: AST):   Example = Example(elem :: Nil)
@@ -339,8 +310,6 @@ object DocAST {
 
   ///// Code /////
   final case class Code(elems: List[AST]) extends Section {
-    val readableMarker: Char = ' '
-
     override val textRepr: Repr = {
       var _repr = Repr()
       elems.foreach(elem => {
@@ -358,10 +327,7 @@ object DocAST {
   }
 
   ///// Text Block /////
-  final case class TextBlock(elems: List[AST]) extends Section {
-    val readableMarker: Char = '\0'
-  }
-
+  final case class TextBlock(elems: List[AST]) extends Section
   object TextBlock {
     def apply():            TextBlock = TextBlock(Nil)
     def apply(elem: AST):   TextBlock = TextBlock(elem :: Nil)
@@ -417,7 +383,7 @@ object DocAST {
 
   trait TagType extends AST {
     val version: Option[String]
-    val name: String   = this.getClass.getSimpleName.toUpperCase
+    val name: String = this.getClass.getSimpleName.toUpperCase
     val textRepr: Repr = {
       if (version.textRepr == Repr()) {
         Repr(name)
@@ -483,9 +449,10 @@ object DocAST {
 
   implicit final class _OptionTagType_(val self: Option[String]) extends AST {
     val textRepr: Repr = self.map(Repr(_)).getOrElse(Repr())
-    val htmlRepr: Repr = "<div class=\"version\">" + self
-        .map(Repr(_))
-        .getOrElse(Repr()) + "</div>"
+    val htmlRepr: Repr =
+      self
+        .map(Repr() + "<div class=\"version\">" + Repr(_) + "</div>")
+        .getOrElse(Repr())
   }
 
   ///////////////////////////
@@ -494,32 +461,41 @@ object DocAST {
 
   final case class Documentation(tags: Tags, synopsis: Synopsis, body: Body)
       extends AST {
-    val textRepr
-      : Repr = {
-     var _repr = Repr()
+    val textRepr: Repr = {
+      var _repr = Repr()
       if (tags != Tags()) {
-        // commented out code used for debugging purposes
-        //_repr += "[TAGS]\n"
         _repr += tags.textRepr
-        //_repr += "[END TAGS]\n"
+        if (synopsis != Synopsis()) {
+          _repr += "\n"
+        }
       }
 
       if (synopsis != Synopsis()) {
-        //_repr += "[SYNOPSIS]\n"
         _repr += synopsis.textRepr
-        //_repr += "[END SYNOPSIS]\n"
       }
 
       if (body != Body()) {
-        //_repr += "[BODY]\n"
         _repr += body.textRepr
-        //_repr += "[END BODY]\n"
       }
       _repr
     }
 
-    val htmlRepr
-      : Repr = Repr("<!DOCTYPE html><html><body>") + tags.htmlRepr + synopsis.htmlRepr + body.htmlRepr + "</body></html>"
+    val htmlRepr: Repr = {
+      var _repr = Repr("<!DOCTYPE html><html><body>")
+      if (tags != Tags()) {
+        _repr += tags.htmlRepr
+      }
+
+      if (synopsis != Synopsis()) {
+        _repr += synopsis.htmlRepr
+      }
+
+      if (body != Body()) {
+        _repr += body.htmlRepr
+      }
+      _repr += "</body></html>"
+      _repr
+    }
   }
 
   object Documentation {

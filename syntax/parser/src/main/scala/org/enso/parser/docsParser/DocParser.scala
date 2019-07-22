@@ -1,6 +1,7 @@
 package org.enso.parser.docsParser
 
 import org.enso.flexer._
+import org.enso.flexer.Pattern._
 import org.enso.parser.docsParser.DocAST._
 
 import scala.reflect.runtime.universe._
@@ -8,20 +9,6 @@ import scala.annotation.tailrec
 
 case class DocParser() extends ParserBase[AST] {
 
-  implicit final def charToExpr(char: Char): Pattern =
-    Ran(char, char)
-  implicit final def stringToExpr(s: String): Pattern =
-    s.tail.foldLeft(char(s.head))(_ >> _)
-
-  class ExtendedChar(_this: Char) {
-    final def ||(that: Char): Pattern =
-      Or(char(_this), char(that))
-  }
-  implicit final def extendChar(i: Char): ExtendedChar = new ExtendedChar(i)
-  final def char(c: Char):                Pattern      = range(c, c)
-  final def range(start: Char, end: Char): Pattern =
-    Ran(start, end)
-  final def range(start: Int, end: Int): Pattern = Ran(start, end)
   val any: Pattern  = range(5, Int.MaxValue) // FIXME 5 -> 0
   val pass: Pattern = Pass
   val eof: Pattern  = char('\0')
@@ -87,11 +74,11 @@ case class DocParser() extends ParserBase[AST] {
 
   final override def initialize(): Unit = {}
 
-  override def getResult(): Option[AST] = result
-
   //////////////
   /// Result ///
   //////////////
+
+  override def getResult(): Option[AST] = result
 
   var result: Option[AST]        = None
   var workingASTStack: List[AST] = Nil
@@ -156,12 +143,12 @@ case class DocParser() extends ParserBase[AST] {
 
   val specialCharacters
     : Pattern             = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
-  val whitespace: Pattern = ' '.many1()
+  val whitespace: Pattern = ' '.many1
   val newline             = '\n'
 
   val alphanumeric
     : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
-  val normalText: Pattern = alphanumeric.many1()
+  val normalText: Pattern = alphanumeric.many1
 
   //////////////////////////
   ////// Text pushing //////
@@ -220,7 +207,7 @@ case class DocParser() extends ParserBase[AST] {
   val inlineCodeTrigger          = '`'
 
   // format: off
-  NORMAL rule (inlineCodeTrigger >> not('`').many() >> inlineCodeTrigger) run reify {
+  NORMAL rule (inlineCodeTrigger >> not('`').many >> inlineCodeTrigger) run reify {
     pushCodeLine(currentMatch.substring(1).dropRight(1))
   }
 
@@ -359,23 +346,22 @@ case class DocParser() extends ParserBase[AST] {
   ////// Links //////
   ///////////////////
 
-  def createURL(name: String, url: String, linkType: LinkType): Unit = logger.trace {
-    result = Some(Link(name, url, linkType))
-    pushAST()
-  }
+  def createURL(name: String, url: String, linkType: LinkType): Unit =
+    logger.trace {
+      result = Some(Link(name, url, linkType))
+      pushAST()
+    }
 
   val imageNameTrigger: String = Image.readableMarker
   val linkNameTrigger: String  = URL.readableMarker
 
-  NORMAL rule (imageNameTrigger >> not(')')
-    .many1() >> ')') run reify {
+  NORMAL rule (imageNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(2).dropRight(1).split(']')
     val name = in(0)
     val url  = in(1).substring(1)
     createURL(name, url, Image)
   }
-  NORMAL rule (linkNameTrigger >> not(')')
-    .many1() >> ')') run reify {
+  NORMAL rule (linkNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(1).dropRight(1).split(']')
     val name = in(0)
     val url  = in(1).substring(1)
@@ -388,7 +374,7 @@ case class DocParser() extends ParserBase[AST] {
 
   // format: off
   CODE rule newline              run reify { beginGroup(NEWLINE)}
-  CODE rule not(newline).many1() run reify { pushCodeLine(currentMatch) }
+  CODE rule not(newline).many1   run reify { pushCodeLine(currentMatch) }
   CODE rule eof                  run reify { onEOF() }
   // format: on
 
@@ -443,10 +429,9 @@ case class DocParser() extends ParserBase[AST] {
   }
 
   val emptyLine: Pattern     = (whitespace | pass) >> newline
-  val indentPattern: Pattern = (whitespace | pass).many()
+  val indentPattern: Pattern = (whitespace | pass).many
 
   NEWLINE rule emptyLine run reify { onEmptyLine() }
-
   NEWLINE rule indentPattern run reify {
     if (workingASTStack == Nil && !result.contains(Text(""))) {
       pushNewLine()
@@ -464,7 +449,7 @@ case class DocParser() extends ParserBase[AST] {
 
   }
 
-  NEWLINE rule eof run reify { onEOF() }
+  NEWLINE rule ((whitespace | pass) >> eof) run reify { onEOF() }
 
   /////////////////
   ///// Lists /////
@@ -556,15 +541,13 @@ case class DocParser() extends ParserBase[AST] {
   val orderedListTrigger: Char   = Ordered.readableMarker
   val unorderedListTrigger: Char = Unordered.readableMarker
 
-  NEWLINE rule (indentPattern >> orderedListTrigger >> not(newline)
-    .many1()) run reify {
+  NEWLINE rule (indentPattern >> orderedListTrigger >> not(newline).many1) run reify {
     val content = currentMatch.split(orderedListTrigger)
     onIndent(content(0).length, Ordered, content(1))
     endGroup()
   }
 
-  NEWLINE rule (indentPattern >> unorderedListTrigger >> not(newline)
-    .many1()) run reify {
+  NEWLINE rule (indentPattern >> unorderedListTrigger >> not(newline).many1) run reify {
     val content = currentMatch.split(unorderedListTrigger)
     onIndent(content(0).length, Unordered, content(1))
     endGroup()

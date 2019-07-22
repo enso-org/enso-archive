@@ -7,7 +7,7 @@ import org.enso.parser.docsParser.DocParser
 import org.enso.{flexer => Flexer}
 import org.scalatest._
 
-class DocParserTests extends FlatSpec with Matchers {
+class DocParserSpec extends FlatSpec with Matchers {
 
   val parserCons = Macro.compile(DocParser)
 
@@ -21,13 +21,10 @@ class DocParserTests extends FlatSpec with Matchers {
     tt match {
       case Flexer.Success(value, offset) => {
         println("result : " + result)
-        println()
         println("value : " + value)
-        println()
+        println("input : " + input)
         println("value.show() : " + value.show())
-        println()
         println("value.generateHTML() : " + value.generateHTML())
-        println()
         assert(value == result)
         assert(value.show() == input)
       }
@@ -145,28 +142,32 @@ class DocParserTests extends FlatSpec with Matchers {
   ///// Segments /////
   ////////////////////
 
-  "! Important" ?== Documentation(Synopsis(Important(" Important"))) /// title nie powinno miec spacji w stringu
-  "?Info"       ?== Documentation(Synopsis(Info("Info")))
-  ">Example"    ?== Documentation(Synopsis(Example("Example")))
-  "?Info\n\n!Important" ?== Documentation( // nie pozwalajmy
-    Synopsis(Info("Info")),
+  "!Important" ?== Documentation(Synopsis(Important("Important")))
+  "?Info"      ?== Documentation(Synopsis(Info("Info")))
+  ">Example"   ?== Documentation(Synopsis(Example("Example")))
+  "?Info\n\n!Important" ?== Documentation(
+    Synopsis(Info("Info", "\n")),
     Body(Important("Important"))
   )
   "?Info\n\n!Important\n\n>Example" ?== Documentation(
     Synopsis(
-      Info("Info")
+      Info("Info", "\n")
     ),
     Body(
-      Important("Important"),
+      Important("Important", "\n"),
       Example("Example")
     )
   )
   ">Example\n    import std.math\n    import std.vector" ?== Documentation(
     Synopsis(
-      Example("Example")
+      Example("Example", "\n")
     ),
     Body(
-      Code(CodeLine("import std.math"), CodeLine("import std.vector"))
+      Code(
+        CodeLine("import std.math"),
+        "\n",
+        CodeLine("import std.vector")
+      )
     )
   )
   /////////////////
@@ -177,6 +178,7 @@ class DocParserTests extends FlatSpec with Matchers {
     Synopsis(
       TextBlock(
         "ul:",
+        "\n",
         ListBlock(2, Unordered, " Foo", " Bar")
       )
     )
@@ -186,6 +188,7 @@ class DocParserTests extends FlatSpec with Matchers {
     Synopsis(
       TextBlock(
         "ol:",
+        "\n",
         ListBlock(2, Ordered, " Foo", " Bar")
       )
     )
@@ -200,6 +203,7 @@ class DocParserTests extends FlatSpec with Matchers {
     Synopsis(
       TextBlock(
         "List",
+        "\n",
         ListBlock(
           2,
           Unordered,
@@ -228,11 +232,11 @@ class DocParserTests extends FlatSpec with Matchers {
     |      - First unordered sub item
     |      - Second unordered sub item
     |    * Third ordered sub item
-    |  - Fourth unordered item
-    |  """.stripMargin ?== Documentation(
+    |  - Fourth unordered item""".stripMargin ?== Documentation(
     Synopsis(
       TextBlock(
         "List",
+        "\n",
         ListBlock(
           2,
           Unordered,
@@ -276,11 +280,11 @@ class DocParserTests extends FlatSpec with Matchers {
     |      - Second unordered sub item
     |    * Third ordered sub item
     |   * Wrong Indent Item
-    |  - Fourth unordered item
-    |  """.stripMargin ?== Documentation(
+    |  - Fourth unordered item""".stripMargin ?== Documentation(
     Synopsis(
       TextBlock(
         "List",
+        "\n",
         ListBlock(
           2,
           Unordered,
@@ -343,7 +347,7 @@ class DocParserTests extends FlatSpec with Matchers {
   ///// other /////
   /////////////////
 
-  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n? Hi \n\n> Example" ?== Documentation(
+  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?== Documentation(
     Synopsis(
       TextBlock(
         "Foo ",
@@ -352,14 +356,15 @@ class DocParserTests extends FlatSpec with Matchers {
         Formatter(Strikethrough, UnclosedFormatter(Bold, "Bar")),
         " ",
         CodeLine("foo bar baz bo"),
-        " ","\n"
+        " ",
+        "\n"
       )
     ),
     Body(
-      TextBlock("Hello Section","\n"),
-      Important("important","\n"),
-      Info(" Hi ","\n"),
-      Example(" Example ","\n")
+      TextBlock("Hello Section", "\n"),
+      Important("important", "\n"),
+      Info("Hi", "\n"),
+      Example("Example")
     )
   )
 
