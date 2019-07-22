@@ -1,9 +1,11 @@
 package org.enso.flexer
 
 import org.enso.Logger
+import org.enso.flexer.ParserBase._
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
+import scala.reflect.runtime.universe.Tree
 
 trait ParserBase[T] {
   import java.io.Reader
@@ -11,17 +13,15 @@ trait ParserBase[T] {
 
   import scala.collection.mutable.StringBuilder
 
-  val BUFFERSIZE = 16384
-
   var sreader: Reader     = null
   val buffer: Array[Char] = new Array(BUFFERSIZE)
-  var bufferLen: Int      = 0
+  var bufferLen: Int      = 1
 
-  var offset: Int       = -1
-  var codePoint: Int    = 0
-  val eofChar: Char     = '\0'
-  val etxChar: Char     = '\3'
-  var currentChar: Char = etxChar
+  var offset: Int          = 0
+  var charsToLastRule: Int = 0
+  val eofChar: Char        = '\0'
+  val etxChar: Char        = '\3'
+  var codePoint: Int       = etxChar.toInt
 
   var matchBuilder = new StringBuilder(64)
   var currentMatch = ""
@@ -35,10 +35,9 @@ trait ParserBase[T] {
   def run(input: String): Result[T] = {
     initialize()
     sreader = new StringReader(input)
-    val numRead = sreader.read(buffer, 0, buffer.length)
-    bufferLen = numRead
-    if (numRead == -1) bufferLen = 0
-    currentChar = getNextChar
+    val numRead = sreader.read(buffer, 1, buffer.length - 1)
+    bufferLen = if (numRead == -1) 1 else numRead + 1
+    codePoint = getNextCodePoint()
     var r = -1
     while (r == -1) {
       r = step()
@@ -66,7 +65,7 @@ trait ParserBase[T] {
     beginGroup(group.groupIx)
 
   def beginGroup(g: Int): Unit = {
-    println(s"Begin ${groupLabel(g)}")
+    logger.log(s"Begin ${groupLabel(g)}")
     groupStack +:= group
     group = g
   }
@@ -75,7 +74,7 @@ trait ParserBase[T] {
     val oldGroup = group
     group      = groupStack.head
     groupStack = groupStack.tail
-    println(s"End ${groupLabel(oldGroup)}, back to ${groupLabel(group)}")
+    logger.log(s"End ${groupLabel(oldGroup)}, back to ${groupLabel(group)}")
   }
 
   def step(): Int = {
@@ -115,15 +114,22 @@ trait ParserBase[T] {
       if (ch.isControl) "\\0" + Integer.toOctalString(ch.toInt)
       else String.valueOf(ch)
   }
-
-  def getNextChar: Char = {
-    offset += 1
-    val nextChar = if (offset >= bufferLen) {
-      if (offset == bufferLen) eofChar
-      else etxChar
-    } else buffer(offset)
-    println(s"Next char '${escapeChar(nextChar)}'")
-    nextChar
+  def getNextCodePoint(): Int = {
+    if (offset >= bufferLen)
+      return etxChar
+    offset += charSize
+    if (offset > BUFFERSIZE - UTFCHARSIZE) {
+      val keepChars = Math.max(charsToLastRule, currentMatch.length) + UTFCHARSIZE - 1
+      for (i <- 1 to keepChars) buffer(keepChars - i) = buffer(bufferLen - i)
+      val numRead = sreader.read(buffer, keepChars, buffer.length - keepChars)
+      if (numRead == -1)
+        return eofChar
+      offset    = keepChars - (BUFFERSIZE - offset)
+      bufferLen = keepChars + numRead
+    } else if (offset == bufferLen)
+      return eofChar
+    logger.log(s"Next char '${escapeChar(buffer(offset))}'")
+    Character.codePointAt(buffer, offset)
   }
 
   final def rewind(): Unit = logger.trace {
@@ -131,7 +137,25 @@ trait ParserBase[T] {
   }
 
   final def rewind(i: Int): Unit = logger.trace {
-    offset -= i + 1
-    currentChar = getNextChar
+    offset -= i
+    codePoint = getNextCodePoint()
   }
+
+  final def rewindToLastRule(): Unit = logger.trace {
+    logger.log(s"RETREAT $charsToLastRule")
+    rewind(charsToLastRule)
+    charsToLastRule = 0
+  }
+
+  final def charSize: Int =
+    if (buffer(offset).isHighSurrogate) 2 else 1
+
+  def debugGeneratedOutput: Seq[Tree] = groupsx.map(_.generate())
+}
+
+object ParserBase {
+
+  val BUFFERSIZE  = 16384
+  val UTFCHARSIZE = 2
+
 }

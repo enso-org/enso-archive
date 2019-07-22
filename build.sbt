@@ -5,8 +5,6 @@ scalaVersion in ThisBuild := "2.12.8"
 
 // Compiler Options
 scalacOptions ++= Seq(
-  "-verbose",
-  "-Ymacro-debug-lite",
   "-deprecation",
   "-feature",
   "-unchecked",
@@ -60,6 +58,7 @@ lazy val flexer = (project in file("lib/flexer"))
 
 lazy val parser = (project in file("syntax/parser"))
   .settings(
+    scalacOptions += "-Xmacro-settings:-logging@org.enso",
     libraryDependencies ++= Seq(
       "org.typelevel"      %% "cats-core"     % "1.6.0",
       "com.lihaoyi"        %% "pprint"        % "0.5.3",

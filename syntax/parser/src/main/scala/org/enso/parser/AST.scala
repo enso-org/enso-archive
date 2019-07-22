@@ -3,9 +3,58 @@ package org.enso.parser
 import scala.annotation.tailrec
 import scala.collection.immutable.Map
 import cats.data.NonEmptyList
-import org.enso.parser.AST.Ops.ExprList
 
 object AST {
+
+  trait Association
+  case object Left  extends Association
+  case object Right extends Association
+//  case object None  extends Association
+
+  def assocOf(op: String): Association = {
+    val applicativePat = "<?[+*$]>?".r
+    def isApplicative(s: String) = s match {
+      case applicativePat() => s.length > 1
+      case _                => false
+    }
+    def assocVal(c: Char) = c match {
+      case ',' => -1
+      case '<' => -1
+      case '>' => 1
+      case _   => 0
+    }
+    if (isApplicative(op)) Left
+    else if (op.map(assocVal(_)).sum >= 0) Left
+    else Right
+  }
+
+  val precHierarchy = List(
+    List("->", "<-"),
+    List("~>", "<~"),
+    List("|"),
+    List("&"),
+    List("=", "!", "?", "~"),
+    List("<*", "<*>", "*>", "<$", "<$>", "$>", "<+", "<+>", "+>"),
+    List("<", ">"),
+    List(":", ","),
+    List("+", "-"),
+    List("*", "/", "\\", "%"),
+    List("^"),
+    List("."),
+    List(" ")
+  )
+
+  case class Desc(prec: Int, assoc: Association)
+
+  val descMap = precHierarchy.zipWithIndex.flatMap {
+    case (ops, prec) => ops.map(op => op -> Desc(prec, assocOf(op)))
+  }.toMap
+
+  def descOf(op: String) =
+    descMap.getOrElse(op, Desc(precHierarchy.length, assocOf(op)))
+
+  //////
+
   import reflect.runtime.universe._
 
   def getAllSeleadObjects[T](implicit ttag: TypeTag[T]) = {
@@ -159,10 +208,14 @@ object AST {
     }
   }
 
-  final case object Wildcard              extends Identifier("_")
-  final case class Var(name: String)      extends Identifier(name)
-  final case class Cons(name: String)     extends Identifier(name)
-  final case class Operator(name: String) extends Identifier(name)
+  final case object Wildcard          extends Identifier("_")
+  final case class Var(name: String)  extends Identifier(name)
+  final case class Cons(name: String) extends Identifier(name)
+  final case class Operator(name: String) extends Identifier(name) {
+    private val desc = descOf(name)
+    val prec         = desc.prec
+    val assoc        = desc.assoc
+  }
   final case class Modifier(name: String) extends Identifier(name) {
     override val repr = name + '='
   }
@@ -489,6 +542,8 @@ object AST {
 
   final case class Line(elem: Option[AST], offset: Int) extends Symbol {
     val repr = R + elem + offset
+    def map(f: AST => AST): Line =
+      Line(elem.map(f), offset)
   }
 
   object Line {
@@ -508,6 +563,9 @@ object AST {
 
   final case class Module(firstLine: Line, lines: List[Line]) extends AST {
     val repr = R + firstLine + lines.map(R + '\n' + _)
+
+    def map(f: Line => Line): Module =
+      Module(f(firstLine), lines.map(f))
   }
 
   object Module {
@@ -519,289 +577,190 @@ object AST {
   /////////////////////////////////////////////////////
   /////////////////////////////////////////////////////
 
-  object Ops {
+}
 
-    def cross(as: List[String], bs: List[String]) =
-      for { a <- as; b <- bs } yield a + b
+// format: off
 
-    trait Association
-    case object Left  extends Association
-    case object Right extends Association
-    case object None  extends Association
 
-    case class Desc(prec: Int, assoc: Association)
+object Renamer {
+  type List1[T] = NonEmptyList[T]
 
-    def assocOf(op: String): Association = {
-      val applicativePat = "<?[+*$]>?".r
-      def isApplicative(s: String) = s match {
-        case applicativePat() => s.length > 1
-        case _                => false
-      }
-      def assocVal(c: Char) = c match {
-        case ',' => -1
-        case '<' => -1
-        case '>' => 1
-        case _   => 0
-      }
-      if (isApplicative(op)) Left
-      else if (op.map(assocVal(_)).sum >= 0) Left
-      else Right
-    }
+  import AST._
 
-    val precHierarchy2 = List(
-      List("->", "<-"),
-      List("~>", "<~"),
-      List("|"),
-      List("&"),
-      List("=", "!", "?", "~"),
-      List("<*", "<*>", "*>", "<$", "<$>", "$>", "<+", "<+>", "+>"),
-      List("<", ">"),
-      List(":", ","),
-      List("+", "-"),
-      List("*", "/", "\\", "%"),
-      List("^"),
-      List("."),
-      List(" ")
-    )
+  sealed trait Compare
+  case object LT extends Compare
+  case object GT extends Compare
+  case object EQ extends Compare
 
-    val descMap = precHierarchy2.zipWithIndex.flatMap {
-      case (ops, prec) => ops.map(op => op -> Desc(prec, assocOf(op)))
-    }.toMap
-
-    def descOf(op: String) =
-      descMap.getOrElse(op, Desc(precHierarchy2.length, assocOf(op)))
-
-    case class NonSpacedSegment(expr: NonEmptyList[AST])
-    case class SpacedSegment(segs: NonEmptyList[NonSpacedSegment])
-
-    def partitionExprToSpaceGroups(t: AST): SpacedSegment = {
-      @tailrec
-      def go(
-        t: AST,
-        current: List[AST],
-        out: List[NonSpacedSegment]
-      ): NonEmptyList[NonSpacedSegment] = {
-        def out2(t: AST) = NonSpacedSegment(NonEmptyList(t, current))
-        t match {
-          case AST.App(fn, off, arg) =>
-            if (off > 0) go(fn, arg :: current, out)
-            else go(fn, Nil, out2(arg) :: out)
-          case _ => NonEmptyList(out2(t), out)
-        }
-      }
-      SpacedSegment(go(t, Nil, Nil))
-    }
-
-    case class OpDesc(op: Operator, desc: Desc)
-
-    trait OpList
-    trait ExprList
-
-    case class ExprNode(expr: AST, tail: OpList)  extends ExprList
-    case class OpNode(op: OpDesc, tail: ExprList) extends OpList
-    case object Empty                             extends ExprList with OpList
-
-    def add(seg: NonEmptyList[AST]): AST = {
-      seg.head match {
-        case _: Operator => addOp(seg, Empty)
-        case _           => addExpr(seg, Empty)
-      }
-    }
-
-    def add2x(seg: NonEmptyList[AST]) =
-      add2(seg.tail, NonEmptyList(seg.head, Nil))
-
-    @tailrec
-//    def add2(seg: List[AST], stack: NonEmptyList[AST]): AST = {
-    def add2(inp: (List[AST], NonEmptyList[AST])): AST = inp match {
-      case (seg: List[AST], stack: NonEmptyList[AST]) => {
-        println(s"\n>> seg: $seg\nstack: $stack")
-        seg match {
-          case Nil => combine2(stack)
-          case seg1 :: seg2_ =>
-            def handleOps(
-              op1: Desc,
-              op2: Desc
-            ): (List[AST], NonEmptyList[AST]) = {
-              if (op1.prec > op2.prec) {
-                (seg2_, seg1 :: stack)
-              } else if (op1.prec < op2.prec) {
-                (seg, reduce2(stack))
-              } else {
-                if (op1.assoc != op2.assoc) {
-                  ???
-                } else if (op1.assoc == Left) {
-                  (seg, reduce2(stack))
-                } else {
-                  (seg2_, seg1 :: stack)
-                }
-              }
-            }
-
-            seg1 match {
-              case seg1: Operator =>
-                stack.head match {
-                  case stack1: Operator => ???
-                  case _ =>
-                    stack.tail match {
-                      case Nil => add2(seg2_, seg1 :: stack)
-                      case (stack2: Operator) :: _ =>
-                        val seg1Desc   = descOf(seg1.name)
-                        val stack2Desc = descOf(stack2.name)
-                        add2(handleOps(seg1Desc, stack2Desc))
-                      case _ =>
-                        val seg1Desc = descOf(seg1.name)
-                        val appDesc  = descOf(" ")
-                        add2(handleOps(seg1Desc, appDesc))
-                    }
-                }
-              case _ =>
-                stack.head match {
-                  case _: Operator => add2(seg2_, seg1 :: stack)
-                  case stack1 =>
-                    stack.tail match {
-                      case Nil => add2(seg2_, seg1 :: stack)
-                      case (stack2: Operator) :: _ =>
-                        val stack2Desc = descOf(stack2.name)
-                        val appDesc    = descOf(" ")
-                        add2(handleOps(appDesc, stack2Desc))
-                      case _ =>
-                        val appDesc = descOf(" ")
-                        if (appDesc.assoc == Left)
-                          add2(seg, reduce2(stack))
-                        else add2(seg2_, seg1 :: stack)
-
-                    }
-                }
-            }
-        }
-      }
-    }
-
-    //TODO: right assoc, operator after operator (+ <$> ...)
-    def reduceOps(seg1: AST, seg2_ : List[AST], stack: NonEmptyList[AST]) = {}
-
-    def reduce2(stack: NonEmptyList[AST]): NonEmptyList[AST] = {
-      println(s"\n>> reduce: $stack")
-      stack.head match {
-        case el1: Operator =>
-          stack.tail match {
-            case Nil                  => stack
-            case (el2: Operator) :: _ => ???
-            case el2 :: el3_ =>
-              NonEmptyList(SectionRight(el2, 0, el1), el3_)
-          }
-        case el1 =>
-          stack.tail match {
-            case Nil                                        => stack
-            case (el2: Operator) :: (el3: Operator) :: el4_ => ???
-            case (el2: Operator) :: el3 :: el4_ =>
-              val expr = InfixApp(el3, 0, el2, 0, el1)
-              NonEmptyList(expr, el4_)
-            case (el2: Operator) :: Nil =>
-              NonEmptyList(SectionLeft(el2, 0, el1), Nil)
-            case el2 :: el3_ => NonEmptyList(App(el2, 0, el1), el3_)
-          }
-      }
-    }
-
-    @tailrec
-    def combine2(stack: NonEmptyList[AST]): AST = {
-      stack.tail match {
-        case Nil => stack.head
-        case _   => combine2(reduce2(stack))
-      }
-    }
-
-    def addExpr(seg: NonEmptyList[AST], stack: OpList): AST = {
-//      println(s">> addExpr: ${seg.head}")
-      seg.head match {
-        case Operator(name) =>
-          throw new Error("TODO")
-        case el =>
-          seg.tail match {
-            case Nil =>
-              val stack2 = ExprNode(el, stack)
-              combine(stack2)
-
-            case t :: ts =>
-              val seg2   = NonEmptyList(t, ts)
-              val stack2 = ExprNode(el, stack)
-              addOp(seg2, stack2)
-          }
-      }
-    }
-//
-
-    def addOp(seg: NonEmptyList[AST], stack: ExprList): AST = {
-//      println(s">> addOp: ${seg.head}")
-      // a = foo op = + <$> foo <*> bar
-      seg.head match {
-        case Operator(name) =>
-          val op           = OpDesc(Operator(name), descOf(name))
-          val shiftedStack = OpNode(op, stack)
-
-          stack match {
-            case Empty =>
-              val stack2 = OpNode(op, stack)
-              seg.tail match {
-                case t :: ts => addExpr(NonEmptyList(t, ts), stack2)
-                case Nil     => combine(stack2)
-              }
-            case ExprNode(expr, Empty) =>
-              seg.tail match {
-                case Nil => combine(shiftedStack)
-                case t :: ts =>
-                  val seg2 = NonEmptyList(t, ts)
-                  addExpr(seg2, shiftedStack)
-
-              }
-            case stack @ ExprNode(expr, OpNode(op2, tail)) =>
-              seg.tail match {
-                case t :: ts =>
-                  if (op.desc.prec > op2.desc.prec) {
-                    val seg2 = NonEmptyList(t, ts)
-                    addExpr(seg2, shiftedStack)
-                  } else {
-                    val stack2 = reduce(stack)
-                    addOp(seg, stack2)
-                  }
-                case Nil =>
-                  if (op.desc.prec > op2.desc.prec) {
-                    combine(shiftedStack)
-                  } else {
-                    val stack2 = reduce(stack)
-                    addOp(seg, stack2)
-                  }
-
-              }
-
-          }
-      }
-    }
-
-    def reduce(node: ExprNode): ExprNode = node.tail match {
-      case Empty => node
-      case OpNode(op, exprNode) =>
-        exprNode match {
-          case Empty => ExprNode(SectionLeft(op.op, 0, node.expr), Empty)
-          case ExprNode(expr, tail) =>
-            ExprNode(InfixApp(expr, 0, op.op, 0, node.expr), tail)
-        }
-    }
-
-    def combine(node: OpNode): AST = node.tail match {
-      case Empty => Section(node.op.op)
-      case ExprNode(expr, tail) =>
-        combine(ExprNode(SectionRight(expr, 0, node.op.op), tail))
-    }
-
-    @tailrec
-    def combine(node: ExprNode): AST = node.tail match {
-      case Empty => node.expr
-      case _     => combine(reduce(node))
-    }
-
+  def compare[T: Ordering](a: T, b: T): Compare = {
+    if (implicitly[Ordering[T]].lt(a, b)) LT
+    else if (implicitly[Ordering[T]].gt(a, b)) GT
+    else EQ
   }
+
+  def cross(as: List[String], bs: List[String]) =
+    for { a <- as; b <- bs } yield a + b
+
+
+
+  //////////////////////////////////////
+  //// Spaced / Non-Spaced Segments ////
+  //////////////////////////////////////
+  
+  //// Definition ////
+
+  case class Spaced[T](off:Int, el: T) {
+    def map[S](f: T => S): Spaced[S] =
+      Spaced(off, f(el))
+  }
+  
+  case class SpacedList[T](head: T, tail: List[Spaced[T]]) {
+    def map[S](f: T => S): SpacedList[S] =
+      SpacedList(f(head),tail.map(_.map(f)))
+    
+    def prepend(t:T, off:Int):SpacedList[T] =
+      SpacedList(t, Spaced(off,head) :: tail)
+    
+    def prepend(t:Spaced[T]):SpacedList[T] =
+      SpacedList(t.el, Spaced(t.off,head) :: tail)
+  }
+  
+  implicit def tupleToSpacedList[T](t:(T,List[Spaced[T]])): SpacedList[T] =
+    SpacedList(t._1,t._2)
+
+  type NonSpacedSegment = NonEmptyList[AST]
+  type SpacedSegment    = Spaced[NonSpacedSegment]
+  type SpacedSegments   = SpacedList[NonSpacedSegment]
+  
+  //// API ////
+  
+  def partitionToSpacedSegments(t: AST): SpacedSegments = {
+    @tailrec
+    def go(t: AST, stack: List[AST], out: List[SpacedSegment]): SpacedSegments = {
+      println("\n")
+      println(s"stack: $stack")
+      println(s"out: $out")
+      def currentSeg(t:AST)             = NonEmptyList(t, stack)
+      def currentOffSeg(off:Int,t: AST) = Spaced(off,currentSeg(t))
+      t match {
+        case AST.App(fn, off, arg) => off match {
+          case 0 => go (fn, arg :: stack, out)
+          case _ => go (fn, Nil, currentOffSeg (off,arg) :: out)
+        }
+        case _ => SpacedList(currentSeg(t), out)
+      }
+    }
+    go(t, Nil, Nil)
+  }
+
+
+  val appOperator: Operator = Operator(" ")
+
+  def astToOp(ast: AST) = ast match {
+    case ast: Operator => ast
+    case _             => appOperator
+  }
+
+  
+  def rebuildAssocExpr(seg:NonSpacedSegment): AST = {
+    val sl = SpacedList(seg.head, seg.tail.map(Spaced(0,_)))
+    rebuildAssocExpr(sl)
+  }
+
+  def rebuildAssocExpr(seg: SpacedList[AST]): AST = {
+    final case class Input(seg: List[Spaced[AST]], stack: SpacedList[AST])
+    implicit def input_2(tup: (List[Spaced[AST]], SpacedList[AST])): Input =
+      Input(tup._1, tup._2)
+
+    @tailrec
+    def go(inp: Input): AST = inp.seg match {
+      case Nil => flatten(inp.stack)
+      case seg1 :: seg2_ => {
+        
+        val shift  = (seg2_, inp.stack.prepend(seg1))
+        val reduce = (inp.seg, reduceHead(inp.stack))
+        
+        def handleOp(ast1: AST, ast2: AST) = {
+          val op1 = astToOp(ast1)
+          val op2 = astToOp(ast2)
+          compare(op1.prec, op2.prec) match {
+            case GT => shift
+            case LT => reduce
+            case EQ => (op1.assoc, op2.assoc) match {
+              case (Left, Left) => reduce
+              case _            => shift
+            }
+          }
+        }
+  
+        inp.stack.head match {
+          case stack1: Operator => seg1.el match {
+            case seg1:Operator => go(handleOp(seg1,stack1))
+            case _             => go(shift)
+          }
+          case _ => inp.stack.tail match {
+            case Nil         => go(shift)
+            case stack2 :: _ => go(handleOp(seg1.el, stack2.el))
+          }
+        }
+      }
+    }
+    go(seg.tail, SpacedList(seg.head, Nil))
+  }
+
+
+  @tailrec
+  def reduceHead(stack: SpacedList[AST]): SpacedList[AST] = {
+    println(s"stack: $stack")
+    stack.head match {
+      case t1: Operator =>
+        stack.tail match {
+          case Nil => (Section(t1), Nil)
+          case t2 :: t3_ => t2.el match {
+            case _: Operator => reduceHead(Section(t1), t2 :: t3_)
+            case _ => (SectionRight(t2.el, t2.off, t1), t3_)
+          }
+        }
+      case t1 =>
+        stack.tail match {
+          case Nil => stack
+
+          case t2 :: t3 :: t4_ => t2.el match {
+            case v2: Operator => t3.el match {
+              case _:Operator => (SectionLeft(v2, t2.off, t1),t3 :: t4_)
+              case _          => (InfixApp(t3.el, t3.off, v2, t2.off, t1),t4_)
+            }
+            case v2 => (App(v2,t2.off,t1), t3::t4_)
+          }
+            
+          case t2 :: t3_ => t2.el match {
+            case v2: Operator => (SectionLeft(v2, t2.off, t1), t3_)
+            case v2           => (App(v2, t2.off, t1), t3_)
+          }
+        }
+    }
+  }
+
+  @tailrec
+  def flatten(stack: SpacedList[AST]): AST = {
+    stack.tail match {
+      case Nil => stack.head
+      case _   => flatten(reduceHead(stack))
+    }
+  }
+  
+  
+  
+  def run(ast:AST):AST = {
+    val segments = partitionToSpacedSegments(ast)
+    val flatExpr = segments.map(rebuildAssocExpr)
+    rebuildAssocExpr(flatExpr)
+  }
+  
+
+  def run(module:AST.Module): AST.Module =
+    module.map(_.map(run))
+  
+
 
 }
