@@ -72,7 +72,7 @@ object DocAST {
 
   final case class Text(text: String) extends AST {
     val textRepr: Repr = text
-    val htmlRepr: Repr = text
+    val htmlRepr: Repr = text.replaceAll("\n", "<br />")
   }
 
   implicit def stringToText(str: String): Text = Text(str)
@@ -138,9 +138,10 @@ object DocAST {
   /// Invalid Indent ///
   //////////////////////
 
-  final case class InvalidIndent(indent: Int, elem: AST) extends InvalidAST {
+  final case class InvalidIndent(indent: Int, elem: AST, listType: ListType)
+      extends InvalidAST {
     val textRepr
-      : Repr = Repr(" (INVALID INDENT ") + indent + ") -" + elem.textRepr
+      : Repr = Repr(" " * indent) + listType.readableMarker + elem.textRepr
 
     val htmlRepr
       : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
@@ -151,7 +152,7 @@ object DocAST {
   ///////////////////////
 
   final case class CodeLine(code: String) extends AST {
-    val textRepr: Repr = Repr('`') + code + '`'
+    val textRepr: Repr = Repr("`") + code + "`"
 
     val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
@@ -182,7 +183,8 @@ object DocAST {
 
   final case class Link(name: String, url: String, linkType: LinkType)
       extends AST {
-    val textRepr: Repr = Repr(linkType.readableMarker) + name + "](" + url + ")"
+    val textRepr
+      : Repr = Repr() + linkType.readableMarker + name + "](" + url + ")"
 
     val htmlRepr: Repr = linkType match {
       case URL =>
@@ -219,6 +221,9 @@ object DocAST {
       elems.foreach(elem => {
         if (elem.show().contains(" " * (indent + 2))) {
           _repr += elem.textRepr
+        } else if (elem.isInstanceOf[InvalidIndent]) {
+          _repr += elem.textRepr
+          _repr += '\n'
         } else {
           _repr += " " * indent
           _repr += listType.readableMarker
@@ -272,7 +277,6 @@ object DocAST {
       elems.foreach(elem => {
         _repr += elem.textRepr
       })
-      _repr += "\n"
       _repr
     }
 
@@ -334,16 +338,19 @@ object DocAST {
     def apply(elems: AST*): TextBlock = TextBlock(elems.to[List])
   }
 
-  ///////////////////
-  ////// Chunk //////
-  ///////////////////
+  //////////////////
+  ////// Body //////
+  //////////////////
 
-  trait Chunk extends AST {
-    val elems: List[Section]
-
+  final case class Body(elems: List[Section]) extends AST {
     val textRepr: Repr = {
       var _repr = Repr()
-      elems.foreach(elem => _repr += elem.textRepr)
+      elems.foreach(elem => {
+        _repr += elem.textRepr
+        if (elems.last != elem) {
+          _repr += "\n"
+        }
+      })
       _repr
     }
 
@@ -355,11 +362,6 @@ object DocAST {
     }
   }
 
-  //////////////////
-  ////// Body //////
-  //////////////////
-
-  final case class Body(elems: List[Section]) extends Chunk {}
   object Body {
     def apply():                Body = Body(Nil)
     def apply(elem: Section):   Body = Body(elem :: Nil)
@@ -370,7 +372,25 @@ object DocAST {
   ////// Synopsis //////
   //////////////////////
 
-  final case class Synopsis(elems: List[Section]) extends Chunk {}
+  final case class Synopsis(elems: List[Section]) extends AST {
+    val textRepr: Repr = {
+      var _repr = Repr()
+      elems.foreach(elem => {
+        _repr += elem.textRepr
+        if (elems.last != elem) {
+          _repr += "\n"
+        }
+      })
+      _repr
+    }
+
+    val htmlRepr: Repr = {
+      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
+      elems.foreach(elem => _repr += elem.htmlRepr)
+      _repr += "</div>"
+      _repr
+    }
+  }
   object Synopsis {
     def apply():                Synopsis = Synopsis(Nil)
     def apply(elem: Section):   Synopsis = Synopsis(elem :: Nil)
@@ -475,13 +495,14 @@ object DocAST {
       }
 
       if (body != Body()) {
+        _repr += "\n"
         _repr += body.textRepr
       }
       _repr
     }
 
     val htmlRepr: Repr = {
-      var _repr = Repr("<!DOCTYPE html><html><body>")
+      var _repr = Repr("<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body>")
       if (tags != Tags()) {
         _repr += tags.htmlRepr
       }

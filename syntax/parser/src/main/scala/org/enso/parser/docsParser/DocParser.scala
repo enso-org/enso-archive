@@ -474,7 +474,9 @@ case class DocParser() extends ParserBase[AST] {
         addContentToList(content)
       } else {
         if (inListFlag) {
-          addContentToList(InvalidIndent(indent, content))
+          addContentToList(
+            InvalidIndent(indent, content, listType)
+          )
           return
         }
         endGroup()

@@ -54,3 +54,4 @@ cabal.sandbox.config
 .idea/
 *.swp
 .projections.json
+

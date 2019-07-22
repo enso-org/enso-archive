@@ -1,0 +1,99 @@
+body {
+    font-family: "Quicksand", sans-serif;
+}
+
+body p,
+body h1,
+body h2,
+body h3,
+body h4,
+body h5,
+body h6,
+body a:hover {
+    color: #f1f1f1;
+}
+
+body a,
+body code,
+body pre {
+    color: #E8A455;
+}
+
+body code,
+body pre {
+    background-color: #211F1A;
+    border: 1px solid #1C1A17;
+}
+
+body kbd {
+    color: #ffffff;
+    background-color: #EEA236;
+}
+
+body {
+    background-color: #ffffff;
+}
+
+body .sidenav,
+body .pageHeader {
+    background-color: #fafafa;
+    border: 1px solid #e1e1e1;
+}
+
+body .pageHead {
+    background-color: #fafafa
+}
+
+body .pageHead>hr {
+    border-top-color: #fafafa
+}
+
+body p,
+body h1,
+body h2,
+body h3,
+body h4,
+body h5,
+body h6 {
+    color: #333;
+}
+
+body a:hover {
+    color: white;
+    background-color: dodgerblue;
+}
+
+body a,
+body code,
+body pre {
+    color: dodgerblue;
+    background-color: transparent;
+}
+
+body code,
+body pre {
+    background-color: #ffffff;
+    border: 1px solid #f1f1f1;
+}
+
+body kbd {
+    color: #333;
+    background-color: dodgerblue;
+}
+
+hr {
+    border: 0;
+    height: 1.3px;
+    background: #d6d6d6;
+}
+
+a {
+    padding: 6px 8px 6px 16px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+code{
+    font-size: inherit
+    font-family: Menlo, Monaco, Consolas, "Courier New", monospace
+}
