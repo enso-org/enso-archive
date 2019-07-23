@@ -334,7 +334,7 @@ object Detail {
           realObservedPath
         )
       needsFixing match {
-        case true  => path.resolve(realObservedPath.relativize(path))
+        case true  => observedPath.resolve(realObservedPath.relativize(path))
         case false => path
       }
     }
