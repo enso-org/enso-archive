@@ -23,9 +23,16 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
+/** The main actor class.
+  *
+  * Implements an RPC-like protocol. Please see member types of
+  * [[org.enso.filemanager.API]] for a list of supported operations and their
+  * respective request-response packages.
+  */
 case class FileManager(projectRoot: Path, context: ActorContext[InputMessage])
     extends AbstractBehavior[API.InputMessage] {
 
+  /** Active filesystem subtree watchers */
   val watchers: mutable.Map[UUID, DirectoryWatcher] = mutable.Map()
 
   def onMessageTyped[response <: Response.Success: ClassTag](
@@ -50,9 +57,12 @@ case class FileManager(projectRoot: Path, context: ActorContext[InputMessage])
 object FileManager {
   val API: org.enso.filemanager.API.type = org.enso.filemanager.API
 
+  /** Factory function for [[FileManager]] [[akka.actor.typed.Behavior]]. */
   def apply(projectRoot: Path): Behavior[InputMessage] =
     Behaviors.setup(context => FileManager(projectRoot, context))
 
+  /** Convenience wrapper for
+    * [[akka.actor.typed.scaladsl.AskPattern.Askable.ask]]. */
   def ask[response <: Response.Success: ClassTag](
     actor: ActorRef[API.InputMessage],
     payload: Request.Payload[response]

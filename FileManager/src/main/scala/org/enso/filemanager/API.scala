@@ -18,17 +18,25 @@ import org.enso.FileManager
 import scala.reflect.ClassTag
 import scala.util.Try
 
+/** Container for types defined for File Manager API.
+  *
+  * Each File Manager operation is implemented as nested type with further
+  * `Request` and `Response` subtypes.
+  */
 object API {
   import Request.Payload
   import Response.Success
 
-  abstract class InputMessage {
-    def handle(fileManager: FileManager): Unit
-    def validate(projectRoot: Path): Unit
-  }
+  /** Base class for messages received by the [[FileManager]]. */
+  type InputMessage = Request[_]
 
-  type OutputMessage = Try[Success]
+  /** Base class for messages that [[FileManager]] responds with. */
+  type OutputMessage = Try[Response.Success]
 
+  /**
+    * Exception type that is raised on attempt to access to file outside the
+    * project subtree.
+    */
   final case class PathOutsideProjectException(
     projectRoot: Path,
     accessedPath: Path)
@@ -42,18 +50,24 @@ object API {
   //// RPC Definition ////
   ////////////////////////
 
-  sealed case class Request[SpecificResponse <: Success: ClassTag](
-    replyTo: ActorRef[Try[SpecificResponse]],
-    contents: Payload[SpecificResponse])
-      extends InputMessage {
+  /** Request template, parametrised by the response type.
+    */
+  sealed case class Request[ResponseType <: Success: ClassTag](
+    replyTo: ActorRef[Try[ResponseType]],
+    contents: Payload[ResponseType]) {
 
-    override def handle(fileManager: FileManager): Unit =
+    def handle(fileManager: FileManager): Unit =
       fileManager.onMessageTyped(this)
-    override def validate(projectRoot: Path): Unit =
+
+    /** Throws a [[PathOutsideProjectException]] if request involves paths
+      * outside the project subtree. */
+    def validate(projectRoot: Path): Unit =
       contents.validate(projectRoot)
   }
 
   object Request {
+
+    /** Base class for all the operation-specific contents of [[Request]]. */
     abstract class Payload[+ResponseType <: Success: ClassTag] {
       def touchedPaths: Seq[Path]
       def handle(fileManager: FileManager): ResponseType
@@ -99,8 +113,8 @@ object API {
     case class Request(path: Path) extends Payload[Response] {
       override def touchedPaths: Seq[Path] = Seq(path)
       override def handle(fileManager: FileManager): Response = {
-        // Despite what commons-io documentation says, the exception is not thrown
-        // when directory is missing, so we do it by hand.
+        // Despite what commons-io documentation says, the exception is not
+        // thrown when directory is missing, so we do it by hand.
         if (Files.notExists(path))
           throw new NoSuchFileException(path.toString)
 
@@ -199,43 +213,59 @@ object API {
     }
   }
 
+  /** Operations for managing filesystem watches, please see details.
+    *
+    * The watch will send [[FileSystemEvent]] to the observing agent when any
+    * entry in the observed filesystem subtree is created, modified or deleted.
+    * As this mechanism is built on top of [[java.nio.file.WatchService]] its
+    * limitations and caveats apply. In particular:
+    *  - events may come in different order;
+    *  - events may not come at all if they undo each other (e.g. create and
+    *  delete file in short time period, one modification may overshadow
+    *  another);
+    *  - duplicate notifications may be emitted for a single event;
+    *  - deletion of child entries may not be observed if parent entry is;
+    *  deleted;
+    *  - all of the behaviors listed above are highly system dependent.
+    *
+    * Additionally:
+    *  - watching is always recursive and must target a directory
+    *  - the watched path must not be a symlink (though its parent path
+    *  components are allowed to be symlinks)
+    *  - if the observed path contains symlink, it will remain unresolved in the
+    *  notification events (i.e. the event path prefix shall be the same as the
+    *  observed subtree root).
+    * */
   object Watch {
 
-    // NOTE
-    // The watched path must designate a directory (i.e. not a regular file and
-    // not a symlink). The parent path components may include symlink. Watch is
-    // recursive. On removal, it is not guaranteed that delete notifications will
-    // be emitted for all elements, it might happen that only parent elements'
-    // deletion will be observed.
-    // Also, if the parent is removed quickly after an item, the event for the
-    // item might not get emitted as well.
     object Create {
       case class Response(id: UUID) extends Success
       case class Request(
-        observedPath: Path,
+        observedDirPath: Path,
         observer: ActorRef[FileSystemEvent])
           extends Payload[Response] {
-        override def touchedPaths: Seq[Path] = Seq(observedPath)
+        override def touchedPaths: Seq[Path] = Seq(observedDirPath)
 
         override def handle(fileManager: FileManager): Response = {
-          // Watching a symlink target works only on Windows, presumably thanks to
-          // recursive watch being natively supported. We block it until we know it
-          // works on all supported platforms.
-          if (Files.isSymbolicLink(observedPath))
-            throw new NotDirectoryException(observedPath.toString)
+          // Watching a symlink target works only on Windows, presumably thanks
+          // to recursive watch being natively supported. We block it until we
+          // know it works on all supported platforms.
+          if (Files.isSymbolicLink(observedDirPath))
+            throw new NotDirectoryException(observedDirPath.toString)
 
-          // Watching ordinary file throws an exception on Windows. Similarly, to
-          // unify observed behavior we check for this here.
-          if (!Files.isDirectory(observedPath))
-            throw new NotDirectoryException(observedPath.toString)
+          // Watching ordinary file throws an exception on Windows. Similarly,
+          // to unify observed behavior we check for this here.
+          if (!Files.isDirectory(observedDirPath))
+            throw new NotDirectoryException(observedDirPath.toString)
 
           // macOS generates events containing resolved path, i.e. with symlinks
           // resolved. We don't really want this, as we want to be completely
           // indifferent to symlink presence and still be able to easily compare
           // paths. Therefore if we are under symlink and generated event uses
-          // real path, we replace it with path prefix that was observation target
-          val realPath       = observedPath.toRealPath()
-          val unresolvedPath = realPath != observedPath
+          // real path, we replace it with path prefix that was observation
+          // target.
+          val realPath       = observedDirPath.toRealPath()
+          val unresolvedPath = realPath != observedDirPath
 
           val fixPath = (path: Path) => {
             val needsFixing = unresolvedPath && path.startsWith(realPath)
@@ -247,13 +277,13 @@ object API {
 
           val id = UUID.randomUUID()
           val watcher = DirectoryWatcher.builder
-            .path(observedPath)
+            .path(observedDirPath)
             .listener { event =>
               val message = FileSystemEvent(
                 event.eventType,
                 fixPath(event.path)
               )
-              if (message.path != observedPath) {
+              if (message.path != observedDirPath) {
                 val logText = s"Notifying $observer with $message"
                 fileManager.context.log.debug(logText)
                 observer ! message
@@ -298,6 +328,7 @@ object API {
     path: Path)
 }
 
+/** Implementation details, not expected to be relied on as path of API. */
 object Detail {
   import API._
 
