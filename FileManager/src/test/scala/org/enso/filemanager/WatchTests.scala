@@ -47,8 +47,9 @@ class WatchTests
       watcherID   = observe(tempDir)
 
       try super.withFixture(test)
-      finally if (watcherID != null) unobserve(watcherID)
-      // ^^ otherwise we might end up blocking the directory on Windows
+      finally if (watcherID != null)
+        // Otherwise directory would stay blocked on Windows.
+        unobserve(watcherID)
     })
   }
 
@@ -139,8 +140,8 @@ class WatchTests
     Files.createFile(someFile)
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.CREATE)
 
-    // need to wait a moment, as change soon after creation might be missed
-    // otherwise by some subpar watch implementations
+    // Need to wait a moment, as change soon after creation might be missed
+    // otherwise by some subpar watch implementations.
     Thread.sleep(2000)
     Files.write(someFile, "blahblah".getBytes)
     expectNextEvent(someFile, DirectoryChangeEvent.EventType.MODIFY)
@@ -195,7 +196,7 @@ class WatchTests
 
     val id = observe(linkSub, symlinkEventProbe.ref)
     try {
-      // Create file using "real" path
+      // Create file using "real" path.
       val filename         = "testfile"
       val realFilePath     = realSub.resolve(filename)
       val observedFilePath = linkSub.resolve(filename)

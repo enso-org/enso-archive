@@ -8,12 +8,11 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.NotDirectoryException
 import java.nio.file.Path
 import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.attribute.UserPrincipal
-import java.time.Instant
 import java.util.UUID
 
 import org.apache.commons.io.FileUtils
 import org.enso.FileManager
+import org.enso.filemanager.Detail.EventNotifier
 
 import scala.reflect.ClassTag
 import scala.util.Try
@@ -245,50 +244,24 @@ object API {
         observer: ActorRef[FileSystemEvent])
           extends Payload[Response] {
         override def touchedPaths: Seq[Path] = Seq(observedDirPath)
-
         override def handle(fileManager: FileManager): Response = {
           // Watching a symlink target works only on Windows, presumably thanks
-          // to recursive watch being natively supported. We block it until we
-          // know it works on all supported platforms.
+          // to recursive watch being natively supported. We block this to keep
+          // thinks uniform between platforms.
           if (Files.isSymbolicLink(observedDirPath))
             throw new NotDirectoryException(observedDirPath.toString)
 
-          // Watching ordinary file throws an exception on Windows. Similarly,
-          // to unify observed behavior we check for this here.
+          // Watching ordinary file throws an exception on Windows.
+          // To unify behavior, we do this on all platforms.
           if (!Files.isDirectory(observedDirPath))
             throw new NotDirectoryException(observedDirPath.toString)
 
-          // macOS generates events containing resolved path, i.e. with symlinks
-          // resolved. We don't really want this, as we want to be completely
-          // indifferent to symlink presence and still be able to easily compare
-          // paths. Therefore if we are under symlink and generated event uses
-          // real path, we replace it with path prefix that was observation
-          // target.
-          val realPath       = observedDirPath.toRealPath()
-          val unresolvedPath = realPath != observedDirPath
-
-          val fixPath = (path: Path) => {
-            val needsFixing = unresolvedPath && path.startsWith(realPath)
-            needsFixing match {
-              case true  => path.resolve(realPath.relativize(path))
-              case false => path
-            }
-          }
-
+          val handler =
+            EventNotifier(observedDirPath, observer, fileManager)
           val id = UUID.randomUUID()
           val watcher = DirectoryWatcher.builder
             .path(observedDirPath)
-            .listener { event =>
-              val message = FileSystemEvent(
-                event.eventType,
-                fixPath(event.path)
-              )
-              if (message.path != observedDirPath) {
-                val logText = s"Notifying $observer with $message"
-                fileManager.context.log.debug(logText)
-                observer ! message
-              }
-            }
+            .listener(handler.notify(_))
             .build()
           watcher.watchAsync()
           fileManager.watchers += (id -> watcher)
@@ -336,5 +309,47 @@ object Detail {
     val normalized = validatedPath.toAbsolutePath.normalize()
     if (!normalized.startsWith(projectRoot))
       throw PathOutsideProjectException(projectRoot, validatedPath)
+  }
+
+  /** Helper class used for sending filesystem event notifications. */
+  case class EventNotifier(
+    observedPath: Path,
+    observer: ActorRef[FileSystemEvent],
+    fileManager: FileManager) {
+
+    val realObservedPath: Path           = observedPath.toRealPath()
+    val observingUnresolvedPath: Boolean = observedPath != realObservedPath
+
+    /** If the path prefix got resolved, restores the observed one.
+      *
+      * macOS generates events containing resolved path, i.e. with symlinks
+      * resolved. We don't really want this, as we want to be completely
+      * indifferent to symlink presence and still be able to easily compare
+      * paths. Therefore if we are under symlink and generated event uses
+      * real path, we replace it with path prefix that was observation
+      * target.
+      */
+    def fixedPath(path: Path): Path = {
+      val needsFixing = observingUnresolvedPath && path.startsWith(
+          realObservedPath
+        )
+      needsFixing match {
+        case true  => path.resolve(realObservedPath.relativize(path))
+        case false => path
+      }
+    }
+
+    /** Notifies the observer about a given filesystem event. */
+    def notify(event: DirectoryChangeEvent): Unit = {
+      val message = FileSystemEvent(
+        event.eventType,
+        fixedPath(event.path)
+      )
+      if (message.path != observedPath) {
+        val logText = s"Notifying $observer with $message"
+        fileManager.context.log.debug(logText)
+        observer ! message
+      }
+    }
   }
 }

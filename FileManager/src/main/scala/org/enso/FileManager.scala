@@ -4,7 +4,6 @@ import java.nio.file.Path
 import java.util.UUID
 
 import akka.actor.Scheduler
-import akka.actor.typed
 import akka.actor.typed.ActorRef
 import akka.actor.typed.Behavior
 import akka.actor.typed.scaladsl.AbstractBehavior
@@ -62,7 +61,12 @@ object FileManager {
     Behaviors.setup(context => FileManager(projectRoot, context))
 
   /** Convenience wrapper for
-    * [[akka.actor.typed.scaladsl.AskPattern.Askable.ask]]. */
+    * [[akka.actor.typed.scaladsl.AskPattern.Askable.ask]].
+    *
+    * It takes only the request payload (i.e. operation specific part of the
+    * request) and takes care of the rest, automatically deducing the expected
+    * response type.
+    */
   def ask[response <: Response.Success: ClassTag](
     actor: ActorRef[API.InputMessage],
     payload: Request.Payload[response]
