@@ -1,4 +1,4 @@
-package org.enso.fileManager
+package org.enso.filemanager
 
 import akka.actor.typed.ActorRef
 import io.methvin.watcher.DirectoryChangeEvent

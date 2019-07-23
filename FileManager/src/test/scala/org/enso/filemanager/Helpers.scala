@@ -1,4 +1,4 @@
-package org.enso.fileManager
+package org.enso.filemanager
 
 import java.nio.file.Files
 import java.nio.file.Path

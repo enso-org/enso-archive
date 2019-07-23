@@ -1,4 +1,4 @@
-package org.enso.fileManager
+package org.enso.filemanager
 
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
 import akka.actor.testkit.typed.scaladsl.TestInbox

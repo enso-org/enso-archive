@@ -1,4 +1,4 @@
-package org.enso.fileManager
+package org.enso.filemanager
 
 import akka.actor.Scheduler
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
