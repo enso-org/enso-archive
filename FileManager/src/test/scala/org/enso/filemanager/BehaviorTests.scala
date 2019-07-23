@@ -101,9 +101,7 @@ class BehaviorTests extends FunSuite with Matchers with Helpers {
   test("Copy file: plain") {
     val srcFile = createSubFile()
     val dstFile = tempDir.resolve("file2")
-    // FIXME: remove emoty lines, or addd them everywhere. Its beter to remove.
     ask(CopyFile.Request(srcFile, dstFile))
-
     expectExist(srcFile)
     expectExist(dstFile)
     assert(Files.readAllBytes(dstFile).sameElements(contents))
@@ -149,7 +147,7 @@ class BehaviorTests extends FunSuite with Matchers with Helpers {
 
   test("Exists: outside project by relative path") {
     val path = tempDir.resolve("../foo")
-    // make sure that our path seemingly may look like something under the project
+    // Make sure that our path seemingly may look like something under the project.
     assert(path.startsWith(tempDir))
     abet[PathOutsideProjectException](Exists.Request(path))
   }
@@ -212,7 +210,6 @@ class BehaviorTests extends FunSuite with Matchers with Helpers {
     val subdir      = createSubDir()
     val destination = tempDir.resolve("target")
     ask(MoveDirectory.Request(subdir, destination))
-
     assert(!Files.exists(subdir))
     assert(Files.exists(destination))
   }
@@ -231,19 +228,18 @@ class BehaviorTests extends FunSuite with Matchers with Helpers {
     val destination = tempDir.resolve("target")
     Files.createDirectory(destination)
     abet[FileExistsException](MoveDirectory.Request(subtree.root, destination))
-    // source was not destroyed by failed move
+    // Source was not destroyed by failed move.
     expectSubtree(subtree)
   }
 
   test("Stat: missing file") {
     val filePath = tempDir.resolve("bar")
-    abet[NoSuchFileException](Stat.Request(filePath))
+    abet[NoSuchFileException](Status.Request(filePath))
   }
 
   test("Read: file") {
     val filePath = tempDir.resolve("bar")
     Files.write(filePath, contents)
-
     val response = ask(Read.Request(filePath))
     response.contents should be(contents)
   }
@@ -258,7 +254,6 @@ class BehaviorTests extends FunSuite with Matchers with Helpers {
   test("Touch: update file") {
     val filePath         = createSubFile()
     val initialTimestamp = Files.getLastModifiedTime(filePath).toInstant
-
     Thread.sleep(1000)
     ask(Touch.Request(filePath))
     val finalTimestamp = Files.getLastModifiedTime(filePath).toInstant
@@ -268,21 +263,17 @@ class BehaviorTests extends FunSuite with Matchers with Helpers {
 
   test("Write: file") {
     val filePath = tempDir.resolve("bar")
-
     ask(Write.Request(filePath, contents))
-
     val actualFileContents = Files.readAllBytes(filePath)
     actualFileContents should be(contents)
   }
 
-  test("Stat: normal file") {
+  test("Status: normal file") {
     val filePath = createSubFile()
     val contents = "aaa"
     Files.write(filePath, contents.getBytes())
-
-    val response = ask(Stat.Request(filePath))
-
-    response.isDirectory should be(false)
-    response.size should be(contents.length)
+    val response = ask(Status.Request(filePath))
+    response.attributes.isDirectory should be(false)
+    response.attributes.size should be(contents.length)
   }
 }

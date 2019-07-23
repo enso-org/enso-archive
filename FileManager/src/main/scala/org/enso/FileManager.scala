@@ -13,8 +13,8 @@ import akka.actor.typed.scaladsl.AskPattern.Askable
 import akka.actor.typed.scaladsl.Behaviors
 import akka.util.Timeout
 import io.methvin.watcher.DirectoryWatcher
-import org.enso.fileManager.API
-import org.enso.fileManager.API._
+import org.enso.filemanager.API
+import org.enso.filemanager.API._
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -48,7 +48,7 @@ case class FileManager(projectRoot: Path, context: ActorContext[InputMessage])
 }
 
 object FileManager {
-  val API: org.enso.fileManager.API.type = org.enso.fileManager.API
+  val API: org.enso.filemanager.API.type = org.enso.filemanager.API
 
   def apply(projectRoot: Path): Behavior[InputMessage] =
     Behaviors.setup(context => FileManager(projectRoot, context))

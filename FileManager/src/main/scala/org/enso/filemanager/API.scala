@@ -7,6 +7,7 @@ import java.nio.file.Files
 import java.nio.file.NoSuchFileException
 import java.nio.file.NotDirectoryException
 import java.nio.file.Path
+import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.attribute.UserPrincipal
 import java.time.Instant
 import java.util.UUID
@@ -175,25 +176,14 @@ object API {
     }
   }
 
-  object Stat {
-    case class Response(
-      lastModified: Instant,
-      owner: UserPrincipal,
-      size: Long,
-      isDirectory: Boolean)
-        extends Success
+  object Status {
+    case class Response(attributes: BasicFileAttributes) extends Success
     case class Request(path: Path) extends Payload[Response] {
       override def touchedPaths: Seq[Path] = Seq(path)
       override def handle(fileManager: FileManager): Response = {
-        // FIXME: Comments starting with upper case char pls! :)
-        // FIXME: If thats not in guidelines, pls add it there :)
-
-        // warning: might be race'y
-        val lastModified = Files.getLastModifiedTime(path).toInstant
-        val owner        = Files.getOwner(path)
-        val size         = Files.size(path)
-        val isDirectory  = Files.isDirectory(path)
-        Response(lastModified, owner, size, isDirectory)
+        val attributes =
+          Files.readAttributes(path, classOf[BasicFileAttributes])
+        Response(attributes)
       }
     }
   }

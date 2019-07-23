@@ -161,7 +161,7 @@ class WatchTests
     watcherID = null
     stopResponse should be(Watch.Remove.Response())
 
-    // we disabled watch, so no further messages should come
+    // Watch has been disabled, no further messages should come
     FileUtils.deleteDirectory(subtree.root.toFile)
     testProbe.expectNoMessage(50.millis)
   }
@@ -195,7 +195,7 @@ class WatchTests
 
     val id = observe(linkSub, symlinkEventProbe.ref)
     try {
-      // create file through "real" path
+      // Create file using "real" path
       val filename         = "testfile"
       val realFilePath     = realSub.resolve(filename)
       val observedFilePath = linkSub.resolve(filename)

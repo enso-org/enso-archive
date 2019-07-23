@@ -152,7 +152,7 @@ val circe = Seq("circe-core", "circe-generic", "circe-yaml").map(
   "io.circe" %% _ % "0.10.0"
 )
 
-lazy val fileManager = (project in file("file-manager"))
+lazy val fileManager = (project in file("FileManager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
   )
@@ -177,4 +177,3 @@ lazy val projectManager = (project in file("project-manager"))
     libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
   )
   .dependsOn(pkg)
-
