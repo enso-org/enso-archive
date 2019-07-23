@@ -32,7 +32,9 @@ object API {
     projectRoot: Path,
     accessedPath: Path)
       extends Exception(
-        s"Cannot access path $accessedPath because it does not belong to the project under root directory $projectRoot"
+        s"""Cannot access path $accessedPath because it does not belong to 
+           |the project under root directory $projectRoot""".stripMargin
+          .replaceAll("\n", " ")
       )
 
   ////////////////////////
@@ -219,31 +221,34 @@ object API {
     // item might not get emitted as well.
     object Create {
       case class Response(id: UUID) extends Success
-      case class Request(path: Path, observer: ActorRef[FileSystemEvent])
+      case class Request(
+        observedPath: Path,
+        observer: ActorRef[FileSystemEvent])
           extends Payload[Response] {
-        override def touchedPaths: Seq[Path] = Seq(path)
+        override def touchedPaths: Seq[Path] = Seq(observedPath)
 
         override def handle(fileManager: FileManager): Response = {
           // Watching a symlink target works only on Windows, presumably thanks to
           // recursive watch being natively supported. We block it until we know it
           // works on all supported platforms.
-          if (Files.isSymbolicLink(path))
-            throw new NotDirectoryException(path.toString)
+          if (Files.isSymbolicLink(observedPath))
+            throw new NotDirectoryException(observedPath.toString)
 
           // Watching ordinary file throws an exception on Windows. Similarly, to
           // unify observed behavior we check for this here.
-          if (!Files.isDirectory(path))
-            throw new NotDirectoryException(path.toString)
+          if (!Files.isDirectory(observedPath))
+            throw new NotDirectoryException(observedPath.toString)
 
           // macOS generates events containing resolved path, i.e. with symlinks
           // resolved. We don't really want this, as we want to be completely
           // indifferent to symlink presence and still be able to easily compare
           // paths. Therefore if we are under symlink and generated event uses
           // real path, we replace it with path prefix that was observation target
-          val realPath = path.toRealPath()
+          val realPath       = observedPath.toRealPath()
+          val unresolvedPath = realPath != observedPath
 
           val fixPath = (path: Path) => {
-            val needsFixing = realPath != path && path.startsWith(realPath)
+            val needsFixing = unresolvedPath && path.startsWith(realPath)
             needsFixing match {
               case true  => path.resolve(realPath.relativize(path))
               case false => path
@@ -252,13 +257,13 @@ object API {
 
           val id = UUID.randomUUID()
           val watcher = DirectoryWatcher.builder
-            .path(path)
+            .path(observedPath)
             .listener { event =>
               val message = FileSystemEvent(
                 event.eventType,
                 fixPath(event.path)
               )
-              if (message.path != path) {
+              if (message.path != observedPath) {
                 val logText = s"Notifying $observer with $message"
                 fileManager.context.log.debug(logText)
                 observer ! message

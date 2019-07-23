@@ -1,4 +1,4 @@
-package org.enso.filemanager
+package org.enso.fileManager
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -8,7 +8,7 @@ import org.apache.commons.io.FileUtils
 
 import org.scalatest.Matchers
 
-trait FileSystemHelpers extends Matchers {
+trait Helpers extends Matchers {
   var tempDir: Path = _
 
   val contents: Array[Byte] =

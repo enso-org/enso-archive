@@ -1,4 +1,4 @@
-package org.enso.filemanager
+package org.enso.fileManager
 
 import akka.actor.testkit.typed.scaladsl.BehaviorTestKit
 import akka.actor.testkit.typed.scaladsl.TestInbox
@@ -9,6 +9,8 @@ import java.nio.file.NoSuchFileException
 import java.nio.file.Path
 
 import org.apache.commons.io.FileExistsException
+import org.enso.FileManager
+import org.enso.FileManager.API._
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
 import org.scalatest.Outcome
@@ -17,26 +19,21 @@ import scala.reflect.ClassTag
 import scala.util.Failure
 import scala.util.Success
 
-class FileManagerBehaviorTests
-    extends FunSuite
-    with Matchers
-    with FileSystemHelpers {
-  import API._
-
+class BehaviorTests extends FunSuite with Matchers with Helpers {
   var testKit: BehaviorTestKit[InputMessage] = _
   var inbox: TestInbox[OutputMessage]        = _
 
   override def withFixture(test: NoArgTest): Outcome = {
     withTemporaryDirectory(_ => {
-      testKit = BehaviorTestKit(FileManager.fileManager(tempDir))
+      testKit = BehaviorTestKit(FileManager(tempDir))
       inbox   = TestInbox[OutputMessage]()
       test()
     })
   }
 
-  def expectSuccess[T <: SuccessResponse: ClassTag](): T = {
+  def expectSuccess[T <: Response.Success: ClassTag](): T = {
     inbox.receiveMessage() match {
-      case Failure(err) => 
+      case Failure(err) =>
         fail(s"Unexpected error message: $err")
       case Success(msg) =>
         msg shouldBe a[T]
@@ -54,11 +51,11 @@ class FileManagerBehaviorTests
     }
   }
 
-  def runRequest(contents: RequestPayload[SuccessResponse]): Unit =
+  def runRequest(contents: Request.Payload[Response.Success]): Unit =
     testKit.run(Request(inbox.ref, contents))
 
-  def ask[res <: SuccessResponse: ClassTag](
-    contents: RequestPayload[res]
+  def ask[res <: Response.Success: ClassTag](
+    contents: Request.Payload[res]
   ): res = {
     runRequest(contents)
     expectSuccess[res]()
@@ -66,7 +63,7 @@ class FileManagerBehaviorTests
 
   // ask for something that is not allowed and is expected to cause exception
   def abet[exception <: Throwable: ClassTag](
-    contents: RequestPayload[SuccessResponse]
+    contents: Request.Payload[Response.Success]
   ): exception = {
     runRequest(contents)
     expectError[exception]()
@@ -75,7 +72,7 @@ class FileManagerBehaviorTests
   test("Copy directory: empty directory") {
     val subdir      = createSubDir()
     val destination = tempDir.resolve("target")
-    ask(CopyDirectoryRequest(subdir, destination))
+    ask(CopyDirectory.Request(subdir, destination))
 
     expectExist(subdir)
     expectExist(destination)
@@ -84,7 +81,7 @@ class FileManagerBehaviorTests
   test("Copy directory: non-empty directory") {
     val subtree     = createSubtree()
     val destination = tempDir.resolve("target")
-    ask(CopyDirectoryRequest(subtree.root, destination))
+    ask(CopyDirectory.Request(subtree.root, destination))
     val subtreeExpected = subtree.rebase(destination)
     expectSubtree(subtree)
     expectSubtree(subtreeExpected)
@@ -95,7 +92,7 @@ class FileManagerBehaviorTests
     val destination = tempDir.resolve("target")
     Files.createDirectory(destination)
     // no exception should happen, but merge
-    ask(CopyDirectoryRequest(subtree.root, destination))
+    ask(CopyDirectory.Request(subtree.root, destination))
     val subtreeExpected = subtree.rebase(destination)
     expectSubtree(subtree)
     expectSubtree(subtreeExpected)
@@ -105,7 +102,7 @@ class FileManagerBehaviorTests
     val srcFile = createSubFile()
     val dstFile = tempDir.resolve("file2")
     // FIXME: remove emoty lines, or addd them everywhere. Its beter to remove.
-    ask(CopyFileRequest(srcFile, dstFile))
+    ask(CopyFile.Request(srcFile, dstFile))
 
     expectExist(srcFile)
     expectExist(dstFile)
@@ -115,38 +112,38 @@ class FileManagerBehaviorTests
   test("Copy file: target already exists") {
     val srcFile = createSubFile()
     val dstFile = createSubFile()
-    abet[FileAlreadyExistsException](CopyFileRequest(srcFile, dstFile))
+    abet[FileAlreadyExistsException](CopyFile.Request(srcFile, dstFile))
     expectExist(srcFile)
   }
 
   test("Delete directory: empty directory") {
     val dir = createSubDir()
-    ask(DeleteDirectoryRequest(dir))
+    ask(DeleteDirectory.Request(dir))
     expectNotExist(dir)
   }
 
   test("Delete directory: non-empty directory") {
     val subtree = createSubtree()
-    ask(DeleteDirectoryRequest(subtree.root))
+    ask(DeleteDirectory.Request(subtree.root))
     expectNotExist(subtree.root)
   }
 
   test("Delete directory: missing directory") {
     val missingPath = tempDir.resolve("foo")
-    abet[NoSuchFileException](DeleteDirectoryRequest(missingPath))
+    abet[NoSuchFileException](DeleteDirectory.Request(missingPath))
   }
 
   test("Delete file: simple") {
     val file = createSubFile()
     expectExist(file)
-    ask(DeleteFileRequest(file))
+    ask(DeleteFile.Request(file))
     expectNotExist(file)
   }
 
   test("Delete file: missing file") {
     val missingPath = tempDir.resolve("foo")
     expectNotExist(missingPath)
-    abet[NoSuchFileException](DeleteFileRequest(missingPath))
+    abet[NoSuchFileException](DeleteFile.Request(missingPath))
     expectNotExist(missingPath)
   }
 
@@ -154,46 +151,46 @@ class FileManagerBehaviorTests
     val path = tempDir.resolve("../foo")
     // make sure that our path seemingly may look like something under the project
     assert(path.startsWith(tempDir))
-    abet[PathOutsideProjectException](ExistsRequest(path))
+    abet[PathOutsideProjectException](Exists.Request(path))
   }
 
   test("Exists: outside project by absolute path") {
-    abet[PathOutsideProjectException](ExistsRequest(homeDirectory()))
+    abet[PathOutsideProjectException](Exists.Request(homeDirectory()))
   }
 
   test("Exists: existing file") {
     val filePath = createSubFile()
-    val response = ask(ExistsRequest(filePath))
+    val response = ask(Exists.Request(filePath))
     response.exists should be(true)
   }
 
   test("Exists: existing directory") {
     val dirPath  = createSubDir()
-    val response = ask(ExistsRequest(dirPath))
+    val response = ask(Exists.Request(dirPath))
     response.exists should be(true)
   }
 
   test("Exists: missing file") {
     val filePath = tempDir.resolve("bar")
-    val response = ask(ExistsRequest(filePath))
+    val response = ask(Exists.Request(filePath))
     response.exists should be(false)
   }
 
   test("List: empty directory") {
-    val requestContents = ListRequest(tempDir)
+    val requestContents = List.Request(tempDir)
     val response        = ask(requestContents)
     response.entries should have length 0
   }
 
   test("List: missing directory") {
     val path = tempDir.resolve("bar")
-    abet[NoSuchFileException](ListRequest(path))
+    abet[NoSuchFileException](List.Request(path))
   }
 
   test("List: non-empty directory") {
     val filePath   = createSubFile()
     val subdirPath = createSubDir()
-    val response   = ask(ListRequest(tempDir))
+    val response   = ask(List.Request(tempDir))
 
     def expectPath(path: Path): Path = {
       response.entries.find(_.toString == path.toString) match {
@@ -208,13 +205,13 @@ class FileManagerBehaviorTests
   }
 
   test("List: outside project") {
-    abet[PathOutsideProjectException](ListRequest(homeDirectory()))
+    abet[PathOutsideProjectException](List.Request(homeDirectory()))
   }
 
   test("Move directory: empty directory") {
     val subdir      = createSubDir()
     val destination = tempDir.resolve("target")
-    ask(MoveDirectoryRequest(subdir, destination))
+    ask(MoveDirectory.Request(subdir, destination))
 
     assert(!Files.exists(subdir))
     assert(Files.exists(destination))
@@ -223,7 +220,7 @@ class FileManagerBehaviorTests
   test("Move directory: non-empty directory") {
     val subtree     = createSubtree()
     val destination = tempDir.resolve("target")
-    ask(MoveDirectoryRequest(subtree.root, destination))
+    ask(MoveDirectory.Request(subtree.root, destination))
     val subtreeExpected = subtree.rebase(destination)
     assert(!Files.exists(subtree.root))
     expectSubtree(subtreeExpected)
@@ -233,27 +230,27 @@ class FileManagerBehaviorTests
     val subtree     = createSubtree()
     val destination = tempDir.resolve("target")
     Files.createDirectory(destination)
-    abet[FileExistsException](MoveDirectoryRequest(subtree.root, destination))
+    abet[FileExistsException](MoveDirectory.Request(subtree.root, destination))
     // source was not destroyed by failed move
     expectSubtree(subtree)
   }
 
   test("Stat: missing file") {
     val filePath = tempDir.resolve("bar")
-    abet[NoSuchFileException](StatRequest(filePath))
+    abet[NoSuchFileException](Stat.Request(filePath))
   }
 
   test("Read: file") {
     val filePath = tempDir.resolve("bar")
     Files.write(filePath, contents)
 
-    val response = ask(ReadRequest(filePath))
+    val response = ask(Read.Request(filePath))
     response.contents should be(contents)
   }
 
   test("Touch: new file") {
     val filePath = tempDir.resolve("bar")
-    ask(TouchFileRequest(filePath))
+    ask(Touch.Request(filePath))
     expectExist(filePath)
     Files.size(filePath) should be(0)
   }
@@ -263,7 +260,7 @@ class FileManagerBehaviorTests
     val initialTimestamp = Files.getLastModifiedTime(filePath).toInstant
 
     Thread.sleep(1000)
-    ask(TouchFileRequest(filePath))
+    ask(Touch.Request(filePath))
     val finalTimestamp = Files.getLastModifiedTime(filePath).toInstant
     assert(initialTimestamp.isBefore(finalTimestamp))
     expectExist(filePath)
@@ -272,7 +269,7 @@ class FileManagerBehaviorTests
   test("Write: file") {
     val filePath = tempDir.resolve("bar")
 
-    ask(WriteRequest(filePath, contents))
+    ask(Write.Request(filePath, contents))
 
     val actualFileContents = Files.readAllBytes(filePath)
     actualFileContents should be(contents)
@@ -283,7 +280,7 @@ class FileManagerBehaviorTests
     val contents = "aaa"
     Files.write(filePath, contents.getBytes())
 
-    val response = ask(StatRequest(filePath))
+    val response = ask(Stat.Request(filePath))
 
     response.isDirectory should be(false)
     response.size should be(contents.length)

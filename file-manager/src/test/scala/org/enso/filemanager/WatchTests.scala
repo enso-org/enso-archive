@@ -1,4 +1,4 @@
-package org.enso.filemanager
+package org.enso.fileManager
 
 import akka.actor.Scheduler
 import akka.actor.testkit.typed.scaladsl.ActorTestKit
@@ -12,6 +12,7 @@ import java.nio.file.Path
 import java.util.UUID
 
 import org.apache.commons.io.FileUtils
+import org.enso.FileManager
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.FunSuite
 import org.scalatest.Matchers
@@ -24,12 +25,12 @@ import scala.reflect.ClassTag
 import scala.util.Try
 
 // needs to be separate because watcher message are asynchronous
-class FileManagerWatcherTests
+class WatchTests
     extends FunSuite
     with BeforeAndAfterAll
     with Matchers
-    with FileSystemHelpers {
-  import API._
+    with Helpers {
+  import FileManager.API._
 
   var testKit: ActorTestKit         = ActorTestKit()
   implicit val timeout: Timeout     = 3.seconds
@@ -41,7 +42,7 @@ class FileManagerWatcherTests
 
   override def withFixture(test: NoArgTest): Outcome = {
     withTemporaryDirectory(_ => {
-      fileManager = testKit.spawn(FileManager.fileManager(tempDir))
+      fileManager = testKit.spawn(FileManager(tempDir))
       testProbe   = testKit.createTestProbe[FileSystemEvent]("file-observer")
       watcherID   = observe(tempDir)
 
@@ -86,8 +87,8 @@ class FileManagerWatcherTests
     )
   }
 
-  def ask[response <: SuccessResponse: ClassTag](
-    requestPayload: RequestPayload[response]
+  def ask[response <: Response.Success: ClassTag](
+    requestPayload: Request.Payload[response]
   ): Future[Try[response]] = {
     FileManager.ask(fileManager, requestPayload)
   }
@@ -96,12 +97,12 @@ class FileManagerWatcherTests
     path: Path,
     replyTo: ActorRef[FileSystemEvent] = testProbe.ref
   ): UUID = {
-    val futureResponse = ask(CreateWatcherRequest(path, replyTo))
+    val futureResponse = ask(Watch.Create.Request(path, replyTo))
     Await.result(futureResponse, timeout.duration).get.id
   }
 
-  def unobserve(id: UUID): WatcherRemoveResponse = {
-    val futureResponse = ask(WatcherRemoveRequest(id))
+  def unobserve(id: UUID): Watch.Remove.Response = {
+    val futureResponse = ask(Watch.Remove.Request(id))
     Await.result(futureResponse, timeout.duration).get
   }
 
@@ -158,7 +159,7 @@ class FileManagerWatcherTests
     testProbe.expectNoMessage(50.millis)
     val stopResponse = unobserve(watcherID)
     watcherID = null
-    stopResponse should be(WatcherRemoveResponse())
+    stopResponse should be(Watch.Remove.Response())
 
     // we disabled watch, so no further messages should come
     FileUtils.deleteDirectory(subtree.root.toFile)
