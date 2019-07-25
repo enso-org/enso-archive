@@ -129,11 +129,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
   @Override
   public ExpressionNode visitFunction(
-      List<String> arguments, List<AstExpression> statements, AstExpression retValue) {
-    ExpressionFactory child = createChild(currentVarName);
-    ExpressionNode fun = child.processFunctionBody(arguments, statements, retValue);
-    fun.markTail();
-    return fun;
+      List<AstArgDefinition> arguments, List<AstExpression> statements, AstExpression retValue) {
+    // TODO [AA] Fixme
+    return null;
+//    ExpressionFactory child = createChild(currentVarName);
+//    ExpressionNode fun = child.processFunctionBody(arguments, statements, retValue);
+//    fun.markTail();
+//    return fun;
   }
 
   @Override
@@ -144,8 +146,27 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   }
 
   @Override
+  public ExpressionNode visitNamedArg(String name, AstExpression value) {
+    // TODO [AA] These need to actually be built into the call arguments.
+    return null;
+  }
+
+  @Override
+  public ExpressionNode visitDefaultedArg(String name, AstExpression value) {
+    // TODO [AA] These need to actually be built into the function arguments.
+    return null;
+  }
+
+  @Override
   public ExpressionNode visitIf(AstExpression cond, AstExpression ifTrue, AstExpression ifFalse) {
     return new IfZeroNode(cond.visit(this), ifTrue.visit(this), ifFalse.visit(this));
+  }
+
+  @Override
+  public ExpressionNode visitIgnore(String name) {
+    // TODO [AA] This needs to actually become a call expression once currying
+    // is a thing.
+    return null;
   }
 
   @Override
@@ -162,10 +183,11 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
   @Override
   public ExpressionNode visitCaseFunction(
-      List<String> arguments, List<AstExpression> statements, AstExpression retValue) {
-    ExpressionFactory child = createChild(currentVarName);
-    ExpressionNode fun = child.processFunctionBody(arguments, statements, retValue);
-    return fun;
+      List<AstArgDefinition> arguments, List<AstExpression> statements, AstExpression retValue) {
+    return null;
+//    ExpressionFactory child = createChild(currentVarName);
+//    ExpressionNode fun = child.processFunctionBody(arguments, statements, retValue);
+//    return fun;
   }
 
   @Override

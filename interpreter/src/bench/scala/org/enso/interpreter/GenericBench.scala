@@ -109,11 +109,11 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
   val sumListCode =
     """
       |{ |list|
-      |  sumator = { |acc, list| match list <
-      |    Cons ~ { |h, t| @sumator [acc + h, t] };
+      |  summator = { |acc, list| match list <
+      |    Cons ~ { |h, t| @summator [acc + h, t] };
       |    Nil ~ { acc };
       |  >};
-      |  res = @sumator [0, list];
+      |  res = @summator [0, list];
       |  res
       |}
     """.stripMargin
