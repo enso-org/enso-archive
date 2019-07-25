@@ -19,7 +19,7 @@ public final class FileDetector implements TruffleFile.FileTypeDetector {
 
   @Override
   public Charset findEncoding(TruffleFile file) throws IOException {
-    // TODO [AA] Give this a proper implementation.
+    // TODO [AA, MK] Give this a proper implementation.
     return null;
   }
 }

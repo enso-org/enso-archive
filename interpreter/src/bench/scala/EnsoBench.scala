@@ -7,6 +7,8 @@ class EnsoBench extends Bench.LocalTime with LanguageRunner {
   val million: Long        = 1000000
   val hundredMillion: Long = 100000000
 
+  // TODO [AA] Benchmarks for named and defaulted argument usage
+
   // Currently unused as we know this is very slow.
   val mutRecursiveCode =
     """
