@@ -1,10 +1,12 @@
 package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.TruffleFile;
-import org.enso.interpreter.Constants;
-
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
+import org.apache.tika.detect.DefaultEncodingDetector;
+import org.apache.tika.detect.EncodingDetector;
+import org.enso.interpreter.Constants;
 
 public final class FileDetector implements TruffleFile.FileTypeDetector {
 
@@ -19,7 +21,8 @@ public final class FileDetector implements TruffleFile.FileTypeDetector {
 
   @Override
   public Charset findEncoding(TruffleFile file) throws IOException {
-    // TODO [AA, MK] Give this a proper implementation.
-    return null;
+    InputStream fileReader = file.newInputStream();
+    EncodingDetector detector = new DefaultEncodingDetector();
+    return detector.detect(fileReader, null);
   }
 }

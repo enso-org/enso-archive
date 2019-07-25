@@ -1,7 +1,8 @@
-import org.enso.interpreter.{Constants, LanguageRunner}
+package org.enso.interpreter
+
 import org.scalameter.api._
 
-class EnsoBench extends Bench.LocalTime with LanguageRunner {
+class GenericBench extends Bench.LocalTime with LanguageRunner {
   val gen = Gen.unit("")
 
   val million: Long        = 1000000
