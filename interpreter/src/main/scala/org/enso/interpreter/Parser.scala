@@ -45,9 +45,7 @@ trait AstExpressionVisitor[+T] {
     fallback: java.util.Optional[AstCaseFunction]
   ): T
 
-  def visitNamedArg(name: String, value: AstExpression): T
-
-  def visitDefaultedArg(name: String, value: AstExpression): T
+  def visitNamedCallArg(name: String, value: AstExpression): T
 
   def visitIgnore(name: String): T
 }
@@ -90,29 +88,29 @@ sealed trait AstExpression {
 }
 
 trait AstArgDefinitionVisitor[+T] {
-  def visitDefaultedArg(name: String, value: AstExpression): T
-  def visitBareArg(name: String): T
+  def visitDefaultedArg(name: String, value: AstExpression, position: Int): T
+  def visitBareArg(name: String, position: Int): T
 }
 
 sealed trait AstArgDefinition {
-  def visit[T](visitor: AstArgDefinitionVisitor[T]): T
+  def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T
 }
 
-case class AstDefaultedArg(name: String, value: AstExpression)
+case class AstDefaultedArgDefinition(name: String, value: AstExpression)
     extends AstArgDefinition {
-  override def visit[T](visitor: AstArgDefinitionVisitor[T]): T =
-    visitor.visitDefaultedArg(name, value)
+  override def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
+    visitor.visitDefaultedArg(name, value, position)
 }
 
-case class AstBareArg(name: String) extends AstArgDefinition {
-  override def visit[T](visitor: AstArgDefinitionVisitor[T]): T =
-    visitor.visitBareArg(name)
+case class AstBareArgDefinition(name: String) extends AstArgDefinition {
+  override def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
+    visitor.visitBareArg(name, position)
 }
 
-case class AstNamedArg(name: String, value: AstExpression)
+case class AstNamedCallArg(name: String, value: AstExpression)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitNamedArg(name, value);
+    visitor.visitNamedCallArg(name, value);
 }
 
 case class AstLong(l: Long) extends AstExpression {
@@ -224,15 +222,16 @@ class EnsoParserInternal extends JavaTokenParsers {
   def argList: Parser[List[AstExpression]] =
     delimited("[", "]", nonEmptyList(ignore | namedArg | expression))
 
-  def namedArg: Parser[AstNamedArg] = ident ~ ("=" ~> expression) ^^ {
-    case name ~ expr => AstNamedArg(name, expr)
+  def namedArg: Parser[AstNamedCallArg] = ident ~ ("=" ~> expression) ^^ {
+    case name ~ expr => AstNamedCallArg(name, expr)
   }
 
-  def defaultedArg: Parser[AstDefaultedArg] = ident ~ ("=" ~> expression) ^^ {
-    case name ~ value => AstDefaultedArg(name, value)
-  }
+  def defaultedArg: Parser[AstDefaultedArgDefinition] =
+    ident ~ ("=" ~> expression) ^^ {
+      case name ~ value => AstDefaultedArgDefinition(name, value)
+    }
 
-  def bareArg: Parser[AstBareArg] = ident ^^ AstBareArg
+  def bareArg: Parser[AstBareArgDefinition] = ident ^^ AstBareArgDefinition
 
   def inArgList: Parser[List[AstArgDefinition]] =
     delimited("|", "|", nonEmptyList(defaultedArg | bareArg))

@@ -13,6 +13,7 @@ public class ReadArgumentNode extends ExpressionNode {
     this.index = index;
   }
 
+  // TODO [AA] Needs to handle looking up by name and with defaults
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     return Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];

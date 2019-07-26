@@ -2,11 +2,10 @@ package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
-import org.enso.interpreter.runtime.errors.VariableRedefinitionException;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.enso.interpreter.runtime.errors.VariableRedefinitionException;
 
 public class LocalScope {
   private Map<String, FrameSlot> items;
@@ -43,6 +42,7 @@ public class LocalScope {
     return slot;
   }
 
+  // TODO [AA] This needs to handle defaulted args.
   public Optional<FramePointer> getSlot(String name) {
     LocalScope scope = this;
     int parentCounter = 0;
