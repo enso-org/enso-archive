@@ -3,20 +3,12 @@ package org.enso.interpreter
 class NamedArgumentsTest extends LanguageTest {
   "Functions" should "take arguments by name and use them in their bodies" in {
 
-//    val code =
-//      """
-//        |a = 10
-//        |addTen = { |b| a + b }
-//        |
-//        |@addTen [b = 10]
-//      """.stripMargin
-
     val code =
       """
         |a = 10
         |addTen = { |b| a + b }
         |
-        |@addTen [10]
+        |@addTen [b = 10]
       """.stripMargin
 
 //    noException should be thrownBy parse(code)

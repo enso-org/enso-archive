@@ -24,7 +24,7 @@ trait AstExpressionVisitor[+T] {
     retValue: AstExpression
   ): T
 
-  def visitApplication(
+  def visitFunctionApplication(
     function: AstExpression,
     arguments: java.util.List[AstExpression]
   ): T
@@ -137,7 +137,7 @@ case class AstVariable(name: String) extends AstExpression {
 case class AstApply(fun: AstExpression, args: List[AstExpression])
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitApplication(fun, args.asJava)
+    visitor.visitFunctionApplication(fun, args.asJava)
 }
 
 case class AstFunction(

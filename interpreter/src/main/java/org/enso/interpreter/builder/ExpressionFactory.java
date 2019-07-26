@@ -35,7 +35,7 @@ import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNodeGen;
-import org.enso.interpreter.node.function.ReadArgumentNode;
+import org.enso.interpreter.node.function.argument.ReadArgumentNode;
 import org.enso.interpreter.node.function.argument.ArgumentDefinitionNode;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
@@ -173,8 +173,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     return fun;
   }
 
+  // At call time we don't have access to the function itself, which means that we have no way of
+  // getting at its arguments, even if we knew them statically before.
+  // How can we bridge that gap?
   @Override
-  public ExpressionNode visitApplication(AstExpression function, List<AstExpression> arguments) {
+  public ExpressionNode visitFunctionApplication(
+      AstExpression function, List<AstExpression> arguments) {
+    System.out.println(arguments);
     return InvokeNodeGen.create(
         arguments.stream().map(arg -> arg.visit(this)).toArray(ExpressionNode[]::new),
         function.visit(this));
