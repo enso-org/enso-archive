@@ -1,9 +1,14 @@
 package org.enso.interpreter.builder;
 
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.nodes.RootNode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.enso.interpreter.AstArgDefinition;
 import org.enso.interpreter.AstCase;
@@ -11,6 +16,7 @@ import org.enso.interpreter.AstCaseFunction;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.AstExpressionVisitor;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.controlflow.CaseNode;
 import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
@@ -26,8 +32,12 @@ import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
+import org.enso.interpreter.node.function.CreateFunctionNode;
+import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNodeGen;
+import org.enso.interpreter.node.function.ReadArgumentNode;
 import org.enso.interpreter.node.function.argument.ArgumentDefinitionNode;
+import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
@@ -107,43 +117,52 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
         .orElseThrow(() -> new VariableDoesNotExistException(name));
   }
 
+  // TODO [AA] Make this handle defaulted arguments properly.
   public ExpressionNode processFunctionBody(
-      List<AstArgDefinition> arguments, List<AstExpression> statements, AstExpression retValue) {
+      List<AstArgDefinition> arguments, List<AstExpression> expressions, AstExpression retValue) {
 
     ArgDefinitionFactory argFactory =
         new ArgDefinitionFactory(scope, language, scopeName, globalScope);
-    List<ArgumentDefinitionNode> argNodes;
+    List<ArgumentDefinitionNode> argNodes = new ArrayList<>();
+    List<ExpressionNode> argExpressions = new ArrayList<>();
 
+    // Note [Rewriting Arguments]
     for (int i = 0; i < arguments.size(); i++) {
       ArgumentDefinitionNode arg = arguments.get(i).visit(argFactory, i);
-//      FrameSlot slot = scope.createVarSlot()
+      argNodes.add(arg);
+      FrameSlot slot = scope.createVarSlot(arg.getName());
+      ReadArgumentNode readArg = new ReadArgumentNode(i);
+      AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
+      argExpressions.add(assignArg);
     }
 
-    // TODO [AA] Fixme
-    return null;
-    //    List<ExpressionNode> argRewrites = new ArrayList<>();
-    //    for (int i = 0; i < arguments.size(); i++) {
-    //      FrameSlot slot = scope.createVarSlot(arguments.get(i));
-    //      ReadArgumentNode readArg = new ReadArgumentNode(i);
-    //      AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
-    //      argRewrites.add(assignArg);
-    //    }
-    //
-    //    List<ExpressionNode> statementNodes =
-    //        statements.stream().map(stmt -> stmt.visit(this)).collect(Collectors.toList());
-    //    List<ExpressionNode> allStatements = new ArrayList<>();
-    //    allStatements.addAll(argRewrites);
-    //    allStatements.addAll(statementNodes);
-    //    ExpressionNode expr = retValue.visit(this);
-    //    FunctionBodyNode functionBodyNode =
-    //        new FunctionBodyNode(allStatements.toArray(new ExpressionNode[0]), expr);
-    //    RootNode rootNode =
-    //        new EnsoRootNode(
-    //            language, scope.getFrameDescriptor(), functionBodyNode, null, "lambda::" +
-    // scopeName);
-    //    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    //    return new CreateFunctionNode(callTarget);
+    List<ExpressionNode> fnBodyExpressionNodes =
+        expressions.stream().map(stmt -> stmt.visit(this)).collect(Collectors.toList());
+
+    List<ExpressionNode> allFnExpressions = new ArrayList<>();
+    allFnExpressions.addAll(argExpressions);
+    allFnExpressions.addAll(fnBodyExpressionNodes);
+
+    ExpressionNode returnExpr = retValue.visit(this);
+
+    FunctionBodyNode fnBodyNode =
+        new FunctionBodyNode(allFnExpressions.toArray(new ExpressionNode[0]), returnExpr);
+    RootNode fnRootNode =
+        new EnsoRootNode(
+            language, scope.getFrameDescriptor(), fnBodyNode, null, "lambda::" + scopeName);
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(fnRootNode);
+
+    return new CreateFunctionNode(callTarget);
   }
+
+  /* Note [Rewriting Arguments]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * While it would be tempting to handle function arguments as a special case of a lookup, it is
+   * instead far simpler to rewrite them such that they just become bindings in the function local
+   * scope.
+   *
+   * TODO [AA] Finish this source note once the new handling is implemented.
+   */
 
   @Override
   public ExpressionNode visitFunction(
@@ -164,7 +183,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitNamedCallArg(String name, AstExpression value) {
     // TODO [AA] These need to actually be built into the call arguments.
-    return null;
+    throw new RuntimeException("Calling with named args is not yet implemented");
   }
 
   @Override
@@ -176,7 +195,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   public ExpressionNode visitIgnore(String name) {
     // TODO [AA] This needs to actually become a call expression once currying
     // is a thing.
-    return null;
+    throw new RuntimeException("Default ignores is not yet implemented.");
   }
 
   @Override
@@ -194,10 +213,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitCaseFunction(
       List<AstArgDefinition> arguments, List<AstExpression> statements, AstExpression retValue) {
-    return null;
-    //    ExpressionFactory child = createChild(currentVarName);
-    //    ExpressionNode fun = child.processFunctionBody(arguments, statements, retValue);
-    //    return fun;
+    ExpressionFactory child = createChild(currentVarName);
+    return child.processFunctionBody(arguments, statements, retValue);
   }
 
   @Override

@@ -37,6 +37,7 @@ public class LocalScope {
 
   public FrameSlot createVarSlot(String name) {
     if (items.containsKey(name)) throw new VariableRedefinitionException(name);
+    // The FrameSlot is created for a given identifier.
     FrameSlot slot = frameDescriptor.addFrameSlot(name);
     items.put(name, slot);
     return slot;
