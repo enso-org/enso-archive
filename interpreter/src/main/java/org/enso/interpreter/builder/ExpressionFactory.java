@@ -36,7 +36,7 @@ import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNodeGen;
 import org.enso.interpreter.node.function.argument.ReadArgumentNode;
-import org.enso.interpreter.node.function.argument.ArgumentDefinitionNode;
+import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
@@ -123,13 +123,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
     ArgDefinitionFactory argFactory =
         new ArgDefinitionFactory(scope, language, scopeName, globalScope);
-    List<ArgumentDefinitionNode> argNodes = new ArrayList<>();
+    List<ArgumentDefinition> argDefinitions = new ArrayList<>();
     List<ExpressionNode> argExpressions = new ArrayList<>();
 
     // Note [Rewriting Arguments]
     for (int i = 0; i < arguments.size(); i++) {
-      ArgumentDefinitionNode arg = arguments.get(i).visit(argFactory, i);
-      argNodes.add(arg);
+      ArgumentDefinition arg = arguments.get(i).visit(argFactory, i);
+      argDefinitions.add(arg);
       FrameSlot slot = scope.createVarSlot(arg.getName());
       ReadArgumentNode readArg = new ReadArgumentNode(i);
       AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
@@ -152,7 +152,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
             language, scope.getFrameDescriptor(), fnBodyNode, null, "lambda::" + scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(fnRootNode);
 
-    return new CreateFunctionNode(callTarget);
+    return new CreateFunctionNode(callTarget, argDefinitions);
   }
 
   /* Note [Rewriting Arguments]

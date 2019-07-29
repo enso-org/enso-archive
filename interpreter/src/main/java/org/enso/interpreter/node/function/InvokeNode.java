@@ -36,6 +36,7 @@ public abstract class InvokeNode extends ExpressionNode {
     return positionalArguments;
   }
 
+  // You can query this function about its arguments.
   @Specialization
   public Object invokeFunction(VirtualFrame frame, Function target) {
     Object[] positionalArguments = computeArguments(frame);

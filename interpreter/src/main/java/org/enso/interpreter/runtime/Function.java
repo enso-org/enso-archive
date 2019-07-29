@@ -10,15 +10,20 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
+import java.util.List;
+import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 
 @ExportLibrary(InteropLibrary.class)
 public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
+  private final List<ArgumentDefinition> arguments;
 
-  public Function(RootCallTarget callTarget, MaterializedFrame scope) {
+  public Function(
+      RootCallTarget callTarget, MaterializedFrame scope, List<ArgumentDefinition> arguments) {
     this.callTarget = callTarget;
     this.scope = scope;
+    this.arguments = arguments;
   }
 
   public RootCallTarget getCallTarget() {

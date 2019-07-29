@@ -3,22 +3,20 @@ package org.enso.interpreter.node.function.argument;
 import java.util.Optional;
 import org.enso.interpreter.node.ExpressionNode;
 
-public class ArgumentDefinitionNode {
+public class ArgumentDefinition {
   private final int position;
   private final String name;
   private final Optional<ExpressionNode> defaultValue;
 
-  public ArgumentDefinitionNode(int position, String name) {
-    this.position = position;
-    this.name = name;
-    this.defaultValue = Optional.empty();
+  public ArgumentDefinition(int position, String name) {
+    this(position, name, null);
   }
 
-  public ArgumentDefinitionNode(int position, String name,
+  public ArgumentDefinition(int position, String name,
       ExpressionNode defaultValue) {
     this.position = position;
     this.name = name;
-    this.defaultValue = Optional.of(defaultValue);
+    this.defaultValue = Optional.ofNullable(defaultValue);
   }
 
   public int getPosition() {

@@ -3,9 +3,9 @@ package org.enso.interpreter.builder;
 import org.enso.interpreter.AstArgDefinitionVisitor;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.function.argument.ArgumentDefinitionNode;
+import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 
-public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDefinitionNode> {
+public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDefinition> {
 
   private final LocalScope scope;
   private final Language language;
@@ -21,13 +21,13 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
   }
 
   @Override
-  public ArgumentDefinitionNode visitBareArg(String name, int position) {
-    return new ArgumentDefinitionNode(position, name);
+  public ArgumentDefinition visitBareArg(String name, int position) {
+    return new ArgumentDefinition(position, name);
   }
 
   @Override
-  public ArgumentDefinitionNode visitDefaultedArg(String name, AstExpression value, int position) {
+  public ArgumentDefinition visitDefaultedArg(String name, AstExpression value, int position) {
     ExpressionFactory exprFactory = new ExpressionFactory(language, scope, scopeName, globalScope);
-    return new ArgumentDefinitionNode(position, name, value.visit(exprFactory));
+    return new ArgumentDefinition(position, name, value.visit(exprFactory));
   }
 }
