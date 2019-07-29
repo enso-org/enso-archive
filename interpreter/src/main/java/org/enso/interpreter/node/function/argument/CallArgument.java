@@ -8,7 +8,6 @@ import org.enso.interpreter.runtime.AtomConstructor;
 public class CallArgument extends ExpressionNode {
   private final Optional<String> name;
   private final Optional<ExpressionNode> expression;
-  private final boolean isIgnore;
   private final int position;
 
   public CallArgument(ExpressionNode expression, int position) {
@@ -23,17 +22,23 @@ public class CallArgument extends ExpressionNode {
     this.name = Optional.ofNullable(name);
     this.expression = Optional.ofNullable(expression);
     this.position = position;
+  }
 
-    if (this.name.isPresent() && !this.expression.isPresent()) {
-      this.isIgnore = true;
-    } else {
-      this.isIgnore = false;
-    }
+  public boolean isIgnored() {
+    return this.name.isPresent() && !this.expression.isPresent();
+  }
+
+  public boolean isNamed() {
+    return this.name.isPresent() && this.expression.isPresent();
+  }
+
+  public boolean isPositional() {
+    return this.expression.isPresent() && !this.name.isPresent();
   }
 
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    if (!isIgnore()) {
+    if (!isIgnored()) {
       return this.expression.get().executeGeneric(frame);
     } else {
       return AtomConstructor.UNIT.newInstance();
@@ -44,19 +49,7 @@ public class CallArgument extends ExpressionNode {
     return this.name;
   }
 
-  public Optional<ExpressionNode> getExpression() {
-    return this.expression;
-  }
-
-  public boolean isIgnore() {
-    return this.isIgnore;
-  }
-
-  public boolean isPositional() {
-    return !this.name.isPresent();
-  }
-
-  public boolean isNamed() {
-    return this.name.isPresent();
+  public int getPosition() {
+    return position;
   }
 }
