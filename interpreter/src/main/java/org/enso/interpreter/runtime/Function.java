@@ -14,16 +14,15 @@ import java.util.List;
 import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 
 @ExportLibrary(InteropLibrary.class)
-public final class Function implements TruffleObject {
+public final class Function extends Callable implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
-  private final List<ArgumentDefinition> arguments;
 
   public Function(
       RootCallTarget callTarget, MaterializedFrame scope, List<ArgumentDefinition> arguments) {
+    super(arguments);
     this.callTarget = callTarget;
     this.scope = scope;
-    this.arguments = arguments;
   }
 
   public RootCallTarget getCallTarget() {

@@ -20,6 +20,14 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
     this.globalScope = globalScope;
   }
 
+  public ArgDefinitionFactory(Language language, String scopeName, GlobalScope globalScope) {
+    this(new LocalScope(), language, scopeName, globalScope);
+  }
+
+  public ArgDefinitionFactory(Language language, GlobalScope globalScope) {
+    this(language, "<root>", globalScope);
+  }
+
   @Override
   public ArgumentDefinition visitBareArg(String name, int position) {
     return new ArgumentDefinition(position, name);

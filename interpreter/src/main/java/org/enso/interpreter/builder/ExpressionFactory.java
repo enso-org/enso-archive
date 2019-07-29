@@ -175,6 +175,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     return fun;
   }
 
+  @Override
+  public ExpressionNode visitCaseFunction(
+      List<AstArgDefinition> arguments, List<AstExpression> statements, AstExpression retValue) {
+    ExpressionFactory child = createChild(currentVarName);
+    return child.processFunctionBody(arguments, statements, retValue);
+  }
+
   // At call time we don't have access to the function itself, which means that we have no way of
   // getting at its arguments, even if we knew them statically before.
   // How can we bridge that gap?
@@ -216,13 +223,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   @Override
   public ExpressionNode visitPrint(AstExpression body) {
     return new PrintNode(body.visit(this));
-  }
-
-  @Override
-  public ExpressionNode visitCaseFunction(
-      List<AstArgDefinition> arguments, List<AstExpression> statements, AstExpression retValue) {
-    ExpressionFactory child = createChild(currentVarName);
-    return child.processFunctionBody(arguments, statements, retValue);
   }
 
   @Override

@@ -59,9 +59,9 @@ trait AstGlobalScopeVisitor[+T] {
 
 sealed trait AstGlobalSymbol
 
-case class AstTypeDef(name: String, arguments: List[String])
+case class AstTypeDef(name: String, arguments: List[AstArgDefinition])
     extends AstGlobalSymbol {
-  def getArguments: java.util.List[String] = arguments.asJava
+  def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
 
 case class AstGlobalScope(
@@ -241,15 +241,20 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def unnamedCallArg: Parser[AstCallArg] = expression ^^ AstUnnamedCallArg
 
-  def defaultedArg: Parser[AstDefaultedArgDefinition] =
+  def defaultedArgDefinition: Parser[AstDefaultedArgDefinition] =
     ident ~ ("=" ~> expression) ^^ {
       case name ~ value => AstDefaultedArgDefinition(name, value)
     }
 
-  def bareArg: Parser[AstBareArgDefinition] = ident ^^ AstBareArgDefinition
+  def bareArgDefinition: Parser[AstBareArgDefinition] =
+    ident ^^ AstBareArgDefinition
 
   def inArgList: Parser[List[AstArgDefinition]] =
-    delimited("|", "|", nonEmptyList(defaultedArg | bareArg))
+    delimited(
+      "|",
+      "|",
+      nonEmptyList(defaultedArgDefinition | bareArgDefinition)
+    )
 
   def foreignLiteral: Parser[String] = "**" ~> "[^\\*]*".r <~ "**"
 
@@ -306,7 +311,7 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def statement: Parser[AstExpression] = assignment | print | expression
 
-  def typeDef: Parser[AstGlobalSymbol] = "type" ~> ident ~ (ident *) <~ ";" ^^ {
+  def typeDef: Parser[AstGlobalSymbol] = "type" ~> ident ~ ((bareArgDefinition | defaultedArgDefinition)*) <~ ";" ^^ {
     case name ~ args => AstTypeDef(name, args)
   }
 

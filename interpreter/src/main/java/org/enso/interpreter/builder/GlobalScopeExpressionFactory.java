@@ -3,12 +3,18 @@ package org.enso.interpreter.builder;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import org.enso.interpreter.*;
+import java.util.ArrayList;
+import java.util.List;
+import org.enso.interpreter.AstAssignment;
+import org.enso.interpreter.AstExpression;
+import org.enso.interpreter.AstGlobalScope;
+import org.enso.interpreter.AstGlobalScopeVisitor;
+import org.enso.interpreter.AstTypeDef;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.AtomConstructor;
-
-import java.util.List;
 
 public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
 
@@ -30,7 +36,14 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
     bindings.forEach(binding -> globalScope.registerName(binding.name()));
 
     for (AstTypeDef type : typeDefs) {
-      globalScope.registerConstructor(new AtomConstructor(type.name(), type.getArguments()));
+      ArgDefinitionFactory argFactory = new ArgDefinitionFactory(language, globalScope);
+      List<ArgumentDefinition> argDefs = new ArrayList<>();
+
+      for (int i = 0; i < type.getArguments().size(); ++i) {
+        argDefs.add(type.getArguments().get(i).visit(argFactory, i));
+      }
+
+      globalScope.registerConstructor(new AtomConstructor(type.name(), argDefs));
     }
 
     for (AstAssignment binding : bindings) {
