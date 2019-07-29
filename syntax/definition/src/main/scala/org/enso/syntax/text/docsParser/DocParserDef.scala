@@ -127,9 +127,10 @@ case class DocParserDef() extends ParserBase[AST] {
     }
     result = Some(Text(text))
     pushAST()
-    tagsList.foreach(tagType => {
-      if (in.contains(tagType(None).name)) {
-        pushTag(tagType, in.replaceFirst(tagType(None).name, ""))
+    possibleTagsList.foreach(tagType => {
+      // FIXME - bacause tagType is object, i need to drop '$'
+      if (in.contains(tagType.getClass.getSimpleName.toUpperCase.dropRight(1))) {
+        pushTag(tagType, in.replaceFirst(tagType.getClass.getSimpleName.toUpperCase.dropRight(1), ""))
       }
     })
   }
@@ -210,18 +211,18 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// Tagging //////
   /////////////////////
 
-  val tagsList: List[Option[String] => TagType] =
-    List(Deprecated(_), Added(_), Modified(_), Removed(_), Upcoming(_))
-  var tagsStack: List[TagType] = Nil
+  val possibleTagsList: List[TagType] =
+    List(Deprecated, Added, Modified, Removed, Upcoming)
+  var tagsStack: List[TagClass] = Nil
   var tagsIndent: Int          = 0
 
-  def pushTag(tagType: Option[String] => TagType, version: String): Unit =
+  def pushTag(tagType: TagType, version: String): Unit =
     logger.trace {
       popAST()
       if (version.replaceAll("\\s", "").length == 0) {
-        tagsStack +:= tagType(None)
+        tagsStack +:= TagClass(tagType)
       } else {
-        tagsStack +:= tagType(Some(version.substring(1)))
+        tagsStack +:= TagClass(tagType,Some(version.substring(1)))
       }
       result = Some("")
     }

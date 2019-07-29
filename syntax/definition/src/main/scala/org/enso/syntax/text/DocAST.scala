@@ -52,12 +52,12 @@ object DocAST {
   case object Italic extends FormatterClass('_','i')
   case object Strikethrough extends FormatterClass('~','s')
 
-  final case class Formatter(formatterType: FormatterType, elem: Option[AST])
+  final case class Formatter(tp: FormatterType, elem: Option[AST])
       extends AST {
     val repr
-      : Repr = Repr(formatterType.marker) + elem.repr + formatterType.marker
+      : Repr = Repr(tp.marker) + elem.repr + tp.marker
     val htmlRepr
-      : Repr = Repr("<") + formatterType.htmlMarker + ">" + elem.htmlRepr + "</" + formatterType.htmlMarker + ">"
+      : Repr = Repr("<") + tp.htmlMarker + ">" + elem.htmlRepr + "</" + tp.htmlMarker + ">"
   }
   object Formatter {
     def apply(formatterType: FormatterType): Formatter =
@@ -394,9 +394,15 @@ object DocAST {
   /// Tags ///
   ////////////
 
-  trait TagType extends AST {
-    val version: Option[String]
-    val name: String = this.getClass.getSimpleName.toUpperCase
+  trait TagType
+  case object Deprecated extends TagType
+  case object Added extends TagType
+  case object Removed extends TagType
+  case object Modified extends TagType
+  case object Upcoming extends TagType
+
+  final case class TagClass(tp: TagType, version: Option[String]) extends AST {
+    val name: String = tp.getClass.getSimpleName.toUpperCase.dropRight(1)
     val repr: Repr = {
       if (version.repr == Repr()) {
         Repr(name)
@@ -405,36 +411,14 @@ object DocAST {
       }
     }
     val htmlRepr
-      : Repr = Repr("<div class=\"") + name + "\">" + name + version.htmlRepr + "</div>"
+    : Repr = Repr("<div class=\"") + name + "\">" + name + version.htmlRepr + "</div>"
+  }
+  object TagClass {
+    def apply(tp: TagType): TagClass = TagClass(tp, None)
+    def apply(tp: TagType, version: String): TagClass = TagClass(tp, Option(version))
   }
 
-  case class Deprecated(version: Option[String]) extends TagType
-  object Deprecated {
-    def apply():                Deprecated = Deprecated(None)
-    def apply(version: String): Deprecated = Deprecated(Option(version))
-  }
-  case class Added(version: Option[String]) extends TagType
-  object Added {
-    def apply():                Added = Added(None)
-    def apply(version: String): Added = Added(Option(version))
-  }
-  case class Removed(version: Option[String]) extends TagType
-  object Removed {
-    def apply():                Removed = Removed(None)
-    def apply(version: String): Removed = Removed(Option(version))
-  }
-  case class Modified(version: Option[String]) extends TagType
-  object Modified {
-    def apply():                Modified = Modified(None)
-    def apply(version: String): Modified = Modified(Option(version))
-  }
-  case class Upcoming(version: Option[String]) extends TagType
-  object Upcoming {
-    def apply():                Upcoming = Upcoming(None)
-    def apply(version: String): Upcoming = Upcoming(Option(version))
-  }
-
-  final case class Tags(indent: Int, elems: List[TagType]) extends AST {
+  final case class Tags(indent: Int, elems: List[TagClass]) extends AST {
     val repr: Repr = {
       var _repr = Repr()
       elems.foreach(elem => {
@@ -457,10 +441,10 @@ object DocAST {
   object Tags {
     def apply():                             Tags = Tags(0, Nil)
     def apply(indent: Int):                  Tags = Tags(indent, Nil)
-    def apply(elem: TagType):                Tags = Tags(0, elem :: Nil)
-    def apply(indent: Int, elem: TagType):   Tags = Tags(indent, elem :: Nil)
-    def apply(elems: TagType*):              Tags = Tags(0, elems.to[List])
-    def apply(indent: Int, elems: TagType*): Tags = Tags(indent, elems.to[List])
+    def apply(elem: TagClass):                Tags = Tags(0, elem :: Nil)
+    def apply(indent: Int, elem: TagClass):   Tags = Tags(indent, elem :: Nil)
+    def apply(elems: TagClass*):              Tags = Tags(0, elems.to[List])
+    def apply(indent: Int, elems: TagClass*): Tags = Tags(indent, elems.to[List])
   }
 
   implicit final class _OptionTagType_(val self: Option[String]) extends AST {

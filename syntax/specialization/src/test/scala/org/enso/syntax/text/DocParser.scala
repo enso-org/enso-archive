@@ -340,19 +340,19 @@ class DocParserSpec extends FlatSpec with Matchers {
   ///// Tags /////
   ////////////////
   "DEPRECATED" ?= Documentation(
-    Tags(Deprecated())
-  )
-  "MODIFIED" ?= Documentation(Tags(Modified()))
-  "ADDED"    ?= Documentation(Tags(Added()))
-  "REMOVED"  ?= Documentation(Tags(Removed()))
+    Tags(TagClass(Deprecated)
+  ))
+  "MODIFIED" ?= Documentation(Tags(TagClass(Modified)))
+  "ADDED"    ?= Documentation(Tags(TagClass(Added)))
+  "REMOVED"  ?= Documentation(Tags(TagClass(Removed)))
   "REMOVED\nFoo" ?= Documentation(
-    Tags(Removed()),
+    Tags(TagClass(Removed)),
     Synopsis(TextBlock(0, "Foo"))
   )
   "DEPRECATED in 1.0" ?= Documentation(
-    Tags(Deprecated("in 1.0"))
+    Tags(TagClass(Deprecated, "in 1.0"))
   )
   "DEPRECATED in 1.0\nMODIFIED" ?= Documentation(
-    Tags(Deprecated("in 1.0"), Modified())
+    Tags(TagClass(Deprecated, "in 1.0"), TagClass(Modified))
   )
 }
