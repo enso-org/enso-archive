@@ -1,7 +1,7 @@
 package org.enso.syntax
 
 import org.enso.flexer.Macro
-import org.enso.syntax.text.parser.Definition
+import org.enso.syntax.text.ParserDef
 import org.scalameter.api._
 
 import scala.math.pow
@@ -24,7 +24,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
                                             | fib  n = fib n-1 + fib n-2
                                             """.stripMargin * i
 
-  val newParser = Macro.compile(Definition)
+  val newParser = Macro.compile(ParserDef)
 
   performance of "parser" in {
     measure method "variable" in (using(variable) in (newParser().run(_)))

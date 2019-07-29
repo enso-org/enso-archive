@@ -2,9 +2,10 @@ package org.enso.syntax.text
 
 import org.enso.flexer.ParserBase
 import org.enso.syntax.text.AST._
+import org.enso.syntax.text.ast.Helpers._
 import org.enso.{flexer => Flexer}
 import org.scalatest._
-import org.enso.syntax.text.parser.EDSL._
+import EDSL._
 
 class ParserSpec extends FlatSpec with Matchers {
 
@@ -59,24 +60,24 @@ class ParserSpec extends FlatSpec with Matchers {
     def ?=(out: Module) = testBase in { assertModule(input, out) }
   }
 
-  /////////////////
-  // Identifiers //
-  /////////////////
+  /////////////////////
+  //// Identifiers ////
+  /////////////////////
 
   "_"      ?= "_"
   "Name"   ?= "Name"
   "name"   ?= "name"
   "name'"  ?= "name'"
   "name''" ?= "name''"
-  "name'a" ?= Identifier.InvalidSuffix("name'", "a")
+  "name'a" ?= Ident.InvalidSuffix("name'", "a")
   "name_"  ?= "name_"
   "name_'" ?= "name_'"
-  "name'_" ?= Identifier.InvalidSuffix("name'", "_")
+  "name'_" ?= Ident.InvalidSuffix("name'", "_")
   "name`"  ?= "name" $ Unrecognized("`")
 
-  ///////////////
-  // Operators //
-  ///////////////
+  ///////////////////
+  //// Operators ////
+  ///////////////////
 
   "++"   ?= "++"
   "="    ?= "="
@@ -89,16 +90,16 @@ class ParserSpec extends FlatSpec with Matchers {
   ">="   ?= ">="
   "<="   ?= "<="
   "/="   ?= "/="
-  "+="   ?= Modifier("+")
-  "-="   ?= Modifier("-")
-  "==="  ?= Identifier.InvalidSuffix("==", "=")
-  "...." ?= Identifier.InvalidSuffix("...", ".")
-  ">=="  ?= Identifier.InvalidSuffix(">=", "=")
-  "+=="  ?= Identifier.InvalidSuffix("+", "==")
+  "+="   ?= Opr.Mod("+")
+  "-="   ?= Opr.Mod("-")
+  "==="  ?= Ident.InvalidSuffix("==", "=")
+  "...." ?= Ident.InvalidSuffix("...", ".")
+  ">=="  ?= Ident.InvalidSuffix(">=", "=")
+  "+=="  ?= Ident.InvalidSuffix("+", "==")
 
-  /////////////////
-  // Expressions //
-  /////////////////
+  /////////////////////
+  //// Expressions ////
+  /////////////////////
 
   "a b"           ?= ("a" $_ "b")
   "a +  b"        ?= ("a" $_ "+") $__ "b"
@@ -130,58 +131,58 @@ class ParserSpec extends FlatSpec with Matchers {
   //  "a ( b c )" ?= "a" $_ "(" $_ "b" $_ "c" $_ ")" // ("a" $_ Group(1, "b" $_ "c", 1))
   //  "(a (b c))" ?= "(" $ "a" $_ "(" $ "b" $_ "c" $ ")" $ ")" // Group("a" $_ Group("b" $_ "c"))
 
-  ////////////
-  // Layout //
-  ////////////
+  ////////////////
+  //// Layout ////
+  ////////////////
 
-  ""      ?= Module(Line())
-  "\n"    ?= Module(Line(), Line())
-  "  \n " ?= Module(Line(2), Line(1))
-  "\n\n"  ?= Module(Line(), Line(), Line())
+  ""      ?= Module(Block.Line())
+  "\n"    ?= Module(Block.Line(), Block.Line())
+  "  \n " ?= Module(Block.Line(2), Block.Line(1))
+  "\n\n"  ?= Module(Block.Line(), Block.Line(), Block.Line())
   //  test module "(a)"  ==? GroupBegin  :: Var("a") :: GroupEnd
   //  test module "[a]"  ==? ListBegin   :: Var("a") :: ListEnd
   //  test module "{a}"  ==? RecordBegin :: Var("a") :: RecordEnd
 
-  /////////////
-  // Numbers //
-  /////////////
+  /////////////////
+  //// Numbers ////
+  /////////////////
 
   "7"     ?= 7
   "07"    ?= Number("07")
   "10_7"  ?= Number(10, 7)
   "16_ff" ?= Number(16, "ff")
   "16_"   ?= Number.DanglingBase("16")
-  "7.5"   ?= App.Infix(7, 0, Operator("."), 0, 5)
+  "7.5"   ?= App.Infix(7, 0, Opr("."), 0, 5)
 
-  ////////////////////
-  // UTF Surrogates //
-  ////////////////////
+  ////////////////////////
+  //// UTF Surrogates ////
+  ////////////////////////
 
   "\uD800\uDF1E" ?= Unrecognized("\uD800\uDF1E")
 
-  /////////////////
-  // Large Input //
-  /////////////////
+  /////////////////////
+  //// Large Input ////
+  /////////////////////
 
   "BIG_INPUT_" * ParserBase.BUFFERSIZE ?= "BIG_INPUT_" * ParserBase.BUFFERSIZE
 
-  //////////
-  // Text //
-  //////////
+  //////////////
+  //// Text ////
+  //////////////
 
   "'"    ?= Text.Unclosed(Text())
   "''"   ?= Text()
-  "'''"  ?= Text.Unclosed(Text(Text.TripleQuote))
-  "''''" ?= Text.Unclosed(Text(Text.TripleQuote, "'"))
-//  "'''''"   ?= Text.Unclosed(Text(Text.TripleQuote, "''")) // FIXME
-  "''''''"  ?= Text(Text.TripleQuote)
-  "'''''''" ?= Text(Text.TripleQuote) $ Text.Unclosed(Text())
+  "'''"  ?= Text.Unclosed(Text(Text.Quote.Triple))
+  "''''" ?= Text.Unclosed(Text(Text.Quote.Triple, "'"))
+//  "'''''"   ?= Text.Unclosed(Text(Text.Quote.Triple, "''")) // FIXME
+  "''''''"  ?= Text(Text.Quote.Triple)
+  "'''''''" ?= Text(Text.Quote.Triple) $ Text.Unclosed(Text())
   "'a'"     ?= Text("a")
   "'a"      ?= Text.Unclosed(Text("a"))
   "'a'''"   ?= Text("a") $ Text()
-  "'''a'''" ?= Text(Text.TripleQuote, "a")
-  "'''a'"   ?= Text.Unclosed(Text(Text.TripleQuote, "a'"))
-  //  "'''a''"  ?= Text.Unclosed(Text(Text.TripleQuote, "a''")) // FIXME
+  "'''a'''" ?= Text(Text.Quote.Triple, "a")
+  "'''a'"   ?= Text.Unclosed(Text(Text.Quote.Triple, "a'"))
+  //  "'''a''"  ?= Text.Unclosed(Text(Text.Quote.Triple, "a''")) // FIXME
 
   //// Escapes ////
 
@@ -198,10 +199,10 @@ class ParserSpec extends FlatSpec with Matchers {
 
   //// Interpolation ////
 
-  "'a`b`c'" ?= Text("a", Text.Segment.Interpolated(Some("b")), "c")
+  "'a`b`c'" ?= Text("a", Text.Segment.Interpolation(Some("b")), "c")
   "'a`b 'c`d`e' f`g'" ?= {
-    val bd = "b" $_ Text("c", Text.Segment.Interpolated(Some("d")), "e") $_ "f"
-    Text("a", Text.Segment.Interpolated(Some(bd)), "g")
+    val bd = "b" $_ Text("c", Text.Segment.Interpolation(Some("d")), "e") $_ "f"
+    Text("a", Text.Segment.Interpolation(Some(bd)), "g")
   }
   //  "'`a(`'" ?= Text(Text.Segment.Interpolated(Some("a" $ Group.Unclosed())))
   //  // Comments
@@ -243,5 +244,15 @@ class ParserSpec extends FlatSpec with Matchers {
   "(" I ("if" I1_ "a" I1_ "then" I1_ "b") I ")" $_ "else" $_ "c"
 
   //// Invalid ////
+
+  val _then_else = List(List("then"), List("then", "else"))
+
+  "("           ?= "(" Ix ")"
+  "(("          ?= "(" I ("(" Ix ")") Ix ")"
+  "if"          ?= "if" Ixx (_then_else: _*)
+  "(if a) then" ?= "(" I ("if" I_ "a" Ixx (_then_else: _*)) I ")" $_ "then"
+  "if (a then)" ?= "if" I_ ("(" I ("a" $_ "then") I ")") Ixx (_then_else: _*)
+
+//  "import Std.Math" ?= "foo"
 
 }

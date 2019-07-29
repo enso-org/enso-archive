@@ -1,17 +1,16 @@
-package org.enso.syntax.text.parser
+package org.enso.syntax.text
 
 import org.enso.flexer.Pattern.char
 import org.enso.flexer.Pattern.range
-import org.enso.flexer._
-import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.Text.QuoteSize
 import org.enso.flexer.Pattern._
-import scala.reflect.runtime.universe._
+import org.enso.flexer._
+import org.enso.syntax.text.AST.Text.Quote
+import org.enso.syntax.text.AST._
 
 import scala.annotation.tailrec
+import scala.reflect.runtime.universe.reify
 
-case class Definition() extends ParserBase[AST] {
+case class ParserDef() extends ParserBase[AST] {
 
   val ast = AST
 
@@ -62,31 +61,20 @@ case class Definition() extends ParserBase[AST] {
         _repeatAlt(p, i - 1, ch2, out | ch2)
     }
 
-  final def replaceGroupSymbols(
-    s: String,
-    lst: List[Group]
-  ): String = {
-    var out = s
-    for ((grp, ix) <- lst.zipWithIndex) {
-      out = out.replaceAll(s"___${ix}___", grp.groupIx.toString)
-    }
-    out
-  }
-
   final def withSome[T, S](opt: Option[T])(f: T => S): S = opt match {
     case None    => throw new Error("Internal Error")
     case Some(a) => f(a)
   }
 
-  ////// Cleaning //////
+  //// Cleaning ////
 
   final override def initialize(): Unit = {
     onBlockBegin(0)
   }
 
-  //////////////
-  /// Result ///
-  //////////////
+  ////////////////
+  //// Result ////
+  ////////////////
 
   override def getResult() = result
 
@@ -109,13 +97,13 @@ case class Definition() extends ParserBase[AST] {
   final def app(t: AST): Unit = logger.trace {
     result = Some(result match {
       case None    => t
-      case Some(r) => AST.App(r, useLastOffset(), t)
+      case Some(r) => App(r, useLastOffset(), t)
     })
   }
 
-  /////////////////////////////////
-  /// Basic Char Classification ///
-  /////////////////////////////////
+  ///////////////////////////////////
+  //// Basic Char Classification ////
+  ///////////////////////////////////
 
   val NORMAL = defineGroup("Normal")
 
@@ -128,9 +116,9 @@ case class Definition() extends ParserBase[AST] {
   val whitespace: Pattern  = ' '.many1
   val newline: Pattern     = '\n'
 
-  //////////////
-  /// Offset ///
-  //////////////
+  ////////////////
+  //// Offset ////
+  ////////////////
 
   var lastOffset: Int            = 0
   var lastOffsetStack: List[Int] = Nil
@@ -158,17 +146,17 @@ case class Definition() extends ParserBase[AST] {
     logger.log(s"lastOffset + $diff = $lastOffset")
   }
 
-  //////////////////
-  /// IDENTIFIER ///
-  //////////////////
+  ////////////////////
+  //// IDENTIFIER ////
+  ////////////////////
 
-  var identBody: Option[AST.Identifier] = None
+  var identBody: Option[Ident] = None
 
-  final def onIdent(cons: String => AST.Identifier): Unit = logger.trace {
+  final def onIdent(cons: String => Ident): Unit = logger.trace {
     onIdent(cons(currentMatch))
   }
 
-  final def onIdent(ast: AST.Identifier): Unit = logger.trace {
+  final def onIdent(ast: Ident): Unit = logger.trace {
     identBody = Some(ast)
     beginGroup(IDENT_SFX_CHECK)
   }
@@ -182,7 +170,7 @@ case class Definition() extends ParserBase[AST] {
 
   final def onIdentErrSfx(): Unit = logger.trace {
     withSome(identBody) { body =>
-      val ast = AST.Identifier.InvalidSuffix(body, currentMatch)
+      val ast = Ident.InvalidSuffix(body, currentMatch)
       app(ast)
       identBody = None
       endGroup()
@@ -210,36 +198,36 @@ case class Definition() extends ParserBase[AST] {
   // format: off
   NORMAL          rule variable    run reify { onIdent(ast.Var) }
   NORMAL          rule constructor run reify { onIdent(ast.Cons) }
-  NORMAL          rule "_"         run reify { onIdent(ast.Wildcard) }
+  NORMAL          rule "_"         run reify { onIdent(ast.Blank) }
   IDENT_SFX_CHECK rule identErrSfx run reify { onIdentErrSfx() }
   IDENT_SFX_CHECK rule pass        run reify { onNoIdentErrSfx() }
   // format: on
 
-  ////////////////
-  /// Operator ///
-  ////////////////
+  //////////////////
+  //// Operator ////
+  //////////////////
 
-  final def onOp(cons: String => AST.Identifier): Unit = logger.trace {
+  final def onOp(cons: String => Ident): Unit = logger.trace {
     onOp(cons(currentMatch))
   }
 
-  final def onNoModOp(cons: String => AST.Identifier): Unit = logger.trace {
+  final def onNoModOp(cons: String => Ident): Unit = logger.trace {
     onNoModOp(cons(currentMatch))
   }
 
-  final def onOp(ast: AST.Identifier): Unit = logger.trace {
+  final def onOp(ast: Ident): Unit = logger.trace {
     identBody = Some(ast)
     beginGroup(OPERATOR_MOD_CHECK)
   }
 
-  final def onNoModOp(ast: AST.Identifier): Unit = logger.trace {
+  final def onNoModOp(ast: Ident): Unit = logger.trace {
     identBody = Some(ast)
     beginGroup(OPERATOR_SFX_CHECK)
   }
 
   final def onModifier(): Unit = logger.trace {
     withSome(identBody) { body =>
-      identBody = Some(AST.Modifier(body.asInstanceOf[AST.Operator].name))
+      identBody = Some(Opr.Mod(body.asInstanceOf[Opr].name))
     }
   }
 
@@ -257,16 +245,16 @@ case class Definition() extends ParserBase[AST] {
   OPERATOR_MOD_CHECK.setParent(OPERATOR_SFX_CHECK)
 
   // format: off
-  NORMAL             rule operator       run reify { onOp(ast.Operator(_)) }
-  NORMAL             rule noModOperator  run reify { onNoModOp(ast.Operator(_)) }
+  NORMAL             rule operator       run reify { onOp(ast.Opr(_)) }
+  NORMAL             rule noModOperator  run reify { onNoModOp(ast.Opr(_)) }
   OPERATOR_MOD_CHECK rule "="            run reify { onModifier() }
   OPERATOR_SFX_CHECK rule operatorErrSfx run reify { onIdentErrSfx() }
   OPERATOR_SFX_CHECK rule pass           run reify { onNoIdentErrSfx() }
   // format: on
 
-  //////////////////////////////////
-  /// NUMBER (e.g. 16_ff0000.ff) ///
-  //////////////////////////////////
+  ////////////////////////////////////
+  //// NUMBER (e.g. 16_ff0000.ff) ////
+  ////////////////////////////////////
 
   var numberPart1: String = ""
   var numberPart2: String = ""
@@ -278,13 +266,13 @@ case class Definition() extends ParserBase[AST] {
 
   final def submitNumber(): Unit = logger.trace {
     val base = if (numberPart1 == "") None else Some(numberPart1)
-    app(AST.Number(base, numberPart2))
+    app(Number(base, numberPart2))
     numberReset()
   }
 
   final def onDanglingBase(): Unit = logger.trace {
     endGroup()
-    app(AST.Number.DanglingBase(numberPart2))
+    app(Number.DanglingBase(numberPart2))
     numberReset()
   }
 
@@ -316,18 +304,18 @@ case class Definition() extends ParserBase[AST] {
   NUMBER_PHASE2 rule pass                    run reify { onNoExplicitBase() }
   // format: on
 
-  ////////////
-  /// Text ///
-  ////////////
+  //////////////
+  //// Text ////
+  //////////////
 
-  var textStateStack: List[AST.Text] = Nil
+  var textStateStack: List[Text.Interpolated] = Nil
 
   final def currentText = textStateStack.head
-  final def withCurrentText(f: AST.Text => AST.Text) =
+  final def withCurrentText(f: Text.Interpolated => Text.Interpolated) =
     textStateStack = f(textStateStack.head) :: textStateStack.tail
 
-  final def pushTextState(quoteSize: QuoteSize): Unit = logger.trace {
-    textStateStack +:= AST.Text(quoteSize)
+  final def pushTextState(quoteSize: Quote): Unit = logger.trace {
+    textStateStack +:= Text.Interpolated(quoteSize)
   }
 
   final def popTextState(): Unit = logger.trace {
@@ -337,11 +325,11 @@ case class Definition() extends ParserBase[AST] {
   final def insideOfText: Boolean =
     textStateStack.nonEmpty
 
-  final def submitEmptyText(quoteNum: QuoteSize): Unit = logger.trace {
-    app(AST.Text(quoteNum))
+  final def submitEmptyText(quoteNum: Quote): Unit = logger.trace {
+    app(Text.Interpolated(quoteNum))
   }
 
-  final def finishCurrentTextBuilding(): AST.Text = logger.trace {
+  final def finishCurrentTextBuilding(): Text.Interpolated = logger.trace {
     withCurrentText(t => t.copy(segments = t.segments.reverse))
     val txt = currentText
     popTextState()
@@ -354,75 +342,70 @@ case class Definition() extends ParserBase[AST] {
   }
 
   final def submitUnclosedText(): Unit = logger.trace {
-    app(AST.Text.Unclosed(finishCurrentTextBuilding()))
+    app(Text.Unclosed(finishCurrentTextBuilding()))
   }
 
-  final def onTextBegin(quoteSize: QuoteSize): Unit = logger.trace {
+  final def onTextBegin(quoteSize: Quote): Unit = logger.trace {
     pushTextState(quoteSize)
     beginGroup(TEXT)
   }
 
-  final def submitPlainTextSegment(segment: AST.Text.Segment): Unit =
-    logger.trace {
-      withCurrentText(_.prependMergeReversed(segment))
-    }
+  final def submitPlainTextSegment(segment: Text.Interpolated.Segment): Unit =
+    logger.trace { withCurrentText(_.prependMergeReversed(segment)) }
 
-  final def submitTextSegment(segment: AST.Text.Segment): Unit =
-    logger.trace {
-      withCurrentText(_ +: segment)
-    }
+  final def submitTextSegment(segment: Text.Interpolated.Segment): Unit =
+    logger.trace { withCurrentText(_.prepend(segment)) }
 
   final def onPlainTextSegment(): Unit = logger.trace {
-    submitPlainTextSegment(AST.Text.Segment.Plain(currentMatch))
+    submitPlainTextSegment(Text.Segment.Plain(currentMatch))
   }
 
-  final def onTextQuote(quoteSize: QuoteSize): Unit = logger.trace {
-    if (currentText.quoteSize == AST.Text.TripleQuote
-        && quoteSize == AST.Text.SingleQuote) onPlainTextSegment()
-    else if (currentText.quoteSize == AST.Text.SingleQuote
-             && quoteSize == AST.Text.TripleQuote) {
+  final def onTextQuote(quoteSize: Quote): Unit = logger.trace {
+    if (currentText.quote == Text.Quote.Triple
+        && quoteSize == Text.Quote.Single) onPlainTextSegment()
+    else if (currentText.quote == Text.Quote.Single
+             && quoteSize == Text.Quote.Triple) {
       submitText()
-      submitEmptyText(AST.Text.SingleQuote)
+      submitEmptyText(Text.Quote.Single)
     } else {
       submitText()
     }
   }
 
-  final def onTextEscape(code: AST.Text.Segment.Escape): Unit =
-    logger.trace {
-      submitTextSegment(code)
-    }
+  final def onTextEscape(code: Text.Segment.Escape): Unit = logger.trace {
+    submitTextSegment(code)
+  }
 
   final def onTextEscapeU16(): Unit = logger.trace {
     val code = currentMatch.drop(2)
-    submitTextSegment(AST.Text.Segment.Escape.Unicode.U16(code))
+    submitTextSegment(Text.Segment.Escape.Unicode.U16(code))
   }
 
   final def onTextEscapeU32(): Unit = logger.trace {
     val code = currentMatch.drop(2)
-    submitTextSegment(AST.Text.Segment.Escape.Unicode.U32(code))
+    submitTextSegment(Text.Segment.Escape.Unicode.U32(code))
   }
 
   final def onTextEscapeInt(): Unit = logger.trace {
     val int = currentMatch.drop(1).toInt
-    submitTextSegment(AST.Text.Segment.Escape.Number(int))
+    submitTextSegment(Text.Segment.Escape.Number(int))
   }
 
   final def onInvalidEscape(): Unit = logger.trace {
     val str = currentMatch.drop(1)
-    submitTextSegment(AST.Text.Segment.Escape.Invalid(str))
+    submitTextSegment(Text.Segment.Escape.Invalid(str))
   }
 
   final def onEscapeSlash(): Unit = logger.trace {
-    submitTextSegment(AST.Text.Segment.Escape.Slash)
+    submitTextSegment(Text.Segment.Escape.Slash)
   }
 
   final def onEscapeQuote(): Unit = logger.trace {
-    submitTextSegment(AST.Text.Segment.Escape.Quote)
+    submitTextSegment(Text.Segment.Escape.Quote)
   }
 
   final def onEscapeRawQuote(): Unit = logger.trace {
-    submitTextSegment(AST.Text.Segment.Escape.RawQuote)
+    submitTextSegment(Text.Segment.Escape.RawQuote)
   }
 
   final def onInterpolateBegin(): Unit = logger.trace {
@@ -445,7 +428,7 @@ case class Definition() extends ParserBase[AST] {
   final def onInterpolateEnd(): Unit = logger.trace {
     if (insideOfGroup(INTERPOLATE)) {
       terminateGroupsTill(INTERPOLATE)
-      submitTextSegment(AST.Text.Segment.Interpolated(result))
+      submitTextSegment(Text.Segment.Interpolation(result))
       popAST()
       popLastOffset()
       endGroup()
@@ -461,7 +444,7 @@ case class Definition() extends ParserBase[AST] {
 
   final def fixme_onTextDoubleQuote(): Unit = logger.trace {
     currentMatch = "'"
-    onTextQuote(AST.Text.SingleQuote)
+    onTextQuote(Text.Quote.Single)
     rewind(1)
   }
 
@@ -476,25 +459,27 @@ case class Definition() extends ParserBase[AST] {
   INTERPOLATE.setParent(NORMAL)
 
   // format: off
-  NORMAL rule "'"           run reify { onTextBegin(ast.Text.SingleQuote) }
-  NORMAL rule "''"          run reify { submitEmptyText(ast.Text.SingleQuote) } // FIXME: Remove after fixing DFA Gen
-  NORMAL rule "'''"         run reify { onTextBegin(ast.Text.TripleQuote) }
+  NORMAL rule "'"           run reify { onTextBegin(ast.Text.Quote.Single) }
+  NORMAL rule "''"          run reify { submitEmptyText(ast.Text.Quote.Single) } // FIXME: Remove after fixing DFA Gen
+  NORMAL rule "'''"         run reify { onTextBegin(ast.Text.Quote.Triple) }
   NORMAL rule '`'           run reify { onInterpolateEnd() }
   TEXT   rule '`'           run reify { onInterpolateBegin() }
-  TEXT   rule "'"           run reify { onTextQuote(ast.Text.SingleQuote) }
+  TEXT   rule "'"           run reify { onTextQuote(ast.Text.Quote.Single) }
   TEXT   rule "''"          run reify { fixme_onTextDoubleQuote() } // FIXME: Remove after fixing DFA Gen
-  TEXT   rule "'''"         run reify { onTextQuote(ast.Text.TripleQuote) }
+  TEXT   rule "'''"         run reify { onTextQuote(ast.Text.Quote.Triple) }
   TEXT   rule stringSegment run reify { onPlainTextSegment() }
   TEXT   rule eof           run reify { onTextEOF() }
 
-  AST.Text.Segment.Escape.Character.codes.foreach { ctrl =>
-    val name = TermName(ctrl.toString)
+  Text.Segment.Escape.Character.codes.foreach { ctrl =>
+    import scala.reflect.runtime.universe._
+  val name = TermName(ctrl.toString)
     val func = q"onTextEscape(ast.Text.Segment.Escape.Character.$name)"
     TEXT rule s"\\$ctrl" run func
   }
 
-  AST.Text.Segment.Escape.Control.codes.foreach { ctrl =>
-    val name = TermName(ctrl.toString)
+  Text.Segment.Escape.Control.codes.foreach { ctrl =>
+    import scala.reflect.runtime.universe._
+  val name = TermName(ctrl.toString)
     val func = q"onTextEscape(ast.Text.Segment.Escape.Control.$name)"
     TEXT rule s"\\$ctrl" run func
   }
@@ -539,7 +524,7 @@ case class Definition() extends ParserBase[AST] {
 //  final def onGroupEnd(): Unit = logger.trace {
 //    val leftOffset  = popGroupLeftOffset()
 //    val rightOffset = useLastOffset()
-//    val group       = AST.Group(leftOffset, result, rightOffset)
+//    val group       = Group(leftOffset, result, rightOffset)
 //    popLastOffset()
 //    popAST()
 //    app(group)
@@ -552,10 +537,10 @@ case class Definition() extends ParserBase[AST] {
 //
 //    val group = result match {
 //      case Some(_) =>
-//        AST.Group.Unclosed(leftOffset, result)
+//        Group.Unclosed(leftOffset, result)
 //      case None =>
 //        rightOffset += leftOffset
-//        AST.Group.Unclosed()
+//        Group.Unclosed()
 //    }
 //    popLastOffset()
 //    popAST()
@@ -570,7 +555,7 @@ case class Definition() extends ParserBase[AST] {
 //  }
 //
 //  final def onGroupUnmatchedClose(): Unit = logger.trace {
-//    app(AST.Group.UnmatchedClose)
+//    app(Group.UnmatchedClose)
 //  }
 //
 //  val PARENSED = defineGroup("Parensed", { onGroupFinalize() })
@@ -591,8 +576,8 @@ case class Definition() extends ParserBase[AST] {
     var isValid: Boolean,
     var indent: Int,
     var emptyLines: List[Int],
-    var firstLine: Option[AST.Line.Required],
-    var lines: List[AST.Line]
+    var firstLine: Option[Block.Line.Required],
+    var lines: List[Block.Line]
   )
   var blockStack: List[BlockState] = Nil
   var emptyLines: List[Int]        = Nil
@@ -610,10 +595,10 @@ case class Definition() extends ParserBase[AST] {
     blockStack   = blockStack.tail
   }
 
-  final def buildBlock(): AST.Block = logger.trace {
+  final def buildBlock(): Block = logger.trace {
     submitLine()
     withSome(currentBlock.firstLine) { firstLine =>
-      AST.Block(
+      Block(
         currentBlock.indent,
         currentBlock.emptyLines.reverse,
         firstLine,
@@ -626,7 +611,7 @@ case class Definition() extends ParserBase[AST] {
     val block = buildBlock()
     val block2 =
       if (currentBlock.isValid) block
-      else AST.Block.InvalidIndentation(block)
+      else Block.InvalidIndentation(block)
 
     popAST()
     popBlock()
@@ -636,14 +621,14 @@ case class Definition() extends ParserBase[AST] {
 
   final def submitModule(): Unit = logger.trace {
     submitLine()
-    val el  = currentBlock.emptyLines.reverse.map(AST.Line(_))
-    val el2 = emptyLines.reverse.map(AST.Line(_))
+    val el  = currentBlock.emptyLines.reverse.map(Block.Line(_))
+    val el2 = emptyLines.reverse.map(Block.Line(_))
     val firstLines = currentBlock.firstLine match {
       case None            => el
-      case Some(firstLine) => firstLine.to[AST.Line] :: el
+      case Some(firstLine) => firstLine.toOptional :: el
     }
     val lines  = firstLines ++ currentBlock.lines.reverse ++ el2
-    val module = AST.Module(lines.head, lines.tail)
+    val module = Module(lines.head, lines.tail)
     result = Some(module)
     logger.endGroup()
   }
@@ -654,12 +639,12 @@ case class Definition() extends ParserBase[AST] {
       case Some(r) =>
         currentBlock.firstLine match {
           case None =>
-            val line = AST.Line.Required(r, useLastOffset())
+            val line = Block.Line.Required(r, useLastOffset())
             currentBlock.emptyLines = emptyLines
             currentBlock.firstLine  = Some(line)
           case Some(_) =>
-            emptyLines.foreach(currentBlock.lines +:= AST.Line(None, _))
-            currentBlock.lines +:= AST.Line(result, useLastOffset())
+            emptyLines.foreach(currentBlock.lines +:= Block.Line(None, _))
+            currentBlock.lines +:= Block.Line(result, useLastOffset())
         }
         emptyLines = Nil
     }
@@ -729,7 +714,7 @@ case class Definition() extends ParserBase[AST] {
   ////////////////
 
   final def onUnrecognized(): Unit = logger.trace {
-    app(AST.Unrecognized)
+    app(Unrecognized)
   }
 
   final def onEOF(): Unit = logger.trace {
