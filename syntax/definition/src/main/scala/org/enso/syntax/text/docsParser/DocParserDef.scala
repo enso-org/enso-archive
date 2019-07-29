@@ -140,18 +140,22 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// Code pushing //////
   //////////////////////////
 
-  def pushCodeLine(in: String, inMultilineCode: Boolean): Unit = logger.trace {
-    result = Some(CodeLine(in, inMultilineCode))
+  def pushCodeLine(in: String, isInlineCode: Boolean): Unit = logger.trace {
+    if (isInlineCode) {
+      result = Some(CodeLine(in))
+    } else {
+      result = Some(MultilineCodeLine(in))
+    }
     pushAST()
   }
   val inlineCodeTrigger = '`'
   NORMAL rule (inlineCodeTrigger >> not('`').many >> inlineCodeTrigger) run reify {
-    pushCodeLine(currentMatch.substring(1).dropRight(1), false)
+    pushCodeLine(currentMatch.substring(1).dropRight(1), true)
   }
 
   // format: off
   MULTILINECODE rule newline              run reify { beginGroup(NEWLINE)}
-  MULTILINECODE rule not(newline).many1   run reify { pushCodeLine(currentMatch, true) }
+  MULTILINECODE rule not(newline).many1   run reify { pushCodeLine(currentMatch, false) }
   MULTILINECODE rule eof                  run reify { onEOF() }
   // format: on
 
@@ -192,9 +196,9 @@ case class DocParserDef() extends ParserBase[AST] {
     }
   }
 
-  val boldTrigger: Char          = Bold.showableMarker
-  val italicTrigger: Char        = Italic.showableMarker
-  val strikethroughTrigger: Char = Strikethrough.showableMarker
+  val boldTrigger: Char          = Bold.marker
+  val italicTrigger: Char        = Italic.marker
+  val strikethroughTrigger: Char = Strikethrough.marker
 
   // format: off
   NORMAL rule boldTrigger          run reify { pushFormatter(Bold) }
@@ -236,9 +240,9 @@ case class DocParserDef() extends ParserBase[AST] {
       currentSection = sectionType(_, _)
     }
 
-  val importantTrigger: Char = Important().readableMarker.get
-  val infoTrigger: Char      = Info().readableMarker.get
-  val exampleTrigger: Char   = Example().readableMarker.get
+  val importantTrigger: Char = Important().marker.get
+  val infoTrigger: Char      = Info().marker.get
+  val exampleTrigger: Char   = Example().marker.get
 
   // format: off
   NORMAL rule importantTrigger run reify { onNewSection(Important(_,_)) }
@@ -351,8 +355,8 @@ case class DocParserDef() extends ParserBase[AST] {
       pushAST()
     }
 
-  val imageNameTrigger: String = Image.readableMarker
-  val linkNameTrigger: String  = URL.readableMarker
+  val imageNameTrigger: String = Image.marker
+  val linkNameTrigger: String  = URL.marker
 
   NORMAL rule (imageNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(2).dropRight(1).split(']')
@@ -489,15 +493,11 @@ case class DocParserDef() extends ParserBase[AST] {
       .elems
     currentContent = (content :: currentContent.reverse).reverse
     result = Some(
-      ListBlock(
-        currentResult
+      ListBlock(currentResult
           .asInstanceOf[ListBlock]
-          .indent,
-        currentResult
+          .indent, currentResult
           .asInstanceOf[ListBlock]
-          .listType,
-        currentContent
-      )
+          .listType, currentContent)
     )
     pushAST()
   }
@@ -511,22 +511,18 @@ case class DocParserDef() extends ParserBase[AST] {
       var outerContent = outerList.asInstanceOf[ListBlock].elems
       outerContent = (innerList :: outerContent.reverse).reverse
       result = Some(
-        ListBlock(
-          outerList
+        ListBlock(outerList
             .asInstanceOf[ListBlock]
-            .indent,
-          outerList
+            .indent, outerList
             .asInstanceOf[ListBlock]
-            .listType,
-          outerContent
-        )
+            .listType, outerContent)
       )
     }
     pushAST()
   }
 
-  val orderedListTrigger: Char   = Ordered.readableMarker
-  val unorderedListTrigger: Char = Unordered.readableMarker
+  val orderedListTrigger: Char   = Ordered.marker
+  val unorderedListTrigger: Char = Unordered.marker
 
   NEWLINE rule (indentPattern >> orderedListTrigger >> not(newline).many1) run reify {
     val content = currentMatch.split(orderedListTrigger)

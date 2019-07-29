@@ -1,6 +1,7 @@
 package org.enso.syntax.text
 
 import cats.data.NonEmptyList
+import org.enso.data.List1
 import org.enso.syntax.text.ast.Repr
 
 object DocAST {
@@ -9,14 +10,12 @@ object DocAST {
   /// Symbol ///
   //////////////
 
-  trait HasRepr extends Repr.Provider {
-    val repr: Repr
+  trait Provider extends Repr.Provider {
     val htmlRepr: Repr
   }
 
-  trait Symbol extends HasRepr {
-    def span:         Int    = repr.span
-    def show():       String = repr.show()
+  trait Symbol extends AST.Symbol {
+    val htmlRepr: Repr
     def renderHTML(): String = htmlRepr.show()
   }
 
@@ -44,29 +43,21 @@ object DocAST {
   //////////////////////
 
   trait FormatterType {
-    val showableMarker: Char
-    val HTMLMarker: Char
+    val marker: Char
+    val htmlMarker: Char
   }
 
-  case object Bold extends FormatterType {
-    val showableMarker: Char = '*'
-    val HTMLMarker: Char     = 'b'
-  }
-  case object Italic extends FormatterType {
-    val showableMarker: Char = '_'
-    val HTMLMarker: Char     = 'i'
-  }
-  case object Strikethrough extends FormatterType {
-    val showableMarker: Char = '~'
-    val HTMLMarker: Char     = 's'
-  }
+  abstract class FormatterClass(val marker: Char, val htmlMarker: Char) extends FormatterType
+  case object Bold extends FormatterClass('*','b')
+  case object Italic extends FormatterClass('_','i')
+  case object Strikethrough extends FormatterClass('~','s')
 
   final case class Formatter(formatterType: FormatterType, elem: Option[AST])
       extends AST {
     val repr
-      : Repr = Repr(formatterType.showableMarker) + elem.repr + formatterType.showableMarker
+      : Repr = Repr(formatterType.marker) + elem.repr + formatterType.marker
     val htmlRepr
-      : Repr = Repr("<") + formatterType.HTMLMarker + ">" + elem.htmlRepr + "</" + formatterType.HTMLMarker + ">"
+      : Repr = Repr("<") + formatterType.htmlMarker + ">" + elem.htmlRepr + "</" + formatterType.htmlMarker + ">"
   }
   object Formatter {
     def apply(formatterType: FormatterType): Formatter =
@@ -79,13 +70,10 @@ object DocAST {
   /// Unclosed Formatter ///
   //////////////////////////
 
-  final case class UnclosedFormatter(
-    formatterType: FormatterType,
-    elem: Option[AST]
-  ) extends InvalidAST {
-    val repr: Repr = Repr(formatterType.showableMarker) + elem.repr
+  final case class UnclosedFormatter(tp: FormatterType,elem: Option[AST]) extends InvalidAST {
+    val repr: Repr = Repr(tp.marker) + elem.repr
     val htmlRepr
-      : Repr = Repr("<div class=\"unclosed_") + formatterType.HTMLMarker + "\">" + elem.htmlRepr + "</div>"
+      : Repr = Repr("<div class=\"unclosed_") + tp.htmlMarker + "\">" + elem.htmlRepr + "</div>"
   }
   object UnclosedFormatter {
     def apply(formatterType: FormatterType): UnclosedFormatter =
@@ -100,7 +88,7 @@ object DocAST {
 
   final case class InvalidIndent(indent: Int, elem: AST, listType: ListType)
       extends InvalidAST {
-    val repr: Repr = Repr(" " * indent) + listType.readableMarker + elem.repr
+    val repr: Repr = Repr(" " * indent) + listType.marker + elem.repr
     val htmlRepr
       : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
   }
@@ -109,26 +97,16 @@ object DocAST {
   ////// Code Line //////
   ///////////////////////
 
-  final case class CodeLine(code: String, inMultilineCode: Boolean)
+  final case class CodeLine(code: String)
       extends AST {
-    val repr: Repr = {
-      if (inMultilineCode) {
-        code
-      } else {
-        Repr("`") + code + "`"
-      }
-    }
+    val repr: Repr = Repr("`") + code + "`"
     val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
 
-  ////////////////////
-  ////// Header //////
-  ////////////////////
-
-  final case class Header(elem: AST) extends AST {
-    val repr: Repr = elem.repr
-    val htmlRepr
-      : Repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">" + elem.htmlRepr + "</div>"
+  final case class MultilineCodeLine(code: String)
+    extends AST {
+    val repr: Repr = code
+    val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
 
   ///////////////////
@@ -136,18 +114,18 @@ object DocAST {
   ///////////////////
 
   trait LinkType {
-    val readableMarker: String
+    val marker: String
   }
   final case object URL extends LinkType {
-    val readableMarker = "["
+    val marker = "["
   }
   final case object Image extends LinkType {
-    val readableMarker = "!["
+    val marker = "!["
   }
 
   final case class Link(name: String, url: String, linkType: LinkType)
       extends AST {
-    val repr: Repr = Repr() + linkType.readableMarker + name + "](" + url + ")"
+    val repr: Repr = Repr() + linkType.marker + name + "](" + url + ")"
     val htmlRepr: Repr = linkType match {
       case URL =>
         Repr("<a href=\"") + url + "\">" + name + "</a>"
@@ -161,23 +139,19 @@ object DocAST {
   ///////////////////
 
   trait ListType {
-    val readableMarker: Char
+    val marker: Char
     val HTMLMarker: String
   }
   final case object Unordered extends ListType {
-    val readableMarker = '-'
+    val marker = '-'
     val HTMLMarker     = "ul"
   }
   final case object Ordered extends ListType {
-    val readableMarker = '*'
+    val marker = '*'
     val HTMLMarker     = "ol"
   }
 
-  final case class ListBlock(
-    indent: Int,
-    listType: ListType,
-    elems: NonEmptyList[AST]
-  ) extends AST {
+  final case class ListBlock(indent: Int, listType: ListType, elems: List1[AST]) extends AST {
     val repr: Repr = {
       var _repr = Repr()
       elems.toList.foreach(elem => {
@@ -192,7 +166,7 @@ object DocAST {
             _repr += '\n'
           }
           _repr += " " * indent
-          _repr += listType.readableMarker
+          _repr += listType.marker
           _repr += elem.repr
         }
       })
@@ -223,6 +197,16 @@ object DocAST {
       ListBlock(indent, listType, NonEmptyList(elems.head, elems.tail.to[List]))
   }
 
+  ////////////////////
+  ////// Header //////
+  ////////////////////
+
+  final case class Header(elem: AST) extends AST {
+    val repr: Repr = elem.repr
+    val htmlRepr
+    : Repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">" + elem.htmlRepr + "</div>"
+  }
+
   //////////////////////
   ////// Sections //////
   //////////////////////
@@ -230,20 +214,20 @@ object DocAST {
   abstract class Section extends Symbol {
     val indent: Int
     val elems: List[AST]
-    def readableMarker: Option[Char] = None
+    def marker: Option[Char] = None
 
     val repr: Repr = {
       var _repr = Repr()
       if (indent >= 2) {
-        _repr += " " * (indent - 2) + readableMarker
+        _repr += " " * (indent - 2) + marker
           .map(_.toString)
           .getOrElse("") + " "
       } else if (indent == 1) {
-        _repr += readableMarker
+        _repr += marker
           .map(_.toString)
           .getOrElse(" ")
       } else {
-        _repr += readableMarker
+        _repr += marker
           .map(_.toString)
           .getOrElse("")
       }
@@ -272,7 +256,7 @@ object DocAST {
 
   ///// Important /////
   final case class Important(indent: Int, elems: List[AST]) extends Section {
-    override def readableMarker = Some('!')
+    override def marker = Some('!')
   }
   object Important {
     def apply():            Important = Important(0, Nil)
@@ -285,7 +269,7 @@ object DocAST {
 
   ///// Info /////
   final case class Info(indent: Int, elems: List[AST]) extends Section {
-    override def readableMarker = Some('?')
+    override def marker = Some('?')
   }
   object Info {
     def apply():            Info = Info(0, Nil)
@@ -298,7 +282,7 @@ object DocAST {
 
   ///// Example /////
   final case class Example(indent: Int, elems: List[AST]) extends Section {
-    override def readableMarker = Some('>')
+    override def marker = Some('>')
   }
   object Example {
     def apply():            Example = Example(0, Nil)
@@ -312,7 +296,7 @@ object DocAST {
   ///// Multiline Code /////
   final case class MultilineCode(indent: Int, elems: List[AST])
       extends Section {
-    override def readableMarker = Some(' ')
+    override def marker = Some(' ')
 
     override val htmlRepr: Repr = {
       var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\" style=\"margin-left:" + (10 * indent).toString + "px\" >"

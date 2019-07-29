@@ -22,10 +22,6 @@ object DocParser {
 
   val dataToParse =
     """ DEPRECATED
-      | MODIFIED in 1.9
-      | ADDED in 1.7
-      | REMOVED
-      | UPCOMING
       | Construct and manage a graphical, event-driven user interface for your iOS or
       | tvOS app.
       |

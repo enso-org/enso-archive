@@ -46,7 +46,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   "~Foo~" ?= Documentation(
     Synopsis(TextBlock(0, Formatter(Strikethrough, "Foo")))
   )
-  "`Foo`" ?= Documentation(Synopsis(TextBlock(0, CodeLine("Foo", false))))
+  "`Foo`" ?= Documentation(Synopsis(TextBlock(0, CodeLine("Foo"))))
   "~*Foo*~" ?= Documentation(
     Synopsis(
       TextBlock(0, Formatter(Strikethrough, Formatter(Bold, "Foo")))
@@ -128,7 +128,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     )
   )
   "`import foo`" ?= Documentation(
-    Synopsis(TextBlock(0, CodeLine("import foo", false)))
+    Synopsis(TextBlock(0, CodeLine("import foo")))
   )
   ////////////////////
   ///// Segments /////
@@ -324,7 +324,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         " ",
         Formatter(Strikethrough, UnclosedFormatter(Bold, "Bar")),
         " ",
-        CodeLine("foo bar baz bo", false),
+        CodeLine("foo bar baz bo"),
         " ",
         "\n"
       )
