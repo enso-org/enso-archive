@@ -8,7 +8,7 @@ import org.enso.syntax.text.DocAST._
 import scala.reflect.runtime.universe._
 import scala.annotation.tailrec
 
-case class Definition() extends ParserBase[AST] {
+case class DocParserDef() extends ParserBase[AST] {
 
   val any: Pattern  = range(5, Int.MaxValue) // FIXME 5 -> 0
   val pass: Pattern = Pass
@@ -57,17 +57,6 @@ case class Definition() extends ParserBase[AST] {
         _repeatAlt(p, i - 1, ch2, out | ch2)
     }
 
-  final def replaceGroupSymbols(
-    s: String,
-    lst: List[Group]
-  ): String = {
-    var out = s
-    for ((grp, ix) <- lst.zipWithIndex) {
-      out = out.replaceAll(s"___${ix}___", grp.groupIx.toString)
-    }
-    out
-  }
-
   final def withSome[T, S](opt: Option[T])(f: T => S): S = opt match {
     case None    => throw new Error("Internal Error")
     case Some(a) => f(a)
@@ -95,6 +84,8 @@ case class Definition() extends ParserBase[AST] {
     if (workingASTStack.nonEmpty) {
       result          = Some(workingASTStack.head)
       workingASTStack = workingASTStack.tail
+    } else {
+      logger.log("Trying to pop empty AST stack")
     }
   }
 
@@ -427,7 +418,7 @@ case class Definition() extends ParserBase[AST] {
         addList(indent, listType, content)
       } else if (diff == 0) {
         addContentToList(content)
-      } else if (diff == -listIndent) {
+      } else if (diff == -listIndent && inListFlag) {
         lastDiff = diff
         addOneListToAnother()
         addContentToList(content)
@@ -446,7 +437,7 @@ case class Definition() extends ParserBase[AST] {
   final def onEmptyLine(): Unit = logger.trace {
     if (inListFlag) {
       addOneListToAnother()
-      inListFlag = false
+      inListFlag = !inListFlag
     }
     pushNewLine()
     onEndOfSection()
@@ -512,9 +503,9 @@ case class Definition() extends ParserBase[AST] {
   }
 
   def addOneListToAnother(): Unit = logger.trace {
-    if (inListFlag) {
-      popAST()
-      val innerList = result.orNull
+    popAST()
+    val innerList = result.orNull
+    if (workingASTStack.head.isInstanceOf[ListBlock]) {
       popAST()
       val outerList    = result.orNull
       var outerContent = outerList.asInstanceOf[ListBlock].elems
@@ -530,8 +521,8 @@ case class Definition() extends ParserBase[AST] {
           outerContent
         )
       )
-      pushAST()
     }
+    pushAST()
   }
 
   val orderedListTrigger: Char   = Ordered.readableMarker

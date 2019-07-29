@@ -1,70 +1,27 @@
 package org.enso.syntax.text
 
 import cats.data.NonEmptyList
-import org.enso.syntax.text.AST.Repr
+import org.enso.syntax.text.ast.Repr
 
 object DocAST {
 
-  ///////////////////
-  /// Abstraction ///
-  ///////////////////
-
-  trait Showable {
-    def show(): String
-  }
-
-  trait HTMLGenerable {
-    def generateHTML(): String
-  }
-
-  trait Spanned {
-    def span: Int
-  }
-
-  //////////////////////
-  //// Repr Helpers ////
-  //////////////////////
-
-  trait HasRepr {
-    val textRepr: Repr
-    val htmlRepr: Repr
-  }
-
-  trait ReprOf[-T] {
-    def reprOf(a: T): Repr
-  }
-  def reprOf[T](t: T)(implicit ev: ReprOf[T]) = ev.reprOf(t)
-
-  implicit val HasRepr_0: ReprOf[Unit]    = _ => Repr.Empty()
-  implicit val HasRepr_1: ReprOf[String]  = Repr.Text(_)
-  implicit val HasRepr_2: ReprOf[Int]     = i => Repr.Text(" " * i)
-  implicit val HasRepr_3: ReprOf[Char]    = Repr.Letter(_)
-  implicit val HasRepr_4: ReprOf[Repr]    = identity(_)
-  implicit val HasRepr_5: ReprOf[HasRepr] = _.textRepr
-  implicit def HasRepr_6[T: ReprOf]: ReprOf[List[T]] =
-    _.foldLeft(Repr.Empty(): Repr)((a, b) => Repr.Seq(a, reprOf(b)))
-  implicit def HasRepr_7[T: ReprOf]: ReprOf[NonEmptyList[T]] =
-    _.foldLeft(Repr.Empty(): Repr)((a, b) => Repr.Seq(a, reprOf(b)))
   //////////////
   /// Symbol ///
   //////////////
 
-  trait Symbol extends HasRepr with Spanned with Showable with HTMLGenerable {
-    def span: Int = textRepr.span
-    def show(): String = {
-      val showBuilder = new StringBuilder()
-      textRepr.show(showBuilder)
-      showBuilder.result()
-    }
-    def generateHTML(): String = {
-      val htmlBuilder = new StringBuilder()
-      htmlRepr.show(htmlBuilder)
-      htmlBuilder.result()
-    }
+  trait HasRepr extends Repr.Provider {
+    val repr: Repr
+    val htmlRepr: Repr
+  }
+
+  trait Symbol extends HasRepr {
+    def span:         Int    = repr.span
+    def show():       String = repr.show()
+    def renderHTML(): String = htmlRepr.show()
   }
 
   implicit final class _OptionAST_(val self: Option[AST]) extends Symbol {
-    val textRepr: Repr = self.map(_.textRepr).getOrElse(Repr())
+    val repr: Repr     = self.map(_.repr).getOrElse(Repr())
     val htmlRepr: Repr = self.map(_.htmlRepr).getOrElse(Repr())
   }
 
@@ -76,8 +33,8 @@ object DocAST {
   trait InvalidAST extends AST
 
   final case class Text(text: String) extends AST {
-    val textRepr: Repr = text
-    val htmlRepr: Repr = text.replaceAll("\n", "<br />")
+    val repr: Repr     = text
+    val htmlRepr: Repr = text
   }
 
   implicit def stringToText(str: String): Text = Text(str)
@@ -106,8 +63,8 @@ object DocAST {
 
   final case class Formatter(formatterType: FormatterType, elem: Option[AST])
       extends AST {
-    val textRepr
-      : Repr = Repr(formatterType.showableMarker) + elem.textRepr + formatterType.showableMarker
+    val repr
+      : Repr = Repr(formatterType.showableMarker) + elem.repr + formatterType.showableMarker
     val htmlRepr
       : Repr = Repr("<") + formatterType.HTMLMarker + ">" + elem.htmlRepr + "</" + formatterType.HTMLMarker + ">"
   }
@@ -126,7 +83,7 @@ object DocAST {
     formatterType: FormatterType,
     elem: Option[AST]
   ) extends InvalidAST {
-    val textRepr: Repr = Repr(formatterType.showableMarker) + elem.textRepr
+    val repr: Repr = Repr(formatterType.showableMarker) + elem.repr
     val htmlRepr
       : Repr = Repr("<div class=\"unclosed_") + formatterType.HTMLMarker + "\">" + elem.htmlRepr + "</div>"
   }
@@ -143,8 +100,7 @@ object DocAST {
 
   final case class InvalidIndent(indent: Int, elem: AST, listType: ListType)
       extends InvalidAST {
-    val textRepr
-      : Repr = Repr(" " * indent) + listType.readableMarker + elem.textRepr
+    val repr: Repr = Repr(" " * indent) + listType.readableMarker + elem.repr
     val htmlRepr
       : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
   }
@@ -155,7 +111,7 @@ object DocAST {
 
   final case class CodeLine(code: String, inMultilineCode: Boolean)
       extends AST {
-    val textRepr: Repr = {
+    val repr: Repr = {
       if (inMultilineCode) {
         code
       } else {
@@ -170,8 +126,9 @@ object DocAST {
   ////////////////////
 
   final case class Header(elem: AST) extends AST {
-    val textRepr: Repr = elem.textRepr
-    val htmlRepr: Repr = Repr("<h1>") + elem.htmlRepr + "</h1>"
+    val repr: Repr = elem.repr
+    val htmlRepr
+      : Repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">" + elem.htmlRepr + "</div>"
   }
 
   ///////////////////
@@ -190,8 +147,7 @@ object DocAST {
 
   final case class Link(name: String, url: String, linkType: LinkType)
       extends AST {
-    val textRepr
-      : Repr = Repr() + linkType.readableMarker + name + "](" + url + ")"
+    val repr: Repr = Repr() + linkType.readableMarker + name + "](" + url + ")"
     val htmlRepr: Repr = linkType match {
       case URL =>
         Repr("<a href=\"") + url + "\">" + name + "</a>"
@@ -222,22 +178,22 @@ object DocAST {
     listType: ListType,
     elems: NonEmptyList[AST]
   ) extends AST {
-    val textRepr: Repr = {
+    val repr: Repr = {
       var _repr = Repr()
       elems.toList.foreach(elem => {
         if (elem.show().contains(" " * (indent + 2))) {
           _repr += '\n'
-          _repr += elem.textRepr
+          _repr += elem.repr
         } else if (elem.isInstanceOf[InvalidIndent]) {
           _repr += '\n'
-          _repr += elem.textRepr
+          _repr += elem.repr
         } else {
           if (elems.head != elem) {
             _repr += '\n'
           }
           _repr += " " * indent
           _repr += listType.readableMarker
-          _repr += elem.textRepr
+          _repr += elem.repr
         }
       })
       _repr
@@ -245,9 +201,13 @@ object DocAST {
     val htmlRepr: Repr = {
       var _repr = Repr("<") + listType.HTMLMarker + ">"
       elems.toList.foreach(elem => {
-        _repr += "<li>"
-        _repr += elem.htmlRepr
-        _repr += "</li>"
+        if (elem.isInstanceOf[ListBlock]) {
+          _repr += elem.htmlRepr
+        } else {
+          _repr += "<li>"
+          _repr += elem.htmlRepr
+          _repr += "</li>"
+        }
       })
       _repr += "</"
       _repr += listType.HTMLMarker
@@ -272,7 +232,7 @@ object DocAST {
     val elems: List[AST]
     def readableMarker: Option[Char] = None
 
-    val textRepr: Repr = {
+    val repr: Repr = {
       var _repr = Repr()
       if (indent >= 2) {
         _repr += " " * (indent - 2) + readableMarker
@@ -298,7 +258,7 @@ object DocAST {
             }
           }
         }
-        _repr += elems(i).textRepr
+        _repr += elems(i).repr
       }
       _repr
     }
@@ -353,6 +313,19 @@ object DocAST {
   final case class MultilineCode(indent: Int, elems: List[AST])
       extends Section {
     override def readableMarker = Some(' ')
+
+    override val htmlRepr: Repr = {
+      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\" style=\"margin-left:" + (10 * indent).toString + "px\" >"
+      elems.foreach({ elem =>
+        val r = elem.show() match {
+          case "\n" => Repr("<br />")
+          case _    => elem.htmlRepr
+        }
+        _repr += r
+      })
+      _repr += "</div>"
+      _repr
+    }
   }
   object MultilineCode {
     def apply():            MultilineCode = MultilineCode(0, Nil)
@@ -379,10 +352,10 @@ object DocAST {
   //////////////////
 
   final case class Body(elems: List[Section]) extends AST {
-    val textRepr: Repr = {
+    val repr: Repr = {
       var _repr = Repr()
       elems.foreach(elem => {
-        _repr += elem.textRepr
+        _repr += elem.repr
         if (elems.last != elem) {
           _repr += "\n"
         }
@@ -395,6 +368,7 @@ object DocAST {
       _repr += "</div>"
       _repr
     }
+    def exists(): Boolean = Body(elems) != Body()
   }
 
   object Body {
@@ -408,10 +382,10 @@ object DocAST {
   //////////////////////
 
   final case class Synopsis(elems: List[Section]) extends AST {
-    val textRepr: Repr = {
+    val repr: Repr = {
       var _repr = Repr()
       elems.foreach(elem => {
-        _repr += elem.textRepr
+        _repr += elem.repr
         if (elems.last != elem) {
           _repr += "\n"
         }
@@ -424,6 +398,7 @@ object DocAST {
       _repr += "</div>"
       _repr
     }
+    def exists(): Boolean = Synopsis(elems) != Synopsis()
   }
   object Synopsis {
     def apply():                Synopsis = Synopsis(Nil)
@@ -438,15 +413,15 @@ object DocAST {
   trait TagType extends AST {
     val version: Option[String]
     val name: String = this.getClass.getSimpleName.toUpperCase
-    val textRepr: Repr = {
-      if (version.textRepr == Repr()) {
+    val repr: Repr = {
+      if (version.repr == Repr()) {
         Repr(name)
       } else {
-        Repr(name) + ' ' + version.textRepr
+        Repr(name) + ' ' + version.repr
       }
     }
     val htmlRepr
-      : Repr = Repr("<div class=\"") + name + "\">" + name + ' ' + version.htmlRepr + "</div>"
+      : Repr = Repr("<div class=\"") + name + "\">" + name + version.htmlRepr + "</div>"
   }
 
   case class Deprecated(version: Option[String]) extends TagType
@@ -476,11 +451,11 @@ object DocAST {
   }
 
   final case class Tags(indent: Int, elems: List[TagType]) extends AST {
-    val textRepr: Repr = {
+    val repr: Repr = {
       var _repr = Repr()
       elems.foreach(elem => {
         _repr += " " * indent
-        _repr += elem.textRepr
+        _repr += elem.repr
         if (elems.last != elem) {
           _repr += "\n"
         }
@@ -493,7 +468,7 @@ object DocAST {
       _repr += "</div>"
       _repr
     }
-
+    def exists(): Boolean = Tags(indent, elems) != Tags(indent)
   }
   object Tags {
     def apply():                             Tags = Tags(0, Nil)
@@ -505,10 +480,10 @@ object DocAST {
   }
 
   implicit final class _OptionTagType_(val self: Option[String]) extends AST {
-    val textRepr: Repr = self.map(Repr(_)).getOrElse(Repr())
+    val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
     val htmlRepr: Repr =
       self
-        .map(Repr() + "<div class=\"version\">" + Repr(_) + "</div>")
+        .map(Repr() + "<div class=\"Version\"> " + Repr(_) + "</div>")
         .getOrElse(Repr())
   }
 
@@ -518,41 +493,40 @@ object DocAST {
 
   final case class Documentation(tags: Tags, synopsis: Synopsis, body: Body)
       extends AST {
-    val textRepr: Repr = {
+    val repr: Repr = {
       var _repr = Repr()
-      if (tags != Tags()) {
-        _repr += tags.textRepr
-        if (synopsis != Synopsis()) {
+      if (tags.exists()) {
+        _repr += tags.repr
+        if (synopsis.exists() || body.exists()) {
           _repr += "\n"
         }
       }
 
-      if (synopsis != Synopsis()) {
-        _repr += synopsis.textRepr
+      if (synopsis.exists()) {
+        _repr += synopsis.repr
       }
 
-      if (body != Body()) {
+      if (body.exists()) {
         _repr += "\n"
-        _repr += body.textRepr
+        _repr += body.repr
       }
       _repr
     }
     val htmlRepr: Repr = {
-      var _repr = Repr(
-        "<!DOCTYPE html><html><head><link rel=\"stylesheet\" href=\"style.css\"></head><body>"
-      )
-      if (tags != Tags()) {
+      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
+
+      if (tags.exists()) {
         _repr += tags.htmlRepr
       }
-
-      if (synopsis != Synopsis()) {
+      if (synopsis.exists()) {
         _repr += synopsis.htmlRepr
       }
-
-      if (body != Body()) {
+      if (body.exists()) {
         _repr += body.htmlRepr
       }
-      _repr += "</body></html>"
+
+      _repr += "</div>"
+
       _repr
     }
   }

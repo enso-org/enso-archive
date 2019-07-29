@@ -1,69 +1,31 @@
 package org.enso.syntax.text
 
 import org.enso.flexer.Macro.compile
-import org.enso.flexer.Success
-import org.enso.syntax.text.docsParser.Definition
-import org.enso.syntax.text.DocAST
 import org.enso.flexer
+import org.enso.flexer.Success
+//import java.io.File
+//import java.io.PrintWriter
 
 ///////////////////
 //// DocParser ////
 ///////////////////
 
 class DocParser {
-  import DocParser._
-  private val engine = newEngine()
+  type Result[T] = flexer.Result[T]
+  private val engine = compile(docsParser.DocParserDef)()
 
   def run(input: String): Result[DocAST.AST] = engine.run(input)
 }
 
 object DocParser {
-  type Result[T] = flexer.Result[T]
-  private val newEngine = compile(docsParser.Definition)
-}
-
-//////////////
-//// Main ////
-//////////////
-
-object Main extends App {
-
-  var indent = 0
-
-  def pprint[T](t: T) {
-    if (t == null) {
-      println(t)
-      return
-    }
-    val s = t.toString()
-    print("  " * indent)
-    val (l, r2) = s.span(x => x != '(' && x != ')')
-    print(l)
-    if (r2 == "") {
-      println
-      return
-    }
-
-    val (m, r) = r2.splitAt(1)
-
-    if (m == "(") {
-      indent += 1
-      println(m)
-      pprint(r)
-    } else if (m == ")") {
-      indent -= 1
-      println(m)
-      pprint(r)
-    }
-
-  }
-
-  val parserCons = compile(Definition)
-
-  val p1 = new DocParser()
+  val docParserInstance = new DocParser()
 
   val dataToParse =
     """ DEPRECATED
+      | MODIFIED in 1.9
+      | ADDED in 1.7
+      | REMOVED
+      | UPCOMING
       | Construct and manage a graphical, event-driven user interface for your iOS or
       | tvOS app.
       |
@@ -77,7 +39,7 @@ object Main extends App {
       | display, search support, accessibility support, app extension support, and
       | resource management. [Some inline link](http://google.com). *Bold test*,
       | or _italics_ are allowed. ~Strikethrough as well~. *_~Combined is funny~_*.
-      | ![Images are allowed as well](http://link-to-image.jpg).
+      | ![Images are allowed as well](https://github.com/luna/luna-studio/raw/master/resources/logo.ico).
       |
       | You can use ordered or unordered lists as well:
       |   - First unordered item
@@ -86,7 +48,7 @@ object Main extends App {
       |     * Second ordered sub item
       |
       | ! Important
-      |   An example wargning block. Use UIKit classes only from your app’s main thread
+      |   An example warning block. Use UIKit classes only from your app’s main thread
       |   or main dispatch queue, unless otherwise indicated. This restriction
       |   particularly applies to classes derived from UIResponder or that involve
       |   manipulating your app’s user interface in any way.
@@ -105,13 +67,32 @@ object Main extends App {
       |       v = Vec3 1 2 'foo' : Vector (Int | String)
       |       print v """.stripMargin
 
-  val out = p1.run(dataToParse)
+  val docParserOut = docParserInstance.run(dataToParse)
 
-  out match {
+  pprint.pprintln(docParserOut, width = 50, height = 10000)
+
+  docParserOut match {
     case Success(v, _) =>
-      pprint(v)
+      println("--- " * 20)
       println(v.show())
-    //println(v.generateHTML()) TODO - As next task - work on HTML Generator and CSS
+      println("--- " * 20)
+      println(v.renderHTML())
+//      saveHTMLCodeToLocalFile(
+//        "syntax/docParserHTMLOutput/",
+//        v.renderHTML()
+//      )
   }
-  println()
+
+//  def saveHTMLCodeToLocalFile(path: String, code: String): Unit = {
+//    var data = "<!DOCTYPE html><html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><link rel=\"stylesheet\" href=\"styleA.css\"></head><body>" + code + "</div></body></html>"
+//
+//    val writer = new PrintWriter(
+//      new File(
+//        path + "index.html"
+//      )
+//    )
+//    writer.write(data)
+//    writer.close()
+//  }
+
 }

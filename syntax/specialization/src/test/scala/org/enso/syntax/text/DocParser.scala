@@ -2,12 +2,12 @@ package org.enso.syntax.text
 
 import org.enso.flexer.Macro
 import org.enso.syntax.text.DocAST._
-import org.enso.syntax.text.docsParser.Definition
+import org.enso.syntax.text.docsParser.DocParserDef
 import org.enso.{flexer => Flexer}
 import org.scalatest._
 
 class DocParserSpec extends FlatSpec with Matchers {
-  val parserCons: Macro.Out[DocAST.AST] = Macro.compile(Definition)
+  val parserCons: Macro.Out[DocAST.AST] = Macro.compile(DocParserDef)
 
   def parse(input: String) = {
     val parser = parserCons()

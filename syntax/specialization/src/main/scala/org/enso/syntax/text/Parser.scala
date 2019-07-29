@@ -41,6 +41,8 @@ object Main extends App {
 //  val out = p1.run("if a then x")
   pprint.pprintln(out, width = 50, height = 10000)
 
+  DocParser
+
 //  val out = p1.run("(t  if a then b)")
 //  val out = p1.run("x ( a  b   )")
 

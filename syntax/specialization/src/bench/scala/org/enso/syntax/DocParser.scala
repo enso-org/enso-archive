@@ -1,7 +1,7 @@
 package org.enso.syntax
 
 import org.enso.flexer.Macro
-import org.enso.syntax.text.docsParser.Definition
+import org.enso.syntax.text.docsParser.DocParserDef
 import org.enso.syntax.text.DocAST
 import org.scalameter.api._
 
@@ -35,7 +35,7 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
   val oneHundredSegment = for { i <- exp14 } yield (part + "\n") * i
   val ginormousSegment  = for { i <- exp18 } yield part * i
 
-  val newParser = Macro.compile(Definition)
+  val newParser = Macro.compile(DocParserDef)
 
   performance of "DocParser" in {
     measure method "Formatters" in (using(formatters) in (newParser().run(_)))
