@@ -47,17 +47,16 @@ object DocAST {
     val htmlMarker: Char
   }
 
-  abstract class FormatterClass(val marker: Char, val htmlMarker: Char) extends FormatterType
-  case object Bold extends FormatterClass('*','b')
-  case object Italic extends FormatterClass('_','i')
-  case object Strikethrough extends FormatterClass('~','s')
+  abstract class FormatterClass(val marker: Char, val htmlMarker: Char)
+      extends FormatterType
+  case object Bold          extends FormatterClass('*', 'b')
+  case object Italic        extends FormatterClass('_', 'i')
+  case object Strikethrough extends FormatterClass('~', 's')
 
-  final case class Formatter(tp: FormatterType, elem: Option[AST])
-    extends AST {
-    val repr
-    : Repr = Repr(tp.marker) + elem.repr + tp.marker
+  final case class Formatter(tp: FormatterType, elem: Option[AST]) extends AST {
+    val repr: Repr = Repr(tp.marker) + elem.repr + tp.marker
     val htmlRepr
-    : Repr = Repr("<") + tp.htmlMarker + ">" + elem.htmlRepr + "</" + tp.htmlMarker + ">"
+      : Repr = Repr("<") + tp.htmlMarker + ">" + elem.htmlRepr + "</" + tp.htmlMarker + ">"
   }
   object Formatter {
     def apply(formatterType: FormatterType): Formatter =
@@ -70,10 +69,11 @@ object DocAST {
   /// Unclosed Formatter ///
   //////////////////////////
 
-  final case class UnclosedFormatter(tp: FormatterType,elem: Option[AST]) extends InvalidAST {
+  final case class UnclosedFormatter(tp: FormatterType, elem: Option[AST])
+      extends InvalidAST {
     val repr: Repr = Repr(tp.marker) + elem.repr
     val htmlRepr
-    : Repr = Repr("<div class=\"unclosed_") + tp.htmlMarker + "\">" + elem.htmlRepr + "</div>"
+      : Repr = Repr("<div class=\"unclosed_") + tp.htmlMarker + "\">" + elem.htmlRepr + "</div>"
   }
   object UnclosedFormatter {
     def apply(formatterType: FormatterType): UnclosedFormatter =
@@ -87,25 +87,23 @@ object DocAST {
   //////////////////////
 
   final case class InvalidIndent(indent: Int, elem: AST, listType: ListType)
-    extends InvalidAST {
+      extends InvalidAST {
     val repr: Repr = Repr(" " * indent) + listType.marker + elem.repr
     val htmlRepr
-    : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
+      : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
   }
 
   ///////////////////////
   ////// Code Line //////
   ///////////////////////
 
-  final case class CodeLine(code: String)
-    extends AST {
-    val repr: Repr = Repr("`") + code + "`"
+  final case class CodeLine(code: String) extends AST {
+    val repr: Repr     = Repr("`") + code + "`"
     val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
 
-  final case class MultilineCodeLine(code: String)
-    extends AST {
-    val repr: Repr = code
+  final case class MultilineCodeLine(code: String) extends AST {
+    val repr: Repr     = code
     val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
 
@@ -124,7 +122,7 @@ object DocAST {
   }
 
   final case class Link(name: String, url: String, linkType: LinkType)
-    extends AST {
+      extends AST {
     val repr: Repr = Repr() + linkType.marker + name + "](" + url + ")"
     val htmlRepr: Repr = linkType match {
       case URL =>
@@ -143,22 +141,23 @@ object DocAST {
     val HTMLMarker: String
   }
   final case object Unordered extends ListType {
-    val marker = '-'
-    val HTMLMarker     = "ul"
+    val marker     = '-'
+    val HTMLMarker = "ul"
   }
   final case object Ordered extends ListType {
-    val marker = '*'
-    val HTMLMarker     = "ol"
+    val marker     = '*'
+    val HTMLMarker = "ol"
   }
 
-  final case class ListBlock(indent: Int, listType: ListType, elems: List1[AST]) extends AST {
+  final case class ListBlock(indent: Int, listType: ListType, elems: List1[AST])
+      extends AST {
     val repr: Repr = {
       var _repr = Repr()
       elems.toList.foreach {
-        case elem@(t: InvalidAST) =>
+        case elem @ (t: InvalidAST) =>
           _repr += '\n'
           _repr += elem.repr
-        case elem@(t: ListBlock) =>
+        case elem @ (t: ListBlock) =>
           _repr += '\n'
           _repr += elem.repr
         case elem =>
@@ -175,7 +174,7 @@ object DocAST {
     val htmlRepr: Repr = {
       var _repr = Repr("<") + listType.HTMLMarker + ">"
       elems.toList.foreach {
-        case elem@(t: ListBlock) =>
+        case elem @ (t: ListBlock) =>
           _repr += elem.htmlRepr
         case elem =>
           _repr += "<li>"
@@ -203,25 +202,29 @@ object DocAST {
   final case class Header(elem: AST) extends AST {
     val repr: Repr = elem.repr
     val htmlRepr
-    : Repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">" + elem.htmlRepr + "</div>"
+      : Repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">" + elem.htmlRepr + "</div>"
   }
 
   //////////////////////
   ////// Sections //////
   //////////////////////
 
-  abstract class Section extends Symbol {
-    val indent: Int
-    val elems: List[AST]
-    def marker: Option[Char] = None
+  case class Section(indent: Int, st: SectionType, elems: List[AST])
+      extends Symbol {
+    val marker = st.marker.map(_.toString).getOrElse("")
 
     val repr: Repr = {
       var _repr = Repr()
 
       _repr += (indent match {
-        case 0 => marker.map(_.toString).getOrElse("")
-        case 1 => marker.map(_.toString).getOrElse(" ")
-        case _ =>  " " * (indent - 2) + marker.map(_.toString).getOrElse("") + " "
+        case 0 => marker
+        case 1 =>
+          if (marker.isEmpty) {
+            " "
+          } else {
+            marker
+          }
+        case _ => " " * (indent - 2) + marker + " "
       })
 
       for (i <- elems.indices) {
@@ -242,88 +245,51 @@ object DocAST {
       _repr
     }
     val htmlRepr: Repr = {
-      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
-      elems.foreach(elem => _repr += elem.htmlRepr)
-      _repr += "</div>"
-      _repr
+      if (st == MultilineCode) {
+        var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\" style=\"margin-left:" + (10 * indent).toString + "px\" >"
+        elems.foreach({ elem =>
+          val r = elem.show() match {
+            case "\n" => Repr("<br />")
+            case _    => elem.htmlRepr
+          }
+          _repr += r
+        })
+        _repr += "</div>"
+        _repr
+      } else {
+        var _repr = Repr("<div class=\"") + st.getClass.getSimpleName
+            .dropRight(1) + "\">"
+        elems.foreach(elem => _repr += elem.htmlRepr)
+        _repr += "</div>"
+        _repr
+      }
     }
   }
 
-  ///// Important /////
-  final case class Important(indent: Int, elems: List[AST]) extends Section {
-    override def marker = Some('!')
-  }
-  object Important {
-    def apply():            Important = Important(0, Nil)
-    def apply(indent: Int): Important = Important(indent, Nil)
-    def apply(indent: Int, elem: AST): Important =
-      Important(indent, elem :: Nil)
-    def apply(indent: Int, elems: AST*): Important =
-      Important(indent, elems.to[List])
+  object Section {
+    def apply(indent: Int, sectionType: SectionType, elem: AST): Section =
+      Section(indent, sectionType, elem :: Nil)
+    def apply(indent: Int, sectionType: SectionType, elems: AST*): Section =
+      Section(indent, sectionType, elems.to[List])
   }
 
-  ///// Info /////
-  final case class Info(indent: Int, elems: List[AST]) extends Section {
-    override def marker = Some('?')
+  trait SectionType {
+    val marker: Option[Char]
   }
-  object Info {
-    def apply():            Info = Info(0, Nil)
-    def apply(indent: Int): Info = Info(indent, Nil)
-    def apply(indent: Int, elem: AST): Info =
-      Info(indent, elem :: Nil)
-    def apply(indent: Int, elems: AST*): Info =
-      Info(indent, elems.to[List])
+  case object Important extends SectionType {
+    val marker: Option[Char] = Some('!')
   }
-
-  ///// Example /////
-  final case class Example(indent: Int, elems: List[AST]) extends Section {
-    override def marker = Some('>')
+  case object Info extends SectionType {
+    val marker: Option[Char] = Some('?')
   }
-  object Example {
-    def apply():            Example = Example(0, Nil)
-    def apply(indent: Int): Example = Example(indent, Nil)
-    def apply(indent: Int, elem: AST): Example =
-      Example(indent, elem :: Nil)
-    def apply(indent: Int, elems: AST*): Example =
-      Example(indent, elems.to[List])
+  case object Example extends SectionType {
+    val marker: Option[Char] = Some('>')
   }
-
-  ///// Multiline Code /////
-  final case class MultilineCode(indent: Int, elems: List[AST])
-    extends Section {
-    override def marker = Some(' ')
-
-    override val htmlRepr: Repr = {
-      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\" style=\"margin-left:" + (10 * indent).toString + "px\" >"
-      elems.foreach({ elem =>
-        val r = elem.show() match {
-          case "\n" => Repr("<br />")
-          case _    => elem.htmlRepr
-        }
-        _repr += r
-      })
-      _repr += "</div>"
-      _repr
-    }
+  case object MultilineCode extends SectionType {
+    val marker: Option[Char] = Some(' ')
   }
-  object MultilineCode {
-    def apply():            MultilineCode = MultilineCode(0, Nil)
-    def apply(indent: Int): MultilineCode = MultilineCode(indent, Nil)
-    def apply(indent: Int, elem: AST): MultilineCode =
-      MultilineCode(indent, elem :: Nil)
-    def apply(indent: Int, elems: AST*): MultilineCode =
-      MultilineCode(indent, elems.to[List])
-  }
-
-  ///// Text Block /////
-  final case class TextBlock(indent: Int, elems: List[AST]) extends Section
-  object TextBlock {
-    def apply():            TextBlock = TextBlock(0, Nil)
-    def apply(indent: Int): TextBlock = TextBlock(indent, Nil)
-    def apply(indent: Int, elem: AST): TextBlock =
-      TextBlock(indent, elem :: Nil)
-    def apply(indent: Int, elems: AST*): TextBlock =
-      TextBlock(indent, elems.to[List])
+  case object TextBlock extends SectionType {
+    val marker: Option[Char] = None
   }
 
   //////////////////
@@ -391,10 +357,10 @@ object DocAST {
 
   trait TagType
   case object Deprecated extends TagType
-  case object Added extends TagType
-  case object Removed extends TagType
-  case object Modified extends TagType
-  case object Upcoming extends TagType
+  case object Added      extends TagType
+  case object Removed    extends TagType
+  case object Modified   extends TagType
+  case object Upcoming   extends TagType
 
   final case class TagClass(tp: TagType, version: Option[String]) extends AST {
     val name: String = tp.getClass.getSimpleName.toUpperCase.dropRight(1)
@@ -406,11 +372,12 @@ object DocAST {
       }
     }
     val htmlRepr
-    : Repr = Repr("<div class=\"") + name + "\">" + name + version.htmlRepr + "</div>"
+      : Repr = Repr("<div class=\"") + name + "\">" + name + version.htmlRepr + "</div>"
   }
   object TagClass {
     def apply(tp: TagType): TagClass = TagClass(tp, None)
-    def apply(tp: TagType, version: String): TagClass = TagClass(tp, Option(version))
+    def apply(tp: TagType, version: String): TagClass =
+      TagClass(tp, Option(version))
   }
 
   final case class Tags(indent: Int, elems: List[TagClass]) extends AST {
@@ -434,12 +401,13 @@ object DocAST {
     def exists(): Boolean = Tags(indent, elems) != Tags(indent)
   }
   object Tags {
-    def apply():                             Tags = Tags(0, Nil)
-    def apply(indent: Int):                  Tags = Tags(indent, Nil)
-    def apply(elem: TagClass):                Tags = Tags(0, elem :: Nil)
-    def apply(indent: Int, elem: TagClass):   Tags = Tags(indent, elem :: Nil)
-    def apply(elems: TagClass*):              Tags = Tags(0, elems.to[List])
-    def apply(indent: Int, elems: TagClass*): Tags = Tags(indent, elems.to[List])
+    def apply():                            Tags = Tags(0, Nil)
+    def apply(indent: Int):                 Tags = Tags(indent, Nil)
+    def apply(elem: TagClass):              Tags = Tags(0, elem :: Nil)
+    def apply(indent: Int, elem: TagClass): Tags = Tags(indent, elem :: Nil)
+    def apply(elems: TagClass*):            Tags = Tags(0, elems.to[List])
+    def apply(indent: Int, elems: TagClass*): Tags =
+      Tags(indent, elems.to[List])
   }
 
   implicit final class _OptionTagType_(val self: Option[String]) extends AST {
@@ -455,7 +423,7 @@ object DocAST {
   ///////////////////////////
 
   final case class Documentation(tags: Tags, synopsis: Synopsis, body: Body)
-    extends AST {
+      extends AST {
     val repr: Repr = {
       var _repr = Repr()
       if (tags.exists()) {

@@ -41,42 +41,47 @@ class DocParserSpec extends FlatSpec with Matchers {
   //////////////////////
   ///// Formatters /////
   //////////////////////
-  "*Foo*" ?= Documentation(Synopsis(TextBlock(0, Formatter(Bold, "Foo"))))
-  "_Foo_" ?= Documentation(Synopsis(TextBlock(0, Formatter(Italic, "Foo"))))
-  "~Foo~" ?= Documentation(
-    Synopsis(TextBlock(0, Formatter(Strikethrough, "Foo")))
+  "*Foo*" ?= Documentation(
+    Synopsis(Section(0, TextBlock, Formatter(Bold, "Foo")))
   )
-  "`Foo`" ?= Documentation(Synopsis(TextBlock(0, CodeLine("Foo"))))
+  "_Foo_" ?= Documentation(
+    Synopsis(Section(0, TextBlock, Formatter(Italic, "Foo")))
+  )
+  "~Foo~" ?= Documentation(
+    Synopsis(Section(0, TextBlock, Formatter(Strikethrough, "Foo")))
+  )
+  "`Foo`" ?= Documentation(Synopsis(Section(0, TextBlock, CodeLine("Foo"))))
   "~*Foo*~" ?= Documentation(
     Synopsis(
-      TextBlock(0, Formatter(Strikethrough, Formatter(Bold, "Foo")))
+      Section(0, TextBlock, Formatter(Strikethrough, Formatter(Bold, "Foo")))
     )
   )
   "~_Foo_~" ?= Documentation(
     Synopsis(
-      TextBlock(0, Formatter(Strikethrough, Formatter(Italic, "Foo")))
+      Section(0, TextBlock, Formatter(Strikethrough, Formatter(Italic, "Foo")))
     )
   )
   "_~Foo~_" ?= Documentation(
     Synopsis(
-      TextBlock(0, Formatter(Italic, Formatter(Strikethrough, "Foo")))
+      Section(0, TextBlock, Formatter(Italic, Formatter(Strikethrough, "Foo")))
     )
   )
   "_*Foo*_" ?= Documentation(
-    Synopsis(TextBlock(0, Formatter(Italic, Formatter(Bold, "Foo"))))
+    Synopsis(Section(0, TextBlock, Formatter(Italic, Formatter(Bold, "Foo"))))
   )
   "*_Foo_*" ?= Documentation(
-    Synopsis(TextBlock(0, Formatter(Bold, Formatter(Italic, "Foo"))))
+    Synopsis(Section(0, TextBlock, Formatter(Bold, Formatter(Italic, "Foo"))))
   )
   "*~Foo~*" ?= Documentation(
     Synopsis(
-      TextBlock(0, Formatter(Bold, Formatter(Strikethrough, "Foo")))
+      Section(0, TextBlock, Formatter(Bold, Formatter(Strikethrough, "Foo")))
     )
   )
   "_~*Foo*~_" ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         Formatter(Italic, Formatter(Strikethrough, Formatter(Bold, "Foo")))
       )
     )
@@ -85,68 +90,91 @@ class DocParserSpec extends FlatSpec with Matchers {
   ///// Unclosed formatters /////
   ///////////////////////////////
   "_*Foo*" ?= Documentation(
-    Synopsis(TextBlock(0, UnclosedFormatter(Italic, Formatter(Bold, "Foo"))))
+    Synopsis(
+      Section(0, TextBlock, UnclosedFormatter(Italic, Formatter(Bold, "Foo")))
+    )
   )
   "~*Foo*" ?= Documentation(
     Synopsis(
-      TextBlock(0, UnclosedFormatter(Strikethrough, Formatter(Bold, "Foo")))
+      Section(
+        0,
+        TextBlock,
+        UnclosedFormatter(Strikethrough, Formatter(Bold, "Foo"))
+      )
     )
   )
   "***Foo" ?= Documentation(
-    Synopsis(TextBlock(0, Formatter(Bold), UnclosedFormatter(Bold, "Foo")))
+    Synopsis(
+      Section(0, TextBlock, Formatter(Bold), UnclosedFormatter(Bold, "Foo"))
+    )
   )
   "*_Foo_" ?= Documentation(
-    Synopsis(TextBlock(0, UnclosedFormatter(Bold, Formatter(Italic, "Foo"))))
+    Synopsis(
+      Section(0, TextBlock, UnclosedFormatter(Bold, Formatter(Italic, "Foo")))
+    )
   )
   "~_Foo_" ?= Documentation(
     Synopsis(
-      TextBlock(0, UnclosedFormatter(Strikethrough, Formatter(Italic, "Foo")))
+      Section(
+        0,
+        TextBlock,
+        UnclosedFormatter(Strikethrough, Formatter(Italic, "Foo"))
+      )
     )
   )
   "___Foo" ?= Documentation(
     Synopsis(
-      TextBlock(0, Formatter(Italic), UnclosedFormatter(Italic, "Foo"))
+      Section(0, TextBlock, Formatter(Italic), UnclosedFormatter(Italic, "Foo"))
     )
   )
   "*~Foo~" ?= Documentation(
     Synopsis(
-      TextBlock(0, UnclosedFormatter(Bold, Formatter(Strikethrough, "Foo")))
+      Section(
+        0,
+        TextBlock,
+        UnclosedFormatter(Bold, Formatter(Strikethrough, "Foo"))
+      )
     )
   )
   "_~Foo~" ?= Documentation(
     Synopsis(
-      TextBlock(0, UnclosedFormatter(Italic, Formatter(Strikethrough, "Foo")))
+      Section(
+        0,
+        TextBlock,
+        UnclosedFormatter(Italic, Formatter(Strikethrough, "Foo"))
+      )
     )
   )
   "~~~Foo" ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         Formatter(Strikethrough),
         UnclosedFormatter(Strikethrough, "Foo")
       )
     )
   )
   "`import foo`" ?= Documentation(
-    Synopsis(TextBlock(0, CodeLine("import foo")))
+    Synopsis(Section(0, TextBlock, CodeLine("import foo")))
   )
   ////////////////////
   ///// Segments /////
   ////////////////////
-  "!Important" ?= Documentation(Synopsis(Important(0, "Important")))
-  "?Info"      ?= Documentation(Synopsis(Info(0, "Info")))
-  ">Example"   ?= Documentation(Synopsis(Example(0, "Example")))
+  "!Important" ?= Documentation(Synopsis(Section(0, Important, "Important")))
+  "?Info"      ?= Documentation(Synopsis(Section(0, Info, "Info")))
+  ">Example"   ?= Documentation(Synopsis(Section(0, Example, "Example")))
   "?Info\n\n!Important" ?= Documentation(
-    Synopsis(Info(0, "Info", "\n")),
-    Body(Important(0, "Important"))
+    Synopsis(Section(0, Info, "Info", "\n")),
+    Body(Section(0, Important, "Important"))
   )
   "?Info\n\n!Important\n\n>Example" ?= Documentation(
     Synopsis(
-      Info(0, "Info", "\n")
+      Section(0, Info, "Info", "\n")
     ),
     Body(
-      Important(0, "Important", "\n"),
-      Example(0, "Example")
+      Section(0, Important, "Important", "\n"),
+      Section(0, Example, "Example")
     )
   )
   /////////////////
@@ -154,12 +182,18 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   "ul:\n  - Foo\n  - Bar" ?= Documentation(
     Synopsis(
-      TextBlock(0, "ul:", "\n", ListBlock(2, Unordered, " Foo", " Bar"))
+      Section(
+        0,
+        TextBlock,
+        "ul:",
+        "\n",
+        ListBlock(2, Unordered, " Foo", " Bar")
+      )
     )
   )
   "ol:\n  * Foo\n  * Bar" ?= Documentation(
     Synopsis(
-      TextBlock(0, "ol:", "\n", ListBlock(2, Ordered, " Foo", " Bar"))
+      Section(0, TextBlock, "ol:", "\n", ListBlock(2, Ordered, " Foo", " Bar"))
     )
   )
   """List
@@ -169,8 +203,9 @@ class DocParserSpec extends FlatSpec with Matchers {
     |    * Second ordered sub item
     |  - Third unordered item""".stripMargin ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         "List",
         "\n",
         ListBlock(
@@ -202,8 +237,9 @@ class DocParserSpec extends FlatSpec with Matchers {
     |    * Third ordered sub item
     |  - Fourth unordered item""".stripMargin ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         "List",
         "\n",
         ListBlock(
@@ -250,8 +286,9 @@ class DocParserSpec extends FlatSpec with Matchers {
     |   * Wrong Indent Item
     |  - Fourth unordered item""".stripMargin ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         "List",
         "\n",
         ListBlock(
@@ -290,8 +327,9 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   "[Hello](Http://Google.com)" ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         Link(
           "Hello",
           "Http://Google.com",
@@ -302,8 +340,9 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "![Media](http://foo.com)" ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         Link(
           "Media",
           "http://foo.com",
@@ -317,8 +356,9 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Documentation(
     Synopsis(
-      TextBlock(
+      Section(
         0,
+        TextBlock,
         "Foo ",
         Formatter(Bold, "Foo"),
         " ",
@@ -330,24 +370,22 @@ class DocParserSpec extends FlatSpec with Matchers {
       )
     ),
     Body(
-      TextBlock(0, "Hello Section", "\n"),
-      Important(0, "important", "\n"),
-      Info(0, "Hi", "\n"),
-      Example(0, "Example")
+      Section(0, TextBlock, "Hello Section", "\n"),
+      Section(0, Important, "important", "\n"),
+      Section(0, Info, "Hi", "\n"),
+      Section(0, Example, "Example")
     )
   )
   ////////////////
   ///// Tags /////
   ////////////////
-  "DEPRECATED" ?= Documentation(
-    Tags(TagClass(Deprecated)
-  ))
-  "MODIFIED" ?= Documentation(Tags(TagClass(Modified)))
-  "ADDED"    ?= Documentation(Tags(TagClass(Added)))
-  "REMOVED"  ?= Documentation(Tags(TagClass(Removed)))
+  "DEPRECATED" ?= Documentation(Tags(TagClass(Deprecated)))
+  "MODIFIED"   ?= Documentation(Tags(TagClass(Modified)))
+  "ADDED"      ?= Documentation(Tags(TagClass(Added)))
+  "REMOVED"    ?= Documentation(Tags(TagClass(Removed)))
   "REMOVED\nFoo" ?= Documentation(
     Tags(TagClass(Removed)),
-    Synopsis(TextBlock(0, "Foo"))
+    Synopsis(Section(0, TextBlock, "Foo"))
   )
   "DEPRECATED in 1.0" ?= Documentation(
     Tags(TagClass(Deprecated, "in 1.0"))
