@@ -171,6 +171,7 @@ object DocAST {
       }
       _repr
     }
+
     val htmlRepr: Repr = {
       var _repr = Repr("<") + listType.HTMLMarker + ">"
       elems.toList.foreach {
@@ -215,24 +216,28 @@ object DocAST {
     def marker: Option[Char] = None
 
     val repr: Repr = {
-      val markerStr = marker.map(_.toString).getOrElse("")
       var _repr = Repr()
 
-      if (indent >= 2) {
-        _repr += " " * (indent - 2) + markerStr + " "
-      } else if (indent == 1) {
-        _repr += marker.map(_.toString).getOrElse(" ")
-      } else {
-        _repr += markerStr
-      }
+      _repr += (indent match {
+        case 0 => marker.map(_.toString).getOrElse("")
+        case 1 => marker.map(_.toString).getOrElse(" ")
+        case _ =>  " " * (indent - 2) + marker.map(_.toString).getOrElse("") + " "
+      })
+
       for (i <- elems.indices) {
-        if (elems(i).isInstanceOf[Header]) {
-          _repr += "\n" + " " * indent
+        val elem = elems(i)
+        elem match {
+          case (t: Header) =>
+            _repr += "\n" + " " * indent
+            _repr += elem.repr
+          case (t: ListBlock) =>
+            _repr += elem.repr
+          case _ =>
+            if (i >= 1 && elems(i - 1) == Text("\n")) {
+              _repr += " " * indent
+            }
+            _repr += elem.repr
         }
-        if (i >= 1 && elems(i - 1) == Text("\n") && !elems(i).isInstanceOf[ListBlock]) {
-          _repr += " " * indent
-        }
-        _repr += elems(i).repr
       }
       _repr
     }
