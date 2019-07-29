@@ -53,11 +53,11 @@ object DocAST {
   case object Strikethrough extends FormatterClass('~','s')
 
   final case class Formatter(tp: FormatterType, elem: Option[AST])
-      extends AST {
+    extends AST {
     val repr
-      : Repr = Repr(tp.marker) + elem.repr + tp.marker
+    : Repr = Repr(tp.marker) + elem.repr + tp.marker
     val htmlRepr
-      : Repr = Repr("<") + tp.htmlMarker + ">" + elem.htmlRepr + "</" + tp.htmlMarker + ">"
+    : Repr = Repr("<") + tp.htmlMarker + ">" + elem.htmlRepr + "</" + tp.htmlMarker + ">"
   }
   object Formatter {
     def apply(formatterType: FormatterType): Formatter =
@@ -73,7 +73,7 @@ object DocAST {
   final case class UnclosedFormatter(tp: FormatterType,elem: Option[AST]) extends InvalidAST {
     val repr: Repr = Repr(tp.marker) + elem.repr
     val htmlRepr
-      : Repr = Repr("<div class=\"unclosed_") + tp.htmlMarker + "\">" + elem.htmlRepr + "</div>"
+    : Repr = Repr("<div class=\"unclosed_") + tp.htmlMarker + "\">" + elem.htmlRepr + "</div>"
   }
   object UnclosedFormatter {
     def apply(formatterType: FormatterType): UnclosedFormatter =
@@ -87,10 +87,10 @@ object DocAST {
   //////////////////////
 
   final case class InvalidIndent(indent: Int, elem: AST, listType: ListType)
-      extends InvalidAST {
+    extends InvalidAST {
     val repr: Repr = Repr(" " * indent) + listType.marker + elem.repr
     val htmlRepr
-      : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
+    : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
   }
 
   ///////////////////////
@@ -98,7 +98,7 @@ object DocAST {
   ///////////////////////
 
   final case class CodeLine(code: String)
-      extends AST {
+    extends AST {
     val repr: Repr = Repr("`") + code + "`"
     val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
@@ -124,7 +124,7 @@ object DocAST {
   }
 
   final case class Link(name: String, url: String, linkType: LinkType)
-      extends AST {
+    extends AST {
     val repr: Repr = Repr() + linkType.marker + name + "](" + url + ")"
     val htmlRepr: Repr = linkType match {
       case URL =>
@@ -154,35 +154,33 @@ object DocAST {
   final case class ListBlock(indent: Int, listType: ListType, elems: List1[AST]) extends AST {
     val repr: Repr = {
       var _repr = Repr()
-      elems.toList.foreach(elem => {
-        if (elem.show().contains(" " * (indent + 2))) {
+      elems.toList.foreach {
+        case elem@(t: InvalidAST) =>
           _repr += '\n'
           _repr += elem.repr
-        } else if (elem.isInstanceOf[InvalidIndent]) {
+        case elem@(t: ListBlock) =>
           _repr += '\n'
           _repr += elem.repr
-        } else {
+        case elem =>
           if (elems.head != elem) {
             _repr += '\n'
           }
           _repr += " " * indent
           _repr += listType.marker
           _repr += elem.repr
-        }
-      })
+      }
       _repr
     }
     val htmlRepr: Repr = {
       var _repr = Repr("<") + listType.HTMLMarker + ">"
-      elems.toList.foreach(elem => {
-        if (elem.isInstanceOf[ListBlock]) {
+      elems.toList.foreach {
+        case elem@(t: ListBlock) =>
           _repr += elem.htmlRepr
-        } else {
+        case elem =>
           _repr += "<li>"
           _repr += elem.htmlRepr
           _repr += "</li>"
-        }
-      })
+      }
       _repr += "</"
       _repr += listType.HTMLMarker
       _repr += ">"
@@ -217,30 +215,22 @@ object DocAST {
     def marker: Option[Char] = None
 
     val repr: Repr = {
+      val markerStr = marker.map(_.toString).getOrElse("")
       var _repr = Repr()
+
       if (indent >= 2) {
-        _repr += " " * (indent - 2) + marker
-          .map(_.toString)
-          .getOrElse("") + " "
+        _repr += " " * (indent - 2) + markerStr + " "
       } else if (indent == 1) {
-        _repr += marker
-          .map(_.toString)
-          .getOrElse(" ")
+        _repr += marker.map(_.toString).getOrElse(" ")
       } else {
-        _repr += marker
-          .map(_.toString)
-          .getOrElse("")
+        _repr += markerStr
       }
       for (i <- elems.indices) {
         if (elems(i).isInstanceOf[Header]) {
           _repr += "\n" + " " * indent
         }
-        if (i >= 1) {
-          if (elems(i - 1) == Text("\n")) {
-            if (!elems(i).isInstanceOf[ListBlock]) {
-              _repr += " " * indent
-            }
-          }
+        if (i >= 1 && elems(i - 1) == Text("\n") && !elems(i).isInstanceOf[ListBlock]) {
+          _repr += " " * indent
         }
         _repr += elems(i).repr
       }
@@ -295,7 +285,7 @@ object DocAST {
 
   ///// Multiline Code /////
   final case class MultilineCode(indent: Int, elems: List[AST])
-      extends Section {
+    extends Section {
     override def marker = Some(' ')
 
     override val htmlRepr: Repr = {
@@ -460,7 +450,7 @@ object DocAST {
   ///////////////////////////
 
   final case class Documentation(tags: Tags, synopsis: Synopsis, body: Body)
-      extends AST {
+    extends AST {
     val repr: Repr = {
       var _repr = Repr()
       if (tags.exists()) {
