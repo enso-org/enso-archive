@@ -26,7 +26,7 @@ trait AstExpressionVisitor[+T] {
 
   def visitFunctionApplication(
     function: AstExpression,
-    arguments: java.util.List[AstExpression]
+    arguments: java.util.List[AstCallArg]
   ): T
 
   def visitIf(
@@ -44,8 +44,6 @@ trait AstExpressionVisitor[+T] {
     branches: java.util.List[AstCase],
     fallback: java.util.Optional[AstCaseFunction]
   ): T
-
-  def visitNamedCallArg(name: String, value: AstExpression): T
 
   def visitIgnore(name: String): T
 }
@@ -87,13 +85,13 @@ sealed trait AstExpression {
   def visit[T](visitor: AstExpressionVisitor[T]): T
 }
 
+sealed trait AstArgDefinition {
+  def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T
+}
+
 trait AstArgDefinitionVisitor[+T] {
   def visitDefaultedArg(name: String, value: AstExpression, position: Int): T
   def visitBareArg(name: String, position: Int): T
-}
-
-sealed trait AstArgDefinition {
-  def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T
 }
 
 case class AstDefaultedArgDefinition(name: String, value: AstExpression)
@@ -107,10 +105,30 @@ case class AstBareArgDefinition(name: String) extends AstArgDefinition {
     visitor.visitBareArg(name, position)
 }
 
+sealed trait AstCallArg {
+  def visit[T](visitor: AstCallArgVisitor[T], position: Int): T
+}
+
+trait AstCallArgVisitor[+T] {
+  def visitNamedCallArg(name: String, value: AstExpression, position: Int): T
+  def visitUnnamedCallArg(value: AstExpression, position: Int): T
+  def visitIgnore(name: String, position: Int): T
+}
+
 case class AstNamedCallArg(name: String, value: AstExpression)
-    extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitNamedCallArg(name, value);
+    extends AstCallArg {
+  override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
+    visitor.visitNamedCallArg(name, value, position)
+}
+
+case class AstUnnamedCallArg(value: AstExpression) extends AstCallArg {
+  override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
+    visitor.visitUnnamedCallArg(value, position)
+}
+
+case class AstIgnore(name: String) extends AstCallArg {
+  override def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
+    visitor.visitIgnore(name, position)
 }
 
 case class AstLong(l: Long) extends AstExpression {
@@ -134,7 +152,7 @@ case class AstVariable(name: String) extends AstExpression {
     visitor.visitVariable(name)
 }
 
-case class AstApply(fun: AstExpression, args: List[AstExpression])
+case class AstApply(fun: AstExpression, args: List[AstCallArg])
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitFunctionApplication(fun, args.asJava)
@@ -193,11 +211,6 @@ case class AstMatch(
     )
 }
 
-case class AstIgnore(name: String) extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitIgnore(name)
-}
-
 class EnsoParserInternal extends JavaTokenParsers {
 
   override def skipWhitespace: Boolean = true
@@ -219,12 +232,14 @@ class EnsoParserInternal extends JavaTokenParsers {
       case lang ~ code => AstForeign(lang, code)
     }
 
-  def argList: Parser[List[AstExpression]] =
-    delimited("[", "]", nonEmptyList(ignore | namedArg | expression))
+  def argList: Parser[List[AstCallArg]] =
+    delimited("[", "]", nonEmptyList(ignore | namedCallArg | unnamedCallArg))
 
-  def namedArg: Parser[AstNamedCallArg] = ident ~ ("=" ~> expression) ^^ {
+  def namedCallArg: Parser[AstNamedCallArg] = ident ~ ("=" ~> expression) ^^ {
     case name ~ expr => AstNamedCallArg(name, expr)
   }
+
+  def unnamedCallArg: Parser[AstCallArg] = expression ^^ AstUnnamedCallArg
 
   def defaultedArg: Parser[AstDefaultedArgDefinition] =
     ident ~ ("=" ~> expression) ^^ {
@@ -264,9 +279,10 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def print: Parser[AstPrint] = "print:" ~> expression ^^ AstPrint
 
-  def ifZero: Parser[AstIfZero] = "ifZero:" ~> argList ^^ {
-    case List(cond, ift, iff) => AstIfZero(cond, ift, iff)
-  }
+  def ifZero: Parser[AstIfZero] =
+    "ifZero:" ~> "[" ~> (expression ~ ("," ~> expression ~ ("," ~> expression))) <~ "]" ^^ {
+      case cond ~ (ift ~ iff) => AstIfZero(cond, ift, iff)
+    }
 
   def function: Parser[AstFunction] =
     ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {

@@ -8,6 +8,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.function.argument.CallArgument;
 import org.enso.interpreter.optimiser.TailCallException;
 import org.enso.interpreter.runtime.Atom;
 import org.enso.interpreter.runtime.AtomConstructor;
@@ -18,20 +19,21 @@ import org.enso.interpreter.runtime.errors.NotInvokableException;
 @NodeInfo(shortName = "@", description = "Executes function")
 @NodeChild("target")
 public abstract class InvokeNode extends ExpressionNode {
-  @Children private final ExpressionNode[] arguments;
+  @Children private final CallArgument[] arguments;
   @Child private DispatchNode dispatchNode;
 
-  public InvokeNode(ExpressionNode[] arguments) {
+  public InvokeNode(CallArgument[] arguments) {
     this.arguments = arguments;
     this.dispatchNode = new SimpleDispatchNode();
   }
 
-  // TODO [AA] Convert everything to positional arguments?
+  // TODO [AA] Actually make use of the other argument types.
   @ExplodeLoop
   public Object[] computeArguments(VirtualFrame frame) {
     Object[] positionalArguments = new Object[arguments.length];
     for (int i = 0; i < arguments.length; i++) {
-      positionalArguments[i] = arguments[i].executeGeneric(frame);
+      // FIXME [AA] This is incredibly unsafe right now.
+      positionalArguments[i] = arguments[i].getExpression().get().executeGeneric(frame);
     }
     return positionalArguments;
   }
@@ -49,6 +51,7 @@ public abstract class InvokeNode extends ExpressionNode {
     }
   }
 
+  // TODO [AA] Need to handle named and defaulted args for constructors as well.
   @Specialization
   public Atom invokeConstructor(VirtualFrame frame, AtomConstructor constructor) {
     Object[] positionalArguments = computeArguments(frame);
