@@ -11,17 +11,16 @@ object DocAST {
   //////////////
 
   trait Provider extends Repr.Provider {
-    val htmlRepr: Repr
+//    val htmlRepr: Repr
   }
 
-  trait Symbol extends AST.Symbol {
-    val htmlRepr: Repr
-    def renderHTML(): String = htmlRepr.show()
+  trait Symbol extends AST.Symbol with Provider {
+//    def renderHTML(): String = htmlRepr.show()
   }
 
   implicit final class _OptionAST_(val self: Option[AST]) extends Symbol {
-    val repr: Repr     = self.map(_.repr).getOrElse(Repr())
-    val htmlRepr: Repr = self.map(_.htmlRepr).getOrElse(Repr())
+    val repr: Repr = self.map(_.repr).getOrElse(Repr())
+//    val htmlRepr: Repr = self.map(_.htmlRepr).getOrElse(Repr())
   }
 
   ///////////
@@ -32,8 +31,8 @@ object DocAST {
   trait InvalidAST extends AST
 
   final case class Text(text: String) extends AST {
-    val repr: Repr     = text
-    val htmlRepr: Repr = text
+    val repr: Repr = text
+//    val htmlRepr: Repr = text
   }
 
   implicit def stringToText(str: String): Text = Text(str)
@@ -55,8 +54,8 @@ object DocAST {
 
   final case class Formatter(tp: FormatterType, elem: Option[AST]) extends AST {
     val repr: Repr = Repr(tp.marker) + elem.repr + tp.marker
-    val htmlRepr
-      : Repr = Repr("<") + tp.htmlMarker + ">" + elem.htmlRepr + "</" + tp.htmlMarker + ">"
+//    val htmlRepr
+//      : Repr = Repr("<") + tp.htmlMarker + ">" + elem.htmlRepr + "</" + tp.htmlMarker + ">"
   }
   object Formatter {
     def apply(formatterType: FormatterType): Formatter =
@@ -72,8 +71,8 @@ object DocAST {
   final case class UnclosedFormatter(tp: FormatterType, elem: Option[AST])
       extends InvalidAST {
     val repr: Repr = Repr(tp.marker) + elem.repr
-    val htmlRepr
-      : Repr = Repr("<div class=\"unclosed_") + tp.htmlMarker + "\">" + elem.htmlRepr + "</div>"
+//    val htmlRepr
+//      : Repr = Repr("<div class=\"unclosed_") + tp.htmlMarker + "\">" + elem.htmlRepr + "</div>"
   }
   object UnclosedFormatter {
     def apply(formatterType: FormatterType): UnclosedFormatter =
@@ -89,8 +88,8 @@ object DocAST {
   final case class InvalidIndent(indent: Int, elem: AST, listType: ListType)
       extends InvalidAST {
     val repr: Repr = Repr(" " * indent) + listType.marker + elem.repr
-    val htmlRepr
-      : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
+//    val htmlRepr
+//      : Repr = Repr("<div class=\"invalidIndent\">") + elem.htmlRepr + "</div>"
   }
 
   ///////////////////////
@@ -98,13 +97,13 @@ object DocAST {
   ///////////////////////
 
   final case class CodeLine(code: String) extends AST {
-    val repr: Repr     = Repr("`") + code + "`"
-    val htmlRepr: Repr = Repr("<code>") + code + "</code>"
+    val repr: Repr = Repr("`") + code + "`"
+//    val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
 
   final case class MultilineCodeLine(code: String) extends AST {
-    val repr: Repr     = code
-    val htmlRepr: Repr = Repr("<code>") + code + "</code>"
+    val repr: Repr = code
+//    val htmlRepr: Repr = Repr("<code>") + code + "</code>"
   }
 
   ///////////////////
@@ -124,12 +123,12 @@ object DocAST {
   final case class Link(name: String, url: String, linkType: LinkType)
       extends AST {
     val repr: Repr = Repr() + linkType.marker + name + "](" + url + ")"
-    val htmlRepr: Repr = linkType match {
-      case URL =>
-        Repr("<a href=\"") + url + "\">" + name + "</a>"
-      case Image =>
-        Repr("<img src=\"") + url + "\" alt=\"" + name + "\">"
-    }
+//    val htmlRepr: Repr = linkType match {
+//      case URL =>
+//        Repr("<a href=\"") + url + "\">" + name + "</a>"
+//      case Image =>
+//        Repr("<img src=\"") + url + "\" alt=\"" + name + "\">"
+//    }
   }
 
   ///////////////////
@@ -171,21 +170,21 @@ object DocAST {
       _repr
     }
 
-    val htmlRepr: Repr = {
-      var _repr = Repr("<") + listType.HTMLMarker + ">"
-      elems.toList.foreach {
-        case elem @ (t: ListBlock) =>
-          _repr += elem.htmlRepr
-        case elem =>
-          _repr += "<li>"
-          _repr += elem.htmlRepr
-          _repr += "</li>"
-      }
-      _repr += "</"
-      _repr += listType.HTMLMarker
-      _repr += ">"
-      _repr
-    }
+//    val htmlRepr: Repr = {
+//      var _repr = Repr("<") + listType.HTMLMarker + ">"
+//      elems.toList.foreach {
+//        case elem @ (t: ListBlock) =>
+//          _repr += elem.htmlRepr
+//        case elem =>
+//          _repr += "<li>"
+//          _repr += elem.htmlRepr
+//          _repr += "</li>"
+//      }
+//      _repr += "</"
+//      _repr += listType.HTMLMarker
+//      _repr += ">"
+//      _repr
+//    }
 
   }
   object ListBlock {
@@ -201,8 +200,8 @@ object DocAST {
 
   final case class Header(elem: AST) extends AST {
     val repr: Repr = elem.repr
-    val htmlRepr
-      : Repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">" + elem.htmlRepr + "</div>"
+//    val htmlRepr
+//      : Repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">" + elem.htmlRepr + "</div>"
   }
 
   //////////////////////
@@ -211,7 +210,8 @@ object DocAST {
 
   case class Section(indent: Int, st: SectionType, elems: List[AST])
       extends Symbol {
-    val marker = st.marker.map(_.toString).getOrElse("")
+    val marker  = st.marker.map(_.toString).getOrElse("")
+    val newline = Text("\n")
 
     val repr: Repr = {
       var _repr = Repr()
@@ -236,7 +236,7 @@ object DocAST {
           case (t: ListBlock) =>
             _repr += elem.repr
           case _ =>
-            if (i >= 1 && elems(i - 1) == Text("\n")) {
+            if (i >= 1 && elems(i - 1) == newline) {
               _repr += " " * indent
             }
             _repr += elem.repr
@@ -244,26 +244,13 @@ object DocAST {
       }
       _repr
     }
-    val htmlRepr: Repr = {
-      if (st == MultilineCode) {
-        var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\" style=\"margin-left:" + (10 * indent).toString + "px\" >"
-        elems.foreach({ elem =>
-          val r = elem.show() match {
-            case "\n" => Repr("<br />")
-            case _    => elem.htmlRepr
-          }
-          _repr += r
-        })
-        _repr += "</div>"
-        _repr
-      } else {
-        var _repr = Repr("<div class=\"") + st.getClass.getSimpleName
-            .dropRight(1) + "\">"
-        elems.foreach(elem => _repr += elem.htmlRepr)
-        _repr += "</div>"
-        _repr
-      }
-    }
+//    val htmlRepr: Repr = {
+//      var _repr = Repr("<div class=\"") + st.getClass.getSimpleName
+//          .dropRight(1) + "\">"
+//      elems.foreach(elem => _repr += elem.htmlRepr)
+//      _repr += "</div>"
+//      _repr
+//    }
   }
 
   object Section {
@@ -292,11 +279,11 @@ object DocAST {
     val marker: Option[Char] = None
   }
 
-  //////////////////
-  ////// Body //////
-  //////////////////
+  /////////////////////
+  ////// Details //////
+  /////////////////////
 
-  final case class Body(elems: List[Section]) extends AST {
+  final case class Details(elems: List[Section]) extends AST {
     val repr: Repr = {
       var _repr = Repr()
       elems.foreach(elem => {
@@ -307,19 +294,19 @@ object DocAST {
       })
       _repr
     }
-    val htmlRepr: Repr = {
-      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
-      elems.foreach(elem => _repr += elem.htmlRepr)
-      _repr += "</div>"
-      _repr
-    }
-    def exists(): Boolean = Body(elems) != Body()
+//    val htmlRepr: Repr = {
+//      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
+//      elems.foreach(elem => _repr += elem.htmlRepr)
+//      _repr += "</div>"
+//      _repr
+//    }
+    def exists(): Boolean = Details(elems) != Details()
   }
 
-  object Body {
-    def apply():                Body = Body(Nil)
-    def apply(elem: Section):   Body = Body(elem :: Nil)
-    def apply(elems: Section*): Body = Body(elems.to[List])
+  object Details {
+    def apply():                Details = Details(Nil)
+    def apply(elem: Section):   Details = Details(elem :: Nil)
+    def apply(elems: Section*): Details = Details(elems.to[List])
   }
 
   //////////////////////
@@ -337,12 +324,12 @@ object DocAST {
       })
       _repr
     }
-    val htmlRepr: Repr = {
-      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
-      elems.foreach(elem => _repr += elem.htmlRepr)
-      _repr += "</div>"
-      _repr
-    }
+//    val htmlRepr: Repr = {
+//      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
+//      elems.foreach(elem => _repr += elem.htmlRepr)
+//      _repr += "</div>"
+//      _repr
+//    }
     def exists(): Boolean = Synopsis(elems) != Synopsis()
   }
   object Synopsis {
@@ -371,8 +358,8 @@ object DocAST {
         Repr(name) + ' ' + version.repr
       }
     }
-    val htmlRepr
-      : Repr = Repr("<div class=\"") + name + "\">" + name + version.htmlRepr + "</div>"
+//    val htmlRepr
+//      : Repr = Repr("<div class=\"") + name + "\">" + name + version.htmlRepr + "</div>"
   }
   object TagClass {
     def apply(tp: TagType): TagClass = TagClass(tp, None)
@@ -392,12 +379,12 @@ object DocAST {
       })
       _repr
     }
-    val htmlRepr: Repr = {
-      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
-      elems.foreach(elem => _repr += elem.htmlRepr)
-      _repr += "</div>"
-      _repr
-    }
+//    val htmlRepr: Repr = {
+//      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
+//      elems.foreach(elem => _repr += elem.htmlRepr)
+//      _repr += "</div>"
+//      _repr
+//    }
     def exists(): Boolean = Tags(indent, elems) != Tags(indent)
   }
   object Tags {
@@ -412,17 +399,17 @@ object DocAST {
 
   implicit final class _OptionTagType_(val self: Option[String]) extends AST {
     val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
-    val htmlRepr: Repr =
-      self
-        .map(Repr() + "<div class=\"Version\"> " + Repr(_) + "</div>")
-        .getOrElse(Repr())
+//    val htmlRepr: Repr =
+//      self
+//        .map(Repr() + "<div class=\"Version\"> " + Repr(_) + "</div>")
+//        .getOrElse(Repr())
   }
 
   ///////////////////////////
   ////// Documentation //////
   ///////////////////////////
 
-  final case class Documentation(tags: Tags, synopsis: Synopsis, body: Body)
+  final case class Documentation(tags: Tags, synopsis: Synopsis, body: Details)
       extends AST {
     val repr: Repr = {
       var _repr = Repr()
@@ -443,35 +430,35 @@ object DocAST {
       }
       _repr
     }
-    val htmlRepr: Repr = {
-      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
-
-      if (tags.exists()) {
-        _repr += tags.htmlRepr
-      }
-      if (synopsis.exists()) {
-        _repr += synopsis.htmlRepr
-      }
-      if (body.exists()) {
-        _repr += body.htmlRepr
-      }
-
-      _repr += "</div>"
-
-      _repr
-    }
+//    val htmlRepr: Repr = {
+//      var _repr = Repr("<div class=\"") + this.getClass.getSimpleName + "\">"
+//
+//      if (tags.exists()) {
+//        _repr += tags.htmlRepr
+//      }
+//      if (synopsis.exists()) {
+//        _repr += synopsis.htmlRepr
+//      }
+//      if (body.exists()) {
+//        _repr += body.htmlRepr
+//      }
+//
+//      _repr += "</div>"
+//
+//      _repr
+//    }
   }
 
   object Documentation {
-    def apply(tags: Tags, synopsis: Synopsis, body: Body): Documentation =
+    def apply(tags: Tags, synopsis: Synopsis, body: Details): Documentation =
       new Documentation(tags, synopsis, body)
-    def apply(synopsis: Synopsis, body: Body): Documentation =
+    def apply(synopsis: Synopsis, body: Details): Documentation =
       new Documentation(Tags(), synopsis, body)
     def apply(synopsis: Synopsis): Documentation =
-      new Documentation(Tags(), synopsis, Body(Nil))
+      new Documentation(Tags(), synopsis, Details(Nil))
     def apply(tags: Tags): Documentation =
-      new Documentation(tags, Synopsis(Nil), Body(Nil))
+      new Documentation(tags, Synopsis(Nil), Details(Nil))
     def apply(tags: Tags, synopsis: Synopsis): Documentation =
-      new Documentation(tags, synopsis, Body(Nil))
+      new Documentation(tags, synopsis, Details(Nil))
   }
 }

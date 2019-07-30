@@ -312,7 +312,7 @@ case class DocParserDef() extends ParserBase[AST] {
         Documentation(
           Tags(tagsIndent, tagsStack),
           Synopsis(Nil),
-          Body(Nil)
+          Details(Nil)
         )
       )
     } else {
@@ -322,7 +322,7 @@ case class DocParserDef() extends ParserBase[AST] {
             Documentation(
               Tags(tagsIndent, tagsStack),
               Synopsis(sectionsStack),
-              Body(Nil)
+              Details(Nil)
             )
           )
         case _ =>
@@ -330,7 +330,7 @@ case class DocParserDef() extends ParserBase[AST] {
             Documentation(
               Tags(tagsIndent, tagsStack),
               Synopsis(sectionsStack.head),
-              Body(sectionsStack.tail)
+              Details(sectionsStack.tail)
             )
           )
       }

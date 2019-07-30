@@ -166,13 +166,13 @@ class DocParserSpec extends FlatSpec with Matchers {
   ">Example"   ?= Documentation(Synopsis(Section(0, Example, "Example")))
   "?Info\n\n!Important" ?= Documentation(
     Synopsis(Section(0, Info, "Info", "\n")),
-    Body(Section(0, Important, "Important"))
+    Details(Section(0, Important, "Important"))
   )
   "?Info\n\n!Important\n\n>Example" ?= Documentation(
     Synopsis(
       Section(0, Info, "Info", "\n")
     ),
-    Body(
+    Details(
       Section(0, Important, "Important", "\n"),
       Section(0, Example, "Example")
     )
@@ -369,7 +369,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         "\n"
       )
     ),
-    Body(
+    Details(
       Section(0, TextBlock, "Hello Section", "\n"),
       Section(0, Important, "important", "\n"),
       Section(0, Info, "Hi", "\n"),

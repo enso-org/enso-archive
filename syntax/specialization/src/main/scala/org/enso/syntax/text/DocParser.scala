@@ -72,7 +72,7 @@ object DocParser {
       println("--- " * 20)
       println(v.show())
       println("--- " * 20)
-      println(v.renderHTML())
+//      println(v.renderHTML())
 //      saveHTMLCodeToLocalFile(
 //        "syntax/docParserHTMLOutput/",
 //        v.renderHTML()
