@@ -330,10 +330,9 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        Link(
+        URL(
           "Hello",
-          "Http://Google.com",
-          URL
+          "Http://Google.com"
         )
       )
     )
@@ -343,10 +342,9 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        Link(
+        Image(
           "Media",
-          "http://foo.com",
-          Image
+          "http://foo.com"
         )
       )
     )

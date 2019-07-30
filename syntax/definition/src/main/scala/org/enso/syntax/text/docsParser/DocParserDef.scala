@@ -360,26 +360,32 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// Links //////
   ///////////////////
 
-  def createURL(name: String, url: String, linkType: LinkType): Unit =
+  def createURL(name: String, url: String): Unit =
     logger.trace {
-      result = Some(Link(name, url, linkType))
+      result = Some(URL(name, url))
       pushAST()
     }
 
-  val imageNameTrigger: String = Image.marker
-  val linkNameTrigger: String  = URL.marker
+  def createImage(name: String, url: String): Unit =
+    logger.trace {
+      result = Some(Image(name, url))
+      pushAST()
+    }
+
+  val imageNameTrigger: String = Image().marker
+  val urlNameTrigger: String   = URL().marker
 
   NORMAL rule (imageNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(2).dropRight(1).split(']')
     val name = in(0)
     val url  = in(1).substring(1)
-    createURL(name, url, Image)
+    createImage(name, url)
   }
-  NORMAL rule (linkNameTrigger >> not(')').many1 >> ')') run reify {
+  NORMAL rule (urlNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(1).dropRight(1).split(']')
     val name = in(0)
     val url  = in(1).substring(1)
-    createURL(name, url, URL)
+    createURL(name, url)
   }
 
   /////////////////////////////////////////

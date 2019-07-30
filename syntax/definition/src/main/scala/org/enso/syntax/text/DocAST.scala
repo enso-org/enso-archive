@@ -110,25 +110,29 @@ object DocAST {
   ////// Links //////
   ///////////////////
 
-  trait LinkType {
-    val marker: String
-  }
-  final case object URL extends LinkType {
-    val marker = "["
-  }
-  final case object Image extends LinkType {
-    val marker = "!["
+  abstract class Link(name: String, url: String, marker: String) extends AST {
+    val repr: Repr = Repr() + marker + name + "](" + url + ")"
+//    val htmlRepr: Repr = this match {
+//      case (t: URL) => Repr("<a href=\"") + url + "\">" + name + "</a>"
+//      case (t: Image) =>  Repr("<img src=\"") + url + "\" alt=\"" + name + "\">"
+//    }
   }
 
-  final case class Link(name: String, url: String, linkType: LinkType)
-      extends AST {
-    val repr: Repr = Repr() + linkType.marker + name + "](" + url + ")"
-//    val htmlRepr: Repr = linkType match {
-//      case URL =>
-//        Repr("<a href=\"") + url + "\">" + name + "</a>"
-//      case Image =>
-//        Repr("<img src=\"") + url + "\" alt=\"" + name + "\">"
-//    }
+  final case class URL(name: String, url: String) extends Link(name, url, "[") {
+    val marker = "["
+  }
+  object URL {
+    def apply():                          URL = new URL("", "")
+    def apply(name: String, url: String): URL = new URL(name, url)
+  }
+
+  final case class Image(name: String, url: String)
+      extends Link(name, url, "![") {
+    val marker = "!["
+  }
+  object Image {
+    def apply():                          Image = new Image("", "")
+    def apply(name: String, url: String): Image = new Image(name, url)
   }
 
   ///////////////////
