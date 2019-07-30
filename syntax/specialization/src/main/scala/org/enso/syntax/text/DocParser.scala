@@ -3,8 +3,6 @@ package org.enso.syntax.text
 import org.enso.flexer.Macro.compile
 import org.enso.flexer
 import org.enso.flexer.Success
-//import java.io.File
-//import java.io.PrintWriter
 
 ///////////////////
 //// DocParser ////
@@ -73,22 +71,6 @@ object DocParser {
       println(v.show())
       println("--- " * 20)
       println(v.renderHTML())
-//      saveHTMLCodeToLocalFile(
-//        "syntax/docParserHTMLOutput/",
-//        v.renderHTML()
-//      )
   }
-
-//  def saveHTMLCodeToLocalFile(path: String, code: String): Unit = {
-//    var data = "<!DOCTYPE html><html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><link rel=\"stylesheet\" href=\"styleA.css\"></head><body>" + code + "</div></body></html>"
-//
-//    val writer = new PrintWriter(
-//      new File(
-//        path + "index.html"
-//      )
-//    )
-//    writer.write(data)
-//    writer.close()
-//  }
 
 }

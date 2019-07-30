@@ -31,7 +31,7 @@ object DocAST {
 
   implicit final class _OptionAST_(val self: Option[AST]) extends Symbol {
     val repr: Repr              = self.map(_.repr).getOrElse(Repr())
-    val htmlRepr: Seq[Modifier] = self.map(_.htmlRepr).get
+    val htmlRepr: Seq[Modifier] = self.map(_.htmlRepr).getOrElse("".htmlRepr)
   }
 
   ///////////
@@ -190,11 +190,14 @@ object DocAST {
       _repr
     }
 
-    // FIXME - Cant get Lists to work
     val htmlRepr: Seq[Modifier] = Seq(
-      listType.HTMLMarker(elems.toList.foreach {
-        case elem @ (t: ListBlock) => elem.htmlRepr
-        case elem                  => li(elem.htmlRepr)
+      listType.HTMLMarker({
+        for (elem <- elems.toList) yield {
+          elem match {
+            case (t: ListBlock) => elem.htmlRepr
+            case _              => Seq(li(elem.htmlRepr))
+          }
+        }
       })
     )
   }
