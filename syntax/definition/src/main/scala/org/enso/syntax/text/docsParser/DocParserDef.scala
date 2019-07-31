@@ -200,7 +200,7 @@ case class DocParserDef() extends ParserBase[AST] {
     if (textFormattersStack.nonEmpty) {
       if (textFormattersStack.head == formatterType) {
         popAST()
-        result              = Some(UnclosedFormatter(formatterType, result))
+        result              = Some(Formatter.Unclosed(formatterType, result))
         textFormattersStack = textFormattersStack.tail
         pushAST()
       }
@@ -362,18 +362,18 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def createURL(name: String, url: String): Unit =
     logger.trace {
-      result = Some(URL(name, url))
+      result = Some(Link.URL(name, url))
       pushAST()
     }
 
   def createImage(name: String, url: String): Unit =
     logger.trace {
-      result = Some(Image(name, url))
+      result = Some(Link.Image(name, url))
       pushAST()
     }
 
-  val imageNameTrigger: String = Image().marker
-  val urlNameTrigger: String   = URL().marker
+  val imageNameTrigger: String = Link.Image().marker
+  val urlNameTrigger: String   = Link.URL().marker
 
   NORMAL rule (imageNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(2).dropRight(1).split(']')

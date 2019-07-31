@@ -23,7 +23,7 @@ object DocAST {
           meta(httpEquiv := "Content-Type")(content := "text/html")(
             charset := "UTF-8"
           ),
-          link(rel := "stylesheet")(href := "styleA.css")
+          link(rel := "stylesheet")(href := "style.css")
         ),
         body(htmlRepr)
       )
@@ -74,27 +74,23 @@ object DocAST {
       Formatter(formatterType, None)
     def apply(formatterType: FormatterType, elem: AST): Formatter =
       Formatter(formatterType, Some(elem))
-  }
 
-  //////////////////////////
-  /// Unclosed Formatter ///
-  //////////////////////////
-
-  final case class UnclosedFormatter(tp: FormatterType, elem: Option[AST])
-      extends InvalidAST {
-    val repr: Repr = Repr(tp.marker) + elem.repr
-    val htmlRepr: Seq[Modifier] =
-      Seq(
-        div(`class` := s"unclosed_${tp.htmlMarker.tag}")(
-          elem.htmlRepr
+    final case class Unclosed(tp: FormatterType, elem: Option[AST])
+        extends InvalidAST {
+      val repr: Repr = Repr(tp.marker) + elem.repr
+      val htmlRepr: Seq[Modifier] =
+        Seq(
+          div(`class` := s"unclosed_${tp.htmlMarker.tag}")(
+            elem.htmlRepr
+          )
         )
-      )
-  }
-  object UnclosedFormatter {
-    def apply(formatterType: FormatterType): UnclosedFormatter =
-      UnclosedFormatter(formatterType, None)
-    def apply(formatterType: FormatterType, elem: AST): UnclosedFormatter =
-      UnclosedFormatter(formatterType, Option(elem))
+    }
+    object Unclosed {
+      def apply(formatterType: FormatterType): Unclosed =
+        Unclosed(formatterType, None)
+      def apply(formatterType: FormatterType, elem: AST): Unclosed =
+        Unclosed(formatterType, Option(elem))
+    }
   }
 
   //////////////////////
@@ -129,26 +125,27 @@ object DocAST {
   abstract class Link(name: String, url: String, marker: String) extends AST {
     val repr: Repr = Repr() + marker + name + "](" + url + ")"
     val htmlRepr: Seq[Modifier] = this match {
-      case (t: URL)   => Seq(a(href := url)(name))
-      case (t: Image) => Seq(img(src := url), name)
+      case (t: Link.URL)   => Seq(a(href := url)(name))
+      case (t: Link.Image) => Seq(img(src := url), name)
     }
   }
 
-  final case class URL(name: String, url: String) extends Link(name, url, "[") {
-    val marker = "["
-  }
-  object URL {
-    def apply():                          URL = new URL("", "")
-    def apply(name: String, url: String): URL = new URL(name, url)
-  }
+  object Link {
+    final case class URL(name: String, url: String)
+        extends Link(name, url, "[") {
+      val marker = "["
+    }
+    object URL {
+      def apply(): URL = new URL("", "")
+    }
 
-  final case class Image(name: String, url: String)
-      extends Link(name, url, "![") {
-    val marker = "!["
-  }
-  object Image {
-    def apply():                          Image = new Image("", "")
-    def apply(name: String, url: String): Image = new Image(name, url)
+    final case class Image(name: String, url: String)
+        extends Link(name, url, "![") {
+      val marker = "!["
+    }
+    object Image {
+      def apply(): Image = new Image("", "")
+    }
   }
 
   ///////////////////

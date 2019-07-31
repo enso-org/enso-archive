@@ -91,7 +91,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   ///////////////////////////////
   "_*Foo*" ?= Documentation(
     Synopsis(
-      Section(0, TextBlock, UnclosedFormatter(Italic, Formatter(Bold, "Foo")))
+      Section(0, TextBlock, Formatter.Unclosed(Italic, Formatter(Bold, "Foo")))
     )
   )
   "~*Foo*" ?= Documentation(
@@ -99,18 +99,18 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        UnclosedFormatter(Strikethrough, Formatter(Bold, "Foo"))
+        Formatter.Unclosed(Strikethrough, Formatter(Bold, "Foo"))
       )
     )
   )
   "***Foo" ?= Documentation(
     Synopsis(
-      Section(0, TextBlock, Formatter(Bold), UnclosedFormatter(Bold, "Foo"))
+      Section(0, TextBlock, Formatter(Bold), Formatter.Unclosed(Bold, "Foo"))
     )
   )
   "*_Foo_" ?= Documentation(
     Synopsis(
-      Section(0, TextBlock, UnclosedFormatter(Bold, Formatter(Italic, "Foo")))
+      Section(0, TextBlock, Formatter.Unclosed(Bold, Formatter(Italic, "Foo")))
     )
   )
   "~_Foo_" ?= Documentation(
@@ -118,13 +118,18 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        UnclosedFormatter(Strikethrough, Formatter(Italic, "Foo"))
+        Formatter.Unclosed(Strikethrough, Formatter(Italic, "Foo"))
       )
     )
   )
   "___Foo" ?= Documentation(
     Synopsis(
-      Section(0, TextBlock, Formatter(Italic), UnclosedFormatter(Italic, "Foo"))
+      Section(
+        0,
+        TextBlock,
+        Formatter(Italic),
+        Formatter.Unclosed(Italic, "Foo")
+      )
     )
   )
   "*~Foo~" ?= Documentation(
@@ -132,7 +137,7 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        UnclosedFormatter(Bold, Formatter(Strikethrough, "Foo"))
+        Formatter.Unclosed(Bold, Formatter(Strikethrough, "Foo"))
       )
     )
   )
@@ -141,7 +146,7 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        UnclosedFormatter(Italic, Formatter(Strikethrough, "Foo"))
+        Formatter.Unclosed(Italic, Formatter(Strikethrough, "Foo"))
       )
     )
   )
@@ -151,7 +156,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         0,
         TextBlock,
         Formatter(Strikethrough),
-        UnclosedFormatter(Strikethrough, "Foo")
+        Formatter.Unclosed(Strikethrough, "Foo")
       )
     )
   )
@@ -330,7 +335,7 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        URL(
+        Link.URL(
           "Hello",
           "Http://Google.com"
         )
@@ -342,7 +347,7 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section(
         0,
         TextBlock,
-        Image(
+        Link.Image(
           "Media",
           "http://foo.com"
         )
@@ -360,7 +365,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         "Foo ",
         Formatter(Bold, "Foo"),
         " ",
-        Formatter(Strikethrough, UnclosedFormatter(Bold, "Bar")),
+        Formatter(Strikethrough, Formatter.Unclosed(Bold, "Bar")),
         " ",
         CodeLine("foo bar baz bo"),
         " ",
