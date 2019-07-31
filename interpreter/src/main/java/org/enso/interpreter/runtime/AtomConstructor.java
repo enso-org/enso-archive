@@ -4,6 +4,8 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import com.sun.org.apache.xpath.internal.Arg;
 import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.errors.ArityException;
 
@@ -11,25 +13,19 @@ public class AtomConstructor extends Callable implements TruffleObject {
   public static final AtomConstructor CONS =
       new AtomConstructor(
           "Cons",
-          2,
-          new ArrayList<>(
-              Arrays.asList(new ArgumentDefinition(0, "head"), new ArgumentDefinition(1, "rest"))));
-  public static final AtomConstructor NIL = new AtomConstructor("Nil", 0, new ArrayList<>());
-  public static final AtomConstructor UNIT = new AtomConstructor("Unit", 0, new ArrayList<>());
+          new ArgumentDefinition[] {
+            new ArgumentDefinition(0, "head"), new ArgumentDefinition(1, "rest")
+          });
+  public static final AtomConstructor NIL = new AtomConstructor("Nil", new ArgumentDefinition[0]);
+  public static final AtomConstructor UNIT = new AtomConstructor("Unit", new ArgumentDefinition[0]);
 
   private final String name;
-  private final int arity;
   private final Atom cachedInstance;
 
-  public AtomConstructor(String name, List<ArgumentDefinition> args) {
-    this(name, args.size(), args);
-  }
-
-  public AtomConstructor(String name, int arity, List<ArgumentDefinition> args) {
+  public AtomConstructor(String name, ArgumentDefinition[] args) {
     super(args);
     this.name = name;
-    this.arity = arity;
-    if (arity == 0) {
+    if (args.length == 0) {
       cachedInstance = new Atom(this);
     } else {
       cachedInstance = null;
@@ -41,18 +37,18 @@ public class AtomConstructor extends Callable implements TruffleObject {
   }
 
   public int getArity() {
-    return arity;
+    return getArgs().length;
   }
 
   // TODO [AA] Make defaulted arguments actually work with constructors
   public Atom newInstance(Object... arguments) {
-    if (arguments.length != arity) throw new ArityException(arity, arguments.length);
+    if (arguments.length != getArity()) throw new ArityException(getArity(), arguments.length);
     if (cachedInstance != null) return cachedInstance;
     return new Atom(this, arguments);
   }
 
   @Override
   public String toString() {
-    return super.toString() + "<" + name + "/" + arity + ">";
+    return super.toString() + "<" + name + "/" + getArity() + ">";
   }
 }

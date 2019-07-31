@@ -3,7 +3,7 @@ package org.enso.interpreter;
 class CurryingTest extends LanguageTest {
 
   "Functions" should "allow defaulted values to be removed" in {
-
+    pending
     val code =
       """
         |addNum = { |a, num = 10| a + num }
@@ -16,7 +16,7 @@ class CurryingTest extends LanguageTest {
     noException should be thrownBy parse(code)
     // TODO [AA] This needs currying to be tested properly. Just test parse for
     // now.
-    // eval(code) shouldEqual 0
+    eval(code) shouldEqual 0
   }
 
 }

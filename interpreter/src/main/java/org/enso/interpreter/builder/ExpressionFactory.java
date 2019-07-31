@@ -127,16 +127,16 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
     ArgDefinitionFactory argFactory =
         new ArgDefinitionFactory(scope, language, scopeName, globalScope);
-    List<ArgumentDefinition> argDefinitions = new ArrayList<>();
+    ArgumentDefinition[] argDefinitions = new ArgumentDefinition[arguments.size()];
     List<ExpressionNode> argExpressions = new ArrayList<>();
     Set<String> argNames = new HashSet<>();
 
     // Note [Rewriting Arguments]
     for (int i = 0; i < arguments.size(); i++) {
       ArgumentDefinition arg = arguments.get(i).visit(argFactory, i);
-      argDefinitions.add(arg);
+      argDefinitions[i] = arg;
       FrameSlot slot = scope.createVarSlot(arg.getName());
-      ReadArgumentNode readArg = new ReadArgumentNode(i);
+      ReadArgumentNode readArg = new ReadArgumentNode(i, arg.getDefaultValue().orElse(null));
       AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
       argExpressions.add(assignArg);
 

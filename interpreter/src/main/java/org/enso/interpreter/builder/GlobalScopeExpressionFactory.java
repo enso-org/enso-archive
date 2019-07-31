@@ -37,10 +37,10 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
 
     for (AstTypeDef type : typeDefs) {
       ArgDefinitionFactory argFactory = new ArgDefinitionFactory(language, globalScope);
-      List<ArgumentDefinition> argDefs = new ArrayList<>();
+      ArgumentDefinition[] argDefs = new ArgumentDefinition[type.getArguments().size()];
 
       for (int i = 0; i < type.getArguments().size(); ++i) {
-        argDefs.add(type.getArguments().get(i).visit(argFactory, i));
+        argDefs[i] = type.getArguments().get(i).visit(argFactory, i);
       }
 
       globalScope.registerConstructor(new AtomConstructor(type.name(), argDefs));

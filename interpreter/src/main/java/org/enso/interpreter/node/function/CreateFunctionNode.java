@@ -11,9 +11,9 @@ import org.enso.interpreter.runtime.Function;
 
 public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;
-  private final List<ArgumentDefinition> args;
+  private final ArgumentDefinition[] args;
 
-  public CreateFunctionNode(RootCallTarget callTarget, List<ArgumentDefinition> args) {
+  public CreateFunctionNode(RootCallTarget callTarget, ArgumentDefinition[] args) {
     this.callTarget = callTarget;
     this.args = args;
   }

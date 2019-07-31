@@ -53,4 +53,15 @@ class FunctionArgumentsTest extends LanguageTest {
     the[PolyglotException] thrownBy eval(code) should have message errMsg
   }
 
+  "Function calls" should "accept more arguments than needed and pass them to the result upon execution" in {
+    pending
+    val code =
+      """
+        |f = { |x| { |z| x + z } }
+        |@f [1, 2]
+        |""".stripMargin
+
+    eval(code) shouldEqual 3
+  }
+
 }

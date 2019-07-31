@@ -125,4 +125,13 @@ class NamedArgumentsTest extends LanguageTest {
     eval(code) shouldEqual 0
   }
 
+  "Named arguments" should "be applied in a sequence compatible with Eta-expansions" in {
+    pending
+    val code =
+      """
+        |foo = { |a, b, c| a + b }
+        |@foo [20, a = 10]
+        |""".stripMargin
+  }
+
 }

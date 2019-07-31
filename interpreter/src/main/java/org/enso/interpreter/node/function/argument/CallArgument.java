@@ -6,40 +6,38 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.AtomConstructor;
 
 public class CallArgument extends ExpressionNode {
-  private final Optional<String> name;
-  private final Optional<ExpressionNode> expression;
-  private final int position;
+  private final String name;
+  @Child private ExpressionNode expression;
 
-  public CallArgument(ExpressionNode expression, int position) {
-    this(null, expression, position);
+  public CallArgument(ExpressionNode expression) {
+    this(null, expression);
   }
 
-  public CallArgument(String name, int position) {
-    this(name, null, position);
+  public CallArgument(String name) {
+    this(name, null);
   }
 
-  public CallArgument(String name, ExpressionNode expression, int position) {
-    this.name = Optional.ofNullable(name);
-    this.expression = Optional.ofNullable(expression);
-    this.position = position;
+  public CallArgument(String name, ExpressionNode expression) {
+    this.name = name;
+    this.expression = expression;
   }
 
   public boolean isIgnored() {
-    return this.name.isPresent() && !this.expression.isPresent();
+    return (this.name != null) && (this.expression == null);
   }
 
   public boolean isNamed() {
-    return this.name.isPresent() && this.expression.isPresent();
+    return (this.name != null) && (this.expression != null);
   }
 
   public boolean isPositional() {
-    return this.expression.isPresent() && !this.name.isPresent();
+    return !isNamed() && !isIgnored();
   }
 
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     if (!isIgnored()) {
-      return this.expression.get().executeGeneric(frame); // Note [Execution Safety]
+      return this.expression.executeGeneric(frame); // Note [Execution Safety]
     } else {
       return AtomConstructor.UNIT.newInstance();
     }
@@ -51,11 +49,7 @@ public class CallArgument extends ExpressionNode {
    * contain an expression is when it is ignored.
    */
 
-  public Optional<String> getName() {
+  public String getName() {
     return this.name;
-  }
-
-  public int getPosition() {
-    return position;
   }
 }

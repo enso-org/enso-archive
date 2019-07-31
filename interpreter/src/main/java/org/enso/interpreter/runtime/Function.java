@@ -19,7 +19,7 @@ public final class Function extends Callable implements TruffleObject {
   private final MaterializedFrame scope;
 
   public Function(
-      RootCallTarget callTarget, MaterializedFrame scope, List<ArgumentDefinition> arguments) {
+      RootCallTarget callTarget, MaterializedFrame scope, ArgumentDefinition[] arguments) {
     super(arguments);
     this.callTarget = callTarget;
     this.scope = scope;

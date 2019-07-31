@@ -11,9 +11,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 import org.enso.interpreter.node.function.argument.CallArgument;
+import org.enso.interpreter.node.function.argument.DefaultedArgument;
 import org.enso.interpreter.node.function.argument.UnappliedArgument;
 import org.enso.interpreter.optimiser.TailCallException;
 import org.enso.interpreter.runtime.Atom;
@@ -29,8 +33,7 @@ import org.enso.interpreter.runtime.errors.NotInvokableException;
 public abstract class InvokeNode extends ExpressionNode {
   @Children private final CallArgument[] callArguments;
   @Child private DispatchNode dispatchNode;
-  private final Map<Integer, CallArgument> callArgsByPosition;
-  private final Map<String, CallArgument> callArgsByName;
+  private final Map<String, Integer> callArgsByName;
   private boolean isSaturatedApplication;
 
   public InvokeNode(CallArgument[] callArguments) {
@@ -38,15 +41,12 @@ public abstract class InvokeNode extends ExpressionNode {
     this.dispatchNode = new SimpleDispatchNode();
     this.isSaturatedApplication = true;
 
-    this.callArgsByPosition =
-        Arrays.asList(callArguments).stream()
-            .collect(Collectors.toMap(CallArgument::getPosition, a -> a));
-
     // Note [Call Arguments by Name]
     this.callArgsByName =
-        Arrays.asList(callArguments).stream()
-            .filter(arg -> arg.getName().isPresent())
-            .collect(Collectors.toMap(arg -> arg.getName().get(), a -> a));
+        IntStream.range(0, callArguments.length)
+            .filter(idx -> callArguments[idx].getName() != null)
+            .boxed()
+            .collect(Collectors.toMap(idx -> callArguments[idx].getName(), idx -> idx));
   }
 
   /* Note [Call Arguments by Name]
@@ -60,9 +60,10 @@ public abstract class InvokeNode extends ExpressionNode {
   /**
    * Looks up the argument by the provided key type in the appropriate map.
    *
-   * This method exists because the lookups need to take place in the interpreter (behind the
+   * <p>This method exists because the lookups need to take place in the interpreter (behind the
    * truffle boundary). If they do not, then the partial evaluator tries to inline the map lookups
    * to a significant depth.
+   *
    * @param map The map in which to look up the key.
    * @param key The key to use for lookup.
    * @param <K> The key type of the map.
@@ -90,20 +91,20 @@ public abstract class InvokeNode extends ExpressionNode {
 
   // TODO [AA] Use specialisation and rewriting with an inline cache to speed this up.
   public Object[] computeArguments(VirtualFrame frame, Callable callable) {
-    List<ArgumentDefinition> definedArgs = callable.getArgs();
+    ArgumentDefinition[] definedArgs = callable.getArgs();
 
-    if (callArguments.length > definedArgs.size()) {
-      throw new ArityException(definedArgs.size(), callArguments.length);
+    if (callArguments.length > definedArgs.length) {
+      throw new ArityException(definedArgs.length, callArguments.length);
     }
 
-    Object[] positionalArguments = new Object[definedArgs.size()]; // Note [Positional Arguments]
+    Object[] positionalArguments = new Object[definedArgs.length]; // Note [Positional Arguments]
 
     for (ArgumentDefinition definedArg : definedArgs) {
       int definedArgPosition = definedArg.getPosition();
       String definedArgName = definedArg.getName();
 
       if (hasArgByKey(callArgsByName, definedArgName)) {
-        CallArgument callArg = getArgByKey(callArgsByName, definedArgName);
+        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
         positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
 
       } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
@@ -111,9 +112,7 @@ public abstract class InvokeNode extends ExpressionNode {
         positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
 
       } else if (definedArg.hasDefaultValue()) {
-        positionalArguments[definedArgPosition] =
-            definedArg.getDefaultValue().get().executeGeneric(frame);
-
+        positionalArguments[definedArgPosition] = new DefaultedArgument(definedArg);
       } else {
         positionalArguments[definedArgPosition] = new UnappliedArgument(definedArg);
         this.isSaturatedApplication = false;
