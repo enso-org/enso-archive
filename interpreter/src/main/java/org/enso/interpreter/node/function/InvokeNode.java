@@ -1,11 +1,11 @@
 package org.enso.interpreter.node.function;
 
 import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 import java.util.List;
@@ -31,10 +31,12 @@ public abstract class InvokeNode extends ExpressionNode {
   @Child private DispatchNode dispatchNode;
   private final Map<Integer, CallArgument> callArgsByPosition;
   private final Map<String, CallArgument> callArgsByName;
+  private boolean isSaturatedApplication;
 
   public InvokeNode(CallArgument[] callArguments) {
     this.callArguments = callArguments;
     this.dispatchNode = new SimpleDispatchNode();
+    this.isSaturatedApplication = true;
 
     this.callArgsByPosition =
         Arrays.asList(callArguments).stream()
@@ -55,9 +57,38 @@ public abstract class InvokeNode extends ExpressionNode {
    * TODO [AA] Finish this comment
    */
 
+  /**
+   * Looks up the argument by the provided key type in the appropriate map.
+   *
+   * This method exists because the lookups need to take place in the interpreter (behind the
+   * truffle boundary). If they do not, then the partial evaluator tries to inline the map lookups
+   * to a significant depth.
+   * @param map The map in which to look up the key.
+   * @param key The key to use for lookup.
+   * @param <K> The key type of the map.
+   * @param <V> The value type of the map.
+   * @return `true` if the key exists, otherwise `false`.
+   */
+  @TruffleBoundary
+  public static <K, V> boolean hasArgByKey(Map<K, V> map, K key) {
+    return map.containsKey(key);
+  }
+
+  /**
+   * Retrieves the argument for a given key from the provided map.
+   *
+   * @param map The map in which to look up the argument.
+   * @param key The key to use to find the argument.
+   * @param <K> The type of the key in the map.
+   * @param <V> The type of the value returned.
+   * @return The value, if found, `null` otherwise.
+   */
+  @TruffleBoundary
+  public static <K, V> V getArgByKey(Map<K, V> map, K key) {
+    return map.get(key);
+  }
+
   // TODO [AA] Use specialisation and rewriting with an inline cache to speed this up.
-  // TODO [AA] Actually make use of the other argument types.
-  @ExplodeLoop
   public Object[] computeArguments(VirtualFrame frame, Callable callable) {
     List<ArgumentDefinition> definedArgs = callable.getArgs();
 
@@ -67,18 +98,16 @@ public abstract class InvokeNode extends ExpressionNode {
 
     Object[] positionalArguments = new Object[definedArgs.size()]; // Note [Positional Arguments]
 
-    boolean isSaturated = false;
-
     for (ArgumentDefinition definedArg : definedArgs) {
       int definedArgPosition = definedArg.getPosition();
       String definedArgName = definedArg.getName();
 
-      if (callArgsByName.containsKey(definedArgName)) {
-        CallArgument callArg = callArgsByName.get(definedArgName);
+      if (hasArgByKey(callArgsByName, definedArgName)) {
+        CallArgument callArg = getArgByKey(callArgsByName, definedArgName);
         positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
 
-      } else if (callArgsByPosition.containsKey(definedArgPosition)) {
-        CallArgument callArg = callArgsByPosition.get(definedArgPosition);
+      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
+        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
         positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
 
       } else if (definedArg.hasDefaultValue()) {
@@ -86,8 +115,8 @@ public abstract class InvokeNode extends ExpressionNode {
             definedArg.getDefaultValue().get().executeGeneric(frame);
 
       } else {
-        // We don't have the arg applied or defaulted
         positionalArguments[definedArgPosition] = new UnappliedArgument(definedArg);
+        this.isSaturatedApplication = false;
       }
     }
 

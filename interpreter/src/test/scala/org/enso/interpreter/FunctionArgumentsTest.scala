@@ -35,7 +35,7 @@ class FunctionArgumentsTest extends LanguageTest {
     eval(code) shouldEqual 55
   }
 
-  "Functions" should "not take more arguments than possible" in {
+  "Functions" should "not take more arguments than they are defined for" in {
     val code =
       """
         |@{

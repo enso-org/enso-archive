@@ -63,7 +63,7 @@ class NamedArgumentsTest extends LanguageTest {
 
   "Default arguments" should "be able to close over their outer scope" in {
     val code =
-    """
+      """
         |id = { |x| x }
         |
         |apply = { |val, fn = id| @id [val] }
@@ -102,9 +102,27 @@ class NamedArgumentsTest extends LanguageTest {
         |addNum = { |a, num = 10| a + num }
         |
         |@addNum [1, 2]
-    """.stripMargin
+        |""".stripMargin
 
     eval(code) shouldEqual 3
+  }
+
+  "Named Arguments" should "only be scoped to their definitions" in {
+    val code =
+      """
+        |foo = { |x, y| x - y }
+        |bar = { |y, x| x - y }
+        |
+        |baz = { |f| @f [x = 10, y = 11] }
+        |
+        |a = @baz [foo]
+        |b = @baz [bar]
+        |
+        |a - b
+        |""".stripMargin
+
+    noException should be thrownBy parse(code)
+    eval(code) shouldEqual 0
   }
 
 }

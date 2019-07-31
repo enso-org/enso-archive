@@ -39,11 +39,17 @@ public class CallArgument extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     if (!isIgnored()) {
-      return this.expression.get().executeGeneric(frame);
+      return this.expression.get().executeGeneric(frame); // Note [Execution Safety]
     } else {
       return AtomConstructor.UNIT.newInstance();
     }
   }
+
+  /* Note [Execution Safety]
+   * ~~~~~~~~~~~~~~~~~~~~~~~
+   * It is safe to call `get` here as the only circumstance under which a call argument does not
+   * contain an expression is when it is ignored.
+   */
 
   public Optional<String> getName() {
     return this.name;

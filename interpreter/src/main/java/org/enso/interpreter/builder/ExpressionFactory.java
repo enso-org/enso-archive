@@ -5,8 +5,10 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -43,6 +45,7 @@ import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
+import org.enso.interpreter.runtime.errors.DuplicateArgumentNameException;
 import org.enso.interpreter.runtime.errors.VariableDoesNotExistException;
 
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
@@ -119,7 +122,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
         .orElseThrow(() -> new VariableDoesNotExistException(name));
   }
 
-  // TODO [AA] Make this handle defaulted arguments properly.
   public ExpressionNode processFunctionBody(
       List<AstArgDefinition> arguments, List<AstExpression> expressions, AstExpression retValue) {
 
@@ -127,6 +129,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
         new ArgDefinitionFactory(scope, language, scopeName, globalScope);
     List<ArgumentDefinition> argDefinitions = new ArrayList<>();
     List<ExpressionNode> argExpressions = new ArrayList<>();
+    Set<String> argNames = new HashSet<>();
 
     // Note [Rewriting Arguments]
     for (int i = 0; i < arguments.size(); i++) {
@@ -136,6 +139,14 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       ReadArgumentNode readArg = new ReadArgumentNode(i);
       AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
       argExpressions.add(assignArg);
+
+      String argName = arg.getName();
+
+      if (argNames.contains(argName)) {
+        throw new DuplicateArgumentNameException(argName);
+      } else {
+        argNames.add(argName);
+      }
     }
 
     List<ExpressionNode> fnBodyExpressionNodes =
@@ -197,8 +208,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     }
 
     return InvokeNodeGen.create(
-        callArgs.stream().toArray(CallArgument[]::new),
-        function.visit(this));
+        callArgs.stream().toArray(CallArgument[]::new), function.visit(this));
   }
 
   @Override
