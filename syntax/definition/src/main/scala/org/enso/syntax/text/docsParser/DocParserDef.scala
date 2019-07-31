@@ -226,13 +226,13 @@ case class DocParserDef() extends ParserBase[AST] {
   var tagsStack: List[TagClass] = Nil
   var tagsIndent: Int           = 0
 
-  def pushTag(tagType: TagType, version: String): Unit =
+  def pushTag(tagType: TagType, details: String): Unit =
     logger.trace {
       popAST()
-      if (version.replaceAll("\\s", "").length == 0) {
+      if (details.replaceAll("\\s", "").length == 0) {
         tagsStack +:= TagClass(tagType)
       } else {
-        tagsStack +:= TagClass(tagType, Some(version.substring(1)))
+        tagsStack +:= TagClass(tagType, Some(details.substring(1)))
       }
       result = Some("")
     }
@@ -347,7 +347,7 @@ case class DocParserDef() extends ParserBase[AST] {
     popAST()
     if (result.contains(Text(newline.toString))) {
       popAST()
-      result = Some(DocAST.Header(result.get))
+      result = Some(Section.Header(result.get))
       pushAST()
     } else if (result.contains(Text(""))) {
       popAST()
