@@ -7,18 +7,20 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.ArgumentDefinition;
 import org.enso.interpreter.node.function.argument.CallArgument;
+import org.enso.interpreter.node.function.argument.UnappliedArgument;
 import org.enso.interpreter.optimiser.TailCallException;
 import org.enso.interpreter.runtime.Atom;
 import org.enso.interpreter.runtime.AtomConstructor;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.Function;
 import org.enso.interpreter.runtime.TypesGen;
-import org.enso.interpreter.runtime.errors.ArgumentNameException;
 import org.enso.interpreter.runtime.errors.ArityException;
 import org.enso.interpreter.runtime.errors.NotInvokableException;
 
@@ -27,19 +29,37 @@ import org.enso.interpreter.runtime.errors.NotInvokableException;
 public abstract class InvokeNode extends ExpressionNode {
   @Children private final CallArgument[] callArguments;
   @Child private DispatchNode dispatchNode;
+  private final Map<Integer, CallArgument> callArgsByPosition;
+  private final Map<String, CallArgument> callArgsByName;
 
   public InvokeNode(CallArgument[] callArguments) {
     this.callArguments = callArguments;
     this.dispatchNode = new SimpleDispatchNode();
+
+    this.callArgsByPosition =
+        Arrays.asList(callArguments).stream()
+            .collect(Collectors.toMap(CallArgument::getPosition, a -> a));
+
+    // Note [Call Arguments by Name]
+    this.callArgsByName =
+        Arrays.asList(callArguments).stream()
+            .filter(arg -> arg.getName().isPresent())
+            .collect(Collectors.toMap(arg -> arg.getName().get(), a -> a));
   }
+
+  /* Note [Call Arguments by Name]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * Not all arguments passed into a function call are given by name, however, we need to be able to
+   * look up those that _are_ named efficiently.
+   *
+   * TODO [AA] Finish this comment
+   */
 
   // TODO [AA] Use specialisation and rewriting with an inline cache to speed this up.
   // TODO [AA] Actually make use of the other argument types.
   @ExplodeLoop
   public Object[] computeArguments(VirtualFrame frame, Callable callable) {
     List<ArgumentDefinition> definedArgs = callable.getArgs();
-    Map<String, ArgumentDefinition> fnArgsByName = callable.getFnArgsByName();
-    Map<Integer, ArgumentDefinition> fnArgsByPosition = callable.getFnArgsByPosition();
 
     if (callArguments.length > definedArgs.size()) {
       throw new ArityException(definedArgs.size(), callArguments.length);
@@ -47,25 +67,27 @@ public abstract class InvokeNode extends ExpressionNode {
 
     Object[] positionalArguments = new Object[definedArgs.size()]; // Note [Positional Arguments]
 
-    for (int i = 0; i < this.callArguments.length; i++) {
-      CallArgument arg = this.callArguments[i];
+    boolean isSaturated = false;
 
-      // In order handle positional, named, then defaults, then ignored
-      if (arg.isPositional()) {
-        positionalArguments[i] = arg.executeGeneric(frame);
-      } else if (arg.isNamed()) {
-        String inputArgName = arg.getName().get();
+    for (ArgumentDefinition definedArg : definedArgs) {
+      int definedArgPosition = definedArg.getPosition();
+      String definedArgName = definedArg.getName();
 
-        if (!fnArgsByName.containsKey(inputArgName)) {
-          throw new ArgumentNameException(inputArgName, fnArgsByName.keySet());
-        }
+      if (callArgsByName.containsKey(definedArgName)) {
+        CallArgument callArg = callArgsByName.get(definedArgName);
+        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
 
-        int realPosition = fnArgsByName.get(inputArgName).getPosition();
-        positionalArguments[realPosition] = arg.executeGeneric(frame);
-      } else if (arg.isIgnored()) {
-        // TODO [AA] Sentinel ignored so as not to apply defaults to the position.
+      } else if (callArgsByPosition.containsKey(definedArgPosition)) {
+        CallArgument callArg = callArgsByPosition.get(definedArgPosition);
+        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
+
+      } else if (definedArg.hasDefaultValue()) {
+        positionalArguments[definedArgPosition] =
+            definedArg.getDefaultValue().get().executeGeneric(frame);
+
       } else {
-        // TODO [AA] Deal with argument defaults.
+        // We don't have the arg applied or defaulted
+        positionalArguments[definedArgPosition] = new UnappliedArgument(definedArg);
       }
     }
 
@@ -74,6 +96,7 @@ public abstract class InvokeNode extends ExpressionNode {
 
   /* Note [Positional Arguments]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * // TODO [AA] Rewrite this
    * As far as Graal itself is concerned, the only kind of argument that can be passed to a call
    * target are positional ones. This means that we need our own scheme for pulling the types of
    * arguments we care about back out of the call when it reaches our code.

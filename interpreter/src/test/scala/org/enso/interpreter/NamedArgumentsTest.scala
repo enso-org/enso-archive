@@ -11,8 +11,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@addTen [b = 10]
       """.stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 2
+    eval(code) shouldEqual 20
   }
 
   "Functions" should "be able to have named arguments given out of order" in {
@@ -23,8 +22,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@subtract [b = 10, a = 5]
     """.stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual -5
+    eval(code) shouldEqual -5
   }
 
   "Functions" should "be able to have scope values as named arguments" in {
@@ -36,8 +34,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@addTen [num = a]
     """.stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 20
+    eval(code) shouldEqual 20
   }
 
   "Functions" should "be able to be defined with default argument values" in {
@@ -48,21 +45,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@addNum [5]
     """.stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 15
-  }
-
-  "Default arguments" should "not have other function arguments in scope" in {
-    val code =
-    """
-        |doThingAndAdd = { |a, b = a + a| a + b }
-        |
-        |@doThingAndAdd [1]
-        |""".stripMargin
-
-    noException should be thrownBy parse(code)
-    // TODO [AA] The function parameters should not be in scope for defaults
-//    the[PolyglotException] thrownBy eval(code) should have message ""
+    eval(code) shouldEqual 15
   }
 
   "Default arguments" should "be able to default to complex expressions" in {
@@ -75,8 +58,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@doThing [10]
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldBe 13
+    eval(code) shouldEqual 13
   }
 
   "Default arguments" should "be able to close over their outer scope" in {
@@ -89,8 +71,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@apply [val = 1]
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 1
+    eval(code) shouldEqual 1
   }
 
   "Functions" should "use their default values when none is supplied" in {
@@ -101,24 +82,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@addTogether
     """.stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 11
-  }
-
-  "Functions" should "allow defaulted values to be removed" in {
-    val code =
-      """
-        |addNum = { |a, num = 10| a + num }
-        |
-        |add = @addNum [num = !!]
-        |
-        |0
-      """.stripMargin
-
-    noException should be thrownBy parse(code)
-    // TODO [AA] This needs currying to be tested properly. Just test parse for
-    // now.
-//    eval(code) shouldEqual 0
+    eval(code) shouldEqual 11
   }
 
   "Functions" should "override defaults by name" in {
@@ -129,8 +93,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@addNum [1, num = 1]
     """.stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 2
+    eval(code) shouldEqual 2
   }
 
   "Functions" should "override defaults by position" in {
@@ -141,8 +104,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@addNum [1, 2]
     """.stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 3
+    eval(code) shouldEqual 3
   }
 
 }
