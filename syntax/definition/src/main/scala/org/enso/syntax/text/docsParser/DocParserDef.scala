@@ -129,14 +129,13 @@ case class DocParserDef() extends ParserBase[AST] {
     pushAST()
     possibleTagsList.foreach(
       tagType => {
-        // FIXME - bacause tagType is object, i need to drop '$'
         if (in.contains(
-              tagType.getClass.getSimpleName.toUpperCase.dropRight(1)
+              tagType.toString.toUpperCase
             )) {
           pushTag(
             tagType,
             in.replaceFirst(
-              tagType.getClass.getSimpleName.toUpperCase.dropRight(1),
+              tagType.toString.toUpperCase,
               ""
             )
           )
@@ -153,9 +152,9 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def pushCodeLine(in: String, isInlineCode: Boolean): Unit = logger.trace {
     if (isInlineCode) {
-      result = Some(CodeLine(in))
+      result = Some(InlineCode(in))
     } else {
-      result = Some(MultilineCodeLine(in))
+      result = Some(Section.Code.Line(in))
     }
     pushAST()
   }
@@ -174,65 +173,71 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// Text formatting //////
   /////////////////////////////
 
-  var textFormattersStack: List[FormatterType] = Nil
+  var textFormattersStack: List[Formatter.Type] = Nil
 
-  def pushFormatter(formatterType: FormatterType): Unit =
+  def pushFormatter(tp: Formatter.Type): Unit =
     logger.trace {
-      val unclosedFormattersToCheck = formatterType match {
-        case Strikethrough => List(Bold, Italic)
-        case Italic        => List(Bold, Strikethrough)
-        case Bold          => List(Italic, Strikethrough)
+      val unclosedFormattersToCheck = tp match {
+        case Formatter.Strikethrough => List(Formatter.Bold, Formatter.Italic)
+        case Formatter.Italic        => List(Formatter.Bold, Formatter.Strikethrough)
+        case Formatter.Bold          => List(Formatter.Italic, Formatter.Strikethrough)
       }
-      if (textFormattersStack.contains(formatterType)) {
+      if (textFormattersStack.contains(tp)) {
         unclosedFormattersToCheck foreach { formatterToCheck =>
           checkForUnclosed(formatterToCheck)
         }
         popAST()
-        result              = Some(Formatter(formatterType, result))
+        result              = Some(Formatter(tp, result))
         textFormattersStack = textFormattersStack.tail
         pushAST()
       } else {
-        textFormattersStack +:= formatterType
+        textFormattersStack +:= tp
       }
     }
 
-  def checkForUnclosed(formatterType: FormatterType): Unit = logger.trace {
+  def checkForUnclosed(tp: Formatter.Type): Unit = logger.trace {
     if (textFormattersStack.nonEmpty) {
-      if (textFormattersStack.head == formatterType) {
+      if (textFormattersStack.head == tp) {
         popAST()
-        result              = Some(Formatter.Unclosed(formatterType, result))
+        result              = Some(Formatter.Unclosed(tp, result))
         textFormattersStack = textFormattersStack.tail
         pushAST()
       }
     }
   }
 
-  val boldTrigger: Char          = Bold.marker
-  val italicTrigger: Char        = Italic.marker
-  val strikethroughTrigger: Char = Strikethrough.marker
+  val boldTrigger: Char          = Formatter.Bold.marker
+  val italicTrigger: Char        = Formatter.Italic.marker
+  val strikethroughTrigger: Char = Formatter.Strikethrough.marker
 
   // format: off
-  NORMAL rule boldTrigger          run reify { pushFormatter(Bold) }
-  NORMAL rule italicTrigger        run reify { pushFormatter(Italic) }
-  NORMAL rule strikethroughTrigger run reify { pushFormatter(Strikethrough) }
+  NORMAL rule boldTrigger          run reify { pushFormatter(Formatter.Bold) }
+  NORMAL rule italicTrigger        run reify { pushFormatter(Formatter.Italic) }
+  NORMAL rule strikethroughTrigger run reify { pushFormatter(Formatter.Strikethrough) }
   // format: on
 
   /////////////////////
   ////// Tagging //////
   /////////////////////
 
-  val possibleTagsList: List[TagType] =
-    List(Deprecated, Added, Modified, Removed, Upcoming)
-  var tagsStack: List[TagClass] = Nil
-  var tagsIndent: Int           = 0
+  val possibleTagsList: List[Tag.Type] =
+    List(
+      Tag.Deprecated,
+      Tag.Added,
+      Tag.Modified,
+      Tag.Removed,
+      Tag.Upcoming
+    )
+  var tagsStack: List[Tag] = Nil
+  var tagsIndent: Int      = 0
 
-  def pushTag(tagType: TagType, details: String): Unit =
+  def pushTag(tagType: Tag.Type, details: String): Unit =
     logger.trace {
       popAST()
       if (details.replaceAll("\\s", "").length == 0) {
-        tagsStack +:= TagClass(tagType)
+        tagsStack +:= Tag(tagType)
       } else {
-        tagsStack +:= TagClass(tagType, Some(details.substring(1)))
+        tagsStack +:= Tag(tagType, Some(details))
       }
       result = Some("")
     }
@@ -242,23 +247,23 @@ case class DocParserDef() extends ParserBase[AST] {
   /////////////////////////
 
   var sectionsStack: List[Section] = Nil
-  var currentSection: SectionType  = TextBlock
+  var currentSection: Section.Type = Section.Raw
   var currentSectionIndent: Int    = 0
 
-  def onNewSection(sectionType: SectionType): Unit =
+  def onNewSection(st: Section.Type): Unit =
     logger.trace {
       popAST()
-      currentSection = sectionType
+      currentSection = st
     }
 
-  val importantTrigger: Char = Important.marker.get
-  val infoTrigger: Char      = Info.marker.get
-  val exampleTrigger: Char   = Example.marker.get
+  val importantTrigger: Char = Section.Important.marker.get
+  val infoTrigger: Char      = Section.Info.marker.get
+  val exampleTrigger: Char   = Section.Example.marker.get
 
   // format: off
-  NORMAL rule importantTrigger run reify { onNewSection(Important) }
-  NORMAL rule infoTrigger      run reify { onNewSection(Info)}
-  NORMAL rule exampleTrigger   run reify { onNewSection(Example)}
+  NORMAL rule importantTrigger run reify { onNewSection(Section.Important) }
+  NORMAL rule infoTrigger      run reify { onNewSection(Section.Info)}
+  NORMAL rule exampleTrigger   run reify { onNewSection(Section.Example)}
   // format: on
 
   ////////////////////////////
@@ -273,9 +278,9 @@ case class DocParserDef() extends ParserBase[AST] {
   }
 
   def checksOfUnclosedFormattersOnEndOfSection(): Unit = logger.trace {
-    checkForUnclosed(Bold)
-    checkForUnclosed(Italic)
-    checkForUnclosed(Strikethrough)
+    checkForUnclosed(Formatter.Bold)
+    checkForUnclosed(Formatter.Italic)
+    checkForUnclosed(Formatter.Strikethrough)
   }
 
   def cleanupEndOfSection(): Unit = logger.trace {
@@ -287,7 +292,7 @@ case class DocParserDef() extends ParserBase[AST] {
     ).orNull
     result          = None
     workingASTStack = Nil
-    onNewSection(TextBlock)
+    onNewSection(Section.Raw)
     textFormattersStack = Nil
   }
 
@@ -309,7 +314,7 @@ case class DocParserDef() extends ParserBase[AST] {
     reverseTagsStack()
     if (sectionsStack.head.elems == Nil) {
       result = Some(
-        Documentation(
+        Doc(
           Tags(tagsIndent, tagsStack),
           Synopsis(Nil),
           Details(Nil)
@@ -319,7 +324,7 @@ case class DocParserDef() extends ParserBase[AST] {
       sectionsStack.length match {
         case 1 =>
           result = Some(
-            Documentation(
+            Doc(
               Tags(tagsIndent, tagsStack),
               Synopsis(sectionsStack),
               Details(Nil)
@@ -327,7 +332,7 @@ case class DocParserDef() extends ParserBase[AST] {
           )
         case _ =>
           result = Some(
-            Documentation(
+            Doc(
               Tags(tagsIndent, tagsStack),
               Synopsis(sectionsStack.head),
               Details(sectionsStack.tail)
@@ -404,7 +409,7 @@ case class DocParserDef() extends ParserBase[AST] {
       lastDiff = codeIndent
       onEndOfSection()
       currentSectionIndent = currentMatch.length
-      onNewSection(MultilineCode)
+      onNewSection(Section.Code)
       beginGroup(MULTILINECODE)
     } else if (diff == 0 && lastDiff == codeIndent) {
       beginGroup(MULTILINECODE)
@@ -425,7 +430,7 @@ case class DocParserDef() extends ParserBase[AST] {
 
   final def onIndentForListCreation(
     indent: Int,
-    listType: ListType,
+    tp: ListBlock.Type,
     content: AST
   ): Unit =
     logger.trace {
@@ -436,7 +441,7 @@ case class DocParserDef() extends ParserBase[AST] {
         }
         inListFlag = true
         lastDiff   = diff
-        addList(indent, listType, content)
+        addList(indent, tp, content)
       } else if (diff == 0) {
         addContentToList(content)
       } else if (diff == -listIndent && inListFlag) {
@@ -446,7 +451,7 @@ case class DocParserDef() extends ParserBase[AST] {
       } else {
         if (inListFlag) {
           addContentToList(
-            InvalidIndent(indent, content, listType)
+            ListBlock.InvalidIndent(indent, content, tp)
           )
           return
         }
@@ -496,7 +501,7 @@ case class DocParserDef() extends ParserBase[AST] {
   ///// Lists /////
   /////////////////
 
-  def addList(indent: Int, listType: ListType, content: AST): Unit =
+  def addList(indent: Int, listType: ListBlock.Type, content: AST): Unit =
     logger.trace {
       result = Some(ListBlock(indent, listType, content))
       pushAST()
@@ -516,7 +521,7 @@ case class DocParserDef() extends ParserBase[AST] {
           .indent,
         currentResult
           .asInstanceOf[ListBlock]
-          .listType,
+          .tp,
         currentContent
       )
     )
@@ -538,7 +543,7 @@ case class DocParserDef() extends ParserBase[AST] {
             .indent,
           outerList
             .asInstanceOf[ListBlock]
-            .listType,
+            .tp,
           outerContent
         )
       )
@@ -546,18 +551,18 @@ case class DocParserDef() extends ParserBase[AST] {
     pushAST()
   }
 
-  val orderedListTrigger: Char   = Ordered.marker
-  val unorderedListTrigger: Char = Unordered.marker
+  val orderedListTrigger: Char   = ListBlock.Ordered.marker
+  val unorderedListTrigger: Char = ListBlock.Unordered.marker
 
   NEWLINE rule (indentPattern >> orderedListTrigger >> not(newline).many1) run reify {
     val content = currentMatch.split(orderedListTrigger)
-    onIndentForListCreation(content(0).length, Ordered, content(1))
+    onIndentForListCreation(content(0).length, ListBlock.Ordered, content(1))
     endGroup()
   }
 
   NEWLINE rule (indentPattern >> unorderedListTrigger >> not(newline).many1) run reify {
     val content = currentMatch.split(unorderedListTrigger)
-    onIndentForListCreation(content(0).length, Unordered, content(1))
+    onIndentForListCreation(content(0).length, ListBlock.Unordered, content(1))
     endGroup()
   }
 }

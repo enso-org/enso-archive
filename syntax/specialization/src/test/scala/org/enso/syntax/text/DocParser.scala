@@ -4,7 +4,9 @@ import org.enso.flexer.Macro
 import org.enso.syntax.text.DocAST._
 import org.enso.syntax.text.docsParser.DocParserDef
 import org.enso.{flexer => Flexer}
-import org.scalatest._
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
+import org.scalatest.Assertion
 
 class DocParserSpec extends FlatSpec with Matchers {
   val parserCons: Macro.Out[DocAST.AST] = Macro.compile(DocParserDef)
@@ -22,7 +24,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         println(s"value  : '$value'")
         println(s"\ninput  : '$input'")
         println(s"v.show : '${value.show()}'\n")
-        //println(s"\nv.html : '${value.generateHTML()}'")
+        println(s"\nv.html : '${value.renderHTML()}'")
         assert(value == result)
         assert(value.show() == input)
       }
@@ -41,164 +43,220 @@ class DocParserSpec extends FlatSpec with Matchers {
   //////////////////////
   ///// Formatters /////
   //////////////////////
-  "*Foo*" ?= Documentation(
-    Synopsis(Section(0, TextBlock, Formatter(Bold, "Foo")))
+  "*Foo*" ?= Doc(
+    Synopsis(Section(0, Section.Raw, Formatter(Formatter.Bold, "Foo")))
   )
-  "_Foo_" ?= Documentation(
-    Synopsis(Section(0, TextBlock, Formatter(Italic, "Foo")))
+  "_Foo_" ?= Doc(
+    Synopsis(Section(0, Section.Raw, Formatter(Formatter.Italic, "Foo")))
   )
-  "~Foo~" ?= Documentation(
-    Synopsis(Section(0, TextBlock, Formatter(Strikethrough, "Foo")))
+  "~Foo~" ?= Doc(
+    Synopsis(Section(0, Section.Raw, Formatter(Formatter.Strikethrough, "Foo")))
   )
-  "`Foo`" ?= Documentation(Synopsis(Section(0, TextBlock, CodeLine("Foo"))))
-  "~*Foo*~" ?= Documentation(
-    Synopsis(
-      Section(0, TextBlock, Formatter(Strikethrough, Formatter(Bold, "Foo")))
-    )
-  )
-  "~_Foo_~" ?= Documentation(
-    Synopsis(
-      Section(0, TextBlock, Formatter(Strikethrough, Formatter(Italic, "Foo")))
-    )
-  )
-  "_~Foo~_" ?= Documentation(
-    Synopsis(
-      Section(0, TextBlock, Formatter(Italic, Formatter(Strikethrough, "Foo")))
-    )
-  )
-  "_*Foo*_" ?= Documentation(
-    Synopsis(Section(0, TextBlock, Formatter(Italic, Formatter(Bold, "Foo"))))
-  )
-  "*_Foo_*" ?= Documentation(
-    Synopsis(Section(0, TextBlock, Formatter(Bold, Formatter(Italic, "Foo"))))
-  )
-  "*~Foo~*" ?= Documentation(
-    Synopsis(
-      Section(0, TextBlock, Formatter(Bold, Formatter(Strikethrough, "Foo")))
-    )
-  )
-  "_~*Foo*~_" ?= Documentation(
+  "`Foo`" ?= Doc(Synopsis(Section(0, Section.Raw, InlineCode("Foo"))))
+  "~*Foo*~" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
-        Formatter(Italic, Formatter(Strikethrough, Formatter(Bold, "Foo")))
+        Section.Raw,
+        Formatter(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
+      )
+    )
+  )
+  "~_Foo_~" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter(Formatter.Strikethrough, Formatter(Formatter.Italic, "Foo"))
+      )
+    )
+  )
+  "_~Foo~_" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter(Formatter.Italic, Formatter(Formatter.Strikethrough, "Foo"))
+      )
+    )
+  )
+  "_*Foo*_" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
+      )
+    )
+  )
+  "*_Foo_*" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
+      )
+    )
+  )
+  "*~Foo~*" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter(Formatter.Bold, Formatter(Formatter.Strikethrough, "Foo"))
+      )
+    )
+  )
+  "_~*Foo*~_" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter(
+          Formatter.Italic,
+          Formatter(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
+        )
       )
     )
   )
   ///////////////////////////////
   ///// Unclosed formatters /////
   ///////////////////////////////
-  "_*Foo*" ?= Documentation(
-    Synopsis(
-      Section(0, TextBlock, Formatter.Unclosed(Italic, Formatter(Bold, "Foo")))
-    )
-  )
-  "~*Foo*" ?= Documentation(
+  "_*Foo*" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
-        Formatter.Unclosed(Strikethrough, Formatter(Bold, "Foo"))
+        Section.Raw,
+        Formatter.Unclosed(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
       )
     )
   )
-  "***Foo" ?= Documentation(
-    Synopsis(
-      Section(0, TextBlock, Formatter(Bold), Formatter.Unclosed(Bold, "Foo"))
-    )
-  )
-  "*_Foo_" ?= Documentation(
-    Synopsis(
-      Section(0, TextBlock, Formatter.Unclosed(Bold, Formatter(Italic, "Foo")))
-    )
-  )
-  "~_Foo_" ?= Documentation(
+  "~*Foo*" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
-        Formatter.Unclosed(Strikethrough, Formatter(Italic, "Foo"))
+        Section.Raw,
+        Formatter
+          .Unclosed(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
       )
     )
   )
-  "___Foo" ?= Documentation(
+  "***Foo" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
-        Formatter(Italic),
-        Formatter.Unclosed(Italic, "Foo")
+        Section.Raw,
+        Formatter(Formatter.Bold),
+        Formatter.Unclosed(Formatter.Bold, "Foo")
       )
     )
   )
-  "*~Foo~" ?= Documentation(
+  "*_Foo_" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
-        Formatter.Unclosed(Bold, Formatter(Strikethrough, "Foo"))
+        Section.Raw,
+        Formatter.Unclosed(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
       )
     )
   )
-  "_~Foo~" ?= Documentation(
+  "~_Foo_" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
-        Formatter.Unclosed(Italic, Formatter(Strikethrough, "Foo"))
+        Section.Raw,
+        Formatter
+          .Unclosed(Formatter.Strikethrough, Formatter(Formatter.Italic, "Foo"))
       )
     )
   )
-  "~~~Foo" ?= Documentation(
+  "___Foo" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
-        Formatter(Strikethrough),
-        Formatter.Unclosed(Strikethrough, "Foo")
+        Section.Raw,
+        Formatter(Formatter.Italic),
+        Formatter.Unclosed(Formatter.Italic, "Foo")
       )
     )
   )
-  "`import foo`" ?= Documentation(
-    Synopsis(Section(0, TextBlock, CodeLine("import foo")))
+  "*~Foo~" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter
+          .Unclosed(Formatter.Bold, Formatter(Formatter.Strikethrough, "Foo"))
+      )
+    )
+  )
+  "_~Foo~" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter
+          .Unclosed(Formatter.Italic, Formatter(Formatter.Strikethrough, "Foo"))
+      )
+    )
+  )
+  "~~~Foo" ?= Doc(
+    Synopsis(
+      Section(
+        0,
+        Section.Raw,
+        Formatter(Formatter.Strikethrough),
+        Formatter.Unclosed(Formatter.Strikethrough, "Foo")
+      )
+    )
+  )
+  "`import foo`" ?= Doc(
+    Synopsis(Section(0, Section.Raw, InlineCode("import foo")))
   )
   ////////////////////
   ///// Segments /////
   ////////////////////
-  "!Important" ?= Documentation(Synopsis(Section(0, Important, "Important")))
-  "?Info"      ?= Documentation(Synopsis(Section(0, Info, "Info")))
-  ">Example"   ?= Documentation(Synopsis(Section(0, Example, "Example")))
-  "?Info\n\n!Important" ?= Documentation(
-    Synopsis(Section(0, Info, "Info", "\n")),
-    Details(Section(0, Important, "Important"))
+  "!Important" ?= Doc(
+    Synopsis(Section(0, Section.Important, "Important"))
   )
-  "?Info\n\n!Important\n\n>Example" ?= Documentation(
+  "?Info"    ?= Doc(Synopsis(Section(0, Section.Info, "Info")))
+  ">Example" ?= Doc(Synopsis(Section(0, Section.Example, "Example")))
+  "?Info\n\n!Important" ?= Doc(
+    Synopsis(Section(0, Section.Info, "Info", "\n")),
+    Details(Section(0, Section.Important, "Important"))
+  )
+  "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
-      Section(0, Info, "Info", "\n")
+      Section(0, Section.Info, "Info", "\n")
     ),
     Details(
-      Section(0, Important, "Important", "\n"),
-      Section(0, Example, "Example")
+      Section(0, Section.Important, "Important", "\n"),
+      Section(0, Section.Example, "Example")
     )
   )
   /////////////////
   ///// Lists /////
   /////////////////
-  "ul:\n  - Foo\n  - Bar" ?= Documentation(
+  "ul:\n  - Foo\n  - Bar" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
+        Section.Raw,
         "ul:",
         "\n",
-        ListBlock(2, Unordered, " Foo", " Bar")
+        ListBlock(2, ListBlock.Unordered, " Foo", " Bar")
       )
     )
   )
-  "ol:\n  * Foo\n  * Bar" ?= Documentation(
+  "ol:\n  * Foo\n  * Bar" ?= Doc(
     Synopsis(
-      Section(0, TextBlock, "ol:", "\n", ListBlock(2, Ordered, " Foo", " Bar"))
+      Section(
+        0,
+        Section.Raw,
+        "ol:",
+        "\n",
+        ListBlock(2, ListBlock.Ordered, " Foo", " Bar")
+      )
     )
   )
   """List
@@ -206,21 +264,21 @@ class DocParserSpec extends FlatSpec with Matchers {
     |  - Second unordered item
     |    * First ordered sub item
     |    * Second ordered sub item
-    |  - Third unordered item""".stripMargin ?= Documentation(
+    |  - Third unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
+        Section.Raw,
         "List",
         "\n",
         ListBlock(
           2,
-          Unordered,
+          ListBlock.Unordered,
           " First unordered item",
           " Second unordered item",
           ListBlock(
             4,
-            Ordered,
+            ListBlock.Ordered,
             " First ordered sub item",
             " Second ordered sub item"
           ),
@@ -240,33 +298,33 @@ class DocParserSpec extends FlatSpec with Matchers {
     |      - First unordered sub item
     |      - Second unordered sub item
     |    * Third ordered sub item
-    |  - Fourth unordered item""".stripMargin ?= Documentation(
+    |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
+        Section.Raw,
         "List",
         "\n",
         ListBlock(
           2,
-          Unordered,
+          ListBlock.Unordered,
           " First unordered item",
           " Second unordered item",
           ListBlock(
             4,
-            Ordered,
+            ListBlock.Ordered,
             " First ordered sub item",
             " Second ordered sub item"
           ),
           " Third unordered item",
           ListBlock(
             4,
-            Ordered,
+            ListBlock.Ordered,
             " First ordered sub item",
             " Second ordered sub item",
             ListBlock(
               6,
-              Unordered,
+              ListBlock.Unordered,
               " First unordered sub item",
               " Second unordered sub item"
             ),
@@ -289,38 +347,38 @@ class DocParserSpec extends FlatSpec with Matchers {
     |      - Second unordered sub item
     |    * Third ordered sub item
     |   * Wrong Indent Item
-    |  - Fourth unordered item""".stripMargin ?= Documentation(
+    |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
+        Section.Raw,
         "List",
         "\n",
         ListBlock(
           2,
-          Unordered,
+          ListBlock.Unordered,
           " First unordered item",
           " Second unordered item",
           ListBlock(
             4,
-            Ordered,
+            ListBlock.Ordered,
             " First ordered sub item",
             " Second ordered sub item"
           ),
           " Third unordered item",
           ListBlock(
             4,
-            Ordered,
+            ListBlock.Ordered,
             " First ordered sub item",
             " Second ordered sub item",
             ListBlock(
               6,
-              Unordered,
+              ListBlock.Unordered,
               " First unordered sub item",
               " Second unordered sub item"
             ),
             " Third ordered sub item",
-            InvalidIndent(3, " Wrong Indent Item", Ordered)
+            ListBlock.InvalidIndent(3, " Wrong Indent Item", ListBlock.Ordered)
           ),
           " Fourth unordered item"
         )
@@ -330,11 +388,11 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   ///// Links /////
   /////////////////
-  "[Hello](Http://Google.com)" ?= Documentation(
+  "[Hello](Http://Google.com)" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
+        Section.Raw,
         Link.URL(
           "Hello",
           "Http://Google.com"
@@ -342,11 +400,11 @@ class DocParserSpec extends FlatSpec with Matchers {
       )
     )
   )
-  "![Media](http://foo.com)" ?= Documentation(
+  "![Media](http://foo.com)" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
+        Section.Raw,
         Link.Image(
           "Media",
           "http://foo.com"
@@ -357,43 +415,46 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   ///// other /////
   /////////////////
-  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Documentation(
+  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
     Synopsis(
       Section(
         0,
-        TextBlock,
+        Section.Raw,
         "Foo ",
-        Formatter(Bold, "Foo"),
+        Formatter(Formatter.Bold, "Foo"),
         " ",
-        Formatter(Strikethrough, Formatter.Unclosed(Bold, "Bar")),
+        Formatter(
+          Formatter.Strikethrough,
+          Formatter.Unclosed(Formatter.Bold, "Bar")
+        ),
         " ",
-        CodeLine("foo bar baz bo"),
+        InlineCode("foo bar baz bo"),
         " ",
         "\n"
       )
     ),
     Details(
-      Section(0, TextBlock, "Hello Section", "\n"),
-      Section(0, Important, "important", "\n"),
-      Section(0, Info, "Hi", "\n"),
-      Section(0, Example, "Example")
+      Section(0, Section.Raw, "Hello Section", "\n"),
+      Section(0, Section.Important, "important", "\n"),
+      Section(0, Section.Info, "Hi", "\n"),
+      Section(0, Section.Example, "Example")
     )
   )
   ////////////////
   ///// Tags /////
   ////////////////
-  "DEPRECATED" ?= Documentation(Tags(TagClass(Deprecated)))
-  "MODIFIED"   ?= Documentation(Tags(TagClass(Modified)))
-  "ADDED"      ?= Documentation(Tags(TagClass(Added)))
-  "REMOVED"    ?= Documentation(Tags(TagClass(Removed)))
-  "REMOVED\nFoo" ?= Documentation(
-    Tags(TagClass(Removed)),
-    Synopsis(Section(0, TextBlock, "Foo"))
+  "DEPRECATED" ?= Doc(Tags(Tag(Tag.Deprecated)))
+  "MODIFIED"   ?= Doc(Tags(Tag(Tag.Modified)))
+  "ADDED"      ?= Doc(Tags(Tag(Tag.Added)))
+  "REMOVED"    ?= Doc(Tags(Tag(Tag.Removed)))
+  "REMOVED\nFoo" ?= Doc(
+    Tags(Tag(Tag.Removed)),
+    Synopsis(Section(0, Section.Raw, "Foo"))
   )
-  "DEPRECATED in 1.0" ?= Documentation(
-    Tags(TagClass(Deprecated, "in 1.0"))
+  "DEPRECATED in 1.0" ?= Doc(
+    Tags(Tag(Tag.Deprecated, " in 1.0"))
   )
-  "DEPRECATED in 1.0\nMODIFIED" ?= Documentation(
-    Tags(TagClass(Deprecated, "in 1.0"), TagClass(Modified))
+  "DEPRECATED in 1.0\nMODIFIED" ?= Doc(
+    Tags(Tag(Tag.Deprecated, " in 1.0"), Tag(Tag.Modified))
   )
 }
