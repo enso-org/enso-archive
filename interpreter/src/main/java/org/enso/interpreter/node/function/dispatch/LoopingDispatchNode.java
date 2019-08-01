@@ -1,10 +1,12 @@
-package org.enso.interpreter.node.function;
+package org.enso.interpreter.node.function.dispatch;
 
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
+import org.enso.interpreter.node.function.CallNode;
+import org.enso.interpreter.node.function.CallNodeGen;
 import org.enso.interpreter.optimiser.tco.TailCallException;
 
 /**

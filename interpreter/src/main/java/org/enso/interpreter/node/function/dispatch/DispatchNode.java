@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.function;
+package org.enso.interpreter.node.function.dispatch;
 
 import com.oracle.truffle.api.nodes.Node;
 

@@ -1,6 +1,8 @@
-package org.enso.interpreter.node.function;
+package org.enso.interpreter.node.function.dispatch;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import org.enso.interpreter.node.function.CallNode;
+import org.enso.interpreter.node.function.CallNodeGen;
 import org.enso.interpreter.optimiser.tco.TailCallException;
 
 /**

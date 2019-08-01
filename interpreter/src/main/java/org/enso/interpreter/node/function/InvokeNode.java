@@ -12,8 +12,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.function.argument.ArgumentMappingNode;
 import org.enso.interpreter.node.function.argument.CallArgumentNode;
-import org.enso.interpreter.node.function.argument.UncachedArgumentsSorterNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.TypesGen;
@@ -27,15 +27,13 @@ import org.enso.interpreter.runtime.type.AtomConstructor;
 @NodeChild("target")
 public abstract class InvokeNode extends ExpressionNode {
   @Children private final CallArgumentNode[] callArgumentNodes;
-
-  // Should be initialized in the constructor, passing the arguments schema.
-  @Child private UncachedArgumentsSorterNode argsSorterNode;
+  @Child private ArgumentMappingNode argumentsMap;
   private final Map<String, Integer> callArgsByName;
   private boolean isSaturatedApplication;
 
   public InvokeNode(CallArgumentNode[] callArgumentNodes) {
     this.callArgumentNodes = callArgumentNodes;
-//    this.dispatchNode = new SimpleDispatchNode();
+    //    this.dispatchNode = new SimpleDispatchNode();
     this.isSaturatedApplication = true;
 
     // Note [Call Arguments by Name]
@@ -44,6 +42,13 @@ public abstract class InvokeNode extends ExpressionNode {
             .filter(idx -> callArgumentNodes[idx].getName() != null)
             .boxed()
             .collect(Collectors.toMap(idx -> callArgumentNodes[idx].getName(), idx -> idx));
+
+//    CallArgumentInfo[] argSchema =
+//        IntStream.range(0, callArgumentNodes.length)
+//            .mapToObj(i -> callArgumentNodes[i])
+//            .map(node -> new CallArgumentInfo(null));
+
+    this.argumentsMap = null;
   }
 
   /* Note [Call Arguments by Name]
@@ -100,40 +105,6 @@ public abstract class InvokeNode extends ExpressionNode {
       computedArguments[i] = this.callArgumentNodes[i].executeGeneric(frame);
     }
 
-    /* TODO [AA] Mapping between call site args and function args
-     * Can do a child node that handles the argument matching to the Function purely on runtime
-     * values.
-     * - General case variant (matching below).
-     * - An optimised variant that works on a precomputed mapping.
-     *
-     * TODO [AA] Handle the case where we have too many arguments
-     * TODO [AA] Handle the case where we have too few arguments
-     * TODO [AA] Return a function with some arguments applied.
-     * TODO [AA] Loop nodes, returning new call targets for under-saturated.
-     * TODO [AA] Too many arguments need to execute. Overflow args in an array.
-     * TODO [AA] Looping until done.
-     */
-
-    //    for (ArgumentDefinition definedArg : definedArgs) {
-    //      int definedArgPosition = definedArg.getPosition();
-    //      String definedArgName = definedArg.getName();
-    //
-    //      if (hasArgByKey(callArgsByName, definedArgName)) {
-    //        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
-    //        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
-    //
-    //      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
-    //        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
-    //        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
-    //
-    //      } else if (definedArg.hasDefaultValue()) {
-    //        computedArguments[definedArgPosition] = new DefaultedArgument(definedArg);
-    //      } else {
-    //        computedArguments[definedArgPosition] = new UnappliedArgument(definedArg);
-    //        this.isSaturatedApplication = false;
-    //      }
-    //    }
-
     return computedArguments;
   }
 
@@ -142,19 +113,21 @@ public abstract class InvokeNode extends ExpressionNode {
    * // TODO [AA] Rewrite this
    */
 
-  // You can query this function about its arguments.
   @Specialization
   public Object invokeFunction(VirtualFrame frame, Function target) {
     // This should just become value computation _without_ any unscrambling
-    Object[] computedArguments = null; // computeArguments(frame, target);
+    Object[] computedArguments = computeArguments(frame, target);
 
     CompilerAsserts.compilationConstant(this.isTail());
     // The TCO Logic should land inside `DispatchNode` after this change. `InvokeNode` will only
     // care about computing the target and arguments, pushing every other decision down the chain.
+
+    // This is hard to push in further as the next point in the chain is not an ExpressionNode and
+    // hence has no concept of a tail call.
     if (this.isTail()) {
       throw new TailCallException(target, computedArguments);
     } else {
-      return argsSorterNode.execute(target, computedArguments);
+      return argumentsMap.execute(target, computedArguments);
     }
   }
 
