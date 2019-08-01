@@ -45,7 +45,7 @@ object DocAST {
   /// AST ///
   ///////////
 
-  trait AST        extends Symbol
+  sealed trait AST extends Symbol
   trait InvalidAST extends AST
 
   final case class Text(text: String) extends AST {
@@ -64,6 +64,7 @@ object DocAST {
     val repr: Repr = Repr(tp.marker) + elem.repr + tp.marker
     val html: HTML = Seq(tp.htmlMarker(elem.html))
   }
+
   object Formatter {
     def apply(tp: Type): Formatter = Formatter(tp, None)
     def apply(tp: Type, elem: AST): Formatter =
@@ -79,22 +80,12 @@ object DocAST {
 
     final case class Unclosed(tp: Type, elem: Option[AST]) extends InvalidAST {
       val repr: Repr = Repr(tp.marker) + elem.repr
-
-      //      TODO:
-      //      Generating css classes for the elements is really great idea.
-      //      Please think how you can generalize it, so for all other types they
-      //      will be generated automatically. Of course sometimes, like here,
-      //      you would liek to override the automatic generation (unclosed) with
-      //      something custom.
-      //      Here for example, I'd vote for applying multiple CSS classes
-      //      both .bold as well as .unclosed
-      //      this way you can write generic CSS rules.
-
       val html: HTML = Seq {
         val className = s"unclosed_${tp.htmlMarker.tag}"
         HTML.div(HTML.`class` := className)(elem.html)
       }
     }
+
     object Unclosed {
       def apply(tp: Type): Unclosed = Unclosed(tp, None)
       def apply(tp: Type, elem: AST): Unclosed =
@@ -150,23 +141,18 @@ object DocAST {
       with Indentable {
 
     val repr: Repr = {
-      var _repr = Repr()
-      elems.toList.foreach {
+      Repr() + elems.toList.map({
         case elem @ (_: InvalidAST) =>
-          _repr += '\n'
-          _repr += elem.repr
+          Repr('\n') + elem.repr
         case elem @ (_: ListBlock) =>
-          _repr += '\n'
-          _repr += elem.repr
+          Repr('\n') + elem.repr
         case elem =>
           if (elems.head != elem) {
-            _repr += '\n'
+            Repr('\n') + makeIndent(indent) + tp.marker + elem.repr
+          } else {
+            Repr(makeIndent(indent)) + tp.marker + elem.repr
           }
-          _repr += makeIndent(indent)
-          _repr += tp.marker
-          _repr += elem.repr
-      }
-      _repr
+      })
     }
 
     val html: HTML = Seq(tp.HTMLMarker({
@@ -176,24 +162,19 @@ object DocAST {
       })
     }))
   }
+
   object ListBlock {
     def apply(indent: Int, listType: Type, elem: AST): ListBlock =
       ListBlock(indent, listType, NonEmptyList(elem, Nil))
     def apply(indent: Int, listType: Type, elems: AST*): ListBlock =
       ListBlock(indent, listType, NonEmptyList(elems.head, elems.tail.to[List]))
 
-    trait Type {
-      val marker: Char
+    abstract class Type(
+      val marker: Char,
       val HTMLMarker: HTMLTag
-    }
-    final case object Unordered extends Type {
-      val marker              = '-'
-      val HTMLMarker: HTMLTag = HTML.ul
-    }
-    final case object Ordered extends Type {
-      val marker              = '*'
-      val HTMLMarker: HTMLTag = HTML.ol
-    }
+    )
+    final case object Unordered extends Type('-', HTML.ul)
+    final case object Ordered   extends Type('*', HTML.ol)
 
     //////////////////////
     /// Invalid Indent ///
@@ -214,7 +195,7 @@ object DocAST {
   ////// Sections //////
   //////////////////////
 
-  case class Section(indent: Int, st: Section.Type, elems: List[AST])
+  final case class Section(indent: Int, st: Section.Type, elems: List[AST])
       extends Symbol
       with Indentable {
     val markerEmptyInNull: String    = st.marker.map(_.toString).getOrElse("")
@@ -222,9 +203,7 @@ object DocAST {
     val newline                      = Text("\n")
 
     val repr: Repr = {
-      var _repr = Repr()
-
-      _repr += (indent match {
+      val firstIndentRepr = Repr(indent match {
         case 0 => markerEmptyInNull
         case 1 => markerNonEmptyInNull
         case _ => {
@@ -235,25 +214,20 @@ object DocAST {
         }
       })
 
-      for (currElemPos <- elems.indices) {
-        val elem = elems(currElemPos)
-        elem match {
-          case _: Section.Header =>
-            _repr += "\n" + makeIndent(indent)
-            _repr += elem.repr
-          case _: ListBlock =>
-            _repr += elem.repr
-          case _ =>
-            if (currElemPos > 0) {
-              val previousElem = elems(currElemPos - 1)
-              if (previousElem == newline) {
-                _repr += makeIndent(indent)
-              }
-            }
-            _repr += elem.repr
+      val elemsRepr = elems.zipWithIndex.map({
+        case (elem @ (_: Section.Header), _) =>
+          Repr('\n') + makeIndent(indent) + elem.repr
+        case (elem @ (_: ListBlock), _) => elem.repr
+        case (elem, index) => {
+          if (index > 0) {
+            val previousElem = elems(index - 1)
+            if (previousElem == newline) {
+              Repr(makeIndent(indent)) + elem.repr
+            } else elem.repr
+          } else elem.repr
         }
-      }
-      _repr
+      })
+      firstIndentRepr + elemsRepr
     }
     val html: HTML =
       Seq(HTML.div(HTML.`class` := st.toString)(elems.map(_.html)))
@@ -261,6 +235,8 @@ object DocAST {
   }
 
   object Section {
+    def apply(indent: Int, st: Type): Section =
+      Section(indent, st, Nil)
     def apply(indent: Int, st: Type, elem: AST): Section =
       Section(indent, st, elem :: Nil)
     def apply(indent: Int, st: Type, elems: AST*): Section =
@@ -271,29 +247,17 @@ object DocAST {
       val html: HTML = Seq(HTML.div(HTML.`class` := "Header")(elem.html))
     }
 
-    trait Type {
-      val marker: Option[Char]
-    }
-    case object Important extends Type {
-      val marker: Option[Char] = Some('!')
-    }
-    case object Info extends Type {
-      val marker: Option[Char] = Some('?')
-    }
-    case object Example extends Type {
-      val marker: Option[Char] = Some('>')
-    }
-    case object Code extends Type {
-      val marker: Option[Char] = None
-
+    abstract class Type(val marker: Option[Char])
+    case object Important extends Type(Some('!'))
+    case object Info      extends Type(Some('?'))
+    case object Example   extends Type(Some('>'))
+    case object Code extends Type(None) {
       final case class Line(str: String) extends AST {
         val repr: Repr = str
         val html: HTML = Seq(HTML.code(str), HTML.br)
       }
     }
-    case object Raw extends Type {
-      val marker: Option[Char] = None
-    }
+    case object Raw extends Type(None)
   }
 
   /////////////////////
@@ -457,7 +421,7 @@ object DocAST {
 // 3. Synopsis/Details/Doc/Tags - this type is wrong. It allows creating synopsis next to bold, or inline code.
 // Make sure the types does not allow for cosntructing wong AST!
 // Please make sure that all other places are fixed as well. This is the most important design part.
-// 4. repetitive code
+
 // 5. -> AST.Invalid
 // 6. -> Indent.Invalid
 // 7. After thinking for a while about it, I would change the name of AST here to something else.
@@ -466,3 +430,12 @@ object DocAST {
 // Everything else are other strucutres which build up the Doc.
 // Think about better name here, Moreover
 // I believe that InlineCode, Link, etc, should be grouped in a namespace.
+
+// 8. Formatter.html - Generating css classes for the elements is really great idea.
+// Please think how you can generalize it, so for all other types they
+// will be generated automatically. Of course sometimes, like here,
+// you would liek to override the automatic generation (unclosed) with
+// something custom.
+// Here for example, I'd vote for applying multiple CSS classes
+// both .bold as well as .unclosed
+// this way you can write generic CSS rules.
