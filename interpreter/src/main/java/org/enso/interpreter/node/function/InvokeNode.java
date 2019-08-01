@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.CallArgumentNode;
+import org.enso.interpreter.node.function.argument.UncachedArgumentsSorterNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.TypesGen;
@@ -26,13 +27,15 @@ import org.enso.interpreter.runtime.type.AtomConstructor;
 @NodeChild("target")
 public abstract class InvokeNode extends ExpressionNode {
   @Children private final CallArgumentNode[] callArgumentNodes;
-  @Child private DispatchNode dispatchNode;
+
+  // Should be initialized in the constructor, passing the arguments schema.
+  @Child private UncachedArgumentsSorterNode argsSorterNode;
   private final Map<String, Integer> callArgsByName;
   private boolean isSaturatedApplication;
 
   public InvokeNode(CallArgumentNode[] callArgumentNodes) {
     this.callArgumentNodes = callArgumentNodes;
-    this.dispatchNode = new SimpleDispatchNode();
+//    this.dispatchNode = new SimpleDispatchNode();
     this.isSaturatedApplication = true;
 
     // Note [Call Arguments by Name]
@@ -111,25 +114,25 @@ public abstract class InvokeNode extends ExpressionNode {
      * TODO [AA] Looping until done.
      */
 
-//    for (ArgumentDefinition definedArg : definedArgs) {
-//      int definedArgPosition = definedArg.getPosition();
-//      String definedArgName = definedArg.getName();
-//
-//      if (hasArgByKey(callArgsByName, definedArgName)) {
-//        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
-//        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
-//
-//      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
-//        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
-//        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
-//
-//      } else if (definedArg.hasDefaultValue()) {
-//        computedArguments[definedArgPosition] = new DefaultedArgument(definedArg);
-//      } else {
-//        computedArguments[definedArgPosition] = new UnappliedArgument(definedArg);
-//        this.isSaturatedApplication = false;
-//      }
-//    }
+    //    for (ArgumentDefinition definedArg : definedArgs) {
+    //      int definedArgPosition = definedArg.getPosition();
+    //      String definedArgName = definedArg.getName();
+    //
+    //      if (hasArgByKey(callArgsByName, definedArgName)) {
+    //        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
+    //        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
+    //
+    //      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
+    //        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
+    //        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
+    //
+    //      } else if (definedArg.hasDefaultValue()) {
+    //        computedArguments[definedArgPosition] = new DefaultedArgument(definedArg);
+    //      } else {
+    //        computedArguments[definedArgPosition] = new UnappliedArgument(definedArg);
+    //        this.isSaturatedApplication = false;
+    //      }
+    //    }
 
     return computedArguments;
   }
@@ -142,13 +145,16 @@ public abstract class InvokeNode extends ExpressionNode {
   // You can query this function about its arguments.
   @Specialization
   public Object invokeFunction(VirtualFrame frame, Function target) {
-    Object[] computedArguments = computeArguments(frame, target);
+    // This should just become value computation _without_ any unscrambling
+    Object[] computedArguments = null; // computeArguments(frame, target);
 
     CompilerAsserts.compilationConstant(this.isTail());
+    // The TCO Logic should land inside `DispatchNode` after this change. `InvokeNode` will only
+    // care about computing the target and arguments, pushing every other decision down the chain.
     if (this.isTail()) {
       throw new TailCallException(target, computedArguments);
     } else {
-      return dispatchNode.executeDispatch(target, computedArguments);
+      return argsSorterNode.execute(target, computedArguments);
     }
   }
 
