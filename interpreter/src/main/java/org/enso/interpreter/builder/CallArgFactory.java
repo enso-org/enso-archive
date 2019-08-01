@@ -4,6 +4,8 @@ import org.enso.interpreter.AstCallArgVisitor;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.function.argument.CallArgumentNode;
+import org.enso.interpreter.runtime.scope.GlobalScope;
+import org.enso.interpreter.runtime.scope.LocalScope;
 
 public class CallArgFactory implements AstCallArgVisitor<CallArgumentNode> {
   private final LocalScope scope;

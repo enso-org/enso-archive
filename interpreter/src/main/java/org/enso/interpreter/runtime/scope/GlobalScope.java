@@ -1,4 +1,4 @@
-package org.enso.interpreter.builder;
+package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.RootCallTarget;
 import org.enso.interpreter.runtime.type.AtomConstructor;

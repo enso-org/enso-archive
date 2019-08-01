@@ -13,6 +13,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.scope.GlobalScope;
 import org.enso.interpreter.runtime.type.AtomConstructor;
 
 public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {

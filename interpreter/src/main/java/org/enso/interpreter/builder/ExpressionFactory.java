@@ -47,6 +47,8 @@ import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
+import org.enso.interpreter.runtime.scope.GlobalScope;
+import org.enso.interpreter.runtime.scope.LocalScope;
 
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
