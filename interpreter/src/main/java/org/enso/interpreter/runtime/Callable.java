@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.function;
+package org.enso.interpreter.runtime;
 
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 

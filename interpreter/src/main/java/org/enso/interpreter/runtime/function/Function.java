@@ -10,6 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
+import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 
 @ExportLibrary(InteropLibrary.class)

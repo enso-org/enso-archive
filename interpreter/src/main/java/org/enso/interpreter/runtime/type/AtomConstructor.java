@@ -3,7 +3,7 @@ package org.enso.interpreter.runtime.type;
 import com.oracle.truffle.api.interop.TruffleObject;
 
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.function.Callable;
+import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.error.ArityException;
 
 public class AtomConstructor extends Callable implements TruffleObject {

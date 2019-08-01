@@ -6,10 +6,10 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 
 @NodeInfo(shortName = "_", description = "An unapplied argument")
-public class DefaultedArgument extends ExpressionNode {
+public class DefaultedArgumentNode extends ExpressionNode {
   private ArgumentDefinition argument;
 
-  public DefaultedArgument(ArgumentDefinition argument) {
+  public DefaultedArgumentNode(ArgumentDefinition argument) {
     this.argument = argument;
   }
 

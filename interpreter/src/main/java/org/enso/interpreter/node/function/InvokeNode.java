@@ -6,21 +6,21 @@ import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.CallArgumentNode;
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 import org.enso.interpreter.optimiser.tco.TailCallException;
-import org.enso.interpreter.runtime.type.Atom;
-import org.enso.interpreter.runtime.type.AtomConstructor;
-import org.enso.interpreter.runtime.function.Callable;
-import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.TypesGen;
 import org.enso.interpreter.runtime.error.ArityException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.runtime.type.Atom;
+import org.enso.interpreter.runtime.type.AtomConstructor;
 
 @NodeInfo(shortName = "@", description = "Executes function")
 @NodeChild("target")
@@ -82,15 +82,19 @@ public abstract class InvokeNode extends ExpressionNode {
   }
 
   // TODO [AA] Use specialisation and rewriting with an inline cache to speed this up.
+  @ExplodeLoop
   public Object[] computeArguments(VirtualFrame frame, Callable callable) {
-    ArgumentDefinition[] definedArgs = callable.getArgs();
+    int definedArgsLength = callable.getArgs().length;
 
-    // TODO [AA] Handle the case where we have too many arguments
-    // TODO [AA] Handle the case where we have too few arguments
+    // Temporary failure condition
+    if (callable.getArgs().length != this.callArgumentNodes.length) {
+      throw new ArityException(definedArgsLength, this.callArgumentNodes.length);
+    }
 
-    // Temporary failure conditions
-    if (definedArgs.length != this.callArgumentNodes.length) {
-      throw new ArityException(definedArgs.length, this.callArgumentNodes.length);
+    Object[] computedArguments = new Object[definedArgsLength]; // Note [Positional Arguments]
+
+    for (int i = 0; i < this.callArgumentNodes.length; ++i) {
+      computedArguments[i] = this.callArgumentNodes[i].executeGeneric(frame);
     }
 
     /* TODO [AA] Mapping between call site args and function args
@@ -98,36 +102,36 @@ public abstract class InvokeNode extends ExpressionNode {
      * values.
      * - General case variant (matching below).
      * - An optimised variant that works on a precomputed mapping.
+     *
+     * TODO [AA] Handle the case where we have too many arguments
+     * TODO [AA] Handle the case where we have too few arguments
+     * TODO [AA] Return a function with some arguments applied.
+     * TODO [AA] Loop nodes, returning new call targets for under-saturated.
+     * TODO [AA] Too many arguments need to execute. Overflow args in an array.
+     * TODO [AA] Looping until done.
      */
 
-    Object[] positionalArguments = new Object[definedArgs.length]; // Note [Positional Arguments]
-//
 //    for (ArgumentDefinition definedArg : definedArgs) {
 //      int definedArgPosition = definedArg.getPosition();
 //      String definedArgName = definedArg.getName();
 //
 //      if (hasArgByKey(callArgsByName, definedArgName)) {
 //        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
-//        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
+//        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
 //
 //      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
 //        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
-//        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
+//        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
 //
 //      } else if (definedArg.hasDefaultValue()) {
-//        positionalArguments[definedArgPosition] = new DefaultedArgument(definedArg);
+//        computedArguments[definedArgPosition] = new DefaultedArgument(definedArg);
 //      } else {
-//        positionalArguments[definedArgPosition] = new UnappliedArgument(definedArg);
+//        computedArguments[definedArgPosition] = new UnappliedArgument(definedArg);
 //        this.isSaturatedApplication = false;
 //      }
 //    }
 
-    // TODO [AA] Return a function with some arguments applied.
-    // TODO [AA] Loop nodes, returning new call targrets for under-saturated.
-    // TODO [AA] Too many arguments need to execute. Overflow args in an array.
-    // TODO [AA] Looping until done.
-
-    return positionalArguments;
+    return computedArguments;
   }
 
   /* Note [Positional Arguments]
@@ -138,21 +142,21 @@ public abstract class InvokeNode extends ExpressionNode {
   // You can query this function about its arguments.
   @Specialization
   public Object invokeFunction(VirtualFrame frame, Function target) {
-    Object[] positionalArguments = computeArguments(frame, target);
+    Object[] computedArguments = computeArguments(frame, target);
 
     CompilerAsserts.compilationConstant(this.isTail());
     if (this.isTail()) {
-      throw new TailCallException(target, positionalArguments);
+      throw new TailCallException(target, computedArguments);
     } else {
-      return dispatchNode.executeDispatch(target, positionalArguments);
+      return dispatchNode.executeDispatch(target, computedArguments);
     }
   }
 
   // TODO [AA] Need to handle named and defaulted args for constructors as well.
   @Specialization
   public Atom invokeConstructor(VirtualFrame frame, AtomConstructor constructor) {
-    Object[] positionalArguments = computeArguments(frame, constructor);
-    return constructor.newInstance(positionalArguments);
+    Object[] computedArguments = computeArguments(frame, constructor);
+    return constructor.newInstance(computedArguments);
   }
 
   @Fallback

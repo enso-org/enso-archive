@@ -25,7 +25,7 @@ public class ReadArgumentNode extends ExpressionNode {
       return argument;
     }
 
-    if (defaultingProfile.profile(argument instanceof DefaultedArgument)) {
+    if (defaultingProfile.profile(argument instanceof DefaultedArgumentNode)) {
       return defaultValue.executeGeneric(frame);
     } else {
       return argument;
