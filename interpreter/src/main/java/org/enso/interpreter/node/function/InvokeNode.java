@@ -7,46 +7,40 @@ import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.function.argument.ArgumentDefinition;
-import org.enso.interpreter.node.function.argument.CallArgument;
-import org.enso.interpreter.node.function.argument.DefaultedArgument;
-import org.enso.interpreter.node.function.argument.UnappliedArgument;
-import org.enso.interpreter.optimiser.TailCallException;
-import org.enso.interpreter.runtime.Atom;
-import org.enso.interpreter.runtime.AtomConstructor;
-import org.enso.interpreter.runtime.Callable;
-import org.enso.interpreter.runtime.Function;
+import org.enso.interpreter.node.function.argument.CallArgumentNode;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.optimiser.tco.TailCallException;
+import org.enso.interpreter.runtime.type.Atom;
+import org.enso.interpreter.runtime.type.AtomConstructor;
+import org.enso.interpreter.runtime.function.Callable;
+import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.TypesGen;
-import org.enso.interpreter.runtime.errors.ArityException;
-import org.enso.interpreter.runtime.errors.NotInvokableException;
+import org.enso.interpreter.runtime.error.ArityException;
+import org.enso.interpreter.runtime.error.NotInvokableException;
 
 @NodeInfo(shortName = "@", description = "Executes function")
 @NodeChild("target")
 public abstract class InvokeNode extends ExpressionNode {
-  @Children private final CallArgument[] callArguments;
+  @Children private final CallArgumentNode[] callArgumentNodes;
   @Child private DispatchNode dispatchNode;
   private final Map<String, Integer> callArgsByName;
   private boolean isSaturatedApplication;
 
-  public InvokeNode(CallArgument[] callArguments) {
-    this.callArguments = callArguments;
+  public InvokeNode(CallArgumentNode[] callArgumentNodes) {
+    this.callArgumentNodes = callArgumentNodes;
     this.dispatchNode = new SimpleDispatchNode();
     this.isSaturatedApplication = true;
 
     // Note [Call Arguments by Name]
     this.callArgsByName =
-        IntStream.range(0, callArguments.length)
-            .filter(idx -> callArguments[idx].getName() != null)
+        IntStream.range(0, callArgumentNodes.length)
+            .filter(idx -> callArgumentNodes[idx].getName() != null)
             .boxed()
-            .collect(Collectors.toMap(idx -> callArguments[idx].getName(), idx -> idx));
+            .collect(Collectors.toMap(idx -> callArgumentNodes[idx].getName(), idx -> idx));
   }
 
   /* Note [Call Arguments by Name]
@@ -67,11 +61,10 @@ public abstract class InvokeNode extends ExpressionNode {
    * @param map The map in which to look up the key.
    * @param key The key to use for lookup.
    * @param <K> The key type of the map.
-   * @param <V> The value type of the map.
    * @return `true` if the key exists, otherwise `false`.
    */
   @TruffleBoundary
-  public static <K, V> boolean hasArgByKey(Map<K, V> map, K key) {
+  public static <K> boolean hasArgByKey(Map<K, Integer> map, K key) {
     return map.containsKey(key);
   }
 
@@ -81,43 +74,58 @@ public abstract class InvokeNode extends ExpressionNode {
    * @param map The map in which to look up the argument.
    * @param key The key to use to find the argument.
    * @param <K> The type of the key in the map.
-   * @param <V> The type of the value returned.
    * @return The value, if found, `null` otherwise.
    */
   @TruffleBoundary
-  public static <K, V> V getArgByKey(Map<K, V> map, K key) {
-    return map.get(key);
+  public <K> CallArgumentNode getArgByKey(Map<K, Integer> map, K key) {
+    return callArgumentNodes[map.get(key)];
   }
 
   // TODO [AA] Use specialisation and rewriting with an inline cache to speed this up.
   public Object[] computeArguments(VirtualFrame frame, Callable callable) {
     ArgumentDefinition[] definedArgs = callable.getArgs();
 
-    if (callArguments.length > definedArgs.length) {
-      throw new ArityException(definedArgs.length, callArguments.length);
+    // TODO [AA] Handle the case where we have too many arguments
+    // TODO [AA] Handle the case where we have too few arguments
+
+    // Temporary failure conditions
+    if (definedArgs.length != this.callArgumentNodes.length) {
+      throw new ArityException(definedArgs.length, this.callArgumentNodes.length);
     }
+
+    /* TODO [AA] Mapping between call site args and function args
+     * Can do a child node that handles the argument matching to the Function purely on runtime
+     * values.
+     * - General case variant (matching below).
+     * - An optimised variant that works on a precomputed mapping.
+     */
 
     Object[] positionalArguments = new Object[definedArgs.length]; // Note [Positional Arguments]
+//
+//    for (ArgumentDefinition definedArg : definedArgs) {
+//      int definedArgPosition = definedArg.getPosition();
+//      String definedArgName = definedArg.getName();
+//
+//      if (hasArgByKey(callArgsByName, definedArgName)) {
+//        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
+//        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
+//
+//      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
+//        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
+//        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
+//
+//      } else if (definedArg.hasDefaultValue()) {
+//        positionalArguments[definedArgPosition] = new DefaultedArgument(definedArg);
+//      } else {
+//        positionalArguments[definedArgPosition] = new UnappliedArgument(definedArg);
+//        this.isSaturatedApplication = false;
+//      }
+//    }
 
-    for (ArgumentDefinition definedArg : definedArgs) {
-      int definedArgPosition = definedArg.getPosition();
-      String definedArgName = definedArg.getName();
-
-      if (hasArgByKey(callArgsByName, definedArgName)) {
-        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
-        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
-
-      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
-        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
-        positionalArguments[definedArgPosition] = callArg.executeGeneric(frame);
-
-      } else if (definedArg.hasDefaultValue()) {
-        positionalArguments[definedArgPosition] = new DefaultedArgument(definedArg);
-      } else {
-        positionalArguments[definedArgPosition] = new UnappliedArgument(definedArg);
-        this.isSaturatedApplication = false;
-      }
-    }
+    // TODO [AA] Return a function with some arguments applied.
+    // TODO [AA] Loop nodes, returning new call targrets for under-saturated.
+    // TODO [AA] Too many arguments need to execute. Overflow args in an array.
+    // TODO [AA] Looping until done.
 
     return positionalArguments;
   }
@@ -125,18 +133,6 @@ public abstract class InvokeNode extends ExpressionNode {
   /* Note [Positional Arguments]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~
    * // TODO [AA] Rewrite this
-   * As far as Graal itself is concerned, the only kind of argument that can be passed to a call
-   * target are positional ones. This means that we need our own scheme for pulling the types of
-   * arguments we care about back out of the call when it reaches our code.
-   *
-   * However, at the point of calling `computeArguments` above, we actually have both the defined
-   * arguments to the function, and the arguments with which it's actually being called. This means
-   * that we can actually treat them all as positional, using the following algorithm:
-   *
-   * 1.
-   *
-   * After the loop completes, any arguments that have not yet been applied are `null`. This means
-   * that we can use this as a sentinel for whether a function is fully-applied or not.
    */
 
   // You can query this function about its arguments.

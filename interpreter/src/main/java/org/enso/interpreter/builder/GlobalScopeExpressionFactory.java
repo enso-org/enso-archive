@@ -3,7 +3,6 @@ package org.enso.interpreter.builder;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import java.util.ArrayList;
 import java.util.List;
 import org.enso.interpreter.AstAssignment;
 import org.enso.interpreter.AstExpression;
@@ -13,8 +12,8 @@ import org.enso.interpreter.AstTypeDef;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.function.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.AtomConstructor;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.type.AtomConstructor;
 
 public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
 

@@ -6,8 +6,8 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Atom;
-import org.enso.interpreter.runtime.errors.TypeError;
+import org.enso.interpreter.runtime.type.Atom;
+import org.enso.interpreter.runtime.error.TypeError;
 
 public class MatchNode extends ExpressionNode {
   @Child private ExpressionNode target;

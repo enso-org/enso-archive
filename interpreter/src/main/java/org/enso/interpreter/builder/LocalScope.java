@@ -5,7 +5,7 @@ import com.oracle.truffle.api.frame.FrameSlot;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import org.enso.interpreter.runtime.errors.VariableRedefinitionException;
+import org.enso.interpreter.runtime.error.VariableRedefinitionException;
 
 public class LocalScope {
   private Map<String, FrameSlot> items;

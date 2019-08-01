@@ -1,13 +1,10 @@
-package org.enso.interpreter.runtime;
+package org.enso.interpreter.runtime.type;
 
 import com.oracle.truffle.api.interop.TruffleObject;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
-import com.sun.org.apache.xpath.internal.Arg;
-import org.enso.interpreter.node.function.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.errors.ArityException;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.function.Callable;
+import org.enso.interpreter.runtime.error.ArityException;
 
 public class AtomConstructor extends Callable implements TruffleObject {
   public static final AtomConstructor CONS =

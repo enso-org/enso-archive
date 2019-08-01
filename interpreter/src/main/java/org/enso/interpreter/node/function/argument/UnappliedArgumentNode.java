@@ -3,13 +3,14 @@ package org.enso.interpreter.node.function.argument;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.errors.UnsaturatedCallException;
+import org.enso.interpreter.runtime.error.UnsaturatedCallException;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 
 @NodeInfo(shortName = "_", description = "An unapplied argument")
-public class UnappliedArgument extends ExpressionNode {
+public class UnappliedArgumentNode extends ExpressionNode {
   private ArgumentDefinition argument;
 
-  public UnappliedArgument(ArgumentDefinition argument) {
+  public UnappliedArgumentNode(ArgumentDefinition argument) {
     this.argument = argument;
   }
 

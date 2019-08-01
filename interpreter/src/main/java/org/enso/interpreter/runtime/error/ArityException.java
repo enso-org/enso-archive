@@ -1,7 +1,4 @@
-package org.enso.interpreter.runtime.errors;
-
-import com.oracle.truffle.api.TruffleException;
-import com.oracle.truffle.api.nodes.Node;
+package org.enso.interpreter.runtime.error;
 
 public class ArityException extends RuntimeException {
   public ArityException(int expected, int actual) {

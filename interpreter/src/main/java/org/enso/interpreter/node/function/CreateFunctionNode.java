@@ -3,11 +3,10 @@ package org.enso.interpreter.node.function;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
-import java.util.List;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.function.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.Function;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.function.Function;
 
 public class CreateFunctionNode extends ExpressionNode {
   private final RootCallTarget callTarget;

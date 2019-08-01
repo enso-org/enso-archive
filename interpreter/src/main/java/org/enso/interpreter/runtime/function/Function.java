@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime;
+package org.enso.interpreter.runtime.function;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
@@ -10,8 +10,7 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
-import java.util.List;
-import org.enso.interpreter.node.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 
 @ExportLibrary(InteropLibrary.class)
 public final class Function extends Callable implements TruffleObject {
@@ -39,7 +38,7 @@ public final class Function extends Callable implements TruffleObject {
   }
 
   @ExportMessage
-  abstract static class Execute {
+  public abstract static class Execute {
 
     @Specialization(guards = "function.getCallTarget() == cachedTarget")
     protected static Object callDirect(

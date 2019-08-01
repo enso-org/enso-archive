@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.errors;
+package org.enso.interpreter.runtime.error;
 
 import java.util.Set;
 

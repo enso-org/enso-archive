@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime;
+package org.enso.interpreter.runtime.type;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.TruffleObject;

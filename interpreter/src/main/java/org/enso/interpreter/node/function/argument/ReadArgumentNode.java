@@ -1,11 +1,10 @@
 package org.enso.interpreter.node.function.argument;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.Function;
+import org.enso.interpreter.runtime.function.Function;
 
 @NodeInfo(description = "Read function argument.")
 public class ReadArgumentNode extends ExpressionNode {

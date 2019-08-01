@@ -5,8 +5,8 @@ import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.CallNode;
 import org.enso.interpreter.node.function.CallNodeGen;
-import org.enso.interpreter.runtime.Atom;
-import org.enso.interpreter.runtime.Function;
+import org.enso.interpreter.runtime.type.Atom;
+import org.enso.interpreter.runtime.function.Function;
 
 public class FallbackNode extends CaseNode {
   @Child private ExpressionNode functionNode;

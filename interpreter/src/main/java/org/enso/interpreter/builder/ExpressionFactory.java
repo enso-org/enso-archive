@@ -38,15 +38,15 @@ import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
 import org.enso.interpreter.node.function.InvokeNodeGen;
-import org.enso.interpreter.node.function.argument.ArgumentDefinition;
-import org.enso.interpreter.node.function.argument.CallArgument;
+import org.enso.interpreter.node.function.argument.CallArgumentNode;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 import org.enso.interpreter.node.function.argument.ReadArgumentNode;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
-import org.enso.interpreter.runtime.errors.DuplicateArgumentNameException;
-import org.enso.interpreter.runtime.errors.VariableDoesNotExistException;
+import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
+import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 
 public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
@@ -201,14 +201,14 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       AstExpression function, List<AstCallArg> arguments) {
     CallArgFactory argFactory = new CallArgFactory(scope, language, scopeName, globalScope);
 
-    List<CallArgument> callArgs = new ArrayList<>();
+    List<CallArgumentNode> callArgs = new ArrayList<>();
     for (int position = 0; position < arguments.size(); ++position) {
-      CallArgument arg = arguments.get(position).visit(argFactory, position);
+      CallArgumentNode arg = arguments.get(position).visit(argFactory, position);
       callArgs.add(arg);
     }
 
     return InvokeNodeGen.create(
-        callArgs.stream().toArray(CallArgument[]::new), function.visit(this));
+        callArgs.stream().toArray(CallArgumentNode[]::new), function.visit(this));
   }
 
   @Override

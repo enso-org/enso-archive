@@ -1,23 +1,22 @@
 package org.enso.interpreter.node.function.argument;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import java.util.Optional;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.AtomConstructor;
+import org.enso.interpreter.runtime.type.AtomConstructor;
 
-public class CallArgument extends ExpressionNode {
+public class CallArgumentNode extends ExpressionNode {
   private final String name;
   @Child private ExpressionNode expression;
 
-  public CallArgument(ExpressionNode expression) {
+  public CallArgumentNode(ExpressionNode expression) {
     this(null, expression);
   }
 
-  public CallArgument(String name) {
+  public CallArgumentNode(String name) {
     this(name, null);
   }
 
-  public CallArgument(String name, ExpressionNode expression) {
+  public CallArgumentNode(String name, ExpressionNode expression) {
     this.name = name;
     this.expression = expression;
   }

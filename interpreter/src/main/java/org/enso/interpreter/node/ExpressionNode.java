@@ -6,9 +6,9 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import org.enso.interpreter.runtime.Atom;
-import org.enso.interpreter.runtime.AtomConstructor;
-import org.enso.interpreter.runtime.Function;
+import org.enso.interpreter.runtime.type.Atom;
+import org.enso.interpreter.runtime.type.AtomConstructor;
+import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.TypesGen;
 
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")

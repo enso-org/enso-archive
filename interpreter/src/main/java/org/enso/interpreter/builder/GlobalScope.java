@@ -1,7 +1,7 @@
 package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.RootCallTarget;
-import org.enso.interpreter.runtime.AtomConstructor;
+import org.enso.interpreter.runtime.type.AtomConstructor;
 import org.enso.interpreter.runtime.GlobalCallTarget;
 
 import java.util.HashMap;

@@ -1,7 +1,6 @@
-package org.enso.interpreter.runtime;
+package org.enso.interpreter.runtime.function;
 
-import java.util.List;
-import org.enso.interpreter.node.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 
 public abstract class Callable {
   private final ArgumentDefinition[] args;

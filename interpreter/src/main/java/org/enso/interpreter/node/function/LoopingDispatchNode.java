@@ -5,7 +5,7 @@ import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
-import org.enso.interpreter.optimiser.TailCallException;
+import org.enso.interpreter.optimiser.tco.TailCallException;
 
 /**
  * A version of {@link DispatchNode} that is fully prepared to handle tail calls. Tail calls are

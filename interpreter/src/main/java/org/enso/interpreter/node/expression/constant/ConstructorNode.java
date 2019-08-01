@@ -2,7 +2,7 @@ package org.enso.interpreter.node.expression.constant;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.AtomConstructor;
+import org.enso.interpreter.runtime.type.AtomConstructor;
 
 public class ConstructorNode extends ExpressionNode {
   private final AtomConstructor constructor;

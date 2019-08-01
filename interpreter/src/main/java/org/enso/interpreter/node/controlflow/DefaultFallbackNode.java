@@ -1,8 +1,8 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
-import org.enso.interpreter.runtime.Atom;
-import org.enso.interpreter.runtime.errors.InexhaustivePatternMatchException;
+import org.enso.interpreter.runtime.type.Atom;
+import org.enso.interpreter.runtime.error.InexhaustivePatternMatchException;
 
 public class DefaultFallbackNode extends CaseNode {
   @Override

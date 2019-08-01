@@ -6,7 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.Function;
+import org.enso.interpreter.runtime.function.Function;
 
 public abstract class CallNode extends Node {
   @Specialization(guards = "function.getCallTarget() == cachedTarget")
