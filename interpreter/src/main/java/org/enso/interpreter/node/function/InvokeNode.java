@@ -10,7 +10,6 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNode.CallArgumentInfo;
 import org.enso.interpreter.runtime.Callable;
-import org.enso.interpreter.runtime.error.ArityException;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "@", description = "Executes function")
@@ -54,11 +53,6 @@ public abstract class InvokeNode extends ExpressionNode {
   @ExplodeLoop
   public Object[] computeArguments(VirtualFrame frame, Callable callable) {
     int definedArgsLength = callable.getArgs().length;
-
-    // Temporary failure condition
-    if (callable.getArgs().length != this.argExpressions.length) {
-      throw new ArityException(definedArgsLength, this.argExpressions.length);
-    }
 
     Object[] computedArguments = new Object[definedArgsLength]; // Note [Positional Arguments]
 
