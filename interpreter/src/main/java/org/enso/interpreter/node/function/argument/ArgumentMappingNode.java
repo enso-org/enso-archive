@@ -13,33 +13,40 @@ import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 import org.enso.interpreter.runtime.type.AtomConstructor;
 
+import java.util.Arrays;
+
 @NodeInfo(shortName = "ArgumentMap")
 public class ArgumentMappingNode extends BaseNode {
   private final CallArgumentInfo[] schema;
+  private final boolean isFullyPositional;
   @Child private DispatchNode dispatchNode;
 
   public ArgumentMappingNode(CallArgumentInfo[] schema) {
     this.schema = schema;
     this.dispatchNode = new SimpleDispatchNode();
+    this.isFullyPositional = Arrays.stream(schema).allMatch(CallArgumentInfo::isPositional);
   }
 
   public Object execute(Object callable, Object[] arguments) {
     if (callable instanceof Function) {
       Function actualCallable = (Function) callable;
-      int[] order = generateArgMapping(actualCallable);
-      Object[] argsInDefOrder = reorderArguments(order, arguments);
-
+      if (!isFullyPositional) {
+        int[] order = generateArgMapping(actualCallable);
+        arguments = reorderArguments(order, arguments);
+      }
       if (this.isTail()) {
-        throw new TailCallException(actualCallable, argsInDefOrder);
+        throw new TailCallException(actualCallable, arguments);
       } else {
-        return dispatchNode.executeDispatch(actualCallable, argsInDefOrder);
+        return dispatchNode.executeDispatch(actualCallable, arguments);
       }
     } else if (callable instanceof AtomConstructor) {
       AtomConstructor actualCallable = (AtomConstructor) callable;
-      int[] order = generateArgMapping(actualCallable);
-      Object[] argsInDefOrder = reorderArguments(order, arguments);
+      if (!isFullyPositional) {
+        int[] order = generateArgMapping(actualCallable);
+        arguments = reorderArguments(order, arguments);
+      }
 
-      return actualCallable.newInstance(argsInDefOrder);
+      return actualCallable.newInstance(arguments);
     } else {
       throw new NotInvokableException(callable, this);
     }

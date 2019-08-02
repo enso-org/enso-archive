@@ -43,7 +43,7 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
   performance of "Enso TCO" in {
     measure method "Summing numbers up to 100 millions" in {
       using(gen) in { _ =>
-        sumTCO.call(million)
+        sumTCO.call(hundredMillion)
       }
     }
   }
