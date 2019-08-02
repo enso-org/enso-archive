@@ -10,6 +10,10 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 public class BaseNode extends Node {
   @CompilerDirectives.CompilationFinal private boolean isTail = false;
 
+  public void setTail(boolean isTail) {
+    this.isTail = isTail;
+  }
+
   public void markTail() {
     isTail = true;
   }

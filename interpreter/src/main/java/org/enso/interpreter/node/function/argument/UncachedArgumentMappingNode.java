@@ -13,28 +13,27 @@ import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 import org.enso.interpreter.runtime.type.AtomConstructor;
 
-import java.util.Arrays;
-
 @NodeInfo(shortName = "ArgumentMap")
-public class UncachedArgumentMappingNode extends ArgumentMappingNode {
+public class UncachedArgumentMappingNode extends BaseNode {
   private final CallArgumentInfo[] schema;
-  private final boolean isFullyPositional;
   @Child private DispatchNode dispatchNode;
 
-  public UncachedArgumentMappingNode(CallArgumentInfo[] schema) {
+  public UncachedArgumentMappingNode(
+      CallArgumentInfo[] schema, SimpleDispatchNode dispatchNode, boolean isTailCall) {
     this.schema = schema;
-    this.dispatchNode = new SimpleDispatchNode();
-    this.isFullyPositional = Arrays.stream(schema).allMatch(CallArgumentInfo::isPositional);
+    this.dispatchNode = dispatchNode;
+    setTail(isTailCall);
   }
 
-  @Override
+  public static UncachedArgumentMappingNode create(CallArgumentInfo[] schema, boolean isTailCall) {
+    return new UncachedArgumentMappingNode(schema, new SimpleDispatchNode(), isTailCall);
+  }
+
   public Object execute(Object callable, Object[] arguments) {
     if (callable instanceof Function) {
       Function actualCallable = (Function) callable;
-      if (!isFullyPositional) {
-        int[] order = generateArgMapping(actualCallable);
-        arguments = reorderArguments(order, arguments);
-      }
+      int[] order = generateArgMapping(actualCallable);
+      arguments = reorderArguments(order, arguments);
       if (this.isTail()) {
         throw new TailCallException(actualCallable, arguments);
       } else {
@@ -42,10 +41,8 @@ public class UncachedArgumentMappingNode extends ArgumentMappingNode {
       }
     } else if (callable instanceof AtomConstructor) {
       AtomConstructor actualCallable = (AtomConstructor) callable;
-      if (!isFullyPositional) {
-        int[] order = generateArgMapping(actualCallable);
-        arguments = reorderArguments(order, arguments);
-      }
+      int[] order = generateArgMapping(actualCallable);
+      arguments = reorderArguments(order, arguments);
 
       return actualCallable.newInstance(arguments);
     } else {

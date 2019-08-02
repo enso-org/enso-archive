@@ -1,6 +1,5 @@
 package org.enso.interpreter
 
-import com.oracle.truffle.api.TruffleStackTrace
 import org.scalameter.api._
 
 class GenericBench extends Bench.LocalTime with LanguageRunner {
@@ -36,14 +35,14 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
     """.stripMargin
 
   val sumTCO = eval(sumTCOCode)
-//
-//  performance of "Enso TCO" in {
-//    measure method "Summing numbers up to 100 millions" in {
-//      using(gen) in { _ =>
-//        sumTCO.call(hundredMillion)
-//      }
-//    }
-//  }
+
+  performance of "Enso TCO" in {
+    measure method "Summing numbers up to 100 millions" in {
+      using(gen) in { _ =>
+        sumTCO.call(hundredMillion)
+      }
+    }
+  }
 
   val sumTCOWithNamedArgumentsCode =
     """

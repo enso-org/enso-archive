@@ -7,14 +7,15 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode;
+import org.enso.interpreter.node.function.argument.ArgumentMappingNode;
+import org.enso.interpreter.node.function.argument.ArgumentMappingNodeGen;
 import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode.CallArgumentInfo;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "@", description = "Executes function")
 public class InvokeNode extends ExpressionNode {
   @Children private final ExpressionNode[] argExpressions;
-  @Child private UncachedArgumentMappingNode argumentsMap;
+  @Child private ArgumentMappingNode argumentsMap;
   @Child private ExpressionNode callable;
 
   public InvokeNode(ExpressionNode callable, CallArgument[] callArguments) {
@@ -29,7 +30,7 @@ public class InvokeNode extends ExpressionNode {
             .map(CallArgumentInfo::new)
             .toArray(CallArgumentInfo[]::new);
 
-    this.argumentsMap = new UncachedArgumentMappingNode(argSchema);
+    this.argumentsMap = ArgumentMappingNodeGen.create(argSchema);
   }
 
   /**
