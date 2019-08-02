@@ -4,6 +4,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.dispatch.DispatchNode;
 import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
+import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.error.ArityException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
@@ -23,13 +24,16 @@ public class ArgumentMappingNode extends BaseNode {
   }
 
   public Object execute(Object callable, Object[] arguments) {
-    // FIXME [AA] See if we can remove this typecheck
     if (callable instanceof Function) {
       Function actualCallable = (Function) callable;
       int[] order = generateArgMapping(actualCallable);
       Object[] argsInDefOrder = reorderArguments(order, arguments);
 
-      return dispatchNode.executeDispatch(actualCallable, argsInDefOrder);
+      if (this.isTail()) {
+        throw new TailCallException(actualCallable, argsInDefOrder);
+      } else {
+        return dispatchNode.executeDispatch(actualCallable, argsInDefOrder);
+      }
     } else if (callable instanceof AtomConstructor) {
       AtomConstructor actualCallable = (AtomConstructor) callable;
       int[] order = generateArgMapping(actualCallable);
