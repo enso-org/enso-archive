@@ -35,20 +35,40 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
       |}
     """.stripMargin
 
-  val sumTCO = ctx.eval(Constants.LANGUAGE_ID, sumTCOCode)
+  val sumTCO = eval(sumTCOCode)
+//
+//  performance of "Enso TCO" in {
+//    measure method "Summing numbers up to 100 millions" in {
+//      using(gen) in { _ =>
+//        sumTCO.call(hundredMillion)
+//      }
+//    }
+//  }
 
-  // TODO [AA] Remove me
-  val stackTrace = TruffleStackTrace.getStackTrace(new Exception());
+  val sumTCOWithNamedArgumentsCode =
+    """
+      |{ |sumTo|
+      |  summator = { |acc, current|
+      |      ifZero: [current, acc, @summator [acc + current, current - 1]]
+      |  };
+      |  res = @summator [current = sumTo, acc = 0];
+      |  res
+      |}
+    """.stripMargin
 
-  performance of "Enso TCO" in {
+  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
+
+  performance of "Enso TCO with named arguments" in {
     measure method "Summing numbers up to 100 millions" in {
       using(gen) in { _ =>
-        sumTCO.call(hundredMillion)
+        sumTCOWithNamedArguments.call(million)
       }
     }
   }
 
-//  val sumRecursiveCode =
+  // TODO Test defaulted arguments
+
+  //  val sumRecursiveCode =
 //    """
 //      |{ |sumTo|
 //      |  summator = { |i| ifZero: [i, 0, i + (@summator [i - 1])] };
