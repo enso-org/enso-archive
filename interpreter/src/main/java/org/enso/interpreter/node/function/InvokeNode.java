@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "@", description = "Executes function")
-public abstract class InvokeNode extends ExpressionNode {
+public class InvokeNode extends ExpressionNode {
   @Children private final ExpressionNode[] argExpressions;
   @Child private ArgumentMappingNode argumentsMap;
   @Child private ExpressionNode callable;

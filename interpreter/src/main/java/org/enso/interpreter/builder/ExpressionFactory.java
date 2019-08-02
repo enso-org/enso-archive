@@ -37,6 +37,7 @@ import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.function.CreateFunctionNode;
 import org.enso.interpreter.node.function.FunctionBodyNode;
+import org.enso.interpreter.node.function.InvokeNode;
 import org.enso.interpreter.node.function.InvokeNodeGen;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
@@ -209,8 +210,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       callArgs.add(arg);
     }
 
-    return InvokeNodeGen.create(
-        callArgs.stream().toArray(CallArgument[]::new), function.visit(this));
+    return new InvokeNode(function.visit(this), callArgs.stream().toArray(CallArgument[]::new));
   }
 
   @Override

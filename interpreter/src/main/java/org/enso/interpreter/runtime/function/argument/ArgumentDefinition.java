@@ -6,6 +6,7 @@ import org.enso.interpreter.node.ExpressionNode;
 public class ArgumentDefinition {
   private final int position;
   private final String name;
+  // TODO[MK, AA]: Remove this field.
   private final Optional<ExpressionNode> defaultValue;
 
   public ArgumentDefinition(int position, String name) {

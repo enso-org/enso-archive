@@ -3,6 +3,7 @@ package org.enso.interpreter.node.function.argument;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.dispatch.DispatchNode;
+import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.error.ArityException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
@@ -12,27 +13,75 @@ import org.enso.interpreter.runtime.function.argument.CallArgument;
 @NodeInfo(shortName = "ArgumentMap")
 public class ArgumentMappingNode extends BaseNode {
   private final CallArgumentInfo[] schema;
-  private Integer[] mapping;
   @Child private DispatchNode dispatchNode;
 
   public ArgumentMappingNode(CallArgumentInfo[] schema) {
     this.schema = schema;
-    this.dispatchNode = null;
+    this.dispatchNode = new SimpleDispatchNode();
   }
 
   public Object execute(Object callable, Object[] arguments) {
     // FIXME [AA] See if we can remove this typecheck
     if (callable instanceof Callable) {
       Callable actualCallable = (Callable) callable;
-      Object[] argsInDefOrder = generateArgMapping(actualCallable, arguments);
-      return dispatchNode.executeDispatch(actualCallable, argsInDefOrder);
+//      int[] order = generateArgMapping(actualCallable);
+//      Object[] argsInDefOrder = reorderArguments(order, arguments);
+      return dispatchNode.executeDispatch(actualCallable, arguments);// argsInDefOrder);
     } else {
       throw new NotInvokableException(callable, this);
     }
   }
 
+  private Object[] reorderArguments(int[] order, Object[] args) {
+    //TODO: This should be a number of defined args with holes and stuff.
+    Object[] result = new Object[args.length];
+    for (int i = 0; i < args.length; i++) {
+      result[order[i]] = args[i];
+    }
+    return result;
+  }
+
+  /**
+   * Maps call-site arguments positions to definition-site positions.
+   * @param callable
+   * @return
+   */
+  private int[] generateArgMapping(Callable callable) {
+    int numberOfDefinedArgs = callable.getArgs().length;
+    ArgumentDefinition[] definedArgs = callable.getArgs();
+//    if (this.schema.length != numberOfDefinedArgs) {
+//      throw new ArityException(numberOfDefinedArgs, this.schema.length);
+//    }
+    boolean[] definedArgumentsUsage = new boolean[numberOfDefinedArgs];
+    int[] result = new int[this.schema.length];
+    // TODO: Split into functions.
+    for (int i = 0; i < this.schema.length; i++) {
+      CallArgumentInfo currentArgument = this.schema[i];
+      if (currentArgument.isPositional()) {
+        for (int j = 0; j < numberOfDefinedArgs; j++) {
+          if (!definedArgumentsUsage[j]) {
+            result[i] = j;
+            definedArgumentsUsage[j] = true;
+            break;
+          }
+        }
+        throw new RuntimeException("Arguments are wrong");
+      } else {
+        for (int j = 0; j < numberOfDefinedArgs; j++) {
+          if ((currentArgument.getName().equals(definedArgs[j].getName()))
+              && !definedArgumentsUsage[j]) {
+            result[i] = j;
+            definedArgumentsUsage[j] = true;
+            break;
+          }
+        }
+        throw new RuntimeException("Named arguments are wrong");
+      }
+    }
+    return result;
+  }
   // this is the function you asked me about on Discord, here's where it belongs.
-  private Object[] generateArgMapping(Callable callable, Object[] arguments) {
+  private int[] generateArgMapping2(Callable callable, Object[] arguments) {
     ArgumentDefinition[] argDefinitions = callable.getArgs();
     int numDefinedArgs = argDefinitions.length;
 
@@ -54,27 +103,6 @@ public class ArgumentMappingNode extends BaseNode {
      * TODO [AA] Too many arguments need to execute. Overflow args in an array.
      * TODO [AA] Looping until done.
      */
-
-    //    for (ArgumentDefinition definedArg : definedArgs) {
-    //      int definedArgPosition = definedArg.getPosition();
-    //      String definedArgName = definedArg.getName();
-    //
-    //      if (hasArgByKey(callArgsByName, definedArgName)) {
-    //        CallArgument callArg = callArguments[getArgByKey(callArgsByName, definedArgName)];
-    //        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
-    //
-    //      } else if (hasArgByKey(callArgsByPosition, definedArgPosition)) {
-    //        CallArgument callArg = getArgByKey(callArgsByPosition, definedArgPosition);
-    //        computedArguments[definedArgPosition] = callArg.executeGeneric(frame);
-    //
-    //      } else if (definedArg.hasDefaultValue()) {
-    //        computedArguments[definedArgPosition] = new DefaultedArgument(definedArg);
-    //      } else {
-    //        computedArguments[definedArgPosition] = new UnappliedArgument(definedArg);
-    //        this.isSaturatedApplication = false;
-    //      }
-    //    }
-
     return null;
   }
 
