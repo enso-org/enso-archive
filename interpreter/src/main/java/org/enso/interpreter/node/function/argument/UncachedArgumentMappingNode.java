@@ -2,49 +2,30 @@ package org.enso.interpreter.node.function.argument;
 
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.function.dispatch.DispatchNode;
-import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
-import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.error.ArityException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
-import org.enso.interpreter.runtime.type.AtomConstructor;
 
 @NodeInfo(shortName = "ArgumentMap")
 public class UncachedArgumentMappingNode extends BaseNode {
   private final CallArgumentInfo[] schema;
-  @Child private DispatchNode dispatchNode;
 
-  public UncachedArgumentMappingNode(
-      CallArgumentInfo[] schema, SimpleDispatchNode dispatchNode, boolean isTailCall) {
+  public UncachedArgumentMappingNode(CallArgumentInfo[] schema) {
     this.schema = schema;
-    this.dispatchNode = dispatchNode;
-    setTail(isTailCall);
   }
 
-  public static UncachedArgumentMappingNode create(CallArgumentInfo[] schema, boolean isTailCall) {
-    return new UncachedArgumentMappingNode(schema, new SimpleDispatchNode(), isTailCall);
+  public static UncachedArgumentMappingNode create(CallArgumentInfo[] schema) {
+    return new UncachedArgumentMappingNode(schema);
   }
 
-  public Object execute(Object callable, Object[] arguments) {
-    if (callable instanceof Function) {
+  public Object[] execute(Object callable, Object[] arguments) {
+    if (callable instanceof Callable) {
       Function actualCallable = (Function) callable;
       int[] order = generateArgMapping(actualCallable);
-      arguments = reorderArguments(order, arguments);
-      if (this.isTail()) {
-        throw new TailCallException(actualCallable, arguments);
-      } else {
-        return dispatchNode.executeDispatch(actualCallable, arguments);
-      }
-    } else if (callable instanceof AtomConstructor) {
-      AtomConstructor actualCallable = (AtomConstructor) callable;
-      int[] order = generateArgMapping(actualCallable);
-      arguments = reorderArguments(order, arguments);
-
-      return actualCallable.newInstance(arguments);
+      return reorderArguments(order, arguments);
     } else {
       throw new NotInvokableException(callable, this);
     }
