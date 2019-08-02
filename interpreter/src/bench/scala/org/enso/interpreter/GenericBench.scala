@@ -37,33 +37,33 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
   val sumTCO = eval(sumTCOCode)
 
   performance of "Enso TCO" in {
-    measure method "Summing numbers up to 100 millions" in {
+    measure method "Summing numbers up to a million" in {
       using(gen) in { _ =>
-        sumTCO.call(hundredMillion)
+        sumTCO.call(million)
       }
     }
   }
 
-  val sumTCOWithNamedArgumentsCode =
-    """
-      |{ |sumTo|
-      |  summator = { |acc, current|
-      |      ifZero: [current, acc, @summator [acc + current, current - 1]]
-      |  };
-      |  res = @summator [current = sumTo, acc = 0];
-      |  res
-      |}
-    """.stripMargin
+//  val sumTCOWithNamedArgumentsCode =
+//    """
+//      |{ |sumTo|
+//      |  summator = { |acc, current|
+//      |      ifZero: [current, acc, @summator [acc + current, current - 1]]
+//      |  };
+//      |  res = @summator [current = sumTo, acc = 0];
+//      |  res
+//      |}
+//    """.stripMargin
+//
+//  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
 
-  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
-
-  performance of "Enso TCO with named arguments" in {
-    measure method "Summing numbers up to 100 millions" in {
-      using(gen) in { _ =>
-        sumTCOWithNamedArguments.call(million)
-      }
-    }
-  }
+//  performance of "Enso TCO with named arguments" in {
+//    measure method "Summing numbers up to 100 millions" in {
+//      using(gen) in { _ =>
+//        sumTCOWithNamedArguments.call(million)
+//      }
+//    }
+//  }
 
   // TODO Test defaulted arguments
 

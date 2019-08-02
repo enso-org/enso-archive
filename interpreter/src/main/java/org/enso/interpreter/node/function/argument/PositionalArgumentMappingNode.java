@@ -1,5 +1,7 @@
 package org.enso.interpreter.node.function.argument;
 
+import com.oracle.truffle.api.CompilerAsserts;
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.dispatch.DispatchNode;
 import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
@@ -23,7 +25,6 @@ public class PositionalArgumentMappingNode extends BaseNode {
   public Object execute(Object callable, Object[] arguments) {
     if (callable instanceof Function) {
       Function actualCallable = (Function) callable;
-
       if (this.isTail()) {
         throw new TailCallException(actualCallable, arguments);
       } else {

@@ -10,29 +10,29 @@ public abstract class ArgumentMappingNode extends BaseNode {
   private final CallArgumentInfo[] schema;
   private final boolean isFullyPositional;
 
+  @Child private PositionalArgumentMappingNode positionalArgumentMappingNode;
+  @Child private UncachedArgumentMappingNode uncachedArgumentMappingNode;
+
   public ArgumentMappingNode(CallArgumentInfo[] schema) {
     this.schema = schema;
     this.isFullyPositional = Arrays.stream(schema).allMatch(CallArgumentInfo::isPositional);
+    positionalArgumentMappingNode = PositionalArgumentMappingNode.create(isTail());
+    uncachedArgumentMappingNode = UncachedArgumentMappingNode.create(schema, isTail());
+  }
+
+  @Override
+  public void markTail() {
+    positionalArgumentMappingNode.markTail();
   }
 
   @Specialization(guards = "isFullyPositional()")
-  public Object invokePositional(
-      Object callable,
-      Object[] arguments,
-      @Cached("create(isTail())") PositionalArgumentMappingNode mappingNode) {
-    return mappingNode.execute(callable, arguments);
+  public Object invokePositional(Object callable, Object[] arguments) {
+    return positionalArgumentMappingNode.execute(callable, arguments);
   }
 
-  //  public Object invokeCached(Object callable, Object[] arguments) {
-  //    return null;
-  //  }
-
   @Specialization
-  public Object invokeUncached(
-      Object callable,
-      Object[] arguments,
-      @Cached("create(getSchema(), isTail())") UncachedArgumentMappingNode mappingNode) {
-    return mappingNode.execute(callable, arguments);
+  public Object invokeUncached(Object callable, Object[] arguments) {
+    return uncachedArgumentMappingNode.execute(callable, arguments);
   }
 
   public abstract Object execute(Object callable, Object[] arguments);
