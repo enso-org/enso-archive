@@ -7,8 +7,10 @@ import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.error.ArityException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
+import org.enso.interpreter.runtime.type.AtomConstructor;
 
 @NodeInfo(shortName = "ArgumentMap")
 public class ArgumentMappingNode extends BaseNode {
@@ -22,18 +24,25 @@ public class ArgumentMappingNode extends BaseNode {
 
   public Object execute(Object callable, Object[] arguments) {
     // FIXME [AA] See if we can remove this typecheck
-    if (callable instanceof Callable) {
-      Callable actualCallable = (Callable) callable;
-//      int[] order = generateArgMapping(actualCallable);
-//      Object[] argsInDefOrder = reorderArguments(order, arguments);
-      return dispatchNode.executeDispatch(actualCallable, arguments);// argsInDefOrder);
+    if (callable instanceof Function) {
+      Function actualCallable = (Function) callable;
+      int[] order = generateArgMapping(actualCallable);
+      Object[] argsInDefOrder = reorderArguments(order, arguments);
+
+      return dispatchNode.executeDispatch(actualCallable, argsInDefOrder);
+    } else if (callable instanceof AtomConstructor) {
+      AtomConstructor actualCallable = (AtomConstructor) callable;
+      int[] order = generateArgMapping(actualCallable);
+      Object[] argsInDefOrder = reorderArguments(order, arguments);
+
+      return actualCallable.newInstance(argsInDefOrder);
     } else {
       throw new NotInvokableException(callable, this);
     }
   }
 
   private Object[] reorderArguments(int[] order, Object[] args) {
-    //TODO: This should be a number of defined args with holes and stuff.
+    // TODO: This should be a number of defined args with holes and stuff.
     Object[] result = new Object[args.length];
     for (int i = 0; i < args.length; i++) {
       result[order[i]] = args[i];
@@ -43,39 +52,51 @@ public class ArgumentMappingNode extends BaseNode {
 
   /**
    * Maps call-site arguments positions to definition-site positions.
+   *
    * @param callable
    * @return
    */
   private int[] generateArgMapping(Callable callable) {
     int numberOfDefinedArgs = callable.getArgs().length;
+
     ArgumentDefinition[] definedArgs = callable.getArgs();
-//    if (this.schema.length != numberOfDefinedArgs) {
-//      throw new ArityException(numberOfDefinedArgs, this.schema.length);
-//    }
+
+    //    if (this.schema.length != numberOfDefinedArgs) {
+    //      throw new ArityException(numberOfDefinedArgs, this.schema.length);
+    //    }
+
     boolean[] definedArgumentsUsage = new boolean[numberOfDefinedArgs];
+
     int[] result = new int[this.schema.length];
     // TODO: Split into functions.
-    for (int i = 0; i < this.schema.length; i++) {
+    for (int i = 0; i < this.schema.length; ++i) {
+      boolean flag = false;
       CallArgumentInfo currentArgument = this.schema[i];
       if (currentArgument.isPositional()) {
         for (int j = 0; j < numberOfDefinedArgs; j++) {
           if (!definedArgumentsUsage[j]) {
             result[i] = j;
             definedArgumentsUsage[j] = true;
+            flag = true;
             break;
           }
         }
-        throw new RuntimeException("Arguments are wrong");
+        if (!flag) {
+          throw new RuntimeException("Arguments are wrong");
+        }
       } else {
         for (int j = 0; j < numberOfDefinedArgs; j++) {
           if ((currentArgument.getName().equals(definedArgs[j].getName()))
               && !definedArgumentsUsage[j]) {
             result[i] = j;
             definedArgumentsUsage[j] = true;
+            flag = true;
             break;
           }
         }
-        throw new RuntimeException("Named arguments are wrong");
+        if (!flag) {
+          throw new RuntimeException("Named arguments are wrong");
+        }
       }
     }
     return result;

@@ -9,7 +9,6 @@ import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNode.CallArgumentInfo;
-import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "@", description = "Executes function")
@@ -51,10 +50,8 @@ public class InvokeNode extends ExpressionNode {
   }
 
   @ExplodeLoop
-  public Object[] computeArguments(VirtualFrame frame, Callable callable) {
-    int definedArgsLength = callable.getArgs().length;
-
-    Object[] computedArguments = new Object[definedArgsLength]; // Note [Positional Arguments]
+  public Object[] computeArguments(VirtualFrame frame) {
+    Object[] computedArguments = new Object[this.argExpressions.length];
 
     for (int i = 0; i < this.argExpressions.length; ++i) {
       computedArguments[i] = this.argExpressions[i].executeGeneric(frame);
@@ -63,11 +60,6 @@ public class InvokeNode extends ExpressionNode {
     return computedArguments;
   }
 
-  /* Note [Positional Arguments]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * // TODO [AA] Rewrite this
-   */
-
   @Override
   public void markTail() {
     this.argumentsMap.markTail();
@@ -75,6 +67,7 @@ public class InvokeNode extends ExpressionNode {
 
   public Object executeGeneric(VirtualFrame frame) {
     Object callableResult = this.callable.executeGeneric(frame);
-    return this.argumentsMap.execute(callableResult, this.argExpressions);
+    Object[] computedArguments = computeArguments(frame);
+    return this.argumentsMap.execute(callableResult, computedArguments);
   }
 }

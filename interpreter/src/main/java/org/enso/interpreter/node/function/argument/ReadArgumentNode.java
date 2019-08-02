@@ -5,6 +5,7 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.runtime.function.Function.ArgumentsHelper;
 
 @NodeInfo(description = "Read function argument.")
 public class ReadArgumentNode extends ExpressionNode {
@@ -19,13 +20,18 @@ public class ReadArgumentNode extends ExpressionNode {
 
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    Object argument = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
+    Object argument = null;
+
+    if (index < ArgumentsHelper.getPositionalArguments(frame.getArguments()).length) {
+      argument = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
+    }
 
     if (defaultValue == null) {
       return argument;
     }
 
-    if (defaultingProfile.profile(argument instanceof DefaultedArgumentNode)) {
+    if (defaultingProfile.profile(
+        argument instanceof DefaultedArgumentNode || argument == null)) {
       return defaultValue.executeGeneric(frame);
     } else {
       return argument;

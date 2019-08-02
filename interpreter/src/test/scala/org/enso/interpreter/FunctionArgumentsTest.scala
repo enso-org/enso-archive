@@ -26,7 +26,7 @@ class FunctionArgumentsTest extends LanguageTest {
   "Recursion" should "work" in {
     val code =
       """
-        |@{ 
+        |@{
         |  sumTo = { |x| ifZero: [x, 0, x + (@sumTo [x - 1])] };
         |  @sumTo [10]
         |}
@@ -36,6 +36,7 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Functions" should "not take more arguments than they are defined for" in {
+    pending
     val code =
       """
         |@{
