@@ -1,22 +1,20 @@
-package org.enso.interpreter.node.function.argument;
+package org.enso.interpreter.runtime.function.argument;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.type.AtomConstructor;
 
-public class CallArgumentNode extends ExpressionNode {
+public class CallArgument {
   private final String name;
-  @Child private ExpressionNode expression;
+  private ExpressionNode expression;
 
-  public CallArgumentNode(ExpressionNode expression) {
+  public CallArgument(ExpressionNode expression) {
     this(null, expression);
   }
 
-  public CallArgumentNode(String name) {
+  public CallArgument(String name) {
     this(name, null);
   }
 
-  public CallArgumentNode(String name, ExpressionNode expression) {
+  public CallArgument(String name, ExpressionNode expression) {
     this.name = name;
     this.expression = expression;
   }
@@ -33,15 +31,6 @@ public class CallArgumentNode extends ExpressionNode {
     return !isNamed() && !isIgnored();
   }
 
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
-    if (!isIgnored()) {
-      return this.expression.executeGeneric(frame); // Note [Execution Safety]
-    } else {
-      return AtomConstructor.UNIT.newInstance();
-    }
-  }
-
   /* Note [Execution Safety]
    * ~~~~~~~~~~~~~~~~~~~~~~~
    * It is safe to call `get` here as the only circumstance under which a call argument does not
@@ -50,5 +39,9 @@ public class CallArgumentNode extends ExpressionNode {
 
   public String getName() {
     return this.name;
+  }
+
+  public ExpressionNode getExpression() {
+    return expression;
   }
 }

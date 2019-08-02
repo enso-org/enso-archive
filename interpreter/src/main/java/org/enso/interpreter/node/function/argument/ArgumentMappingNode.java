@@ -1,29 +1,34 @@
 package org.enso.interpreter.node.function.argument;
 
-import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import java.util.Arrays;
+import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.dispatch.DispatchNode;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.error.ArityException;
-import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "ArgumentMap")
-public class ArgumentMappingNode extends Node {
+public class ArgumentMappingNode extends BaseNode {
   private final CallArgumentInfo[] schema;
   private Integer[] mapping;
   @Child private DispatchNode dispatchNode;
 
-  public ArgumentMappingNode(CallArgumentNode[] callArgs, DispatchNode dispatchNode) {
-    this.schema =
-        Arrays.stream(callArgs).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
-    this.dispatchNode = dispatchNode;
+  public ArgumentMappingNode(CallArgumentInfo[] schema) {
+    this.schema = schema;
+    this.dispatchNode = null;
   }
 
-  public Object execute(Function function, Object[] arguments) {
-    Object[] argsInDefOrder = generateArgMapping(function, arguments);
-    return dispatchNode.executeDispatch(function, argsInDefOrder);
+  public Object execute(Object callable, Object[] arguments) {
+    // FIXME [AA] See if we can remove this typecheck
+    if (callable instanceof Callable) {
+      Callable actualCallable = (Callable) callable;
+      Object[] argsInDefOrder = generateArgMapping(actualCallable, arguments);
+      return dispatchNode.executeDispatch(actualCallable, argsInDefOrder);
+    } else {
+      throw new NotInvokableException(callable, this);
+    }
   }
 
   // this is the function you asked me about on Discord, here's where it belongs.
@@ -73,13 +78,13 @@ public class ArgumentMappingNode extends Node {
     return null;
   }
 
-  public class CallArgumentInfo {
+  public static class CallArgumentInfo {
     private final String name;
     private final boolean isNamed;
     private final boolean isPositional;
     private final boolean isIgnored;
 
-    public CallArgumentInfo(CallArgumentNode callArgNode) {
+    public CallArgumentInfo(CallArgument callArgNode) {
       this(
           callArgNode.getName(),
           callArgNode.isNamed(),
