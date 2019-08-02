@@ -85,9 +85,9 @@ trait ParserBase[T] {
 
   var groupsx = new ArrayBuffer[Group]()
 
-  def defineGroup(label: String = "unnamed", finish: => Unit = {}): Group = {
+  def defineGroup(label: String = "unnamed", finish: () => Unit = () => {}): Group = {
     val groupIndex = groupsx.length
-    val group      = new Group(groupIndex, () => finish)
+    val group      = new Group(groupIndex, finish)
     groupsx.append(group)
     groupLabelMap += (groupIndex -> label)
     group

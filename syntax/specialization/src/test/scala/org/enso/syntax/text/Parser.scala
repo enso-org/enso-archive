@@ -131,6 +131,13 @@ class ParserSpec extends FlatSpec with Matchers {
   //  "a ( b c )" ?= "a" $_ "(" $_ "b" $_ "c" $_ ")" // ("a" $_ Group(1, "b" $_ "c", 1))
   //  "(a (b c))" ?= "(" $ "a" $_ "(" $ "b" $_ "c" $ ")" $ ")" // Group("a" $_ Group("b" $_ "c"))
 
+  //////////////////
+  //// Comments ////
+  //////////////////
+
+  "foo  #FIX ME"          ?= Comment(Some(Var("foo")), 2, "FIX ME")
+  "#\n   FIX ME\n FIX ME" ?= Comment.Block(0,List("","  FIX ME", "FIX ME"))
+
   ////////////////
   //// Layout ////
   ////////////////

@@ -497,6 +497,24 @@ object AST {
   }
 
   ////////////////
+  /// Comments ///
+  ////////////////
+
+  final case class Comment(term: Option[AST], indent: Int, comment: String)
+      extends AST {
+    val repr = R + term + " " * indent + "#" + comment
+  }
+
+  object Comment {
+
+    final case class Block(indent: Int, lines: List[String]) extends AST {
+      val margin = " " * indent
+      val repr   = R + margin + "#" + lines.mkString("\n " + margin)
+    }
+
+  }
+
+  ////////////////
   //// Module ////
   ////////////////
 

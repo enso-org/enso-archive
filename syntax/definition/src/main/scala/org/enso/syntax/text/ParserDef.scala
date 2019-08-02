@@ -11,7 +11,6 @@ import scala.annotation.tailrec
 import scala.reflect.runtime.universe.reify
 
 case class ParserDef() extends ParserBase[AST] {
-
   val ast = AST
 
   val any: Pattern  = range(5, Int.MaxValue) // FIXME 5 -> 0
@@ -240,7 +239,8 @@ case class ParserDef() extends ParserBase[AST] {
   val dotOperators: Pattern    = "." | ".." | "..." | ","
   val operator: Pattern        = operatorChar.many1
   val groupOperators: Pattern  = anyOf("()[]{}")
-  val noModOperator: Pattern   = eqOperators | dotOperators | groupOperators
+  val noModOperator
+    : Pattern = eqOperators | dotOperators | groupOperators | "##"
 
   val OPERATOR_SFX_CHECK = defineGroup("Operator Suffix Check")
   val OPERATOR_MOD_CHECK = defineGroup("Operator Modifier Check")
@@ -353,10 +353,14 @@ case class ParserDef() extends ParserBase[AST] {
   }
 
   final def submitPlainTextSegment(segment: Text.Interpolated.Segment): Unit =
-    logger.trace { withCurrentText(_.prependMergeReversed(segment)) }
+    logger.trace {
+      withCurrentText(_.prependMergeReversed(segment))
+    }
 
   final def submitTextSegment(segment: Text.Interpolated.Segment): Unit =
-    logger.trace { withCurrentText(_.prepend(segment)) }
+    logger.trace {
+      withCurrentText(_.prepend(segment))
+    }
 
   final def onPlainTextSegment(): Unit = logger.trace {
     submitPlainTextSegment(Text.Segment.Plain(currentMatch))
@@ -580,7 +584,7 @@ case class ParserDef() extends ParserBase[AST] {
     var emptyLines: List[Int],
     var firstLine: Option[Block.Line.Required],
     var lines: List[Block.Line]
-  )
+  ) {}
   var blockStack: List[BlockState] = Nil
   var emptyLines: List[Int]        = Nil
   var currentBlock: BlockState     = new BlockState(true, 0, Nil, None, Nil)
@@ -615,10 +619,9 @@ case class ParserDef() extends ParserBase[AST] {
     val block2 =
       if (currentBlock.isValid) block
       else Block.InvalidIndentation(block)
-
     popAST()
     popBlock()
-    app(block2)
+    result = Some(block2)
     logger.endGroup()
   }
 
@@ -652,6 +655,7 @@ case class ParserDef() extends ParserBase[AST] {
         emptyLines = Nil
     }
     result = None
+    beginGroup(LINESTART)
   }
 
   def pushEmptyLine(): Unit = logger.trace {
@@ -661,6 +665,7 @@ case class ParserDef() extends ParserBase[AST] {
   final def onBlockBegin(newIndent: Int): Unit = logger.trace {
     pushAST()
     pushBlock(newIndent)
+    beginGroup(LINESTART)
     logger.beginGroup()
   }
 
@@ -702,15 +707,74 @@ case class ParserDef() extends ParserBase[AST] {
       onBlockBegin(newIndent)
       currentBlock.isValid = false
     }
+    beginGroup(LINESTART)
   }
 
-  val NEWLINE = defineGroup("Newline")
+  val NEWLINE   = defineGroup("Newline")
+  val LINESTART = defineGroup("LineStart")
 
   // format: off
   NORMAL  rule newline                        run reify { onNewLine() }
   NEWLINE rule ((whitespace|pass) >> newline) run reify { onEmptyLine() }
   NEWLINE rule ((whitespace|pass) >> eof)     run reify { onEOFLine() }
   NEWLINE rule  (whitespace|pass)             run reify { onBlockNewline() }
+
+  LINESTART rule pass                         run reify { endGroup() }
+  // format: on
+
+  ////////////////
+  /// Comments ///
+  ////////////////
+
+  var lines: List[String] = Nil
+  var line: String        = ""
+
+  def submitComment(): Unit = logger.trace {
+    result = Some(Comment(result, useLastOffset(), line))
+    line   = ""
+    rewind()
+    endGroup()
+  }
+
+  def submitBlockComment(): Unit = logger.trace {
+    result = Some(Comment.Block(currentBlock.indent, lines.reverse))
+    lines  = Nil
+    line   = ""
+    rewind()
+    endGroup()
+  }
+
+  def onBlockComment(): Unit = logger.trace {
+    if (currentMatch.takeWhile(_ == ' ').length > currentBlock.indent)
+      line = currentMatch.drop(currentBlock.indent + 1)
+    else {
+      submitBlockComment()
+      beginGroup(NEWLINE)
+      offset -= 1
+    }
+  }
+
+  def onCommentBegin(): Unit = logger.trace {
+    beginGroup(COMMENT)
+  }
+
+  def onBlockCommentBegin(): Unit = logger.trace {
+    endGroup()
+    beginGroup(BLOCKCOMMENT)
+  }
+
+  val COMMENT      = defineGroup("Comment")
+  val BLOCKCOMMENT = defineGroup("BlockComment")
+
+  // format: off
+  NORMAL       rule "#"                   run reify { onCommentBegin() }
+  COMMENT      rule noneOf("\0\n").many1  run reify { line = currentMatch }
+  COMMENT      rule anyOf("\n\0")         run reify { submitComment() }
+
+  LINESTART    rule "#"                   run reify { onBlockCommentBegin() }
+  BLOCKCOMMENT rule noneOf("\0\n").many1  run reify { onBlockComment() }
+  BLOCKCOMMENT rule newline               run reify { lines +:= line; line = "" }
+  BLOCKCOMMENT rule eof                   run reify { lines +:= line; submitBlockComment() }
   // format: on
 
   ////////////////
@@ -727,7 +791,9 @@ case class ParserDef() extends ParserBase[AST] {
     submitModule()
   }
 
+  // format: off
   NORMAL rule whitespace run reify { onWhitespace() }
-  NORMAL rule eof run reify { onEOF() }
-  NORMAL rule any run reify { onUnrecognized() }
+  NORMAL rule eof        run reify { onEOF() }
+  NORMAL rule any        run reify { onUnrecognized() }
+  // format: on
 }
