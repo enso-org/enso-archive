@@ -1,7 +1,8 @@
 package org.enso.syntax.text
 
 import org.enso.flexer.Macro
-import org.enso.syntax.text.DocAST._
+import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.docsParser.DocParserDef
 import org.enso.{flexer => Flexer}
 import org.scalatest.FlatSpec
@@ -9,14 +10,14 @@ import org.scalatest.Matchers
 import org.scalatest.Assertion
 
 class DocParserSpec extends FlatSpec with Matchers {
-  val parserCons: Macro.Out[DocAST.AST] = Macro.compile(DocParserDef)
+  val parserCons: Macro.Out[Doc.AST] = Macro.compile(DocParserDef)
 
   def parse(input: String) = {
     val parser = parserCons()
     parser.run(input)
   }
 
-  def assertExpr(input: String, result: DocAST.AST): Assertion = {
+  def assertExpr(input: String, result: Doc.AST): Assertion = {
     val tt = parse(input)
     tt match {
       case Flexer.Success(value, _) => {
@@ -38,7 +39,7 @@ class DocParserSpec extends FlatSpec with Matchers {
       s"parse `${escape(str)}`"
     }
     private val testBase = it should parseTitle(input)
-    def ?=(out: DocAST.AST): Unit = testBase in { assertExpr(input, out) }
+    def ?=(out: Doc.AST): Unit = testBase in { assertExpr(input, out) }
   }
   //////////////////////
   ///// Formatters /////
@@ -223,13 +224,13 @@ class DocParserSpec extends FlatSpec with Matchers {
   ">Example" ?= Doc(Synopsis(Section(0, Section.Example, "Example")))
   "?Info\n\n!Important" ?= Doc(
     Synopsis(Section(0, Section.Info, "Info", "\n")),
-    Details(Section(0, Section.Important, "Important"))
+    Addendum(Section(0, Section.Important, "Important"))
   )
   "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
       Section(0, Section.Info, "Info", "\n")
     ),
-    Details(
+    Addendum(
       Section(0, Section.Important, "Important", "\n"),
       Section(0, Section.Example, "Example")
     )
@@ -378,7 +379,7 @@ class DocParserSpec extends FlatSpec with Matchers {
               " Second unordered sub item"
             ),
             " Third ordered sub item",
-            ListBlock.InvalidIndent(3, " Wrong Indent Item", ListBlock.Ordered)
+            ListBlock.Indent.Invalid(3, " Wrong Indent Item", ListBlock.Ordered)
           ),
           " Fourth unordered item"
         )
@@ -433,7 +434,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         "\n"
       )
     ),
-    Details(
+    Addendum(
       Section(0, Section.Raw, "Hello Section", "\n"),
       Section(0, Section.Important, "important", "\n"),
       Section(0, Section.Info, "Hi", "\n"),

@@ -1,15 +1,66 @@
-package org.enso.syntax.text
+package org.enso.syntax.text.ast
 
 import cats.data.NonEmptyList
 import org.enso.data.List1
-import org.enso.syntax.text.ast.Repr
+import org.enso.syntax.text.ast.Doc._
+import scalatags.Text.all._
+import scalatags.Text.{all => HTML, _}
 
-import scalatags.{Text => HTMLBundle}
-import HTMLBundle._
-import HTMLBundle.{all => HTML}
-import HTML._
+////////////////
+////// Doc /////
+////////////////
 
-object DocAST {
+final case class Doc(
+  tags: Doc.Tags,
+  synopsis: Doc.Synopsis,
+  details: Doc.Addendum
+) extends Doc.AST {
+  val repr: Repr = {
+    val tagsRepr = if (tags.exists()) {
+      if (synopsis.exists() || details.exists()) {
+        tags.repr + Repr("\n")
+      } else {
+        tags.repr
+      }
+    } else Repr()
+
+    val synopsisRepr = if (synopsis.exists()) {
+      synopsis.repr
+    } else Repr()
+
+    val detailsRepr = if (details.exists()) {
+      Repr("\n") + details.repr
+    } else Repr()
+
+    Repr() + tagsRepr + synopsisRepr + detailsRepr
+  }
+
+  val html: HTML = {
+    val tagsHtml     = if (tags.exists()) tags.html else "".html
+    val synopsisHtml = if (synopsis.exists()) synopsis.html else "".html
+    val detailsHtml  = if (details.exists()) details.html else "".html
+    Seq(
+      HTML.div(HTML.`class` := this.getClass.getSimpleName)(tagsHtml)(
+        synopsisHtml
+      )(
+        detailsHtml
+      )
+    )
+  }
+}
+
+object Doc {
+  def apply(tags: Tags, synopsis: Synopsis, body: Addendum): Doc =
+    new Doc(tags, synopsis, body)
+  def apply(synopsis: Synopsis, body: Addendum): Doc =
+    new Doc(Tags(), synopsis, body)
+  def apply(synopsis: Synopsis): Doc =
+    new Doc(Tags(), synopsis, Addendum(Nil))
+  def apply(tags: Tags): Doc =
+    new Doc(tags, Synopsis(Nil), Addendum(Nil))
+  def apply(tags: Tags, synopsis: Synopsis): Doc =
+    new Doc(tags, synopsis, Addendum(Nil))
+
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
 
@@ -21,7 +72,7 @@ object DocAST {
   /// Symbol ///
   //////////////
 
-  trait Symbol extends AST.Symbol {
+  trait Symbol extends org.enso.syntax.text.AST.Symbol {
     val html: HTML
 
     val docMeta: HTMLTag =
@@ -32,8 +83,7 @@ object DocAST {
       HTML.link(HTML.rel := "stylesheet")(HTML.href := "style.css")
 
     def renderHTML(): HTMLTag =
-      scalatags.Text.all
-        .html(HTML.head(docMeta, cssLink), HTML.body(html))
+      HTML.html(HTML.head(docMeta, cssLink), HTML.body(html))
   }
 
   implicit final class _OptionAST_(val self: Option[AST]) extends Symbol {
@@ -46,11 +96,14 @@ object DocAST {
   ///////////
 
   sealed trait AST extends Symbol
-  trait InvalidAST extends AST
+
+  object AST {
+    trait Invalid extends AST
+  }
 
   final case class Text(text: String) extends AST {
     val repr: Repr = text
-    val html: HTML = Seq(text)
+    val html: HTML = Seq(text.replaceAll("\n", " "))
   }
 
   implicit def stringToText(str: String): Text = Text(str)
@@ -78,7 +131,7 @@ object DocAST {
     case object Italic        extends Type('_', HTML.i)
     case object Strikethrough extends Type('~', HTML.s)
 
-    final case class Unclosed(tp: Type, elem: Option[AST]) extends InvalidAST {
+    final case class Unclosed(tp: Type, elem: Option[AST]) extends AST.Invalid {
       val repr: Repr = Repr(tp.marker) + elem.repr
       val html: HTML = Seq {
         val className = s"unclosed_${tp.htmlMarker.tag}"
@@ -142,7 +195,7 @@ object DocAST {
 
     val repr: Repr = {
       Repr() + elems.toList.map({
-        case elem @ (_: InvalidAST) =>
+        case elem @ (_: AST.Invalid) =>
           Repr('\n') + elem.repr
         case elem @ (_: ListBlock) =>
           Repr('\n') + elem.repr
@@ -176,18 +229,18 @@ object DocAST {
     final case object Unordered extends Type('-', HTML.ul)
     final case object Ordered   extends Type('*', HTML.ol)
 
-    //////////////////////
-    /// Invalid Indent ///
-    //////////////////////
-
-    final case class InvalidIndent(
-      indent: Int,
-      elem: AST,
-      tp: Type
-    ) extends InvalidAST
-        with Indentable {
-      val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem.repr
-      val html: HTML = Seq(HTML.div(HTML.`class` := "InvalidIndent")(elem.html))
+    object Indent {
+      final case class Invalid(
+        indent: Int,
+        elem: AST,
+        tp: Type
+      ) extends AST.Invalid
+          with Indentable {
+        val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem.repr
+        val html: HTML = Seq(
+          HTML.div(HTML.`class` := "InvalidIndent")(elem.html)
+        )
+      }
     }
   }
 
@@ -260,24 +313,24 @@ object DocAST {
     case object Raw extends Type(None)
   }
 
-  /////////////////////
-  ////// Details //////
-  /////////////////////
+  //////////////////////
+  ////// Addendum //////
+  //////////////////////
 
-  final case class Details(elems: List[Section]) extends AST {
+  final case class Addendum(elems: List[Section]) extends AST {
     val repr: Repr = elems.map(_.repr.show()).mkString("\n")
     val html: HTML = Seq(
       HTML.div(HTML.`class` := this.getClass.getSimpleName)(
         elems.map(_.html)
       )
     )
-    def exists(): Boolean = Details(elems) != Details()
+    def exists(): Boolean = Addendum(elems) != Addendum()
   }
 
-  object Details {
-    def apply():                Details = Details(Nil)
-    def apply(elem: Section):   Details = Details(elem :: Nil)
-    def apply(elems: Section*): Details = Details(elems.to[List])
+  object Addendum {
+    def apply():                Addendum = Addendum(Nil)
+    def apply(elem: Section):   Addendum = Addendum(elem :: Nil)
+    def apply(elems: Section*): Addendum = Addendum(elems.to[List])
   }
 
   //////////////////////
@@ -357,80 +410,20 @@ object DocAST {
       )
   }
 
-  ////////////////
-  ////// Doc /////
-  ////////////////
-
-  final case class Doc(
-    tags: Tags,
-    synopsis: Synopsis,
-    details: Details
-  ) extends AST {
-    val repr: Repr = {
-      val tagsRepr = if (tags.exists()) {
-        if (synopsis.exists() || details.exists()) {
-          tags.repr + Repr("\n")
-        } else {
-          tags.repr
-        }
-      } else Repr()
-
-      val synopsisRepr = if (synopsis.exists()) {
-        synopsis.repr
-      } else Repr()
-
-      val detailsRepr = if (details.exists()) {
-        Repr("\n") + details.repr
-      } else Repr()
-
-      Repr() + tagsRepr + synopsisRepr + detailsRepr
-    }
-
-    val html: HTML = {
-      val tagsHtml     = if (tags.exists()) tags.html else "".html
-      val synopsisHtml = if (synopsis.exists()) synopsis.html else "".html
-      val detailsHtml  = if (details.exists()) details.html else "".html
-      Seq(
-        HTML.div(HTML.`class` := this.getClass.getSimpleName)(tagsHtml)(
-          synopsisHtml
-        )(
-          detailsHtml
-        )
-      )
-    }
-  }
-
-  object Doc {
-    def apply(tags: Tags, synopsis: Synopsis, body: Details): Doc =
-      new Doc(tags, synopsis, body)
-    def apply(synopsis: Synopsis, body: Details): Doc =
-      new Doc(Tags(), synopsis, body)
-    def apply(synopsis: Synopsis): Doc =
-      new Doc(Tags(), synopsis, Details(Nil))
-    def apply(tags: Tags): Doc =
-      new Doc(tags, Synopsis(Nil), Details(Nil))
-    def apply(tags: Tags, synopsis: Synopsis): Doc =
-      new Doc(tags, synopsis, Details(Nil))
-  }
 }
-
 // TODO
-// 1. This should be extracted to top-level and the file should be renamed to org.enso..... .ast.Doc.
-// Then the object AST will be named Doc as well , and everything will be so much nicer, like Doc.Tag
+
 // 2. parent object should not inspect children when printing out. (.exists())
 // 3. Synopsis/Details/Doc/Tags - this type is wrong. It allows creating synopsis next to bold, or inline code.
 // Make sure the types does not allow for cosntructing wong AST!
 // Please make sure that all other places are fixed as well. This is the most important design part.
 
-// 5. -> AST.Invalid
-// 6. -> Indent.Invalid
 // 7. After thinking for a while about it, I would change the name of AST here to something else.
 // AST does not describe well enough such items as InlineCode.
 // In fact your AST has only 1 habitant - Doc.
 // Everything else are other strucutres which build up the Doc.
 // Think about better name here, Moreover
 // I believe that InlineCode, Link, etc, should be grouped in a namespace.
-
 // 8. Formatter.html - Generating css classes for the elements is really great idea.
 // Please think how you can generalize it, so for all other types they
 // will be generated automatically. Of course sometimes, like here,

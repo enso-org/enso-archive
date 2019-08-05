@@ -1,8 +1,8 @@
 package org.enso.syntax
 
 import org.enso.flexer.Macro
+import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.docsParser.DocParserDef
-import org.enso.syntax.text.DocAST
 import org.scalameter.api._
 
 import scala.math.pow

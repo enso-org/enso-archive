@@ -3,6 +3,7 @@ package org.enso.syntax.text
 import org.enso.flexer.Macro.compile
 import org.enso.flexer
 import org.enso.flexer.Success
+import org.enso.syntax.text.ast.Doc
 
 ///////////////////
 //// DocParser ////
@@ -12,7 +13,7 @@ class DocParser {
   type Result[T] = flexer.Result[T]
   private val engine = compile(docsParser.DocParserDef)()
 
-  def run(input: String): Result[DocAST.AST] = engine.run(input)
+  def run(input: String): Result[Doc.AST] = engine.run(input)
 }
 
 object DocParser {
@@ -70,7 +71,6 @@ object DocParser {
       println("--- " * 20)
       println(v.show())
       println("--- " * 20)
-      println(v.renderHTML())
+      println(v.renderHTML)
   }
-
 }

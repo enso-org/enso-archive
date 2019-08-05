@@ -2,8 +2,8 @@ package org.enso.syntax.text.docsParser
 
 import org.enso.flexer._
 import org.enso.flexer.Pattern._
-import org.enso.syntax.text.DocAST
-import org.enso.syntax.text.DocAST._
+import org.enso.syntax.text.ast.Doc._
+import org.enso.syntax.text.ast.Doc
 
 import scala.reflect.runtime.universe._
 import scala.annotation.tailrec
@@ -12,7 +12,7 @@ case class DocParserDef() extends ParserBase[AST] {
 
   val any: Pattern  = range(5, Int.MaxValue) // FIXME 5 -> 0
   val pass: Pattern = Pass
-  val eof: Pattern  = char('\0')
+  val eof: Pattern  = char('\u0000')
   val none: Pattern = None_
 
   final def anyOf(chars: String): Pattern =
@@ -317,7 +317,7 @@ case class DocParserDef() extends ParserBase[AST] {
         Doc(
           Tags(tagsIndent, tagsStack),
           Synopsis(Nil),
-          Details(Nil)
+          Addendum(Nil)
         )
       )
     } else {
@@ -327,7 +327,7 @@ case class DocParserDef() extends ParserBase[AST] {
             Doc(
               Tags(tagsIndent, tagsStack),
               Synopsis(sectionsStack),
-              Details(Nil)
+              Addendum(Nil)
             )
           )
         case _ =>
@@ -335,7 +335,7 @@ case class DocParserDef() extends ParserBase[AST] {
             Doc(
               Tags(tagsIndent, tagsStack),
               Synopsis(sectionsStack.head),
-              Details(sectionsStack.tail)
+              Addendum(sectionsStack.tail)
             )
           )
       }
@@ -451,7 +451,7 @@ case class DocParserDef() extends ParserBase[AST] {
       } else {
         if (inListFlag) {
           addContentToList(
-            ListBlock.InvalidIndent(indent, content, tp)
+            ListBlock.Indent.Invalid(indent, content, tp)
           )
           return
         }
