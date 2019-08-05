@@ -2,6 +2,7 @@ package org.enso.syntax.text
 
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Doc._
+import org.enso.syntax.text.ast.Doc.AST._
 import org.enso.Logger
 import org.enso.{flexer => Flexer}
 import org.scalatest.FlatSpec
@@ -443,27 +444,27 @@ class DocParserSpec extends FlatSpec with Matchers {
   ///// Tags /////
   ////////////////
   "DEPRECATED\nFoo" ?= Doc(
-    Tags(Tag(Tag.Deprecated)),
+    Tags(Tags.Tag(Tags.Tag.Deprecated)),
     Synopsis(Section(0, Section.Raw, "Foo"))
   )
   "MODIFIED\nFoo" ?= Doc(
-    Tags(Tag(Tag.Modified)),
+    Tags(Tags.Tag(Tags.Tag.Modified)),
     Synopsis(Section(0, Section.Raw, "Foo"))
   )
   "ADDED\nFoo" ?= Doc(
-    Tags(Tag(Tag.Added)),
+    Tags(Tags.Tag(Tags.Tag.Added)),
     Synopsis(Section(0, Section.Raw, "Foo"))
   )
   "REMOVED\nFoo" ?= Doc(
-    Tags(Tag(Tag.Removed)),
+    Tags(Tags.Tag(Tags.Tag.Removed)),
     Synopsis(Section(0, Section.Raw, "Foo"))
   )
   "DEPRECATED in 1.0\nFoo" ?= Doc(
-    Tags(Tag(Tag.Deprecated, " in 1.0")),
+    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0")),
     Synopsis(Section(0, Section.Raw, "Foo"))
   )
   "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
-    Tags(Tag(Tag.Deprecated, " in 1.0"), Tag(Tag.Modified)),
+    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0"), Tags.Tag(Tags.Tag.Modified)),
     Synopsis(Section(0, Section.Raw, "Foo"))
   )
 }

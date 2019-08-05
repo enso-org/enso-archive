@@ -4,6 +4,7 @@ import org.enso.flexer._
 import org.enso.flexer.Pattern._
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.ast.Doc.AST._
 
 import scala.reflect.runtime.universe._
 import scala.annotation.tailrec
@@ -220,24 +221,24 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// Tagging //////
   /////////////////////
 
-  val possibleTagsList: List[Tag.Type] =
+  val possibleTagsList: List[Tags.Tag.Type] =
     List(
-      Tag.Deprecated,
-      Tag.Added,
-      Tag.Modified,
-      Tag.Removed,
-      Tag.Upcoming
+      Tags.Tag.Deprecated,
+      Tags.Tag.Added,
+      Tags.Tag.Modified,
+      Tags.Tag.Removed,
+      Tags.Tag.Upcoming
     )
-  var tagsStack: List[Tag] = Nil
-  var tagsIndent: Int      = 0
+  var tagsStack: List[Tags.Tag] = Nil
+  var tagsIndent: Int           = 0
 
-  def pushTag(tagType: Tag.Type, details: String): Unit =
+  def pushTag(tagType: Tags.Tag.Type, details: String): Unit =
     logger.trace {
       popAST()
       if (details.replaceAll("\\s", "").length == 0) {
-        tagsStack +:= Tag(tagType)
+        tagsStack +:= Tags.Tag(tagType)
       } else {
-        tagsStack +:= Tag(tagType, Some(details))
+        tagsStack +:= Tags.Tag(tagType, Some(details))
       }
       result = Some("")
     }

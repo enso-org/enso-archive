@@ -72,153 +72,164 @@ object Doc {
   ///////////
 
   sealed trait AST extends Symbol
-
   object AST {
     trait Invalid extends AST
-  }
 
-  final case class Text(text: String) extends AST {
-    val repr: Repr = text
-    val html: HTML = Seq(text.replaceAll("\n", " "))
-  }
+    final case class Text(text: String) extends AST {
+      val repr: Repr = text
+      val html: HTML = Seq(text.replaceAll("\n", " "))
+    }
 
-  implicit def stringToText(str: String): Text = Text(str)
+    //////////////////////
+    /// Text Formatter ///
+    //////////////////////
 
-  //////////////////////
-  /// Text Formatter ///
-  //////////////////////
+    // TODO - Proposed for next PR
+    // Generating css classes for the elements is really great idea.
+    // Please think how you can generalize it, so for all other types they
+    // will be generated automatically. Of course sometimes, like here,
+    // you would like to override the automatic generation (unclosed) with
+    // something custom.
+    // Here for example, I'd vote for applying multiple CSS classes
+    // both .bold as well as .unclosed
+    // this way you can write generic CSS rules.
+    final case class Formatter(tp: Formatter.Type, elem: Option[AST])
+        extends AST {
+      val repr: Repr = Repr(tp.marker) + elem.repr + tp.marker
+      val html: HTML = Seq(tp.htmlMarker(elem.html))
+    }
 
-  final case class Formatter(tp: Formatter.Type, elem: Option[AST])
-      extends AST {
-    val repr: Repr = Repr(tp.marker) + elem.repr + tp.marker
-    val html: HTML = Seq(tp.htmlMarker(elem.html))
-  }
+    object Formatter {
+      def apply(tp: Type): Formatter = Formatter(tp, None)
+      def apply(tp: Type, elem: AST): Formatter =
+        Formatter(tp, Some(elem))
 
-  object Formatter {
-    def apply(tp: Type): Formatter = Formatter(tp, None)
-    def apply(tp: Type, elem: AST): Formatter =
-      Formatter(tp, Some(elem))
+      abstract class Type(
+        val marker: Char,
+        val htmlMarker: HTMLTag
+      )
+      case object Bold          extends Type('*', HTML.b)
+      case object Italic        extends Type('_', HTML.i)
+      case object Strikethrough extends Type('~', HTML.s)
 
-    abstract class Type(
-      val marker: Char,
-      val htmlMarker: HTMLTag
-    )
-    case object Bold          extends Type('*', HTML.b)
-    case object Italic        extends Type('_', HTML.i)
-    case object Strikethrough extends Type('~', HTML.s)
+      final case class Unclosed(tp: Type, elem: Option[AST])
+          extends AST.Invalid {
+        val repr: Repr = Repr(tp.marker) + elem.repr
+        val html: HTML = Seq {
+          val className = s"unclosed_${tp.htmlMarker.tag}"
+          HTML.div(HTML.`class` := className)(elem.html)
+        }
+      }
 
-    final case class Unclosed(tp: Type, elem: Option[AST]) extends AST.Invalid {
-      val repr: Repr = Repr(tp.marker) + elem.repr
-      val html: HTML = Seq {
-        val className = s"unclosed_${tp.htmlMarker.tag}"
-        HTML.div(HTML.`class` := className)(elem.html)
+      object Unclosed {
+        def apply(tp: Type): Unclosed = Unclosed(tp, None)
+        def apply(tp: Type, elem: AST): Unclosed =
+          Unclosed(tp, Option(elem))
       }
     }
 
-    object Unclosed {
-      def apply(tp: Type): Unclosed = Unclosed(tp, None)
-      def apply(tp: Type, elem: AST): Unclosed =
-        Unclosed(tp, Option(elem))
-    }
-  }
+    ///////////////////////
+    ////// Code Line //////
+    ///////////////////////
 
-  ///////////////////////
-  ////// Code Line //////
-  ///////////////////////
-
-  final case class InlineCode(str: String) extends AST {
-    val repr: Repr = Repr("`") + str + "`"
-    val html: HTML = Seq(HTML.code(str))
-  }
-
-  ///////////////////
-  ////// Links //////
-  ///////////////////
-
-  abstract class Link(name: String, url: String, marker: String) extends AST {
-    val repr: Repr = Repr() + marker + name + "](" + url + ")"
-    val html: HTML = this match {
-      case _: Link.URL   => Seq(HTML.a(HTML.href := url)(name))
-      case _: Link.Image => Seq(HTML.img(HTML.src := url), name)
-    }
-  }
-
-  object Link {
-    final case class URL(name: String, url: String)
-        extends Link(name, url, "[") {
-      val marker = "["
-    }
-    object URL {
-      def apply(): URL = new URL("", "")
+    final case class InlineCode(str: String) extends AST {
+      val repr: Repr = Repr("`") + str + "`"
+      val html: HTML = Seq(HTML.code(str))
     }
 
-    final case class Image(name: String, url: String)
-        extends Link(name, url, "![") {
-      val marker = "!["
-    }
-    object Image {
-      def apply(): Image = new Image("", "")
-    }
-  }
+    ///////////////////
+    ////// Links //////
+    ///////////////////
 
-  ///////////////////
-  ////// Lists //////
-  ///////////////////
-
-  final case class ListBlock(indent: Int, tp: ListBlock.Type, elems: List1[AST])
-      extends AST
-      with Indentable {
-
-    val repr: Repr = {
-      Repr() + elems.toList.map({
-        case elem @ (_: AST.Invalid) =>
-          Repr('\n') + elem.repr
-        case elem @ (_: ListBlock) =>
-          Repr('\n') + elem.repr
-        case elem =>
-          if (elems.head != elem) {
-            Repr('\n') + makeIndent(indent) + tp.marker + elem.repr
-          } else {
-            Repr(makeIndent(indent)) + tp.marker + elem.repr
-          }
-      })
+    abstract class Link(name: String, url: String, marker: String) extends AST {
+      val repr: Repr = Repr() + marker + name + "](" + url + ")"
+      val html: HTML = this match {
+        case _: Link.URL   => Seq(HTML.a(HTML.href := url)(name))
+        case _: Link.Image => Seq(HTML.img(HTML.src := url), name)
+      }
     }
 
-    val html: HTML = Seq(tp.HTMLMarker({
-      elems.toList.map({
-        case elem @ (_: ListBlock) => elem.html
-        case elem                  => Seq(HTML.li(elem.html))
-      })
-    }))
-  }
+    object Link {
+      final case class URL(name: String, url: String)
+          extends Link(name, url, "[") {
+        val marker = "["
+      }
+      object URL {
+        def apply(): URL = new URL("", "")
+      }
 
-  object ListBlock {
-    def apply(indent: Int, listType: Type, elem: AST): ListBlock =
-      ListBlock(indent, listType, List1(elem, Nil))
-    def apply(indent: Int, listType: Type, elems: AST*): ListBlock =
-      ListBlock(indent, listType, List1(elems.head, elems.tail.to[List]))
+      final case class Image(name: String, url: String)
+          extends Link(name, url, "![") {
+        val marker = "!["
+      }
+      object Image {
+        def apply(): Image = new Image("", "")
+      }
+    }
 
-    abstract class Type(
-      val marker: Char,
-      val HTMLMarker: HTMLTag
-    )
-    final case object Unordered extends Type('-', HTML.ul)
-    final case object Ordered   extends Type('*', HTML.ol)
+    ///////////////////
+    ////// Lists //////
+    ///////////////////
 
-    object Indent {
-      final case class Invalid(
-        indent: Int,
-        elem: AST,
-        tp: Type
-      ) extends AST.Invalid
-          with Indentable {
-        val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem.repr
-        val html: HTML = Seq(
-          HTML.div(HTML.`class` := "InvalidIndent")(elem.html)
-        )
+    final case class ListBlock(
+      indent: Int,
+      tp: ListBlock.Type,
+      elems: List1[AST]
+    ) extends AST
+        with Indentable {
+
+      val repr: Repr = {
+        Repr() + elems.toList.map({
+          case elem @ (_: AST.Invalid) =>
+            Repr('\n') + elem.repr
+          case elem @ (_: ListBlock) =>
+            Repr('\n') + elem.repr
+          case elem =>
+            if (elems.head != elem) {
+              Repr('\n') + makeIndent(indent) + tp.marker + elem.repr
+            } else {
+              Repr(makeIndent(indent)) + tp.marker + elem.repr
+            }
+        })
+      }
+
+      val html: HTML = Seq(tp.HTMLMarker({
+        elems.toList.map({
+          case elem @ (_: ListBlock) => elem.html
+          case elem                  => Seq(HTML.li(elem.html))
+        })
+      }))
+    }
+
+    object ListBlock {
+      def apply(indent: Int, listType: Type, elem: AST): ListBlock =
+        ListBlock(indent, listType, List1(elem, Nil))
+      def apply(indent: Int, listType: Type, elems: AST*): ListBlock =
+        ListBlock(indent, listType, List1(elems.head, elems.tail.to[List]))
+
+      abstract class Type(
+        val marker: Char,
+        val HTMLMarker: HTMLTag
+      )
+      final case object Unordered extends Type('-', HTML.ul)
+      final case object Ordered   extends Type('*', HTML.ol)
+
+      object Indent {
+        final case class Invalid(
+          indent: Int,
+          elem: AST,
+          tp: Type
+        ) extends AST.Invalid
+            with Indentable {
+          val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem.repr
+          val html: HTML = Seq(
+            HTML.div(HTML.`class` := "InvalidIndent")(elem.html)
+          )
+        }
       }
     }
   }
+  implicit def stringToText(str: String): AST.Text = AST.Text(str)
 
   //////////////////////
   ////// Sections //////
@@ -229,7 +240,7 @@ object Doc {
       with Indentable {
     val markerEmptyInNull: String    = st.marker.map(_.toString).getOrElse("")
     val markerNonEmptyInNull: String = st.marker.map(_.toString).getOrElse(" ")
-    val newline                      = Text("\n")
+    val newline                      = AST.Text("\n")
 
     val repr: Repr = {
       val firstIndentRepr = Repr(indent match {
@@ -246,7 +257,7 @@ object Doc {
       val elemsRepr = elems.zipWithIndex.map({
         case (elem @ (_: Section.Header), _) =>
           Repr('\n') + makeIndent(indent) + elem.repr
-        case (elem @ (_: ListBlock), _) => elem.repr
+        case (elem @ (_: AST.ListBlock), _) => elem.repr
         case (elem, index) => {
           if (index > 0) {
             val previousElem = elems(index - 1)
@@ -339,25 +350,7 @@ object Doc {
   /// Tags ///
   ////////////
 
-  final case class Tag(tp: Tag.Type, details: Option[String]) {
-    val name: String = tp.toString.toUpperCase
-    val repr: Repr   = Repr(name) + details.repr
-    val html: HTML   = Seq(HTML.div(HTML.`class` := name)(name)(details.html))
-  }
-  object Tag {
-    def apply(tp: Type): Tag = Tag(tp, None)
-    def apply(tp: Type, details: String): Tag =
-      Tag(tp, Option(details))
-
-    sealed trait Type
-    case object Deprecated extends Type
-    case object Added      extends Type
-    case object Removed    extends Type
-    case object Modified   extends Type
-    case object Upcoming   extends Type
-  }
-
-  final case class Tags(indent: Int, elems: List[Tag]) extends Indentable {
+  final case class Tags(indent: Int, elems: List[Tags.Tag]) extends Indentable {
     val repr: Repr =
       if (elems == Nil) Repr()
       else
@@ -379,31 +372,34 @@ object Doc {
     def apply(elems: Tag*):            Tags = Tags(0, elems.to[List])
     def apply(indent: Int, elems: Tag*): Tags =
       Tags(indent, elems.to[List])
-  }
 
-  implicit final class _OptionTagType_(val self: Option[String]) {
-    val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
-    val html: HTML =
-      Seq(
-        self.map(HTML.div(HTML.`class` := "tag_details")(_)).getOrElse("".html)
-      )
+    final case class Tag(tp: Tag.Type, details: Option[String]) {
+      val name: String = tp.toString.toUpperCase
+      val repr: Repr   = Repr(name) + details.repr
+      val html: HTML   = Seq(HTML.div(HTML.`class` := name)(name)(details.html))
+    }
+    object Tag {
+      def apply(tp: Type): Tag = Tag(tp, None)
+      def apply(tp: Type, details: String): Tag =
+        Tag(tp, Option(details))
+
+      sealed trait Type
+      case object Deprecated extends Type
+      case object Added      extends Type
+      case object Removed    extends Type
+      case object Modified   extends Type
+      case object Upcoming   extends Type
+    }
+
+    implicit final class _OptionTagType_(val self: Option[String]) {
+      val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
+      val html: HTML =
+        Seq(
+          self
+            .map(HTML.div(HTML.`class` := "tag_details")(_))
+            .getOrElse("".html)
+        )
+    }
   }
 
 }
-// TODO
-
-// 7. After thinking for a while about it, I would change the name of AST here to something else.
-// AST does not describe well enough such items as InlineCode.
-// In fact your AST has only 1 habitant - Doc.
-// Everything else are other structures which build up the Doc.
-// Think about better name here, Moreover
-// I believe that InlineCode, Link, etc, should be grouped in a namespace.
-
-// Formatter.html - Generating css classes for the elements is really great idea.
-// Please think how you can generalize it, so for all other types they
-// will be generated automatically. Of course sometimes, like here,
-// you would like to override the automatic generation (unclosed) with
-// something custom.
-// Here for example, I'd vote for applying multiple CSS classes
-// both .bold as well as .unclosed
-// this way you can write generic CSS rules.
