@@ -16,6 +16,8 @@ public class InvokeNode extends ExpressionNode {
   @Child private ArgumentMappingNode argumentsMap;
   @Child private ExpressionNode callable;
 
+  // TODO [AA] Pull the specialisations in doCall up to this level to simplify calling
+
   public InvokeNode(ExpressionNode callable, CallArgument[] callArguments) {
     this.callable = callable;
     this.argExpressions =

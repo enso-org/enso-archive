@@ -1,5 +1,7 @@
 package org.enso.interpreter
 
+import org.graalvm.polyglot.PolyglotException
+
 class NamedArgumentsTest extends LanguageTest {
   "Functions" should "take arguments by name and use them in their bodies" in {
 
@@ -142,6 +144,19 @@ class NamedArgumentsTest extends LanguageTest {
         |""".stripMargin
 
     eval(code) shouldEqual 10
+  }
+
+  "Default arguments" should "not be able to depend on later arguments" in {
+    val code =
+      """
+        |badArgFn = { | a, b = c, c = a | a + b + c }
+        |
+        |@badArgFn [3]
+        |""".stripMargin
+
+    val errMsg = "java.lang.RuntimeException: No result when parsing failed"
+
+    the[PolyglotException] thrownBy eval(code) should have message errMsg
   }
 
 }
