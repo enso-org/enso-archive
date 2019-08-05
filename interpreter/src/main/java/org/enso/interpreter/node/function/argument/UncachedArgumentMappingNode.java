@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.function.argument;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
@@ -12,7 +13,7 @@ import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "ArgumentMap")
 public class UncachedArgumentMappingNode extends BaseNode {
-  private final CallArgumentInfo[] schema;
+  private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
 
   public UncachedArgumentMappingNode(CallArgumentInfo[] schema) {
     this.schema = schema;
@@ -25,7 +26,7 @@ public class UncachedArgumentMappingNode extends BaseNode {
   public Object[] execute(Object callable, Object[] arguments) {
     if (callable instanceof Callable) {
       Function actualCallable = (Function) callable;
-      int[] order = generateArgMapping(actualCallable, this.schema);
+      int[] order = ArgumentMappingNode.generateArgMapping(actualCallable, this.schema);
       return reorderArguments(order, arguments);
     } else {
       throw new NotInvokableException(callable, this);
@@ -42,67 +43,8 @@ public class UncachedArgumentMappingNode extends BaseNode {
     return result;
   }
 
-  /**
-   * Maps call-site arguments positions to definition-site positions.
-   *
-   * @param callable
-   * @return
-   */
-  public static int[] generateArgMapping(Object callable, CallArgumentInfo[] callArgs) {
-    if (callable instanceof Callable) {
-      Callable realCallable = (Callable) callable;
-      // TODO [AA] Factor out
-      int numberOfDefinedArgs = realCallable.getArgs().length;
-
-      ArgumentDefinition[] definedArgs = realCallable.getArgs();
-
-      //    if (this.schema.length != numberOfDefinedArgs) {
-      //      throw new ArityException(numberOfDefinedArgs, this.schema.length);
-      //    }
-
-      boolean[] definedArgumentsUsage = new boolean[numberOfDefinedArgs];
-
-      int[] result = new int[callArgs.length];
-      // TODO: Split into functions.
-      for (int i = 0; i < callArgs.length; ++i) {
-        boolean flag = false;
-        CallArgumentInfo currentArgument = callArgs[i];
-        if (currentArgument.isPositional()) {
-          for (int j = 0; j < numberOfDefinedArgs; j++) {
-            if (!definedArgumentsUsage[j]) {
-              result[i] = j;
-              definedArgumentsUsage[j] = true;
-              flag = true;
-              break;
-            }
-          }
-          if (!flag) {
-            throw new RuntimeException("Arguments are wrong");
-          }
-        } else {
-          for (int j = 0; j < numberOfDefinedArgs; j++) {
-            if ((currentArgument.getName().equals(definedArgs[j].getName()))
-                && !definedArgumentsUsage[j]) {
-              result[i] = j;
-              definedArgumentsUsage[j] = true;
-              flag = true;
-              break;
-            }
-          }
-          if (!flag) {
-            throw new RuntimeException("Named arguments are wrong");
-          }
-        }
-      }
-      return result;
-    } else {
-      // FIXME [AA] Shouldn't be null.
-      throw new NotInvokableException(callable, null);
-    }
-  }
-
   // this is the function you asked me about on Discord, here's where it belongs.
-  private int[] generateArgMapping2(Callable callable, Object[] arguments) {
+  private int[] temp(Callable callable, Object[] arguments) {
     ArgumentDefinition[] argDefinitions = callable.getArgs();
     int numDefinedArgs = argDefinitions.length;
 

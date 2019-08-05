@@ -1,12 +1,13 @@
 package org.enso.interpreter.node.function.argument;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode.CallArgumentInfo;
 
 public class CachedArgumentMappingNode extends BaseNode {
   private final Object callable;
-  private final int[] mapping;
+  private @CompilationFinal(dimensions = 1) int[] mapping;
 
   public CachedArgumentMappingNode(Object callable, CallArgumentInfo[] schema) {
     this.callable = callable;
@@ -26,5 +27,4 @@ public class CachedArgumentMappingNode extends BaseNode {
     }
     return result;
   }
-
 }

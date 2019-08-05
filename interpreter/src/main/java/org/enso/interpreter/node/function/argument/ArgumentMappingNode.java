@@ -1,8 +1,10 @@
 package org.enso.interpreter.node.function.argument;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode.CallArgumentInfo;
@@ -15,8 +17,9 @@ import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.type.AtomConstructor;
 
+@NodeInfo(shortName = "ArgMap")
 public abstract class ArgumentMappingNode extends BaseNode {
-  private final CallArgumentInfo[] schema;
+  private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final boolean isFullyPositional;
   @Child private DispatchNode dispatchNode;
 
@@ -26,6 +29,10 @@ public abstract class ArgumentMappingNode extends BaseNode {
     this.dispatchNode = new SimpleDispatchNode();
   }
 
+  // TODO [AA] Have a doCallNode that takes a callable and the reordered arguments
+  // TODO [AA] Specialise on Function/AtomConstructor inside that
+
+  // TODO use specialisations here too
   public static int[] generateArgMapping(Object callable, CallArgumentInfo[] callArgs) {
     if (callable instanceof Callable) {
       Callable realCallable = (Callable) callable;
@@ -172,23 +179,5 @@ public abstract class ArgumentMappingNode extends BaseNode {
 
   public boolean isFullyPositional() {
     return isFullyPositional;
-  }
-
-  private Object doCall(Object callable, Object[] arguments) {
-    //    if (callable instanceof Function) {
-    Function actualCallable = (Function) callable;
-    if (this.isTail()) {
-      throw new TailCallException(actualCallable, arguments);
-    } else {
-      return dispatchNode.executeDispatch(actualCallable, arguments);
-    }
-    //
-    //    } else if (callable instanceof AtomConstructor) {
-    //      AtomConstructor actualCallable = (AtomConstructor) callable;
-    //      return actualCallable.newInstance(arguments);
-    //
-    //    } else {
-    //      throw new NotInvokableException(callable, this);
-    //    }
   }
 }

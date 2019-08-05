@@ -1,15 +1,15 @@
 package org.enso.interpreter.runtime.type;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.interop.TruffleObject;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class Atom implements TruffleObject {
   private final AtomConstructor constructor;
-  private final Object[] fields;
+  private @CompilationFinal(dimensions = 1) Object[] fields;
 
   public Atom(AtomConstructor constructor, Object... fields) {
     this.constructor = constructor;
