@@ -359,13 +359,8 @@ object Doc {
 
   final case class Tag(tp: Tag.Type, details: Option[String]) extends AST {
     val name: String = tp.toString.toUpperCase
-    val repr: Repr = {
-      details.repr match {
-        case Repr.R => Repr(name)
-        case _      => Repr(name) + details.repr
-      }
-    }
-    val html: HTML = Seq(HTML.div(HTML.`class` := name)(name)(details.html))
+    val repr: Repr   = Repr(name) + details.repr
+    val html: HTML   = Seq(HTML.div(HTML.`class` := name)(name)(details.html))
   }
   object Tag {
     def apply(tp: Type): Tag = Tag(tp, None)
