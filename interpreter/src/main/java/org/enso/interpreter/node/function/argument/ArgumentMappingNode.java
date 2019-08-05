@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.function.DoCallNode;
 import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode.CallArgumentInfo;
 import org.enso.interpreter.node.function.dispatch.DispatchNode;
 import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
@@ -22,11 +23,28 @@ public abstract class ArgumentMappingNode extends BaseNode {
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final boolean isFullyPositional;
   @Child private DispatchNode dispatchNode;
+  @Child private DoCallNode doCallNode;
 
   public ArgumentMappingNode(CallArgumentInfo[] schema) {
     this.schema = schema;
     this.isFullyPositional = Arrays.stream(schema).allMatch(CallArgumentInfo::isPositional);
     this.dispatchNode = new SimpleDispatchNode();
+    this.doCallNode = null; // TODO [AA]
+  }
+
+  @Override
+  public void markTail() {
+    this.doCallNode.markTail();
+  }
+
+  @Override
+  public void markNotTail() {
+    this.doCallNode.markNotTail();
+  }
+
+  @Override
+  public void setTail(boolean isTail) {
+    this.doCallNode.setTail(isTail);
   }
 
   // TODO [AA] Have a doCallNode that takes a callable and the reordered arguments

@@ -1,11 +1,9 @@
 package org.enso.interpreter.node.function;
 
-import com.oracle.truffle.api.CompilerDirectives.TruffleBoundary;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
-import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNodeGen;
@@ -13,7 +11,7 @@ import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode.C
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "@", description = "Executes function")
-public class InvokeNode extends ExpressionNode {
+public abstract class InvokeNode extends ExpressionNode {
   @Children private final ExpressionNode[] argExpressions;
   @Child private ArgumentMappingNode argumentsMap;
   @Child private ExpressionNode callable;
@@ -26,28 +24,26 @@ public class InvokeNode extends ExpressionNode {
             .toArray(ExpressionNode[]::new);
 
     CallArgumentInfo[] argSchema =
-        Arrays.stream(callArguments, 0, callArguments.length)
+        Arrays.stream(callArguments)
             .map(CallArgumentInfo::new)
             .toArray(CallArgumentInfo[]::new);
 
     this.argumentsMap = ArgumentMappingNodeGen.create(argSchema);
   }
 
-  /**
-   * Looks up the argument by the provided key type in the appropriate map.
-   *
-   * <p>This method exists because the lookups need to take place in the interpreter (behind the
-   * truffle boundary). If they do not, then the partial evaluator tries to inline the map lookups
-   * to a significant depth.
-   *
-   * @param map The map in which to look up the key.
-   * @param key The key to use for lookup.
-   * @param <K> The key type of the map.
-   * @return `true` if the key exists, otherwise `false`.
-   */
-  @TruffleBoundary
-  public static <K> boolean hasArgByKey(Map<K, Integer> map, K key) {
-    return map.containsKey(key);
+  @Override
+  public void markTail() {
+    this.argumentsMap.markTail();
+  }
+
+  @Override
+  public void setTail(boolean isTail) {
+    this.argumentsMap.setTail(isTail);
+  }
+
+  @Override
+  public void markNotTail() {
+    this.argumentsMap.markNotTail();
   }
 
   @ExplodeLoop
@@ -59,11 +55,6 @@ public class InvokeNode extends ExpressionNode {
     }
 
     return computedArguments;
-  }
-
-  @Override
-  public void markTail() {
-    this.argumentsMap.markTail();
   }
 
   public Object executeGeneric(VirtualFrame frame) {

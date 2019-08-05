@@ -10,6 +10,7 @@ import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.TypesGen;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.runtime.type.Atom;
 import org.enso.interpreter.runtime.type.AtomConstructor;
 
 @NodeInfo(shortName = "DoCall")
@@ -30,7 +31,7 @@ public abstract class DoCallNode extends BaseNode {
   }
 
   @Specialization
-  public Object invokeConstructor(AtomConstructor callable, Object[] arguments) {
+  public Atom invokeConstructor(AtomConstructor callable, Object[] arguments) {
     return callable.newInstance(arguments);
   }
 
