@@ -90,7 +90,7 @@ class Group(val groupIx: Int, val finish: () => Unit) {
     var code = CodeGen(dfa).generate(groupIx)
 
     code =
-      q"{..$code; groups(${Literal(Constant(groupIx))}) = ${TermName(s"runGroup$groupIx")}}"
+      q"{..$code; groups(${Literal(Constant(groupIx))}) = () => ${TermName(s"runGroup$groupIx")}()}"
     allRules.zipWithIndex.foreach {
       case (rule, ruleIx) =>
         code = q"..$code; def ${ruleName(ruleIx)}() = ${rule.fn}"

@@ -22,7 +22,7 @@ case class Seq_(first: Pattern, second: Pattern) extends Pattern
 case class Many(body: Pattern) extends Pattern
 
 object Pattern {
-  def range(start: Char, end: Char): Pattern = Ran(start, end)
+  def range(start: Char, end: Char): Pattern = Ran(start.toInt, end.toInt)
   def range(start: Int, end: Int):   Pattern = Ran(start, end)
   def char(c: Char):                 Pattern = range(c, c)
 
@@ -32,7 +32,7 @@ object Pattern {
   }
 
   implicit def charToExpr(char: Char): Pattern =
-    Ran(char, char)
+    range(char, char)
   implicit def stringToExpr(s: String): Pattern =
     s.tail.foldLeft(char(s.head))(_ >> _)
   implicit def extendChar(i: Char): ExtendedChar =

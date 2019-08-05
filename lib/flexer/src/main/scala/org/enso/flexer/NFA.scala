@@ -40,8 +40,10 @@ class NFA {
   def link(start: Int, end: Int, char: Char): Unit =
     link(start, end, char, char)
 
-  def link(start: Int, end: Int): Unit =
+  def link(start: Int, end: Int): Unit = {
     state(start).isoLinks += end
+    ()
+  }
 
   def visualize(): String = {
     val gray  = "#AAAAAA"

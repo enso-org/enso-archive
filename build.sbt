@@ -4,11 +4,21 @@ organization := "org.enso"
 scalaVersion in ThisBuild := "2.12.8"
 
 // Compiler Options
-scalacOptions ++= Seq(
+scalacOptions in ThisBuild ++= Seq(
+  "-target:jvm-1.8",
+  "-encoding",
+  "UTF-8",
+  "-unchecked",
   "-deprecation",
   "-feature",
-  "-unchecked",
-  "-Xlint"
+  "-Xfuture",
+  "-Ywarn-dead-code",
+  "-Ywarn-numeric-widen",
+  "-Ywarn-value-discard",
+  "-Ywarn-unused",
+  "-Xfatal-warnings",
+  "-Xlint",
+  "-language:implicitConversions"
 )
 
 // Benchmark Configuration
@@ -36,12 +46,15 @@ lazy val logger = (project in file("lib/logger"))
       "org.scala-lang" % "scala-compiler" % "2.12.8"
     )
   )
+  .dependsOn(unused)
 
 lazy val flexer = (project in file("lib/flexer"))
   .settings(
     version := "0.1",
     scalacOptions += "-language:experimental.macros",
-    scalacOptions += "-Xmacro-settings:-logging@org.enso.flexer"
+    scalacOptions += "-Xmacro-settings:-logging@org.enso.flexer",
+    scalacOptions -= "-deprecation", // FIXME
+    scalacOptions -= "-Xfatal-warnings" // FIXME
   )
   .settings(
     libraryDependencies ++= Seq(
@@ -56,9 +69,29 @@ lazy val flexer = (project in file("lib/flexer"))
   )
   .dependsOn(logger) //depends logger macro
 
+lazy val unused = (project in file("lib/unused"))
+  .settings(
+    version := "0.1",
+    scalacOptions += "-nowarn"
+  )
+
 lazy val syntax_definition = (project in file("syntax/definition"))
   .settings(
-    scalacOptions += "-Xmacro-settings:-logging@org.enso",
+    scalacOptions ++= Seq(
+      "-Xmacro-settings:-logging@org.enso",
+      "-target:jvm-1.8",
+      "-encoding",
+      "UTF-8",
+      "-unchecked",
+      "-deprecation",
+      "-feature",
+      "-Xfuture",
+      "-Ywarn-dead-code",
+      "-Ywarn-numeric-widen",
+      "-Ywarn-value-discard",
+      "-Ywarn-unused",
+      "-Xfatal-warnings"
+    ),
     libraryDependencies ++= Seq(
       "org.typelevel"      %% "cats-core"     % "1.6.0",
       "com.lihaoyi"        %% "pprint"        % "0.5.3",

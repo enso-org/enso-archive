@@ -2,6 +2,7 @@ package org.enso
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
+import org.enso.lint.Unused.unused
 
 class Logger {
   import Logger._
@@ -45,11 +46,11 @@ class Logger {
 }
 
 object Logger {
-
   def groupRedirect[R: c.WeakTypeTag](
     c: Context
   )(msg: c.Tree)(body: c.Tree): c.Expr[R] = {
     import c.universe._
+    unused(msg)
     val target = c.macroApplication match {
       case Apply(Apply(TypeApply(Select(base, name), tp), msg2), body2) =>
         val newName = TermName("_" + name.toString)
@@ -82,6 +83,7 @@ object Logger {
 
   def funcRedirect(c: Context)(s: c.Tree): c.Expr[Unit] = {
     import c.universe._
+    unused(s)
     val target = c.macroApplication match {
       case Apply(Select(base, name), args) =>
         val newName = TermName("_" + name.toString)

@@ -8,6 +8,8 @@ import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text.ast.text
 
+import scala.reflect.ClassTag
+
 sealed trait AST extends AST.Symbol
 
 object AST {
@@ -24,6 +26,9 @@ object AST {
   ////////////////////
   //// Definition ////
   ////////////////////
+
+  type Stream  = List[Shifted[AST]]
+  type Stream1 = List1[Shifted[AST]]
 
   trait Symbol extends Repr.Provider {
     def span:   Int    = repr.span
@@ -48,9 +53,9 @@ object AST {
     else Opr(str)
   }
 
-  implicit final private class OptAST(val self: Option[AST]) extends Symbol {
-    val repr = self.map(_.repr).getOrElse(Repr())
-  }
+//  implicit final private class OptAST(val self: Option[AST]) extends Symbol {
+//    val repr = self.map(_.repr).getOrElse(Repr())
+//  }
 
   /////////////////
   //// Invalid ////
@@ -72,6 +77,7 @@ object AST {
   }
 
   object Ident {
+    type Class = Ident
     final case class InvalidSuffix(elem: Ident, suffix: String)
         extends AST.Invalid {
       val repr = R + elem + suffix
@@ -102,9 +108,9 @@ object AST {
     val repr = name
   }
 
-  //////////////////
-  //// Operator ////
-  //////////////////
+  /////////////
+  //// Opr ////
+  /////////////
 
   final case class Opr(name: String) extends Opr.Class {
     val (prec, assoc) = Opr.Info.of(name)
@@ -122,7 +128,7 @@ object AST {
 
     object Info {
       val map: Map[String, (Int, Assoc)] = Prec.map.map {
-        case (name, prec) => name -> (prec, Assoc.of(name))
+        case (name, prec) => name -> ((prec, Assoc.of(name)))
       }
       def of(op: String) =
         map.getOrElse(op, (Prec.default, Assoc.of(op)))
@@ -174,72 +180,130 @@ object AST {
     ) extends AST {
       val repr = R + leftArg + leftOff + opr + rightOff + rightArg
     }
+
+    final case class MissingArgument() extends Invalid {
+      val repr = R
+    }
   }
 
   ////////////////
   //// Mixfix ////
   ////////////////
 
-  final case class Mixfix(segments: Shifted.List1[Mixfix.Segment.Class])
+  final case class Template(segments: Shifted.List1[Template.Segment.Class])
       extends AST {
     val repr = R + segments.map(_.repr)
   }
 
-  object Mixfix {
+  object Template {
 
-    final case class Segment[T: Repr.Of](
-      tp: Segment.Type[T],
+    final case class Segment[+T: Repr.Of](
+      tp: Segment.Pattern[T],
       head: AST,
       body: T
     ) extends Segment.Class {
       val repr = R + head + body
+      def stripped(): (Segment[T], AST.Stream) = (this, List())
     }
 
     object Segment {
 
-      def apply(head: AST): Segment[_] = new Segment(Empty(), head, ())
+      def apply(head: AST): Segment[_] = new Segment(Pattern.Empty, head, ())
       def apply(head: AST, body: Option[Shifted[AST]]): Segment[_] =
-        new Segment(Expr(), head, body)
+        new Segment(Pattern.Option(Pattern.Expr), head, body)
 
-      sealed trait Class extends Symbol
-      type Any = Segment[_]
+      //// Segment Types ////
 
-      trait Type[+T]
-      object Type {
-        type Any = Type[_]
+      sealed trait Class extends Symbol {
+        def stripped(): (Class, AST.Stream)
       }
 
-      final case class Expr() extends Type[Option[Shifted[AST]]]
+      case class Unmatched[T: Repr.Of](
+        tp: Segment.Pattern[T],
+        head: AST,
+        stream: AST.Stream
+      ) extends Class {
+        val repr = R + head + stream
+        def stripped(): (Unmatched[T], AST.Stream) =
+          (Unmatched(tp, head, List()), stream)
+      }
 
-      case class Empty() extends Type[Unit]
-      case class Expr1() extends Type[Shifted[AST]]
+      case class Unsaturated[T: Repr.Of](
+        tp: Segment.Pattern[T],
+        head: AST,
+        body: T,
+        stream: AST.Stream1
+      ) extends Class {
+        val repr = R + head + body + stream
+        def stripped(): (Segment[T], AST.Stream) =
+          (Segment(tp, head, body), stream.toList)
+      }
 
-      case class Opt[S](el: Type[S])               extends Type[Option[S]]
-      case class Many[S](el: Type[S])              extends Type[List[S]]
-      case class Many1[S](el: Type[S])             extends Type[List1[S]]
-      case class Seq[L, R](l: Type[L], r: Type[R]) extends Type[(L, R)]
+      //// Pattern ////
 
-//      object Def {
-//        trait Selector
-//        final case class Many1[T](elems: T) extends Selector
-//        final case class Option[T](elem: T) extends Selector
-//        final case class
-//      }
-//      final case class XList1(elems: List1[Selector]) extends Selector
-//      final case class XExpr()                        extends Type[Option[Shifted[AST]]]
-//      final case class XExpr1()                       extends Type[Shifted[AST]]
+      sealed abstract class Pattern[+T: Repr.Of] {
+        def resolve(
+          head: AST,
+          stream: AST.Stream,
+          resolver: Pattern.Resolver
+        ): Segment.Class =
+          resolver.resolve(this, stream) match {
+            case None => Segment.Unmatched(this, head, stream)
+            case Some((body, stream2)) =>
+              stream2 match {
+                case Nil => Segment(this, head, body)
+                case s :: ss =>
+                  Segment.Unsaturated(this, head, body, List1(s, ss))
+              }
+          }
 
-      object Empty {
-        final case class NonEmpty(head: AST, body: Shifted[AST])
-            extends Class
-            with Invalid {
-          val repr = R + head + body
+      }
+
+      object Pattern {
+        import org.enso.data
+        type Class = Pattern[_]
+
+        /**
+          * The `_0` type denotes a pattern which can succeed without consuming
+          * any input. The `_1` type describes patterns guaranteed to consume
+          * at least one input token.
+          */
+        sealed trait _0[T] extends Pattern[T]
+        sealed trait _1[T] extends _0[T]
+
+        private type C[T] = Repr.Of[T]
+        case object Empty                  extends _0[Unit]
+        case object Expr                   extends _1[Shifted[AST]]
+        case class Option[S: C](el: _1[S]) extends _0[scala.Option[S]]
+        case class List[S: C](el: _1[S])   extends _0[scala.List[S]]
+        case class List1[S: C](el: _1[S])  extends _1[data.List1[S]]
+
+        case class Token[T <: AST: C]()(implicit val tag: ClassTag[T])
+            extends _1[Shifted[T]]
+
+        trait App[L, R] {
+          val l: Pattern[L]
+          val r: Pattern[R]
         }
-      }
+        // format: off
+        case class App_11[L: C, R: C](l: _1[L], r: _1[R]) extends _1[(L, R)] with App[L, R]
+        case class App_10[L: C, R: C](l: _1[L], r: _0[R]) extends _1[(L, R)] with App[L, R]
+        case class App_01[L: C, R: C](l: _0[L], r: _1[R]) extends _1[(L, R)] with App[L, R]
+        case class App_00[L: C, R: C](l: _0[L], r: _0[R]) extends _0[(L, R)] with App[L, R]
+        // format: on
 
-      object Expr1 {
-        case class Empty(head: AST) extends Class with Invalid {
-          val repr = R + head
+        object App {
+          def apply[L: C, R: C](l: _1[L], r: _1[R]): App_11[L, R] = App_11(l, r)
+          def apply[L: C, R: C](l: _1[L], r: _0[R]): App_10[L, R] = App_10(l, r)
+          def apply[L: C, R: C](l: _0[L], r: _1[R]): App_01[L, R] = App_01(l, r)
+          def apply[L: C, R: C](l: _0[L], r: _0[R]): App_00[L, R] = App_00(l, r)
+        }
+
+        trait Resolver {
+          def resolve[T](
+            pat: Pattern[T],
+            stream: AST.Stream
+          ): scala.Option[(T, AST.Stream)]
         }
       }
     }
@@ -258,7 +322,7 @@ object AST {
 
     case class Definition(segments: List1[Definition.Input])
     object Definition {
-      type Input = (AST, Segment.Type[_])
+      type Input = (AST, Segment.Pattern.Class)
       def apply(t1: Input, ts: Input*): Definition =
         Definition(List1(t1, ts.to[List]))
     }

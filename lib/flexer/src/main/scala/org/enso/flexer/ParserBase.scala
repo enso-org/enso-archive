@@ -19,8 +19,8 @@ trait ParserBase[T] {
 
   var offset: Int          = 0
   var charsToLastRule: Int = 0
-  val eofChar: Char        = '\0'
-  val etxChar: Char        = '\3'
+  val eofChar: Char        = '\u0000'
+  val etxChar: Char        = '\u0003'
   var codePoint: Int       = etxChar.toInt
 
   var matchBuilder = new StringBuilder(64)
@@ -116,18 +116,18 @@ trait ParserBase[T] {
   }
   def getNextCodePoint(): Int = {
     if (offset >= bufferLen)
-      return etxChar
+      return etxChar.toInt
     offset += charSize
     if (offset > BUFFERSIZE - UTFCHARSIZE) {
       val keepChars = Math.max(charsToLastRule, currentMatch.length) + UTFCHARSIZE - 1
       for (i <- 1 to keepChars) buffer(keepChars - i) = buffer(bufferLen - i)
       val numRead = sreader.read(buffer, keepChars, buffer.length - keepChars)
       if (numRead == -1)
-        return eofChar
+        return eofChar.toInt
       offset    = keepChars - (BUFFERSIZE - offset)
       bufferLen = keepChars + numRead
     } else if (offset == bufferLen)
-      return eofChar
+      return eofChar.toInt
     logger.log(s"Next char '${escapeChar(buffer(offset))}'")
     Character.codePointAt(buffer, offset)
   }
