@@ -7,7 +7,6 @@ import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.dispatch.DispatchNode;
 import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
-import org.enso.interpreter.runtime.TypesGen;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.type.Atom;
@@ -37,13 +36,7 @@ public abstract class DoCallNode extends BaseNode {
 
   @Fallback
   public Object invokeGeneric(Object callable, Object[] arguments) {
-    if (TypesGen.isFunction(callable)) {
-      return invokeFunction((Function) callable, arguments);
-    } else if (TypesGen.isAtomConstructor(callable)) {
-      return invokeConstructor((AtomConstructor) callable, arguments);
-    } else {
-      throw new NotInvokableException(callable, this);
-    }
+    throw new NotInvokableException(callable, this);
   }
 
   public abstract Object execute(Object callable, Object[] arguments);

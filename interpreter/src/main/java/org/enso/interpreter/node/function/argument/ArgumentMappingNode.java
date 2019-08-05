@@ -8,42 +8,41 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.function.DoCallNode;
-import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode.CallArgumentInfo;
-import org.enso.interpreter.node.function.dispatch.DispatchNode;
-import org.enso.interpreter.node.function.dispatch.SimpleDispatchNode;
-import org.enso.interpreter.optimiser.tco.TailCallException;
+import org.enso.interpreter.node.function.DoCallNodeGen;
 import org.enso.interpreter.runtime.Callable;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.function.argument.CallArgument;
 import org.enso.interpreter.runtime.type.AtomConstructor;
 
 @NodeInfo(shortName = "ArgMap")
 public abstract class ArgumentMappingNode extends BaseNode {
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final boolean isFullyPositional;
-  @Child private DispatchNode dispatchNode;
   @Child private DoCallNode doCallNode;
 
   public ArgumentMappingNode(CallArgumentInfo[] schema) {
     this.schema = schema;
     this.isFullyPositional = Arrays.stream(schema).allMatch(CallArgumentInfo::isPositional);
-    this.dispatchNode = new SimpleDispatchNode();
-    this.doCallNode = null; // TODO [AA]
+    this.doCallNode = DoCallNodeGen.create();
   }
 
   @Override
   public void markTail() {
+    super.markTail();
     this.doCallNode.markTail();
   }
 
   @Override
   public void markNotTail() {
+    super.markNotTail();
     this.doCallNode.markNotTail();
   }
 
   @Override
   public void setTail(boolean isTail) {
+    super.setTail(isTail);
     this.doCallNode.setTail(isTail);
   }
 
@@ -58,10 +57,6 @@ public abstract class ArgumentMappingNode extends BaseNode {
       int numberOfDefinedArgs = realCallable.getArgs().length;
 
       ArgumentDefinition[] definedArgs = realCallable.getArgs();
-
-      //    if (this.schema.length != numberOfDefinedArgs) {
-      //      throw new ArityException(numberOfDefinedArgs, this.schema.length);
-      //    }
 
       boolean[] definedArgumentsUsage = new boolean[numberOfDefinedArgs];
 
@@ -106,21 +101,7 @@ public abstract class ArgumentMappingNode extends BaseNode {
 
   @Specialization(guards = "isFullyPositional()")
   public Object invokePositional(Object callable, Object[] arguments) {
-    //    if (callable instanceof Function) {
-    Function actualCallable = (Function) callable;
-    if (this.isTail()) {
-      throw new TailCallException(actualCallable, arguments);
-    } else {
-      return dispatchNode.executeDispatch(actualCallable, arguments);
-    }
-    //
-    //    } else if (callable instanceof AtomConstructor) {
-    //      AtomConstructor actualCallable = (AtomConstructor) callable;
-    //      return actualCallable.newInstance(arguments);
-    //
-    //    } else {
-    //      throw new NotInvokableException(callable, this);
-    //    }
+    return this.doCallNode.execute(callable, arguments);
   }
 
   @Specialization(guards = "isSameCallable(cachedCallable, callable)")
@@ -137,21 +118,7 @@ public abstract class ArgumentMappingNode extends BaseNode {
 
     arguments = result;
 
-    //    if (callable instanceof Function) {
-    Function actualCallable = (Function) callable;
-    if (this.isTail()) {
-      throw new TailCallException(actualCallable, arguments);
-    } else {
-      return dispatchNode.executeDispatch(actualCallable, arguments);
-    }
-
-    //    } else if (callable instanceof AtomConstructor) {
-    //      AtomConstructor actualCallable = (AtomConstructor) callable;
-    //      return actualCallable.newInstance(arguments);
-    //
-    //    } else {
-    //      throw new NotInvokableException(callable, this);
-    //    }
+    return this.doCallNode.execute(callable, arguments);
   }
 
   @Specialization
@@ -161,21 +128,7 @@ public abstract class ArgumentMappingNode extends BaseNode {
       @Cached("create(getSchema())") UncachedArgumentMappingNode mappingNode) {
     arguments = mappingNode.execute(callable, arguments);
 
-    //    if (callable instanceof Function) {
-    Function actualCallable = (Function) callable;
-    if (this.isTail()) {
-      throw new TailCallException(actualCallable, arguments);
-    } else {
-      return dispatchNode.executeDispatch(actualCallable, arguments);
-    }
-    //
-    //    } else if (callable instanceof AtomConstructor) {
-    //      AtomConstructor actualCallable = (AtomConstructor) callable;
-    //      return actualCallable.newInstance(arguments);
-    //
-    //    } else {
-    //      throw new NotInvokableException(callable, this);
-    //    }
+    return this.doCallNode.execute(callable, arguments);
   }
 
   public boolean isSameCallable(Object left, Object right) {
@@ -197,5 +150,43 @@ public abstract class ArgumentMappingNode extends BaseNode {
 
   public boolean isFullyPositional() {
     return isFullyPositional;
+  }
+
+  public static class CallArgumentInfo {
+    private final String name;
+    private final boolean isNamed;
+    private final boolean isPositional;
+    private final boolean isIgnored;
+
+    public CallArgumentInfo(CallArgument callArgNode) {
+      this(
+          callArgNode.getName(),
+          callArgNode.isNamed(),
+          callArgNode.isPositional(),
+          callArgNode.isIgnored());
+    }
+
+    public CallArgumentInfo(String name, boolean isNamed, boolean isPositional, boolean isIgnored) {
+      this.name = name;
+      this.isNamed = isNamed;
+      this.isPositional = isPositional;
+      this.isIgnored = isIgnored;
+    }
+
+    public String getName() {
+      return name;
+    }
+
+    public boolean isNamed() {
+      return isNamed;
+    }
+
+    public boolean isPositional() {
+      return isPositional;
+    }
+
+    public boolean isIgnored() {
+      return isIgnored;
+    }
   }
 }

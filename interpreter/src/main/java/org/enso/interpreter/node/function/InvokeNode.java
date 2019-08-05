@@ -7,11 +7,11 @@ import java.util.Arrays;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNode;
 import org.enso.interpreter.node.function.argument.ArgumentMappingNodeGen;
-import org.enso.interpreter.node.function.argument.UncachedArgumentMappingNode.CallArgumentInfo;
+import org.enso.interpreter.node.function.argument.ArgumentMappingNode.CallArgumentInfo;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
 
 @NodeInfo(shortName = "@", description = "Executes function")
-public abstract class InvokeNode extends ExpressionNode {
+public class InvokeNode extends ExpressionNode {
   @Children private final ExpressionNode[] argExpressions;
   @Child private ArgumentMappingNode argumentsMap;
   @Child private ExpressionNode callable;
@@ -25,7 +25,7 @@ public abstract class InvokeNode extends ExpressionNode {
 
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments)
-            .map(CallArgumentInfo::new)
+            .map(ArgumentMappingNode.CallArgumentInfo::new)
             .toArray(CallArgumentInfo[]::new);
 
     this.argumentsMap = ArgumentMappingNodeGen.create(argSchema);
