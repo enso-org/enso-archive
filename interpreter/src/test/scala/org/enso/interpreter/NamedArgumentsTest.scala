@@ -121,7 +121,6 @@ class NamedArgumentsTest extends LanguageTest {
         |a - b
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
     eval(code) shouldEqual 0
   }
 
@@ -132,6 +131,17 @@ class NamedArgumentsTest extends LanguageTest {
         |foo = { |a, b, c| a + b }
         |@foo [20, a = 10]
         |""".stripMargin
+  }
+
+  "Default arguments" should "be able to depend on prior arguments" in {
+    val code =
+      """
+        |doubleOrAdd = { |a, b = a| a + b }
+        |
+        |@doubleOrAdd [5]
+        |""".stripMargin
+
+    eval(code) shouldEqual 10
   }
 
 }

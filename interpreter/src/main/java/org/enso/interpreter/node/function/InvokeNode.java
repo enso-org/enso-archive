@@ -5,10 +5,10 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.function.argument.ArgumentMappingNode;
-import org.enso.interpreter.node.function.argument.ArgumentMappingNodeGen;
-import org.enso.interpreter.node.function.argument.ArgumentMappingNode.CallArgumentInfo;
+import org.enso.interpreter.node.function.argument.mapping.ArgumentMappingNodeGen;
+import org.enso.interpreter.node.function.argument.mapping.ArgumentMappingNode;
 import org.enso.interpreter.runtime.function.argument.CallArgument;
+import org.enso.interpreter.runtime.function.argument.CallArgumentInfo;
 
 @NodeInfo(shortName = "@", description = "Executes function")
 public class InvokeNode extends ExpressionNode {
@@ -25,7 +25,7 @@ public class InvokeNode extends ExpressionNode {
 
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments)
-            .map(ArgumentMappingNode.CallArgumentInfo::new)
+            .map(CallArgumentInfo::new)
             .toArray(CallArgumentInfo[]::new);
 
     this.argumentsMap = ArgumentMappingNodeGen.create(argSchema);

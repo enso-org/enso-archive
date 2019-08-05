@@ -1,13 +1,12 @@
-package org.enso.interpreter.node.function.argument;
+package org.enso.interpreter.node.function.argument.mapping;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.function.argument.ArgumentMappingNode.CallArgumentInfo;
-import org.enso.interpreter.runtime.Callable;
+import org.enso.interpreter.runtime.TypesGen;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.runtime.function.argument.CallArgumentInfo;
 
 @NodeInfo(shortName = "ArgumentMap")
 public class UncachedArgumentMappingNode extends BaseNode {
@@ -22,23 +21,13 @@ public class UncachedArgumentMappingNode extends BaseNode {
   }
 
   public Object[] execute(Object callable, Object[] arguments) {
-    if (callable instanceof Callable) {
+    if (TypesGen.isCallable(callable)) {
       Function actualCallable = (Function) callable;
-      int[] order = ArgumentMappingNode.generateArgMapping(actualCallable, this.schema);
-      return reorderArguments(order, arguments);
+      int[] order = CallArgumentInfo.generateArgMapping(actualCallable, this.schema, this);
+      return CallArgumentInfo.reorderArguments(order, arguments);
     } else {
       throw new NotInvokableException(callable, this);
     }
-  }
-
-  @ExplodeLoop
-  public static Object[] reorderArguments(int[] order, Object[] args) {
-    // TODO: This should be a number of defined args with holes and stuff.
-    Object[] result = new Object[args.length];
-    for (int i = 0; i < args.length; i++) {
-      result[order[i]] = args[i];
-    }
-    return result;
   }
 
 }

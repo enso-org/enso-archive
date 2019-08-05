@@ -7,7 +7,7 @@ import org.enso.interpreter.runtime.function.Function;
 import org.enso.interpreter.runtime.type.Atom;
 import org.enso.interpreter.runtime.type.AtomConstructor;
 
-@TypeSystem({long.class, Function.class, Atom.class, AtomConstructor.class})
+@TypeSystem({long.class, Function.class, Atom.class, AtomConstructor.class, Callable.class})
 public class Types {
 
   @ImplicitCast
