@@ -11,17 +11,17 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
   // TODO [AA] Benchmarks for named and defaulted argument usage
 
   // Currently unused as we know this is very slow.
-  val mutRecursiveCode =
-    """
-    |summator = { |acc, current|
-    |    ifZero: [current, acc, @summator [acc + current, current - 1]]
-    |}
-    |
-    |{ |sumTo|
-    |  res = @summator [0, sumTo];
-    |  res
-    |}
-    |"""
+//  val mutRecursiveCode =
+//    """
+//    |summator = { |acc, current|
+//    |    ifZero: [current, acc, @summator [acc + current, current - 1]]
+//    |}
+//    |
+//    |{ |sumTo|
+//    |  res = @summator [0, sumTo];
+//    |  res
+//    |}
+//    |"""
 
   val sumTCOCode =
     """
@@ -39,31 +39,31 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
   performance of "Enso TCO" in {
     measure method "Summing numbers up to a million" in {
       using(gen) in { _ =>
-        sumTCO.call(million)
+        sumTCO.call(hundredMillion)
       }
     }
   }
 
-//  val sumTCOWithNamedArgumentsCode =
-//    """
-//      |{ |sumTo|
-//      |  summator = { |acc, current|
-//      |      ifZero: [current, acc, @summator [acc + current, current - 1]]
-//      |  };
-//      |  res = @summator [current = sumTo, acc = 0];
-//      |  res
-//      |}
-//    """.stripMargin
-//
-//  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
+  val sumTCOWithNamedArgumentsCode =
+    """
+      |{ |sumTo|
+      |  summator = { |acc, current|
+      |      ifZero: [current, acc, @summator [current = current - 1, acc = acc + current]]
+      |  };
+      |  res = @summator [current = sumTo, acc = 0];
+      |  res
+      |}
+    """.stripMargin
 
-//  performance of "Enso TCO with named arguments" in {
-//    measure method "Summing numbers up to 100 millions" in {
-//      using(gen) in { _ =>
-//        sumTCOWithNamedArguments.call(million)
-//      }
-//    }
-//  }
+  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
+
+  performance of "Enso TCO with named arguments" in {
+    measure method "Summing numbers up to 100 millions" in {
+      using(gen) in { _ =>
+        sumTCOWithNamedArguments.call(hundredMillion)
+      }
+    }
+  }
 
   // TODO Test defaulted arguments
 
