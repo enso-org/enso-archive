@@ -1,19 +1,17 @@
 package org.enso.syntax.text
 
-import org.enso.flexer.Macro
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Doc._
-import org.enso.syntax.text.docsParser.DocParserDef
+import org.enso.Logger
 import org.enso.{flexer => Flexer}
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.Assertion
 
 class DocParserSpec extends FlatSpec with Matchers {
-  val parserCons: Macro.Out[Doc.AST] = Macro.compile(DocParserDef)
-
+  val logger = new Logger()
   def parse(input: String) = {
-    val parser = parserCons()
+    val parser = new DocParser()
     parser.run(input)
   }
 
@@ -21,11 +19,11 @@ class DocParserSpec extends FlatSpec with Matchers {
     val tt = parse(input)
     tt match {
       case Flexer.Success(value, _) => {
-        println(s"\nresult : '$result'")
-        println(s"value  : '$value'")
-        println(s"\ninput  : '$input'")
-        println(s"v.show : '${value.show()}'\n")
-        println(s"\nv.html : '${value.renderHTML()}'")
+        logger.log(s"\nresult : '$result'")
+        logger.log(s"value  : '$value'")
+        logger.log(s"\ninput  : '$input'")
+        logger.log(s"v.show : '${value.show()}'\n")
+        logger.log(s"\nv.html : '${value.renderHTML()}'")
         assert(value == result)
         assert(value.show() == input)
       }
@@ -224,13 +222,13 @@ class DocParserSpec extends FlatSpec with Matchers {
   ">Example" ?= Doc(Synopsis(Section(0, Section.Example, "Example")))
   "?Info\n\n!Important" ?= Doc(
     Synopsis(Section(0, Section.Info, "Info", "\n")),
-    Addendum(Section(0, Section.Important, "Important"))
+    Body(Section(0, Section.Important, "Important"))
   )
   "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
       Section(0, Section.Info, "Info", "\n")
     ),
-    Addendum(
+    Body(
       Section(0, Section.Important, "Important", "\n"),
       Section(0, Section.Example, "Example")
     )
@@ -434,7 +432,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         "\n"
       )
     ),
-    Addendum(
+    Body(
       Section(0, Section.Raw, "Hello Section", "\n"),
       Section(0, Section.Important, "important", "\n"),
       Section(0, Section.Info, "Hi", "\n"),
@@ -444,18 +442,28 @@ class DocParserSpec extends FlatSpec with Matchers {
   ////////////////
   ///// Tags /////
   ////////////////
-  "DEPRECATED" ?= Doc(Tags(Tag(Tag.Deprecated)))
-  "MODIFIED"   ?= Doc(Tags(Tag(Tag.Modified)))
-  "ADDED"      ?= Doc(Tags(Tag(Tag.Added)))
-  "REMOVED"    ?= Doc(Tags(Tag(Tag.Removed)))
+  "DEPRECATED\nFoo" ?= Doc(
+    Tags(Tag(Tag.Deprecated)),
+    Synopsis(Section(0, Section.Raw, "Foo"))
+  )
+  "MODIFIED\nFoo" ?= Doc(
+    Tags(Tag(Tag.Modified)),
+    Synopsis(Section(0, Section.Raw, "Foo"))
+  )
+  "ADDED\nFoo" ?= Doc(
+    Tags(Tag(Tag.Added)),
+    Synopsis(Section(0, Section.Raw, "Foo"))
+  )
   "REMOVED\nFoo" ?= Doc(
     Tags(Tag(Tag.Removed)),
     Synopsis(Section(0, Section.Raw, "Foo"))
   )
-  "DEPRECATED in 1.0" ?= Doc(
-    Tags(Tag(Tag.Deprecated, " in 1.0"))
+  "DEPRECATED in 1.0\nFoo" ?= Doc(
+    Tags(Tag(Tag.Deprecated, " in 1.0")),
+    Synopsis(Section(0, Section.Raw, "Foo"))
   )
-  "DEPRECATED in 1.0\nMODIFIED" ?= Doc(
-    Tags(Tag(Tag.Deprecated, " in 1.0"), Tag(Tag.Modified))
+  "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
+    Tags(Tag(Tag.Deprecated, " in 1.0"), Tag(Tag.Modified)),
+    Synopsis(Section(0, Section.Raw, "Foo"))
   )
 }

@@ -1,8 +1,6 @@
 package org.enso.syntax.text.ast
 
-import cats.data.NonEmptyList
 import org.enso.data.List1
-import org.enso.syntax.text.ast.Doc._
 import scalatags.Text.all._
 import scalatags.Text.{all => HTML, _}
 
@@ -13,53 +11,31 @@ import scalatags.Text.{all => HTML, _}
 final case class Doc(
   tags: Doc.Tags,
   synopsis: Doc.Synopsis,
-  details: Doc.Addendum
+  details: Doc.Body
 ) extends Doc.AST {
-  val repr: Repr = {
-    val tagsRepr = if (tags.exists()) {
-      if (synopsis.exists() || details.exists()) {
-        tags.repr + Repr("\n")
-      } else {
-        tags.repr
-      }
-    } else Repr()
+  val repr: Repr = tags.repr + synopsis.repr + details.repr
 
-    val synopsisRepr = if (synopsis.exists()) {
-      synopsis.repr
-    } else Repr()
-
-    val detailsRepr = if (details.exists()) {
-      Repr("\n") + details.repr
-    } else Repr()
-
-    Repr() + tagsRepr + synopsisRepr + detailsRepr
-  }
-
-  val html: HTML = {
-    val tagsHtml     = if (tags.exists()) tags.html else "".html
-    val synopsisHtml = if (synopsis.exists()) synopsis.html else "".html
-    val detailsHtml  = if (details.exists()) details.html else "".html
+  val html: Doc.HTML = {
+    val className = this.getClass.getSimpleName
     Seq(
-      HTML.div(HTML.`class` := this.getClass.getSimpleName)(tagsHtml)(
-        synopsisHtml
-      )(
-        detailsHtml
+      HTML.div(HTML.`class` := className)(tags.html)(synopsis.html)(
+        details.html
       )
     )
   }
 }
 
 object Doc {
-  def apply(tags: Tags, synopsis: Synopsis, body: Addendum): Doc =
+  def apply(tags: Tags, synopsis: Synopsis, body: Body): Doc =
     new Doc(tags, synopsis, body)
-  def apply(synopsis: Synopsis, body: Addendum): Doc =
+  def apply(synopsis: Synopsis, body: Body): Doc =
     new Doc(Tags(), synopsis, body)
   def apply(synopsis: Synopsis): Doc =
-    new Doc(Tags(), synopsis, Addendum(Nil))
+    new Doc(Tags(), synopsis, Body(Nil))
   def apply(tags: Tags): Doc =
-    new Doc(tags, Synopsis(Nil), Addendum(Nil))
+    new Doc(tags, Synopsis(Nil), Body(Nil))
   def apply(tags: Tags, synopsis: Synopsis): Doc =
-    new Doc(tags, synopsis, Addendum(Nil))
+    new Doc(tags, synopsis, Body(Nil))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
@@ -218,9 +194,9 @@ object Doc {
 
   object ListBlock {
     def apply(indent: Int, listType: Type, elem: AST): ListBlock =
-      ListBlock(indent, listType, NonEmptyList(elem, Nil))
+      ListBlock(indent, listType, List1(elem, Nil))
     def apply(indent: Int, listType: Type, elems: AST*): ListBlock =
-      ListBlock(indent, listType, NonEmptyList(elems.head, elems.tail.to[List]))
+      ListBlock(indent, listType, List1(elems.head, elems.tail.to[List]))
 
     abstract class Type(
       val marker: Char,
@@ -313,39 +289,45 @@ object Doc {
     case object Raw extends Type(None)
   }
 
-  //////////////////////
-  ////// Addendum //////
-  //////////////////////
+  //////////////////
+  ////// Body //////
+  //////////////////
 
-  final case class Addendum(elems: List[Section]) extends AST {
-    val repr: Repr = elems.map(_.repr.show()).mkString("\n")
-    val html: HTML = Seq(
-      HTML.div(HTML.`class` := this.getClass.getSimpleName)(
-        elems.map(_.html)
-      )
-    )
-    def exists(): Boolean = Addendum(elems) != Addendum()
+  final case class Body(elems: List[Section]) {
+    val repr: Repr =
+      if (elems == Nil) Repr()
+      else Repr("\n") + elems.map(_.repr.show()).mkString("\n")
+    val html: HTML =
+      if (elems == Nil) "".html
+      else
+        Seq(
+          HTML.div(HTML.`class` := this.getClass.getSimpleName)(
+            elems.map(_.html)
+          )
+        )
   }
 
-  object Addendum {
-    def apply():                Addendum = Addendum(Nil)
-    def apply(elem: Section):   Addendum = Addendum(elem :: Nil)
-    def apply(elems: Section*): Addendum = Addendum(elems.to[List])
+  object Body {
+    def apply():                Body = Body(Nil)
+    def apply(elem: Section):   Body = Body(elem :: Nil)
+    def apply(elems: Section*): Body = Body(elems.to[List])
   }
 
   //////////////////////
   ////// Synopsis //////
   //////////////////////
 
-  final case class Synopsis(elems: List[Section]) extends AST {
-    val repr: Repr = elems.map(_.repr.show()).mkString("\n")
+  final case class Synopsis(elems: List[Section]) {
+    val repr: Repr =
+      if (elems == Nil) Repr() else elems.map(_.repr.show()).mkString("\n")
     val html: HTML =
-      Seq(
-        HTML.div(HTML.`class` := this.getClass.getSimpleName)(
-          elems.map(_.html)
+      if (elems == Nil) "".html
+      else
+        Seq(
+          HTML.div(HTML.`class` := this.getClass.getSimpleName)(
+            elems.map(_.html)
+          )
         )
-      )
-    def exists(): Boolean = Synopsis(elems) != Synopsis()
   }
   object Synopsis {
     def apply():                Synopsis = Synopsis(Nil)
@@ -357,7 +339,7 @@ object Doc {
   /// Tags ///
   ////////////
 
-  final case class Tag(tp: Tag.Type, details: Option[String]) extends AST {
+  final case class Tag(tp: Tag.Type, details: Option[String]) {
     val name: String = tp.toString.toUpperCase
     val repr: Repr   = Repr(name) + details.repr
     val html: HTML   = Seq(HTML.div(HTML.`class` := name)(name)(details.html))
@@ -375,17 +357,19 @@ object Doc {
     case object Upcoming   extends Type
   }
 
-  final case class Tags(indent: Int, elems: List[Tag])
-      extends AST
-      with Indentable {
+  final case class Tags(indent: Int, elems: List[Tag]) extends Indentable {
     val repr: Repr =
-      elems.map(makeIndent(indent) + _.repr.show()).mkString("\n")
-    val html: HTML = Seq(
-      HTML.div(HTML.`class` := this.getClass.getSimpleName)(
-        elems.map(_.html)
-      )
-    )
-    def exists(): Boolean = Tags(indent, elems) != Tags(indent)
+      if (elems == Nil) Repr()
+      else
+        elems.map(makeIndent(indent) + _.repr.show()).mkString("\n") + "\n"
+    val html: HTML =
+      if (elems == Nil) "".html
+      else
+        Seq(
+          HTML.div(HTML.`class` := this.getClass.getSimpleName)(
+            elems.map(_.html)
+          )
+        )
   }
   object Tags {
     def apply():                       Tags = Tags(0, Nil)
@@ -397,7 +381,7 @@ object Doc {
       Tags(indent, elems.to[List])
   }
 
-  implicit final class _OptionTagType_(val self: Option[String]) extends AST {
+  implicit final class _OptionTagType_(val self: Option[String]) {
     val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
     val html: HTML =
       Seq(
@@ -408,21 +392,17 @@ object Doc {
 }
 // TODO
 
-// 2. parent object should not inspect children when printing out. (.exists())
-// 3. Synopsis/Details/Doc/Tags - this type is wrong. It allows creating synopsis next to bold, or inline code.
-// Make sure the types does not allow for cosntructing wong AST!
-// Please make sure that all other places are fixed as well. This is the most important design part.
-
 // 7. After thinking for a while about it, I would change the name of AST here to something else.
 // AST does not describe well enough such items as InlineCode.
 // In fact your AST has only 1 habitant - Doc.
-// Everything else are other strucutres which build up the Doc.
+// Everything else are other structures which build up the Doc.
 // Think about better name here, Moreover
 // I believe that InlineCode, Link, etc, should be grouped in a namespace.
-// 8. Formatter.html - Generating css classes for the elements is really great idea.
+
+// Formatter.html - Generating css classes for the elements is really great idea.
 // Please think how you can generalize it, so for all other types they
 // will be generated automatically. Of course sometimes, like here,
-// you would liek to override the automatic generation (unclosed) with
+// you would like to override the automatic generation (unclosed) with
 // something custom.
 // Here for example, I'd vote for applying multiple CSS classes
 // both .bold as well as .unclosed
