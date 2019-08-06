@@ -294,6 +294,9 @@ object Template {
             Opt(Many(Token[AST.Var])),
             Opt(Token[AST.Block])
           )
+        ),
+        Template.Definition(
+          Opr("##") -> Option(Expr)
         )
       )
     }
