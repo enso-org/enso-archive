@@ -22,7 +22,7 @@ case class Package(root: File, config: Config) {
     saveConfig()
   }
 
-  def createDirectories() {
+  def createDirectories(): Unit = {
     val created = Try(root.mkdirs).getOrElse(false)
     if (!created) throw CouldNotCreateDirectory
     createSourceDir()

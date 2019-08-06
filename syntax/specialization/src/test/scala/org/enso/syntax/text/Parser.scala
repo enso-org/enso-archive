@@ -1,11 +1,12 @@
 package org.enso.syntax.text
 
 import org.enso.flexer.ParserBase
+import org.enso.syntax.text.AST.Block.Line
 import org.enso.syntax.text.AST._
+import org.enso.syntax.text.EDSL._
 import org.enso.syntax.text.ast.Helpers._
 import org.enso.{flexer => Flexer}
 import org.scalatest._
-import EDSL._
 
 class ParserSpec extends FlatSpec with Matchers {
 
@@ -43,6 +44,15 @@ class ParserSpec extends FlatSpec with Matchers {
     }
   }
 
+  def assertIdentity(input: String): Assertion = {
+    val tt = parse(input)
+    tt match {
+      case Flexer.Success(value, offset) =>
+        assert(value.show() == input)
+      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+    }
+  }
+
   implicit class TestString(input: String) {
     def parseTitle(str: String): String = {
       val maxChars = 20
@@ -56,8 +66,9 @@ class ParserSpec extends FlatSpec with Matchers {
 
     private val testBase = it should parseTitle(input)
 
-    def ?=(out: AST)    = testBase in { assertExpr(input, out) }
-    def ?=(out: Module) = testBase in { assertModule(input, out) }
+    def ?=(out: AST)        = testBase in { assertExpr(input, out) }
+    def ?=(out: Module)     = testBase in { assertModule(input, out) }
+    def testIdentity = testBase in { assertIdentity(input) }
   }
 
   /////////////////////
@@ -135,18 +146,23 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Comments ////
   //////////////////
 
-  "foo  #FIX ME"          ?= Comment(Some(Var("foo")), 2, "FIX ME")
-  "#\n   FIX ME\n FIX ME" ?= Comment.Block(0,List("","  FIX ME", "FIX ME"))
+  "foo  #L1NE"        ?= "foo" $__ Comment("L1NE")
+  "#\n   L1NE\n LIN2" ?= Comment.MultiLine(0,List("","  L1NE", "LIN2"))
+  "#L1NE\nLIN2"       ?= Module(Line(Some(Comment.MultiLine(0, List("L1NE"))), 0), Line(Some(Cons("LIN2")), 0))
 
   ////////////////
   //// Layout ////
   ////////////////
 
-  ""           ?= Module(Block.Line())
-  "\n"         ?= Module(Block.Line(), Block.Line())
-  "  \n "      ?= Module(Block.Line(2), Block.Line(1))
-  "\n\n"       ?= Module(Block.Line(), Block.Line(), Block.Line())
-  " \n  \n   " ?= Module(Block.Line(1), Block.Line(2), Block.Line(3))
+  ""           ?= Module(Line( ))
+  "\n"         ?= Module(Line( ), Line( ))
+  "\n\n"       ?= Module(Line( ), Line( ), Line( ))
+  "  \n "      ?= Module(Line(2), Line(1))
+  " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
+
+
+//  "f =\n\n  x\n\n  y" testIdentity // FIXME
+
   //  test module "(a)"  ==? GroupBegin  :: Var("a") :: GroupEnd
   //  test module "[a]"  ==? ListBegin   :: Var("a") :: ListEnd
   //  test module "{a}"  ==? RecordBegin :: Var("a") :: RecordEnd
@@ -172,16 +188,16 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Large Input ////
   /////////////////////
 
-  "BIG_INPUT_" * ParserBase.BUFFERSIZE ?= "BIG_INPUT_" * ParserBase.BUFFERSIZE
+  "BIG_INPUT_" * ParserBase.BUFFERSIZE testIdentity
 
   //////////////
   //// Text ////
   //////////////
 
-  "'"    ?= Text.Unclosed(Text())
-  "''"   ?= Text()
-  "'''"  ?= Text.Unclosed(Text(Text.Quote.Triple))
-  "''''" ?= Text.Unclosed(Text(Text.Quote.Triple, "'"))
+  "'"       ?= Text.Unclosed(Text())
+  "''"      ?= Text()
+  "'''"     ?= Text.Unclosed(Text(Text.Quote.Triple))
+  "''''"    ?= Text.Unclosed(Text(Text.Quote.Triple, "'"))
 //  "'''''"   ?= Text.Unclosed(Text(Text.Quote.Triple, "''")) // FIXME
   "''''''"  ?= Text(Text.Quote.Triple)
   "'''''''" ?= Text(Text.Quote.Triple) $ Text.Unclosed(Text())

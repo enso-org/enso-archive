@@ -16,27 +16,27 @@ case class CodeGen(dfa: DFA) {
   case class Branch(range: Range, body: Tree)
 
   def genBranchBody(
-    trgState: Int,
-    maybeState: Option[StateDesc],
+    nextState: Int,
+    maybeBody: Option[StateDesc],
     rulesOverlap: Boolean
   ): Tree = {
-    (trgState, maybeState, rulesOverlap) match {
-      case (-1, None, _)            => q"-2"
-      case (-1, Some(state), false) => q"..${state.code}; -1"
-      case (-1, Some(state), true)  => q"rewindToLastRule(); ..${state.code}; -1"
+    (nextState, maybeBody, rulesOverlap) match {
+      case (-1, None, _)           => q"-2"
+      case (-1, Some(body), false) => q"..${body.code}; -1"
+      case (-1, Some(body), true)  => q"rewindToLastRule(); ..${body.code}; -1"
 
-      case (targetState, _, _) =>
-        val rulesOverlap_ = maybeState match {
-          case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
-            dfa.endStatePriorityMap += targetState -> state
-            stateHasOverlappingRules += targetState -> true
+      case _ =>
+        val rulesOverlap_ = maybeBody match {
+          case Some(body) if !dfa.endStatePriorityMap.contains(nextState) =>
+            dfa.endStatePriorityMap += nextState -> body
+            stateHasOverlappingRules += nextState -> true
             true
           case _ => false
         }
         if (rulesOverlap || rulesOverlap_)
-          q"charsToLastRule += charSize; ${Literal(Constant(targetState))}"
+          q"charsToLastRule += charSize; ${Literal(Constant(nextState))}"
         else
-          q"${Literal(Constant(targetState))}"
+          q"${Literal(Constant(nextState))}"
     }
   }
 
@@ -60,22 +60,22 @@ case class CodeGen(dfa: DFA) {
   }
 
   def generateCaseBody(stateIx: Int): Tree = {
-    val overlaps = stateHasOverlappingRules.getOrElse(stateIx, false)
-    val state    = dfa.endStatePriorityMap.get(stateIx)
-    var trgState = dfa.links(stateIx)(0)
-    var rStart   = Int.MinValue
+    val overlaps  = stateHasOverlappingRules.getOrElse(stateIx, false)
+    val state     = dfa.endStatePriorityMap.get(stateIx)
+    var nextState = dfa.links(stateIx)(0)
+    var rStart    = Int.MinValue
     val branches = for {
       (range, vocIx) <- dfa.vocabulary.toVector
-      newTrgState = dfa.links(stateIx)(vocIx)
-      rEnd        = range.start - 1
-      if newTrgState != trgState
-    } yield Branch(rStart to rEnd, genBranchBody(trgState, state, overlaps))
+      newNextState = dfa.links(stateIx)(vocIx)
+      rEnd         = range.start - 1
+      if newNextState != nextState
+    } yield Branch(rStart to rEnd, genBranchBody(nextState, state, overlaps))
       .thenDo {
-        trgState = newTrgState
-        rStart   = range.start
+        nextState = newNextState
+        rStart    = range.start
       }
     val allBranches = branches :+
-      Branch(rStart to Int.MaxValue, genBranchBody(trgState, state, overlaps))
+      Branch(rStart to Int.MaxValue, genBranchBody(nextState, state, overlaps))
 
     val (utf1 :+ b1, rest) = allBranches.span(_.range.start < MIN_ASCII_CODE)
     val (asci, utf2)       = rest.span(_.range.end <= MAX_ASCII_CODE)

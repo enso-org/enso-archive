@@ -1,5 +1,6 @@
 package org.enso.syntax.text
 
+import monocle.macros.GenLens
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.data.Tree
@@ -9,8 +10,6 @@ import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text.ast.text
 
 import scala.reflect.ClassTag
-import monocle.Lens
-import monocle.macros.GenLens
 
 sealed trait AST extends AST.Symbol
 
@@ -471,8 +470,7 @@ object AST {
 
       final case class Required(elem: AST, offset: Int) extends Symbol {
         val repr = R + elem + offset
-        def toOptional: Line =
-          Line(Some(elem), offset)
+        def toOptional: Line = Line(Some(elem), offset)
       }
 
       //// Zipper ////
@@ -500,14 +498,13 @@ object AST {
   /// Comments ///
   ////////////////
 
-  final case class Comment(term: Option[AST], indent: Int, comment: String)
-      extends AST {
-    val repr = R + term + " " * indent + "#" + comment
+  final case class Comment(comment: String) extends AST {
+    val repr = R + "#" + comment
   }
 
   object Comment {
 
-    final case class Block(indent: Int, lines: List[String]) extends AST {
+    final case class MultiLine(indent: Int, lines: List[String]) extends AST {
       val margin = " " * indent
       val repr   = R + margin + "#" + lines.mkString("\n " + margin)
     }
