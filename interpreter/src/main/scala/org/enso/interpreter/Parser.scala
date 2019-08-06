@@ -311,9 +311,10 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def statement: Parser[AstExpression] = assignment | print | expression
 
-  def typeDef: Parser[AstGlobalSymbol] = "type" ~> ident ~ ((bareArgDefinition | defaultedArgDefinition)*) <~ ";" ^^ {
-    case name ~ args => AstTypeDef(name, args)
-  }
+  def typeDef: Parser[AstGlobalSymbol] =
+    "type" ~> ident ~ ((bareArgDefinition | ("(" ~> defaultedArgDefinition <~ ")")) *) <~ ";" ^^ {
+      case name ~ args => AstTypeDef(name, args)
+    }
 
   def globalScope: Parser[AstGlobalScope] =
     ((typeDef | assignment) *) ~ expression ^^ {

@@ -1,9 +1,9 @@
-package org.enso.interpreter.node.function.argument.sentinel;
+package org.enso.interpreter.node.callable.argument.sentinel;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
 @NodeInfo(shortName = "_", description = "An unapplied argument")
 public class DefaultedArgumentNode extends ExpressionNode {

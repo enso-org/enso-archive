@@ -1,7 +1,7 @@
 package org.enso.interpreter.optimiser.tco;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
-import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.runtime.callable.function.Function;
 
 public class TailCallException extends ControlFlowException {
   private final Function function;

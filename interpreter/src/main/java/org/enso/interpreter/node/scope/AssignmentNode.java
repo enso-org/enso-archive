@@ -8,7 +8,7 @@ import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.type.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 @NodeInfo(shortName = "=", description = "Assigns expression result to a variable.")
 @NodeChild(value = "rhsNode", type = ExpressionNode.class)

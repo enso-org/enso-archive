@@ -12,9 +12,9 @@ import org.enso.interpreter.AstTypeDef;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.scope.GlobalScope;
-import org.enso.interpreter.runtime.type.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
 

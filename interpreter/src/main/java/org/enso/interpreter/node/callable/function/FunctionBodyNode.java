@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.function;
+package org.enso.interpreter.node.callable.function;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;

@@ -1,10 +1,9 @@
-package org.enso.interpreter.runtime.function.argument;
+package org.enso.interpreter.runtime.callable.argument;
 
 import com.oracle.truffle.api.nodes.ExplodeLoop;
-import com.oracle.truffle.api.nodes.Node;
-import org.enso.interpreter.runtime.Callable;
-import org.enso.interpreter.runtime.TypesGen;
+import org.enso.interpreter.runtime.callable.Callable;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 public class CallArgumentInfo {
   private final String name;
@@ -43,60 +42,72 @@ public class CallArgumentInfo {
     return isIgnored;
   }
 
+  // TODO [AA] Why do we use the defined args here (reference `ReadArgumentNode`)
   @ExplodeLoop
-  public static Object[] reorderArguments(int[] order, Object[] args) {
-    Object[] result = new Object[args.length];
+  public static Object[] reorderArguments(int[] order, Object[] args, int numDefinedArgs) {
+    Object[] result = new Object[numDefinedArgs];
+
     for (int i = 0; i < args.length; i++) {
       result[order[i]] = args[i];
     }
     return result;
   }
 
-  public static int[] generateArgMapping(Object callable, CallArgumentInfo[] callArgs, Node parent) {
+  public static int[] generateArgMapping(Object callable, CallArgumentInfo[] callArgs) {
     if (TypesGen.isCallable(callable)) {
       Callable realCallable = (Callable) callable;
-      // TODO [AA] Factor out
-      int numberOfDefinedArgs = realCallable.getArgs().length;
 
       ArgumentDefinition[] definedArgs = realCallable.getArgs();
+      int numberOfDefinedArgs = definedArgs.length;
 
-      boolean[] definedArgumentsUsage = new boolean[numberOfDefinedArgs];
+      boolean[] definedArgumentIsUsed = new boolean[numberOfDefinedArgs];
+      int[] argumentSortOrder = new int[callArgs.length];
 
-      int[] result = new int[callArgs.length];
-      // TODO: Split into functions.
       for (int i = 0; i < callArgs.length; ++i) {
-        boolean flag = false;
+        boolean argumentProcessed = false;
         CallArgumentInfo currentArgument = callArgs[i];
-        if (currentArgument.isPositional()) {
+
+        boolean argumentIsPositional = currentArgument.isPositional();
+
+        if (argumentIsPositional) {
           for (int j = 0; j < numberOfDefinedArgs; j++) {
-            if (!definedArgumentsUsage[j]) {
-              result[i] = j;
-              definedArgumentsUsage[j] = true;
-              flag = true;
+            boolean argumentIsUnused = !definedArgumentIsUsed[j];
+
+            if (argumentIsUnused) {
+              argumentSortOrder[i] = j;
+              definedArgumentIsUsed[j] = true;
+              argumentProcessed = true;
               break;
             }
           }
-          if (!flag) {
+
+          if (!argumentProcessed) {
             throw new RuntimeException("Arguments are wrong");
           }
+
         } else {
           for (int j = 0; j < numberOfDefinedArgs; j++) {
-            if ((currentArgument.getName().equals(definedArgs[j].getName()))
-                && !definedArgumentsUsage[j]) {
-              result[i] = j;
-              definedArgumentsUsage[j] = true;
-              flag = true;
+            boolean argumentIsValidAndNamed =
+                currentArgument.getName().equals(definedArgs[j].getName())
+                    && !definedArgumentIsUsed[j];
+
+            if (argumentIsValidAndNamed) {
+              argumentSortOrder[i] = j;
+              definedArgumentIsUsed[j] = true;
+              argumentProcessed = true;
               break;
             }
           }
-          if (!flag) {
+
+          if (!argumentProcessed) {
             throw new RuntimeException("Named arguments are wrong");
           }
         }
       }
-      return result;
+
+      return argumentSortOrder;
     } else {
-      throw new NotInvokableException(callable, parent);
+      throw new NotInvokableException(callable, null);
     }
   }
 }

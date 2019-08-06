@@ -1,16 +1,16 @@
-package org.enso.interpreter.node.function.dispatch;
+package org.enso.interpreter.node.callable.dispatch;
 
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.LoopNode;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.RepeatingNode;
-import org.enso.interpreter.node.function.CallNode;
-import org.enso.interpreter.node.function.CallNodeGen;
+import org.enso.interpreter.node.callable.ExecuteCallNode;
+import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.optimiser.tco.TailCallException;
 
 /**
- * A version of {@link DispatchNode} that is fully prepared to handle tail calls. Tail calls are
+ * A version of {@link CallOptimiserNode} that is fully prepared to handle tail calls. Tail calls are
  * handled through exceptions – whenever a tail-recursive call would be executed, an exception
  * containing the next unevaluated call and arguments is thrown instead (see: {@link
  * TailCallException}).
@@ -18,12 +18,12 @@ import org.enso.interpreter.optimiser.tco.TailCallException;
  * <p>This node executes the function in a loop, following all the continuations, until obtaining
  * the actual return value.
  */
-public class LoopingDispatchNode extends DispatchNode {
+public class LoopingCallOptimiserNode extends CallOptimiserNode {
 
   private final FrameDescriptor loopFrameDescriptor = new FrameDescriptor();
   @Child private LoopNode loopNode;
 
-  public LoopingDispatchNode() {
+  public LoopingCallOptimiserNode() {
     loopNode = Truffle.getRuntime().createLoopNode(new RepeatedCallNode(loopFrameDescriptor));
   }
 
@@ -39,13 +39,13 @@ public class LoopingDispatchNode extends DispatchNode {
     private final FrameSlot resultSlot;
     private final FrameSlot functionSlot;
     private final FrameSlot argsSlot;
-    @Child private CallNode dispatchNode;
+    @Child private ExecuteCallNode dispatchNode;
 
     public RepeatedCallNode(FrameDescriptor descriptor) {
       functionSlot = descriptor.findOrAddFrameSlot("<TCO Function>", FrameSlotKind.Object);
       resultSlot = descriptor.findOrAddFrameSlot("<TCO Result>", FrameSlotKind.Object);
       argsSlot = descriptor.findOrAddFrameSlot("<TCO Arguments>", FrameSlotKind.Object);
-      dispatchNode = CallNodeGen.create();
+      dispatchNode = ExecuteCallNodeGen.create();
     }
 
     public void setNextCall(VirtualFrame frame, Object function, Object[] arguments) {

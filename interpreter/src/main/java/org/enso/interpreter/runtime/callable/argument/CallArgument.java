@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.function.argument;
+package org.enso.interpreter.runtime.callable.argument;
 
 import org.enso.interpreter.node.ExpressionNode;
 

@@ -3,10 +3,10 @@ package org.enso.interpreter.node;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
-import org.enso.interpreter.runtime.TypesGen;
-import org.enso.interpreter.runtime.function.Function;
-import org.enso.interpreter.runtime.type.Atom;
-import org.enso.interpreter.runtime.type.AtomConstructor;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
 public abstract class ExpressionNode extends BaseNode {

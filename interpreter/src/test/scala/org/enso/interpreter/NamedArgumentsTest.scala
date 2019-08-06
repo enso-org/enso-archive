@@ -109,6 +109,23 @@ class NamedArgumentsTest extends LanguageTest {
     eval(code) shouldEqual 3
   }
 
+  "Defaulted arguments" should "work in a recursive context" in {
+    val code =
+      """
+        |summer = { |sumTo|
+        |  summator = { |acc = 0, current|
+        |      ifZero: [current, acc, @summator [current = current - 1, acc = acc + current]]
+        |  };
+        |  res = @summator [current = sumTo];
+        |  res
+        |}
+        |
+        |@summer [100]
+    """.stripMargin
+
+    eval(code) shouldEqual 5050
+  }
+
   "Named Arguments" should "only be scoped to their definitions" in {
     val code =
       """
@@ -157,6 +174,95 @@ class NamedArgumentsTest extends LanguageTest {
     val errMsg = "java.lang.RuntimeException: No result when parsing failed"
 
     the[PolyglotException] thrownBy eval(code) should have message errMsg
+  }
+
+  "Constructors" should "be able to use named arguments" in {
+    val code =
+      """
+        |type Cons2 head rest;
+        |type Nil2;
+        |
+        |genList = { |i| ifZero: [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] }
+        |
+        |sumList = { |list| match list <
+        |  Cons2 ~ { |head, rest| head + @sumList [rest] };
+        |  Nil2 ~ { 0 };
+        |>}
+        |
+        |@sumList [@genList [10]]
+        """.stripMargin
+
+    eval(code) shouldEqual 55
+  }
+
+  "Constructors" should "be able to take default arguments that are overridden" in {
+    val code =
+      """
+        |type Nil2;
+        |type Cons2 head (rest = Nil2);
+        |
+        |genList = { |i| ifZero: [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] }
+        |
+        |sumList = { |list| match list <
+        |  Cons2 ~ { |head, rest| head + @sumList [rest] };
+        |  Nil2 ~ { 0 };
+        |>}
+        |
+        |@sumList [@genList [5]]
+        """.stripMargin
+
+    eval(code) shouldEqual 15
+  }
+
+  "Default arguments to constructors" should "be resolved dynamically" in {
+    val code =
+    """
+        |type Cons2 head (rest = Nil2);
+        |type Nil2;
+        |
+        |5
+        |""".stripMargin
+
+    pending
+    eval(code) shouldEqual 5
+  }
+
+  "Constructors" should "be able to take and use default arguments" in {
+    pending
+    val code =
+      """
+        |type Nil2;
+        |type Cons2 head (rest = Nil2);
+        |
+        |sumList = { |list| match list <
+        |  Cons2 ~ { |head, rest| head + @sumList [rest] };
+        |  Nil2 ~ { 0 };
+        |>}
+        |
+        |@sumList [@Cons2 [10]]
+        """.stripMargin
+
+    eval(code) shouldEqual 10
+  }
+
+  "Constructor arguments" should "be matchable in arbitrary order by name" in {
+    val code =
+      """
+        |type Nil2;
+        |type Cons2 head (rest = Nil2);
+        |
+        |genList = { |i| ifZero: [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] }
+        |
+        |sumList = { |list| match list <
+        |  Cons2 ~ { |rest, head| head + @sumList [rest] };
+        |  Nil2 ~ { 0 };
+        |>}
+        |
+        |@sumList [@genList [5]]
+        """.stripMargin
+
+    pending
+    eval(code) shouldEqual 15
   }
 
 }

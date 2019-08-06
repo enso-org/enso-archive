@@ -1,11 +1,12 @@
-package org.enso.interpreter.runtime;
+package org.enso.interpreter.runtime.type;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ImplicitCast;
 import com.oracle.truffle.api.dsl.TypeSystem;
-import org.enso.interpreter.runtime.function.Function;
-import org.enso.interpreter.runtime.type.Atom;
-import org.enso.interpreter.runtime.type.AtomConstructor;
+import org.enso.interpreter.runtime.callable.Callable;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 
 @TypeSystem({long.class, Function.class, Atom.class, AtomConstructor.class, Callable.class})
 public class Types {

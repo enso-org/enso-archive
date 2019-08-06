@@ -1,9 +1,8 @@
-package org.enso.interpreter.runtime.type;
+package org.enso.interpreter.runtime.callable.atom;
 
 import com.oracle.truffle.api.interop.TruffleObject;
-
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.Callable;
+import org.enso.interpreter.runtime.callable.Callable;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.error.ArityException;
 
 public class AtomConstructor extends Callable implements TruffleObject {
@@ -37,9 +36,10 @@ public class AtomConstructor extends Callable implements TruffleObject {
     return getArgs().length;
   }
 
-  // TODO [AA] Make defaulted arguments actually work with constructors
   public Atom newInstance(Object... arguments) {
-    if (arguments.length != getArity()) throw new ArityException(getArity(), arguments.length);
+    if (arguments.length > getArity()) {
+      throw new ArityException(getArity(), arguments.length);
+    }
     if (cachedInstance != null) return cachedInstance;
     return new Atom(this, arguments);
   }

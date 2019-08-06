@@ -1,4 +1,4 @@
-package org.enso.interpreter.runtime.function;
+package org.enso.interpreter.runtime.callable.function;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
@@ -10,8 +10,8 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
-import org.enso.interpreter.runtime.Callable;
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.Callable;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
 @ExportLibrary(InteropLibrary.class)
 public final class Function extends Callable implements TruffleObject {

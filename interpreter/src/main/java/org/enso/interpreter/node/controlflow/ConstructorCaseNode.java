@@ -4,16 +4,16 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.function.CallNode;
-import org.enso.interpreter.node.function.CallNodeGen;
-import org.enso.interpreter.runtime.type.Atom;
-import org.enso.interpreter.runtime.type.AtomConstructor;
-import org.enso.interpreter.runtime.function.Function;
+import org.enso.interpreter.node.callable.ExecuteCallNode;
+import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
+import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
 
 public class ConstructorCaseNode extends CaseNode {
   @Child private ExpressionNode matcher;
   @Child private ExpressionNode branch;
-  @Child private CallNode callNode = CallNodeGen.create();
+  @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
   private final ConditionProfile profile = ConditionProfile.createCountingProfile();
 
   public ConstructorCaseNode(ExpressionNode matcher, ExpressionNode branch) {
@@ -30,7 +30,7 @@ public class ConstructorCaseNode extends CaseNode {
     AtomConstructor matcherVal = matcher.executeAtomConstructor(frame);
     if (profile.profile(matcherVal == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
-      throw new BranchSelectedException(callNode.executeCall(function, target.getFields()));
+      throw new BranchSelectedException(executeCallNode.executeCall(function, target.getFields()));
     }
   }
 }

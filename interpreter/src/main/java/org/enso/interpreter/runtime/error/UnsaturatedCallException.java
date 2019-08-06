@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime.error;
 
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
 public class UnsaturatedCallException extends RuntimeException {
   public UnsaturatedCallException(ArgumentDefinition arg) {

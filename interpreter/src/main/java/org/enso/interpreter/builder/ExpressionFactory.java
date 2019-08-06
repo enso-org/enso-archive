@@ -21,6 +21,10 @@ import org.enso.interpreter.AstExpressionVisitor;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
+import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
+import org.enso.interpreter.node.callable.function.CreateFunctionNode;
+import org.enso.interpreter.node.callable.function.FunctionBodyNode;
 import org.enso.interpreter.node.controlflow.CaseNode;
 import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
 import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
@@ -35,16 +39,12 @@ import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
-import org.enso.interpreter.node.function.CreateFunctionNode;
-import org.enso.interpreter.node.function.FunctionBodyNode;
-import org.enso.interpreter.node.function.InvokeNode;
-import org.enso.interpreter.runtime.function.argument.CallArgument;
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
-import org.enso.interpreter.node.function.argument.ReadArgumentNode;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.GlobalScope;
@@ -195,9 +195,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     return child.processFunctionBody(arguments, statements, retValue);
   }
 
-  // At call time we don't have access to the function itself, which means that we have no way of
-  // getting at its arguments, even if we knew them statically before.
-  // How can we bridge that gap?
   @Override
   public ExpressionNode visitFunctionApplication(
       AstExpression function, List<AstCallArg> arguments) {
@@ -209,7 +206,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       callArgs.add(arg);
     }
 
-    return new InvokeNode(function.visit(this), callArgs.stream().toArray(CallArgument[]::new));
+    return InvokeCallableNodeGen.create(callArgs.stream().toArray(CallArgument[]::new), function.visit(this));
   }
 
   @Override

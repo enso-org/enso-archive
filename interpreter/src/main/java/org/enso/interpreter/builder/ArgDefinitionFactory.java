@@ -3,7 +3,7 @@ package org.enso.interpreter.builder;
 import org.enso.interpreter.AstArgDefinitionVisitor;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.function.argument.ArgumentDefinition;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.scope.GlobalScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
 
