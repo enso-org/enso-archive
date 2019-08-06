@@ -4,7 +4,6 @@ import org.enso.flexer._
 import org.enso.flexer.Pattern._
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc
-import org.enso.syntax.text.ast.Doc.AST._
 
 import scala.reflect.runtime.universe._
 import scala.annotation.tailrec
@@ -126,7 +125,7 @@ case class DocParserDef() extends ParserBase[AST] {
         text = text.tail
       }
     }
-    result = Some(Text(text))
+    result = Some(AST.Text(text))
     pushAST()
     possibleTagsList.foreach(
       tagType => {
@@ -153,7 +152,7 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def pushCodeLine(in: String, isInlineCode: Boolean): Unit = logger.trace {
     if (isInlineCode) {
-      result = Some(InlineCode(in))
+      result = Some(AST.InlineCode(in))
     } else {
       result = Some(Section.Code.Line(in))
     }
@@ -174,21 +173,24 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// Text formatting //////
   /////////////////////////////
 
-  var textFormattersStack: List[Formatter.Type] = Nil
+  var textFormattersStack: List[AST.Formatter.Type] = Nil
 
-  def pushFormatter(tp: Formatter.Type): Unit =
+  def pushFormatter(tp: AST.Formatter.Type): Unit =
     logger.trace {
       val unclosedFormattersToCheck = tp match {
-        case Formatter.Strikethrough => List(Formatter.Bold, Formatter.Italic)
-        case Formatter.Italic        => List(Formatter.Bold, Formatter.Strikethrough)
-        case Formatter.Bold          => List(Formatter.Italic, Formatter.Strikethrough)
+        case AST.Formatter.Strikethrough =>
+          List(AST.Formatter.Bold, AST.Formatter.Italic)
+        case AST.Formatter.Italic =>
+          List(AST.Formatter.Bold, AST.Formatter.Strikethrough)
+        case AST.Formatter.Bold =>
+          List(AST.Formatter.Italic, AST.Formatter.Strikethrough)
       }
       if (textFormattersStack.contains(tp)) {
         unclosedFormattersToCheck foreach { formatterToCheck =>
           checkForUnclosed(formatterToCheck)
         }
         popAST()
-        result              = Some(Formatter(tp, result))
+        result              = Some(AST.Formatter(tp, result))
         textFormattersStack = textFormattersStack.tail
         pushAST()
       } else {
@@ -196,25 +198,25 @@ case class DocParserDef() extends ParserBase[AST] {
       }
     }
 
-  def checkForUnclosed(tp: Formatter.Type): Unit = logger.trace {
+  def checkForUnclosed(tp: AST.Formatter.Type): Unit = logger.trace {
     if (textFormattersStack.nonEmpty) {
       if (textFormattersStack.head == tp) {
         popAST()
-        result              = Some(Formatter.Unclosed(tp, result))
+        result              = Some(AST.Formatter.Unclosed(tp, result))
         textFormattersStack = textFormattersStack.tail
         pushAST()
       }
     }
   }
 
-  val boldTrigger: Char          = Formatter.Bold.marker
-  val italicTrigger: Char        = Formatter.Italic.marker
-  val strikethroughTrigger: Char = Formatter.Strikethrough.marker
+  val boldTrigger: Char          = AST.Formatter.Bold.marker
+  val italicTrigger: Char        = AST.Formatter.Italic.marker
+  val strikethroughTrigger: Char = AST.Formatter.Strikethrough.marker
 
   // format: off
-  NORMAL rule boldTrigger          run reify { pushFormatter(Formatter.Bold) }
-  NORMAL rule italicTrigger        run reify { pushFormatter(Formatter.Italic) }
-  NORMAL rule strikethroughTrigger run reify { pushFormatter(Formatter.Strikethrough) }
+  NORMAL rule boldTrigger          run reify { pushFormatter(AST.Formatter.Bold) }
+  NORMAL rule italicTrigger        run reify { pushFormatter(AST.Formatter.Italic) }
+  NORMAL rule strikethroughTrigger run reify { pushFormatter(AST.Formatter.Strikethrough) }
   // format: on
 
   /////////////////////
@@ -279,9 +281,9 @@ case class DocParserDef() extends ParserBase[AST] {
   }
 
   def checksOfUnclosedFormattersOnEndOfSection(): Unit = logger.trace {
-    checkForUnclosed(Formatter.Bold)
-    checkForUnclosed(Formatter.Italic)
-    checkForUnclosed(Formatter.Strikethrough)
+    checkForUnclosed(AST.Formatter.Bold)
+    checkForUnclosed(AST.Formatter.Italic)
+    checkForUnclosed(AST.Formatter.Strikethrough)
   }
 
   def cleanupEndOfSection(): Unit = logger.trace {
@@ -313,34 +315,26 @@ case class DocParserDef() extends ParserBase[AST] {
     onEndOfSection()
     reverseFinalASTStack()
     reverseTagsStack()
-    if (sectionsStack.head.elems == Nil) {
-      result = Some(
-        Doc(
-          Tags(tagsIndent, tagsStack),
-          Synopsis(Nil),
-          Body(Nil)
-        )
-      )
-    } else {
-      sectionsStack.length match {
-        case 1 =>
-          result = Some(
-            Doc(
-              Tags(tagsIndent, tagsStack),
-              Synopsis(sectionsStack),
-              Body(Nil)
-            )
-          )
-        case _ =>
-          result = Some(
-            Doc(
-              Tags(tagsIndent, tagsStack),
-              Synopsis(sectionsStack.head),
-              Body(sectionsStack.tail)
-            )
-          )
-      }
+
+    val _tags = Tags(tagsIndent, tagsStack)
+
+    val _synopsis = sectionsStack.length match {
+      case 0 => Synopsis(Nil)
+      case 1 => Synopsis(sectionsStack)
+      case _ => Synopsis(sectionsStack.head)
     }
+
+    val _body = sectionsStack.length match {
+      case 0 | 1 => Body(Nil)
+      case _     => Body(sectionsStack.tail)
+    }
+    result = Some(
+      Doc(
+        _tags,
+        _synopsis,
+        _body
+      )
+    )
   }
 
   NORMAL rule eof run reify { onEOF() }
@@ -351,11 +345,11 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def createSectionHeader(): Unit = logger.trace {
     popAST()
-    if (result.contains(Text(newline.toString))) {
+    if (result.contains(AST.Text(newline.toString))) {
       popAST()
       result = Some(Section.Header(result.get))
       pushAST()
-    } else if (result.contains(Text(""))) {
+    } else if (result.contains(AST.Text(""))) {
       popAST()
     } else {
       pushAST()
@@ -368,18 +362,18 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def createURL(name: String, url: String): Unit =
     logger.trace {
-      result = Some(Link.URL(name, url))
+      result = Some(AST.Link.URL(name, url))
       pushAST()
     }
 
   def createImage(name: String, url: String): Unit =
     logger.trace {
-      result = Some(Link.Image(name, url))
+      result = Some(AST.Link.Image(name, url))
       pushAST()
     }
 
-  val imageNameTrigger: String = Link.Image().marker
-  val urlNameTrigger: String   = Link.URL().marker
+  val imageNameTrigger: String = AST.Link.Image().marker
+  val urlNameTrigger: String   = AST.Link.URL().marker
 
   NORMAL rule (imageNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(2).dropRight(1).split(']')
@@ -431,7 +425,7 @@ case class DocParserDef() extends ParserBase[AST] {
 
   final def onIndentForListCreation(
     indent: Int,
-    tp: ListBlock.Type,
+    tp: AST.List.Type,
     content: AST
   ): Unit =
     logger.trace {
@@ -452,7 +446,7 @@ case class DocParserDef() extends ParserBase[AST] {
       } else {
         if (inListFlag) {
           addContentToList(
-            ListBlock.Indent.Invalid(indent, content, tp)
+            AST.List.Indent.Invalid(indent, content, tp)
           )
           return
         }
@@ -483,12 +477,12 @@ case class DocParserDef() extends ParserBase[AST] {
   NEWLINE rule emptyLine run reify { onEmptyLine() }
   NEWLINE rule ((whitespace | pass) >> eof) run reify { onEOF() }
   NEWLINE rule indentPattern run reify {
-    if (workingASTStack == Nil && !result.contains(Text(""))) {
+    if (workingASTStack == Nil && !result.contains(AST.Text(""))) {
       pushNewLine()
       endGroup()
     } else {
       popAST()
-      if (!result.contains(Text(newline.toString))) {
+      if (!result.contains(AST.Text(newline.toString))) {
         pushAST()
         pushNewLine()
       } else {
@@ -502,9 +496,9 @@ case class DocParserDef() extends ParserBase[AST] {
   ///// Lists /////
   /////////////////
 
-  def addList(indent: Int, listType: ListBlock.Type, content: AST): Unit =
+  def addList(indent: Int, listType: AST.List.Type, content: AST): Unit =
     logger.trace {
-      result = Some(ListBlock(indent, listType, content))
+      result = Some(AST.List(indent, listType, content))
       pushAST()
     }
 
@@ -512,16 +506,16 @@ case class DocParserDef() extends ParserBase[AST] {
     popAST()
     val currentResult = result.orNull
     var currentContent = currentResult
-      .asInstanceOf[ListBlock]
+      .asInstanceOf[AST.List]
       .elems
     currentContent = (content :: currentContent.reverse).reverse
     result = Some(
-      ListBlock(
+      AST.List(
         currentResult
-          .asInstanceOf[ListBlock]
+          .asInstanceOf[AST.List]
           .indent,
         currentResult
-          .asInstanceOf[ListBlock]
+          .asInstanceOf[AST.List]
           .tp,
         currentContent
       )
@@ -532,18 +526,18 @@ case class DocParserDef() extends ParserBase[AST] {
   def addOneListToAnother(): Unit = logger.trace {
     popAST()
     val innerList = result.orNull
-    if (workingASTStack.head.isInstanceOf[ListBlock]) {
+    if (workingASTStack.head.isInstanceOf[AST.List]) {
       popAST()
       val outerList    = result.orNull
-      var outerContent = outerList.asInstanceOf[ListBlock].elems
+      var outerContent = outerList.asInstanceOf[AST.List].elems
       outerContent = (innerList :: outerContent.reverse).reverse
       result = Some(
-        ListBlock(
+        AST.List(
           outerList
-            .asInstanceOf[ListBlock]
+            .asInstanceOf[AST.List]
             .indent,
           outerList
-            .asInstanceOf[ListBlock]
+            .asInstanceOf[AST.List]
             .tp,
           outerContent
         )
@@ -552,18 +546,18 @@ case class DocParserDef() extends ParserBase[AST] {
     pushAST()
   }
 
-  val orderedListTrigger: Char   = ListBlock.Ordered.marker
-  val unorderedListTrigger: Char = ListBlock.Unordered.marker
+  val orderedListTrigger: Char   = AST.List.Ordered.marker
+  val unorderedListTrigger: Char = AST.List.Unordered.marker
 
   NEWLINE rule (indentPattern >> orderedListTrigger >> not(newline).many1) run reify {
     val content = currentMatch.split(orderedListTrigger)
-    onIndentForListCreation(content(0).length, ListBlock.Ordered, content(1))
+    onIndentForListCreation(content(0).length, AST.List.Ordered, content(1))
     endGroup()
   }
 
   NEWLINE rule (indentPattern >> unorderedListTrigger >> not(newline).many1) run reify {
     val content = currentMatch.split(unorderedListTrigger)
-    onIndentForListCreation(content(0).length, ListBlock.Unordered, content(1))
+    onIndentForListCreation(content(0).length, AST.List.Unordered, content(1))
     endGroup()
   }
 }

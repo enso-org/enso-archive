@@ -1,8 +1,10 @@
 package org.enso.syntax.text.ast
 
 import org.enso.data.List1
-import scalatags.Text.all._
-import scalatags.Text.{all => HTML, _}
+
+import scalatags.Text.TypedTag
+import scalatags.Text.{all => HTML}
+import HTML._
 
 ////////////////
 ////// Doc /////
@@ -17,11 +19,9 @@ final case class Doc(
 
   val html: Doc.HTML = {
     val className = this.getClass.getSimpleName
-    Seq(
-      HTML.div(HTML.`class` := className)(tags.html)(synopsis.html)(
-        details.html
-      )
-    )
+    val htmlCls   = HTML.`class` := className
+    val html      = HTML.div(htmlCls)(tags.html)(synopsis.html)(details.html)
+    Seq(html)
   }
 }
 
@@ -31,18 +31,14 @@ object Doc {
   def apply(synopsis: Synopsis, body: Body): Doc =
     new Doc(Tags(), synopsis, body)
   def apply(synopsis: Synopsis): Doc =
-    new Doc(Tags(), synopsis, Body(Nil))
-  def apply(tags: Tags): Doc =
-    new Doc(tags, Synopsis(Nil), Body(Nil))
+    new Doc(Tags(), synopsis, Body())
   def apply(tags: Tags, synopsis: Synopsis): Doc =
-    new Doc(tags, synopsis, Body(Nil))
+    new Doc(tags, synopsis, Body())
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
 
-  trait Indentable {
-    def makeIndent(size: Int): String = " " * size
-  }
+  def makeIndent(size: Int): String = " " * size
 
   //////////////
   /// Symbol ///
@@ -79,6 +75,7 @@ object Doc {
       val repr: Repr = text
       val html: HTML = Seq(text.replaceAll("\n", " "))
     }
+    val newline = AST.Text("\n")
 
     //////////////////////
     /// Text Formatter ///
@@ -116,8 +113,8 @@ object Doc {
           extends AST.Invalid {
         val repr: Repr = Repr(tp.marker) + elem.repr
         val html: HTML = Seq {
-          val className = s"unclosed_${tp.htmlMarker.tag}"
-          HTML.div(HTML.`class` := className)(elem.html)
+          val htmlCls = HTML.`class` := s"unclosed_${tp.htmlMarker.tag}"
+          HTML.div(htmlCls)(elem.html)
         }
       }
 
@@ -133,7 +130,8 @@ object Doc {
     ///////////////////////
 
     final case class InlineCode(str: String) extends AST {
-      val repr: Repr = Repr("`") + str + "`"
+      val marker     = '`'
+      val repr: Repr = Repr(marker) + str + marker
       val html: HTML = Seq(HTML.code(str))
     }
 
@@ -171,41 +169,37 @@ object Doc {
     ////// Lists //////
     ///////////////////
 
-    final case class ListBlock(
-      indent: Int,
-      tp: ListBlock.Type,
-      elems: List1[AST]
-    ) extends AST
-        with Indentable {
+    final case class List(indent: Int, tp: List.Type, elems: List1[AST])
+        extends AST {
 
       val repr: Repr = {
-        Repr() + elems.toList.map({
+        Repr() + elems.toList.map {
           case elem @ (_: AST.Invalid) =>
-            Repr('\n') + elem.repr
-          case elem @ (_: ListBlock) =>
-            Repr('\n') + elem.repr
+            newline.repr + elem.repr
+          case elem @ (_: List) =>
+            newline.repr + elem.repr
           case elem =>
             if (elems.head != elem) {
-              Repr('\n') + makeIndent(indent) + tp.marker + elem.repr
+              newline.repr + makeIndent(indent) + tp.marker + elem.repr
             } else {
               Repr(makeIndent(indent)) + tp.marker + elem.repr
             }
-        })
+        }
       }
 
-      val html: HTML = Seq(tp.HTMLMarker({
-        elems.toList.map({
-          case elem @ (_: ListBlock) => elem.html
-          case elem                  => Seq(HTML.li(elem.html))
-        })
-      }))
+      val html: HTML = Seq(tp.HTMLMarker {
+        elems.toList.map {
+          case elem @ (_: List) => elem.html
+          case elem             => Seq(HTML.li(elem.html))
+        }
+      })
     }
 
-    object ListBlock {
-      def apply(indent: Int, listType: Type, elem: AST): ListBlock =
-        ListBlock(indent, listType, List1(elem, Nil))
-      def apply(indent: Int, listType: Type, elems: AST*): ListBlock =
-        ListBlock(indent, listType, List1(elems.head, elems.tail.to[List]))
+    object List {
+      def apply(indent: Int, listType: Type, elem: AST): List =
+        List(indent, listType, List1(elem))
+      def apply(indent: Int, listType: Type, elems: AST*): List =
+        List(indent, listType, List1(elems.head, elems.tail.toList))
 
       abstract class Type(
         val marker: Char,
@@ -219,12 +213,14 @@ object Doc {
           indent: Int,
           elem: AST,
           tp: Type
-        ) extends AST.Invalid
-            with Indentable {
+        ) extends AST.Invalid {
           val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem.repr
-          val html: HTML = Seq(
-            HTML.div(HTML.`class` := "InvalidIndent")(elem.html)
-          )
+          val html: HTML = {
+            val htmlCls = HTML.`class` := "InvalidIndent"
+            Seq(
+              HTML.div(htmlCls)(elem.html)
+            )
+          }
         }
       }
     }
@@ -236,41 +232,40 @@ object Doc {
   //////////////////////
 
   final case class Section(indent: Int, st: Section.Type, elems: List[AST])
-      extends Symbol
-      with Indentable {
+      extends Symbol {
     val markerEmptyInNull: String    = st.marker.map(_.toString).getOrElse("")
     val markerNonEmptyInNull: String = st.marker.map(_.toString).getOrElse(" ")
-    val newline                      = AST.Text("\n")
 
     val repr: Repr = {
       val firstIndentRepr = Repr(indent match {
         case 0 => markerEmptyInNull
         case 1 => markerNonEmptyInNull
-        case _ => {
+        case _ =>
           val indentAfterMarker: String = makeIndent(1)
           makeIndent(
             indent - (markerNonEmptyInNull.length + indentAfterMarker.length)
           ) + markerNonEmptyInNull + indentAfterMarker
-        }
+
       })
 
-      val elemsRepr = elems.zipWithIndex.map({
+      val elemsRepr = elems.zipWithIndex.map {
         case (elem @ (_: Section.Header), _) =>
-          Repr('\n') + makeIndent(indent) + elem.repr
-        case (elem @ (_: AST.ListBlock), _) => elem.repr
-        case (elem, index) => {
+          AST.newline.repr + makeIndent(indent) + elem.repr
+        case (elem @ (_: AST.List), _) => elem.repr
+        case (elem, index) =>
           if (index > 0) {
             val previousElem = elems(index - 1)
-            if (previousElem == newline) {
+            if (previousElem == AST.newline) {
               Repr(makeIndent(indent)) + elem.repr
             } else elem.repr
           } else elem.repr
-        }
-      })
+      }
       firstIndentRepr + elemsRepr
     }
-    val html: HTML =
-      Seq(HTML.div(HTML.`class` := st.toString)(elems.map(_.html)))
+    val html: HTML = {
+      val htmlCls = HTML.`class` := st.toString
+      Seq(HTML.div(htmlCls)(elems.map(_.html)))
+    }
 
   }
 
@@ -284,7 +279,10 @@ object Doc {
 
     final case class Header(elem: AST) extends AST {
       val repr: Repr = elem.repr
-      val html: HTML = Seq(HTML.div(HTML.`class` := "Header")(elem.html))
+      val html: HTML = {
+        val htmlCls = HTML.`class` := "Header"
+        Seq(HTML.div(htmlCls)(elem.html))
+      }
     }
 
     abstract class Type(val marker: Option[Char])
@@ -305,17 +303,18 @@ object Doc {
   //////////////////
 
   final case class Body(elems: List[Section]) {
-    val repr: Repr =
-      if (elems == Nil) Repr()
-      else Repr("\n") + elems.map(_.repr.show()).mkString("\n")
+    val head: Repr = if (elems == Nil) Repr.R else AST.newline.repr
+    val repr: Repr = head + elems.map(_.repr.show()).mkString(AST.newline.text)
     val html: HTML =
       if (elems == Nil) "".html
-      else
+      else {
+        val htmlCls = HTML.`class` := this.getClass.getSimpleName
         Seq(
-          HTML.div(HTML.`class` := this.getClass.getSimpleName)(
+          HTML.div(htmlCls)(
             elems.map(_.html)
           )
         )
+      }
   }
 
   object Body {
@@ -330,15 +329,17 @@ object Doc {
 
   final case class Synopsis(elems: List[Section]) {
     val repr: Repr =
-      if (elems == Nil) Repr() else elems.map(_.repr.show()).mkString("\n")
+      elems.map(_.repr.show()).mkString(AST.newline.text)
     val html: HTML =
       if (elems == Nil) "".html
-      else
+      else {
+        val htmlCls = HTML.`class` := this.getClass.getSimpleName
         Seq(
-          HTML.div(HTML.`class` := this.getClass.getSimpleName)(
+          HTML.div(htmlCls)(
             elems.map(_.html)
           )
         )
+      }
   }
   object Synopsis {
     def apply():                Synopsis = Synopsis(Nil)
@@ -350,19 +351,20 @@ object Doc {
   /// Tags ///
   ////////////
 
-  final case class Tags(indent: Int, elems: List[Tags.Tag]) extends Indentable {
+  final case class Tags(indent: Int, elems: List[Tags.Tag]) {
+    val tail: String = if (elems == Nil) "" else AST.newline.text
     val repr: Repr =
-      if (elems == Nil) Repr()
-      else
-        elems.map(makeIndent(indent) + _.repr.show()).mkString("\n") + "\n"
+      elems
+        .map(makeIndent(indent) + _.repr.show())
+        .mkString("\n") + tail
     val html: HTML =
       if (elems == Nil) "".html
-      else
+      else {
+        val htmlCls = HTML.`class` := this.getClass.getSimpleName
         Seq(
-          HTML.div(HTML.`class` := this.getClass.getSimpleName)(
-            elems.map(_.html)
-          )
+          HTML.div(htmlCls)(elems.map(_.html))
         )
+      }
   }
   object Tags {
     def apply():                       Tags = Tags(0, Nil)
@@ -393,12 +395,14 @@ object Doc {
 
     implicit final class _OptionTagType_(val self: Option[String]) {
       val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
-      val html: HTML =
+      val html: HTML = {
+        val htmlCls = HTML.`class` := "tag_details"
         Seq(
           self
-            .map(HTML.div(HTML.`class` := "tag_details")(_))
+            .map(HTML.div(htmlCls)(_))
             .getOrElse("".html)
         )
+      }
     }
   }
 

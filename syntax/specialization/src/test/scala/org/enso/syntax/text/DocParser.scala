@@ -244,7 +244,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         Section.Raw,
         "ul:",
         "\n",
-        ListBlock(2, ListBlock.Unordered, " Foo", " Bar")
+        List(2, List.Unordered, " Foo", " Bar")
       )
     )
   )
@@ -255,7 +255,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         Section.Raw,
         "ol:",
         "\n",
-        ListBlock(2, ListBlock.Ordered, " Foo", " Bar")
+        List(2, List.Ordered, " Foo", " Bar")
       )
     )
   )
@@ -271,14 +271,14 @@ class DocParserSpec extends FlatSpec with Matchers {
         Section.Raw,
         "List",
         "\n",
-        ListBlock(
+        List(
           2,
-          ListBlock.Unordered,
+          List.Unordered,
           " First unordered item",
           " Second unordered item",
-          ListBlock(
+          List(
             4,
-            ListBlock.Ordered,
+            List.Ordered,
             " First ordered sub item",
             " Second ordered sub item"
           ),
@@ -305,26 +305,26 @@ class DocParserSpec extends FlatSpec with Matchers {
         Section.Raw,
         "List",
         "\n",
-        ListBlock(
+        List(
           2,
-          ListBlock.Unordered,
+          List.Unordered,
           " First unordered item",
           " Second unordered item",
-          ListBlock(
+          List(
             4,
-            ListBlock.Ordered,
+            List.Ordered,
             " First ordered sub item",
             " Second ordered sub item"
           ),
           " Third unordered item",
-          ListBlock(
+          List(
             4,
-            ListBlock.Ordered,
+            List.Ordered,
             " First ordered sub item",
             " Second ordered sub item",
-            ListBlock(
+            List(
               6,
-              ListBlock.Unordered,
+              List.Unordered,
               " First unordered sub item",
               " Second unordered sub item"
             ),
@@ -354,31 +354,31 @@ class DocParserSpec extends FlatSpec with Matchers {
         Section.Raw,
         "List",
         "\n",
-        ListBlock(
+        List(
           2,
-          ListBlock.Unordered,
+          List.Unordered,
           " First unordered item",
           " Second unordered item",
-          ListBlock(
+          List(
             4,
-            ListBlock.Ordered,
+            List.Ordered,
             " First ordered sub item",
             " Second ordered sub item"
           ),
           " Third unordered item",
-          ListBlock(
+          List(
             4,
-            ListBlock.Ordered,
+            List.Ordered,
             " First ordered sub item",
             " Second ordered sub item",
-            ListBlock(
+            List(
               6,
-              ListBlock.Unordered,
+              List.Unordered,
               " First unordered sub item",
               " Second unordered sub item"
             ),
             " Third ordered sub item",
-            ListBlock.Indent.Invalid(3, " Wrong Indent Item", ListBlock.Ordered)
+            List.Indent.Invalid(3, " Wrong Indent Item", List.Ordered)
           ),
           " Fourth unordered item"
         )
