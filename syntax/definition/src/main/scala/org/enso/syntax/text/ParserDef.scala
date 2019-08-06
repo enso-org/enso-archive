@@ -1,13 +1,17 @@
 package org.enso.syntax.text
 
+import org.enso.data.VectorMap
 import org.enso.flexer._
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
+import org.enso.syntax.text.AST.Marker
 import org.enso.syntax.text.AST.Text.Segment.EOL
 
 import scala.reflect.runtime.universe.reify
 
-case class ParserDef() extends Parser[AST] {
+case class ParserDef() extends Parser {
+
+  type T = AST
 
   final def unwrap[T](opt: Option[T]): T = opt match {
     case None    => throw new Error("Internal Error")
@@ -18,7 +22,12 @@ case class ParserDef() extends Parser[AST] {
   //// API ////
   /////////////
 
-  override def run(input: String) = {
+  def run(input: String, markerSeq: scala.Seq[(Int, Marker)]): Parser.Result[AST] = {
+    result.markers = VectorMap(markerSeq)
+    run(input)
+  }
+
+  override def run(input: String): Parser.Result[AST] = {
     block.onBegin(0)
     state.begin(block.FIRSTCHAR)
     super.run(input)
@@ -44,8 +53,11 @@ case class ParserDef() extends Parser[AST] {
   override def getResult() = result.current
 
   final object result {
-    var current: Option[AST]     = None
-    var stack: List[Option[AST]] = Nil
+    import AST.Marked
+
+    var markers: VectorMap[Int, Marker] = VectorMap()
+    var current: Option[AST]            = None
+    var stack: List[Option[AST]]        = Nil
 
     def push(): Unit = logger.trace {
       logger.log(s"Pushed: $current")
@@ -62,10 +74,14 @@ case class ParserDef() extends Parser[AST] {
     def app(fn: String => AST): Unit =
       app(fn(currentMatch))
 
-    def app(t: AST): Unit = logger.trace {
+    def app(ast: AST): Unit = logger.trace {
+      val marked = markers.get(offset - ast.span - 1) match {
+        case None         => ast
+        case Some(marker) => Marked(ast, marker)
+      }
       current = Some(current match {
-        case None    => t
-        case Some(r) => AST.App(r, off.use(), t)
+        case None    => marked
+        case Some(r) => AST.App(r, off.use(), marked)
       })
     }
   }
@@ -108,6 +124,8 @@ case class ParserDef() extends Parser[AST] {
   ////////////////////
 
   final object ident {
+    import AST.Ident._
+
     var current: Option[AST.Ident] = None
 
     def on(cons: String => AST.Ident): Unit = logger.trace_ {
@@ -125,7 +143,7 @@ case class ParserDef() extends Parser[AST] {
     }
 
     def onErrSfx(): Unit = logger.trace {
-      val ast = AST.Ident.InvalidSuffix(unwrap(current), currentMatch)
+      val ast = InvalidSuffix(unwrap(current), currentMatch)
       result.app(ast)
       current = None
       state.end()
@@ -161,6 +179,7 @@ case class ParserDef() extends Parser[AST] {
   //////////////////
 
   final object opr {
+
     def on(cons: String => AST.Ident): Unit = logger.trace {
       on(cons(currentMatch))
     }
@@ -496,7 +515,6 @@ case class ParserDef() extends Parser[AST] {
         unwrap(current.firstLine),
         current.lines.reverse
       )
-
     }
 
     def submit(): Unit = logger.trace {

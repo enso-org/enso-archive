@@ -58,6 +58,17 @@ object AST {
     else Opr(str)
   }
 
+
+  ////////////////
+  //// Marker ////
+  ////////////////
+
+  final case class Marker(id: Int)
+
+  final case class Marked(ast: AST, marker: Marker) extends AST {
+    val repr = ast.repr
+  }
+
   /////////////////
   //// Invalid ////
   /////////////////

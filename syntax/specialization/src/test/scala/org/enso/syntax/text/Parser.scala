@@ -14,8 +14,10 @@ import org.enso.syntax.text.AST.Text.Segment.Plain
 
 class ParserSpec extends FlatSpec with Matchers {
 
-  def assertModule(input: String, result: AST): Assertion = {
-    val output = Parser.run(input)
+  type Markers = Seq[(Int, Marker)]
+
+  def assertModule(input: String, result: AST, markers: Markers): Assertion = {
+    val output = Parser().run(input, markers)
     output match {
       case Result(offset, Result.Success(value)) =>
         assert(value == result)
@@ -24,8 +26,8 @@ class ParserSpec extends FlatSpec with Matchers {
     }
   }
 
-  def assertExpr(input: String, result: AST): Assertion = {
-    val output = Parser.run(input)
+  def assertExpr(input: String, result: AST, markers: Markers): Assertion = {
+    val output = Parser().run(input, markers)
     output match {
       case Result(offset, Result.Success(value)) =>
         val module = value.asInstanceOf[Module]
@@ -44,7 +46,7 @@ class ParserSpec extends FlatSpec with Matchers {
   }
 
   def assertIdentity(input: String): Assertion = {
-    val output = Parser.run(input)
+    val output = Parser().run(input)
     output match {
       case Result(offset, Result.Success(value)) =>
         assert(value.show() == input)
@@ -66,10 +68,13 @@ class ParserSpec extends FlatSpec with Matchers {
 
     private val testBase = it should parseTitle(input)
 
-    def ?=(out: AST)    = testBase in { assertExpr(input, out) }
-    def ?=(out: Module) = testBase in { assertModule(input, out) }
+    def ?=(out: AST)    = testBase in { assertExpr(input, out, Seq()) }
+    def ?=(out: Module) = testBase in { assertModule(input, out, Seq()) }
+    def ?#=(out: AST) = testBase in { assertExpr(input, out, markers) }
     def testIdentity = testBase in { assertIdentity(input) }
   }
+
+  val markers = 0 to 100 map ( offset => offset -> Marker(offset))
 
   /////////////////////
   //// Identifiers ////
@@ -236,6 +241,19 @@ class ParserSpec extends FlatSpec with Matchers {
   //  // Disabled
   //  expr("a #= b"         , Var("a") :: DisabledAssignment :: Var("b"))
   //
+
+
+  /////////////////
+  //// Markers ////
+  /////////////////
+
+  "marked" ?#= Marked(Var("marked"), Marker(0))
+  "Marked" ?#= Marked(Cons("Marked"), Marker(0))
+  "111111" ?#= Marked(Number(111111), Marker(0))
+  "'    '" ?#= Marked(Text("    "), Marker(0))
+  "++++++" ?#= Marked(Opr("++++++"), Marker(0))
+  "+++++=" ?#= Marked(Opr.Mod("+++++"), Marker(0))
+  "a b  c" ?#= Marked(Var("a"), Marker(0)) $_ Marked(Var("b"), Marker(2)) $__ Marked(Var("c"), Marker(5))
 
   //////////////////
   //// Mixfixes ////

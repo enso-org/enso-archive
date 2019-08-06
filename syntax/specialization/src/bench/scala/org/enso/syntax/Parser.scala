@@ -24,13 +24,13 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
                                             """.stripMargin * i
 
   performance of "parser" in {
-    measure method "variable" in (using(variable) in (Parser.run(_)))
-    measure method "text" in (using(text) in (Parser.run(_)))
-    measure method "number" in (using(number) in (Parser.run(_)))
-    measure method "calls" in (using(calls) in (Parser.run(_)))
-    measure method "codeBlock" in (using(codeBlock) in (Parser.run(_)))
-    measure method "openParens" in (using(openParens) in (Parser.run(_)))
-    measure method "clsdParens" in (using(clsdParens) in (Parser.run(_)))
-    measure method "allRules" in (using(allRules) in (Parser.run(_)))
+    measure method "variable" in (using(variable) in (Parser().run(_)))
+    measure method "text" in (using(text) in (Parser().run(_)))
+    measure method "number" in (using(number) in (Parser().run(_)))
+    measure method "calls" in (using(calls) in (Parser().run(_)))
+    measure method "codeBlock" in (using(codeBlock) in (Parser().run(_)))
+    measure method "openParens" in (using(openParens) in (Parser().run(_)))
+    measure method "clsdParens" in (using(clsdParens) in (Parser().run(_)))
+    measure method "allRules" in (using(allRules) in (Parser().run(_)))
   }
 }
