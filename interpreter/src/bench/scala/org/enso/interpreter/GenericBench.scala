@@ -8,10 +8,8 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
   val million: Long        = 1000000
   val hundredMillion: Long = 100000000
 
-  // TODO [AA] Benchmarks for named and defaulted argument usage
-
   // Currently unused as we know this is very slow.
-//  val mutRecursiveCode =
+//  val globalTCOCode =
 //    """
 //    |summator = { |acc, current|
 //    |    ifZero: [current, acc, @summator [acc + current, current - 1]]
@@ -86,7 +84,7 @@ class GenericBench extends Bench.LocalTime with LanguageRunner {
     }
   }
 
-    val sumRecursiveCode =
+  val sumRecursiveCode =
     """
       |{ |sumTo|
       |  summator = { |i| ifZero: [i, 0, i + (@summator [i - 1])] };

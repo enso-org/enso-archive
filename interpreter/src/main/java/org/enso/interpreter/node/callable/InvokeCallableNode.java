@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -23,7 +24,8 @@ import org.enso.interpreter.runtime.error.NotInvokableException;
 @NodeInfo(shortName = "@", description = "Executes function")
 @NodeChild(value = "callable", type = ExpressionNode.class)
 public abstract class InvokeCallableNode extends ExpressionNode {
-  @Children private final ExpressionNode[] argExpressions;
+  @Children
+  private @CompilationFinal(dimensions = 1) ExpressionNode[] argExpressions;
   @Child private ArgumentSorterNode argumentSorter;
   @Child private CallOptimiserNode callOptimiserNode;
 
