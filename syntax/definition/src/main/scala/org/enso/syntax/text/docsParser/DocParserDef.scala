@@ -127,6 +127,7 @@ case class DocParserDef() extends ParserBase[AST] {
     }
     result = Some(AST.Text(text))
     pushAST()
+
     possibleTagsList.foreach(
       tagType => {
         if (in.contains(
@@ -150,22 +151,35 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// Code pushing //////
   //////////////////////////
 
-  def pushCodeLine(in: String, isInlineCode: Boolean): Unit = logger.trace {
-    if (isInlineCode) {
-      result = Some(AST.InlineCode(in))
-    } else {
-      result = Some(Section.Code.Line(in))
+  def pushCodeLine(in: String): Unit = logger.trace {
+    result = Some(AST.Code.Inline(in))
+    pushAST()
+  }
+
+  def pushMultilineCodeLine(in: String): Unit = logger.trace {
+    do {
+      popAST()
+    } while (result.contains(AST.Text(newline.toString)))
+
+    result.get match {
+      case _: AST.Code.Multiline => {
+        val inMultilineCode = result.get.asInstanceOf[AST.Code.Multiline].elems
+        val indent          = result.get.asInstanceOf[AST.Code.Multiline].indent
+        result = Some(AST.Code.Multiline(indent, in :: inMultilineCode))
+      }
+      case _ => pushAST()
     }
     pushAST()
   }
+
   val inlineCodeTrigger = '`'
   NORMAL rule (inlineCodeTrigger >> not('`').many >> inlineCodeTrigger) run reify {
-    pushCodeLine(currentMatch.substring(1).dropRight(1), true)
+    pushCodeLine(currentMatch.substring(1).dropRight(1))
   }
 
   // format: off
-  MULTILINECODE rule newline              run reify { beginGroup(NEWLINE)}
-  MULTILINECODE rule not(newline).many1   run reify { pushCodeLine(currentMatch, false) }
+  MULTILINECODE rule newline              run reify { endGroup() }
+  MULTILINECODE rule not(newline).many1   run reify { pushMultilineCodeLine(currentMatch) }
   MULTILINECODE rule eof                  run reify { onEOF() }
   // format: on
 
@@ -249,24 +263,24 @@ case class DocParserDef() extends ParserBase[AST] {
   ////// New section //////
   /////////////////////////
 
-  var sectionsStack: List[Section] = Nil
-  var currentSection: Section.Type = Section.Raw
-  var currentSectionIndent: Int    = 0
+  var sectionsStack: List[Section]                = Nil
+  var currentSection: Option[Section.Marked.Type] = None
+  var currentSectionIndent: Int                   = 0
 
-  def onNewSection(st: Section.Type): Unit =
+  def onNewSection(st: Option[Section.Marked.Type]): Unit =
     logger.trace {
       popAST()
       currentSection = st
     }
 
-  val importantTrigger: Char = Section.Important.marker.get
-  val infoTrigger: Char      = Section.Info.marker.get
-  val exampleTrigger: Char   = Section.Example.marker.get
+  val importantTrigger: Char = Section.Marked.Important.marker
+  val infoTrigger: Char      = Section.Marked.Info.marker
+  val exampleTrigger: Char   = Section.Marked.Example.marker
 
   // format: off
-  NORMAL rule importantTrigger run reify { onNewSection(Section.Important) }
-  NORMAL rule infoTrigger      run reify { onNewSection(Section.Info)}
-  NORMAL rule exampleTrigger   run reify { onNewSection(Section.Example)}
+  NORMAL rule importantTrigger run reify { onNewSection(Some(Section.Marked.Important)) }
+  NORMAL rule infoTrigger      run reify { onNewSection(Some(Section.Marked.Info))}
+  NORMAL rule exampleTrigger   run reify { onNewSection(Some(Section.Marked.Example))}
   // format: on
 
   ////////////////////////////
@@ -290,12 +304,27 @@ case class DocParserDef() extends ParserBase[AST] {
     if (sectionsStack.isEmpty) {
       tagsIndent = currentSectionIndent
     }
-    sectionsStack +:= Some(
-      Section(currentSectionIndent, currentSection, workingASTStack)
-    ).orNull
+    currentSection match {
+      case _: Some[Section.Marked.Type] =>
+        sectionsStack +:= Some(
+          Section.Marked(
+            currentSectionIndent,
+            currentSection.get,
+            workingASTStack
+          )
+        ).orNull
+      case None =>
+        sectionsStack +:= Some(
+          Section.Raw(
+            currentSectionIndent,
+            workingASTStack
+          )
+        ).orNull
+    }
+
     result          = None
     workingASTStack = Nil
-    onNewSection(Section.Raw)
+    onNewSection(None)
     textFormattersStack = Nil
   }
 
@@ -346,8 +375,14 @@ case class DocParserDef() extends ParserBase[AST] {
   def createSectionHeader(): Unit = logger.trace {
     popAST()
     if (result.contains(AST.Text(newline.toString))) {
-      popAST()
-      result = Some(Section.Header(result.get))
+      var listForHeader: List[AST] = Nil
+      do {
+        popAST()
+        listForHeader +:= result.get
+      } while (!result.contains(AST.Text(newline.toString)))
+      pushAST()
+      listForHeader = listForHeader.tail
+      result        = Some(Section.Header(listForHeader.reverse))
       pushAST()
     } else if (result.contains(AST.Text(""))) {
       popAST()
@@ -402,15 +437,13 @@ case class DocParserDef() extends ParserBase[AST] {
     val diff = currentMatch.length - lastOffset
     if (diff >= codeIndent) {
       lastDiff = codeIndent
-      onEndOfSection()
-      currentSectionIndent = currentMatch.length
-      onNewSection(Section.Code)
+      result   = Some(AST.Code.Multiline(currentMatch.length, Nil))
+      pushAST()
       beginGroup(MULTILINECODE)
     } else if (diff == 0 && lastDiff == codeIndent) {
       beginGroup(MULTILINECODE)
     } else if (diff <= -codeIndent && lastDiff == codeIndent) {
       lastDiff = diff
-      onEndOfSection()
       endGroup()
     } else if (diff == -listIndent && inListFlag) {
       lastDiff = diff

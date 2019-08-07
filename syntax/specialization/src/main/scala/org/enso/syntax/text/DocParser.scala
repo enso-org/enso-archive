@@ -20,7 +20,11 @@ object DocParser {
   val docParserInstance = new DocParser()
 
   val dataToParse =
-    """ DEPRECATED
+    """ DEPRECATED in 2.0
+      | MODIFIED in 1.9
+      | UPCOMING
+      | ADDED in 1.5
+      | REMOVED
       | Construct and manage a graphical, event-driven user interface for your iOS or
       | tvOS app.
       |
@@ -41,9 +45,8 @@ object DocParser {
       |   - Second unordered item
       |     * First ordered sub item
       |     * Second ordered sub item
-      |
-      | ! Important
-      |   An example warning block. Use UIKit classes only from your app’s main thread
+      |       
+      | ! An example warning block. Use UIKit classes only from your app’s main thread
       |   or main dispatch queue, unless otherwise indicated. This restriction
       |   particularly applies to classes derived from UIResponder or that involve
       |   manipulating your app’s user interface in any way.
@@ -52,7 +55,7 @@ object DocParser {
       |   `Inline code is allowed everywhere`. It can span a single line only
       |
       |
-      | A new section title is after 2 newlines
+      | A new section title *is* after 2 newlines
       | Now we can write a new
       |
       | > Title of an example
@@ -60,7 +63,8 @@ object DocParser {
       |   name and this is its description. Code has to be indented.
       |       import Std.Math.Vector
       |       v = Vec3 1 2 'foo' : Vector (Int | String)
-      |       print v """.stripMargin
+      |       print v 
+      |   Continue example""".stripMargin
 
   val docParserOut = docParserInstance.run(dataToParse)
 

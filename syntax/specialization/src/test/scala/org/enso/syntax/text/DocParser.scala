@@ -44,74 +44,82 @@ class DocParserSpec extends FlatSpec with Matchers {
   ///// Formatters /////
   //////////////////////
   "*Foo*" ?= Doc(
-    Synopsis(Section(0, Section.Raw, Formatter(Formatter.Bold, "Foo")))
+    Synopsis(
+      Section
+        .Raw(0, Formatter(Formatter.Bold, "Foo"))
+    )
   )
   "_Foo_" ?= Doc(
-    Synopsis(Section(0, Section.Raw, Formatter(Formatter.Italic, "Foo")))
+    Synopsis(
+      Section.Raw(
+        0,
+        Formatter(Formatter.Italic, "Foo")
+      )
+    )
   )
   "~Foo~" ?= Doc(
-    Synopsis(Section(0, Section.Raw, Formatter(Formatter.Strikethrough, "Foo")))
+    Synopsis(
+      Section.Raw(
+        0,
+        Formatter(Formatter.Strikethrough, "Foo")
+      )
+    )
   )
-  "`Foo`" ?= Doc(Synopsis(Section(0, Section.Raw, InlineCode("Foo"))))
+  "`Foo`" ?= Doc(
+    Synopsis(Section.Raw(0, Code.Inline("Foo")))
+  )
   "~*Foo*~" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
       )
     )
   )
   "~_Foo_~" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Strikethrough, Formatter(Formatter.Italic, "Foo"))
       )
     )
   )
   "_~Foo~_" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Italic, Formatter(Formatter.Strikethrough, "Foo"))
       )
     )
   )
   "_*Foo*_" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
       )
     )
   )
   "*_Foo_*" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
       )
     )
   )
   "*~Foo~*" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Bold, Formatter(Formatter.Strikethrough, "Foo"))
       )
     )
   )
   "_~*Foo*~_" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(
           Formatter.Italic,
           Formatter(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
@@ -124,18 +132,16 @@ class DocParserSpec extends FlatSpec with Matchers {
   ///////////////////////////////
   "_*Foo*" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter.Unclosed(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
       )
     )
   )
   "~*Foo*" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter
           .Unclosed(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
       )
@@ -143,9 +149,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "***Foo" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Bold),
         Formatter.Unclosed(Formatter.Bold, "Foo")
       )
@@ -153,18 +158,16 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "*_Foo_" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter.Unclosed(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
       )
     )
   )
   "~_Foo_" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter
           .Unclosed(Formatter.Strikethrough, Formatter(Formatter.Italic, "Foo"))
       )
@@ -172,9 +175,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "___Foo" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Italic),
         Formatter.Unclosed(Formatter.Italic, "Foo")
       )
@@ -182,9 +184,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "*~Foo~" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter
           .Unclosed(Formatter.Bold, Formatter(Formatter.Strikethrough, "Foo"))
       )
@@ -192,9 +193,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "_~Foo~" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter
           .Unclosed(Formatter.Italic, Formatter(Formatter.Strikethrough, "Foo"))
       )
@@ -202,36 +202,39 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "~~~Foo" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Formatter(Formatter.Strikethrough),
         Formatter.Unclosed(Formatter.Strikethrough, "Foo")
       )
     )
   )
   "`import foo`" ?= Doc(
-    Synopsis(Section(0, Section.Raw, InlineCode("import foo")))
+    Synopsis(
+      Section.Raw(0, Code.Inline("import foo"))
+    )
   )
   ////////////////////
   ///// Segments /////
   ////////////////////
   "!Important" ?= Doc(
-    Synopsis(Section(0, Section.Important, "Important"))
+    Synopsis(Section.Marked(0, Section.Marked.Important, "Important"))
   )
-  "?Info"    ?= Doc(Synopsis(Section(0, Section.Info, "Info")))
-  ">Example" ?= Doc(Synopsis(Section(0, Section.Example, "Example")))
+  "?Info" ?= Doc(Synopsis(Section.Marked(0, Section.Marked.Info, "Info")))
+  ">Example" ?= Doc(
+    Synopsis(Section.Marked(0, Section.Marked.Example, "Example"))
+  )
   "?Info\n\n!Important" ?= Doc(
-    Synopsis(Section(0, Section.Info, "Info", "\n")),
-    Body(Section(0, Section.Important, "Important"))
+    Synopsis(Section.Marked(0, Section.Marked.Info, "Info", "\n")),
+    Body(Section.Marked(0, Section.Marked.Important, "Important"))
   )
   "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
-      Section(0, Section.Info, "Info", "\n")
+      Section.Marked(0, Section.Marked.Info, "Info", "\n")
     ),
     Body(
-      Section(0, Section.Important, "Important", "\n"),
-      Section(0, Section.Example, "Example")
+      Section.Marked(0, Section.Marked.Important, "Important", "\n"),
+      Section.Marked(0, Section.Marked.Example, "Example")
     )
   )
   /////////////////
@@ -239,9 +242,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   "ul:\n  - Foo\n  - Bar" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         "ul:",
         "\n",
         List(2, List.Unordered, " Foo", " Bar")
@@ -250,9 +252,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "ol:\n  * Foo\n  * Bar" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         "ol:",
         "\n",
         List(2, List.Ordered, " Foo", " Bar")
@@ -266,9 +267,8 @@ class DocParserSpec extends FlatSpec with Matchers {
     |    * Second ordered sub item
     |  - Third unordered item""".stripMargin ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         "List",
         "\n",
         List(
@@ -300,9 +300,8 @@ class DocParserSpec extends FlatSpec with Matchers {
     |    * Third ordered sub item
     |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         "List",
         "\n",
         List(
@@ -349,9 +348,8 @@ class DocParserSpec extends FlatSpec with Matchers {
     |   * Wrong Indent Item
     |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         "List",
         "\n",
         List(
@@ -390,9 +388,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   "[Hello](Http://Google.com)" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Link.URL(
           "Hello",
           "Http://Google.com"
@@ -402,9 +399,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "![Media](http://foo.com)" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         Link.Image(
           "Media",
           "http://foo.com"
@@ -417,9 +413,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
     Synopsis(
-      Section(
+      Section.Raw(
         0,
-        Section.Raw,
         "Foo ",
         Formatter(Formatter.Bold, "Foo"),
         " ",
@@ -428,16 +423,16 @@ class DocParserSpec extends FlatSpec with Matchers {
           Formatter.Unclosed(Formatter.Bold, "Bar")
         ),
         " ",
-        InlineCode("foo bar baz bo"),
+        Code.Inline("foo bar baz bo"),
         " ",
         "\n"
       )
     ),
     Body(
-      Section(0, Section.Raw, "Hello Section", "\n"),
-      Section(0, Section.Important, "important", "\n"),
-      Section(0, Section.Info, "Hi", "\n"),
-      Section(0, Section.Example, "Example")
+      Section.Raw(0, "Hello Section", "\n"),
+      Section.Marked(0, Section.Marked.Important, "important", "\n"),
+      Section.Marked(0, Section.Marked.Info, "Hi", "\n"),
+      Section.Marked(0, Section.Marked.Example, "Example")
     )
   )
   ////////////////
@@ -445,26 +440,26 @@ class DocParserSpec extends FlatSpec with Matchers {
   ////////////////
   "DEPRECATED\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Deprecated)),
-    Synopsis(Section(0, Section.Raw, "Foo"))
+    Synopsis(Section.Raw(0, "Foo"))
   )
   "MODIFIED\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Modified)),
-    Synopsis(Section(0, Section.Raw, "Foo"))
+    Synopsis(Section.Raw(0, "Foo"))
   )
   "ADDED\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Added)),
-    Synopsis(Section(0, Section.Raw, "Foo"))
+    Synopsis(Section.Raw(0, "Foo"))
   )
   "REMOVED\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Removed)),
-    Synopsis(Section(0, Section.Raw, "Foo"))
+    Synopsis(Section.Raw(0, "Foo"))
   )
   "DEPRECATED in 1.0\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0")),
-    Synopsis(Section(0, Section.Raw, "Foo"))
+    Synopsis(Section.Raw(0, "Foo"))
   )
   "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0"), Tags.Tag(Tags.Tag.Modified)),
-    Synopsis(Section(0, Section.Raw, "Foo"))
+    Synopsis(Section.Raw(0, "Foo"))
   )
 }

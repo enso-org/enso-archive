@@ -1,10 +1,10 @@
 package org.enso.syntax.text.ast
 
 import org.enso.data.List1
-
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
+import org.enso.syntax.text.ast.Doc.Tags.Tag.Unrecognized
 
 ////////////////
 ////// Doc /////
@@ -125,14 +125,23 @@ object Doc {
       }
     }
 
-    ///////////////////////
-    ////// Code Line //////
-    ///////////////////////
+    //////////////////
+    ////// Code //////
+    //////////////////
 
-    final case class InlineCode(str: String) extends AST {
-      val marker     = '`'
-      val repr: Repr = Repr(marker) + str + marker
-      val html: HTML = Seq(HTML.code(str))
+    object Code {
+      final case class Inline(str: String) extends AST {
+        val marker     = '`'
+        val repr: Repr = Repr(marker) + str + marker
+        val html: HTML = Seq(HTML.code(str))
+      }
+      final case class Multiline(indent: Int, elems: scala.List[String])
+          extends AST {
+        val repr: Repr = elems.reverse
+          .map(makeIndent(indent) + _)
+          .mkString(AST.newline.text)
+        val html: HTML = Seq(elems.map(elem => Seq(HTML.code(elem), HTML.br)))
+      }
     }
 
     ///////////////////
@@ -231,27 +240,48 @@ object Doc {
   ////// Sections //////
   //////////////////////
 
-  final case class Section(indent: Int, st: Section.Type, elems: List[AST])
-      extends Symbol {
-    val markerEmptyInNull: String    = st.marker.map(_.toString).getOrElse("")
-    val markerNonEmptyInNull: String = st.marker.map(_.toString).getOrElse(" ")
+  trait Section extends Symbol {
+    type Type
+    val indent: Int
+    val tp: Type
+    val elems: List[AST]
+  }
 
-    val repr: Repr = {
+  object Section {
+    final case class Header(elems: List[AST]) extends AST {
+      val repr: Repr = Repr() + elems.map(_.repr)
+      val html: HTML = {
+        val htmlCls = HTML.`class` := "Header"
+        Seq(HTML.div(htmlCls)(elems.foreach(_.html)))
+      }
+    }
+    def apply(elem: AST): Header =
+      Header(elem :: Nil)
+    def apply(elems: AST*): Header =
+      Header(elems.to[List])
+
+    final case class Marked(
+      indent: Int,
+      tp: Marked.Type,
+      elems: List[AST]
+    ) extends Section {
+      type Type = Marked.Type
+      val marker = tp.marker.toString
       val firstIndentRepr = Repr(indent match {
-        case 0 => markerEmptyInNull
-        case 1 => markerNonEmptyInNull
+        case 0 | 1 => marker
         case _ =>
-          val indentAfterMarker: String = makeIndent(1)
-          makeIndent(
-            indent - (markerNonEmptyInNull.length + indentAfterMarker.length)
-          ) + markerNonEmptyInNull + indentAfterMarker
-
+          val indentBeforeMarker: String = makeIndent(1)
+          indentBeforeMarker + marker + makeIndent(
+            indent - (marker.length + indentBeforeMarker.length)
+          )
       })
 
       val elemsRepr = elems.zipWithIndex.map {
         case (elem @ (_: Section.Header), _) =>
           AST.newline.repr + makeIndent(indent) + elem.repr
-        case (elem @ (_: AST.List), _) => elem.repr
+        case (elem @ (_: AST.List), _) =>
+          elem.repr
+        case (elem @ (_: AST.Code.Multiline), _) => elem.repr
         case (elem, index) =>
           if (index > 0) {
             val previousElem = elems(index - 1)
@@ -260,42 +290,67 @@ object Doc {
             } else elem.repr
           } else elem.repr
       }
-      firstIndentRepr + elemsRepr
-    }
-    val html: HTML = {
-      val htmlCls = HTML.`class` := st.toString
-      Seq(HTML.div(htmlCls)(elems.map(_.html)))
-    }
 
-  }
-
-  object Section {
-    def apply(indent: Int, st: Type): Section =
-      Section(indent, st, Nil)
-    def apply(indent: Int, st: Type, elem: AST): Section =
-      Section(indent, st, elem :: Nil)
-    def apply(indent: Int, st: Type, elems: AST*): Section =
-      Section(indent, st, elems.to[List])
-
-    final case class Header(elem: AST) extends AST {
-      val repr: Repr = elem.repr
+      val repr: Repr = firstIndentRepr + elemsRepr
       val html: HTML = {
-        val htmlCls = HTML.`class` := "Header"
-        Seq(HTML.div(htmlCls)(elem.html))
+        val htmlCls = HTML.`class` := tp.toString
+        Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
     }
 
-    abstract class Type(val marker: Option[Char])
-    case object Important extends Type(Some('!'))
-    case object Info      extends Type(Some('?'))
-    case object Example   extends Type(Some('>'))
-    case object Code extends Type(None) {
-      final case class Line(str: String) extends AST {
-        val repr: Repr = str
-        val html: HTML = Seq(HTML.code(str), HTML.br)
+    object Marked {
+      def apply(indent: Int, st: Type): Marked =
+        Marked(indent, st, Nil)
+      def apply(indent: Int, st: Type, elem: AST): Marked =
+        Marked(indent, st, elem :: Nil)
+      def apply(indent: Int, st: Type, elems: AST*): Marked =
+        Marked(indent, st, elems.to[List])
+
+      abstract class Type(val marker: Char)
+      case object Important extends Type('!')
+      case object Info      extends Type('?')
+      case object Example   extends Type('>')
+    }
+
+    final case class Raw(
+      indent: Int,
+      elems: List[AST]
+    ) extends Section {
+      type Type = Raw.Type
+      override val tp = Raw.RawTp
+
+      val elemsRepr = elems.zipWithIndex.map {
+        case (elem @ (_: Section.Header), _) =>
+          AST.newline.repr + makeIndent(indent) + elem.repr
+        case (elem @ (_: AST.List), _)           => elem.repr
+        case (elem @ (_: AST.Code.Multiline), _) => elem.repr
+        case (elem, index) =>
+          if (index > 0) {
+            val previousElem = elems(index - 1)
+            if (previousElem == AST.newline) {
+              Repr(makeIndent(indent)) + elem.repr
+            } else elem.repr
+          } else elem.repr
+      }
+
+      val repr: Repr = Repr(makeIndent(indent)) + elemsRepr
+      val html: HTML = {
+        val htmlCls = HTML.`class` := tp.toString
+        Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
     }
-    case object Raw extends Type(None)
+
+    object Raw {
+      def apply(indent: Int): Raw =
+        Raw(indent, Nil)
+      def apply(indent: Int, elem: AST): Raw =
+        Raw(indent, elem :: Nil)
+      def apply(indent: Int, elems: AST*): Raw =
+        Raw(indent, elems.to[List])
+
+      abstract class Type()
+      case object RawTp extends Type()
+    }
   }
 
   //////////////////
@@ -377,8 +432,12 @@ object Doc {
 
     final case class Tag(tp: Tag.Type, details: Option[String]) {
       val name: String = tp.toString.toUpperCase
-      val repr: Repr   = Repr(name) + details.repr
-      val html: HTML   = Seq(HTML.div(HTML.`class` := name)(name)(details.html))
+      val repr: Repr = tp match {
+        case _: Unrecognized =>
+          Repr(Tag.asInstanceOf[Unrecognized].str) + details.repr
+        case _ => Repr(name) + details.repr
+      }
+      val html: HTML = Seq(HTML.div(HTML.`class` := name)(name)(details.html))
     }
     object Tag {
       def apply(tp: Type): Tag = Tag(tp, None)
@@ -386,11 +445,12 @@ object Doc {
         Tag(tp, Option(details))
 
       sealed trait Type
-      case object Deprecated extends Type
-      case object Added      extends Type
-      case object Removed    extends Type
-      case object Modified   extends Type
-      case object Upcoming   extends Type
+      case object Deprecated               extends Type
+      case object Added                    extends Type
+      case object Removed                  extends Type
+      case object Modified                 extends Type
+      case object Upcoming                 extends Type
+      case class Unrecognized(str: String) extends Type
     }
 
     implicit final class _OptionTagType_(val self: Option[String]) {
