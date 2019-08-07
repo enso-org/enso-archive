@@ -33,7 +33,16 @@ public class EnsoRootNode extends RootNode {
     return this.name;
   }
 
+  // TODO [AA, MK] Factor these out to be common with `BaseNode`.
   public void markTail() {
     body.markTail();
+  }
+
+  public void markNotTail() {
+    body.markNotTail();
+  }
+
+  public void setTail(boolean isTail) {
+    body.setTail(isTail);
   }
 }

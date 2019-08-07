@@ -5,7 +5,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import org.enso.interpreter.builder.FramePointer;
+import org.enso.interpreter.runtime.scope.FramePointer;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.function.Function;
 

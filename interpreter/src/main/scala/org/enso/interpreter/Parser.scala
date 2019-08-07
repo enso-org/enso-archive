@@ -44,8 +44,6 @@ trait AstExpressionVisitor[+T] {
     branches: java.util.List[AstCase],
     fallback: java.util.Optional[AstCaseFunction]
   ): T
-
-  def visitIgnore(name: String): T
 }
 
 trait AstGlobalScopeVisitor[+T] {

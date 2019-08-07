@@ -25,8 +25,8 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
    * @param scopeName the name of the scope in which the arguments are called
    * @param globalScope the current language global scope
    */
-  public CallArgFactory(LocalScope scope, Language language, String scopeName,
-      GlobalScope globalScope) {
+  public CallArgFactory(
+      LocalScope scope, Language language, String scopeName, GlobalScope globalScope) {
     this.scope = scope;
     this.language = language;
     this.scopeName = scopeName;
@@ -36,8 +36,8 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
   /**
    * Processes an ignore argument.
    *
-   * Such arguments are used to disable the function's usage of a default with which it was defined,
-   * and become useful in the presence of partial function application and currying.
+   * <p>Such arguments are used to disable the function's usage of a default with which it was
+   * defined, and become useful in the presence of partial function application and currying.
    *
    * @param name the name of the argument whose default is ignored
    * @param position the position of this argument in the calling arguments list
@@ -51,7 +51,7 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
   /**
    * Processes a named argument application.
    *
-   * Arguments can be applied by name, and can occur at any point in the parameter list.
+   * <p>Arguments can be applied by name, and can occur at any point in the parameter list.
    *
    * @param name the name of the argument being applied
    * @param value the value of the argument being applied
@@ -67,7 +67,7 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
   /**
    * Processes a positional argument application.
    *
-   * Though all arguments have positions at the call site, an argument without a name is applied
+   * <p>Though all arguments have positions at the call site, an argument without a name is applied
    * purely based on its position.
    *
    * @param value the value of the argument being applied

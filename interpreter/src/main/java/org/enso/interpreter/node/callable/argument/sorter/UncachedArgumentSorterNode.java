@@ -8,18 +8,43 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-@NodeInfo(shortName = "ArgumentMap")
+/**
+ * This class handles the case where we have no cached mapping for a given callable's arguments, and
+ * will compute it on the fly.
+ */
+@NodeInfo(shortName = "UncachedArgumentSorter")
 public class UncachedArgumentSorterNode extends BaseNode {
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
 
+  /**
+   * Creates a node to sort arguments on the fly.
+   *
+   * @param schema information on the calling arguments
+   */
   public UncachedArgumentSorterNode(CallArgumentInfo[] schema) {
     this.schema = schema;
   }
 
+  /**
+   * Creates a node to sort arguments on the fly.
+   *
+   * @param schema information on the calling arguments
+   * @return a sorter node for the arguments in {@code schema} for an unknown callable
+   */
   public static UncachedArgumentSorterNode create(CallArgumentInfo[] schema) {
     return new UncachedArgumentSorterNode(schema);
   }
 
+  /**
+   * Reorders the provided {@code arguments} for the given {@link
+   * org.enso.interpreter.runtime.callable.Callable}.
+   *
+   * @param callable the callable to reorder arguments for
+   * @param arguments the arguments passed to {@code callable}
+   * @param numArgsDefinedForCallable the number of arguments defined on {@code callable}
+   * @return the provided {@code arguments} in the order expected by the cached {@link
+   *     org.enso.interpreter.runtime.callable.Callable}
+   */
   public Object[] execute(Object callable, Object[] arguments, int numArgsDefinedForCallable) {
     if (TypesGen.isCallable(callable)) {
       Function actualCallable = (Function) callable;
