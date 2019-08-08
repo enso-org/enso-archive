@@ -9,7 +9,7 @@ import com.oracle.truffle.api.nodes.Node;
 public abstract class CallOptimiserNode extends Node {
 
   /**
-   * Calls the provided {@code callable} using the provided {@arguments}.
+   * Calls the provided {@code callable} using the provided {@code arguments}.
    *
    * @param callable the callable to execute
    * @param arguments the arguments to {@code callable}

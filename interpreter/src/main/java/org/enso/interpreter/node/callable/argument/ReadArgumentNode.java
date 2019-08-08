@@ -32,6 +32,11 @@ public class ReadArgumentNode extends ExpressionNode {
   /**
    * Computes the value of an argument in a function.
    *
+   * <p>This function also handles the defaulted case by checking for a {@code null} value at the
+   * argument's position. This works in conjunction with {@link
+   * org.enso.interpreter.runtime.callable.argument.CallArgumentInfo#reorderArguments(int[],
+   * Object[], int)}, which will place nulls in any position where an argument has not been applied.
+   *
    * @param frame the stack frame to execute in
    * @return the computed value of the argument at this position
    */
@@ -60,5 +65,9 @@ public class ReadArgumentNode extends ExpressionNode {
    * While it is tempting to handle defaulted arguments as a special case, we instead treat them as
    * the absence of an argument for that position in the function definition. If none is provided,
    * we can detect this using a sentinel, and hence evaluate the default value in its place.
+   *
+   * Any `null` value is treated as a usage of the default argument, so when this execution
+   * encounters a null value at the argument position, then it will instead execute the default
+   * value.
    */
 }

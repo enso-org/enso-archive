@@ -57,7 +57,7 @@ public class CachedArgumentSorterNode extends BaseNode {
    * Determines if the provided callable is the same as the cached one.
    *
    * @param other the callable to check for equality
-   * @return {@code true} if {@code other} matches the cached callable, otherwise {@false}
+   * @return {@code true} if {@code other} matches the cached callable, otherwise {@code false}
    */
   public boolean hasSameCallable(Object other) {
     if (TypesGen.isAtomConstructor(other)) {

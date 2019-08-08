@@ -32,7 +32,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
   }
 
   /**
-   * Calls the provided {@code callable} using the provided {@arguments}.
+   * Calls the provided {@code callable} using the provided {@code arguments}.
    *
    * @param callable the callable to execute
    * @param arguments the arguments to {@code callable}
@@ -120,7 +120,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
      * Executes the node in a repeating fashion until the call is complete.
      *
      * @param frame the stack frame for execution
-     * @return {@code true} if execution is continuing, {@call false} otherwise
+     * @return {@code true} if execution is continuing, {@code false} otherwise
      */
     @Override
     public boolean executeRepeating(VirtualFrame frame) {

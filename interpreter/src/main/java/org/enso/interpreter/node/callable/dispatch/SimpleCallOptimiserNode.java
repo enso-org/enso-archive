@@ -15,7 +15,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
   @Child private ExecuteCallNode executeCallNode = ExecuteCallNodeGen.create();
 
   /**
-   * Calls the provided {@code callable} using the provided {@arguments}.
+   * Calls the provided {@code callable} using the provided {@code arguments}.
    *
    * @param callable the callable to execute
    * @param arguments the arguments to {@code callable}
