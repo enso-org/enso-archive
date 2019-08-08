@@ -218,23 +218,38 @@ class DocParserSpec extends FlatSpec with Matchers {
   ///// Segments /////
   ////////////////////
   "!Important" ?= Doc(
-    Synopsis(Section.Marked(0, Section.Marked.Important, "Important"))
+    Synopsis(
+      Section.Marked(0, Section.Marked.Important, Section.Header("Important"))
+    )
   )
-  "?Info" ?= Doc(Synopsis(Section.Marked(0, Section.Marked.Info, "Info")))
+  "?Info" ?= Doc(
+    Synopsis(Section.Marked(0, Section.Marked.Info, Section.Header("Info")))
+  )
   ">Example" ?= Doc(
-    Synopsis(Section.Marked(0, Section.Marked.Example, "Example"))
+    Synopsis(
+      Section.Marked(0, Section.Marked.Example, Section.Header("Example"))
+    )
   )
   "?Info\n\n!Important" ?= Doc(
-    Synopsis(Section.Marked(0, Section.Marked.Info, "Info", "\n")),
-    Body(Section.Marked(0, Section.Marked.Important, "Important"))
+    Synopsis(
+      Section.Marked(0, Section.Marked.Info, Section.Header("Info"), "\n")
+    ),
+    Body(
+      Section.Marked(0, Section.Marked.Important, Section.Header("Important"))
+    )
   )
   "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
-      Section.Marked(0, Section.Marked.Info, "Info", "\n")
+      Section.Marked(0, Section.Marked.Info, Section.Header("Info"), "\n")
     ),
     Body(
-      Section.Marked(0, Section.Marked.Important, "Important", "\n"),
-      Section.Marked(0, Section.Marked.Example, "Example")
+      Section.Marked(
+        0,
+        Section.Marked.Important,
+        Section.Header("Important"),
+        "\n"
+      ),
+      Section.Marked(0, Section.Marked.Example, Section.Header("Example"))
     )
   )
   /////////////////
@@ -411,7 +426,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   /////////////////
   ///// other /////
   /////////////////
-  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
+  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
     Synopsis(
       Section.Raw(
         0,
@@ -429,10 +444,11 @@ class DocParserSpec extends FlatSpec with Matchers {
       )
     ),
     Body(
-      Section.Raw(0, "Hello Section", "\n"),
-      Section.Marked(0, Section.Marked.Important, "important", "\n"),
-      Section.Marked(0, Section.Marked.Info, "Hi", "\n"),
-      Section.Marked(0, Section.Marked.Example, "Example")
+      Section.Raw(0, Section.Header("Hello Section"), "\n"),
+      Section
+        .Marked(0, Section.Marked.Important, Section.Header("important"), "\n"),
+      Section.Marked(0, Section.Marked.Info, Section.Header("Hi"), "\n"),
+      Section.Marked(0, Section.Marked.Example, Section.Header("Example"))
     )
   )
   ////////////////

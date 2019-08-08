@@ -20,11 +20,8 @@ object DocParser {
   val docParserInstance = new DocParser()
 
   val dataToParse =
-    """ DEPRECATED in 2.0
-      | MODIFIED in 1.9
-      | UPCOMING
-      | ADDED in 1.5
-      | REMOVED
+    """ DEPRECATED
+      | REMOVED - replaced by SwiftUI
       | Construct and manage a graphical, event-driven user interface for your iOS or
       | tvOS app.
       |
@@ -46,7 +43,8 @@ object DocParser {
       |     * First ordered sub item
       |     * Second ordered sub item
       |       
-      | ! An example warning block. Use UIKit classes only from your app’s main thread
+      | ! Important
+      |   An example warning block. Use UIKit classes only from your app’s main thread
       |   or main dispatch queue, unless otherwise indicated. This restriction
       |   particularly applies to classes derived from UIResponder or that involve
       |   manipulating your app’s user interface in any way.
@@ -64,7 +62,7 @@ object DocParser {
       |       import Std.Math.Vector
       |       v = Vec3 1 2 'foo' : Vector (Int | String)
       |       print v 
-      |   Continue example""".stripMargin
+      |   Continuation of example section can occur after multiline code""".stripMargin
 
   val docParserOut = docParserInstance.run(dataToParse)
 

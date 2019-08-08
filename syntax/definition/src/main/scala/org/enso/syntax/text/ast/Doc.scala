@@ -140,7 +140,18 @@ object Doc {
         val repr: Repr = elems.reverse
           .map(makeIndent(indent) + _)
           .mkString(AST.newline.text)
-        val html: HTML = Seq(elems.map(elem => Seq(HTML.code(elem), HTML.br)))
+        val html: HTML = {
+          val htmlCls = HTML.`class` := this.getClass.getName.split('$').last
+          val btn     = HTML.button("Show")
+          Seq(
+            HTML.div(
+              btn,
+              HTML.div(htmlCls)(
+                elems.reverse.map(elem => Seq(HTML.code(elem), HTML.br))
+              )
+            )
+          )
+        }
       }
     }
 
@@ -251,14 +262,16 @@ object Doc {
     final case class Header(elems: List[AST]) extends AST {
       val repr: Repr = Repr() + elems.map(_.repr)
       val html: HTML = {
-        val htmlCls = HTML.`class` := "Header"
-        Seq(HTML.div(htmlCls)(elems.foreach(_.html)))
+        val htmlCls = HTML.`class` := this.getClass.getName.split('$').last
+        Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
     }
-    def apply(elem: AST): Header =
-      Header(elem :: Nil)
-    def apply(elems: AST*): Header =
-      Header(elems.to[List])
+    object Header {
+      def apply(elem: AST): Header =
+        Header(elem :: Nil)
+      def apply(elems: AST*): Header =
+        Header(elems.to[List])
+    }
 
     final case class Marked(
       indent: Int,
@@ -277,8 +290,6 @@ object Doc {
       })
 
       val elemsRepr = elems.zipWithIndex.map {
-        case (elem @ (_: Section.Header), _) =>
-          AST.newline.repr + makeIndent(indent) + elem.repr
         case (elem @ (_: AST.List), _) =>
           elem.repr
         case (elem @ (_: AST.Code.Multiline), _) => elem.repr
@@ -316,8 +327,8 @@ object Doc {
       indent: Int,
       elems: List[AST]
     ) extends Section {
-      type Type = Raw.Type
-      override val tp = Raw.RawTp
+      type Type = this.type
+      override val tp: Raw.this.type = Raw.this
 
       val elemsRepr = elems.zipWithIndex.map {
         case (elem @ (_: Section.Header), _) =>
@@ -335,7 +346,7 @@ object Doc {
 
       val repr: Repr = Repr(makeIndent(indent)) + elemsRepr
       val html: HTML = {
-        val htmlCls = HTML.`class` := tp.toString
+        val htmlCls = HTML.`class` := this.getClass.getName.split('$').last
         Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
     }
@@ -347,9 +358,6 @@ object Doc {
         Raw(indent, elem :: Nil)
       def apply(indent: Int, elems: AST*): Raw =
         Raw(indent, elems.to[List])
-
-      abstract class Type()
-      case object RawTp extends Type()
     }
   }
 

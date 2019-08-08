@@ -374,21 +374,32 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def createSectionHeader(): Unit = logger.trace {
     popAST()
-    if (result.contains(AST.Text(newline.toString))) {
-      var listForHeader: List[AST] = Nil
-      do {
-        popAST()
-        listForHeader +:= result.get
-      } while (!result.contains(AST.Text(newline.toString)))
+    result match {
+      case Some(AST.newline)  => loopThroughASTForSectionHeader()
+      case Some(AST.Text("")) => popAST()
+      case _ =>
+        pushAST()
+        currentSection match {
+          case Some(_) => loopThroughASTForSectionHeader()
+          case _       =>
+        }
+    }
+  }
+
+  def loopThroughASTForSectionHeader(): Unit = logger.trace {
+    var listForHeader: List[AST] = Nil
+    do {
+      popAST()
+      listForHeader +:= result.get
+    } while (!result
+      .contains(AST.Text(newline.toString)) && workingASTStack.nonEmpty)
+    if (result
+          .contains(AST.Text(newline.toString))) {
       pushAST()
       listForHeader = listForHeader.tail
-      result        = Some(Section.Header(listForHeader.reverse))
-      pushAST()
-    } else if (result.contains(AST.Text(""))) {
-      popAST()
-    } else {
-      pushAST()
     }
+    result = Some(Section.Header(listForHeader.reverse))
+    pushAST()
   }
 
   ///////////////////
