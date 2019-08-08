@@ -16,18 +16,18 @@ class ParserSpec extends FlatSpec with Matchers {
   }
 
   def assertModule(input: String, result: AST): Assertion = {
-    val tt = parse(input)
-    tt match {
+    val output = parse(input)
+    output match {
       case Flexer.Success(value, offset) =>
         assert(value == result)
         assert(value.show() == input)
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 
   def assertExpr(input: String, result: AST): Assertion = {
-    val tt = parse(input)
-    tt match {
+    val output = parse(input)
+    output match {
       case Flexer.Success(value, offset) =>
         val module = value.asInstanceOf[Module]
         module.lines.tail match {
@@ -40,16 +40,16 @@ class ParserSpec extends FlatSpec with Matchers {
             }
           case _ => fail("Multi-line block")
         }
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 
   def assertIdentity(input: String): Assertion = {
-    val tt = parse(input)
-    tt match {
+    val output = parse(input)
+    output match {
       case Flexer.Success(value, offset) =>
         assert(value.show() == input)
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 
@@ -66,8 +66,8 @@ class ParserSpec extends FlatSpec with Matchers {
 
     private val testBase = it should parseTitle(input)
 
-    def ?=(out: AST)        = testBase in { assertExpr(input, out) }
-    def ?=(out: Module)     = testBase in { assertModule(input, out) }
+    def ?=(out: AST)    = testBase in { assertExpr(input, out) }
+    def ?=(out: Module) = testBase in { assertModule(input, out) }
     def testIdentity = testBase in { assertIdentity(input) }
   }
 
@@ -75,49 +75,50 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Identifiers ////
   /////////////////////
 
-  "_"      ?= "_"
-  "Name"   ?= "Name"
-  "name"   ?= "name"
-  "name'"  ?= "name'"
-  "name''" ?= "name''"
-  "name'a" ?= Ident.InvalidSuffix("name'", "a")
-  "name_"  ?= "name_"
-  "name_'" ?= "name_'"
-  "name'_" ?= Ident.InvalidSuffix("name'", "_")
-  "name`"  ?= "name" $ Unrecognized("`")
-
-  ///////////////////
-  //// Operators ////
-  ///////////////////
-
-  "++"   ?= "++"
-  "="    ?= "="
-  "=="   ?= "=="
-  ":"    ?= ":"
-  ","    ?= ","
-  "."    ?= "."
-  ".."   ?= ".."
-  "..."  ?= "..."
-  ">="   ?= ">="
-  "<="   ?= "<="
-  "/="   ?= "/="
-  "+="   ?= Opr.Mod("+")
-  "-="   ?= Opr.Mod("-")
-  "==="  ?= Ident.InvalidSuffix("==", "=")
-  "...." ?= Ident.InvalidSuffix("...", ".")
-  ">=="  ?= Ident.InvalidSuffix(">=", "=")
-  "+=="  ?= Ident.InvalidSuffix("+", "==")
-
-  /////////////////////
-  //// Expressions ////
-  /////////////////////
-
-  "a b"           ?= ("a" $_ "b")
-  "a +  b"        ?= ("a" $_ "+") $__ "b"
-  "a + b + c"     ?= ("a" $_ "+" $_ "b") $_ "+" $_ "c"
-  "a , b , c"     ?= "a" $_ "," $_ ("b" $_ "," $_ "c")
-  "a + b * c"     ?= "a" $_ "+" $_ ("b" $_ "*" $_ "c")
-  "a * b + c"     ?= ("a" $_ "*" $_ "b") $_ "+" $_ "c"
+//  "_"      ?= "_"
+//  "Name"   ?= "Name"
+//  "name"   ?= "name"
+//  "name'"  ?= "name'"
+//  "name''" ?= "name''"
+//  "name'a" ?= Ident.InvalidSuffix("name'", "a")
+//  "name_"  ?= "name_"
+//  "name_'" ?= "name_'"
+//  "name'_" ?= Ident.InvalidSuffix("name'", "_")
+//  "name`"  ?= "name" $ Unrecognized("`")
+//
+//  ///////////////////
+//  //// Operators ////
+//  ///////////////////
+//
+//  "++"   ?= "++"
+//  "="    ?= "="
+//  "=="   ?= "=="
+//  ":"    ?= ":"
+//  ","    ?= ","
+//  "."    ?= "."
+//  ".."   ?= ".."
+//  "..."  ?= "..."
+//  ">="   ?= ">="
+//  "<="   ?= "<="
+//  "/="   ?= "/="
+//  "+="   ?= Opr.Mod("+")
+//  "-="   ?= Opr.Mod("-")
+//  "==="  ?= Ident.InvalidSuffix("==", "=")
+//  "...." ?= Ident.InvalidSuffix("...", ".")
+//  ">=="  ?= Ident.InvalidSuffix(">=", "=")
+//  "+=="  ?= Ident.InvalidSuffix("+", "==")
+//
+//  /////////////////////
+//  //// Expressions ////
+//  /////////////////////
+//
+//  "a b"           ?= ("a" $_ "b")
+//  "a +  b"        ?= ("a" $_ "+") $__ "b"
+//  "a + b + c"     ?= ("a" $_ "+" $_ "b") $_ "+" $_ "c"
+//  "a , b , c"     ?= "a" $_ "," $_ ("b" $_ "," $_ "c")
+//  "a + b * c"     ?= "a" $_ "+" $_ ("b" $_ "*" $_ "c")
+//  "a * b + c"     ?= ("a" $_ "*" $_ "b") $_ "+" $_ "c"
+  "a b\n  c\n"    ?= Module(Line(("a" $_ "b") $_ Var("c")))
   "a+ b"          ?= ("a" $ "+") $$_ "b"
   "a +b"          ?= "a" $_ ("+" $ "b")
   "a+ +b"         ?= ("a" $ "+") $$_ ("+" $ "b")
@@ -147,19 +148,21 @@ class ParserSpec extends FlatSpec with Matchers {
   //////////////////
 
   "foo  #L1NE"        ?= "foo" $__ Comment("L1NE")
-  "#\n   L1NE\n LIN2" ?= Comment.MultiLine(0,List("","  L1NE", "LIN2"))
-  "#L1NE\nLIN2"       ?= Module(Line(Some(Comment.MultiLine(0, List("L1NE"))), 0), Line(Some(Cons("LIN2")), 0))
+  "#\n   L1NE\n LIN2" ?= Comment.MultiLine(0, List("", "  L1NE", "LIN2"))
+  "#L1NE\nLIN2" ?= Module(
+    Line(Some(Comment.MultiLine(0, List("L1NE"))), 0),
+    Line(Some(Cons("LIN2")), 0)
+  )
 
   ////////////////
   //// Layout ////
   ////////////////
 
-  ""           ?= Module(Line( ))
-  "\n"         ?= Module(Line( ), Line( ))
-  "\n\n"       ?= Module(Line( ), Line( ), Line( ))
+  ""           ?= Module(Line())
+  "\n"         ?= Module(Line(), Line())
+  "\n\n"       ?= Module(Line(), Line(), Line())
   "  \n "      ?= Module(Line(2), Line(1))
   " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
-
 
 //  "f =\n\n  x\n\n  y" testIdentity // FIXME
 
@@ -194,10 +197,10 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Text ////
   //////////////
 
-  "'"       ?= Text.Unclosed(Text())
-  "''"      ?= Text()
-  "'''"     ?= Text.Unclosed(Text(Text.Quote.Triple))
-  "''''"    ?= Text.Unclosed(Text(Text.Quote.Triple, "'"))
+  "'"    ?= Text.Unclosed(Text())
+  "''"   ?= Text()
+  "'''"  ?= Text.Unclosed(Text(Text.Quote.Triple))
+  "''''" ?= Text.Unclosed(Text(Text.Quote.Triple, "'"))
 //  "'''''"   ?= Text.Unclosed(Text(Text.Quote.Triple, "''")) // FIXME
   "''''''"  ?= Text(Text.Quote.Triple)
   "'''''''" ?= Text(Text.Quote.Triple) $ Text.Unclosed(Text())

@@ -703,9 +703,9 @@ case class ParserDef() extends ParserBase[AST] {
       endGroup()
       onWhitespace()
       val offset = useLastOffset()
-      if (lastOffset > currentBlock.indent)
+      if (offset > currentBlock.indent)
         onBegin(offset)
-      else if (lastOffset < currentBlock.indent)
+      else if (offset < currentBlock.indent)
         onEnd(offset)
       beginGroup(FIRSTCHAR)
     }
@@ -792,6 +792,7 @@ case class ParserDef() extends ParserBase[AST] {
   // format: off
   NORMAL    rule Comment.comment     run reify { Comment.submit() }
   FIRSTCHAR rule Comment.comment     run reify { Comment.onMultiLineBegin() }
+  FIRSTCHAR rule "#="                run reify { endGroup(); rewind() }
   COMMENT   rule noneOf("\n").many1  run reify { Comment.submitLine() }
   COMMENT   rule newline             run reify { Comment.onNewLine()}
   COMMENT   rule eof                 run reify { Comment.onEOF() }

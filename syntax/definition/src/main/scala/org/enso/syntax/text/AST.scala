@@ -467,6 +467,7 @@ object AST {
     object Line {
       def apply():            Line = Line(None, 0)
       def apply(offset: Int): Line = Line(None, offset)
+      def apply(elem: AST):   Line = Line(Some(elem), 0)
 
       final case class Required(elem: AST, offset: Int) extends Symbol {
         val repr = R + elem + offset
@@ -504,9 +505,8 @@ object AST {
 
   object Comment {
 
-    final case class MultiLine(indent: Int, lines: List[String]) extends AST {
-      val margin = " " * indent
-      val repr   = R + margin + "#" + lines.mkString("\n " + margin)
+    final case class MultiLine(offset: Int, lines: List[String]) extends AST {
+      val repr   = R + offset + "#" + lines.mkString("\n " + " "*offset)
     }
 
   }
