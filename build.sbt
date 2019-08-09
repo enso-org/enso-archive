@@ -15,6 +15,7 @@ javacOptions ++= Seq("-source", "12", "-target", "1.8")
 // Benchmark Configuration
 lazy val Benchmark = config("bench") extend Test
 lazy val bench     = taskKey[Unit]("Run Benchmarks")
+lazy val benchOnly = inputKey[Unit]("Run benchmarks by name substring")
 
 // Global Project
 lazy val enso = (project in file("."))
@@ -28,7 +29,7 @@ lazy val enso = (project in file("."))
   )
 
 // Sub-Projects
-lazy val syntax = (project in file("syntax"))
+lazy val syntax = (project in file("Syntax"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.syntax.Main"),
     version := "0.1"
@@ -60,7 +61,7 @@ lazy val syntax = (project in file("syntax"))
     parallelExecution in Benchmark := false
   )
 
-lazy val pkg = (project in file("pkg"))
+lazy val pkg = (project in file("Pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1"
@@ -74,18 +75,26 @@ lazy val pkg = (project in file("pkg"))
 val truffleRunOptions = Seq(
   fork := true,
   javaOptions += s"-Dtruffle.class.path.append=${(Compile / classDirectory).value}",
-  javaOptions += s"-Dgraal.PrintGraph=Network",
-  javaOptions += s"-Dgraal.Dump=Truffle:2",
-  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false",
-  javaOptions += s"-Dgraal.TraceTruffleCompilation=true",
-  javaOptions += s"-Dgraal.TraceTruffleCompilationCallTree=true",
-  javaOptions += s"-Dgraal.TraceTruffleInlining=true",
-  javaOptions += s"-Dgraal.TraceTrufflePerformanceWarnings=true",
   javaOptions += s"-Dgraal.TruffleIterativePartialEscape=true",
   javaOptions += s"-XX:-UseJVMCIClassLoader"
 )
 
-lazy val interpreter = (project in file("interpreter"))
+val truffleDebugOptions = Seq(
+  javaOptions += s"-Dgraal.PrintGraph=Network",
+  javaOptions += s"-Dgraal.Dump=Truffle:2",
+  javaOptions += s"-Dgraal.TraceTruffleCompilation=true",
+  javaOptions += s"-Dgraal.TraceTruffleCompilationCallTree=true",
+  javaOptions += s"-Dgraal.TraceTruffleInlining=true",
+  javaOptions += s"-Dgraal.TraceTrufflePerformanceWarnings=true",
+  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
+)
+
+val jmh = Seq(
+  "org.openjdk.jmh" % "jmh-core"                 % "1.21" % Benchmark,
+  "org.openjdk.jmh" % "jmh-generator-annprocess" % "1.21" % Benchmark
+)
+
+lazy val interpreter = (project in file("Interpreter"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
     version := "0.1"
@@ -93,9 +102,8 @@ lazy val interpreter = (project in file("interpreter"))
   .settings(
     libraryDependencies ++= Seq(
       "com.chuusai"            %% "shapeless"                % "2.3.3",
-      "com.storm-enroute"      %% "scalameter"               % "0.17" % "bench",
-      "com.storm-enroute"      %% "scalameter"               % "0.17" % Benchmark,
       "org.apache.commons"     % "commons-lang3"             % "3.9",
+      "org.apache.tika"        % "tika-core"                 % "1.21",
       "org.graalvm.sdk"        % "graal-sdk"                 % "19.0.0",
       "org.graalvm.sdk"        % "polyglot-tck"              % "19.0.0",
       "org.graalvm.truffle"    % "truffle-api"               % "19.0.0",
@@ -106,10 +114,9 @@ lazy val interpreter = (project in file("interpreter"))
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
-      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
-      "org.apache.tika"        % "tika-core"                 % "1.21"
-    )
+      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
+    ),
+    libraryDependencies ++= jmh
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -130,11 +137,20 @@ lazy val interpreter = (project in file("interpreter"))
   )
   .configs(Benchmark)
   .settings(
-    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
     logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
     inConfig(Benchmark)(truffleRunOptions),
     bench := (test in Benchmark).value,
+    benchOnly := Def.inputTaskDyn {
+      import complete.Parsers.spaceDelimited
+      val name = spaceDelimited("<name>").parsed match {
+        case List(name) => name
+        case _ => throw new IllegalArgumentException("Expected one argument.")
+      }
+      Def.task {
+        (testOnly in Benchmark).toTask(" -- -z " + name).value
+      }
+    }.evaluated,
     parallelExecution in Benchmark := false
   )
 
@@ -168,7 +184,7 @@ lazy val fileManager = (project in file("FileManager"))
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
-lazy val projectManager = (project in file("project-manager"))
+lazy val projectManager = (project in file("ProjectManager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.Server")
   )
