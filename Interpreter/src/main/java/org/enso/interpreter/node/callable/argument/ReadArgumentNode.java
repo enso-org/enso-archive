@@ -4,7 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.argument.sentinel.DefaultedArgumentNode;
+import org.enso.interpreter.runtime.callable.argument.sentinel.DefaultedArgumentSentinel;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.Function.ArgumentsHelper;
 
@@ -17,6 +17,7 @@ public class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;
   private final ConditionProfile defaultingProfile = ConditionProfile.createCountingProfile();
+  private final ConditionProfile argAcquisitionProfile = ConditionProfile.createCountingProfile();
 
   /**
    * Creates a node to compute a function argument.
@@ -48,12 +49,13 @@ public class ReadArgumentNode extends ExpressionNode {
 
     Object argument = null;
 
-    if (index < ArgumentsHelper.getPositionalArguments(frame.getArguments()).length) {
+    if (argAcquisitionProfile.profile(
+        index < ArgumentsHelper.getPositionalArguments(frame.getArguments()).length)) {
       argument = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
     }
 
     // Note [Handling Argument Defaults]
-    if (defaultingProfile.profile(argument instanceof DefaultedArgumentNode || argument == null)) {
+    if (defaultingProfile.profile(argument instanceof DefaultedArgumentSentinel || argument == null)) {
       return defaultValue.executeGeneric(frame);
     } else {
       return argument;

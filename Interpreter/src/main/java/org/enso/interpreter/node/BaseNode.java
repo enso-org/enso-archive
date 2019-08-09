@@ -23,15 +23,15 @@ public class BaseNode extends Node {
   /**
    * Marks the node as tail-recursive.
    */
-  public void markTail() {
-    isTail = true;
+  final public void markTail() {
+    setTail(true);
   }
 
   /**
    * Marks the node as not tail-recursive.
    */
-  public void markNotTail() {
-    isTail = false;
+  final public void markNotTail() {
+    setTail(false);
   }
 
   /**

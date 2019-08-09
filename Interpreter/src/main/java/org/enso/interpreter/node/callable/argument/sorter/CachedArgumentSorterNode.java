@@ -1,8 +1,10 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
+import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -16,6 +18,9 @@ import org.enso.interpreter.runtime.type.TypesGen;
 public class CachedArgumentSorterNode extends BaseNode {
   private @CompilationFinal Object callable;
   private @CompilationFinal(dimensions = 1) int[] mapping;
+  private final ConditionProfile otherIsAtomCons = ConditionProfile.createCountingProfile();
+  private final ConditionProfile otherIsFunction = ConditionProfile.createCountingProfile();
+  private @CompilationFinal boolean callableIsFunction;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -26,6 +31,9 @@ public class CachedArgumentSorterNode extends BaseNode {
   public CachedArgumentSorterNode(Object callable, CallArgumentInfo[] schema) {
     this.callable = callable;
     this.mapping = CallArgumentInfo.generateArgMapping(callable, schema);
+
+    this.callableIsFunction = TypesGen.isFunction(callable);
+    CompilerAsserts.compilationConstant(callableIsFunction);
   }
 
   /**
@@ -60,10 +68,10 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @return {@code true} if {@code other} matches the cached callable, otherwise {@code false}
    */
   public boolean hasSameCallable(Object other) {
-    if (TypesGen.isAtomConstructor(other)) {
+    if (otherIsAtomCons.profile(TypesGen.isAtomConstructor(other))) {
       return this.callable == other;
-    } else if (TypesGen.isFunction(this.callable)) {
-      if (TypesGen.isFunction(other)) {
+    } else if (this.callableIsFunction) {
+      if (otherIsFunction.profile(TypesGen.isFunction(other))) {
         return ((Function) this.callable).getCallTarget() == ((Function) other).getCallTarget();
       }
     }

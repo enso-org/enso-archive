@@ -2,6 +2,7 @@ package org.enso.interpreter.node.callable.argument.sorter;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -15,6 +16,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @NodeInfo(shortName = "UncachedArgumentSorter")
 public class UncachedArgumentSorterNode extends BaseNode {
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
+  private final ConditionProfile isCallableProfile = ConditionProfile.createCountingProfile();
 
   /**
    * Creates a node to sort arguments on the fly.
@@ -46,7 +48,7 @@ public class UncachedArgumentSorterNode extends BaseNode {
    *     org.enso.interpreter.runtime.callable.Callable}
    */
   public Object[] execute(Object callable, Object[] arguments, int numArgsDefinedForCallable) {
-    if (TypesGen.isCallable(callable)) {
+    if (isCallableProfile.profile(TypesGen.isCallable(callable))) {
       Function actualCallable = (Function) callable;
       int[] order = CallArgumentInfo.generateArgMapping(actualCallable, this.schema);
       return CallArgumentInfo.reorderArguments(order, arguments, numArgsDefinedForCallable);

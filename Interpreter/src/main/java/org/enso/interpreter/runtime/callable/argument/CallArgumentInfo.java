@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.callable.argument;
 
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import org.enso.interpreter.runtime.callable.argument.sentinel.UnappliedArgumentSentinel;
 import org.enso.interpreter.runtime.callable.Callable;
 import org.enso.interpreter.runtime.error.ArgumentMappingException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
@@ -91,7 +92,7 @@ public class CallArgumentInfo {
    *
    * <p>If an argument is explicitly left unapplied (for the purposes of currying), the result array
    * will contain a sentinel value of type {@link
-   * org.enso.interpreter.node.callable.argument.sentinel.UnappliedArgumentNode} in that position.
+   * UnappliedArgumentSentinel} in that position.
    * This ensures that execution knows not to use a possible default value for this position.
    *
    * @param order a mapping where position {@code i} in the array contains the destination position

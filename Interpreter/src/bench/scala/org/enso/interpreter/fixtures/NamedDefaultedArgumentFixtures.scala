@@ -1,6 +1,6 @@
 package org.enso.interpreter.fixtures
 
-import org.enso.interpreter.{Constants, LanguageRunner}
+import org.enso.interpreter.LanguageRunner
 
 class NamedDefaultedArgumentFixtures extends LanguageRunner {
   val hundredMillion: Long = 100000000
@@ -16,8 +16,7 @@ class NamedDefaultedArgumentFixtures extends LanguageRunner {
       |}
     """.stripMargin
 
-  val sumTCOWithNamedArguments =
-    ctx.eval(Constants.LANGUAGE_ID, sumTCOWithNamedArgumentsCode)
+  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
 
   val sumTCOWithDefaultedArgumentsCode =
     """
@@ -30,7 +29,6 @@ class NamedDefaultedArgumentFixtures extends LanguageRunner {
       |}
     """.stripMargin
 
-  val sumTCOWithDefaultedArguments =
-    ctx.eval(Constants.LANGUAGE_ID, sumTCOWithDefaultedArgumentsCode)
+  val sumTCOWithDefaultedArguments = eval(sumTCOWithDefaultedArgumentsCode)
 
 }

@@ -62,24 +62,6 @@ public class IfZeroNode extends ExpressionNode {
   }
 
   /**
-   * Marks the conditional as tail-recursive.
-   */
-  @Override
-  public void markTail() {
-    ifTrue.markTail();
-    ifFalse.markTail();
-  }
-
-  /**
-   * Marks the conditional as not tail-recursive.
-   */
-  @Override
-  public void markNotTail() {
-    ifTrue.markNotTail();
-    ifFalse.markNotTail();
-  }
-
-  /**
    * Sets whether the conditional is tail-recursive or not.
    *
    * @param isTail whether or not the conditional is tail recursive

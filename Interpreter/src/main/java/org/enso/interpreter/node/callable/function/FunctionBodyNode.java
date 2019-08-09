@@ -26,14 +26,6 @@ public class FunctionBodyNode extends ExpressionNode {
   }
 
   /**
-   * Sets the function as tail-recursive.
-   */
-  @Override
-  public void markTail() {
-    returnExpr.markTail();
-  }
-
-  /**
    * Sets whether or not the function is tail-recursive.
    *
    * @param isTail whether or not the function is tail-recursive.
@@ -41,14 +33,6 @@ public class FunctionBodyNode extends ExpressionNode {
   @Override
   public void setTail(boolean isTail) {
     returnExpr.setTail(isTail);
-  }
-
-  /**
-   * Sets the function as not tail-recursive.
-   */
-  @Override
-  public void markNotTail() {
-    returnExpr.markNotTail();
   }
 
   /**

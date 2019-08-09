@@ -27,18 +27,6 @@ public class CreateFunctionNode extends ExpressionNode {
     this.args = args;
   }
 
-  /** Marks the function as being tail-recursive. */
-  @Override
-  public void markTail() {
-    ((EnsoRootNode) callTarget.getRootNode()).markTail();
-  }
-
-  /** Marks the function as not being tail-recursive. */
-  @Override
-  public void markNotTail() {
-    ((EnsoRootNode) callTarget.getRootNode()).markNotTail();
-  }
-
   /**
    * Sets the tail-recursiveness of the function.
    *

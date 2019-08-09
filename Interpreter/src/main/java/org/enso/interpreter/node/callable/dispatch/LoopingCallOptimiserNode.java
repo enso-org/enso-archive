@@ -16,11 +16,12 @@ import org.enso.interpreter.optimiser.tco.TailCallException;
 /**
  * A version of {@link CallOptimiserNode} that is fully prepared to handle tail calls. Tail calls
  * are handled through exceptions – whenever a tail-recursive call would be executed, an exception
- * containing the next unevaluated call and arguments is thrown instead (see: {@link
- * TailCallException}).
+ * containing the next unevaluated call and arguments is thrown instead.
  *
  * <p>This node executes the function in a loop, following all the continuations, until obtaining
  * the actual return value.
+ *
+ * @see TailCallException
  */
 public class LoopingCallOptimiserNode extends CallOptimiserNode {
   private final FrameDescriptor loopFrameDescriptor = new FrameDescriptor();

@@ -28,18 +28,6 @@ public class ConstructorCaseNode extends CaseNode {
     this.branch = branch;
   }
 
-  /** Sets the case expression as tail-recursive. */
-  @Override
-  public void markTail() {
-    branch.markTail();
-  }
-
-  /** Sets the case expression as not tail-recursive. */
-  @Override
-  public void markNotTail() {
-    branch.markNotTail();
-  }
-
   /**
    * Sets whether or not the case expression is tail recursive.
    *

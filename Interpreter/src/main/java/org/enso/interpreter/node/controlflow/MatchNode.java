@@ -29,30 +29,13 @@ public class MatchNode extends ExpressionNode {
     this.fallback = fallback;
   }
 
-  /** Marks the pattern match as tail-recursive. */
-  @Override
-  public void markTail() {
-    for (CaseNode caseNode : cases) {
-      caseNode.markTail();
-    }
-    fallback.markTail();
-  }
-
-  /** Marks the pattern match as not tail-recursive. */
-  @Override
-  public void markNotTail() {
-    for (CaseNode caseNode : cases) {
-      caseNode.markNotTail();
-    }
-    fallback.markNotTail();
-  }
-
   /**
    * Sets whether or not the pattern match is tail-recursive.
    *
    * @param isTail whether or not the expression is tail-recursive
    */
   @Override
+  @ExplodeLoop
   public void setTail(boolean isTail) {
     for (CaseNode caseNode : cases) {
       caseNode.setTail(isTail);

@@ -64,10 +64,8 @@ public abstract class ReadLocalTargetNode extends ExpressionNode {
   /**
    * Gets the Enso parent frame for a given frame.
    *
-   * <p>The interpreter makes used of more frames than guest language function calls do, meaning
-   * that to properly obtain the guest language parent frame we need to track how many levels up it
-   * is. This method is responsible for getting the guest language parent frame for the current
-   * frame.
+   * <p>This method is responsible for getting the guest language parent frame for the current frame
+   * by walking up the stack based on the scope in which the function was defined.
    *
    * @param frame the frame to find the Enso parent frame for
    * @return the guest language parent frame of {@code frame}
