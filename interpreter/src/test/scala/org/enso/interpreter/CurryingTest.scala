@@ -14,8 +14,6 @@ class CurryingTest extends LanguageTest {
       """.stripMargin
 
     noException should be thrownBy parse(code)
-    // TODO [AA] This needs currying to be tested properly. Just test parse for
-    // now.
     eval(code) shouldEqual 0
   }
 

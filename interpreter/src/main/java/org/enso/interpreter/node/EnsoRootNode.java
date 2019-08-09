@@ -59,8 +59,6 @@ public class EnsoRootNode extends RootNode {
     return this.name;
   }
 
-  // TODO [AA, MK] Factor these out to be common with `BaseNode`. `TailCallNode`?
-
   /** Marks the node as tail-recursive. */
   public void markTail() {
     body.markTail();

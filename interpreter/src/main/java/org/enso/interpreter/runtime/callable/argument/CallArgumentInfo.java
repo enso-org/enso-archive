@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.callable.argument;
 
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.enso.interpreter.runtime.callable.Callable;
+import org.enso.interpreter.runtime.error.ArgumentMappingException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -162,8 +163,7 @@ public class CallArgumentInfo {
           }
 
           if (!argumentProcessed) {
-            // TODO [AA] Make these error conditions more descriptive.
-            throw new RuntimeException("Arguments are wrong");
+            throw new ArgumentMappingException(realCallable, currentArgument, i);
           }
 
         } else {
@@ -181,7 +181,7 @@ public class CallArgumentInfo {
           }
 
           if (!argumentProcessed) {
-            throw new RuntimeException("Named arguments are wrong");
+            throw new ArgumentMappingException(realCallable, currentArgument, i);
           }
         }
       }
