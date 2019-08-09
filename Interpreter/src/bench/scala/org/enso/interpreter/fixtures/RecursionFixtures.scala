@@ -1,7 +1,10 @@
-package org.enso.interpreter
+package org.enso.interpreter.fixtures
+
+import org.enso.interpreter.{Constants, LanguageRunner}
 
 class RecursionFixtures extends LanguageRunner {
   val hundredMillion: Long = 100000000
+  val hundred: Long = 100
 
   // Currently unused as we know this is very slow.
   val mutRecursiveCode =
