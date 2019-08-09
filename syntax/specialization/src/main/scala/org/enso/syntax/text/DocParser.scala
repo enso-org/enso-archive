@@ -62,7 +62,8 @@ object DocParser {
       |       import Std.Math.Vector
       |       v = Vec3 1 2 'foo' : Vector (Int | String)
       |       print v 
-      |   Continuation of example section can occur after multiline code""".stripMargin
+      |   Continuation of example section can occur after multiline code
+      |""".stripMargin
 
   val docParserOut = docParserInstance.run(dataToParse)
 

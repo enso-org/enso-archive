@@ -120,29 +120,100 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def pushNormalText(in: String): Unit = logger.trace {
     var text = in
+    // to create tags on file beginning
+    if (workingASTStack.isEmpty && sectionsStack.isEmpty) {
+      if (checkForTag(in)) {
+        return
+      }
+    }
+    // to remove unnecessary indent from first line as yet onIndent hasn't been called
     if (workingASTStack.isEmpty) {
-      if (text.head == ' ') {
-        text = text.tail
+      if (text.nonEmpty) {
+        while (text.head == ' ' && text.length > 1) {
+          text = text.tail
+        }
       }
     }
     result = Some(AST.Text(text))
     pushAST()
+  }
 
-    possibleTagsList.foreach(
-      tagType => {
-        if (in.contains(
-              tagType.toString.toUpperCase
-            )) {
-          pushTag(
-            tagType,
-            in.replaceFirst(
+  def pushTextLine(): Unit = logger.trace {
+    var elems: List[AST] = Nil
+    while (!workingASTStack.head
+             .isInstanceOf[AST.Line] && !workingASTStack.head
+             .isInstanceOf[AST.Code.Multiline] && workingASTStack.length > 1) {
+      popAST()
+      result match {
+        case Some(value) => elems +:= value
+        case None        =>
+      }
+    }
+    result = Some(AST.Line(elems))
+    pushAST()
+  }
+
+  /////////////////////
+  ////// Tagging //////
+  /////////////////////
+
+  val possibleTagsList: List[Tags.Tag.Type] =
+    List(
+      Tags.Tag.Deprecated,
+      Tags.Tag.Added,
+      Tags.Tag.Modified,
+      Tags.Tag.Removed,
+      Tags.Tag.Upcoming
+    )
+  var tagsStack: List[Tags.Tag] = Nil
+
+  def pushTag(indent: Int, tagType: Tags.Tag.Type, details: String): Unit =
+    logger.trace {
+      if (details.replaceAll("\\s", "").length == 0) {
+        tagsStack +:= Tags.Tag(indent, tagType)
+      } else {
+        var det = details
+        if (det.nonEmpty) {
+          while (det.head == ' ' && det.length > 1) {
+            det = det.tail
+          }
+          if (tagType != Tags.Tag.Unrecognized) {
+            det = ' ' + det
+          }
+        }
+        tagsStack +:= Tags.Tag(indent, tagType, Some(det))
+      }
+    }
+
+  def checkForTag(in: String): Boolean = logger.trace {
+    val inArray = in.split(" ")
+    inArray.foreach(elem => {
+      if (elem.isEmpty) {
+        currentSectionIndent += 1
+      } else if (elem == elem.toUpperCase) {
+        var containsTag = false
+        for (tagType <- possibleTagsList) {
+          if (elem == tagType.toString.toUpperCase) {
+            containsTag = true
+            val tagDetail = in.replaceFirst(
               tagType.toString.toUpperCase,
               ""
             )
-          )
+
+            pushTag(
+              currentSectionIndent,
+              tagType,
+              tagDetail
+            )
+          }
         }
+        if (!containsTag && !elem.contains(newline)) {
+          pushTag(currentSectionIndent, Tags.Tag.Unrecognized, in)
+        }
+        return true
       }
-    )
+    })
+    return false
   }
 
   NORMAL rule normalText run reify { pushNormalText(currentMatch) }
@@ -159,15 +230,14 @@ case class DocParserDef() extends ParserBase[AST] {
   def pushMultilineCodeLine(in: String): Unit = logger.trace {
     do {
       popAST()
-    } while (result.contains(AST.Text(newline.toString)))
-
-    result.get match {
-      case _: AST.Code.Multiline => {
+    } while (result.get.isInstanceOf[AST.Line])
+    result match {
+      case Some(_: AST.Code.Multiline) => {
         val inMultilineCode = result.get.asInstanceOf[AST.Code.Multiline].elems
         val indent          = result.get.asInstanceOf[AST.Code.Multiline].indent
-        result = Some(AST.Code.Multiline(indent, in :: inMultilineCode))
+        result = Some(AST.Code.Multiline(indent, inMultilineCode :+ in))
       }
-      case _ => pushAST()
+      case Some(_) | None => pushAST()
     }
     pushAST()
   }
@@ -233,32 +303,6 @@ case class DocParserDef() extends ParserBase[AST] {
   NORMAL rule strikethroughTrigger run reify { pushFormatter(AST.Formatter.Strikethrough) }
   // format: on
 
-  /////////////////////
-  ////// Tagging //////
-  /////////////////////
-
-  val possibleTagsList: List[Tags.Tag.Type] =
-    List(
-      Tags.Tag.Deprecated,
-      Tags.Tag.Added,
-      Tags.Tag.Modified,
-      Tags.Tag.Removed,
-      Tags.Tag.Upcoming
-    )
-  var tagsStack: List[Tags.Tag] = Nil
-  var tagsIndent: Int           = 0
-
-  def pushTag(tagType: Tags.Tag.Type, details: String): Unit =
-    logger.trace {
-      popAST()
-      if (details.replaceAll("\\s", "").length == 0) {
-        tagsStack +:= Tags.Tag(tagType)
-      } else {
-        tagsStack +:= Tags.Tag(tagType, Some(details))
-      }
-      result = Some("")
-    }
-
   /////////////////////////
   ////// New section //////
   /////////////////////////
@@ -301,25 +345,24 @@ case class DocParserDef() extends ParserBase[AST] {
   }
 
   def cleanupEndOfSection(): Unit = logger.trace {
-    if (sectionsStack.isEmpty) {
-      tagsIndent = currentSectionIndent
-    }
-    currentSection match {
-      case _: Some[Section.Marked.Type] =>
-        sectionsStack +:= Some(
-          Section.Marked(
-            currentSectionIndent,
-            currentSection.get,
-            workingASTStack
-          )
-        ).orNull
-      case None =>
-        sectionsStack +:= Some(
-          Section.Raw(
-            currentSectionIndent,
-            workingASTStack
-          )
-        ).orNull
+    if (workingASTStack.nonEmpty) {
+      currentSection match {
+        case _: Some[Section.Marked.Type] =>
+          sectionsStack +:= Some(
+            Section.Marked(
+              currentSectionIndent,
+              currentSection.get,
+              workingASTStack
+            )
+          ).orNull
+        case None =>
+          sectionsStack +:= Some(
+            Section.Raw(
+              currentSectionIndent,
+              workingASTStack
+            )
+          ).orNull
+      }
     }
 
     result          = None
@@ -345,17 +388,20 @@ case class DocParserDef() extends ParserBase[AST] {
     reverseFinalASTStack()
     reverseTagsStack()
 
-    val _tags = Tags(tagsIndent, tagsStack)
+    val _tags = tagsStack.length match {
+      case 0 => None
+      case _ => Some(Tags(tagsStack))
+    }
 
     val _synopsis = sectionsStack.length match {
-      case 0 => Synopsis(Nil)
-      case 1 => Synopsis(sectionsStack)
-      case _ => Synopsis(sectionsStack.head)
+      case 0 => None
+      case 1 => Some(Synopsis(sectionsStack))
+      case _ => Some(Synopsis(sectionsStack.head))
     }
 
     val _body = sectionsStack.length match {
-      case 0 | 1 => Body(Nil)
-      case _     => Body(sectionsStack.tail)
+      case 0 | 1 => None
+      case _     => Some(Body(sectionsStack.tail))
     }
     result = Some(
       Doc(
@@ -376,7 +422,7 @@ case class DocParserDef() extends ParserBase[AST] {
     popAST()
     result match {
       case Some(AST.newline)  => loopThroughASTForSectionHeader()
-      case Some(AST.Text("")) => popAST()
+      case Some(AST.Text("")) =>
       case _ =>
         pushAST()
         currentSection match {
@@ -388,13 +434,10 @@ case class DocParserDef() extends ParserBase[AST] {
 
   def loopThroughASTForSectionHeader(): Unit = logger.trace {
     var listForHeader: List[AST] = Nil
-    do {
-      popAST()
-      listForHeader +:= result.get
-    } while (!result
-      .contains(AST.Text(newline.toString)) && workingASTStack.nonEmpty)
-    if (result
-          .contains(AST.Text(newline.toString))) {
+    popAST()
+    listForHeader +:= result.get
+
+    if (result.contains(AST.Text(newline.toString))) {
       pushAST()
       listForHeader = listForHeader.tail
     }
@@ -418,8 +461,8 @@ case class DocParserDef() extends ParserBase[AST] {
       pushAST()
     }
 
-  val imageNameTrigger: String = AST.Link.Image().marker
-  val urlNameTrigger: String   = AST.Link.URL().marker
+  val imageNameTrigger: String = AST.Link.Image().marker + "["
+  val urlNameTrigger: String   = AST.Link.URL().marker + "["
 
   NORMAL rule (imageNameTrigger >> not(')').many1 >> ')') run reify {
     val in   = currentMatch.substring(2).dropRight(1).split(']')
@@ -481,7 +524,7 @@ case class DocParserDef() extends ParserBase[AST] {
         inListFlag = true
         lastDiff   = diff
         addList(indent, tp, content)
-      } else if (diff == 0) {
+      } else if (diff == 0 && inListFlag) {
         addContentToList(content)
       } else if (diff == -listIndent && inListFlag) {
         lastDiff = diff
@@ -492,9 +535,12 @@ case class DocParserDef() extends ParserBase[AST] {
           addContentToList(
             AST.List.Indent.Invalid(indent, content, tp)
           )
-          return
+        } else {
+          pushNewLine()
+          result = Some(" " * indent + tp.marker + content.show())
+          pushAST()
         }
-        endGroup()
+        return
       }
       lastOffset = indent
     }
@@ -504,7 +550,7 @@ case class DocParserDef() extends ParserBase[AST] {
       addOneListToAnother()
       inListFlag = !inListFlag
     }
-    pushNewLine()
+    pushTextLine()
     onEndOfSection()
     endGroup()
   }
@@ -519,16 +565,17 @@ case class DocParserDef() extends ParserBase[AST] {
   NORMAL rule newline run reify { beginGroup(NEWLINE) }
 
   NEWLINE rule emptyLine run reify { onEmptyLine() }
-  NEWLINE rule ((whitespace | pass) >> eof) run reify { onEOF() }
+  NEWLINE rule (indentPattern >> eof) run reify { onEOF(); endGroup() }
   NEWLINE rule indentPattern run reify {
-    if (workingASTStack == Nil && !result.contains(AST.Text(""))) {
+    if (workingASTStack == Nil) {
+      currentSectionIndent = currentMatch.length
       pushNewLine()
       endGroup()
     } else {
       popAST()
       if (!result.contains(AST.Text(newline.toString))) {
         pushAST()
-        pushNewLine()
+        pushTextLine()
       } else {
         pushAST()
       }
