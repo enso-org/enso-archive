@@ -438,13 +438,15 @@ object AST {
     indent: Int,
     emptyLines: List[Int],
     firstLine: Block.Line.Required,
-    lines: List[Block.Line]
+    lines: List[Block.Line],
+    headRepr: Repr = R + '\n'
   ) extends AST {
     val repr = {
-      val headRepr       = R + '\n'
-      val emptyLinesRepr = emptyLines.map(R + indent + _ + "\n")
+      val emptyLinesRepr = emptyLines.map(R + _ + "\n")
       val firstLineRepr  = R + indent + firstLine
-      val linesRepr      = lines.map(R + '\n' + indent + _)
+      val linesRepr = lines.map { line =>
+        if (line.elem.isEmpty) R + '\n' + line else R + '\n' + indent + line
+      }
       headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
   }
@@ -460,8 +462,7 @@ object AST {
         with Zipper.Has {
       type Zipper[T] = Line.Zipper.Class[T]
       val repr = R + elem + offset
-      def map(f: AST => AST): Line =
-        Line(elem.map(f), offset)
+      def map(f: AST => AST): Line = Line(elem.map(f), offset)
     }
 
     object Line {
@@ -506,7 +507,7 @@ object AST {
   object Comment {
 
     final case class MultiLine(offset: Int, lines: List[String]) extends AST {
-      val repr   = R + offset + "#" + lines.mkString("\n " + " "*offset)
+      val repr = R + offset + "#" + lines.mkString("\n " + " " * offset)
     }
 
   }
@@ -515,21 +516,11 @@ object AST {
   //// Module ////
   ////////////////
 
-  def intersperse[T](t: T, lst: List[T]): List[T] = lst match {
-    case Nil             => Nil
-    case s1 :: s2 :: Nil => s1 :: t :: intersperse(t, s2 :: Nil)
-    case s1 :: Nil       => s1 :: Nil
-  }
-
-  def intersperse2[T](t: T, lst: List1[T]): List1[T] =
-    List1(lst.head, lst.tail.flatMap(s => List(t, s)))
-
   import Block.Line
   final case class Module(lines: List1[Line]) extends AST {
-    val repr = R + intersperse2(R + '\n', lines.map(R + _))
+    val repr = R + lines.head + lines.tail.map(R + '\n' + _)
 
-    def map(f: Line => Line): Module =
-      Module(lines.map(f))
+    def map(f: Line => Line): Module = Module(lines.map(f))
   }
 
   object Module {

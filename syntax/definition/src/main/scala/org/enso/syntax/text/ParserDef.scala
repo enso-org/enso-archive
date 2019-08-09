@@ -5,6 +5,7 @@ import org.enso.flexer.Pattern.range
 import org.enso.flexer.Pattern._
 import org.enso.flexer._
 import org.enso.syntax.text.AST._
+import org.enso.syntax.text.ast.Repr.R
 
 import scala.annotation.tailrec
 import scala.reflect.runtime.universe.reify
@@ -68,7 +69,6 @@ case class ParserDef() extends ParserBase[AST] {
 
   final override def initialize(): Unit = {
     beginGroup(INDENT)
-    Block.onBegin(0)
   }
 
   ///////////////////////////////////////////////////////////////////////////
@@ -122,7 +122,7 @@ case class ParserDef() extends ParserBase[AST] {
   ///////////////////////////////////////////////////////////////////////////
 
   var lastOffset: Int            = 0
-  var lastOffsetStack: List[Int] = Nil
+  var lastOffsetStack: List[Int] = List(0)
 
   final def pushLastOffset(): Unit = logger.trace {
     lastOffsetStack +:= lastOffset
@@ -611,7 +611,7 @@ case class ParserDef() extends ParserBase[AST] {
     def pushBlock(newIndent: Int): Unit = logger.trace {
       stack +:= currentBlock
       currentBlock =
-        new BlockState(true, newIndent, emptyLines.reverse, None, Nil)
+        new BlockState(true, newIndent, emptyLines, None, Nil)
       emptyLines = Nil
     }
 
@@ -642,39 +642,33 @@ case class ParserDef() extends ParserBase[AST] {
     }
 
     def submitModule(): Unit = logger.trace {
-      submitLine()
-      val el  = currentBlock.emptyLines.reverse.map(Line(_))
-      val el2 = emptyLines.reverse.map(Line(_))
-      val firstLines = currentBlock.firstLine match {
-        case None            => el
-        case Some(firstLine) => firstLine.toOptional :: el
+      val el = emptyLines.reverse.map(Line(_))
+      val lines = currentBlock.firstLine match {
+        case None => el ++ currentBlock.lines
+        case Some(line) => el ++ (line.toOptional +: currentBlock.lines)
       }
-      val lines  = firstLines ++ currentBlock.lines.reverse ++ el2
       val module = Module(lines.head, lines.tail)
       result = Some(module)
       logger.endGroup()
     }
 
     def submitLine(): Unit = logger.trace {
-      result match {
-        case None => pushEmptyLine()
-        case Some(r) =>
-          currentBlock.firstLine match {
-            case None =>
-              val line = Line.Required(r, useLastOffset())
-              currentBlock.emptyLines = emptyLines
-              currentBlock.firstLine  = Some(line)
-            case Some(_) =>
-              emptyLines.foreach(currentBlock.lines +:= Line(None, _))
-              currentBlock.lines +:= Line(result, useLastOffset())
-          }
-          emptyLines = Nil
+      result.foreach { r =>
+        popLastOffset()
+        currentBlock.firstLine match {
+          case None =>
+            currentBlock.firstLine = Some(Line.Required(r, useLastOffset()))
+          case Some(_) =>
+            submitEmptyLines()
+            currentBlock.lines +:= Line(result, useLastOffset())
+        }
       }
       result = None
     }
 
-    def pushEmptyLine(): Unit = logger.trace {
-      emptyLines +:= useLastOffset()
+    def submitEmptyLines(): Unit = logger.trace {
+      emptyLines.foreach(currentBlock.lines +:= Line(_))
+      emptyLines = Nil
     }
 
     def onBegin(newIndent: Int): Unit = logger.trace {
@@ -685,25 +679,30 @@ case class ParserDef() extends ParserBase[AST] {
 
     def onEmptyLine(): Unit = logger.trace {
       onWhitespace(-1)
-      pushEmptyLine()
+      emptyLines +:= useLastOffset()
     }
 
     def onEOFLine(): Unit = logger.trace {
+      onEmptyLine()
+      emptyLines.foreach(currentBlock.lines +:= Line(_))
+      emptyLines = Nil
       endGroup()
-      onWhitespace(-1)
       onEOF()
     }
 
-    def onNewLine(): Unit = logger.trace {
-      submitLine()
+    def onEndLine(): Unit = logger.trace {
+      onWhitespace(-1)
+      pushLastOffset()
       beginGroup(INDENT)
     }
 
-    def onBlockNewline(): Unit = logger.trace {
+    def onIndent(): Unit = logger.trace {
       endGroup()
       onWhitespace()
       val offset = useLastOffset()
-      if (offset > currentBlock.indent)
+      if (offset == currentBlock.indent)
+        submitLine()
+      else if (offset > currentBlock.indent)
         onBegin(offset)
       else if (offset < currentBlock.indent)
         onEnd(offset)
@@ -724,14 +723,14 @@ case class ParserDef() extends ParserBase[AST] {
   }
 
   val FIRSTCHAR = defineGroup("FirstChar")
-  val INDENT    = defineGroup("Newline")
+  val INDENT    = defineGroup("Indent")
 
   // format: off
-  FIRSTCHAR rule pass                           run reify { endGroup() }
-  NORMAL    rule newline                        run reify { Block.onNewLine() }
-  INDENT    rule ((whitespace|pass) >> newline) run reify { Block.onEmptyLine() }
-  INDENT    rule ((whitespace|pass) >> eof)     run reify { Block.onEOFLine() }
-  INDENT    rule  (whitespace|pass)             run reify { Block.onBlockNewline() }
+  FIRSTCHAR rule pass                     run reify { endGroup() }
+  NORMAL    rule (whitespace0 >> newline) run reify { Block.onEndLine() }
+  INDENT    rule (whitespace0 >> newline) run reify { Block.onEmptyLine() }
+  INDENT    rule (whitespace0 >> eof)     run reify { Block.onEOFLine() }
+  INDENT    rule (whitespace | pass)      run reify { Block.onIndent() }
   // format: on
 
   ///////////////////////////////////////////////////////////////////////////
@@ -764,7 +763,7 @@ case class ParserDef() extends ParserBase[AST] {
       else {
         submitMultiLine()
         offset -= 1 // FIXME
-        Block.onNewLine()
+        beginGroup(INDENT)
       }
     }
 
@@ -808,13 +807,21 @@ case class ParserDef() extends ParserBase[AST] {
 
   def onEOF(): Unit = logger.trace {
     Ident.finish()
+    Block.submitLine()
     Block.onEnd(0)
     Block.submitModule()
   }
 
+  def onEOFoffset(): Unit = logger.trace {
+    onWhitespace(-1)
+    pushLastOffset()
+    onEOF()
+  }
+
   // format: off
-  NORMAL rule whitespace run reify { onWhitespace() }
-  NORMAL rule eof        run reify { onEOF() }
-  NORMAL rule any        run reify { onUnrecognized() }
+  NORMAL rule whitespace           run reify { onWhitespace() }
+  NORMAL rule (whitespace0 >> eof) run reify { onEOFoffset() }
+  NORMAL rule eof                  run reify { onEOF() }
+  NORMAL rule any                  run reify { onUnrecognized() }
   // format: on
 }

@@ -2,6 +2,7 @@ package org.enso.syntax.text
 
 import org.enso.flexer.ParserBase
 import org.enso.syntax.text.AST.Block.Line
+import org.enso.syntax.text.AST.Block.Line.Required
 import org.enso.syntax.text.AST._
 import org.enso.syntax.text.EDSL._
 import org.enso.syntax.text.ast.Helpers._
@@ -75,50 +76,49 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Identifiers ////
   /////////////////////
 
-//  "_"      ?= "_"
-//  "Name"   ?= "Name"
-//  "name"   ?= "name"
-//  "name'"  ?= "name'"
-//  "name''" ?= "name''"
-//  "name'a" ?= Ident.InvalidSuffix("name'", "a")
-//  "name_"  ?= "name_"
-//  "name_'" ?= "name_'"
-//  "name'_" ?= Ident.InvalidSuffix("name'", "_")
-//  "name`"  ?= "name" $ Unrecognized("`")
-//
-//  ///////////////////
-//  //// Operators ////
-//  ///////////////////
-//
-//  "++"   ?= "++"
-//  "="    ?= "="
-//  "=="   ?= "=="
-//  ":"    ?= ":"
-//  ","    ?= ","
-//  "."    ?= "."
-//  ".."   ?= ".."
-//  "..."  ?= "..."
-//  ">="   ?= ">="
-//  "<="   ?= "<="
-//  "/="   ?= "/="
-//  "+="   ?= Opr.Mod("+")
-//  "-="   ?= Opr.Mod("-")
-//  "==="  ?= Ident.InvalidSuffix("==", "=")
-//  "...." ?= Ident.InvalidSuffix("...", ".")
-//  ">=="  ?= Ident.InvalidSuffix(">=", "=")
-//  "+=="  ?= Ident.InvalidSuffix("+", "==")
-//
-//  /////////////////////
-//  //// Expressions ////
-//  /////////////////////
-//
-//  "a b"           ?= ("a" $_ "b")
-//  "a +  b"        ?= ("a" $_ "+") $__ "b"
-//  "a + b + c"     ?= ("a" $_ "+" $_ "b") $_ "+" $_ "c"
-//  "a , b , c"     ?= "a" $_ "," $_ ("b" $_ "," $_ "c")
-//  "a + b * c"     ?= "a" $_ "+" $_ ("b" $_ "*" $_ "c")
-//  "a * b + c"     ?= ("a" $_ "*" $_ "b") $_ "+" $_ "c"
-  "a b\n  c\n"    ?= Module(Line(("a" $_ "b") $_ Var("c")))
+  "_"      ?= "_"
+  "Name"   ?= "Name"
+  "name"   ?= "name"
+  "name'"  ?= "name'"
+  "name''" ?= "name''"
+  "name'a" ?= Ident.InvalidSuffix("name'", "a")
+  "name_"  ?= "name_"
+  "name_'" ?= "name_'"
+  "name'_" ?= Ident.InvalidSuffix("name'", "_")
+  "name`"  ?= "name" $ Unrecognized("`")
+
+  ///////////////////
+  //// Operators ////
+  ///////////////////
+
+  "++"   ?= "++"
+  "="    ?= "="
+  "=="   ?= "=="
+  ":"    ?= ":"
+  ","    ?= ","
+  "."    ?= "."
+  ".."   ?= ".."
+  "..."  ?= "..."
+  ">="   ?= ">="
+  "<="   ?= "<="
+  "/="   ?= "/="
+  "+="   ?= Opr.Mod("+")
+  "-="   ?= Opr.Mod("-")
+  "==="  ?= Ident.InvalidSuffix("==", "=")
+  "...." ?= Ident.InvalidSuffix("...", ".")
+  ">=="  ?= Ident.InvalidSuffix(">=", "=")
+  "+=="  ?= Ident.InvalidSuffix("+", "==")
+
+  /////////////////////
+  //// Expressions ////
+  /////////////////////
+
+  "a b"           ?= ("a" $_ "b")
+  "a +  b"        ?= ("a" $_ "+") $__ "b"
+  "a + b + c"     ?= ("a" $_ "+" $_ "b") $_ "+" $_ "c"
+  "a , b , c"     ?= "a" $_ "," $_ ("b" $_ "," $_ "c")
+  "a + b * c"     ?= "a" $_ "+" $_ ("b" $_ "*" $_ "c")
+  "a * b + c"     ?= ("a" $_ "*" $_ "b") $_ "+" $_ "c"
   "a+ b"          ?= ("a" $ "+") $$_ "b"
   "a +b"          ?= "a" $_ ("+" $ "b")
   "a+ +b"         ?= ("a" $ "+") $$_ ("+" $ "b")
@@ -147,11 +147,11 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Comments ////
   //////////////////
 
-  "foo  #L1NE"        ?= "foo" $__ Comment("L1NE")
-  "#\n   L1NE\n LIN2" ?= Comment.MultiLine(0, List("", "  L1NE", "LIN2"))
+  "foo   #L1NE"        ?= "foo" $___ Comment("L1NE")
+  "#\n    L1NE\n LIN2" ?= Comment.MultiLine(0, List("", "   L1NE", "LIN2"))
   "#L1NE\nLIN2" ?= Module(
-    Line(Some(Comment.MultiLine(0, List("L1NE"))), 0),
-    Line(Some(Cons("LIN2")), 0)
+    Line(Comment.MultiLine(0, List("L1NE"))),
+    Line(Cons("LIN2"))
   )
 
   ////////////////
@@ -164,7 +164,13 @@ class ParserSpec extends FlatSpec with Matchers {
   "  \n "      ?= Module(Line(2), Line(1))
   " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
 
-//  "f =\n\n  x\n\n  y" testIdentity // FIXME
+
+  "a b\n  c\n" ?= "a" $_ App(Var("b"),0,Block(2,List(),Required(Var("c"),0), List(Line(0))))
+
+  "f =  \n\n\n".testIdentity
+  "  \n\n\n f\nf".testIdentity
+  "f =  \n\n  x ".testIdentity
+  "f =\n\n  x\n\n y".testIdentity
 
   //  test module "(a)"  ==? GroupBegin  :: Var("a") :: GroupEnd
   //  test module "[a]"  ==? ListBegin   :: Var("a") :: ListEnd
@@ -186,12 +192,6 @@ class ParserSpec extends FlatSpec with Matchers {
   ////////////////////////
 
   "\uD800\uDF1E" ?= Unrecognized("\uD800\uDF1E")
-
-  /////////////////////
-  //// Large Input ////
-  /////////////////////
-
-  "BIG_INPUT_" * ParserBase.BUFFERSIZE testIdentity
 
   //////////////
   //// Text ////
@@ -281,5 +281,38 @@ class ParserSpec extends FlatSpec with Matchers {
   "if (a then)" ?= "if" I_ ("(" I ("a" $_ "then") I ")") Ixx (_then_else: _*)
 
 //  "import Std.Math" ?= "foo"
+
+  /////////////////////
+  //// Large Input ////
+  /////////////////////
+
+  "OVERFLOW" * ParserBase.BUFFERSIZE testIdentity
+
+  """
+      a
+     b
+    c
+   d
+  e
+  """.testIdentity
+
+  """
+  # pop1: adults
+  # pop2: children
+  # pop3: mutants
+    Selects the 'fittest' individuals from population and kills the rest!
+
+  keepBest : Pop -> Pop -> Pop -> Pop
+  keepBest pop1 pop2 pop3 =
+
+     unique xs
+        = index xs 0 +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+
+     isUnique xs i ####
+        = index xs i . score != index xs i-1 . score
+
+     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+
+  """.testIdentity
 
 }
