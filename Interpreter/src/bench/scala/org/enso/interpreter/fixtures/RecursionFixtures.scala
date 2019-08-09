@@ -32,6 +32,17 @@ class RecursionFixtures extends LanguageRunner {
 
   val sumTCO = ctx.eval(Constants.LANGUAGE_ID, sumTCOCode)
 
+  val sumTCOFoldLikeCode =
+    """
+      |{ |sumTo|
+      |  summator = { |acc, i, f| ifZero: [i, acc, @summator [@f [acc, i], i - 1, f]] };
+      |  res = @summator [0, sumTo, {|x, y| x + y }];
+      |  res
+      |}
+      |""".stripMargin
+
+  val sumTCOFoldLike = eval(sumTCOFoldLikeCode)
+
   val sumRecursiveCode =
     """
       |{ |sumTo|
