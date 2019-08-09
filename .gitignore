@@ -68,7 +68,6 @@ cabal.sandbox.config
 *.swp
 .projections.json
 
-<<<<<<< HEAD
 ############################
 ## Rendered Documentation ##
 ############################
