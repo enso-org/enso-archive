@@ -59,4 +59,12 @@ public class CreateFunctionNode extends ExpressionNode {
   public Object executeGeneric(VirtualFrame frame) {
     return executeFunction(frame);
   }
+
+  public RootCallTarget getCallTarget() {
+    return callTarget;
+  }
+
+  public ArgumentDefinition[] getArgs() {
+    return args;
+  }
 }

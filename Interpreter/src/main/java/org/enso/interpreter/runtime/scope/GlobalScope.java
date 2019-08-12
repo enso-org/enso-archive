@@ -6,11 +6,14 @@ import java.util.Map;
 import java.util.Optional;
 import org.enso.interpreter.runtime.GlobalCallTarget;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.callable.function.Function;
 
 /** A representation of Enso's top-level scope. */
 public class GlobalScope {
   private final Map<String, GlobalCallTarget> globalNames = new HashMap<>();
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
+
+  private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
 
   /**
    * Creates a new instance of the global scope.
@@ -83,5 +86,22 @@ public class GlobalScope {
    */
   public Optional<AtomConstructor> getConstructor(String name) {
     return Optional.ofNullable(this.constructors.get(name));
+  }
+
+  public void registerMethod(AtomConstructor atom, String method, Function function) {
+    getMethodMapFor(atom).put(method, function);
+  }
+
+  private Map<String, Function> getMethodMapFor(AtomConstructor atom) {
+    Map<String, Function> result = methods.get(atom);
+    if (result == null) {
+      result = new HashMap<>();
+      methods.put(atom, result);
+    }
+    return result;
+  }
+
+  public Function lookupMethodDefinition(AtomConstructor atom, String name) {
+    return getMethodMapFor(atom).get(name);
   }
 }

@@ -78,6 +78,7 @@ class ConstructorsTest extends LanguageTest {
   }
 
   "Constructor definitions" should "be usable in code, with arbitrary definition order" in {
+    pending
     val testCode =
       """
         |type Cons2 a b;

@@ -33,6 +33,7 @@ import org.enso.interpreter.node.controlflow.IfZeroNode;
 import org.enso.interpreter.node.controlflow.MatchNode;
 import org.enso.interpreter.node.expression.builtin.PrintNode;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
+import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
@@ -43,6 +44,7 @@ import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
+import org.enso.interpreter.runtime.callable.DynamicSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
@@ -182,15 +184,15 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
         () -> scope.getSlot(name).map(ReadLocalTargetNodeGen::create);
     Supplier<Optional<ExpressionNode>> constructorNode =
         () -> globalScope.getConstructor(name).map(ConstructorNode::new);
-    Supplier<Optional<ExpressionNode>> globalDefinitionNode =
-        () -> globalScope.getGlobalCallTarget(name).map(ReadGlobalTargetNode::new);
+    //    Supplier<Optional<ExpressionNode>> globalDefinitionNode =
+    //        () -> globalScope.getGlobalCallTarget(name).map(ReadGlobalTargetNode::new);
 
-    return Stream.of(localVariableNode, constructorNode, globalDefinitionNode)
+    return Stream.of(localVariableNode, constructorNode) // , globalDefinitionNode)
         .map(Supplier::get)
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst()
-        .orElseThrow(() -> new VariableDoesNotExistException(name));
+        .orElseGet(() -> new DynamicSymbolNode(new DynamicSymbol(name)));
   }
 
   /**
@@ -204,7 +206,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @param retValue the return value of the function
    * @return a runtime node representing the function body
    */
-  public ExpressionNode processFunctionBody(
+  public CreateFunctionNode processFunctionBody(
       List<AstArgDefinition> arguments, List<AstExpression> expressions, AstExpression retValue) {
 
     ArgDefinitionFactory argFactory =

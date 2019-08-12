@@ -3,14 +3,14 @@ package org.enso.interpreter
 import org.graalvm.polyglot.PolyglotException
 
 class NamedArgumentsTest extends LanguageTest {
+  pending
   "Functions" should "take arguments by name and use them in their bodies" in {
-
     val code =
       """
-        |a = 10
-        |addTen = { |b| a + b }
+        |Unit.a = { |u| 10 }
+        |Unit.addTen = { |u, b| (@a [Unit]) + b }
         |
-        |@addTen [b = 10]
+        |@addTen [Unit, b = 10]
       """.stripMargin
 
     eval(code) shouldEqual 20
@@ -19,9 +19,9 @@ class NamedArgumentsTest extends LanguageTest {
   "Functions" should "be able to have named arguments given out of order" in {
     val code =
       """
-        |subtract = { |a, b| a - b }
+        |Unit.subtract = { |u, a, b| a - b }
         |
-        |@subtract [b = 10, a = 5]
+        |@subtract [Unit, b = 10, a = 5]
     """.stripMargin
 
     eval(code) shouldEqual -5

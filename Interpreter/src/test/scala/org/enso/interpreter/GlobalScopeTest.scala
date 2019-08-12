@@ -3,6 +3,8 @@ package org.enso.interpreter
 import org.graalvm.polyglot.PolyglotException
 
 class GlobalScopeTest extends LanguageTest {
+  pending
+
   "Variables" should "be able to be read from the global scope" in {
     val code =
       """

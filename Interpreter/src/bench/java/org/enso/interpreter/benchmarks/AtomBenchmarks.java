@@ -32,4 +32,9 @@ public class AtomBenchmarks {
   public void benchSumListFallback() {
     fixtures.sumListFallback().execute(fixtures.millionElementList());
   }
+
+  @Benchmark
+  public void benchSumListMethods() {
+    fixtures.sumListMethods().execute(fixtures.millionElementList());
+  }
 }

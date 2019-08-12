@@ -9,11 +9,14 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.MethodResolverNode;
+import org.enso.interpreter.node.MethodResolverNodeGen;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
+import org.enso.interpreter.runtime.callable.DynamicSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -35,6 +38,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
 
   @Child private ArgumentSorterNode argumentSorter;
   @Child private CallOptimiserNode callOptimiserNode;
+  @Child private MethodResolverNode methodResolverNode;
 
   /**
    * Creates a new node for performing callable invocation.
@@ -53,6 +57,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
 
     this.callOptimiserNode = new SimpleCallOptimiserNode();
     this.argumentSorter = ArgumentSorterNodeGen.create(argSchema);
+    this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
   /**
@@ -103,6 +108,20 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     Object[] evaluatedArguments = evaluateArguments(frame);
     Object[] sortedArguments = this.argumentSorter.execute(callable, evaluatedArguments);
     return callable.newInstance(sortedArguments);
+  }
+
+  @Specialization
+  public Object invokeDynamicSymbol(VirtualFrame frame, DynamicSymbol symbol) {
+    Object[] evaluatedArguments = evaluateArguments(frame);
+    Atom self = (Atom) evaluatedArguments[0];
+    Function function = methodResolverNode.execute(symbol, self);
+    Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
+
+    if (this.isTail()) {
+      throw new TailCallException(function, sortedArguments);
+    } else {
+      return this.callOptimiserNode.executeDispatch(function, sortedArguments);
+    }
   }
 
   /**
