@@ -68,6 +68,8 @@ object Repr {
   implicit def fromString(a: String): Repr = Repr(a)
   implicit def fromChar(a: Char):     Repr = Repr(a)
 
+  implicit def _Provider_[T: Repr.Of](t: T): Provider = of(t)
+
   /////////////////////////////
   ///// Repr.Of Type Class ////
   /////////////////////////////
@@ -79,25 +81,36 @@ object Repr {
 
   ///// Instances ////
 
-  implicit val _inst_0: Repr.Of[Unit]          = _ => Repr.Empty()
-  implicit val _inst_1: Repr.Of[String]        = Repr.Text(_)
-  implicit val _inst_2: Repr.Of[Int]           = i => Repr.Text(" " * i)
-  implicit val _inst_3: Repr.Of[Char]          = Repr.Letter(_)
-  implicit val _inst_4: Repr.Of[Repr]          = identity(_)
-  implicit val _inst_5: Repr.Of[Repr.Provider] = _.repr
+  implicit def _inst_0: Repr.Of[Unit]   = _ => Repr.Empty()
+  implicit def _inst_1: Repr.Of[String] = Repr.Text(_)
+  implicit def _inst_2: Repr.Of[Int]    = i => Repr.Text(" " * i)
+  implicit def _inst_3: Repr.Of[Char]   = Repr.Letter(_)
+  implicit def _inst_4: Repr.Of[Repr]   = identity(_)
 
-  implicit def _inst_6[T: Repr.Of]: Repr.Of[List[T]] =
+  implicit def _inst_5[T1: Repr.Of, T2: Repr.Of]: Repr.Of[(T1, T2)] = {
+    case (t1, t2) => Repr.Seq(Repr.of(t1), Repr.of(t2))
+  }
+
+  implicit def _inst_6[T <: Repr.Provider]: Repr.Of[T] = _.repr
+
+  implicit def _inst_7[T: Repr.Of]: Repr.Of[List[T]] =
     _.foldLeft(Repr.Empty(): Repr)((a, b) => Repr.Seq(a, Repr.of(b)))
 
-  implicit def _inst_7[T: Repr.Of]: Repr.Of[List1[T]] =
+  implicit def _inst_8[T: Repr.Of]: Repr.Of[List1[T]] =
     _.foldLeft(Repr.Empty(): Repr)((a, b) => Repr.Seq(a, Repr.of(b)))
 
-  implicit def _inst_8[T: Repr.Of]: Repr.Of[Shifted[T]] =
+  implicit def _inst_9[T: Repr.Of]: Repr.Of[Shifted[T]] =
     t => R + t.off + t.el
 
-  implicit def _inst_9[T: Repr.Of]: Repr.Of[Shifted.List1[T]] =
+  implicit def _inst_10[T: Repr.Of]: Repr.Of[Shifted.List1[T]] =
     t => R + t.head + t.tail
 
-  implicit def _inst_10[T: Repr.Of]: Repr.Of[Option[T]] =
+  implicit def _inst_11[T: Repr.Of]: Repr.Of[Option[T]] =
+    _.map(Repr.of(_)).getOrElse(R)
+
+  implicit def _inst_12: Repr.Of[None.type] =
+    _ => R
+
+  implicit def _inst_13[T: Repr.Of]: Repr.Of[Some[T]] =
     _.map(Repr.of(_)).getOrElse(R)
 }

@@ -2,6 +2,7 @@ package org.enso
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
+import org.enso.lint.Unused.unused
 
 class Logger {
   import Logger._
@@ -11,14 +12,29 @@ class Logger {
   def log(s: String): Unit =
     macro funcRedirect
 
+  def warn(s: String): Unit =
+    macro funcRedirect
+
+  def err(s: String): Unit =
+    macro funcRedirect
+
   def group[T](msg: String)(body: => T): T =
     macro groupRedirect[T]
 
   def trace[T](body: => T): T =
     macro targetRedirect[T]
 
+  def trace_[T](body: => T): T =
+    macro targetRedirect_[T]
+
   def _log(msg: String): Unit =
     println("|  " * nesting + msg)
+
+  def _warn(msg: String): Unit =
+    println("|  " * nesting + Console.YELLOW + msg + Console.RESET)
+
+  def _err(msg: String): Unit =
+    println("|  " * nesting + Console.RED + msg + Console.RESET)
 
   def _group[T](msg: String)(body: => T): T = {
     _log(msg)
@@ -36,6 +52,14 @@ class Logger {
     out
   }
 
+  def _trace_[T](msg: String)(body: => T): T = {
+    _log(msg)
+    beginGroup()
+    val out = body
+    endGroup()
+    out
+  }
+
   def beginGroup(): Unit =
     nesting += 1
 
@@ -45,11 +69,11 @@ class Logger {
 }
 
 object Logger {
-
   def groupRedirect[R: c.WeakTypeTag](
     c: Context
   )(msg: c.Tree)(body: c.Tree): c.Expr[R] = {
     import c.universe._
+    unused(msg)
     val target = c.macroApplication match {
       case Apply(Apply(TypeApply(Select(base, name), tp), msg2), body2) =>
         val newName = TermName("_" + name.toString)
@@ -63,9 +87,14 @@ object Logger {
     import c.universe._
     val target = c.macroApplication match {
       case Apply(TypeApply(Select(base, name), tp), body2) =>
-        val newName   = TermName("_" + name.toString)
-        val owner     = c.internal.enclosingOwner.asMethod
-        val ownerName = Literal(Constant(owner.name.toString))
+        val newName      = TermName("_" + name.toString)
+        val owner        = c.internal.enclosingOwner.asMethod
+        val owner2       = owner.owner
+        val parentObject = !owner2.isStatic
+        val oname =
+          if (parentObject) owner2.name.toString + "." + owner.name.toString
+          else owner.name.toString
+        val ownerName = Literal(Constant(oname))
         owner.paramLists match {
           case lst :: _ =>
             val lst2 = lst.map(x => q"$x")
@@ -80,8 +109,33 @@ object Logger {
     if (checkEnabled(c)) c.Expr(q"$target") else c.Expr(q"$body")
   }
 
+  def targetRedirect_[R: c.WeakTypeTag](c: Context)(body: c.Tree): c.Expr[R] = {
+    import c.universe._
+    val target = c.macroApplication match {
+      case Apply(TypeApply(Select(base, name), tp), body2) =>
+        val newName      = TermName("_" + name.toString)
+        val owner        = c.internal.enclosingOwner.asMethod
+        val owner2       = owner.owner
+        val parentObject = !owner2.isStatic
+        val oname =
+          if (parentObject) owner2.name.toString + "." + owner.name.toString
+          else owner.name.toString
+        val ownerName = Literal(Constant(oname))
+        owner.paramLists match {
+          case lst :: _ =>
+            val lst2 = lst.map(x => q"$x")
+            val msg  = List(q"$ownerName")
+            Apply(Apply(TypeApply(Select(base, newName), tp), msg), body2)
+          case _ => throw new Error("Unsupported shape")
+        }
+      case _ => throw new Error("Unsupported shape")
+    }
+    if (checkEnabled(c)) c.Expr(q"$target") else c.Expr(q"$body")
+  }
+
   def funcRedirect(c: Context)(s: c.Tree): c.Expr[Unit] = {
     import c.universe._
+    unused(s)
     val target = c.macroApplication match {
       case Apply(Select(base, name), args) =>
         val newName = TermName("_" + name.toString)

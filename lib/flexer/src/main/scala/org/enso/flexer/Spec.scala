@@ -1,15 +1,17 @@
 package org.enso.flexer
 
-import org.enso.flexer.CodeGen.MAX_ASCII_CODE
-import org.enso.flexer.CodeGen.MIN_ASCII_CODE
-import org.enso.flexer.State.StateDesc
-import org.enso.flexer.Utils._
+import org.enso.flexer.automata.State
+import org.enso.flexer.automata.DFA
 
 import scala.collection.immutable.Range
 import scala.collection.mutable
 import scala.reflect.runtime.universe._
 
-case class CodeGen(dfa: DFA) {
+// FIXME: This file needs to be refactored. Contains a lot of ugly vars
+//        and does not always provide explanation why something happens
+
+case class Spec(dfa: DFA) {
+  import Spec._
 
   val stateHasOverlappingRules = mutable.Map(0 -> false)
 
@@ -17,27 +19,28 @@ case class CodeGen(dfa: DFA) {
 
   def genBranchBody(
     trgState: Int,
-    maybeState: Option[StateDesc],
+    maybeState: Option[State.Desc],
     rulesOverlap: Boolean
-  ): Tree = {
-    (trgState, maybeState, rulesOverlap) match {
-      case (-1, None, _)            => q"-2"
-      case (-1, Some(state), false) => q"..${state.code}; -1"
-      case (-1, Some(state), true)  => q"rewindToLastRule(); ..${state.code}; -1"
+  ): Tree = (trgState, maybeState, rulesOverlap) match {
+    case (State.missing, None, _) =>
+      Literal(Constant(Parser.State.Status.Exit.FAIL))
+    case (State.missing, Some(state), false) =>
+      q"call(${TermName(state.rule)})"
+    case (State.missing, Some(state), true) =>
+      q"rewindThenCall(${TermName(state.rule)})"
 
-      case (targetState, _, _) =>
-        val rulesOverlap_ = maybeState match {
-          case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
-            dfa.endStatePriorityMap += targetState -> state
-            stateHasOverlappingRules += targetState -> true
-            true
-          case _ => false
-        }
-        if (rulesOverlap || rulesOverlap_)
-          q"charsToLastRule += charSize; ${Literal(Constant(targetState))}"
-        else
-          q"${Literal(Constant(targetState))}"
-    }
+    case (targetState, _, _) =>
+      val rulesOverlap_ = maybeState match {
+        case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
+          dfa.endStatePriorityMap += targetState -> state
+          stateHasOverlappingRules += targetState -> true
+          true
+        case _ => false
+      }
+      if (rulesOverlap || rulesOverlap_)
+        q"charsToLastRule += charSize(); ${Literal(Constant(targetState))}"
+      else
+        q"${Literal(Constant(targetState))}"
   }
 
   def genSwitch(branchs: Seq[Branch]): Seq[CaseDef] = {
@@ -64,16 +67,21 @@ case class CodeGen(dfa: DFA) {
     val state    = dfa.endStatePriorityMap.get(stateIx)
     var trgState = dfa.links(stateIx)(0)
     var rStart   = Int.MinValue
-    val branches = for {
-      (range, vocIx) <- dfa.vocabulary.toVector
-      newTrgState = dfa.links(stateIx)(vocIx)
-      rEnd        = range.start - 1
-      if newTrgState != trgState
-    } yield Branch(rStart to rEnd, genBranchBody(trgState, state, overlaps))
-      .thenDo {
-        trgState = newTrgState
-        rStart   = range.start
-      }
+    val branches = dfa.vocabulary.toVector.flatMap {
+      case (range, vocIx) =>
+        val newTrgState = dfa.links(stateIx)(vocIx)
+        if (newTrgState != trgState) {
+          val rEnd      = range.start - 1
+          val xtrgState = trgState
+          val xrStart   = rStart
+          trgState = newTrgState
+          rStart   = range.start
+          Some(
+            Branch(xrStart to rEnd, genBranchBody(xtrgState, state, overlaps))
+          )
+        } else None
+    }
+
     val allBranches = branches :+
       Branch(rStart to Int.MaxValue, genBranchBody(trgState, state, overlaps))
 
@@ -104,7 +112,7 @@ case class CodeGen(dfa: DFA) {
   def generate(i: Int): Tree = {
     def states =
       dfa.links.indices.toList
-        .map(st => (st, TermName(s"group${i}_state$st")))
+        .map(st => (st, TermName(s"state${i}_${st}")))
 
     val cases = states.map {
       case (st, fun) => cq"$st => $fun"
@@ -113,29 +121,18 @@ case class CodeGen(dfa: DFA) {
       case (st, fun) => q"def $fun = {${generateCaseBody(st)}}"
     }
     q"""
-      def ${TermName(s"runGroup$i")}(): Int = {
-        var state: Int = 0
-        matchBuilder.setLength(0)
-        while(state >= 0) {
-          state = ${Match(q"state", cases)}
-          if(state >= 0) {
-            matchBuilder.append(buffer(offset))
-            if (buffer(offset).isHighSurrogate)
-              matchBuilder.append(buffer(offset+1))
-            codePoint = getNextCodePoint()
-          }
-        }
-        state
-      }
+      stateDefs($i) = ${TermName(s"nextState$i")}
+      def ${TermName(s"nextState$i")}(state: Int): Int = ${Match(
+      q"state",
+      cases
+    )}
       ..$bodies
     """
   }
 
 }
 
-object CodeGen {
-
+object Spec {
   val MIN_ASCII_CODE = 0
   val MAX_ASCII_CODE = 255
-
 }

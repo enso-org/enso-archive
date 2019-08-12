@@ -1,11 +1,14 @@
-package org.enso.flexer
+package org.enso.flexer.spec
+
+import org.enso.flexer.Parser
 
 import scala.reflect.macros.blackbox.Context
-import scala.reflect.runtime.{universe => u}
+import scala.reflect.runtime.universe
 
+// FIXME: Needs to be refactored. Contains deprecated API usage
 object Macro {
 
-  type Base[T] = ParserBase[T]
+  type Base[T] = Parser[T]
   type In[T]   = () => Base[T]
   type Out[T]  = () => Base[T]
 
@@ -20,8 +23,8 @@ object Macro {
     val expr   = q"$tree()"
     val parser = c.eval(c.Expr[Base[T]](c.untypecheck(expr.duplicate)))
     val groups = c.internal
-      .createImporter(u)
-      .importTree(u.Block(parser.groupsx.map(_.generate()): _*))
+      .createImporter(universe)
+      .importTree(universe.Block(parser.state.registry.map(_.generate()): _*))
 
     val superClassName = tree match {
       case Select(_, name) => name

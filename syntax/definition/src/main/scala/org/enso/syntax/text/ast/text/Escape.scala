@@ -2,10 +2,11 @@ package org.enso.syntax.text.ast.text
 
 import org.enso.data.ADT
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.Text.Segment.Escape
+import org.enso.syntax.text.AST.Text.Segment
 import org.enso.syntax.text.ast.Repr.R
 
 object Escape {
+  type Escape = Segment.Escape
   case object Slash           extends Escape { val repr = "\\\\" }
   case object Quote           extends Escape { val repr = "\\'" }
   case object RawQuote        extends Escape { val repr = "\\\"" }

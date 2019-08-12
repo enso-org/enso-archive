@@ -78,7 +78,7 @@ object Operator {
           }
       }
 
-      go(seg.tail, Shifted.List1(seg.head))
+      go((seg.tail, Shifted.List1(seg.head)))
     }
 
     def reduceHead(stack: Shifted.List1[AST]): Shifted.List1[AST] = {
