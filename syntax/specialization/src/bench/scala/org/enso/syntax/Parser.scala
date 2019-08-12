@@ -1,7 +1,6 @@
 package org.enso.syntax
 
-import org.enso.flexer.Macro
-import org.enso.syntax.text.ParserDef
+import org.enso.syntax.text.Parser
 import org.scalameter.api._
 
 import scala.math.pow
@@ -24,16 +23,14 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
                                             | fib  n = fib n-1 + fib n-2
                                             """.stripMargin * i
 
-  val newParser = Macro.compile(ParserDef)
-
   performance of "parser" in {
-    measure method "variable" in (using(variable) in (newParser().run(_)))
-    measure method "text" in (using(text) in (newParser().run(_)))
-    measure method "number" in (using(number) in (newParser().run(_)))
-    measure method "calls" in (using(calls) in (newParser().run(_)))
-    measure method "codeBlock" in (using(codeBlock) in (newParser().run(_)))
-    measure method "openParens" in (using(openParens) in (newParser().run(_)))
-    measure method "clsdParens" in (using(clsdParens) in (newParser().run(_)))
-    measure method "allRules" in (using(allRules) in (newParser().run(_)))
+    measure method "variable" in (using(variable) in (Parser.run(_)))
+    measure method "text" in (using(text) in (Parser.run(_)))
+    measure method "number" in (using(number) in (Parser.run(_)))
+    measure method "calls" in (using(calls) in (Parser.run(_)))
+    measure method "codeBlock" in (using(codeBlock) in (Parser.run(_)))
+    measure method "openParens" in (using(openParens) in (Parser.run(_)))
+    measure method "clsdParens" in (using(clsdParens) in (Parser.run(_)))
+    measure method "allRules" in (using(allRules) in (Parser.run(_)))
   }
 }

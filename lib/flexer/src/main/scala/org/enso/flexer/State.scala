@@ -1,33 +1,96 @@
 package org.enso.flexer
 
-import org.feijoas.mango.common.collect.mutable.RangeMap
+import org.enso.flexer.automata.NFA
+import org.enso.flexer.automata.Pattern
+import org.enso.flexer.state.Rule
 
-import scala.collection.mutable
-import scala.reflect.runtime.universe._
+import scala.reflect.runtime.universe.Tree
 
-class State {
-  //  val links                         = mutable.SortedMap[Int, Int]()
-  val isoLinks                            = new mutable.ArrayBuffer[Int]()
-  var isos                                = Set[Int]()
-  var isosId: Int                         = 0
-  var isosComputed: State.IsoComputeState = State.NotComputed
+class State(val label: String, val ix: Int, val finish: () => Unit) {
+  var parent: Option[State]        = None
+  private var revRules: List[Rule] = List()
 
-  var start  = false
-  var end    = false
-  var code   = q""
-  val links2 = RangeMap[Int, Int, Ordering.Int.type]()
-}
+  def parent_=(p: State): Unit =
+    parent = Some(p)
 
-object State {
+  def addRule(rule: Rule): Unit =
+    revRules = rule +: revRules
 
-  case class StateDesc(priority: Int, code: Tree)
+  def rule(expr: Pattern): Rule.Builder =
+    Rule.Builder(expr, addRule)
 
-  trait IsoComputeState
+  def ||(expr: Pattern): Rule.Builder =
+    rule(expr)
 
-  case object NotComputed extends IsoComputeState
+  def rules(): List[Rule] = {
+    val myRules = revRules.reverse
+    parent.map(myRules ++ _.rules()).getOrElse(myRules)
+  }
 
-  case object InProgress extends IsoComputeState
+  private def ruleName(ruleIx: Int): String =
+    s"group${ix}_rule$ruleIx"
 
-  case object Computed extends IsoComputeState
+  private def buildAutomata(): NFA = {
+    val nfa   = new NFA
+    val start = nfa.addState()
+    val endpoints = rules().zipWithIndex.map {
+      case (rule, ix) => buildRuleAutomata(nfa, start, ix, rule)
+    }
+    val end = nfa.addState()
+    nfa.state(end).rule = Some("")
+    for (endpoint <- endpoints) {
+      nfa.link(endpoint, end)
+    }
+    nfa
+  }
 
+  def buildRuleAutomata(nfa: NFA, last: Int, ruleIx: Int, rule: Rule): Int = {
+    val end = buildExprAutomata(nfa, last, rule.pattern)
+    nfa.state(end).rule = Some(ruleName(ruleIx))
+    end
+  }
+
+  def buildExprAutomata(nfa: NFA, last: Int, expr: Pattern): Int = {
+    import Pattern._
+    val current = nfa.addState()
+    nfa.link(last, current)
+    expr match {
+      case Always => current
+      case Range(start, end) =>
+        val state = nfa.addState()
+        nfa.link(current, state, scala.Range(start, end))
+        state
+      case Seq(first, second) =>
+        val s1 = buildExprAutomata(nfa, current, first)
+        buildExprAutomata(nfa, s1, second)
+      case Many(body) =>
+        val s1 = nfa.addState()
+        val s2 = buildExprAutomata(nfa, s1, body)
+        val s3 = nfa.addState()
+        nfa.link(current, s1)
+        nfa.link(current, s3)
+        nfa.link(s2, s3)
+        nfa.link(s3, s1)
+        s3
+      case Or(first, second) =>
+        val s1 = buildExprAutomata(nfa, current, first)
+        val s2 = buildExprAutomata(nfa, current, second)
+        val s3 = nfa.addState()
+        nfa.link(s1, s3)
+        nfa.link(s2, s3)
+        s3
+    }
+  }
+
+  def generate(): Tree = {
+    import scala.reflect.runtime.universe._
+    val nfa   = buildAutomata()
+    val dfa   = nfa.toDFA()
+    val state = Spec(dfa).generate(ix)
+    val rs = rules.zipWithIndex.map {
+      case (rule, ruleIx) =>
+        q"def ${TermName(ruleName(ruleIx))}() = ${rule.tree}"
+    }
+    q"..$state; ..$rs"
+  }
 }

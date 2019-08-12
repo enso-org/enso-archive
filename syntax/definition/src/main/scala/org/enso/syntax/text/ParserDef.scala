@@ -1,111 +1,32 @@
 package org.enso.syntax.text
 
-import org.enso.flexer.Pattern.char
-import org.enso.flexer.Pattern.range
-import org.enso.flexer.Pattern._
 import org.enso.flexer._
-import org.enso.syntax.text.AST.Text.Quote
-import org.enso.syntax.text.AST._
+import org.enso.flexer.automata.Pattern
+import org.enso.flexer.automata.Pattern._
+import org.enso.syntax.text.AST.Text.Segment.EOL
 
-import scala.annotation.tailrec
 import scala.reflect.runtime.universe.reify
 
-case class ParserDef() extends ParserBase[AST] {
+case class ParserDef() extends Parser[AST] {
 
-  val ast = AST
-
-  val any: Pattern  = range(5, Int.MaxValue) // FIXME 5 -> 0
-  val pass: Pattern = Pass
-  val eof: Pattern  = char('\u0000')
-  val none: Pattern = None_
-
-  final def anyOf(chars: String): Pattern =
-    anyOf(chars.map(char))
-
-  final def anyOf(alts: Seq[Pattern]): Pattern =
-    alts.fold(none)(_ | _)
-
-  final def noneOf(chars: String): Pattern = {
-    val pointCodes  = chars.map(_.toInt).sorted
-    val startPoints = 5 +: pointCodes.map(_ + 1) // FIXME 5 -> 0
-    val endPoints   = pointCodes.map(_ - 1) :+ Int.MaxValue
-    val ranges      = startPoints.zip(endPoints)
-    val validRanges = ranges.filter { case (s, e) => e >= s }
-    val patterns    = validRanges.map { case (s, e) => range(s, e) }
-    anyOf(patterns)
-  }
-
-  final def not(char: Char): Pattern =
-    noneOf(char.toString)
-
-  def repeat(p: Pattern, min: Int, max: Int): Pattern = {
-    val minPat = repeat(p, min)
-    _repeatAlt(p, max - min, minPat, minPat)
-  }
-
-  def repeat(p: Pattern, num: Int): Pattern =
-    _repeat(p, num, pass)
-
-  @tailrec
-  final def _repeat(p: Pattern, num: Int, out: Pattern): Pattern = num match {
-    case 0 => out
-    case _ => _repeat(p, num - 1, out >> p)
-  }
-
-  @tailrec
-  final def _repeatAlt(p: Pattern, i: Int, ch: Pattern, out: Pattern): Pattern =
-    i match {
-      case 0 => out
-      case _ =>
-        val ch2 = ch >> p
-        _repeatAlt(p, i - 1, ch2, out | ch2)
-    }
-
-  final def withSome[T, S](opt: Option[T])(f: T => S): S = opt match {
+  final def unwrap[T](opt: Option[T]): T = opt match {
     case None    => throw new Error("Internal Error")
-    case Some(a) => f(a)
+    case Some(t) => t
   }
 
-  //// Cleaning ////
+  /////////////
+  //// API ////
+  /////////////
 
-  final override def initialize(): Unit = {
-    onBlockBegin(0)
-  }
-
-  ////////////////
-  //// Result ////
-  ////////////////
-
-  override def getResult() = result
-
-  var result: Option[AST]         = None
-  var astStack: List[Option[AST]] = Nil
-
-  final def pushAST(): Unit = logger.trace {
-    astStack +:= result
-    result = None
-  }
-
-  final def popAST(): Unit = logger.trace {
-    result   = astStack.head
-    astStack = astStack.tail
-  }
-
-  final def app(fn: String => AST): Unit =
-    app(fn(currentMatch))
-
-  final def app(t: AST): Unit = logger.trace {
-    result = Some(result match {
-      case None    => t
-      case Some(r) => App(r, useLastOffset(), t)
-    })
+  override def run(input: String) = {
+    block.onBegin(0)
+    state.begin(block.FIRSTCHAR)
+    super.run(input)
   }
 
   ///////////////////////////////////
   //// Basic Char Classification ////
   ///////////////////////////////////
-
-  val NORMAL = defineGroup("Normal")
 
   val lowerLetter: Pattern = range('a', 'z')
   val upperLetter: Pattern = range('A', 'Z')
@@ -113,617 +34,655 @@ case class ParserDef() extends ParserBase[AST] {
   val hex: Pattern         = digit | range('a', 'f') | range('A', 'F')
   val alphaNum: Pattern    = digit | lowerLetter | upperLetter
   val whitespace0: Pattern = ' '.many
-  val whitespace: Pattern  = ' '.many1
+  val space: Pattern       = ' '.many1
   val newline: Pattern     = '\n'
+
+  ////////////////
+  //// Result ////
+  ////////////////
+
+  override def getResult() = result.current
+
+  final object result {
+    var current: Option[AST]     = None
+    var stack: List[Option[AST]] = Nil
+
+    def push(): Unit = logger.trace {
+      logger.log(s"Pushed: $current")
+      stack +:= current
+      current = None
+    }
+
+    def pop(): Unit = logger.trace {
+      current = stack.head
+      stack   = stack.tail
+      logger.log(s"New result: $current")
+    }
+
+    def app(fn: String => AST): Unit =
+      app(fn(currentMatch))
+
+    def app(t: AST): Unit = logger.trace {
+      current = Some(current match {
+        case None    => t
+        case Some(r) => AST.App(r, off.use(), t)
+      })
+    }
+  }
 
   ////////////////
   //// Offset ////
   ////////////////
 
-  var lastOffset: Int            = 0
-  var lastOffsetStack: List[Int] = Nil
+  final object off {
+    var current: Int     = 0
+    var stack: List[Int] = Nil
 
-  final def pushLastOffset(): Unit = logger.trace {
-    lastOffsetStack +:= lastOffset
-    lastOffset = 0
-  }
+    def push(): Unit = logger.trace {
+      stack +:= current
+      current = 0
+    }
 
-  final def popLastOffset(): Unit = logger.trace {
-    lastOffset      = lastOffsetStack.head
-    lastOffsetStack = lastOffsetStack.tail
-  }
+    def pop(): Unit = logger.trace {
+      current = stack.head
+      stack   = stack.tail
+    }
 
-  final def useLastOffset(): Int = logger.trace {
-    val offset = lastOffset
-    lastOffset = 0
-    offset
-  }
+    def use(): Int = logger.trace {
+      val offset = current
+      current = 0
+      offset
+    }
 
-  final def onWhitespace(): Unit = onWhitespace(0)
-  final def onWhitespace(shift: Int): Unit = logger.trace {
-    val diff = currentMatch.length + shift
-    lastOffset += diff
-    logger.log(s"lastOffset + $diff = $lastOffset")
+    def on(): Unit = on(0)
+
+    def on(shift: Int): Unit = logger.trace {
+      val diff = currentMatch.length + shift
+      current += diff
+      logger.log(s"lastOffset + $diff = $current")
+    }
   }
 
   ////////////////////
   //// IDENTIFIER ////
   ////////////////////
 
-  var identBody: Option[Ident] = None
+  final object ident {
+    var current: Option[AST.Ident] = None
 
-  final def onIdent(cons: String => Ident): Unit = logger.trace {
-    onIdent(cons(currentMatch))
-  }
-
-  final def onIdent(ast: Ident): Unit = logger.trace {
-    identBody = Some(ast)
-    beginGroup(IDENT_SFX_CHECK)
-  }
-
-  final def submitIdent(): Unit = logger.trace {
-    withSome(identBody) { body =>
-      app(body)
-      identBody = None
+    def on(cons: String => AST.Ident): Unit = logger.trace_ {
+      on(cons(currentMatch))
     }
-  }
 
-  final def onIdentErrSfx(): Unit = logger.trace {
-    withSome(identBody) { body =>
-      val ast = Ident.InvalidSuffix(body, currentMatch)
-      app(ast)
-      identBody = None
-      endGroup()
+    def on(ast: AST.Ident): Unit = logger.trace {
+      current = Some(ast)
+      state.begin(SFX_CHECK)
     }
+
+    def submit(): Unit = logger.trace {
+      result.app(unwrap(current))
+      current = None
+    }
+
+    def onErrSfx(): Unit = logger.trace {
+      val ast = AST.Ident.InvalidSuffix(unwrap(current), currentMatch)
+      result.app(ast)
+      current = None
+      state.end()
+    }
+
+    def onNoErrSfx(): Unit = logger.trace {
+      submit()
+      state.end()
+    }
+
+    def finalizer(): Unit = logger.trace {
+      if (current.isDefined) submit()
+    }
+
+    val char: Pattern   = alphaNum | '_'
+    val body: Pattern   = char.many >> '\''.many
+    val _var: Pattern   = lowerLetter >> body
+    val cons: Pattern   = upperLetter >> body
+    val breaker: String = "^`!@#$%^&*()-=+[]{}|;:<>,./ \t\r\n\\"
+    val errSfx: Pattern = noneOf(breaker).many1
+
+    val SFX_CHECK = state.define("Identifier Suffix Check")
   }
 
-  final def onNoIdentErrSfx(): Unit = logger.trace {
-    submitIdent()
-    endGroup()
-  }
-
-  final def finalizeIdent(): Unit = logger.trace {
-    if (identBody != None) submitIdent()
-  }
-
-  val indentChar: Pattern  = alphaNum | '_'
-  val identBody_ : Pattern = indentChar.many >> '\''.many
-  val variable: Pattern    = lowerLetter >> identBody_
-  val constructor: Pattern = upperLetter >> identBody_
-  val identBreaker: String = "^`!@#$%^&*()-=+[]{}|;:<>,./ \t\r\n\\"
-  val identErrSfx: Pattern = noneOf(identBreaker).many1
-
-  val IDENT_SFX_CHECK = defineGroup("Identifier Suffix Check")
-
-  // format: off
-  NORMAL          rule variable    run reify { onIdent(ast.Var(_)) }
-  NORMAL          rule constructor run reify { onIdent(ast.Cons(_)) }
-  NORMAL          rule "_"         run reify { onIdent(ast.Blank) }
-  IDENT_SFX_CHECK rule identErrSfx run reify { onIdentErrSfx() }
-  IDENT_SFX_CHECK rule pass        run reify { onNoIdentErrSfx() }
-  // format: on
+  ROOT            || ident._var   || reify { ident.on(AST.Var) }
+  ROOT            || ident.cons   || reify { ident.on(AST.Cons) }
+  ROOT            || "_"          || reify { ident.on(AST.Blank) }
+  ident.SFX_CHECK || ident.errSfx || reify { ident.onErrSfx() }
+  ident.SFX_CHECK || always       || reify { ident.onNoErrSfx() }
 
   //////////////////
   //// Operator ////
   //////////////////
 
-  final def onOp(cons: String => Ident): Unit = logger.trace {
-    onOp(cons(currentMatch))
-  }
-
-  final def onNoModOp(cons: String => Ident): Unit = logger.trace {
-    onNoModOp(cons(currentMatch))
-  }
-
-  final def onOp(ast: Ident): Unit = logger.trace {
-    identBody = Some(ast)
-    beginGroup(OPERATOR_MOD_CHECK)
-  }
-
-  final def onNoModOp(ast: Ident): Unit = logger.trace {
-    identBody = Some(ast)
-    beginGroup(OPERATOR_SFX_CHECK)
-  }
-
-  final def onModifier(): Unit = logger.trace {
-    withSome(identBody) { body =>
-      identBody = Some(Opr.Mod(body.asInstanceOf[Opr].name))
+  final object opr {
+    def on(cons: String => AST.Ident): Unit = logger.trace {
+      on(cons(currentMatch))
     }
+
+    def onNoMod(cons: String => AST.Ident): Unit = logger.trace {
+      onNoMod(cons(currentMatch))
+    }
+
+    def on(ast: AST.Ident): Unit = logger.trace {
+      ident.current = Some(ast)
+      state.begin(MOD_CHECK)
+    }
+
+    def onNoMod(ast: AST.Ident): Unit = logger.trace {
+      ident.current = Some(ast)
+      state.begin(SFX_CHECK)
+    }
+
+    def onMod(): Unit = logger.trace {
+      val opr = AST.Opr.Mod(unwrap(ident.current).asInstanceOf[AST.Opr].name)
+      ident.current = Some(opr)
+    }
+
+    val char: Pattern     = anyOf("!$%&*+-/<>?^~|:\\")
+    val errChar: Pattern  = char | "=" | "," | "."
+    val errSfx: Pattern   = errChar.many1
+    val body: Pattern     = char.many1
+    val opsEq: Pattern    = "=" | "==" | ">=" | "<=" | "/=" | "#="
+    val opsDot: Pattern   = "." | ".." | "..." | ","
+    val opsGrp: Pattern   = anyOf("()[]{}")
+    val opsNoMod: Pattern = opsEq | opsDot | opsGrp | "##"
+
+    val SFX_CHECK = state.define("Operator Suffix Check")
+    val MOD_CHECK = state.define("Operator Modifier Check")
+    MOD_CHECK.parent = SFX_CHECK
   }
 
-  val operatorChar: Pattern    = anyOf("!$%&*+-/<>?^~|:\\")
-  val operatorErrChar: Pattern = operatorChar | "=" | "," | "."
-  val operatorErrSfx: Pattern  = operatorErrChar.many1
-  val eqOperators: Pattern     = "=" | "==" | ">=" | "<=" | "/=" | "#="
-  val dotOperators: Pattern    = "." | ".." | "..." | ","
-  val operator: Pattern        = operatorChar.many1
-  val groupOperators: Pattern  = anyOf("()[]{}")
-  val noModOperator: Pattern   = eqOperators | dotOperators | groupOperators
+  ROOT          || opr.body     || reify { opr.on(AST.Opr(_)) }
+  ROOT          || opr.opsNoMod || reify { opr.onNoMod(AST.Opr(_)) }
+  opr.MOD_CHECK || "="          || reify { opr.onMod() }
+  opr.SFX_CHECK || opr.errSfx   || reify { ident.onErrSfx() }
+  opr.SFX_CHECK || always       || reify { ident.onNoErrSfx() }
 
-  val OPERATOR_SFX_CHECK = defineGroup("Operator Suffix Check")
-  val OPERATOR_MOD_CHECK = defineGroup("Operator Modifier Check")
-  OPERATOR_MOD_CHECK.setParent(OPERATOR_SFX_CHECK)
+  ////////////////
+  //// NUMBER ////
+  ////////////////
 
-  // format: off
-  NORMAL             rule operator       run reify { onOp(ast.Opr(_)) }
-  NORMAL             rule noModOperator  run reify { onNoModOp(ast.Opr(_)) }
-  OPERATOR_MOD_CHECK rule "="            run reify { onModifier() }
-  OPERATOR_SFX_CHECK rule operatorErrSfx run reify { onIdentErrSfx() }
-  OPERATOR_SFX_CHECK rule pass           run reify { onNoIdentErrSfx() }
-  // format: on
+  final object num {
 
-  ////////////////////////////////////
-  //// NUMBER (e.g. 16_ff0000.ff) ////
-  ////////////////////////////////////
+    var part1: String = ""
+    var part2: String = ""
 
-  var numberPart1: String = ""
-  var numberPart2: String = ""
+    def reset(): Unit = logger.trace {
+      part1 = ""
+      part2 = ""
+    }
 
-  final def numberReset(): Unit = logger.trace {
-    numberPart1 = ""
-    numberPart2 = ""
+    def submit(): Unit = logger.trace {
+      val base = if (part1 == "") None else Some(part1)
+      result.app(AST.Number(base, part2))
+      reset()
+    }
+
+    def onDanglingBase(): Unit = logger.trace {
+      state.end()
+      result.app(AST.Number.DanglingBase(part2))
+      reset()
+    }
+
+    def onDecimal(): Unit = logger.trace {
+      part2 = currentMatch
+      state.begin(PHASE2)
+    }
+
+    def onExplicitBase(): Unit = logger.trace {
+      state.end()
+      part1 = part2
+      part2 = currentMatch.substring(1)
+      submit()
+    }
+
+    def onNoExplicitBase(): Unit = logger.trace {
+      state.end()
+      submit()
+    }
+
+    val decimal: Pattern = digit.many1
+
+    val PHASE2: State = state.define("Number Phase 2")
   }
 
-  final def submitNumber(): Unit = logger.trace {
-    val base = if (numberPart1 == "") None else Some(numberPart1)
-    app(Number(base, numberPart2))
-    numberReset()
-  }
-
-  final def onDanglingBase(): Unit = logger.trace {
-    endGroup()
-    app(Number.DanglingBase(numberPart2))
-    numberReset()
-  }
-
-  final def onDecimal(): Unit = logger.trace {
-    numberPart2 = currentMatch
-    beginGroup(NUMBER_PHASE2)
-  }
-
-  final def onExplicitBase(): Unit = logger.trace {
-    endGroup()
-    numberPart1 = numberPart2
-    numberPart2 = currentMatch.substring(1)
-    submitNumber()
-  }
-
-  final def onNoExplicitBase(): Unit = logger.trace {
-    endGroup()
-    submitNumber()
-  }
-
-  val decimal: Pattern = digit.many1
-
-  val NUMBER_PHASE2: Group = defineGroup("Number Phase 2")
-
-  // format: off
-  NORMAL        rule decimal                 run reify { onDecimal() }
-  NUMBER_PHASE2 rule ("_" >> alphaNum.many1) run reify { onExplicitBase() }
-  NUMBER_PHASE2 rule ("_")                   run reify { onDanglingBase() }
-  NUMBER_PHASE2 rule pass                    run reify { onNoExplicitBase() }
-  // format: on
+  ROOT       || num.decimal           || reify { num.onDecimal() }
+  num.PHASE2 || "_" >> alphaNum.many1 || reify { num.onExplicitBase() }
+  num.PHASE2 || "_"                   || reify { num.onDanglingBase() }
+  num.PHASE2 || always                || reify { num.onNoExplicitBase() }
 
   //////////////
   //// Text ////
   //////////////
 
-  var textStateStack: List[Text.Interpolated] = Nil
+  import AST.Text.Quote
 
-  final def currentText = textStateStack.head
-  final def withCurrentText(f: Text.Interpolated => Text.Interpolated) =
-    textStateStack = f(textStateStack.head) :: textStateStack.tail
+  final object text {
+    var stack: List[AST.Text.Interpolated] = Nil
 
-  final def pushTextState(quoteSize: Quote): Unit = logger.trace {
-    textStateStack +:= Text.Interpolated(quoteSize)
-  }
+    def current = stack.head
 
-  final def popTextState(): Unit = logger.trace {
-    textStateStack = textStateStack.tail
-  }
+    def withCurrent(f: AST.Text.Interpolated => AST.Text.Interpolated) =
+      stack = f(stack.head) :: stack.tail
 
-  final def insideOfText: Boolean =
-    textStateStack.nonEmpty
-
-  final def submitEmptyText(quoteNum: Quote): Unit = logger.trace {
-    app(Text.Interpolated(quoteNum))
-  }
-
-  final def finishCurrentTextBuilding(): Text.Interpolated = logger.trace {
-    withCurrentText(t => t.copy(segments = t.segments.reverse))
-    val txt = currentText
-    popTextState()
-    endGroup()
-    txt
-  }
-
-  final def submitText(): Unit = logger.trace {
-    app(finishCurrentTextBuilding())
-  }
-
-  final def submitUnclosedText(): Unit = logger.trace {
-    app(Text.Unclosed(finishCurrentTextBuilding()))
-  }
-
-  final def onTextBegin(quoteSize: Quote): Unit = logger.trace {
-    pushTextState(quoteSize)
-    beginGroup(TEXT)
-  }
-
-  final def submitPlainTextSegment(segment: Text.Interpolated.Segment): Unit =
-    logger.trace { withCurrentText(_.prependMergeReversed(segment)) }
-
-  final def submitTextSegment(segment: Text.Interpolated.Segment): Unit =
-    logger.trace { withCurrentText(_.prepend(segment)) }
-
-  final def onPlainTextSegment(): Unit = logger.trace {
-    submitPlainTextSegment(Text.Segment.Plain(currentMatch))
-  }
-
-  final def onTextQuote(quoteSize: Quote): Unit = logger.trace {
-    if (currentText.quote == Text.Quote.Triple
-        && quoteSize == Text.Quote.Single) onPlainTextSegment()
-    else if (currentText.quote == Text.Quote.Single
-             && quoteSize == Text.Quote.Triple) {
-      submitText()
-      submitEmptyText(Text.Quote.Single)
-    } else {
-      submitText()
+    def push(quoteSize: Quote): Unit = logger.trace {
+      stack +:= AST.Text.Interpolated(quoteSize)
     }
-  }
 
-  final def onTextEscape(code: Text.Segment.Escape): Unit = logger.trace {
-    submitTextSegment(code)
-  }
-
-  final def onTextEscapeU16(): Unit = logger.trace {
-    val code = currentMatch.drop(2)
-    submitTextSegment(Text.Segment.Escape.Unicode.U16(code))
-  }
-
-  final def onTextEscapeU32(): Unit = logger.trace {
-    val code = currentMatch.drop(2)
-    submitTextSegment(Text.Segment.Escape.Unicode.U32(code))
-  }
-
-  final def onTextEscapeInt(): Unit = logger.trace {
-    val int = currentMatch.drop(1).toInt
-    submitTextSegment(Text.Segment.Escape.Number(int))
-  }
-
-  final def onInvalidEscape(): Unit = logger.trace {
-    val str = currentMatch.drop(1)
-    submitTextSegment(Text.Segment.Escape.Invalid(str))
-  }
-
-  final def onEscapeSlash(): Unit = logger.trace {
-    submitTextSegment(Text.Segment.Escape.Slash)
-  }
-
-  final def onEscapeQuote(): Unit = logger.trace {
-    submitTextSegment(Text.Segment.Escape.Quote)
-  }
-
-  final def onEscapeRawQuote(): Unit = logger.trace {
-    submitTextSegment(Text.Segment.Escape.RawQuote)
-  }
-
-  final def onInterpolateBegin(): Unit = logger.trace {
-    pushAST()
-    pushLastOffset()
-    beginGroup(INTERPOLATE)
-  }
-
-  final def terminateGroupsTill(g: Group): Unit = logger.trace {
-    terminateGroupsTill(g.groupIx)
-  }
-
-  final def terminateGroupsTill(g: Int): Unit = logger.trace {
-    while (g != group) {
-      getGroup(group).finish()
-      endGroup()
+    def pop(): Unit = logger.trace {
+      stack = stack.tail
     }
-  }
 
-  final def onInterpolateEnd(): Unit = logger.trace {
-    if (insideOfGroup(INTERPOLATE)) {
-      terminateGroupsTill(INTERPOLATE)
-      submitTextSegment(Text.Segment.Interpolation(result))
-      popAST()
-      popLastOffset()
-      endGroup()
-    } else {
-      onUnrecognized()
+    def submitEmpty(groupIx: State, quoteNum: Quote): Unit =
+      logger.trace {
+        if (groupIx == RAW)
+          result.app(AST.Text.Raw(quoteNum))
+        else
+          result.app(AST.Text.Interpolated(quoteNum))
+      }
+
+    def finishCurrent(): AST.Text.Class[_] = logger.trace {
+      withCurrent(t => t.copy(segments = t.segments.reverse))
+      val txt = if (state.current == RAW) current.raw else current
+      pop()
+      state.end()
+      val singleLine = !txt.segments.contains(EOL())
+      if (singleLine || block.current.firstLine.isDefined || result.current.isDefined)
+        txt
+      else {
+        val segs =
+          AST.Text.MultiLine.stripOffset(block.current.indent, txt.segments)
+        AST.Text.MultiLine(block.current.indent, txt.quoteChar, txt.quote, segs)
+      }
     }
+
+    def submit(): Unit = logger.trace {
+      result.app(finishCurrent())
+    }
+
+    def submit(segment: AST.Text.Interpolated.Segment): Unit =
+      logger.trace {
+        withCurrent(_.prepend(segment))
+      }
+
+    def submitUnclosed(): Unit = logger.trace {
+      result.app(AST.Text.Unclosed(finishCurrent()))
+    }
+
+    def onBegin(grp: State, quoteSize: Quote): Unit = logger.trace {
+      push(quoteSize)
+      state.begin(grp)
+    }
+
+    def submitPlainSegment(
+      segment: AST.Text.Interpolated.Segment
+    ): Unit =
+      logger.trace {
+        withCurrent(_.prependMergeReversed(segment))
+      }
+
+    def onPlainSegment(): Unit = logger.trace {
+      submitPlainSegment(AST.Text.Segment.Plain(currentMatch))
+    }
+
+    def onQuote(quoteSize: Quote): Unit = logger.trace {
+      if (current.quote == Quote.Triple
+          && quoteSize == Quote.Single) onPlainSegment()
+      else if (current.quote == Quote.Single
+               && quoteSize == Quote.Triple) {
+        val groupIx = state.current
+        submit()
+        submitEmpty(groupIx, Quote.Single)
+      } else
+        submit()
+    }
+
+    def onEscape(code: AST.Text.Segment.Escape): Unit = logger.trace {
+      submit(code)
+    }
+
+    def onEscapeU16(): Unit = logger.trace {
+      val code = currentMatch.drop(2)
+      submit(AST.Text.Segment.Escape.Unicode.U16(code))
+    }
+
+    def onEscapeU32(): Unit = logger.trace {
+      val code = currentMatch.drop(2)
+      submit(AST.Text.Segment.Escape.Unicode.U32(code))
+    }
+
+    def onEscapeInt(): Unit = logger.trace {
+      val int = currentMatch.drop(1).toInt
+      submit(AST.Text.Segment.Escape.Number(int))
+    }
+
+    def onInvalidEscape(): Unit = logger.trace {
+      val str = currentMatch.drop(1)
+      submit(AST.Text.Segment.Escape.Invalid(str))
+    }
+
+    def onEscapeSlash(): Unit = logger.trace {
+      submit(AST.Text.Segment.Escape.Slash)
+    }
+
+    def onEscapeQuote(): Unit = logger.trace {
+      submit(AST.Text.Segment.Escape.Quote)
+    }
+
+    def onEscapeRawQuote(): Unit = logger.trace {
+      submit(AST.Text.Segment.Escape.RawQuote)
+    }
+
+    def onInterpolateBegin(): Unit = logger.trace {
+      result.push()
+      off.push()
+      state.begin(INTERPOLATE)
+    }
+
+    def onInterpolateEnd(): Unit = logger.trace {
+      if (state.isInside(INTERPOLATE)) {
+        state.endTill(INTERPOLATE)
+        submit(AST.Text.Segment.Interpolation(result.current))
+        result.pop()
+        off.pop()
+        state.end()
+      } else {
+        onUnrecognized()
+      }
+    }
+
+    def onEOF(): Unit = logger.trace {
+      submitUnclosed()
+      rewind()
+    }
+
+    def onEOL(): Unit = logger.trace {
+      submitPlainSegment(AST.Text.Segment.EOL())
+    }
+
+    val stringChar = noneOf("'`\"\\\n")
+    val seg        = stringChar.many1
+    val escape_int = "\\" >> num.decimal
+    val escape_u16 = "\\u" >> repeat(stringChar, 0, 4)
+    val escape_u32 = "\\U" >> repeat(stringChar, 0, 8)
+
+    val INTP: State        = state.define("Text")
+    val RAW: State         = state.define("Raw Text")
+    val INTERPOLATE: State = state.define("Interpolate")
+    INTERPOLATE.parent = ROOT
   }
 
-  final def onTextEOF(): Unit = logger.trace {
-    submitUnclosedText()
-    rewind()
-  }
+  ROOT      || '`'      || reify { text.onInterpolateEnd() }
+  text.INTP || '`'      || reify { text.onInterpolateBegin() }
+  ROOT      || "'"      || reify { text.onBegin(text.INTP, Quote.Single) }
+  ROOT      || "'''"    || reify { text.onBegin(text.INTP, Quote.Triple) }
+  text.INTP || "'"      || reify { text.onQuote(Quote.Single) }
+  text.INTP || "'''"    || reify { text.onQuote(Quote.Triple) }
+  text.INTP || text.seg || reify { text.onPlainSegment() }
+  text.INTP || eof      || reify { text.onEOF() }
+  text.INTP || '\n'     || reify { text.onEOL() }
 
-  final def fixme_onTextDoubleQuote(): Unit = logger.trace {
-    currentMatch = "'"
-    onTextQuote(Text.Quote.Single)
-    rewind(1)
-  }
+  ROOT     || "\""           || reify { text.onBegin(text.RAW, Quote.Single) }
+  ROOT     || "\"\"\""       || reify { text.onBegin(text.RAW, Quote.Triple) }
+  text.RAW || "\""           || reify { text.onQuote(Quote.Single) }
+  text.RAW || "\"\"\""       || reify { text.onQuote(Quote.Triple) }
+  text.RAW || noneOf("\"\n") || reify { text.onPlainSegment() }
+  text.RAW || eof            || reify { text.onEOF() }
+  text.RAW || '\n'           || reify { text.onEOL() }
 
-  val stringChar    = noneOf("'`\"\n\\")
-  val stringSegment = stringChar.many1
-  val escape_int    = "\\" >> decimal
-  val escape_u16    = "\\u" >> repeat(stringChar, 0, 4)
-  val escape_u32    = "\\U" >> repeat(stringChar, 0, 8)
-
-  val TEXT: Group        = defineGroup("Text")
-  val INTERPOLATE: Group = defineGroup("Interpolate")
-  INTERPOLATE.setParent(NORMAL)
-
-  // format: off
-  NORMAL rule "'"           run reify { onTextBegin(ast.Text.Quote.Single) }
-  NORMAL rule "''"          run reify { submitEmptyText(ast.Text.Quote.Single) } // FIXME: Remove after fixing DFA Gen
-  NORMAL rule "'''"         run reify { onTextBegin(ast.Text.Quote.Triple) }
-  NORMAL rule '`'           run reify { onInterpolateEnd() }
-  TEXT   rule '`'           run reify { onInterpolateBegin() }
-  TEXT   rule "'"           run reify { onTextQuote(ast.Text.Quote.Single) }
-  TEXT   rule "''"          run reify { fixme_onTextDoubleQuote() } // FIXME: Remove after fixing DFA Gen
-  TEXT   rule "'''"         run reify { onTextQuote(ast.Text.Quote.Triple) }
-  TEXT   rule stringSegment run reify { onPlainTextSegment() }
-  TEXT   rule eof           run reify { onTextEOF() }
-
-  Text.Segment.Escape.Character.codes.foreach { ctrl =>
+  AST.Text.Segment.Escape.Character.codes.foreach { ctrl =>
     import scala.reflect.runtime.universe._
-  val name = TermName(ctrl.toString)
-    val func = q"onTextEscape(ast.Text.Segment.Escape.Character.$name)"
-    TEXT rule s"\\$ctrl" run func
+    val name = TermName(ctrl.toString)
+    val func = q"text.onEscape(AST.Text.Segment.Escape.Character.$name)"
+    text.INTP || s"\\$ctrl" || func
   }
 
-  Text.Segment.Escape.Control.codes.foreach { ctrl =>
+  AST.Text.Segment.Escape.Control.codes.foreach { ctrl =>
     import scala.reflect.runtime.universe._
-  val name = TermName(ctrl.toString)
-    val func = q"onTextEscape(ast.Text.Segment.Escape.Control.$name)"
-    TEXT rule s"\\$ctrl" run func
+    val name = TermName(ctrl.toString)
+    val func = q"text.onEscape(AST.Text.Segment.Escape.Control.$name)"
+    text.INTP || s"\\$ctrl" || func
   }
 
-  TEXT rule escape_u16           run reify { onTextEscapeU16() }
-  TEXT rule escape_u32           run reify { onTextEscapeU32() }
-  TEXT rule escape_int           run reify { onTextEscapeInt() }
-  TEXT rule "\\\\"               run reify { onEscapeSlash() }
-  TEXT rule "\\'"                run reify { onEscapeQuote() }
-  TEXT rule "\\\""               run reify { onEscapeRawQuote() }
-  TEXT rule ("\\" >> stringChar) run reify { onInvalidEscape() }
-  TEXT rule "\\"                 run reify { onPlainTextSegment() }
-  // format: on
-
-//  //////////////
-//  /// Groups ///
-//  //////////////
-//
-//  var groupLeftOffsetStack: List[Int] = Nil
-//
-//  final def pushGroupLeftOffset(offset: Int): Unit = logger.trace {
-//    groupLeftOffsetStack +:= offset
-//  }
-//
-//  final def popGroupLeftOffset(): Int = logger.trace {
-//    val offset = groupLeftOffsetStack.head
-//    groupLeftOffsetStack = groupLeftOffsetStack.tail
-//    offset
-//  }
-//
-//  final def isInsideOfGroup(): Boolean =
-//    groupLeftOffsetStack != Nil
-//
-//  final def onGroupBegin(): Unit = logger.trace {
-//    val leftOffset = currentMatch.length - 1
-//    pushGroupLeftOffset(leftOffset)
-//    pushAST()
-//    pushLastOffset()
-//    beginGroup(PARENSED)
-//  }
-//
-//  final def onGroupEnd(): Unit = logger.trace {
-//    val leftOffset  = popGroupLeftOffset()
-//    val rightOffset = useLastOffset()
-//    val group       = Group(leftOffset, result, rightOffset)
-//    popLastOffset()
-//    popAST()
-//    app(group)
-//    endGroup()
-//  }
-//
-//  final def onGroupFinalize(): Unit = logger.trace {
-//    val leftOffset  = popGroupLeftOffset()
-//    var rightOffset = useLastOffset()
-//
-//    val group = result match {
-//      case Some(_) =>
-//        Group.Unclosed(leftOffset, result)
-//      case None =>
-//        rightOffset += leftOffset
-//        Group.Unclosed()
-//    }
-//    popLastOffset()
-//    popAST()
-//    app(group)
-//    lastOffset = rightOffset
-//  }
-//
-//  final def onGroupEOF(): Unit = logger.trace {
-//    onGroupFinalize()
-//    endGroup()
-//    rewind()
-//  }
-//
-//  final def onGroupUnmatchedClose(): Unit = logger.trace {
-//    app(Group.UnmatchedClose)
-//  }
-//
-//  val PARENSED = defineGroup("Parensed", { onGroupFinalize() })
-//  PARENSED.setParent(NORMAL)
-//
-//  // format: off
-//  NORMAL   rule ("(" >> whitespace0) run reify { onGroupBegin() }
-//  NORMAL   rule ")"                  run reify { onGroupUnmatchedClose() }
-//  PARENSED rule ")"                  run reify { onGroupEnd() }
-//  PARENSED rule eof                  run reify { onGroupEOF() }
-//  // format: on
+  text.INTP || text.escape_u16           || reify { text.onEscapeU16() }
+  text.INTP || text.escape_u32           || reify { text.onEscapeU32() }
+  text.INTP || text.escape_int           || reify { text.onEscapeInt() }
+  text.INTP || "\\\\"                    || reify { text.onEscapeSlash() }
+  text.INTP || "\\'"                     || reify { text.onEscapeQuote() }
+  text.INTP || "\\\""                    || reify { text.onEscapeRawQuote() }
+  text.INTP || ("\\" >> text.stringChar) || reify { text.onInvalidEscape() }
+  text.INTP || "\\"                      || reify { text.onPlainSegment() }
 
   //////////////
   /// Blocks ///
   //////////////
 
-  class BlockState(
-    var isValid: Boolean,
-    var indent: Int,
-    var emptyLines: List[Int],
-    var firstLine: Option[Block.Line.Required],
-    var lines: List[Block.Line]
-  )
-  var blockStack: List[BlockState] = Nil
-  var emptyLines: List[Int]        = Nil
-  var currentBlock: BlockState     = new BlockState(true, 0, Nil, None, Nil)
+  final object block {
 
-  final def pushBlock(newIndent: Int): Unit = logger.trace {
-    blockStack +:= currentBlock
-    currentBlock =
-      new BlockState(true, newIndent, emptyLines.reverse, None, Nil)
-    emptyLines = Nil
-  }
+    class State(
+      var isValid: Boolean,
+      var indent: Int,
+      var emptyLines: List[Int],
+      var firstLine: Option[AST.Block.Line.Required],
+      var lines: List[AST.Block.Line]
+    )
 
-  final def popBlock(): Unit = logger.trace {
-    currentBlock = blockStack.head
-    blockStack   = blockStack.tail
-  }
+    var stack: List[State]    = Nil
+    var emptyLines: List[Int] = Nil
+    var current: State        = new State(true, 0, Nil, None, Nil)
 
-  final def buildBlock(): Block = logger.trace {
-    submitLine()
-    withSome(currentBlock.firstLine) { firstLine =>
-      Block(
-        currentBlock.indent,
-        currentBlock.emptyLines.reverse,
-        firstLine,
-        currentBlock.lines.reverse
-      )
+    def push(newIndent: Int): Unit = logger.trace {
+      stack +:= current
+      current    = new State(true, newIndent, emptyLines.reverse, None, Nil)
+      emptyLines = Nil
     }
-  }
 
-  final def submitBlock(): Unit = logger.trace {
-    val block = buildBlock()
-    val block2 =
-      if (currentBlock.isValid) block
-      else Block.InvalidIndentation(block)
-
-    popAST()
-    popBlock()
-    app(block2)
-    logger.endGroup()
-  }
-
-  final def submitModule(): Unit = logger.trace {
-    submitLine()
-    val el  = currentBlock.emptyLines.reverse.map(Block.Line(_))
-    val el2 = emptyLines.reverse.map(Block.Line(_))
-    val firstLines = currentBlock.firstLine match {
-      case None            => el
-      case Some(firstLine) => firstLine.toOptional :: el
+    def pop(): Unit = logger.trace {
+      current = stack.head
+      stack   = stack.tail
     }
-    val lines  = firstLines ++ currentBlock.lines.reverse ++ el2
-    val module = Module(lines.head, lines.tail)
-    result = Some(module)
-    logger.endGroup()
-  }
 
-  final def submitLine(): Unit = logger.trace {
-    result match {
-      case None => pushEmptyLine()
-      case Some(r) =>
-        currentBlock.firstLine match {
-          case None =>
-            val line = Block.Line.Required(r, useLastOffset())
-            currentBlock.emptyLines = emptyLines
-            currentBlock.firstLine  = Some(line)
-          case Some(_) =>
-            emptyLines.foreach(currentBlock.lines +:= Block.Line(None, _))
-            currentBlock.lines +:= Block.Line(result, useLastOffset())
-        }
-        emptyLines = Nil
-    }
-    result = None
-  }
-
-  def pushEmptyLine(): Unit = logger.trace {
-    emptyLines +:= useLastOffset()
-  }
-
-  final def onBlockBegin(newIndent: Int): Unit = logger.trace {
-    pushAST()
-    pushBlock(newIndent)
-    logger.beginGroup()
-  }
-
-  final def onEmptyLine(): Unit = logger.trace {
-    onWhitespace(-1)
-    pushEmptyLine()
-  }
-
-  final def onEOFLine(): Unit = logger.trace {
-    endGroup()
-    onWhitespace(-1)
-    onEOF()
-  }
-
-  final def onNewLine(): Unit = logger.trace {
-    submitLine()
-    beginGroup(NEWLINE)
-  }
-
-  final def onBlockNewline(): Unit = logger.trace {
-    endGroup()
-    onWhitespace()
-    if (lastOffset == currentBlock.indent) {
+    def build(): AST.Block = logger.trace {
       submitLine()
-    } else if (lastOffset > currentBlock.indent) {
-      onBlockBegin(useLastOffset())
-    } else {
-      onBlockEnd(useLastOffset())
+      AST.Block(
+        current.indent,
+        current.emptyLines.reverse,
+        unwrap(current.firstLine),
+        current.lines.reverse
+      )
+
     }
+
+    def submit(): Unit = logger.trace {
+      val block = build()
+      val block2 =
+        if (current.isValid) block
+        else AST.Block.InvalidIndentation(block)
+
+      result.pop()
+      off.pop()
+      pop()
+      result.app(block2)
+      logger.endGroup()
+    }
+
+    def submitModule(): Unit = logger.trace {
+      submitLine()
+      val el  = current.emptyLines.reverse.map(AST.Block.Line(_))
+      val el2 = emptyLines.reverse.map(AST.Block.Line(_))
+      val firstLines = current.firstLine match {
+        case None            => el
+        case Some(firstLine) => firstLine.toOptional :: el
+      }
+      val lines  = firstLines ++ current.lines.reverse ++ el2
+      val module = AST.Module(lines.head, lines.tail)
+      result.current = Some(module)
+      logger.endGroup()
+    }
+
+    def submitLine(): Unit = logger.trace {
+      result.current match {
+        case None => pushEmptyLine()
+        case Some(r) =>
+          current.firstLine match {
+            case None =>
+              val line = AST.Block.Line.Required(r, off.use())
+              current.emptyLines = emptyLines
+              current.firstLine  = Some(line)
+            case Some(_) =>
+              emptyLines.foreach(current.lines +:= AST.Block.Line(None, _))
+              current.lines +:= AST.Block
+                .Line(result.current, off.use())
+          }
+          emptyLines = Nil
+      }
+      result.current = None
+    }
+
+    def pushEmptyLine(): Unit = logger.trace {
+      emptyLines +:= off.use()
+    }
+
+    def onBegin(newIndent: Int): Unit = logger.trace {
+      result.push()
+      push(newIndent)
+      logger.beginGroup()
+    }
+
+    def onEmptyLine(): Unit = logger.trace {
+      pushEmptyLine()
+      off.on(-1)
+    }
+
+    def onEOFLine(): Unit = logger.trace {
+      submitLine()
+      state.end()
+      off.on(-1)
+      onEOF()
+    }
+
+    def onNewLine(): Unit = logger.trace {
+      state.begin(NEWLINE)
+    }
+
+    def onBlockNewline(): Unit = logger.trace {
+      state.end()
+      off.push()
+      off.on()
+      if (off.current == current.indent) {
+        off.pop()
+        submitLine()
+      } else if (off.current > current.indent)
+        onBegin(off.use())
+      else
+        onEnd(off.use())
+      state.begin(FIRSTCHAR)
+    }
+
+    def onEnd(newIndent: Int): Unit = logger.trace {
+      while (newIndent < current.indent) {
+        submit()
+      }
+      if (newIndent > current.indent) {
+        logger.log("Block with invalid indentation")
+        onBegin(newIndent)
+        current.isValid = false
+      }
+    }
+
+    val NEWLINE   = state.define("Newline")
+    val FIRSTCHAR = state.define("First Char")
   }
 
-  final def onBlockEnd(newIndent: Int): Unit = logger.trace {
-    while (newIndent < currentBlock.indent) {
-      submitBlock()
+  ROOT            || newline              || reify { block.onNewLine() }
+  block.NEWLINE   || space.opt >> newline || reify { block.onEmptyLine() }
+  block.NEWLINE   || space.opt >> eof     || reify { block.onEOFLine() }
+  block.NEWLINE   || space.opt            || reify { block.onBlockNewline() }
+  block.FIRSTCHAR || always               || reify { state.end() }
+
+  ////////////////
+  /// Comments ///
+  ////////////////
+
+  final object cmm {
+
+    import AST.Comment
+
+    var lines: List[String] = Nil
+    var current: String     = ""
+
+    def onEndOneLine(): Unit = logger.trace {
+      result.app(Comment(current))
+      current = ""
+      state.end()
+      rewind()
     }
-    if (newIndent > currentBlock.indent) {
-      logger.log("Block with invalid indentation")
-      onBlockBegin(newIndent)
-      currentBlock.isValid = false
+
+    def onBegin(): Unit = logger.trace {
+      state.end()
+      state.begin(MANYLINE)
     }
+
+    def onEnd(): Unit = logger.trace {
+      result.app(Comment.Block(block.current.indent, lines.reverse))
+      lines = Nil
+      state.end()
+      rewind()
+    }
+
+    def onLine(): Unit = logger.trace {
+      if (lines.isEmpty)
+        current = currentMatch
+      else if (currentMatch.takeWhile(_ == ' ').length > block.current.indent)
+        current = currentMatch.drop(block.current.indent + 1)
+      else {
+        onEnd()
+        state.begin(block.NEWLINE)
+        offset -= 1 // FIXME
+      }
+    }
+
+    def pushLine(): Unit = logger.trace {
+      lines +:= current
+      current = ""
+    }
+
+    val ONELINE  = state.define("One Line Comment")
+    val MANYLINE = state.define("Block Comment")
+
   }
 
-  val NEWLINE = defineGroup("Newline")
-
-  // format: off
-  NORMAL  rule newline                        run reify { onNewLine() }
-  NEWLINE rule ((whitespace|pass) >> newline) run reify { onEmptyLine() }
-  NEWLINE rule ((whitespace|pass) >> eof)     run reify { onEOFLine() }
-  NEWLINE rule  (whitespace|pass)             run reify { onBlockNewline() }
-  // format: on
+  ROOT            || "#"                || reify { state.begin(cmm.ONELINE) }
+  block.FIRSTCHAR || "#="               || reify { rewind(3); state.end() }
+  block.FIRSTCHAR || "##"               || reify { rewind(3); state.end() }
+  block.FIRSTCHAR || "#"                || reify { cmm.onBegin() }
+  cmm.ONELINE     || noneOf("\n").many1 || reify { cmm.current = currentMatch }
+  cmm.ONELINE     || (newline | eof)    || reify { cmm.onEndOneLine() }
+  cmm.MANYLINE    || noneOf("\n").many1 || reify { cmm.onLine() }
+  cmm.MANYLINE    || newline            || reify { cmm.pushLine() }
+  cmm.MANYLINE    || eof                || reify { cmm.pushLine(); cmm.onEnd() }
 
   ////////////////
   /// Defaults ///
   ////////////////
 
   final def onUnrecognized(): Unit = logger.trace {
-    app(Unrecognized)
+    result.app(AST.Unrecognized)
   }
 
   final def onEOF(): Unit = logger.trace {
-    finalizeIdent()
-    onBlockEnd(0)
-    submitModule()
+    ident.finalizer()
+    block.onEnd(0)
+    block.submitModule()
   }
 
-  NORMAL rule whitespace run reify { onWhitespace() }
-  NORMAL rule eof run reify { onEOF() }
-  NORMAL rule any run reify { onUnrecognized() }
+  ROOT || space || reify { off.on() }
+  ROOT || eof   || reify { onEOF() }
+  ROOT || any   || reify { onUnrecognized() }
 }

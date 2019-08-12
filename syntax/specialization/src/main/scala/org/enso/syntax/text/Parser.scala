@@ -1,7 +1,6 @@
 package org.enso.syntax.text
 
 import org.enso.flexer
-import org.enso.flexer.Macro.compile
 import org.enso.syntax.text
 import org.enso.syntax.text.precedence.Template
 
@@ -21,8 +20,10 @@ class Parser {
 }
 
 object Parser {
-  type Result[T] = flexer.Result[T]
-  private val newEngine = compile(text.ParserDef)
+  type Result[T] = flexer.Parser.Result[T]
+  private val newEngine = flexer.Parser.compile(text.ParserDef)
+
+  def run(input: String): Result[AST.Module] = new Parser().run(input)
 }
 
 //////////////
@@ -33,21 +34,35 @@ object Main extends App {
   val p1 = new Parser()
   val p2 = new Parser()
 
-//  val out = p1.run("t   if  a+b   *    c     then      x")
-//val out = p1.run("if (a then")
-  val out = p1.run("type 6 Maybe  a   b")
-  //  val out = p1.run("(a")
-//  val out = p1.run("()")
-//  val out = p1.run("if a then x")
+  val inp = "import Std.Math"
+  val out = p1.run(inp)
+
   pprint.pprintln(out, width = 50, height = 10000)
 
-//  val out = p1.run("(t  if a then b)")
-//  val out = p1.run("x ( a  b   )")
+  out match {
+    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) =>
+      v.lines.head.elem match {
+        case Some(ast) =>
+          ast match {
+            case t: AST.Template.Valid =>
+              println("\n---\n")
+              Template.hardcodedRegistry.get(t.path()) match {
+                case None => println(":(")
+                case Some(spec) =>
+                  println("COMPUTING")
+                  val out = spec.finalizer(t.segments.toList)
+                  println(out)
+              }
+            case _ =>
+          }
+        case _ =>
+      }
 
-//  out match {
-//    case Success(v, _) =>
-//      pprint(v)
-//      println(v.show())
-//  }
+      println(v.show() == inp)
+      println("------")
+      println(v.show().replace(' ', '.'))
+      println("------")
+
+  }
   println()
 }

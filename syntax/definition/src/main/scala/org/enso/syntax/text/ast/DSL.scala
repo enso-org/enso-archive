@@ -3,7 +3,7 @@ package org.enso.syntax.text.ast
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.App.Infix
 
-object Helpers {
+object DSL {
   import AST._
 
   implicit final class ASTHelper(self: AST) {

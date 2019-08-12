@@ -1,37 +1,37 @@
 package org.enso.syntax.text
 
-import org.enso.flexer.ParserBase
+import org.enso.flexer.Parser
 import org.enso.syntax.text.AST._
-import org.enso.syntax.text.ast.Helpers._
-import org.enso.{flexer => Flexer}
+import org.enso.syntax.text.ast.DSL._
+import org.enso.flexer
+import org.enso.flexer.Parser.Result
 import org.scalatest._
-import EDSL._
+import DSL._
+import org.enso.syntax.text.AST.Block.Line
+import org.enso.syntax.text.AST.Block.Line.Required
+import org.enso.syntax.text.AST.Text.Segment.EOL
+import org.enso.syntax.text.AST.Text.Segment.Plain
 
 class ParserSpec extends FlatSpec with Matchers {
 
-  def parse(input: String) = {
-    val parser = new Parser()
-    parser.run(input)
-  }
-
   def assertModule(input: String, result: AST): Assertion = {
-    val tt = parse(input)
-    tt match {
-      case Flexer.Success(value, offset) =>
+    val output = Parser.run(input)
+    output match {
+      case Result(offset, Result.Success(value)) =>
         assert(value == result)
         assert(value.show() == input)
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 
   def assertExpr(input: String, result: AST): Assertion = {
-    val tt = parse(input)
-    tt match {
-      case Flexer.Success(value, offset) =>
+    val output = Parser.run(input)
+    output match {
+      case Result(offset, Result.Success(value)) =>
         val module = value.asInstanceOf[Module]
-        module.lines match {
+        module.lines.tail match {
           case Nil =>
-            module.firstLine.elem match {
+            module.lines.head.elem match {
               case None => fail("Empty expression")
               case Some(e) =>
                 assert(e == result)
@@ -39,9 +39,19 @@ class ParserSpec extends FlatSpec with Matchers {
             }
           case _ => fail("Multi-line block")
         }
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
+
+  def assertIdentity(input: String): Assertion = {
+    val output = Parser.run(input)
+    output match {
+      case Result(offset, Result.Success(value)) =>
+        assert(value.show() == input)
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
+    }
+  }
+
 
   implicit class TestString(input: String) {
     def parseTitle(str: String): String = {
@@ -58,6 +68,7 @@ class ParserSpec extends FlatSpec with Matchers {
 
     def ?=(out: AST)    = testBase in { assertExpr(input, out) }
     def ?=(out: Module) = testBase in { assertModule(input, out) }
+    def testIdentity = testBase in { assertIdentity(input) }
   }
 
   /////////////////////
@@ -90,6 +101,8 @@ class ParserSpec extends FlatSpec with Matchers {
   ">="   ?= ">="
   "<="   ?= "<="
   "/="   ?= "/="
+  "#="   ?= "#="
+  "##"   ?= "##"
   "+="   ?= Opr.Mod("+")
   "-="   ?= Opr.Mod("-")
   "==="  ?= Ident.InvalidSuffix("==", "=")
@@ -120,28 +133,15 @@ class ParserSpec extends FlatSpec with Matchers {
   "^ + *"         ?= App.Infix("^", 1, "+", 1, "*")
   "* + ^"         ?= App.Infix("*", 1, "+", 1, "^")
 
-  //  "a+b"    ?=
-  //  "()"        ?= "(" $ ")" // Group()
-  //  "(())"      ?= "(" $ "(" $ ")" $ ")" // Group(Group())
-  //  "(()"       ?= "(" $ "(" $ ")" // Group.Unclosed(Group())
-  //  "(("        ?= "(" $ "(" // Group.Unclosed(Group.Unclosed())
-  //  "( "        ?= "(" // Group.Unclosed()
-  //  ")"         ?= ")" // Group.UnmatchedClose
-  //  ")("        ?= ")" $ "(" // Group.UnmatchedClose $ Group.Unclosed()
-  //  "a ( b c )" ?= "a" $_ "(" $_ "b" $_ "c" $_ ")" // ("a" $_ Group(1, "b" $_ "c", 1))
-  //  "(a (b c))" ?= "(" $ "a" $_ "(" $ "b" $_ "c" $ ")" $ ")" // Group("a" $_ Group("b" $_ "c"))
-
   ////////////////
   //// Layout ////
   ////////////////
 
-  ""      ?= Module(Block.Line())
-  "\n"    ?= Module(Block.Line(), Block.Line())
-  "  \n " ?= Module(Block.Line(2), Block.Line(1))
-  "\n\n"  ?= Module(Block.Line(), Block.Line(), Block.Line())
-  //  test module "(a)"  ==? GroupBegin  :: Var("a") :: GroupEnd
-  //  test module "[a]"  ==? ListBegin   :: Var("a") :: ListEnd
-  //  test module "{a}"  ==? RecordBegin :: Var("a") :: RecordEnd
+  ""           ?= Module(Line())
+  "\n"         ?= Module(Line(), Line())
+  "  \n "      ?= Module(Line(2), Line(1))
+  "\n\n"       ?= Module(Line(), Line(), Line())
+  " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
 
   /////////////////
   //// Numbers ////
@@ -160,21 +160,15 @@ class ParserSpec extends FlatSpec with Matchers {
 
   "\uD800\uDF1E" ?= Unrecognized("\uD800\uDF1E")
 
-  /////////////////////
-  //// Large Input ////
-  /////////////////////
-
-  "BIG_INPUT_" * ParserBase.BUFFERSIZE ?= "BIG_INPUT_" * ParserBase.BUFFERSIZE
-
   //////////////
   //// Text ////
   //////////////
 
-  "'"    ?= Text.Unclosed(Text())
-  "''"   ?= Text()
-  "'''"  ?= Text.Unclosed(Text(Text.Quote.Triple))
-  "''''" ?= Text.Unclosed(Text(Text.Quote.Triple, "'"))
-//  "'''''"   ?= Text.Unclosed(Text(Text.Quote.Triple, "''")) // FIXME
+  "'"       ?= Text.Unclosed(Text())
+  "''"      ?= Text()
+  "'''"     ?= Text.Unclosed(Text(Text.Quote.Triple))
+  "''''"    ?= Text.Unclosed(Text(Text.Quote.Triple, "'"))
+  "'''''"   ?= Text.Unclosed(Text(Text.Quote.Triple, "''"))
   "''''''"  ?= Text(Text.Quote.Triple)
   "'''''''" ?= Text(Text.Quote.Triple) $ Text.Unclosed(Text())
   "'a'"     ?= Text("a")
@@ -182,7 +176,28 @@ class ParserSpec extends FlatSpec with Matchers {
   "'a'''"   ?= Text("a") $ Text()
   "'''a'''" ?= Text(Text.Quote.Triple, "a")
   "'''a'"   ?= Text.Unclosed(Text(Text.Quote.Triple, "a'"))
-  //  "'''a''"  ?= Text.Unclosed(Text(Text.Quote.Triple, "a''")) // FIXME
+  "'''a''"  ?= Text.Unclosed(Text(Text.Quote.Triple, "a''"))
+
+  "\""             ?= Text.Unclosed(Text.Raw())
+  "\"\""           ?= Text.Raw()
+  "\"\"\""         ?= Text.Unclosed(Text.Raw(Text.Quote.Triple))
+  "\"\"\"\""       ?= Text.Unclosed(Text.Raw(Text.Quote.Triple, "\""))
+  "\"\"\"\"\""     ?= Text.Unclosed(Text.Raw(Text.Quote.Triple, "\"\""))
+  "\"\"\"\"\"\""   ?= Text.Raw(Text.Quote.Triple)
+  "\"\"\"\"\"\"\"" ?= Text.Raw(Text.Quote.Triple) $ Text.Unclosed(Text.Raw())
+  "\"a\""          ?= Text.Raw("a")
+  "\"a"            ?= Text.Unclosed(Text.Raw("a"))
+  "\"a\"\"\""      ?= Text.Raw("a") $ Text.Raw()
+  "\"\"\"a\"\"\""  ?= Text.Raw(Text.Quote.Triple, "a")
+  "\"\"\"a\""      ?= Text.Unclosed(Text.Raw(Text.Quote.Triple, "a\""))
+  "\"\"\"a\"\""    ?= Text.Unclosed(Text.Raw(Text.Quote.Triple, "a\"\""))
+
+  "'''\nX\n Y\n'''" ?= Text.MultiLine(
+    0,
+    '\'',
+    Text.Quote.Triple,
+    List(EOL(), Plain("X"), EOL(), Plain(" Y"), EOL())
+  )
 
   //// Escapes ////
 
@@ -253,6 +268,69 @@ class ParserSpec extends FlatSpec with Matchers {
   "(if a) then" ?= "(" I ("if" I_ "a" Ixx (_then_else: _*)) I ")" $_ "then"
   "if (a then)" ?= "if" I_ ("(" I ("a" $_ "then") I ")") Ixx (_then_else: _*)
 
-//  "import Std.Math" ?= "foo"
+  //  "import Std.Math" ?= "foo"
+
+  //////////////////
+  //// Comments ////
+  //////////////////
+
+  "foo   #L1NE"        ?= "foo" $___ Comment("L1NE")
+  "#\n    L1NE\n LIN2" ?= Comment.Block(0,List("","   L1NE", "LIN2"))
+  "#L1NE\nLIN2"        ?= Module(Line(Comment.Block(0, List("L1NE"))), Line(Cons("LIN2")))
+
+
+  ////////////////
+  //// Blocks ////
+  ////////////////
+
+  "foo  \n bar" ?= "foo" $__ Block(1, "bar")
+
+  "f =  \n\n\n".testIdentity
+  "  \n\n\n f\nf".testIdentity
+  "f =  \n\n  x ".testIdentity
+  "f =\n\n  x\n\n y".testIdentity
+
+  "a b\n  c\n" ?= "a" $_ App(Var("b"),0,Block(2,List(),Required(Var("c"),0), List(Line())))
+
+  /////////////////
+  //// Imports ////
+  /////////////////
+
+//  "import Std.Math" ?= "foo" $__ Block(1, "bar")
+
+  /////////////////////
+  //// Large Input ////
+  /////////////////////
+
+//  ("OVERFLOW" * flexer.Parser.BUFFER_SIZE).testIdentity   // ruins logging
+
+  """
+      a
+     b
+    c
+   d
+  e
+   f g h
+  """.testIdentity
+
+  """
+  # pop1: adults
+  # pop2: children
+  # pop3: mutants
+    Selects the 'fittest' individuals from population and kills the rest!
+
+  keepBest : Pop -> Pop -> Pop -> Pop
+  keepBest pop1 pop2 pop3 =
+
+     unique xs
+        = index xs 0 +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+
+     isUnique xs i ####
+        = index xs i . score != index xs i-1 . score
+
+     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+
+  """.testIdentity
+
 
 }
