@@ -3,17 +3,24 @@ package org.enso.syntax.text
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc.AST._
+import org.enso.Logger
 import org.enso.flexer.Parser.Result
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.Assertion
 
 class DocParserSpec extends FlatSpec with Matchers {
+  val logger = new Logger()
 
   def assertExpr(input: String, result: Doc.AST): Assertion = {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
+        logger.log(s"\nresult : '$result'")
+        logger.log(s"value  : '$value'")
+        logger.log(s"\ninput  : '$input'")
+        logger.log(s"v.show : '${value.show()}'\n")
+        logger.log(s"\nv.html : '${value.renderHTML()}'")
         assert(value == result)
         assert(value.show() == input)
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
@@ -202,7 +209,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "?Info\n\n!Important" ?= Doc(
     Synopsis(
-      Section.Marked(Section.Marked.Info, Section.Header("Info"), Line())
+      Section.Marked(Section.Marked.Info, Section.Header(Line("Info")))
     ),
     Body(
       Section.Marked(Section.Marked.Important, Section.Header("Important"))
@@ -210,13 +217,12 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
-      Section.Marked(Section.Marked.Info, Section.Header("Info"), Line())
+      Section.Marked(Section.Marked.Info, Section.Header(Line("Info")))
     ),
     Body(
       Section.Marked(
         Section.Marked.Important,
-        Section.Header("Important"),
-        Line()
+        Section.Header(Line("Important"))
       ),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
@@ -227,8 +233,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   "ul:\n  - Foo\n  - Bar" ?= Doc(
     Synopsis(
       Section.Raw(
-        "ul:",
-        "\n",
+        Line("ul:"),
         List(2, List.Unordered, " Foo", " Bar")
       )
     )
@@ -236,8 +241,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   "ol:\n  * Foo\n  * Bar" ?= Doc(
     Synopsis(
       Section.Raw(
-        "ol:",
-        "\n",
+        Line("ol:"),
         List(2, List.Ordered, " Foo", " Bar")
       )
     )
@@ -250,8 +254,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     |  - Third unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section.Raw(
-        "List",
-        "\n",
+        Line("List"),
         List(
           2,
           List.Unordered,
@@ -282,8 +285,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section.Raw(
-        "List",
-        "\n",
+        Line("List"),
         List(
           2,
           List.Unordered,
@@ -329,8 +331,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section.Raw(
-        "List",
-        "\n",
+        Line("List"),
         List(
           2,
           List.Unordered,
@@ -391,8 +392,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
     Synopsis(
       Section.Raw(
-        "Foo ",
         Line(
+          "Foo ",
           Formatter(Formatter.Bold, "Foo"),
           " ",
           Formatter(
@@ -410,10 +411,9 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section
         .Marked(
           Section.Marked.Important,
-          Section.Header("important"),
-          Line()
+          Section.Header(Line("important"))
         ),
-      Section.Marked(Section.Marked.Info, Section.Header("Hi"), Line()),
+      Section.Marked(Section.Marked.Info, Section.Header(Line("Hi"))),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
   )

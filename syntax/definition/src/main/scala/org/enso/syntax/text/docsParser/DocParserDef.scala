@@ -91,9 +91,10 @@ case class DocParserDef() extends Parser[AST] {
 
   def pushTextLine(): Unit = logger.trace {
     var elems: List[AST] = Nil
-    while (!result.workingASTStack.head
+    while (result.workingASTStack.nonEmpty && !result.workingASTStack.head
              .isInstanceOf[AST.Line] && !result.workingASTStack.head
-             .isInstanceOf[AST.Code.Multiline] && result.workingASTStack.length > 1) {
+             .isInstanceOf[AST.Code.Multiline] && !result.workingASTStack.head
+             .isInstanceOf[AST.List]) {
       result.pop()
       result.current match {
         case Some(value) => elems +:= value
@@ -372,30 +373,30 @@ case class DocParserDef() extends Parser[AST] {
   ////////////////////
 
   def createSectionHeader(): Unit = logger.trace {
-    result.pop()
-    result.current match {
-      case Some(AST.newline)  => loopThroughASTForSectionHeader()
-      case Some(AST.Text("")) =>
+    currentSection match {
+      case Some(_) => createMarkedSectionHeader()
       case _ =>
-        result.push()
-        currentSection match {
-          case Some(_) => loopThroughASTForSectionHeader()
-          case _       =>
+        result.pop()
+        result.current match {
+          case Some(v: AST.Line) => {
+            createUnmarkedSectionHeader(v.elems)
+          }
+          case _ =>
         }
+        result.push()
     }
   }
 
-  def loopThroughASTForSectionHeader(): Unit = logger.trace {
-    var listForHeader: List[AST] = Nil
+  def createMarkedSectionHeader(): Unit = logger.trace {
     result.pop()
-    listForHeader +:= result.current.get
-
-    if (result.current.contains(AST.Text(newline.toString))) {
-      result.push()
-      listForHeader = listForHeader.tail
-    }
-    result.current = Some(Section.Header(listForHeader.reverse))
+    result.current = Some(Section.Header(result.current.get))
     result.push()
+  }
+
+  def createUnmarkedSectionHeader(elems: List[AST]): Unit = logger.trace {
+    if (elems.head == AST.Text(newline.toString)) {
+      result.current = Some(Section.Header(AST.Line(elems.tail)))
+    }
   }
 
   ///////////////////
@@ -474,7 +475,7 @@ case class DocParserDef() extends Parser[AST] {
       val diff = indent - lastOffset
       if (diff == listIndent) {
         if (!inListFlag) {
-          pushNewLine()
+          pushTextLine()
         }
         inListFlag = true
         lastDiff   = diff
@@ -526,13 +527,7 @@ case class DocParserDef() extends Parser[AST] {
       pushNewLine()
       state.end()
     } else {
-      result.pop()
-      if (!result.current.contains(AST.Text(newline.toString))) {
-        result.push()
-        pushTextLine()
-      } else {
-        result.push()
-      }
+      pushTextLine()
       onIndent()
     }
   }
