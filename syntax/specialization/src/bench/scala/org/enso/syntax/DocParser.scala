@@ -1,6 +1,6 @@
 package org.enso.syntax
 
-import org.enso.flexer.Macro
+import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.docsParser.DocParserDef
 import org.scalameter.api._
@@ -35,21 +35,16 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
   val oneHundredSegment = for { i <- exp14 } yield (part + "\n") * i
   val ginormousSegment  = for { i <- exp18 } yield part * i
 
-  val newParser = Macro.compile(DocParserDef)
-
   performance of "DocParser" in {
-    measure method "Formatters" in (using(formatters) in (newParser().run(_)))
-    measure method "longSegment" in (using(longSegment) in (newParser().run(_)))
-    measure method "100 letter segments" in (using(oneHundredSegment) in (newParser()
-      .run(_)))
-    measure method "Ginormous segment" in (using(ginormousSegment) in (newParser()
-      .run(_)))
-    measure method "tags" in (using(tags) in (newParser().run(_)))
-    measure method "url test" in (using(urlTest) in (newParser().run(_)))
-    measure method "image test" in (using(imageTest) in (newParser().run(_)))
-    measure method "list test" in (using(listTest) in (newParser().run(_)))
-    measure method "list nested test" in (using(listNestedTest) in (newParser()
-      .run(_)))
-    measure method "sections test" in (using(sections) in (newParser().run(_)))
+    measure method "formatters" in (using(formatters) in (DocParser.run(_)))
+    measure method "longS" in (using(longSegment) in (DocParser.run(_)))
+    measure method "100ls" in (using(oneHundredSegment) in (DocParser.run(_)))
+    measure method "GinS" in (using(ginormousSegment) in (DocParser.run(_)))
+    measure method "tags" in (using(tags) in (DocParser.run(_)))
+    measure method "url" in (using(urlTest) in (DocParser.run(_)))
+    measure method "image" in (using(imageTest) in (DocParser.run(_)))
+    measure method "list" in (using(listTest) in (DocParser.run(_)))
+    measure method "listNT" in (using(listNestedTest) in (DocParser.run(_)))
+    measure method "sections" in (using(sections) in (DocParser.run(_)))
   }
 }

@@ -39,6 +39,8 @@ object Main extends App {
 
   pprint.pprintln(out, width = 50, height = 10000)
 
+  DocParserRunner
+
   out match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) =>
       v.lines.head.elem match {

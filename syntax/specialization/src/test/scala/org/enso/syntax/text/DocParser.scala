@@ -3,27 +3,20 @@ package org.enso.syntax.text
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc.AST._
-import org.enso.Logger
-import org.enso.{flexer => Flexer}
+import org.enso.flexer.Parser.Result
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.Assertion
 
 class DocParserSpec extends FlatSpec with Matchers {
-  val logger = new Logger()
-  def parse(input: String) = {
-    val parser = new DocParser()
-    parser.run(input)
-  }
 
   def assertExpr(input: String, result: Doc.AST): Assertion = {
-    val tt = parse(input)
-    tt match {
-      case Flexer.Success(value, _) => {
+    val output = DocParser.run(input)
+    output match {
+      case Result(_, Result.Success(value)) =>
         assert(value == result)
         assert(value.show() == input)
-      }
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 

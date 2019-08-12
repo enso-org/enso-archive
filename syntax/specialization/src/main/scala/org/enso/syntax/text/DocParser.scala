@@ -1,8 +1,6 @@
 package org.enso.syntax.text
 
-import org.enso.flexer.Macro.compile
 import org.enso.flexer
-import org.enso.flexer.Success
 import org.enso.syntax.text.ast.Doc
 
 ///////////////////
@@ -10,13 +8,24 @@ import org.enso.syntax.text.ast.Doc
 ///////////////////
 
 class DocParser {
-  type Result[T] = flexer.Result[T]
-  private val engine = compile(docsParser.DocParserDef)()
+  import DocParser._
+  private val engine = newEngine()
 
   def run(input: String): Result[Doc.AST] = engine.run(input)
+
 }
 
 object DocParser {
+  type Result[T] = flexer.Parser.Result[T]
+  private val newEngine = flexer.Parser.compile(docsParser.DocParserDef)
+
+  def run(input: String): Result[Doc.AST] = new DocParser().run(input)
+}
+
+//////////////
+/// Runner ///
+//////////////
+object DocParserRunner {
   val docParserInstance = new DocParser()
 
   val dataToParse =
@@ -70,7 +79,7 @@ object DocParser {
   pprint.pprintln(docParserOut, width = 50, height = 10000)
 
   docParserOut match {
-    case Success(v, _) =>
+    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) =>
       println("--- " * 20)
       println(v.show())
       println("--- " * 20)
