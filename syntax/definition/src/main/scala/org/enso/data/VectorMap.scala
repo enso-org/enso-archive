@@ -1,6 +1,14 @@
 package org.enso.data
 
-class VectorMap[K: Ordering, V](values: Seq[(K, V)]) {
+/** Read only zipper-like map.
+ *
+ *  Sparse, sorted, vector based map
+ *  with O(1) access, when accessing adjacent keys
+ *  with O(N) access, when accessing random keys
+ *  this is achieved by remembering the index of
+ *  last accessed key in local variable `index`
+ */
+final class VectorMap[K: Ordering, V](values: Seq[(K, V)]) {
   private var index  = 0
   private val ord    = Ordering[K]
   private val vector = values.toVector.sortBy(_._1)

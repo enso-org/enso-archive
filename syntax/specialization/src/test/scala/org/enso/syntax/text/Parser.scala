@@ -247,13 +247,13 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Markers ////
   /////////////////
 
-  "marked" ?#= Marked(Var("marked"), Marker(0))
-  "Marked" ?#= Marked(Cons("Marked"), Marker(0))
-  "111111" ?#= Marked(Number(111111), Marker(0))
-  "'    '" ?#= Marked(Text("    "), Marker(0))
-  "++++++" ?#= Marked(Opr("++++++"), Marker(0))
-  "+++++=" ?#= Marked(Opr.Mod("+++++"), Marker(0))
-  "a b  c" ?#= Marked(Var("a"), Marker(0)) $_ Marked(Var("b"), Marker(2)) $__ Marked(Var("c"), Marker(5))
+  "marked" ?#= Marked(Marker(0), Var("marked"))
+  "Marked" ?#= Marked(Marker(0), Cons("Marked"))
+  "111111" ?#= Marked(Marker(0), Number(111111))
+  "'    '" ?#= Marked(Marker(0), Text("    "))
+  "++++++" ?#= Marked(Marker(0), Opr("++++++"))
+  "+++++=" ?#= Marked(Marker(0), Opr.Mod("+++++"))
+  "a b  c" ?#= Marked(Marker(0), Var("a")) $_ Marked(Marker(2), Var("b")) $__ Marked(Marker(5), Var("c"))
 
   //////////////////
   //// Mixfixes ////

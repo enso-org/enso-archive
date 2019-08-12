@@ -4,14 +4,11 @@ import org.enso.data.VectorMap
 import org.enso.flexer._
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
-import org.enso.syntax.text.AST.Marker
 import org.enso.syntax.text.AST.Text.Segment.EOL
 
 import scala.reflect.runtime.universe.reify
 
-case class ParserDef() extends Parser {
-
-  type T = AST
+case class ParserDef() extends Parser[AST] {
 
   final def unwrap[T](opt: Option[T]): T = opt match {
     case None    => throw new Error("Internal Error")
@@ -22,7 +19,10 @@ case class ParserDef() extends Parser {
   //// API ////
   /////////////
 
-  def run(input: String, markerSeq: scala.Seq[(Int, Marker)]): Parser.Result[AST] = {
+  def run(
+    input: String,
+    markerSeq: scala.Seq[(Int, AST.Marker)]
+  ): Parser.Result[AST] = {
     result.markers = VectorMap(markerSeq)
     run(input)
   }
@@ -53,11 +53,10 @@ case class ParserDef() extends Parser {
   override def getResult() = result.current
 
   final object result {
-    import AST.Marked
 
-    var markers: VectorMap[Int, Marker] = VectorMap()
-    var current: Option[AST]            = None
-    var stack: List[Option[AST]]        = Nil
+    var markers: VectorMap[Int, AST.Marker] = VectorMap()
+    var current: Option[AST]                = None
+    var stack: List[Option[AST]]            = Nil
 
     def push(): Unit = logger.trace {
       logger.log(s"Pushed: $current")
@@ -77,7 +76,7 @@ case class ParserDef() extends Parser {
     def app(ast: AST): Unit = logger.trace {
       val marked = markers.get(offset - ast.span - 1) match {
         case None         => ast
-        case Some(marker) => Marked(ast, marker)
+        case Some(marker) => AST.Marked(marker, ast)
       }
       current = Some(current match {
         case None    => marked

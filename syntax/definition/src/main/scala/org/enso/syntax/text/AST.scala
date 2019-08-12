@@ -65,7 +65,7 @@ object AST {
 
   final case class Marker(id: Int)
 
-  final case class Marked(ast: AST, marker: Marker) extends AST {
+  final case class Marked(marker: Marker, ast: AST) extends AST {
     val repr = ast.repr
   }
 
