@@ -7,24 +7,26 @@ import org.enso.flexer
 import org.enso.flexer.Parser.Result
 import org.scalatest._
 import DSL._
+import org.enso.syntax.text.AST.Block.Line
+import org.enso.syntax.text.AST.Block.Line.Required
 import org.enso.syntax.text.AST.Text.Segment.EOL
 import org.enso.syntax.text.AST.Text.Segment.Plain
 
 class ParserSpec extends FlatSpec with Matchers {
 
   def assertModule(input: String, result: AST): Assertion = {
-    val tt = Parser.run(input)
-    tt match {
+    val output = Parser.run(input)
+    output match {
       case Result(offset, Result.Success(value)) =>
         assert(value == result)
         assert(value.show() == input)
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 
   def assertExpr(input: String, result: AST): Assertion = {
-    val tt = Parser.run(input)
-    tt match {
+    val output = Parser.run(input)
+    output match {
       case Result(offset, Result.Success(value)) =>
         val module = value.asInstanceOf[Module]
         module.lines.tail match {
@@ -37,9 +39,19 @@ class ParserSpec extends FlatSpec with Matchers {
             }
           case _ => fail("Multi-line block")
         }
-      case _ => fail(s"Parsing failed, consumed ${tt.offset} chars")
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
+
+  def assertIdentity(input: String): Assertion = {
+    val output = Parser.run(input)
+    output match {
+      case Result(offset, Result.Success(value)) =>
+        assert(value.show() == input)
+      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
+    }
+  }
+
 
   implicit class TestString(input: String) {
     def parseTitle(str: String): String = {
@@ -56,6 +68,7 @@ class ParserSpec extends FlatSpec with Matchers {
 
     def ?=(out: AST)    = testBase in { assertExpr(input, out) }
     def ?=(out: Module) = testBase in { assertModule(input, out) }
+    def testIdentity = testBase in { assertIdentity(input) }
   }
 
   /////////////////////
@@ -88,6 +101,8 @@ class ParserSpec extends FlatSpec with Matchers {
   ">="   ?= ">="
   "<="   ?= "<="
   "/="   ?= "/="
+  "#="   ?= "#="
+  "##"   ?= "##"
   "+="   ?= Opr.Mod("+")
   "-="   ?= Opr.Mod("-")
   "==="  ?= Ident.InvalidSuffix("==", "=")
@@ -122,11 +137,11 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Layout ////
   ////////////////
 
-  ""           ?= Module(Block.Line())
-  "\n"         ?= Module(Block.Line(), Block.Line())
-  "  \n "      ?= Module(Block.Line(2), Block.Line(1))
-  "\n\n"       ?= Module(Block.Line(), Block.Line(), Block.Line())
-  " \n  \n   " ?= Module(Block.Line(1), Block.Line(2), Block.Line(3))
+  ""           ?= Module(Line())
+  "\n"         ?= Module(Line(), Line())
+  "  \n "      ?= Module(Line(2), Line(1))
+  "\n\n"       ?= Module(Line(), Line(), Line())
+  " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
 
   /////////////////
   //// Numbers ////
@@ -144,13 +159,6 @@ class ParserSpec extends FlatSpec with Matchers {
   ////////////////////////
 
   "\uD800\uDF1E" ?= Unrecognized("\uD800\uDF1E")
-
-  /////////////////////
-  //// Large Input ////
-  /////////////////////
-
-  val BUFFER_SIZE = flexer.Parser.BUFFER_SIZE
-//  "BIG_INPUT_" * BUFFER_SIZE ?= "BIG_INPUT_" * BUFFER_SIZE
 
   //////////////
   //// Text ////
@@ -262,16 +270,67 @@ class ParserSpec extends FlatSpec with Matchers {
 
   //  "import Std.Math" ?= "foo"
 
+  //////////////////
+  //// Comments ////
+  //////////////////
+
+  "foo   #L1NE"        ?= "foo" $___ Comment("L1NE")
+  "#\n    L1NE\n LIN2" ?= Comment.Block(0,List("","   L1NE", "LIN2"))
+  "#L1NE\nLIN2"        ?= Module(Line(Comment.Block(0, List("L1NE"))), Line(Cons("LIN2")))
+
+
   ////////////////
   //// Blocks ////
   ////////////////
 
   "foo  \n bar" ?= "foo" $__ Block(1, "bar")
 
+  "f =  \n\n\n".testIdentity
+  "  \n\n\n f\nf".testIdentity
+  "f =  \n\n  x ".testIdentity
+  "f =\n\n  x\n\n y".testIdentity
+
+  "a b\n  c\n" ?= "a" $_ App(Var("b"),0,Block(2,List(),Required(Var("c"),0), List(Line())))
+
   /////////////////
   //// Imports ////
   /////////////////
 
 //  "import Std.Math" ?= "foo" $__ Block(1, "bar")
+
+  /////////////////////
+  //// Large Input ////
+  /////////////////////
+
+//  ("OVERFLOW" * flexer.Parser.BUFFER_SIZE).testIdentity   // ruins logging
+
+  """
+      a
+     b
+    c
+   d
+  e
+   f g h
+  """.testIdentity
+
+  """
+  # pop1: adults
+  # pop2: children
+  # pop3: mutants
+    Selects the 'fittest' individuals from population and kills the rest!
+
+  keepBest : Pop -> Pop -> Pop -> Pop
+  keepBest pop1 pop2 pop3 =
+
+     unique xs
+        = index xs 0 +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+
+     isUnique xs i ####
+        = index xs i . score != index xs i-1 . score
+
+     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+
+  """.testIdentity
+
 
 }

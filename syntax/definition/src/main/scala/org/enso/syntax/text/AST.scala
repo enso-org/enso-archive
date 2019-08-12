@@ -743,22 +743,30 @@ object AST {
   }
 
   ////////////////
-  //// Module ////
+  /// Comments ///
   ////////////////
 
-  def intersperse[T](t: T, lst: List[T]): List[T] = lst match {
-    case Nil             => Nil
-    case s1 :: s2 :: Nil => s1 :: t :: intersperse(t, s2 :: Nil)
-    case s1 :: Nil       => s1 :: Nil
+  final case class Comment(comment: String) extends AST {
+    val repr = R + "#" + comment
   }
 
-  def intersperse2[T](t: T, lst: List1[T]): List1[T] =
-    List1(lst.head, lst.tail.flatMap(s => List(t, s)))
+  object Comment {
+
+    final case class Block(offset: Int, lines: List[String]) extends AST {
+      val repr   = R + offset + "#" + lines.mkString("\n " + " "*offset)
+    }
+
+  }
+
+
+  ////////////////
+  //// Module ////
+  ////////////////
 
   import Block.Line
 
   final case class Module(lines: List1[Line]) extends AST {
-    val repr = R + intersperse2(R + '\n', lines.map(R + _))
+    val repr = R + lines.head + lines.tail.map(R + '\n' + _)
 
     def map(f: Line => Line): Module =
       Module(lines.map(f))
