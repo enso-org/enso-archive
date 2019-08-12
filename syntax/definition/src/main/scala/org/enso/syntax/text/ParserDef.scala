@@ -179,7 +179,6 @@ case class ParserDef() extends Parser {
   //////////////////
 
   final object opr {
-
     def on(cons: String => AST.Ident): Unit = logger.trace {
       on(cons(currentMatch))
     }
