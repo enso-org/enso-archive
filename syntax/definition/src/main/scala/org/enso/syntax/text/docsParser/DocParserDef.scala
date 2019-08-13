@@ -70,8 +70,7 @@ case class DocParserDef() extends Parser[AST] {
   //////////////////////////
 
   def pushNormalText(in: String): Unit = logger.trace {
-    var text   = in
-    var indent = 0
+    var text = in
     // to create tags on file beginning
     if (result.workingASTStack.isEmpty && sectionsStack.isEmpty) {
       if (checkForTag(in)) {
@@ -79,13 +78,12 @@ case class DocParserDef() extends Parser[AST] {
       }
     }
     // to remove unnecessary indent from first line as yet onIndent hasn't been called
-    if (result.workingASTStack.isEmpty) {
+    if (result.workingASTStack.isEmpty || result.workingASTStack.head
+          .isInstanceOf[Section.Header]) {
       if (text.nonEmpty) {
         while (text.head == ' ' && text.length > 1) {
           text = text.tail
-          indent += 1
         }
-        currentSectionIndent = indent
       }
     }
     result.current = Some(AST.Text(text))
@@ -190,7 +188,7 @@ case class DocParserDef() extends Parser[AST] {
   }
 
   // format: off
-  MULTILINECODE || newline              || reify { state.end() }
+  MULTILINECODE || newline              || reify { state.end(); state.begin(NEWLINE) }
   MULTILINECODE || not(newline).many1   || reify { pushMultilineCodeLine(currentMatch) }
   MULTILINECODE || eof                  || reify { onEOF() }
   // format: on
@@ -259,15 +257,29 @@ case class DocParserDef() extends Parser[AST] {
       currentSection = st
     }
 
+  final def onEmptyLine(): Unit = logger.trace {
+    if (inListFlag) {
+      addOneListToAnother()
+      inListFlag = !inListFlag
+    }
+    pushNewLine()
+    onEndOfSection()
+  }
+
+  final def onNewRawSection(): Unit = logger.trace {
+    onEmptyLine()
+    onNewSection(None)
+  }
+
+  final def onNewRawSectionWithHeader(): Unit = logger.trace {
+    onNewRawSection()
+    result.current = Some(Section.Header())
+    result.push()
+  }
+
   val importantTrigger: Char = Section.Marked.Important.marker
   val infoTrigger: Char      = Section.Marked.Info.marker
   val exampleTrigger: Char   = Section.Marked.Example.marker
-
-  // format: off
-  ROOT || importantTrigger || reify { onNewSection(Some(Section.Marked.Important)) }
-  ROOT || infoTrigger      || reify { onNewSection(Some(Section.Marked.Info))}
-  ROOT || exampleTrigger   || reify { onNewSection(Some(Section.Marked.Example))}
-  // format: on
 
   ////////////////////////////
   ////// End of section //////
@@ -309,8 +321,7 @@ case class DocParserDef() extends Parser[AST] {
 
     result.current         = None
     result.workingASTStack = Nil
-    onNewSection(None)
-    textFormattersStack = Nil
+    textFormattersStack    = Nil
   }
 
   def reverseASTStack(): Unit = logger.trace {
@@ -362,13 +373,14 @@ case class DocParserDef() extends Parser[AST] {
 
   def createSectionHeader(): Unit = logger.trace {
     currentSection match {
-      case Some(_) => createMarkedSectionHeader()
+      case Some(_) => loopThroughASTForUnmarkedSectionHeader()
       case _ =>
         result.pop()
         result.current match {
-          case Some(_: AST.Newline) => loopThroughASTForUnmarkedSectionHeader()
-          case Some(AST.Text(""))   =>
-          case _                    => result.push()
+          case Some(_: Section.Header) =>
+            loopThroughASTForUnmarkedSectionHeader()
+          case Some(AST.Text("")) => // Used if there is nothing but tags
+          case _                  => result.push()
         }
     }
   }
@@ -386,12 +398,6 @@ case class DocParserDef() extends Parser[AST] {
       listForHeader = listForHeader.tail
     }
     result.current = Some(Section.Header(listForHeader.reverse))
-    result.push()
-  }
-
-  def createMarkedSectionHeader(): Unit = logger.trace {
-    result.pop()
-    result.current = Some(Section.Header(result.current.get))
     result.push()
   }
 
@@ -433,33 +439,28 @@ case class DocParserDef() extends Parser[AST] {
   ///// Indent Management & New line ///////
   //////////////////////////////////////////
 
-  var lastOffset: Int     = 0
-  var lastDiff: Int       = 0
+  var latestIndent: Int   = 0
   val codeIndent: Int     = 4
   val listIndent: Int     = 2
   var inListFlag: Boolean = false
 
   final def onIndent(): Unit = logger.trace {
-    val diff = currentMatch.length - lastOffset
-    if (diff >= codeIndent) { // TODO change to 0
-      lastDiff       = codeIndent
-      result.current = Some(AST.Code.Multiline(currentMatch.length, Nil))
+    val diff = currentMatch.length - latestIndent
+    if (diff == -listIndent && inListFlag) {
+      addOneListToAnother()
+      latestIndent = currentMatch.length
+    } else if (currentMatch.length > currentSectionIndent && result.workingASTStack.nonEmpty) {
+      result.pop()
+      if (!result.workingASTStack.head.isInstanceOf[AST.Code.Multiline]) {
+        result.push()
+        result.current = Some(AST.Code.Multiline(currentMatch.length, Nil))
+      }
       result.push()
       state.begin(MULTILINECODE)
-    } else if (diff == 0 && lastDiff == codeIndent) {
-      state.begin(MULTILINECODE)
-    } else if (diff <= -codeIndent && lastDiff == codeIndent) {
-      lastDiff = diff
-      state.end() // TODO REMOVE
-    } else if (diff == -listIndent && inListFlag) {
-      lastDiff = diff
-      addOneListToAnother()
     } else {
-      lastDiff             = diff
       currentSectionIndent = currentMatch.length
-      state.end() // TODO REMOVE
+      latestIndent         = currentMatch.length
     }
-    lastOffset = currentMatch.length
   }
 
   final def onIndentForListCreation(
@@ -468,18 +469,16 @@ case class DocParserDef() extends Parser[AST] {
     content: AST
   ): Unit =
     logger.trace {
-      val diff = indent - lastOffset
+      val diff = indent - latestIndent
       if (diff == listIndent) {
         if (!inListFlag) {
           pushNewLine()
         }
         inListFlag = true
-        lastDiff   = diff
         addList(indent, tp, content)
       } else if (diff == 0 && inListFlag) {
         addContentToList(content)
       } else if (diff == -listIndent && inListFlag) {
-        lastDiff = diff
         addOneListToAnother()
         addContentToList(content)
       } else {
@@ -494,18 +493,8 @@ case class DocParserDef() extends Parser[AST] {
         }
         return
       }
-      lastOffset = indent
+      latestIndent = indent
     }
-
-  final def onEmptyLine(): Unit = logger.trace {
-    if (inListFlag) {
-      addOneListToAnother()
-      inListFlag = !inListFlag
-    }
-    pushNewLine()
-    onEndOfSection()
-    state.end() // TODO REMOVE
-  }
 
   final def pushNewLine(): Unit = logger.trace {
     result.current = Some(AST.Newline())
@@ -515,36 +504,29 @@ case class DocParserDef() extends Parser[AST] {
   val emptyLine: Pattern     = whitespace.opt >> newline
   val indentPattern: Pattern = whitespace.opt.many
 
-  ROOT    || newline                || reify { state.begin(NEWLINE) }
-  NEWLINE || emptyLine              || reify { onEmptyLine() }
+  ROOT    || newline || reify { state.begin(NEWLINE) }
   NEWLINE || (indentPattern >> eof) || reify { state.end(); onEOF() }
-  //  NEWLINE || indentPattern || reify {
-  //    // TODO ADD state.end()
-  //    if (result.workingASTStack == Nil) {
-  //      currentSectionIndent = currentMatch.length
-  //      pushNewLine()
-  //      state.end() // TODO REMOVE
-  //    } else {
-  //      pushNewLine()
-  //      onIndent()
-  //    }
-  //  }
-
-  NEWLINE rule indentPattern run reify {
-    if (result.workingASTStack == Nil && !result.current.contains(AST.Text(""))) {
-      currentSectionIndent = currentMatch.length
+  NEWLINE || emptyLine || reify { onNewRawSection() }
+  ROOT    || indentPattern >> importantTrigger >> indentPattern || reify {
+    onNewSection(Some(Section.Marked.Important))
+    currentSectionIndent += currentMatch.length
+  }
+  ROOT || indentPattern >> infoTrigger >> indentPattern || reify {
+    onNewSection(Some(Section.Marked.Info))
+    currentSectionIndent += currentMatch.length
+  }
+  ROOT || indentPattern >> exampleTrigger >> indentPattern || reify {
+    onNewSection(Some(Section.Marked.Example))
+    currentSectionIndent += currentMatch.length
+  }
+  NEWLINE || emptyLine >> emptyLine || reify {
+    state.end()
+    onNewRawSectionWithHeader()
+  }
+  NEWLINE || indentPattern || reify {
+    state.end()
+    if (result.workingASTStack.nonEmpty) {
       pushNewLine()
-      state.end()
-    } else if (result.current.contains(AST.Text(""))) {
-      state.end()
-    } else {
-      result.pop()
-      if (!result.current.contains(AST.Text(newline.toString))) {
-        result.push()
-        pushNewLine()
-      } else {
-        result.push()
-      }
     }
     onIndent()
   }

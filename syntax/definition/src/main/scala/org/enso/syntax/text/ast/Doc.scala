@@ -88,7 +88,7 @@ object Doc {
 
     final case class Newline() extends AST {
       val repr: Repr = R + "\n"
-      val html: HTML = Seq(HTML.br)
+      val html: HTML = Seq()
     }
 
     //////////////////////
@@ -287,7 +287,7 @@ object Doc {
     ) extends Section {
       val marker: String = tp.marker.toString
       val firstIndentRepr = Repr(indent match {
-        case 0 | 1 => marker
+        case 1 => marker
         case _ =>
           val indentBeforeMarker: String = makeIndent(1)
           indentBeforeMarker + marker + makeIndent(
@@ -322,11 +322,11 @@ object Doc {
       def apply(indent: Int, st: Type, elems: AST*): Marked =
         Marked(indent, st, elems.to[List])
       def apply(st: Type): Marked =
-        Marked(0, st, Nil)
+        Marked(1, st, Nil)
       def apply(st: Type, elem: AST): Marked =
-        Marked(0, st, elem :: Nil)
+        Marked(1, st, elem :: Nil)
       def apply(st: Type, elems: AST*): Marked =
-        Marked(0, st, elems.to[List])
+        Marked(1, st, elems.to[List])
 
       abstract class Type(val marker: Char)
       case object Important extends Type('!')
