@@ -130,7 +130,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "?Info\n\n!Important" ?= Doc(
     Synopsis(
-      Section.Marked(Section.Marked.Info, Section.Header(Line("Info")))
+      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline())
     ),
     Body(
       Section.Marked(Section.Marked.Important, Section.Header("Important"))
@@ -138,12 +138,13 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
-      Section.Marked(Section.Marked.Info, Section.Header(Line("Info")))
+      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline())
     ),
     Body(
       Section.Marked(
         Section.Marked.Important,
-        Section.Header(Line("Important"))
+        Section.Header("Important"),
+        Newline()
       ),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
@@ -155,7 +156,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   "ul:\n  - Foo\n  - Bar" ?= Doc(
     Synopsis(
       Section.Raw(
-        Line("ul:"),
+        "ul:",
+        Newline(),
         List(2, List.Unordered, " Foo", " Bar")
       )
     )
@@ -163,7 +165,8 @@ class DocParserSpec extends FlatSpec with Matchers {
   "ol:\n  * Foo\n  * Bar" ?= Doc(
     Synopsis(
       Section.Raw(
-        Line("ol:"),
+        "ol:",
+        Newline(),
         List(2, List.Ordered, " Foo", " Bar")
       )
     )
@@ -176,7 +179,8 @@ class DocParserSpec extends FlatSpec with Matchers {
     |  - Third unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section.Raw(
-        Line("List"),
+        "List",
+        Newline(),
         List(
           2,
           List.Unordered,
@@ -207,7 +211,8 @@ class DocParserSpec extends FlatSpec with Matchers {
     |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section.Raw(
-        Line("List"),
+        "List",
+        Newline(),
         List(
           2,
           List.Unordered,
@@ -298,28 +303,28 @@ class DocParserSpec extends FlatSpec with Matchers {
   "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
     Synopsis(
       Section.Raw(
-        Line(
-          "Foo ",
-          Formatter(Formatter.Bold, "Foo"),
-          " ",
-          Formatter(
-            Formatter.Strikethrough,
-            Formatter.Unclosed(Formatter.Bold, "Bar")
-          ),
-          " ",
-          Code.Inline("foo bar baz bo"),
-          " "
-        )
+        "Foo ",
+        Formatter(Formatter.Bold, "Foo"),
+        " ",
+        Formatter(
+          Formatter.Strikethrough,
+          Formatter.Unclosed(Formatter.Bold, "Bar")
+        ),
+        " ",
+        Code.Inline("foo bar baz bo"),
+        " ",
+        Newline()
       )
     ),
     Body(
-      Section.Raw(Section.Header(Line("Hello Section"))),
+      Section.Raw(Section.Header("Hello Section"), Newline()),
       Section
         .Marked(
           Section.Marked.Important,
-          Section.Header(Line("important"))
+          Section.Header("important"),
+          Newline()
         ),
-      Section.Marked(Section.Marked.Info, Section.Header(Line("Hi"))),
+      Section.Marked(Section.Marked.Info, Section.Header("Hi"), Newline()),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
   )
@@ -420,7 +425,8 @@ class DocParserSpec extends FlatSpec with Matchers {
     |  - Fourth unordered item""".stripMargin ?= Doc(
     Synopsis(
       Section.Raw(
-        Line("List"),
+        "List",
+        Newline(),
         List(
           2,
           List.Unordered,
@@ -445,7 +451,7 @@ class DocParserSpec extends FlatSpec with Matchers {
               " Second unordered sub item"
             ),
             " Third ordered sub item",
-            List.Indent.Invalid(3, " Wrong Indent Item", List.Ordered)
+            List.Indent.Invalid(3, List.Ordered, " Wrong Indent Item")
           ),
           " Fourth unordered item"
         )
