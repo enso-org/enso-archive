@@ -1,15 +1,16 @@
 package org.enso.flexer
 
 import org.enso.Logger
-
-import scala.collection.mutable
 import org.enso.flexer.debug.Escape
 import org.enso.flexer.spec.Macro
 
+import scala.collection.mutable
+
 trait Parser[T] {
-  import Parser._
   import java.io.Reader
   import java.io.StringReader
+
+  import Parser._
 
   var reader: Reader      = null
   val buffer: Array[Char] = new Array(BUFFER_SIZE)
@@ -188,8 +189,8 @@ object Parser {
       i >= 0
   }
 
-  def compile[T](p: Macro.In[T]): Macro.Out[T] =
-    macro Macro.compileImpl[T]
+  def compile[T, P](p: () => P)(implicit ev: P <:< Parser[T]): () => P =
+    macro Macro.compileImpl[T, P]
 
   case class Result[T](offset: Int, value: Result.Value[T]) {
     def map[S](fn: T => S): Result[S] = copy(value = value.map(fn))

@@ -8,20 +8,13 @@ import scala.reflect.runtime.universe
 // FIXME: Needs to be refactored. Contains deprecated API usage
 object Macro {
 
-  type Base[T] = Parser[T]
-  type In[T]   = () => Base[T]
-  type Out[T]  = () => Base[T]
-
-  def compile[T](p: In[T]): Out[T] =
-    macro compileImpl[T]
-
-  def compileImpl[T: c.WeakTypeTag](
+  def compileImpl[T: c.WeakTypeTag, P: c.WeakTypeTag](
     c: Context
-  )(p: c.Expr[In[T]]): c.Expr[Out[T]] = {
+  )(p: c.Expr[() => P])(ev: c.Expr[P <:< Parser[T]]): c.Expr[() => P] = {
     import c.universe._
     val tree   = p.tree
     val expr   = q"$tree()"
-    val parser = c.eval(c.Expr[Base[T]](c.untypecheck(expr.duplicate)))
+    val parser = c.eval(c.Expr[Parser[T]](c.untypecheck(expr.duplicate)))
     val groups = c.internal
       .createImporter(universe)
       .importTree(universe.Block(parser.state.registry.map(_.generate()): _*))
@@ -57,7 +50,7 @@ object Macro {
 
     val clsDef = c.parse(s"final class __Parser__ extends $tree")
     val tgtDef = addGroupDefs.transform(clsDef)
-    c.Expr[Out[T]](q"$tgtDef; () => { new __Parser__ () }")
+    c.Expr[() => P](q"$tgtDef; () => { new __Parser__ () }")
   }
 
 }
