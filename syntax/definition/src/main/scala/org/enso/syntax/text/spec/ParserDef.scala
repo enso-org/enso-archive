@@ -10,6 +10,7 @@ import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Text.Segment.EOL
+import org.enso.syntax.text.ast.Repr
 
 import scala.annotation.tailrec
 import scala.reflect.runtime.universe.reify
@@ -528,7 +529,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       AST.Block(
         AST.Block.Continuous,
         current.indent,
-        current.emptyLines.reverse,
+        current.emptyLines,
         unwrap(current.firstLine),
         current.lines.reverse
       )
@@ -554,6 +555,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         else AST.Block.InvalidIndentation(block2)
 
       result.app(block2)
+      off.push()
       logger.endGroup()
     }
 
@@ -564,10 +566,16 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         case _ =>
           off.push()
           submitLine()
-          while (current.indent > 0)
-            submit()
+          while (current.indent > 0) submit()
           submitLine()
-          current.emptyLines.map(AST.Block.Line(_)) ++ (unwrap(current.firstLine).toOptional ::  current.lines.reverse)
+          val el    = current.emptyLines.map(AST.Block.Line(_))
+          val lines = unwrap(current.firstLine).toOptional :: current.lines.reverse
+          result.stack match {
+            case List(Some(AST._Block(o, e, l, ls, _))) =>
+              val block = AST._Block(o, e, l, ls, "")
+              AST.Block.Line(AST.Block.InvalidIndentation(block)) :: el ++ lines
+            case _ => el ++ lines
+          }
       }
       val module = AST.Module(line, lines)
       result.current = Some(module)
@@ -629,8 +637,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def onEnd(newIndent: Int): Unit = logger.trace {
-      while (newIndent < current.indent)
-        submit()
+      while (newIndent < current.indent) submit()
       if (newIndent > current.indent) {
         logger.log("Block with invalid indentation")
         onBegin(newIndent)

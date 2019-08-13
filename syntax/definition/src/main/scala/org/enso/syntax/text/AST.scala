@@ -474,16 +474,16 @@ object AST {
     indent: Int,
     emptyLines: List[Int],
     firstLine: Block.Line.NonEmpty,
-    lines: List[Block.Line]
+    lines: List[Block.Line],
+    headRepr: String = "\n"
   ) extends AST {
     val repr = {
-      val headRepr       = R + '\n'
       val emptyLinesRepr = emptyLines.map(R + _ + "\n")
       val firstLineRepr  = R + indent + firstLine
       val linesRepr      = lines.map { line =>
         R + '\n' + line.elem.map(_ => indent) + line
       }
-      headRepr + emptyLinesRepr + firstLineRepr + linesRepr
+      R + headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
 
     def map(f: AST => AST) =

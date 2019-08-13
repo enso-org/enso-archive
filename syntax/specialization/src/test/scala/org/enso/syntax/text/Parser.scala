@@ -376,8 +376,10 @@ class ParserSpec extends FlatSpec with Matchers {
     |    bar
   """.stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar")
 
-  "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST]("a", "b"))
-  "if a then b else c" ?= Mixfix(
+  "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST]("
+    a
+   ", "b"))
+    "if a then b else c" ?= Mixfix(
     List1[AST.Ident]("if", "then", "else"),
     List1[AST]("a", "b", "c")
   )
