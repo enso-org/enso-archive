@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.DynamicSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.NoMethodErrorException;
 
 public abstract class MethodResolverNode extends Node {
   @Specialization(guards = "isValidCache(symbol, cachedName, atom, cachedConstructor)")
@@ -30,12 +31,17 @@ public abstract class MethodResolverNode extends Node {
       TruffleLanguage.ContextReference<Context> contextReference,
       AtomConstructor cons,
       String name) {
-    return contextReference.get().getGlobalScope().lookupMethodDefinition(cons, name);
+    Function result = contextReference.get().getGlobalScope().lookupMethodDefinition(cons, name);
+    if (result == null) {
+      throw new NoMethodErrorException(cons, name, this);
+    }
+    return result;
   }
-
 
   public boolean isValidCache(
       DynamicSymbol symbol, String cachedName, Atom atom, AtomConstructor cachedConstructor) {
+    // This comparison by `==` is safe, because all the symbol names are interned.
+    //noinspection StringEquality
     return (symbol.getName() == cachedName) && (atom.getConstructor() == cachedConstructor);
   }
 }

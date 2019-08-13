@@ -9,6 +9,7 @@ import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
 
+import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodResolverNode;
@@ -24,7 +25,9 @@ import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.error.NoMethodErrorException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -44,6 +47,8 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   @Child private ArgumentSorterNode argumentSorter;
   @Child private CallOptimiserNode callOptimiserNode;
   @Child private MethodResolverNode methodResolverNode;
+
+  private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
 
   /**
    * Creates a new node for performing callable invocation.
@@ -132,17 +137,22 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   public Object invokeDynamicSymbol(VirtualFrame frame, DynamicSymbol symbol) {
     if (canApplyThis) {
       Object[] evaluatedArguments = evaluateArguments(frame);
-      Atom self = (Atom) evaluatedArguments[thisArgumentPosition];
-      Function function = methodResolverNode.execute(symbol, self);
-      Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
+      Object selfArgument = evaluatedArguments[thisArgumentPosition];
+      if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
+        Atom self = (Atom) selfArgument;
+        Function function = methodResolverNode.execute(symbol, self);
+        Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
 
-      if (this.isTail()) {
-        throw new TailCallException(function, sortedArguments);
+        if (this.isTail()) {
+          throw new TailCallException(function, sortedArguments);
+        } else {
+          return this.callOptimiserNode.executeDispatch(function, sortedArguments);
+        }
       } else {
-        return this.callOptimiserNode.executeDispatch(function, sortedArguments);
+        throw new NoMethodErrorException(selfArgument, symbol.getName(), this);
       }
     } else {
-      throw new RuntimeException("Unsupported yet.");
+      throw new RuntimeException("Currying without `this` argument is not supported yet.");
     }
   }
 

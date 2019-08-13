@@ -1,5 +1,7 @@
 package org.enso.interpreter
 
+import org.graalvm.polyglot.PolyglotException
+
 class MethodsTest extends LanguageTest {
   "Methods" should "be defined in the global scope and dispatched to" in {
     val code =
@@ -33,5 +35,13 @@ class MethodsTest extends LanguageTest {
         |""".stripMargin
 
     eval(code) shouldEqual 6
+  }
+
+  "Calling a non-existent method" should "throw an exception" in {
+    val code =
+      """
+        |@foo [7]
+        |""".stripMargin
+    the[PolyglotException] thrownBy eval(code) should have message "Object 7 does not define method foo."
   }
 }
