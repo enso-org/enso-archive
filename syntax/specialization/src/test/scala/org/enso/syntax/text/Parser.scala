@@ -313,12 +313,24 @@ class ParserSpec extends FlatSpec with Matchers {
 
   def amb(head: AST, lst: List[List[AST]]): Macro.Ambiguous =
     Macro.Ambiguous(Macro.Ambiguous.Segment(head), Tree(lst.map(_ -> (())): _*))
+  ""           ?= Module(Line())
+  "\n"         ?= Module(Line(), Line())
+  "  \n "      ?= Module(Line(2), Line(1))
+  "\n\n"       ?= Module(Line(), Line(), Line())
+  " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
+
+  "foo  \n bar" ?= "foo" $__ Block(1, "bar")
 
   def amb(head: AST, lst: List[List[AST]], body: SAST): Macro.Ambiguous =
     Macro.Ambiguous(
       Macro.Ambiguous.Segment(head, Some(body)),
       Tree(lst.map(_ -> (())): _*)
     )
+  "\na \nb \n".testIdentity
+  "f =  \n\n\n".testIdentity
+  "  \n\n\n f\nf".testIdentity
+  "f =  \n\n  x ".testIdentity
+  "f =\n\n  x\n\n y".testIdentity
 
   def _amb_group_(i: Int)(t: AST): Macro.Ambiguous =
     amb("(", List(List(")")), Shifted(i, t))

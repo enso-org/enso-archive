@@ -32,8 +32,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   }
 
   override def run(input: Reader): Result[AST.Module] = {
-    block.onBegin(0)
-    state.begin(block.FIRSTCHAR)
+    state.begin(block.NEWLINE)
     super.run(input)
   }
 
@@ -108,7 +107,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   final object off {
     var current: Int     = 0
-    var stack: List[Int] = List(0)
+    var stack: List[Int] = List(0, 0)
 
     def push(): Unit = logger.trace {
       stack +:= current
@@ -511,7 +510,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     var stack: List[State]    = Nil
     var emptyLines: List[Int] = Nil
-    var current: State        = new State(true, 0, Nil, None, Nil)
+    var current: State        = new State(true, -1, Nil, None, Nil)
 
     def push(newIndent: Int): Unit = logger.trace {
       stack +:= current
@@ -559,38 +558,41 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def submitModule(): Unit = logger.trace {
-      off.push()
-      submitLine()
-      val el  = current.emptyLines.reverse.map(AST.Block.Line(_))
-      val el2 = emptyLines.reverse.map(AST.Block.Line(_))
-      val firstLines = current.firstLine match {
-        case None            => el
-        case Some(firstLine) => firstLine.toOptional :: el
+      val line :: lines = current.indent match {
+        case -1 =>
+          current.lines.reverse
+        case _ =>
+          off.push()
+          submitLine()
+          while (current.indent > 0)
+            submit()
+          submitLine()
+          current.emptyLines.map(AST.Block.Line(_)) ++ (unwrap(current.firstLine).toOptional ::  current.lines.reverse)
       }
-      val lines  = firstLines ++ current.lines.reverse ++ el2
-      val module = AST.Module(lines.head, lines.tail)
+      val module = AST.Module(line, lines)
       result.current = Some(module)
       logger.endGroup()
     }
 
     def submitLine(): Unit = logger.trace {
-      off.pop()
       result.current match {
-        case None => pushEmptyLine()
+        case None =>
         case Some(r) =>
+          off.pop()
           current.firstLine match {
             case None =>
               current.firstLine = Some(AST.Block.Line.Required(r, off.use()))
             case Some(_) =>
               current.lines +:= AST.Block.Line(result.current, off.use())
           }
-          emptyLines.foreach(current.lines +:= AST.Block.Line(_))
-          emptyLines = Nil
       }
+      emptyLines.reverse.foreach(current.lines +:= AST.Block.Line(_))
+      emptyLines     = Nil
       result.current = None
     }
 
     def pushEmptyLine(): Unit = logger.trace {
+      off.on(-1)
       emptyLines +:= off.use()
     }
 
@@ -600,15 +602,12 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       logger.beginGroup()
     }
 
-    def onEmptyLine(): Unit = logger.trace {
-      pushEmptyLine()
-      off.on(-1)
-    }
-
     def onEOFLine(): Unit = logger.trace {
-      submitLine()
       state.end()
+      submitLine()
       off.on()
+      current.lines +:= AST.Block.Line(off.use())
+      off.pop()
       onEOF()
     }
 
@@ -630,9 +629,8 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def onEnd(newIndent: Int): Unit = logger.trace {
-      while (newIndent < current.indent) {
+      while (newIndent < current.indent)
         submit()
-      }
       if (newIndent > current.indent) {
         logger.log("Block with invalid indentation")
         onBegin(newIndent)
@@ -645,7 +643,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   }
 
   ROOT            || newline              || reify { block.onEndLine() }
-  block.NEWLINE   || space.opt >> newline || reify { block.onEmptyLine() }
+  block.NEWLINE   || space.opt >> newline || reify { block.pushEmptyLine() }
   block.NEWLINE   || space.opt >> eof     || reify { block.onEOFLine() }
   block.NEWLINE   || space.opt            || reify { block.onNewLine() }
   block.FIRSTCHAR || always               || reify { state.end() }
@@ -660,8 +658,6 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   final def onEOF(): Unit = logger.trace {
     ident.finalizer()
-    off.push()
-    block.onEnd(0)
     block.submitModule()
   }
 
