@@ -2,6 +2,7 @@ package org.enso.syntax.text
 
 import org.enso.flexer
 import org.enso.syntax.text
+import org.enso.syntax.text.AST.Marker
 import org.enso.syntax.text.precedence.Template
 
 ////////////////
@@ -12,10 +13,11 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(input: String): Result[AST.Module] = engine.run(input).map { module =>
-    val module2 = module.asInstanceOf[AST.Module] // FIXME
-    Template.run(module2)
-  }
+  def run(input: String, mrkr: Seq[(Int, Marker)] = Seq()): Result[AST.Module] =
+    engine.run(input, mrkr).map { module: AST =>
+      val module2 = module.asInstanceOf[AST.Module] // FIXME
+      Template.run(module2)
+    }
 
 }
 
@@ -23,7 +25,7 @@ object Parser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(text.ParserDef)
 
-  def run(input: String): Result[AST.Module] = new Parser().run(input)
+  def apply(): Parser = new Parser()
 }
 
 //////////////
@@ -35,8 +37,7 @@ object Main extends App {
   val p2 = new Parser()
 
   val inp = "import Std.Math"
-  val out = p1.run(inp)
-
+  val out = p1.run(inp, Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 
   DocParserRunner
