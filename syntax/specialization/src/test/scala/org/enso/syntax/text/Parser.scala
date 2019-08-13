@@ -413,15 +413,20 @@ class ParserSpec extends FlatSpec with Matchers {
 //  # pop3: mutants
 //    Selects the 'fittest' individuals from population and kills the rest!
 //
-//  keepBest : Pop -> Pop -> Pop -> Pop
-//  keepBest pop1 pop2 pop3 =
+//  log
+//  '''
+//  keepBest
+//  `pop1`
+//  `pop2`
+//  `pop3`
+//  '''
 //
-//     unique xs
-//        = index xs 0 +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+//  unique xs
+//    = xs.at(0.0) +: [1..length xs -1] . filter (isUnique xs) . map xs.at
 //
-//     isUnique xs i ####
-//        = index xs i . score != index xs i-1 . score
-//
+//  isUnique xs i ####
+//    = xs.at(i).score != xs.at(i-1).score
+
 //     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
 //
 //  """.testIdentity

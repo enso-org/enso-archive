@@ -108,7 +108,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   final object off {
     var current: Int     = 0
-    var stack: List[Int] = Nil
+    var stack: List[Int] = List(0)
 
     def push(): Unit = logger.trace {
       stack +:= current
@@ -118,6 +118,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def pop(): Unit = logger.trace {
       current = stack.head
       stack   = stack.tail
+      logger.log(s"New offset: $current")
     }
 
     def use(): Int = logger.trace {
@@ -558,6 +559,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def submitModule(): Unit = logger.trace {
+      off.push()
       submitLine()
       val el  = current.emptyLines.reverse.map(AST.Block.Line(_))
       val el2 = emptyLines.reverse.map(AST.Block.Line(_))
@@ -572,19 +574,17 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def submitLine(): Unit = logger.trace {
+      off.pop()
       result.current match {
         case None => pushEmptyLine()
         case Some(r) =>
           current.firstLine match {
             case None =>
-              val line = AST.Block.Line.Required(r, off.use())
-              current.emptyLines = emptyLines
-              current.firstLine  = Some(line)
+              current.firstLine = Some(AST.Block.Line.Required(r, off.use()))
             case Some(_) =>
-              emptyLines.foreach(current.lines +:= AST.Block.Line(None, _))
-              current.lines +:= AST.Block
-                .Line(result.current, off.use())
+              current.lines +:= AST.Block.Line(result.current, off.use())
           }
+          emptyLines.foreach(current.lines +:= AST.Block.Line(_))
           emptyLines = Nil
       }
       result.current = None
@@ -612,18 +612,17 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       onEOF()
     }
 
-    def onNewLine(): Unit = logger.trace {
+    def onEndLine(): Unit = logger.trace {
+      off.push()
       state.begin(NEWLINE)
     }
 
-    def onBlockNewline(): Unit = logger.trace {
+    def onNewLine(): Unit = logger.trace {
       state.end()
-      off.push()
       off.on()
-      if (off.current == current.indent) {
-        off.pop()
+      if (off.current == current.indent)
         submitLine()
-      } else if (off.current > current.indent)
+      else if (off.current > current.indent)
         onBegin(off.use())
       else
         onEnd(off.use())
@@ -645,10 +644,10 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val FIRSTCHAR = state.define("First Char")
   }
 
-  ROOT            || newline              || reify { block.onNewLine() }
+  ROOT            || newline              || reify { block.onEndLine() }
   block.NEWLINE   || space.opt >> newline || reify { block.onEmptyLine() }
   block.NEWLINE   || space.opt >> eof     || reify { block.onEOFLine() }
-  block.NEWLINE   || space.opt            || reify { block.onBlockNewline() }
+  block.NEWLINE   || space.opt            || reify { block.onNewLine() }
   block.FIRSTCHAR || always               || reify { state.end() }
 
   ////////////////
@@ -661,6 +660,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   final def onEOF(): Unit = logger.trace {
     ident.finalizer()
+    off.push()
     block.onEnd(0)
     block.submitModule()
   }

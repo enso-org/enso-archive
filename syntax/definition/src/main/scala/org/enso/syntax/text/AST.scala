@@ -478,9 +478,11 @@ object AST {
   ) extends AST {
     val repr = {
       val headRepr       = R + '\n'
-      val emptyLinesRepr = emptyLines.map(R + indent + _ + "\n")
+      val emptyLinesRepr = emptyLines.map(R + _ + "\n")
       val firstLineRepr  = R + indent + firstLine
-      val linesRepr      = lines.map(R + '\n' + indent + _)
+      val linesRepr      = lines.map { line =>
+        R + '\n' + line.elem.map(_ => indent) + line
+      }
       headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
 
@@ -528,8 +530,7 @@ object AST {
         with Zipper.Has {
       type Zipper[T] = Line.Zipper.Class[T]
       val repr = R + elem + off
-      def map(f: AST => AST): Line =
-        _Line(elem.map(f), off)
+      def map(f: AST => AST): Line = _Line(elem.map(f), off)
       def toNonEmpty(): Option[Line.NonEmpty] =
         elem.map(Line.Required(_, off))
     }
