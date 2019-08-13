@@ -12,8 +12,7 @@ import java.util.Arrays;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.MethodResolverNode;
-import org.enso.interpreter.node.MethodResolverNodeGen;
+import org.enso.interpreter.node.callable.MethodResolverNodeGen;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
@@ -133,6 +132,13 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     return callable.newInstance(sortedArguments);
   }
 
+  /**
+   * Invokes a dynamic symbol after resolving it for the proper argument.
+   *
+   * @param frame the stack frame in which to execute
+   * @param symbol the name of the requested symbol
+   * @return the result of resolving and executing the symbol for the proper argument.
+   */
   @Specialization
   public Object invokeDynamicSymbol(VirtualFrame frame, DynamicSymbol symbol) {
     if (canApplyThis) {

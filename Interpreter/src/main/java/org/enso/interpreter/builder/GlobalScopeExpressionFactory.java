@@ -54,8 +54,6 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       List<AstTypeDef> typeDefs, List<AstMethodDef> bindings, AstExpression executableExpression) {
     GlobalScope globalScope = language.getCurrentContext().getGlobalScope();
 
-    //    bindings.forEach(binding -> globalScope.registerName(binding.name()));
-
     for (AstTypeDef type : typeDefs) {
       ArgDefinitionFactory argFactory = new ArgDefinitionFactory(language, globalScope);
       ArgumentDefinition[] argDefs = new ArgumentDefinition[type.getArguments().size()];
@@ -82,20 +80,6 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       Function function = new Function(funNode.getCallTarget(), null, funNode.getArgs());
       globalScope.registerMethod(constructor, method.methodName(), function);
     }
-
-    //    for (AstAssignment binding : bindings) {
-    //      String name = binding.name();
-    //      AstExpression body = binding.body();
-    //
-    //      ExpressionFactory exprFactory = new ExpressionFactory(language, name, globalScope);
-    //      ExpressionNode node = exprFactory.run(body);
-    //
-    //      EnsoRootNode root = new EnsoRootNode(this.language, new FrameDescriptor(), node, null,
-    // name);
-    //      RootCallTarget target = Truffle.getRuntime().createCallTarget(root);
-    //
-    //      globalScope.updateCallTarget(name, target);
-    //    }
 
     ExpressionFactory factory = new ExpressionFactory(this.language, globalScope);
     return factory.run(executableExpression);

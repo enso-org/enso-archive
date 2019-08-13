@@ -42,16 +42,13 @@ import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
 import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
-import org.enso.interpreter.node.scope.ReadGlobalTargetNode;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
 import org.enso.interpreter.runtime.callable.DynamicSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
-import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.GlobalScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
-import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 /**
  * An {@code ExpressionFactory} is responsible for converting the majority of Enso's parsed AST into
@@ -166,13 +163,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitForeign(String lang, String code) {
-    throw new NotImplementedException();
+    throw new RuntimeException("Foreign expressions not implemented yet.");
   }
 
   /**
-   * Creates a runtime node representing a variable definition.
+   * Creates a runtime node representing a variable lookup.
    *
-   * <p>This method is solely responsible for creating a variable in the parent scope with the
+   * <p>This method is solely responsible for looking up a variable in the parent scope with the
    * provided name and does not handle associating that variable with a value.
    *
    * @param name the name of the variable
@@ -184,10 +181,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
         () -> scope.getSlot(name).map(ReadLocalTargetNodeGen::create);
     Supplier<Optional<ExpressionNode>> constructorNode =
         () -> globalScope.getConstructor(name).map(ConstructorNode::new);
-    //    Supplier<Optional<ExpressionNode>> globalDefinitionNode =
-    //        () -> globalScope.getGlobalCallTarget(name).map(ReadGlobalTargetNode::new);
 
-    return Stream.of(localVariableNode, constructorNode) // , globalDefinitionNode)
+    return Stream.of(localVariableNode, constructorNode)
         .map(Supplier::get)
         .filter(Optional::isPresent)
         .map(Optional::get)
