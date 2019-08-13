@@ -8,6 +8,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import java.util.Arrays;
+
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.MethodResolverNode;
 import org.enso.interpreter.node.MethodResolverNodeGen;
@@ -36,6 +38,9 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   @Children
   private @CompilationFinal(dimensions = 1) ExpressionNode[] argExpressions;
 
+  private final boolean canApplyThis;
+  private final int thisArgumentPosition;
+
   @Child private ArgumentSorterNode argumentSorter;
   @Child private CallOptimiserNode callOptimiserNode;
   @Child private MethodResolverNode methodResolverNode;
@@ -54,6 +59,19 @@ public abstract class InvokeCallableNode extends ExpressionNode {
 
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
+
+    boolean appliesThis = false;
+    int idx = 0;
+    for (; idx < argSchema.length; idx++) {
+      CallArgumentInfo arg = argSchema[idx];
+      if (arg.isPositional()
+          || (arg.isNamed() && arg.getName().equals(Constants.THIS_ARGUMENT_NAME))) {
+        appliesThis = true;
+        break;
+      }
+    }
+    this.canApplyThis = appliesThis;
+    this.thisArgumentPosition = idx;
 
     this.callOptimiserNode = new SimpleCallOptimiserNode();
     this.argumentSorter = ArgumentSorterNodeGen.create(argSchema);
@@ -112,15 +130,19 @@ public abstract class InvokeCallableNode extends ExpressionNode {
 
   @Specialization
   public Object invokeDynamicSymbol(VirtualFrame frame, DynamicSymbol symbol) {
-    Object[] evaluatedArguments = evaluateArguments(frame);
-    Atom self = (Atom) evaluatedArguments[0];
-    Function function = methodResolverNode.execute(symbol, self);
-    Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
+    if (canApplyThis) {
+      Object[] evaluatedArguments = evaluateArguments(frame);
+      Atom self = (Atom) evaluatedArguments[thisArgumentPosition];
+      Function function = methodResolverNode.execute(symbol, self);
+      Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
 
-    if (this.isTail()) {
-      throw new TailCallException(function, sortedArguments);
+      if (this.isTail()) {
+        throw new TailCallException(function, sortedArguments);
+      } else {
+        return this.callOptimiserNode.executeDispatch(function, sortedArguments);
+      }
     } else {
-      return this.callOptimiserNode.executeDispatch(function, sortedArguments);
+      throw new RuntimeException("Unsupported yet.");
     }
   }
 

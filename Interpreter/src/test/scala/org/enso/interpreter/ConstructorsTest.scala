@@ -95,5 +95,4 @@ class ConstructorsTest extends LanguageTest {
       """.stripMargin
     eval(testCode) shouldEqual 55
   }
-
 }

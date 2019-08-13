@@ -24,4 +24,14 @@ class MethodsTest extends LanguageTest {
 
     eval(code) shouldEqual 3
   }
+
+  "Method call target" should "be passable by-name" in {
+    val code =
+      """
+        |Unit.testMethod = { |x, y, z| (x + y) + z }
+        |@testMethod [x = 1, y = 2, this = @Unit, z = 3]
+        |""".stripMargin
+
+    eval(code) shouldEqual 6
+  }
 }
