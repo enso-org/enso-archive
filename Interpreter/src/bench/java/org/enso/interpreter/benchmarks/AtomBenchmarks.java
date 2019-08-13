@@ -24,6 +24,11 @@ public class AtomBenchmarks {
   }
 
   @Benchmark
+  public void benchReverseListMethods() {
+    fixtures.reverseListMethods().execute(fixtures.millionElementList());
+  }
+
+  @Benchmark
   public void benchSumList() {
     fixtures.sumList().execute(fixtures.millionElementList());
   }

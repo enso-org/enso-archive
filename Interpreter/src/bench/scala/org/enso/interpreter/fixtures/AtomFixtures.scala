@@ -32,6 +32,19 @@ class AtomFixtures extends LanguageRunner {
 
   val reverseList = eval(reverseListCode)
 
+  val reverseListMethodsCode =
+    """
+      |Cons.reverse = { |acc| match this <
+      |  Cons ~ { |h, t| @reverse [t, @Cons [h, acc]] };
+      |>}
+      |
+      |Nil.reverse = { |acc| acc }
+      |
+      |{ |list| @reverse [list, @Nil] }
+      |""".stripMargin
+
+  val reverseListMethods = eval(reverseListMethodsCode)
+
   val sumListCode =
     """
       |{ |list|
