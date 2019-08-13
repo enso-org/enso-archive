@@ -78,21 +78,20 @@ class ConstructorsTest extends LanguageTest {
   }
 
   "Constructor definitions" should "be usable in code, with arbitrary definition order" in {
-    pending
     val testCode =
       """
         |type Cons2 a b;
         |
-        |genList = { |i| ifZero: [i, @Nil2, @Cons2 [i, @genList [i-1]]] }
+        |Unit.genList = { |i| ifZero: [i, @Nil2, @Cons2 [i, @genList [@Unit, i-1]]] }
         |
         |type Nil2;
         |
-        |sumList = { |list| match list <
-        |  Cons2 ~ { |a, b| a + @sumList [b] };
+        |Unit.sumList = { |list| match list <
+        |  Cons2 ~ { |a, b| a + @sumList [@Unit, b] };
         |  Nil2 ~ { 0 };
         |>}
         |
-        |@sumList [@genList [10]]
+        |@sumList [@Unit, @genList [@Unit, 10]]
       """.stripMargin
     eval(testCode) shouldEqual 55
   }

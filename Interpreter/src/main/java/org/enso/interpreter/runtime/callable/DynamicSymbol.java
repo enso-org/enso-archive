@@ -1,6 +1,8 @@
 package org.enso.interpreter.runtime.callable;
 
-public class DynamicSymbol {
+import com.oracle.truffle.api.interop.TruffleObject;
+
+public class DynamicSymbol implements TruffleObject {
   private final String name;
 
   public DynamicSymbol(String name) {
