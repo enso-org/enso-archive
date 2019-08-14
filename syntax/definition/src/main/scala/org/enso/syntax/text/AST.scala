@@ -301,7 +301,7 @@ object AST {
 
       lazy val quoteRepr = R + (quoteChar.toString * quote.asInt)
       lazy val bodyRepr  = R + segments
-      lazy val repr      = R + quoteRepr + segments + quoteRepr
+      lazy val repr      = R + quoteRepr + bodyRepr + quoteRepr
 
       def map(f: AST => AST) = this
 
@@ -394,11 +394,10 @@ object AST {
           case (EOL(_), segment) =>
             last = segment
             EOL(validIndent = false)
-          case (_, segment) => {
+          case (_, segment) =>
             val prev = last
             last = segment
             prev
-          }
         }
       }
     }
@@ -597,9 +596,16 @@ object AST {
   object Comment {
 
     final case class Block(offset: Int, lines: List[String]) extends AST {
-      val repr = R + offset + "#" + lines.mkString("\n " + " " * offset)
+      val repr = {
+        val linesRepr = lines match {
+          case line +: lines => (R + line) +: lines.map { s =>
+            if (s.forall(_ == ' ')) R + "\n" + s else R + "\n" + 1 + offset + s
+          }
+          case Nil => Nil
+        }
+        R + "#" + linesRepr
+      }
     }
-
   }
 
   ////////////////
