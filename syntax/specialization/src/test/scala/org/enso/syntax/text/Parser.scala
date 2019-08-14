@@ -385,8 +385,9 @@ class ParserSpec extends FlatSpec with Matchers {
   )
 
   "if a"         ?= amb_if_("a": AST)
-  "(if a) b"     ?= Group(amb_if_("a": AST)) $_ "b"
-  "if (a then b" ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
+    "(if a) b"     ?= Group(amb_if_("a": AST)) $_ "b"
+    "if (a then b
+    " ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
 
   //////////////////////////////////////////////////////////////////////////////
   //// Foreign /////////////////////////////////////////////////////////////////
@@ -445,6 +446,7 @@ class ParserSpec extends FlatSpec with Matchers {
 //
 //  """.testIdentity
 
+
   ///////////////////////
   //// Preprocessing ////
   ///////////////////////
@@ -452,6 +454,7 @@ class ParserSpec extends FlatSpec with Matchers {
   "\t"   ?= Module(Line(4))
   "\r"   ?= Module(Line(), Line())
   "\r\n" ?= Module(Line(), Line())
+
 }
 
 ////////////////////////////////////////////////////////////////////////////////

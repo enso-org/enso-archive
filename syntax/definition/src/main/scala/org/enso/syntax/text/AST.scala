@@ -508,9 +508,9 @@ object AST {
       firstLine: Line.NonEmpty,
       lines: List[Line]
     ): Block =
-      Block(tp, indent, List(), firstLine, lines)
+      Block(tp, indent, List(0), firstLine, lines)
 
-    def apply(tp: Type, indent: Int, firstLine: AST, lines: AST*): Block =
+    def apply(tp: Type, indent: Int, firstLine: AST, lines: Option[AST]*): Block =
       Block(tp, indent, Line.Required(firstLine), lines.toList.map(Line(_)))
 
     def unapply(t: Block): Option[(Int, Line.NonEmpty, List[Line])] =

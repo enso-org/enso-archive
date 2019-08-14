@@ -559,25 +559,15 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def submitModule(): Unit = logger.trace {
-      val line :: lines = current.indent match {
-        case -1 =>
-          current.lines.reverse
-        case _ =>
-          off.push()
-          submitLine()
-          while (current.indent > 0) submit()
-          val block      = build()
-          lazy val el    = block.emptyLines.map(AST.Block.Line(_))
-          lazy val lines = block.firstLine.toOptional :: block.lines
-          if (block.indent != 0)
-            List(AST.Block.Line(block))
-          else if (stack.isEmpty)
-            el ++ lines
-          else {
-            AST.Block.Line(block) :: el ++ lines
-          }
+      off.push()
+      submitLine()
+      onEnd(0)
+      val body = current.firstLine match {
+        case None       => current.lines.reverse
+        case Some(line) => line.toOptional +: current.lines.reverse
       }
-      val module = AST.Module(line, lines)
+      val line :: lines = current.emptyLines.map(AST.Block.Line(_)) ++ body
+      val module        = AST.Module(line, lines)
       result.current = Some(module)
       logger.endGroup()
     }
@@ -607,7 +597,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def onModuleBegin(): Unit = logger.trace {
       current.emptyLines = emptyLines.reverse
       emptyLines         = Nil
-      rewind()
+      offset -= 1; rewind() // FIXME
       state.end()
       state.begin(NEWLINE)
     }
