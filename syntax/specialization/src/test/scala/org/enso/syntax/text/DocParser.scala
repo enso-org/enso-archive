@@ -130,7 +130,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "?Info\n\n!Important" ?= Doc(
     Synopsis(
-      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline())
+      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
     ),
     Body(
       Section.Marked(Section.Marked.Important, Section.Header("Important"))
@@ -138,13 +138,13 @@ class DocParserSpec extends FlatSpec with Matchers {
   )
   "?Info\n\n!Important\n\n>Example" ?= Doc(
     Synopsis(
-      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline())
+      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
     ),
     Body(
       Section.Marked(
         Section.Marked.Important,
         Section.Header("Important"),
-        Newline()
+        Newline
       ),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
@@ -157,7 +157,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         "ul:",
-        Newline(),
+        Newline,
         List(2, List.Unordered, " Foo", " Bar")
       )
     )
@@ -166,7 +166,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         "ol:",
-        Newline(),
+        Newline,
         List(2, List.Ordered, " Foo", " Bar")
       )
     )
@@ -180,7 +180,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         "List",
-        Newline(),
+        Newline,
         List(
           2,
           List.Unordered,
@@ -212,7 +212,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         "List",
-        Newline(),
+        Newline,
         List(
           2,
           List.Unordered,
@@ -271,7 +271,6 @@ class DocParserSpec extends FlatSpec with Matchers {
   ////////////////
   ///// Tags /////
   ////////////////
-  "DEPRECATED\n" ?= Doc(Tags(Tags.Tag(Tags.Tag.Deprecated)))
   "DEPRECATED\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Deprecated)),
     Synopsis(Section.Raw("Foo"))
@@ -295,38 +294,6 @@ class DocParserSpec extends FlatSpec with Matchers {
   "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0"), Tags.Tag(Tags.Tag.Modified)),
     Synopsis(Section.Raw("Foo"))
-  )
-
-  /////////////////
-  ///// other /////
-  /////////////////
-  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        "Foo ",
-        Formatter(Formatter.Bold, "Foo"),
-        " ",
-        Formatter(
-          Formatter.Strikethrough,
-          Formatter.Unclosed(Formatter.Bold, "Bar")
-        ),
-        " ",
-        Code.Inline("foo bar baz bo"),
-        " ",
-        Newline()
-      )
-    ),
-    Body(
-      Section.Raw(Section.Header("Hello Section"), Newline()),
-      Section
-        .Marked(
-          Section.Marked.Important,
-          Section.Header("important"),
-          Newline()
-        ),
-      Section.Marked(Section.Marked.Info, Section.Header("Hi"), Newline()),
-      Section.Marked(Section.Marked.Example, Section.Header("Example"))
-    )
   )
 
   //////////////////////////////////////////////////////////////////////////////
@@ -426,7 +393,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         "List",
-        Newline(),
+        Newline,
         List(
           2,
           List.Unordered,
@@ -459,44 +426,124 @@ class DocParserSpec extends FlatSpec with Matchers {
     )
   )
 
+  ///////////////////////////////////////
+  ///// other strange constructions /////
+  ///////////////////////////////////////
+  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "Foo ",
+        Formatter(Formatter.Bold, "Foo"),
+        " ",
+        Formatter(
+          Formatter.Strikethrough,
+          Formatter.Unclosed(Formatter.Bold, "Bar")
+        ),
+        " ",
+        Code.Inline("foo bar baz bo"),
+        " ",
+        Newline
+      )
+    ),
+    Body(
+      Section.Raw(Section.Header("Hello Section"), Newline),
+      Section
+        .Marked(
+          Section.Marked.Important,
+          Section.Header("important"),
+          Newline
+        ),
+      Section.Marked(Section.Marked.Info, Section.Header("Hi"), Newline),
+      Section.Marked(Section.Marked.Example, Section.Header("Example"))
+    )
+  )
+
   """   ALAMAKOTA a kot ma ale
-    | foo bar
-    |""".stripMargin
+    | foo bar""".stripMargin ?= Doc(
+    Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA a kot ma ale")),
+    Synopsis(Section.Raw(1, "foo bar"))
+  )
 
   """
     | - bar
     | baz
-    |""".stripMargin
+    |""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Newline,
+        " - bar",
+        Newline,
+        Code.Multiline(1, "baz"),
+        Newline
+      )
+    )
+  )
+
+  " foo *bar* _baz *bo*_" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "foo ",
+        Formatter(Formatter.Bold, "bar"),
+        " ",
+        Formatter(Formatter.Italic, "baz ", Formatter(Formatter.Bold, "bo"))
+      )
+    )
+  )
+  """foo *bar
+    |*""".stripMargin ?= Doc(
+    Synopsis(Section.Raw("foo ", Formatter(Formatter.Bold, "bar", Newline)))
+  )
+
+  """foo _foo
+    |_foo2""".stripMargin ?= Doc(
+    Synopsis(
+      Section
+        .Raw("foo ", Formatter(Formatter.Italic, "foo", Newline), "foo2")
+    )
+  )
 
   """   DEPRECATED das sfa asf
     |REMOVED fdsdf
     |Construct and manage a graphical, event-driven user interface for your iOS or
     |tvOS app.
     |
-    | br *foo
-    | dsad*""".stripMargin
+    | foo *foo*""".stripMargin ?= Doc(
+    Tags(
+      Tags.Tag(3, Tags.Tag.Deprecated, " das sfa asf"),
+      Tags.Tag(0, Tags.Tag.Removed, " fdsdf")
+    ),
+    Synopsis(
+      Section.Raw(
+        "Construct and manage a graphical, event-driven user interface for your iOS or",
+        Newline,
+        "tvOS app.",
+        Newline
+      )
+    ),
+    Body(Section.Raw(1, "foo ", Formatter(Formatter.Bold, "foo")))
+  )
 
   """   DEPRECATED das sfa asf
     |REMOVED fdsdf
     |Construct and manage a graphical, event-driven user interface for your iOS or
     |tvOS app.
     |
-    | *foo*""".stripMargin
-
-  """   DEPRECATED das sfa asf
-    |REMOVED fdsdf
-    |Construct and manage a graphical, event-driven user interface for your iOS or
-    |tvOS app.
-    |
-    | *foo
-    | *foo2""".stripMargin
-
-  """   DEPRECATED das sfa asf
-    |REMOVED fdsdf
-    |Construct and manage a graphical, event-driven user interface for your iOS or
-    |tvOS app.
-    |
-    | *foo """.stripMargin
+    | foo *foo""".stripMargin ?= Doc(
+    Tags(
+      Tags.Tag(3, Tags.Tag.Deprecated, " das sfa asf"),
+      Tags.Tag(0, Tags.Tag.Removed, " fdsdf")
+    ),
+    Synopsis(
+      Section.Raw(
+        "Construct and manage a graphical, event-driven user interface for your iOS or",
+        Newline,
+        "tvOS app.",
+        Newline
+      )
+    ),
+    Body(Section.Raw(1, "foo ", Formatter.Unclosed(Formatter.Bold, "foo")))
+  )
 
   """   DEPRECATED das sfa asf
     |REMOVED fdsdf
@@ -505,11 +552,56 @@ class DocParserSpec extends FlatSpec with Matchers {
     |
     |   fooo bar baz
     |   dsadasfsaf asfasfas
-    |   fasfasfa sf
-    |   asfas fasf """.stripMargin
+    |   asfasfa sf
+    |   asfas fasf """.stripMargin ?= Doc(
+    Tags(
+      Tags.Tag(3, Tags.Tag.Deprecated, " das sfa asf"),
+      Tags.Tag(0, Tags.Tag.Removed, " fdsdf")
+    ),
+    Synopsis(
+      Section.Raw(
+        "Construct and manage a graphical, event-driven user interface for your iOS or",
+        Newline,
+        "tvOS app.",
+        Newline
+      )
+    ),
+    Body(
+      Section.Raw(
+        3,
+        "fooo bar baz",
+        Newline,
+        "dsadasfsaf asfasfas",
+        Newline,
+        "asfasfa sf",
+        Newline,
+        "asfas fasf "
+      )
+    )
+  )
 
   """    DEPRECATED das sfa asf
     |  REMOVED
-    |""".stripMargin
+    | Foo""".stripMargin ?= Doc(
+    Tags(
+      Tags.Tag(4, Tags.Tag.Deprecated, " das sfa asf"),
+      Tags.Tag(2, Tags.Tag.Removed)
+    ),
+    Synopsis(Section.Raw(1, "Foo"))
+  )
 
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   siafjaifhjiasjf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code.Multiline(3, "siafjaifhjiasjf", "fasfknfanfijnf")
+      )
+    )
+  )
 }

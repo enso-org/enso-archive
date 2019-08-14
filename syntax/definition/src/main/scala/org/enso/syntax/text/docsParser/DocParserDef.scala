@@ -168,7 +168,7 @@ case class DocParserDef() extends Parser[AST] {
   def pushMultilineCodeLine(in: String): Unit = logger.trace {
     do {
       result.pop()
-    } while (result.current.get.isInstanceOf[AST.Newline])
+    } while (result.current.get == AST.Newline)
     result.current match {
       case Some(_: AST.Code.Multiline) => {
         val inMultilineCode =
@@ -213,20 +213,42 @@ case class DocParserDef() extends Parser[AST] {
         unclosedFormattersToCheck foreach { formatterToCheck =>
           checkForUnclosed(formatterToCheck)
         }
+        var listOfFormattedAST: List[AST] = Nil
+
+        while (result.workingASTStack.head != AST.Formatter(tp) && result.workingASTStack.nonEmpty) {
+          result.pop()
+          result.current match {
+            case Some(value) => listOfFormattedAST +:= value
+            case None        =>
+          }
+        }
         result.pop()
-        result.current      = Some(AST.Formatter(tp, result.current))
+
+        result.current      = Some(AST.Formatter(tp, listOfFormattedAST))
         textFormattersStack = textFormattersStack.tail
         result.push()
       } else {
         textFormattersStack +:= tp
+        result.current = Some(AST.Formatter(tp))
+        result.push()
       }
     }
 
   def checkForUnclosed(tp: AST.Formatter.Type): Unit = logger.trace {
     if (textFormattersStack.nonEmpty) {
       if (textFormattersStack.head == tp) {
+        var listOfFormattedAST: List[AST] = Nil
+        while (result.workingASTStack.head != AST
+                 .Formatter(tp) && result.workingASTStack.nonEmpty) {
+          result.pop()
+          result.current match {
+            case Some(value) => listOfFormattedAST +:= value
+            case None        =>
+          }
+        }
         result.pop()
-        result.current      = Some(AST.Formatter.Unclosed(tp, result.current))
+
+        result.current      = Some(AST.Formatter.Unclosed(tp, listOfFormattedAST))
         textFormattersStack = textFormattersStack.tail
         result.push()
       }
@@ -390,10 +412,8 @@ case class DocParserDef() extends Parser[AST] {
     do {
       result.pop()
       listForHeader +:= result.current.get
-    } while (!result.current.get
-      .isInstanceOf[AST.Newline] && result.workingASTStack.nonEmpty)
-    if (result.current.get
-          .isInstanceOf[AST.Newline]) {
+    } while (result.current.get != AST.Newline && result.workingASTStack.nonEmpty)
+    if (result.current.get == AST.Newline) {
       result.push()
       listForHeader = listForHeader.tail
     }
@@ -497,7 +517,7 @@ case class DocParserDef() extends Parser[AST] {
     }
 
   final def pushNewLine(): Unit = logger.trace {
-    result.current = Some(AST.Newline())
+    result.current = Some(AST.Newline)
     result.push()
   }
 
@@ -505,7 +525,9 @@ case class DocParserDef() extends Parser[AST] {
   val indentPattern: Pattern = whitespace.opt.many
 
   ROOT    || newline || reify { state.begin(NEWLINE) }
-  NEWLINE || (indentPattern >> eof) || reify { state.end(); onEOF() }
+  NEWLINE || (indentPattern >> eof) || reify {
+    state.end(); pushNewLine(); onEOF()
+  }
   NEWLINE || emptyLine || reify { onNewRawSection() }
   ROOT    || indentPattern >> importantTrigger >> indentPattern || reify {
     onNewSection(Some(Section.Marked.Important))
