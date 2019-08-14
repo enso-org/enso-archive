@@ -474,16 +474,15 @@ object AST {
     indent: Int,
     emptyLines: List[Int],
     firstLine: Block.Line.NonEmpty,
-    lines: List[Block.Line],
-    headRepr: String = "\n"
+    lines: List[Block.Line]
   ) extends AST {
     val repr = {
       val emptyLinesRepr = emptyLines.map(R + _ + "\n")
       val firstLineRepr  = R + indent + firstLine
-      val linesRepr      = lines.map { line =>
-        R + '\n' + line.elem.map(_ => indent) + line
+      val linesRepr = lines.map { line =>
+        R + "\n" + line.elem.map(_ => indent) + line
       }
-      R + headRepr + emptyLinesRepr + firstLineRepr + linesRepr
+      R + emptyLinesRepr + firstLineRepr + linesRepr
     }
 
     def map(f: AST => AST) =
@@ -523,6 +522,11 @@ object AST {
     }
 
     //// Line ////
+
+//    def invalid(block: Block, end: String = "\n"): InvalidIndentation = {
+//      val _Block(o, e, l, ls, _) = block
+//      InvalidIndentation(AST._Block(o, e, l, ls, ""))
+//    }
 
     type Line = _Line
     final case class _Line(elem: Option[AST], off: Int)
@@ -583,6 +587,24 @@ object AST {
     case s1 :: s2 :: Nil => s1 :: t :: intersperse(t, s2 :: Nil)
     case s1 :: Nil       => s1 :: Nil
   }
+  ////////////////
+  /// Comments ///
+  ////////////////
+
+  final case class Comment(comment: String) extends AST {
+    val repr = R + "#" + comment
+  }
+  object Comment {
+
+    final case class Block(offset: Int, lines: List[String]) extends AST {
+      val repr = R + offset + "#" + lines.mkString("\n " + " " * offset)
+    }
+
+  }
+
+  ////////////////
+  //// Module ////
+  ////////////////
 
   import Block.Line
 

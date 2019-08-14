@@ -10,7 +10,6 @@ import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Text.Segment.EOL
-import org.enso.syntax.text.ast.Repr
 
 import scala.annotation.tailrec
 import scala.reflect.runtime.universe.reify
@@ -33,7 +32,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   }
 
   override def run(input: Reader): Result[AST.Module] = {
-    state.begin(block.NEWLINE)
+    state.begin(block.MODULE)
     super.run(input)
   }
 
@@ -511,7 +510,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     var stack: List[State]    = Nil
     var emptyLines: List[Int] = Nil
-    var current: State        = new State(true, -1, Nil, None, Nil)
+    var current: State        = new State(true, 0, Nil, None, Nil)
 
     def push(newIndent: Int): Unit = logger.trace {
       stack +:= current
@@ -567,14 +566,15 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
           off.push()
           submitLine()
           while (current.indent > 0) submit()
-          submitLine()
-          val el    = current.emptyLines.map(AST.Block.Line(_))
-          val lines = unwrap(current.firstLine).toOptional :: current.lines.reverse
-          result.stack match {
-            case List(Some(AST._Block(o, e, l, ls, _))) =>
-              val block = AST._Block(o, e, l, ls, "")
-              AST.Block.Line(AST.Block.InvalidIndentation(block)) :: el ++ lines
-            case _ => el ++ lines
+          val block      = build()
+          lazy val el    = block.emptyLines.map(AST.Block.Line(_))
+          lazy val lines = block.firstLine.toOptional :: block.lines
+          if (block.indent != 0)
+            List(AST.Block.Line(block))
+          else if (stack.isEmpty)
+            el ++ lines
+          else {
+            AST.Block.Line(block) :: el ++ lines
           }
       }
       val module = AST.Module(line, lines)
@@ -604,9 +604,19 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       emptyLines +:= off.use()
     }
 
+    def onModuleBegin(): Unit = logger.trace {
+      current.emptyLines = emptyLines.reverse
+      emptyLines         = Nil
+      rewind()
+      state.end()
+      state.begin(NEWLINE)
+    }
+
     def onBegin(newIndent: Int): Unit = logger.trace {
+      val emptyResult = result.current.isEmpty
       result.push()
       push(newIndent)
+      if (!emptyResult) current.emptyLines +:= 0
       logger.beginGroup()
     }
 
@@ -642,9 +652,13 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         logger.log("Block with invalid indentation")
         onBegin(newIndent)
         current.isValid = false
+      } else {
+        off.push()
+        submitLine()
       }
     }
 
+    val MODULE    = state.define("Module")
     val NEWLINE   = state.define("Newline")
     val FIRSTCHAR = state.define("First Char")
   }
@@ -653,6 +667,8 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   block.NEWLINE   || space.opt >> newline || reify { block.pushEmptyLine() }
   block.NEWLINE   || space.opt >> eof     || reify { block.onEOFLine() }
   block.NEWLINE   || space.opt            || reify { block.onNewLine() }
+  block.MODULE    || space.opt >> newline || reify { block.pushEmptyLine() }
+  block.MODULE    || space.opt            || reify { block.onModuleBegin() }
   block.FIRSTCHAR || always               || reify { state.end() }
 
   ////////////////
