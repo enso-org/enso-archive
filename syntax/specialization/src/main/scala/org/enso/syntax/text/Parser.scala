@@ -40,6 +40,8 @@ object Main extends App {
   val out = p1.run(inp, Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 
+  DocParserRunner
+
   out match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) =>
       v.lines.head.elem match {
