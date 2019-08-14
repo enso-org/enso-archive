@@ -473,7 +473,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         Newline,
         " - bar",
         Newline,
-        Code.Multiline(1, "baz"),
+        Code(Code.Line(1, "baz")),
         Newline
       )
     )
@@ -600,7 +600,72 @@ class DocParserSpec extends FlatSpec with Matchers {
         Newline,
         "jfnajnfjadnbfjabnf",
         Newline,
-        Code.Multiline(3, "siafjaifhjiasjf", "fasfknfanfijnf")
+        Code(Code.Line(3, "siafjaifhjiasjf"), Code.Line(3, "fasfknfanfijnf"))
+      )
+    )
+  )
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   siafjaifhjiasjf
+    |     fasfknfanfijnf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code(
+          Code.Line(3, "siafjaifhjiasjf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(3, "fasfknfanfijnf")
+        )
+      )
+    )
+  )
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   fasfknfanfijnf
+    |     fasfknfanfijnf
+    |          fasfknfanfijnf
+    |     fasfknfanfijnf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code(
+          Code.Line(3, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(10, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(3, "fasfknfanfijnf")
+        )
+      )
+    )
+  )
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   fasfknfanfijnf
+    |     fasfknfanfijnf
+    |  fasfknfanfijnf
+    |     fasfknfanfijnf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code(
+          Code.Line(3, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(2, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(3, "fasfknfanfijnf")
+        )
       )
     )
   )

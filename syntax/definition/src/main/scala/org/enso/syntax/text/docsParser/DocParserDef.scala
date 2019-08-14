@@ -45,8 +45,8 @@ case class DocParserDef() extends Parser[AST] {
   ///// Groups /////
   //////////////////
 
-  val MULTILINECODE: State = state.define("Code")
-  val NEWLINE: State       = state.define("Newline")
+  val CODE: State    = state.define("Code")
+  val NEWLINE: State = state.define("Newline")
 
   /////////////////////////////////
   /// Basic Char Classification ///
@@ -62,7 +62,7 @@ case class DocParserDef() extends Parser[AST] {
   val newline                    = '\n'
 
   val possibleChars
-    : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
+  : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
   val normalText: Pattern = possibleChars.many1
 
   //////////////////////////
@@ -79,7 +79,7 @@ case class DocParserDef() extends Parser[AST] {
     }
     // to remove unnecessary indent from first line as yet onIndent hasn't been called
     if (result.workingASTStack.isEmpty || result.workingASTStack.head
-          .isInstanceOf[Section.Header]) {
+      .isInstanceOf[Section.Header]) {
       if (text.nonEmpty) {
         while (text.head == ' ' && text.length > 1) {
           text = text.tail
@@ -170,11 +170,10 @@ case class DocParserDef() extends Parser[AST] {
       result.pop()
     } while (result.current.get == AST.Newline)
     result.current match {
-      case Some(_: AST.Code.Multiline) => {
-        val inMultilineCode =
-          result.current.get.asInstanceOf[AST.Code.Multiline].elems
-        val indent = result.current.get.asInstanceOf[AST.Code.Multiline].indent
-        result.current = Some(AST.Code.Multiline(indent, inMultilineCode :+ in))
+      case Some(_: AST.Code) => {
+        val elems   = result.current.get.asInstanceOf[AST.Code].elems
+        val newElem = AST.Code.Line(latestIndent, in)
+        result.current = Some(AST.Code(elems :+ newElem))
       }
       case Some(_) | None => result.push()
     }
@@ -188,9 +187,9 @@ case class DocParserDef() extends Parser[AST] {
   }
 
   // format: off
-  MULTILINECODE || newline              || reify { state.end(); state.begin(NEWLINE) }
-  MULTILINECODE || not(newline).many1   || reify { pushMultilineCodeLine(currentMatch) }
-  MULTILINECODE || eof                  || reify { onEOF() }
+  CODE || newline              || reify { state.end(); state.begin(NEWLINE) }
+  CODE || not(newline).many1   || reify { pushMultilineCodeLine(currentMatch) }
+  CODE || eof                  || reify { onEOF() }
   // format: on
 
   /////////////////////////////
@@ -239,7 +238,7 @@ case class DocParserDef() extends Parser[AST] {
       if (textFormattersStack.head == tp) {
         var listOfFormattedAST: List[AST] = Nil
         while (result.workingASTStack.head != AST
-                 .Formatter(tp) && result.workingASTStack.nonEmpty) {
+          .Formatter(tp) && result.workingASTStack.nonEmpty) {
           result.pop()
           result.current match {
             case Some(value) => listOfFormattedAST +:= value
@@ -460,7 +459,6 @@ case class DocParserDef() extends Parser[AST] {
   //////////////////////////////////////////
 
   var latestIndent: Int   = 0
-  val codeIndent: Int     = 4
   val listIndent: Int     = 2
   var inListFlag: Boolean = false
 
@@ -471,23 +469,23 @@ case class DocParserDef() extends Parser[AST] {
       latestIndent = currentMatch.length
     } else if (currentMatch.length > currentSectionIndent && result.workingASTStack.nonEmpty) {
       result.pop()
-      if (!result.workingASTStack.head.isInstanceOf[AST.Code.Multiline]) {
+      if (!result.workingASTStack.head.isInstanceOf[AST.Code]) {
         result.push()
-        result.current = Some(AST.Code.Multiline(currentMatch.length, Nil))
+        result.current = Some(AST.Code(Nil))
       }
       result.push()
-      state.begin(MULTILINECODE)
+      state.begin(CODE)
     } else {
       currentSectionIndent = currentMatch.length
-      latestIndent         = currentMatch.length
     }
+    latestIndent = currentMatch.length
   }
 
   final def onIndentForListCreation(
-    indent: Int,
-    tp: AST.List.Type,
-    content: AST
-  ): Unit =
+                                     indent: Int,
+                                     tp: AST.List.Type,
+                                     content: AST
+                                   ): Unit =
     logger.trace {
       val diff = indent - latestIndent
       if (diff == listIndent) {
@@ -612,8 +610,8 @@ case class DocParserDef() extends Parser[AST] {
 
   val orderedListPattern = indentPattern >> orderedListTrigger >> not(newline).many1
   val unorderedListPattern = indentPattern >> unorderedListTrigger >> not(
-      newline
-    ).many1
+    newline
+  ).many1
   NEWLINE || orderedListPattern || reify {
     state.end()
     val content = currentMatch.split(orderedListTrigger)
