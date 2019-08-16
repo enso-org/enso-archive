@@ -19,8 +19,8 @@ trait Parser[T] {
   def getResult(): Option[T]
 
   def run(input: ParserReader): Result[T] = {
-    reader          = input
-    reader.charCode = reader.nextChar()
+    reader = input
+    reader.nextChar()
 
     while (state.runCurrent() == State.Status.Exit.OK) Unit
 
@@ -34,6 +34,17 @@ trait Parser[T] {
     }
     Result(reader.offset, value)
   }
+
+  final def rewind(): Unit = logger.trace {
+    reader.rewind(reader.offset - reader.result.length)
+  }
+
+  final def rewindThenCall(rule: () => Unit): Int = logger.trace {
+    reader.rewind(reader.lastRuleOffset)
+    state.call(rule)
+  }
+
+  val ROOT = state.current
 
   //// State management ////
 
@@ -102,17 +113,6 @@ trait Parser[T] {
     }
 
   }
-
-  final def rewind(): Unit = logger.trace {
-    reader.rewind(reader.offset - reader.result.length)
-  }
-
-  final def rewindThenCall(rule: () => Unit): Int = logger.trace {
-    reader.rewind(reader.lastRuleOffset)
-    state.call(rule)
-  }
-
-  val ROOT = state.current
 }
 
 object Parser {

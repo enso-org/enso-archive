@@ -1,13 +1,21 @@
 package org.enso.flexer
 
-import java.io.DataInputStream
+import java.io._
+import java.nio.charset.StandardCharsets
 
 import org.enso.flexer.ParserReader._
-import org.enso.flexer.UTFReader.{BUFFERSIZE, ENDOFINPUT}
+import org.enso.flexer.UTFReader.BUFFERSIZE
+import org.enso.flexer.UTFReader.ENDOFINPUT
 
 class ParserReader(input: DataInputStream) extends UTFReader(input) {
 
   var lastRuleOffset = 0
+
+  def this(input: InputStream) { this(new DataInputStream(input)) }
+  def this(file: File) { this(new FileInputStream(file)) }
+  def this(input: String) {
+    this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
+  }
 
   final override def fill(): Unit = {
     val keepchars = result.length()
@@ -20,7 +28,7 @@ class ParserReader(input: DataInputStream) extends UTFReader(input) {
     super.fill()
   }
 
-  override final def readChar(): Boolean = {
+  final override def readChar(): Boolean = {
     val char = input.read()
     if (char == ENDOFINPUT)
       return false
@@ -35,10 +43,9 @@ class ParserReader(input: DataInputStream) extends UTFReader(input) {
     true
   }
 
-
   final def rewind(off: Int): Unit = {
     result.setLength(result.length - (offset - off))
-    offset = off
+    offset   = off
     charCode = nextChar()
   }
 

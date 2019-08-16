@@ -1,5 +1,6 @@
 package org.enso.syntax
 
+import org.enso.flexer.ParserReader
 import org.enso.syntax.text.Parser
 import org.scalameter.api._
 

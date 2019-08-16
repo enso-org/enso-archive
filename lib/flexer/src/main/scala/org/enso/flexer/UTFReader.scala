@@ -17,7 +17,7 @@ class UTFReader(input: DataInputStream) {
   var offset   = 0
   var length   = 0
   var charSize = 0
-  var charCode                  = ENDOFINPUT
+  var charCode = ENDOFINPUT
 
   def this(input: InputStream) = this(new DataInputStream(input))
   def this(file: File)         = this(new FileInputStream(file))
@@ -39,7 +39,7 @@ class UTFReader(input: DataInputStream) {
     val char = input.read()
     if (char == ENDOFINPUT)
       return false
-    lastByte = char.toByte
+    lastByte             = char.toByte
     buffer(nextOffset()) = lastByte
     true
   }
@@ -81,7 +81,6 @@ object UTFReader {
   val ENDOFINPUT = -1
   val BUFFERSIZE = 30000
 
-
   def charLength(char: Byte): Int = ~char >> 4 match {
     case 0     => 4
     case 1     => 3
@@ -91,5 +90,5 @@ object UTFReader {
 }
 
 object Main extends App {
-  println(new UTFReader("Hello my dear!\n"*10))
+  println(new UTFReader("Hello my dear!\n" * 10))
 }

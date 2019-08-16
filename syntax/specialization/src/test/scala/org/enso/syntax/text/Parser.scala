@@ -3,6 +3,7 @@ package org.enso.syntax.text
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.data.Tree
+import org.enso.flexer.{Parser, ParserReader}
 import org.enso.syntax.text.AST._
 import org.enso.syntax.text.AST.implicits._
 import org.enso.syntax.text.ast.DSL._
@@ -19,7 +20,7 @@ class ParserSpec extends FlatSpec with Matchers {
 
   def assertModule(input: String, result: AST, markers: Markers): Assertion = {
     val parser = Parser()
-    val output = parser.run(input, markers)
+    val output = parser.run(new ParserReader(input), markers)
     output match {
       case Result(offset, Result.Success(module)) =>
         val rmodule = parser.resolveMacros(module)
@@ -31,7 +32,7 @@ class ParserSpec extends FlatSpec with Matchers {
 
   def assertExpr(input: String, result: AST, markers: Markers): Assertion = {
     val parser = Parser()
-    val output = parser.run(input, markers)
+    val output = parser.run(new ParserReader(input), markers)
     output match {
       case Result(offset, Result.Success(module)) =>
         val rmodule = parser.resolveMacros(module)
@@ -50,7 +51,7 @@ class ParserSpec extends FlatSpec with Matchers {
   }
 
   def assertIdentity(input: String): Assertion = {
-    val output = Parser().run(input)
+    val output = Parser().run(new ParserReader(input))
     output match {
       case Result(offset, Result.Success(value)) =>
         assert(value.show() == input)

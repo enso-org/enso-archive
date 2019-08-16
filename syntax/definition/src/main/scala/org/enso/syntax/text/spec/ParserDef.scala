@@ -25,12 +25,12 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   //// API ////
   /////////////
 
-  def run(input: String, markers: Markers): Result[AST.Module] = {
+  def run(input: ParserReader, markers: Markers): Result[AST.Module] = {
     result.markers = VectorMap(markers)
     run(input)
   }
 
-  override def run(input: String): Result[AST.Module] = {
+  override def run(input: ParserReader): Result[AST.Module] = {
     block.onBegin(0)
     state.begin(block.FIRSTCHAR)
     super.run(input)
@@ -80,7 +80,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       app(fn(currentMatch))
 
     def app(ast: AST): Unit = logger.trace {
-      val marked = markers.get(offset - ast.span - 1) match {
+      val marked = markers.get(reader.offset - ast.span - 1) match {
         case None         => ast
         case Some(marker) => AST.Marked(marker, ast)
       }

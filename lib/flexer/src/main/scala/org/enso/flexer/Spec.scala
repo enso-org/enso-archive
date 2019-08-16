@@ -25,7 +25,7 @@ case class Spec(dfa: DFA) {
     case (State.missing, None, _) =>
       Literal(Constant(Parser.State.Status.Exit.FAIL))
     case (State.missing, Some(state), false) =>
-      q"call(${TermName(state.rule)})"
+      q"state.call(${TermName(state.rule)})"
     case (State.missing, Some(state), true) =>
       q"rewindThenCall(${TermName(state.rule)})"
 
@@ -38,7 +38,7 @@ case class Spec(dfa: DFA) {
         case _ => false
       }
       if (rulesOverlap || rulesOverlap_)
-        q"charsToLastRule += charSize(); ${Literal(Constant(targetState))}"
+        q"reader.lastRuleOffset = reader.offset; ${Literal(Constant(targetState))}"
       else
         q"${Literal(Constant(targetState))}"
   }
@@ -57,7 +57,7 @@ case class Spec(dfa: DFA) {
       case b +: Seq() => b
       case a +: b +: rest =>
         val range = a.range.start to b.range.end
-        val body  = q"if (codePoint <= ${a.range.end}) ${a.body} else ${b.body}"
+        val body  = q"if (charCode <= ${a.range.end}) ${a.body} else ${b.body}"
         genIf(Branch(range, body) +: rest)
     }
   }
@@ -101,9 +101,9 @@ case class Spec(dfa: DFA) {
         val ascii     = if (emptyB1ASC) asci :+ b2ASC else b1ASC +: asci :+ b2ASC
         val utfMiddle = if (emptyB2UTF) Vector(b1UTF) else Vector(b1UTF, b2UTF)
         val utf       = utf1 ++ utfMiddle ++ utf2
-        val body      = genSwitch(ascii) :+ cq"_ => ${genIf(utf).body}"
+        val body      = genSwitch(ascii) :+ cq"charCode => ${genIf(utf).body}"
 
-        q"${Match(q"codePoint", body.toList)}"
+        q"${Match(q"reader.charCode", body.toList)}"
       case _ =>
         genIf(utf1 :+ b1).body
     }
@@ -130,6 +130,6 @@ case class Spec(dfa: DFA) {
 }
 
 object Spec {
-  val MIN_ASCII_CODE = 0
+  val MIN_ASCII_CODE = -1
   val MAX_ASCII_CODE = 255
 }
