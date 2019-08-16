@@ -7,6 +7,8 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.scope.GlobalScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
 
+import java.util.Optional;
+
 /**
  * A {@code CallArgFactory} is responsible for converting arguments passed to a function call into
  * runtime nodes used by the interpreter to guide function evaluation.
@@ -31,21 +33,6 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
     this.language = language;
     this.scopeName = scopeName;
     this.globalScope = globalScope;
-  }
-
-  /**
-   * Processes an ignore argument.
-   *
-   * <p>Such arguments are used to disable the function's usage of a default with which it was
-   * defined, and become useful in the presence of partial function application and currying.
-   *
-   * @param name the name of the argument whose default is ignored
-   * @param position the position of this argument in the calling arguments list
-   * @return a runtime representation of the argument
-   */
-  @Override
-  public CallArgument visitIgnore(String name, int position) {
-    return new CallArgument(name);
   }
 
   /**

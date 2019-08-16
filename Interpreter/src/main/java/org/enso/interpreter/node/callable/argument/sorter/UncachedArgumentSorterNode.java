@@ -48,12 +48,14 @@ public class UncachedArgumentSorterNode extends BaseNode {
    *     org.enso.interpreter.runtime.callable.Callable}
    */
   public Object[] execute(Object callable, Object[] arguments, int numArgsDefinedForCallable) {
-    if (isCallableProfile.profile(TypesGen.isCallable(callable))) {
-      Function actualCallable = (Function) callable;
-      int[] order = CallArgumentInfo.generateArgMapping(actualCallable, this.schema);
-      return CallArgumentInfo.reorderArguments(order, arguments, numArgsDefinedForCallable);
-    } else {
-      throw new NotInvokableException(callable, this);
-    }
+//    if (isCallableProfile.profile(TypesGen.isCallable(callable))) {
+//      Function actualCallable = (Function) callable;
+//      int[] order = CallArgumentInfo.generateArgMapping(actualCallable, this.schema);
+//      //      return CallArgumentInfo.reorderArguments(order, arguments, numArgsDefinedForCallable);
+//      return null;
+//    } else {
+//      throw new NotInvokableException(callable, this);
+//    }
+    throw new RuntimeException("nope.");
   }
 }

@@ -1,14 +1,11 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
-import com.oracle.truffle.api.CompilerAsserts;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -16,11 +13,10 @@ import org.enso.interpreter.runtime.type.TypesGen;
  */
 @NodeInfo(shortName = "CachedArgumentSorter")
 public class CachedArgumentSorterNode extends BaseNode {
-  private @CompilationFinal Object callable;
-  private @CompilationFinal(dimensions = 1) int[] mapping;
-  private final ConditionProfile otherIsAtomCons = ConditionProfile.createCountingProfile();
-  private final ConditionProfile otherIsFunction = ConditionProfile.createCountingProfile();
-  private @CompilationFinal boolean callableIsFunction;
+  private final Function originalFunction;
+  private final @CompilationFinal(dimensions = 1) int[] mapping;
+  private final ArgumentSchema postApplicationSchema;
+  private final boolean appliesFully;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -28,12 +24,21 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param callable the callable to sort arguments for
    * @param schema information on the calling arguments
    */
-  public CachedArgumentSorterNode(Object callable, CallArgumentInfo[] schema) {
-    this.callable = callable;
-    this.mapping = CallArgumentInfo.generateArgMapping(callable, schema);
+  public CachedArgumentSorterNode(Function function, CallArgumentInfo[] schema) {
+    this.originalFunction = function;
+    CallArgumentInfo.ArgumentMapping mapping =
+        CallArgumentInfo.ArgumentMapping.generate(function.getSchema(), schema);
+    this.mapping = mapping.getAppliedMapping();
+    this.postApplicationSchema = mapping.getPostApplicationSchema();
 
-    this.callableIsFunction = TypesGen.isFunction(callable);
-    CompilerAsserts.compilationConstant(callableIsFunction);
+    boolean fullApplication = true;
+    for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
+      if (!(postApplicationSchema.hasDefaultAt(i) || postApplicationSchema.hasPreAppliedAt(i))) {
+        fullApplication = false;
+        break;
+      }
+    }
+    appliesFully = fullApplication;
   }
 
   /**
@@ -43,8 +48,9 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param schema information on the calling arguments
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
-  public static CachedArgumentSorterNode create(Object callable, CallArgumentInfo[] schema) {
-    return new CachedArgumentSorterNode(callable, schema);
+  public static CachedArgumentSorterNode create(
+      Function function, CallArgumentInfo[] schema) {
+    return new CachedArgumentSorterNode(function, schema);
   }
 
   /**
@@ -53,12 +59,17 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param arguments the arguments to reorder
    * @param numArgsDefinedForCallable the number of arguments that the cached callable was defined
    *     for
-   * @return the provided {@code arguments} in the order expected by the cached {@link
-   *     org.enso.interpreter.runtime.callable.Callable}
+   * @return the provided {@code arguments} in the order expected by the cached {@link Callable}
    */
-  @ExplodeLoop
-  public Object[] execute(Object[] arguments, int numArgsDefinedForCallable) {
-    return CallArgumentInfo.reorderArguments(this.mapping, arguments, numArgsDefinedForCallable);
+  public Object[] execute(Function function, Object[] arguments) {
+    Object[] result;
+    if (originalFunction.getSchema().hasAnyPreApplied()) {
+      result = function.clonePreAppliedArguments();
+    } else {
+      result = new Object[this.postApplicationSchema.getArgumentsCount()];
+    }
+    CallArgumentInfo.reorderArguments(this.mapping, arguments, result);
+    return result;
   }
 
   /**
@@ -67,14 +78,20 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param other the callable to check for equality
    * @return {@code true} if {@code other} matches the cached callable, otherwise {@code false}
    */
-  public boolean hasSameCallable(Object other) {
-    if (otherIsAtomCons.profile(TypesGen.isAtomConstructor(other))) {
-      return this.callable == other;
-    } else if (this.callableIsFunction) {
-      if (otherIsFunction.profile(TypesGen.isFunction(other))) {
-        return ((Function) this.callable).getCallTarget() == ((Function) other).getCallTarget();
-      }
-    }
-    return false;
+  public boolean isCompatible(Function other) {
+    return originalFunction.getCallTarget() == other.getCallTarget()
+        && originalFunction.getSchema() == other.getSchema();
+  }
+
+  public boolean appliesFully() {
+    return appliesFully;
+  }
+
+  public ArgumentSchema getPostApplicationSchema() {
+    return postApplicationSchema;
+  }
+
+  public Function getOriginalFunction() {
+    return originalFunction;
   }
 }

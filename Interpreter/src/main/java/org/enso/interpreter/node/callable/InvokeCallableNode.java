@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.NodeChild;
@@ -42,7 +43,6 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   private final int thisArgumentPosition;
 
   @Child private ArgumentSorterNode argumentSorter;
-  @Child private CallOptimiserNode callOptimiserNode;
   @Child private MethodResolverNode methodResolverNode;
 
   private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
@@ -75,9 +75,14 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.callOptimiserNode = new SimpleCallOptimiserNode();
     this.argumentSorter = ArgumentSorterNodeGen.create(argSchema);
     this.methodResolverNode = MethodResolverNodeGen.create();
+  }
+
+  @Override
+  public void setTail(boolean isTail) {
+    super.setTail(isTail);
+    argumentSorter.setTail(isTail);
   }
 
   /**
@@ -107,13 +112,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   @Specialization
   public Object invokeFunction(VirtualFrame frame, Function callable) {
     Object[] evaluatedArguments = evaluateArguments(frame);
-    Object[] sortedArguments = this.argumentSorter.execute(callable, evaluatedArguments);
-
-    if (this.isTail()) {
-      throw new TailCallException(callable, sortedArguments);
-    } else {
-      return this.callOptimiserNode.executeDispatch(callable, sortedArguments);
-    }
+    return this.argumentSorter.execute(callable, evaluatedArguments);
   }
 
   /**
@@ -124,10 +123,8 @@ public abstract class InvokeCallableNode extends ExpressionNode {
    * @return the result of executing {@code callable} on the known arguments
    */
   @Specialization
-  public Atom invokeConstructor(VirtualFrame frame, AtomConstructor callable) {
-    Object[] evaluatedArguments = evaluateArguments(frame);
-    Object[] sortedArguments = this.argumentSorter.execute(callable, evaluatedArguments);
-    return callable.newInstance(sortedArguments);
+  public Object invokeConstructor(VirtualFrame frame, AtomConstructor callable) {
+    return invokeFunction(frame, callable.getConstructorFunction());
   }
 
   /**
@@ -146,13 +143,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
       if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
         Atom self = (Atom) selfArgument;
         Function function = methodResolverNode.execute(symbol, self);
-        Object[] sortedArguments = this.argumentSorter.execute(function, evaluatedArguments);
-
-        if (this.isTail()) {
-          throw new TailCallException(function, sortedArguments);
-        } else {
-          return this.callOptimiserNode.executeDispatch(function, sortedArguments);
-        }
+        return this.argumentSorter.execute(function, evaluatedArguments);
       } else {
         throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
       }

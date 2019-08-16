@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable.function;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -10,14 +11,14 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
-import org.enso.interpreter.runtime.callable.Callable;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
-public final class Function extends Callable implements TruffleObject {
+public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
+  private final ArgumentSchema schema;
+  private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
 
   /**
    * Creates a new function.
@@ -27,10 +28,18 @@ public final class Function extends Callable implements TruffleObject {
    * @param arguments the arguments with which the function was defined
    */
   public Function(
-      RootCallTarget callTarget, MaterializedFrame scope, ArgumentDefinition[] arguments) {
-    super(arguments);
+      RootCallTarget callTarget,
+      MaterializedFrame scope,
+      ArgumentSchema schema,
+      Object[] preAppliedArguments) {
     this.callTarget = callTarget;
     this.scope = scope;
+    this.schema = schema;
+    this.preAppliedArguments = preAppliedArguments;
+  }
+
+  public Function(RootCallTarget callTarget, MaterializedFrame scope, ArgumentSchema schema) {
+    this(callTarget, scope, schema, null);
   }
 
   /**
@@ -49,6 +58,14 @@ public final class Function extends Callable implements TruffleObject {
    */
   public MaterializedFrame getScope() {
     return scope;
+  }
+
+  public ArgumentSchema getSchema() {
+    return schema;
+  }
+
+  public Object[] clonePreAppliedArguments() {
+    return preAppliedArguments.clone();
   }
 
   /**

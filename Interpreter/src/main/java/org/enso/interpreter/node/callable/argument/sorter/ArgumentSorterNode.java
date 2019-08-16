@@ -1,16 +1,14 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import java.util.Arrays;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.runtime.callable.Callable;
+import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 
 /**
@@ -20,7 +18,6 @@ import org.enso.interpreter.runtime.error.NotInvokableException;
 @NodeInfo(shortName = "ArgumentSorter")
 public abstract class ArgumentSorterNode extends BaseNode {
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
-  private @CompilationFinal boolean isFullyPositional;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
@@ -29,7 +26,6 @@ public abstract class ArgumentSorterNode extends BaseNode {
    */
   public ArgumentSorterNode(CallArgumentInfo[] schema) {
     this.schema = schema;
-    this.isFullyPositional = Arrays.stream(schema).allMatch(CallArgumentInfo::isPositional);
   }
 
   /**
@@ -43,11 +39,11 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param arguments the arguments being passed to {@code callable}
    * @return the provided {@code} arguments in the order expected by {@code callable}
    */
-  @Specialization(guards = "isFullyPositional()")
-  public Object[] invokePositional(Object callable, Object[] arguments) {
-    CompilerDirectives.ensureVirtualizedHere(arguments);
-    return arguments;
-  }
+  //  @Specialization(guards = "isFullyPositional()")
+  //  public Curried invokePositional(Object callable, Object[] arguments) {
+  //    CompilerDirectives.ensureVirtualizedHere(arguments);
+  //    return arguments;
+  //  }
 
   /**
    * Generates the argument mapping where it has already been computed.
@@ -65,13 +61,26 @@ public abstract class ArgumentSorterNode extends BaseNode {
    *     path
    * @return the provided {@code arguments} in the order expected by {@code callable}
    */
-  @Specialization(guards = "mappingNode.hasSameCallable(callable)")
-  @ExplodeLoop
-  public Object[] invokeCached(
-      Callable callable,
+  @Specialization(guards = "mappingNode.isCompatible(function)")
+  public Object invokeCached(
+      Function function,
       Object[] arguments,
-      @Cached("create(callable, getSchema())") CachedArgumentSorterNode mappingNode) {
-    return mappingNode.execute(arguments, callable.getArgs().length);
+      @Cached("create(function, getSchema())") CachedArgumentSorterNode mappingNode,
+      @Cached CallOptimiserNode optimiser) {
+    Object[] mappedArguments = mappingNode.execute(function, arguments);
+    if (mappingNode.appliesFully()) {
+      if (this.isTail()) {
+        throw new TailCallException(mappingNode.getOriginalFunction(), mappedArguments);
+      } else {
+        return optimiser.executeDispatch(mappingNode.getOriginalFunction(), mappedArguments);
+      }
+    } else {
+      return new Function(
+          function.getCallTarget(),
+          function.getScope(),
+          mappingNode.getPostApplicationSchema(),
+          mappedArguments);
+    }
   }
 
   /**
@@ -85,13 +94,6 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param mappingNode a cached node that computes argument mappings freshly each time
    * @return the provided {@code arguments} in the order expected by {@code callable}
    */
-  @Specialization
-  public Object[] invokeUncached(
-      Callable callable,
-      Object[] arguments,
-      @Cached("create(getSchema())") UncachedArgumentSorterNode mappingNode) {
-    return mappingNode.execute(callable, arguments, callable.getArgs().length);
-  }
 
   /**
    * A fallback that should never be called.
@@ -103,10 +105,6 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param arguments the arguments being passed to {@code callable}
    * @return error
    */
-  @Fallback
-  public Object[] invokeGeneric(Object callable, Object[] arguments) {
-    throw new NotInvokableException(callable, this);
-  }
 
   /**
    * Executes the {@link ArgumentSorterNode} to reorder the arguments.
@@ -115,7 +113,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param arguments the arguments being passed to {@code callable}
    * @return the provided {@code arguments} in the order expected by {@code callable}
    */
-  public abstract Object[] execute(Object callable, Object[] arguments);
+  public abstract Object execute(Function callable, Object[] arguments);
 
   /**
    * Gets the schema for use in Truffle DSL guards.
@@ -124,14 +122,5 @@ public abstract class ArgumentSorterNode extends BaseNode {
    */
   CallArgumentInfo[] getSchema() {
     return schema;
-  }
-
-  /**
-   * Checks if the argument schema is fully positional for use in Truffle DLS guards.
-   *
-   * @return {@code true} if the arguments are all positional, otherwise {@false}
-   */
-  boolean isFullyPositional() {
-    return isFullyPositional;
   }
 }

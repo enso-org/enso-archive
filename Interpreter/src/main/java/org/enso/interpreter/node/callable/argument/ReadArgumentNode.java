@@ -4,9 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.callable.argument.sentinel.DefaultedArgumentSentinel;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.callable.function.Function.ArgumentsHelper;
 
 /**
  * Reads and evaluates the expression provided as a function argument. It handles the case where
@@ -47,15 +45,10 @@ public class ReadArgumentNode extends ExpressionNode {
       return Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
     }
 
-    Object argument = null;
-
-    if (argAcquisitionProfile.profile(
-        index < ArgumentsHelper.getPositionalArguments(frame.getArguments()).length)) {
-      argument = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
-    }
+    Object argument = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
 
     // Note [Handling Argument Defaults]
-    if (defaultingProfile.profile(argument instanceof DefaultedArgumentSentinel || argument == null)) {
+    if (defaultingProfile.profile(argument == null)) {
       return defaultValue.executeGeneric(frame);
     } else {
       return argument;

@@ -16,4 +16,8 @@ public abstract class CallOptimiserNode extends Node {
    * @return the result of executing {@code callable} using {@code arguments}
    */
   public abstract Object executeDispatch(Object callable, Object[] arguments);
+
+  public static CallOptimiserNode create() {
+    return new SimpleCallOptimiserNode();
+  }
 }
