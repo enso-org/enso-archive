@@ -11,52 +11,76 @@ import java.nio.charset.StandardCharsets
 class UTFReader(input: DataInputStream) {
   import UTFReader._
 
+  // buffer will be unboxed as long as we don't use any fancy scala collection methods on it
   val buffer   = new Array[Byte](BUFFERSIZE + 10)
+  val result   = new java.lang.StringBuilder()
   var offset   = 0
   var length   = 0
+  var charSize = 0
+  var charCode                  = ENDOFINPUT
 
   def this(input: InputStream) = this(new DataInputStream(input))
   def this(file: File)         = this(new FileInputStream(file))
   def this(input: String) =
     this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
 
-  private var lastChar = ' '.toByte
+  protected var lastByte = ' '.toByte
 
-  private def read() = {
+  protected def fill() = {
     offset = 0
     while (offset < BUFFERSIZE && readChar()) Unit
-    for (_ <- 1 until charLength(lastChar)) {
-      buffer(offset) = input.read().toByte
-      offset += 1
-    }
+    for (_ <- 1 until charLength(lastByte))
+      buffer(nextOffset()) = input.read().toByte
     length = offset
     offset = 0
   }
 
-  private def readChar(): Boolean = {
+  protected def readChar(): Boolean = {
     val char = input.read()
-    if (char == -1)
+    if (char == ENDOFINPUT)
       return false
-    if (lastChar == '\r' && char != '\n') {
-      buffer(offset) = '\n'
-      offset += 1
-    }
-    lastChar = char.toByte
-    lastChar match {
-      case '\t' =>
-        for (_ <- 1 to 4) {
-          buffer(offset) = ' '
-          offset += 1
-        }
-      case '\r' =>
-      case char =>
-        buffer(offset) = char
-        offset += 1
-    }
+    lastByte = char.toByte
+    buffer(nextOffset()) = lastByte
     true
   }
 
-  read()
+  final protected def nextOffset(): Int = {
+    val off = offset
+    offset += 1
+    off
+  }
+
+  fill()
+
+  def nextChar(): Int = {
+    if (offset >= length) {
+      if (length < BUFFERSIZE)
+        return ENDOFINPUT
+      else
+        fill()
+    }
+    var char = buffer(nextOffset()).toInt
+    charSize = charLength(char.toByte)
+    for (_ <- 1 until charSize)
+      char = char << BYTELENGTH | buffer(nextOffset())
+    result.appendCodePoint(char)
+    charCode = char
+    char
+  }
+
+  override def toString(): String = {
+    while (nextChar() != ENDOFINPUT) Unit
+    result.toString
+  }
+
+}
+
+object UTFReader {
+
+  val BYTELENGTH = 8
+  val ENDOFINPUT = -1
+  val BUFFERSIZE = 30000
+
 
   def charLength(char: Byte): Int = ~char >> 4 match {
     case 0     => 4
@@ -64,38 +88,8 @@ class UTFReader(input: DataInputStream) {
     case 2 | 3 => 2
     case _     => 1
   }
-
-
-  def nextChar(): Int = {
-    if (offset >= length) {
-      if (length < BUFFERSIZE)
-        return '\u0000'
-      else
-        read()
-    }
-    var char = buffer(offset).toInt
-    offset += 1
-    for (_ <- 1 until charLength(char.toByte)) {
-      char = char << 8 | buffer(offset)
-      offset += 1
-    }
-    char
-  }
-
-  override def toString(): String = {
-    val string = new java.lang.StringBuilder()
-    while ({
-      val char = nextChar()
-      string.appendCodePoint(char)
-      char != '\u0000'
-    }) Unit
-    string.toString
-  }
-
 }
 
-object UTFReader {
-
-  val BUFFERSIZE = 30
-
+object Main extends App {
+  println(new UTFReader("Hello my dear!\n"*10))
 }

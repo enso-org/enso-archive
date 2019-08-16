@@ -110,23 +110,20 @@ case class Spec(dfa: DFA) {
   }
 
   def generate(i: Int): Tree = {
-    def states =
+    val stateNames =
       dfa.links.indices.toList
         .map(st => (st, TermName(s"state${i}_${st}")))
 
-    val cases = states.map {
+    val stateMatch = Match(q"state", stateNames.map {
       case (st, fun) => cq"$st => $fun"
-    }
-    val bodies = states.map {
+    })
+    val stateBodies = stateNames.map {
       case (st, fun) => q"def $fun = {${generateCaseBody(st)}}"
     }
     q"""
       stateDefs($i) = ${TermName(s"nextState$i")}
-      def ${TermName(s"nextState$i")}(state: Int): Int = ${Match(
-      q"state",
-      cases
-    )}
-      ..$bodies
+      def ${TermName(s"nextState$i")}(state: Int): Int = $stateMatch
+      ..$stateBodies
     """
   }
 

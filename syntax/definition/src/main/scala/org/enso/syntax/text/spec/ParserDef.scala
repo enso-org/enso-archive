@@ -1,5 +1,7 @@
 package org.enso.syntax.text.spec
 
+import java.io.DataInputStream
+
 import org.enso.data.VectorMap
 import org.enso.flexer
 import org.enso.flexer.State

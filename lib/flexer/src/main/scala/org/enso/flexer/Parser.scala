@@ -7,48 +7,32 @@ import org.enso.flexer.spec.Macro
 import scala.collection.mutable
 
 trait Parser[T] {
-  import java.io.Reader
-  import java.io.StringReader
-
   import Parser._
 
-  var reader: Reader      = null
-  val buffer: Array[Char] = new Array(BUFFER_SIZE)
-  var bufferLen: Int      = 0
+  var reader: ParserReader = _
 
-  var offset: Int          = 0
-  var charsToLastRule: Int = 0
-  var codePoint: Int       = etxCodePoint
-
-  var matchBuilder = new mutable.StringBuilder(64)
+  var runStatus    = State.Status.Exit.OK
+  val stateDefs    = new Array[Int => Int](256)
+  val logger       = new Logger()
   var currentMatch = ""
-
-  val stateDefs: Array[Int => Int] = new Array(256)
-
-  val logger = new Logger()
 
   def getResult(): Option[T]
 
-  def run(input: String): Result[T] = {
-    reader = new StringReader(input)
-    // FIXME: why we have offset 1 here and -1 ?
-    val numRead = reader.read(buffer, 1, buffer.length - 1)
-    val EOFLen  = 1
-    bufferLen = if (numRead == -1) EOFLen else numRead + EOFLen
-    codePoint = getNextCodePoint()
+  def run(input: ParserReader): Result[T] = {
+    reader          = input
+    reader.charCode = reader.nextChar()
 
-    var runResult = State.Status.Exit.OK
-    while (runResult == State.Status.Exit.OK) runResult = state.runCurrent()
+    while (state.runCurrent() == State.Status.Exit.OK) Unit
 
     val value: Result.Value[T] = getResult() match {
       case None => Result.Failure(None)
       case Some(result) =>
-        if (offset >= bufferLen) Result.Success(result)
-        else if (runResult == State.Status.Exit.FAIL)
+        if (reader.offset >= reader.length) Result.Success(result)
+        else if (runStatus == State.Status.Exit.FAIL)
           Result.Failure(Some(result))
         else Result.Partial(result)
     }
-    Result(offset, value)
+    Result(reader.offset, value)
   }
 
   //// State management ////
@@ -56,7 +40,7 @@ trait Parser[T] {
   // FIXME: This is a hack. Without it sbt crashes and needs to be completely
   //        cleaned to compile again.
   val state = _state
-  object _state {
+  final object _state {
 
     var registry = new mutable.ArrayBuffer[State]()
 
@@ -98,74 +82,37 @@ trait Parser[T] {
       val cstate      = state.current
       val nextState   = stateDefs(cstate.ix)
       var status: Int = State.Status.INITIAL
-      matchBuilder.setLength(0)
+      reader.result.setLength(0)
       while (State.valid(status)) {
         logger.log(
-          s"Step (${cstate.ix}:$status) ${Escape.str(currentStr)}($codePoint)"
+          s"Step (${cstate.ix}:$status) ${Escape.str(reader.currentStr)}(${reader.charCode})"
         )
         status = nextState(status)
-        if (State.valid(status)) {
-          matchBuilder.append(buffer(offset))
-          if (buffer(offset).isHighSurrogate)
-            matchBuilder.append(buffer(offset + 1))
-          codePoint = getNextCodePoint()
-        }
+        if (State.valid(status))
+          reader.charCode = reader.nextChar()
       }
+      runStatus = status
       status
     }
 
+    def call(rule: () => Unit): State.Status.Exit = {
+      currentMatch = reader.result.toString
+      rule()
+      State.Status.Exit.OK
+    }
+
   }
+
+  final def rewind(): Unit = logger.trace {
+    reader.rewind(reader.offset - reader.result.length)
+  }
+
+  final def rewindThenCall(rule: () => Unit): Int = logger.trace {
+    reader.rewind(reader.lastRuleOffset)
+    state.call(rule)
+  }
+
   val ROOT = state.current
-
-  // TODO: To be refactored.
-  //       There is a lot of hardcoded literals and complex expressions
-  //       without proper explanation.
-  def getNextCodePoint(): Int = {
-    if (offset >= bufferLen)
-      return etxCodePoint
-    offset += charSize()
-    if (offset > BUFFER_SIZE - UTF_CHAR_SIZE) {
-      val keepChars = Math.max(charsToLastRule, currentMatch.length) + UTF_CHAR_SIZE - 1
-      for (i <- 1 to keepChars) buffer(keepChars - i) = buffer(bufferLen - i)
-      val numRead = reader.read(buffer, keepChars, buffer.length - keepChars)
-      if (numRead == -1)
-        return eofCodePoint
-      offset    = keepChars - (BUFFER_SIZE - offset)
-      bufferLen = keepChars + numRead
-    } else if (offset == bufferLen)
-      return eofCodePoint
-    Character.codePointAt(buffer, offset)
-  }
-
-  final def rewind(): Unit =
-    rewind(currentMatch.length)
-
-  final def rewind(i: Int): Unit = logger.trace {
-    offset -= i
-    codePoint = getNextCodePoint()
-  }
-
-  // FIXME: This clearly does more than {rewind(); call(...);}
-  //        I believe this name should be much more descriptive as it is
-  //        used somewhere in the generated code
-  final def rewindThenCall(rule: () => Unit): Int = {
-    rewind(charsToLastRule + 1)
-    matchBuilder.setLength(matchBuilder.length - charsToLastRule)
-    call(rule)
-  }
-
-  final def call(rule: () => Unit): State.Status.Exit = {
-    currentMatch    = matchBuilder.result()
-    charsToLastRule = 0
-    rule()
-    State.Status.Exit.OK
-  }
-
-  final def currentStr: String =
-    if (codePoint < 0) "" else new String(Character.toChars(codePoint))
-
-  final def charSize(): Int =
-    if (buffer(offset).isHighSurrogate) 2 else 1
 }
 
 object Parser {
