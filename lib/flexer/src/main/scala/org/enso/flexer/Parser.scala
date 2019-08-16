@@ -1,9 +1,9 @@
 package org.enso.flexer
 
 import org.enso.Logger
-import org.enso.flexer.UTFReader.ENDOFINPUT
-import org.enso.flexer.debug.Escape
-import org.enso.flexer.spec.Macro
+import debug.Escape
+import spec.Macro
+import UTFReader.ENDOFINPUT
 
 import scala.collection.mutable
 
@@ -28,16 +28,17 @@ trait Parser[T] {
     val value: Result.Value[T] = getResult() match {
       case None => Result.Failure(None)
       case Some(result) =>
-        if (reader.offset >= reader.length) Result.Success(result)
-        else if (status == State.Status.Exit.FAIL)
-          Result.Failure(Some(result))
-        else Result.Partial(result)
+        status match {
+          case State.Status.Exit.FINISHED => Result.Success(result)
+          case State.Status.Exit.FAIL     => Result.Failure(Some(result))
+          case _                          => Result.Partial(result)
+        }
     }
     Result(reader.offset, value)
   }
 
   final def rewind(): Unit = logger.trace {
-    reader.rewind(reader.offset - reader.result.length)
+    reader.rewind(reader.offset - reader.result.length - reader.charSize)
   }
 
   final def rewindThenCall(rule: () => Unit): Int = logger.trace {
@@ -98,9 +99,10 @@ trait Parser[T] {
           s"Step (${cstate.ix}:$status) ${Escape.str(reader.currentStr)}(${reader.charCode})"
         )
         status = nextState(status)
-        reader.nextChar()
+        if (State.valid(status))
+          reader.nextChar()
         if (reader.offset > reader.length + 2)
-          status = State.Status.Exit.FAIL
+          status = State.Status.Exit.FINISHED
       }
       status
     }
@@ -129,8 +131,9 @@ object Parser {
       val INITIAL = 0
       type Exit = Int
       object Exit {
-        val OK   = -1
-        val FAIL = -2
+        val OK       = -1
+        val FAIL     = -2
+        val FINISHED = -3
       }
     }
     def valid(i: Int): Boolean =

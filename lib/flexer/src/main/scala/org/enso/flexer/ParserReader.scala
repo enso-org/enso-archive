@@ -44,8 +44,9 @@ class ParserReader(input: DataInputStream) extends UTFReader(input) {
   }
 
   final def rewind(off: Int): Unit = {
-    result.setLength(result.length - (offset - off))
+    result.setLength(result.length - (offset - off - charSize))
     offset   = off
+    charCode = ENDOFINPUT
     charCode = nextChar()
   }
 

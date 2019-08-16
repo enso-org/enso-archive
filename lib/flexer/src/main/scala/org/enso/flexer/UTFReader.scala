@@ -54,20 +54,13 @@ class UTFReader(input: DataInputStream) {
   fill()
 
   def nextChar(): Int = {
-    if (offset >= length) {
-      if (length >= BUFFERSIZE)
+    result.appendCodePoint(if (charCode == ENDOFINPUT) '\0' else charCode)
+    if (offset >= length && length >= BUFFERSIZE)
         fill()
-      else {
-        nextOffset()
-        charCode = ENDOFINPUT
-        return charCode
-      }
-    }
     var char = buffer(nextOffset()).toInt
     charSize = charLength(char.toByte)
     for (_ <- 1 until charSize)
       char = char << BYTELENGTH | buffer(nextOffset())
-    result.appendCodePoint(char)
     charCode = char
     charCode
   }

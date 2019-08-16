@@ -607,7 +607,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def onEOFLine(): Unit = logger.trace {
       submitLine()
       state.end()
-      off.on(-1)
+      off.on()
       onEOF()
     }
 
