@@ -45,6 +45,7 @@ class UTFReader(input: DataInputStream) {
   }
 
   final protected def nextOffset(): Int = {
+    println("offset " + offset)
     val off = offset
     offset += 1
     off
@@ -54,10 +55,13 @@ class UTFReader(input: DataInputStream) {
 
   def nextChar(): Int = {
     if (offset >= length) {
-      if (length < BUFFERSIZE)
-        return ENDOFINPUT
-      else
+      if (length >= BUFFERSIZE)
         fill()
+      else {
+        nextOffset()
+        charCode = ENDOFINPUT
+        return charCode
+      }
     }
     var char = buffer(nextOffset()).toInt
     charSize = charLength(char.toByte)
@@ -65,7 +69,7 @@ class UTFReader(input: DataInputStream) {
       char = char << BYTELENGTH | buffer(nextOffset())
     result.appendCodePoint(char)
     charCode = char
-    char
+    charCode
   }
 
   override def toString(): String = {

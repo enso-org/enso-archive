@@ -1,6 +1,7 @@
 package org.enso.flexer
 
 import org.enso.Logger
+import org.enso.flexer.UTFReader.ENDOFINPUT
 import org.enso.flexer.debug.Escape
 import org.enso.flexer.spec.Macro
 
@@ -11,7 +12,7 @@ trait Parser[T] {
 
   var reader: ParserReader = _
 
-  var runStatus    = State.Status.Exit.OK
+  var status       = State.Status.Exit.OK
   val stateDefs    = new Array[Int => Int](256)
   val logger       = new Logger()
   var currentMatch = ""
@@ -28,7 +29,7 @@ trait Parser[T] {
       case None => Result.Failure(None)
       case Some(result) =>
         if (reader.offset >= reader.length) Result.Success(result)
-        else if (runStatus == State.Status.Exit.FAIL)
+        else if (status == State.Status.Exit.FAIL)
           Result.Failure(Some(result))
         else Result.Partial(result)
     }
@@ -43,8 +44,6 @@ trait Parser[T] {
     reader.rewind(reader.lastRuleOffset)
     state.call(rule)
   }
-
-  val ROOT = state.current
 
   //// State management ////
 
@@ -90,19 +89,19 @@ trait Parser[T] {
       current == state || stack.contains(state)
 
     def runCurrent(): Int = {
-      val cstate      = state.current
-      val nextState   = stateDefs(cstate.ix)
-      var status: Int = State.Status.INITIAL
+      val cstate    = state.current
+      val nextState = stateDefs(cstate.ix)
+      status = State.Status.INITIAL
       reader.result.setLength(0)
       while (State.valid(status)) {
         logger.log(
           s"Step (${cstate.ix}:$status) ${Escape.str(reader.currentStr)}(${reader.charCode})"
         )
         status = nextState(status)
-        if (State.valid(status))
-          reader.charCode = reader.nextChar()
+        reader.nextChar()
+        if (reader.offset > reader.length + 2)
+          status = State.Status.Exit.FAIL
       }
-      runStatus = status
       status
     }
 
@@ -113,6 +112,8 @@ trait Parser[T] {
     }
 
   }
+
+  val ROOT = state.current
 }
 
 object Parser {
