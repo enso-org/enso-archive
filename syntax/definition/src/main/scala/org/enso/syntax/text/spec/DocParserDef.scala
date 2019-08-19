@@ -563,19 +563,13 @@ case class DocParserDef() extends Parser[AST] {
 
   def addContentToList(content: AST): Unit = logger.trace {
     result.pop()
-    val currentResult = result.current.orNull
-    var currentContent = currentResult
-      .asInstanceOf[AST.List]
-      .elems
-    currentContent = (content :: currentContent.reverse).reverse
+    val currentResult  = result.current.orNull.asInstanceOf[AST.List]
+    var currentContent = currentResult.elems
+    currentContent = currentContent :+ content
     result.current = Some(
       AST.List(
-        currentResult
-          .asInstanceOf[AST.List]
-          .indent,
-        currentResult
-          .asInstanceOf[AST.List]
-          .tp,
+        currentResult.indent,
+        currentResult.tp,
         currentContent
       )
     )
@@ -587,17 +581,13 @@ case class DocParserDef() extends Parser[AST] {
     val innerList = result.current.orNull
     if (result.workingASTStack.head.isInstanceOf[AST.List]) {
       result.pop()
-      val outerList    = result.current.orNull
-      var outerContent = outerList.asInstanceOf[AST.List].elems
-      outerContent = (innerList :: outerContent.reverse).reverse
+      val outerList    = result.current.orNull.asInstanceOf[AST.List]
+      var outerContent = outerList.elems
+      outerContent = outerContent :+ innerList
       result.current = Some(
         AST.List(
-          outerList
-            .asInstanceOf[AST.List]
-            .indent,
-          outerList
-            .asInstanceOf[AST.List]
-            .tp,
+          outerList.indent,
+          outerList.tp,
           outerContent
         )
       )
