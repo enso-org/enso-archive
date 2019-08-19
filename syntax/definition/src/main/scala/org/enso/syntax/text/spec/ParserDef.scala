@@ -107,7 +107,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   final object off {
     var current: Int     = 0
-    var stack: List[Int] = List()
+    var stack: List[Int] = Nil
 
     def push(): Unit = logger.trace {
       stack +:= current

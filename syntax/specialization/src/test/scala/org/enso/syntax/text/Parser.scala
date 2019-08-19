@@ -362,17 +362,25 @@ class ParserSpec extends FlatSpec with Matchers {
 
   """foo ->
     |    bar
-    |""".stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar", None)
+    |""".stripMargin ?= "foo" $_ "->" $_ Block(
+    Block.Discontinuous,
+    4,
+    "bar",
+    None
+  )
 
-  "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST](" a ", "b"))
-    "if a then b else c" ?= Mixfix(
+  "if a then b" ?= Mixfix(
+    List1[AST.Ident]("if", "then"),
+    List1[AST](" a ", "b")
+  )
+  "if a then b else c" ?= Mixfix(
     List1[AST.Ident]("if", "then", "else"),
     List1[AST]("a", "b", "c")
   )
 
-  "if a"         ?= amb_if_("a": AST)
-    "(if a) b"     ?= Group(amb_if_("a": AST)) $_ "b"
-    "if (a then b " ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
+  "if a"          ?= amb_if_("a": AST)
+  "(if a) b"      ?= Group(amb_if_("a": AST)) $_ "b"
+  "if (a then b " ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
 
   //////////////////////////////////////////////////////////////////////////////
   //// Foreign /////////////////////////////////////////////////////////////////
@@ -397,7 +405,6 @@ class ParserSpec extends FlatSpec with Matchers {
   //////////////////////////////////////////////////////////////////////////////
   //// OTHER (TO BE PARTITIONED)////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
-
 
   "\na \nb \n".testIdentity
   "f =  \n\n\n".testIdentity
