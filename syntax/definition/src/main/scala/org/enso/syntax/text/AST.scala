@@ -1,8 +1,8 @@
 package org.enso.syntax.text
 
 import monocle.macros.GenLens
-import org.enso.data.List1
 import org.enso.data.List1._
+import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.data.Tree
 import org.enso.syntax.text.ast.Repr.R
@@ -511,7 +511,12 @@ object AST {
     ): Block =
       Block(tp, indent, List(0), firstLine, lines)
 
-    def apply(tp: Type, indent: Int, firstLine: AST, lines: Option[AST]*): Block =
+    def apply(
+      tp: Type,
+      indent: Int,
+      firstLine: AST,
+      lines: Option[AST]*
+    ): Block =
       Block(tp, indent, Line.Required(firstLine), lines.toList.map(Line(_)))
 
     def unapply(t: Block): Option[(Int, Line.NonEmpty, List[Line])] =
@@ -582,32 +587,6 @@ object AST {
     case Nil             => Nil
     case s1 :: s2 :: Nil => s1 :: t :: intersperse(t, s2 :: Nil)
     case s1 :: Nil       => s1 :: Nil
-  }
-  ////////////////
-  /// Comments ///
-  ////////////////
-
-  final case class Comment(comment: String) extends AST {
-    val repr = R + "#" + comment
-  }
-  object Comment {
-
-    final case class Block(offset: Int, lines: List[String]) extends AST {
-      val repr = {
-        val commentBlock = lines match {
-          case Nil => Nil
-          case line +: lines =>
-            val indentedLines = lines.map { s =>
-              if (s.forall(_ == ' '))
-                newline + s
-              else
-                newline + 1 + offset + s
-            }
-            (R + line) +: indentedLines
-        }
-        R + "#" + commentBlock
-      }
-    }
   }
 
   ////////////////
@@ -771,20 +750,35 @@ object AST {
   trait Comment extends AST
   object Comment {
     val symbol = "#"
+
     final case class SingleLine(text: String) extends Comment {
-      val repr               = R + symbol + text
-      def map(f: AST => AST) = this
+    val repr               = R + Comment.symbol + text
+    def map(f: AST => AST) = this
     }
 
-    final case class MultiLine(lines: List[String]) extends Comment {
-      val repr               = R + symbol + lines.mkString("\n")
+    final case class MultiLine(offset: Int, lines: List[String]) extends Comment {
       def map(f: AST => AST) = this
+      val repr = {
+        val commentBlock = lines match {
+          case Nil => Nil
+          case line +: lines =>
+            val indentedLines = lines.map { s =>
+              if (s.forall(_ == ' '))
+                newline + s
+              else
+                newline + 1 + offset + s
+            }
+            (R + line) +: indentedLines
+        }
+        R + "#" + commentBlock
+      }
     }
 
     final case class Structural(ast: AST) extends AST {
       val repr               = R + symbol + symbol + " " + ast
       def map(f: AST => AST) = copy(ast = f(ast))
     }
+
   }
 
   //////////////////////////////////////////////////////////////////////////////

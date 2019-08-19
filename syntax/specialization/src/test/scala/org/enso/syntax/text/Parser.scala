@@ -313,24 +313,12 @@ class ParserSpec extends FlatSpec with Matchers {
 
   def amb(head: AST, lst: List[List[AST]]): Macro.Ambiguous =
     Macro.Ambiguous(Macro.Ambiguous.Segment(head), Tree(lst.map(_ -> (())): _*))
-  ""           ?= Module(Line())
-  "\n"         ?= Module(Line(), Line())
-  "  \n "      ?= Module(Line(2), Line(1))
-  "\n\n"       ?= Module(Line(), Line(), Line())
-  " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
-
-  "foo  \n bar" ?= "foo" $__ Block(1, "bar")
 
   def amb(head: AST, lst: List[List[AST]], body: SAST): Macro.Ambiguous =
     Macro.Ambiguous(
       Macro.Ambiguous.Segment(head, Some(body)),
       Tree(lst.map(_ -> (())): _*)
     )
-  "\na \nb \n".testIdentity
-  "f =  \n\n\n".testIdentity
-  "  \n\n\n f\nf".testIdentity
-  "f =  \n\n  x ".testIdentity
-  "f =\n\n  x\n\n y".testIdentity
 
   def _amb_group_(i: Int)(t: AST): Macro.Ambiguous =
     amb("(", List(List(")")), Shifted(i, t))
@@ -368,7 +356,7 @@ class ParserSpec extends FlatSpec with Matchers {
     Def(
       "Maybe",
       List("a"),
-      Some(Block(Block.Continuous, 4, defJust, defNothing))
+      Some(Block(Block.Continuous, 4, defJust, Some(defNothing)))
     )
   }
 
@@ -376,9 +364,7 @@ class ParserSpec extends FlatSpec with Matchers {
     |    bar
   """.stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar")
 
-  "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST]("
-    a
-   ", "b"))
+  "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST](" a ", "b"))
     "if a then b else c" ?= Mixfix(
     List1[AST.Ident]("if", "then", "else"),
     List1[AST]("a", "b", "c")
@@ -386,8 +372,7 @@ class ParserSpec extends FlatSpec with Matchers {
 
   "if a"         ?= amb_if_("a": AST)
     "(if a) b"     ?= Group(amb_if_("a": AST)) $_ "b"
-    "if (a then b
-    " ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
+    "if (a then b " ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
 
   //////////////////////////////////////////////////////////////////////////////
   //// Foreign /////////////////////////////////////////////////////////////////
@@ -413,38 +398,45 @@ class ParserSpec extends FlatSpec with Matchers {
   //// OTHER (TO BE PARTITIONED)////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-//  """
-//      a
-//     b
-//    c
-//   d
-//  e
-//   f g h
-//  """.testIdentity
-//
-//  """
-//  # pop1: adults
-//  # pop2: children
-//  # pop3: mutants
-//    Selects the 'fittest' individuals from population and kills the rest!
-//
-//  log
-//  '''
-//  keepBest
-//  `pop1`
-//  `pop2`
-//  `pop3`
-//  '''
-//
-//  unique xs
-//    = xs.at(0.0) +: [1..length xs -1] . filter (isUnique xs) . map xs.at
-//
-//  isUnique xs i ####
-//    = xs.at(i).score != xs.at(i-1).score
 
-//     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
-//
-//  """.testIdentity
+  "\na \nb \n".testIdentity
+  "f =  \n\n\n".testIdentity
+  "  \n\n\n f\nf".testIdentity
+  "f =  \n\n  x ".testIdentity
+  "  a\n   b\n  c".testIdentity
+  "f =\n\n  x\n\n y".testIdentity
+
+  """
+    a
+     b
+   c
+    d
+  e
+   f g h
+  """.testIdentity
+
+  """
+  # pop1: adults
+  # pop2: children
+  # pop3: mutants
+    Selects the 'fittest' individuals from population and kills the rest!
+
+  log
+  '''
+  keepBest
+  `pop1`
+  `pop2`
+  `pop3`
+  '''
+
+  unique xs
+    = xs.at(0.0) +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+
+  isUnique xs i ####
+    = xs.at(i).score != xs.at(i-1).score
+
+  pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+  """.testIdentity
 
 
   ///////////////////////
