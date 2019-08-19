@@ -18,14 +18,14 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
     "url"        -> gen(exp(8), i => "[link](http://foo.com)" * i),
     "image"      -> gen(exp(8), i => "![Image](http://foo.jpg)" * i),
     "list" -> gen(
-      exp(14),
+      exp(8),
       i => """List
              |  - A
              |  - B
              |  - C""".stripMargin * i
     ),
     "listNT" -> gen(
-      exp(18),
+      exp(8),
       i => """List
              |  - A
              |  - B
@@ -33,7 +33,7 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
              |    * CB
              |  - D""".stripMargin * i
     ),
-    "sections" -> gen(exp(18), i => "Foo \n\nA \n\n ! B\n\n ? C \n\n > D " * i)
+    "sections" -> gen(exp(8), i => "Foo \n\nA \n\n ! B\n\n ? C \n\n > D " * i)
   )
 
   def exp(i: Int) =
@@ -43,7 +43,7 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
     for { i <- range } yield f(i)
 
   def run(str: String) = DocParser.run(str)
-  performance of "parser" in {
+  performance of "DocParser" in {
     tests.foreach {
       case (name, gen) => measure method name in (using(gen) in run)
     }
