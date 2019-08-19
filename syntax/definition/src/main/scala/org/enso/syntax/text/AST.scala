@@ -467,6 +467,8 @@ object AST {
   //// Block ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  val newline = R + '\n'
+
   type Block = _Block
   final case class _Block(
     tp: Block.Type,
@@ -479,7 +481,7 @@ object AST {
       val emptyLinesRepr = emptyLines.map(R + _ + "\n")
       val firstLineRepr  = R + indent + firstLine
       val linesRepr = lines.map { line =>
-        R + "\n" + line.elem.map(_ => indent) + line
+        newline + line.elem.map(_ => indent) + line
       }
       R + emptyLinesRepr + firstLineRepr + linesRepr
     }
@@ -521,11 +523,6 @@ object AST {
     }
 
     //// Line ////
-
-//    def invalid(block: Block, end: String = "\n"): InvalidIndentation = {
-//      val _Block(o, e, l, ls, _) = block
-//      InvalidIndentation(AST._Block(o, e, l, ls, ""))
-//    }
 
     type Line = _Line
     final case class _Line(elem: Option[AST], off: Int)
@@ -597,13 +594,18 @@ object AST {
 
     final case class Block(offset: Int, lines: List[String]) extends AST {
       val repr = {
-        val linesRepr = lines match {
-          case line +: lines => (R + line) +: lines.map { s =>
-            if (s.forall(_ == ' ')) R + "\n" + s else R + "\n" + 1 + offset + s
-          }
+        val commentBlock = lines match {
           case Nil => Nil
+          case line +: lines =>
+            val indentedLines = lines.map { s =>
+              if (s.forall(_ == ' '))
+                newline + s
+              else
+                newline + 1 + offset + s
+            }
+            (R + line) +: indentedLines
         }
-        R + "#" + linesRepr
+        R + "#" + commentBlock
       }
     }
   }
@@ -615,7 +617,7 @@ object AST {
   import Block.Line
 
   final case class Module(lines: List1[Line]) extends AST {
-    val repr = R + lines.head + lines.tail.map(R + '\n' + _)
+    val repr = R + lines.head + lines.tail.map(newline + _)
 
     def map(f: AST => AST)        = copy(lines = lines.map(_.map(f)))
     def mapLines(f: Line => Line) = Module(lines.map(f))

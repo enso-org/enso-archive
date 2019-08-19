@@ -107,7 +107,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   final object off {
     var current: Int     = 0
-    var stack: List[Int] = List(0, 0)
+    var stack: List[Int] = List()
 
     def push(): Unit = logger.trace {
       stack +:= current
@@ -559,9 +559,6 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def submitModule(): Unit = logger.trace {
-      off.push()
-      submitLine()
-      onEnd(0)
       val body = current.firstLine match {
         case None       => current.lines.reverse
         case Some(line) => line.toOptional +: current.lines.reverse
@@ -589,7 +586,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       result.current = None
     }
 
-    def pushEmptyLine(): Unit = logger.trace {
+    def onEmptyLine(): Unit = logger.trace {
       off.on(-1)
       emptyLines +:= off.use()
     }
@@ -598,6 +595,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       current.emptyLines = emptyLines.reverse
       emptyLines         = Nil
       offset -= 1; rewind() // FIXME
+      off.push()
       state.end()
       state.begin(NEWLINE)
     }
@@ -654,10 +652,10 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   }
 
   ROOT            || newline              || reify { block.onEndLine() }
-  block.NEWLINE   || space.opt >> newline || reify { block.pushEmptyLine() }
+  block.NEWLINE   || space.opt >> newline || reify { block.onEmptyLine() }
   block.NEWLINE   || space.opt >> eof     || reify { block.onEOFLine() }
   block.NEWLINE   || space.opt            || reify { block.onNewLine() }
-  block.MODULE    || space.opt >> newline || reify { block.pushEmptyLine() }
+  block.MODULE    || space.opt >> newline || reify { block.onEmptyLine() }
   block.MODULE    || space.opt            || reify { block.onModuleBegin() }
   block.FIRSTCHAR || always               || reify { state.end() }
 
@@ -671,6 +669,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   final def onEOF(): Unit = logger.trace {
     ident.finalizer()
+    off.push()
+    block.submitLine()
+    block.onEnd(0)
     block.submitModule()
   }
 
