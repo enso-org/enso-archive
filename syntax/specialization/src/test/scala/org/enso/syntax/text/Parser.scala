@@ -350,19 +350,19 @@ class ParserSpec extends FlatSpec with Matchers {
   """def Maybe a
     |    def Just val:a
     |    def Nothing
-  """.stripMargin ?= {
+    |""".stripMargin ?= {
     val defJust    = Def("Just", List("val" $ ":" $ "a"))
     val defNothing = Def("Nothing")
     Def(
       "Maybe",
       List("a"),
-      Some(Block(Block.Continuous, 4, defJust, Some(defNothing)))
+      Some(Block(Block.Continuous, 4, defJust, Some(defNothing), None))
     )
   }
 
   """foo ->
     |    bar
-  """.stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar")
+    |""".stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar", None)
 
   "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST](" a ", "b"))
     "if a then b else c" ?= Mixfix(
