@@ -49,6 +49,7 @@ object Doc {
   trait Symbol extends Repr.Provider {
     def span:   Int    = repr.span
     def show(): String = repr.show()
+
     val html: HTML
     def renderHTML(): HTMLTag = {
       val docMeta: HTMLTag =
@@ -84,12 +85,12 @@ object Doc {
 
     final case class Text(text: String) extends AST {
       val repr: Repr = text
-      val html: HTML = Seq(text.replaceAll("\n", " "))
+      val html: HTML = Seq(text)
     }
 
     case object Newline extends AST {
       val repr: Repr = R + "\n"
-      val html: HTML = Seq()
+      val html: HTML = Seq(" ")
     }
 
     ////////////////////////////////////////////////////////////////////////////

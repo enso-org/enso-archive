@@ -1,8 +1,11 @@
 package org.enso.syntax.text
 
+import java.io.{File, PrintWriter}
+
 import org.enso.flexer
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.spec.DocParserDef
+import scalatags.Text.TypedTag
 
 ///////////////////
 //// DocParser ////
@@ -85,5 +88,19 @@ object DocParserRunner {
       println(v.show())
       println("--- " * 20)
       println(v.renderHTML)
+      saveHTMLCodeToLocalFile(
+        "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/",
+        v.renderHTML
+      )
+  }
+
+  def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {
+    val writer = new PrintWriter(
+      new File(
+        path + "index.html"
+      )
+    )
+    writer.write(code.toString)
+    writer.close()
   }
 }
