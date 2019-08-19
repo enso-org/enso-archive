@@ -16,17 +16,18 @@ object Macro {
   //////////////////
 
   def run(module: AST.Module): AST.Module =
-    module.map(transform(_))
+    module.map(transform)
 
-  def transform(t: AST): AST = {
+  private def transform(t: AST): AST = {
     val root                        = Builder.Context(Builtin.registry.tree)
     var builder: Builder            = Builder.moduleBuilder()
     var builderStack: List[Builder] = Nil
 
-    def pushBuilder(name: AST.Ident, off: Int): Unit = logger.trace {
-      builderStack +:= builder
-      builder = new Builder(name, off)
-    }
+    def pushBuilder(name: AST.Ident, off: Int, lineBegin: Boolean): Unit =
+      logger.trace {
+        builderStack +:= builder
+        builder = new Builder(name, off, lineBegin)
+      }
 
     def popBuilder(): Option[Builder] = logger.trace {
       builderStack match {
@@ -38,6 +39,7 @@ object Macro {
           Some(out)
       }
     }
+
     @tailrec
     def finalize(): AST = {
       popBuilder() match {
@@ -51,12 +53,16 @@ object Macro {
       }
     }
 
+    var isLineBegin: Boolean = true
+
     @tailrec
     def go(input: AST.Stream): AST = {
       input match {
         case Nil => finalize()
         case (t1 @ Shifted(off, el1: AST.Ident)) :: t2_ =>
           logger.log(s"Token $t1")
+          val wasLineBegin = isLineBegin
+          isLineBegin = false
           builder.context.lookup(el1) match {
             case Some(tr) =>
               logger.log("New segment")
@@ -71,7 +77,7 @@ object Macro {
                 case Some(tr) =>
                   logger.log("New macro")
                   val context = builder.context
-                  pushBuilder(el1, t1.off)
+                  pushBuilder(el1, t1.off, wasLineBegin)
                   builder.macroDef = tr.value
                   builder.context  = Builder.Context(tr, Some(context))
                   go(t2_)

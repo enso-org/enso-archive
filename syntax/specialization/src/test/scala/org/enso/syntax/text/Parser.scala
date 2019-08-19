@@ -432,9 +432,9 @@ class ParserSpec extends FlatSpec with Matchers {
 // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO //
 ////////////////////////////////////////////////////////////////////////////////
 
-// [ ] Comments parsing
-// [ ] Block parsing fixes
-// [ ] Some benchmarks failing?
+// [ ] Layout parsing fixes [PR review]
+// [ ] Some benchmarks are sometimes failing?
 // [ ] Benchmarks are slower now - readjust (maybe profile later)
 // [ ] operator blocks
 // [ ] warnings in scala code
+// [ ] Comments parsing

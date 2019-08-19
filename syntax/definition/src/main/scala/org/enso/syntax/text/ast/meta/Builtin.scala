@@ -32,7 +32,8 @@ object Builtin {
       Var("def") -> {
         import Pattern._
         val head = Cls[Cons].or("missing name").tag("name")
-        val args = NonSpacedExpr().tag("parameter").many.tag("parameters")
+        val args =
+          Pattern.NonSpacedExpr_().tag("parameter").many.tag("parameters")
         val body = Cls[AST.Block].tag("body").opt
         head :: args :: body
       }
@@ -113,8 +114,8 @@ object Builtin {
     }
 
     val def_arrow = Definition(
-      Some(Pattern.Any(Some(false)).many1.build.or(Pattern.Expr())),
-      Opr("->") -> Pattern.Any(Some(false)).many1.build.or(Pattern.Expr())
+      Some(Pattern.NonSpacedExpr().or(Pattern.Expr())),
+      Opr("->") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
     ) {
       case (Some(pfx), List(s1)) =>
         (pfx.toStream, s1.body.toStream) match {
@@ -130,8 +131,8 @@ object Builtin {
     // For example, `f x= g h` will parse as `f (x = g h)`.
 
     val def_assign = Definition(
-      Some(Pattern.Any(Some(false)).many1.build.or(Pattern.Expr())),
-      Opr("=") -> Pattern.Any(Some(false)).many1.build.or(Pattern.Expr())
+      Some(Pattern.NonSpacedExpr().or(Pattern.Expr())),
+      Opr("=") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
     ) {
       case (Some(pfx), List(s1)) =>
         (pfx.toStream, s1.body.toStream) match {
@@ -141,8 +142,8 @@ object Builtin {
     }
 
     val def_skip = Definition(
-      Some(Pattern.Any(Some(false)).many1.build.or(Pattern.Expr())),
-      Opr("#=") -> Pattern.Any(Some(false)).many1.build.or(Pattern.Expr())
+      Some(Pattern.NonSpacedExpr().or(Pattern.Expr())),
+      Opr("#=") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
     ) {
       case (Some(pfx), List(s1)) =>
         (pfx.toStream, s1.body.toStream) match {
@@ -169,7 +170,9 @@ object Builtin {
     }
 
     val def_comment = Definition(
-      Opr("#") -> Pattern.AnyBut(Pattern.Cls[AST.Block]).many
+      Opr("#") -> Pattern
+        .FromBegin(Pattern.Any().many)
+        .or(Pattern.AnyBut(Pattern.Cls[AST.Block]).many)
     ) {
       case (None, List(s1)) =>
         val body = s1.body.toStream

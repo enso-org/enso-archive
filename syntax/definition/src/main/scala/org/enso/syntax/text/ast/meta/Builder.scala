@@ -17,11 +17,12 @@ import scala.annotation.tailrec
 class Builder(
   head: Ident,
   offset: Int                  = 0,
+  lineBegin: Boolean           = false,
   val isModuleBuilder: Boolean = false
 ) {
   var context: Builder.Context           = Builder.Context()
   var macroDef: Option[Macro.Definition] = None
-  var current: Builder.Segment           = new Builder.Segment(head, offset)
+  var current: Builder.Segment           = new Builder.Segment(head, offset, lineBegin)
   var revSegs: List[Builder.Segment]     = List()
 
   def startSegment(ast: Ident, off: Int): Unit = {
@@ -119,7 +120,8 @@ class Builder(
 }
 
 object Builder {
-  def moduleBuilder(): Builder = new Builder(AST.Blank, isModuleBuilder = true)
+  def moduleBuilder(): Builder =
+    new Builder(AST.Blank, isModuleBuilder = true, lineBegin = true)
 
   /////////////////
   //// Context ////
@@ -150,7 +152,11 @@ object Builder {
   //// Segment ////
   /////////////////
 
-  class Segment(val ast: Ident, var offset: Int = 0) {
+  class Segment(
+    val ast: Ident,
+    var offset: Int        = 0,
+    val lineBegin: Boolean = false
+  ) {
     import Macro._
     var revBody: AST.Stream = List()
 
@@ -161,7 +167,7 @@ object Builder {
       reversed: Boolean = false
     ): (Shifted[Match.Segment], AST.Stream) = {
       val stream = revBody.reverse
-      pat.matchOpt(stream, reversed) match {
+      pat.matchOpt(stream, lineBegin, reversed) match {
         case None =>
           throw new Error(
             "Internal error: template pattern segment was unmatched"

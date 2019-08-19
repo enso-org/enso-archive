@@ -28,14 +28,22 @@ sealed trait Pattern {
   def opt:               Or      = this | Nothing()
   def build:             Build   = Build(this)
 
-  def match_(stream: Stream, reversed: Boolean = false): MatchResult =
-    Pattern.matchUnsafe(this, stream, reversed)
+  def match_(
+    stream: Stream,
+    lineBegin: Boolean = false,
+    reversed: Boolean  = false
+  ): MatchResult =
+    Pattern.matchUnsafe(this, stream, lineBegin, reversed)
 
-  def matchRev(stream: Stream): MatchResult =
-    this.match_(stream, reversed = true)
+  def matchRev(stream: Stream, lineBegin: Boolean = false): MatchResult =
+    this.match_(stream, lineBegin = lineBegin, reversed = true)
 
-  def matchOpt(stream: Stream, reversed: Boolean): Option[MatchResult] =
-    Pattern.matchOpt(this, stream, reversed)
+  def matchOpt(
+    stream: Stream,
+    lineBegin: Boolean = false,
+    reversed: Boolean  = false
+  ): Option[MatchResult] =
+    Pattern.matchOpt(this, stream, lineBegin, reversed)
 }
 
 object Pattern {
@@ -50,6 +58,7 @@ object Pattern {
   final case class Except(not: Pattern, ok: Pattern) extends Of[Match]
   final case class Or(p1: Pattern, p2: Pattern)      extends Of[Match]
   final case class TillEnd(pat: Pattern)             extends Of[Match]
+  final case class FromBegin(pat: Pattern)           extends Of[Match]
   final case class Tag(tag: String, pat: Pattern)    extends Of[Match]
   final case class Err(msg: String, pat: Pattern)    extends Of[SAST]
   final case class Cls[T <: AST](spaced: Spaced)(implicit val tag: ClassTag[T])
@@ -77,6 +86,10 @@ object Pattern {
 
   object TillEnd {
     def apply(): TillEnd = TillEnd(Nothing())
+  }
+
+  object FromBegin {
+    def apply(): FromBegin = FromBegin(Nothing())
   }
 
   //// Conversions ////
@@ -162,11 +175,11 @@ object Pattern {
   }
 
   object NonSpacedExpr {
+    def apply() = Any(Some(false)).many1.build
+  }
+
+  object NonSpacedExpr_ {
     def apply() = Build(AnyBut(Cls[AST.Block]) :: Many(NonSpacedAny()))
-    def unapply(t: Pattern): Boolean = t match {
-      case Build(Many1(NonSpacedAny())) => true
-      case _                            => false
-    }
   }
 
   object SepList {
@@ -211,31 +224,33 @@ object Pattern {
         s"${pat.getClass.getSimpleName}(${el.toString})"
 
       def toStream: Stream = this match {
-        case Match.Build(t)    => List(t)
-        case Match.Cls(t)      => List(t)
-        case Match.TillEnd(t)  => t.toStream
-        case Match.Err(t)      => List(t)
-        case Match.Many(t)     => t.flatMap(_.toStream)
-        case Match.Except(t)   => t.toStream
-        case Match.Nothing()   => List()
-        case Match.Or(t)       => t.toStream
-        case Match.Seq(l, r)   => l.toStream ++ r.toStream
-        case Match.Tag(tag, t) => t.toStream
-        case Match.Tok(t)      => List(t)
+        case Match.Build(t)     => List(t)
+        case Match.Cls(t)       => List(t)
+        case Match.Err(t)       => List(t)
+        case Match.FromBegin(t) => t.toStream
+        case Match.Many(t)      => t.flatMap(_.toStream)
+        case Match.Except(t)    => t.toStream
+        case Match.Nothing()    => List()
+        case Match.Or(t)        => t.toStream
+        case Match.Seq(l, r)    => l.toStream ++ r.toStream
+        case Match.Tag(tag, t)  => t.toStream
+        case Match.TillEnd(t)   => t.toStream
+        case Match.Tok(t)       => List(t)
       }
 
       def isValid: Boolean = this match {
-        case Match.Build(_)   => true
-        case Match.Cls(_)     => true
-        case Match.TillEnd(t) => t.isValid
-        case Match.Err(_)     => false
-        case Match.Many(t)    => t.forall(_.isValid)
-        case Match.Except(t)  => t.isValid
-        case Match.Nothing()  => true
-        case Match.Or(t)      => t.isValid
-        case Match.Seq(l, r)  => l.isValid && r.isValid
-        case Match.Tag(_, t)  => t.isValid
-        case Match.Tok(_)     => true
+        case Match.Build(_)     => true
+        case Match.Cls(_)       => true
+        case Match.Err(_)       => false
+        case Match.FromBegin(t) => t.isValid
+        case Match.Many(t)      => t.forall(_.isValid)
+        case Match.Except(t)    => t.isValid
+        case Match.Nothing()    => true
+        case Match.Or(t)        => t.isValid
+        case Match.Seq(l, r)    => l.isValid && r.isValid
+        case Match.Tag(_, t)    => t.isValid
+        case Match.TillEnd(t)   => t.isValid
+        case Match.Tok(_)       => true
       }
     }
 
@@ -253,13 +268,6 @@ object Pattern {
       def unapply(t: Match): Option[SAST] = t match {
         case Of(_: Pattern.Cls[_], t) => Some(t)
         case _                        => None
-      }
-    }
-
-    object TillEnd {
-      def unapply(t: Match): Option[Match] = t match {
-        case Of(_: Pattern.TillEnd, t) => Some(t)
-        case _                         => None
       }
     }
 
@@ -281,6 +289,13 @@ object Pattern {
       def unapply(t: Match): Option[Match] = t match {
         case Of(_: Pattern.Except, s) => Some(s)
         case _                        => None
+      }
+    }
+
+    object FromBegin {
+      def unapply(t: Match): Option[Match] = t match {
+        case Of(_: Pattern.FromBegin, t) => Some(t)
+        case _                           => None
       }
     }
 
@@ -312,6 +327,13 @@ object Pattern {
       def unapply(t: Match): Option[(String, Match)] = t match {
         case Of(tag: Pattern.Tag, t) => Some((tag.tag, t))
         case _                       => None
+      }
+    }
+
+    object TillEnd {
+      def unapply(t: Match): Option[Match] = t match {
+        case Of(_: Pattern.TillEnd, t) => Some(t)
+        case _                         => None
       }
     }
 
@@ -347,9 +369,10 @@ object Pattern {
   def matchUnsafe(
     pattern: Pattern,
     stream: Stream,
-    reversed: Boolean = false
+    lineBegin: Boolean = false,
+    reversed: Boolean  = false
   ): MatchResult = {
-    matchOpt(pattern, stream, reversed).getOrElse {
+    matchOpt(pattern, stream, lineBegin, reversed).getOrElse {
       val msg = "Internal error: template pattern segment was unmatched"
       throw new Error(msg)
     }
@@ -363,6 +386,7 @@ object Pattern {
   def matchOpt(
     pattern: Pattern,
     stream: Stream,
+    lineBegin: Boolean,
     reversed: Boolean
   ): Option[MatchResult] = {
 
@@ -388,6 +412,9 @@ object Pattern {
             case None    => None
             case Some(r) => if (r.stream.isEmpty) Some(r) else None
           }
+
+        case Pattern.FromBegin(p1) =>
+          if (lineBegin) matchStep(p1, stream) else None
 
         case p @ Pattern.Nothing() =>
           ret(p, (), stream)
