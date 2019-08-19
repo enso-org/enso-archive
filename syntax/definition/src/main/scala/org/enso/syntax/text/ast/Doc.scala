@@ -18,8 +18,7 @@ final case class Doc(
   val repr: Repr = R + tags + synopsis + body
 
   val html: Doc.HTML = {
-    val className    = this.getClass.getSimpleName
-    val htmlCls      = HTML.`class` := className
+    val htmlCls      = HTML.`class` := this.productPrefix
     val tagsHtml     = tags.getOrElse(Doc.AST.Text("")).html
     val synopsisHtml = synopsis.getOrElse(Doc.AST.Text("")).html
     val bodyHtml     = body.getOrElse(Doc.AST.Text("")).html
@@ -124,7 +123,7 @@ object Doc {
           extends AST.Invalid {
         val repr: Repr = R + tp.marker + elems
         val html: HTML = Seq {
-          val htmlCls = HTML.`class` := "unclosed"
+          val htmlCls = HTML.`class` := this.productPrefix
           HTML.div(htmlCls)(tp.htmlMarker(elems.html))
         }
       }
@@ -146,7 +145,7 @@ object Doc {
       val repr: Repr =
         R + elems.map(_.repr.show()).mkString(AST.Newline.show())
       val html: HTML = {
-        val htmlCls   = HTML.`class` := this.getClass.getName.split('$').last
+        val htmlCls   = HTML.`class` := this.productPrefix
         val htmlId    = HTML.`id` := "code-1"
         val elemsHTML = elems.map(elem => elem.html)
         val stl       = HTML.`style` := "display: none"
@@ -253,7 +252,10 @@ object Doc {
         ) extends AST.Invalid {
           val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem
           val html: HTML = {
-            val htmlCls = HTML.`class` := "InvalidIndent"
+            val htmlCls = HTML.`class` :=
+              this.productPrefix + this.getClass.getEnclosingClass.toString
+                .split('$')
+                .last
             Seq(HTML.div(htmlCls)(elem.html))
           }
         }
@@ -275,7 +277,7 @@ object Doc {
     final case class Header(elems: List[AST]) extends AST {
       val repr: Repr = Repr() + elems.map(_.repr)
       val html: HTML = {
-        val htmlCls = HTML.`class` := this.getClass.getName.split('$').last
+        val htmlCls = HTML.`class` := this.productPrefix
         Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
     }
@@ -361,7 +363,7 @@ object Doc {
 
       val repr: Repr = Repr(makeIndent(indent)) + elemsRepr
       val html: HTML = {
-        val htmlCls = HTML.`class` := this.getClass.getName.split('$').last
+        val htmlCls = HTML.`class` := this.productPrefix
         Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
     }
@@ -392,7 +394,7 @@ object Doc {
         .map(_.repr.show())
         .mkString(AST.Newline.show())
     val html: HTML = {
-      val htmlCls = HTML.`class` := this.getClass.getSimpleName
+      val htmlCls = HTML.`class` := this.productPrefix
       Seq(HTML.div(htmlCls)(elems.map(_.html)))
     }
   }
@@ -411,7 +413,7 @@ object Doc {
     val repr: Repr =
       R + elems.map(_.repr.show()).mkString(AST.Newline.show())
     val html: HTML = {
-      val htmlCls = HTML.`class` := this.getClass.getSimpleName
+      val htmlCls = HTML.`class` := this.productPrefix
       Seq(HTML.div(htmlCls)(elems.map(_.html)))
     }
   }
@@ -431,7 +433,7 @@ object Doc {
     val html: HTML =
       if (elems == Nil) "".html
       else {
-        val htmlCls = HTML.`class` := this.getClass.getSimpleName
+        val htmlCls = HTML.`class` := this.productPrefix
         Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
   }

@@ -71,7 +71,7 @@ button:hover {
 //// Invalid AST ////
 ///////////////////*/
 
-.unclosed,
+.Unclosed,
 .invalidIndent {
     display: inline;
     color: orangered;
@@ -135,7 +135,7 @@ button:hover {
 }
 .UNRECOGNIZED {
     background-color: red;
-    color: white;
+    color: white !important;
     font-weight: 500;
 }
 /*////////////////
