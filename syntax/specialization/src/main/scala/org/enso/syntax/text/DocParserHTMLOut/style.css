@@ -71,10 +71,9 @@ button:hover {
 //// Invalid AST ////
 ///////////////////*/
 
-.unclosed_b,
-.unclosed_i,
-.unclosed_s,
+.unclosed,
 .invalidIndent {
+    display: inline;
     color: orangered;
 }
 

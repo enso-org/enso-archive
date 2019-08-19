@@ -97,16 +97,6 @@ object Doc {
     /// Text Formatter - Bold, Italic, Strikethrough ///////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    // TODO - Proposed for next PR
-    // Generating css classes for the elements is really great idea.
-    // Please think how you can generalize it, so for all other types they
-    // will be generated automatically. Of course sometimes, like here,
-    // you would like to override the automatic generation (unclosed) with
-    // something custom.
-    // Here for example, I'd vote for applying multiple CSS classes
-    // both .bold as well as .unclosed
-    // this way you can write generic CSS rules.
-
     final case class Formatter(
                                 tp: Formatter.Type,
                                 elems: scala.List[AST]
@@ -134,8 +124,8 @@ object Doc {
         extends AST.Invalid {
         val repr: Repr = R + tp.marker + elems
         val html: HTML = Seq {
-          val htmlCls = HTML.`class` := s"unclosed_${tp.htmlMarker.tag}"
-          HTML.div(htmlCls)(elems.html)
+          val htmlCls = HTML.`class` := "unclosed"
+          HTML.div(htmlCls)(tp.htmlMarker(elems.html))
         }
       }
 

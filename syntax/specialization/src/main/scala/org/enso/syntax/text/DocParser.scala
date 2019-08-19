@@ -69,6 +69,25 @@ object DocParserRunner {
       | A new section title *is* after 2 newlines
       | Now we can write a new
       |
+      |
+      | Invalid indent test:
+      |   - First unordered item
+      |   - Second unordered item
+      |     * First ordered sub item
+      |     * Second ordered sub item
+      |   - Third unordered item
+      |     * First ordered sub item
+      |     * Second ordered sub item
+      |       - First unordered sub item
+      |       - Second unordered sub item
+      |     * Third ordered sub item
+      |    * Wrong Indent Item
+      |   - Fourth unordered item
+      |
+      |
+      | Invalid Formatter test
+      | This is a *Unclosed test
+      |
       | > Title of an example
       |   This is an example displayed as a button in the docs. The first line is its
       |   name and this is its description. Code has to be indented.
