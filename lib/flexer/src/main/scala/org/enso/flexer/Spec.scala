@@ -1,7 +1,7 @@
 package org.enso.flexer
 
-import org.enso.flexer.automata.State
 import org.enso.flexer.automata.DFA
+import org.enso.flexer.automata.State
 
 import scala.collection.immutable.Range
 import scala.collection.mutable
@@ -18,10 +18,10 @@ case class Spec(dfa: DFA) {
   case class Branch(range: Range, body: Tree)
 
   def genBranchBody(
-    trgState: Int,
+    targetState: Int,
     maybeState: Option[State.Desc],
     rulesOverlap: Boolean
-  ): Tree = (trgState, maybeState, rulesOverlap) match {
+  ): Tree = (targetState, maybeState, rulesOverlap) match {
     case (State.missing, None, _) =>
       Literal(Constant(Parser.State.Status.Exit.FAIL))
     case (State.missing, Some(state), false) =>
@@ -29,18 +29,19 @@ case class Spec(dfa: DFA) {
     case (State.missing, Some(state), true) =>
       q"rewindThenCall(${TermName(state.rule)})"
 
-    case (targetState, _, _) =>
-      val rulesOverlap_ = maybeState match {
+    case _ =>
+      val targetStateHasNoRule = maybeState match {
         case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
-          dfa.endStatePriorityMap += targetState -> state
+          dfa.endStatePriorityMap += targetState  -> state
           stateHasOverlappingRules += targetState -> true
           true
         case _ => false
       }
-      if (rulesOverlap || rulesOverlap_)
-        q"reader.lastRuleOffset = reader.offset; ${Literal(Constant(targetState))}"
+      val trgState = Literal(Constant(targetState))
+      if (targetStateHasNoRule && !rulesOverlap)
+        q"withLastRuleOffset($trgState)"
       else
-        q"${Literal(Constant(targetState))}"
+        q"$trgState"
   }
 
   def genSwitch(branchs: Seq[Branch]): Seq[CaseDef] = {

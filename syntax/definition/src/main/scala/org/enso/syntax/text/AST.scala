@@ -46,6 +46,7 @@ object AST {
   type Stream1 = List1[SAST]
 
   sealed trait Symbol extends Repr.Provider {
+    def byteSpan: Int  = repr.byteSpan
     def span:   Int    = repr.span
     def show(): String = repr.show()
   }

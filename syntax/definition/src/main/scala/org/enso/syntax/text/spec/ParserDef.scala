@@ -80,7 +80,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       app(fn(currentMatch))
 
     def app(ast: AST): Unit = logger.trace {
-      val marked = markers.get(reader.offset - ast.span - 1) match {
+      val marked = markers.get(reader.charOffset - ast.byteSpan) match {
         case None         => ast
         case Some(marker) => AST.Marked(marker, ast)
       }

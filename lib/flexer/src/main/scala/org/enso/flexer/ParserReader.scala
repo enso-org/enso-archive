@@ -10,19 +10,27 @@ import org.enso.flexer.UTFReader.ENDOFINPUT
 class ParserReader(input: DataInputStream) extends UTFReader(input) {
 
   var lastRuleOffset = 0
+  var rewinded = false
+  var result: java.lang.StringBuilder = _
 
-  def this(input: InputStream) { this(new DataInputStream(input)) }
-  def this(file: File) { this(new FileInputStream(file)) }
-  def this(input: String) {
+  def this(input: InputStream) = this(new DataInputStream(input))
+  def this(file: File) = this(new FileInputStream(file))
+  def this(input: String) =
     this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
+
+  final override def init(): Unit = {
+    result = new java.lang.StringBuilder() // ugly hack, because scala sucks
+    super.init()
   }
+
+  final def charOffset: Int = offset - charSize - 1
 
   final override def fill(): Unit = {
     val keepchars = result.length()
     lastRuleOffset = lastRuleOffset - (length - keepchars)
     offset         = keepchars
     if (keepchars >= BUFFERSIZE)
-      throw new BufferSizeReachedRewindNotPossible()
+      throw new BufferSizeReachedRewindImpossible()
     for (i <- 1 to keepchars)
       buffer(keepchars - i) = buffer(length - i)
     super.fill()
@@ -43,19 +51,21 @@ class ParserReader(input: DataInputStream) extends UTFReader(input) {
     true
   }
 
-  final def rewind(off: Int): Unit = {
-    result.setLength(result.length - (offset - off - charSize))
-    offset   = off
-    charCode = ENDOFINPUT
-    charCode = nextChar()
+  final override def nextChar(): Int = {
+    rewinded = false
+    super.nextChar()
   }
 
-  final def currentStr: String =
-    if (charCode < 0) "" else new String(Character.toChars(charCode))
+  final def rewind(off: Int): Unit = {
+    result.setLength(result.length + (charOffset + 1 - off))
+    offset = off
+    rewinded = true
+  }
+
 }
 
 object ParserReader {
 
-  class BufferSizeReachedRewindNotPossible() extends Exception
+  class BufferSizeReachedRewindImpossible() extends Exception
 
 }

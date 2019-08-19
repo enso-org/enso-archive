@@ -8,12 +8,11 @@ import java.nio.charset.StandardCharsets
   *  deals correctly with variable length UTF chars
   *  and replaces \r(\n) with \n and \t with 4 spaces.
   */
-class UTFReader(input: DataInputStream) {
+class UTFReader(val input: DataInputStream) {
   import UTFReader._
 
   // buffer will be unboxed as long as we don't use any fancy scala collection methods on it
   val buffer   = new Array[Byte](BUFFERSIZE + 10)
-  val result   = new java.lang.StringBuilder()
   var offset   = 0
   var length   = 0
   var charSize = 0
@@ -24,9 +23,13 @@ class UTFReader(input: DataInputStream) {
   def this(input: String) =
     this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
 
+  protected def init(): Unit = {
+    fill()
+  }
+
   protected var lastByte = ' '.toByte
 
-  protected def fill() = {
+  protected def fill(): Unit = {
     offset = 0
     while (offset < BUFFERSIZE && readChar()) Unit
     for (_ <- 1 until charLength(lastByte))
@@ -51,12 +54,16 @@ class UTFReader(input: DataInputStream) {
     off
   }
 
-  fill()
-
   def nextChar(): Int = {
-    result.appendCodePoint(if (charCode == ENDOFINPUT) '\0' else charCode)
-    if (offset >= length && length >= BUFFERSIZE)
+    println("nextChar, offset: " + offset)
+    if (offset >= length)
+      if (length >= BUFFERSIZE)
         fill()
+      else {
+        charSize = 0
+        charCode = -1
+        return charCode
+      }
     var char = buffer(nextOffset()).toInt
     charSize = charLength(char.toByte)
     for (_ <- 1 until charSize)
@@ -66,10 +73,15 @@ class UTFReader(input: DataInputStream) {
   }
 
   override def toString(): String = {
-    while (nextChar() != ENDOFINPUT) Unit
-    result.toString
+    val builder = new java.lang.StringBuilder()
+    while (nextChar() != ENDOFINPUT) builder.appendCodePoint(charCode)
+    builder.toString
   }
 
+  final def currentStr: String =
+    if (charCode < 0) "" else new String(Character.toChars(charCode))
+
+  init()
 }
 
 object UTFReader {

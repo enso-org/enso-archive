@@ -38,7 +38,7 @@ trait Parser[T] {
   }
 
   final def rewind(): Unit = logger.trace {
-    reader.rewind(reader.offset - reader.result.length - reader.charSize)
+    reader.rewind(reader.offset - reader.result.length)
   }
 
   final def rewindThenCall(rule: () => Unit): Int = logger.trace {
@@ -46,6 +46,11 @@ trait Parser[T] {
     state.call(rule)
   }
 
+  final def withLastRuleOffset(targetState: Int): Int = {
+    reader.lastRuleOffset = reader.offset - reader.charSize
+    logger.log(s"withLastRuleOffset: lastRuleOffset = ${reader.lastRuleOffset}")
+    targetState
+  }
   //// State management ////
 
   // FIXME: This is a hack. Without it sbt crashes and needs to be completely
@@ -91,18 +96,23 @@ trait Parser[T] {
 
     def runCurrent(): Int = {
       val cstate    = state.current
+      var finished  = false
       val nextState = stateDefs(cstate.ix)
       status = State.Status.INITIAL
-      reader.result.setLength(0)
       while (State.valid(status)) {
         logger.log(
-          s"Step (${cstate.ix}:$status) ${Escape.str(reader.currentStr)}(${reader.charCode})"
+          s"Step (${cstate.ix}:$status) "
+            + s"${Escape.str(reader.currentStr)} (${reader.charCode})"
         )
         status = nextState(status)
-        if (State.valid(status))
-          reader.nextChar()
-        if (reader.offset > reader.length + 2)
+        if (finished && !reader.rewinded)
           status = State.Status.Exit.FINISHED
+        finished = reader.charCode == ENDOFINPUT
+        if (State.valid(status)) {
+          if (reader.charCode != ENDOFINPUT)
+            reader.result.appendCodePoint(reader.charCode)
+          reader.nextChar()
+        }
       }
       status
     }
@@ -110,6 +120,7 @@ trait Parser[T] {
     def call(rule: () => Unit): State.Status.Exit = {
       currentMatch = reader.result.toString
       rule()
+      reader.result.setLength(0)
       State.Status.Exit.OK
     }
 

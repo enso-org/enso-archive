@@ -185,6 +185,33 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Text ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+//  ""           ?= Module(Line())
+//  "\n"         ?= Module(Line(), Line())
+//  "  \n "      ?= Module(Line(2), Line(1))
+//  "\n\n"       ?= Module(Line(), Line(), Line())
+//  " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
+//
+//  /////////////////
+//  //// Numbers ////
+//  /////////////////
+//
+//  "7"     ?= 7
+//  "07"    ?= Number("07")
+//  "10_7"  ?= Number(10, 7)
+//  "16_ff" ?= Number(16, "ff")
+//  "16_"   ?= Number.DanglingBase("16")
+//  "7.5"   ?= App.Infix(7, 0, Opr("."), 0, 5)
+//
+//  ////////////////////////
+//  //// UTF Surrogates ////
+//  ////////////////////////
+//
+//  "\uD800\uDF1E" ?= Unrecognized("\uD800\uDF1E")
+//
+  //////////////
+  //// Text ////
+  //////////////
+
   "'"       ?= Text.Unclosed(Text())
   "''"      ?= Text()
   "'''"     ?= Text.Unclosed(Text(Text.Quote.Triple))

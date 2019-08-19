@@ -1,5 +1,7 @@
 package org.enso.syntax.text.ast
 
+import java.nio.charset.StandardCharsets
+
 import org.enso.data.List1
 import org.enso.data.Shifted
 import cats.Monoid
@@ -14,7 +16,7 @@ sealed trait Repr extends Repr.Provider {
   import Repr._
 
   val repr = this
-
+  val byteSpan: Int
   val span: Int
 
   def +[T: Repr.Of](that: T): Repr =
@@ -58,19 +60,23 @@ object Repr {
 
   val R = Repr.Empty()
   case class Empty() extends Repr {
+    val byteSpan                  = 0
     val span = 0
   }
 
   case class Letter(char: Char) extends Repr {
+    val byteSpan                  = char.toString.getBytes(StandardCharsets.UTF_8).length
     val span = 1
   }
 
   case class Text(str: String) extends Repr {
+    val byteSpan                  = str.getBytes(StandardCharsets.UTF_8).length
     val span = str.length
   }
 
   final case class Seq(first: Repr, second: Repr) extends Repr {
-    val span = first.span + second.span
+    val byteSpan = first.byteSpan + second.byteSpan
+    val span     = first.span + second.span
   }
 
   //// Provider ////
