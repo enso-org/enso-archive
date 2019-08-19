@@ -10,13 +10,13 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
   val part =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi sodales mi vitae orci imperdiet amet" // 100 letters
   val tests = List(
-    "formatters" -> gen(exp(14), i => "*A* ~B~ _C_ *~_D_~*" * i),
-    "longS"      -> gen(exp(18), i => "test12" * i),
-    "100ls"      -> gen(exp(18), i => (part + "\n") * i),
-    "GinS"       -> gen(exp(11), i => part * i),
-    "tags"       -> gen(exp(18), i => "DEPRECATED\nMODIFIED\nADDED in 1.9" * i),
-    "url"        -> gen(exp(18), i => "[link](http://foo.com)" * i),
-    "image"      -> gen(exp(18), i => "![Image](http://foo.jpg)" * i),
+    "formatters" -> gen(exp(8), i => "*A* ~B~ _C_ *~_D_~*" * i),
+    "longS"      -> gen(exp(8), i => "test12" * i),
+    "100ls"      -> gen(exp(8), i => (part + "\n") * i),
+    "GinS"       -> gen(exp(8), i => part * i),
+    "tags"       -> gen(exp(8), i => "DEPRECATED\nMODIFIED\nADDED in 1.9" * i),
+    "url"        -> gen(exp(8), i => "[link](http://foo.com)" * i),
+    "image"      -> gen(exp(8), i => "![Image](http://foo.jpg)" * i),
     "list" -> gen(
       exp(14),
       i => """List
