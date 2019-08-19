@@ -62,7 +62,7 @@ case class DocParserDef() extends Parser[AST] {
   val newline                    = '\n'
 
   val possibleChars
-  : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
+    : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
   val normalText: Pattern = possibleChars.many1
 
   //////////////////////////
@@ -79,7 +79,7 @@ case class DocParserDef() extends Parser[AST] {
     }
     // to remove unnecessary indent from first line as yet onIndent hasn't been called
     if (result.workingASTStack.isEmpty || result.workingASTStack.head
-      .isInstanceOf[Section.Header]) {
+          .isInstanceOf[Section.Header]) {
       if (text.nonEmpty) {
         while (text.head == ' ' && text.length > 1) {
           text = text.tail
@@ -238,7 +238,7 @@ case class DocParserDef() extends Parser[AST] {
       if (textFormattersStack.head == tp) {
         var listOfFormattedAST: List[AST] = Nil
         while (result.workingASTStack.head != AST
-          .Formatter(tp) && result.workingASTStack.nonEmpty) {
+                 .Formatter(tp) && result.workingASTStack.nonEmpty) {
           result.pop()
           result.current match {
             case Some(value) => listOfFormattedAST +:= value
@@ -482,10 +482,10 @@ case class DocParserDef() extends Parser[AST] {
   }
 
   final def onIndentForListCreation(
-                                     indent: Int,
-                                     tp: AST.List.Type,
-                                     content: AST
-                                   ): Unit =
+    indent: Int,
+    tp: AST.List.Type,
+    content: AST
+  ): Unit =
     logger.trace {
       val diff = indent - latestIndent
       if (diff == listIndent) {
@@ -610,8 +610,8 @@ case class DocParserDef() extends Parser[AST] {
 
   val orderedListPattern = indentPattern >> orderedListTrigger >> not(newline).many1
   val unorderedListPattern = indentPattern >> unorderedListTrigger >> not(
-    newline
-  ).many1
+      newline
+    ).many1
   NEWLINE || orderedListPattern || reify {
     state.end()
     val content = currentMatch.split(orderedListTrigger)

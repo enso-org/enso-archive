@@ -11,10 +11,10 @@ import HTML._
 ////////////////////////////////////////////////////////////////////////////////
 
 final case class Doc(
-                      tags: Option[Doc.Tags],
-                      synopsis: Option[Doc.Synopsis],
-                      body: Option[Doc.Body]
-                    ) extends Doc.AST {
+  tags: Option[Doc.Tags],
+  synopsis: Option[Doc.Synopsis],
+  body: Option[Doc.Body]
+) extends Doc.AST {
   val repr: Repr = R + tags + synopsis + body
 
   val html: Doc.HTML = {
@@ -98,9 +98,9 @@ object Doc {
     ////////////////////////////////////////////////////////////////////////////
 
     final case class Formatter(
-                                tp: Formatter.Type,
-                                elems: scala.List[AST]
-                              ) extends AST {
+      tp: Formatter.Type,
+      elems: scala.List[AST]
+    ) extends AST {
       val repr: Repr = R + tp.marker + elems + tp.marker
       val html: HTML = Seq(tp.htmlMarker(elems.html))
     }
@@ -113,15 +113,15 @@ object Doc {
         Formatter(tp, elems.toList)
 
       abstract class Type(
-                           val marker: Char,
-                           val htmlMarker: HTMLTag
-                         )
+        val marker: Char,
+        val htmlMarker: HTMLTag
+      )
       case object Bold          extends Type('*', HTML.b)
       case object Italic        extends Type('_', HTML.i)
       case object Strikethrough extends Type('~', HTML.s)
 
       final case class Unclosed(tp: Type, elems: scala.List[AST])
-        extends AST.Invalid {
+          extends AST.Invalid {
         val repr: Repr = R + tp.marker + elems
         val html: HTML = Seq {
           val htmlCls = HTML.`class` := "unclosed"
@@ -180,7 +180,7 @@ object Doc {
     ////////////////////////////////////////////////////////////////////////////
 
     abstract class Link(name: String, url: String, val marker: String)
-      extends AST {
+        extends AST {
       val repr: Repr = Repr() + marker + "[" + name + "](" + url + ")"
       val html: HTML = this match {
         case _: Link.URL   => Seq(HTML.a(HTML.href := url)(name))
@@ -190,13 +190,13 @@ object Doc {
 
     object Link {
       final case class URL(name: String, url: String)
-        extends Link(name, url, "")
+          extends Link(name, url, "")
       object URL {
         def apply(): URL = new URL("", "")
       }
 
       final case class Image(name: String, url: String)
-        extends Link(name, url, "!")
+          extends Link(name, url, "!")
       object Image {
         def apply(): Image = new Image("", "")
       }
@@ -207,7 +207,7 @@ object Doc {
     ////////////////////////////////////////////////////////////////////////////
 
     final case class List(indent: Int, tp: List.Type, elems: List1[AST])
-      extends AST {
+        extends AST {
 
       val repr: Repr = {
         Repr() + elems.toList.map {
@@ -239,18 +239,18 @@ object Doc {
         List(indent, listType, List1(elems.head, elems.tail.toList))
 
       abstract class Type(
-                           val marker: Char,
-                           val HTMLMarker: HTMLTag
-                         )
+        val marker: Char,
+        val HTMLMarker: HTMLTag
+      )
       final case object Unordered extends Type('-', HTML.ul)
       final case object Ordered   extends Type('*', HTML.ol)
 
       object Indent {
         final case class Invalid(
-                                  indent: Int,
-                                  tp: Type,
-                                  elem: AST
-                                ) extends AST.Invalid {
+          indent: Int,
+          tp: Type,
+          elem: AST
+        ) extends AST.Invalid {
           val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem
           val html: HTML = {
             val htmlCls = HTML.`class` := "InvalidIndent"
@@ -287,10 +287,10 @@ object Doc {
     }
 
     final case class Marked(
-                             indent: Int,
-                             tp: Marked.Type,
-                             elems: List[AST]
-                           ) extends Section {
+      indent: Int,
+      tp: Marked.Type,
+      elems: List[AST]
+    ) extends Section {
       val marker: String = tp.marker.toString
       val firstIndentRepr = Repr(indent match {
         case 1 => marker
@@ -341,9 +341,9 @@ object Doc {
     }
 
     final case class Raw(
-                          indent: Int,
-                          elems: List[AST]
-                        ) extends Section {
+      indent: Int,
+      elems: List[AST]
+    ) extends Section {
 
       val elemsRepr: List[Repr] = elems.zipWithIndex.map {
         case (elem @ (_: Section.Header), _) =>
@@ -389,8 +389,8 @@ object Doc {
   final case class Body(elems: List[Section]) extends Symbol {
     val head: Repr = if (elems == Nil) R else R + AST.Newline
     val repr: Repr = head + elems
-      .map(_.repr.show())
-      .mkString(AST.Newline.show())
+        .map(_.repr.show())
+        .mkString(AST.Newline.show())
     val html: HTML = {
       val htmlCls = HTML.`class` := this.getClass.getSimpleName
       Seq(HTML.div(htmlCls)(elems.map(_.html)))
@@ -444,11 +444,12 @@ object Doc {
       val name: String = tp.toString.toUpperCase
       val repr: Repr = tp match {
         case Tag.Unrecognized => R + makeIndent(indent) + details
-        case _            => R + makeIndent(indent) + name + details
+        case _                => R + makeIndent(indent) + name + details
       }
       val html: HTML = tp match {
-        case Tag.Unrecognized => Seq(HTML.div(HTML.`class` := name)(details.html))
-        case _            => Seq(HTML.div(HTML.`class` := name)(name)(details.html))
+        case Tag.Unrecognized =>
+          Seq(HTML.div(HTML.`class` := name)(details.html))
+        case _ => Seq(HTML.div(HTML.`class` := name)(name)(details.html))
       }
     }
     object Tag {

@@ -1,6 +1,7 @@
 package org.enso.syntax.text
 
-import java.io.{File, PrintWriter}
+import java.io.File
+import java.io.PrintWriter
 
 import org.enso.flexer
 import org.enso.syntax.text.ast.Doc
