@@ -6,31 +6,37 @@ import org.scalameter.api._
 import scala.math.pow
 
 object ParserBenchmark extends Bench.OfflineRegressionReport {
-  val exp14 = Gen.exponential("size")(pow(2, 11).toInt, pow(2, 14).toInt, 2)
-  val exp18 = Gen.exponential("size")(pow(2, 15).toInt, pow(2, 18).toInt, 2)
 
-  val variable   = for { i <- exp18 } yield "abcdefgh" * i
-  val text       = for { i <- exp18 } yield "'" + ("abcdefgh" * i) + "'"
-  val number     = for { i <- exp18 } yield "12345678" * i
-  val calls      = for { i <- exp18 } yield "(a (b " * i + "))" * i
-  val codeBlock  = for { i <- exp18 } yield "a=x\nb++\n" * i
-  val openParens = for { i <- exp18 } yield "((((((((" * i
-  val clsdParens = for { i <- exp18 } yield "((((" * i + "))))" * i
-  val allRules   = for { i <- exp14 } yield """
-                                            | string = ""ABCD""
-                                            | number = 123_4.67
-                                            | fib  : Int -> Int
-                                            | fib  n = fib n-1 + fib n-2
-                                            """.stripMargin * i
+  val range = 0
+  def exp(i: Int) =
+    Gen.exponential("size")(pow(2, i - range).toInt, pow(2, i).toInt, 2)
 
+  def gen(range: Gen[Int], f: Int => String): Gen[String] =
+    for { i <- range } yield f(i)
+
+  val tests = List(
+    "variable"   -> gen(exp(18), i => "abcdefgh" * i),
+    "text"       -> gen(exp(18), i => "'" + ("abcdefgh" * i) + "'"),
+    "number"     -> gen(exp(18), i => "12345678" * i),
+    "calls"      -> gen(exp(11), i => "(a (b " * i + "))" * i),
+    "codeBlock"  -> gen(exp(18), i => "a=x\nb++\n" * i),
+    "openParens" -> gen(exp(18), i => "((((((((" * i),
+    "clsdParens" -> gen(exp(18), i => "((((" * i + "))))" * i),
+    "allRules" -> gen(
+      exp(14),
+      i => """
+             | string = ""ABCD""
+             | number = 123_4.67
+             | fib  : Int -> Int
+             | fib  n = fib n-1 + fib n-2
+           """.stripMargin * i
+    )
+  )
+
+  def run(str: String) = Parser().run(str)
   performance of "parser" in {
-    measure method "variable" in (using(variable) in (Parser().run(_)))
-    measure method "text" in (using(text) in (Parser().run(_)))
-    measure method "number" in (using(number) in (Parser().run(_)))
-    measure method "calls" in (using(calls) in (Parser().run(_)))
-    measure method "codeBlock" in (using(codeBlock) in (Parser().run(_)))
-    measure method "openParens" in (using(openParens) in (Parser().run(_)))
-    measure method "clsdParens" in (using(clsdParens) in (Parser().run(_)))
-    measure method "allRules" in (using(allRules) in (Parser().run(_)))
+    tests.foreach {
+      case (name, gen) => measure method name in (using(gen) in run)
+    }
   }
 }

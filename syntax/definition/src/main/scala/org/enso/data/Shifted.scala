@@ -14,11 +14,11 @@ object Shifted {
     def map[S](f: T => S): List1[S] =
       List1(f(head), tail.map(_.map(f)))
 
-    def toList(): List[Shifted[T]] =
-      toList1.toList
+    def toList(off: Int = 0): List[Shifted[T]] =
+      toList1(off).toList
 
-    def toList1: data.List1[Shifted[T]] =
-      data.List1(Shifted(0, head), tail)
+    def toList1(off: Int = 0): data.List1[Shifted[T]] =
+      data.List1(Shifted(off, head), tail)
 
     def +:[B >: T](t: (Int, B)): List1[B] =
       List1(t._2, Shifted(t._1, head) :: tail)
@@ -44,4 +44,6 @@ object Shifted {
     def fromListDropHead[T](lst: List[Shifted[T]]) =
       List1(lst.head.el, lst.tail)
   }
+
+  implicit def singleton[T](t: T): List1[T] = List1(t, List())
 }

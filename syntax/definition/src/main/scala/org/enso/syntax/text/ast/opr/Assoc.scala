@@ -13,9 +13,10 @@ object Assoc {
   }
 
   private def charAssoc(c: Char) = c match {
+    case '=' => -1
     case ',' => -1
-    case '<' => -1
-    case '>' => 1
+    case '>' => -1
+    case '<' => 1
     case _   => 0
   }
 

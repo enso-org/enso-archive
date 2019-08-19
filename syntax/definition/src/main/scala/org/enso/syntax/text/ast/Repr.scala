@@ -2,6 +2,9 @@ package org.enso.syntax.text.ast
 
 import org.enso.data.List1
 import org.enso.data.Shifted
+import cats.Monoid
+
+import scala.annotation.tailrec
 
 //////////////
 //// Repr ////
@@ -11,15 +14,35 @@ sealed trait Repr extends Repr.Provider {
   import Repr._
 
   val repr = this
-  val span: Int
-  def build(out: StringBuilder): Unit
 
-  def +[T: Repr.Of](that: T) =
+  val span: Int
+
+  def +[T: Repr.Of](that: T): Repr =
     Seq(this, implicitly[Repr.Of[T]].of(that))
+
+  def ++[T: Repr.Of](that: T): Repr =
+    this + " " + that
 
   def show(): String = {
     val bldr = new StringBuilder()
-    repr.build(bldr)
+    @tailrec
+    def go(lst: List[Repr]): Unit = lst match {
+      case Nil =>
+      case r :: rs =>
+        r match {
+          case r: Empty =>
+            go(rs)
+          case r: Letter =>
+            bldr += r.char
+            go(rs)
+          case r: Text =>
+            bldr ++= r.str
+            go(rs)
+          case r: Seq =>
+            go(r.first :: r.second :: rs)
+        }
+    }
+    go(List(repr))
     bldr.result()
   }
 }
@@ -35,26 +58,19 @@ object Repr {
 
   val R = Repr.Empty()
   case class Empty() extends Repr {
-    val span                      = 0
-    def build(out: StringBuilder) = {}
+    val span = 0
   }
 
   case class Letter(char: Char) extends Repr {
-    val span                      = 1
-    def build(out: StringBuilder) = out += char
+    val span = 1
   }
 
   case class Text(str: String) extends Repr {
-    val span                      = str.length
-    def build(out: StringBuilder) = out ++= str
+    val span = str.length
   }
 
   final case class Seq(first: Repr, second: Repr) extends Repr {
     val span = first.span + second.span
-    def build(out: StringBuilder) = {
-      first.build(out)
-      second.build(out)
-    }
   }
 
   //// Provider ////
@@ -69,6 +85,13 @@ object Repr {
   implicit def fromChar(a: Char):     Repr = Repr(a)
 
   implicit def _Provider_[T: Repr.Of](t: T): Provider = of(t)
+
+  //// Instances ////
+
+  implicit val monoid: Monoid[Repr] = new Monoid[Repr] {
+    def empty:                     Repr = R
+    def combine(l: Repr, r: Repr): Repr = l + r
+  }
 
   /////////////////////////////
   ///// Repr.Of Type Class ////

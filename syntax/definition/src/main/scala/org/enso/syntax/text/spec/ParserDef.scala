@@ -1,14 +1,18 @@
-package org.enso.syntax.text
+package org.enso.syntax.text.spec
 
 import org.enso.data.VectorMap
-import org.enso.flexer._
+import org.enso.flexer
+import org.enso.flexer.State
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
+import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Text.Segment.EOL
 
+import scala.annotation.tailrec
 import scala.reflect.runtime.universe.reify
 
-case class ParserDef() extends Parser[AST] {
+case class ParserDef() extends flexer.Parser[AST.Module] {
+  import ParserDef2._
 
   final def unwrap[T](opt: Option[T]): T = opt match {
     case None    => throw new Error("Internal Error")
@@ -19,15 +23,12 @@ case class ParserDef() extends Parser[AST] {
   //// API ////
   /////////////
 
-  def run(
-    input: String,
-    markerSeq: scala.Seq[(Int, AST.Marker)]
-  ): Parser.Result[AST] = {
-    result.markers = VectorMap(markerSeq)
+  def run(input: String, markers: Markers): Result[AST.Module] = {
+    result.markers = VectorMap(markers)
     run(input)
   }
 
-  override def run(input: String): Parser.Result[AST] = {
+  override def run(input: String): Result[AST.Module] = {
     block.onBegin(0)
     state.begin(block.FIRSTCHAR)
     super.run(input)
@@ -50,7 +51,10 @@ case class ParserDef() extends Parser[AST] {
   //// Result ////
   ////////////////
 
-  override def getResult() = result.current
+  override def getResult() = result.current.flatMap {
+    case mod: AST.Module => Some(mod)
+    case _               => None
+  }
 
   final object result {
 
@@ -82,6 +86,16 @@ case class ParserDef() extends Parser[AST] {
         case None    => marked
         case Some(r) => AST.App(r, off.use(), marked)
       })
+    }
+
+    def last(): Option[AST] = {
+      @tailrec
+      def go(ast: AST): AST = ast match {
+        case AST.Marked(_, t)  => go(t)
+        case AST._App(_, _, t) => go(t)
+        case t                 => t
+      }
+      current.map(go)
     }
   }
 
@@ -167,8 +181,8 @@ case class ParserDef() extends Parser[AST] {
     val SFX_CHECK = state.define("Identifier Suffix Check")
   }
 
-  ROOT            || ident._var   || reify { ident.on(AST.Var) }
-  ROOT            || ident.cons   || reify { ident.on(AST.Cons) }
+  ROOT            || ident._var   || reify { ident.on(AST.Var(_)) }
+  ROOT            || ident.cons   || reify { ident.on(AST.Cons(_)) }
   ROOT            || "_"          || reify { ident.on(AST.Blank) }
   ident.SFX_CHECK || ident.errSfx || reify { ident.onErrSfx() }
   ident.SFX_CHECK || always       || reify { ident.onNoErrSfx() }
@@ -208,7 +222,8 @@ case class ParserDef() extends Parser[AST] {
     val opsEq: Pattern    = "=" | "==" | ">=" | "<=" | "/=" | "#="
     val opsDot: Pattern   = "." | ".." | "..." | ","
     val opsGrp: Pattern   = anyOf("()[]{}")
-    val opsNoMod: Pattern = opsEq | opsDot | opsGrp | "##"
+    val opsCmm: Pattern   = "#" | "##"
+    val opsNoMod: Pattern = opsEq | opsDot | opsGrp | opsCmm
 
     val SFX_CHECK = state.define("Operator Suffix Check")
     val MOD_CHECK = state.define("Operator Modifier Check")
@@ -486,7 +501,7 @@ case class ParserDef() extends Parser[AST] {
       var isValid: Boolean,
       var indent: Int,
       var emptyLines: List[Int],
-      var firstLine: Option[AST.Block.Line.Required],
+      var firstLine: Option[AST.Block.Line.NonEmpty],
       var lines: List[AST.Block.Line]
     )
 
@@ -508,6 +523,7 @@ case class ParserDef() extends Parser[AST] {
     def build(): AST.Block = logger.trace {
       submitLine()
       AST.Block(
+        AST.Block.Continuous,
         current.indent,
         current.emptyLines.reverse,
         unwrap(current.firstLine),
@@ -516,14 +532,24 @@ case class ParserDef() extends Parser[AST] {
     }
 
     def submit(): Unit = logger.trace {
-      val block = build()
-      val block2 =
-        if (current.isValid) block
-        else AST.Block.InvalidIndentation(block)
+      val block   = build()
+      val isValid = current.isValid
 
       result.pop()
       off.pop()
       pop()
+
+      val block2 = result.last() match {
+        case None => block
+        case Some(ast) =>
+          if (!ast.isInstanceOf[AST.Opr]) block
+          else block.copy(tp = AST.Block.Discontinuous)
+      }
+
+      val block3 =
+        if (isValid) block2
+        else AST.Block.InvalidIndentation(block2)
+
       result.app(block2)
       logger.endGroup()
     }
@@ -622,67 +648,67 @@ case class ParserDef() extends Parser[AST] {
   block.NEWLINE   || space.opt            || reify { block.onBlockNewline() }
   block.FIRSTCHAR || always               || reify { state.end() }
 
-  ////////////////
-  /// Comments ///
-  ////////////////
-
-  final object cmm {
-
-    import AST.Comment
-
-    var lines: List[String] = Nil
-    var current: String     = ""
-
-    def onEndOneLine(): Unit = logger.trace {
-      result.app(Comment(current))
-      current = ""
-      state.end()
-      rewind()
-    }
-
-    def onBegin(): Unit = logger.trace {
-      state.end()
-      state.begin(MANYLINE)
-    }
-
-    def onEnd(): Unit = logger.trace {
-      result.app(Comment.Block(block.current.indent, lines.reverse))
-      lines = Nil
-      state.end()
-      rewind()
-    }
-
-    def onLine(): Unit = logger.trace {
-      if (lines.isEmpty)
-        current = currentMatch
-      else if (currentMatch.takeWhile(_ == ' ').length > block.current.indent)
-        current = currentMatch.drop(block.current.indent + 1)
-      else {
-        onEnd()
-        state.begin(block.NEWLINE)
-        offset -= 1 // FIXME
-      }
-    }
-
-    def pushLine(): Unit = logger.trace {
-      lines +:= current
-      current = ""
-    }
-
-    val ONELINE  = state.define("One Line Comment")
-    val MANYLINE = state.define("Block Comment")
-
-  }
-
-  ROOT            || "#"                || reify { state.begin(cmm.ONELINE) }
-  block.FIRSTCHAR || "#="               || reify { rewind(3); state.end() }
-  block.FIRSTCHAR || "##"               || reify { rewind(3); state.end() }
-  block.FIRSTCHAR || "#"                || reify { cmm.onBegin() }
-  cmm.ONELINE     || noneOf("\n").many1 || reify { cmm.current = currentMatch }
-  cmm.ONELINE     || (newline | eof)    || reify { cmm.onEndOneLine() }
-  cmm.MANYLINE    || noneOf("\n").many1 || reify { cmm.onLine() }
-  cmm.MANYLINE    || newline            || reify { cmm.pushLine() }
-  cmm.MANYLINE    || eof                || reify { cmm.pushLine(); cmm.onEnd() }
+//  ////////////////
+//  /// Comments ///
+//  ////////////////
+//
+//  final object cmm {
+//
+//    import AST.Comment
+//
+//    var lines: List[String] = Nil
+//    var current: String     = ""
+//
+//    def onEndOneLine(): Unit = logger.trace {
+//      result.app(Comment(current))
+//      current = ""
+//      state.end()
+//      rewind()
+//    }
+//
+//    def onBegin(): Unit = logger.trace {
+//      state.end()
+//      state.begin(MANYLINE)
+//    }
+//
+//    def onEnd(): Unit = logger.trace {
+//      result.app(Comment.Block(block.current.indent, lines.reverse))
+//      lines = Nil
+//      state.end()
+//      rewind()
+//    }
+//
+//    def onLine(): Unit = logger.trace {
+//      if (lines.isEmpty)
+//        current = currentMatch
+//      else if (currentMatch.takeWhile(_ == ' ').length > block.current.indent)
+//        current = currentMatch.drop(block.current.indent + 1)
+//      else {
+//        onEnd()
+//        state.begin(block.NEWLINE)
+//        offset -= 1 // FIXME
+//      }
+//    }
+//
+//    def pushLine(): Unit = logger.trace {
+//      lines +:= current
+//      current = ""
+//    }
+//
+//    val ONELINE  = state.define("One Line Comment")
+//    val MANYLINE = state.define("Block Comment")
+//
+//  }
+//
+//  ROOT            || "#"                || reify { state.begin(cmm.ONELINE) }
+//  block.FIRSTCHAR || "#="               || reify { rewind(3); state.end() }
+//  block.FIRSTCHAR || "##"               || reify { rewind(3); state.end() }
+//  block.FIRSTCHAR || "#"                || reify { cmm.onBegin() }
+//  cmm.ONELINE     || noneOf("\n").many1 || reify { cmm.current = currentMatch }
+//  cmm.ONELINE     || (newline | eof)    || reify { cmm.onEndOneLine() }
+//  cmm.MANYLINE    || noneOf("\n").many1 || reify { cmm.onLine() }
+//  cmm.MANYLINE    || newline            || reify { cmm.pushLine() }
+//  cmm.MANYLINE    || eof                || reify { cmm.pushLine(); cmm.onEnd() }
 
   ////////////////
   /// Defaults ///
@@ -701,4 +727,9 @@ case class ParserDef() extends Parser[AST] {
   ROOT || space || reify { off.on() }
   ROOT || eof   || reify { onEOF() }
   ROOT || any   || reify { onUnrecognized() }
+}
+
+object ParserDef2 {
+  type Result[T] = flexer.Parser.Result[T]
+  type Markers   = scala.Seq[(Int, AST.Marker)]
 }

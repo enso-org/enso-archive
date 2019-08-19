@@ -189,7 +189,7 @@ object Parser {
       i >= 0
   }
 
-  def compile[T, P](p: () => P)(implicit ev: P <:< Parser[T]): () => P =
+  def compile[T, P](p: P)(implicit ev: P <:< Parser[T]): () => P =
     macro Macro.compileImpl[T, P]
 
   case class Result[T](offset: Int, value: Result.Value[T]) {

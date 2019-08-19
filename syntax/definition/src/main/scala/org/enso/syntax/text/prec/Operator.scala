@@ -1,11 +1,11 @@
-package org.enso.syntax.text.precedence
+package org.enso.syntax.text.prec
 
 import org.enso.data.Compare._
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.syntax.text.AST._
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.precedence
+import org.enso.syntax.text.prec
 
 import scala.annotation.tailrec
 
@@ -19,11 +19,24 @@ object Operator {
   /** Build a single AST node from AST stream by applying operator precedence
     * rules, including per-operator precedence and distance-based precedence.
     */
-  def rebuild(astList: List1[Shifted[AST]]): Shifted[AST] = {
-    val segments = precedence.Distance.partition(astList)
-    val flatExpr = segments.map(_.map(rebuildSubExpr))
-    flatExpr.map(rebuildExpr)
+  def rebuild(stream: AST.Stream1): Shifted[AST] = {
+    val stream2 = rebuildNonSpaced(stream)
+    val stream3 = rebuildSpaced(stream2)
+    stream3
   }
+
+  def rebuildNonSpaced(stream: AST.Stream1): AST.Stream1 = {
+    val segs = prec.Distance.partition2(stream)
+    segs.map(_.map(rebuildSubExpr))
+  }
+
+  def rebuildSpaced(flatExpr: AST.Stream1): Shifted[AST] = {
+    val flatExpr2 = Shifted(flatExpr.head.off, Shifted.List1(flatExpr.head.el,flatExpr.tail))
+    flatExpr2.map(rebuildExpr)
+  }
+  
+  def rebuild(stream: AST.Stream): Option[Shifted[AST]] =
+    List1(stream).map(rebuild)
   
   final object Internal {
     def oprToToken(ast: AST): Opr = ast match {

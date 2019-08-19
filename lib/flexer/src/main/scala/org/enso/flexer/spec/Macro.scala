@@ -10,20 +10,20 @@ object Macro {
 
   def compileImpl[T: c.WeakTypeTag, P: c.WeakTypeTag](
     c: Context
-  )(p: c.Expr[() => P])(ev: c.Expr[P <:< Parser[T]]): c.Expr[() => P] = {
+  )(p: c.Expr[P])(ev: c.Expr[P <:< Parser[T]]): c.Expr[() => P] = {
     import c.universe._
     val tree   = p.tree
-    val expr   = q"$tree()"
+    val expr   = q"$tree"
     val parser = c.eval(c.Expr[Parser[T]](c.untypecheck(expr.duplicate)))
     val groups = c.internal
       .createImporter(universe)
       .importTree(universe.Block(parser.state.registry.map(_.generate()): _*))
 
-    val superClassName = tree match {
-      case Select(_, name) => name
+    val (superClassName, tree2) = tree match {
+      case Apply(Select(tree2 @ Select(_, name), _), _) => (name, tree2)
       case _ =>
         println("ERROR: Wrong shape")
-        println("Expected Select(_, name), got:")
+        println("Expected Apply(Select(Select(_, name), _), _), got:")
         println(showRaw(tree))
         throw new Error("Wrong shape")
     }
@@ -48,7 +48,7 @@ object Macro {
       }
     }
 
-    val clsDef = c.parse(s"final class __Parser__ extends $tree")
+    val clsDef = c.parse(s"final class __Parser__ extends $tree2")
     val tgtDef = addGroupDefs.transform(clsDef)
     c.Expr[() => P](q"$tgtDef; () => { new __Parser__ () }")
   }

@@ -1,14 +1,15 @@
 package org.enso.syntax.text
 
-import org.enso.flexer.Parser
+import org.enso.data.List1
+import org.enso.data.Shifted
+import org.enso.data.Tree
 import org.enso.syntax.text.AST._
+import org.enso.syntax.text.AST.implicits._
 import org.enso.syntax.text.ast.DSL._
-import org.enso.flexer
 import org.enso.flexer.Parser.Result
+import org.enso.flexer
 import org.scalatest._
-import DSL._
 import org.enso.syntax.text.AST.Block.Line
-import org.enso.syntax.text.AST.Block.Line.Required
 import org.enso.syntax.text.AST.Text.Segment.EOL
 import org.enso.syntax.text.AST.Text.Segment.Plain
 
@@ -17,29 +18,32 @@ class ParserSpec extends FlatSpec with Matchers {
   type Markers = Seq[(Int, Marker)]
 
   def assertModule(input: String, result: AST, markers: Markers): Assertion = {
-    val output = Parser().run(input, markers)
+    val parser = Parser()
+    val output = parser.run(input, markers)
     output match {
-      case Result(offset, Result.Success(value)) =>
-        assert(value == result)
-        assert(value.show() == input)
+      case Result(offset, Result.Success(module)) =>
+        val rmodule = parser.resolveMacros(module)
+        assert(rmodule == result)
+        assert(module.show() == input)
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 
   def assertExpr(input: String, result: AST, markers: Markers): Assertion = {
-    val output = Parser().run(input, markers)
+    val parser = Parser()
+    val output = parser.run(input, markers)
     output match {
-      case Result(offset, Result.Success(value)) =>
-        val module = value.asInstanceOf[Module]
-        module.lines.tail match {
-          case Nil =>
-            module.lines.head.elem match {
-              case None => fail("Empty expression")
-              case Some(e) =>
-                assert(e == result)
-                assert(value.show() == input)
-            }
-          case _ => fail("Multi-line block")
+      case Result(offset, Result.Success(module)) =>
+        val rmodule = parser.resolveMacros(module)
+        val tail    = module.lines.tail
+        if (!tail.forall(_.elem.isEmpty)) fail("Multi-line block")
+        else {
+          rmodule.lines.head.elem match {
+            case None => fail("Empty expression")
+            case Some(e) =>
+              assert(e == result)
+              assert(module.show() == input)
+          }
         }
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
@@ -53,7 +57,6 @@ class ParserSpec extends FlatSpec with Matchers {
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
-
 
   implicit class TestString(input: String) {
     def parseTitle(str: String): String = {
@@ -71,14 +74,14 @@ class ParserSpec extends FlatSpec with Matchers {
     def ?=(out: AST)    = testBase in { assertExpr(input, out, Seq()) }
     def ?=(out: Module) = testBase in { assertModule(input, out, Seq()) }
     def ?#=(out: AST) = testBase in { assertExpr(input, out, markers) }
-    def testIdentity = testBase in { assertIdentity(input) }
+    def testIdentity  = testBase in { assertIdentity(input) }
   }
 
-  val markers = 0 to 100 map ( offset => offset -> Marker(offset))
+  val markers = 0 to 100 map (offset => offset -> Marker(offset))
 
-  /////////////////////
-  //// Identifiers ////
-  /////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Identifiers /////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   "_"      ?= "_"
   "Name"   ?= "Name"
@@ -91,23 +94,23 @@ class ParserSpec extends FlatSpec with Matchers {
   "name'_" ?= Ident.InvalidSuffix("name'", "_")
   "name`"  ?= "name" $ Unrecognized("`")
 
-  ///////////////////
-  //// Operators ////
-  ///////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Operators ///////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  "++"   ?= "++"
-  "="    ?= "="
-  "=="   ?= "=="
-  ":"    ?= ":"
-  ","    ?= ","
-  "."    ?= "."
-  ".."   ?= ".."
-  "..."  ?= "..."
-  ">="   ?= ">="
-  "<="   ?= "<="
-  "/="   ?= "/="
-  "#="   ?= "#="
-  "##"   ?= "##"
+  //  "="    ?= App.Sides("=")
+  "++"   ?= App.Sides("++")
+  "=="   ?= App.Sides("==")
+  ":"    ?= App.Sides(":")
+  ","    ?= App.Sides(",")
+  "."    ?= App.Sides(".")
+  ".."   ?= App.Sides("..")
+  "..."  ?= App.Sides("...")
+  ">="   ?= App.Sides(">=")
+  "<="   ?= App.Sides("<=")
+  "/="   ?= App.Sides("/=")
+  "#="   ?= App.Sides("#=")
+  "##"   ?= App.Sides("##")
   "+="   ?= Opr.Mod("+")
   "-="   ?= Opr.Mod("-")
   "==="  ?= Ident.InvalidSuffix("==", "=")
@@ -115,32 +118,44 @@ class ParserSpec extends FlatSpec with Matchers {
   ">=="  ?= Ident.InvalidSuffix(">=", "=")
   "+=="  ?= Ident.InvalidSuffix("+", "==")
 
-  /////////////////////
-  //// Expressions ////
-  /////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Precedence + Associativity //////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  "a b"           ?= ("a" $_ "b")
-  "a +  b"        ?= ("a" $_ "+") $__ "b"
-  "a + b + c"     ?= ("a" $_ "+" $_ "b") $_ "+" $_ "c"
-  "a , b , c"     ?= "a" $_ "," $_ ("b" $_ "," $_ "c")
-  "a + b * c"     ?= "a" $_ "+" $_ ("b" $_ "*" $_ "c")
-  "a * b + c"     ?= ("a" $_ "*" $_ "b") $_ "+" $_ "c"
-  "a+ b"          ?= ("a" $ "+") $$_ "b"
-  "a +b"          ?= "a" $_ ("+" $ "b")
-  "a+ +b"         ?= ("a" $ "+") $$_ ("+" $ "b")
-  "*a+"           ?= ("*" $ "a") $ "+"
-  "+a*"           ?= "+" $ ("a" $ "*")
-  "+ <$> a <*> b" ?= ("+" $_ "<$>" $_ "a") $_ "<*>" $_ "b"
-  "+ * ^"         ?= App.Right("+", 1, App.Right("*", 1, "^"))
-  "+ ^ *"         ?= App.Right("+", 1, App.Left("^", 1, "*"))
-  "^ * +"         ?= App.Left(App.Left("^", 1, "*"), 1, "+")
-  "* ^ +"         ?= App.Left(App.Right("*", 1, "^"), 1, "+")
-  "^ + *"         ?= App.Infix("^", 1, "+", 1, "*")
-  "* + ^"         ?= App.Infix("*", 1, "+", 1, "^")
+  "a b"            ?= ("a" $_ "b")
+  "a +  b"         ?= ("a" $_ "+") $__ "b"
+  "a + b + c"      ?= ("a" $_ "+" $_ "b") $_ "+" $_ "c"
+  "a , b , c"      ?= "a" $_ "," $_ ("b" $_ "," $_ "c")
+  "a + b * c"      ?= "a" $_ "+" $_ ("b" $_ "*" $_ "c")
+  "a * b + c"      ?= ("a" $_ "*" $_ "b") $_ "+" $_ "c"
+  "a+ b"           ?= ("a" $ "+") $$_ "b"
+  "a +b"           ?= "a" $_ ("+" $ "b")
+  "a+ +b"          ?= ("a" $ "+") $$_ ("+" $ "b")
+  "*a+"            ?= ("*" $ "a") $ "+"
+  "+a*"            ?= "+" $ ("a" $ "*")
+  "+ <$> a <*> b"  ?= (App.Sides("+") $_ "<$>" $_ "a") $_ "<*>" $_ "b"
+  "+ * ^"          ?= App.Right("+", 1, App.Right("*", 1, App.Sides("^")))
+  "+ ^ *"          ?= App.Right("+", 1, App.Left(App.Sides("^"), 1, "*"))
+  "^ * +"          ?= App.Left(App.Left(App.Sides("^"), 1, "*"), 1, "+")
+  "* ^ +"          ?= App.Left(App.Right("*", 1, App.Sides("^")), 1, "+")
+  "^ + *"          ?= App.Infix(App.Sides("^"), 1, "+", 1, App.Sides("*"))
+  "* + ^"          ?= App.Infix(App.Sides("*"), 1, "+", 1, App.Sides("^"))
+  "a = b.c.d = 10" ?= "a" $_ "=" $_ (("b" $ "." $ "c" $ "." $ "d") $_ "=" $_ 10)
+  "v = f x=1 y=2"  ?= "v" $_ "=" $_ ("f" $_ ("x" $_ "=" $_ 1) $_ ("y" $_ "=" $_ 2))
+  "v' = v .x=1"    ?= "v'" $_ "=" $_ ("v" $_ ("." $ "x" $_ "=" $_ 1))
 
-  ////////////////
-  //// Layout ////
-  ////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Arrows //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  "a -> b"      ?= "a" $_ "->" $_ "b"
+  "a -> b -> c" ?= "a" $_ "->" $_ ("b" $_ "->" $_ "c")
+  "a b -> c d"  ?= ("a" $_ "b") $_ "->" $_ ("c" $_ "d")
+  "a b-> c d"   ?= "a" $_ ("b" $_ "->" $_ ("c" $_ "d"))
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Layout //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   ""           ?= Module(Line())
   "\n"         ?= Module(Line(), Line())
@@ -148,9 +163,9 @@ class ParserSpec extends FlatSpec with Matchers {
   "\n\n"       ?= Module(Line(), Line(), Line())
   " \n  \n   " ?= Module(Line(1), Line(2), Line(3))
 
-  /////////////////
-  //// Numbers ////
-  /////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Numbers /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   "7"     ?= 7
   "07"    ?= Number("07")
@@ -159,15 +174,15 @@ class ParserSpec extends FlatSpec with Matchers {
   "16_"   ?= Number.DanglingBase("16")
   "7.5"   ?= App.Infix(7, 0, Opr("."), 0, 5)
 
-  ////////////////////////
-  //// UTF Surrogates ////
-  ////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// UTF Surrogates //////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   "\uD800\uDF1E" ?= Unrecognized("\uD800\uDF1E")
 
-  //////////////
-  //// Text ////
-  //////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Text ////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   "'"       ?= Text.Unclosed(Text())
   "''"      ?= Text()
@@ -226,8 +241,8 @@ class ParserSpec extends FlatSpec with Matchers {
   }
   //  "'`a(`'" ?= Text(Text.Segment.Interpolated(Some("a" $ Group.Unclosed())))
   //  // Comments
-  //  expr("#"              , Comment)
-  //  expr("#c"             , Comment :: CommentBody("c"))
+//    expr("#"              , Comment)
+//    expr("#c"             , Comment :: CommentBody("c"))
   //  expr("#c\na"          , Comment :: CommentBody("c") :: EOL :: Var("a"))
   //  expr("#c\n a"         , Comment :: CommentBody("c") :: EOL :: CommentBody(" a"))
   //  expr(" #c\n a"        , Comment :: CommentBody("c") :: EOL :: Var("a"))
@@ -242,10 +257,9 @@ class ParserSpec extends FlatSpec with Matchers {
   //  expr("a #= b"         , Var("a") :: DisabledAssignment :: Var("b"))
   //
 
-
-  /////////////////
-  //// Markers ////
-  /////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Markers /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   "marked" ?#= Marked(Marker(0), Var("marked"))
   "Marked" ?#= Marked(Marker(0), Cons("Marked"))
@@ -253,102 +267,174 @@ class ParserSpec extends FlatSpec with Matchers {
   "'    '" ?#= Marked(Marker(0), Text("    "))
   "++++++" ?#= Marked(Marker(0), Opr("++++++"))
   "+++++=" ?#= Marked(Marker(0), Opr.Mod("+++++"))
-  "a b  c" ?#= Marked(Marker(0), Var("a")) $_ Marked(Marker(2), Var("b")) $__ Marked(Marker(5), Var("c"))
+  "a b  c" ?#= Marked(Marker(0), Var("a")) $_ Marked(Marker(2), Var("b")) $__ Marked(
+    Marker(5),
+    Var("c")
+  )
 
-  //////////////////
-  //// Mixfixes ////
-  //////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Comments ////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  //// Valid ////
+  "foo   #L1NE" ?= "foo" $___ Comment("L1NE")
 
-  "()"                 ?= "(" II ")"
-  "( )"                ?= "(" I_I ")"
-  "( (  )   )"         ?= "(" I_ ("(" I__I ")") I___ ")"
-  "(a)"                ?= "(" I "a" I ")"
-  "((a))"              ?= "(" I ("(" I "a" I ")") I ")"
-  "(((a)))"            ?= "(" I ("(" I ("(" I "a" I ")") I ")") I ")"
-  "( (  a   )    )"    ?= "(" I_ ("(" I__ "a" I___ ")") I____ ")"
-  "if a  then   b"     ?= "if" I1_ "a" I1__ "then" I1___ "b"
-  "if a then b else c" ?= "if" I1_ "a" I1_ "then" I1_ "b" I1_ "else" I1_ "c"
-  "(if a then  b) c"   ?= "(" I ("if" I1_ "a" I1_ "then" I1__ "b") I ")" $_ "c"
-  "a (b c) d"          ?= "a" $_ ("(" I ("b" $_ "c") I ")") $_ "d"
+  // FIXME: Think if we can express it using macros. We should be able to.
+//  "#\n    L1NE\n LIN2" ?= Comment.Block(0, List("", "   L1NE", "LIN2"))
+//  "#L1NE\nLIN2" ?= Module(
+//    Line(Comment.Block(0, List("L1NE"))),
+//    Line(Cons("LIN2"))
+//  )
 
-  "(if a then b) else c" ?=
-  "(" I ("if" I1_ "a" I1_ "then" I1_ "b") I ")" $_ "else" $_ "c"
+  //////////////////////////////////////////////////////////////////////////////
+  //// Flags/// ////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  //// Invalid ////
+  "a #= b c" ?= "a" $_ "#=" $_ ("b" $_ "c")
 
-  val _then_else = List(List("then"), List("then", "else"))
+  //////////////////////////////////////////////////////////////////////////////
+  //// Blocks //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  "("           ?= "(" Ix ")"
-  "(("          ?= "(" I ("(" Ix ")") Ix ")"
-  "if"          ?= "if" Ixx (_then_else: _*)
-  "(if a) then" ?= "(" I ("if" I_ "a" Ixx (_then_else: _*)) I ")" $_ "then"
-  "if (a then)" ?= "if" I_ ("(" I ("a" $_ "then") I ")") Ixx (_then_else: _*)
+//  "foo  \n bar" ?= "foo" $__ Block(1, "bar")
+//
+//  "f =  \n\n\n".testIdentity
+//  "  \n\n\n f\nf".testIdentity
+//  "f =  \n\n  x ".testIdentity
+//  "f =\n\n  x\n\n y".testIdentity
+//
+//  "a b\n  c\n" ?= "a" $_ App(
+//    Var("b"),
+//    0,
+//    Block(2, List(), Required(Var("c"), 0), List(Line()))
+//  )
 
-  //  "import Std.Math" ?= "foo"
+  //////////////////////////////////////////////////////////////////////////////
+  //// Mixfixes ////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  //////////////////
-  //// Comments ////
-  //////////////////
+  def amb(head: AST, lst: List[List[AST]]): Macro.Ambiguous =
+    Macro.Ambiguous(Macro.Ambiguous.Segment(head), Tree(lst.map(_ -> (())): _*))
 
-  "foo   #L1NE"        ?= "foo" $___ Comment("L1NE")
-  "#\n    L1NE\n LIN2" ?= Comment.Block(0,List("","   L1NE", "LIN2"))
-  "#L1NE\nLIN2"        ?= Module(Line(Comment.Block(0, List("L1NE"))), Line(Cons("LIN2")))
+  def amb(head: AST, lst: List[List[AST]], body: SAST): Macro.Ambiguous =
+    Macro.Ambiguous(
+      Macro.Ambiguous.Segment(head, Some(body)),
+      Tree(lst.map(_ -> (())): _*)
+    )
 
+  def _amb_group_(i: Int)(t: AST): Macro.Ambiguous =
+    amb("(", List(List(")")), Shifted(i, t))
 
-  ////////////////
-  //// Blocks ////
-  ////////////////
+  val amb_group   = _amb_group_(0)(_)
+  val amb_group_  = _amb_group_(1)(_)
+  val amb_group__ = _amb_group_(2)(_)
+  def group_(): Macro.Ambiguous = amb("(", List(List(")")))
 
-  "foo  \n bar" ?= "foo" $__ Block(1, "bar")
+  def _amb_if(i: Int)(t: AST) =
+    amb("if", List(List("then"), List("then", "else")), Shifted(i, t))
 
-  "f =  \n\n\n".testIdentity
-  "  \n\n\n f\nf".testIdentity
-  "f =  \n\n  x ".testIdentity
-  "f =\n\n  x\n\n y".testIdentity
+  val amb_if   = _amb_if(0)(_)
+  val amb_if_  = _amb_if(1)(_)
+  val amb_if__ = _amb_if(2)(_)
 
-  "a b\n  c\n" ?= "a" $_ App(Var("b"),0,Block(2,List(),Required(Var("c"),0), List(Line())))
+  "()"          ?= Group()
+  "( )"         ?= Group()
+  "( (  )   )"  ?= Group(Group())
+  "(a)"         ?= Group("a")
+  "((a))"       ?= Group(Group("a"))
+  "(((a)))"     ?= Group(Group(Group("a")))
+  "( (  a   ))" ?= Group(Group("a"))
+  "("           ?= amb("(", List(List(")")))
+  "(("          ?= amb_group(group_())
 
-  /////////////////
-  //// Imports ////
-  /////////////////
+  "import Std .  Math  .Vector".stripMargin ?= Import("Std", "Math", "Vector")
 
-//  "import Std.Math" ?= "foo" $__ Block(1, "bar")
+  """def Maybe a
+    |    def Just val:a
+    |    def Nothing
+  """.stripMargin ?= {
+    val defJust    = Def("Just", List("val" $ ":" $ "a"))
+    val defNothing = Def("Nothing")
+    Def(
+      "Maybe",
+      List("a"),
+      Some(Block(Block.Continuous, 4, defJust, defNothing))
+    )
+  }
 
-  /////////////////////
-  //// Large Input ////
-  /////////////////////
+  """foo ->
+    |    bar
+  """.stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar")
 
-//  ("OVERFLOW" * flexer.Parser.BUFFER_SIZE).testIdentity   // ruins logging
+  "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST]("a", "b"))
+  "if a then b else c" ?= Mixfix(
+    List1[AST.Ident]("if", "then", "else"),
+    List1[AST]("a", "b", "c")
+  )
 
-  """
-      a
-     b
-    c
-   d
-  e
-   f g h
-  """.testIdentity
+  "if a"         ?= amb_if_("a": AST)
+  "(if a) b"     ?= Group(amb_if_("a": AST)) $_ "b"
+  "if (a then b" ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
 
-  """
-  # pop1: adults
-  # pop2: children
-  # pop3: mutants
-    Selects the 'fittest' individuals from population and kills the rest!
+  //////////////////////////////////////////////////////////////////////////////
+  //// Foreign /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  keepBest : Pop -> Pop -> Pop -> Pop
-  keepBest pop1 pop2 pop3 =
+  val pyLine1 = "import re"
+  val pyLine2 = """re.match(r"[^@]+@[^@]+\.[^@]+", "foo@ds.pl") != None"""
+  s"""validateEmail address = foreign Python3
+     |    $pyLine1
+     |    $pyLine2
+  """.stripMargin ?= ("validateEmail" $_ "address") $_ "=" $_
+  Foreign(4, "Python3", List(pyLine1, pyLine2))
 
-     unique xs
-        = index xs 0 +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+  //////////////////////////////////////////////////////////////////////////////
+  //// Large Input /////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-     isUnique xs i ####
-        = index xs i . score != index xs i-1 . score
+  ("(" * 100000).testIdentity
+  ("OVERFLOW" * flexer.Parser.BUFFER_SIZE).testIdentity
 
-     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+  //////////////////////////////////////////////////////////////////////////////
+  //// OTHER (TO BE PARTITIONED)////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  """.testIdentity
-
+//  """
+//      a
+//     b
+//    c
+//   d
+//  e
+//   f g h
+//  """.testIdentity
+//
+//  """
+//  # pop1: adults
+//  # pop2: children
+//  # pop3: mutants
+//    Selects the 'fittest' individuals from population and kills the rest!
+//
+//  keepBest : Pop -> Pop -> Pop -> Pop
+//  keepBest pop1 pop2 pop3 =
+//
+//     unique xs
+//        = index xs 0 +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+//
+//     isUnique xs i ####
+//        = index xs i . score != index xs i-1 . score
+//
+//     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+//
+//  """.testIdentity
 
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO //
+////////////////////////////////////////////////////////////////////////////////
+
+// [ ] Comments parsing
+// [ ] Block parsing fixes
+// [ ] Some benchmarks failing?
+// [ ] Benchmarks are slower now - readjust (maybe profile later)
+// [ ] operator blocks
+// [ ] warnings in scala code
