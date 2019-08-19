@@ -1,11 +1,10 @@
 package org.enso.syntax.text.ast
 
 import org.enso.data.List1
+import Repr.R
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import org.enso.syntax.text.ast.Doc.Tags.Tag.Unrecognized
-import Repr.R
 
 ////////////////
 ////// Doc /////
@@ -47,7 +46,9 @@ object Doc {
   /// Symbol ///
   //////////////
 
-  trait Symbol extends org.enso.syntax.text.AST.Symbol {
+  trait Symbol extends Repr.Provider {
+    def span:   Int    = repr.span
+    def show(): String = repr.show()
     val html: HTML
     def renderHTML(): HTMLTag = {
       val docMeta: HTMLTag =
@@ -451,11 +452,11 @@ object Doc {
     final case class Tag(indent: Int, tp: Tag.Type, details: Option[String]) {
       val name: String = tp.toString.toUpperCase
       val repr: Repr = tp match {
-        case Unrecognized => R + makeIndent(indent) + details
+        case Tag.Unrecognized => R + makeIndent(indent) + details
         case _            => R + makeIndent(indent) + name + details
       }
       val html: HTML = tp match {
-        case Unrecognized => Seq(HTML.div(HTML.`class` := name)(details.html))
+        case Tag.Unrecognized => Seq(HTML.div(HTML.`class` := name)(details.html))
         case _            => Seq(HTML.div(HTML.`class` := name)(name)(details.html))
       }
     }

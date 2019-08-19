@@ -1,4 +1,4 @@
-package org.enso.syntax.text.docsParser
+package org.enso.syntax.text.spec
 
 import org.enso.flexer._
 import org.enso.flexer.automata.Pattern

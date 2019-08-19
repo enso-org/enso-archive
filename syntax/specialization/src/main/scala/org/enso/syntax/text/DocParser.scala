@@ -2,6 +2,7 @@ package org.enso.syntax.text
 
 import org.enso.flexer
 import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.spec.DocParserDef
 
 ///////////////////
 //// DocParser ////
@@ -17,7 +18,7 @@ class DocParser {
 
 object DocParser {
   type Result[T] = flexer.Parser.Result[T]
-  private val newEngine = flexer.Parser.compile(docsParser.DocParserDef)
+  private val newEngine = flexer.Parser.compile(DocParserDef())
 
   def run(input: String): Result[Doc.AST] = new DocParser().run(input)
 }
