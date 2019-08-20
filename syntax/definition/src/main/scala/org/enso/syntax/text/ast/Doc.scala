@@ -15,14 +15,15 @@ final case class Doc(
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
 ) extends Doc.AST {
+  implicit class _OptionT_[T <: Doc.Symbol](val self: Option[T]) {
+    val html: Doc.HTML = self.getOrElse(Doc.AST.Text("")).html
+  }
+
   val repr: Repr = R + tags + synopsis + body
 
   val html: Doc.HTML = {
-    val htmlCls      = HTML.`class` := this.productPrefix
-    val tagsHtml     = tags.getOrElse(Doc.AST.Text("")).html
-    val synopsisHtml = synopsis.getOrElse(Doc.AST.Text("")).html
-    val bodyHtml     = body.getOrElse(Doc.AST.Text("")).html
-    Seq(HTML.div(htmlCls)(tagsHtml)(synopsisHtml)(bodyHtml))
+    val htmlCls = HTML.`class` := this.productPrefix
+    Seq(HTML.div(htmlCls)(tags.html)(synopsis.html)(body.html))
   }
 }
 
@@ -51,15 +52,14 @@ object Doc {
 
     val html: HTML
     def renderHTML(): HTMLTag = {
-      val docMeta: HTMLTag =
-        HTML.meta(HTML.httpEquiv := "Content-Type")(
-          HTML.content := "text/html"
-        )(
-          HTML.charset := "UTF-8"
-        )
-      val cssLink: HTMLTag =
-        HTML.link(HTML.rel := "stylesheet")(HTML.href := "style.css")
-      HTML.html(HTML.head(docMeta, cssLink), HTML.body(html))
+      val metaEquiv     = HTML.httpEquiv := "Content-Type"
+      val metaCont      = HTML.content := "text/html"
+      val metaChar      = HTML.charset := "UTF-8"
+      val meta: HTMLTag = HTML.meta(metaEquiv)(metaCont)(metaChar)
+      val cssRel        = HTML.rel := "stylesheet"
+      val cssHref       = HTML.href := "style.css"
+      val css: HTMLTag  = HTML.link(cssRel)(cssHref)
+      HTML.html(HTML.head(meta, css), HTML.body(html))
     }
   }
 
