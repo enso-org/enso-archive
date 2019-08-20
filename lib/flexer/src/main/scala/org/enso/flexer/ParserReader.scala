@@ -23,7 +23,7 @@ class ParserReader(input: DataInputStream) extends UTFReader(input) {
     super.init()
   }
 
-  final def charOffset: Int = offset - charSize - 1
+  final def charOffset: Int = offset - charSize
 
   final override def fill(): Unit = {
     val keepchars = result.length()
@@ -57,8 +57,9 @@ class ParserReader(input: DataInputStream) extends UTFReader(input) {
   }
 
   final def rewind(off: Int): Unit = {
-    result.setLength(result.length + (charOffset + 1 - off))
+    result.setLength(result.length - (charOffset - off))
     offset = off
+    nextChar()
     rewinded = true
   }
 
