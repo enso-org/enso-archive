@@ -34,7 +34,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
     )
   )
 
-  def run(str: String) = Parser().run(str)
+  def run(str: String) = Parser().run(new ParserReader(str))
   performance of "parser" in {
     tests.foreach {
       case (name, gen) => measure method name in (using(gen) in run)

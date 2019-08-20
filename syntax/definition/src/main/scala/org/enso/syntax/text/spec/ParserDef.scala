@@ -4,7 +4,7 @@ import java.io.DataInputStream
 
 import org.enso.data.VectorMap
 import org.enso.flexer
-import org.enso.flexer.State
+import org.enso.flexer.{ParserReader, State}
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
 import org.enso.syntax.text.AST

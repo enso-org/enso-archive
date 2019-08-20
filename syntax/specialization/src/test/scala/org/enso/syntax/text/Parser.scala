@@ -3,16 +3,15 @@ package org.enso.syntax.text
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.data.Tree
-import org.enso.flexer.{Parser, ParserReader}
-import org.enso.syntax.text.AST._
-import org.enso.syntax.text.AST.implicits._
-import org.enso.syntax.text.ast.DSL._
 import org.enso.flexer.Parser.Result
-import org.enso.flexer
-import org.scalatest._
+import org.enso.flexer.ParserReader
 import org.enso.syntax.text.AST.Block.Line
 import org.enso.syntax.text.AST.Text.Segment.EOL
 import org.enso.syntax.text.AST.Text.Segment.Plain
+import org.enso.syntax.text.AST._
+import org.enso.syntax.text.AST.implicits._
+import org.enso.syntax.text.ast.DSL._
+import org.scalatest._
 
 class ParserSpec extends FlatSpec with Matchers {
 
@@ -184,12 +183,6 @@ class ParserSpec extends FlatSpec with Matchers {
   //////////////////////////////////////////////////////////////////////////////
   //// Text ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
-
-  ////////////////////////
-  //// UTF Surrogates ////
-  ////////////////////////
-
-  "\uD800\uDF1E" ?= Unrecognized("\uD800\uDF1E")
 
   //////////////
   //// Text ////
@@ -367,10 +360,6 @@ class ParserSpec extends FlatSpec with Matchers {
     )
   }
 
-  ("\uD800\uDF1E"* flexer.Parser.BUFFER_SIZE).testIdentity
-
-//  ("OVERFLOW" * flexer.Parser.BUFFER_SIZE).testIdentity   // ruins logging
-
   """foo ->
     |    bar
   """.stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar")
@@ -401,8 +390,9 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Large Input /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  ("(" * 100000).testIdentity
-  ("OVERFLOW" * flexer.Parser.BUFFER_SIZE).testIdentity
+//  ("(" * 100000).testIdentity
+  ("OVERFLOW " * 100000).testIdentity
+  ("\uD800\uDF1E " * 100000).testIdentity
 
   //////////////////////////////////////////////////////////////////////////////
   //// OTHER (TO BE PARTITIONED)////////////////////////////////////////////////
@@ -440,7 +430,7 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Preprocessing ////
   ///////////////////////
 
-  "\t\r\r\n\r"       ?= Module(Line(4), Line(), Line(), Line())
+  "\t\r\r\n\r" ?= Module(Line(4), Line(), Line(), Line())
 }
 
 ////////////////////////////////////////////////////////////////////////////////
