@@ -108,10 +108,10 @@ object DocParserRunner {
       println("--- " * 20)
       println(v.show())
       println("--- " * 20)
-      println(v.renderHTML())
+      println(v.renderHTML("style.css"))
       val path =
         "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
-      saveHTMLCodeToLocalFile(path, v.renderHTML())
+      saveHTMLCodeToLocalFile(path, v.renderHTML("style.css"))
   }
 
   def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {

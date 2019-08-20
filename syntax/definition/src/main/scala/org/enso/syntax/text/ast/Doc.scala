@@ -53,13 +53,13 @@ object Doc {
     def show(): String = repr.show()
 
     def html: HTML
-    def renderHTML(): HTMLTag = {
+    def renderHTML(cssLink: String): HTMLTag = {
       val metaEquiv     = HTML.httpEquiv := "Content-Type"
       val metaCont      = HTML.content := "text/html"
       val metaChar      = HTML.charset := "UTF-8"
       val meta: HTMLTag = HTML.meta(metaEquiv)(metaCont)(metaChar)
       val cssRel        = HTML.rel := "stylesheet"
-      val cssHref       = HTML.href := "style.css"
+      val cssHref       = HTML.href := cssLink
       val css: HTMLTag  = HTML.link(cssRel)(cssHref)
       HTML.html(HTML.head(meta, css), HTML.body(html))
     }
@@ -470,7 +470,7 @@ object Doc {
     }
 
     implicit final class _OptionTagType_(val self: Option[String]) {
-      val repr: Repr = self.fold(Repr())(Repr(_))
+      val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
       val html: HTML = {
         val htmlCls = HTML.`class` := "tag_details"
         Seq(self.map(HTML.div(htmlCls)(_)).getOrElse("".html))
