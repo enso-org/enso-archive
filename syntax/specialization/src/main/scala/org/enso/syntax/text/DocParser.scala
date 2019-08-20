@@ -4,6 +4,7 @@ import java.io.File
 import java.io.PrintWriter
 
 import org.enso.flexer
+import org.enso.syntax.text.DocParser.Result
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
@@ -16,7 +17,7 @@ class DocParser {
   import DocParser._
   private val engine = newEngine()
 
-  def run(input: String): Result[Doc.AST] = engine.run(input)
+  def run(input: String): Result[Doc] = engine.run(input)
 
 }
 
@@ -24,7 +25,7 @@ object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
-  def run(input: String): Result[Doc.AST] = new DocParser().run(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 }
 
 //////////////
@@ -98,7 +99,7 @@ object DocParserRunner {
       |   Continuation of example section can occur after multiline code
       |""".stripMargin
 
-  val docParserOut = docParserInstance.run(dataToParse)
+  val docParserOut: Result[Doc] = docParserInstance.run(dataToParse)
 
   pprint.pprintln(docParserOut, width = 50, height = 10000)
 
@@ -107,11 +108,10 @@ object DocParserRunner {
       println("--- " * 20)
       println(v.show())
       println("--- " * 20)
-      println(v.renderHTML)
-      saveHTMLCodeToLocalFile(
-        "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/",
-        v.renderHTML
-      )
+      println(v.renderHTML())
+      val path =
+        "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
+      saveHTMLCodeToLocalFile(path, v.renderHTML())
   }
 
   def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {

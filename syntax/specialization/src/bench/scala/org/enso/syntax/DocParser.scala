@@ -1,6 +1,8 @@
 package org.enso.syntax
 
 import org.enso.syntax.text.DocParser
+import org.enso.syntax.text.DocParser.Result
+import org.enso.syntax.text.ast.Doc
 import org.scalameter.api._
 
 import scala.math.pow
@@ -36,13 +38,13 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
     "sections" -> gen(exp(8), i => "Foo \n\nA \n\n ! B\n\n ? C \n\n > D " * i)
   )
 
-  def exp(i: Int) =
+  def exp(i: Int): Gen[Int] =
     Gen.exponential("size")(pow(2, i - range).toInt, pow(2, i).toInt, 2)
 
   def gen(range: Gen[Int], f: Int => String): Gen[String] =
     for { i <- range } yield f(i)
 
-  def run(str: String) = DocParser.run(str)
+  def run(str: String): Result[Doc] = DocParser.run(str)
   performance of "DocParser" in {
     tests.foreach {
       case (name, gen) => measure method name in (using(gen) in run)

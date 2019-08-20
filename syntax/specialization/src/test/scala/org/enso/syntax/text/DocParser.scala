@@ -12,7 +12,7 @@ import org.scalatest.Assertion
 class DocParserSpec extends FlatSpec with Matchers {
   val logger = new Logger()
 
-  def assertExpr(input: String, result: Doc.AST): Assertion = {
+  def assertExpr(input: String, result: Doc): Assertion = {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
@@ -36,7 +36,7 @@ class DocParserSpec extends FlatSpec with Matchers {
 
     private val testBase = it should parseTitle(input)
 
-    def ?=(out: Doc.AST): Unit = testBase in {
+    def ?=(out: Doc): Unit = testBase in {
       assertExpr(input, out)
     }
   }

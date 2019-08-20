@@ -15,7 +15,7 @@ final case class Doc(
   tags: Option[Doc.Tags],
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
-) extends Doc.AST {
+) extends Doc.Symbol {
   implicit class _OptionT_[T <: Doc.Symbol](val self: Option[T]) {
     val html: Doc.HTML = self.getOrElse(Doc.AST.Text("")).html
   }

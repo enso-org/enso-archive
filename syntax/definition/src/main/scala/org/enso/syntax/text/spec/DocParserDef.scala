@@ -9,16 +9,17 @@ import org.enso.syntax.text.ast.Doc
 
 import scala.reflect.runtime.universe.reify
 
-case class DocParserDef() extends Parser[AST] {
+case class DocParserDef() extends Parser[Doc] {
 
   //////////////
   /// Result ///
   //////////////
 
-  override def getResult(): Option[AST] = result.current
+  override def getResult(): Option[Doc] = result.doc
 
   final object result {
     var current: Option[AST]       = None
+    var doc: Option[Doc]           = None
     var workingASTStack: List[AST] = Nil
 
     def push(): Unit = logger.trace {
@@ -362,7 +363,10 @@ case class DocParserDef() extends Parser[AST] {
     onEndOfSection()
     reverseFinalASTStack()
     reverseTagsStack()
+    createDoc()
+  }
 
+  def createDoc(): Unit = logger.trace {
     val tags = tagsStack.length match {
       case 0 => None
       case _ => Some(Tags(List1(tagsStack.head, tagsStack.tail)))
@@ -381,7 +385,7 @@ case class DocParserDef() extends Parser[AST] {
         Some(Body(List1(bodyHead, bodyTail)))
       }
     }
-    result.current = Some(
+    result.doc = Some(
       Doc(
         tags,
         synopsis,
