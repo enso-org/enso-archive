@@ -29,7 +29,7 @@ class ReaderUTF(val input: DataInputStream) {
     offset = 0
     while (offset < BUFFERSIZE && readChar()) Unit
     for (_ <- 1 until charLength(lastChar))
-      buffer(nextOffset()) = input.read().toByte
+      readChar()
     length = offset
     offset = 0
   }
