@@ -152,6 +152,12 @@ object Doc {
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val elemsHTML    = elems.map(elem => elem.html)
+        // TODO : Next PR
+        // we need other design here.
+        // Bascially we dont want to display always button
+        // we want to be able to display it maybe as a button on website
+        // and completely differently in gui.
+        // The printing sohuld be configurable
         val btnAction = onclick :=
           s"""var code = document.getElementById("$uniqueIDCode");
              |var btn = document.getElementById("$uniqueIDBtn").firstChild;
@@ -210,25 +216,18 @@ object Doc {
     final case class List(indent: Int, tp: List.Type, elems: List1[Elem])
         extends Elem {
 
-      val repr: Repr = Repr() + elems.toList.map {
-          case elem @ (_: Elem.Invalid) =>
-            R + Newline + elem
-          case elem @ (_: List) =>
-            R + Newline + elem
-          case elem =>
-            if (elems.head != elem) {
-              R + Newline + makeIndent(indent) + tp.marker + elem
-            } else {
-              Repr(makeIndent(indent)) + tp.marker + elem
-            }
+      val repr: Repr = R + elems.toList.map {
+          case elem @ (_: Elem.Invalid) => R + Newline + elem
+          case elem @ (_: List)         => R + Newline + elem
+          case elem if elems.head == elem =>
+            R + makeIndent(indent) + tp.marker + elem
+          case elem => R + Newline + makeIndent(indent) + tp.marker + elem
         }
 
-      val html: HTML = Seq(tp.HTMLMarker {
-        elems.toList.map {
-          case elem @ (_: List) => elem.html
-          case elem             => Seq(HTML.li(elem.html))
-        }
-      })
+      val html: HTML = Seq(tp.HTMLMarker(elems.toList.map {
+        case elem @ (_: List) => elem.html
+        case elem             => Seq(HTML.li(elem.html))
+      }))
     }
 
     object List {
