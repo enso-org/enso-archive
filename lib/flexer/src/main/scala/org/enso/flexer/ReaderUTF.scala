@@ -44,7 +44,6 @@ class ReaderUTF(val input: DataInputStream) {
   }
 
   final protected def nextOffset(): Int = {
-    println("offset " + offset)
     val off = offset
     offset += 1
     off
@@ -53,7 +52,6 @@ class ReaderUTF(val input: DataInputStream) {
   fill()
 
   def nextChar(): Int = {
-    println("nextChar, offset: " + offset)
     if (offset >= length)
       if (length >= BUFFERSIZE)
         fill()
@@ -62,12 +60,10 @@ class ReaderUTF(val input: DataInputStream) {
         charCode = -1
         return charCode
       }
-    var char = buffer(nextOffset()).toInt
-    charSize = charLength(char.toByte)
-    char     = char & charMask(charSize)
+    charSize = charLength(buffer(offset))
+    charCode = buffer(nextOffset()) & charMask(charSize)
     for (_ <- 1 until charSize)
-      char = char << UTFBYTESIZE | (buffer(nextOffset()) & charMask(0))
-    charCode = char
+      charCode = charCode << UTFBYTESIZE | (buffer(nextOffset()) & charMask(0))
     charCode
   }
 
