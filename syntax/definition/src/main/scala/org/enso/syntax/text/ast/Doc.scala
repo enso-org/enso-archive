@@ -42,7 +42,7 @@ object Doc {
   def makeIndent(size: Int): String = " " * size
 
   //////////////////////////////////////////////////////////////////////////////
-  /// Symbol ///////////////////////////////////////////////////////////////////
+  ////// Symbol ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   trait Symbol extends Repr.Provider {
@@ -71,7 +71,7 @@ object Doc {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  /// AST //////////////////////////////////////////////////////////////////////
+  ////// AST ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   sealed trait AST extends Symbol
@@ -79,7 +79,7 @@ object Doc {
     trait Invalid extends AST
 
     ////////////////////////////////////////////////////////////////////////////
-    /// Normal text & Newline //////////////////////////////////////////////////
+    ////// Normal text & Newline ///////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     final case class Text(text: String) extends AST {
@@ -93,7 +93,7 @@ object Doc {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    /// Text Formatter - Bold, Italic, Strikethrough ///////////////////////////
+    ////// Text Formatter - Bold, Italic, Strikethrough ////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     final case class Formatter(
@@ -142,20 +142,32 @@ object Doc {
     ////////////////////////////////////////////////////////////////////////////
 
     final case class Code(elems: scala.List[Code.Line]) extends AST {
+      def randomString(length: Int): String = {
+        val r  = new scala.util.Random
+        val sb = new StringBuilder
+        for (i <- 1 to length) {
+          sb.append(r.nextPrintableChar)
+        }
+        sb.toString
+      }
+
       val repr: Repr =
         R + elems.map(_.repr.show()).mkString(AST.Newline.show())
       val html: HTML = {
-        val htmlCls   = HTML.`class` := this.productPrefix
-        val htmlId    = HTML.`id` := "code-1"
-        val elemsHTML = elems.map(elem => elem.html)
-        val stl       = HTML.`style` := "display: none"
+        val uniqueIDCode = randomString(8)
+        val uniqueIDBtn  = randomString(8)
+        val htmlClsCode  = HTML.`class` := this.productPrefix
+        val htmlIdCode   = HTML.`id` := uniqueIDCode
+        val htmlIdBtn    = HTML.`id` := uniqueIDBtn
+        val elemsHTML    = elems.map(elem => elem.html)
+        val style        = HTML.`style` := "display: none"
         val btnAction = onclick :=
-          """var code = document.getElementById("code-1");
-            |var btn = document.getElementById("btn-1").firstChild;
-            |btn.data = btn.data == "Show" ? "Hide" : "Show";
-            |code.style.display = code.style.display == "none" ? "inline-block" : "none";""".stripMargin
-        val btn = HTML.button(btnAction)(HTML.`id` := "btn-1")("Show")
-        Seq(HTML.div(btn, HTML.div(htmlCls)(htmlId)(stl)(elemsHTML)))
+          s"""var code = document.getElementById("$uniqueIDCode");
+             |var btn = document.getElementById("$uniqueIDBtn").firstChild;
+             |btn.data = btn.data == "Show" ? "Hide" : "Show";
+             |code.style.display = code.style.display == "none" ? "inline-block" : "none";""".stripMargin
+        val btn = HTML.button(btnAction)(htmlIdBtn)("Show")
+        Seq(HTML.div(btn, HTML.div(htmlClsCode)(htmlIdCode)(style)(elemsHTML)))
       }
     }
     object Code {
@@ -424,7 +436,7 @@ object Doc {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  /// Tags /////////////////////////////////////////////////////////////////////
+  ////// Tags //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   final case class Tags(elems: List[Tags.Tag]) extends Symbol {
