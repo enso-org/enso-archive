@@ -28,7 +28,7 @@ case class DocParserDef() extends Parser[Doc] {
         workingASTStack +:= current.get
         current = None
       } else {
-        logger.log("Undefined current")
+        logger.err("Undefined current")
       }
     }
 
@@ -38,7 +38,7 @@ case class DocParserDef() extends Parser[Doc] {
         workingASTStack = workingASTStack.tail
         logger.log(s"New result: $current")
       } else {
-        logger.log("Trying to pop empty AST stack")
+        logger.err("Trying to pop empty AST stack")
       }
     }
   }
@@ -58,10 +58,10 @@ case class DocParserDef() extends Parser[Doc] {
   val upperLetter: Pattern = range('A', 'Z')
   val digit: Pattern       = range('0', '9')
 
-  val specialChars: String       = ",.:/’='|+-"
-  val specialCharacters: Pattern = anyOf(specialChars)
-  val whitespace: Pattern        = ' '.many1
-  val newline                    = '\n'
+  val specialCharacters
+    : Pattern             = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
+  val whitespace: Pattern = ' '.many1
+  val newline             = '\n'
 
   val possibleChars
     : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
@@ -172,18 +172,18 @@ case class DocParserDef() extends Parser[Doc] {
       result.pop()
     } while (result.current.get == Elem.Newline)
     result.current match {
-      case Some(_: Elem.Code) => {
+      case Some(_: Elem.Code) =>
         val elems   = result.current.get.asInstanceOf[Elem.Code].elems
         val newElem = Elem.Code.Line(latestIndent, in)
         result.current = Some(Elem.Code(elems :+ newElem))
-      }
       case Some(_) | None => result.push()
     }
     result.push()
   }
 
   val inlineCodeTrigger = '`'
-  val inlineCodePattern = inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
+  val inlineCodePattern
+    : Pattern = inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
   ROOT || inlineCodePattern || reify {
     pushCodeLine(currentMatch.substring(1).dropRight(1))
   }
@@ -379,11 +379,10 @@ case class DocParserDef() extends Parser[Doc] {
 
     val body = sectionsStack.length match {
       case 0 | 1 => None
-      case _ => {
+      case _ =>
         val bodyHead = sectionsStack.tail.head
         val bodyTail = sectionsStack.tail.tail
         Some(Body(List1(bodyHead, bodyTail)))
-      }
     }
     result.doc = Some(
       Doc(
@@ -444,10 +443,10 @@ case class DocParserDef() extends Parser[Doc] {
       result.push()
     }
 
-  val imageNameTrigger: String = Elem.Link.Image().marker + "["
-  val urlNameTrigger: String   = Elem.Link.URL().marker + "["
-  val imageLinkPattern         = imageNameTrigger >> not(')').many1 >> ')'
-  val urlLinkPattern           = urlNameTrigger >> not(')').many1 >> ')'
+  val imageNameTrigger: String  = Elem.Link.Image().marker + "["
+  val urlNameTrigger: String    = Elem.Link.URL().marker + "["
+  val imageLinkPattern: Pattern = imageNameTrigger >> not(')').many1 >> ')'
+  val urlLinkPattern: Pattern   = urlNameTrigger >> not(')').many1 >> ')'
 
   ROOT || imageLinkPattern || reify {
     val in   = currentMatch.substring(2).dropRight(1).split(']')
@@ -606,8 +605,11 @@ case class DocParserDef() extends Parser[Doc] {
   val orderedListTrigger: Char   = Elem.List.Ordered.marker
   val unorderedListTrigger: Char = Elem.List.Unordered.marker
 
-  val orderedListPattern = indentPattern >> orderedListTrigger >> not(newline).many1
-  val unorderedListPattern = indentPattern >> unorderedListTrigger >> not(
+  val orderedListPattern: Pattern = indentPattern >> orderedListTrigger >> not(
+      newline
+    ).many1
+  val unorderedListPattern
+    : Pattern = indentPattern >> unorderedListTrigger >> not(
       newline
     ).many1
   NEWLINE || orderedListPattern || reify {
