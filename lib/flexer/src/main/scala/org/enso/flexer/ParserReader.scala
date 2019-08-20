@@ -4,10 +4,10 @@ import java.io._
 import java.nio.charset.StandardCharsets
 
 import org.enso.flexer.ParserReader._
-import org.enso.flexer.UTFReader.BUFFERSIZE
-import org.enso.flexer.UTFReader.ENDOFINPUT
+import org.enso.flexer.ReaderUTF.BUFFERSIZE
+import org.enso.flexer.ReaderUTF.ENDOFINPUT
 
-class ParserReader(input: DataInputStream) extends UTFReader(input) {
+class ParserReader(input: DataInputStream) extends ReaderUTF(input) {
 
   var lastRuleOffset = 0
   var rewinded = false

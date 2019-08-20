@@ -3,7 +3,7 @@ package org.enso.flexer
 import org.enso.Logger
 import debug.Escape
 import spec.Macro
-import UTFReader.ENDOFINPUT
+import ReaderUTF.ENDOFINPUT
 
 import scala.collection.mutable
 
