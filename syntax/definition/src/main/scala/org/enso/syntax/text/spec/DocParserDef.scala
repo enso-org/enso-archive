@@ -72,21 +72,20 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////
 
   def onPushingNormalText(in: String): Unit = logger.trace {
-    var text           = in
     val isDocBeginning = result.workingASTStack.isEmpty && sectionsStack.isEmpty // to create tags on file beginning
     val isSectionBeginning = result.workingASTStack.isEmpty || result.workingASTStack.head
         .isInstanceOf[Section.Header] // to remove unnecessary indent from first line as yet onIndent hasn't been called
 
     if (isDocBeginning) {
       if (checkForTag(in) == false) {
-        text = removeWhitespaces(text)
+        val text = removeWhitespaces(in)
         pushNormalText(text)
       }
     } else if (isSectionBeginning) {
-      text = removeWhitespaces(text)
+      val text = removeWhitespaces(in)
       pushNormalText(text)
     } else {
-      pushNormalText(text)
+      pushNormalText(in)
     }
   }
 
@@ -124,16 +123,15 @@ case class DocParserDef() extends Parser[Doc] {
       if (details.replaceAll("\\s", "").length == 0) {
         tagsStack +:= Tags.Tag(indent, tagType)
       } else {
-        var det = details
-        if (det.nonEmpty) {
-          while (det.head == ' ' && det.length > 1) {
-            det = det.tail
-          }
+        if (details.nonEmpty) {
+          var det = removeWhitespaces(details)
           if (tagType != Tags.Tag.Unrecognized) {
             det = ' ' + det
           }
+          tagsStack +:= Tags.Tag(indent, tagType, Some(det))
+        } else {
+          Tags.Tag(indent, tagType, None)
         }
-        tagsStack +:= Tags.Tag(indent, tagType, Some(det))
       }
       result.current = Some("")
     }
