@@ -21,7 +21,6 @@ final case class Doc(
   }
 
   val repr: Repr = R + tags + synopsis + body
-
   val html: Doc.HTML = {
     val htmlCls = HTML.`class` := this.productPrefix
     Seq(HTML.div(htmlCls)(tags.html)(synopsis.html)(body.html))
@@ -96,10 +95,8 @@ object Doc {
     ////// Text Formatter - Bold, Italic, Strikethrough ////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    final case class Formatter(
-      tp: Formatter.Type,
-      elems: scala.List[Elem]
-    ) extends Elem {
+    final case class Formatter(tp: Formatter.Type, elems: scala.List[Elem])
+        extends Elem {
       val repr: Repr = R + tp.marker + elems + tp.marker
       val html: HTML = Seq(tp.htmlMarker(elems.html))
     }
@@ -111,10 +108,7 @@ object Doc {
       def apply(tp: Type, elems: Elem*): Formatter =
         Formatter(tp, elems.toList)
 
-      abstract class Type(
-        val marker: Char,
-        val htmlMarker: HTMLTag
-      )
+      abstract class Type(val marker: Char, val htmlMarker: HTMLTag)
       case object Bold          extends Type('*', HTML.b)
       case object Italic        extends Type('_', HTML.i)
       case object Strikethrough extends Type('~', HTML.s)
@@ -129,11 +123,9 @@ object Doc {
       }
 
       object Unclosed {
-        def apply(tp: Type): Unclosed = Unclosed(tp, Nil)
-        def apply(tp: Type, elem: Elem): Unclosed =
-          Unclosed(tp, elem :: Nil)
-        def apply(tp: Type, elems: Elem*): Unclosed =
-          Unclosed(tp, elems.toList)
+        def apply(tp: Type):               Unclosed = Unclosed(tp, Nil)
+        def apply(tp: Type, elem: Elem):   Unclosed = Unclosed(tp, elem :: Nil)
+        def apply(tp: Type, elems: Elem*): Unclosed = Unclosed(tp, elems.toList)
       }
     }
 
@@ -142,9 +134,8 @@ object Doc {
     ////////////////////////////////////////////////////////////////////////////
 
     final case class Code(elems: scala.List[Code.Line]) extends Elem {
-      val repr: Repr = R + elems
-          .map(_.repr.show())
-          .mkString(Elem.Newline.show())
+      val newLn: String = Elem.Newline.show()
+      val repr: Repr    = R + elems.map(_.repr.show()).mkString(newLn)
       val html: HTML = {
         val uniqueIDCode = Random.alphanumeric.take(8).mkString("")
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
@@ -215,7 +206,6 @@ object Doc {
 
     final case class List(indent: Int, tp: List.Type, elems: List1[Elem])
         extends Elem {
-
       val repr: Repr = R + elems.toList.map {
           case elem @ (_: Elem.Invalid) => R + Newline + elem
           case elem @ (_: List)         => R + Newline + elem
@@ -236,19 +226,13 @@ object Doc {
       def apply(indent: Int, listType: Type, elems: Elem*): List =
         List(indent, listType, List1(elems.head, elems.tail.toList))
 
-      abstract class Type(
-        val marker: Char,
-        val HTMLMarker: HTMLTag
-      )
+      abstract class Type(val marker: Char, val HTMLMarker: HTMLTag)
       final case object Unordered extends Type('-', HTML.ul)
       final case object Ordered   extends Type('*', HTML.ol)
 
       object Indent {
-        final case class Invalid(
-          indent: Int,
-          tp: Type,
-          elem: Elem
-        ) extends Elem.Invalid {
+        final case class Invalid(indent: Int, tp: Type, elem: Elem)
+            extends Elem.Invalid {
           val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem
           val html: HTML = {
             val objectName = getClass.getEnclosingClass.toString.split('$').last
@@ -280,17 +264,12 @@ object Doc {
       }
     }
     object Header {
-      def apply(elem: Elem): Header =
-        Header(elem :: Nil)
-      def apply(elems: Elem*): Header =
-        Header(elems.toList)
+      def apply(elem: Elem):   Header = Header(elem :: Nil)
+      def apply(elems: Elem*): Header = Header(elems.toList)
     }
 
-    final case class Marked(
-      indent: Int,
-      tp: Marked.Type,
-      elems: List[Elem]
-    ) extends Section {
+    final case class Marked(indent: Int, tp: Marked.Type, elems: List[Elem])
+        extends Section {
       val marker: String = tp.marker.toString
       val firstIndentRepr = Repr(indent match {
         case 1 => marker
@@ -321,18 +300,14 @@ object Doc {
     }
 
     object Marked {
-      def apply(indent: Int, st: Type): Marked =
-        Marked(indent, st, Nil)
+      def apply(indent: Int, st: Type): Marked = Marked(indent, st, Nil)
       def apply(indent: Int, st: Type, elem: Elem): Marked =
         Marked(indent, st, elem :: Nil)
       def apply(indent: Int, st: Type, elems: Elem*): Marked =
         Marked(indent, st, elems.toList)
-      def apply(st: Type): Marked =
-        Marked(1, st, Nil)
-      def apply(st: Type, elem: Elem): Marked =
-        Marked(1, st, elem :: Nil)
-      def apply(st: Type, elems: Elem*): Marked =
-        Marked(1, st, elems.toList)
+      def apply(st: Type):               Marked = Marked(1, st, Nil)
+      def apply(st: Type, elem: Elem):   Marked = Marked(1, st, elem :: Nil)
+      def apply(st: Type, elems: Elem*): Marked = Marked(1, st, elems.toList)
 
       abstract class Type(val marker: Char)
       case object Important extends Type('!')
@@ -340,10 +315,7 @@ object Doc {
       case object Example   extends Type('>')
     }
 
-    final case class Raw(
-      indent: Int,
-      elems: List[Elem]
-    ) extends Section {
+    final case class Raw(indent: Int, elems: List[Elem]) extends Section {
       val elemsRepr: List[Repr] = elems.zipWithIndex.map {
         case (elem @ (_: Section.Header), _) =>
           R + Elem.Newline + makeIndent(indent) + elem
@@ -366,18 +338,12 @@ object Doc {
     }
 
     object Raw {
-      def apply(indent: Int): Raw =
-        Raw(indent, Nil)
-      def apply(indent: Int, elem: Elem): Raw =
-        Raw(indent, elem :: Nil)
-      def apply(indent: Int, elems: Elem*): Raw =
-        Raw(indent, elems.toList)
-      def apply(): Raw =
-        Raw(0, Nil)
-      def apply(elem: Elem): Raw =
-        Raw(0, elem :: Nil)
-      def apply(elems: Elem*): Raw =
-        Raw(0, elems.toList)
+      def apply(indent: Int):               Raw = Raw(indent, Nil)
+      def apply(indent: Int, elem: Elem):   Raw = Raw(indent, elem :: Nil)
+      def apply(indent: Int, elems: Elem*): Raw = Raw(indent, elems.toList)
+      def apply():                          Raw = Raw(0, Nil)
+      def apply(elem: Elem):                Raw = Raw(0, elem :: Nil)
+      def apply(elems: Elem*):              Raw = Raw(0, elems.toList)
     }
   }
 
@@ -396,8 +362,7 @@ object Doc {
   }
 
   object Body {
-    def apply(elem: Section): Body =
-      Body(List1(elem))
+    def apply(elem: Section): Body = Body(List1(elem))
     def apply(elems: Section*): Body =
       Body(List1(elems.head, elems.tail.toList))
   }
@@ -416,8 +381,7 @@ object Doc {
     }
   }
   object Synopsis {
-    def apply(elem: Section): Synopsis =
-      Synopsis(List1(elem))
+    def apply(elem: Section): Synopsis = Synopsis(List1(elem))
     def apply(elems: Section*): Synopsis =
       Synopsis(List1(elems.head, elems.tail.toList))
   }
@@ -435,10 +399,8 @@ object Doc {
     }
   }
   object Tags {
-    def apply(elem: Tag): Tags =
-      Tags(List1(elem))
-    def apply(elems: Tag*): Tags =
-      Tags(List1(elems.head, elems.tail.toList))
+    def apply(elem: Tag):   Tags = Tags(List1(elem))
+    def apply(elems: Tag*): Tags = Tags(List1(elems.head, elems.tail.toList))
 
     final case class Tag(indent: Int, tp: Tag.Type, details: Option[String]) {
       val name: String = tp.toString.toUpperCase
@@ -453,10 +415,9 @@ object Doc {
       }
     }
     object Tag {
-      def apply(tp: Type): Tag = Tag(0, tp, None)
-      def apply(tp: Type, details: String): Tag =
-        Tag(0, tp, Option(details))
-      def apply(indent: Int, tp: Type): Tag = Tag(indent, tp, None)
+      def apply(tp: Type):                  Tag = Tag(0, tp, None)
+      def apply(tp: Type, details: String): Tag = Tag(0, tp, Option(details))
+      def apply(indent: Int, tp: Type):     Tag = Tag(indent, tp, None)
       def apply(indent: Int, tp: Type, details: String): Tag =
         Tag(indent, tp, Option(details))
 
