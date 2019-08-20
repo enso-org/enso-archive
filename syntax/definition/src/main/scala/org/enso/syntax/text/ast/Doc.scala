@@ -29,6 +29,7 @@ final case class Doc(
 }
 
 object Doc {
+  def apply():                   Doc = Doc(None, None, None)
   def apply(tags: Tags):         Doc = Doc(Some(tags), None, None)
   def apply(synopsis: Synopsis): Doc = Doc(None, Some(synopsis), None)
   def apply(synopsis: Synopsis, body: Body): Doc =

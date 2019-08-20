@@ -677,4 +677,5 @@ class DocParserSpec extends FlatSpec with Matchers {
       )
     )
   )
+  "" ?= Doc()
 }
