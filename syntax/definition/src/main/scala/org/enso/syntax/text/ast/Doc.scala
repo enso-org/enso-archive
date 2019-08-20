@@ -64,10 +64,8 @@ object Doc {
   }
 
   implicit final class _ListAST_(val self: List[AST]) extends Symbol {
-    val repr: Repr =
-      R + self.map(_.repr)
-    val html: HTML =
-      Seq(self.map(_.html))
+    val repr: Repr = R + self.map(_.repr)
+    val html: HTML = Seq(self.map(_.html))
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -151,8 +149,7 @@ object Doc {
         sb.toString
       }
 
-      val repr: Repr =
-        R + elems.map(_.repr.show()).mkString(AST.Newline.show())
+      val repr: Repr = R + elems.map(_.repr.show()).mkString(AST.Newline.show())
       val html: HTML = {
         val uniqueIDCode = randomString(8)
         val uniqueIDBtn  = randomString(8)
@@ -180,8 +177,7 @@ object Doc {
         val html: HTML = Seq(HTML.code(str))
       }
       final case class Line(indent: Int, elem: String) extends AST {
-        val repr: Repr =
-          R + makeIndent(indent) + elem
+        val repr: Repr = R + makeIndent(indent) + elem
         val html: HTML = Seq(HTML.code(elem), HTML.br)
       }
     }
@@ -203,13 +199,13 @@ object Doc {
       final case class URL(name: String, url: String)
           extends Link(name, url, "")
       object URL {
-        def apply(): URL = new URL("", "")
+        def apply(): URL = URL("", "")
       }
 
       final case class Image(name: String, url: String)
           extends Link(name, url, "!")
       object Image {
-        def apply(): Image = new Image("", "")
+        def apply(): Image = Image("", "")
       }
     }
 
@@ -220,8 +216,7 @@ object Doc {
     final case class List(indent: Int, tp: List.Type, elems: List1[AST])
         extends AST {
 
-      val repr: Repr = {
-        Repr() + elems.toList.map {
+      val repr: Repr = Repr() + elems.toList.map {
           case elem @ (_: AST.Invalid) =>
             R + Newline + elem
           case elem @ (_: List) =>
@@ -233,7 +228,6 @@ object Doc {
               Repr(makeIndent(indent)) + tp.marker + elem
             }
         }
-      }
 
       val html: HTML = Seq(tp.HTMLMarker {
         elems.toList.map {
@@ -264,10 +258,9 @@ object Doc {
         ) extends AST.Invalid {
           val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem
           val html: HTML = {
-            val htmlCls = HTML.`class` :=
-              this.productPrefix + this.getClass.getEnclosingClass.toString
-                .split('$')
-                .last
+            val objectName = getClass.getEnclosingClass.toString.split('$').last
+            val className  = this.productPrefix
+            val htmlCls    = HTML.`class` := className + objectName
             Seq(HTML.div(htmlCls)(elem.html))
           }
         }
@@ -358,7 +351,6 @@ object Doc {
       indent: Int,
       elems: List[AST]
     ) extends Section {
-
       val elemsRepr: List[Repr] = elems.zipWithIndex.map {
         case (elem @ (_: Section.Header), _) =>
           R + AST.Newline + makeIndent(indent) + elem
