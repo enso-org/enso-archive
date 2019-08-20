@@ -3,6 +3,7 @@ package org.enso.syntax.text.spec
 import org.enso.flexer._
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
+import org.enso.data.List1
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc
 
@@ -362,26 +363,29 @@ case class DocParserDef() extends Parser[AST] {
     reverseFinalASTStack()
     reverseTagsStack()
 
-    val _tags = tagsStack.length match {
+    val tags = tagsStack.length match {
       case 0 => None
-      case _ => Some(Tags(tagsStack))
+      case _ => Some(Tags(List1(tagsStack.head, tagsStack.tail)))
     }
 
-    val _synopsis = sectionsStack.length match {
+    val synopsis = sectionsStack.length match {
       case 0 => None
-      case 1 => Some(Synopsis(sectionsStack))
-      case _ => Some(Synopsis(sectionsStack.head))
+      case _ => Some(Synopsis(List1(sectionsStack.head)))
     }
 
-    val _body = sectionsStack.length match {
+    val body = sectionsStack.length match {
       case 0 | 1 => None
-      case _     => Some(Body(sectionsStack.tail))
+      case _ => {
+        val bodyHead = sectionsStack.tail.head
+        val bodyTail = sectionsStack.tail.tail
+        Some(Body(List1(bodyHead, bodyTail)))
+      }
     }
     result.current = Some(
       Doc(
-        _tags,
-        _synopsis,
-        _body
+        tags,
+        synopsis,
+        body
       )
     )
   }

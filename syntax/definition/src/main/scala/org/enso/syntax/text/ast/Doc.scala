@@ -5,6 +5,7 @@ import Repr.R
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
+import scala.util.Random
 
 ////////////////////////////////////////////////////////////////////////////////
 ////// Doc /////////////////////////////////////////////////////////////////////
@@ -140,19 +141,10 @@ object Doc {
     ////////////////////////////////////////////////////////////////////////////
 
     final case class Code(elems: scala.List[Code.Line]) extends AST {
-      def randomString(length: Int): String = {
-        val r  = new scala.util.Random
-        val sb = new StringBuilder
-        for (i <- 1 to length) {
-          sb.append(r.nextPrintableChar)
-        }
-        sb.toString
-      }
-
       val repr: Repr = R + elems.map(_.repr.show()).mkString(AST.Newline.show())
       val html: HTML = {
-        val uniqueIDCode = randomString(8)
-        val uniqueIDBtn  = randomString(8)
+        val uniqueIDCode = Random.alphanumeric.take(8).mkString("")
+        val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
         val htmlClsCode  = HTML.`class` := this.productPrefix
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
@@ -392,59 +384,60 @@ object Doc {
   ////// Body //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  final case class Body(elems: List[Section]) extends Symbol {
-    val head: Repr = if (elems == Nil) R else R + AST.Newline
-    val repr: Repr = head + elems
-        .map(_.repr.show())
-        .mkString(AST.Newline.show())
+  final case class Body(elems: List1[Section]) extends Symbol {
+    val newLn: String = AST.Newline.show()
+    val head: Repr    = R + newLn
+    val repr: Repr    = head + elems.toList.map(_.repr.show()).mkString(newLn)
     val html: HTML = {
       val htmlCls = HTML.`class` := this.productPrefix
-      Seq(HTML.div(htmlCls)(elems.map(_.html)))
+      Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
     }
   }
 
   object Body {
-    def apply():                Body = Body(Nil)
-    def apply(elem: Section):   Body = Body(elem :: Nil)
-    def apply(elems: Section*): Body = Body(elems.toList)
+    def apply(elem: Section): Body =
+      Body(List1(elem))
+    def apply(elems: Section*): Body =
+      Body(List1(elems.head, elems.tail.toList))
   }
 
-  //////////////////////
-  ////// Synopsis //////
-  //////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Synopsis //////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  final case class Synopsis(elems: List[Section]) extends Symbol {
+  final case class Synopsis(elems: List1[Section]) extends Symbol {
+    val newLn: String = AST.Newline.show()
     val repr: Repr =
-      R + elems.map(_.repr.show()).mkString(AST.Newline.show())
+      R + elems.toList.map(_.repr.show()).mkString(newLn)
     val html: HTML = {
       val htmlCls = HTML.`class` := this.productPrefix
-      Seq(HTML.div(htmlCls)(elems.map(_.html)))
+      Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
     }
   }
   object Synopsis {
-    def apply():                Synopsis = Synopsis(Nil)
-    def apply(elem: Section):   Synopsis = Synopsis(elem :: Nil)
-    def apply(elems: Section*): Synopsis = Synopsis(elems.toList)
+    def apply(elem: Section): Synopsis =
+      Synopsis(List1(elem))
+    def apply(elems: Section*): Synopsis =
+      Synopsis(List1(elems.head, elems.tail.toList))
   }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Tags //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  final case class Tags(elems: List[Tags.Tag]) extends Symbol {
-    val tail: String = if (elems == Nil) "" else AST.Newline.show()
-    val repr: Repr   = elems.map(_.repr.show()).mkString("\n") + tail
-    val html: HTML =
-      if (elems == Nil) "".html
-      else {
-        val htmlCls = HTML.`class` := this.productPrefix
-        Seq(HTML.div(htmlCls)(elems.map(_.html)))
-      }
+  final case class Tags(elems: List1[Tags.Tag]) extends Symbol {
+    val newLn: String = AST.Newline.show()
+    val repr: Repr    = elems.toList.map(_.repr.show()).mkString(newLn) + newLn
+    val html: HTML = {
+      val htmlCls = HTML.`class` := this.productPrefix
+      Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
+    }
   }
   object Tags {
-    def apply():            Tags = Tags(Nil)
-    def apply(elem: Tag):   Tags = Tags(elem :: Nil)
-    def apply(elems: Tag*): Tags = Tags(elems.toList)
+    def apply(elem: Tag): Tags =
+      Tags(List1(elem))
+    def apply(elems: Tag*): Tags =
+      Tags(List1(elems.head, elems.tail.toList))
 
     final case class Tag(indent: Int, tp: Tag.Type, details: Option[String]) {
       val name: String = tp.toString.toUpperCase
