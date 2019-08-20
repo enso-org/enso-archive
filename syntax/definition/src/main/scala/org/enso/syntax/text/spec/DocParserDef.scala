@@ -137,12 +137,12 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
   def checkIfTagExistInPushedText(in: String): Boolean = logger.trace {
-    val inArray = in.split(" ")
-    inArray.foreach(elem => {
+    val inArray     = in.split(" ")
+    var containsTag = false
+    for (elem <- inArray) {
       if (elem.isEmpty) {
         currentSectionIndent += 1
       } else if (elem == elem.toUpperCase) {
-        var containsTag = false
         for (tagType <- possibleTagsList) {
           if (elem == tagType.toString.toUpperCase) {
             containsTag = true
@@ -156,11 +156,11 @@ case class DocParserDef() extends Parser[Doc] {
         }
         if (!containsTag && !elem.contains(newline)) {
           pushTag(currentSectionIndent, Tags.Tag.Unrecognized, in)
+          containsTag = true
         }
-        return true
       }
-    })
-    return false
+    }
+    containsTag
   }
 
   ROOT || normalText || reify { onPushingNormalText(currentMatch) }
