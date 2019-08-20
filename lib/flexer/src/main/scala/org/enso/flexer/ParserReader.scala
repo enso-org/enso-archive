@@ -9,12 +9,12 @@ import org.enso.flexer.ReaderUTF.ENDOFINPUT
 
 class ParserReader(input: DataInputStream) extends ReaderUTF(input) {
 
-  var lastRuleOffset = 0
-  var rewinded = false
+  var lastRuleOffset                  = 0
+  var rewinded                        = false
   var result: java.lang.StringBuilder = _
 
   def this(input: InputStream) = this(new DataInputStream(input))
-  def this(file: File) = this(new FileInputStream(file))
+  def this(file: File)         = this(new FileInputStream(file))
   def this(input: String) =
     this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
 
@@ -40,14 +40,13 @@ class ParserReader(input: DataInputStream) extends ReaderUTF(input) {
     val char = input.read()
     if (char == ENDOFINPUT)
       return false
-    if (lastByte == '\r' && char != '\n')
-      buffer(nextOffset()) = '\n'
-    lastByte = char.toByte
-    lastByte match {
-      case '\r' =>
-      case '\t' => for (_ <- 1 to 4) buffer(nextOffset()) = ' '
-      case char => buffer(nextOffset()) = char
+    (lastChar, char) match {
+      case ('\r', '\n') =>
+      case (_, '\r')    => buffer(nextOffset()) = '\n'
+      case (_, '\t')    => for (_ <- 1 to 4) buffer(nextOffset()) = ' '
+      case (_, char)    => buffer(nextOffset()) = char.toByte
     }
+    lastChar = char.toByte
     true
   }
 

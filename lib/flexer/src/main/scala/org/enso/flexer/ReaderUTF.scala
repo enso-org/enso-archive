@@ -27,12 +27,12 @@ class ReaderUTF(val input: DataInputStream) {
     fill()
   }
 
-  protected var lastByte = ' '.toByte
+  protected var lastChar = ' '.toByte
 
   protected def fill(): Unit = {
     offset = 0
     while (offset < BUFFERSIZE && readChar()) Unit
-    for (_ <- 1 until charLength(lastByte))
+    for (_ <- 1 until charLength(lastChar))
       buffer(nextOffset()) = input.read().toByte
     length = offset
     offset = 0
@@ -42,8 +42,8 @@ class ReaderUTF(val input: DataInputStream) {
     val char = input.read()
     if (char == ENDOFINPUT)
       return false
-    lastByte             = char.toByte
-    buffer(nextOffset()) = lastByte
+    lastChar             = char.toByte
+    buffer(nextOffset()) = lastChar
     true
   }
 

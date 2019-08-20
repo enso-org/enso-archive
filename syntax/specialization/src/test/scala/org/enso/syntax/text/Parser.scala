@@ -25,7 +25,7 @@ class ParserSpec extends FlatSpec with Matchers {
       case Result(offset, Result.Success(module)) =>
         val rmodule = parser.resolveMacros(module)
         assert(rmodule == result)
-        assert(module.show() == input)
+        assert(module.show() == new ParserReader(input).toString())
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
@@ -43,7 +43,7 @@ class ParserSpec extends FlatSpec with Matchers {
             case None => fail("Empty expression")
             case Some(e) =>
               assert(e == result)
-              assert(module.show() == input)
+              assert(module.show() == new ParserReader(input).toString())
           }
         }
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
@@ -54,7 +54,7 @@ class ParserSpec extends FlatSpec with Matchers {
     val output = Parser().run(new ParserReader(input))
     output match {
       case Result(offset, Result.Success(value)) =>
-        assert(value.show() == input)
+        assert(value.show() == new ParserReader(input).toString())
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
@@ -436,6 +436,11 @@ class ParserSpec extends FlatSpec with Matchers {
 //
 //  """.testIdentity
 
+  ///////////////////////
+  //// Preprocessing ////
+  ///////////////////////
+
+  "\t\r\r\n\r"       ?= Module(Line(4), Line(), Line(), Line())
 }
 
 ////////////////////////////////////////////////////////////////////////////////
