@@ -493,7 +493,8 @@ case class DocParserDef() extends Parser[Doc] {
     content: Elem
   ): Unit =
     logger.trace {
-      val diff = indent - latestIndent
+      var wantToChangeIndent = true
+      val diff               = indent - latestIndent
       if (diff == listIndent) {
         if (!inListFlag) {
           pushNewLine()
@@ -515,9 +516,9 @@ case class DocParserDef() extends Parser[Doc] {
           result.current = Some(" " * indent + tp.marker + content.show())
           result.push()
         }
-        return
+        wantToChangeIndent = false
       }
-      latestIndent = indent
+      if (wantToChangeIndent) latestIndent = indent
     }
 
   final def pushNewLine(): Unit = logger.trace {
