@@ -5,6 +5,8 @@ import org.enso.syntax.text.ast.Repr.R
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
+import org.enso.syntax.text.ast.Doc.Elem.Newline
+
 import scala.util.Random
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -270,13 +272,14 @@ object Doc {
 
     final case class Marked(indent: Int, tp: Marked.Type, elems: List[Elem])
         extends Section {
-      val marker: String = tp.marker.toString
+      val marker: String    = tp.marker.toString
+      val markerLength: Int = 1
       val firstIndentRepr = Repr(indent match {
         case 1 => marker
         case _ =>
-          val indentBeforeMarker: String = makeIndent(1)
+          val indentBeforeMarker: String = makeIndent(markerLength)
           indentBeforeMarker + marker + makeIndent(
-            indent - (marker.length + indentBeforeMarker.length)
+            indent - (markerLength + indentBeforeMarker.length)
           )
       })
 
@@ -285,10 +288,11 @@ object Doc {
         case (elem @ (_: Elem.Code), _) => R + elem
         case (elem, index) =>
           if (index > 0) {
-            val previousElem = elems(index - 1)
+            val previousIndex = index - 1
+            val previousElem  = elems(previousIndex)
             if (previousElem == Elem.Newline) {
-              Repr(makeIndent(indent)) + elem.repr
-            } else elem.repr
+              R + makeIndent(indent) + elem
+            } else R + elem
           } else R + elem
       }
 
@@ -325,8 +329,8 @@ object Doc {
           if (index > 0) {
             val previousElem = elems(index - 1)
             if (previousElem == Elem.Newline) {
-              Repr(makeIndent(indent)) + elem.repr
-            } else elem.repr
+              R + makeIndent(indent) + elem
+            } else R + elem
           } else R + elem
       }
 
