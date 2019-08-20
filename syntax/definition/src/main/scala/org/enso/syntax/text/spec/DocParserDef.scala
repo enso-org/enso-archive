@@ -71,24 +71,37 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Text pushing //////
   //////////////////////////
 
-  def pushNormalText(in: String): Unit = logger.trace {
+  def onPushingNormalText(in: String): Unit = logger.trace {
+    var text           = in
+    val isDocBeginning = result.workingASTStack.isEmpty && sectionsStack.isEmpty // to create tags on file beginning
+    val isSectionBeginning = result.workingASTStack.isEmpty || result.workingASTStack.head
+        .isInstanceOf[Section.Header] // to remove unnecessary indent from first line as yet onIndent hasn't been called
+
+    if (isDocBeginning) {
+      if (checkForTag(in) == false) {
+        text = removeWhitespaces(text)
+        pushNormalText(text)
+      }
+    } else if (isSectionBeginning) {
+      text = removeWhitespaces(text)
+      pushNormalText(text)
+    } else {
+      pushNormalText(text)
+    }
+  }
+
+  def removeWhitespaces(in: String): String = logger.trace {
     var text = in
-    // to create tags on file beginning
-    if (result.workingASTStack.isEmpty && sectionsStack.isEmpty) {
-      if (checkForTag(in)) {
-        return
+    if (text.nonEmpty) {
+      while (text.head == ' ' && text.length > 1) {
+        text = text.tail
       }
     }
-    // to remove unnecessary indent from first line as yet onIndent hasn't been called
-    if (result.workingASTStack.isEmpty || result.workingASTStack.head
-          .isInstanceOf[Section.Header]) {
-      if (text.nonEmpty) {
-        while (text.head == ' ' && text.length > 1) {
-          text = text.tail
-        }
-      }
-    }
-    result.current = Some(Elem.Text(text))
+    text
+  }
+
+  def pushNormalText(in: String): Unit = logger.trace {
+    result.current = Some(Elem.Text(in))
     result.push()
   }
 
@@ -156,7 +169,7 @@ case class DocParserDef() extends Parser[Doc] {
     return false
   }
 
-  ROOT || normalText || reify { pushNormalText(currentMatch) }
+  ROOT || normalText || reify { onPushingNormalText(currentMatch) }
 
   //////////////////////////
   ////// Code pushing //////
