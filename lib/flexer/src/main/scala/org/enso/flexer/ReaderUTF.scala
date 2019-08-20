@@ -23,10 +23,6 @@ class ReaderUTF(val input: DataInputStream) {
   def this(input: String) =
     this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
 
-  protected def init(): Unit = {
-    fill()
-  }
-
   protected var lastChar = ' '.toByte
 
   protected def fill(): Unit = {
@@ -53,6 +49,8 @@ class ReaderUTF(val input: DataInputStream) {
     offset += 1
     off
   }
+
+  fill()
 
   def nextChar(): Int = {
     println("nextChar, offset: " + offset)
@@ -82,7 +80,6 @@ class ReaderUTF(val input: DataInputStream) {
   final def currentStr: String =
     if (charCode < 0) "" else new String(Character.toChars(charCode))
 
-  init()
 }
 
 object ReaderUTF {

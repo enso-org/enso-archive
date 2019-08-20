@@ -9,19 +9,14 @@ import org.enso.flexer.ReaderUTF.ENDOFINPUT
 
 class ParserReader(input: DataInputStream) extends ReaderUTF(input) {
 
-  var lastRuleOffset                  = 0
-  var rewinded                        = false
-  var result: java.lang.StringBuilder = _
+  var lastRuleOffset = 0
+  var rewinded       = false
+  lazy val result    = new java.lang.StringBuilder()
 
   def this(input: InputStream) = this(new DataInputStream(input))
   def this(file: File)         = this(new FileInputStream(file))
   def this(input: String) =
     this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
-
-  final override def init(): Unit = {
-    result = new java.lang.StringBuilder() // ugly hack, because scala sucks
-    super.init()
-  }
 
   final def charOffset: Int = offset - charSize
 
