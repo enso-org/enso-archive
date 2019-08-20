@@ -469,26 +469,51 @@ object AST {
 
   val newline = R + '\n'
 
-  type Block = _Block
-  final case class _Block(
-    tp: Block.Type,
-    indent: Int,
-    emptyLines: List[Int],
-    firstLine: Block.Line.NonEmpty,
-    lines: List[Block.Line],
-    head: String = "\n"
+  abstract class Block(
+    val typ: Block.Type,
+    val indent: Int,
+    val emptyLines: List[Int],
+    val firstLine: Block.Line.NonEmpty,
+    val lines: List[Block.Line]
   ) extends AST {
+    lazy val headRepr = newline
     val repr = {
       val emptyLinesRepr = emptyLines.map(R + _ + "\n")
       val firstLineRepr  = R + indent + firstLine
       val linesRepr = lines.map { line =>
         newline + line.elem.map(_ => indent) + line
       }
-      R + head + emptyLinesRepr + firstLineRepr + linesRepr
+      R + headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
 
+    def setType(typ: Block.Type): Block
+
+    def map(f: AST => AST): Block
+  }
+
+  case class _Block(
+    override val typ: Block.Type,
+    override val indent: Int,
+    override val emptyLines: List[Int],
+    override val firstLine: Block.Line.NonEmpty,
+    override val lines: List[Block.Line]
+  ) extends Block(typ, indent, emptyLines, firstLine, lines) {
+    def setType(typ: Block.Type) = copy(typ = typ)
     def map(f: AST => AST) =
       copy(firstLine = firstLine.map(f), lines = lines.map(_.map(f)))
+  }
+
+  case class OrphanBlock(
+    override val typ: Block.Type,
+    override val indent: Int,
+    override val emptyLines: List[Int],
+    override val firstLine: Block.Line.NonEmpty,
+    override val lines: List[Block.Line]
+  ) extends Block(typ, indent, emptyLines, firstLine, lines) {
+    def setType(typ: Block.Type) = copy(typ = typ)
+    def map(f: AST => AST) =
+      copy(firstLine = firstLine.map(f), lines = lines.map(_.map(f)))
+    override lazy val headRepr = R
   }
 
   object Block {
@@ -497,28 +522,31 @@ object AST {
     final case object Discontinuous extends Type
 
     def apply(
-      tp: Type,
+      isOrphan: Boolean,
+      typ: Type,
       indent: Int,
       emptyLines: List[Int],
       firstLine: Line.NonEmpty,
       lines: List[Line]
-    ): Block = _Block(tp, indent, emptyLines, firstLine, lines)
+    ): Block =
+      if (isOrphan) OrphanBlock(typ, indent, emptyLines, firstLine, lines)
+      else _Block(typ, indent, emptyLines, firstLine, lines)
 
     def apply(
-      tp: Type,
+      typ: Type,
       indent: Int,
       firstLine: Line.NonEmpty,
       lines: List[Line]
     ): Block =
-      Block(tp, indent, List(0), firstLine, lines)
+      Block(isOrphan = false, typ, indent, List(), firstLine, lines)
 
     def apply(
-      tp: Type,
+      typ: Type,
       indent: Int,
       firstLine: AST,
       lines: Option[AST]*
     ): Block =
-      Block(tp, indent, Line.Required(firstLine), lines.toList.map(Line(_)))
+      Block(typ, indent, Line.Required(firstLine), lines.toList.map(Line(_)))
 
     def unapply(t: Block): Option[(Int, Line.NonEmpty, List[Line])] =
       Some((t.indent, t.firstLine, t.lines))
@@ -583,16 +611,6 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
   //// Module //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
-
-  def intersperse[T](t: T, lst: List[T]): List[T] = lst match {
-    case Nil             => Nil
-    case s1 :: s2 :: Nil => s1 :: t :: intersperse(t, s2 :: Nil)
-    case s1 :: Nil       => s1 :: Nil
-  }
-
-  ////////////////
-  //// Module ////
-  ////////////////
 
   import Block.Line
 

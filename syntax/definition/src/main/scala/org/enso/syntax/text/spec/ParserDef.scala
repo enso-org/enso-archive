@@ -501,6 +501,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   final object block {
 
     class State(
+      val isOrphan: Boolean,
       var isValid: Boolean,
       var indent: Int,
       var emptyLines: List[Int],
@@ -510,13 +511,15 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     var stack: List[State]    = Nil
     var emptyLines: List[Int] = Nil
-    var current: State        = new State(true, 0, Nil, None, Nil)
+    var current: State        = new State(false, true, 0, Nil, None, Nil)
 
-    def push(newIndent: Int): Unit = logger.trace {
-      stack +:= current
-      current    = new State(true, newIndent, emptyLines.reverse, None, Nil)
-      emptyLines = Nil
-    }
+    def push(newIndent: Int, orphan: Boolean): Unit =
+      logger.trace {
+        stack +:= current
+        current =
+          new State(orphan, true, newIndent, emptyLines.reverse, None, Nil)
+        emptyLines = Nil
+      }
 
     def pop(): Unit = logger.trace {
       current = stack.head
@@ -526,6 +529,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def build(): AST.Block = logger.trace {
       submitLine()
       AST.Block(
+        current.isOrphan,
         AST.Block.Continuous,
         current.indent,
         current.emptyLines,
@@ -535,24 +539,16 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def submit(): Unit = logger.trace {
-      val block   = build()
-      val isValid = current.isValid
-
+      val block = build()
       result.pop()
       off.pop()
       pop()
-
       val block2 = result.last() match {
         case None => block
         case Some(ast) =>
           if (!ast.isInstanceOf[AST.Opr]) block
-          else block.copy(tp = AST.Block.Discontinuous)
+          else block.setType(AST.Block.Discontinuous)
       }
-
-      val block3 =
-        if (isValid) block2
-        else AST.Block.InvalidIndentation(block2)
-
       result.app(block2)
       off.push()
       logger.endGroup()
@@ -601,10 +597,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     }
 
     def onBegin(newIndent: Int): Unit = logger.trace {
-      val emptyResult = result.current.isEmpty
+      val isOrphan = result.current.isEmpty
       result.push()
-      push(newIndent)
-      if (!emptyResult) current.emptyLines +:= 0
+      push(newIndent, isOrphan)
       logger.beginGroup()
     }
 
