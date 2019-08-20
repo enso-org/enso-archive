@@ -2,7 +2,7 @@ package org.enso.syntax.text
 
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Doc._
-import org.enso.syntax.text.ast.Doc.AST._
+import org.enso.syntax.text.ast.Doc.Elem._
 import org.enso.Logger
 import org.enso.flexer.Parser.Result
 import org.scalatest.FlatSpec

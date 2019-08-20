@@ -18,9 +18,9 @@ case class DocParserDef() extends Parser[Doc] {
   override def getResult(): Option[Doc] = result.doc
 
   final object result {
-    var current: Option[AST]       = None
-    var doc: Option[Doc]           = None
-    var workingASTStack: List[AST] = Nil
+    var current: Option[Elem]       = None
+    var doc: Option[Doc]            = None
+    var workingASTStack: List[Elem] = Nil
 
     def push(): Unit = logger.trace {
       if (current.isDefined) {
@@ -88,7 +88,7 @@ case class DocParserDef() extends Parser[Doc] {
         }
       }
     }
-    result.current = Some(AST.Text(text))
+    result.current = Some(Elem.Text(text))
     result.push()
   }
 
@@ -163,19 +163,19 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////
 
   def pushCodeLine(in: String): Unit = logger.trace {
-    result.current = Some(AST.Code.Inline(in))
+    result.current = Some(Elem.Code.Inline(in))
     result.push()
   }
 
   def pushMultilineCodeLine(in: String): Unit = logger.trace {
     do {
       result.pop()
-    } while (result.current.get == AST.Newline)
+    } while (result.current.get == Elem.Newline)
     result.current match {
-      case Some(_: AST.Code) => {
-        val elems   = result.current.get.asInstanceOf[AST.Code].elems
-        val newElem = AST.Code.Line(latestIndent, in)
-        result.current = Some(AST.Code(elems :+ newElem))
+      case Some(_: Elem.Code) => {
+        val elems   = result.current.get.asInstanceOf[Elem.Code].elems
+        val newElem = Elem.Code.Line(latestIndent, in)
+        result.current = Some(Elem.Code(elems :+ newElem))
       }
       case Some(_) | None => result.push()
     }
@@ -198,25 +198,25 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Text formatting //////
   /////////////////////////////
 
-  var textFormattersStack: List[AST.Formatter.Type] = Nil
+  var textFormattersStack: List[Elem.Formatter.Type] = Nil
 
-  def pushFormatter(tp: AST.Formatter.Type): Unit =
+  def pushFormatter(tp: Elem.Formatter.Type): Unit =
     logger.trace {
       val unclosedFormattersToCheck = tp match {
-        case AST.Formatter.Strikethrough =>
-          List(AST.Formatter.Bold, AST.Formatter.Italic)
-        case AST.Formatter.Italic =>
-          List(AST.Formatter.Bold, AST.Formatter.Strikethrough)
-        case AST.Formatter.Bold =>
-          List(AST.Formatter.Italic, AST.Formatter.Strikethrough)
+        case Elem.Formatter.Strikethrough =>
+          List(Elem.Formatter.Bold, Elem.Formatter.Italic)
+        case Elem.Formatter.Italic =>
+          List(Elem.Formatter.Bold, Elem.Formatter.Strikethrough)
+        case Elem.Formatter.Bold =>
+          List(Elem.Formatter.Italic, Elem.Formatter.Strikethrough)
       }
       if (textFormattersStack.contains(tp)) {
         unclosedFormattersToCheck foreach { formatterToCheck =>
           checkForUnclosed(formatterToCheck)
         }
-        var listOfFormattedAST: List[AST] = Nil
+        var listOfFormattedAST: List[Elem] = Nil
 
-        while (result.workingASTStack.head != AST.Formatter(tp) && result.workingASTStack.nonEmpty) {
+        while (result.workingASTStack.head != Elem.Formatter(tp) && result.workingASTStack.nonEmpty) {
           result.pop()
           result.current match {
             case Some(value) => listOfFormattedAST +:= value
@@ -225,21 +225,21 @@ case class DocParserDef() extends Parser[Doc] {
         }
         result.pop()
 
-        result.current      = Some(AST.Formatter(tp, listOfFormattedAST))
+        result.current      = Some(Elem.Formatter(tp, listOfFormattedAST))
         textFormattersStack = textFormattersStack.tail
         result.push()
       } else {
         textFormattersStack +:= tp
-        result.current = Some(AST.Formatter(tp))
+        result.current = Some(Elem.Formatter(tp))
         result.push()
       }
     }
 
-  def checkForUnclosed(tp: AST.Formatter.Type): Unit = logger.trace {
+  def checkForUnclosed(tp: Elem.Formatter.Type): Unit = logger.trace {
     if (textFormattersStack.nonEmpty) {
       if (textFormattersStack.head == tp) {
-        var listOfFormattedAST: List[AST] = Nil
-        while (result.workingASTStack.head != AST
+        var listOfFormattedAST: List[Elem] = Nil
+        while (result.workingASTStack.head != Elem
                  .Formatter(tp) && result.workingASTStack.nonEmpty) {
           result.pop()
           result.current match {
@@ -249,21 +249,21 @@ case class DocParserDef() extends Parser[Doc] {
         }
         result.pop()
 
-        result.current      = Some(AST.Formatter.Unclosed(tp, listOfFormattedAST))
+        result.current      = Some(Elem.Formatter.Unclosed(tp, listOfFormattedAST))
         textFormattersStack = textFormattersStack.tail
         result.push()
       }
     }
   }
 
-  val boldTrigger: Char          = AST.Formatter.Bold.marker
-  val italicTrigger: Char        = AST.Formatter.Italic.marker
-  val strikethroughTrigger: Char = AST.Formatter.Strikethrough.marker
+  val boldTrigger: Char          = Elem.Formatter.Bold.marker
+  val italicTrigger: Char        = Elem.Formatter.Italic.marker
+  val strikethroughTrigger: Char = Elem.Formatter.Strikethrough.marker
 
   // format: off
-  ROOT || boldTrigger          || reify { pushFormatter(AST.Formatter.Bold) }
-  ROOT || italicTrigger        || reify { pushFormatter(AST.Formatter.Italic) }
-  ROOT || strikethroughTrigger || reify { pushFormatter(AST.Formatter.Strikethrough) }
+  ROOT || boldTrigger          || reify { pushFormatter(Elem.Formatter.Bold) }
+  ROOT || italicTrigger        || reify { pushFormatter(Elem.Formatter.Italic) }
+  ROOT || strikethroughTrigger || reify { pushFormatter(Elem.Formatter.Strikethrough) }
   // format: on
 
   /////////////////////////
@@ -316,9 +316,9 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   def checksOfUnclosedFormattersOnEndOfSection(): Unit = logger.trace {
-    checkForUnclosed(AST.Formatter.Bold)
-    checkForUnclosed(AST.Formatter.Italic)
-    checkForUnclosed(AST.Formatter.Strikethrough)
+    checkForUnclosed(Elem.Formatter.Bold)
+    checkForUnclosed(Elem.Formatter.Italic)
+    checkForUnclosed(Elem.Formatter.Strikethrough)
   }
 
   def cleanupEndOfSection(): Unit = logger.trace {
@@ -408,19 +408,19 @@ case class DocParserDef() extends Parser[Doc] {
         result.current match {
           case Some(_: Section.Header) =>
             loopThroughASTForUnmarkedSectionHeader()
-          case Some(AST.Text("")) => // Used if there is nothing but tags
-          case _                  => result.push()
+          case Some(Elem.Text("")) => // Used if there is nothing but tags
+          case _                   => result.push()
         }
     }
   }
 
   def loopThroughASTForUnmarkedSectionHeader(): Unit = logger.trace {
-    var listForHeader: List[AST] = Nil
+    var listForHeader: List[Elem] = Nil
     do {
       result.pop()
       listForHeader +:= result.current.get
-    } while (result.current.get != AST.Newline && result.workingASTStack.nonEmpty)
-    if (result.current.get == AST.Newline) {
+    } while (result.current.get != Elem.Newline && result.workingASTStack.nonEmpty)
+    if (result.current.get == Elem.Newline) {
       result.push()
       listForHeader = listForHeader.tail
     }
@@ -434,18 +434,18 @@ case class DocParserDef() extends Parser[Doc] {
 
   def createURL(name: String, url: String): Unit =
     logger.trace {
-      result.current = Some(AST.Link.URL(name, url))
+      result.current = Some(Elem.Link.URL(name, url))
       result.push()
     }
 
   def createImage(name: String, url: String): Unit =
     logger.trace {
-      result.current = Some(AST.Link.Image(name, url))
+      result.current = Some(Elem.Link.Image(name, url))
       result.push()
     }
 
-  val imageNameTrigger: String = AST.Link.Image().marker + "["
-  val urlNameTrigger: String   = AST.Link.URL().marker + "["
+  val imageNameTrigger: String = Elem.Link.Image().marker + "["
+  val urlNameTrigger: String   = Elem.Link.URL().marker + "["
   val imageLinkPattern         = imageNameTrigger >> not(')').many1 >> ')'
   val urlLinkPattern           = urlNameTrigger >> not(')').many1 >> ')'
 
@@ -477,9 +477,9 @@ case class DocParserDef() extends Parser[Doc] {
       latestIndent = currentMatch.length
     } else if (currentMatch.length > currentSectionIndent && result.workingASTStack.nonEmpty) {
       result.pop()
-      if (!result.workingASTStack.head.isInstanceOf[AST.Code]) {
+      if (!result.workingASTStack.head.isInstanceOf[Elem.Code]) {
         result.push()
-        result.current = Some(AST.Code(Nil))
+        result.current = Some(Elem.Code(Nil))
       }
       result.push()
       state.begin(CODE)
@@ -491,8 +491,8 @@ case class DocParserDef() extends Parser[Doc] {
 
   final def onIndentForListCreation(
     indent: Int,
-    tp: AST.List.Type,
-    content: AST
+    tp: Elem.List.Type,
+    content: Elem
   ): Unit =
     logger.trace {
       val diff = indent - latestIndent
@@ -510,7 +510,7 @@ case class DocParserDef() extends Parser[Doc] {
       } else {
         if (inListFlag) {
           addContentToList(
-            AST.List.Indent.Invalid(indent, tp, content)
+            Elem.List.Indent.Invalid(indent, tp, content)
           )
         } else {
           pushNewLine()
@@ -523,7 +523,7 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
   final def pushNewLine(): Unit = logger.trace {
-    result.current = Some(AST.Newline)
+    result.current = Some(Elem.Newline)
     result.push()
   }
 
@@ -563,19 +563,19 @@ case class DocParserDef() extends Parser[Doc] {
   ///// Lists /////
   /////////////////
 
-  def addList(indent: Int, listType: AST.List.Type, content: AST): Unit =
+  def addList(indent: Int, listType: Elem.List.Type, content: Elem): Unit =
     logger.trace {
-      result.current = Some(AST.List(indent, listType, content))
+      result.current = Some(Elem.List(indent, listType, content))
       result.push()
     }
 
-  def addContentToList(content: AST): Unit = logger.trace {
+  def addContentToList(content: Elem): Unit = logger.trace {
     result.pop()
-    val currentResult  = result.current.orNull.asInstanceOf[AST.List]
+    val currentResult  = result.current.orNull.asInstanceOf[Elem.List]
     var currentContent = currentResult.elems
     currentContent = currentContent :+ content
     result.current = Some(
-      AST.List(
+      Elem.List(
         currentResult.indent,
         currentResult.tp,
         currentContent
@@ -587,13 +587,13 @@ case class DocParserDef() extends Parser[Doc] {
   def addOneListToAnother(): Unit = logger.trace {
     result.pop()
     val innerList = result.current.orNull
-    if (result.workingASTStack.head.isInstanceOf[AST.List]) {
+    if (result.workingASTStack.head.isInstanceOf[Elem.List]) {
       result.pop()
-      val outerList    = result.current.orNull.asInstanceOf[AST.List]
+      val outerList    = result.current.orNull.asInstanceOf[Elem.List]
       var outerContent = outerList.elems
       outerContent = outerContent :+ innerList
       result.current = Some(
-        AST.List(
+        Elem.List(
           outerList.indent,
           outerList.tp,
           outerContent
@@ -603,8 +603,8 @@ case class DocParserDef() extends Parser[Doc] {
     result.push()
   }
 
-  val orderedListTrigger: Char   = AST.List.Ordered.marker
-  val unorderedListTrigger: Char = AST.List.Unordered.marker
+  val orderedListTrigger: Char   = Elem.List.Ordered.marker
+  val unorderedListTrigger: Char = Elem.List.Unordered.marker
 
   val orderedListPattern = indentPattern >> orderedListTrigger >> not(newline).many1
   val unorderedListPattern = indentPattern >> unorderedListTrigger >> not(
@@ -613,12 +613,12 @@ case class DocParserDef() extends Parser[Doc] {
   NEWLINE || orderedListPattern || reify {
     state.end()
     val content = currentMatch.split(orderedListTrigger)
-    onIndentForListCreation(content(0).length, AST.List.Ordered, content(1))
+    onIndentForListCreation(content(0).length, Elem.List.Ordered, content(1))
   }
 
   NEWLINE || unorderedListPattern || reify {
     state.end()
     val content = currentMatch.split(unorderedListTrigger)
-    onIndentForListCreation(content(0).length, AST.List.Unordered, content(1))
+    onIndentForListCreation(content(0).length, Elem.List.Unordered, content(1))
   }
 }
