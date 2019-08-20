@@ -146,15 +146,11 @@ case class DocParserDef() extends Parser[Doc] {
         for (tagType <- possibleTagsList) {
           if (elem == tagType.toString.toUpperCase) {
             containsTag = true
-            val tagDetail = in.replaceFirst(
-              tagType.toString.toUpperCase,
-              ""
-            )
-
+            val tagDet = in.replaceFirst(tagType.toString.toUpperCase, "")
             pushTag(
               currentSectionIndent,
               tagType,
-              tagDetail
+              tagDet
             )
           }
         }
@@ -323,6 +319,7 @@ case class DocParserDef() extends Parser[Doc] {
     checksOfUnclosedFormattersOnEndOfSection()
     reverseASTStack()
     createSectionHeader()
+    pushToSectionsStack()
     cleanupEndOfSection()
   }
 
@@ -332,27 +329,24 @@ case class DocParserDef() extends Parser[Doc] {
     checkForUnclosed(Elem.Formatter.Strikethrough)
   }
 
-  def cleanupEndOfSection(): Unit = logger.trace {
+  def pushToSectionsStack(): Unit = logger.trace {
     if (result.workingASTStack.nonEmpty) {
       currentSection match {
         case _: Some[Section.Marked.Type] =>
-          sectionsStack +:= Some(
-            Section.Marked(
-              currentSectionIndent,
-              currentSection.get,
-              result.workingASTStack
-            )
-          ).orNull
+          sectionsStack +:= Section.Marked(
+            currentSectionIndent,
+            currentSection.get,
+            result.workingASTStack
+          )
         case None =>
-          sectionsStack +:= Some(
-            Section.Raw(
-              currentSectionIndent,
-              result.workingASTStack
-            )
-          ).orNull
+          sectionsStack +:= Section.Raw(
+            currentSectionIndent,
+            result.workingASTStack
+          )
       }
     }
-
+  }
+  def cleanupEndOfSection(): Unit = logger.trace {
     result.current         = None
     result.workingASTStack = Nil
     textFormattersStack    = Nil
