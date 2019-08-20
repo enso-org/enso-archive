@@ -77,7 +77,7 @@ case class DocParserDef() extends Parser[Doc] {
         .isInstanceOf[Section.Header] // to remove unnecessary indent from first line as yet onIndent hasn't been called
 
     if (isDocBeginning) {
-      if (checkForTag(in) == false) {
+      if (checkIfTagExistInPushedText(in) == false) {
         val text = removeWhitespaces(in)
         pushNormalText(text)
       }
@@ -136,7 +136,7 @@ case class DocParserDef() extends Parser[Doc] {
       result.current = Some("")
     }
 
-  def checkForTag(in: String): Boolean = logger.trace {
+  def checkIfTagExistInPushedText(in: String): Boolean = logger.trace {
     val inArray = in.split(" ")
     inArray.foreach(elem => {
       if (elem.isEmpty) {
@@ -389,13 +389,7 @@ case class DocParserDef() extends Parser[Doc] {
         val bodyTail = sectionsStack.tail.tail
         Some(Body(List1(bodyHead, bodyTail)))
     }
-    result.doc = Some(
-      Doc(
-        tags,
-        synopsis,
-        body
-      )
-    )
+    result.doc = Some(Doc(tags, synopsis, body))
   }
 
   ROOT || eof || reify { onEOF() }
