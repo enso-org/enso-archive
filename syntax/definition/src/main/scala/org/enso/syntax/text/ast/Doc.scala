@@ -1,7 +1,7 @@
 package org.enso.syntax.text.ast
 
 import org.enso.data.List1
-import Repr.R
+import org.enso.syntax.text.ast.Repr.R
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
@@ -30,14 +30,14 @@ final case class Doc(
 
 object Doc {
   def apply():                   Doc = Doc(None, None, None)
-  def apply(tags: Tags):         Doc = Doc(Some(tags), None, None)
-  def apply(synopsis: Synopsis): Doc = Doc(None, Some(synopsis), None)
+  def apply(tags: Tags):         Doc = Doc(Option(tags), None, None)
+  def apply(synopsis: Synopsis): Doc = Doc(None, Option(synopsis), None)
   def apply(synopsis: Synopsis, body: Body): Doc =
-    Doc(None, Some(synopsis), Some(body))
+    Doc(None, Option(synopsis), Option(body))
   def apply(tags: Tags, synopsis: Synopsis): Doc =
-    Doc(Some(tags), Some(synopsis), None)
+    Doc(Option(tags), Option(synopsis), None)
   def apply(tags: Tags, synopsis: Synopsis, body: Body): Doc =
-    Doc(Some(tags), Some(synopsis), Some(body))
+    Doc(Option(tags), Option(synopsis), Option(body))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
@@ -52,7 +52,7 @@ object Doc {
     def span:   Int    = repr.span
     def show(): String = repr.show()
 
-    val html: HTML
+    def html: HTML
     def renderHTML(): HTMLTag = {
       val metaEquiv     = HTML.httpEquiv := "Content-Type"
       val metaCont      = HTML.content := "text/html"
@@ -154,10 +154,10 @@ object Doc {
         val elemsHTML    = elems.map(elem => elem.html)
         // TODO : Next PR
         // we need other design here.
-        // Bascially we dont want to display always button
+        // Basically we don't want to display always button
         // we want to be able to display it maybe as a button on website
         // and completely differently in gui.
-        // The printing sohuld be configurable
+        // The printing should be configurable
         val btnAction = onclick :=
           s"""var code = document.getElementById("$uniqueIDCode");
              |var btn = document.getElementById("$uniqueIDBtn").firstChild;
@@ -267,8 +267,8 @@ object Doc {
   //////////////////////////////////////////////////////////////////////////////
 
   trait Section extends Symbol {
-    val indent: Int
-    val elems: List[Elem]
+    def indent: Int
+    def elems: List[Elem]
   }
 
   object Section {
@@ -470,7 +470,7 @@ object Doc {
     }
 
     implicit final class _OptionTagType_(val self: Option[String]) {
-      val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
+      val repr: Repr = self.fold(Repr())(Repr(_))
       val html: HTML = {
         val htmlCls = HTML.`class` := "tag_details"
         Seq(self.map(HTML.div(htmlCls)(_)).getOrElse("".html))
