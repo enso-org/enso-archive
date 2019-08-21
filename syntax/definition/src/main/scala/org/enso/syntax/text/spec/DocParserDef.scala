@@ -162,12 +162,12 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Code pushing //////
   //////////////////////////
 
-  def pushCodeLine(in: String): Unit = logger.trace {
+  def onPushingInlineCode(in: String): Unit = logger.trace {
     result.current = Some(Elem.Code.Inline(in))
     result.push()
   }
 
-  def pushMultilineCodeLine(in: String): Unit = logger.trace {
+  def onPushingCodeLine(in: String): Unit = logger.trace {
     do {
       result.pop()
     } while (result.current.get == Elem.Newline)
@@ -186,14 +186,14 @@ case class DocParserDef() extends Parser[Doc] {
     : Pattern = inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
 
   ROOT || inlineCodePattern || reify {
-    pushCodeLine(currentMatch.substring(1).dropRight(1))
+    onPushingInlineCode(currentMatch.substring(1).dropRight(1))
   }
 
   val CODE: State = state.define("Code")
 
   CODE || newline            || reify { state.end(); state.begin(NEWLINE) }
-  CODE || not(newline).many1 || reify { pushMultilineCodeLine(currentMatch) }
-  CODE || eof                || reify { onEOF() }
+  CODE || not(newline).many1 || reify { onPushingCodeLine(currentMatch) }
+  CODE || eof                || reify { state.end(); onEOF() }
 
   /////////////////////////////
   ////// Text formatting //////
@@ -201,7 +201,7 @@ case class DocParserDef() extends Parser[Doc] {
 
   var textFormattersStack: List[Elem.Formatter.Type] = Nil
 
-  def pushFormatter(tp: Elem.Formatter.Type): Unit =
+  def onPushingFormatter(tp: Elem.Formatter.Type): Unit =
     logger.trace {
       val unclosedFormattersToCheck = tp match {
         case Elem.Formatter.Strikethrough =>
@@ -262,9 +262,9 @@ case class DocParserDef() extends Parser[Doc] {
   val strikethroughTrigger: Char = Elem.Formatter.Strikethrough.marker
 
   // format: off
-  ROOT || boldTrigger          || reify { pushFormatter(Elem.Formatter.Bold) }
-  ROOT || italicTrigger        || reify { pushFormatter(Elem.Formatter.Italic) }
-  ROOT || strikethroughTrigger || reify { pushFormatter(Elem.Formatter.Strikethrough) }
+  ROOT || boldTrigger          || reify { onPushingFormatter(Elem.Formatter.Bold) }
+  ROOT || italicTrigger        || reify { onPushingFormatter(Elem.Formatter.Italic) }
+  ROOT || strikethroughTrigger || reify { onPushingFormatter(Elem.Formatter.Strikethrough) }
   // format: on
 
   ////////////////////
@@ -303,35 +303,37 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Links //////
   ///////////////////
 
-  def createURL(name: String, url: String): Unit =
-    logger.trace {
-      result.current = Some(Elem.Link.URL(name, url))
-      result.push()
-    }
+  def onCreatingURL(): Unit = logger.trace {
+    val in   = currentMatch.substring(1).dropRight(1).split(']')
+    val name = in(0)
+    val url  = in(1).substring(1)
+    pushURL(name, url)
+  }
 
-  def createImage(name: String, url: String): Unit =
-    logger.trace {
-      result.current = Some(Elem.Link.Image(name, url))
-      result.push()
-    }
+  def pushURL(name: String, url: String): Unit = logger.trace {
+    result.current = Some(Elem.Link.URL(name, url))
+    result.push()
+  }
+
+  def onCreatingImage(): Unit = logger.trace {
+    val in   = currentMatch.substring(2).dropRight(1).split(']')
+    val name = in(0)
+    val url  = in(1).substring(1)
+    pushImage(name, url)
+  }
+
+  def pushImage(name: String, url: String): Unit = logger.trace {
+    result.current = Some(Elem.Link.Image(name, url))
+    result.push()
+  }
 
   val imageNameTrigger: String  = Elem.Link.Image().marker + "["
   val urlNameTrigger: String    = Elem.Link.URL().marker + "["
   val imageLinkPattern: Pattern = imageNameTrigger >> not(')').many1 >> ')'
   val urlLinkPattern: Pattern   = urlNameTrigger >> not(')').many1 >> ')'
 
-  ROOT || imageLinkPattern || reify {
-    val in   = currentMatch.substring(2).dropRight(1).split(']')
-    val name = in(0)
-    val url  = in(1).substring(1)
-    createImage(name, url)
-  }
-  ROOT || urlLinkPattern || reify {
-    val in   = currentMatch.substring(1).dropRight(1).split(']')
-    val name = in(0)
-    val url  = in(1).substring(1)
-    createURL(name, url)
-  }
+  ROOT || imageLinkPattern || reify { onCreatingImage() }
+  ROOT || urlLinkPattern   || reify { onCreatingURL() }
 
   //////////////////////////////////////////
   ///// Indent Management & New line ///////
@@ -369,7 +371,7 @@ case class DocParserDef() extends Parser[Doc] {
       var wantToChangeIndent = true
       val diff               = indent - latestIndent
       if (diff == listIndent) {
-        if (!inListFlag) pushNewLine() // Creating first list
+        if (!inListFlag) onPushingNewLine() // Creating first list
         inListFlag = true
         addList(indent, tp, content)
       } else if (diff == 0 && inListFlag) {
@@ -383,7 +385,7 @@ case class DocParserDef() extends Parser[Doc] {
             Elem.List.Indent.Invalid(indent, tp, content)
           )
         } else {
-          pushNewLine()
+          onPushingNewLine()
           result.current = Some(" " * indent + tp.marker + content.show())
           result.push()
         }
@@ -392,7 +394,7 @@ case class DocParserDef() extends Parser[Doc] {
       if (wantToChangeIndent) latestIndent = indent
     }
 
-  final def pushNewLine(): Unit = logger.trace {
+  final def onPushingNewLine(): Unit = logger.trace {
     result.current = Some(Elem.Newline)
     result.push()
   }
@@ -403,12 +405,14 @@ case class DocParserDef() extends Parser[Doc] {
 
   ROOT    || newline || reify { state.begin(NEWLINE) }
   NEWLINE || (indentPattern >> eof) || reify {
-    state.end(); pushNewLine(); onEOF()
+    state.end()
+    onPushingNewLine()
+    onEOF()
   }
   NEWLINE || indentPattern || reify {
     state.end()
     if (result.workingASTStack.nonEmpty) {
-      pushNewLine()
+      onPushingNewLine()
     }
     onIndent()
   }
@@ -504,7 +508,7 @@ case class DocParserDef() extends Parser[Doc] {
       addInnerListToOuter()
       inListFlag = !inListFlag
     }
-    pushNewLine()
+    onPushingNewLine()
     onEndOfSection()
   }
 
