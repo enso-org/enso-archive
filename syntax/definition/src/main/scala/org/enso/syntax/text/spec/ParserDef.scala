@@ -648,68 +648,6 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   block.NEWLINE   || space.opt            || reify { block.onBlockNewline() }
   block.FIRSTCHAR || always               || reify { state.end() }
 
-//  ////////////////
-//  /// Comments ///
-//  ////////////////
-//
-//  final object cmm {
-//
-//    import AST.Comment
-//
-//    var lines: List[String] = Nil
-//    var current: String     = ""
-//
-//    def onEndOneLine(): Unit = logger.trace {
-//      result.app(Comment(current))
-//      current = ""
-//      state.end()
-//      rewind()
-//    }
-//
-//    def onBegin(): Unit = logger.trace {
-//      state.end()
-//      state.begin(MANYLINE)
-//    }
-//
-//    def onEnd(): Unit = logger.trace {
-//      result.app(Comment.Block(block.current.indent, lines.reverse))
-//      lines = Nil
-//      state.end()
-//      rewind()
-//    }
-//
-//    def onLine(): Unit = logger.trace {
-//      if (lines.isEmpty)
-//        current = currentMatch
-//      else if (currentMatch.takeWhile(_ == ' ').length > block.current.indent)
-//        current = currentMatch.drop(block.current.indent + 1)
-//      else {
-//        onEnd()
-//        state.begin(block.NEWLINE)
-//        offset -= 1 // FIXME
-//      }
-//    }
-//
-//    def pushLine(): Unit = logger.trace {
-//      lines +:= current
-//      current = ""
-//    }
-//
-//    val ONELINE  = state.define("One Line Comment")
-//    val MANYLINE = state.define("Block Comment")
-//
-//  }
-//
-//  ROOT            || "#"                || reify { state.begin(cmm.ONELINE) }
-//  block.FIRSTCHAR || "#="               || reify { rewind(3); state.end() }
-//  block.FIRSTCHAR || "##"               || reify { rewind(3); state.end() }
-//  block.FIRSTCHAR || "#"                || reify { cmm.onBegin() }
-//  cmm.ONELINE     || noneOf("\n").many1 || reify { cmm.current = currentMatch }
-//  cmm.ONELINE     || (newline | eof)    || reify { cmm.onEndOneLine() }
-//  cmm.MANYLINE    || noneOf("\n").many1 || reify { cmm.onLine() }
-//  cmm.MANYLINE    || newline            || reify { cmm.pushLine() }
-//  cmm.MANYLINE    || eof                || reify { cmm.pushLine(); cmm.onEnd() }
-
   ////////////////
   /// Defaults ///
   ////////////////

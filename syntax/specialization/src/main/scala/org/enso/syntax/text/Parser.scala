@@ -237,7 +237,7 @@ object Main extends App {
 
   val in_arr1 = "a b -> c d"
 
-  val inp = "#foo    bar\n baz\nbax"
+  val inp = "## foo\n    bar"
   val out = parser.run(inp, Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 

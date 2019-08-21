@@ -87,7 +87,8 @@ class Builder(
             )
           }
 
-          val template = Macro.Match(pfxMatch, shiftSegs)
+          val resolved = mdef.finalizer(pfxMatch, shiftSegs.toList().map(_.el))
+          val template = Macro.Match(pfxMatch, shiftSegs, resolved)
           val newTok   = Shifted(segs2.head.off, template)
 
           val result = stream match {
@@ -102,19 +103,20 @@ class Builder(
 
   if (isModuleBuilder)
     macroDef = Some(
-      Macro.Definition(AST.Blank -> Pattern.Expr()) { (_, _) =>
-        throw new scala.Error("Impossible happened")
+      Macro.Definition(AST.Blank -> Pattern.Expr()) {
+        case (_, List(seg)) =>
+          seg.body.toStream match {
+            case List(mod) => mod.el
+            case _         => throw new scala.Error("Impossible happened")
+          }
       }
     )
 
   def buildAsModule(): AST = {
     build(List())._2.head.el match {
-      case Macro.Match(_, segs) =>
-        segs.head.body.toStream match {
-          case Nil    => throw new scala.Error("Impossible happened.")
-          case s :: _ => s.el
-        }
-      case _ => throw new scala.Error("Impossible happened.")
+      case Macro.Match(_, _, mod) => mod
+      case _ =>
+        throw new scala.Error("Impossible happened.")
     }
   }
 }

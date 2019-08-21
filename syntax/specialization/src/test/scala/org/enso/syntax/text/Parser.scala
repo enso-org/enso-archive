@@ -99,6 +99,8 @@ class ParserSpec extends FlatSpec with Matchers {
   //////////////////////////////////////////////////////////////////////////////
 
   //  "="    ?= App.Sides("=")
+  //  "#="   ?= App.Sides("#=")
+  //  "##"   ?= App.Sides("##")
   "++"   ?= App.Sides("++")
   "=="   ?= App.Sides("==")
   ":"    ?= App.Sides(":")
@@ -109,8 +111,6 @@ class ParserSpec extends FlatSpec with Matchers {
   ">="   ?= App.Sides(">=")
   "<="   ?= App.Sides("<=")
   "/="   ?= App.Sides("/=")
-  "#="   ?= App.Sides("#=")
-  "##"   ?= App.Sides("##")
   "+="   ?= Opr.Mod("+")
   "-="   ?= Opr.Mod("-")
   "==="  ?= Ident.InvalidSuffix("==", "=")
@@ -276,14 +276,9 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Comments ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "foo   #L1NE" ?= "foo" $___ Comment("L1NE")
-
-  // FIXME: Think if we can express it using macros. We should be able to.
-//  "#\n    L1NE\n LIN2" ?= Comment.Block(0, List("", "   L1NE", "LIN2"))
-//  "#L1NE\nLIN2" ?= Module(
-//    Line(Comment.Block(0, List("L1NE"))),
-//    Line(Cons("LIN2"))
-//  )
+  "foo   #L1"      ?= "foo" $___ Comment.SingleLine("L1")
+  "#\n    L1\n L2" ?= Comment.MultiLine(List("", "    L1", " L2"))
+  "#L1\nL2"        ?= Module(Line(Comment.SingleLine("L1")), Line(Cons("L2")))
 
   //////////////////////////////////////////////////////////////////////////////
   //// Flags/// ////////////////////////////////////////////////////////////////

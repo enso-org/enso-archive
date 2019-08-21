@@ -618,7 +618,8 @@ object AST {
 
     final case class Match(
       pfx: Option[Pattern.Match],
-      segs: Shifted.List1[Match.Segment]
+      segs: Shifted.List1[Match.Segment],
+      resolved: AST
     ) extends Macro {
       val repr = {
         val pfxStream = pfx.map(_.toStream.reverse).getOrElse(List())
@@ -726,28 +727,33 @@ object AST {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  /// Comment //////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  final case class Comment(comment: String) extends AST {
-    val repr               = R + Comment.symbol + comment
-    def map(f: AST => AST) = this
-  }
-
-  object Comment {
-    val symbol = "#"
-    final case class Block(offset: Int, lines: List[String]) extends AST {
-      val repr = R + offset + symbol + lines.mkString("\n " + " " * offset)
-
-      def map(f: AST => AST) = this
-    }
-  }
-
-  //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   //// Space - unaware AST /////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Comment //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  trait Comment extends AST
+  object Comment {
+    val symbol = "#"
+    final case class SingleLine(text: String) extends Comment {
+      val repr               = R + symbol + text
+      def map(f: AST => AST) = this
+    }
+
+    final case class MultiLine(lines: List[String]) extends Comment {
+      val repr               = R + symbol + lines.mkString("\n")
+      def map(f: AST => AST) = this
+    }
+
+    final case class Structural(ast: AST) extends AST {
+      val repr               = R + symbol + symbol + " " + ast
+      def map(f: AST => AST) = copy(ast = f(ast))
+    }
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Import //////////////////////////////////////////////////////////////////

@@ -175,11 +175,24 @@ object Builtin {
         .or(Pattern.AnyBut(Pattern.Cls[AST.Block]).many)
     ) {
       case (None, List(s1)) =>
-        val body = s1.body.toStream
-          .map(t => (Repr.R + t.off + t.el.repr).show())
-          .mkString("")
-        AST.Comment(body)
+        val stream = s1.body.toStream
+        val text   = stream.map(_.repr.show()).mkString("")
+        val lines  = text.split("\n").toList
+        lines match {
+          case List(l) => AST.Comment.SingleLine(text)
+          case ls      => AST.Comment.MultiLine(ls)
+        }
+      case _ => internalError
+    }
 
+    val def_struct_comment = Definition(
+      Opr("##") -> Pattern.Expr()
+    ) {
+      case (None, List(s1)) =>
+        s1.body.toStream match {
+          case List(expr) => AST.Comment.Structural(expr.el)
+          case _          => internalError
+        }
       case _ => internalError
     }
 
@@ -191,8 +204,10 @@ object Builtin {
       def_def,
       def_arrow,
       def_assign,
+      def_skip,
       def_foreign,
-      def_comment
+      def_comment,
+      def_struct_comment
     )
   }
 
