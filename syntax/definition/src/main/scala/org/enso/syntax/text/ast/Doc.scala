@@ -2,12 +2,10 @@ package org.enso.syntax.text.ast
 
 import org.enso.data.List1
 import org.enso.syntax.text.ast.Repr.R
+import scala.util.Random
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import org.enso.syntax.text.ast.Doc.Elem.Newline
-
-import scala.util.Random
 
 ////////////////////////////////////////////////////////////////////////////////
 ////// Doc /////////////////////////////////////////////////////////////////////
@@ -94,7 +92,7 @@ object Doc {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    ////// Text Formatter - Bold, Italic, Strikethrough ////////////////////////
+    ////// Text Formatter - Bold, Italic, Strikeout ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     final case class Formatter(tp: Formatter.Type, elems: scala.List[Elem])
@@ -111,9 +109,9 @@ object Doc {
         Formatter(tp, elems.toList)
 
       abstract class Type(val marker: Char, val htmlMarker: HTMLTag)
-      case object Bold          extends Type('*', HTML.b)
-      case object Italic        extends Type('_', HTML.i)
-      case object Strikethrough extends Type('~', HTML.s)
+      case object Bold      extends Type('*', HTML.b)
+      case object Italic    extends Type('_', HTML.i)
+      case object Strikeout extends Type('~', HTML.s)
 
       final case class Unclosed(tp: Type, elems: scala.List[Elem])
           extends Elem.Invalid {
@@ -255,6 +253,16 @@ object Doc {
   trait Section extends Symbol {
     def indent: Int
     def elems: List[Elem]
+
+    def reprOfNormalText(elem: Elem, index: Int): Repr = {
+      if (index > 0) {
+        val previousIndex = index - 1
+        val previousElem  = elems(previousIndex)
+        if (previousElem == Elem.Newline) {
+          R + makeIndent(indent) + elem
+        } else R + elem
+      } else R + elem
+    }
   }
 
   object Section {
@@ -286,14 +294,7 @@ object Doc {
       val elemsRepr: List[Repr] = elems.zipWithIndex.map {
         case (elem @ (_: Elem.List), _) => R + elem
         case (elem @ (_: Elem.Code), _) => R + elem
-        case (elem, index) =>
-          if (index > 0) {
-            val previousIndex = index - 1
-            val previousElem  = elems(previousIndex)
-            if (previousElem == Elem.Newline) {
-              R + makeIndent(indent) + elem
-            } else R + elem
-          } else R + elem
+        case (elem, index)              => reprOfNormalText(elem, index)
       }
 
       val repr: Repr = firstIndentRepr + elemsRepr
@@ -309,7 +310,8 @@ object Doc {
         Marked(indent, st, elem :: Nil)
       def apply(indent: Int, st: Type, elems: Elem*): Marked =
         Marked(indent, st, elems.toList)
-      def apply(st: Type):               Marked = Marked(1, st, Nil)
+      def apply(st: Type): Marked =
+        Marked(1, st, Nil) //1 because of marker length
       def apply(st: Type, elem: Elem):   Marked = Marked(1, st, elem :: Nil)
       def apply(st: Type, elems: Elem*): Marked = Marked(1, st, elems.toList)
 
@@ -325,13 +327,7 @@ object Doc {
           R + Elem.Newline + makeIndent(indent) + elem
         case (elem @ (_: Elem.List), _) => R + elem
         case (elem @ (_: Elem.Code), _) => R + elem
-        case (elem, index) =>
-          if (index > 0) {
-            val previousElem = elems(index - 1)
-            if (previousElem == Elem.Newline) {
-              R + makeIndent(indent) + elem
-            } else R + elem
-          } else R + elem
+        case (elem, index)              => reprOfNormalText(elem, index)
       }
 
       val repr: Repr = Repr(makeIndent(indent)) + elemsRepr
@@ -345,7 +341,7 @@ object Doc {
       def apply(indent: Int):               Raw = Raw(indent, Nil)
       def apply(indent: Int, elem: Elem):   Raw = Raw(indent, elem :: Nil)
       def apply(indent: Int, elems: Elem*): Raw = Raw(indent, elems.toList)
-      def apply():                          Raw = Raw(0, Nil)
+      def apply():                          Raw = Raw(0, Nil) //1 because unmarked
       def apply(elem: Elem):                Raw = Raw(0, elem :: Nil)
       def apply(elems: Elem*):              Raw = Raw(0, elems.toList)
     }

@@ -52,27 +52,27 @@ class DocParserSpec extends FlatSpec with Matchers {
   "*Foo*" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
   "_Foo_" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
   "~Foo~" ?= Doc(
-    Synopsis(Section.Raw(Formatter(Formatter.Strikethrough, "Foo")))
+    Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
   )
   "`Foo`" ?= Doc(Synopsis(Section.Raw(Code.Inline("Foo"))))
   "~*Foo*~" ?= Doc(
     Synopsis(
       Section.Raw(
-        Formatter(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
+        Formatter(Formatter.Strikeout, Formatter(Formatter.Bold, "Foo"))
       )
     )
   )
   "~_Foo_~" ?= Doc(
     Synopsis(
       Section.Raw(
-        Formatter(Formatter.Strikethrough, Formatter(Formatter.Italic, "Foo"))
+        Formatter(Formatter.Strikeout, Formatter(Formatter.Italic, "Foo"))
       )
     )
   )
   "_~Foo~_" ?= Doc(
     Synopsis(
       Section.Raw(
-        Formatter(Formatter.Italic, Formatter(Formatter.Strikethrough, "Foo"))
+        Formatter(Formatter.Italic, Formatter(Formatter.Strikeout, "Foo"))
       )
     )
   )
@@ -93,7 +93,7 @@ class DocParserSpec extends FlatSpec with Matchers {
   "*~Foo~*" ?= Doc(
     Synopsis(
       Section.Raw(
-        Formatter(Formatter.Bold, Formatter(Formatter.Strikethrough, "Foo"))
+        Formatter(Formatter.Bold, Formatter(Formatter.Strikeout, "Foo"))
       )
     )
   )
@@ -102,7 +102,7 @@ class DocParserSpec extends FlatSpec with Matchers {
       Section.Raw(
         Formatter(
           Formatter.Italic,
-          Formatter(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
+          Formatter(Formatter.Strikeout, Formatter(Formatter.Bold, "Foo"))
         )
       )
     )
@@ -320,7 +320,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Formatter
-          .Unclosed(Formatter.Strikethrough, Formatter(Formatter.Bold, "Foo"))
+          .Unclosed(Formatter.Strikeout, Formatter(Formatter.Bold, "Foo"))
       )
     )
   )
@@ -343,7 +343,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Formatter
-          .Unclosed(Formatter.Strikethrough, Formatter(Formatter.Italic, "Foo"))
+          .Unclosed(Formatter.Strikeout, Formatter(Formatter.Italic, "Foo"))
       )
     )
   )
@@ -359,7 +359,7 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Formatter
-          .Unclosed(Formatter.Bold, Formatter(Formatter.Strikethrough, "Foo"))
+          .Unclosed(Formatter.Bold, Formatter(Formatter.Strikeout, "Foo"))
       )
     )
   )
@@ -367,15 +367,15 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Formatter
-          .Unclosed(Formatter.Italic, Formatter(Formatter.Strikethrough, "Foo"))
+          .Unclosed(Formatter.Italic, Formatter(Formatter.Strikeout, "Foo"))
       )
     )
   )
   "~~~Foo" ?= Doc(
     Synopsis(
       Section.Raw(
-        Formatter(Formatter.Strikethrough),
-        Formatter.Unclosed(Formatter.Strikethrough, "Foo")
+        Formatter(Formatter.Strikeout),
+        Formatter.Unclosed(Formatter.Strikeout, "Foo")
       )
     )
   )
@@ -444,7 +444,7 @@ class DocParserSpec extends FlatSpec with Matchers {
         Formatter(Formatter.Bold, "Foo"),
         " ",
         Formatter(
-          Formatter.Strikethrough,
+          Formatter.Strikeout,
           Formatter.Unclosed(Formatter.Bold, "Bar")
         ),
         " ",
@@ -508,6 +508,22 @@ class DocParserSpec extends FlatSpec with Matchers {
     Synopsis(
       Section
         .Raw("foo ", Formatter(Formatter.Italic, "foo", Newline), "foo2")
+    )
+  )
+
+  """foo *foo
+    |*foo2""".stripMargin ?= Doc(
+    Synopsis(
+      Section
+        .Raw("foo ", Formatter(Formatter.Bold, "foo", Newline), "foo2")
+    )
+  )
+
+  """foo ~foo
+    |~foo2""".stripMargin ?= Doc(
+    Synopsis(
+      Section
+        .Raw("foo ", Formatter(Formatter.Strikeout, "foo", Newline), "foo2")
     )
   )
 

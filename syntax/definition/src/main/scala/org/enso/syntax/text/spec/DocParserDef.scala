@@ -241,12 +241,12 @@ case class DocParserDef() extends Parser[Doc] {
       tp: Elem.Formatter.Type
     ): List[Elem.Formatter.Type] = logger.trace {
       tp match {
-        case Elem.Formatter.Strikethrough =>
+        case Elem.Formatter.Strikeout =>
           List(Elem.Formatter.Bold, Elem.Formatter.Italic)
         case Elem.Formatter.Italic =>
-          List(Elem.Formatter.Bold, Elem.Formatter.Strikethrough)
+          List(Elem.Formatter.Bold, Elem.Formatter.Strikeout)
         case Elem.Formatter.Bold =>
-          List(Elem.Formatter.Italic, Elem.Formatter.Strikethrough)
+          List(Elem.Formatter.Italic, Elem.Formatter.Strikeout)
       }
     }
 
@@ -262,9 +262,9 @@ case class DocParserDef() extends Parser[Doc] {
       }
     }
 
-    val boldTrigger: Char          = Elem.Formatter.Bold.marker
-    val italicTrigger: Char        = Elem.Formatter.Italic.marker
-    val strikethroughTrigger: Char = Elem.Formatter.Strikethrough.marker
+    val boldTrigger: Char      = Elem.Formatter.Bold.marker
+    val italicTrigger: Char    = Elem.Formatter.Italic.marker
+    val strikeoutTrigger: Char = Elem.Formatter.Strikeout.marker
   }
 
   ROOT || formatter.boldTrigger || reify {
@@ -273,8 +273,8 @@ case class DocParserDef() extends Parser[Doc] {
   ROOT || formatter.italicTrigger || reify {
     formatter.onPushingFormatter(Elem.Formatter.Italic)
   }
-  ROOT || formatter.strikethroughTrigger || reify {
-    formatter.onPushingFormatter(Elem.Formatter.Strikethrough)
+  ROOT || formatter.strikeoutTrigger || reify {
+    formatter.onPushingFormatter(Elem.Formatter.Strikeout)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -365,17 +365,21 @@ case class DocParserDef() extends Parser[Doc] {
         list.addInnerListToOuter()
         latest = currentMatch.length
       } else if (currentMatch.length > section.currentIndent && result.stack.nonEmpty) {
-        result.pop()
-        if (!result.stack.head.isInstanceOf[Elem.Code]) {
-          result.push()
-          result.current = Some(Elem.Code(Nil))
-        }
-        result.push()
+        tryToFindCodeInStack()
         state.begin(CODE)
       } else {
         section.currentIndent = currentMatch.length
       }
       latest = currentMatch.length
+    }
+
+    def tryToFindCodeInStack(): Unit = logger.trace {
+      result.pop()
+      if (!result.stack.head.isInstanceOf[Elem.Code]) {
+        result.push()
+        result.current = Some(Elem.Code(Nil))
+      }
+      result.push()
     }
 
     def onIndentForListCreation(
@@ -395,16 +399,30 @@ case class DocParserDef() extends Parser[Doc] {
         list.addInnerListToOuter()
         list.addContentToList(content)
       } else {
-        if (inListFlag) {
-          list.addContentToList(Elem.List.Indent.Invalid(indent, tp, content))
-        } else {
-          onPushingNewLine()
-          result.current = Some(" " * indent + tp.marker + content.show())
-          result.push()
-        }
+        onInvalidIndent(indent, tp, content)
         wantToChangeIndent = false
       }
       if (wantToChangeIndent) latest = indent
+    }
+
+    def onInvalidIndent(
+      indent: Int,
+      tp: Elem.List.Type,
+      content: Elem
+    ): Unit = {
+      if (inListFlag) {
+        list.addContentToList(Elem.List.Indent.Invalid(indent, tp, content))
+      } else {
+        onPushingNewLine()
+        if (tp == Elem.List.Ordered) {
+          formatter.onPushingFormatter(Elem.Formatter.Bold)
+          result.current = Some(content)
+          result.push()
+        } else {
+          result.current = Some(" " * indent + tp.marker + content.show())
+          result.push()
+        }
+      }
     }
 
     def onPushingNewLine(): Unit = logger.trace {
@@ -585,7 +603,7 @@ case class DocParserDef() extends Parser[Doc] {
     def checksOfUnclosedFormattersOnEndOfSection(): Unit = logger.trace {
       formatter.checkForUnclosed(Elem.Formatter.Bold)
       formatter.checkForUnclosed(Elem.Formatter.Italic)
-      formatter.checkForUnclosed(Elem.Formatter.Strikethrough)
+      formatter.checkForUnclosed(Elem.Formatter.Strikeout)
     }
 
     def reverseStackOnEndOfSection(): Unit = logger.trace {
