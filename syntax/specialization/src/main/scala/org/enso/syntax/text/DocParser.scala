@@ -34,7 +34,7 @@ object DocParser {
 object DocParserRunner {
   val docParserInstance = new DocParser()
 
-  val dataToParse =
+  val dataToParse: String =
     """ DEPRECATED
       | REMOVED - replaced by SwiftUI
       | Construct and manage a graphical, event-driven user interface for your iOS or
