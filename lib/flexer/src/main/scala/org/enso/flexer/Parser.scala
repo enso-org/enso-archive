@@ -21,6 +21,7 @@ trait Parser[T] {
 
   def run(input: Reader): Result[T] = {
     reader = input
+    reader.rewind.matched.set()
     reader.nextChar()
 
     while (state.runCurrent() == State.Status.Exit.OK) Unit
