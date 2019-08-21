@@ -1,69 +1,51 @@
 package org.enso.flexer
 
 import java.io._
-import java.nio.charset.StandardCharsets
+import java.nio.charset.StandardCharsets.UTF_8
 
 /**  Fast UTF8 reader and preprocessor.
   *  It uses unboxed byte buffer under the hood,
   *  deals correctly with variable length UTF chars
   *  and replaces \r(\n) with \n and \t with 4 spaces.
   */
-class ReaderUTF(val input: DataInputStream) {
+class ReaderUTF(val input: InputStream) {
   import ReaderUTF._
 
   // buffer will be unboxed as long as we don't use any fancy scala collection methods on it
-  val buffer   = new Array[Byte](BUFFERSIZE + 10)
+  val buffer   = new Array[Byte](BUFFERSIZE)
   var offset   = 0
-  var length   = 0
+  var length   = BUFFERSIZE
   var charSize = 0
   var charCode = ENDOFINPUT
 
-  def this(input: InputStream) = this(new DataInputStream(input))
-  def this(file: File)         = this(new FileInputStream(file))
-  def this(input: String) =
-    this(new ByteArrayInputStream(input.getBytes(StandardCharsets.UTF_8)))
+  def this(file: File)  = this(new FileInputStream(file))
+  def this(str: String) = this(new ByteArrayInputStream(str.getBytes(UTF_8)))
 
-  protected var lastChar = ' '.toByte
+  fill(0)
 
-  protected def fill(): Unit = {
-    offset = 0
-    while (offset < BUFFERSIZE && readChar()) Unit
-    for (_ <- 1 until charLength(lastChar))
-      readChar()
-    length = offset
-    offset = 0
+  protected def fill(off: Int): Unit = {
+    length = off + input.read(buffer, off, BUFFERSIZE - off)
+    offset = off
   }
 
-  protected def readChar(): Boolean = {
-    val char = input.read()
-    if (char == ENDOFINPUT)
-      return false
-    lastChar             = char.toByte
-    buffer(nextOffset()) = lastChar
-    true
-  }
-
-  final protected def nextOffset(): Int = {
-    val off = offset
+  protected def nextByte(): Int = {
+    if (offset >= length)
+      if (!empty) fill(0)
+      else return ENDOFINPUT
+    val byte = buffer(offset)
     offset += 1
-    off
+    byte
   }
 
-  fill()
+  def empty: Boolean =
+    offset >= length && length < BUFFERSIZE
 
   def nextChar(): Int = {
-    if (offset >= length)
-      if (length >= BUFFERSIZE)
-        fill()
-      else {
-        charSize = 0
-        charCode = -1
-        return charCode
-      }
-    charSize = charLength(buffer(offset))
-    charCode = buffer(nextOffset()) & charMask(charSize)
+    charCode = nextByte()
+    charSize = charLength(charCode.toByte)
+    charCode = charCode & charMask(charSize)
     for (_ <- 1 until charSize)
-      charCode = charCode << UTFBYTESIZE | (buffer(nextOffset()) & charMask(0))
+      charCode = charCode << UTFBYTESIZE | nextByte() & charMask(-1)
     charCode
   }
 
@@ -81,18 +63,22 @@ class ReaderUTF(val input: DataInputStream) {
 object ReaderUTF {
 
   val ENDOFINPUT  = -1
-  val BUFFERSIZE  = 30000
+  val BUFFERSIZE  = 32768
   val UTFBYTESIZE = 6
 
   /** For more info on UTF decoding look at: https://en.wikipedia.org/wiki/UTF-8 */
-  def charLength(char: Byte): Int = ~char >> 4 match {
-    case 0     => 4
-    case 1     => 3
-    case 2 | 3 => 2
-    case _     => 1
-  }
+  def charLength(char: Int): Int =
+    if (char == ENDOFINPUT) 0
+    else
+      ~char >> 4 match {
+        case 0     => 4
+        case 1     => 3
+        case 2 | 3 => 2
+        case _     => 1
+      }
 
   def charMask(size: Int): Int = size match {
+    case 0 => -1  // do not mask end of input
     case 1 => 127 // 0111 1111
     case 2 => 63  // 0011 1111
     case 3 => 31  // 0001 1111

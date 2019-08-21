@@ -10,7 +10,7 @@ import scala.collection.mutable
 trait Parser[T] {
   import Parser._
 
-  var reader: ParserReader = _
+  var reader: Reader = _
 
   var status       = State.Status.Exit.OK
   val stateDefs    = new Array[Int => Int](256)
@@ -19,7 +19,7 @@ trait Parser[T] {
 
   def getResult(): Option[T]
 
-  def run(input: ParserReader): Result[T] = {
+  def run(input: Reader): Result[T] = {
     reader = input
     reader.nextChar()
 
@@ -37,20 +37,9 @@ trait Parser[T] {
     Result(reader.offset, value)
   }
 
-  final def rewind(): Unit = logger.trace {
-    reader.rewind(reader.offset - reader.result.length)
-  }
+  final def rewind(): Unit =
+    reader.rewind.matched.run()
 
-  final def rewindThenCall(rule: () => Unit): Int = logger.trace {
-    reader.rewind(reader.lastRuleOffset)
-    state.call(rule)
-  }
-
-  final def withLastRuleOffset(targetState: Int): Int = {
-    reader.lastRuleOffset = reader.offset - reader.charSize
-    logger.log(s"withLastRuleOffset: lastRuleOffset = ${reader.lastRuleOffset}")
-    targetState
-  }
   //// State management ////
 
   // FIXME: This is a hack. Without it sbt crashes and needs to be completely
@@ -102,10 +91,10 @@ trait Parser[T] {
       while (State.valid(status)) {
         logger.log(
           s"Step (${cstate.ix}:$status) "
-            + s"${Escape.str(reader.currentStr)} (${reader.charCode})"
+          + s"${Escape.str(reader.currentStr)} (${reader.charCode})"
         )
         status = nextState(status)
-        if (finished && !reader.rewinded)
+        if (finished && !reader.rewind.rewinded)
           status = State.Status.Exit.FINISHED
         finished = reader.charCode == ENDOFINPUT
         if (State.valid(status)) {
@@ -121,6 +110,7 @@ trait Parser[T] {
       currentMatch = reader.result.toString
       rule()
       reader.result.setLength(0)
+      reader.rewind.matched.set()
       State.Status.Exit.OK
     }
 

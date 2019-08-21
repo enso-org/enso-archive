@@ -27,7 +27,7 @@ case class Spec(dfa: DFA) {
     case (State.missing, Some(state), false) =>
       q"state.call(${TermName(state.rule)})"
     case (State.missing, Some(state), true) =>
-      q"rewindThenCall(${TermName(state.rule)})"
+      q"reader.rewind.rule.run(); state.call(${TermName(state.rule)})"
 
     case _ =>
       val targetStateHasNoRule = maybeState match {
@@ -39,7 +39,7 @@ case class Spec(dfa: DFA) {
       }
       val trgState = Literal(Constant(targetState))
       if (targetStateHasNoRule && !rulesOverlap)
-        q"withLastRuleOffset($trgState)"
+        q"reader.rewind.rule.set(); $trgState"
       else
         q"$trgState"
   }

@@ -4,7 +4,8 @@ import java.io.DataInputStream
 
 import org.enso.data.VectorMap
 import org.enso.flexer
-import org.enso.flexer.{ParserReader, State}
+import org.enso.flexer.Reader
+import org.enso.flexer.State
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
 import org.enso.syntax.text.AST
@@ -25,12 +26,12 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   //// API ////
   /////////////
 
-  def run(input: ParserReader, markers: Markers): Result[AST.Module] = {
+  def run(input: Reader, markers: Markers): Result[AST.Module] = {
     result.markers = VectorMap(markers)
     run(input)
   }
 
-  override def run(input: ParserReader): Result[AST.Module] = {
+  override def run(input: Reader): Result[AST.Module] = {
     block.onBegin(0)
     state.begin(block.FIRSTCHAR)
     super.run(input)

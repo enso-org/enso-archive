@@ -54,7 +54,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-unused:privates",           // Warn if a private member is unused.
   "-Ywarn-value-discard",             // Warn when non-Unit expression results are unused.
   "-language:implicitConversions",
-  "-Xmacro-settings:-logging@org.enso"
+//  "-Xmacro-settings:-logging@org.enso"
 //  "-Xmacro-settings:-logging@org.enso.flexer.automata"
 )
 
