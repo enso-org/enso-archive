@@ -11,9 +11,26 @@ import scala.reflect.runtime.universe.reify
 
 case class DocParserDef() extends Parser[Doc] {
 
-  //////////////
-  /// Result ///
-  //////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Basic Char Classification /////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  val lowerLetter: Pattern = range('a', 'z')
+  val upperLetter: Pattern = range('A', 'Z')
+  val digit: Pattern       = range('0', '9')
+
+  val specialCharacters
+    : Pattern             = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
+  val whitespace: Pattern = ' '.many1
+  val newline             = '\n'
+
+  val possibleChars
+    : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
+  val normalText: Pattern = possibleChars.many1
+
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Result ////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   override def getResult(): Option[Doc] = result.doc
 
@@ -43,124 +60,107 @@ case class DocParserDef() extends Parser[Doc] {
     }
   }
 
-  /////////////////////////////////
-  /// Basic Char Classification ///
-  /////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Text //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  val lowerLetter: Pattern = range('a', 'z')
-  val upperLetter: Pattern = range('A', 'Z')
-  val digit: Pattern       = range('0', '9')
+  object text {
+    def onPushingNormalText(in: String): Unit = logger.trace {
+      val isDocBeginning = result.workingASTStack.isEmpty && sectionsStack.isEmpty // to create tags on file beginning
+      val isSectionBeginning = result.workingASTStack.isEmpty || result.workingASTStack.head
+          .isInstanceOf[Section.Header] // to remove unnecessary indent from first line as yet onIndent hasn't been called
 
-  val specialCharacters
-    : Pattern             = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
-  val whitespace: Pattern = ' '.many1
-  val newline             = '\n'
-
-  val possibleChars
-    : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
-  val normalText: Pattern = possibleChars.many1
-
-  //////////////////////////
-  ////// Text pushing //////
-  //////////////////////////
-
-  def onPushingNormalText(in: String): Unit = logger.trace {
-    val isDocBeginning = result.workingASTStack.isEmpty && sectionsStack.isEmpty // to create tags on file beginning
-    val isSectionBeginning = result.workingASTStack.isEmpty || result.workingASTStack.head
-        .isInstanceOf[Section.Header] // to remove unnecessary indent from first line as yet onIndent hasn't been called
-
-    if (isDocBeginning) {
-      if (!checkIfTagExistInPushedText(in)) {
+      if (isDocBeginning) {
+        if (!tags.checkIfTagExistInPushedText(in)) {
+          val text = removeWhitespaces(in)
+          pushNormalText(text)
+        }
+      } else if (isSectionBeginning) {
         val text = removeWhitespaces(in)
         pushNormalText(text)
-      }
-    } else if (isSectionBeginning) {
-      val text = removeWhitespaces(in)
-      pushNormalText(text)
-    } else {
-      pushNormalText(in)
-    }
-  }
-
-  def removeWhitespaces(in: String): String = logger.trace {
-    var text = in
-    if (text.nonEmpty) {
-      while (text.head == ' ' && text.length > 1) {
-        text = text.tail
-      }
-    }
-    text
-  }
-
-  def pushNormalText(in: String): Unit = logger.trace {
-    result.current = Some(Elem.Text(in))
-    result.push()
-  }
-
-  /////////////////////
-  ////// Tagging //////
-  /////////////////////
-
-  val possibleTagsList: List[Tags.Tag.Type] =
-    List(
-      Tags.Tag.Deprecated,
-      Tags.Tag.Added,
-      Tags.Tag.Modified,
-      Tags.Tag.Removed,
-      Tags.Tag.Upcoming
-    )
-  var tagsStack: List[Tags.Tag] = Nil
-
-  def pushTag(indent: Int, tagType: Tags.Tag.Type, details: String): Unit =
-    logger.trace {
-      if (details.replaceAll("\\s", "").length == 0) {
-        tagsStack +:= Tags.Tag(indent, tagType)
       } else {
-        if (details.nonEmpty) {
-          var det = removeWhitespaces(details)
-          if (tagType != Tags.Tag.Unrecognized) {
-            det = ' ' + det
-          }
-          tagsStack +:= Tags.Tag(indent, tagType, Some(det))
-        } else {
-          Tags.Tag(indent, tagType, None)
-        }
+        pushNormalText(in)
       }
-      result.current = Some("")
     }
 
-  def checkIfTagExistInPushedText(in: String): Boolean = logger.trace {
-    val inArray     = in.split(" ")
-    var containsTag = false
-    for (elem <- inArray) {
-      if (elem.isEmpty) {
-        currentSectionIndent += 1
-      } else if (elem == elem.toUpperCase) {
-        for (tagType <- possibleTagsList) {
-          if (elem == tagType.toString.toUpperCase) {
-            containsTag = true
-            val tagDet = in.replaceFirst(tagType.toString.toUpperCase, "")
-            pushTag(
-              currentSectionIndent,
-              tagType,
-              tagDet
-            )
-          }
-        }
-        if (!containsTag && !elem.contains(newline)) {
-          pushTag(currentSectionIndent, Tags.Tag.Unrecognized, in)
-          containsTag = true
+    def removeWhitespaces(in: String): String = logger.trace {
+      var text = in
+      if (text.nonEmpty) {
+        while (text.head == ' ' && text.length > 1) {
+          text = text.tail
         }
       }
+      text
     }
-    containsTag
+
+    def pushNormalText(in: String): Unit = logger.trace {
+      result.current = Some(Elem.Text(in))
+      result.push()
+    }
   }
 
-  ROOT || normalText || reify { onPushingNormalText(currentMatch) }
+  ROOT || normalText || reify { text.onPushingNormalText(currentMatch) }
 
-  //////////////////////////
-  ////// Code pushing //////
-  //////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Tags //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  object tags {
+    val possibleTagsList: List[Tags.Tag.Type] =
+      List(
+        Tags.Tag.Deprecated,
+        Tags.Tag.Added,
+        Tags.Tag.Modified,
+        Tags.Tag.Removed,
+        Tags.Tag.Upcoming
+      )
+    var tagsStack: List[Tags.Tag] = Nil
+
+    def pushTag(indent: Int, tagType: Tags.Tag.Type, details: String): Unit =
+      logger.trace {
+        if (details.replaceAll("\\s", "").length == 0) {
+          tagsStack +:= Tags.Tag(indent, tagType)
+        } else {
+          if (details.nonEmpty) {
+            var det = text.removeWhitespaces(details)
+            if (tagType != Tags.Tag.Unrecognized) {
+              det = ' ' + det
+            }
+            tagsStack +:= Tags.Tag(indent, tagType, Some(det))
+          } else {
+            Tags.Tag(indent, tagType, None)
+          }
+        }
+        result.current = Some("")
+      }
+
+    def checkIfTagExistInPushedText(in: String): Boolean = logger.trace {
+      val inArray     = in.split(" ")
+      var containsTag = false
+      for (elem <- inArray) {
+        if (elem.isEmpty) {
+          currentSectionIndent += 1
+        } else if (elem == elem.toUpperCase) {
+          for (tagType <- possibleTagsList) {
+            if (elem == tagType.toString.toUpperCase) {
+              containsTag = true
+              val tagDet = in.replaceFirst(tagType.toString.toUpperCase, "")
+              pushTag(currentSectionIndent, tagType, tagDet)
+            }
+          }
+          if (!containsTag && !elem.contains(newline)) {
+            pushTag(currentSectionIndent, Tags.Tag.Unrecognized, in)
+            containsTag = true
+          }
+        }
+      }
+      containsTag
+    }
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Code //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   def onPushingInlineCode(in: String): Unit = logger.trace {
     result.current = Some(Elem.Code.Inline(in))
@@ -195,9 +195,9 @@ case class DocParserDef() extends Parser[Doc] {
   CODE || not(newline).many1 || reify { onPushingCodeLine(currentMatch) }
   CODE || eof                || reify { state.end(); onEOF() }
 
-  /////////////////////////////
-  ////// Text formatting //////
-  /////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Formatter /////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   var textFormattersStack: List[Elem.Formatter.Type] = Nil
 
@@ -267,9 +267,9 @@ case class DocParserDef() extends Parser[Doc] {
   ROOT || strikethroughTrigger || reify { onPushingFormatter(Elem.Formatter.Strikethrough) }
   // format: on
 
-  ////////////////////
-  ////// Header //////
-  ////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Header ////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   def createSectionHeader(): Unit = logger.trace {
     currentSection match {
@@ -299,9 +299,9 @@ case class DocParserDef() extends Parser[Doc] {
     result.push()
   }
 
-  ///////////////////
-  ////// Links //////
-  ///////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Links /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   def onCreatingURL(): Unit = logger.trace {
     val in   = currentMatch.substring(1).dropRight(1).split(']')
@@ -335,9 +335,9 @@ case class DocParserDef() extends Parser[Doc] {
   ROOT || imageLinkPattern || reify { onCreatingImage() }
   ROOT || urlLinkPattern   || reify { onCreatingURL() }
 
-  //////////////////////////////////////////
-  ///// Indent Management & New line ///////
-  //////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Indent Management & New line //////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   var latestIndent: Int   = 0
   val listIndent: Int     = 2
@@ -417,9 +417,9 @@ case class DocParserDef() extends Parser[Doc] {
     onIndent()
   }
 
-  /////////////////
-  ///// Lists /////
-  /////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Lists /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   def addList(indent: Int, listType: Elem.List.Type, content: Elem): Unit =
     logger.trace {
@@ -489,9 +489,9 @@ case class DocParserDef() extends Parser[Doc] {
     onUnorderedList()
   }
 
-  /////////////////////////
-  ////// New section //////
-  /////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  ////// New section ///////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   var sectionsStack: List[Section]                = Nil
   var currentSection: Option[Section.Marked.Type] = None
@@ -547,22 +547,18 @@ case class DocParserDef() extends Parser[Doc] {
     onNewMarkedSection(Section.Marked.Example)
   }
 
-  ////////////////////////////
-  ////// End of section //////
-  ////////////////////////////
-
-  def onEndOfSection(): Unit = logger.trace {
-    checksOfUnclosedFormattersOnEndOfSection()
-    reverseASTStack()
-    createSectionHeader()
-    pushToSectionsStack()
-    cleanupEndOfSection()
-  }
+  //////////////////////////////////////////////////////////////////////////////
+  ////// End of Section ////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
   def checksOfUnclosedFormattersOnEndOfSection(): Unit = logger.trace {
     checkForUnclosed(Elem.Formatter.Bold)
     checkForUnclosed(Elem.Formatter.Italic)
     checkForUnclosed(Elem.Formatter.Strikethrough)
+  }
+
+  def reverseStackOnEndOfSection(): Unit = logger.trace {
+    result.workingASTStack = result.workingASTStack.reverse
   }
 
   def pushToSectionsStack(): Unit = logger.trace {
@@ -582,33 +578,31 @@ case class DocParserDef() extends Parser[Doc] {
       }
     }
   }
+
   def cleanupEndOfSection(): Unit = logger.trace {
     result.current         = None
     result.workingASTStack = Nil
     textFormattersStack    = Nil
   }
 
-  /////////////////////////
-  ////// End of File //////
-  /////////////////////////
-
-  def onEOF(): Unit = logger.trace {
-    onEndOfSection()
-    reverseFinalASTStack()
-    reverseTagsStack()
-    createDoc()
+  def onEndOfSection(): Unit = logger.trace {
+    checksOfUnclosedFormattersOnEndOfSection()
+    reverseStackOnEndOfSection()
+    createSectionHeader()
+    pushToSectionsStack()
+    cleanupEndOfSection()
   }
 
-  def reverseASTStack(): Unit = logger.trace {
-    result.workingASTStack = result.workingASTStack.reverse
-  }
+  //////////////////////////////////////////////////////////////////////////////
+  ////// End of File ///////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-  def reverseFinalASTStack(): Unit = logger.trace {
+  def reverseSectionsStackOnEOF(): Unit = logger.trace {
     sectionsStack = sectionsStack.reverse
   }
 
-  def reverseTagsStack(): Unit = logger.trace {
-    tagsStack = tagsStack.reverse
+  def reverseTagsStackOnEOF(): Unit = logger.trace {
+    tags.tagsStack = tags.tagsStack.reverse
   }
 
   def createDoc(): Unit = logger.trace {
@@ -619,9 +613,9 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   def createTags(): Option[Tags] = {
-    tagsStack.length match {
+    tags.tagsStack.length match {
       case 0 => None
-      case _ => Some(Tags(List1(tagsStack.head, tagsStack.tail)))
+      case _ => Some(Tags(List1(tags.tagsStack.head, tags.tagsStack.tail)))
     }
   }
 
@@ -643,6 +637,13 @@ case class DocParserDef() extends Parser[Doc] {
         val bodyTail = sectionsStack.tail.tail
         Some(Body(List1(bodyHead, bodyTail)))
     }
+  }
+
+  def onEOF(): Unit = logger.trace {
+    onEndOfSection()
+    reverseSectionsStackOnEOF()
+    reverseTagsStackOnEOF()
+    createDoc()
   }
 
   ROOT || eof || reify { onEOF() }

@@ -434,8 +434,7 @@ object Doc {
       case object Unrecognized extends Type
     }
 
-    implicit final class _OptionTagType_(val self: Option[String]) {
-      val repr: Repr = self.map(Repr(_)).getOrElse(Repr())
+    implicit final class _OptionTagDetails_(val self: Option[String]) {
       val html: HTML = {
         val htmlCls = HTML.`class` := "tag_details"
         Seq(self.map(HTML.div(htmlCls)(_)).getOrElse("".html))
