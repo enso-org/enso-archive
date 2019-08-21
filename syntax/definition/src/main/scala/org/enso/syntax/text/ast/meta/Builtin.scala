@@ -180,7 +180,7 @@ object Builtin {
         val lines  = text.split("\n").toList
         lines match {
           case List(l) => AST.Comment.SingleLine(text)
-          case ls      => AST.Comment.MultiLine(ls)
+          case ls      => AST.Comment.MultiLine(0, ls)
         }
       case _ => internalError
     }

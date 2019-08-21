@@ -590,7 +590,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def onModuleBegin(): Unit = logger.trace {
       current.emptyLines = emptyLines.reverse
       emptyLines         = Nil
-      offset -= 1; rewind() // FIXME
+      rewind()
       off.push()
       state.end()
       state.begin(NEWLINE)

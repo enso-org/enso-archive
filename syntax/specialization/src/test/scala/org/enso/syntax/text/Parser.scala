@@ -281,7 +281,7 @@ class ParserSpec extends FlatSpec with Matchers {
   //////////////////////////////////////////////////////////////////////////////
 
   "foo   #L1"      ?= "foo" $___ Comment.SingleLine("L1")
-  "#\n    L1\n L2" ?= Comment.MultiLine(List("", "    L1", " L2"))
+  "#\n    L1\n L2" ?= Comment.MultiLine(0, List("", "    L1", " L2"))
   "#L1\nL2"        ?= Module(Line(Comment.SingleLine("L1")), Line(Cons("L2")))
 
   //////////////////////////////////////////////////////////////////////////////
