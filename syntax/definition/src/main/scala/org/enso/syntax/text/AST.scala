@@ -1,8 +1,8 @@
 package org.enso.syntax.text
 
 import monocle.macros.GenLens
-import org.enso.data.List1
 import org.enso.data.List1._
+import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.data.Tree
 import org.enso.syntax.text.ast.Repr.R
@@ -46,6 +46,7 @@ object AST {
   type Stream1 = List1[SAST]
 
   sealed trait Symbol extends Repr.Provider {
+    def byteSpan: Int  = repr.byteSpan
     def span:   Int    = repr.span
     def show(): String = repr.show()
   }
@@ -300,7 +301,7 @@ object AST {
 
       lazy val quoteRepr = R + (quoteChar.toString * quote.asInt)
       lazy val bodyRepr  = R + segments
-      lazy val repr      = R + quoteRepr + segments + quoteRepr
+      lazy val repr      = R + quoteRepr + bodyRepr + quoteRepr
 
       def map(f: AST => AST) = this
 
@@ -393,11 +394,10 @@ object AST {
           case (EOL(_), segment) =>
             last = segment
             EOL(validIndent = false)
-          case (_, segment) => {
+          case (_, segment) =>
             val prev = last
             last = segment
             prev
-          }
         }
       }
     }
@@ -467,24 +467,52 @@ object AST {
   //// Block ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  type Block = _Block
-  final case class _Block(
-    tp: Block.Type,
-    indent: Int,
-    emptyLines: List[Int],
-    firstLine: Block.Line.NonEmpty,
-    lines: List[Block.Line]
+  val newline = R + '\n'
+
+  abstract class Block(
+    val typ: Block.Type,
+    val indent: Int,
+    val emptyLines: List[Int],
+    val firstLine: Block.Line.NonEmpty,
+    val lines: List[Block.Line]
   ) extends AST {
+    lazy val headRepr = newline
     val repr = {
-      val headRepr       = R + '\n'
-      val emptyLinesRepr = emptyLines.map(R + indent + _ + "\n")
+      val emptyLinesRepr = emptyLines.map(R + _ + newline)
       val firstLineRepr  = R + indent + firstLine
-      val linesRepr      = lines.map(R + '\n' + indent + _)
-      headRepr + emptyLinesRepr + firstLineRepr + linesRepr
+      val linesRepr = lines.map { line =>
+        newline + line.elem.map(_ => indent) + line
+      }
+      R + headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
 
+    def replaceType(typ: Block.Type): Block
+    def map(f: AST => AST): Block
+  }
+
+  case class _Block(
+    override val typ: Block.Type,
+    override val indent: Int,
+    override val emptyLines: List[Int],
+    override val firstLine: Block.Line.NonEmpty,
+    override val lines: List[Block.Line]
+  ) extends Block(typ, indent, emptyLines, firstLine, lines) {
+    def replaceType(typ: Block.Type) = copy(typ = typ)
     def map(f: AST => AST) =
       copy(firstLine = firstLine.map(f), lines = lines.map(_.map(f)))
+  }
+
+  case class OrphanBlock(
+    override val typ: Block.Type,
+    override val indent: Int,
+    override val emptyLines: List[Int],
+    override val firstLine: Block.Line.NonEmpty,
+    override val lines: List[Block.Line]
+  ) extends Block(typ, indent, emptyLines, firstLine, lines) {
+    def replaceType(typ: Block.Type) = copy(typ = typ)
+    def map(f: AST => AST) =
+      copy(firstLine = firstLine.map(f), lines = lines.map(_.map(f)))
+    override lazy val headRepr = R
   }
 
   object Block {
@@ -493,23 +521,31 @@ object AST {
     final case object Discontinuous extends Type
 
     def apply(
-      tp: Type,
+      isOrphan: Boolean,
+      typ: Type,
       indent: Int,
       emptyLines: List[Int],
       firstLine: Line.NonEmpty,
       lines: List[Line]
-    ): Block = _Block(tp, indent, emptyLines, firstLine, lines)
+    ): Block =
+      if (isOrphan) OrphanBlock(typ, indent, emptyLines, firstLine, lines)
+      else _Block(typ, indent, emptyLines, firstLine, lines)
 
     def apply(
-      tp: Type,
+      typ: Type,
       indent: Int,
       firstLine: Line.NonEmpty,
       lines: List[Line]
     ): Block =
-      Block(tp, indent, List(), firstLine, lines)
+      Block(isOrphan = false, typ, indent, List(), firstLine, lines)
 
-    def apply(tp: Type, indent: Int, firstLine: AST, lines: AST*): Block =
-      Block(tp, indent, Line.Required(firstLine), lines.toList.map(Line(_)))
+    def apply(
+      typ: Type,
+      indent: Int,
+      firstLine: AST,
+      lines: Option[AST]*
+    ): Block =
+      Block(typ, indent, Line.Required(firstLine), lines.toList.map(Line(_)))
 
     def unapply(t: Block): Option[(Int, Line.NonEmpty, List[Line])] =
       Some((t.indent, t.firstLine, t.lines))
@@ -527,8 +563,7 @@ object AST {
         with Zipper.Has {
       type Zipper[T] = Line.Zipper.Class[T]
       val repr = R + elem + off
-      def map(f: AST => AST): Line =
-        _Line(elem.map(f), off)
+      def map(f: AST => AST): Line = _Line(elem.map(f), off)
       def toNonEmpty(): Option[Line.NonEmpty] =
         elem.map(Line.Required(_, off))
     }
@@ -576,16 +611,10 @@ object AST {
   //// Module //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  def intersperse[T](t: T, lst: List[T]): List[T] = lst match {
-    case Nil             => Nil
-    case s1 :: s2 :: Nil => s1 :: t :: intersperse(t, s2 :: Nil)
-    case s1 :: Nil       => s1 :: Nil
-  }
-
   import Block.Line
 
   final case class Module(lines: List1[Line]) extends AST {
-    val repr = R + lines.head + lines.tail.map(R + '\n' + _)
+    val repr = R + lines.head + lines.tail.map(newline + _)
 
     def map(f: AST => AST)        = copy(lines = lines.map(_.map(f)))
     def mapLines(f: Line => Line) = Module(lines.map(f))
@@ -739,20 +768,33 @@ object AST {
   trait Comment extends AST
   object Comment {
     val symbol = "#"
+
     final case class SingleLine(text: String) extends Comment {
-      val repr               = R + symbol + text
-      def map(f: AST => AST) = this
+    val repr               = R + Comment.symbol + text
+    def map(f: AST => AST) = this
     }
 
-    final case class MultiLine(lines: List[String]) extends Comment {
-      val repr               = R + symbol + lines.mkString("\n")
+    final case class MultiLine(offset: Int, lines: List[String]) extends Comment {
       def map(f: AST => AST) = this
+      val repr = {
+        val commentBlock = lines match {
+          case Nil => Nil
+          case line +: lines =>
+            val indentedLines = lines.map { s =>
+              if (s.forall(_ == ' ')) newline + s
+              else newline + 1 + offset + s
+            }
+            (R + line) +: indentedLines
+        }
+        R + "#" + commentBlock
+      }
     }
 
     final case class Structural(ast: AST) extends AST {
       val repr               = R + symbol + symbol + " " + ast
       def map(f: AST => AST) = copy(ast = f(ast))
     }
+
   }
 
   //////////////////////////////////////////////////////////////////////////////

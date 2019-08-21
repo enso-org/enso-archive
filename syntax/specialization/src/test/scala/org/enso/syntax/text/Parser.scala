@@ -3,15 +3,15 @@ package org.enso.syntax.text
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.data.Tree
-import org.enso.syntax.text.AST._
-import org.enso.syntax.text.AST.implicits._
-import org.enso.syntax.text.ast.DSL._
 import org.enso.flexer.Parser.Result
-import org.enso.flexer
-import org.scalatest._
+import org.enso.flexer.Reader
 import org.enso.syntax.text.AST.Block.Line
 import org.enso.syntax.text.AST.Text.Segment.EOL
 import org.enso.syntax.text.AST.Text.Segment.Plain
+import org.enso.syntax.text.AST._
+import org.enso.syntax.text.AST.implicits._
+import org.enso.syntax.text.ast.DSL._
+import org.scalatest._
 
 class ParserSpec extends FlatSpec with Matchers {
 
@@ -19,19 +19,19 @@ class ParserSpec extends FlatSpec with Matchers {
 
   def assertModule(input: String, result: AST, markers: Markers): Assertion = {
     val parser = Parser()
-    val output = parser.run(input, markers)
+    val output = parser.run(new Reader(input), markers)
     output match {
       case Result(offset, Result.Success(module)) =>
         val rmodule = parser.resolveMacros(module)
         assert(rmodule == result)
-        assert(module.show() == input)
+        assert(module.show() == new Reader(input).toString())
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
 
   def assertExpr(input: String, result: AST, markers: Markers): Assertion = {
     val parser = Parser()
-    val output = parser.run(input, markers)
+    val output = parser.run(new Reader(input), markers)
     output match {
       case Result(offset, Result.Success(module)) =>
         val rmodule = parser.resolveMacros(module)
@@ -42,7 +42,7 @@ class ParserSpec extends FlatSpec with Matchers {
             case None => fail("Empty expression")
             case Some(e) =>
               assert(e == result)
-              assert(module.show() == input)
+              assert(module.show() == new Reader(input).toString())
           }
         }
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
@@ -50,10 +50,10 @@ class ParserSpec extends FlatSpec with Matchers {
   }
 
   def assertIdentity(input: String): Assertion = {
-    val output = Parser().run(input)
+    val output = Parser().run(new Reader(input))
     output match {
       case Result(offset, Result.Success(value)) =>
-        assert(value.show() == input)
+        assert(value.show() == new Reader(input).toString())
       case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
     }
   }
@@ -184,6 +184,10 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Text ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  //////////////
+  //// Text ////
+  //////////////
+
   "'"       ?= Text.Unclosed(Text())
   "''"      ?= Text()
   "'''"     ?= Text.Unclosed(Text(Text.Quote.Triple))
@@ -277,7 +281,7 @@ class ParserSpec extends FlatSpec with Matchers {
   //////////////////////////////////////////////////////////////////////////////
 
   "foo   #L1"      ?= "foo" $___ Comment.SingleLine("L1")
-  "#\n    L1\n L2" ?= Comment.MultiLine(List("", "    L1", " L2"))
+  "#\n    L1\n L2" ?= Comment.MultiLine(0, List("", "    L1", " L2"))
   "#L1\nL2"        ?= Module(Line(Comment.SingleLine("L1")), Line(Cons("L2")))
 
   //////////////////////////////////////////////////////////////////////////////
@@ -285,23 +289,6 @@ class ParserSpec extends FlatSpec with Matchers {
   //////////////////////////////////////////////////////////////////////////////
 
   "a #= b c" ?= "a" $_ "#=" $_ ("b" $_ "c")
-
-  //////////////////////////////////////////////////////////////////////////////
-  //// Blocks //////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-//  "foo  \n bar" ?= "foo" $__ Block(1, "bar")
-//
-//  "f =  \n\n\n".testIdentity
-//  "  \n\n\n f\nf".testIdentity
-//  "f =  \n\n  x ".testIdentity
-//  "f =\n\n  x\n\n y".testIdentity
-//
-//  "a b\n  c\n" ?= "a" $_ App(
-//    Var("b"),
-//    0,
-//    Block(2, List(), Required(Var("c"), 0), List(Line()))
-//  )
 
   //////////////////////////////////////////////////////////////////////////////
   //// Mixfixes ////////////////////////////////////////////////////////////////
@@ -346,29 +333,37 @@ class ParserSpec extends FlatSpec with Matchers {
   """def Maybe a
     |    def Just val:a
     |    def Nothing
-  """.stripMargin ?= {
+    |""".stripMargin ?= {
     val defJust    = Def("Just", List("val" $ ":" $ "a"))
     val defNothing = Def("Nothing")
     Def(
       "Maybe",
       List("a"),
-      Some(Block(Block.Continuous, 4, defJust, defNothing))
+      Some(Block(Block.Continuous, 4, defJust, Some(defNothing), None))
     )
   }
 
   """foo ->
     |    bar
-  """.stripMargin ?= "foo" $_ "->" $_ Block(Block.Discontinuous, 4, "bar")
+    |""".stripMargin ?= "foo" $_ "->" $_ Block(
+    Block.Discontinuous,
+    4,
+    "bar",
+    None
+  )
 
-  "if a then b" ?= Mixfix(List1[AST.Ident]("if", "then"), List1[AST]("a", "b"))
+  "if a then b" ?= Mixfix(
+    List1[AST.Ident]("if", "then"),
+    List1[AST](" a ", "b")
+  )
   "if a then b else c" ?= Mixfix(
     List1[AST.Ident]("if", "then", "else"),
     List1[AST]("a", "b", "c")
   )
 
-  "if a"         ?= amb_if_("a": AST)
-  "(if a) b"     ?= Group(amb_if_("a": AST)) $_ "b"
-  "if (a then b" ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
+  "if a"          ?= amb_if_("a": AST)
+  "(if a) b"      ?= Group(amb_if_("a": AST)) $_ "b"
+  "if (a then b " ?= amb_if_(amb_group("a" $_ "then" $_ "b"))
 
   //////////////////////////////////////////////////////////////////////////////
   //// Foreign /////////////////////////////////////////////////////////////////
@@ -386,40 +381,61 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Large Input /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  ("(" * 100000).testIdentity
-  ("OVERFLOW" * flexer.Parser.BUFFER_SIZE).testIdentity
+  ("(" * 10000).testIdentity
+  ("OVERFLOW " * 2000).testIdentity
+  ("\uD800\uDF1E " * 2000).testIdentity
 
   //////////////////////////////////////////////////////////////////////////////
   //// OTHER (TO BE PARTITIONED)////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-//  """
-//      a
-//     b
-//    c
-//   d
-//  e
-//   f g h
-//  """.testIdentity
-//
-//  """
-//  # pop1: adults
-//  # pop2: children
-//  # pop3: mutants
-//    Selects the 'fittest' individuals from population and kills the rest!
-//
-//  keepBest : Pop -> Pop -> Pop -> Pop
-//  keepBest pop1 pop2 pop3 =
-//
-//     unique xs
-//        = index xs 0 +: [1..length xs -1] . filter (isUnique xs) . map xs.at
-//
-//     isUnique xs i ####
-//        = index xs i . score != index xs i-1 . score
-//
-//     pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
-//
-//  """.testIdentity
+  "\na \nb \n".testIdentity
+  "f =  \n\n\n".testIdentity
+  "  \n\n\n f\nf".testIdentity
+  "f =  \n\n  x ".testIdentity
+  "  a\n   b\n  c".testIdentity
+  "f =\n\n  x\n\n y".testIdentity
+
+  """
+    a
+     b
+   c
+    d
+  e
+   f g h
+  """.testIdentity
+
+  """
+  # pop1: adults
+  # pop2: children
+  # pop3: mutants
+    Selects the 'fittest' individuals from population and kills the rest!
+
+  log
+  '''
+  keepBest
+  `pop1`
+  `pop2`
+  `pop3`
+  '''
+
+  unique xs
+    = xs.at(0.0) +: [1..length xs -1] . filter (isUnique xs) . map xs.at
+
+  isUnique xs i ####
+    = xs.at(i).score != xs.at(i-1).score
+
+  pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
+  """.testIdentity
+
+
+  ///////////////////////
+  //// Preprocessing ////
+  ///////////////////////
+
+  "\t"   ?= Module(Line(4))
+  "\r"   ?= Module(Line(), Line())
+  "\r\n" ?= Module(Line(), Line())
 
 }
 

@@ -22,10 +22,12 @@ object Macro {
     val (superClassName, tree2) = tree match {
       case Apply(Select(tree2 @ Select(_, name), _), _) => (name, tree2)
       case _ =>
-        println("ERROR: Wrong shape")
-        println("Expected Apply(Select(Select(_, name), _), _), got:")
-        println(showRaw(tree))
-        throw new Error("Wrong shape")
+        throw new Error(
+          s""" ERROR: Wrong shape
+            | Expected Apply(Select(Select(_, name), _), _), got:
+            | ${showRaw(tree)}
+            |""".stripMargin
+        )
     }
 
     val groupsRebind = new Transformer {

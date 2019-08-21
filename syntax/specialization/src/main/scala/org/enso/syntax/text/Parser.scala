@@ -1,6 +1,7 @@
 package org.enso.syntax.text
 
 import org.enso.flexer
+import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
@@ -139,8 +140,8 @@ class Parser {
   private val engine = newEngine()
 
   def run(
-    input: String,
-    markers: Markers = Seq()
+           input: Reader,
+           markers: Markers = Seq()
   ): Result[AST.Module] =
     engine.run(input, markers).map(Macro.run)
 
@@ -231,14 +232,20 @@ object Main extends App {
 
   val in_def_maybe =
     """def Maybe a
-      |    def Just val:a 
+      |    def Just val:a
       |    def Nothing
     """.stripMargin
+
+  for (s <- ParserDef().state.registry.map(_.generate()))
+    println(scala.reflect.runtime.universe.showCode(s))
+
+  val p1 = new Parser()
+  val p2 = new Parser()
 
   val in_arr1 = "a b -> c d"
 
   val inp = "## foo\n    bar"
-  val out = parser.run(inp, Seq())
+  val out = parser.run(new Reader(inp), Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 
   out match {

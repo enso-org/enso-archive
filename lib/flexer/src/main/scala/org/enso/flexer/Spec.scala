@@ -1,7 +1,7 @@
 package org.enso.flexer
 
-import org.enso.flexer.automata.State
 import org.enso.flexer.automata.DFA
+import org.enso.flexer.automata.State
 
 import scala.collection.immutable.Range
 import scala.collection.mutable
@@ -9,7 +9,12 @@ import scala.reflect.runtime.universe._
 
 // FIXME: This file needs to be refactored. Contains a lot of ugly vars
 //        and does not always provide explanation why something happens
-
+/** Creates update functions for given DFA ~ nextState : state -> state.
+  * Each state has a pattern match on current utf code point.
+  * ASCII characters are explicitly matched, so that we get O(1) lookup.
+  * The rest of UTF characters is dispatched by tree of if-else,
+  * with O(log(N)) lookup.
+  */
 case class Spec(dfa: DFA) {
   import Spec._
 
@@ -18,29 +23,30 @@ case class Spec(dfa: DFA) {
   case class Branch(range: Range, body: Tree)
 
   def genBranchBody(
-    trgState: Int,
+    targetState: Int,
     maybeState: Option[State.Desc],
     rulesOverlap: Boolean
-  ): Tree = (trgState, maybeState, rulesOverlap) match {
+  ): Tree = (targetState, maybeState, rulesOverlap) match {
     case (State.missing, None, _) =>
       Literal(Constant(Parser.State.Status.Exit.FAIL))
     case (State.missing, Some(state), false) =>
-      q"call(${TermName(state.rule)})"
+      q"state.call(${TermName(state.rule)})"
     case (State.missing, Some(state), true) =>
-      q"rewindThenCall(${TermName(state.rule)})"
+      q"reader.rewind.rule.run(); state.call(${TermName(state.rule)})"
 
-    case (targetState, _, _) =>
-      val rulesOverlap_ = maybeState match {
+    case _ =>
+      val targetStateHasNoRule = maybeState match {
         case Some(state) if !dfa.endStatePriorityMap.contains(targetState) =>
-          dfa.endStatePriorityMap += targetState -> state
+          dfa.endStatePriorityMap += targetState  -> state
           stateHasOverlappingRules += targetState -> true
           true
         case _ => false
       }
-      if (rulesOverlap || rulesOverlap_)
-        q"charsToLastRule += charSize(); ${Literal(Constant(targetState))}"
+      val trgState = Literal(Constant(targetState))
+      if (targetStateHasNoRule && !rulesOverlap)
+        q"reader.rewind.rule.set(); $trgState"
       else
-        q"${Literal(Constant(targetState))}"
+        q"$trgState"
   }
 
   def genSwitch(branchs: Seq[Branch]): Seq[CaseDef] = {
@@ -57,7 +63,7 @@ case class Spec(dfa: DFA) {
       case b +: Seq() => b
       case a +: b +: rest =>
         val range = a.range.start to b.range.end
-        val body  = q"if (codePoint <= ${a.range.end}) ${a.body} else ${b.body}"
+        val body  = q"if (charCode <= ${a.range.end}) ${a.body} else ${b.body}"
         genIf(Branch(range, body) +: rest)
     }
   }
@@ -85,54 +91,52 @@ case class Spec(dfa: DFA) {
     val allBranches = branches :+
       Branch(rStart to Int.MaxValue, genBranchBody(trgState, state, overlaps))
 
-    val (utf1 :+ b1, rest) = allBranches.span(_.range.start < MIN_ASCII_CODE)
-    val (asci, utf2)       = rest.span(_.range.end <= MAX_ASCII_CODE)
+    val (utf1 :+ b1, rest) = allBranches.span(_.range.start < MIN_MATCH_CODE)
+    val (asci, utf2)       = rest.span(_.range.end <= MAX_MATCH_CODE)
 
     utf2 match {
       case b2 +: utf2 =>
-        val b1UTF = Branch(b1.range.start to MIN_ASCII_CODE - 1, b1.body)
-        val b1ASC = Branch(MIN_ASCII_CODE to b1.range.end, b1.body)
-        val b2ASC = Branch(b2.range.start to MAX_ASCII_CODE, b2.body)
-        val b2UTF = Branch(MAX_ASCII_CODE + 1 to b2.range.end, b2.body)
+        val b1UTF = Branch(b1.range.start to MIN_MATCH_CODE - 1, b1.body)
+        val b1ASC = Branch(MIN_MATCH_CODE to b1.range.end, b1.body)
+        val b2ASC = Branch(b2.range.start to MAX_MATCH_CODE, b2.body)
+        val b2UTF = Branch(MAX_MATCH_CODE + 1 to b2.range.end, b2.body)
 
-        val emptyB1ASC = b1ASC.range.end < MIN_ASCII_CODE
-        val emptyB2UTF = b2UTF.range.start <= MAX_ASCII_CODE
+        val emptyB1ASC = b1ASC.range.end < MIN_MATCH_CODE
+        val emptyB2UTF = b2UTF.range.start <= MAX_MATCH_CODE
 
         val ascii     = if (emptyB1ASC) asci :+ b2ASC else b1ASC +: asci :+ b2ASC
         val utfMiddle = if (emptyB2UTF) Vector(b1UTF) else Vector(b1UTF, b2UTF)
         val utf       = utf1 ++ utfMiddle ++ utf2
-        val body      = genSwitch(ascii) :+ cq"_ => ${genIf(utf).body}"
+        val body      = genSwitch(ascii) :+ cq"charCode => ${genIf(utf).body}"
 
-        q"${Match(q"codePoint", body.toList)}"
+        q"${Match(q"reader.charCode", body.toList)}"
       case _ =>
         genIf(utf1 :+ b1).body
     }
   }
 
   def generate(i: Int): Tree = {
-    def states =
+    val stateNames =
       dfa.links.indices.toList
         .map(st => (st, TermName(s"state${i}_${st}")))
 
-    val cases = states.map {
+    val stateMatch = Match(q"state", stateNames.map {
       case (st, fun) => cq"$st => $fun"
-    }
-    val bodies = states.map {
+    })
+    val stateBodies = stateNames.map {
       case (st, fun) => q"def $fun = {${generateCaseBody(st)}}"
     }
     q"""
       stateDefs($i) = ${TermName(s"nextState$i")}
-      def ${TermName(s"nextState$i")}(state: Int): Int = ${Match(
-      q"state",
-      cases
-    )}
-      ..$bodies
+      def ${TermName(s"nextState$i")}(state: Int): Int = $stateMatch
+      ..$stateBodies
     """
   }
 
 }
 
 object Spec {
-  val MIN_ASCII_CODE = 0
-  val MAX_ASCII_CODE = 255
+  /** Covers all ASCII characters (0 - 255) and End Of Input (-1) */
+  val MIN_MATCH_CODE = -1
+  val MAX_MATCH_CODE = 255
 }
