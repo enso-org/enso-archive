@@ -75,9 +75,9 @@ object Logger {
     import c.universe._
     unused(msg)
     val target = c.macroApplication match {
-      case Apply(Apply(TypeApply(Select(base, name), tp), msg2), body2) =>
+      case Apply(Apply(TypeApply(Select(base, name), typ), msg2), body2) =>
         val newName = TermName("_" + name.toString)
-        Apply(Apply(TypeApply(Select(base, newName), tp), msg2), body2)
+        Apply(Apply(TypeApply(Select(base, newName), typ), msg2), body2)
       case _ => throw new Error("Unsupported shape")
     }
     if (checkEnabled(c)) c.Expr(q"$target") else c.Expr(q"$body")
@@ -86,7 +86,7 @@ object Logger {
   def targetRedirect[R: c.WeakTypeTag](c: Context)(body: c.Tree): c.Expr[R] = {
     import c.universe._
     val target = c.macroApplication match {
-      case Apply(TypeApply(Select(base, name), tp), body2) =>
+      case Apply(TypeApply(Select(base, name), typ), body2) =>
         val newName      = TermName("_" + name.toString)
         val owner        = c.internal.enclosingOwner.asMethod
         val owner2       = owner.owner
@@ -101,7 +101,7 @@ object Logger {
             val msg =
               if (lst2.isEmpty) List(q"$ownerName")
               else List(q"$ownerName + $lst2.toString().drop(4)")
-            Apply(Apply(TypeApply(Select(base, newName), tp), msg), body2)
+            Apply(Apply(TypeApply(Select(base, newName), typ), msg), body2)
           case _ => throw new Error("Unsupported shape")
         }
       case _ => throw new Error("Unsupported shape")
@@ -112,7 +112,7 @@ object Logger {
   def targetRedirect_[R: c.WeakTypeTag](c: Context)(body: c.Tree): c.Expr[R] = {
     import c.universe._
     val target = c.macroApplication match {
-      case Apply(TypeApply(Select(base, name), tp), body2) =>
+      case Apply(TypeApply(Select(base, name), typ), body2) =>
         val newName      = TermName("_" + name.toString)
         val owner        = c.internal.enclosingOwner.asMethod
         val owner2       = owner.owner
@@ -125,7 +125,7 @@ object Logger {
           case lst :: _ =>
             val lst2 = lst.map(x => q"$x")
             val msg  = List(q"$ownerName")
-            Apply(Apply(TypeApply(Select(base, newName), tp), msg), body2)
+            Apply(Apply(TypeApply(Select(base, newName), typ), msg), body2)
           case _ => throw new Error("Unsupported shape")
         }
       case _ => throw new Error("Unsupported shape")

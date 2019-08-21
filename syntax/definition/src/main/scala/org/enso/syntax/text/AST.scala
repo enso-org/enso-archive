@@ -478,7 +478,7 @@ object AST {
   ) extends AST {
     lazy val headRepr = newline
     val repr = {
-      val emptyLinesRepr = emptyLines.map(R + _ + "\n")
+      val emptyLinesRepr = emptyLines.map(R + _ + newline)
       val firstLineRepr  = R + indent + firstLine
       val linesRepr = lines.map { line =>
         newline + line.elem.map(_ => indent) + line
@@ -486,8 +486,7 @@ object AST {
       R + headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
 
-    def setType(typ: Block.Type): Block
-
+    def replaceType(typ: Block.Type): Block
     def map(f: AST => AST): Block
   }
 
@@ -498,7 +497,7 @@ object AST {
     override val firstLine: Block.Line.NonEmpty,
     override val lines: List[Block.Line]
   ) extends Block(typ, indent, emptyLines, firstLine, lines) {
-    def setType(typ: Block.Type) = copy(typ = typ)
+    def replaceType(typ: Block.Type) = copy(typ = typ)
     def map(f: AST => AST) =
       copy(firstLine = firstLine.map(f), lines = lines.map(_.map(f)))
   }
@@ -510,7 +509,7 @@ object AST {
     override val firstLine: Block.Line.NonEmpty,
     override val lines: List[Block.Line]
   ) extends Block(typ, indent, emptyLines, firstLine, lines) {
-    def setType(typ: Block.Type) = copy(typ = typ)
+    def replaceType(typ: Block.Type) = copy(typ = typ)
     def map(f: AST => AST) =
       copy(firstLine = firstLine.map(f), lines = lines.map(_.map(f)))
     override lazy val headRepr = R
@@ -782,10 +781,8 @@ object AST {
           case Nil => Nil
           case line +: lines =>
             val indentedLines = lines.map { s =>
-              if (s.forall(_ == ' '))
-                newline + s
-              else
-                newline + 1 + offset + s
+              if (s.forall(_ == ' ')) newline + s
+              else newline + 1 + offset + s
             }
             (R + line) +: indentedLines
         }

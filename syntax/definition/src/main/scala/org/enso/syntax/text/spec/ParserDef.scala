@@ -547,7 +547,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         case None => block
         case Some(ast) =>
           if (!ast.isInstanceOf[AST.Opr]) block
-          else block.setType(AST.Block.Discontinuous)
+          else block.replaceType(AST.Block.Discontinuous)
       }
       result.app(block2)
       off.push()
