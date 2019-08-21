@@ -430,9 +430,9 @@ object Doc {
       case object Unrecognized extends Type
     }
 
-    implicit final class _OptionTagDetails_(val self: Option[String]) {
+    implicit final class tagDetails(val self: Option[String]) {
       val html: HTML = {
-        val htmlCls = HTML.`class` := "tag_details"
+        val htmlCls = HTML.`class` := this.getClass.toString.split('$').last
         Seq(self.map(HTML.div(htmlCls)(_)).getOrElse("".html))
       }
     }
