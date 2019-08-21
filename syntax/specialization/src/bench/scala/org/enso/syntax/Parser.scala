@@ -46,7 +46,8 @@ object ParserBenchmark extends Bench.LocalTime {
   val dummy = for { i <- exp(0) } yield i
 
   val filename = "syntax/specialization/src/bench/scala/org/enso/syntax/input.txt"
-  def runFlexerReader() = new flexer.ReaderUTF(new File(filename)).toString()
+  def runFlexerReader() = new flexer.Reader(new File(filename)).toString()
+  def runFlexerReaderUTF() = new flexer.ReaderUTF(new File(filename)).toString()
   def runBufferedReader() = {
     val reader  = new BufferedReader(new FileReader(filename))
     val builder = new java.lang.StringBuilder()
@@ -61,6 +62,7 @@ object ParserBenchmark extends Bench.LocalTime {
 
   performance of "reader" in {
       measure method s"Buffered" in { using(dummy) in (_ => runBufferedReader()) }
+      measure method s"Flexer UTF" in { using(dummy) in (_ => runFlexerReaderUTF()) }
       measure method s"Flexer" in { using(dummy) in (_ => runFlexerReader()) }
   }
 }
