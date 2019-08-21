@@ -60,18 +60,18 @@ object Repr {
 
   val R = Repr.Empty()
   case class Empty() extends Repr {
-    val byteSpan                  = 0
-    val span = 0
+    val byteSpan = 0
+    val span     = 0
   }
 
   case class Letter(char: Char) extends Repr {
-    val byteSpan                  = char.toString.getBytes(StandardCharsets.UTF_8).length
-    val span = 1
+    val byteSpan = char.toString.getBytes(StandardCharsets.UTF_8).length
+    val span     = 1
   }
 
   case class Text(str: String) extends Repr {
-    val byteSpan                  = str.getBytes(StandardCharsets.UTF_8).length
-    val span = str.length
+    val byteSpan = str.getBytes(StandardCharsets.UTF_8).length
+    val span     = str.length
   }
 
   final case class Seq(first: Repr, second: Repr) extends Repr {

@@ -1,10 +1,13 @@
 package org.enso.syntax
 
-import java.io.{BufferedInputStream, BufferedReader, DataInputStream, File, FileInputStream, FileReader, StringReader}
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileReader
+import java.io.PrintWriter
 
+import org.enso.flexer
 import org.enso.syntax.text.Parser
 import org.scalameter.api._
-import org.enso.flexer
 
 import scala.math.pow
 
@@ -45,9 +48,10 @@ object ParserBenchmark extends Bench.LocalTime {
 
   val dummy = for { i <- exp(0) } yield i
 
-  val filename = "syntax/specialization/src/bench/scala/org/enso/syntax/input.txt"
-  def runFlexerReader() = new flexer.Reader(new File(filename)).toString()
-  def runFlexerReaderUTF() = new flexer.ReaderUTF(new File(filename)).toString()
+  val filename = "syntax/specialization/target/bench-input.txt"
+
+  def runReader()    = new flexer.Reader(new File(filename)).toString()
+  def runReaderUTF() = new flexer.ReaderUTF(new File(filename)).toString()
   def runBufferedReader() = {
     val reader  = new BufferedReader(new FileReader(filename))
     val builder = new java.lang.StringBuilder()
@@ -60,9 +64,17 @@ object ParserBenchmark extends Bench.LocalTime {
     builder.toString
   }
 
+  if (!new File(filename).exists()) {
+    val file = new PrintWriter(new File(filename))
+    for (_ <- 1 to 10000) {
+      file.print("rewuipf\uD800\uDF1Edsahkjlzcvxm,/\uD800\uDF1E.m,';k]o1&**&$")
+      file.print("6!@#&*()+|{}QWERYUI\uD800\uDF1EOIO\uD800\uDF1E}ASFDJKM>>?\n")
+    }
+  }
+
   performance of "reader" in {
-      measure method s"Buffered" in { using(dummy) in (_ => runBufferedReader()) }
-      measure method s"Flexer UTF" in { using(dummy) in (_ => runFlexerReaderUTF()) }
-      measure method s"Flexer" in { using(dummy) in (_ => runFlexerReader()) }
+    measure method "Buffered" in { using(dummy) in (_ => runBufferedReader()) }
+    measure method "FlexerUTF" in { using(dummy) in (_ => runReaderUTF()) }
+    measure method "Flexer" in { using(dummy) in (_ => runReader()) }
   }
 }

@@ -9,7 +9,12 @@ import scala.reflect.runtime.universe._
 
 // FIXME: This file needs to be refactored. Contains a lot of ugly vars
 //        and does not always provide explanation why something happens
-
+/** Creates update functions for given DFA ~ nextState : state -> state.
+  * Each state has a pattern match on current utf code point.
+  * ASCII characters are explicitly matched, so that we get O(1) lookup.
+  * The rest of UTF characters is dispatched by tree of if-else,
+  * with O(log(N)) lookup.
+  */
 case class Spec(dfa: DFA) {
   import Spec._
 
@@ -86,18 +91,18 @@ case class Spec(dfa: DFA) {
     val allBranches = branches :+
       Branch(rStart to Int.MaxValue, genBranchBody(trgState, state, overlaps))
 
-    val (utf1 :+ b1, rest) = allBranches.span(_.range.start < MIN_ASCII_CODE)
-    val (asci, utf2)       = rest.span(_.range.end <= MAX_ASCII_CODE)
+    val (utf1 :+ b1, rest) = allBranches.span(_.range.start < MIN_MATCH_CODE)
+    val (asci, utf2)       = rest.span(_.range.end <= MAX_MATCH_CODE)
 
     utf2 match {
       case b2 +: utf2 =>
-        val b1UTF = Branch(b1.range.start to MIN_ASCII_CODE - 1, b1.body)
-        val b1ASC = Branch(MIN_ASCII_CODE to b1.range.end, b1.body)
-        val b2ASC = Branch(b2.range.start to MAX_ASCII_CODE, b2.body)
-        val b2UTF = Branch(MAX_ASCII_CODE + 1 to b2.range.end, b2.body)
+        val b1UTF = Branch(b1.range.start to MIN_MATCH_CODE - 1, b1.body)
+        val b1ASC = Branch(MIN_MATCH_CODE to b1.range.end, b1.body)
+        val b2ASC = Branch(b2.range.start to MAX_MATCH_CODE, b2.body)
+        val b2UTF = Branch(MAX_MATCH_CODE + 1 to b2.range.end, b2.body)
 
-        val emptyB1ASC = b1ASC.range.end < MIN_ASCII_CODE
-        val emptyB2UTF = b2UTF.range.start <= MAX_ASCII_CODE
+        val emptyB1ASC = b1ASC.range.end < MIN_MATCH_CODE
+        val emptyB2UTF = b2UTF.range.start <= MAX_MATCH_CODE
 
         val ascii     = if (emptyB1ASC) asci :+ b2ASC else b1ASC +: asci :+ b2ASC
         val utfMiddle = if (emptyB2UTF) Vector(b1UTF) else Vector(b1UTF, b2UTF)
@@ -131,6 +136,7 @@ case class Spec(dfa: DFA) {
 }
 
 object Spec {
-  val MIN_ASCII_CODE = -1
-  val MAX_ASCII_CODE = 255
+  /** Covers all ASCII characters (0 - 255) and End Of Input (-1) */
+  val MIN_MATCH_CODE = -1
+  val MAX_MATCH_CODE = 255
 }
