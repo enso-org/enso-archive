@@ -4,6 +4,7 @@ import java.io.File
 import java.io.PrintWriter
 
 import org.enso.flexer
+import org.enso.flexer.Reader
 import org.enso.syntax.text.DocParser.Result
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.spec.DocParserDef
@@ -17,7 +18,7 @@ class DocParser {
   import DocParser._
   private val engine = newEngine()
 
-  def run(input: String): Result[Doc] = engine.run(input)
+  def run(input: String): Result[Doc] = engine.run(new Reader(input))
 
 }
 

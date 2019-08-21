@@ -17,7 +17,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-language:higherKinds",         // Allow higher-kinded types
   "-language:implicitConversions", // Allow definition of implicit functions called views
   "-unchecked",                    // Enable additional warnings where generated code depends on assumptions.
-  "-Xcheckinit",                   // Wrap field accessors to throw an exception on uninitialized access.
+  //  "-Xcheckinit",                   // Wrap field accessors to throw an exception on uninitialized access.
   //  "-Xfatal-warnings",                 // Fail the compilation if there are any warnings.
   //  "-Xfuture",                         // Turn on future language features.
   "-Xlint:adapted-args",              // Warn if an argument list is modified to match the receiver.
@@ -130,9 +130,9 @@ lazy val syntax_definition = (project in file("syntax/definition"))
     ),
     resolvers ++= Seq(
       "Sonatype OSS Snapshots" at
-        "https://oss.sonatype.org/content/repositories/snapshots",
+      "https://oss.sonatype.org/content/repositories/snapshots",
       "Sonatype OSS Releases" at
-        "https://oss.sonatype.org/content/repositories/releases"
+      "https://oss.sonatype.org/content/repositories/releases"
     ),
     resolvers += Resolver.sonatypeRepo("releases"),
     addCompilerPlugin(
@@ -163,9 +163,9 @@ lazy val syntax = (project in file("syntax/specialization"))
     ),
     resolvers ++= Seq(
       "Sonatype OSS Snapshots" at
-        "https://oss.sonatype.org/content/repositories/snapshots",
+      "https://oss.sonatype.org/content/repositories/snapshots",
       "Sonatype OSS Releases" at
-        "https://oss.sonatype.org/content/repositories/releases"
+      "https://oss.sonatype.org/content/repositories/releases"
     ),
     resolvers += Resolver.sonatypeRepo("releases"),
     addCompilerPlugin(
