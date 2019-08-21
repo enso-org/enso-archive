@@ -64,7 +64,7 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Text //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  object text {
+  final object text {
     def onPushingNormalText(in: String): Unit = logger.trace {
       val isDocBeginning = result.workingASTStack.isEmpty && sectionsStack.isEmpty // to create tags on file beginning
       val isSectionBeginning = result.workingASTStack.isEmpty || result.workingASTStack.head
@@ -105,7 +105,7 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Tags //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  object tags {
+  final object tags {
     val possibleTagsList: List[Tags.Tag.Type] =
       List(
         Tags.Tag.Deprecated,
@@ -162,48 +162,83 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Code //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  def onPushingInlineCode(in: String): Unit = logger.trace {
-    result.current = Some(Elem.Code.Inline(in))
-    result.push()
-  }
-
-  def onPushingCodeLine(in: String): Unit = logger.trace {
-    do {
-      result.pop()
-    } while (result.current.get == Elem.Newline)
-    result.current match {
-      case Some(_: Elem.Code) =>
-        val elems   = result.current.get.asInstanceOf[Elem.Code].elems
-        val newElem = Elem.Code.Line(latestIndent, in)
-        result.current = Some(Elem.Code(elems :+ newElem))
-      case Some(_) | None => result.push()
+  final object code {
+    def onPushingInlineCode(in: String): Unit = logger.trace {
+      val code = in.substring(1).dropRight(1)
+      result.current = Some(Elem.Code.Inline(code))
+      result.push()
     }
-    result.push()
-  }
 
-  val inlineCodeTrigger = '`'
-  val inlineCodePattern
-    : Pattern = inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
+    def onPushingCodeLine(in: String): Unit = logger.trace {
+      do {
+        result.pop()
+      } while (result.current.get == Elem.Newline)
+      result.current match {
+        case Some(_: Elem.Code) =>
+          val elems   = result.current.get.asInstanceOf[Elem.Code].elems
+          val newElem = Elem.Code.Line(latestIndent, in)
+          result.current = Some(Elem.Code(elems :+ newElem))
+        case Some(_) | None => result.push()
+      }
+      result.push()
+    }
 
-  ROOT || inlineCodePattern || reify {
-    onPushingInlineCode(currentMatch.substring(1).dropRight(1))
+    val inlineCodeTrigger = '`'
+    val inlinePattern
+      : Pattern = inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
   }
 
   val CODE: State = state.define("Code")
 
+  ROOT || code.inlinePattern || reify { code.onPushingInlineCode(currentMatch) }
   CODE || newline            || reify { state.end(); state.begin(NEWLINE) }
-  CODE || not(newline).many1 || reify { onPushingCodeLine(currentMatch) }
+  CODE || not(newline).many1 || reify { code.onPushingCodeLine(currentMatch) }
   CODE || eof                || reify { state.end(); onEOF() }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Formatter /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  var textFormattersStack: List[Elem.Formatter.Type] = Nil
+  final object formatter {
+    var textFormattersStack: List[Elem.Formatter.Type] = Nil
 
-  def onPushingFormatter(tp: Elem.Formatter.Type): Unit =
-    logger.trace {
-      val unclosedFormattersToCheck = tp match {
+    def onPushingFormatter(tp: Elem.Formatter.Type): Unit =
+      logger.trace {
+        val unclosedFormattersToCheck = decideWhichToCheckIfUnclosed(tp)
+        if (textFormattersStack.contains(tp)) {
+          unclosedFormattersToCheck.foreach(checkForUnclosed)
+          val listOfFormattedAST: List[Elem] = getElemsToFormatter(tp)
+          result.pop()
+          result.current      = Some(Elem.Formatter(tp, listOfFormattedAST))
+          textFormattersStack = textFormattersStack.tail
+          result.push()
+        } else {
+          addEmptyFormatterToStack(tp)
+        }
+      }
+
+    def getElemsToFormatter(tp: Elem.Formatter.Type): List[Elem] = {
+      var listOfFormattedAST: List[Elem] = Nil
+      while (result.workingASTStack.head != Elem.Formatter(tp) && result.workingASTStack.nonEmpty) {
+        result.pop()
+        result.current match {
+          case Some(value) => listOfFormattedAST +:= value
+          case None        => // empty formatter
+        }
+      }
+      listOfFormattedAST
+    }
+
+    def addEmptyFormatterToStack(tp: Elem.Formatter.Type): Unit = {
+      textFormattersStack +:= tp
+      result.current = Some(Elem.Formatter(tp))
+      result.push()
+    }
+
+    def decideWhichToCheckIfUnclosed(
+      tp: Elem.Formatter.Type
+    ): List[Elem.Formatter.Type] = {
+      tp match {
         case Elem.Formatter.Strikethrough =>
           List(Elem.Formatter.Bold, Elem.Formatter.Italic)
         case Elem.Formatter.Italic =>
@@ -211,61 +246,34 @@ case class DocParserDef() extends Parser[Doc] {
         case Elem.Formatter.Bold =>
           List(Elem.Formatter.Italic, Elem.Formatter.Strikethrough)
       }
-      if (textFormattersStack.contains(tp)) {
-        unclosedFormattersToCheck foreach { formatterToCheck =>
-          checkForUnclosed(formatterToCheck)
-        }
-        var listOfFormattedAST: List[Elem] = Nil
+    }
 
-        while (result.workingASTStack.head != Elem.Formatter(tp) && result.workingASTStack.nonEmpty) {
+    def checkForUnclosed(tp: Elem.Formatter.Type): Unit = logger.trace {
+      if (textFormattersStack.nonEmpty) {
+        if (textFormattersStack.head == tp) {
+          val listOfFormattedAST: List[Elem] = getElemsToFormatter(tp)
           result.pop()
-          result.current match {
-            case Some(value) => listOfFormattedAST +:= value
-            case None        => // empty formatter, for example '**'
-          }
+          result.current      = Some(Elem.Formatter.Unclosed(tp, listOfFormattedAST))
+          textFormattersStack = textFormattersStack.tail
+          result.push()
         }
-        result.pop()
-
-        result.current      = Some(Elem.Formatter(tp, listOfFormattedAST))
-        textFormattersStack = textFormattersStack.tail
-        result.push()
-      } else {
-        textFormattersStack +:= tp
-        result.current = Some(Elem.Formatter(tp))
-        result.push()
       }
     }
 
-  def checkForUnclosed(tp: Elem.Formatter.Type): Unit = logger.trace {
-    if (textFormattersStack.nonEmpty) {
-      if (textFormattersStack.head == tp) {
-        var listOfFormattedAST: List[Elem] = Nil
-        while (result.workingASTStack.head != Elem
-                 .Formatter(tp) && result.workingASTStack.nonEmpty) {
-          result.pop()
-          result.current match {
-            case Some(value) => listOfFormattedAST +:= value
-            case None        => // empty formatter, for example '*' before EOF
-          }
-        }
-        result.pop()
-
-        result.current      = Some(Elem.Formatter.Unclosed(tp, listOfFormattedAST))
-        textFormattersStack = textFormattersStack.tail
-        result.push()
-      }
-    }
+    val boldTrigger: Char          = Elem.Formatter.Bold.marker
+    val italicTrigger: Char        = Elem.Formatter.Italic.marker
+    val strikethroughTrigger: Char = Elem.Formatter.Strikethrough.marker
   }
 
-  val boldTrigger: Char          = Elem.Formatter.Bold.marker
-  val italicTrigger: Char        = Elem.Formatter.Italic.marker
-  val strikethroughTrigger: Char = Elem.Formatter.Strikethrough.marker
-
-  // format: off
-  ROOT || boldTrigger          || reify { onPushingFormatter(Elem.Formatter.Bold) }
-  ROOT || italicTrigger        || reify { onPushingFormatter(Elem.Formatter.Italic) }
-  ROOT || strikethroughTrigger || reify { onPushingFormatter(Elem.Formatter.Strikethrough) }
-  // format: on
+  ROOT || formatter.boldTrigger || reify {
+    formatter.onPushingFormatter(Elem.Formatter.Bold)
+  }
+  ROOT || formatter.italicTrigger || reify {
+    formatter.onPushingFormatter(Elem.Formatter.Italic)
+  }
+  ROOT || formatter.strikethroughTrigger || reify {
+    formatter.onPushingFormatter(Elem.Formatter.Strikethrough)
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Header ////////////////////////////////////////////////////////////////
@@ -552,9 +560,9 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
 
   def checksOfUnclosedFormattersOnEndOfSection(): Unit = logger.trace {
-    checkForUnclosed(Elem.Formatter.Bold)
-    checkForUnclosed(Elem.Formatter.Italic)
-    checkForUnclosed(Elem.Formatter.Strikethrough)
+    formatter.checkForUnclosed(Elem.Formatter.Bold)
+    formatter.checkForUnclosed(Elem.Formatter.Italic)
+    formatter.checkForUnclosed(Elem.Formatter.Strikethrough)
   }
 
   def reverseStackOnEndOfSection(): Unit = logger.trace {
@@ -580,9 +588,9 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   def cleanupEndOfSection(): Unit = logger.trace {
-    result.current         = None
-    result.workingASTStack = Nil
-    textFormattersStack    = Nil
+    result.current                = None
+    result.workingASTStack        = Nil
+    formatter.textFormattersStack = Nil
   }
 
   def onEndOfSection(): Unit = logger.trace {
