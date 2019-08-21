@@ -77,7 +77,7 @@ case class DocParserDef() extends Parser[Doc] {
         .isInstanceOf[Section.Header] // to remove unnecessary indent from first line as yet onIndent hasn't been called
 
     if (isDocBeginning) {
-      if (checkIfTagExistInPushedText(in) == false) {
+      if (!checkIfTagExistInPushedText(in)) {
         val text = removeWhitespaces(in)
         pushNormalText(text)
       }
@@ -372,24 +372,37 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   def createDoc(): Unit = logger.trace {
-    val tags = tagsStack.length match {
-      case 0 => None
-      case _ => Some(Tags(List1(tagsStack.head, tagsStack.tail)))
-    }
+    val tags: Option[Tags]         = createTags()
+    val synopsis: Option[Synopsis] = createSynopsis()
+    val body: Option[Body]         = createBody()
+    result.doc = Some(Doc(tags, synopsis, body))
+  }
 
-    val synopsis = sectionsStack.length match {
-      case 0 => None
-      case _ => Some(Synopsis(List1(sectionsStack.head)))
-    }
-
-    val body = sectionsStack.length match {
+  def createBody(): Option[Body] = {
+    sectionsStack.length match {
       case 0 | 1 => None
+      case 2 =>
+        val bodyHead = sectionsStack.tail.head
+        Some(Body(List1(bodyHead)))
       case _ =>
         val bodyHead = sectionsStack.tail.head
         val bodyTail = sectionsStack.tail.tail
         Some(Body(List1(bodyHead, bodyTail)))
     }
-    result.doc = Some(Doc(tags, synopsis, body))
+  }
+
+  def createSynopsis(): Option[Synopsis] = {
+    sectionsStack.length match {
+      case 0 => None
+      case _ => Some(Synopsis(List1(sectionsStack.head)))
+    }
+  }
+
+  def createTags(): Option[Tags] = {
+    tagsStack.length match {
+      case 0 => None
+      case _ => Some(Tags(List1(tagsStack.head, tagsStack.tail)))
+    }
   }
 
   ROOT || eof || reify { onEOF() }
@@ -496,9 +509,7 @@ case class DocParserDef() extends Parser[Doc] {
       var wantToChangeIndent = true
       val diff               = indent - latestIndent
       if (diff == listIndent) {
-        if (!inListFlag) {
-          pushNewLine()
-        }
+        if (!inListFlag) pushNewLine() // Creating first list
         inListFlag = true
         addList(indent, tp, content)
       } else if (diff == 0 && inListFlag) {
@@ -602,6 +613,17 @@ case class DocParserDef() extends Parser[Doc] {
     result.push()
   }
 
+  def onOrderedList(): Unit = logger.trace {
+    state.end()
+    val content = currentMatch.split(orderedListTrigger)
+    onIndentForListCreation(content(0).length, Elem.List.Ordered, content(1))
+  }
+  def onUnorderedList(): Unit = logger.trace {
+    state.end()
+    val content = currentMatch.split(unorderedListTrigger)
+    onIndentForListCreation(content(0).length, Elem.List.Unordered, content(1))
+  }
+
   val orderedListTrigger: Char   = Elem.List.Ordered.marker
   val unorderedListTrigger: Char = Elem.List.Unordered.marker
 
@@ -609,18 +631,13 @@ case class DocParserDef() extends Parser[Doc] {
       newline
     ).many1
   val unorderedListPattern
-    : Pattern = indentPattern >> unorderedListTrigger >> not(
-      newline
-    ).many1
+    : Pattern = indentPattern >> unorderedListTrigger >> not(newline).many1
+
   NEWLINE || orderedListPattern || reify {
-    state.end()
-    val content = currentMatch.split(orderedListTrigger)
-    onIndentForListCreation(content(0).length, Elem.List.Ordered, content(1))
+    onOrderedList()
   }
 
   NEWLINE || unorderedListPattern || reify {
-    state.end()
-    val content = currentMatch.split(unorderedListTrigger)
-    onIndentForListCreation(content(0).length, Elem.List.Unordered, content(1))
+    onUnorderedList()
   }
 }
