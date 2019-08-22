@@ -7,7 +7,7 @@ import org.scalameter.api._
 
 import scala.math.pow
 
-object DocParserBenchmark extends Bench.OfflineRegressionReport {
+object DocParserBenchmark extends Bench.LocalTime {
 
   val range = 0
   def exp(i: Int): Gen[Int] =
@@ -17,21 +17,21 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
     for { i <- range } yield f(i)
 
   val tests = List(
-    "formatters" -> gen(exp(12), i => "*foobarbo*" * i),
+    "formatters" -> gen(exp(16), i => "*foobarbo*" * i),
     "unclosed"   -> gen(exp(16), i => "*_foobarb*" * i),
     "combined"   -> gen(exp(16), i => "*_~foob~_*" * i),
     "normal"     -> gen(exp(16), i => "test123456" * i),
     "tags"       -> gen(exp(16), i => "ADDED\nfoo" * i),
     "link"       -> gen(exp(16), i => "[foo](bar)" * i),
     "list" -> gen(
-      exp(8),
+      exp(16),
       i => """foo
              |  - A
              |  - B
              |  - C""".stripMargin * i
     ),
     "list_nested" -> gen(
-      exp(8),
+      exp(16),
       i => """foo
              |  - A
              |  - B
@@ -40,7 +40,7 @@ object DocParserBenchmark extends Bench.OfflineRegressionReport {
              |  - D""".stripMargin * i
     ),
     "sections" -> gen(
-      exp(8),
+      exp(16),
       i => "Foo\n\n!B\n\n?C\n\n>D" * i
     )
   )
