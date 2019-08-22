@@ -41,8 +41,6 @@ object Doc {
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
 
-  def makeIndent(size: Int): String = " " * size
-
   //////////////////////////////////////////////////////////////////////////////
   ////// Symbol ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -133,6 +131,11 @@ object Doc {
     ////// Code ////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
+    /*TODO [MM]: Next PR
+         Code showing button - we need other design here.
+         Basically we don't want to display always button
+         we want to be able to display it maybe as a button on website
+         and completely differently in gui, it should be configurable*/
     final case class Code(elems: scala.List[Code.Line]) extends Elem {
       val newLn: String = Elem.Newline.show()
       val repr: Repr    = R + elems.map(_.repr.show()).mkString(newLn)
@@ -143,17 +146,13 @@ object Doc {
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val elemsHTML    = elems.map(elem => elem.html)
-        // TODO : Next PR
-        // we need other design here.
-        // Basically we don't want to display always button
-        // we want to be able to display it maybe as a button on website
-        // and completely differently in gui.
-        // The printing should be configurable
         val btnAction = onclick :=
           s"""var code = document.getElementById("$uniqueIDCode");
              |var btn = document.getElementById("$uniqueIDBtn").firstChild;
              |btn.data = btn.data == "Show" ? "Hide" : "Show";
-             |code.style.display = code.style.display == "inline-block" ? "none" : "inline-block";""".stripMargin
+             |code.style.display = code.style.display == 
+             |"inline-block" ? "none" : "inline-block";""".stripMargin
+            .replaceAll("\n", "")
         val btn = HTML.button(btnAction)(htmlIdBtn)("Show")
         Seq(HTML.div(btn, HTML.div(htmlClsCode)(htmlIdCode)(elemsHTML)))
       }
@@ -168,7 +167,7 @@ object Doc {
         val html: HTML = Seq(HTML.code(str))
       }
       final case class Line(indent: Int, elem: String) extends Elem {
-        val repr: Repr = R + makeIndent(indent) + elem
+        val repr: Repr = R + indent + elem
         val html: HTML = Seq(HTML.code(elem), HTML.br)
       }
     }
@@ -210,8 +209,8 @@ object Doc {
           case elem @ (_: Elem.Invalid) => R + Newline + elem
           case elem @ (_: List)         => R + Newline + elem
           case elem if elems.head == elem =>
-            R + makeIndent(indent) + tp.marker + elem
-          case elem => R + Newline + makeIndent(indent) + tp.marker + elem
+            R + indent + tp.marker + elem
+          case elem => R + Newline + indent + tp.marker + elem
         }
 
       val html: HTML = Seq(tp.HTMLMarker(elems.toList.map {
@@ -233,7 +232,7 @@ object Doc {
       object Indent {
         final case class Invalid(indent: Int, tp: Type, elem: Elem)
             extends Elem.Invalid {
-          val repr: Repr = Repr(makeIndent(indent)) + tp.marker + elem
+          val repr: Repr = R + indent + tp.marker + elem
           val html: HTML = {
             val objectName = getClass.getEnclosingClass.toString.split('$').last
             val className  = this.productPrefix
@@ -259,7 +258,7 @@ object Doc {
         val previousIndex = index - 1
         val previousElem  = elems(previousIndex)
         if (previousElem == Elem.Newline) {
-          R + makeIndent(indent) + elem
+          R + indent + elem
         } else R + elem
       } else R + elem
     }
@@ -280,16 +279,17 @@ object Doc {
 
     final case class Marked(indent: Int, tp: Marked.Type, elems: List[Elem])
         extends Section {
-      val marker: String    = tp.marker.toString
-      val markerLength: Int = 1
-      val firstIndentRepr = Repr(indent match {
-        case 1 => marker
+      val marker: String         = tp.marker.toString
+      val markerLength: Int      = 1
+      val indentAfterMarker: Int = 1
+      val firstIndentRepr: Repr = indent match {
+        case 1 => R + marker
         case _ =>
-          val indentBeforeMarker: String = makeIndent(markerLength)
-          indentBeforeMarker + marker + makeIndent(
-            indent - (markerLength + indentBeforeMarker.length)
-          )
-      })
+          val indentAfterMarker: Int = 1
+          val indentBeforeMarker
+            : Int = indent - (markerLength + indentAfterMarker)
+          R + indentBeforeMarker + marker + indentAfterMarker
+      }
 
       val elemsRepr: List[Repr] = elems.zipWithIndex.map {
         case (elem @ (_: Elem.List), _) => R + elem
@@ -310,10 +310,12 @@ object Doc {
         Marked(indent, st, elem :: Nil)
       def apply(indent: Int, st: Type, elems: Elem*): Marked =
         Marked(indent, st, elems.toList)
-      def apply(st: Type): Marked =
-        Marked(1, st, Nil) //1 because of marker length
-      def apply(st: Type, elem: Elem):   Marked = Marked(1, st, elem :: Nil)
-      def apply(st: Type, elems: Elem*): Marked = Marked(1, st, elems.toList)
+      val defaultIndent = 1
+      def apply(st: Type): Marked = Marked(defaultIndent, st, Nil)
+      def apply(st: Type, elem: Elem): Marked =
+        Marked(defaultIndent, st, elem :: Nil)
+      def apply(st: Type, elems: Elem*): Marked =
+        Marked(defaultIndent, st, elems.toList)
 
       abstract class Type(val marker: Char)
       case object Important extends Type('!')
@@ -324,13 +326,13 @@ object Doc {
     final case class Raw(indent: Int, elems: List[Elem]) extends Section {
       val elemsRepr: List[Repr] = elems.zipWithIndex.map {
         case (elem @ (_: Section.Header), _) =>
-          R + Elem.Newline + makeIndent(indent) + elem
+          R + Elem.Newline + indent + elem
         case (elem @ (_: Elem.List), _) => R + elem
         case (elem @ (_: Elem.Code), _) => R + elem
         case (elem, index)              => reprOfNormalText(elem, index)
       }
 
-      val repr: Repr = Repr(makeIndent(indent)) + elemsRepr
+      val repr: Repr = R + indent + elemsRepr
       val html: HTML = {
         val htmlCls = HTML.`class` := this.productPrefix
         Seq(HTML.div(htmlCls)(elems.map(_.html)))
@@ -341,9 +343,10 @@ object Doc {
       def apply(indent: Int):               Raw = Raw(indent, Nil)
       def apply(indent: Int, elem: Elem):   Raw = Raw(indent, elem :: Nil)
       def apply(indent: Int, elems: Elem*): Raw = Raw(indent, elems.toList)
-      def apply():                          Raw = Raw(0, Nil) //1 because unmarked
-      def apply(elem: Elem):                Raw = Raw(0, elem :: Nil)
-      def apply(elems: Elem*):              Raw = Raw(0, elems.toList)
+      val defaultIndent = 0
+      def apply():             Raw = Raw(defaultIndent, Nil)
+      def apply(elem: Elem):   Raw = Raw(defaultIndent, elem :: Nil)
+      def apply(elems: Elem*): Raw = Raw(defaultIndent, elems.toList)
     }
   }
 
@@ -405,8 +408,8 @@ object Doc {
     final case class Tag(indent: Int, tp: Tag.Type, details: Option[String]) {
       val name: String = tp.toString.toUpperCase
       val repr: Repr = tp match {
-        case Tag.Unrecognized => R + makeIndent(indent) + details
-        case _                => R + makeIndent(indent) + name + details
+        case Tag.Unrecognized => R + indent + details
+        case _                => R + indent + name + details
       }
       val html: HTML = tp match {
         case Tag.Unrecognized =>
@@ -415,9 +418,11 @@ object Doc {
       }
     }
     object Tag {
-      def apply(tp: Type):                  Tag = Tag(0, tp, None)
-      def apply(tp: Type, details: String): Tag = Tag(0, tp, Option(details))
-      def apply(indent: Int, tp: Type):     Tag = Tag(indent, tp, None)
+      val defaultIndent = 0
+      def apply(tp: Type): Tag = Tag(defaultIndent, tp, None)
+      def apply(tp: Type, details: String): Tag =
+        Tag(defaultIndent, tp, Option(details))
+      def apply(indent: Int, tp: Type): Tag = Tag(indent, tp, None)
       def apply(indent: Int, tp: Type, details: String): Tag =
         Tag(indent, tp, Option(details))
 

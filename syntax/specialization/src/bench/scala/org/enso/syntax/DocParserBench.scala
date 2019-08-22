@@ -7,7 +7,7 @@ import org.scalameter.api._
 
 import scala.math.pow
 
-object DocParserBenchmark extends Bench.LocalTime {
+object DocParserBench extends Bench.LocalTime {
 
   val range = 0
   def exp(i: Int): Gen[Int] =
@@ -17,30 +17,32 @@ object DocParserBenchmark extends Bench.LocalTime {
     for { i <- range } yield f(i)
 
   val tests = List(
-    "formatters" -> gen(exp(16), i => "*foobarbo*" * i),
-    "unclosed"   -> gen(exp(16), i => "*_foobarb*" * i),
-    "combined"   -> gen(exp(16), i => "*_~foob~_*" * i),
-    "normal"     -> gen(exp(16), i => "test123456" * i),
-    "tags"       -> gen(exp(16), i => "ADDED\nfoo" * i),
-    "link"       -> gen(exp(16), i => "[foo](bar)" * i),
+    "formatters" -> gen(exp(18), i => "*foobar*\n" * i),
+    "unclosed"   -> gen(exp(18), i => "*_foobo*\n" * i),
+    "combined"   -> gen(exp(18), i => "*_~fo~_*\n" * i),
+    "normal"     -> gen(exp(18), i => "test1234\n" * i),
+    "tags"       -> gen(exp(18), i => "ADDED\nfoo" * i),
+    "link"       -> gen(exp(18), i => "[fo](bo)\n" * i),
     "list" -> gen(
-      exp(16),
+      exp(18),
       i => """foo
              |  - A
              |  - B
-             |  - C""".stripMargin * i
+             |  - C
+             |""".stripMargin * i
     ),
     "list_nested" -> gen(
-      exp(16),
+      exp(18),
       i => """foo
              |  - A
              |  - B
              |    * CA
              |    * CB
-             |  - D""".stripMargin * i
+             |  - D
+             |""".stripMargin * i
     ),
     "sections" -> gen(
-      exp(16),
+      exp(18),
       i => "Foo\n\n!B\n\n?C\n\n>D" * i
     )
   )

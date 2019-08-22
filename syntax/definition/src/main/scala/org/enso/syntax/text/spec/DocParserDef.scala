@@ -66,9 +66,11 @@ case class DocParserDef() extends Parser[Doc] {
 
   final object text {
     def onPushingNormalText(in: String): Unit = logger.trace {
-      val isDocBeginning = result.stack.isEmpty && section.stack.isEmpty // to create tags on file beginning
-      val isSectionBeginning = result.stack.isEmpty || result.stack.head
-          .isInstanceOf[Section.Header] // to remove unnecessary indent from first line as yet onIndent hasn't been called
+      val isDocBeginning
+        : Boolean = result.stack.isEmpty && section.stack.isEmpty
+      val isSectionBeginning
+        : Boolean = result.stack.isEmpty || result.stack.head
+          .isInstanceOf[Section.Header]
 
       if (isDocBeginning) {
         if (!tags.checkIfTagExistInPushedText(in)) {
@@ -131,7 +133,7 @@ case class DocParserDef() extends Parser[Doc] {
             Tags.Tag(indent, tagType, None)
           }
         }
-        result.current = Some("")
+        result.current = None
       }
 
     def checkIfTagExistInPushedText(in: String): Boolean = logger.trace {
@@ -225,7 +227,6 @@ case class DocParserDef() extends Parser[Doc] {
           result.pop()
           result.current match {
             case Some(value) => listOfFormattedAST +:= value
-            case None        => // empty formatter
           }
         }
         listOfFormattedAST
@@ -288,10 +289,8 @@ case class DocParserDef() extends Parser[Doc] {
         case None =>
           result.pop()
           result.current match {
-            case Some(_: Section.Header) =>
-              loopThroughASTForSectionHeader()
-            case Some(Elem.Text("")) => // Used if there is nothing but tags
-            case _                   => result.push()
+            case Some(_: Section.Header) => loopThroughASTForSectionHeader()
+            case _                       => result.push()
           }
       }
     }

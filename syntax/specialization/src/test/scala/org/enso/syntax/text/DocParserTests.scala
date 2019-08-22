@@ -9,7 +9,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.Assertion
 
-class DocParserSpec extends FlatSpec with Matchers {
+class DocParserTests extends FlatSpec with Matchers {
   val logger = new Logger()
 
   def assertExpr(input: String, result: Doc): Assertion = {

@@ -1,6 +1,7 @@
 /*///////////
 //// DOM ////
 ///////////*/
+
 body {
     font-family: system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
@@ -12,7 +13,7 @@ body {
     margin: 0;
     word-wrap: break-word;
     color: #333;
-    background-color: #f4f4f4; /*#1e1b17*/
+    background-color: #f4f4f4; /*#1e1b17 dark-mode to consider */
 }
 
 a:hover {
@@ -42,15 +43,6 @@ code {
     white-space: pre-wrap;
 }
 
-b {}
-i {}
-s {}
-
-ul {}
-ol {}
-
-li {}
-
 button {
     display: inline-block;
     padding: 8px 30px;
@@ -62,6 +54,7 @@ button {
     font-size: 14;
     vertical-align: top;
 }
+
 button:hover {
     background-color: #18e06ba2;
     color: white
@@ -118,26 +111,33 @@ button:hover {
     border-radius: 17px;
     font-size: 17px;
 }
+
 .DEPRECATED {
     color: orange
 }
+
 .MODIFIED {
     color: green
 }
+
 .ADDED {
     color: purple
 }
+
 .UPCOMING {
     color: skyblue
 }
+
 .REMOVED {
     color: orangered
 }
+
 .UNRECOGNIZED {
     background-color: red;
     color: white !important;
     font-weight: 500;
 }
+
 /*////////////////
 //// Sections ////
 ////////////////*/
@@ -210,11 +210,4 @@ button:hover {
 .Synopsis {
     font-size: xx-large;
     font-weight: 500;
-}
-
-/*/////////////////////
-//// Documentation ////
-/////////////////////*/
-
-.Doc {
 }
