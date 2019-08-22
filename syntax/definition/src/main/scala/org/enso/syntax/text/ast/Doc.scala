@@ -253,14 +253,11 @@ object Doc {
     def indent: Int
     def elems: List[Elem]
 
-    def reprOfNormalText(elem: Elem, index: Int): Repr = {
-      if (index > 0) {
-        val previousIndex = index - 1
-        val previousElem  = elems(previousIndex)
-        if (previousElem == Elem.Newline) {
-          R + indent + elem
-        } else R + elem
-      } else R + elem
+    def reprOfNormalText(elem: Elem, prevElem: Elem): Repr = {
+      prevElem match {
+        case Elem.Newline => R + indent + elem
+        case _            => R + elem
+      }
     }
   }
 
@@ -291,10 +288,11 @@ object Doc {
           R + indentBeforeMarker + marker + indentAfterMarker
       }
 
-      val elemsRepr: List[Repr] = elems.zipWithIndex.map {
+      val dummyElem = Elem.Text("")
+      val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
         case (elem @ (_: Elem.List), _) => R + elem
         case (elem @ (_: Elem.Code), _) => R + elem
-        case (elem, index)              => reprOfNormalText(elem, index)
+        case (elem, prevElem)           => reprOfNormalText(elem, prevElem)
       }
 
       val repr: Repr = firstIndentRepr + elemsRepr
@@ -324,12 +322,13 @@ object Doc {
     }
 
     final case class Raw(indent: Int, elems: List[Elem]) extends Section {
-      val elemsRepr: List[Repr] = elems.zipWithIndex.map {
+      val dummyElem = Elem.Text("")
+      val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
         case (elem @ (_: Section.Header), _) =>
           R + Elem.Newline + indent + elem
         case (elem @ (_: Elem.List), _) => R + elem
         case (elem @ (_: Elem.Code), _) => R + elem
-        case (elem, index)              => reprOfNormalText(elem, index)
+        case (elem, prevElem)           => reprOfNormalText(elem, prevElem)
       }
 
       val repr: Repr = R + indent + elemsRepr
@@ -360,7 +359,7 @@ object Doc {
     val repr: Repr    = head + elems.toList.map(_.repr.show()).mkString(newLn)
     val html: HTML = {
       val htmlCls = HTML.`class` := this.productPrefix
-      Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
+      Seq(HTML.div(htmlCls)(HTML.h2("Overview"))(elems.toList.map(_.html)))
     }
   }
 
