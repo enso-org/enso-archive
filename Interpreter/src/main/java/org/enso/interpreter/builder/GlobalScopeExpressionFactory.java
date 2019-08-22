@@ -1,12 +1,13 @@
 package org.enso.interpreter.builder;
 
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import java.util.List;
-
-import org.enso.interpreter.*;
-import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.AstExpression;
+import org.enso.interpreter.AstGlobalScope;
+import org.enso.interpreter.AstGlobalScopeVisitor;
+import org.enso.interpreter.AstMethodDef;
+import org.enso.interpreter.AstTypeDef;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -72,7 +73,9 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
               .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
       ExpressionFactory expressionFactory =
           new ExpressionFactory(
-              language, method.typeName() + "." + method.methodName(), globalScope);
+              language,
+              method.typeName() + Constants.SCOPE_SEPARATOR + method.methodName(),
+              globalScope);
       CreateFunctionNode funNode =
           expressionFactory.processFunctionBody(
               method.fun().getArguments(), method.fun().getStatements(), method.fun().ret());

@@ -12,4 +12,5 @@ public class Constants {
   public static final String FILE_EXTENSION = ".enso";
 
   public static final String THIS_ARGUMENT_NAME = "this";
+  public static final String SCOPE_SEPARATOR = ".";
 }

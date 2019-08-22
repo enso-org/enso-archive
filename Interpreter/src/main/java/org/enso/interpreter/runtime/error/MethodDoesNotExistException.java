@@ -4,7 +4,7 @@ import com.oracle.truffle.api.TruffleException;
 import com.oracle.truffle.api.nodes.Node;
 
 /** Thrown when a given Object does not implement the requested Enso-level method. */
-public class NoMethodErrorException extends RuntimeException implements TruffleException {
+public class MethodDoesNotExistException extends RuntimeException implements TruffleException {
   private final Node node;
 
   /**
@@ -13,7 +13,7 @@ public class NoMethodErrorException extends RuntimeException implements TruffleE
    * @param target the construct that was attempted to be invoked
    * @param node the node where the erroneous invocation took place
    */
-  public NoMethodErrorException(Object target, String name, Node node) {
+  public MethodDoesNotExistException(Object target, String name, Node node) {
     super("Object " + target + " does not define method " + name + ".");
     this.node = node;
   }

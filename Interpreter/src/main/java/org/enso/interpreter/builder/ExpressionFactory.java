@@ -43,7 +43,7 @@ import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
-import org.enso.interpreter.runtime.callable.DynamicSymbol;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
@@ -187,7 +187,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst()
-        .orElseGet(() -> new DynamicSymbolNode(new DynamicSymbol(name)));
+        .orElseGet(() -> new DynamicSymbolNode(new UnresolvedSymbol(name)));
   }
 
   /**

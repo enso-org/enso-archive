@@ -7,24 +7,22 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import java.util.Arrays;
-
 import com.oracle.truffle.api.profiles.ConditionProfile;
+import java.util.Arrays;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.MethodResolverNodeGen;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.callable.dispatch.SimpleCallOptimiserNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
-import org.enso.interpreter.runtime.callable.DynamicSymbol;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.NoMethodErrorException;
+import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
 import org.enso.interpreter.runtime.type.TypesGen;
 
@@ -133,14 +131,15 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   }
 
   /**
-   * Invokes a dynamic symbol after resolving it for the proper argument.
+   * Invokes a dynamic symbol after resolving it for the actual symbol for the {@code this}
+   * argument.
    *
    * @param frame the stack frame in which to execute
    * @param symbol the name of the requested symbol
-   * @return the result of resolving and executing the symbol for the proper argument.
+   * @return the result of resolving and executing the symbol for the {@code this} argument
    */
   @Specialization
-  public Object invokeDynamicSymbol(VirtualFrame frame, DynamicSymbol symbol) {
+  public Object invokeDynamicSymbol(VirtualFrame frame, UnresolvedSymbol symbol) {
     if (canApplyThis) {
       Object[] evaluatedArguments = evaluateArguments(frame);
       Object selfArgument = evaluatedArguments[thisArgumentPosition];
@@ -155,10 +154,10 @@ public abstract class InvokeCallableNode extends ExpressionNode {
           return this.callOptimiserNode.executeDispatch(function, sortedArguments);
         }
       } else {
-        throw new NoMethodErrorException(selfArgument, symbol.getName(), this);
+        throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
       }
     } else {
-      throw new RuntimeException("Currying without `this` argument is not supported yet.");
+      throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
   }
 

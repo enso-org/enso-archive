@@ -34,6 +34,11 @@ public class Context {
     this.output = new PrintWriter(environment.out(), true);
   }
 
+  /**
+   * Obtains a reference to the Enso global scope.
+   *
+   * @return the Enso global scope
+   */
   public GlobalScope getGlobalScope() {
     return globalScope;
   }

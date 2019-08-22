@@ -7,15 +7,15 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.DynamicSymbol;
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.NoMethodErrorException;
+import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 
 /**
- * A node performing lookups of method definitions. Uses a polymorphic inline cache to ensure best
- * performance.
+ * A node performing lookups of method definitions. Uses a polymorphic inline cache to ensure the
+ * best performance.
  */
 public abstract class MethodResolverNode extends Node {
 
@@ -25,7 +25,7 @@ public abstract class MethodResolverNode extends Node {
    */
   @Specialization(guards = "isValidCache(symbol, cachedName, atom, cachedConstructor)")
   public Function resolveCached(
-      DynamicSymbol symbol,
+      UnresolvedSymbol symbol,
       Atom atom,
       @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef,
       @Cached("symbol.getName()") String cachedName,
@@ -41,7 +41,7 @@ public abstract class MethodResolverNode extends Node {
    * @param atom Object for which to resolve the method.
    * @return Resolved method.
    */
-  public abstract Function execute(DynamicSymbol symbol, Atom atom);
+  public abstract Function execute(UnresolvedSymbol symbol, Atom atom);
 
   /**
    * Handles the actual method lookup. Not for manual use.
@@ -57,7 +57,7 @@ public abstract class MethodResolverNode extends Node {
       String name) {
     Function result = contextReference.get().getGlobalScope().lookupMethodDefinition(cons, name);
     if (result == null) {
-      throw new NoMethodErrorException(cons, name, this);
+      throw new MethodDoesNotExistException(cons, name, this);
     }
     return result;
   }
@@ -67,9 +67,15 @@ public abstract class MethodResolverNode extends Node {
    * the same method name and this argument type. Not for manual use.
    */
   public boolean isValidCache(
-      DynamicSymbol symbol, String cachedName, Atom atom, AtomConstructor cachedConstructor) {
-    // This comparison by `==` is safe, because all the symbol names are interned.
+      UnresolvedSymbol symbol, String cachedName, Atom atom, AtomConstructor cachedConstructor) {
+    // Note [Safe Name Equality Comparisons]
     //noinspection StringEquality
     return (symbol.getName() == cachedName) && (atom.getConstructor() == cachedConstructor);
   }
+
+  /* Note [Safe Equality Comparisons]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * It is safe to compare the names of the symbols using `==` as all symbol names are intentionally
+   * interned to assist in performance of comparisons.
+   */
 }
