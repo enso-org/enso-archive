@@ -285,7 +285,7 @@ case class DocParserDef() extends Parser[Doc] {
     def createSectionHeader(): Unit = logger.trace {
       section.current match {
         case Some(_) => loopThroughASTForSectionHeader()
-        case _ =>
+        case None =>
           result.pop()
           result.current match {
             case Some(_: Section.Header) =>
@@ -436,7 +436,7 @@ case class DocParserDef() extends Parser[Doc] {
         inListFlag = !inListFlag
       }
       onPushingNewLine()
-      endOfSection.onEndOfSection()
+      section.onEOS()
     }
 
     val emptyLine: Pattern     = whitespace.opt >> newline
@@ -546,6 +546,7 @@ case class DocParserDef() extends Parser[Doc] {
     var current: Option[Section.Marked.Type] = None
     var currentIndent: Int                   = 0
 
+    ////// Section Beginning /////
     def onNewSection(st: Option[Section.Marked.Type]): Unit =
       logger.trace {
         result.pop()
@@ -566,6 +567,45 @@ case class DocParserDef() extends Parser[Doc] {
       onNewRawSection()
       result.current = Some(Section.Header())
       result.push()
+    }
+
+    ////// End of Section //////
+    def checkForUnclosedFormattersOnEOS(): Unit = logger.trace {
+      formatter.checkForUnclosed(Elem.Formatter.Bold)
+      formatter.checkForUnclosed(Elem.Formatter.Italic)
+      formatter.checkForUnclosed(Elem.Formatter.Strikeout)
+    }
+
+    def reverseStackOnEOS(): Unit = logger.trace {
+      result.stack = result.stack.reverse
+    }
+
+    def push(): Unit = logger.trace {
+      result.stack match {
+        case Nil =>
+        case _ =>
+          section.current match {
+            case Some(marker) =>
+              section.stack +:= Section
+                .Marked(currentIndent, marker, result.stack)
+            case None =>
+              section.stack +:= Section.Raw(currentIndent, result.stack)
+          }
+      }
+    }
+
+    def cleanupOnEOS(): Unit = logger.trace {
+      result.current  = None
+      result.stack    = Nil
+      formatter.stack = Nil
+    }
+
+    def onEOS(): Unit = logger.trace {
+      checkForUnclosedFormattersOnEOS()
+      reverseStackOnEOS()
+      header.createSectionHeader()
+      push()
+      cleanupOnEOS()
     }
 
     val importantTrigger: Char = Section.Marked.Important.marker
@@ -593,54 +633,6 @@ case class DocParserDef() extends Parser[Doc] {
   }
   ROOT || section.examplePattern || reify {
     section.onNewMarkedSection(Section.Marked.Example)
-  }
-
-  //////////////////////////////////////////////////////////////////////////////
-  ////// End of Section ////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  final object endOfSection {
-    def checksOfUnclosedFormattersOnEndOfSection(): Unit = logger.trace {
-      formatter.checkForUnclosed(Elem.Formatter.Bold)
-      formatter.checkForUnclosed(Elem.Formatter.Italic)
-      formatter.checkForUnclosed(Elem.Formatter.Strikeout)
-    }
-
-    def reverseStackOnEndOfSection(): Unit = logger.trace {
-      result.stack = result.stack.reverse
-    }
-
-    def pushToSectionsStack(): Unit = logger.trace {
-      if (result.stack.nonEmpty) {
-        section.current match {
-          case _: Some[Section.Marked.Type] =>
-            section.stack +:= Section.Marked(
-              section.currentIndent,
-              section.current.get,
-              result.stack
-            )
-          case None =>
-            section.stack +:= Section.Raw(
-              section.currentIndent,
-              result.stack
-            )
-        }
-      }
-    }
-
-    def cleanupEndOfSection(): Unit = logger.trace {
-      result.current  = None
-      result.stack    = Nil
-      formatter.stack = Nil
-    }
-
-    def onEndOfSection(): Unit = logger.trace {
-      checksOfUnclosedFormattersOnEndOfSection()
-      reverseStackOnEndOfSection()
-      header.createSectionHeader()
-      pushToSectionsStack()
-      cleanupEndOfSection()
-    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -691,7 +683,7 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     def onEOF(): Unit = logger.trace {
-      endOfSection.onEndOfSection()
+      section.onEOS()
       reverseSectionsStackOnEOF()
       reverseTagsStackOnEOF()
       createDoc()
