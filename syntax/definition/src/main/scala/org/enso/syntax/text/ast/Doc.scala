@@ -16,27 +16,23 @@ final case class Doc(
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
 ) extends Doc.Symbol {
-  implicit class _OptionT_[T <: Doc.Symbol](val self: Option[T]) {
-    val html: Doc.HTML = self.getOrElse(Doc.Elem.Text("")).html
-  }
-
   val repr: Repr = R + tags + synopsis + body
   val html: Doc.HTML = {
-    val htmlCls = HTML.`class` := this.productPrefix
+    val htmlCls = HTML.`class` := productPrefix
     Seq(HTML.div(htmlCls)(tags.html)(synopsis.html)(body.html))
   }
 }
 
 object Doc {
   def apply():                   Doc = Doc(None, None, None)
-  def apply(tags: Tags):         Doc = Doc(Option(tags), None, None)
-  def apply(synopsis: Synopsis): Doc = Doc(None, Option(synopsis), None)
+  def apply(tags: Tags):         Doc = Doc(Some(tags), None, None)
+  def apply(synopsis: Synopsis): Doc = Doc(None, Some(synopsis), None)
   def apply(synopsis: Synopsis, body: Body): Doc =
-    Doc(None, Option(synopsis), Option(body))
+    Doc(None, Some(synopsis), Some(body))
   def apply(tags: Tags, synopsis: Synopsis): Doc =
-    Doc(Option(tags), Option(synopsis), None)
+    Doc(Some(tags), Some(synopsis), None)
   def apply(tags: Tags, synopsis: Synopsis, body: Body): Doc =
-    Doc(Option(tags), Option(synopsis), Option(body))
+    Doc(Some(tags), Some(synopsis), Some(body))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
@@ -51,20 +47,20 @@ object Doc {
 
     def html: HTML
     def renderHTML(cssLink: String): HTMLTag = {
-      val metaEquiv     = HTML.httpEquiv := "Content-Type"
-      val metaCont      = HTML.content := "text/html"
-      val metaChar      = HTML.charset := "UTF-8"
-      val meta: HTMLTag = HTML.meta(metaEquiv)(metaCont)(metaChar)
-      val cssRel        = HTML.rel := "stylesheet"
-      val cssHref       = HTML.href := cssLink
-      val css: HTMLTag  = HTML.link(cssRel)(cssHref)
+      val metaEquiv = HTML.httpEquiv := "Content-Type"
+      val metaCont  = HTML.content := "text/html"
+      val metaChar  = HTML.charset := "UTF-8"
+      val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
+      val cssRel    = HTML.rel := "stylesheet"
+      val cssHref   = HTML.href := cssLink
+      val css       = HTML.link(cssRel)(cssHref)
       HTML.html(HTML.head(meta, css), HTML.body(html))
     }
   }
 
-  implicit final class _ListAST_(val self: List[Elem]) extends Symbol {
-    val repr: Repr = R + self.map(_.repr)
-    val html: HTML = Seq(self.map(_.html))
+  implicit final class _OptionT_[T <: Symbol](val self: Option[T]) {
+    val dummyText  = Elem.Text("")
+    val html: HTML = self.getOrElse(dummyText).html
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -83,6 +79,8 @@ object Doc {
       val repr: Repr = text
       val html: HTML = Seq(text)
     }
+
+    implicit def stringToText(str: String): Elem.Text = Elem.Text(str)
 
     case object Newline extends Elem {
       val repr: Repr = R + "\n"
@@ -125,6 +123,12 @@ object Doc {
         def apply(tp: Type, elem: Elem):   Unclosed = Unclosed(tp, elem :: Nil)
         def apply(tp: Type, elems: Elem*): Unclosed = Unclosed(tp, elems.toList)
       }
+    }
+
+    implicit final class _ListOfFormattedElems_(val self: scala.List[Elem])
+        extends Symbol {
+      val repr: Repr = R + self.map(_.repr)
+      val html: HTML = Seq(self.map(_.html))
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -207,17 +211,20 @@ object Doc {
     final case class List(indent: Int, tp: List.Type, elems: List1[Elem])
         extends Elem {
       val repr: Repr = R + elems.toList.map {
-          case elem @ (_: Elem.Invalid) => R + Newline + elem
-          case elem @ (_: List)         => R + Newline + elem
-          case elem if elems.head == elem =>
-            R + indent + tp.marker + elem
-          case elem => R + Newline + indent + tp.marker + elem
+          case elem @ (_: Elem.Invalid)   => R + Newline + elem
+          case elem @ (_: List)           => R + Newline + elem
+          case elem if elems.head == elem => R + indent + tp.marker + elem
+          case elem =>
+            R + Newline + indent + tp.marker + elem
         }
 
-      val html: HTML = Seq(tp.HTMLMarker(elems.toList.map {
-        case elem @ (_: List) => elem.html
-        case elem             => Seq(HTML.li(elem.html))
-      }))
+      val html: HTML = {
+        val elemsHTML = elems.toList.map {
+          case elem @ (_: List) => elem.html
+          case elem             => Seq(HTML.li(elem.html))
+        }
+        Seq(tp.HTMLMarker(elemsHTML))
+      }
     }
 
     object List {
@@ -235,16 +242,18 @@ object Doc {
             extends Elem.Invalid {
           val repr: Repr = R + indent + tp.marker + elem
           val html: HTML = {
-            val objectName = getClass.getEnclosingClass.toString.split('$').last
-            val className  = this.productPrefix
-            val htmlCls    = HTML.`class` := className + objectName
+            val className = this.productPrefix
+            val htmlCls   = HTML.`class` := className + getObjectName
             Seq(HTML.div(htmlCls)(elem.html))
           }
+        }
+
+        def getObjectName: String = {
+          getClass.getEnclosingClass.toString.split('$').last
         }
       }
     }
   }
-  implicit def stringToText(str: String): Elem.Text = Elem.Text(str)
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Sections - Raw & Marked ///////////////////////////////////////////////
@@ -420,10 +429,10 @@ object Doc {
       val defaultIndent = 0
       def apply(tp: Type): Tag = Tag(defaultIndent, tp, None)
       def apply(tp: Type, details: String): Tag =
-        Tag(defaultIndent, tp, Option(details))
+        Tag(defaultIndent, tp, Some(details))
       def apply(indent: Int, tp: Type): Tag = Tag(indent, tp, None)
       def apply(indent: Int, tp: Type, details: String): Tag =
-        Tag(indent, tp, Option(details))
+        Tag(indent, tp, Some(details))
 
       sealed trait Type
       case object Deprecated   extends Type
@@ -437,7 +446,7 @@ object Doc {
     implicit final class tagDetails(val self: Option[String]) {
       val html: HTML = {
         val htmlCls = HTML.`class` := this.getClass.toString.split('$').last
-        Seq(self.map(HTML.div(htmlCls)(_)).getOrElse("".html))
+        Seq(self.map(HTML.div(htmlCls)(_)))
       }
     }
   }

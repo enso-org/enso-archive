@@ -59,6 +59,7 @@ code {
 button {
     display: inline-block;
     padding: 8px 30px;
+    margin: 10px 0;
     outline: none;
     background-color: #777;
     border: none;
@@ -261,7 +262,7 @@ h2 {
 .Code {
     border-color: #7cd58b;
     margin: 10px 20px;
-    display: None;
+    display: none;
 }
 
 /*/////////////////////////
@@ -319,7 +320,8 @@ h2 {
 }
 
 @media (min-width: 1300px) {
-    .Doc {
-        width: 900px
+    .Synopsis,
+    .Body  {
+        width: 780px
     }
 }
