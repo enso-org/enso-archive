@@ -449,6 +449,65 @@ class DocParserTests extends FlatSpec with Matchers {
       )
     )
   )
+  "![foo)" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.Invalid(
+          "![foo)"
+        )
+      )
+    )
+  )
+  "[foo)" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.Invalid(
+          "[foo)"
+        )
+      )
+    )
+  )
+  "[foo]bo)" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.Invalid(
+          "[foo]bo)"
+        )
+      )
+    )
+  )
+  "![foo]google" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.Invalid(
+          "![foo]google"
+        )
+      )
+    )
+  )
+
+  "[foo]google" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.Invalid(
+          "[foo]google"
+        )
+      )
+    )
+  )
+
+  """[foo]bo)
+    |basdbasd""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.Invalid(
+          "[foo]bo)"
+        ),
+        Newline,
+        "basdbasd"
+      )
+    )
+  )
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Tags //////////////////////////////////////////////////////////////////

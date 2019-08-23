@@ -226,10 +226,12 @@ object Doc {
      * @param url - specifies address
      *
      * there are two kinds of links - normal URL and Image embedded in text
+     *
+     * Link.Invalid - something that couldn't be pattern matched to create link
      */
     abstract class Link(name: String, url: String, val marker: String)
         extends Elem {
-      val repr: Repr = Repr() + marker + "[" + name + "](" + url + ")"
+      val repr: Repr = R + marker + "[" + name + "](" + url + ")"
       val html: HTML = this match {
         case _: Link.URL   => Seq(HTML.a(HTML.href := url)(name))
         case _: Link.Image => Seq(HTML.img(HTML.src := url), name)
@@ -247,6 +249,18 @@ object Doc {
           extends Link(name, url, "!")
       object Image {
         def apply(): Image = Image("", "")
+      }
+
+      final case class Invalid(elem: String) extends Elem {
+        val repr: Repr = R + elem
+        val html: HTML = {
+          val htmlCls = HTML.`class` := this.productPrefix + getObjectName
+          Seq(HTML.div(htmlCls)(elem))
+        }
+      }
+
+      def getObjectName: String = {
+        getClass.toString.split('$').last
       }
     }
 
@@ -339,7 +353,7 @@ object Doc {
      * @param elems - elements which make up header
      */
     final case class Header(elems: List[Elem]) extends Elem {
-      val repr: Repr = Repr() + elems.map(_.repr)
+      val repr: Repr = R + elems.map(_.repr)
       val html: HTML = {
         val htmlCls = HTML.`class` := this.productPrefix
         Seq(HTML.div(htmlCls)(elems.map(_.html)))

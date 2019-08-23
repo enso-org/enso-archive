@@ -103,13 +103,15 @@ h2 {
 ///////////////////*/
 
 .creator .Unclosed,
-.creator .invalidIndent {
+.creator .invalidIndent,
+.creator .invalidLink{
     display: inline;
     color: orangered;
 }
 
- .Unclosed,
- .invalidIndent {
+.Unclosed,
+.invalidIndent,
+.invalidLink {
     display: inline;
 }
 

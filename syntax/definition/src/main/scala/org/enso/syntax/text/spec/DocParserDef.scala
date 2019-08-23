@@ -14,9 +14,10 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
   ////// Basic Char Classification /////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
-  val lowerChar = range('a', 'z')
-  val upperChar = range('A', 'Z')
-  val digit     = range('0', '9')
+
+  val lowerChar: Pattern = range('a', 'z')
+  val upperChar: Pattern = range('A', 'Z')
+  val digit: Pattern     = range('0', '9')
 
   val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
   val whitespace   = ' '.many1
@@ -37,7 +38,6 @@ case class DocParserDef() extends Parser[Doc] {
    * doc - used to hold ready to get Doc after parsing
    * stack - used to hold stack of elems
    */
-
   final object result {
     var current: Option[Elem] = None
     var doc: Option[Doc]      = None
@@ -70,7 +70,6 @@ case class DocParserDef() extends Parser[Doc] {
 
   /* text - used to manage normal text, made of Strings
    */
-
   final object text {
     def onPushing(in: String): Unit = logger.trace {
       val isDocBeginning
@@ -119,7 +118,6 @@ case class DocParserDef() extends Parser[Doc] {
    * possibleTagsList - holds every correct tag possible to create
    * stack - holds applied tags
    */
-
   final object tags {
     val possibleTagsList: List[Tags.Tag.Type] =
       List(
@@ -184,7 +182,6 @@ case class DocParserDef() extends Parser[Doc] {
 
   /* code - used to manage code in documentation
    */
-
   final object code {
     def onPushingInline(in: String): Unit = logger.trace {
       val code = in.substring(1).dropRight(1)
@@ -231,7 +228,6 @@ case class DocParserDef() extends Parser[Doc] {
    *
    * stack - holds applied formatters until they're closed
    */
-
   final object formatter {
     var stack: List[Elem.Formatter.Type] = Nil
 
@@ -314,7 +310,6 @@ case class DocParserDef() extends Parser[Doc] {
 
   /* header - used to create section headers in Documentation
    */
-
   final object header {
     def create(): Unit = logger.trace {
       section.current match {
@@ -347,17 +342,20 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Links /////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /* header - used to create links in Documentation
+  /* link - used to create links in Documentation
    *
    * there are 2 possible link types - Image and normal URL
    */
-
   final object link {
     def onCreatingURL(): Unit = logger.trace {
-      val in   = currentMatch.substring(1).dropRight(1).split(']')
-      val name = in(0)
-      val url  = in(1).substring(1)
-      pushURL(name, url)
+      if (currentMatch.contains("]") && currentMatch.contains("(")) {
+        val in   = currentMatch.substring(1).dropRight(1).split(']')
+        val name = in(0)
+        val url  = in(1).substring(1)
+        pushURL(name, url)
+      } else {
+        onInvalidLink()
+      }
     }
 
     def pushURL(name: String, url: String): Unit = logger.trace {
@@ -366,10 +364,14 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     def onCreatingImage(): Unit = logger.trace {
-      val in   = currentMatch.substring(2).dropRight(1).split(']')
-      val name = in(0)
-      val url  = in(1).substring(1)
-      pushImage(name, url)
+      if (currentMatch.contains("]") && currentMatch.contains("(")) {
+        val in   = currentMatch.substring(2).dropRight(1).split(']')
+        val name = in(0)
+        val url  = in(1).substring(1)
+        pushImage(name, url)
+      } else {
+        onInvalidLink()
+      }
     }
 
     def pushImage(name: String, url: String): Unit = logger.trace {
@@ -377,15 +379,39 @@ case class DocParserDef() extends Parser[Doc] {
       result.push()
     }
 
-    val imageNameTrigger: String  = Elem.Link.Image().marker + "["
-    val urlNameTrigger: String    = Elem.Link.URL().marker + "["
-    val imageLinkPattern: Pattern = imageNameTrigger >> not(')').many1 >> ')'
-    val urlLinkPattern: Pattern   = urlNameTrigger >> not(')').many1 >> ')'
+    def onInvalidLink(): Unit = logger.trace {
+      result.current = Some(Elem.Link.Invalid(currentMatch))
+      result.push()
+    }
 
+    def onInvalidLinkNewline(): Unit = logger.trace {
+      result.current = Some(Elem.Link.Invalid(currentMatch.dropRight(1)))
+      result.push()
+      indent.onPushingNewLine()
+    }
+
+    def onInvalidLinkEOF(): Unit = logger.trace {
+      onInvalidLink()
+      endOfFile.onEOF()
+    }
+
+    val imageNameTrigger: String = Elem.Link.Image().marker + "["
+    val urlNameTrigger: String   = Elem.Link.URL().marker + "["
+    val imagePattern: Pattern    = imageNameTrigger >> not(')').many1 >> ')'
+    val urlPattern: Pattern      = urlNameTrigger >> not(')').many1 >> ')'
+    val invalidPatternNewline
+      : Pattern = (imageNameTrigger | urlNameTrigger) >> not(
+        newline
+      ).many1 >> newline
+    val invalidPatternEOF: Pattern = (imageNameTrigger | urlNameTrigger) >> not(
+        ')'
+      ).many1 >> eof
   }
 
-  ROOT || link.imageLinkPattern || reify { link.onCreatingImage() }
-  ROOT || link.urlLinkPattern   || reify { link.onCreatingURL() }
+  ROOT || link.imagePattern          || reify { link.onCreatingImage() }
+  ROOT || link.urlPattern            || reify { link.onCreatingURL() }
+  ROOT || link.invalidPatternNewline || reify { link.onInvalidLinkNewline() }
+  ROOT || link.invalidPatternEOF     || reify { link.onInvalidLinkEOF() }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Indent Management & New line //////////////////////////////////////////
@@ -396,7 +422,6 @@ case class DocParserDef() extends Parser[Doc] {
    * latest - holds last found indent
    * inListFlag - used to check if currently creating list
    */
-
   final object indent {
     var latest: Int     = 0
     val listIndent: Int = 2
@@ -518,7 +543,6 @@ case class DocParserDef() extends Parser[Doc] {
    *
    * there are 2 possible types of lists - ordered and unordered
    */
-
   final object list {
     var inListFlag: Boolean = false
 
@@ -607,7 +631,6 @@ case class DocParserDef() extends Parser[Doc] {
    * currentIndentRaw - holds indent for Raw
    * indentBeforeM & indentAfterM - holds appropriate indents for Marked
    */
-
   final object section {
     var stack: List[Section]                 = Nil
     var current: Option[Section.Marked.Type] = None
@@ -737,7 +760,6 @@ case class DocParserDef() extends Parser[Doc] {
   /* endOfFile - used to manage every action in case of end of file
    * prepares data to be ready to output to user
    */
-
   final object endOfFile {
     def reverseSectionsStackOnEOF(): Unit = logger.trace {
       section.stack = section.stack.reverse
