@@ -11,13 +11,13 @@ import HTML._
 ////// Doc /////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/* Doc - The highest level container, the output of Doc Parser
- *
- * Doc can be made of up to 3 elements:
- * @param tags - If exists, holds applied tags to documented text
- * @param synopsis - If exists, holds synopsis of documented text
- * @param body - If exists, holds body of documented text
- */
+/** Doc - The highest level container, the output of Doc Parser
+  *
+  * Doc can be made of up to 3 elements:
+  * @param tags - If exists, holds applied tags to documented text
+  * @param synopsis - If exists, holds synopsis of documented text
+  * @param body - If exists, holds body of documented text
+  */
 final case class Doc(
   tags: Option[Doc.Tags],
   synopsis: Option[Doc.Synopsis],
@@ -48,11 +48,11 @@ object Doc {
   ////// Symbol ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /* Symbol - the most low-level element, on top of which every other element
-   * is built
-   *
-   * It specifies span of element, representation of element and HTML generator
-   */
+  /** Symbol - the most low-level element, on top of which every other element
+    * is built
+    *
+    * It specifies span of element, representation of element and HTML generator
+    */
   trait Symbol extends Repr.Provider {
     def span:   Int    = repr.span
     def show(): String = repr.show()
@@ -79,11 +79,11 @@ object Doc {
   ////// AST ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /* Elem - the trait for proper element of Doc, which elements can be used in
-   * higher level elements
-   * Invalid - trait for invalid element of Doc, which elements can be used in
-   * higher level elements
-   */
+  /** Elem - the trait for proper element of Doc, which elements can be used in
+    * higher level elements
+    * Invalid - trait for invalid element of Doc, which elements can be used in
+    * higher level elements
+    */
   sealed trait Elem extends Symbol
   object Elem {
     trait Invalid extends Elem
@@ -111,11 +111,11 @@ object Doc {
     ////// Text Formatter - Bold, Italic, Strikeout ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    /* Formatter - element used to hold formatted text
-     *
-     * @param tp - specifies type of formatter (Bold, Italic, Strikeout)
-     * @param elems - elems which make up formatter
-     */
+    /** Formatter - element used to hold formatted text
+      *
+      * @param tp - specifies type of formatter (Bold, Italic, Strikeout)
+      * @param elems - elems which make up formatter
+      */
     final case class Formatter(tp: Formatter.Type, elems: scala.List[Elem])
         extends Elem {
       val repr: Repr = R + tp.marker + elems + tp.marker
@@ -134,12 +134,12 @@ object Doc {
       case object Italic    extends Type('_', HTML.i)
       case object Strikeout extends Type('~', HTML.s)
 
-      /* Unclosed - Invalid formatter made by parser if user has invoked
-       * formatter but hasn't ended it
-       *
-       * @param tp - specifies type of formatter (Bold, Italic, Strikeout)
-       * @param elems - elems which make up unclosed formatter
-       */
+      /** Unclosed - Invalid formatter made by parser if user has invoked
+        * formatter but hasn't ended it
+        *
+        * @param tp - specifies type of formatter (Bold, Italic, Strikeout)
+        * @param elems - elems which make up unclosed formatter
+        */
       final case class Unclosed(tp: Type, elems: scala.List[Elem])
           extends Elem.Invalid {
         val repr: Repr = R + tp.marker + elems
@@ -166,10 +166,10 @@ object Doc {
     ////// Code ////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    /* Code - block used to hold lines of code in Documentation
-     *
-     * @param elems - lines of code
-     */
+    /** Code - block used to hold lines of code in Documentation
+      *
+      * @param elems - lines of code
+      */
     /*TODO [MM]: Next PR
          Code showing button - we need other design here.
          Basically we don't want to display always button
@@ -219,15 +219,15 @@ object Doc {
     ////// Link - URL & Image //////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    /* Link - element used to hold links
-     *
-     * @param name - specifies where does the link take us
-     * @param url - specifies address
-     *
-     * there are two kinds of links - normal URL and Image embedded in text
-     *
-     * Link.Invalid - something that couldn't be pattern matched to create link
-     */
+    /** Link - element used to hold links
+      *
+      * @param name - specifies where does the link take us
+      * @param url - specifies address
+      *
+      * there are two kinds of links - normal URL and Image embedded in text
+      *
+      * Link.Invalid - something that couldn't be pattern matched to create link
+      */
     abstract class Link(name: String, url: String, val marker: String)
         extends Elem {
       val repr: Repr = R + marker + "[" + name + "](" + url + ")"
@@ -267,14 +267,14 @@ object Doc {
     ////// List - Ordered & Unordered, Invalid Indent //////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
-    /* List - block used to hold ordered and unordered lists
-     *
-     * @param indent - specifies indentation of list
-     * @param tp - type of list
-     * @param elems - elements which make up list
-     *
-     * Indent.Invalid - holds list element with invalid indent
-     */
+    /** List - block used to hold ordered and unordered lists
+      *
+      * @param indent - specifies indentation of list
+      * @param tp - type of list
+      * @param elems - elements which make up list
+      *
+      * Indent.Invalid - holds list element with invalid indent
+      */
     final case class List(indent: Int, tp: List.Type, elems: List1[Elem])
         extends Elem {
       val repr: Repr = R + indent + tp.marker + elems.head + elems.tail.map {
@@ -325,14 +325,14 @@ object Doc {
   ////// Sections - Raw & Marked ///////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /* Section - block used to hold one section of text
-   *
-   * @param indent - specifies indentation of section
-   * @param elems - elements which make up section
-   *
-   * Marked - Section which is marked as Important, Info or Example
-   * Raw - normal, unmarked block of text
-   */
+  /** Section - block used to hold one section of text
+    *
+    * indent - specifies indentation of section
+    * elems - elements which make up section
+    *
+    * Marked - Section which is marked as Important, Info or Example
+    * Raw - normal, unmarked block of text
+    */
   trait Section extends Symbol {
     def indent: Int
     def elems: List[Elem]
@@ -456,10 +456,10 @@ object Doc {
   ////// Synopsis //////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /* Synopsis - block used to hold section as a synopsis of documentation
-   *
-   * @param elems - sections which make up synopsis
-   */
+  /** Synopsis - block used to hold section as a synopsis of documentation
+    *
+    * @param elems - sections which make up synopsis
+    */
   final case class Synopsis(elems: List1[Section]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _)
@@ -501,10 +501,10 @@ object Doc {
   ////// Tags //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /* Tags - block used to hold tags for documentation
-   *
-   * @param elems - list of Tag of which Tags is made of
-   */
+  /** Tags - block used to hold tags for documentation
+    *
+    * @param elems - list of Tag of which Tags is made of
+    */
   final case class Tags(elems: List1[Tags.Tag]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _) + newLn
@@ -517,13 +517,13 @@ object Doc {
     def apply(elem: Tag):   Tags = Tags(List1(elem))
     def apply(elems: Tag*): Tags = Tags(List1(elems.head, elems.tail.toList))
 
-    /* Tag - one single tag for Tags
-     *
-     * @param indent - indent of tag
-     * @param tp - type of tag, which can be
-     * Deprecated, Added, Removed, Modified, Upcoming or Unrecognized
-     * @param details - optional information for tag
-     */
+    /** Tag - one single tag for Tags
+      *
+      * @param indent - indent of tag
+      * @param tp - type of tag, which can be
+      * Deprecated, Added, Removed, Modified, Upcoming or Unrecognized
+      * @param details - optional information for tag
+      */
     final case class Tag(indent: Int, tp: Tag.Type, details: Option[String])
         extends Elem {
       val name: String = tp.toString.toUpperCase
