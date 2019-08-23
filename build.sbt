@@ -120,7 +120,8 @@ lazy val syntax_definition = (project in file("syntax/definition"))
       "org.scala-lang"     % "scala-compiler" % "2.12.8",
       "org.feijoas"        %% "mango"         % "0.14",
       "org.apache.commons" % "commons-text"   % "1.6",
-      "org.scalameta"      %% "scalameta"     % "4.2.0"
+      "org.scalameta"      %% "scalameta"     % "4.2.0",
+      "com.lihaoyi"        %% "scalatags"     % "0.7.0"
     ),
     libraryDependencies ++= Seq(
       "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
