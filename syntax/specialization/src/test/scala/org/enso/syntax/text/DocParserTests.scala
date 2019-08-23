@@ -303,6 +303,32 @@ class DocParserTests extends FlatSpec with Matchers {
     |  - First unordered item
     |  - Second unordered item
     |    * First ordered sub item
+    |    *    Second ordered sub item
+    |  - Third unordered item""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "List",
+        Newline,
+        List(
+          2,
+          List.Unordered,
+          " First unordered item",
+          " Second unordered item",
+          List(
+            4,
+            List.Ordered,
+            " First ordered sub item",
+            "    Second ordered sub item"
+          ),
+          " Third unordered item"
+        )
+      )
+    )
+  )
+  """List
+    |  - First unordered item
+    |  - Second unordered item
+    |    * First ordered sub item
     |    * Second ordered sub item
     |  - Third unordered item
     |    * First ordered sub item

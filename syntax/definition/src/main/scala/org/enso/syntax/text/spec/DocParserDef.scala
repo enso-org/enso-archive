@@ -31,6 +31,13 @@ case class DocParserDef() extends Parser[Doc] {
 
   override def getResult(): Option[Doc] = result.doc
 
+  /* result - used to manage result from Doc Parser
+   *
+   * current - used to hold elem parser works on
+   * doc - used to hold ready to get Doc after parsing
+   * stack - used to hold stack of elems
+   */
+
   final object result {
     var current: Option[Elem] = None
     var doc: Option[Doc]      = None
@@ -60,6 +67,9 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
   ////// Text //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
+  /* text - used to manage normal text, made of Strings
+   */
 
   final object text {
     def onPushing(in: String): Unit = logger.trace {
@@ -104,6 +114,12 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Tags //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  /* tags - used to manage potentially tagged documentation
+   *
+   * possibleTagsList - holds every correct tag possible to create
+   * stack - holds applied tags
+   */
+
   final object tags {
     val possibleTagsList: List[Tags.Tag.Type] =
       List(
@@ -113,19 +129,19 @@ case class DocParserDef() extends Parser[Doc] {
         Tags.Tag.Removed,
         Tags.Tag.Upcoming
       )
-    var tagsStack: List[Tags.Tag] = Nil
+    var stack: List[Tags.Tag] = Nil
 
     def pushTag(indent: Int, tagType: Tags.Tag.Type, details: String): Unit =
       logger.trace {
         if (details.replaceAll("\\s", "").length == 0) {
-          tagsStack +:= Tags.Tag(indent, tagType)
+          stack +:= Tags.Tag(indent, tagType)
         } else {
           if (details.nonEmpty) {
             var det = text.removeWhitespaces(details)
             if (tagType != Tags.Tag.Unrecognized) {
               det = ' ' + det
             }
-            tagsStack +:= Tags.Tag(indent, tagType, Some(det))
+            stack +:= Tags.Tag(indent, tagType, Some(det))
           } else {
             Tags.Tag(indent, tagType, None)
           }
@@ -165,6 +181,9 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
   ////// Code //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
+  /* code - used to manage code in documentation
+   */
 
   final object code {
     def onPushingInline(in: String): Unit = logger.trace {
@@ -207,6 +226,11 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
   ////// Formatter /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
+  /* formatter - used to manage text formatters
+   *
+   * stack - holds applied formatters until they're closed
+   */
 
   final object formatter {
     var stack: List[Elem.Formatter.Type] = Nil
@@ -288,6 +312,9 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Header ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  /* header - used to create section headers in Documentation
+   */
+
   final object header {
     def create(): Unit = logger.trace {
       section.current match {
@@ -319,6 +346,11 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
   ////// Links /////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+
+  /* header - used to create links in Documentation
+   *
+   * there are 2 possible link types - Image and normal URL
+   */
 
   final object link {
     def onCreatingURL(): Unit = logger.trace {
@@ -359,14 +391,19 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Indent Management & New line //////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  /* indent - used to manage text and block indentation
+   *
+   * latest - holds last found indent
+   * inListFlag - used to check if currently creating list
+   */
+
   final object indent {
-    var latest: Int         = 0
-    val listIndent: Int     = 2
-    var inListFlag: Boolean = false
+    var latest: Int     = 0
+    val listIndent: Int = 2
 
     def onIndent(): Unit = logger.trace {
       val diff = currentMatch.length - latest
-      if (diff == -listIndent && inListFlag) {
+      if (diff == -listIndent && list.inListFlag) {
         list.appendInnerToOuter()
         latest = currentMatch.length
       } else if (currentMatch.length > section.currentIndentRaw && result.stack.nonEmpty) {
@@ -399,12 +436,12 @@ case class DocParserDef() extends Parser[Doc] {
         /* NOTE
          * Used to push new line before pushing first list
          */
-        if (!inListFlag) onPushingNewLine()
-        inListFlag = true
+        if (!list.inListFlag) onPushingNewLine()
+        list.inListFlag = true
         list.addNew(indent, tp, content)
-      } else if (diff == 0 && inListFlag) {
+      } else if (diff == 0 && list.inListFlag) {
         list.addContent(content)
-      } else if (diff == -listIndent && inListFlag) {
+      } else if (diff == -listIndent && list.inListFlag) {
         list.appendInnerToOuter()
         list.addContent(content)
       } else {
@@ -419,7 +456,7 @@ case class DocParserDef() extends Parser[Doc] {
       tp: Elem.List.Type,
       content: Elem
     ): Unit = {
-      if (inListFlag) {
+      if (list.inListFlag) {
         list.addContent(Elem.List.Indent.Invalid(indent, tp, content))
       } else {
         onPushingNewLine()
@@ -440,9 +477,9 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     def onEmptyLine(): Unit = logger.trace {
-      if (inListFlag) {
+      if (list.inListFlag) {
         list.appendInnerToOuter()
-        inListFlag = !inListFlag
+        list.inListFlag = false
       }
       onPushingNewLine()
       section.onEOS()
@@ -477,7 +514,14 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Lists /////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  /* list - used to create lists for documentation
+   *
+   * there are 2 possible types of lists - ordered and unordered
+   */
+
   final object list {
+    var inListFlag: Boolean = false
+
     def addNew(indent: Int, listType: Elem.List.Type, content: Elem): Unit =
       logger.trace {
         result.current = Some(Elem.List(indent, listType, content))
@@ -550,12 +594,26 @@ case class DocParserDef() extends Parser[Doc] {
   ////// Section ///////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  /* section - used to manage sections in Documentation
+   *
+   * there are 2 possible types of sections - marked and raw.
+   * there are 3 possible types of marked sections:
+   *   - important
+   *   - info
+   *   - example
+   *
+   * stack - holds every section in document
+   * current - holds current section type
+   * currentIndentRaw - holds indent for Raw
+   * indentBeforeM & indentAfterM - holds appropriate indents for Marked
+   */
+
   final object section {
     var stack: List[Section]                 = Nil
     var current: Option[Section.Marked.Type] = None
     var currentIndentRaw: Int                = 0
-    var indentBeforeMarker: Int              = 0
-    var indentAfterMarker: Int               = 0
+    var indentBeforeM: Int                   = 0
+    var indentAfterM: Int                    = 0
 
     ////// Section Beginning /////
     def onNew(st: Option[Section.Marked.Type]): Unit =
@@ -581,8 +639,8 @@ case class DocParserDef() extends Parser[Doc] {
          */
         val in    = "_" + currentMatch + "_"
         val inArr = in.split(tp.marker)
-        indentBeforeMarker = currentIndentRaw + inArr.head.length - 1
-        indentAfterMarker  = inArr.tail.head.length - 1
+        indentBeforeM = currentIndentRaw + inArr.head.length - 1
+        indentAfterM  = inArr.tail.head.length - 1
       }
 
     def onNewRaw(): Unit = logger.trace {
@@ -621,8 +679,8 @@ case class DocParserDef() extends Parser[Doc] {
             case Some(marker) =>
               section.stack +:= Section
                 .Marked(
-                  indentBeforeMarker,
-                  indentAfterMarker,
+                  indentBeforeM,
+                  indentAfterM,
                   marker,
                   result.stack
                 )
@@ -676,13 +734,17 @@ case class DocParserDef() extends Parser[Doc] {
   ////// End of File ///////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  /* endOfFile - used to manage every action in case of end of file
+   * prepares data to be ready to output to user
+   */
+
   final object endOfFile {
     def reverseSectionsStackOnEOF(): Unit = logger.trace {
       section.stack = section.stack.reverse
     }
 
     def reverseTagsStackOnEOF(): Unit = logger.trace {
-      tags.tagsStack = tags.tagsStack.reverse
+      tags.stack = tags.stack.reverse
     }
 
     def createDoc(): Unit = logger.trace {
@@ -693,9 +755,9 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     def createTags(): Option[Tags] = logger.trace {
-      tags.tagsStack.length match {
+      tags.stack.length match {
         case 0 => None
-        case _ => Some(Tags(List1(tags.tagsStack.head, tags.tagsStack.tail)))
+        case _ => Some(Tags(List1(tags.stack.head, tags.stack.tail)))
       }
     }
 
