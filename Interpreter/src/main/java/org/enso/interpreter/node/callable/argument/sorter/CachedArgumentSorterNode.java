@@ -77,8 +77,7 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @return {@code true} if {@code other} matches the cached function, otherwise {@code false}
    */
   public boolean isCompatible(Function other) {
-    return originalFunction.getCallTarget() == other.getCallTarget()
-        && originalFunction.getSchema() == other.getSchema();
+    return originalFunction.getSchema() == other.getSchema();
   }
 
   /**
