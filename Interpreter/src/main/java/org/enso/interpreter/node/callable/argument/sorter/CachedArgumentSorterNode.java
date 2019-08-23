@@ -21,7 +21,7 @@ public class CachedArgumentSorterNode extends BaseNode {
   /**
    * Creates a node that generates and then caches the argument mapping.
    *
-   * @param callable the callable to sort arguments for
+   * @param function the function to sort arguments for
    * @param schema information on the calling arguments
    */
   public CachedArgumentSorterNode(Function function, CallArgumentInfo[] schema) {
@@ -44,22 +44,20 @@ public class CachedArgumentSorterNode extends BaseNode {
   /**
    * Creates a node that generates and then caches the argument mapping.
    *
-   * @param callable the callable to sort arguments for
+   * @param function the function to sort arguments for
    * @param schema information on the calling arguments
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
-  public static CachedArgumentSorterNode create(
-      Function function, CallArgumentInfo[] schema) {
+  public static CachedArgumentSorterNode create(Function function, CallArgumentInfo[] schema) {
     return new CachedArgumentSorterNode(function, schema);
   }
 
   /**
    * Reorders the provided arguments into the necessary order for the cached callable.
    *
+   * @param function the function this node is reordering arguments for
    * @param arguments the arguments to reorder
-   * @param numArgsDefinedForCallable the number of arguments that the cached callable was defined
-   *     for
-   * @return the provided {@code arguments} in the order expected by the cached {@link Callable}
+   * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
   public Object[] execute(Function function, Object[] arguments) {
     Object[] result;
@@ -73,24 +71,39 @@ public class CachedArgumentSorterNode extends BaseNode {
   }
 
   /**
-   * Determines if the provided callable is the same as the cached one.
+   * Determines if the provided function is the same as the cached one.
    *
-   * @param other the callable to check for equality
-   * @return {@code true} if {@code other} matches the cached callable, otherwise {@code false}
+   * @param other the function to check for equality
+   * @return {@code true} if {@code other} matches the cached function, otherwise {@code false}
    */
   public boolean isCompatible(Function other) {
     return originalFunction.getCallTarget() == other.getCallTarget()
         && originalFunction.getSchema() == other.getSchema();
   }
 
+  /**
+   * Checks whether this node's operation results in a fully saturated function call.
+   *
+   * @return {@code true} if the call is fully saturated, {@code false} otherwise.
+   */
   public boolean appliesFully() {
     return appliesFully;
   }
 
+  /**
+   * Returns the {@link ArgumentSchema} to use in case the function call is not fully saturated.
+   *
+   * @return the call result {@link ArgumentSchema}.
+   */
   public ArgumentSchema getPostApplicationSchema() {
     return postApplicationSchema;
   }
 
+  /**
+   * Returns the function this node was created for.
+   *
+   * @return the function this node was created for.
+   */
   public Function getOriginalFunction() {
     return originalFunction;
   }

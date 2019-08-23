@@ -252,23 +252,4 @@ class NamedArgumentsTest extends LanguageTest {
     eval(code) shouldEqual 10
   }
 
-  "Constructor arguments" should "be matchable in arbitrary order by name" in {
-    pending
-    val code =
-      """
-        |type Nil2;
-        |type Cons2 head (rest = Nil2);
-        |
-        |genList = { |i| ifZero: [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] }
-        |
-        |sumList = { |list| match list <
-        |  Cons2 ~ { |rest, head| head + @sumList [rest] };
-        |  Nil2 ~ { 0 };
-        |>}
-        |
-        |@sumList [@genList [5]]
-        """.stripMargin
-    eval(code) shouldEqual 15
-  }
-
 }

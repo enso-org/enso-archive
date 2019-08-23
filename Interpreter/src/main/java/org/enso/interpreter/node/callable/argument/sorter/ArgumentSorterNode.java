@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.error.NotInvokableException;
 
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
- * positional order expected by the definition of the {@link Callable}.
+ * positional order expected by the definition of the {@link Function}.
  */
 @NodeInfo(shortName = "ArgumentSorter")
 public abstract class ArgumentSorterNode extends BaseNode {
@@ -28,38 +28,23 @@ public abstract class ArgumentSorterNode extends BaseNode {
     this.schema = schema;
   }
 
-  /**
-   * Generates the argument mapping in the fully positional case.
-   *
-   * <p>This specialisation is executed when all of the arguments provided at the call-site are
-   * specified in a purely positional fashion (no ignores and no named argument applications). This
-   * is intended to be a very quick path.
-   *
-   * @param callable the callable to sort arguments for
-   * @param arguments the arguments being passed to {@code callable}
-   * @return the provided {@code} arguments in the order expected by {@code callable}
-   */
-  //  @Specialization(guards = "isFullyPositional()")
-  //  public Curried invokePositional(Object callable, Object[] arguments) {
-  //    CompilerDirectives.ensureVirtualizedHere(arguments);
-  //    return arguments;
-  //  }
 
   /**
-   * Generates the argument mapping where it has already been computed.
+   * Generates the argument mapping where it has already been computed and executes the function.
    *
    * <p>This specialisation is executed in the cases where the interpreter has already computed the
    * mapping necessary to reorder call-stite arguments into the order expected by the definition
    * site. It is also a fast path.
    *
-   * <p>This specialisation can only execute when the {@link Callable} provided to the method
+   * <p>This specialisation can only execute when the {@link Function} provided to the method
    * matches with the one stored in the cached argument sorter object.
    *
-   * @param callable the callable to sort arguments for
+   * @param function the function to sort arguments for
    * @param arguments the arguments being passed to {@code callable}
    * @param mappingNode a cached node that tracks information about the mapping to enable a fast
    *     path
-   * @return the provided {@code arguments} in the order expected by {@code callable}
+   * @param optimiser a cached call optimizer node, capable of performing the actual function call
+   * @return the result of applying the function with remapped arguments
    */
   @Specialization(guards = "mappingNode.isCompatible(function)")
   public Object invokeCached(
@@ -84,34 +69,11 @@ public abstract class ArgumentSorterNode extends BaseNode {
   }
 
   /**
-   * Generates the argument mapping freshly.
-   *
-   * <p>This specialisation is executed only when we cache miss, and will compute the argument
-   * mapping freshly each time.
-   *
-   * @param callable the callable to sort arguments for
-   * @param arguments the arguments being passed to {@code callable}
-   * @param mappingNode a cached node that computes argument mappings freshly each time
-   * @return the provided {@code arguments} in the order expected by {@code callable}
-   */
-
-  /**
-   * A fallback that should never be called.
-   *
-   * <p>The only cases in which this specialisation can be called are system-wide error conditions,
-   * and so we stop with a {@link NotInvokableException}.
-   *
-   * @param callable the callable to sort arguments for
-   * @param arguments the arguments being passed to {@code callable}
-   * @return error
-   */
-
-  /**
    * Executes the {@link ArgumentSorterNode} to reorder the arguments.
    *
-   * @param callable the callable to sort arguments for
-   * @param arguments the arguments being passed to {@code callable}
-   * @return the provided {@code arguments} in the order expected by {@code callable}
+   * @param callable the function to sort arguments for
+   * @param arguments the arguments being passed to {@code function}
+   * @return the result of executing the {@code function} with reordered {@code arguments}
    */
   public abstract Object execute(Function callable, Object[] arguments);
 

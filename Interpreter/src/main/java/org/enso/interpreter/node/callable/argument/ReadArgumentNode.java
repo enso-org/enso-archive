@@ -15,7 +15,6 @@ public class ReadArgumentNode extends ExpressionNode {
   private final int index;
   @Child ExpressionNode defaultValue;
   private final ConditionProfile defaultingProfile = ConditionProfile.createCountingProfile();
-  private final ConditionProfile argAcquisitionProfile = ConditionProfile.createCountingProfile();
 
   /**
    * Creates a node to compute a function argument.
@@ -34,18 +33,19 @@ public class ReadArgumentNode extends ExpressionNode {
    * <p>This function also handles the defaulted case by checking for a {@code null} value at the
    * argument's position. This works in conjunction with {@link
    * org.enso.interpreter.runtime.callable.argument.CallArgumentInfo#reorderArguments(int[],
-   * Object[], int)}, which will place nulls in any position where an argument has not been applied.
+   * Object[], Object[])}, which will place nulls in any position where an argument has not been
+   * applied.
    *
    * @param frame the stack frame to execute in
    * @return the computed value of the argument at this position
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    if (defaultValue == null) {
-      return Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
-    }
-
     Object argument = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[index];
+
+    if (defaultValue == null) {
+      return argument;
+    }
 
     // Note [Handling Argument Defaults]
     if (defaultingProfile.profile(argument == null)) {
@@ -58,8 +58,7 @@ public class ReadArgumentNode extends ExpressionNode {
   /* Note [Handling Argument Defaults]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    * While it is tempting to handle defaulted arguments as a special case, we instead treat them as
-   * the absence of an argument for that position in the function definition. If none is provided,
-   * we can detect this using a sentinel, and hence evaluate the default value in its place.
+   * the absence of an argument for that position in the function definition.
    *
    * Any `null` value is treated as a usage of the default argument, so when this execution
    * encounters a null value at the argument position, then it will instead execute the default

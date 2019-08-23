@@ -50,8 +50,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   /**
    * Creates a new node for performing callable invocation.
    *
-   * @param callArguments information on the arguments being passed to the {@link
-   *     org.enso.interpreter.runtime.callable.Callable}
+   * @param callArguments information on the arguments being passed to the {@link Function}
    */
   public InvokeCallableNode(CallArgument[] callArguments) {
     this.argExpressions =
@@ -79,6 +78,10 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
+  /**
+   * Marks whether the {@code argumentSorter} child is tail–recursive.
+   * @param isTail whether or not the node is tail-recursive.
+   */
   @Override
   public void setTail(boolean isTail) {
     super.setTail(isTail);
@@ -86,7 +89,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   }
 
   /**
-   * Evaluates the arguments being passed to the callable.
+   * Evaluates the arguments being passed to the function.
    *
    * @param frame the stack frame in which to execute
    * @return the results of evaluating the function arguments
@@ -106,25 +109,25 @@ public abstract class InvokeCallableNode extends ExpressionNode {
    * Invokes a function directly on the arguments contained in this node.
    *
    * @param frame the stack frame in which to execute
-   * @param callable the function to be executed
+   * @param function the function to be executed
    * @return the result of executing {@code callable} on the known arguments
    */
   @Specialization
-  public Object invokeFunction(VirtualFrame frame, Function callable) {
+  public Object invokeFunction(VirtualFrame frame, Function function) {
     Object[] evaluatedArguments = evaluateArguments(frame);
-    return this.argumentSorter.execute(callable, evaluatedArguments);
+    return this.argumentSorter.execute(function, evaluatedArguments);
   }
 
   /**
    * Invokes a constructor directly on the arguments contained in this node.
    *
    * @param frame the stack frame in which to execute
-   * @param callable the constructor to be executed
-   * @return the result of executing {@code callable} on the known arguments
+   * @param constructor the constructor to be executed
+   * @return the result of executing {@code constructor} on the known arguments
    */
   @Specialization
-  public Object invokeConstructor(VirtualFrame frame, AtomConstructor callable) {
-    return invokeFunction(frame, callable.getConstructorFunction());
+  public Object invokeConstructor(VirtualFrame frame, AtomConstructor constructor) {
+    return invokeFunction(frame, constructor.getConstructorFunction());
   }
 
   /**
