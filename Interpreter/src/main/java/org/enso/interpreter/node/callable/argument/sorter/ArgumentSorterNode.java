@@ -9,7 +9,6 @@ import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.NotInvokableException;
 
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the

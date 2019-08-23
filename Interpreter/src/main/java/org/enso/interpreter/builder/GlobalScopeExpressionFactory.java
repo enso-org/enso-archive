@@ -1,16 +1,6 @@
 package org.enso.interpreter.builder;
 
-import java.util.List;
-import org.enso.interpreter.AstExpression;
-import org.enso.interpreter.AstGlobalScope;
-import org.enso.interpreter.AstGlobalScopeVisitor;
-import org.enso.interpreter.AstMethodDef;
-import org.enso.interpreter.AstTypeDef;
-import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
+import org.enso.interpreter.*;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -19,6 +9,10 @@ import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.GlobalScope;
+
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of

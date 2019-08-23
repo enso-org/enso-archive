@@ -7,8 +7,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.scope.GlobalScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
 
-import java.util.Optional;
-
 /**
  * A {@code CallArgFactory} is responsible for converting arguments passed to a function call into
  * runtime nodes used by the interpreter to guide function evaluation.

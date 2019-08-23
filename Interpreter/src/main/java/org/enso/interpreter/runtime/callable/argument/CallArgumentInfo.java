@@ -1,11 +1,8 @@
 package org.enso.interpreter.runtime.callable.argument;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.error.ArgumentMappingException;
-import org.enso.interpreter.runtime.error.NotInvokableException;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 import java.util.OptionalInt;
 import java.util.function.Predicate;

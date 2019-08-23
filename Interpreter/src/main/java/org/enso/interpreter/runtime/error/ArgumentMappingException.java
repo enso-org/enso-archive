@@ -1,11 +1,10 @@
 package org.enso.interpreter.runtime.error;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
+
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 /**
  * An error that is thrown when the interpreter is unable to match the arguments provided at the
