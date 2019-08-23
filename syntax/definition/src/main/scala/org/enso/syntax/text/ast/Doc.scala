@@ -170,7 +170,6 @@ object Doc {
      *
      * @param elems - lines of code
      */
-
     /*TODO [MM]: Next PR
          Code showing button - we need other design here.
          Basically we don't want to display always button
@@ -278,10 +277,9 @@ object Doc {
      */
     final case class List(indent: Int, tp: List.Type, elems: List1[Elem])
         extends Elem {
-      val repr: Repr = R + elems.toList.map {
-          case elem @ (_: Elem.Invalid)   => R + Newline + elem
-          case elem @ (_: List)           => R + Newline + elem
-          case elem if elems.head == elem => R + indent + tp.marker + elem
+      val repr: Repr = R + indent + tp.marker + elems.head + elems.tail.map {
+          case elem @ (_: Elem.Invalid) => R + Newline + elem
+          case elem @ (_: List)         => R + Newline + elem
           case elem =>
             R + Newline + indent + tp.marker + elem
         }
