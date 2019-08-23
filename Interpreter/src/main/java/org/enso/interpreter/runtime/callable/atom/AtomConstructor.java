@@ -44,7 +44,6 @@ public class AtomConstructor implements TruffleObject {
   public AtomConstructor initializeFields(ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.constructorFunction = buildConstructorFunction(args);
-    //    this.arguments = args;
     if (args.length == 0) {
       cachedInstance = new Atom(this);
     } else {
