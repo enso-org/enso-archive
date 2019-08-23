@@ -136,16 +136,16 @@ object Doc {
          Basically we don't want to display always button
          we want to be able to display it maybe as a button on website
          and completely differently in gui, it should be configurable*/
-    final case class Code(elems: scala.List[Code.Line]) extends Elem {
+    final case class Code(elems: List1[Code.Line]) extends Elem {
       val newLn: String = Elem.Newline.show()
-      val repr: Repr    = R + elems.map(_.repr.show()).mkString(newLn)
+      val repr: Repr    = R + elems.toList.map(_.repr.show()).mkString(newLn)
       val html: HTML = {
         val uniqueIDCode = Random.alphanumeric.take(8).mkString("")
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
         val htmlClsCode  = HTML.`class` := this.productPrefix
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
-        val elemsHTML    = elems.map(elem => elem.html)
+        val elemsHTML    = elems.toList.map(elem => elem.html)
         val btnAction = onclick :=
           s"""var code = document.getElementById("$uniqueIDCode");
              |var btn = document.getElementById("$uniqueIDBtn").firstChild;
@@ -158,8 +158,9 @@ object Doc {
       }
     }
     object Code {
-      def apply(elem: Code.Line):   Code = Code(elem :: Nil)
-      def apply(elems: Code.Line*): Code = Code(elems.toList)
+      def apply(elem: Code.Line): Code = Code(List1(elem))
+      def apply(elems: Code.Line*): Code =
+        Code(List1(elems.head, elems.tail.toList))
 
       final case class Inline(str: String) extends Elem {
         val marker     = '`'

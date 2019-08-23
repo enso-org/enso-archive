@@ -127,7 +127,7 @@ object DocParserRunner {
       |   Continuation of example section can occur after multiline code
       |""".stripMargin
 
-  val docParserOut: Result[Doc] = docParserInstance.run(testForHTML)
+  val docParserOut: Result[Doc] = docParserInstance.run(dataToParse)
 
   pprint.pprintln(docParserOut, width = 50, height = 10000)
 

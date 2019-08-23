@@ -172,6 +172,7 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     def onPushingCodeLine(in: String): Unit = logger.trace {
+      val dummyLine = Elem.Code.Line(0, "")
       do {
         result.pop()
       } while (result.current.get == Elem.Newline)
@@ -179,7 +180,11 @@ case class DocParserDef() extends Parser[Doc] {
         case Some(_: Elem.Code) =>
           val elems   = result.current.get.asInstanceOf[Elem.Code].elems
           val newElem = Elem.Code.Line(indent.latest, in)
-          result.current = Some(Elem.Code(elems :+ newElem))
+          if (elems.head == dummyLine) {
+            result.current = Some(Elem.Code(newElem))
+          } else {
+            result.current = Some(Elem.Code(elems.append(newElem)))
+          }
         case Some(_) | None => result.push()
       }
       result.push()
@@ -376,7 +381,8 @@ case class DocParserDef() extends Parser[Doc] {
       result.pop()
       if (!result.stack.head.isInstanceOf[Elem.Code]) {
         result.push()
-        result.current = Some(Elem.Code(Nil))
+        val dummyLine = Elem.Code.Line(0, "")
+        result.current = Some(Elem.Code(dummyLine))
       }
       result.push()
     }
@@ -474,7 +480,7 @@ case class DocParserDef() extends Parser[Doc] {
       result.pop()
       val currentResult  = result.current.orNull.asInstanceOf[Elem.List]
       var currentContent = currentResult.elems
-      currentContent = currentContent :+ content
+      currentContent = currentContent.append(content)
       result.current = Some(
         Elem.List(
           currentResult.indent,
@@ -492,7 +498,7 @@ case class DocParserDef() extends Parser[Doc] {
         result.pop()
         val outerList    = result.current.orNull.asInstanceOf[Elem.List]
         var outerContent = outerList.elems
-        outerContent = outerContent :+ innerList
+        outerContent = outerContent.append(innerList)
         result.current = Some(
           Elem.List(
             outerList.indent,
