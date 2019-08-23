@@ -791,10 +791,13 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     def createBody(): Option[Body] = logger.trace {
-      section.stack = section.stack.tail
       section.stack match {
-        case Nil     => None
-        case x :: xs => Some(Body(List1(x, xs)))
+        case Nil => None
+        case _ :: xs =>
+          xs match {
+            case Nil     => None
+            case y :: ys => Some(Body(List1(y, ys)))
+          }
       }
     }
 
