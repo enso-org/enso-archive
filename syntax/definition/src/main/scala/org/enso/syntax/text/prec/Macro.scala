@@ -40,6 +40,11 @@ object Macro {
       }
     }
 
+    def isRoot(): Boolean =
+      builderStack.isEmpty
+
+    var isLineBegin: Boolean = true
+
     @tailrec
     def finalize(): AST = {
       popBuilder() match {
@@ -52,24 +57,45 @@ object Macro {
           builder.buildAsModule()
       }
     }
-
-    var isLineBegin: Boolean = true
-
     @tailrec
     def go(input: AST.Stream): AST = {
       input match {
-        case Nil => finalize()
+        case Nil =>
+          val builders = builder :: builderStack
+          var newRevBuilders: List[Builder] = List()
+          var subStream: AST.Stream = List()
+          for (bldr <- builders) {
+            val noLastPattern = bldr.macroDef.map(_.last.pattern).contains(None)
+            if (noLastPattern) {
+              val (revLeftUnusedStream, matched, rightUnusedStream) =
+                bldr.build(List())
+              subStream = subStream ++ (rightUnusedStream.reverse :+ matched) ++ revLeftUnusedStream
+            } else {
+              bldr.current.revStream = subStream ++ bldr.current.revStream
+              subStream           = List()
+              newRevBuilders +:= bldr
+            }
+
+          }
+          val newBuilders = newRevBuilders.reverse
+
+          builder      = newBuilders.head
+          builderStack = newBuilders.tail
+          finalize()
         case (t1 @ Shifted(off, el1: AST.Ident)) :: t2_ =>
           logger.log(s"Token $t1")
+          logger.beginGroup()
           val wasLineBegin = isLineBegin
           isLineBegin = false
           builder.context.lookup(el1) match {
             case Some(tr) =>
               logger.log("New segment")
-              builder.startSegment(el1, off)
+              builder.beginSegment(el1, off)
               builder.macroDef =
                 tr.value.map(Some(_)).getOrElse(builder.macroDef)
               builder.context = builder.context.copy(tree = tr)
+              val knownMacro = builder.context.isEmpty
+              logger.endGroup()
               go(t2_)
 
             case None =>
@@ -80,9 +106,10 @@ object Macro {
                   pushBuilder(el1, t1.off, wasLineBegin)
                   builder.macroDef = tr.value
                   builder.context  = Builder.Context(tr, Some(context))
+                  logger.endGroup()
                   go(t2_)
 
-                case None =>
+                case _ =>
                   val currentClosed = builder.context.isEmpty
                   val parentPrecWin = (builder.current.ast, el1) match {
                     case (_: AST.Opr, _) => false
@@ -96,30 +123,28 @@ object Macro {
                       val subBuilder = builder
                       popBuilder()
                       builder.merge(subBuilder)
+                      logger.endGroup()
                       go(input)
                     case false =>
                       logger.log("Add token")
-                      builder.current.revBody ::= t1
+                      builder.current.revStream +:= t1
+                      logger.endGroup()
                       go(t2_)
                   }
               }
           }
         case (t1 @ Shifted(off, el1: AST.Block)) :: t2_ =>
           val nt1 = Shifted(off, el1.map(transform))
-          builder.current.revBody ::= nt1
+          builder.current.revStream +:= nt1
           go(t2_)
 
         case t1 :: t2_ =>
-          builder.current.revBody ::= t1
+          builder.current.revStream +:= t1
           go(t2_)
 
       }
     }
     val stream = AST.tokenize(t).toList()
     go(stream)
-//    val stream = AST.tokenize(t)
-//    val ss     = List1(Shifted(stream.head), stream.tail)
-//    val ss2    = Operator.rebuildNonSpaced(ss)
-//    go(stream)
   }
 }

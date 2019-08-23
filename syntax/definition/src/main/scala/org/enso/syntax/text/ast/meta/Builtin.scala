@@ -9,16 +9,15 @@ import org.enso.syntax.text.AST.Opr
 import org.enso.syntax.text.AST.Var
 import org.enso.syntax.text.ast.Repr
 
+import scala.annotation.tailrec
+
 object Builtin {
 
   val registry: Registry = {
 
     def internalError = throw new Error("Internal error")
 
-    val def_group = Definition(
-      Opr("(") -> Pattern.Opt(Pattern.Expr()),
-      Opr(")") -> Pattern.Nothing()
-    ) {
+    val group = Definition(Opr("(") -> Pattern.Opt(Pattern.Expr()), Opr(")")) {
       case (None, List(st1, _)) =>
         st1.body.toStream match {
           case List()  => AST.Group()
@@ -28,16 +27,14 @@ object Builtin {
       case _ => internalError
     }
 
-    val def_def = Definition(
-      Var("def") -> {
-        import Pattern._
-        val head = Cls[Cons].or("missing name").tag("name")
-        val args =
-          Pattern.NonSpacedExpr_().tag("parameter").many.tag("parameters")
-        val body = Cls[AST.Block].tag("body").opt
-        head :: args :: body
-      }
-    ) {
+    val defn = Definition(Var("def") -> {
+      import Pattern._
+      val head = Cls[Cons].or("missing name").tag("name")
+      val args =
+        Pattern.NonSpacedExpr_().tag("parameter").many.tag("parameters")
+      val body = Cls[AST.Block].tag("body").opt
+      head :: args :: body
+    }) {
       case (None, List(st1)) =>
         import Pattern.Match._
         st1.body match {
@@ -55,12 +52,11 @@ object Builtin {
               case n: AST.Cons => AST.Def(n, args, body)
               case _           => internalError
             }
-
-          case t => internalError
+          case _ => internalError
         }
     }
 
-    val def_import = Definition(
+    val imp = Definition(
       Var("import") ->
       Pattern.SepList(Pattern.Cls[Cons], AST.Opr("."), "expected module name")
     ) {
@@ -83,7 +79,7 @@ object Builtin {
       case _ => internalError
     }
 
-    val def_if_then = Definition(
+    val if_then = Definition(
       Var("if")   -> Pattern.Expr(),
       Var("then") -> Pattern.Expr()
     ) {
@@ -96,7 +92,7 @@ object Builtin {
       case _ => internalError
     }
 
-    val def_if_then_else = Definition(
+    val if_then_else = Definition(
       Var("if")   -> Pattern.Expr(),
       Var("then") -> Pattern.Expr(),
       Var("else") -> Pattern.Expr()
@@ -113,8 +109,10 @@ object Builtin {
       case _ => internalError
     }
 
-    val def_arrow = Definition(
-      Some(Pattern.NonSpacedExpr().or(Pattern.Expr())),
+    val nonSpacedExpr = Pattern.Any(Some(false)).many1.build
+
+    val arrow = Definition(
+      Some(nonSpacedExpr.or(Pattern.OprExpr("->"))),
       Opr("->") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
     ) {
       case (Some(pfx), List(s1)) =>
@@ -124,35 +122,7 @@ object Builtin {
         }
     }
 
-    // Unfortunately, assignment operator has to be defined as macro unless
-    // operator - like macros behave like real operators and can have different
-    // precedences. The precedence of assignment have to be lower than the
-    // arrow. This design makes it behave like `->`, which may not be desirable.
-    // For example, `f x= g h` will parse as `f (x = g h)`.
-
-    val def_assign = Definition(
-      Some(Pattern.NonSpacedExpr().or(Pattern.Expr())),
-      Opr("=") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
-    ) {
-      case (Some(pfx), List(s1)) =>
-        (pfx.toStream, s1.body.toStream) match {
-          case (List(l), List(r)) => AST.App(l.el, Opr("="), r.el)
-          case t                  => internalError
-        }
-    }
-
-    val def_skip = Definition(
-      Some(Pattern.NonSpacedExpr().or(Pattern.Expr())),
-      Opr("#=") -> Pattern.NonSpacedExpr().or(Pattern.Expr())
-    ) {
-      case (Some(pfx), List(s1)) =>
-        (pfx.toStream, s1.body.toStream) match {
-          case (List(l), List(r)) => AST.App(l.el, Opr("#="), r.el)
-          case t                  => internalError
-        }
-    }
-
-    val def_foreign = Definition(
+    val foreign = Definition(
       Var("foreign") -> (Pattern.Cls[AST.Cons]() :: Pattern.Cls[AST.Block]())
     ) {
       case (None, List(s1)) =>
@@ -169,8 +139,29 @@ object Builtin {
       case _ => internalError
     }
 
-    val def_comment = Definition(
-      Opr("#") -> Pattern
+    val skip = Definition(
+      Var("skip") -> Pattern.Expr()
+    ) {
+      case (None, List(s1)) =>
+        s1.body.el match {
+          case Shifted(_, body: AST) =>
+            @tailrec
+            def go(t: AST): AST = t match {
+              case AST.App(_, arg)           => arg
+              case AST.App.Infix(self, _, _) => go(self)
+              case m: AST.Macro.Match        => go(m.resolved)
+              case AST.Group(None)           => t
+              case AST.Group(Some(s))        => go(s)
+              case _                         => t
+            }
+            go(body)
+          case _ => internalError
+        }
+      case _ => internalError
+    }
+
+    val docComment = Definition(
+      Opr("##") -> Pattern
         .FromBegin(Pattern.Any().many)
         .or(Pattern.AnyBut(Pattern.Cls[AST.Block]).many)
     ) {
@@ -185,29 +176,28 @@ object Builtin {
       case _ => internalError
     }
 
-    val def_struct_comment = Definition(
-      Opr("##") -> Pattern.Expr()
+    val disableComment = Definition(
+      Opr("#") -> Pattern.Expr()
     ) {
       case (None, List(s1)) =>
         s1.body.toStream match {
-          case List(expr) => AST.Comment.Structural(expr.el)
+          case List(expr) => AST.Comment.Disable(expr.el)
           case _          => internalError
         }
       case _ => internalError
     }
 
     Registry(
-      def_group,
-      def_if_then,
-      def_if_then_else,
-      def_import,
-      def_def,
-      def_arrow,
-      def_assign,
-      def_skip,
-      def_foreign,
-      def_comment,
-      def_struct_comment
+      group,
+      if_then,
+      if_then_else,
+      imp,
+      defn,
+      arrow,
+      foreign,
+      docComment,
+      disableComment,
+      skip
     )
   }
 

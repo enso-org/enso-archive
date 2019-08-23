@@ -2,11 +2,12 @@ package org.enso.syntax.text.ast.opr
 
 object Prec {
   val hierarchy = List(
+    List("=", "#="),
     List("->", "<-"),
     List("~>", "<~"),
     List("|"),
     List("&"),
-    List("=", "!", "?", "~"),
+    List("!", "?", "~"),
     List("<*", "<*>", "*>", "<$", "<$>", "$>", "<+", "<+>", "+>"),
     List("<", ">"),
     List(":", ","),

@@ -28,6 +28,12 @@ package object data {
 
       def intersperse[B >: T](t: B): List1[B] =
         List1(lst.head, lst.tail.flatMap(s => List(t, s)))
+
+      def +:[B >: T](that: List[B]): List1[B] = that match {
+        case Nil     => lst
+        case s :: ss => List1(s, ss ++ lst.toList)
+      }
+
     }
   }
 }

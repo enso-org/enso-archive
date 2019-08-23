@@ -140,8 +140,8 @@ class Parser {
   private val engine = newEngine()
 
   def run(
-           input: Reader,
-           markers: Markers = Seq()
+    input: Reader,
+    markers: Markers = Seq()
   ): Result[AST.Module] =
     engine.run(input, markers).map(Macro.run)
 
@@ -158,7 +158,7 @@ class Parser {
         Builtin.registry.get(ast.path) match {
           case None => throw new Error("Macro definition not found")
           case Some(spec) =>
-            resolveMacros(spec.finalizer(ast.pfx, ast.segs.toList().map(_.el)))
+            resolveMacros(spec.fin(ast.pfx, ast.segs.toList().map(_.el)))
         }
       case _ => ast.map(resolveMacros)
     }
@@ -236,15 +236,21 @@ object Main extends App {
       |    def Nothing
     """.stripMargin
 
-  for (s <- ParserDef().state.registry.map(_.generate()))
-    println(scala.reflect.runtime.universe.showCode(s))
+  val in_arr1 = "a = b -> c d"
 
-  val p1 = new Parser()
-  val p2 = new Parser()
-
-  val in_arr1 = "a b -> c d"
-
-  val inp = "## foo\n    bar"
+  // (if a) then
+  // if (a then)
+  // (a) b = c
+  // (a) b = c)
+  val in3 = "(a) b = c"
+  val in4 = "if a then (b)"
+  val in2 = "(a) b = c]"
+//  val inp = "foreign Py\n xx"
+//val inp = "(a) b = c"
+//val inp = "a = b -> c"
+//val inp = "a = b -> c d"
+  val inp = "x = skip (a.b)"
+//  val inp = "x(x[a))"
   val out = parser.run(new Reader(inp), Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 
@@ -267,3 +273,13 @@ object Main extends App {
 
   DocParserRunner
 }
+
+// 1. Parsing patterns in-place with segments
+// 2.
+// (
+// (_)
+// _<
+// ( < )
+// if x then (a)
+// ((a))
+// if x then a = v

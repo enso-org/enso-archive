@@ -46,9 +46,9 @@ object AST {
   type Stream1 = List1[SAST]
 
   sealed trait Symbol extends Repr.Provider {
-    def byteSpan: Int  = repr.byteSpan
-    def span:   Int    = repr.span
-    def show(): String = repr.show()
+    def byteSpan: Int    = repr.byteSpan
+    def span:     Int    = repr.span
+    def show():   String = repr.show()
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -646,6 +646,7 @@ object AST {
     //// Matched ////
 
     final case class Match(
+      marker: Marker,
       pfx: Option[Pattern.Match],
       segs: Shifted.List1[Match.Segment],
       resolved: AST
@@ -694,12 +695,14 @@ object AST {
 
     type Definition = __Definition__
     final case class __Definition__(
-      backPat: Option[Pattern],
-      segs: List1[Definition.Segment],
-      finalizer: Definition.Finalizer
+      back: Option[Pattern],
+      init: List[Definition.Segment],
+      last: Definition.LastSegment,
+      fin: Definition.Finalizer
     ) {
-      def path:    List1[AST]     = segs.map(_.head)
-      def fwdPats: List1[Pattern] = segs.map(_.pattern)
+      def path: List1[AST] = init.map(_.head) +: List1(last.head)
+      def fwdPats: List1[Pattern] =
+        init.map(_.pattern) +: List1(last.pattern.getOrElse(Pattern.Nothing()))
     }
     object Definition {
       import Pattern._
@@ -713,29 +716,67 @@ object AST {
         def apply(t: Tup): Segment = Segment(t._1, t._2)
       }
 
-      def apply(t1: Segment.Tup, ts: Segment.Tup*)(fin: Finalizer): Definition =
-        Definition(None, List1(t1, ts: _*), fin)
+      final case class LastSegment(head: AST, pattern: Option[Pattern]) {
+        def map(f: Pattern => Pattern): LastSegment =
+          copy(pattern = pattern.map(f))
+      }
+      object LastSegment {
+        type Tup = (AST, Option[Pattern])
+        def apply(t: Tup): LastSegment = LastSegment(t._1, t._2)
+      }
 
-      def apply(backPat: Option[Pattern], t1: Segment.Tup, ts: Segment.Tup*)(
+      def apply(back: Option[Pattern], t1: Segment.Tup, ts: List[Segment.Tup])(
+        fin: Finalizer
+      ): Definition = {
+        val segs    = List1(t1, ts)
+        val init    = segs.init
+        val lastTup = segs.last
+        val last    = (lastTup._1, Some(lastTup._2))
+        Definition(back, init, last, fin)
+      }
+
+      def apply(back: Option[Pattern], t1: Segment.Tup, ts: Segment.Tup*)(
+        fin: Finalizer
+      ): Definition = Definition(back, t1, ts.toList)(fin)
+
+      def apply(t1: Segment.Tup, t2_ : Segment.Tup*)(
+        fin: Finalizer
+      ): Definition = Definition(None, t1, t2_.toList)(fin)
+
+      def apply(initTups: List[Segment.Tup], lastHead: AST)(
         fin: Finalizer
       ): Definition =
-        Definition(backPat, List1(t1, ts: _*), fin)
+        Definition(None, initTups, (lastHead, None), fin)
+
+      def apply(t1: Segment.Tup, last: AST)(fin: Finalizer): Definition =
+        Definition(List(t1), last)(fin)
+//
+//      def apply(backPat: Option[Pattern], t1: Segment.Tup, ts: Segment.Tup*)(
+//        fin: Finalizer
+//      ): Definition =
+//        Definition(backPat, List1(t1, ts: _*), fin)
 
       def apply(
-        backPat: Option[Pattern],
-        segTups: List1[Segment.Tup],
+        back: Option[Pattern],
+        initTups: List[Segment.Tup],
+        lastTup: LastSegment.Tup,
         fin: Finalizer
       ): Definition = {
         type PP = Pattern => Pattern
         val checkValid: PP = _ | ErrTillEnd("unmatched pattern")
         val checkFull: PP  = TillEndMarkUnmatched(_, "unmatched tokens")
 
-        val addDefaultChecks: List1[Segment] => List1[Segment] =
-          _.map(_.map(checkValid)).mapInit(_.map(checkFull))
+        val addInitChecks: List[Segment] => List[Segment] =
+          _.map(_.map(checkValid).map(checkFull))
 
-        val segs             = segTups.map(Segment(_))
-        val segsWithChecks   = addDefaultChecks(segs)
-        val backPatWithCheck = backPat.map(checkValid)
+        val addLastCheck: LastSegment => LastSegment =
+          _.map(checkValid)
+
+        val initSegs           = initTups.map(Segment(_))
+        val lastSeg            = LastSegment(lastTup)
+        val backPatWithCheck   = back.map(checkValid)
+        val initSegsWithChecks = addInitChecks(initSegs)
+        val lastSegWithChecks  = addLastCheck(lastSeg)
         def finalizerWithChecks(
           pfx: Option[Pattern.Match],
           segs: List[Macro.Match.Segment]
@@ -749,7 +790,12 @@ object AST {
             AST.Unexpected("invalid statement", stream)
           } else fin(pfx, segs)
         }
-        __Definition__(backPatWithCheck, segsWithChecks, finalizerWithChecks)
+        __Definition__(
+          backPatWithCheck,
+          initSegsWithChecks,
+          lastSegWithChecks,
+          finalizerWithChecks
+        )
       }
 
     }
@@ -770,11 +816,12 @@ object AST {
     val symbol = "#"
 
     final case class SingleLine(text: String) extends Comment {
-    val repr               = R + Comment.symbol + text
-    def map(f: AST => AST) = this
+      val repr               = R + symbol + symbol + text
+      def map(f: AST => AST) = this
     }
 
-    final case class MultiLine(offset: Int, lines: List[String]) extends Comment {
+    final case class MultiLine(offset: Int, lines: List[String])
+        extends Comment {
       def map(f: AST => AST) = this
       val repr = {
         val commentBlock = lines match {
@@ -786,12 +833,12 @@ object AST {
             }
             (R + line) +: indentedLines
         }
-        R + "#" + commentBlock
+        R + symbol + symbol + commentBlock
       }
     }
 
-    final case class Structural(ast: AST) extends AST {
-      val repr               = R + symbol + symbol + " " + ast
+    final case class Disable(ast: AST) extends AST {
+      val repr               = R + symbol + " " + ast
       def map(f: AST => AST) = copy(ast = f(ast))
     }
 

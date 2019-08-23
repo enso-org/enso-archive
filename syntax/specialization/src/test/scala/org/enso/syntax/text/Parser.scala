@@ -141,17 +141,23 @@ class ParserSpec extends FlatSpec with Matchers {
   "^ + *"          ?= App.Infix(App.Sides("^"), 1, "+", 1, App.Sides("*"))
   "* + ^"          ?= App.Infix(App.Sides("*"), 1, "+", 1, App.Sides("^"))
   "a = b.c.d = 10" ?= "a" $_ "=" $_ (("b" $ "." $ "c" $ "." $ "d") $_ "=" $_ 10)
-  "v = f x=1 y=2"  ?= "v" $_ "=" $_ ("f" $_ ("x" $_ "=" $_ 1) $_ ("y" $_ "=" $_ 2))
-  "v' = v .x=1"    ?= "v'" $_ "=" $_ ("v" $_ ("." $ "x" $_ "=" $_ 1))
+  "v = f x=1 y=2"  ?= "v" $_ "=" $_ ("f" $_ ("x" $ "=" $ 1) $_ ("y" $ "=" $ 2))
+  "v' = v .x=1"    ?= "v'" $_ "=" $_ ("v" $_ ("." $ "x" $ "=" $ 1))
 
   //////////////////////////////////////////////////////////////////////////////
   //// Arrows //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "a -> b"      ?= "a" $_ "->" $_ "b"
-  "a -> b -> c" ?= "a" $_ "->" $_ ("b" $_ "->" $_ "c")
-  "a b -> c d"  ?= ("a" $_ "b") $_ "->" $_ ("c" $_ "d")
-  "a b-> c d"   ?= "a" $_ ("b" $_ "->" $_ ("c" $_ "d"))
+  "a -> b"         ?= "a" $_ "->" $_ "b"
+  "a -> b -> c"    ?= "a" $_ "->" $_ ("b" $_ "->" $_ "c")
+  "a b -> c d"     ?= ("a" $_ "b") $_ "->" $_ ("c" $_ "d")
+  "a b-> c d"      ?= "a" $_ ("b" $_ "->" $_ ("c" $_ "d"))
+  "a = b -> c d"   ?= "a" $_ "=" $_ ("b" $_ "->" $_ ("c" $_ "d"))
+  "a = b-> c d"    ?= "a" $_ "=" $_ ("b" $_ "->" $_ ("c" $_ "d"))
+  "a + b -> c d"   ?= ("a" $_ "+" $_ "b") $_ "->" $_ ("c" $_ "d")
+  "a + b-> c d"    ?= "a" $_ "+" $_ ("b" $_ "->" $_ ("c" $_ "d"))
+  "a + b-> c = d"  ?= "a" $_ "+" $_ ("b" $_ "->" $_ ("c" $_ "=" $_ "d"))
+  "a = b -> c = d" ?= "a" $_ "=" $_ ("b" $_ "->" $_ ("c" $_ "=" $_ "d"))
 
   //////////////////////////////////////////////////////////////////////////////
   //// Layout //////////////////////////////////////////////////////////////////
@@ -280,15 +286,24 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Comments ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "foo   #L1"      ?= "foo" $___ Comment.SingleLine("L1")
-  "#\n    L1\n L2" ?= Comment.MultiLine(0, List("", "    L1", " L2"))
-  "#L1\nL2"        ?= Module(Line(Comment.SingleLine("L1")), Line(Cons("L2")))
+  "foo   ##L1"      ?= "foo" $___ Comment.SingleLine("L1")
+  "##\n    L1\n L2" ?= Comment.MultiLine(0, List("", "    L1", " L2"))
+  "##L1\nL2"        ?= Module(Line(Comment.SingleLine("L1")), Line(Cons("L2")))
+  "foo #a b"        ?= "foo" $_ Comment.Disable("a" $_ "b")
 
   //////////////////////////////////////////////////////////////////////////////
-  //// Flags/// ////////////////////////////////////////////////////////////////
+  //// Flags ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "a #= b c" ?= "a" $_ "#=" $_ ("b" $_ "c")
+  "x = skip a"             ?= "x" $_ "=" $_ "a"
+  "x = skip a.fn"          ?= "x" $_ "=" $_ "a"
+  "x = skip fn a"          ?= "x" $_ "=" $_ "a"
+  "x = skip (a)"           ?= "x" $_ "=" $_ "a"
+  "x = skip (a.fn)"        ?= "x" $_ "=" $_ "a"
+  "x = skip (a + b)"       ?= "x" $_ "=" $_ "a"
+  "x = skip ((a + b) + c)" ?= "x" $_ "=" $_ "a"
+  "x = skip ()"            ?= "x" $_ "=" $_ Group()
+//  "a = freeze b c" ?= "a" $_ "#=" $_ ("b" $_ "c") // freeze
 
   //////////////////////////////////////////////////////////////////////////////
   //// Mixfixes ////////////////////////////////////////////////////////////////
@@ -325,6 +340,7 @@ class ParserSpec extends FlatSpec with Matchers {
   "((a))"       ?= Group(Group("a"))
   "(((a)))"     ?= Group(Group(Group("a")))
   "( (  a   ))" ?= Group(Group("a"))
+  "(a) (b)"     ?= Group("a") $_ Group("b")
   "("           ?= amb("(", List(List(")")))
   "(("          ?= amb_group(group_())
 
@@ -354,7 +370,7 @@ class ParserSpec extends FlatSpec with Matchers {
 
   "if a then b" ?= Mixfix(
     List1[AST.Ident]("if", "then"),
-    List1[AST](" a ", "b")
+    List1[AST]("a", "b")
   )
   "if a then b else c" ?= Mixfix(
     List1[AST.Ident]("if", "then", "else"),
@@ -373,8 +389,7 @@ class ParserSpec extends FlatSpec with Matchers {
   val pyLine2 = """re.match(r"[^@]+@[^@]+\.[^@]+", "foo@ds.pl") != None"""
   s"""validateEmail address = foreign Python3
      |    $pyLine1
-     |    $pyLine2
-  """.stripMargin ?= ("validateEmail" $_ "address") $_ "=" $_
+     |    $pyLine2""".stripMargin ?= ("validateEmail" $_ "address") $_ "=" $_
   Foreign(4, "Python3", List(pyLine1, pyLine2))
 
   //////////////////////////////////////////////////////////////////////////////
@@ -428,7 +443,6 @@ class ParserSpec extends FlatSpec with Matchers {
   pop1<>pop2<>pop3 . sorted . unique . take (length pop1) . pure
   """.testIdentity
 
-
   ///////////////////////
   //// Preprocessing ////
   ///////////////////////
@@ -437,15 +451,17 @@ class ParserSpec extends FlatSpec with Matchers {
   "\r"   ?= Module(Line(), Line())
   "\r\n" ?= Module(Line(), Line())
 
-}
+//  "a + b * g" ?#= Marked(Marker(0), Var("marked"))
 
+}
 ////////////////////////////////////////////////////////////////////////////////
 // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO //
 ////////////////////////////////////////////////////////////////////////////////
 
-// [ ] Layout parsing fixes [PR review]
 // [ ] Some benchmarks are sometimes failing?
 // [ ] Benchmarks are slower now - readjust (maybe profile later)
 // [ ] operator blocks
 // [ ] warnings in scala code
 // [ ] Comments parsing
+// [ ] Undefined parsing
+// [ ] All block types
