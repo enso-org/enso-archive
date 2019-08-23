@@ -137,8 +137,8 @@ object Doc {
          we want to be able to display it maybe as a button on website
          and completely differently in gui, it should be configurable*/
     final case class Code(elems: List1[Code.Line]) extends Elem {
-      val newLn: String = Elem.Newline.show()
-      val repr: Repr    = R + elems.toList.map(_.repr.show()).mkString(newLn)
+      val newLn: Elem = Elem.Newline
+      val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _)
       val html: HTML = {
         val uniqueIDCode = Random.alphanumeric.take(8).mkString("")
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
@@ -323,13 +323,13 @@ object Doc {
     }
 
     final case class Raw(indent: Int, elems: List[Elem]) extends Section {
-      val dummyElem = Elem.Text("")
+      val dummyElem   = Elem.Text("")
+      val newLn: Elem = Elem.Newline
       val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
-        case (elem @ (_: Section.Header), _) =>
-          R + Elem.Newline + indent + elem
-        case (elem @ (_: Elem.List), _) => R + elem
-        case (elem @ (_: Elem.Code), _) => R + elem
-        case (elem, prevElem)           => reprOfNormalText(elem, prevElem)
+        case (elem @ (_: Section.Header), _) => R + newLn + indent + elem
+        case (elem @ (_: Elem.List), _)      => R + elem
+        case (elem @ (_: Elem.Code), _)      => R + elem
+        case (elem, prevElem)                => reprOfNormalText(elem, prevElem)
       }
 
       val repr: Repr = R + indent + elemsRepr
@@ -355,9 +355,8 @@ object Doc {
   //////////////////////////////////////////////////////////////////////////////
 
   final case class Body(elems: List1[Section]) extends Symbol {
-    val newLn: String = Elem.Newline.show()
-    val head: Repr    = R + newLn
-    val repr: Repr    = head + elems.toList.map(_.repr.show()).mkString(newLn)
+    val newLn: Elem = Elem.Newline
+    val repr: Repr  = R + newLn + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
       val htmlCls = HTML.`class` := this.productPrefix
       Seq(HTML.div(htmlCls)(HTML.h2("Overview"))(elems.toList.map(_.html)))
@@ -375,9 +374,8 @@ object Doc {
   //////////////////////////////////////////////////////////////////////////////
 
   final case class Synopsis(elems: List1[Section]) extends Symbol {
-    val newLn: String = Elem.Newline.show()
-    val repr: Repr =
-      R + elems.toList.map(_.repr.show()).mkString(newLn)
+    val newLn: Elem = Elem.Newline
+    val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
       val htmlCls = HTML.`class` := this.productPrefix
       Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
@@ -394,8 +392,8 @@ object Doc {
   //////////////////////////////////////////////////////////////////////////////
 
   final case class Tags(elems: List1[Tags.Tag]) extends Symbol {
-    val newLn: String = Elem.Newline.show()
-    val repr: Repr    = elems.toList.map(_.repr.show()).mkString(newLn) + newLn
+    val newLn: Elem = Elem.Newline
+    val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _) + newLn
     val html: HTML = {
       val htmlCls = HTML.`class` := this.productPrefix
       Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
@@ -405,7 +403,8 @@ object Doc {
     def apply(elem: Tag):   Tags = Tags(List1(elem))
     def apply(elems: Tag*): Tags = Tags(List1(elems.head, elems.tail.toList))
 
-    final case class Tag(indent: Int, tp: Tag.Type, details: Option[String]) {
+    final case class Tag(indent: Int, tp: Tag.Type, details: Option[String])
+        extends Elem {
       val name: String = tp.toString.toUpperCase
       val repr: Repr = tp match {
         case Tag.Unrecognized => R + indent + details
