@@ -142,18 +142,18 @@ case class DocParserDef() extends Parser[Doc] {
           if (elem == tagType.toString.toUpperCase) {
             containsTag = true
             val tagDet = in.replaceFirst(tagType.toString.toUpperCase, "")
-            pushTag(section.currentIndent, tagType, tagDet)
+            pushTag(section.currentIndentRaw, tagType, tagDet)
           }
         }
         if (!containsTag && !elem.contains(newline)) {
-          pushTag(section.currentIndent, Tags.Tag.Unrecognized, in)
+          pushTag(section.currentIndentRaw, Tags.Tag.Unrecognized, in)
           containsTag = true
         }
       }
 
       for (elem <- inArray) {
         if (elem.isEmpty) {
-          section.currentIndent += 1
+          section.currentIndentRaw += 1
         } else if (elem == elem.toUpperCase) {
           tryFindingTagInAvailableTags(elem)
         }
@@ -369,11 +369,11 @@ case class DocParserDef() extends Parser[Doc] {
       if (diff == -listIndent && inListFlag) {
         list.appendInnerToOuter()
         latest = currentMatch.length
-      } else if (currentMatch.length > section.currentIndent && result.stack.nonEmpty) {
+      } else if (currentMatch.length > section.currentIndentRaw && result.stack.nonEmpty) {
         tryToFindCodeInStack()
         state.begin(CODE)
       } else {
-        section.currentIndent = currentMatch.length
+        section.currentIndentRaw = currentMatch.length
       }
       latest = currentMatch.length
     }
@@ -553,7 +553,9 @@ case class DocParserDef() extends Parser[Doc] {
   final object section {
     var stack: List[Section]                 = Nil
     var current: Option[Section.Marked.Type] = None
-    var currentIndent: Int                   = 0
+    var currentIndentRaw: Int                = 0
+    var indentBeforeMarker: Int              = 0
+    var indentAfterMarker: Int               = 0
 
     ////// Section Beginning /////
     def onNew(st: Option[Section.Marked.Type]): Unit =
@@ -563,9 +565,25 @@ case class DocParserDef() extends Parser[Doc] {
       }
 
     def onNewMarked(tp: Section.Marked.Type): Unit = logger.trace {
+      createMarkedSectionIndent(tp)
       onNew(Some(tp))
-      currentIndent += currentMatch.length
+      currentIndentRaw += currentMatch.length
     }
+
+    def createMarkedSectionIndent(tp: Section.Marked.Type): Unit =
+      logger.trace {
+        /* NOTE
+         * We are adding here '_' in front and end in case there was no
+         * indent on one side or another, and then remove this added char
+         * from calculation.
+         * We also add currentIndentRaw as for some reason
+         * it may be the left indent
+         */
+        val in    = "_" + currentMatch + "_"
+        val inArr = in.split(tp.marker)
+        indentBeforeMarker = currentIndentRaw + inArr.head.length - 1
+        indentAfterMarker  = inArr.tail.head.length - 1
+      }
 
     def onNewRaw(): Unit = logger.trace {
       indent.onEmptyLine()
@@ -602,9 +620,14 @@ case class DocParserDef() extends Parser[Doc] {
           section.current match {
             case Some(marker) =>
               section.stack +:= Section
-                .Marked(currentIndent, marker, result.stack)
+                .Marked(
+                  indentBeforeMarker,
+                  indentAfterMarker,
+                  marker,
+                  result.stack
+                )
             case None =>
-              section.stack +:= Section.Raw(currentIndent, result.stack)
+              section.stack +:= Section.Raw(currentIndentRaw, result.stack)
           }
       }
     }

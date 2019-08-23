@@ -284,19 +284,16 @@ object Doc {
       def apply(elems: Elem*): Header = Header(elems.toList)
     }
 
-    final case class Marked(indent: Int, tp: Marked.Type, elems: List[Elem])
-        extends Section {
-      val marker: String         = tp.marker.toString
-      val markerLength: Int      = 1
-      val indentAfterMarker: Int = 1
-      val firstIndentRepr: Repr = indent match {
-        case 1 => R + marker
-        case _ =>
-          val indentAfterMarker: Int = 1
-          val indentBeforeMarker
-            : Int = indent - (markerLength + indentAfterMarker)
-          R + indentBeforeMarker + marker + indentAfterMarker
-      }
+    final case class Marked(
+      indentBeforeMarker: Int,
+      indentAfterMarker: Int,
+      tp: Marked.Type,
+      elems: List[Elem]
+    ) extends Section {
+      val marker: String    = tp.marker.toString
+      val markerLength: Int = 1
+      val firstIndentRepr
+        : Repr = R + indentBeforeMarker + marker + indentAfterMarker
 
       val dummyElem = Elem.Text("")
       val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
@@ -310,20 +307,38 @@ object Doc {
         val htmlCls = HTML.`class` := tp.toString
         Seq(HTML.div(htmlCls)(elems.map(_.html)))
       }
+
+      override def indent: Int =
+        indentBeforeMarker + markerLength + indentAfterMarker
     }
 
     object Marked {
-      def apply(indent: Int, st: Type): Marked = Marked(indent, st, Nil)
-      def apply(indent: Int, st: Type, elem: Elem): Marked =
-        Marked(indent, st, elem :: Nil)
-      def apply(indent: Int, st: Type, elems: Elem*): Marked =
-        Marked(indent, st, elems.toList)
-      val defaultIndent = 1
-      def apply(st: Type): Marked = Marked(defaultIndent, st, Nil)
+      def apply(
+        indentBeforeMarker: Int,
+        indentAfterMarker: Int,
+        st: Type
+      ): Marked = Marked(indentBeforeMarker, indentAfterMarker, st, Nil)
+      def apply(
+        indentBeforeMarker: Int,
+        indentAfterMarker: Int,
+        st: Type,
+        elem: Elem
+      ): Marked =
+        Marked(indentBeforeMarker, indentAfterMarker, st, elem :: Nil)
+      def apply(
+        indentBeforeMarker: Int,
+        indentAfterMarker: Int,
+        st: Type,
+        elems: Elem*
+      ): Marked =
+        Marked(indentBeforeMarker, indentAfterMarker, st, elems.toList)
+      val defaultIndent = 0
+      def apply(st: Type): Marked =
+        Marked(defaultIndent, defaultIndent, st, Nil)
       def apply(st: Type, elem: Elem): Marked =
-        Marked(defaultIndent, st, elem :: Nil)
+        Marked(defaultIndent, defaultIndent, st, elem :: Nil)
       def apply(st: Type, elems: Elem*): Marked =
-        Marked(defaultIndent, st, elems.toList)
+        Marked(defaultIndent, defaultIndent, st, elems.toList)
 
       abstract class Type(val marker: Char)
       case object Important extends Type('!')

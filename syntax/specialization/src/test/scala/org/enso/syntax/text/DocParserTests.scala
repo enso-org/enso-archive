@@ -199,12 +199,20 @@ class DocParserTests extends FlatSpec with Matchers {
   )
   " ! Important" ?= Doc(
     Synopsis(
-      Section.Marked(3, Section.Marked.Important, Section.Header("Important"))
+      Section
+        .Marked(1, 1, Section.Marked.Important, Section.Header("Important"))
     )
   )
-  "    ! Important" ?= Doc(
+  "   ! Important" ?= Doc(
     Synopsis(
-      Section.Marked(6, Section.Marked.Important, Section.Header("Important"))
+      Section
+        .Marked(3, 1, Section.Marked.Important, Section.Header("Important"))
+    )
+  )
+  " !    Important" ?= Doc(
+    Synopsis(
+      Section
+        .Marked(1, 4, Section.Marked.Important, Section.Header("Important"))
     )
   )
   "?Info" ?= Doc(
