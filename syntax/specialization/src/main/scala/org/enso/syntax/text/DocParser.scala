@@ -125,6 +125,7 @@ object DocParserRunner {
       |       v = Vec3 1 2 'foo' : Vector (Int | String)
       |       print v 
       |   Continuation of example section can occur after multiline code
+      |   test of [invalid]link)
       |""".stripMargin
 
   val docParserOut: Result[Doc] = docParserInstance.run(dataToParse)

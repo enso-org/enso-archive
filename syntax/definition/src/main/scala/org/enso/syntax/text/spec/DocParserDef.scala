@@ -401,7 +401,7 @@ case class DocParserDef() extends Parser[Doc] {
     val urlPattern: Pattern      = urlNameTrigger >> not(')').many1 >> ')'
     val invalidPatternNewline
       : Pattern = (imageNameTrigger | urlNameTrigger) >> not(
-        newline
+        ')'
       ).many1 >> newline
     val invalidPatternEOF: Pattern = (imageNameTrigger | urlNameTrigger) >> not(
         ')'

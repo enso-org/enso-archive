@@ -2,10 +2,13 @@ package org.enso.syntax.text.ast
 
 import org.enso.data.List1
 import org.enso.syntax.text.ast.Repr.R
+
 import scala.util.Random
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
+import scalatags.generic
+import scalatags.text.Builder
 
 ////////////////////////////////////////////////////////////////////////////////
 ////// Doc /////////////////////////////////////////////////////////////////////
@@ -25,8 +28,7 @@ final case class Doc(
 ) extends Doc.Symbol {
   val repr: Repr = R + tags + synopsis + body
   val html: Doc.HTML = {
-    val htmlCls = HTML.`class` := productPrefix
-    Seq(HTML.div(htmlCls)(tags.html)(synopsis.html)(body.html))
+    Seq(HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html))
   }
 }
 
@@ -68,6 +70,9 @@ object Doc {
       val css       = HTML.link(cssRel)(cssHref)
       HTML.html(HTML.head(meta, css), HTML.body(html))
     }
+
+    def htmlCls(): generic.AttrPair[Builder, String] =
+      HTML.`class` := getClass.toString.split('$').last.split('.').last
   }
 
   implicit final class _OptionT_[T <: Symbol](val self: Option[T]) {
@@ -144,8 +149,7 @@ object Doc {
           extends Elem.Invalid {
         val repr: Repr = R + tp.marker + elems
         val html: HTML = Seq {
-          val htmlCls = HTML.`class` := this.productPrefix
-          HTML.div(htmlCls)(tp.htmlMarker(elems.html))
+          HTML.div(htmlCls())(tp.htmlMarker(elems.html))
         }
       }
 
@@ -181,7 +185,6 @@ object Doc {
       val html: HTML = {
         val uniqueIDCode = Random.alphanumeric.take(8).mkString("")
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
-        val htmlClsCode  = HTML.`class` := this.productPrefix
         val htmlIdCode   = HTML.`id` := uniqueIDCode
         val htmlIdBtn    = HTML.`id` := uniqueIDBtn
         val elemsHTML    = elems.toList.map(elem => elem.html)
@@ -193,7 +196,7 @@ object Doc {
              |"inline-block" ? "none" : "inline-block";""".stripMargin
             .replaceAll("\n", "")
         val btn = HTML.button(btnAction)(htmlIdBtn)("Show")
-        Seq(HTML.div(btn, HTML.div(htmlClsCode)(htmlIdCode)(elemsHTML)))
+        Seq(HTML.div(btn, HTML.div(htmlCls())(htmlIdCode)(elemsHTML)))
       }
     }
     object Code {
@@ -253,8 +256,8 @@ object Doc {
       final case class Invalid(elem: String) extends Elem {
         val repr: Repr = R + elem
         val html: HTML = {
-          val htmlCls = HTML.`class` := this.productPrefix + getObjectName
-          Seq(HTML.div(htmlCls)(elem))
+          val htmlClass = HTML.`class` := this.productPrefix + getObjectName
+          Seq(HTML.div(htmlClass)(elem.html))
         }
       }
 
@@ -343,6 +346,10 @@ object Doc {
         case _            => R + elem
       }
     }
+
+    val html: HTML = {
+      Seq(HTML.div(htmlCls())(elems.map(_.html)))
+    }
   }
 
   object Section {
@@ -353,8 +360,7 @@ object Doc {
     final case class Header(elems: List[Elem]) extends Elem {
       val repr: Repr = R + elems.map(_.repr)
       val html: HTML = {
-        val htmlCls = HTML.`class` := this.productPrefix
-        Seq(HTML.div(htmlCls)(elems.map(_.html)))
+        Seq(HTML.div(htmlCls())(elems.map(_.html)))
       }
     }
     object Header {
@@ -380,10 +386,9 @@ object Doc {
         case (elem, prevElem)           => reprOfNormalText(elem, prevElem)
       }
 
-      val repr: Repr = firstIndentRepr + elemsRepr
-      val html: HTML = {
-        val htmlCls = HTML.`class` := tp.toString
-        Seq(HTML.div(htmlCls)(elems.map(_.html)))
+      val repr: Repr = R + firstIndentRepr + elemsRepr
+      override def htmlCls(): generic.AttrPair[Builder, String] = {
+        HTML.`class` := tp.toString
       }
 
       override def indent: Int =
@@ -435,10 +440,6 @@ object Doc {
       }
 
       val repr: Repr = R + indent + elemsRepr
-      val html: HTML = {
-        val htmlCls = HTML.`class` := this.productPrefix
-        Seq(HTML.div(htmlCls)(elems.map(_.html)))
-      }
     }
 
     object Raw {
@@ -464,8 +465,7 @@ object Doc {
     val newLn: Elem = Elem.Newline
     val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
-      val htmlCls = HTML.`class` := this.productPrefix
-      Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
+      Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
     }
   }
   object Synopsis {
@@ -486,8 +486,7 @@ object Doc {
     val newLn: Elem = Elem.Newline
     val repr: Repr  = R + newLn + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
-      val htmlCls = HTML.`class` := this.productPrefix
-      Seq(HTML.div(htmlCls)(HTML.h2("Overview"))(elems.toList.map(_.html)))
+      Seq(HTML.div(htmlCls())(HTML.h2("Overview"))(elems.toList.map(_.html)))
     }
   }
 
@@ -509,8 +508,7 @@ object Doc {
     val newLn: Elem = Elem.Newline
     val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _) + newLn
     val html: HTML = {
-      val htmlCls = HTML.`class` := this.productPrefix
-      Seq(HTML.div(htmlCls)(elems.toList.map(_.html)))
+      Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
     }
   }
   object Tags {
