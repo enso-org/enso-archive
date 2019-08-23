@@ -114,12 +114,97 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
+  ////// Unclosed formatters ///////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  "_*Foo*" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter.Unclosed(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
+      )
+    )
+  )
+  "~*Foo*" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter
+          .Unclosed(Formatter.Strikeout, Formatter(Formatter.Bold, "Foo"))
+      )
+    )
+  )
+  "***Foo" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter(Formatter.Bold),
+        Formatter.Unclosed(Formatter.Bold, "Foo")
+      )
+    )
+  )
+  "*_Foo_" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter.Unclosed(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
+      )
+    )
+  )
+  "~_Foo_" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter
+          .Unclosed(Formatter.Strikeout, Formatter(Formatter.Italic, "Foo"))
+      )
+    )
+  )
+  "___Foo" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter(Formatter.Italic),
+        Formatter.Unclosed(Formatter.Italic, "Foo")
+      )
+    )
+  )
+  "*~Foo~" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter
+          .Unclosed(Formatter.Bold, Formatter(Formatter.Strikeout, "Foo"))
+      )
+    )
+  )
+  "_~Foo~" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter
+          .Unclosed(Formatter.Italic, Formatter(Formatter.Strikeout, "Foo"))
+      )
+    )
+  )
+  "~~~Foo" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Formatter(Formatter.Strikeout),
+        Formatter.Unclosed(Formatter.Strikeout, "Foo")
+      )
+    )
+  )
+
+  //////////////////////////////////////////////////////////////////////////////
   ////// Segments //////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   "!Important" ?= Doc(
     Synopsis(
       Section.Marked(Section.Marked.Important, Section.Header("Important"))
+    )
+  )
+  " ! Important" ?= Doc(
+    Synopsis(
+      Section.Marked(3, Section.Marked.Important, Section.Header("Important"))
+    )
+  )
+  "    ! Important" ?= Doc(
+    Synopsis(
+      Section.Marked(6, Section.Marked.Important, Section.Header("Important"))
     )
   )
   "?Info" ?= Doc(
@@ -130,7 +215,9 @@ class DocParserTests extends FlatSpec with Matchers {
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
   )
-  "?Info\n\n!Important" ?= Doc(
+  """?Info
+    |
+    |!Important""".stripMargin ?= Doc(
     Synopsis(
       Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
     ),
@@ -138,7 +225,11 @@ class DocParserTests extends FlatSpec with Matchers {
       Section.Marked(Section.Marked.Important, Section.Header("Important"))
     )
   )
-  "?Info\n\n!Important\n\n>Example" ?= Doc(
+  """?Info
+    |
+    |!Important
+    |
+    |>Example""".stripMargin ?= Doc(
     Synopsis(
       Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
     ),
@@ -248,139 +339,6 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Links /////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  "[Hello](Http://Google.com)" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Link.URL(
-          "Hello",
-          "Http://Google.com"
-        )
-      )
-    )
-  )
-  "![Media](http://foo.com)" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Link.Image(
-          "Media",
-          "http://foo.com"
-        )
-      )
-    )
-  )
-
-  //////////////////////////////////////////////////////////////////////////////
-  ////// Tags //////////////////////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  "DEPRECATED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Deprecated)),
-    Synopsis(Section.Raw("Foo"))
-  )
-  "MODIFIED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Modified)),
-    Synopsis(Section.Raw("Foo"))
-  )
-  "ADDED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Added)),
-    Synopsis(Section.Raw("Foo"))
-  )
-  "REMOVED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Removed)),
-    Synopsis(Section.Raw("Foo"))
-  )
-  "DEPRECATED in 1.0\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0")),
-    Synopsis(Section.Raw("Foo"))
-  )
-  "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0"), Tags.Tag(Tags.Tag.Modified)),
-    Synopsis(Section.Raw("Foo"))
-  )
-
-  //////////////////////////////////////////////////////////////////////////////
-  //////                Tests of incorrect constructions                   /////
-  //////////////////////////////////////////////////////////////////////////////
-
-  //////////////////////////////////////////////////////////////////////////////
-  ////// Unclosed formatters ///////////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  "_*Foo*" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter.Unclosed(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
-      )
-    )
-  )
-  "~*Foo*" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter
-          .Unclosed(Formatter.Strikeout, Formatter(Formatter.Bold, "Foo"))
-      )
-    )
-  )
-  "***Foo" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter(Formatter.Bold),
-        Formatter.Unclosed(Formatter.Bold, "Foo")
-      )
-    )
-  )
-  "*_Foo_" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter.Unclosed(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
-      )
-    )
-  )
-  "~_Foo_" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter
-          .Unclosed(Formatter.Strikeout, Formatter(Formatter.Italic, "Foo"))
-      )
-    )
-  )
-  "___Foo" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter(Formatter.Italic),
-        Formatter.Unclosed(Formatter.Italic, "Foo")
-      )
-    )
-  )
-  "*~Foo~" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter
-          .Unclosed(Formatter.Bold, Formatter(Formatter.Strikeout, "Foo"))
-      )
-    )
-  )
-  "_~Foo~" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter
-          .Unclosed(Formatter.Italic, Formatter(Formatter.Strikeout, "Foo"))
-      )
-    )
-  )
-  "~~~Foo" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        Formatter(Formatter.Strikeout),
-        Formatter.Unclosed(Formatter.Strikeout, "Foo")
-      )
-    )
-  )
-
-  //////////////////////////////////////////////////////////////////////////////
   ////// Wrong indent //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
@@ -434,7 +392,150 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// other strange constructions ///////////////////////////////////////////
+  ////// Links /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  "[Hello](Http://Google.com)" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.URL(
+          "Hello",
+          "Http://Google.com"
+        )
+      )
+    )
+  )
+  "![Media](http://foo.com)" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        Link.Image(
+          "Media",
+          "http://foo.com"
+        )
+      )
+    )
+  )
+
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Tags //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  "DEPRECATED\nFoo" ?= Doc(
+    Tags(Tags.Tag(Tags.Tag.Deprecated)),
+    Synopsis(Section.Raw("Foo"))
+  )
+  "MODIFIED\nFoo" ?= Doc(
+    Tags(Tags.Tag(Tags.Tag.Modified)),
+    Synopsis(Section.Raw("Foo"))
+  )
+  "ADDED\nFoo" ?= Doc(
+    Tags(Tags.Tag(Tags.Tag.Added)),
+    Synopsis(Section.Raw("Foo"))
+  )
+  "REMOVED\nFoo" ?= Doc(
+    Tags(Tags.Tag(Tags.Tag.Removed)),
+    Synopsis(Section.Raw("Foo"))
+  )
+  "DEPRECATED in 1.0\nFoo" ?= Doc(
+    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0")),
+    Synopsis(Section.Raw("Foo"))
+  )
+  "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
+    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0"), Tags.Tag(Tags.Tag.Modified)),
+    Synopsis(Section.Raw("Foo"))
+  )
+  """   ALAMAKOTA a kot ma ale
+    | foo bar""".stripMargin ?= Doc(
+    Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA a kot ma ale")),
+    Synopsis(Section.Raw(1, "foo bar"))
+  )
+
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Multiline code ////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   siafjaifhjiasjf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code(Code.Line(3, "siafjaifhjiasjf"), Code.Line(3, "fasfknfanfijnf"))
+      )
+    )
+  )
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   siafjaifhjiasjf
+    |     fasfknfanfijnf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code(
+          Code.Line(3, "siafjaifhjiasjf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(3, "fasfknfanfijnf")
+        )
+      )
+    )
+  )
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   fasfknfanfijnf
+    |     fasfknfanfijnf
+    |          fasfknfanfijnf
+    |     fasfknfanfijnf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code(
+          Code.Line(3, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(10, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(3, "fasfknfanfijnf")
+        )
+      )
+    )
+  )
+  """afsfasfsfjanfjanfa
+    |jfnajnfjadnbfjabnf
+    |   fasfknfanfijnf
+    |     fasfknfanfijnf
+    |  fasfknfanfijnf
+    |     fasfknfanfijnf
+    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "afsfasfsfjanfjanfa",
+        Newline,
+        "jfnajnfjadnbfjabnf",
+        Newline,
+        Code(
+          Code.Line(3, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(2, "fasfknfanfijnf"),
+          Code.Line(5, "fasfknfanfijnf"),
+          Code.Line(3, "fasfknfanfijnf")
+        )
+      )
+    )
+  )
+
+  //////////////////////////////////////////////////////////////////////////////
+  ////// Unclassified tests ////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
@@ -464,12 +565,6 @@ class DocParserTests extends FlatSpec with Matchers {
       Section.Marked(Section.Marked.Info, Section.Header("Hi"), Newline),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
-  )
-
-  """   ALAMAKOTA a kot ma ale
-    | foo bar""".stripMargin ?= Doc(
-    Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA a kot ma ale")),
-    Synopsis(Section.Raw(1, "foo bar"))
   )
 
   """
@@ -569,6 +664,16 @@ class DocParserTests extends FlatSpec with Matchers {
     Body(Section.Raw(1, "foo ", Formatter.Unclosed(Formatter.Bold, "foo")))
   )
 
+  """    DEPRECATED das sfa asf
+    |  REMOVED
+    | Foo""".stripMargin ?= Doc(
+    Tags(
+      Tags.Tag(4, Tags.Tag.Deprecated, " das sfa asf"),
+      Tags.Tag(2, Tags.Tag.Removed)
+    ),
+    Synopsis(Section.Raw(1, "Foo"))
+  )
+
   """   DEPRECATED das sfa asf
     |REMOVED fdsdf
     |Construct and manage a graphical, event-driven user interface for your iOS or
@@ -603,95 +708,4 @@ class DocParserTests extends FlatSpec with Matchers {
       )
     )
   )
-
-  """    DEPRECATED das sfa asf
-    |  REMOVED
-    | Foo""".stripMargin ?= Doc(
-    Tags(
-      Tags.Tag(4, Tags.Tag.Deprecated, " das sfa asf"),
-      Tags.Tag(2, Tags.Tag.Removed)
-    ),
-    Synopsis(Section.Raw(1, "Foo"))
-  )
-
-  """afsfasfsfjanfjanfa
-    |jfnajnfjadnbfjabnf
-    |   siafjaifhjiasjf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
-    Synopsis(
-      Section.Raw(
-        "afsfasfsfjanfjanfa",
-        Newline,
-        "jfnajnfjadnbfjabnf",
-        Newline,
-        Code(Code.Line(3, "siafjaifhjiasjf"), Code.Line(3, "fasfknfanfijnf"))
-      )
-    )
-  )
-  """afsfasfsfjanfjanfa
-    |jfnajnfjadnbfjabnf
-    |   siafjaifhjiasjf
-    |     fasfknfanfijnf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
-    Synopsis(
-      Section.Raw(
-        "afsfasfsfjanfjanfa",
-        Newline,
-        "jfnajnfjadnbfjabnf",
-        Newline,
-        Code(
-          Code.Line(3, "siafjaifhjiasjf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(3, "fasfknfanfijnf")
-        )
-      )
-    )
-  )
-  """afsfasfsfjanfjanfa
-    |jfnajnfjadnbfjabnf
-    |   fasfknfanfijnf
-    |     fasfknfanfijnf
-    |          fasfknfanfijnf
-    |     fasfknfanfijnf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
-    Synopsis(
-      Section.Raw(
-        "afsfasfsfjanfjanfa",
-        Newline,
-        "jfnajnfjadnbfjabnf",
-        Newline,
-        Code(
-          Code.Line(3, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(10, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(3, "fasfknfanfijnf")
-        )
-      )
-    )
-  )
-  """afsfasfsfjanfjanfa
-    |jfnajnfjadnbfjabnf
-    |   fasfknfanfijnf
-    |     fasfknfanfijnf
-    |  fasfknfanfijnf
-    |     fasfknfanfijnf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
-    Synopsis(
-      Section.Raw(
-        "afsfasfsfjanfjanfa",
-        Newline,
-        "jfnajnfjadnbfjabnf",
-        Newline,
-        Code(
-          Code.Line(3, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(2, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(3, "fasfknfanfijnf")
-        )
-      )
-    )
-  )
-  "" ?= Doc()
 }

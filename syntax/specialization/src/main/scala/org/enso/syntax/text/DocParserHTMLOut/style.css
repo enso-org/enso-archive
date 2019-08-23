@@ -139,7 +139,7 @@ h2 {
 //// Tags ////
 ////////////*/
 
-.Tags {
+.Doc .Tags {
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 20px;
@@ -148,17 +148,17 @@ h2 {
     background-color: #fafafa;
 }
 
-.tagDetails {
+.Doc .TagsDetails {
     margin: 0 3px;
     color: #999999;
 }
 
-.DEPRECATED,
-.MODIFIED,
-.ADDED,
-.UPCOMING,
-.REMOVED,
-.UNRECOGNIZED {
+.Doc .Tags .DEPRECATED,
+.Doc .Tags .MODIFIED,
+.Doc .Tags .ADDED,
+.Doc .Tags .UPCOMING,
+.Doc .Tags .REMOVED,
+.Doc .Tags .UNRECOGNIZED {
     line-height: 1.5;
     font-weight: 400;
     border-radius: 3px;
@@ -172,26 +172,29 @@ h2 {
     background: transparent;
 }
 
-.DEPRECATED {
+.Doc .Tags .DEPRECATED {
     border-color: #c35400;
     color: #c35400;
 }
-.MODIFIED {
+
+.Doc .Tags .MODIFIED {
     border-color: #8A82CF;
     color: #8A82CF;
 }
-.ADDED {
+
+.Doc .Tags .ADDED {
     border-color: #79A129;
     color: #79A129;
 }
-.UPCOMING,
-.REMOVED,
-.UNRECOGNIZED {
+
+.Doc .Tags .UPCOMING,
+.Doc .Tags .REMOVED,
+.Doc .Tags .UNRECOGNIZED {
     border-color: #888888;
     color: #666666;
 }
 
-.creator .UNRECOGNIZED {
+.creator .Doc .Tags .UNRECOGNIZED {
     border: 2px solid;
     color: orangered;
 }

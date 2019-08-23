@@ -14,19 +14,16 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
   ////// Basic Char Classification /////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
+  val lowerChar = range('a', 'z')
+  val upperChar = range('A', 'Z')
+  val digit     = range('0', '9')
 
-  val lowerLetter: Pattern = range('a', 'z')
-  val upperLetter: Pattern = range('A', 'Z')
-  val digit: Pattern       = range('0', '9')
+  val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
+  val whitespace   = ' '.many1
+  val newline      = '\n'
 
-  val specialCharacters
-    : Pattern             = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
-  val whitespace: Pattern = ' '.many1
-  val newline             = '\n'
-
-  val possibleChars
-    : Pattern             = lowerLetter | upperLetter | digit | whitespace | specialCharacters
-  val normalText: Pattern = possibleChars.many1
+  val possibleChars = lowerChar | upperChar | digit | whitespace | specialChars
+  val normalText    = possibleChars.many1
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Result ////////////////////////////////////////////////////////////////
@@ -65,7 +62,7 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
 
   final object text {
-    def onPushingNormalText(in: String): Unit = logger.trace {
+    def onPushing(in: String): Unit = logger.trace {
       val isDocBeginning
         : Boolean = result.stack.isEmpty && section.stack.isEmpty
       val isSectionBeginning
@@ -75,13 +72,13 @@ case class DocParserDef() extends Parser[Doc] {
       if (isDocBeginning) {
         if (!tags.checkIfTagExistInPushedText(in)) {
           val text = removeWhitespaces(in)
-          pushNormalText(text)
+          push(text)
         }
       } else if (isSectionBeginning) {
         val text = removeWhitespaces(in)
-        pushNormalText(text)
+        push(text)
       } else {
-        pushNormalText(in)
+        push(in)
       }
     }
 
@@ -95,13 +92,13 @@ case class DocParserDef() extends Parser[Doc] {
       text
     }
 
-    def pushNormalText(in: String): Unit = logger.trace {
+    def push(in: String): Unit = logger.trace {
       result.current = Some(Elem.Text(in))
       result.push()
     }
   }
 
-  ROOT || normalText || reify { text.onPushingNormalText(currentMatch) }
+  ROOT || normalText || reify { text.onPushing(currentMatch) }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Tags //////////////////////////////////////////////////////////////////
@@ -139,21 +136,26 @@ case class DocParserDef() extends Parser[Doc] {
     def checkIfTagExistInPushedText(in: String): Boolean = logger.trace {
       val inArray     = in.split(" ")
       var containsTag = false
+
+      def tryFindingTagInAvailableTags(elem: String): Unit = logger.trace {
+        for (tagType <- possibleTagsList) {
+          if (elem == tagType.toString.toUpperCase) {
+            containsTag = true
+            val tagDet = in.replaceFirst(tagType.toString.toUpperCase, "")
+            pushTag(section.currentIndent, tagType, tagDet)
+          }
+        }
+        if (!containsTag && !elem.contains(newline)) {
+          pushTag(section.currentIndent, Tags.Tag.Unrecognized, in)
+          containsTag = true
+        }
+      }
+
       for (elem <- inArray) {
         if (elem.isEmpty) {
           section.currentIndent += 1
         } else if (elem == elem.toUpperCase) {
-          for (tagType <- possibleTagsList) {
-            if (elem == tagType.toString.toUpperCase) {
-              containsTag = true
-              val tagDet = in.replaceFirst(tagType.toString.toUpperCase, "")
-              pushTag(section.currentIndent, tagType, tagDet)
-            }
-          }
-          if (!containsTag && !elem.contains(newline)) {
-            pushTag(section.currentIndent, Tags.Tag.Unrecognized, in)
-            containsTag = true
-          }
+          tryFindingTagInAvailableTags(elem)
         }
       }
       containsTag
@@ -165,13 +167,13 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
 
   final object code {
-    def onPushingInlineCode(in: String): Unit = logger.trace {
+    def onPushingInline(in: String): Unit = logger.trace {
       val code = in.substring(1).dropRight(1)
       result.current = Some(Elem.Code.Inline(code))
       result.push()
     }
 
-    def onPushingCodeLine(in: String): Unit = logger.trace {
+    def onPushingMultiline(in: String): Unit = logger.trace {
       val dummyLine = Elem.Code.Line(0, "")
       do {
         result.pop()
@@ -195,12 +197,12 @@ case class DocParserDef() extends Parser[Doc] {
       : Pattern = inlineCodeTrigger >> not(inlineCodeTrigger).many >> inlineCodeTrigger
   }
 
-  val notN: Pattern = not(newline).many1
-  val CODE: State   = state.define("Code")
+  val notNewLine: Pattern = not(newline).many1
+  val CODE: State         = state.define("Code")
 
-  ROOT || code.inlinePattern || reify { code.onPushingInlineCode(currentMatch) }
+  ROOT || code.inlinePattern || reify { code.onPushingInline(currentMatch) }
   CODE || newline            || reify { state.end(); state.begin(NEWLINE) }
-  CODE || notN               || reify { code.onPushingCodeLine(currentMatch) }
+  CODE || notNewLine         || reify { code.onPushingMultiline(currentMatch) }
   CODE || eof                || reify { state.end(); endOfFile.onEOF() }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -210,22 +212,22 @@ case class DocParserDef() extends Parser[Doc] {
   final object formatter {
     var stack: List[Elem.Formatter.Type] = Nil
 
-    def onPushingFormatter(tp: Elem.Formatter.Type): Unit =
+    def onPushing(tp: Elem.Formatter.Type): Unit =
       logger.trace {
         val unclosedFormattersToCheck = decideWhichToCheckIfUnclosed(tp)
         if (stack.contains(tp)) {
           unclosedFormattersToCheck.foreach(checkForUnclosed)
-          val listOfFormattedAST: List[Elem] = getElemsToFormatter(tp)
+          val listOfFormattedAST: List[Elem] = getElemsFromStack(tp)
           result.pop()
           result.current = Some(Elem.Formatter(tp, listOfFormattedAST))
           stack          = stack.tail
           result.push()
         } else {
-          addEmptyFormatterToStack(tp)
+          addEmptyToStack(tp)
         }
       }
 
-    def getElemsToFormatter(tp: Elem.Formatter.Type): List[Elem] =
+    def getElemsFromStack(tp: Elem.Formatter.Type): List[Elem] =
       logger.trace {
         var listOfFormattedAST: List[Elem] = Nil
         while (result.stack.head != Elem.Formatter(tp) && result.stack.nonEmpty) {
@@ -237,7 +239,7 @@ case class DocParserDef() extends Parser[Doc] {
         listOfFormattedAST
       }
 
-    def addEmptyFormatterToStack(tp: Elem.Formatter.Type): Unit = logger.trace {
+    def addEmptyToStack(tp: Elem.Formatter.Type): Unit = logger.trace {
       stack +:= tp
       result.current = Some(Elem.Formatter(tp))
       result.push()
@@ -259,7 +261,7 @@ case class DocParserDef() extends Parser[Doc] {
     def checkForUnclosed(tp: Elem.Formatter.Type): Unit = logger.trace {
       if (stack.nonEmpty) {
         if (stack.head == tp) {
-          val listOfFormattedAST: List[Elem] = getElemsToFormatter(tp)
+          val listOfFormattedAST: List[Elem] = getElemsFromStack(tp)
           result.pop()
           result.current = Some(Elem.Formatter.Unclosed(tp, listOfFormattedAST))
           stack          = stack.tail
@@ -274,13 +276,13 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   ROOT || formatter.boldTrigger || reify {
-    formatter.onPushingFormatter(Elem.Formatter.Bold)
+    formatter.onPushing(Elem.Formatter.Bold)
   }
   ROOT || formatter.italicTrigger || reify {
-    formatter.onPushingFormatter(Elem.Formatter.Italic)
+    formatter.onPushing(Elem.Formatter.Italic)
   }
   ROOT || formatter.strikeoutTrigger || reify {
-    formatter.onPushingFormatter(Elem.Formatter.Strikeout)
+    formatter.onPushing(Elem.Formatter.Strikeout)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -288,19 +290,19 @@ case class DocParserDef() extends Parser[Doc] {
   //////////////////////////////////////////////////////////////////////////////
 
   final object header {
-    def createSectionHeader(): Unit = logger.trace {
+    def create(): Unit = logger.trace {
       section.current match {
-        case Some(_) => loopThroughASTForSectionHeader()
+        case Some(_) => loopThroughStackToFindHeader()
         case None =>
           result.pop()
           result.current match {
-            case Some(_: Section.Header) => loopThroughASTForSectionHeader()
+            case Some(_: Section.Header) => loopThroughStackToFindHeader()
             case _                       => result.push()
           }
       }
     }
 
-    def loopThroughASTForSectionHeader(): Unit = logger.trace {
+    def loopThroughStackToFindHeader(): Unit = logger.trace {
       var listForHeader: List[Elem] = Nil
       do {
         result.pop()
@@ -366,7 +368,7 @@ case class DocParserDef() extends Parser[Doc] {
     def onIndent(): Unit = logger.trace {
       val diff = currentMatch.length - latest
       if (diff == -listIndent && inListFlag) {
-        list.addInnerListToOuter()
+        list.appendInnerToOuter()
         latest = currentMatch.length
       } else if (currentMatch.length > section.currentIndent && result.stack.nonEmpty) {
         tryToFindCodeInStack()
@@ -395,14 +397,17 @@ case class DocParserDef() extends Parser[Doc] {
       var wantToChangeIndent = true
       val diff               = indent - latest
       if (diff == listIndent) {
-        if (!inListFlag) onPushingNewLine() // Creating first list
+        /* NOTE
+         * Used to push new line before pushing first list
+         */
+        if (!inListFlag) onPushingNewLine()
         inListFlag = true
-        list.addList(indent, tp, content)
+        list.addNew(indent, tp, content)
       } else if (diff == 0 && inListFlag) {
-        list.addContentToList(content)
+        list.addContent(content)
       } else if (diff == -listIndent && inListFlag) {
-        list.addInnerListToOuter()
-        list.addContentToList(content)
+        list.appendInnerToOuter()
+        list.addContent(content)
       } else {
         onInvalidIndent(indent, tp, content)
         wantToChangeIndent = false
@@ -416,11 +421,11 @@ case class DocParserDef() extends Parser[Doc] {
       content: Elem
     ): Unit = {
       if (inListFlag) {
-        list.addContentToList(Elem.List.Indent.Invalid(indent, tp, content))
+        list.addContent(Elem.List.Indent.Invalid(indent, tp, content))
       } else {
         onPushingNewLine()
         if (tp == Elem.List.Ordered) {
-          formatter.onPushingFormatter(Elem.Formatter.Bold)
+          formatter.onPushing(Elem.Formatter.Bold)
           result.current = Some(content)
           result.push()
         } else {
@@ -437,11 +442,25 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onEmptyLine(): Unit = logger.trace {
       if (inListFlag) {
-        list.addInnerListToOuter()
+        list.appendInnerToOuter()
         inListFlag = !inListFlag
       }
       onPushingNewLine()
       section.onEOS()
+    }
+
+    def onIndentPattern(): Unit = logger.trace {
+      state.end()
+      if (result.stack.nonEmpty) {
+        indent.onPushingNewLine()
+      }
+      indent.onIndent()
+    }
+
+    def onEOFPattern(): Unit = logger.trace {
+      state.end()
+      indent.onPushingNewLine()
+      endOfFile.onEOF()
     }
 
     val emptyLine: Pattern     = whitespace.opt >> newline
@@ -451,32 +470,22 @@ case class DocParserDef() extends Parser[Doc] {
 
   val NEWLINE: State = state.define("Newline")
 
-  ROOT    || newline || reify { state.begin(NEWLINE) }
-  NEWLINE || indent.EOFPattern || reify {
-    state.end()
-    indent.onPushingNewLine()
-    endOfFile.onEOF()
-  }
-  NEWLINE || indent.indentPattern || reify {
-    state.end()
-    if (result.stack.nonEmpty) {
-      indent.onPushingNewLine()
-    }
-    indent.onIndent()
-  }
+  ROOT    || newline              || reify { state.begin(NEWLINE) }
+  NEWLINE || indent.EOFPattern    || reify { indent.onEOFPattern() }
+  NEWLINE || indent.indentPattern || reify { indent.onIndentPattern() }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Lists /////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   final object list {
-    def addList(indent: Int, listType: Elem.List.Type, content: Elem): Unit =
+    def addNew(indent: Int, listType: Elem.List.Type, content: Elem): Unit =
       logger.trace {
         result.current = Some(Elem.List(indent, listType, content))
         result.push()
       }
 
-    def addContentToList(content: Elem): Unit = logger.trace {
+    def addContent(content: Elem): Unit = logger.trace {
       result.pop()
       val currentResult  = result.current.orNull.asInstanceOf[Elem.List]
       var currentContent = currentResult.elems
@@ -491,7 +500,7 @@ case class DocParserDef() extends Parser[Doc] {
       result.push()
     }
 
-    def addInnerListToOuter(): Unit = logger.trace {
+    def appendInnerToOuter(): Unit = logger.trace {
       result.pop()
       val innerList = result.current.orNull
       if (result.stack.head.isInstanceOf[Elem.List]) {
@@ -510,7 +519,7 @@ case class DocParserDef() extends Parser[Doc] {
       result.push()
     }
 
-    def onOrderedList(): Unit = logger.trace {
+    def onOrdered(): Unit = logger.trace {
       state.end()
       val content = currentMatch.split(orderedListTrigger)
       indent
@@ -520,7 +529,7 @@ case class DocParserDef() extends Parser[Doc] {
           content(1)
         )
     }
-    def onUnorderedList(): Unit = logger.trace {
+    def onUnordered(): Unit = logger.trace {
       state.end()
       val content = currentMatch.split(unorderedListTrigger)
       indent.onIndentForListCreation(
@@ -534,13 +543,13 @@ case class DocParserDef() extends Parser[Doc] {
     val unorderedListTrigger: Char = Elem.List.Unordered.marker
 
     val orderedPattern
-      : Pattern = indent.indentPattern >> orderedListTrigger >> notN
+      : Pattern = indent.indentPattern >> orderedListTrigger >> notNewLine
     val unorderedPattern
-      : Pattern = indent.indentPattern >> unorderedListTrigger >> notN
+      : Pattern = indent.indentPattern >> unorderedListTrigger >> notNewLine
   }
 
-  NEWLINE || list.orderedPattern   || reify { list.onOrderedList() }
-  NEWLINE || list.unorderedPattern || reify { list.onUnorderedList() }
+  NEWLINE || list.orderedPattern   || reify { list.onOrdered() }
+  NEWLINE || list.unorderedPattern || reify { list.onUnordered() }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Section ///////////////////////////////////////////////////////////////
@@ -552,24 +561,25 @@ case class DocParserDef() extends Parser[Doc] {
     var currentIndent: Int                   = 0
 
     ////// Section Beginning /////
-    def onNewSection(st: Option[Section.Marked.Type]): Unit =
+    def onNew(st: Option[Section.Marked.Type]): Unit =
       logger.trace {
         result.pop()
         current = st
       }
 
-    def onNewMarkedSection(tp: Section.Marked.Type): Unit = logger.trace {
-      onNewSection(Some(tp))
+    def onNewMarked(tp: Section.Marked.Type): Unit = logger.trace {
+      onNew(Some(tp))
       currentIndent += currentMatch.length
     }
 
-    def onNewRawSection(): Unit = logger.trace {
+    def onNewRaw(): Unit = logger.trace {
       indent.onEmptyLine()
-      onNewSection(None)
+      onNew(None)
     }
 
-    def onNewRawSectionWithHeader(): Unit = logger.trace {
-      onNewRawSection()
+    def onNewRawWithHeader(): Unit = logger.trace {
+      state.end()
+      onNewRaw()
       result.current = Some(Section.Header())
       result.push()
     }
@@ -588,6 +598,11 @@ case class DocParserDef() extends Parser[Doc] {
     def push(): Unit = logger.trace {
       result.stack match {
         case Nil =>
+        /* NOTE
+         * We don't want to push an empty section into stack
+         * in case of parsing for example empty file
+         * Then we want to get back Doc(None) and not Doc(Section())
+         */
         case _ =>
           section.current match {
             case Some(marker) =>
@@ -608,7 +623,7 @@ case class DocParserDef() extends Parser[Doc] {
     def onEOS(): Unit = logger.trace {
       checkForUnclosedFormattersOnEOS()
       reverseStackOnEOS()
-      header.createSectionHeader()
+      header.create()
       push()
       cleanupOnEOS()
     }
@@ -625,19 +640,18 @@ case class DocParserDef() extends Parser[Doc] {
       : Pattern = indent.indentPattern >> exampleTrigger >> indent.indentPattern
   }
 
-  NEWLINE || indent.emptyLine || reify { section.onNewRawSection() }
+  NEWLINE || indent.emptyLine || reify { section.onNewRaw() }
   NEWLINE || indent.emptyLine >> indent.emptyLine || reify {
-    state.end()
-    section.onNewRawSectionWithHeader()
+    section.onNewRawWithHeader()
   }
   ROOT || section.importantPattern || reify {
-    section.onNewMarkedSection(Section.Marked.Important)
+    section.onNewMarked(Section.Marked.Important)
   }
   ROOT || section.infoPattern || reify {
-    section.onNewMarkedSection(Section.Marked.Info)
+    section.onNewMarked(Section.Marked.Info)
   }
   ROOT || section.examplePattern || reify {
-    section.onNewMarkedSection(Section.Marked.Example)
+    section.onNewMarked(Section.Marked.Example)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -670,19 +684,17 @@ case class DocParserDef() extends Parser[Doc] {
     def createSynopsis(): Option[Synopsis] = logger.trace {
       section.stack.length match {
         case 0 => None
-        case _ => Some(Synopsis(List1(section.stack.head)))
+        case _ => Some(Synopsis(section.stack.head))
       }
     }
 
     def createBody(): Option[Body] = logger.trace {
       section.stack.length match {
         case 0 | 1 => None
-        case 2 =>
-          val bodyHead = section.stack.tail.head
-          Some(Body(List1(bodyHead)))
         case _ =>
-          val bodyHead = section.stack.tail.head
-          val bodyTail = section.stack.tail.tail
+          section.stack = section.stack.tail
+          val bodyHead = section.stack.head
+          val bodyTail = section.stack.tail
           Some(Body(List1(bodyHead, bodyTail)))
       }
     }
