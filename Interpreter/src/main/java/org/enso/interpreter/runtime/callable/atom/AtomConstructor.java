@@ -28,19 +28,24 @@ public class AtomConstructor implements TruffleObject {
 
   private final String name;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
-  //  private @CompilerDirectives.CompilationFinal(dimensions = 1) ArgumentDefinition[] arguments;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
   /**
-   * Creates a new Atom constructor for a given name and with the provided arguments.
+   * Creates a new Atom constructor for a given name. The constructor is not valid until {@link
+   * AtomConstructor#initializeFields(ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
-   * @param args the fields associated with the constructor
    */
   public AtomConstructor(String name) {
     this.name = name;
   }
 
+  /**
+   * Sets the fields of this {@link AtomConstructor} and generates a constructor function.
+   *
+   * @param args the arguments this constructor will take
+   * @return {@code this}, for convenience
+   */
   public AtomConstructor initializeFields(ArgumentDefinition... args) {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     this.constructorFunction = buildConstructorFunction(args);
@@ -53,6 +58,13 @@ public class AtomConstructor implements TruffleObject {
     return this;
   }
 
+  /**
+   * Generates a constructor function to be used for object instantiation from other Enso code.
+   *
+   * @param args the argument definitions for the constructor function to take
+   * @return a {@link Function} taking the specified arguments and returning an instance for this
+   *     {@link AtomConstructor}
+   */
   private Function buildConstructorFunction(ArgumentDefinition[] args) {
     ExpressionNode[] argumentReaders = new ExpressionNode[args.length];
     for (int i = 0; i < args.length; i++) {

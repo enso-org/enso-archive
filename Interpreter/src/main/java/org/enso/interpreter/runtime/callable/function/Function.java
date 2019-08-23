@@ -25,7 +25,10 @@ public final class Function implements TruffleObject {
    *
    * @param callTarget the target containing the function's code
    * @param scope a frame representing the function's scope
-   * @param arguments the arguments with which the function was defined
+   * @param schema the {@link ArgumentSchema} with which the function was defined
+   * @param preAppliedArguments the preapplied arguments for this function. The layout of this array
+   *     must be conforming to the {@code schema}. {@code null} is allowed if the function does not
+   *     have any partially applied arguments.
    */
   public Function(
       RootCallTarget callTarget,
@@ -38,6 +41,13 @@ public final class Function implements TruffleObject {
     this.preAppliedArguments = preAppliedArguments;
   }
 
+  /**
+   * Creates a new function without any partially applied arguments.
+   *
+   * @param callTarget the target containing the function's code
+   * @param scope a frame representing the function's scope
+   * @param schema the {@link ArgumentSchema} with which the function was defined
+   */
   public Function(RootCallTarget callTarget, MaterializedFrame scope, ArgumentSchema schema) {
     this(callTarget, scope, schema, null);
   }
@@ -60,10 +70,21 @@ public final class Function implements TruffleObject {
     return scope;
   }
 
+  /**
+   * Gets the function's argument schema.
+   *
+   * @return the function's argument schema
+   */
   public ArgumentSchema getSchema() {
     return schema;
   }
 
+  /**
+   * Gets a copy of the partially applied arguments for this function, safe to be mutated by
+   * clients.
+   *
+   * @return a copy of the partially applied arguments for this function
+   */
   public Object[] clonePreAppliedArguments() {
     return preAppliedArguments.clone();
   }

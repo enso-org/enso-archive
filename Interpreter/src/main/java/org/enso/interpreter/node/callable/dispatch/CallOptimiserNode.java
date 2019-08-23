@@ -17,6 +17,10 @@ public abstract class CallOptimiserNode extends Node {
    */
   public abstract Object executeDispatch(Object callable, Object[] arguments);
 
+  /**
+   * Creates an instance of default implementation of {@link CallOptimiserNode}.
+   * @return a fresh instance of {@link CallOptimiserNode}
+   */
   public static CallOptimiserNode create() {
     return new SimpleCallOptimiserNode();
   }

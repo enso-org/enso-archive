@@ -16,7 +16,7 @@ public class ArgumentMappingException extends RuntimeException {
   /**
    * Creates a new error.
    *
-   * @param callable the callable for which argument matching is taking place
+   * @param argumentDefinitions the definition site argument information
    * @param argument information on the call-site argument that failed to match
    * @param callPosition the position at the call site of {@code argument}
    */
