@@ -1,19 +1,33 @@
+/*//////////////////////////////////////////////////////////////////////////////
+////                           UNDER CONSTRUCTION                           ////
+//////////////////////////////////////////////////////////////////////////////*/
+
+
 /*///////////
 //// DOM ////
 ///////////*/
 
 body {
-    font-family: system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
-    font-size: 16px;
-    line-height: 1.45;
-    font-weight: normal;
-    letter-spacing: -0.021em;
-    text-align: center;
-    margin: 0;
+    font-style: normal;
     word-wrap: break-word;
-    color: #333;
-    background-color: #f4f4f4; /*#1e1b17 dark-mode to consider */
+    font-size: 17px;
+    line-height: 1.52947;
+    font-weight: 400;
+    letter-spacing: -0.021em;
+    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica",
+     "Arial", sans-serif;
+    background-color: white;
+    color: #333333;
+    font-style: normal;
+}
+
+p {
+    display: block;
+    margin-block-start: 1em;
+    margin-block-end: 1em;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
 }
 
 a:hover {
@@ -38,7 +52,6 @@ code {
     font-size: inherit;
     font-family: monospace;
     line-height: inherit;
-    font-weight: 500;
     display: inline-block;
     white-space: pre-wrap;
 }
@@ -47,27 +60,56 @@ button {
     display: inline-block;
     padding: 8px 30px;
     outline: none;
-    background-color: #86ff8aff;
+    background-color: #777;
     border: none;
+    color: #fafafa;
     border-radius: 5px;
-    box-shadow: 4px 0 #95a5a6;
-    font-size: 14;
+    box-shadow: 5px 0 #555;
+    font-size: 13px;
     vertical-align: top;
+    transition: all 0.3s ease;
 }
 
 button:hover {
-    background-color: #18e06ba2;
-    color: white
+    background-color: #333;
+}
+
+b { 
+    font-weight: 600;
+}
+
+h1 {
+    font-size: 34px;
+    line-height: 1.08824;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+}
+
+h2 {
+    font-size: 28px;
+    line-height: 1.1073;
+    font-weight: 500;
+    letter-spacing: 0.012em;
+}
+
+.Body h2 {
+    margin: 0;
+    margin-top: 0.65rem;
 }
 
 /*///////////////////
 //// Invalid AST ////
 ///////////////////*/
 
-.Unclosed,
-.invalidIndent {
+.creator .Unclosed,
+.creator .invalidIndent {
     display: inline;
     color: orangered;
+}
+
+ .Unclosed,
+ .invalidIndent {
+    display: inline;
 }
 
 
@@ -76,24 +118,38 @@ button:hover {
 //////////////*/
 
 .Header {
-    font-size: x-large;
+    font-size: 19px;
     font-weight: 500;
-    }
+}
+
+.Important .Header,
+.Info .Header,
+.Example .Header {
+    margin-bottom: 0.7em;
+    font-weight: 600;
+    letter-spacing: -0.021em;
+    line-height: 17px;
+    font-synthesis: none;
+    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica",
+    "Arial", sans-serif;
+}
 
 /*////////////
 //// Tags ////
 ////////////*/
 
 .Tags {
-    margin-bottom: 25px;
-    background-color: #333;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 20px;
+    padding: 15px 0;
     text-align: center;
-    width: 100%;
+    background-color: #fafafa;
 }
 
 .tagDetails {
-    margin-left: 5px;
-    color: #333;
+    margin: 0 3px;
+    color: #999999;
 }
 
 .DEPRECATED,
@@ -102,42 +158,42 @@ button:hover {
 .UPCOMING,
 .REMOVED,
 .UNRECOGNIZED {
+    line-height: 1.5;
+    font-weight: 400;
+    border-radius: 3px;
+    font-size: 12px;
+    letter-spacing: -0.021em;
+    border: 1px solid;
     display: inline-flex;
-    padding: 10px;
-    padding-top: 6px;
-    padding-bottom: 6px;
-    margin: 10px;
-    background-color: #fafafa;
-    border-radius: 17px;
-    font-size: 17px;
+    padding: 3px 15px;
+    margin: 2px;
+    white-space: nowrap;
+    background: transparent;
 }
 
 .DEPRECATED {
-    color: orange
+    border-color: #c35400;
+    color: #c35400;
 }
-
 .MODIFIED {
-    color: green
+    border-color: #8A82CF;
+    color: #8A82CF;
 }
-
 .ADDED {
-    color: purple
+    border-color: #79A129;
+    color: #79A129;
 }
-
-.UPCOMING {
-    color: skyblue
-}
-
-.REMOVED {
-    color: orangered
-}
-
+.UPCOMING,
+.REMOVED,
 .UNRECOGNIZED {
-    background-color: red;
-    color: white !important;
-    font-weight: 500;
+    border-color: #888888;
+    color: #666666;
 }
 
+.creator .UNRECOGNIZED {
+    border: 2px solid;
+    color: orangered;
+}
 /*////////////////
 //// Sections ////
 ////////////////*/
@@ -147,49 +203,64 @@ button:hover {
 .Info,
 .Code,
 .Example {
-    padding: 15px;
-    padding-left: 25px;
-    padding-right: 25px;
-    margin: 15px;
-    text-align: justify;
+    margin-top: 0;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
 }
 
-.Raw {
-    border-radius: 6px;
-    box-shadow: 0 0 16px rgba(0, 0, 0, 0.03);
-    background-color: #fafafa;
+.Body .Raw {
+    padding: 0.75em 0;
+    margin-bottom: 0.6rem;
+    font-size: 17px;
+    line-height: 1.52947;
+    font-weight: 400;
+    letter-spacing: -0.021em;
+    font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica",
+    "Arial", sans-serif;
+    background-color: white;
+    color: #333333;
+    font-style: normal;
+}
+
+.Synopsis .Raw {
+    margin-bottom: 2rem;
 }
 
 .Important,
 .Info,
 .Code,
 .Example {
-    border-right: 6px solid transparent;
-    border-left-style: solid;
-    border-left-width: 6px;
+    font-size: 17;
+    padding-top: 0.94118rem;
+    padding-bottom: 0.94118rem;
+    padding-left: 18px;
+    padding-right: 10px;
+    border: 1px solid #8a82cf;
+    border-left: 6px solid #8a82cf;
     border-radius: 6px;
-    padding: 0.94118rem;
+    margin: 0.7em 0;
 }
 
 .Important {
-    background-color: #fbe8e8;
-    border-left-color: #ff664f;
+    border-right: 0px;
+    border-top: 0px;
+    border-bottom: 0px;
+    border-color: #fee450;
+    background-color: #fbf8e8;
 }
 
 .Info {
-    background-color: #fbf8e8;
-    border-left-color: #fee450;
+    border-color: 69c5e8;
 }
 
 .Example {
-    background-color: #e8e9fb;
-    border-left-color: #854fff;
+    border-color: #8a82cf;
 }
 
 .Code {
-    background-color: #e9fae9;
-    border-left-color: #4fff56;
-    margin-left: 20px;
+    border-color: #7cd58b;
+    margin: 10px 20px;
     display: None;
 }
 
@@ -199,15 +270,56 @@ button:hover {
 
 .Synopsis,
 .Body  {
+    margin: 0 auto;
     padding: 5px;
-    margin-left: auto;
-    margin-right: auto;
-    max-width: 960px;
     margin-bottom: 20px;
-    text-align: justify;
+    text-align: left;
 }
 
 .Synopsis {
-    font-size: xx-large;
-    font-weight: 500;
+    font-size: 20px;
+    line-height: 1.5;
+    font-weight: 300;
+    letter-spacing: 0.017em;
+    border-bottom: 1px solid #d6d6d6
+}
+
+.Doc {
+    margin: 0;
+    width: 100%;
+    background-color: #ffffff;
+}
+
+@media (min-width: 300px) {
+    .Synopsis, 
+    .Body {
+        width: 380px
+    }
+}
+
+@media (min-width: 500px) {
+    .Synopsis, 
+    .Body {
+        width: 440px
+    }
+}
+
+@media (min-width: 600px) {
+    .Synopsis, 
+    .Body {
+        width: 490px
+    }
+}
+
+@media (min-width: 900px) {
+    .Synopsis, 
+    .Body {
+        width: 670px
+    }
+}
+
+@media (min-width: 1300px) {
+    .Doc {
+        width: 900px
+    }
 }
