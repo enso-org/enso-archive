@@ -777,27 +777,24 @@ case class DocParserDef() extends Parser[Doc] {
     }
 
     def createTags(): Option[Tags] = logger.trace {
-      tags.stack.length match {
-        case 0 => None
-        case _ => Some(Tags(List1(tags.stack.head, tags.stack.tail)))
+      tags.stack match {
+        case Nil     => None
+        case x :: xs => Some(Tags(List1(x, xs)))
       }
     }
 
     def createSynopsis(): Option[Synopsis] = logger.trace {
-      section.stack.length match {
-        case 0 => None
-        case _ => Some(Synopsis(section.stack.head))
+      section.stack match {
+        case Nil    => None
+        case x :: _ => Some(Synopsis(x))
       }
     }
 
     def createBody(): Option[Body] = logger.trace {
-      section.stack.length match {
-        case 0 | 1 => None
-        case _ =>
-          section.stack = section.stack.tail
-          val bodyHead = section.stack.head
-          val bodyTail = section.stack.tail
-          Some(Body(List1(bodyHead, bodyTail)))
+      section.stack = section.stack.tail
+      section.stack match {
+        case Nil     => None
+        case x :: xs => Some(Body(List1(x, xs)))
       }
     }
 
