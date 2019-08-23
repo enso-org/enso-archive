@@ -513,21 +513,20 @@ class DocParserTests extends FlatSpec with Matchers {
   ////// Tags //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "DEPRECATED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Deprecated)),
-    Synopsis(Section.Raw("Foo"))
+  val allPossibleTags = scala.List(
+    Tags.Tag.Deprecated,
+    Tags.Tag.Modified,
+    Tags.Tag.Added,
+    Tags.Tag.Removed,
+    Tags.Tag.Upcoming
   )
-  "MODIFIED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Modified)),
-    Synopsis(Section.Raw("Foo"))
-  )
-  "ADDED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Added)),
-    Synopsis(Section.Raw("Foo"))
-  )
-  "REMOVED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Removed)),
-    Synopsis(Section.Raw("Foo"))
+
+  allPossibleTags.foreach(
+    t =>
+      s"${t.toString.toUpperCase()}\nFoo" ?= Doc(
+        Tags(Tags.Tag(t)),
+        Synopsis(Section.Raw("Foo"))
+      )
   )
   "DEPRECATED in 1.0\nFoo" ?= Doc(
     Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0")),
