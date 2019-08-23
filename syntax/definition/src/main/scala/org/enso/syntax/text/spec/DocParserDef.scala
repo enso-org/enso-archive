@@ -179,13 +179,12 @@ case class DocParserDef() extends Parser[Doc] {
         result.pop()
       } while (result.current.get == Elem.Newline)
       result.current match {
-        case Some(_: Elem.Code) =>
-          val elems   = result.current.get.asInstanceOf[Elem.Code].elems
+        case Some(code @ (_: Elem.Code)) =>
           val newElem = Elem.Code.Line(indent.latest, in)
-          if (elems.head == dummyLine) {
+          if (code.elems.head == dummyLine) {
             result.current = Some(Elem.Code(newElem))
           } else {
-            result.current = Some(Elem.Code(elems.append(newElem)))
+            result.current = Some(Elem.Code(code.elems.append(newElem)))
           }
         case Some(_) | None => result.push()
       }
@@ -487,16 +486,12 @@ case class DocParserDef() extends Parser[Doc] {
 
     def addContent(content: Elem): Unit = logger.trace {
       result.pop()
-      val currentResult  = result.current.orNull.asInstanceOf[Elem.List]
-      var currentContent = currentResult.elems
-      currentContent = currentContent.append(content)
-      result.current = Some(
-        Elem.List(
-          currentResult.indent,
-          currentResult.tp,
-          currentContent
-        )
-      )
+      result.current match {
+        case Some(list @ (_: Elem.List)) =>
+          var currentContent = list.elems
+          currentContent = currentContent.append(content)
+          result.current = Some(Elem.List(list.indent, list.tp, currentContent))
+      }
       result.push()
     }
 
