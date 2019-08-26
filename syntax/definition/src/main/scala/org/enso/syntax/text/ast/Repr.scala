@@ -37,10 +37,13 @@ sealed trait Repr extends Repr.Provider {
           case r: Letter =>
             bldr += r.char
             go(rs)
+          case r: Space =>
+            for (_ <- 1 to r.span) bldr += ' '
+            go(rs)
           case r: Text =>
             bldr ++= r.str
             go(rs)
-          case r: Seq =>
+          case r: _Seq =>
             go(r.first :: r.second :: rs)
         }
     }
@@ -69,14 +72,26 @@ object Repr {
     val span     = 1
   }
 
+  case class Space(span: Int) extends Repr {
+    val byteSpan = span
+  }
+
   case class Text(str: String) extends Repr {
     val byteSpan = str.getBytes(StandardCharsets.UTF_8).length
     val span     = str.length
   }
 
-  final case class Seq(first: Repr, second: Repr) extends Repr {
+  final private case class _Seq(first: Repr, second: Repr) extends Repr {
     val byteSpan = first.byteSpan + second.byteSpan
     val span     = first.span + second.span
+  }
+
+  object Seq {
+    def apply(repr1: Repr, repr2: Repr): Repr = (repr1, repr2) match {
+      case (_: Empty, r) => r
+      case (r, _: Empty) => r
+      case _             => Repr._Seq(repr1, repr2)
+    }
   }
 
   //// Provider ////
@@ -112,9 +127,12 @@ object Repr {
 
   implicit def _inst_0: Repr.Of[Unit]   = _ => Repr.Empty()
   implicit def _inst_1: Repr.Of[String] = Repr.Text(_)
-  implicit def _inst_2: Repr.Of[Int]    = i => Repr.Text(" " * i)
-  implicit def _inst_3: Repr.Of[Char]   = Repr.Letter(_)
-  implicit def _inst_4: Repr.Of[Repr]   = identity(_)
+  implicit def _inst_2: Repr.Of[Int] = {
+    case 0 => R
+    case i => Repr.Space(i)
+  }
+  implicit def _inst_3: Repr.Of[Char] = Repr.Letter(_)
+  implicit def _inst_4: Repr.Of[Repr] = identity(_)
 
   implicit def _inst_5[T1: Repr.Of, T2: Repr.Of]: Repr.Of[(T1, T2)] = {
     case (t1, t2) => Repr.Seq(Repr.of(t1), Repr.of(t2))
@@ -123,10 +141,10 @@ object Repr {
   implicit def _inst_6[T <: Repr.Provider]: Repr.Of[T] = _.repr
 
   implicit def _inst_7[T: Repr.Of]: Repr.Of[List[T]] =
-    _.foldLeft(Repr.Empty(): Repr)((a, b) => Repr.Seq(a, Repr.of(b)))
+    _.map(_.repr).fold(R: Repr)(Repr.Seq(_, _))
 
   implicit def _inst_8[T: Repr.Of]: Repr.Of[List1[T]] =
-    _.foldLeft(Repr.Empty(): Repr)((a, b) => Repr.Seq(a, Repr.of(b)))
+    t => R + t.head + t.tail
 
   implicit def _inst_9[T: Repr.Of]: Repr.Of[Shifted[T]] =
     t => R + t.off + t.el
@@ -135,11 +153,11 @@ object Repr {
     t => R + t.head + t.tail
 
   implicit def _inst_11[T: Repr.Of]: Repr.Of[Option[T]] =
-    _.map(Repr.of(_)).getOrElse(R)
+    _.map(_.repr).getOrElse(R)
 
   implicit def _inst_12: Repr.Of[None.type] =
     _ => R
 
   implicit def _inst_13[T: Repr.Of]: Repr.Of[Some[T]] =
-    _.map(Repr.of(_)).getOrElse(R)
+    _.map(_.repr).getOrElse(R)
 }
