@@ -117,7 +117,8 @@ lazy val interpreter = (project in file("Interpreter"))
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
+      "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
+      "commons-cli"            % "commons-cli"               % "1.4"
     ),
     libraryDependencies ++= jmh
   )
