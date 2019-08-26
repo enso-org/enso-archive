@@ -1,3 +1,5 @@
+import scala.sys.process._
+
 // Global Configuration
 organization := "org.enso"
 scalaVersion := "2.12.8"
@@ -16,6 +18,7 @@ javacOptions ++= Seq("-source", "12", "-target", "1.8")
 lazy val Benchmark = config("bench") extend Test
 lazy val bench     = taskKey[Unit]("Run Benchmarks")
 lazy val benchOnly = inputKey[Unit]("Run benchmarks by name substring")
+lazy val buildNativeImage = taskKey[Unit]("Build native image for the Enso executable")
 
 // Global Project
 lazy val enso = (project in file("."))
@@ -135,6 +138,14 @@ lazy val interpreter = (project in file("Interpreter"))
     parallelExecution in Test := false,
     logBuffered in Test := false
   )
+  .settings(
+    buildNativeImage := Def.task {
+      val javaHome = System.getProperty("java.home")
+      val nativeImagePath = s"$javaHome/bin/native-image"
+      val classPath = (Runtime / fullClasspath).value.files.mkString(":")
+      val cmd = s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath org.enso.interpreter.Main enso"
+      cmd !
+    }.dependsOn(Compile/compile).value)
   .configs(Benchmark)
   .settings(
     logBuffered := false,
