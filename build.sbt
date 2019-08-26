@@ -144,7 +144,7 @@ lazy val interpreter = (project in file("Interpreter"))
       val javaHome = System.getProperty("java.home")
       val nativeImagePath = s"$javaHome/bin/native-image"
       val classPath = (Runtime / fullClasspath).value.files.mkString(":")
-      val cmd = s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath org.enso.interpreter.Main enso"
+      val cmd = s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
       cmd !
     }.dependsOn(Compile/compile).value)
   .configs(Benchmark)
