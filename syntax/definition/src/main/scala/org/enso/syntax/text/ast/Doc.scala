@@ -25,11 +25,16 @@ final case class Doc(
   tags: Option[Doc.Tags],
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
-) extends Doc.Symbol {
+) extends Doc.Symbol
+    with org.enso.syntax.text.AST {
   val repr: Repr = R + tags + synopsis + body
   val html: Doc.HTML = {
     Seq(HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html))
   }
+
+  override def map(
+    f: org.enso.syntax.text.AST => org.enso.syntax.text.AST
+  ): org.enso.syntax.text.AST = this
 }
 
 object Doc {
@@ -56,9 +61,6 @@ object Doc {
     * It specifies span of element, representation of element and HTML generator
     */
   trait Symbol extends Repr.Provider {
-    def span:   Int    = repr.span
-    def show(): String = repr.show()
-
     def html: HTML
     def renderHTML(cssLink: String): HTMLTag = {
       val metaEquiv = HTML.httpEquiv := "Content-Type"

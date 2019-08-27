@@ -12,7 +12,7 @@ import org.enso.syntax.text.ast.text
 
 import scala.annotation.tailrec
 
-sealed trait AST extends AST.Symbol {
+trait AST extends AST.Symbol {
   def map(f: AST => AST): AST
 }
 

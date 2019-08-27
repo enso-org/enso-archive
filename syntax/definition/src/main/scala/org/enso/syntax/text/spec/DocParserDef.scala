@@ -453,7 +453,7 @@ case class DocParserDef() extends Parser[Doc] {
     def onIndentForListCreation(
       indent: Int,
       tp: Elem.List.Type,
-      content: Elem
+      content: String
     ): Unit = logger.trace {
       var wantToChangeIndent = true
       val diff               = indent - latest
@@ -479,7 +479,7 @@ case class DocParserDef() extends Parser[Doc] {
     def onInvalidIndent(
       indent: Int,
       tp: Elem.List.Type,
-      content: Elem
+      content: String
     ): Unit = {
       if (list.inListFlag) {
         list.addContent(Elem.List.Indent.Invalid(indent, tp, content))
@@ -490,7 +490,7 @@ case class DocParserDef() extends Parser[Doc] {
           result.current = Some(content)
           result.push()
         } else {
-          result.current = Some(" " * indent + tp.marker + content.show())
+          result.current = Some(" " * indent + tp.marker + content)
           result.push()
         }
       }

@@ -18,6 +18,10 @@ class DocParser {
   import DocParser._
   private val engine = newEngine()
 
+  def parserRun(input: String): Doc = run(input) match {
+    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) => v
+    case _                                                        => Doc()
+  }
   def run(input: String): Result[Doc] = engine.run(new Reader(input))
 
 }
@@ -26,7 +30,8 @@ object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
-  def run(input: String): Result[Doc] = new DocParser().run(input)
+  def parserRun(input: String): Doc         = new DocParser().parserRun(input)
+  def run(input: String):       Result[Doc] = new DocParser().run(input)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
