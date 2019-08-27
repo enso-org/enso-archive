@@ -19,7 +19,7 @@ case class DocParserDef() extends Parser[Doc] {
   val upperChar: Pattern = range('A', 'Z')
   val digit: Pattern     = range('0', '9')
 
-  val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-" | "#"
+  val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
   val whitespace   = ' '.many1
   val newline      = '\n'
 
@@ -218,7 +218,7 @@ case class DocParserDef() extends Parser[Doc] {
   ROOT || code.inlinePattern || reify { code.onPushingInline(currentMatch) }
   CODE || newline            || reify { state.end(); state.begin(NEWLINE) }
   CODE || notNewLine         || reify { code.onPushingMultiline(currentMatch) }
-  CODE || eof                || reify { state.end(); endOfFile.onEOF() }
+  CODE || eof                || reify { state.end(); documentation.onEOF() }
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Formatter /////////////////////////////////////////////////////////////
@@ -392,7 +392,7 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onInvalidLinkEOF(): Unit = logger.trace {
       onInvalidLink()
-      endOfFile.onEOF()
+      documentation.onEOF()
     }
 
     val imageNameTrigger: String = Elem.Link.Image().marker + "["
@@ -521,7 +521,7 @@ case class DocParserDef() extends Parser[Doc] {
     def onEOFPattern(): Unit = logger.trace {
       state.end()
       indent.onPushingNewLine()
-      endOfFile.onEOF()
+      documentation.onEOF()
     }
 
     val emptyLine: Pattern     = whitespace.opt >> newline
@@ -754,13 +754,16 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// End of File ///////////////////////////////////////////////////////////
+  ////// Documentation /////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /** endOfFile - used to manage every action in case of end of file
-    * prepares data to be ready to output to user
+  /** documentation - used to manage every action in case of end of file
+    * prepares data to be ready to output to user, also depicts type of
+    * documentation - is it invoked from Parser as Multi Line or Single Line or
+    * is it just ran as DocParser - for example in test suite
     */
-  final object endOfFile {
+  final object documentation {
+    var tp: Doc.Type = Doc.debug
     def reverseSectionsStackOnEOF(): Unit = logger.trace {
       section.stack = section.stack.reverse
     }
@@ -773,7 +776,7 @@ case class DocParserDef() extends Parser[Doc] {
       val tags: Option[Tags]         = createTags()
       val synopsis: Option[Synopsis] = createSynopsis()
       val body: Option[Body]         = createBody()
-      result.doc = Some(Doc(tags, synopsis, body))
+      result.doc = Some(Doc(tp, tags, synopsis, body))
     }
 
     def createTags(): Option[Tags] = logger.trace {
@@ -807,7 +810,20 @@ case class DocParserDef() extends Parser[Doc] {
       reverseTagsStackOnEOF()
       createDoc()
     }
+
+    val singleLinePattern = "##"
+    val multiLinePattern  = "##" + newline
+
+    def onSLC(): Unit = logger.trace {
+      tp = Doc.singleLineCode
+    }
+
+    def onMLC(): Unit = logger.trace {
+      tp = Doc.multiLineCode
+    }
   }
 
-  ROOT || eof || reify { endOfFile.onEOF() }
+  ROOT || eof                             || reify { documentation.onEOF() }
+  ROOT || documentation.singleLinePattern || reify { documentation.onSLC() }
+  ROOT || documentation.multiLinePattern  || reify { documentation.onMLC() }
 }

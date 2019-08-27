@@ -16,18 +16,20 @@ import scalatags.text.Builder
 
 /** Doc - The highest level container, the output of Doc Parser
   *
+  * @param tp - defines type of documentation
   * Doc can be made of up to 3 elements:
   * @param tags - If exists, holds applied tags to documented text
   * @param synopsis - If exists, holds synopsis of documented text
   * @param body - If exists, holds body of documented text
   */
 final case class Doc(
+  tp: Doc.Type,
   tags: Option[Doc.Tags],
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
 ) extends Doc.Symbol
     with org.enso.syntax.text.AST {
-  val repr: Repr = R + tags + synopsis + body
+  val repr: Repr = R + tp + tags + synopsis + body
   val html: Doc.HTML = {
     Seq(HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html))
   }
@@ -38,15 +40,29 @@ final case class Doc(
 }
 
 object Doc {
-  def apply():                   Doc = Doc(None, None, None)
-  def apply(tags: Tags):         Doc = Doc(Some(tags), None, None)
-  def apply(synopsis: Synopsis): Doc = Doc(None, Some(synopsis), None)
+  trait Type extends Symbol
+  case object debug extends Type {
+    val repr = R
+    val html = Seq()
+  }
+  case object singleLineCode extends Type {
+    val repr = R + "##"
+    val html = Seq()
+  }
+  case object multiLineCode extends Type {
+    val repr = R + "##" + Elem.Newline
+    val html = Seq()
+  }
+
+  def apply():                   Doc = Doc(debug, None, None, None)
+  def apply(tags: Tags):         Doc = Doc(debug, Some(tags), None, None)
+  def apply(synopsis: Synopsis): Doc = Doc(debug, None, Some(synopsis), None)
   def apply(synopsis: Synopsis, body: Body): Doc =
-    Doc(None, Some(synopsis), Some(body))
+    Doc(debug, None, Some(synopsis), Some(body))
   def apply(tags: Tags, synopsis: Synopsis): Doc =
-    Doc(Some(tags), Some(synopsis), None)
+    Doc(debug, Some(tags), Some(synopsis), None)
   def apply(tags: Tags, synopsis: Synopsis, body: Body): Doc =
-    Doc(Some(tags), Some(synopsis), Some(body))
+    Doc(debug, Some(tags), Some(synopsis), Some(body))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
