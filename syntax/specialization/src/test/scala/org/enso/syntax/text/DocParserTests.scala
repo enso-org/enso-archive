@@ -16,25 +16,20 @@ class DocParserTests extends FlatSpec with Matchers {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
-        logger.log("\nresult :")
-        pprint.pprintln(result, width = 50, height = 10000)
-        logger.log("\nvalue :")
-        pprint.pprintln(value, width = 50, height = 10000)
-        logger.log(s"\ninput  : '$input'")
-        logger.log(s"\nv.show : '${value.show()}'\n")
         assert(value == result)
         assert(value.show() == input)
-      case _ => fail(s"Parsing failed, consumed ${output.offset} chars")
+      case _ =>
+        fail(s"Parsing documentation failed, consumed ${output.offset} chars")
     }
   }
 
   implicit class TestString(input: String) {
-    def parseTitle(str: String): String = {
+    def parseDocumentation(str: String): String = {
       val escape = (str: String) => str.replace("\n", "\\n")
       s"parse `${escape(str)}`"
     }
 
-    private val testBase = it should parseTitle(input)
+    private val testBase = it should parseDocumentation(input)
 
     def ?=(out: Doc): Unit = testBase in {
       assertExpr(input, out)
@@ -42,7 +37,7 @@ class DocParserTests extends FlatSpec with Matchers {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  //////                  Tests of correct constructions                   /////
+  //////                 Documentation Parser Test Suite                   /////
   //////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////
@@ -187,6 +182,45 @@ class DocParserTests extends FlatSpec with Matchers {
       )
     )
   )
+  " foo *bar* _baz *bo*_" ?= Doc(
+    Synopsis(
+      Section.Raw(
+        1,
+        "foo ",
+        Formatter(Formatter.Bold, "bar"),
+        " ",
+        Formatter(Formatter.Italic, "baz ", Formatter(Formatter.Bold, "bo"))
+      )
+    )
+  )
+  """foo *bar
+    |*""".stripMargin ?= Doc(
+    Synopsis(Section.Raw("foo ", Formatter(Formatter.Bold, "bar", Newline)))
+  )
+
+  """foo _foo
+    |_foo2""".stripMargin ?= Doc(
+    Synopsis(
+      Section
+        .Raw("foo ", Formatter(Formatter.Italic, "foo", Newline), "foo2")
+    )
+  )
+
+  """foo *foo
+    |*foo2""".stripMargin ?= Doc(
+    Synopsis(
+      Section
+        .Raw("foo ", Formatter(Formatter.Bold, "foo", Newline), "foo2")
+    )
+  )
+
+  """foo ~foo
+    |~foo2""".stripMargin ?= Doc(
+    Synopsis(
+      Section
+        .Raw("foo ", Formatter(Formatter.Strikeout, "foo", Newline), "foo2")
+    )
+  )
 
   //////////////////////////////////////////////////////////////////////////////
   ////// Segments //////////////////////////////////////////////////////////////
@@ -247,6 +281,42 @@ class DocParserTests extends FlatSpec with Matchers {
         Section.Header("Important"),
         Newline
       ),
+      Section.Marked(Section.Marked.Example, Section.Header("Example"))
+    )
+  )
+  """Foo *Foo* ~*Bar~ `foo bar baz bo`
+    |
+    |
+    |Hello Section
+    |
+    |!important
+    |
+    |?info
+    |
+    |>Example""".stripMargin ?= Doc(
+    Synopsis(
+      Section.Raw(
+        "Foo ",
+        Formatter(Formatter.Bold, "Foo"),
+        " ",
+        Formatter(
+          Formatter.Strikeout,
+          Formatter.Unclosed(Formatter.Bold, "Bar")
+        ),
+        " ",
+        Code.Inline("foo bar baz bo"),
+        Newline
+      )
+    ),
+    Body(
+      Section.Raw(Section.Header("Hello Section"), Newline),
+      Section
+        .Marked(
+          Section.Marked.Important,
+          Section.Header("important"),
+          Newline
+        ),
+      Section.Marked(Section.Marked.Info, Section.Header("info"), Newline),
       Section.Marked(Section.Marked.Example, Section.Header("Example"))
     )
   )
@@ -630,35 +700,6 @@ class DocParserTests extends FlatSpec with Matchers {
   ////// Unclassified tests ////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  "Foo *Foo* ~*Bar~ `foo bar baz bo` \n\n\nHello Section\n\n!important\n\n?Hi\n\n>Example" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        "Foo ",
-        Formatter(Formatter.Bold, "Foo"),
-        " ",
-        Formatter(
-          Formatter.Strikeout,
-          Formatter.Unclosed(Formatter.Bold, "Bar")
-        ),
-        " ",
-        Code.Inline("foo bar baz bo"),
-        " ",
-        Newline
-      )
-    ),
-    Body(
-      Section.Raw(Section.Header("Hello Section"), Newline),
-      Section
-        .Marked(
-          Section.Marked.Important,
-          Section.Header("important"),
-          Newline
-        ),
-      Section.Marked(Section.Marked.Info, Section.Header("Hi"), Newline),
-      Section.Marked(Section.Marked.Example, Section.Header("Example"))
-    )
-  )
-
   """
     | - bar
     | baz
@@ -671,46 +712,6 @@ class DocParserTests extends FlatSpec with Matchers {
         Code(Code.Line(1, "baz")),
         Newline
       )
-    )
-  )
-
-  " foo *bar* _baz *bo*_" ?= Doc(
-    Synopsis(
-      Section.Raw(
-        1,
-        "foo ",
-        Formatter(Formatter.Bold, "bar"),
-        " ",
-        Formatter(Formatter.Italic, "baz ", Formatter(Formatter.Bold, "bo"))
-      )
-    )
-  )
-  """foo *bar
-    |*""".stripMargin ?= Doc(
-    Synopsis(Section.Raw("foo ", Formatter(Formatter.Bold, "bar", Newline)))
-  )
-
-  """foo _foo
-    |_foo2""".stripMargin ?= Doc(
-    Synopsis(
-      Section
-        .Raw("foo ", Formatter(Formatter.Italic, "foo", Newline), "foo2")
-    )
-  )
-
-  """foo *foo
-    |*foo2""".stripMargin ?= Doc(
-    Synopsis(
-      Section
-        .Raw("foo ", Formatter(Formatter.Bold, "foo", Newline), "foo2")
-    )
-  )
-
-  """foo ~foo
-    |~foo2""".stripMargin ?= Doc(
-    Synopsis(
-      Section
-        .Raw("foo ", Formatter(Formatter.Strikeout, "foo", Newline), "foo2")
     )
   )
 
@@ -768,7 +769,7 @@ class DocParserTests extends FlatSpec with Matchers {
 
   """   DEPRECATED das sfa asf
     |REMOVED fdsdf
-    |Construct and manage a graphical, event-driven user interface for your iOS or
+    |Construct and manage a graphical user interface for your iOS or
     |tvOS app.
     |
     |   fooo bar baz
@@ -781,7 +782,7 @@ class DocParserTests extends FlatSpec with Matchers {
     ),
     Synopsis(
       Section.Raw(
-        "Construct and manage a graphical, event-driven user interface for your iOS or",
+        "Construct and manage a graphical user interface for your iOS or",
         Newline,
         "tvOS app.",
         Newline

@@ -164,6 +164,12 @@ class Parser {
     }
   }
 
+  /*TODO [MM]: Create function similar to resolveMacros that takes
+      [[AST.Comment]] nodes and changes those to [[Doc]] by running Documentation
+      Parser, then to loop through elements of structure and generate
+      documentation for syntactic functions, as this is how DocParser is going
+      to be invoked*/
+
 }
 
 object Parser {
@@ -250,8 +256,14 @@ object Main extends App {
 //val inp = "a = b -> c"
 //val inp = "a = b -> c d"
   val inp = "x = skip (a.b)"
+  val dataWComment =
+    """import Foo
+      |
+      |if a then (b)
+      |
+      |""".stripMargin
 //  val inp = "x(x[a))"
-  val out = parser.run(new Reader(inp), Seq())
+  val out = parser.run(new Reader(dataWComment), Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 
   out match {
@@ -271,7 +283,7 @@ object Main extends App {
   }
   println()
 
-  DocParserRunner
+//  DocParserRunner
 }
 
 // 1. Parsing patterns in-place with segments
