@@ -829,7 +829,7 @@ object AST {
           case line +: lines =>
             val indentedLines = lines.map { s =>
               if (s.forall(_ == ' ')) newline + s
-              else newline + 1 + offset + s
+              else newline + offset + s // NOTE : REMOVED 1 FOR DocParser
             }
             (R + line) +: indentedLines
         }

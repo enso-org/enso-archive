@@ -174,45 +174,22 @@ class Parser {
      documentation for syntactic functions, as this is how DocParser is going
      to be invoked*/
 
-  def createDocumentation(ast: AST.Comment.MultiLine): Doc = {
-    println("CREATING DOCUMENTATION!")
-    val in = ast.show().substring(3)
-    println(in)
-    val doc = DocParser.parserRun(in)
-    println("---- ---- ---- ---- ---- --- CREATED -- ---- ---- ---- ---- ----")
-    println(doc.show())
-    pprint.pprintln(doc, width = 50, height = 10000)
-    doc
+  def createDocumentation(ast: AST.Comment): Doc = {
+    val in = ast.show()
+    DocParser.parserRun(in)
   }
 
-  def createDocumentation(ast: AST): Option[AST] = {
-    println("CURRENT AST: " + ast.toString)
+  def createDocumentation(ast: AST): AST = {
     ast match {
       case ast: AST.Macro.Match =>
         Builtin.registry.get(ast.path) match {
           case None => throw new Error("Macro definition not found")
           case Some(spec) =>
-            println("HAVE SOME: " + spec.toString)
-            createDocumentation(
-              spec.fin(
-                ast.pfx,
-                ast.segs
-                  .toList()
-                  .map(s => {
-                    println("TRYING WITH ELEMS: " + s.el.toString)
-                    s.el
-                  })
-              )
-            )
+            createDocumentation(spec.fin(ast.pfx, ast.segs.toList().map(_.el)))
         }
-      case v: AST.Comment.MultiLine =>
-        println("THERE IS COMMENT! " + v.toString)
-        Some(createDocumentation(v))
-      case v =>
-        Some(v.map({ elem =>
-          println("TRYING FROM ELEM: " + elem.toString)
-          createDocumentation(elem).get
-        }))
+      case v: AST.Comment.MultiLine  => createDocumentation(v)
+      case v: AST.Comment.SingleLine => createDocumentation(v)
+      case v                         => v.map(createDocumentation)
     }
   }
 
@@ -339,11 +316,9 @@ object Main extends App {
   out match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
       println(pretty(mod.toString))
-      val rmod = parser.resolveMacros(mod)
-      println("- Documentation -")
-      val docu = parser.createDocumentation(mod)
-      println(docu.map(_.show()).getOrElse(None))
-      pprint.pprintln(docu, width = 50, height = 10000)
+      val rmod          = parser.resolveMacros(mod)
+      val documentation = parser.createDocumentation(mod)
+//      pprint.pprintln(documentation, width = 50, height = 10000)
       println("-----------------")
       if (mod != rmod) {
         println("\n---\n")
@@ -353,6 +328,8 @@ object Main extends App {
       println(mod.show() == inp)
       println("------")
       println(mod.show())
+      println("------")
+      println(documentation.show())
       println("------")
 
   }

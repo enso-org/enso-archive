@@ -19,7 +19,7 @@ case class DocParserDef() extends Parser[Doc] {
   val upperChar: Pattern = range('A', 'Z')
   val digit: Pattern     = range('0', '9')
 
-  val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
+  val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-" | "#"
   val whitespace   = ' '.many1
   val newline      = '\n'
 
