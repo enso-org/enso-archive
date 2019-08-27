@@ -168,12 +168,6 @@ class Parser {
     }
   }
 
-  /*TODO [MM]: Create function similar to resolveMacros that takes
-     [[AST.Comment]] nodes and changes those to [[Doc]] by running Documentation
-     Parser, then to loop through elements of structure and generate
-     documentation for syntactic functions, as this is how DocParser is going
-     to be invoked*/
-
   def createDocumentation(ast: AST.Comment): Doc = {
     val in = ast.show()
     DocParser.parserRun(in)
@@ -309,8 +303,104 @@ object Main extends App {
       |   manipulating your app’s user interface in any way.
       |
       |Next = a.b""".stripMargin
+
+  val bigTest =
+    """foo = a.b ##inline Comment
+      |
+      |##
+      | DEPRECATED
+      | REMOVED - replaced by SwiftUI
+      | ADDED
+      | MODIFIED
+      | UPCOMING
+      | ALAMAKOTA a kot ma Ale
+      | Construct and manage a graphical, event-driven user interface for your
+      | iOS or tvOS app.
+      | 
+      | The UIKit framework provides the required infrastructure for your iOS or
+      | tvOS apps. It provides the window and view architecture for implementing
+      | your interface, the event handling infrastructure for delivering Multi-
+      | Touch and other types of input to your app, and the main run loop needed
+      | to manage interactions among the user, the system, and your app. Other
+      | features offered by the framework include animation support, document
+      | support, drawing and printing support, information about the current
+      | device, text management and display, search support, accessibility  
+      | support, app extension support, and resource management.
+      | 
+      | ! Important
+      |   Use UIKit classes only from your app’s main thread or main dispatch
+      |   queue, unless otherwise indicated. This restriction particularly
+      |   applies to classes derived from UIResponder or that involve
+      |   manipulating your app’s user interface in any way.
+      |
+      |Next = a.b # disabled a.c
+      |##
+      | DEPRECATED
+      | REMOVED - replaced by SwiftUI
+      | Construct and manage a graphical, event-driven user interface for your iOS or
+      | tvOS app.
+      |
+      | The UIKit framework provides the required infrastructure for your iOS or tvOS
+      | apps. It provides the window and view architecture for implementing your
+      | interface, the event handling infrastructure for delivering Multi-Touch and
+      | other types of input to your app, and the main run loop needed to manage
+      | interactions among the user, the system, and your app. Other features offered
+      | by the framework include animation support, document support, drawing and
+      | printing support, information about the current device, text management and
+      | display, search support, accessibility support, app extension support, and
+      | resource management. [Some inline link](http://google.com). *Bold test*,
+      | or _italics_ are allowed. ~Strikethrough as well~. *_~Combined is funny~_*.
+      | ![Images are allowed as well](https://github.com/luna/luna-studio/raw/master/resources/logo.ico).
+      |
+      | You can use ordered or unordered lists as well:
+      |   - First unordered item
+      |   - Second unordered item
+      |     * First ordered sub item
+      |     * Second ordered sub item
+      |       
+      | ! Important
+      |   An example warning block. Use UIKit classes only from your app’s main thread
+      |   or main dispatch queue, unless otherwise indicated. This restriction
+      |   particularly applies to classes derived from UIResponder or that involve
+      |   manipulating your app’s user interface in any way.
+      |
+      | ? An example info block.
+      |   `Inline code is allowed everywhere`. It can span a single line only
+      |
+      |
+      | A new section title *is* after 2 newlines
+      | Now we can write a new
+      |
+      |
+      | Invalid indent test:
+      |   - First unordered item
+      |   - Second unordered item
+      |     * First ordered sub item
+      |     * Second ordered sub item
+      |   - Third unordered item
+      |     * First ordered sub item
+      |     * Second ordered sub item
+      |       - First unordered sub item
+      |       - Second unordered sub item
+      |     * Third ordered sub item
+      |    * Wrong Indent Item
+      |   - Fourth unordered item
+      |
+      |
+      | Invalid Formatter test
+      | This is a *Unclosed test
+      |
+      | > Title of an example
+      |   This is an example displayed as a button in the docs. The first line is its
+      |   name and this is its description. Code has to be indented.
+      |       import Std.Math.Vector
+      |       v = Vec3 1 2 'foo' : Vector (Int | String)
+      |       print v 
+      |   Continuation of example section can occur after multiline code
+      |   test of [invalid]link)
+      |""".stripMargin
 //  val inp = "x(x[a))"
-  val out = parser.run(new Reader(comments), Seq())
+  val out = parser.run(new Reader(bigTest), Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 
   out match {
@@ -318,7 +408,7 @@ object Main extends App {
       println(pretty(mod.toString))
       val rmod          = parser.resolveMacros(mod)
       val documentation = parser.createDocumentation(mod)
-//      pprint.pprintln(documentation, width = 50, height = 10000)
+      pprint.pprintln(documentation, width = 50, height = 10000)
       println("-----------------")
       if (mod != rmod) {
         println("\n---\n")
