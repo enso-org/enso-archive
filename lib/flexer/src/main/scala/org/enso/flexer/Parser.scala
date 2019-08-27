@@ -146,7 +146,13 @@ object Parser {
     macro Macro.compileImpl[T, P]
 
   case class Result[T](offset: Int, value: Result.Value[T]) {
+    import Result._
+
     def map[S](fn: T => S): Result[S] = copy(value = value.map(fn))
+    def unwrap: T = value match {
+      case Success(t) => t
+      case _          => throw new Exception("Critical error during parsing!")
+    }
   }
   object Result {
     sealed trait Value[T] {

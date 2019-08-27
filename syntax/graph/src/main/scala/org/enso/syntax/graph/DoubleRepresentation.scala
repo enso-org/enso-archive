@@ -1,5 +1,11 @@
 package org.enso.syntax.graph
 
+import java.awt.Toolkit
+import java.awt.datatransfer.Clipboard
+import java.awt.datatransfer.ClipboardOwner
+import java.awt.datatransfer.DataFlavor
+import java.awt.datatransfer.StringSelection
+import java.awt.datatransfer.Transferable
 import java.util.UUID
 
 import org.enso.data.List1
@@ -18,6 +24,7 @@ import org.enso.syntax.text.AST.Macro.Match.Segment
 import org.enso.syntax.text.ast.meta
 import org.enso.syntax.text.ast.meta.Pattern
 
+import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
 object KnownOperators {
@@ -224,7 +231,49 @@ object ParserUtils {
 final case class DoubleRepresentation(
   state: StateManager,
   notifier: NotificationSink
-) extends GraphAPI {
+) extends GraphAPI
+    with TextAPI
+    with ClipboardOwner {
+
+  protected def findAndReplace(loc: Module.Location, pos: TextPosition)(
+    fun: (Int, AST.Block.Line) => List[AST.Block.Line]
+  ) = {
+    var span = 0
+    val module = state.getModule(loc).replace { line =>
+      span += line.span
+      if (span < pos.index) Nil else fun(span - line.span, line)
+    }
+    state.setModule(loc, module)
+  }
+
+  def getText(loc: Module.Location): String = state.getModule(loc).show
+
+  def insertText(loc: Module.Location, cursor: TextPosition, text: String) =
+    findAndReplace(loc, cursor) { (pos, line) =>
+      val (line1, line2) = line.show.splitAt(pos + cursor.index)
+      val result         = Parser().run(new Reader(line1 + text + line2))
+      result.unwrap.lines.toList
+    }
+
+  def eraseText(loc: Module.Location, span: TextSpan) =
+    findAndReplace(loc, span.start) { (pos, line) =>
+      val (line1, line2) = line.show.splitAt(pos + span.start.index)
+      val result         = Parser().run(new Reader(line1 + line2.drop(span.length)))
+      result.unwrap.lines.toList
+    }
+
+  def copy(loc: Module.Location, span: TextSpan): String = {
+    var text = ""
+    findAndReplace(loc, span.start) { (pos, line) =>
+      text = line.show.substring(pos + span.start.index, pos + span.length)
+      List(line)
+    }
+    text
+  }
+
+  def paste(loc: Module.Location, cursor: TextPosition, clipboard: String) = {
+    insertText(loc, cursor, clipboard)
+  }
 
   def getGraph(loc: API.Definition.Graph.Location): Definition.Graph.Info = ???
   def getGraph(loc: Module.Graph.Location): Module.Graph.Info = {
@@ -294,4 +343,9 @@ final case class DoubleRepresentation(
     state.setModule(context, newAst)
     notifier.retrieve(API.Notification.Invalidate.Module(context))
   }
+
+  override def lostOwnership(
+    clipboard: Clipboard,
+    contents: Transferable
+  ): Unit = Unit
 }
