@@ -256,14 +256,42 @@ object Main extends App {
 //val inp = "a = b -> c"
 //val inp = "a = b -> c d"
   val inp = "x = skip (a.b)"
-  val dataWComment =
-    """import Foo
+  val comments =
+    """foo = a.b ##inline Comment
       |
-      |if a then (b)
+      |## 
+      | DEPRECATED
+      | REMOVED - replaced by SwiftUI
+      | ADDED
+      | MODIFIED
+      | UPCOMING
+      | ALAMAKOTA a kot ma Ale
+      | Construct and manage a graphical, event-driven user interface for your
+      | iOS or tvOS app.
+      | 
+      | The UIKit framework provides the required infrastructure for your iOS or
+      | tvOS apps. It provides the window and view architecture for implementing
+      | your interface, the event handling infrastructure for delivering Multi-
+      | Touch and other types of input to your app, and the main run loop needed
+      | to manage interactions among the user, the system, and your app. Other
+      | features offered by the framework include animation support, document
+      | support, drawing and printing support, information about the current
+      | device, text management and display, search support, accessibility  
+      | support, app extension support, and resource management.
+      | 
+      | ! Important
+      |   Use UIKit classes only from your app’s main thread or main dispatch
+      |   queue, unless otherwise indicated. This restriction particularly
+      |   applies to classes derived from UIResponder or that involve
+      |   manipulating your app’s user interface in any way.
       |
-      |""".stripMargin
+      |Next = a.b""".stripMargin
+  val c1 = "foo   ##L1"
+  val c2 = "##\n    L1\n L2"
+  val c3 = "##L1\nL2"
+  val c4 = "foo #a b"
 //  val inp = "x(x[a))"
-  val out = parser.run(new Reader(dataWComment), Seq())
+  val out = parser.run(new Reader(comments), Seq())
   pprint.pprintln(out, width = 50, height = 10000)
 
   out match {
