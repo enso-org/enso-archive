@@ -1,6 +1,16 @@
 import sbt.Keys.javaOptions
 import sbt._
 
+/** Command allowing to run the CLI program with additional JVM-level flags.
+  * The supported flags are:
+  * * `--dumpGraphs`: dumps IGV output of the program
+  * * `--showCompilations`: prints Truffle compilation traces
+  * * `--printAssembly`: prints the disassembler output
+  * Any CLI arguments should be passed following `--` like so:
+  * {{{
+  *   runDebug --dumpGraphs --printAssembly -- --run myFile.enso
+  * }}}
+  */
 object RunDebugCommand {
 
   val truffleNoBackgroundCompilationOptions = Seq(
@@ -34,6 +44,7 @@ object RunDebugCommand {
 
   val commandName = "runDebug"
 
+  /** The main logic for parsing and transforming the debug flags into JVM level flags */
   def runDebug: Command = Command.args(commandName, "<arguments>") {
     (state, args) =>
       val (debugFlags, prefixedRunArgs) = args.span(_ != argSeparator)

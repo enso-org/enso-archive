@@ -7,6 +7,7 @@ import org.graalvm.polyglot.Source;
 import java.io.File;
 import java.io.IOException;
 
+/** The main CLI entry point class. */
 public class Main {
   private static final String RUN_OPTION = "run";
   private static final String HELP_OPTION = "help";
