@@ -249,6 +249,7 @@ case class DocParserDef() extends Parser[Doc] {
           result.pop()
           result.current match {
             case Some(value) => listOfFormattedAST +:= value
+            case _           =>
           }
         }
         listOfFormattedAST
@@ -270,6 +271,7 @@ case class DocParserDef() extends Parser[Doc] {
           List(Elem.Formatter.Bold, Elem.Formatter.Strikeout)
         case Elem.Formatter.Bold =>
           List(Elem.Formatter.Italic, Elem.Formatter.Strikeout)
+        case _ => throw new Error("Trying to use non-existing formatter")
       }
     }
 
@@ -557,6 +559,7 @@ case class DocParserDef() extends Parser[Doc] {
           currentContent = currentContent.append(content)
           result.current =
             Some(Elem.List(list.indent, list.typ, currentContent))
+        case _ =>
       }
       result.push()
     }

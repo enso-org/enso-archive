@@ -5,7 +5,6 @@ import java.io.PrintWriter
 
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.DocParser.Result
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag

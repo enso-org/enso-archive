@@ -11,7 +11,6 @@ import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.ast.opr.Prec
 
-import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.ast.Doc
 
 import scala.annotation.tailrec
@@ -35,7 +34,7 @@ import scala.annotation.tailrec
   *
   * Macro resolution steps:
   *
-  * 1. Parser is executed by using the [[Parser.run]] function. It reads source
+  * 1. Parser is executed by using the [[Parser#run]] function. It reads source
   * code and outputs a token stream [[AST.Stream]]. The token stream contains a
   * very narrow range of possible elements: [[AST.Blank]], [[AST.Var]],
   * [[AST.Cons]], [[AST.Opr]], [[AST.Number]], [[AST.Text]], and [[AST.Block]],
@@ -133,10 +132,12 @@ import scala.annotation.tailrec
   * to work with by automated tools like the interpreter, while all the spacing
   * information is stored only in the basic set of tokens and [[AST.Macro]]
   * tokens. Each AST node has a [[AST.map]] function for mapping over sub-nodes,
-  * which allows easy building of AST traversals. The [[Parser.resolveMacros]]
+  * which allows easy building of AST traversals. The [[Parser#resolveMacros]]
   * is such a traversal, which applies [[AST.Macro.Definition.Finalizer]] to
   * each [[AST.Macro.Match]] found in the AST, while loosing a lot of positional
-  * information.
+  * information. The [[Parser#createDocumentation]] is used to invoke our
+  * Documentation Parser on every comment in code and parse it, which enables us
+  * to create immersive documentation for code, with double representation in mind
   */
 class Parser {
   import Parser._
