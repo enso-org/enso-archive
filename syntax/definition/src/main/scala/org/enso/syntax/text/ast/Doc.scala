@@ -9,7 +9,6 @@ import scalatags.Text.{all => HTML}
 import HTML._
 import scalatags.generic
 import scalatags.text.Builder
-import org.enso.syntax.text.AST
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc ///////////////////////////////////////////////////////////////////////
@@ -17,49 +16,35 @@ import org.enso.syntax.text.AST
 
 /** Doc - The highest level container, the output of Doc Parser
   *
-  * @param typ - defines type of documentation, if invoked from Parser then it
-  *             may be singleLineCode or multiLineCode, else it has type debug
   * Doc can be made of up to 3 elements:
   * @param tags - If exists, holds applied tags to documented text
   * @param synopsis - If exists, holds synopsis of documented text
   * @param body - If exists, holds body of documented text
   */
 final case class Doc(
-  typ: Doc.Type,
   tags: Option[Doc.Tags],
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
-) extends Doc.Symbol
-    with AST {
-
-  val ending: Doc.Elem =
-    if (typ == Doc.multiLineComment) Doc.Elem.Newline else Doc.Elem.Text("")
-  val repr: Repr = R + typ + tags + synopsis + body + ending
+) extends Doc.Symbol {
+  val repr: Repr = R + tags + synopsis + body
   val html: Doc.HTML = Seq(
     HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
   )
 
-  def map(f: AST => AST): AST = this
+  def map(f: Doc => Doc): Doc = this
 }
 
 object Doc {
-  abstract class Type(val repr: Repr) extends Symbol {
-    val html: HTML = Seq()
-  }
-  case object debuggingInDocParser extends Type(R)
-  case object singleLineComment    extends Type(R + "##")
-  case object multiLineComment     extends Type(R + "##" + Elem.Newline)
-
-  def apply():           Doc = Doc(debuggingInDocParser, None, None, None)
-  def apply(tags: Tags): Doc = Doc(debuggingInDocParser, Some(tags), None, None)
+  def apply():           Doc = Doc(None, None, None)
+  def apply(tags: Tags): Doc = Doc(Some(tags), None, None)
   def apply(synopsis: Synopsis): Doc =
-    Doc(debuggingInDocParser, None, Some(synopsis), None)
+    Doc(None, Some(synopsis), None)
   def apply(synopsis: Synopsis, body: Body): Doc =
-    Doc(debuggingInDocParser, None, Some(synopsis), Some(body))
+    Doc(None, Some(synopsis), Some(body))
   def apply(tags: Tags, synopsis: Synopsis): Doc =
-    Doc(debuggingInDocParser, Some(tags), Some(synopsis), None)
+    Doc(Some(tags), Some(synopsis), None)
   def apply(tags: Tags, synopsis: Synopsis, body: Body): Doc =
-    Doc(debuggingInDocParser, Some(tags), Some(synopsis), Some(body))
+    Doc(Some(tags), Some(synopsis), Some(body))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
@@ -77,6 +62,9 @@ object Doc {
     * file from documentation
     */
   trait Symbol extends Repr.Provider {
+    def span:   Int    = repr.span
+    def show(): String = repr.show()
+
     def html: HTML
     def renderHTML(cssLink: String): HTMLTag = {
       val metaEquiv = HTML.httpEquiv := "Content-Type"

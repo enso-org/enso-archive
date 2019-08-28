@@ -59,10 +59,10 @@ case class DocParserDef() extends Parser[Doc] {
   val whitespace: Pattern = ' '.many1
   val newline: Char       = '\n'
 
+  val char: Pattern = lowerChar | upperChar
   val specialChars
-    : Pattern = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
-  val possibleChars
-    : Pattern = lowerChar | upperChar | digit | whitespace | specialChars
+    : Pattern                = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
+  val possibleChars: Pattern = char | digit | whitespace | specialChars
 
   val normalText: Pattern = possibleChars.many1
 
@@ -122,7 +122,7 @@ case class DocParserDef() extends Parser[Doc] {
         Tags.Tag.Modified,
         Tags.Tag.Removed,
         Tags.Tag.Upcoming
-      )
+      ) // FIXME
     var stack: List[Tags.Tag] = Nil
 
     def pushTag(indent: Int, tagType: Tags.Tag.Type, details: String): Unit =
@@ -581,22 +581,17 @@ case class DocParserDef() extends Parser[Doc] {
 
     def onOrdered(): Unit = logger.trace {
       state.end()
-      val content = currentMatch.split(orderedListTrigger)
-      indent
-        .onIndentForListCreation(
-          content(0).length,
-          Elem.List.Ordered,
-          content(1)
-        )
+      val matchedContent = currentMatch.split(orderedListTrigger)
+      val listIndent     = matchedContent(0).length
+      val listElems      = matchedContent(1)
+      indent.onIndentForListCreation(listIndent, Elem.List.Ordered, listElems)
     }
     def onUnordered(): Unit = logger.trace {
       state.end()
-      val content = currentMatch.split(unorderedListTrigger)
-      indent.onIndentForListCreation(
-        content(0).length,
-        Elem.List.Unordered,
-        content(1)
-      )
+      val matchedContent = currentMatch.split(unorderedListTrigger)
+      val listIndent     = matchedContent(0).length
+      val listElems      = matchedContent(1)
+      indent.onIndentForListCreation(listIndent, Elem.List.Unordered, listElems)
     }
 
     val orderedListTrigger: Char   = Elem.List.Ordered.marker
@@ -701,13 +696,12 @@ case class DocParserDef() extends Parser[Doc] {
         case _ =>
           section.current match {
             case Some(marker) =>
-              section.stack +:= Section
-                .Marked(
-                  indentBeforeMarker,
-                  indentAfterMarker,
-                  marker,
-                  result.stack
-                )
+              section.stack +:= Section.Marked(
+                indentBeforeMarker,
+                indentAfterMarker,
+                marker,
+                result.stack
+              )
             case None =>
               section.stack +:= Section.Raw(currentIndentRaw, result.stack)
           }
@@ -764,7 +758,6 @@ case class DocParserDef() extends Parser[Doc] {
     * is it just ran as DocParser - for example in test suite
     */
   final object documentation {
-    var typ: Doc.Type = Doc.debuggingInDocParser
     def reverseSectionsStackOnEOF(): Unit = logger.trace {
       section.stack = section.stack.reverse
     }
@@ -777,7 +770,7 @@ case class DocParserDef() extends Parser[Doc] {
       val tags: Option[Tags]         = createTags()
       val synopsis: Option[Synopsis] = createSynopsis()
       val body: Option[Body]         = createBody()
-      result.doc = Some(Doc(typ, tags, synopsis, body))
+      result.doc = Some(Doc(tags, synopsis, body))
     }
 
     def createTags(): Option[Tags] = logger.trace {
@@ -815,28 +808,7 @@ case class DocParserDef() extends Parser[Doc] {
     def isBeginning(): Boolean = logger.trace {
       result.stack.isEmpty && section.stack.isEmpty
     }
-
-    val singleLinePattern: String = "##"
-    val multiLinePattern: String  = "##" + newline
-
-    def onChoosingFileType(typ: Doc.Type): Unit = logger.trace {
-      if (isBeginning()) {
-        this.typ = typ
-      } else {
-        text.push(currentMatch)
-      }
-    }
-
-    def onSingleL(): Unit = logger.trace {
-      onChoosingFileType(Doc.singleLineComment)
-    }
-
-    def onMultiL(): Unit = logger.trace {
-      onChoosingFileType(Doc.multiLineComment)
-    }
   }
 
-  ROOT || eof                             || reify { documentation.onEOF() }
-  ROOT || documentation.singleLinePattern || reify { documentation.onSingleL() }
-  ROOT || documentation.multiLinePattern  || reify { documentation.onMultiL() }
+  ROOT || eof || reify { documentation.onEOF() }
 }

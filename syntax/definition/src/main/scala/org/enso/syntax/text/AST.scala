@@ -12,7 +12,7 @@ import org.enso.syntax.text.ast.text
 
 import scala.annotation.tailrec
 
-trait AST extends AST.Symbol {
+sealed trait AST extends AST.Symbol {
   def map(f: AST => AST): AST
 }
 
@@ -829,12 +829,7 @@ object AST {
           case line +: lines =>
             val indentedLines = lines.map { s =>
               if (s.forall(_ == ' ')) newline + s
-              /* else newline + 1 + offset + s
-               * NOTE : It was necessary for me to remove `1` from offset as it
-               * shifted right by 1 all commented text after being parsed with
-               * Documentation Parser, now it displays properly
-               */
-              else newline + offset + s
+              else newline + 1 + offset + s
             }
             (R + line) +: indentedLines
         }

@@ -168,8 +168,13 @@ class Parser {
     }
   }
 
-  def createDocumentation(ast: AST.Comment): Doc = {
-    val in = ast.show()
+  def createDocumentation(ast: AST.Comment.SingleLine): Doc = {
+    val in = ast.text
+    DocParser.parserRun(in)
+  }
+
+  def createDocumentation(ast: AST.Comment.MultiLine): Doc = {
+    val in = ast.lines.mkString("\n")
     DocParser.parserRun(in)
   }
 
