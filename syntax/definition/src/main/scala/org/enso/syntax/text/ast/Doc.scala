@@ -1,5 +1,6 @@
 package org.enso.syntax.text.ast
 
+import org.enso.data.ADT
 import org.enso.data.List1
 import org.enso.syntax.text.ast.Repr.R
 
@@ -64,7 +65,7 @@ object Doc {
     * extending tokens and renderHTML method for creating ready-to-deploy HTML
     * file from documentation
     */
-  trait Symbol extends Repr.Provider {
+  sealed trait Symbol extends Repr.Provider {
     def html: HTML
     def renderHTML(cssLink: String): HTMLTag = {
       val metaEquiv = HTML.httpEquiv := "Content-Type"
@@ -97,7 +98,7 @@ object Doc {
     */
   sealed trait Elem extends Symbol
   object Elem {
-    trait Invalid extends Elem
+    sealed trait Invalid extends Elem
 
     ////////////////////////////////////////////////////////////////////////////
     //// Normal text & Newline /////////////////////////////////////////////////
@@ -340,7 +341,7 @@ object Doc {
     * Marked - Section which is marked as Important, Info or Example
     * Raw - normal, unmarked block of text
     */
-  trait Section extends Symbol {
+  sealed trait Section extends Symbol {
     def indent: Int
     def elems: List[Elem]
 
@@ -543,12 +544,16 @@ object Doc {
         Tag(indent, typ, Some(details))
 
       sealed trait Type
-      case object Deprecated   extends Type
-      case object Added        extends Type
-      case object Removed      extends Type
-      case object Modified     extends Type
-      case object Upcoming     extends Type
+      object Type {
+        case object Deprecated extends Type
+        case object Added      extends Type
+        case object Removed    extends Type
+        case object Modified   extends Type
+        case object Upcoming   extends Type
+        val codes = ADT.constructors[Type]
+      }
       case object Unrecognized extends Type
+
     }
 
     implicit final class ExtForTagDetails(val self: Option[String]) {

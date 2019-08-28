@@ -583,13 +583,7 @@ class DocParserTests extends FlatSpec with Matchers {
   //// Tags ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  val allPossibleTags = scala.List(
-    Tags.Tag.Deprecated,
-    Tags.Tag.Modified,
-    Tags.Tag.Added,
-    Tags.Tag.Removed,
-    Tags.Tag.Upcoming
-  )
+  val allPossibleTags = Tags.Tag.Type.codes.-(Tags.Tag.Unrecognized)
 
   allPossibleTags.foreach(
     t =>
@@ -599,11 +593,14 @@ class DocParserTests extends FlatSpec with Matchers {
       )
   )
   "DEPRECATED in 1.0\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0")),
+    Tags(Tags.Tag(Tags.Tag.Type.Deprecated, " in 1.0")),
     Synopsis(Section.Raw("Foo"))
   )
   "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
-    Tags(Tags.Tag(Tags.Tag.Deprecated, " in 1.0"), Tags.Tag(Tags.Tag.Modified)),
+    Tags(
+      Tags.Tag(Tags.Tag.Type.Deprecated, " in 1.0"),
+      Tags.Tag(Tags.Tag.Type.Modified)
+    ),
     Synopsis(Section.Raw("Foo"))
   )
   """   ALAMAKOTA a kot ma ale
@@ -725,8 +722,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |
     | foo *foo*""".stripMargin ?= Doc(
     Tags(
-      Tags.Tag(3, Tags.Tag.Deprecated, " das sfa asf"),
-      Tags.Tag(0, Tags.Tag.Removed, " fdsdf")
+      Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
+      Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
     ),
     Synopsis(
       Section.Raw(
@@ -746,8 +743,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |
     | foo *foo""".stripMargin ?= Doc(
     Tags(
-      Tags.Tag(3, Tags.Tag.Deprecated, " das sfa asf"),
-      Tags.Tag(0, Tags.Tag.Removed, " fdsdf")
+      Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
+      Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
     ),
     Synopsis(
       Section.Raw(
@@ -764,8 +761,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |  REMOVED
     | Foo""".stripMargin ?= Doc(
     Tags(
-      Tags.Tag(4, Tags.Tag.Deprecated, " das sfa asf"),
-      Tags.Tag(2, Tags.Tag.Removed)
+      Tags.Tag(4, Tags.Tag.Type.Deprecated, " das sfa asf"),
+      Tags.Tag(2, Tags.Tag.Type.Removed)
     ),
     Synopsis(Section.Raw(1, "Foo"))
   )
@@ -780,8 +777,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |   asfasfa sf
     |   asfas fasf """.stripMargin ?= Doc(
     Tags(
-      Tags.Tag(3, Tags.Tag.Deprecated, " das sfa asf"),
-      Tags.Tag(0, Tags.Tag.Removed, " fdsdf")
+      Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
+      Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
     ),
     Synopsis(
       Section.Raw(

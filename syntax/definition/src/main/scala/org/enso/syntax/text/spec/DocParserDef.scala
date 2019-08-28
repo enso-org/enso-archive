@@ -116,13 +116,7 @@ case class DocParserDef() extends Parser[Doc] {
     */
   final object tags {
     val possibleTagsList: List[Tags.Tag.Type] =
-      List(
-        Tags.Tag.Deprecated,
-        Tags.Tag.Added,
-        Tags.Tag.Modified,
-        Tags.Tag.Removed,
-        Tags.Tag.Upcoming
-      ) // FIXME
+      Tags.Tag.Type.codes.-(Tags.Tag.Unrecognized).toList
     var stack: List[Tags.Tag] = Nil
 
     def pushTag(indent: Int, tagType: Tags.Tag.Type, details: String): Unit =
