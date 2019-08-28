@@ -1,8 +1,0 @@
-@{
-  summator = { |acc, current|
-      ifZero: [current, acc, @summator [acc + current, current - 1]]
-  };
-  res = @summator [0, 1000000];
-  print: res;
-  0
-}

@@ -11,6 +11,11 @@ public class Main {
   private static final String RUN_OPTION = "run";
   private static final String HELP_OPTION = "help";
 
+  /**
+   * Builds the {@link Options} object representing the CLI syntax.
+   *
+   * @return an {@link Options} object representing the CLI syntax
+   */
   private static Options buildOptions() {
     Option help = Option.builder("h").longOpt(HELP_OPTION).desc("Displays this message.").build();
     Option run =
@@ -27,18 +32,30 @@ public class Main {
     return options;
   }
 
+  /**
+   * Prints the help message to the standard output.
+   *
+   * @param options object representing the CLI syntax
+   */
   public static void printHelp(Options options) {
     new HelpFormatter().printHelp(Constants.LANGUAGE_ID, options);
   }
 
+  /** Terminates the process with a failure exit code. */
   public static void exitFail() {
     System.exit(1);
   }
 
+  /** Terminates the process with a success exit code. */
   public static void exitSuccess() {
     System.exit(0);
   }
 
+  /**
+   * Main entry point for the CLI program.
+   *
+   * @param args the command line arguments
+   */
   public static void main(String[] args) throws IOException {
     Options options = buildOptions();
     CommandLineParser parser = new DefaultParser();
