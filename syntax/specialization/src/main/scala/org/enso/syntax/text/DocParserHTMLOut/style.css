@@ -31,15 +31,16 @@ p {
 }
 
 a:hover {
-    color: #0070c9 !important;
+    color: #35a5ff !important;
     text-decoration: none;
 }
 
 a {
-    color: inherit;
+    color: #0070c9;
     background-color: transparent;
     text-decoration: none;
     display: inline-block;
+    transition: all 0.3s ease;
 }
 
 img {
@@ -207,7 +208,7 @@ h2 {
 .Raw,
 .Important,
 .Info,
-.Code,
+.CodeBlock,
 .Example {
     margin-top: 0;
     margin-left: auto;
@@ -235,7 +236,7 @@ h2 {
 
 .Important,
 .Info,
-.Code,
+.CodeBlock,
 .Example {
     font-size: 17;
     padding-top: 0.94118rem;
@@ -264,7 +265,7 @@ h2 {
     border-color: #8a82cf;
 }
 
-.Code {
+.CodeBlock {
     border-color: #7cd58b;
     margin: 10px 20px;
     display: none;

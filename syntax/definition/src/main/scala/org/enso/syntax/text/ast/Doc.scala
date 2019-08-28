@@ -9,14 +9,15 @@ import scalatags.Text.{all => HTML}
 import HTML._
 import scalatags.generic
 import scalatags.text.Builder
+import org.enso.syntax.text.AST
 
 ////////////////////////////////////////////////////////////////////////////////
-////// Doc /////////////////////////////////////////////////////////////////////
+//// Doc ///////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 /** Doc - The highest level container, the output of Doc Parser
   *
-  * @param tp - defines type of documentation, if invoked from Parser then it
+  * @param typ - defines type of documentation, if invoked from Parser then it
   *             may be singleLineCode or multiLineCode, else it has type debug
   * Doc can be made of up to 3 elements:
   * @param tags - If exists, holds applied tags to documented text
@@ -24,60 +25,53 @@ import scalatags.text.Builder
   * @param body - If exists, holds body of documented text
   */
 final case class Doc(
-  tp: Doc.Type,
+  typ: Doc.Type,
   tags: Option[Doc.Tags],
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
 ) extends Doc.Symbol
-    with org.enso.syntax.text.AST {
-  val ending =
-    if (tp == Doc.multiLineCode) Doc.Elem.Newline else Doc.Elem.Text("")
-  val repr: Repr = R + tp + tags + synopsis + body + ending
-  val html: Doc.HTML = {
-    Seq(HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html))
-  }
+    with AST {
 
-  override def map(
-    f: org.enso.syntax.text.AST => org.enso.syntax.text.AST
-  ): org.enso.syntax.text.AST = this
+  val ending: Doc.Elem =
+    if (typ == Doc.multiLineComment) Doc.Elem.Newline else Doc.Elem.Text("")
+  val repr: Repr = R + typ + tags + synopsis + body + ending
+  val html: Doc.HTML = Seq(
+    HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
+  )
+
+  def map(f: AST => AST): AST = this
 }
 
 object Doc {
-  trait Type extends Symbol
-  case object debug extends Type {
-    val repr = R
-    val html = Seq()
+  abstract class Type(val repr: Repr) extends Symbol {
+    val html: HTML = Seq()
   }
-  case object singleLineCode extends Type {
-    val repr = R + "##"
-    val html = Seq()
-  }
-  case object multiLineCode extends Type {
-    val repr = R + "##" + Elem.Newline
-    val html = Seq()
-  }
+  case object debuggingInDocParser extends Type(R)
+  case object singleLineComment    extends Type(R + "##")
+  case object multiLineComment     extends Type(R + "##" + Elem.Newline)
 
-  def apply():                   Doc = Doc(debug, None, None, None)
-  def apply(tags: Tags):         Doc = Doc(debug, Some(tags), None, None)
-  def apply(synopsis: Synopsis): Doc = Doc(debug, None, Some(synopsis), None)
+  def apply():           Doc = Doc(debuggingInDocParser, None, None, None)
+  def apply(tags: Tags): Doc = Doc(debuggingInDocParser, Some(tags), None, None)
+  def apply(synopsis: Synopsis): Doc =
+    Doc(debuggingInDocParser, None, Some(synopsis), None)
   def apply(synopsis: Synopsis, body: Body): Doc =
-    Doc(debug, None, Some(synopsis), Some(body))
+    Doc(debuggingInDocParser, None, Some(synopsis), Some(body))
   def apply(tags: Tags, synopsis: Synopsis): Doc =
-    Doc(debug, Some(tags), Some(synopsis), None)
+    Doc(debuggingInDocParser, Some(tags), Some(synopsis), None)
   def apply(tags: Tags, synopsis: Synopsis, body: Body): Doc =
-    Doc(debug, Some(tags), Some(synopsis), Some(body))
+    Doc(debuggingInDocParser, Some(tags), Some(synopsis), Some(body))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Symbol ////////////////////////////////////////////////////////////////
+  //// Symbol //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   /** Symbol - the most low-level element, on top of which every other element
     * is built
     *
-    * It extends Repr.Provider, so it also contain [[repr]] method, as well as
+    * It extends Repr.Provider, so it also contain repr method, as well as
     * span and show values. In addition to that it specifies html method for
     * extending tokens and renderHTML method for creating ready-to-deploy HTML
     * file from documentation
@@ -99,13 +93,13 @@ object Doc {
       HTML.`class` := getClass.toString.split('$').last.split('.').last
   }
 
-  implicit final class _OptionT_[T <: Symbol](val self: Option[T]) {
+  implicit final class ExtForSymbol[T <: Symbol](val self: Option[T]) {
     val dummyText  = Elem.Text("")
     val html: HTML = self.getOrElse(dummyText).html
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// AST ///////////////////////////////////////////////////////////////////
+  //// Elem ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   /** Elem - the trait for proper element of Doc, which elements can be used in
@@ -118,7 +112,7 @@ object Doc {
     trait Invalid extends Elem
 
     ////////////////////////////////////////////////////////////////////////////
-    ////// Normal text & Newline ///////////////////////////////////////////////
+    //// Normal text & Newline /////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     /* Text - used to hold normal string as Elem
@@ -137,26 +131,26 @@ object Doc {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    ////// Text Formatter - Bold, Italic, Strikeout ////////////////////////////
+    //// Text Formatter - Bold, Italic, Strikeout //////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     /** Formatter - element used to hold formatted text
       *
-      * @param tp - specifies type of formatter (Bold, Italic, Strikeout)
+      * @param typ - specifies type of formatter (Bold, Italic, Strikeout)
       * @param elems - elems which make up formatter
       */
-    final case class Formatter(tp: Formatter.Type, elems: scala.List[Elem])
+    final case class Formatter(typ: Formatter.Type, elems: scala.List[Elem])
         extends Elem {
-      val repr: Repr = R + tp.marker + elems + tp.marker
-      val html: HTML = Seq(tp.htmlMarker(elems.html))
+      val repr: Repr = R + typ.marker + elems + typ.marker
+      val html: HTML = Seq(typ.htmlMarker(elems.html))
     }
 
     object Formatter {
-      def apply(tp: Type): Formatter = Formatter(tp, Nil)
-      def apply(tp: Type, elem: Elem): Formatter =
-        Formatter(tp, elem :: Nil)
-      def apply(tp: Type, elems: Elem*): Formatter =
-        Formatter(tp, elems.toList)
+      def apply(typ: Type): Formatter = Formatter(typ, Nil)
+      def apply(typ: Type, elem: Elem): Formatter =
+        Formatter(typ, elem :: Nil)
+      def apply(typ: Type, elems: Elem*): Formatter =
+        Formatter(typ, elems.toList)
 
       abstract class Type(val marker: Char, val htmlMarker: HTMLTag)
       case object Bold      extends Type('*', HTML.b)
@@ -166,32 +160,31 @@ object Doc {
       /** Unclosed - Invalid formatter made by parser if user has invoked
         * formatter but hasn't ended it
         *
-        * @param tp - specifies type of formatter (Bold, Italic, Strikeout)
+        * @param typ - specifies type of formatter (Bold, Italic, Strikeout)
         * @param elems - elems which make up unclosed formatter
         */
-      final case class Unclosed(tp: Type, elems: scala.List[Elem])
+      final case class Unclosed(typ: Type, elems: scala.List[Elem])
           extends Elem.Invalid {
-        val repr: Repr = R + tp.marker + elems
-        val html: HTML = Seq {
-          HTML.div(htmlCls())(tp.htmlMarker(elems.html))
-        }
+        val repr: Repr = R + typ.marker + elems
+        val html: HTML = Seq(HTML.div(htmlCls())(typ.htmlMarker(elems.html)))
       }
 
       object Unclosed {
-        def apply(tp: Type):               Unclosed = Unclosed(tp, Nil)
-        def apply(tp: Type, elem: Elem):   Unclosed = Unclosed(tp, elem :: Nil)
-        def apply(tp: Type, elems: Elem*): Unclosed = Unclosed(tp, elems.toList)
+        def apply(typ: Type):             Unclosed = Unclosed(typ, Nil)
+        def apply(typ: Type, elem: Elem): Unclosed = Unclosed(typ, elem :: Nil)
+        def apply(typ: Type, elems: Elem*): Unclosed =
+          Unclosed(typ, elems.toList)
       }
     }
 
-    implicit final class _ListOfFormattedElems_(val self: scala.List[Elem])
+    implicit final class ExtForListOfElem(val self: scala.List[Elem])
         extends Symbol {
       val repr: Repr = R + self.map(_.repr)
       val html: HTML = Seq(self.map(_.html))
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    ////// Code ////////////////////////////////////////////////////////////////
+    //// Code //////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     /** Code - block used to hold lines of code in Documentation
@@ -203,7 +196,7 @@ object Doc {
          Basically we don't want to display always button
          we want to be able to display it maybe as a button on website
          and completely differently in gui, it should be configurable*/
-    final case class Code(elems: List1[Code.Line]) extends Elem {
+    final case class CodeBlock(elems: List1[CodeBlock.Line]) extends Elem {
       val newLn: Elem = Elem.Newline
       val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _)
       val html: HTML = {
@@ -223,13 +216,12 @@ object Doc {
         Seq(HTML.div(btn, HTML.div(htmlCls())(htmlIdCode)(elemsHTML)))
       }
     }
-    object Code {
-      def apply(elem: Code.Line): Code = Code(List1(elem))
-      def apply(elems: Code.Line*): Code =
-        Code(List1(elems.head, elems.tail.toList))
-
+    object CodeBlock {
+      def apply(elem: CodeBlock.Line): CodeBlock = CodeBlock(List1(elem))
+      def apply(elems: CodeBlock.Line*): CodeBlock =
+        CodeBlock(List1(elems.head, elems.tail.toList))
       /* Inline - line of code which is in line with other elements
-       * Line - elem which is a part of Code block
+       * Line - elem which is a part of Code Block
        */
       final case class Inline(str: String) extends Elem {
         val marker     = '`'
@@ -243,7 +235,7 @@ object Doc {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    ////// Link - URL & Image //////////////////////////////////////////////////
+    //// Link - URL & Image ////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     /** Link - element used to hold links
@@ -255,7 +247,7 @@ object Doc {
       *
       * Link.Invalid - something that couldn't be pattern matched to create link
       */
-    abstract class Link(name: String, url: String, val marker: String)
+    abstract class Link(name: String, url: String, val marker: Option[String])
         extends Elem {
       val repr: Repr = R + marker + "[" + name + "](" + url + ")"
       val html: HTML = this match {
@@ -266,13 +258,13 @@ object Doc {
 
     object Link {
       final case class URL(name: String, url: String)
-          extends Link(name, url, "")
+          extends Link(name, url, None)
       object URL {
         def apply(): URL = URL("", "")
       }
 
       final case class Image(name: String, url: String)
-          extends Link(name, url, "!")
+          extends Link(name, url, Some("!"))
       object Image {
         def apply(): Image = Image("", "")
       }
@@ -291,24 +283,24 @@ object Doc {
     }
 
     ////////////////////////////////////////////////////////////////////////////
-    ////// List - Ordered & Unordered, Invalid Indent //////////////////////////
+    //// List - Ordered & Unordered, Invalid Indent ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////
 
     /** List - block used to hold ordered and unordered lists
       *
       * @param indent - specifies indentation of list
-      * @param tp - type of list
+      * @param typ - type of list
       * @param elems - elements which make up list
       *
       * Indent.Invalid - holds list element with invalid indent
       */
-    final case class List(indent: Int, tp: List.Type, elems: List1[Elem])
+    final case class List(indent: Int, typ: List.Type, elems: List1[Elem])
         extends Elem {
-      val repr: Repr = R + indent + tp.marker + elems.head + elems.tail.map {
+      val repr: Repr = R + indent + typ.marker + elems.head + elems.tail.map {
           case elem @ (_: Elem.Invalid) => R + Newline + elem
           case elem @ (_: List)         => R + Newline + elem
           case elem =>
-            R + Newline + indent + tp.marker + elem
+            R + Newline + indent + typ.marker + elem
         }
 
       val html: HTML = {
@@ -316,7 +308,7 @@ object Doc {
           case elem @ (_: List) => elem.html
           case elem             => Seq(HTML.li(elem.html))
         }
-        Seq(tp.HTMLMarker(elemsHTML))
+        Seq(typ.HTMLMarker(elemsHTML))
       }
     }
 
@@ -331,9 +323,9 @@ object Doc {
       final case object Ordered   extends Type('*', HTML.ol)
 
       object Indent {
-        final case class Invalid(indent: Int, tp: Type, elem: Elem)
+        final case class Invalid(indent: Int, typ: Type, elem: Elem)
             extends Elem.Invalid {
-          val repr: Repr = R + indent + tp.marker + elem
+          val repr: Repr = R + indent + typ.marker + elem
           val html: HTML = {
             val className = this.productPrefix
             val htmlCls   = HTML.`class` := className + getObjectName
@@ -349,7 +341,7 @@ object Doc {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Sections - Raw & Marked ///////////////////////////////////////////////
+  //// Sections - Raw & Marked /////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   /** Section - block used to hold one section of text
@@ -371,21 +363,18 @@ object Doc {
       }
     }
 
-    val html: HTML = {
-      Seq(HTML.div(htmlCls())(elems.map(_.html)))
-    }
+    val html: HTML = Seq(HTML.div(htmlCls())(elems.map(_.html)))
   }
 
   object Section {
-    /* Header - element used to hold header for section
-     *
-     * @param elems - elements which make up header
-     */
+
+    /** Header - element used to hold header for section
+      *
+      * @param elems - elements which make up header
+      */
     final case class Header(elems: List[Elem]) extends Elem {
       val repr: Repr = R + elems.map(_.repr)
-      val html: HTML = {
-        Seq(HTML.div(htmlCls())(elems.map(_.html)))
-      }
+      val html: HTML = Seq(HTML.div(htmlCls())(elems.map(_.html)))
     }
     object Header {
       def apply(elem: Elem):   Header = Header(elem :: Nil)
@@ -395,57 +384,56 @@ object Doc {
     final case class Marked(
       indentBeforeMarker: Int,
       indentAfterMarker: Int,
-      tp: Marked.Type,
+      typ: Marked.Type,
       elems: List[Elem]
     ) extends Section {
-      val marker: String    = tp.marker.toString
-      val markerLength: Int = 1
+      val marker: String = typ.marker.toString
       val firstIndentRepr
         : Repr = R + indentBeforeMarker + marker + indentAfterMarker
 
       val dummyElem = Elem.Text("")
       val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
-        case (elem @ (_: Elem.List), _) => R + elem
-        case (elem @ (_: Elem.Code), _) => R + elem
-        case (elem, prevElem)           => reprOfNormalText(elem, prevElem)
+        case (elem @ (_: Elem.List), _)      => R + elem
+        case (elem @ (_: Elem.CodeBlock), _) => R + elem
+        case (elem, prevElem)                => reprOfNormalText(elem, prevElem)
       }
 
       val repr: Repr = R + firstIndentRepr + elemsRepr
       override def htmlCls(): generic.AttrPair[Builder, String] = {
-        HTML.`class` := tp.toString
+        HTML.`class` := typ.toString
       }
 
       override def indent: Int =
-        indentBeforeMarker + markerLength + indentAfterMarker
+        indentBeforeMarker + marker.length + indentAfterMarker
     }
 
     object Marked {
       def apply(
         indentBeforeMarker: Int,
         indentAfterMarker: Int,
-        st: Type
-      ): Marked = Marked(indentBeforeMarker, indentAfterMarker, st, Nil)
+        typ: Type
+      ): Marked = Marked(indentBeforeMarker, indentAfterMarker, typ, Nil)
       def apply(
         indentBeforeMarker: Int,
         indentAfterMarker: Int,
-        st: Type,
+        typ: Type,
         elem: Elem
       ): Marked =
-        Marked(indentBeforeMarker, indentAfterMarker, st, elem :: Nil)
+        Marked(indentBeforeMarker, indentAfterMarker, typ, elem :: Nil)
       def apply(
         indentBeforeMarker: Int,
         indentAfterMarker: Int,
-        st: Type,
+        typ: Type,
         elems: Elem*
       ): Marked =
-        Marked(indentBeforeMarker, indentAfterMarker, st, elems.toList)
+        Marked(indentBeforeMarker, indentAfterMarker, typ, elems.toList)
       val defaultIndent = 0
-      def apply(st: Type): Marked =
-        Marked(defaultIndent, defaultIndent, st, Nil)
-      def apply(st: Type, elem: Elem): Marked =
-        Marked(defaultIndent, defaultIndent, st, elem :: Nil)
-      def apply(st: Type, elems: Elem*): Marked =
-        Marked(defaultIndent, defaultIndent, st, elems.toList)
+      def apply(typ: Type): Marked =
+        Marked(defaultIndent, defaultIndent, typ, Nil)
+      def apply(typ: Type, elem: Elem): Marked =
+        Marked(defaultIndent, defaultIndent, typ, elem :: Nil)
+      def apply(typ: Type, elems: Elem*): Marked =
+        Marked(defaultIndent, defaultIndent, typ, elems.toList)
 
       abstract class Type(val marker: Char)
       case object Important extends Type('!')
@@ -459,7 +447,7 @@ object Doc {
       val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
         case (elem @ (_: Section.Header), _) => R + newLn + indent + elem
         case (elem @ (_: Elem.List), _)      => R + elem
-        case (elem @ (_: Elem.Code), _)      => R + elem
+        case (elem @ (_: Elem.CodeBlock), _) => R + elem
         case (elem, prevElem)                => reprOfNormalText(elem, prevElem)
       }
 
@@ -478,7 +466,7 @@ object Doc {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Synopsis //////////////////////////////////////////////////////////////
+  //// Synopsis ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   /** Synopsis - block used to hold section as a synopsis of documentation
@@ -499,19 +487,19 @@ object Doc {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Body //////////////////////////////////////////////////////////////////
+  //// Body ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /* Body - block used to hold proper body of documentation
-   *
-   * @param elems - sections which make up body
-   */
+  /** Body - block used to hold proper body of documentation
+    *
+    * @param elems - sections which make up body
+    */
   final case class Body(elems: List1[Section]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr: Repr  = R + newLn + elems.head + elems.tail.map(R + newLn + _)
-    val html: HTML = {
-      Seq(HTML.div(htmlCls())(HTML.h2("Overview"))(elems.toList.map(_.html)))
-    }
+    val html: HTML = Seq(
+      HTML.div(htmlCls())(HTML.h2("Overview"))(elems.toList.map(_.html))
+    )
   }
 
   object Body {
@@ -521,7 +509,7 @@ object Doc {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Tags //////////////////////////////////////////////////////////////////
+  //// Tags ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   /** Tags - block used to hold tags for documentation
@@ -531,9 +519,7 @@ object Doc {
   final case class Tags(elems: List1[Tags.Tag]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _) + newLn
-    val html: HTML = {
-      Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
-    }
+    val html: HTML  = Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
   }
   object Tags {
     def apply(elem: Tag):   Tags = Tags(List1(elem))
@@ -542,18 +528,18 @@ object Doc {
     /** Tag - one single tag for Tags
       *
       * @param indent - indent of tag
-      * @param tp - type of tag, which can be
+      * @param typ - type of tag, which can be
       * Deprecated, Added, Removed, Modified, Upcoming or Unrecognized
       * @param details - optional information for tag
       */
-    final case class Tag(indent: Int, tp: Tag.Type, details: Option[String])
+    final case class Tag(indent: Int, typ: Tag.Type, details: Option[String])
         extends Elem {
-      val name: String = tp.toString.toUpperCase
-      val repr: Repr = tp match {
+      val name: String = typ.toString.toUpperCase
+      val repr: Repr = typ match {
         case Tag.Unrecognized => R + indent + details
         case _                => R + indent + name + details
       }
-      val html: HTML = tp match {
+      val html: HTML = typ match {
         case Tag.Unrecognized =>
           Seq(HTML.div(HTML.`class` := name)(details.html))
         case _ => Seq(HTML.div(HTML.`class` := name)(name)(details.html))
@@ -561,12 +547,12 @@ object Doc {
     }
     object Tag {
       val defaultIndent = 0
-      def apply(tp: Type): Tag = Tag(defaultIndent, tp, None)
-      def apply(tp: Type, details: String): Tag =
-        Tag(defaultIndent, tp, Some(details))
-      def apply(indent: Int, tp: Type): Tag = Tag(indent, tp, None)
-      def apply(indent: Int, tp: Type, details: String): Tag =
-        Tag(indent, tp, Some(details))
+      def apply(typ: Type): Tag = Tag(defaultIndent, typ, None)
+      def apply(typ: Type, details: String): Tag =
+        Tag(defaultIndent, typ, Some(details))
+      def apply(indent: Int, typ: Type): Tag = Tag(indent, typ, None)
+      def apply(indent: Int, typ: Type, details: String): Tag =
+        Tag(indent, typ, Some(details))
 
       sealed trait Type
       case object Deprecated   extends Type
@@ -577,7 +563,7 @@ object Doc {
       case object Unrecognized extends Type
     }
 
-    implicit final class tagDetails(val self: Option[String]) {
+    implicit final class ExtForTagDetails(val self: Option[String]) {
       val html: HTML = {
         val htmlCls = HTML.`class` := this.getClass.toString.split('$').last
         Seq(self.map(HTML.div(htmlCls)(_)))

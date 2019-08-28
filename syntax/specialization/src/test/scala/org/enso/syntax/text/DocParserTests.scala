@@ -37,11 +37,11 @@ class DocParserTests extends FlatSpec with Matchers {
   }
 
   //////////////////////////////////////////////////////////////////////////////
-  //////                 Documentation Parser Test Suite                   /////
+  ////                  Documentation Parser Test Suite                    /////
   //////////////////////////////////////////////////////////////////////////////
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Formatters ////////////////////////////////////////////////////////////
+  //// Formatters //////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   "*Foo*" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
@@ -49,7 +49,7 @@ class DocParserTests extends FlatSpec with Matchers {
   "~Foo~" ?= Doc(
     Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
   )
-  "`Foo`" ?= Doc(Synopsis(Section.Raw(Code.Inline("Foo"))))
+  "`Foo`" ?= Doc(Synopsis(Section.Raw(CodeBlock.Inline("Foo"))))
   "~*Foo*~" ?= Doc(
     Synopsis(
       Section.Raw(
@@ -104,12 +104,12 @@ class DocParserTests extends FlatSpec with Matchers {
   )
   "`import foo`" ?= Doc(
     Synopsis(
-      Section.Raw(Code.Inline("import foo"))
+      Section.Raw(CodeBlock.Inline("import foo"))
     )
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Unclosed formatters ///////////////////////////////////////////////////
+  //// Unclosed formatters /////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   "_*Foo*" ?= Doc(
@@ -223,7 +223,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Segments //////////////////////////////////////////////////////////////
+  //// Segments ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   "!Important" ?= Doc(
@@ -304,7 +304,7 @@ class DocParserTests extends FlatSpec with Matchers {
           Formatter.Unclosed(Formatter.Bold, "Bar")
         ),
         " ",
-        Code.Inline("foo bar baz bo"),
+        CodeBlock.Inline("foo bar baz bo"),
         Newline
       )
     ),
@@ -322,7 +322,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Lists /////////////////////////////////////////////////////////////////
+  //// Lists ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   "ul:\n  - Foo\n  - Bar" ?= Doc(
@@ -443,7 +443,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Wrong indent //////////////////////////////////////////////////////////
+  //// Wrong indent ////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   """List
@@ -496,7 +496,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Links /////////////////////////////////////////////////////////////////
+  //// Links ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   "[Hello](Http://Google.com)" ?= Doc(
@@ -580,7 +580,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Tags //////////////////////////////////////////////////////////////////
+  //// Tags ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   val allPossibleTags = scala.List(
@@ -613,7 +613,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Multiline code ////////////////////////////////////////////////////////
+  //// Multiline code //////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   """afsfasfsfjanfjanfa
@@ -626,7 +626,10 @@ class DocParserTests extends FlatSpec with Matchers {
         Newline,
         "jfnajnfjadnbfjabnf",
         Newline,
-        Code(Code.Line(3, "siafjaifhjiasjf"), Code.Line(3, "fasfknfanfijnf"))
+        CodeBlock(
+          CodeBlock.Line(3, "siafjaifhjiasjf"),
+          CodeBlock.Line(3, "fasfknfanfijnf")
+        )
       )
     )
   )
@@ -641,10 +644,10 @@ class DocParserTests extends FlatSpec with Matchers {
         Newline,
         "jfnajnfjadnbfjabnf",
         Newline,
-        Code(
-          Code.Line(3, "siafjaifhjiasjf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(3, "fasfknfanfijnf")
+        CodeBlock(
+          CodeBlock.Line(3, "siafjaifhjiasjf"),
+          CodeBlock.Line(5, "fasfknfanfijnf"),
+          CodeBlock.Line(3, "fasfknfanfijnf")
         )
       )
     )
@@ -662,12 +665,12 @@ class DocParserTests extends FlatSpec with Matchers {
         Newline,
         "jfnajnfjadnbfjabnf",
         Newline,
-        Code(
-          Code.Line(3, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(10, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(3, "fasfknfanfijnf")
+        CodeBlock(
+          CodeBlock.Line(3, "fasfknfanfijnf"),
+          CodeBlock.Line(5, "fasfknfanfijnf"),
+          CodeBlock.Line(10, "fasfknfanfijnf"),
+          CodeBlock.Line(5, "fasfknfanfijnf"),
+          CodeBlock.Line(3, "fasfknfanfijnf")
         )
       )
     )
@@ -685,19 +688,19 @@ class DocParserTests extends FlatSpec with Matchers {
         Newline,
         "jfnajnfjadnbfjabnf",
         Newline,
-        Code(
-          Code.Line(3, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(2, "fasfknfanfijnf"),
-          Code.Line(5, "fasfknfanfijnf"),
-          Code.Line(3, "fasfknfanfijnf")
+        CodeBlock(
+          CodeBlock.Line(3, "fasfknfanfijnf"),
+          CodeBlock.Line(5, "fasfknfanfijnf"),
+          CodeBlock.Line(2, "fasfknfanfijnf"),
+          CodeBlock.Line(5, "fasfknfanfijnf"),
+          CodeBlock.Line(3, "fasfknfanfijnf")
         )
       )
     )
   )
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Unclassified tests ////////////////////////////////////////////////////
+  //// Unclassified tests //////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
   """
@@ -709,7 +712,7 @@ class DocParserTests extends FlatSpec with Matchers {
         Newline,
         " - bar",
         Newline,
-        Code(Code.Line(1, "baz")),
+        CodeBlock(CodeBlock.Line(1, "baz")),
         Newline
       )
     )
