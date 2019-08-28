@@ -11,7 +11,6 @@ import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.ast.opr.Prec
 
-import org.enso.syntax.text.DocParserRunner
 import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.ast.Doc
 
@@ -424,8 +423,6 @@ object Main extends App {
 
   }
   println()
-
-//  DocParserRunner
 }
 
 // 1. Parsing patterns in-place with segments

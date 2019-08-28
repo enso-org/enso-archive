@@ -12,21 +12,6 @@ import scala.reflect.runtime.universe.reify
 case class DocParserDef() extends Parser[Doc] {
 
   //////////////////////////////////////////////////////////////////////////////
-  ////// Basic Char Classification /////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  val lowerChar: Pattern = range('a', 'z')
-  val upperChar: Pattern = range('A', 'Z')
-  val digit: Pattern     = range('0', '9')
-
-  val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
-  val whitespace   = ' '.many1
-  val newline      = '\n'
-
-  val possibleChars = lowerChar | upperChar | digit | whitespace | specialChars
-  val normalText    = possibleChars.many1
-
-  //////////////////////////////////////////////////////////////////////////////
   ////// Result ////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
@@ -65,6 +50,21 @@ case class DocParserDef() extends Parser[Doc] {
   }
 
   //////////////////////////////////////////////////////////////////////////////
+  ////// Basic Char Classification /////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  val lowerChar: Pattern = range('a', 'z')
+  val upperChar: Pattern = range('A', 'Z')
+  val digit: Pattern     = range('0', '9')
+
+  val specialChars = "," | "." | ":" | "/" | "’" | "=" | "'" | "|" | "+" | "-"
+  val whitespace   = ' '.many1
+  val newline      = '\n'
+
+  val possibleChars = lowerChar | upperChar | digit | whitespace | specialChars
+  val normalText    = possibleChars.many1
+
+  //////////////////////////////////////////////////////////////////////////////
   ////// Text //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
@@ -72,18 +72,12 @@ case class DocParserDef() extends Parser[Doc] {
     */
   final object text {
     def onPushing(in: String): Unit = logger.trace {
-      val isDocBeginning
-        : Boolean = result.stack.isEmpty && section.stack.isEmpty
-      val isSectionBeginning
-        : Boolean = result.stack.isEmpty || result.stack.head
-          .isInstanceOf[Section.Header]
-
-      if (isDocBeginning) {
+      if (documentation.isBeginning()) {
         if (!tags.checkIfTagExistInPushedText(in)) {
           val text = removeWhitespaces(in)
           push(text)
         }
-      } else if (isSectionBeginning) {
+      } else if (section.isBeginning()) {
         val text = removeWhitespaces(in)
         push(text)
       } else {
@@ -678,6 +672,10 @@ case class DocParserDef() extends Parser[Doc] {
       result.push()
     }
 
+    def isBeginning(): Boolean = logger.trace {
+      result.stack.isEmpty || result.stack.head.isInstanceOf[Section.Header]
+    }
+
     ////// End of Section //////
     def checkForUnclosedFormattersOnEOS(): Unit = logger.trace {
       formatter.checkForUnclosed(Elem.Formatter.Bold)
@@ -811,19 +809,31 @@ case class DocParserDef() extends Parser[Doc] {
       createDoc()
     }
 
+    def isBeginning(): Boolean = logger.trace {
+      result.stack.isEmpty && section.stack.isEmpty
+    }
+
     val singleLinePattern = "##"
     val multiLinePattern  = "##" + newline
 
-    def onSLC(): Unit = logger.trace {
-      tp = Doc.singleLineCode
+    def onChoosingFileType(t: Doc.Type): Unit = logger.trace {
+      if (isBeginning()) {
+        tp = t
+      } else {
+        text.push(currentMatch)
+      }
     }
 
-    def onMLC(): Unit = logger.trace {
-      tp = Doc.multiLineCode
+    def onSingleL(): Unit = logger.trace {
+      onChoosingFileType(Doc.singleLineCode)
+    }
+
+    def onMultiL(): Unit = logger.trace {
+      onChoosingFileType(Doc.multiLineCode)
     }
   }
 
   ROOT || eof                             || reify { documentation.onEOF() }
-  ROOT || documentation.singleLinePattern || reify { documentation.onSLC() }
-  ROOT || documentation.multiLinePattern  || reify { documentation.onMLC() }
+  ROOT || documentation.singleLinePattern || reify { documentation.onSingleL() }
+  ROOT || documentation.multiLinePattern  || reify { documentation.onMultiL() }
 }

@@ -16,7 +16,8 @@ import scalatags.text.Builder
 
 /** Doc - The highest level container, the output of Doc Parser
   *
-  * @param tp - defines type of documentation
+  * @param tp - defines type of documentation, if invoked from Parser then it
+  *             may be singleLineCode or multiLineCode, else it has type debug
   * Doc can be made of up to 3 elements:
   * @param tags - If exists, holds applied tags to documented text
   * @param synopsis - If exists, holds synopsis of documented text
@@ -29,7 +30,9 @@ final case class Doc(
   body: Option[Doc.Body]
 ) extends Doc.Symbol
     with org.enso.syntax.text.AST {
-  val repr: Repr = R + tp + tags + synopsis + body
+  val ending =
+    if (tp == Doc.multiLineCode) Doc.Elem.Newline else Doc.Elem.Text("")
+  val repr: Repr = R + tp + tags + synopsis + body + ending
   val html: Doc.HTML = {
     Seq(HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html))
   }
@@ -74,7 +77,10 @@ object Doc {
   /** Symbol - the most low-level element, on top of which every other element
     * is built
     *
-    * It specifies span of element, representation of element and HTML generator
+    * It extends Repr.Provider, so it also contain [[repr]] method, as well as
+    * span and show values. In addition to that it specifies html method for
+    * extending tokens and renderHTML method for creating ready-to-deploy HTML
+    * file from documentation
     */
   trait Symbol extends Repr.Provider {
     def html: HTML
