@@ -7,6 +7,8 @@ import scala.util.Random
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
+import org.enso.syntax.text.AST
+import org.enso.syntax.text.AST.Comment
 import scalatags.generic
 import scalatags.text.Builder
 
@@ -25,13 +27,14 @@ final case class Doc(
   tags: Option[Doc.Tags],
   synopsis: Option[Doc.Synopsis],
   body: Option[Doc.Body]
-) extends Doc.Symbol {
+) extends Doc.Symbol
+    with Comment {
   val repr: Repr = R + tags + synopsis + body
   val html: Doc.HTML = Seq(
     HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
   )
 
-  def map(f: Doc => Doc): Doc = this
+  def map(f: AST => AST): AST = this
 }
 
 object Doc {
@@ -62,9 +65,6 @@ object Doc {
     * file from documentation
     */
   trait Symbol extends Repr.Provider {
-    def span:   Int    = repr.span
-    def show(): String = repr.show()
-
     def html: HTML
     def renderHTML(cssLink: String): HTMLTag = {
       val metaEquiv = HTML.httpEquiv := "Content-Type"

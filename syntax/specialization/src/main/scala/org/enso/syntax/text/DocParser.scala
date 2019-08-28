@@ -12,14 +12,14 @@ import scalatags.Text.TypedTag
 import scala.util.Random
 
 ////////////////////////////////////////////////////////////////////////////////
-////// DocParser ///////////////////////////////////////////////////////////////
+//// DocParser /////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 class DocParser {
   import DocParser._
   private val engine = newEngine()
 
-  def parserRun(input: String): Doc = run(input) match {
+  def parserRun(input: String): AST = run(input) match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) =>
       println(v.renderHTML("style.css"))
       val path =
@@ -36,7 +36,7 @@ object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
-  def parserRun(input: String): Doc         = new DocParser().parserRun(input)
+  def parserRun(input: String): AST         = new DocParser().parserRun(input)
   def run(input: String):       Result[Doc] = new DocParser().run(input)
 
   def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {

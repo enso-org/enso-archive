@@ -168,12 +168,12 @@ class Parser {
     }
   }
 
-  def createDocumentation(ast: AST.Comment.SingleLine): Doc = {
+  def createDocumentationSL(ast: AST.Comment.SingleLine): AST = {
     val in = ast.text
     DocParser.parserRun(in)
   }
 
-  def createDocumentation(ast: AST.Comment.MultiLine): Doc = {
+  def createDocumentationML(ast: AST.Comment.MultiLine): AST = {
     val in = ast.lines.mkString("\n")
     DocParser.parserRun(in)
   }
@@ -186,9 +186,12 @@ class Parser {
           case Some(spec) =>
             createDocumentation(spec.fin(ast.pfx, ast.segs.toList().map(_.el)))
         }
-      case v: AST.Comment.MultiLine  => createDocumentation(v)
-      case v: AST.Comment.SingleLine => createDocumentation(v)
-      case v                         => v.map(createDocumentation)
+      case v: AST.Comment.MultiLine =>
+        createDocumentationML(v)
+      case v: AST.Comment.SingleLine =>
+        createDocumentationSL(v)
+      case v =>
+        v.map(createDocumentation)
     }
   }
 
