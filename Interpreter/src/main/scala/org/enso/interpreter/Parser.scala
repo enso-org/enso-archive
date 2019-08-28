@@ -49,6 +49,7 @@ trait AstExpressionVisitor[+T] {
 trait AstGlobalScopeVisitor[+T] {
 
   def visitGlobalScope(
+    imports: java.util.List[AstImport],
     typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstMethodDef],
     expression: AstExpression
@@ -65,7 +66,12 @@ case class AstTypeDef(name: String, arguments: List[AstArgDefinition])
 case class AstMethodDef(typeName: String, methodName: String, fun: AstFunction)
     extends AstGlobalSymbol
 
+case class AstImport(segments: List[String]) {
+  def getSegments: java.util.List[String] = segments.asJava
+}
+
 case class AstGlobalScope(
+  imports: List[AstImport],
   bindings: List[AstGlobalSymbol],
   expression: AstExpression) {
 
@@ -78,7 +84,7 @@ case class AstGlobalScope(
       case typeDef: AstTypeDef      => types.add(typeDef)
     }
 
-    visitor.visitGlobalScope(types, defs, expression)
+    visitor.visitGlobalScope(imports.asJava, types, defs, expression)
   }
 }
 
@@ -323,9 +329,15 @@ class EnsoParserInternal extends JavaTokenParsers {
         AstMethodDef(typeName, methodName, fun)
     }
 
+  def importStmt: Parser[AstImport] =
+    "import" ~> ident ~ (("." ~> ident) *) ^^ {
+      case seg ~ segs => AstImport(seg :: segs)
+    }
+
   def globalScope: Parser[AstGlobalScope] =
-    ((typeDef | methodDef) *) ~ expression ^^ {
-      case assignments ~ expr => AstGlobalScope(assignments, expr)
+    (importStmt *) ~ ((typeDef | methodDef) *) ~ expression ^^ {
+      case imports ~ assignments ~ expr =>
+        AstGlobalScope(imports, assignments, expr)
     }
 
   def parseGlobalScope(code: String): AstGlobalScope = {

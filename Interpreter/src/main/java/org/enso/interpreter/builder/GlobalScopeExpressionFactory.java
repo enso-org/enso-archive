@@ -50,7 +50,10 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    */
   @Override
   public ExpressionNode visitGlobalScope(
-      List<AstTypeDef> typeDefs, List<AstMethodDef> bindings, AstExpression executableExpression) {
+      List<AstImport> imports,
+      List<AstTypeDef> typeDefs,
+      List<AstMethodDef> bindings,
+      AstExpression executableExpression) {
     GlobalScope globalScope = language.getCurrentContext().getGlobalScope();
 
     List<AtomConstructor> constructors =
