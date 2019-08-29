@@ -1,6 +1,8 @@
 package org.enso.interpreter;
 
 import org.apache.commons.cli.*;
+import org.enso.interpreter.runtime.RuntimeOptions;
+import org.enso.pkg.Package;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 
@@ -11,6 +13,7 @@ import java.io.IOException;
 public class Main {
   private static final String RUN_OPTION = "run";
   private static final String HELP_OPTION = "help";
+  private static final String NEW_OPTION = "new";
 
   /**
    * Builds the {@link Options} object representing the CLI syntax.
@@ -28,8 +31,17 @@ public class Main {
             .desc("Runs a specified Enso file.")
             .build();
 
+    Option newOpt =
+        Option.builder()
+            .hasArg(true)
+            .numberOfArgs(1)
+            .argName("name")
+            .longOpt(NEW_OPTION)
+            .desc("Creates a new Enso project.")
+            .build();
+
     Options options = new Options();
-    options.addOption(help).addOption(run);
+    options.addOption(help).addOption(run).addOption(newOpt);
     return options;
   }
 
@@ -73,6 +85,12 @@ public class Main {
       exitSuccess();
       return;
     }
+    if (line.hasOption(NEW_OPTION)) {
+      String name = line.getOptionValue(NEW_OPTION);
+      Package.create(new File(name), name);
+      exitSuccess();
+      return;
+    }
     if (!line.hasOption(RUN_OPTION)) {
       printHelp(options);
       exitFail();
@@ -82,7 +100,12 @@ public class Main {
     File file = new File(line.getOptionValue(RUN_OPTION));
 
     Context context =
-        Context.newBuilder(Constants.LANGUAGE_ID).out(System.out).in(System.in).build();
+        Context.newBuilder(Constants.LANGUAGE_ID)
+            .allowExperimentalOptions(true)
+            .option(RuntimeOptions.PACKAGES_PATH, "/elo:/xD:nobeka/lel")
+            .out(System.out)
+            .in(System.in)
+            .build();
     Source source = Source.newBuilder(Constants.LANGUAGE_ID, file).build();
     context.eval(source);
   }

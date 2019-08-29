@@ -43,4 +43,9 @@ public class Context {
   public GlobalScope getGlobalScope() {
     return globalScope;
   }
+
+
+  public Env getEnvironment() {
+    return environment;
+  }
 }

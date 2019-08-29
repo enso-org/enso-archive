@@ -11,6 +11,8 @@ import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.RuntimeOptions;
+import org.graalvm.options.OptionDescriptors;
 
 /**
  * The root of the Enso implementation.
@@ -19,7 +21,7 @@ import org.enso.interpreter.runtime.Context;
  * with other guest languages on the same VM. This ensures that Enso is usable via the polyglot API,
  * and hence that it can both call other languages seamlessly, and be called from other languages.
  *
- * See {@link TruffleLanguage} for more information on the lifecycle of a language.
+ * <p>See {@link TruffleLanguage} for more information on the lifecycle of a language.
  */
 @TruffleLanguage.Registration(
     id = Constants.LANGUAGE_ID,
@@ -81,6 +83,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) throws Exception {
+    System.out.println(RuntimeOptions.getPackagesPaths(getCurrentContext().getEnvironment()));
     AstGlobalScope parsed =
         new EnsoParser().parseEnso(request.getSource().getCharacters().toString());
     ExpressionNode result = new GlobalScopeExpressionFactory(this).run(parsed);
@@ -95,5 +98,10 @@ public final class Language extends TruffleLanguage<Context> {
    */
   public Context getCurrentContext() {
     return getCurrentContext(Language.class);
+  }
+
+  @Override
+  protected OptionDescriptors getOptionDescriptors() {
+    return RuntimeOptions.OPTION_DESCRIPTORS;
   }
 }

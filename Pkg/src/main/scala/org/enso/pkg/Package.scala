@@ -12,9 +12,9 @@ object CouldNotCreateDirectory extends Exception
 
 case class Package(root: File, config: Config) {
 
-  val sourceDir = new File(root, Package.sourceDirName)
+  val sourceDir  = new File(root, Package.sourceDirName)
   val configFile = new File(root, Package.configFileName)
-  val thumbFile = new File(root, Package.thumbFileName)
+  val thumbFile  = new File(root, Package.thumbFileName)
 
   def save(): Unit = {
     if (!root.exists) createDirectories()
@@ -51,11 +51,11 @@ case class Package(root: File, config: Config) {
 
   def createSourceDir(): Unit = {
     if (!Try(sourceDir.mkdir).getOrElse(false)) throw CouldNotCreateDirectory
-    val lunaCodeSrc = Source.fromResource(Package.mainFileName)
-    val writer = new PrintWriter(new File(sourceDir, Package.mainFileName))
-    writer.write(lunaCodeSrc.mkString)
+    val mainCodeSrc = Source.fromResource(Package.mainFileName)
+    val writer      = new PrintWriter(new File(sourceDir, Package.mainFileName))
+    writer.write(mainCodeSrc.mkString)
     writer.close()
-    lunaCodeSrc.close()
+    mainCodeSrc.close()
   }
 
   def saveConfig(): Unit = {
@@ -65,14 +65,14 @@ case class Package(root: File, config: Config) {
   }
 
   def hasThumb: Boolean = thumbFile.exists
-  def name: String = config.name
+  def name:     String  = config.name
 }
 
 object Package {
   val configFileName = "package.yaml"
-  val sourceDirName = "src"
-  val mainFileName = "Main.luna"
-  val thumbFileName = "thumb.png"
+  val sourceDirName  = "src"
+  val mainFileName   = "Main.enso"
+  val thumbFileName  = "thumb.png"
 
   def create(root: File, config: Config): Package = {
     val pkg = Package(root, config)
@@ -82,11 +82,11 @@ object Package {
 
   def create(root: File, name: String): Package = {
     val config = Config(
-      author = "",
+      author     = "",
       maintainer = "",
-      name = name,
-      version = "",
-      license = ""
+      name       = normalizeName(name),
+      version    = "",
+      license    = ""
     )
     create(root, config)
   }
@@ -94,8 +94,8 @@ object Package {
   def fromDirectory(root: File): Option[Package] = {
     if (!root.exists()) return None
     val configFile = new File(root, configFileName)
-    val source = Try(Source.fromFile(configFile))
-    val result = source.map(_.mkString).toOption.flatMap(Config.fromYaml)
+    val source     = Try(Source.fromFile(configFile))
+    val result     = source.map(_.mkString).toOption.flatMap(Config.fromYaml)
     source.foreach(_.close())
     result.map(Package(root, _))
   }
@@ -105,12 +105,16 @@ object Package {
     existing.getOrElse(create(root, generateName(root)))
   }
 
+  def normalizeName(name: String): String = {
+    val startingWithLetter =
+      if (name.length == 0 || !name(0).isLetter) "Project" ++ name else name
+    val startingWithUppercase = startingWithLetter.capitalize
+    val onlyAlphanumeric      = startingWithUppercase.filter(_.isLetterOrDigit)
+    onlyAlphanumeric
+  }
+
   def generateName(file: File): String = {
     val dirname = file.getName
-    val startingWithLetter =
-      if (!dirname(0).isLetter) "Project" ++ dirname else dirname
-    val startingWithUppercase = startingWithLetter.capitalize
-    val onlyAlphanumeric = startingWithUppercase.filter(_.isLetterOrDigit)
-    onlyAlphanumeric
+    normalizeName(dirname)
   }
 }
