@@ -249,8 +249,8 @@ object Main extends App {
 //  val inp = "x(x[a))"
 
   val inp =
-    """## foo bar baz
-      |foo x = x + 1""".stripMargin
+    """## this function adds parameter *x* to parameter *y*
+      |foo x y = x + y""".stripMargin
 
   val parser = new Parser()
   val out    = parser.run(new Reader(inp), Seq())

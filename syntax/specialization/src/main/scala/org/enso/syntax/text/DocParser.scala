@@ -13,7 +13,7 @@ import scalatags.Text.TypedTag
 import scala.util.Random
 
 ////////////////////////////////////////////////////////////////////////////////
-//// DocParser /////////////////////////////////////////////////////////////////
+//// Doc Parser ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
 class DocParser {
@@ -56,18 +56,29 @@ object DocParser {
   }
 }
 
+////////////////////////////////////////////////////////////////////////////////
+//// Doc Parser Runner /////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
 object DocParserRunner {
   /* TODO [MM] - CreateDocumentation - walk through parsed data and look in
                Infix for title of function under documentation, then create
                true documented body */
 
-  /** createDocumentation - function for invoking DocParser in right places
+  var previousElement: AST = AST.Blank
+
+  /** create- function for invoking DocParser in right places
     * and creating documentation from parsed comments
     *
     * @param ast - parsed data
     * @return - AST with possible documentation
     */
   def create(ast: AST): AST = {
+    findCommentsAndTitles(ast)
+  }
+
+  def findCommentsAndTitles(ast: AST): AST = {
+    println("PREVIOUS ELEMENT: " + previousElement + "--- --- --- --- --- ---")
     ast match {
       case v: AST.Macro.Match        => macroMatchAction(v)
       case v: AST.Comment.MultiLine  => MultilineAction(v)
@@ -81,14 +92,16 @@ object DocParserRunner {
     println("\n--- FOUND SINGLE LINE COMMENT ---\n")
     pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.text
-    DocParser.runner(in)
+    previousElement = DocParser.runner(in)
+    previousElement
   }
 
   def MultilineAction(ast: AST.Comment.MultiLine): AST = {
     println("\n--- FOUND MULTI LINE COMMENT ---\n")
     pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.lines.mkString("\n")
-    DocParser.runner(in)
+    previousElement = DocParser.runner(in)
+    previousElement
   }
 
   def infixAction(ast: AST.App._Infix): AST = {
@@ -102,16 +115,29 @@ object DocParserRunner {
     ast.larg match {
       case _: AST._App =>
         ast.opr match {
-          case AST.Opr("=") => createTitleFromInfix(ast)
+          case AST.Opr("=") => tryCreatingTitleFromInfix(ast)
           case _            => infixActionNoTitleFound(ast)
         }
       case _ => infixActionNoTitleFound(ast)
     }
   }
 
-  def createTitleFromInfix(ast: AST): AST = {
+  def tryCreatingTitleFromInfix(ast: AST.App._Infix): AST = {
     println("\n--- FOUND LAMBDA DEFINITION ---\n")
-    infixActionNoTitleFound(ast) //TODO - CREATE DOC TITLE/HEADER?
+    previousElement match {
+      case _: Doc => createTitleFromInfix(ast)
+      case _      => infixActionNoTitleFound(ast)
+    }
+  }
+
+  def createTitleFromInfix(ast: AST.App._Infix): AST = {
+    val docFunName = Doc.Elem.Text(ast.larg.show())
+    val docHeader  = Doc.Section.Header(docFunName)
+    val doc        = Doc(Doc.Synopsis(Doc.Section.Raw(docHeader)))
+    pprint.pprintln(doc)
+    println(doc.show())
+    previousElement = doc
+    findCommentsAndTitles(doc)
   }
 
   def infixActionNoTitleFound(ast: AST): AST = {
@@ -119,7 +145,8 @@ object DocParserRunner {
     ast.map({ elem =>
       println("\n--- --- --- TRYING WITH ELEM (INFIX): ---\n")
       pprint.pprintln(elem, width = 50, height = 10000)
-      create(elem)
+      previousElement = elem
+      findCommentsAndTitles(elem)
     })
   }
 
@@ -135,7 +162,8 @@ object DocParserRunner {
           width  = 50,
           height = 10000
         )
-        create(spec.fin(ast.pfx, ast.segs.toList().map(_.el)))
+        previousElement = spec.fin(ast.pfx, ast.segs.toList().map(_.el))
+        findCommentsAndTitles(previousElement)
     }
   }
 
@@ -145,7 +173,15 @@ object DocParserRunner {
     ast.map({ elem =>
       println("\n--- --- --- TRY FROM ELEM (DEFAULT): ---\n")
       pprint.pprintln(elem, width = 50, height = 10000)
-      create(elem)
+      previousElement = previousElement match {
+        case _: AST.Comment =>
+          elem match {
+            case _: AST.App._Infix => previousElement
+            case _                 => elem
+          }
+        case _ => elem
+      }
+      findCommentsAndTitles(elem)
     })
   }
 }
