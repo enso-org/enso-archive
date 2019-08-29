@@ -66,7 +66,7 @@ object DocParserRunner {
                true documented body */
 
   var previousElement: AST = AST.Blank
-  var prevDoc: Doc         = Doc()
+//  var prevDoc: Doc         = Doc()
 
   /** create- function for invoking DocParser in right places
     * and creating documentation from parsed comments
@@ -75,33 +75,35 @@ object DocParserRunner {
     * @return - AST with possible documentation
     */
   def create(ast: AST): AST = {
-    var astParsed = findCommentsAndTitles(ast)
-    astParsed = loopToOrientDocs(astParsed)
-    astParsed
+//    var astParsed = findCommentsAndTitles(ast)
+//    astParsed = loopToOrientDocs(astParsed)
+//    astParsed
+    findCommentsAndTitles(ast)
   }
 
-  def loopToOrientDocs(ast: AST): AST = {
-    ast match {
-      case v: Doc =>
-        println("DOC FOUND! : " + v + "\n")
-        if (prevDoc == Doc()) {
-          prevDoc = v
-          Doc()
-        } else {
-          val head = AST.Block._Line(Some(v), 0)
-          val body = AST.Block._Line(Some(prevDoc), 0)
-          prevDoc = Doc()
-
-          AST.Module(head, body)
-        }
-      case v =>
-        println("NO DOC : " + v + "\n")
-        v.map({ elem =>
-          println("LOOPING : " + elem + "\n")
-          loopToOrientDocs(elem)
-        })
-    }
-  }
+//  def loopToOrientDocs(ast: AST): AST = {
+//    ast match {
+//      case v: Doc =>
+//        if (prevDoc == Doc()) {
+//          println("DOC FOUND! : " + v + "\n")
+//          prevDoc = v
+//          AST.Module(AST.Block._Line(Some(v), 0))
+//        } else {
+//          println("DOC CREATED! : " + v + "\n")
+//          val head = AST.Block._Line(Some(v), 0)
+//          val body = AST.Block._Line(Some(prevDoc), 0)
+//          prevDoc = Doc()
+//
+//          AST.Module(head, body)
+//        }
+//      case v =>
+//        println("NO DOC : " + v + "\n")
+//        v.map({ elem =>
+//          println("LOOPING : " + elem + "\n")
+//          loopToOrientDocs(elem)
+//        })
+//    }
+//  }
 
   def findCommentsAndTitles(ast: AST): AST = {
     println("PREVIOUS ELEMENT: " + previousElement + "--- --- --- --- --- ---")
@@ -119,6 +121,10 @@ object DocParserRunner {
     pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.text
     previousElement = DocParser.runner(in)
+//    AST.Module(
+//      AST.Block._Line(Some(AST.Comment.SingleLine("")), 0),
+//      AST.Block._Line(Some(previousElement), 0)
+//    )
     previousElement
   }
 
@@ -127,6 +133,10 @@ object DocParserRunner {
     pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.lines.mkString("\n")
     previousElement = DocParser.runner(in)
+//    AST.Module(
+//      AST.Block._Line(Some(AST.Comment.MultiLine(0, List(""))), 0),
+//      AST.Block._Line(Some(previousElement), 0)
+//    )
     previousElement
   }
 

@@ -249,9 +249,14 @@ object Main extends App {
 //  val inp = "x(x[a))"
 
   val inp =
-    """## this function adds parameter *x* to parameter *y*
+    """##
+      | this function takes parameters *x* and *y*
+      | and returns x added to y
       |foo x y = x + y
-      |foo2 x y = x + y
+      |##
+      | this function takes parameters *x* and *y*
+      | and returns x multiplied by y
+      |foo2 x y = x * y
       |## foo bar""".stripMargin
   /* NOTE
    * Now 1st comment -> Doc
