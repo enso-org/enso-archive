@@ -28,7 +28,7 @@ final case class StateManagerMock(var program: String) extends StateManager {
     if (module != StateManagerMock.mainModule)
       throw new Exception(s"no such module: $module")
 
-    this.program = ast.show()
+    this.program = ast.show
     this.ast     = ast
     println(s"New AST for module $module: $ast")
     println(s"New Program text for module $module:\n$program")
@@ -54,10 +54,22 @@ class Tests extends FunSuite with org.scalatest.Matchers {
     program: String,
     f: DoubleRepresentation => R
   ): (R, AST.Module) = {
-    val state                = StateManagerMock(program)
-    val notificationConsumer = NotificationSinkMock()
-    val result               = f(DoubleRepresentation(state, notificationConsumer))
+    val state    = StateManagerMock(program)
+    val notifier = NotificationSinkMock()
+    val result   = f(DoubleRepresentation(state, notifier))
     (result, state.ast)
+  }
+
+  def checkOutput[R](
+    program: String,
+    expectedOutput: R,
+    action: DoubleRepresentation => R
+  ): R = {
+    val state    = StateManagerMock(program)
+    val notifier = NotificationSinkMock()
+    val result   = action(DoubleRepresentation(state, notifier))
+    expectedOutput should be(result)
+    result
   }
 
   def checkThatTransforms[R](
@@ -66,10 +78,11 @@ class Tests extends FunSuite with org.scalatest.Matchers {
     action: DoubleRepresentation => R
   ): R = {
     val (result, finalAst) = withDR(initialProgram, action)
-    val actualFinalProgram = finalAst.show()
+    val actualFinalProgram = finalAst.show
     actualFinalProgram should be(expectedFinalProgram)
     result
   }
+
   def expectTransformationError[E: ClassTag](
     initialProgram: String,
     action: DoubleRepresentation => Unit
@@ -90,6 +103,90 @@ class Tests extends FunSuite with org.scalatest.Matchers {
         action(graph.nodes.head)
       }
     )._1
+  }
+
+  test("insert text") {
+    checkThatTransforms(
+      "a b c",
+      "a b c",
+      _.insertText(mockModule, TextPosition(2), "")
+    )
+    checkThatTransforms(
+      "a  c",
+      "a 1 2 c",
+      _.insertText(mockModule, TextPosition(2), "1 2")
+    )
+    checkThatTransforms(
+      "'text",
+      "'text'",
+      _.insertText(mockModule, TextPosition(5), "'")
+    )
+    checkThatTransforms(
+      "if a then b else c",
+      "if a then b then x else c",
+      _.insertText(mockModule, TextPosition(11), " then x")
+    )
+    checkThatTransforms(
+      "((( a",
+      "((( a + b )))",
+      _.insertText(mockModule, TextPosition(5), " + b )))")
+    )
+  }
+
+  test("erase text") {
+    checkThatTransforms(
+      "a b c",
+      "a b c",
+      _.eraseText(mockModule, TextSpan(TextPosition(2), 0))
+    )
+    checkThatTransforms(
+      "a 1 2 c",
+      "a  c",
+      _.eraseText(mockModule, TextSpan(TextPosition(2), 3))
+    )
+    checkThatTransforms(
+      "'text'",
+      "'text",
+      _.eraseText(mockModule, TextSpan(TextPosition(5), 1))
+    )
+    checkThatTransforms(
+      "if a then b then x else c",
+      "if a then b else c",
+      _.eraseText(mockModule, TextSpan(TextPosition(11), 7))
+    )
+    checkThatTransforms(
+      "((( a + b )))",
+      "((( a",
+      _.eraseText(mockModule, TextSpan(TextPosition(5), 8))
+    )
+  }
+
+  test("copy text") {
+    checkOutput(
+      "a b c",
+      "",
+      _.copyText(mockModule, TextSpan(TextPosition(2), 0))
+    )
+    checkOutput(
+      "a 1 2 c",
+      "a 1 2 c",
+      _.copyText(mockModule, TextSpan(TextPosition(0), 7))
+    )
+    checkOutput(
+      "'text'",
+      "'text",
+      _.copyText(mockModule, TextSpan(TextPosition(0), 5))
+    )
+    checkOutput(
+      "if a then b then x else c",
+      "if a then b",
+      _.copyText(mockModule, TextSpan(TextPosition(0), 11))
+    )
+    checkOutput(
+      "((( a + b )))",
+      "((( a",
+      _.copyText(mockModule, TextSpan(TextPosition(0), 5))
+    )
   }
 
   test("recognizing lack of imports") {

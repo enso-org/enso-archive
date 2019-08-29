@@ -384,8 +384,8 @@ trait TextAPI {
   // modify
   def insertText(loc: Module.Location, cursor: TextPosition, text: String): Unit
   def eraseText(loc: Module.Location, span: TextSpan): Unit
-  def copy(loc: Module.Location, span: TextSpan): String
-  def paste(loc: Module.Location, cursor: TextPosition, text: String): Unit // FIXME We can get both plain text or metadata from graph
+  def copyText(loc: Module.Location, span: TextSpan): String
+  def pasteText(loc: Module.Location, cursor: TextPosition, text: String): Unit // FIXME We can get both plain text or metadata from graph
 
   // TODO should we represent here that text notifications are emitted?
 }

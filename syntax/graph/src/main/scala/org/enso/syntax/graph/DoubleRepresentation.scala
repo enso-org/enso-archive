@@ -89,7 +89,7 @@ object Extensions {
 
       val id       = marked.marker.id
       val spanTree = API.SpanTree() // TODO
-      val expr     = Expr(rhs.show(), spanTree)
+      val expr     = Expr(rhs.show, spanTree)
 
       val inputAsts = rhs.groupTopInputs
       // TODO subports
@@ -208,7 +208,7 @@ object ParserUtils {
     println("------")
     println(org.enso.syntax.text.Main.pretty(ast.toString))
     println("------")
-    println(ast.show())
+    println(ast.show)
   }
   def parse(program: String, markers: Parser.Markers = Seq()): AST.Module = {
     val parser = new Parser()
@@ -262,18 +262,18 @@ final case class DoubleRepresentation(
       result.unwrap.lines.toList
     }
 
-  def copy(loc: Module.Location, span: TextSpan): String = {
+  def copyText(loc: Module.Location, span: TextSpan): String = {
     var text = ""
     findAndReplace(loc, span.start) { (pos, line) =>
-      text = line.show.substring(pos + span.start.index, pos + span.length)
+      val start = pos + span.start.index
+      text = line.show.substring(start, start + span.length)
       List(line)
     }
     text
   }
 
-  def paste(loc: Module.Location, cursor: TextPosition, clipboard: String) = {
+  def pasteText(loc: Module.Location, cursor: TextPosition, clipboard: String) =
     insertText(loc, cursor, clipboard)
-  }
 
   def getGraph(loc: API.Definition.Graph.Location): Definition.Graph.Info = ???
   def getGraph(loc: Module.Graph.Location): Module.Graph.Info = {
