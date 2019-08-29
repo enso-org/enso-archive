@@ -11,8 +11,6 @@ import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.ast.opr.Prec
 
-import org.enso.syntax.text.ast.Doc
-
 import scala.annotation.tailrec
 
 ////////////////
@@ -135,7 +133,7 @@ import scala.annotation.tailrec
   * which allows easy building of AST traversals. The [[Parser#resolveMacros]]
   * is such a traversal, which applies [[AST.Macro.Definition.Finalizer]] to
   * each [[AST.Macro.Match]] found in the AST, while loosing a lot of positional
-  * information. The [[Parser#createDocumentation]] is used to invoke our
+  * information. The [[DocParserRunner#create]] is used to invoke our
   * Documentation Parser on every comment in code and parse it, which enables us
   * to create immersive documentation for code, with double representation in mind
   */
@@ -167,34 +165,6 @@ class Parser {
       case _ => ast.map(resolveMacros)
     }
   }
-
-  def createDocumentationSL(ast: AST.Comment.SingleLine): AST = {
-    val in = ast.text
-    DocParser.parserRun(in)
-  }
-
-  def createDocumentationML(ast: AST.Comment.MultiLine): AST = {
-    val in = ast.lines.mkString("\n")
-    DocParser.parserRun(in)
-  }
-
-  def createDocumentation(ast: AST): AST = {
-    ast match {
-      case ast: AST.Macro.Match =>
-        Builtin.registry.get(ast.path()) match {
-          case None => throw new Error("Macro definition not found")
-          case Some(spec) =>
-            createDocumentation(spec.fin(ast.pfx, ast.segs.toList().map(_.el)))
-        }
-      case v: AST.Comment.MultiLine =>
-        createDocumentationML(v)
-      case v: AST.Comment.SingleLine =>
-        createDocumentationSL(v)
-      case v =>
-        v.map(createDocumentation)
-    }
-  }
-
 }
 
 object Parser {
@@ -210,7 +180,6 @@ object Parser {
 //////////////
 
 object Main extends App {
-
   def pretty(str: String): String = {
 
     def checkClosing(in: List[Char]): Int = {
@@ -259,44 +228,51 @@ object Main extends App {
     go(0, str.toList, List()).reverse.mkString("")
   }
 
-  val parser = new Parser()
-
-  val in_def_maybe =
-    """def Maybe a
-      |    def Just val:a
-      |    def Nothing
-    """.stripMargin
-
-  val in_arr1 = "a = b -> c d"
-
-  // (if a) then
-  // if (a then)
-  // (a) b = c
-  // (a) b = c)
-  val in3 = "(a) b = c"
-  val in4 = "if a then (b)"
-  val in2 = "(a) b = c]"
+//  val in_def_maybe =
+//    """def Maybe a
+//      |    def Just val:a
+//      |    def Nothing
+//      """.stripMargin
+//  val in_arr1 = "a = b -> c d"
+//  (if a) then
+//  if (a then)
+//  (a) b = c
+//  (a) b = c)
+//  val in3 = "(a) b = c"
+//  val in4 = "if a then (b)"
+//  val in2 = "(a) b = c]"
 //  val inp = "foreign Py\n xx"
-//val inp = "(a) b = c"
-//val inp = "a = b -> c"
-//val inp = "a = b -> c d"
-  val inp = "x = skip (a.b)"
+//  val inp = "(a) b = c"
+//  val inp = "a = b -> c"
+//  val inp = "a = b -> c d"
+//  val inp = "x = skip (a.b)"
+//  val inp = "x(x[a))"
 
-  val docCode =
+  val inp =
     """## foo bar baz
       |foo x = x + 1""".stripMargin
-//  val inp = "x(x[a))"
-  val out = parser.run(new Reader(docCode), Seq())
+
+  val parser = new Parser()
+  val out    = parser.run(new Reader(inp), Seq())
+
+  println("\n-- RESULT --\n")
   pprint.pprintln(out, width = 50, height = 10000)
 
   out match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
-      println(pretty(mod.toString))
-      val rmod          = parser.resolveMacros(mod)
-      val documentation = parser.createDocumentation(mod)
+      println("\n-- PARSED MODULE --\n")
+      pprint.pprintln(mod, width = 50, height = 10000)
+      val rmod = parser.resolveMacros(mod)
+      println(
+        "\n--- --- --- --- BEGIN `DocParserRunner.create` --- --- --- ---\n"
+      )
+      val documentation = DocParserRunner.create(mod)
+      println(
+        "\n--- --- --- --- ENF OF `DocParserRunner.create` --- --- --- ---\n"
+      )
       if (mod != rmod) {
-        println("\n-- RESOLVED MACROS DIFF --\n")
-        println(pretty(rmod.toString))
+        println("\n-- RESOLVED MACROS ARE DIFFERENT FROM MODULE --\n")
+        pprint.pprintln(rmod, width = 50, height = 10000)
       }
       println("\n--- DOC PARSED  ---\n")
       pprint.pprintln(documentation, width = 50, height = 10000)
