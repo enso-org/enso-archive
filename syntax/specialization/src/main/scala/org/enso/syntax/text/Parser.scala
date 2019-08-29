@@ -250,7 +250,16 @@ object Main extends App {
 
   val inp =
     """## this function adds parameter *x* to parameter *y*
-      |foo x y = x + y""".stripMargin
+      |foo x y = x + y
+      |foo2 x y = x + y""".stripMargin
+  /* NOTE
+   * Now 1st comment -> Doc
+   * func def -> Doc.Header TODO Doc.Header + func def
+   * func 2 def Stays
+   *
+   * TODO organize docs:
+   *  Doc.Header -> Doc -> func def -> ...
+   */
 
   val parser = new Parser()
   val out    = parser.run(new Reader(inp), Seq())

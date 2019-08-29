@@ -136,7 +136,7 @@ object DocParserRunner {
     val doc        = Doc(Doc.Synopsis(Doc.Section.Raw(docHeader)))
     pprint.pprintln(doc)
     println(doc.show())
-    previousElement = doc
+    previousElement = ast
     findCommentsAndTitles(doc)
   }
 
