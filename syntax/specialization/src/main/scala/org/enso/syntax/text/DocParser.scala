@@ -66,6 +66,7 @@ object DocParserRunner {
                true documented body */
 
   var previousElement: AST = AST.Blank
+  var prevDoc: Doc         = Doc()
 
   /** create- function for invoking DocParser in right places
     * and creating documentation from parsed comments
@@ -74,7 +75,32 @@ object DocParserRunner {
     * @return - AST with possible documentation
     */
   def create(ast: AST): AST = {
-    findCommentsAndTitles(ast)
+    var astParsed = findCommentsAndTitles(ast)
+    astParsed = loopToOrientDocs(astParsed)
+    astParsed
+  }
+
+  def loopToOrientDocs(ast: AST): AST = {
+    ast match {
+      case v: Doc =>
+        println("DOC FOUND! : " + v + "\n")
+        if (prevDoc == Doc()) {
+          prevDoc = v
+          Doc()
+        } else {
+          val head = AST.Block._Line(Some(v), 0)
+          val body = AST.Block._Line(Some(prevDoc), 0)
+          prevDoc = Doc()
+
+          AST.Module(head, body)
+        }
+      case v =>
+        println("NO DOC : " + v + "\n")
+        v.map({ elem =>
+          println("LOOPING : " + elem + "\n")
+          loopToOrientDocs(elem)
+        })
+    }
   }
 
   def findCommentsAndTitles(ast: AST): AST = {
@@ -131,6 +157,7 @@ object DocParserRunner {
   }
 
   def createTitleFromInfix(ast: AST.App._Infix): AST = {
+    println("\n--- CREATING TITLE ---\n")
     val docFunName = Doc.Elem.Text(ast.larg.show())
     val docHeader  = Doc.Section.Header(docFunName)
     val doc        = Doc(Doc.Synopsis(Doc.Section.Raw(docHeader)))
@@ -174,7 +201,7 @@ object DocParserRunner {
       println("\n--- --- --- TRY FROM ELEM (DEFAULT): ---\n")
       pprint.pprintln(elem, width = 50, height = 10000)
       previousElement = previousElement match {
-        case _: AST.Comment =>
+        case _: Doc =>
           elem match {
             case _: AST.App._Infix => previousElement
             case _                 => elem
