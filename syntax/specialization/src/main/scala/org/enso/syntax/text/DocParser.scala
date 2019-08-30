@@ -8,6 +8,8 @@ import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
+import scalatags.Text.{all => HTML}
+import HTML._
 
 import scala.util.Random
 
@@ -20,8 +22,10 @@ class DocParser {
   private val engine = newEngine()
 
   def runMatched(input: String): Doc = run(input) match {
-    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) => v
-    case _                                                        => Doc()
+    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) =>
+      println(renderHTML(v))
+      v
+    case _ => Doc()
   }
   def run(input: String): Result[Doc] = engine.run(new Reader(input))
 
@@ -29,7 +33,18 @@ class DocParser {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
     val cssFileName = "style.css"
-    saveHTMLCodeToLocalFile(path, doc.renderHTML(cssFileName))
+    saveHTMLCodeToLocalFile(path, renderHTML(doc, cssFileName))
+  }
+
+  def renderHTML(doc: Doc, cssLink: String = "style.css"): TypedTag[String] = {
+    val metaEquiv = HTML.httpEquiv := "Content-Type"
+    val metaCont  = HTML.content := "text/html"
+    val metaChar  = HTML.charset := "UTF-8"
+    val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
+    val cssRel    = HTML.rel := "stylesheet"
+    val cssHref   = HTML.href := cssLink
+    val css       = HTML.link(cssRel)(cssHref)
+    HTML.html(HTML.head(meta, css), HTML.body(doc.html))
   }
 }
 
@@ -66,30 +81,67 @@ object DocParserRunner {
                Infix for title of function under documentation, then create
                true documented body */
 
-  var previousElement: AST = AST.Blank
-//  var prevDoc: Doc         = Doc()
-
-  /** create- function for invoking DocParser in right places
+  /** create - function for invoking DocParser in right places
     * and creating documentation from parsed comments
     *
     * @param ast - parsed data
     * @return - AST with possible documentation
     */
   def create(ast: AST.Module): AST = {
-//    var astParsed = findCommentsAndTitles(ast)
-//    astParsed = loopToOrientDocs(astParsed)
-//    astParsed
-//    findCommentsAndTitles(ast)
     ast.map { elem =>
       println("ELEM OF AST : " + elem)
       elem match {
-        case v: AST.Comment.MultiLine  => MultilineAction(v)
-        case v: AST.Comment.SingleLine => SinglelineAction(v)
+        case v: AST.Comment.MultiLine  => multiLineAction(v)
+        case v: AST.Comment.SingleLine => singleLineAction(v)
+        case v: AST.App._Infix         => infixAction(v)
         case v                         => v
       }
     }
   }
 
+  /** Single Line Action - creates Doc from comment
+    * (should be Doc(Synopsis(Raw())) )
+    *
+    * @param ast - Single line comment
+    * @return - Documentation from single line comment
+    */
+  def singleLineAction(ast: AST.Comment.SingleLine): Doc = {
+    println("\n--- FOUND SINGLE LINE COMMENT ---\n")
+    pprint.pprintln(ast, width = 50, height = 10000)
+    val in = ast.text
+    DocParser.runMatched(in)
+  }
+
+  /** Multi Line Action - creates Doc from comment
+    *
+    * @param ast - Multi line comment
+    * @return - Documentation from multi line comment
+    */
+  def multiLineAction(ast: AST.Comment.MultiLine): Doc = {
+    println("\n--- FOUND MULTI LINE COMMENT ---\n")
+    pprint.pprintln(ast, width = 50, height = 10000)
+    val in = ast.lines.mkString("\n")
+    DocParser.runMatched(in)
+  }
+
+  /** Infix Action - Tries to create Doc Title from function name
+    *
+    * @param ast - Infix
+    * @return - Documentation title from infix left argument
+    */
+  def infixAction(ast: AST.App._Infix): AST = {
+    println("\n--- FOUND INFIX ---\n")
+    pprint.pprintln(ast, width = 50, height = 10000)
+    ast.larg match {
+      case v: AST._App => DocParser.runMatched(v.show())
+      // FIXME this removes function definition, it should output Doc Title
+      //       AND Function
+      case _ => ast
+    }
+  }
+}
+
+//// All old code - recursion approach
 //  def loopToOrientDocs(ast: AST): AST = {
 //    ast match {
 //      case v: Doc =>
@@ -113,7 +165,6 @@ object DocParserRunner {
 //        })
 //    }
 //  }
-
 //  def findCommentsAndTitles(ast: AST): AST = {
 //    println("PREVIOUS ELEMENT: " + previousElement + "--- --- --- --- --- ---")
 //    ast match {
@@ -124,32 +175,6 @@ object DocParserRunner {
 //      case v                         => defaultAction(v)
 //    }
 //  }
-
-  /** Single Line Action - creates Doc from comment
-    * (should be Doc(Synopsis(Raw())) )
-    *
-    * @param ast - Single line comment
-    * @return - Documentation from single line comment
-    */
-  def SinglelineAction(ast: AST.Comment.SingleLine): Doc = {
-    println("\n--- FOUND SINGLE LINE COMMENT ---\n")
-    pprint.pprintln(ast, width = 50, height = 10000)
-    val in = ast.text
-    DocParser.runMatched(in)
-  }
-
-  /** Multi Line Action - creates Doc from comment
-    *
-    * @param ast - Multi line comment
-    * @return - Documentation from multi line comment
-    */
-  def MultilineAction(ast: AST.Comment.MultiLine): Doc = {
-    println("\n--- FOUND MULTI LINE COMMENT ---\n")
-    pprint.pprintln(ast, width = 50, height = 10000)
-    val in = ast.lines.mkString("\n")
-    DocParser.runMatched(in)
-  }
-
 //  def infixAction(ast: AST.App._Infix): AST = {
 //    println("\n--- FOUND INFIX ---\n")
 //    pprint.pprintln(ast, width = 50, height = 10000)
@@ -231,4 +256,3 @@ object DocParserRunner {
 //      findCommentsAndTitles(elem)
 //    })
 //  }
-}

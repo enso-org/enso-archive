@@ -62,22 +62,10 @@ object Doc {
     *
     * It extends Repr.Provider, so it also contain repr method, as well as
     * span and show values. In addition to that it specifies html method for
-    * extending tokens and renderHTML method for creating ready-to-deploy HTML
-    * file from documentation
+    * extending tokens and getting HTML file out of Doc Parser
     */
   sealed trait Symbol extends Repr.Provider {
     def html: HTML
-    def renderHTML(cssLink: String): HTMLTag = {
-      val metaEquiv = HTML.httpEquiv := "Content-Type"
-      val metaCont  = HTML.content := "text/html"
-      val metaChar  = HTML.charset := "UTF-8"
-      val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
-      val cssRel    = HTML.rel := "stylesheet"
-      val cssHref   = HTML.href := cssLink
-      val css       = HTML.link(cssRel)(cssHref)
-      HTML.html(HTML.head(meta, css), HTML.body(html))
-    }
-
     def htmlCls(): generic.AttrPair[Builder, String] =
       HTML.`class` := getClass.toString.split('$').last.split('.').last
   }
