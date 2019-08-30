@@ -253,20 +253,12 @@ object Main extends App {
       | this function takes parameters *x* and *y*
       | and returns x added to y
       |foo x y = x + y
+      |bar a b = a - b
       |##
       | this function takes parameters *x* and *y*
       | and returns x multiplied by y
-      |foo2 x y = x * y
+      |baz x y = x * y
       |## foo bar""".stripMargin
-  /* NOTE
-   * Now 1st comment -> Doc
-   * func def -> Doc.Header TODO Doc.Header + func def
-   * func 2 def Stays
-   * comment 2 doesnt have any function
-   *
-   * TODO organize docs:
-   *  Doc.Header -> Doc -> func def -> ...
-   */
 
   val parser = new Parser()
   val out    = parser.run(new Reader(inp), Seq())

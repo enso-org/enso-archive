@@ -2,7 +2,7 @@ package org.enso.syntax
 
 import org.enso.syntax.text.DocParser
 import org.enso.syntax.text.DocParser.Result
-import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.ast.Documented
 import org.scalameter.api._
 
 import scala.math.pow
@@ -47,7 +47,7 @@ object DocParserBench extends Bench.LocalTime {
     )
   )
 
-  def run(str: String): Result[Doc] = DocParser.run(str)
+  def run(str: String): Result[Documented] = DocParser.run(str)
   performance of "DocParser" in {
     tests.foreach {
       case (name, gen) => measure method name in (using(gen) in run)

@@ -5,12 +5,12 @@ import java.io.PrintWriter
 
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.ast.Documentation
+import org.enso.syntax.text.ast.Documented
 import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-
 import scala.util.Random
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -21,22 +21,23 @@ class DocParser {
   import DocParser._
   private val engine = newEngine()
 
-  def runMatched(input: String): Doc = run(input) match {
-    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) =>
-      println(renderHTML(v))
-      v
-    case _ => Doc()
+  def runMatched(input: String): Documented = run(input) match {
+    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) => v
+    case _                                                        => Documented()
   }
-  def run(input: String): Result[Doc] = engine.run(new Reader(input))
+  def run(input: String): Result[Documented] = engine.run(new Reader(input))
 
-  def onHTMLRendering(doc: Doc): Unit = {
+  def onHTMLRendering(doc: Documentation): Unit = {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
     val cssFileName = "style.css"
     saveHTMLCodeToLocalFile(path, renderHTML(doc, cssFileName))
   }
 
-  def renderHTML(doc: Doc, cssLink: String = "style.css"): TypedTag[String] = {
+  def renderHTML(
+    doc: Documentation,
+    cssLink: String = "style.css"
+  ): TypedTag[String] = {
     val metaEquiv = HTML.httpEquiv := "Content-Type"
     val metaCont  = HTML.content := "text/html"
     val metaChar  = HTML.charset := "UTF-8"
@@ -52,14 +53,9 @@ object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
-  def renderHTML(input: String): Unit = {
-    val doc        = new DocParser()
-    val parsedText = doc.runMatched(input)
-    doc.onHTMLRendering(parsedText)
-  }
-
-  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
-  def run(input: String):        Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Documented =
+    new DocParser().runMatched(input)
+  def run(input: String): Result[Documented] = new DocParser().run(input)
 
   def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {
     val writer = new PrintWriter(
@@ -93,8 +89,12 @@ object DocParserRunner {
       elem match {
         case v: AST.Comment.MultiLine  => multiLineAction(v)
         case v: AST.Comment.SingleLine => singleLineAction(v)
-        case v: AST.App._Infix         => infixAction(v)
-        case v                         => v
+        case v: AST.App._Infix =>
+          infixAction(v) match {
+            case Some(d) => d
+            case None    => ast
+          }
+        case v => v
       }
     }
   }
@@ -105,7 +105,7 @@ object DocParserRunner {
     * @param ast - Single line comment
     * @return - Documentation from single line comment
     */
-  def singleLineAction(ast: AST.Comment.SingleLine): Doc = {
+  def singleLineAction(ast: AST.Comment.SingleLine): Documented = {
     println("\n--- FOUND SINGLE LINE COMMENT ---\n")
     pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.text
@@ -117,7 +117,7 @@ object DocParserRunner {
     * @param ast - Multi line comment
     * @return - Documentation from multi line comment
     */
-  def multiLineAction(ast: AST.Comment.MultiLine): Doc = {
+  def multiLineAction(ast: AST.Comment.MultiLine): Documented = {
     println("\n--- FOUND MULTI LINE COMMENT ---\n")
     pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.lines.mkString("\n")
@@ -129,14 +129,12 @@ object DocParserRunner {
     * @param ast - Infix
     * @return - Documentation title from infix left argument
     */
-  def infixAction(ast: AST.App._Infix): AST = {
+  def infixAction(ast: AST.App._Infix): Option[Documentation] = {
     println("\n--- FOUND INFIX ---\n")
     pprint.pprintln(ast, width = 50, height = 10000)
     ast.larg match {
-      case v: AST._App => DocParser.runMatched(v.show())
-      // FIXME this removes function definition, it should output Doc Title
-      //       AND Function
-      case _ => ast
+      case v: AST._App => Some(Documentation(Some(ast.show()), Documented()))
+      case _           => None
     }
   }
 }
