@@ -1,8 +1,3 @@
-/*//////////////////////////////////////////////////////////////////////////////
-////                           UNDER CONSTRUCTION                           ////
-//////////////////////////////////////////////////////////////////////////////*/
-
-
 /*///////////
 //// DOM ////
 ///////////*/
@@ -146,9 +141,11 @@ h2 {
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 20px;
-    padding: 15px 0;
+    padding: 15px 10px;
     text-align: center;
     background-color: #fafafa;
+    border-radius: 8px;
+
 }
 
  .ExtForTagDetails {
@@ -292,7 +289,13 @@ h2 {
 }
 
 .Documentation .Title {
-    
+    margin: 20 auto;
+    padding: 5px;
+    text-align: left;
+    font-size: 40px;
+    line-height: 1.05;
+    font-weight: 500;
+    letter-spacing: 0.008em;
 }
 
 
@@ -304,35 +307,45 @@ h2 {
 
 @media (min-width: 300px) {
     .Synopsis, 
-    .Body {
+    .Body,
+    .Tags,
+    .Documentation .Title {
         width: 380px
     }
 }
 
 @media (min-width: 500px) {
     .Synopsis, 
-    .Body {
+    .Body,
+    .Tags,
+    .Documentation .Title {
         width: 440px
     }
 }
 
 @media (min-width: 600px) {
     .Synopsis, 
-    .Body {
+    .Body,
+    .Tags,
+    .Documentation .Title {
         width: 490px
     }
 }
 
 @media (min-width: 900px) {
     .Synopsis, 
-    .Body {
+    .Body,
+    .Tags,
+    .Documentation .Title {
         width: 670px
     }
 }
 
 @media (min-width: 1300px) {
     .Synopsis,
-    .Body  {
+    .Body,
+    .Tags,
+    .Documentation .Title  {
         width: 780px
     }
 }
