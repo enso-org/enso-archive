@@ -81,17 +81,25 @@ object DocParserRunner {
   var previousElement: AST = AST.Blank
 
   /** create - function for invoking DocParser in right places
-    * and creating documentation from parsed comments
+    * creating documentation from parsed comments
+    * and also generating HTML files for created Documentation's
     *
-    * @param ast - parsed data
+    * @param ast - parsed data by Parser
     * @return - AST with possible documentation
     */
   def create(ast: AST.Module): AST = {
     val createdDocs  = createDocs(ast)
-    val preparedDocs = removeUnnecessaryDocumented(createdDocs, ast)
+    val preparedDocs = reformatDocumentation(createdDocs, ast)
+    generateHTMLForEveryDocumentation(preparedDocs)
     preparedDocs
   }
 
+  /** createDocs - This function changes single- and multi- line comments into
+    * Documented(s), and Infix into Documentation Title
+    *
+    * @param ast - data from Parser
+    * @return - modified data containing possibly Documentation(s)
+    */
   def createDocs(ast: AST.Module): AST.Module = {
     ast.map { elem =>
       println("ELEM OF AST : " + elem)
@@ -103,8 +111,6 @@ object DocParserRunner {
           previousElement match {
             case documented: Documented =>
               infixAction(v, documented) match {
-                /* NOTE - There are many infix cases so i haven't yet made
-                          rules for all of them */
                 case Some(documentation) => documentation
                 case None                => v
               }
@@ -115,44 +121,6 @@ object DocParserRunner {
       }
       previousElement
     }
-  }
-
-  def removeUnnecessaryDocumented(
-    astWithDoc: AST.Module,
-    astBeginning: AST.Module
-  ): AST.Module = {
-    var astDoc = astWithDoc
-
-    astWithDoc.lines.zipWithIndex.map { elem =>
-      println(
-        "LINE OF AST NO DOCS : " + astBeginning.lines
-          .toList(elem._2) + ", INDEX: " + elem._2
-      )
-      println(
-        "LINE OF AST WITH DOCS : " + elem._1 + ", INDEX: " + elem._2 + "\n"
-      )
-      elem._1.elem.map {
-        case v: Documentation =>
-          //Documented(before comment) -> Documentation
-          val updatedWithDoc = astDoc.lines.toList.updated(elem._2 - 1, v)
-          //Documentation -> Infix (to get back func. def)
-          val infix            = astBeginning.lines.toList(elem._2)
-          val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
-          val astAfterMod = AST.Module(
-            List1(updatedWithInfix.asInstanceOf[List[AST.Block._Line]]).get
-          )
-          println("ASTbef len : " + astWithDoc.lines.length + "\n")
-          println("ASTaft len : " + astAfterMod.lines.length + "\n")
-          println("AST after modifications : " + astAfterMod + "\n")
-          astDoc = astAfterMod
-        case _ =>
-      }
-    }
-
-    astWithDoc
-
-    // TODO - zip ASTBefore with ASTDoc and try to bring back function definitions
-    //        remove Documented before Documentation
   }
 
   /** Single Line Action - creates Doc from comment
@@ -192,11 +160,67 @@ object DocParserRunner {
     println("\n--- FOUND INFIX ---\n")
     pprint.pprintln(ast, width = 50, height = 10000)
     ast.larg match {
-      case v: AST._App =>
-        new DocParser().onHTMLRendering(Documentation(Some(v.show()), doc))
-        Some(Documentation(Some(v.show()), doc))
-      case _ => None
+      case v: AST._App => Some(Documentation(Some(v.show()), doc))
+      case _           => None
     }
+  }
+
+  /** reformatDocumentation
+    *
+    * @param astWithDoc - ast after running DocParser on it
+    * @param astBeginning - primary AST without modifications
+    * @return - properly oriented AST with Documentation(Title,Documented) elems
+    */
+  // TODO - zip ASTBefore with ASTDoc and try to bring back function definitions
+  //        remove Documented before Documentation
+  def reformatDocumentation(
+    astWithDoc: AST.Module,
+    astBeginning: AST.Module
+  ): AST.Module = {
+    var astDoc = astWithDoc
+
+    astWithDoc.lines.zipWithIndex.map { elem =>
+      println(
+        "LINE OF AST NO DOCS : " + astBeginning.lines
+          .toList(elem._2) + ", INDEX: " + elem._2
+      )
+      println(
+        "LINE OF AST WITH DOCS : " + elem._1 + ", INDEX: " + elem._2 + "\n"
+      )
+      elem._1.elem.map {
+        case v: Documentation =>
+          // NOTE : Documented(before comment) -> Documentation
+          val updatedWithDoc = astDoc.lines.toList.updated(elem._2 - 1, v)
+          println(updatedWithDoc)
+          // NOTE : Documentation -> Infix (to get back func. def)
+          val infix = astBeginning.lines.toList(elem._2)
+          println(infix)
+          val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
+          println(updatedWithInfix)
+          val astAfterMod = AST.Module(
+            List1(updatedWithInfix.asInstanceOf[List[AST.Block._Line]]).get
+          )
+
+          println("AST after modifications : " + astAfterMod + "\n")
+          astDoc = astAfterMod
+        case _ =>
+      }
+    }
+
+    astWithDoc
+  }
+
+  def generateHTMLForEveryDocumentation(ast: AST.Module): Unit = {
+    ast.map { elem =>
+      elem match {
+        case v: Documentation =>
+          new DocParser().onHTMLRendering(v)
+        case v: Documented =>
+          new DocParser().onHTMLRendering(Documentation(None, v))
+      }
+      elem
+    }
+
   }
 }
 
