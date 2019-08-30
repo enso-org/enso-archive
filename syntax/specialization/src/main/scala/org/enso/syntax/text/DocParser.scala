@@ -11,6 +11,8 @@ import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
+import org.enso.data.List1
+
 import scala.util.Random
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -90,7 +92,7 @@ object DocParserRunner {
     preparedDocs
   }
 
-  def createDocs(ast: AST.Module): AST = {
+  def createDocs(ast: AST.Module): AST.Module = {
     ast.map { elem =>
       println("ELEM OF AST : " + elem)
       previousElement = elem match {
@@ -115,15 +117,39 @@ object DocParserRunner {
     }
   }
 
-  def removeUnnecessaryDocumented(astWithDoc: AST, astBeginning: AST): AST = {
-    astBeginning.map { elem =>
-      println("ELEM OF AST NO DOCS : " + elem)
-      elem
+  def removeUnnecessaryDocumented(
+    astWithDoc: AST.Module,
+    astBeginning: AST.Module
+  ): AST.Module = {
+    var astDoc = astWithDoc
+
+    astWithDoc.lines.zipWithIndex.map { elem =>
+      println(
+        "LINE OF AST NO DOCS : " + astBeginning.lines
+          .toList(elem._2) + ", INDEX: " + elem._2
+      )
+      println(
+        "LINE OF AST WITH DOCS : " + elem._1 + ", INDEX: " + elem._2 + "\n"
+      )
+      elem._1.elem.map {
+        case v: Documentation =>
+          //Documented(before comment) -> Documentation
+          val updatedWithDoc = astDoc.lines.toList.updated(elem._2 - 1, v)
+          //Documentation -> Infix (to get back func. def)
+          val infix            = astBeginning.lines.toList(elem._2)
+          val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
+          val astAfterMod = AST.Module(
+            List1(updatedWithInfix.asInstanceOf[List[AST.Block._Line]]).get
+          )
+          println("ASTbef len : " + astWithDoc.lines.length + "\n")
+          println("ASTaft len : " + astAfterMod.lines.length + "\n")
+          println("AST after modifications : " + astAfterMod + "\n")
+          astDoc = astAfterMod
+        case _ =>
+      }
     }
-    astWithDoc.map { elem =>
-      println("ELEM OF AST WITH DOCS : " + elem)
-      elem
-    }
+
+    astWithDoc
 
     // TODO - zip ASTBefore with ASTDoc and try to bring back function definitions
     //        remove Documented before Documentation
