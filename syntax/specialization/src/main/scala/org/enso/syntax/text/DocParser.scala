@@ -76,6 +76,7 @@ object DocParserRunner {
   /* TODO [MM] - CreateDocumentation - walk through parsed data and look in
                Infix for title of function under documentation, then create
                true documented body */
+  var previousElement: AST = AST.Blank
 
   /** create - function for invoking DocParser in right places
     * and creating documentation from parsed comments
@@ -84,19 +85,48 @@ object DocParserRunner {
     * @return - AST with possible documentation
     */
   def create(ast: AST.Module): AST = {
+    val createdDocs  = createDocs(ast)
+    val preparedDocs = removeUnnecessaryDocumented(createdDocs, ast)
+    preparedDocs
+  }
+
+  def createDocs(ast: AST.Module): AST = {
     ast.map { elem =>
       println("ELEM OF AST : " + elem)
-      elem match {
+      previousElement = elem match {
         case v: AST.Comment.MultiLine  => multiLineAction(v)
         case v: AST.Comment.SingleLine => singleLineAction(v)
-        case v: AST.App._Infix =>
-          infixAction(v) match {
-            case Some(d) => d
-            case None    => ast
+        case v: AST.App._Infix         =>
+          /* NOTE - Only create title if infix is right under Doc */
+          previousElement match {
+            case documented: Documented =>
+              infixAction(v, documented) match {
+                /* NOTE - There are many infix cases so i haven't yet made
+                          rules for all of them */
+                case Some(documentation) => documentation
+                case None                => v
+              }
+            case _ => v
           }
+
         case v => v
       }
+      previousElement
     }
+  }
+
+  def removeUnnecessaryDocumented(astWithDoc: AST, astBeginning: AST): AST = {
+    astBeginning.map { elem =>
+      println("ELEM OF AST NO DOCS : " + elem)
+      elem
+    }
+    astWithDoc.map { elem =>
+      println("ELEM OF AST WITH DOCS : " + elem)
+      elem
+    }
+
+    // TODO - zip ASTBefore with ASTDoc and try to bring back function definitions
+    //        remove Documented before Documentation
   }
 
   /** Single Line Action - creates Doc from comment
@@ -129,12 +159,17 @@ object DocParserRunner {
     * @param ast - Infix
     * @return - Documentation title from infix left argument
     */
-  def infixAction(ast: AST.App._Infix): Option[Documentation] = {
+  def infixAction(
+    ast: AST.App._Infix,
+    doc: Documented
+  ): Option[Documentation] = {
     println("\n--- FOUND INFIX ---\n")
     pprint.pprintln(ast, width = 50, height = 10000)
     ast.larg match {
-      case v: AST._App => Some(Documentation(Some(ast.show()), Documented()))
-      case _           => None
+      case v: AST._App =>
+        new DocParser().onHTMLRendering(Documentation(Some(v.show()), doc))
+        Some(Documentation(Some(v.show()), doc))
+      case _ => None
     }
   }
 }

@@ -39,7 +39,7 @@ sealed trait Doc extends Repr.Provider with Comment {
   */
 final case class Documentation(title: Option[String], documented: Documented)
     extends Doc {
-  val repr: Repr                 = R + title + documented
+  val repr: Repr                 = R + title + Documented.Elem.Newline + documented
   val titleHTML: Documented.HTML = Seq(HTML.div(HTML.`class` := "Title")(title))
   val html: Documented.HTML = Seq(
     HTML.div(htmlCls())(titleHTML)(documented.html)
