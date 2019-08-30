@@ -74,13 +74,39 @@ class Tests extends FunSuite with org.scalatest.Matchers {
 
   def checkThatTransforms[R](
     initialProgram: String,
-    expectedFinalProgram: String,
+    expectedProgram: String,
     action: DoubleRepresentation => R
   ): R = {
     val (result, finalAst) = withDR(initialProgram, action)
-    val actualFinalProgram = finalAst.show
-    actualFinalProgram should be(expectedFinalProgram)
+    finalAst.show should be(expectedProgram)
     result
+  }
+
+  def checkTextModifications(program: String): Unit = {
+    val prefix = program.takeWhile(_ != '»').dropRight(1)
+    val suffix = program.dropWhile(_ != '«').drop(2)
+    val middle = program.dropWhile(_ != '»').drop(1).takeWhile(_ != '«')
+    checkThatTransforms(
+      prefix + suffix,
+      prefix + middle + suffix,
+      _.insertText(mockModule, TextPosition(prefix.length), middle)
+    )
+    checkThatTransforms(
+      prefix + middle + suffix,
+      prefix + suffix,
+      _.eraseText(
+        mockModule,
+        TextSpan(TextPosition(prefix.length), middle.length)
+      )
+    )
+    checkOutput(
+      prefix + middle + suffix,
+      middle,
+      _.copyText(
+        mockModule,
+        TextSpan(TextPosition(prefix.length), middle.length)
+      )
+    )
   }
 
   def expectTransformationError[E: ClassTag](
@@ -105,88 +131,14 @@ class Tests extends FunSuite with org.scalatest.Matchers {
     )._1
   }
 
-  test("insert text") {
-    checkThatTransforms(
-      "a b c",
-      "a b c",
-      _.insertText(mockModule, TextPosition(2), "")
-    )
-    checkThatTransforms(
-      "a  c",
-      "a 1 2 c",
-      _.insertText(mockModule, TextPosition(2), "1 2")
-    )
-    checkThatTransforms(
-      "'text",
-      "'text'",
-      _.insertText(mockModule, TextPosition(5), "'")
-    )
-    checkThatTransforms(
-      "if a then b else c",
-      "if a then b then x else c",
-      _.insertText(mockModule, TextPosition(11), " then x")
-    )
-    checkThatTransforms(
-      "((( a",
-      "((( a + b )))",
-      _.insertText(mockModule, TextPosition(5), " + b )))")
-    )
-  }
-
-  test("erase text") {
-    checkThatTransforms(
-      "a b c",
-      "a b c",
-      _.eraseText(mockModule, TextSpan(TextPosition(2), 0))
-    )
-    checkThatTransforms(
-      "a 1 2 c",
-      "a  c",
-      _.eraseText(mockModule, TextSpan(TextPosition(2), 3))
-    )
-    checkThatTransforms(
-      "'text'",
-      "'text",
-      _.eraseText(mockModule, TextSpan(TextPosition(5), 1))
-    )
-    checkThatTransforms(
-      "if a then b then x else c",
-      "if a then b else c",
-      _.eraseText(mockModule, TextSpan(TextPosition(11), 7))
-    )
-    checkThatTransforms(
-      "((( a + b )))",
-      "((( a",
-      _.eraseText(mockModule, TextSpan(TextPosition(5), 8))
-    )
-  }
-
-  test("copy text") {
-    checkOutput(
-      "a b c",
-      "",
-      _.copyText(mockModule, TextSpan(TextPosition(2), 0))
-    )
-    checkOutput(
-      "a 1 2 c",
-      "a 1 2 c",
-      _.copyText(mockModule, TextSpan(TextPosition(0), 7))
-    )
-    checkOutput(
-      "'text'",
-      "'text",
-      _.copyText(mockModule, TextSpan(TextPosition(0), 5))
-    )
-    checkOutput(
-      "if a then b then x else c",
-      "if a then b",
-      _.copyText(mockModule, TextSpan(TextPosition(0), 11))
-    )
-    checkOutput(
-      "((( a + b )))",
-      "((( a",
-      _.copyText(mockModule, TextSpan(TextPosition(0), 5))
-    )
+  test("text modifications") {
+    List(
+      "a (»«) c",
+      "a (»1 2«) c",
+      "'text(»'«)",
+      "if a then b(» then x«) else c",
+      "((( a (»+ b«) )))"
+    ).foreach(checkTextModifications)
   }
 
   test("recognizing lack of imports") {

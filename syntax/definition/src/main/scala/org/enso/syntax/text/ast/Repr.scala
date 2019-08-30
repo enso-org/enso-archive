@@ -25,7 +25,7 @@ sealed trait Repr extends Repr.Provider {
   def ++[T: Repr.Of](that: T): Repr =
     this + " " + that
 
-  def show(): String = {
+  def show: String = {
     val bldr = new StringBuilder()
     @tailrec
     def go(lst: List[Repr]): Unit = lst match {

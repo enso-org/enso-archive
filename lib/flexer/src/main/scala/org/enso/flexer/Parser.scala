@@ -151,7 +151,8 @@ object Parser {
     def map[S](fn: T => S): Result[S] = copy(value = value.map(fn))
     def unwrap: T = value match {
       case Success(t) => t
-      case _          => throw new Exception("Critical error during parsing!")
+      case _ =>
+        throw new InternalParserError(offset, "No rule found for current character.")
     }
   }
   object Result {
@@ -168,5 +169,7 @@ object Parser {
       def map[S](fn: T => S) = copy(result.map(fn))
     }
   }
+
+  class InternalParserError(offset: Int, message: String) extends Error
 
 }

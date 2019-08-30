@@ -232,16 +232,16 @@ final case class DoubleRepresentation(
   state: StateManager,
   notifier: NotificationSink
 ) extends GraphAPI
-    with TextAPI
-    with ClipboardOwner {
+    with TextAPI {
 
   protected def findAndReplace(loc: Module.Location, pos: TextPosition)(
-    fun: (Int, AST.Block.Line) => List[AST.Block.Line]
+    fun: (TextPosition, AST.Block.Line) => List[AST.Block.Line]
   ) = {
     var span = 0
-    val module = state.getModule(loc).replace { line =>
+    val module = state.getModule(loc).findAndReplace { line =>
       span += line.span
-      if (span < pos.index) Nil else fun(span - line.span, line)
+      if (span < pos.index) None
+      else Some(fun(TextPosition(span - line.span), line))
     }
     state.setModule(loc, module)
   }
@@ -250,14 +250,14 @@ final case class DoubleRepresentation(
 
   def insertText(loc: Module.Location, cursor: TextPosition, text: String) =
     findAndReplace(loc, cursor) { (pos, line) =>
-      val (line1, line2) = line.show.splitAt(pos + cursor.index)
-      val result         = Parser().run(new Reader(line1 + text + line2))
+      val (prefix, suffix) = line.show.splitAt(pos.index + cursor.index)
+      val result           = Parser().run(new Reader(prefix + text + suffix))
       result.unwrap.lines.toList
     }
 
   def eraseText(loc: Module.Location, span: TextSpan) =
     findAndReplace(loc, span.start) { (pos, line) =>
-      val (line1, line2) = line.show.splitAt(pos + span.start.index)
+      val (line1, line2) = line.show.splitAt(pos.index + span.start.index)
       val result         = Parser().run(new Reader(line1 + line2.drop(span.length)))
       result.unwrap.lines.toList
     }
@@ -265,7 +265,7 @@ final case class DoubleRepresentation(
   def copyText(loc: Module.Location, span: TextSpan): String = {
     var text = ""
     findAndReplace(loc, span.start) { (pos, line) =>
-      val start = pos + span.start.index
+      val start = pos.index + span.start.index
       text = line.show.substring(start, start + span.length)
       List(line)
     }
@@ -343,9 +343,4 @@ final case class DoubleRepresentation(
     state.setModule(context, newAst)
     notifier.retrieve(API.Notification.Invalidate.Module(context))
   }
-
-  override def lostOwnership(
-    clipboard: Clipboard,
-    contents: Transferable
-  ): Unit = Unit
 }

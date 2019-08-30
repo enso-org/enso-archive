@@ -51,7 +51,7 @@ object AST {
   sealed trait Symbol extends Repr.Provider {
     def byteSpan: Int    = repr.byteSpan
     def span:     Int    = repr.span
-    def show:     String = repr.show()
+    def show:     String = repr.show
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -353,7 +353,7 @@ object AST {
         copy(quote, segments)
 
       def raw: Text.Raw =
-        Raw(quote, segments.map(s => Segment.Plain(s.repr.show())))
+        Raw(quote, segments.map(s => Segment.Plain(s.repr.show)))
     }
 
     final case class Raw(quote: Text.Quote, segments: List[Raw.Segment])
@@ -628,13 +628,13 @@ object AST {
     def flatTraverse[B](f: AST => GenTraversableOnce[B]): List[B] =
       lines.toList.flatMap(_.elem).flatMap(f(_))
 
-    def replace(f: Line => List[Line]): Module = {
+    def findAndReplace(f: Line => Option[List[Line]]): Module = {
       def go(lines: List[Line]): List[Line] = lines match {
         case Nil => Nil
         case l +: ls =>
           f(l) match {
-            case Nil   => l +: go(ls)
-            case lines => lines ++ ls
+            case None        => l +: go(ls)
+            case Some(lines) => lines ++ ls
           }
       }
       Module(List1(go(lines.toList)).get)

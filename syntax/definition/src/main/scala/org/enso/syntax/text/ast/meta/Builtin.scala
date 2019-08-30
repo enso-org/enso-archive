@@ -129,8 +129,8 @@ object Builtin {
         s1.body.toStream match {
           case List(langAST, Shifted(_, bodyAST: AST.Block)) =>
             val indent     = bodyAST.indent
-            val lang       = langAST.el.show()
-            val body       = bodyAST.show()
+            val lang       = langAST.el.show
+            val body       = bodyAST.show
             val bodyLines  = body.split("\\r?\\n").toList.drop(1)
             val bodyLines2 = bodyLines.map(_.drop(indent))
             AST.Foreign(indent, lang, bodyLines2)
@@ -167,10 +167,10 @@ object Builtin {
     ) {
       case (None, List(s1)) =>
         val stream = s1.body.toStream
-        val text   = stream.map(_.repr.show()).mkString("")
+        val text   = stream.map(_.repr.show).mkString("")
         val lines  = text.split("\n").toList
         lines match {
-          case List(l) => AST.Comment.SingleLine(text)
+          case List(_) => AST.Comment.SingleLine(text)
           case ls      => AST.Comment.MultiLine(0, ls)
         }
       case _ => internalError

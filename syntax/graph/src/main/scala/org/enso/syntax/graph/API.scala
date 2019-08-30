@@ -362,7 +362,7 @@ object API {
     ////////////////////////////////////////////////////////////////////////////
   }
 
-  case class TextPosition(index: Int)
+  case class TextPosition(index: Int) extends AnyVal
   case class TextSpan(start: TextPosition, length: Int)
 
   /***** Exceptions */
