@@ -171,43 +171,27 @@ object DocParserRunner {
     * @param astBeginning - primary AST without modifications
     * @return - properly oriented AST with Documentation(Title,Documented) elems
     */
-  // TODO - zip ASTBefore with ASTDoc and try to bring back function definitions
-  //        remove Documented before Documentation
   def reformatDocumentation(
     astWithDoc: AST.Module,
     astBeginning: AST.Module
   ): AST.Module = {
     var astDoc = astWithDoc
-
     astWithDoc.lines.zipWithIndex.map { elem =>
-      println(
-        "LINE OF AST NO DOCS : " + astBeginning.lines
-          .toList(elem._2) + ", INDEX: " + elem._2
-      )
-      println(
-        "LINE OF AST WITH DOCS : " + elem._1 + ", INDEX: " + elem._2 + "\n"
-      )
       elem._1.elem.map {
         case v: Documentation =>
           // NOTE : Documented(before comment) -> Documentation
-          val updatedWithDoc = astDoc.lines.toList.updated(elem._2 - 1, v)
-          println(updatedWithDoc)
+          val DocToLine = AST.Block._Line(Some(v), 0)
+          val updatedWithDoc =
+            astDoc.lines.toList.updated(elem._2 - 1, DocToLine)
           // NOTE : Documentation -> Infix (to get back func. def)
-          val infix = astBeginning.lines.toList(elem._2)
-          println(infix)
+          val infix            = astBeginning.lines.toList(elem._2)
           val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
-          println(updatedWithInfix)
-          val astAfterMod = AST.Module(
-            List1(updatedWithInfix.asInstanceOf[List[AST.Block._Line]]).get
-          )
 
-          println("AST after modifications : " + astAfterMod + "\n")
-          astDoc = astAfterMod
+          astDoc = AST.Module(List1(updatedWithInfix).get)
         case _ =>
       }
     }
-
-    astWithDoc
+    astDoc
   }
 
   def generateHTMLForEveryDocumentation(ast: AST.Module): Unit = {
@@ -217,125 +201,10 @@ object DocParserRunner {
           new DocParser().onHTMLRendering(v)
         case v: Documented =>
           new DocParser().onHTMLRendering(Documentation(None, v))
+        case _ =>
       }
       elem
     }
 
   }
 }
-
-//// All old code - recursion approach
-//  def loopToOrientDocs(ast: AST): AST = {
-//    ast match {
-//      case v: Doc =>
-//        if (prevDoc == Doc()) {
-//          println("DOC FOUND! : " + v + "\n")
-//          prevDoc = v
-//          AST.Module(AST.Block._Line(Some(v), 0))
-//        } else {
-//          println("DOC CREATED! : " + v + "\n")
-//          val head = AST.Block._Line(Some(v), 0)
-//          val body = AST.Block._Line(Some(prevDoc), 0)
-//          prevDoc = Doc()
-//
-//          AST.Module(head, body)
-//        }
-//      case v =>
-//        println("NO DOC : " + v + "\n")
-//        v.map({ elem =>
-//          println("LOOPING : " + elem + "\n")
-//          loopToOrientDocs(elem)
-//        })
-//    }
-//  }
-//  def findCommentsAndTitles(ast: AST): AST = {
-//    println("PREVIOUS ELEMENT: " + previousElement + "--- --- --- --- --- ---")
-//    ast match {
-//      case v: AST.Macro.Match        => macroMatchAction(v)
-//      case v: AST.Comment.MultiLine  => MultilineAction(v)
-//      case v: AST.Comment.SingleLine => SinglelineAction(v)
-//      case v: AST.App._Infix         => infixAction(v)
-//      case v                         => defaultAction(v)
-//    }
-//  }
-//  def infixAction(ast: AST.App._Infix): AST = {
-//    println("\n--- FOUND INFIX ---\n")
-//    pprint.pprintln(ast, width = 50, height = 10000)
-//    println("--- L ARG: " + ast.larg)
-//    println("--- L OFF: " + ast.loff)
-//    println("--- OPR  : " + ast.opr)
-//    println("--- R ARG: " + ast.rarg)
-//    println("--- R OFF: " + ast.roff)
-//    ast.larg match {
-//      case _: AST._App =>
-//        ast.opr match {
-//          case AST.Opr("=") => tryCreatingTitleFromInfix(ast)
-//          case _            => infixActionNoTitleFound(ast)
-//        }
-//      case _ => infixActionNoTitleFound(ast)
-//    }
-//  }
-//
-//  def tryCreatingTitleFromInfix(ast: AST.App._Infix): AST = {
-//    println("\n--- FOUND LAMBDA DEFINITION ---\n")
-//    previousElement match {
-//      case _: Doc => createTitleFromInfix(ast)
-//      case _      => infixActionNoTitleFound(ast)
-//    }
-//  }
-//
-//  def createTitleFromInfix(ast: AST.App._Infix): AST = {
-//    println("\n--- CREATING TITLE ---\n")
-//    val docFunName = Doc.Elem.Text(ast.larg.show())
-//    val docHeader  = Doc.Section.Header(docFunName)
-//    val doc        = Doc(Doc.Synopsis(Doc.Section.Raw(docHeader)))
-//    pprint.pprintln(doc)
-//    println(doc.show())
-//    previousElement = ast
-//    findCommentsAndTitles(doc)
-//  }
-//
-//  def infixActionNoTitleFound(ast: AST): AST = {
-//    println("\n--- NO TITLE FOUND ---\n")
-//    ast.map({ elem =>
-//      println("\n--- --- --- TRYING WITH ELEM (INFIX): ---\n")
-//      pprint.pprintln(elem, width = 50, height = 10000)
-//      previousElement = elem
-//      findCommentsAndTitles(elem)
-//    })
-//  }
-//
-//  def macroMatchAction(ast: AST.Macro.Match): AST = {
-//    Builtin.registry.get(ast.path()) match {
-//      case None => throw new Error("Macro definition not found")
-//      case Some(spec) =>
-//        println("\n--- --- --- MATCH FOUND: ---\n")
-//        pprint.pprintln(spec, width = 50, height = 10000)
-//        println("\n--- --- --- MATCH FINALIZERS: ---\n")
-//        pprint.pprintln(
-//          spec.fin(ast.pfx, ast.segs.toList().map(_.el)),
-//          width  = 50,
-//          height = 10000
-//        )
-//        previousElement = spec.fin(ast.pfx, ast.segs.toList().map(_.el))
-//        findCommentsAndTitles(previousElement)
-//    }
-//  }
-//
-//  def defaultAction(ast: AST): AST = {
-//    println("\n--- NO COMMENT FOUND IN THIS ELEMENT ---\n")
-//    pprint.pprintln(ast, width = 50, height = 10000)
-//    ast.map({ elem =>
-//      println("\n--- --- --- TRY FROM ELEM (DEFAULT): ---\n")
-//      pprint.pprintln(elem, width = 50, height = 10000)
-//      previousElement = previousElement match {
-//        case _: Doc =>
-//          elem match {
-//            case _: AST.App._Infix => previousElement
-//            case _                 => elem
-//          }
-//        case _ => elem
-//      }
-//      findCommentsAndTitles(elem)
-//    })
-//  }
