@@ -22,6 +22,6 @@ object Assoc {
 
   def of(op: String): Assoc =
     if (isApplicative(op)) Assoc.Left
-    else if (op.map(charAssoc).sum >= 0) Assoc.Left
+    else if (op.foldLeft(0)(_ + charAssoc(_)) >= 0) Assoc.Left
     else Assoc.Right
 }

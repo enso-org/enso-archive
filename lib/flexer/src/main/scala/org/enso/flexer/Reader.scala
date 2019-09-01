@@ -57,6 +57,23 @@ class Reader(input: InputStream) extends ReaderUTF(input) {
 
   final def charOffset: Int = offset - charSize
 
+  // because of bug in macroContext.eval it cannot be part of object rewind
+  class Rewinder(index: Int) {
+    import rewind._
+
+    final def set(): Unit = logger.trace {
+      rewindBy(index)(0) = charOffset
+      rewindBy(index)(1) = result.length
+    }
+
+    final def run(): Unit = logger.trace {
+      result.setLength(rewindBy(index)(1))
+      offset = rewindBy(index)(0)
+      nextChar()
+      rewinded = true
+    }
+  }
+
   final object rewind {
     var rewinded = false
 
@@ -70,21 +87,6 @@ class Reader(input: InputStream) extends ReaderUTF(input) {
     def decreaseOffset(off: Int): Unit =
       for (i <- rewind.rewindBy.indices)
         rewind.rewindBy(i)(0) -= off
-
-    class Rewinder(index: Int) {
-
-      final def set(): Unit = logger.trace {
-        rewindBy(index)(0) = charOffset
-        rewindBy(index)(1) = result.length
-      }
-
-      final def run(): Unit = logger.trace {
-        result.setLength(rewindBy(index)(1))
-        offset = rewindBy(index)(0)
-        nextChar()
-        rewinded = true
-      }
-    }
   }
 
 }

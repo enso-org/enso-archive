@@ -498,26 +498,27 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   /// Blocks ///
   //////////////
 
+  // because of bug in macroContext.eval it cannot be part of object block
+  class BlockState(
+    val isOrphan: Boolean,
+    var isValid: Boolean,
+    var indent: Int,
+    var emptyLines: List[Int],
+    var firstLine: Option[AST.Block.Line.NonEmpty],
+    var lines: List[AST.Block.Line]
+  )
+
   final object block {
 
-    class State(
-      val isOrphan: Boolean,
-      var isValid: Boolean,
-      var indent: Int,
-      var emptyLines: List[Int],
-      var firstLine: Option[AST.Block.Line.NonEmpty],
-      var lines: List[AST.Block.Line]
-    )
-
-    var stack: List[State]    = Nil
-    var emptyLines: List[Int] = Nil
-    var current: State        = new State(false, true, 0, Nil, None, Nil)
+    var stack: List[BlockState] = Nil
+    var emptyLines: List[Int]   = Nil
+    var current: BlockState     = new BlockState(false, true, 0, Nil, None, Nil)
 
     def push(newIndent: Int, orphan: Boolean): Unit =
       logger.trace {
         stack +:= current
         current =
-          new State(orphan, true, newIndent, emptyLines.reverse, None, Nil)
+          new BlockState(orphan, true, newIndent, emptyLines.reverse, None, Nil)
         emptyLines = Nil
       }
 
