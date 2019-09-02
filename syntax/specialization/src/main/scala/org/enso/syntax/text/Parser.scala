@@ -10,8 +10,17 @@ import org.enso.syntax.text.ast.meta.Pattern
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.ast.opr.Prec
+//import org.enso.syntax.text.v2
+//import org.enso.syntax.text.v3
+import java.util.UUID
+import AST.implicits._
 
 import scala.annotation.tailrec
+
+////////////////////////////////
+
+class InternalError(reason: String, cause: Throwable = None.orNull)
+    extends Exception(s"Internal error $reason", cause)
 
 ////////////////
 //// Parser ////
@@ -131,166 +140,109 @@ import scala.annotation.tailrec
   * information is stored only in the basic set of tokens and [[AST.Macro]]
   * tokens. Each AST node has a [[AST.map]] function for mapping over sub-nodes,
   * which allows easy building of AST traversals. The [[Parser#resolveMacros]]
-  * is such a traversal, which applies [[AST.Macro.Definition.Finalizer]] to
+  * is such a traversal, which applies [[AST.Macro.Definition.Resolver]] to
   * each [[AST.Macro.Match]] found in the AST, while loosing a lot of positional
-  * information. The [[DocParserRunner#create]] is used to invoke our
-  * Documentation Parser on every comment in code and parse it, which enables us
-  * to create immersive documentation for code, with double representation in mind
+  * information.
   */
 class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(input: Reader, markers: Markers = Seq()): Result[AST.Module] =
-    engine.run(input, markers).map(Macro.run)
+  def run(input: Reader): AST.Module =
+    run(input, Map())
 
-  /** Although this function does not use any Parser-specific API now, it will
-    * use such in the future when the interpreter will provide information about
-    * defined macros other than [[Builtin.registry]].
-    */
-  def resolveMacros(ast: AST.Module): AST.Module =
-    ast.map(resolveMacros)
+  def run(input: Reader, idMap: Map[(Int, Int), AST.ID]): AST.Module =
+    engine.run(input).map(Macro.run) match {
+      case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) => {
+        val mod2 = annotateModule(idMap, mod)
+        resolveMacros(mod2).asInstanceOf[AST.Module]
+//        mod2
+      }
+      case _ => throw ParsingFailed
+    }
 
-  def resolveMacros(ast: AST): AST = {
+  def annotateModule(
+    idMap: Map[(Int, Int), AST.ID],
+    mod: AST.Module
+  ): AST.Module = mod.traverseWithOff { (off, ast) =>
+//    println()
+//    println("----------")
+//    println(s">> $off (${ast.repr.span})")
+//    println(ast.repr)
+//    println(Main.pretty(ast.toString))
+    idMap.get((off, ast.repr.span)) match {
+      case Some(id) => ast.setID(id)
+      case None =>
+        ast match {
+          case AST.Macro.Match.any(_) => ast.withNewID()
+          case _                      => ast
+        }
+    }
+  }
+
+//  /** Although this function does not use any Parser-specific API now, it will
+//    * use such in the future when the interpreter will provide information about
+//    * defined macros other than [[Builtin.registry]].
+//    */
+//  def resolveMacros(ast: AST.Module): AST.Module =
+//    ast.map(resolveMacros)
+
+  def resolveMacros(ast: AST): AST =
     ast match {
-      case ast: AST.Macro.Match =>
-        Builtin.registry.get(ast.path()) match {
-          case None => throw new Error("Macro definition not found")
+      case AST.Macro.Match.any(ast) =>
+        val resolvedAST = ast.map(resolveMacros)
+        Builtin.registry.get(resolvedAST.path) match {
+          case None => throw MissingMacroDefinition
           case Some(spec) =>
-            resolveMacros(spec.fin(ast.pfx, ast.segs.toList().map(_.el)))
+            val id       = resolvedAST.id.getOrElse(throw new Error(s"Missing ID"))
+            val segments = resolvedAST.segs.toList().map(_.el)
+            val ctx      = AST.Macro.Resolver.Context(resolvedAST.pfx, segments, id)
+            resolvedAST.copy(unFix = resolvedAST.unFix.copy[AST](resolved = {
+              //              println("SPEC RESOLVER")
+              //              println(spec)
+              resolveMacros(spec.resolver(ctx))
+            }))
         }
       case _ => ast.map(resolveMacros)
     }
+
+  /** Drops macros metadata keeping only resolved macros in the AST. Please
+    * remember that this operation drops the information about AST spacing as
+    * well.
+    */
+  def dropMacroMeta(ast: AST.Module): AST.Module = {
+    def go: AST => AST = {
+      case AST.Macro.Match.any(t) => go(t.resolved)
+      case t                      => t.map(go)
+    }
+    ast.map(go)
   }
+
 }
 
 object Parser {
-  type Markers   = ParserDef2.Markers
-  type Result[T] = flexer.Parser.Result[T]
+  def apply(): Parser = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
-  def apply(): Parser = new Parser()
+  //// Exceptions ////
+
+  case object ParsingFailed extends ParserError("parsing failed")
+  case object MissingMacroDefinition
+      extends ParserError("macro definition not found")
+  class ParserError(reason: String, cause: Throwable = None.orNull)
+      extends InternalError(s"in parser $reason", cause)
 }
+
+////////////////////////////////////////////////////////////////////////////////
+//// Interactive Testing Utilities /////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
 //////////////
 //// Main ////
 //////////////
 
 object Main extends App {
-//  val in_def_maybe =
-//    """def Maybe a
-//      |    def Just val:a
-//      |    def Nothing
-//      """.stripMargin
-//  val in_arr1 = "a = b -> c d"
-//  (if a) then
-//  if (a then)
-//  (a) b = c
-//  (a) b = c)
-//  val in3 = "(a) b = c"
-//  val in4 = "if a then (b)"
-//  val in2 = "(a) b = c]"
-//  val inp = "foreign Py\n xx"
-//  val inp = "(a) b = c"
-//  val inp = "a = b -> c"
-//  val inp = "a = b -> c d"
-//  val inp = "x = skip (a.b)"
-//  val inp = "x(x[a))"
-//  val inp = """## Foo bar baz
-//             |def Maybe a
-//             |    ## Foo bo fo
-//             |    def Just val:a
-//             |    def Nothing
-//             |
-//             |def Maybe b
-//             |    ## Foo bo fo
-//             |    def Just val:b
-//             |    def Nothing
-//             |
-//             |def Foo
-//             |    ##
-//             |     this function takes parameters *x* and *y*
-//             |     and returns x added to y
-//             |    foo x y = x + y
-//             |    bar a b = a - b
-//             |    def Baz""".stripMargin
 
-  val inp =
-    """##
-      | this function takes parameters *x* and *y*
-      | and returns x added to y
-      |foo x y = x + y
-      |bar a b = a - b
-      |
-      |##
-      | DEPRECATED
-      | REMOVED - replaced by SwiftUI
-      | ADDED
-      | MODIFIED
-      | UPCOMING
-      | ALAMAKOTA a kot ma Ale
-      | Construct and manage a graphical, event-driven user interface for your
-      | iOS or tvOS app.
-      |
-      | The UIKit framework provides the required infrastructure for your iOS or
-      | tvOS apps. It provides the window and view architecture for implementing
-      | your interface, the event handling infrastructure for delivering Multi-
-      | Touch and other types of input to your app, and the main run loop needed
-      | to manage interactions among the user, the system, and your app. Other
-      | features offered by the framework include animation support, document
-      | support, drawing and printing support, information about the current
-      | device, text management and display, search support, accessibility
-      | support, app extension support, and resource management.
-      |
-      | ! Important
-      |   Use UIKit classes only from your app’s main thread or main dispatch
-      |   queue, unless otherwise indicated. This restriction particularly
-      |   applies to classes derived from UIResponder or that involve
-      |   manipulating your app’s user interface in any way.
-      |baz x y = x * y
-      |## foo bar""".stripMargin
-
-  val parser = new Parser()
-  val out    = parser.run(new Reader(inp), Seq())
-  ParserRunner.resultMatcher(parser, inp, out)
-}
-
-object ParserRunner {
-  def resultMatcher(
-    parser: Parser,
-    inp: String,
-    out: Parser.Result[AST.Module]
-  ): Unit = {
-    println(Printer.pretty(out.toString))
-    println("------")
-
-    out match {
-      case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
-        println(Printer.pretty(mod.toString))
-        println("------")
-        val rmod          = parser.resolveMacros(mod)
-        val documentation = DocParserRunner.create(rmod)
-        if (mod != rmod) {
-          println(Printer.pretty(rmod.toString))
-          println("------")
-        }
-        println(Printer.pretty(documentation.toString))
-        println("------")
-        println(mod.show() == inp)
-        println("------")
-        println(inp)
-        println("------")
-        println(mod.show())
-        println("------")
-        println(documentation.show())
-        println("------")
-      case _ =>
-    }
-    println()
-  }
-}
-
-object Printer {
   def pretty(str: String): String = {
 
     def checkClosing(in: List[Char]): Int = {
@@ -338,14 +290,65 @@ object Printer {
     }
     go(0, str.toList, List()).reverse.mkString("")
   }
-}
 
-// 1. Parsing patterns in-place with segments
-// 2.
-// (
-// (_)
-// _<
-// ( < )
-// if x then (a)
-// ((a))
-// if x then a = v
+  println("--- START ---")
+
+  val parser = new Parser()
+
+  val in_def_maybe =
+    """def Maybe a
+      |    def Just val:a
+      |    def Nothing
+    """.stripMargin
+
+  val in_arr1 = "a = b -> c d"
+
+  // (if a) then
+  // if (a then)
+  // (a) b = c
+  // (a) b = c)
+  val in3 = "(a) b = c"
+  val in4 = "if a then (b)"
+  val in2 = "(a) b = c]"
+  //  val inp = "foreign Py\n xx"
+  //val inp = "(a) b = c"
+  //val inp = "a = b -> c"
+  //val inp = "a = b -> c d"
+  val inp = "((a))"
+  //  val inp = "x(x[a))"
+  // 48
+
+  println("--- PARSING ---")
+
+  val mod = parser.run(
+    new Reader(inp),
+    Map() // (0, 5) -> UUID.fromString("00000000-0000-0000-0000-000000000000"))
+  )
+  //  pprint.pprintln(mod, width = 50, height = 10000)
+
+  println(pretty(mod.toString))
+
+  println("=========================")
+  println(pretty(parser.dropMacroMeta(mod).toString))
+  val rmod = parser.resolveMacros(mod)
+  if (mod != rmod) {
+    println("\n---\n")
+    println(pretty(rmod.toString))
+  }
+  println("------")
+  println(mod.show() == inp)
+  println("------")
+  println(mod.show())
+  println("------")
+
+  //  mod.traverseWithOff { (off, ast) =>
+  //    println(s">> $off - ${off + ast.span}: $ast")
+  //    ast
+  //  }
+
+  println()
+
+  AST.main()
+//  v3.AST.main()
+
+}

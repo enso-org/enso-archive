@@ -61,9 +61,9 @@ object Macro {
     def go(input: AST.Stream): AST = {
       input match {
         case Nil =>
-          val builders = builder :: builderStack
+          val builders                      = builder :: builderStack
           var newRevBuilders: List[Builder] = List()
-          var subStream: AST.Stream = List()
+          var subStream: AST.Stream         = List()
           for (bldr <- builders) {
             val noLastPattern = bldr.macroDef.map(_.last.pattern).contains(None)
             if (noLastPattern) {
@@ -72,7 +72,7 @@ object Macro {
               subStream = subStream ++ (rightUnusedStream.reverse :+ matched) ++ revLeftUnusedStream
             } else {
               bldr.current.revStream = subStream ++ bldr.current.revStream
-              subStream           = List()
+              subStream              = List()
               newRevBuilders +:= bldr
             }
 
@@ -82,7 +82,7 @@ object Macro {
           builder      = newBuilders.head
           builderStack = newBuilders.tail
           finalize()
-        case (t1 @ Shifted(off, el1: AST.Ident)) :: t2_ =>
+        case (t1 @ Shifted(off, AST.Ident.any(el1))) :: t2_ =>
           logger.log(s"Token $t1")
           logger.beginGroup()
           val wasLineBegin = isLineBegin
@@ -112,9 +112,9 @@ object Macro {
                 case _ =>
                   val currentClosed = builder.context.isEmpty
                   val parentPrecWin = (builder.current.ast, el1) match {
-                    case (_: AST.Opr, _) => false
-                    case (_, _: AST.Opr) => true
-                    case _               => false
+                    case (AST.Opr.any(_), _) => false
+                    case (_, AST.Opr.any(_)) => true
+                    case _                   => false
                   }
                   val parentBreak = builder.context.parentLookup(el1)
                   (currentClosed || parentPrecWin) && parentBreak match {
@@ -133,7 +133,7 @@ object Macro {
                   }
               }
           }
-        case (t1 @ Shifted(off, el1: AST.Block)) :: t2_ =>
+        case (t1 @ Shifted(off, AST.Block.any(el1))) :: t2_ =>
           val nt1 = Shifted(off, el1.map(transform))
           builder.current.revStream +:= nt1
           go(t2_)

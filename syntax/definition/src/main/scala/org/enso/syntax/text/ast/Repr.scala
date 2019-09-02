@@ -5,159 +5,138 @@ import java.nio.charset.StandardCharsets
 import org.enso.data.List1
 import org.enso.data.Shifted
 import cats.Monoid
+import cats.implicits._
 
 import scala.annotation.tailrec
 
-//////////////
-//// Repr ////
-//////////////
+////////////////////////////////////////////////////////////////////////////////
+//// Repr //////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-sealed trait Repr extends Repr.Provider {
-  import Repr._
-
-  val repr = this
-  val byteSpan: Int
-  val span: Int
-
-  def +[T: Repr.Of](that: T): Repr =
-    Seq(this, implicitly[Repr.Of[T]].of(that))
-
-  def ++[T: Repr.Of](that: T): Repr =
-    this + " " + that
-
-  def show(): String = {
-    val bldr = new StringBuilder()
-    @tailrec
-    def go(lst: List[Repr]): Unit = lst match {
-      case Nil =>
-      case r :: rs =>
-        r match {
-          case r: Empty =>
-            go(rs)
-          case r: Letter =>
-            bldr += r.char
-            go(rs)
-          case r: Space =>
-            for (_ <- 1 to r.span) bldr += ' '
-            go(rs)
-          case r: Text =>
-            bldr ++= r.str
-            go(rs)
-          case r: _Seq =>
-            go(r.first :: r.second :: rs)
-        }
-    }
-    go(List(repr))
-    bldr.result()
-  }
+trait Repr[T] {
+  def repr(a: T): Repr.Builder
 }
-
 object Repr {
 
-  //// Apply ////
+  //// Smart Constructors ////
 
-  def apply():                 Repr = Empty()
-  def apply[T: Repr.Of](t: T): Repr = implicitly[Repr.Of[T]].of(t)
+  def apply[T: Repr](t: T): Builder = implicitly[Repr[T]].repr(t)
+  val R = Repr.Builder.Empty()
 
-  //// Constructors ////
+  //// Operations ////
 
-  val R = Repr.Empty()
-  case class Empty() extends Repr {
-    val byteSpan = 0
-    val span     = 0
+  implicit class ToReprOps[T: Repr](t: T) {
+    def repr: Builder = Repr(t)
+    def span: Int     = repr.span
   }
-
-  case class Letter(char: Char) extends Repr {
-    val byteSpan = char.toString.getBytes(StandardCharsets.UTF_8).length
-    val span     = 1
-  }
-
-  case class Space(span: Int) extends Repr {
-    val byteSpan = span
-  }
-
-  case class Text(str: String) extends Repr {
-    val byteSpan = str.getBytes(StandardCharsets.UTF_8).length
-    val span     = str.length
-  }
-
-  final private case class _Seq(first: Repr, second: Repr) extends Repr {
-    val byteSpan = first.byteSpan + second.byteSpan
-    val span     = first.span + second.span
-  }
-
-  object Seq {
-    def apply(repr1: Repr, repr2: Repr): Repr = (repr1, repr2) match {
-      case (_: Empty, r) => r
-      case (r, _: Empty) => r
-      case _             => Repr._Seq(repr1, repr2)
-    }
-  }
-
-  //// Provider ////
-
-  trait Provider {
-    val repr: Repr
-  }
-
-  //// Implicits ////
-
-  implicit def fromString(a: String): Repr = Repr(a)
-  implicit def fromChar(a: Char):     Repr = Repr(a)
-
-  implicit def _Provider_[T: Repr.Of](t: T): Provider = of(t)
-
-  //// Instances ////
-
-  implicit val monoid: Monoid[Repr] = new Monoid[Repr] {
-    def empty:                     Repr = R
-    def combine(l: Repr, r: Repr): Repr = l + r
-  }
-
-  /////////////////////////////
-  ///// Repr.Of Type Class ////
-  /////////////////////////////
-
-  trait Of[-T] {
-    def of(a: T): Repr
-  }
-  def of[T](t: T)(implicit ev: Repr.Of[T]) = ev.of(t)
 
   ///// Instances ////
 
-  implicit def _inst_0: Repr.Of[Unit]   = _ => Repr.Empty()
-  implicit def _inst_1: Repr.Of[String] = Repr.Text(_)
-  implicit def _inst_2: Repr.Of[Int] = {
+  implicit def reprForUnit: Repr[Unit] =
+    _ => Repr.Builder.Empty()
+  implicit def reprForString: Repr[String] =
+    Repr.Builder.Text(_)
+  implicit def reprForInt: Repr[Int] = {
     case 0 => R
-    case i => Repr.Space(i)
+    case i => Repr.Builder.Space(i)
   }
-  implicit def _inst_3: Repr.Of[Char] = Repr.Letter(_)
-  implicit def _inst_4: Repr.Of[Repr] = identity(_)
-
-  implicit def _inst_5[T1: Repr.Of, T2: Repr.Of]: Repr.Of[(T1, T2)] = {
-    case (t1, t2) => Repr.Seq(Repr.of(t1), Repr.of(t2))
-  }
-
-  implicit def _inst_6[T <: Repr.Provider]: Repr.Of[T] = _.repr
-
-  implicit def _inst_7[T: Repr.Of]: Repr.Of[List[T]] =
-    _.map(_.repr).fold(R: Repr)(Repr.Seq(_, _))
-
-  implicit def _inst_8[T: Repr.Of]: Repr.Of[List1[T]] =
+  implicit def reprForChar: Repr[Char] =
+    Repr.Builder.Letter(_)
+  implicit def reprForTuple2[T1: Repr, T2: Repr]: Repr[(T1, T2)] =
+    t => Repr.Builder.Seq(Repr(t._1), Repr(t._2))
+  implicit def reprForProvider[T <: Repr.Provider]: Repr[T] =
+    _.repr
+  implicit def reprForList[T: Repr]: Repr[List[T]] =
+    _.map(_.repr).fold(R: Builder)(Repr.Builder.Seq(_, _))
+  implicit def reprForList1[T: Repr]: Repr[List1[T]] =
     t => R + t.head + t.tail
-
-  implicit def _inst_9[T: Repr.Of]: Repr.Of[Shifted[T]] =
+  implicit def reprForShifted[T: Repr]: Repr[Shifted[T]] =
     t => R + t.off + t.el
-
-  implicit def _inst_10[T: Repr.Of]: Repr.Of[Shifted.List1[T]] =
+  implicit def reprForShiftedList1[T: Repr]: Repr[Shifted.List1[T]] =
     t => R + t.head + t.tail
-
-  implicit def _inst_11[T: Repr.Of]: Repr.Of[Option[T]] =
+  implicit def reprForOption[T: Repr]: Repr[Option[T]] =
     _.map(_.repr).getOrElse(R)
-
-  implicit def _inst_12: Repr.Of[None.type] =
+  implicit def reprForNone: Repr[None.type] =
     _ => R
-
-  implicit def _inst_13[T: Repr.Of]: Repr.Of[Some[T]] =
+  implicit def reprForSome[T: Repr]: Repr[Some[T]] =
     _.map(_.repr).getOrElse(R)
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Provider ////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  trait Provider {
+    val repr: Builder
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Builder /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  sealed trait Builder {
+    import Builder._
+
+    val byteSpan: Int
+    val span: Int
+
+    def +[T: Repr](that: T):  Builder = Seq(this, Repr(that))
+    def ++[T: Repr](that: T): Builder = this + " " + that
+    def build(): String = {
+      val bldr = new StringBuilder()
+      @tailrec
+      def go(lst: List[Builder]): Unit = lst match {
+        case Nil =>
+        case r :: rs =>
+          r match {
+            case _: Empty  => go(rs)
+            case r: Letter => bldr += r.char; go(rs)
+            case r: Space  => for (_ <- 1 to r.span) { bldr += ' ' }; go(rs)
+            case r: Text   => bldr ++= r.str; go(rs)
+            case r: _Seq   => go(r.first :: r.second :: rs)
+          }
+      }
+      go(List(this))
+      bldr.result()
+    }
+  }
+  object Builder {
+
+    //// Constructors ////
+
+    final case class Empty() extends Builder {
+      val byteSpan = 0
+      val span     = 0
+    }
+    final case class Letter(char: Char) extends Builder {
+      val byteSpan = char.toString.getBytes(StandardCharsets.UTF_8).length
+      val span     = 1
+    }
+    final case class Space(span: Int) extends Builder {
+      val byteSpan = span
+    }
+    final case class Text(str: String) extends Builder {
+      val byteSpan = str.getBytes(StandardCharsets.UTF_8).length
+      val span     = str.length
+    }
+    final case class _Seq(first: Builder, second: Builder) extends Builder {
+      val byteSpan = first.byteSpan + second.byteSpan
+      val span     = first.span + second.span
+    }
+    object Seq { def apply(l: Builder, r: Builder): Builder = l |+| r }
+
+    //// Instances ////
+
+    implicit def fromString(a: String):        Builder = Repr(a)
+    implicit def fromChar(a: Char):            Builder = Repr(a)
+    implicit def reprForBuilder[T <: Builder]: Repr[T] = identity(_)
+    implicit val monoidForBuilder: Monoid[Builder] = new Monoid[Builder] {
+      def empty: Builder = R
+      def combine(l: Builder, r: Builder): Builder = (l, r) match {
+        case (_: Empty, t) => t
+        case (t, _: Empty) => t
+        case _             => _Seq(l, r)
+      }
+    }
+  }
+
 }

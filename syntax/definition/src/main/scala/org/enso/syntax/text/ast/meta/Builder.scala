@@ -4,6 +4,7 @@ import org.enso.data
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.syntax.text.AST
+import org.enso.syntax.text.AST.implicits._
 import org.enso.syntax.text.AST.Ident
 import org.enso.syntax.text.AST.Macro
 import Pattern.streamShift
@@ -35,7 +36,7 @@ class Builder(
     val revLeftStream = current.revStream
     val (revUnusedLeftTgt, matched, rightUnusedTgt) =
       that.build(revLeftStream)
-    val result = List1(matched, rightUnusedTgt)
+    val result = List1(matched: AST.SAST, rightUnusedTgt)
     current.revStream = result.toList.reverse ++ revUnusedLeftTgt
   }
 
@@ -72,7 +73,7 @@ class Builder(
           case Some(pat) =>
             val fstSegOff                = segs.head.off
             val (revStreamL2, lastLOff)  = streamShift(fstSegOff, revStreamL)
-            val pfxMatch                 = pat.matchRev(revStreamL2)
+            val pfxMatch                 = pat.matchRevUnsafe(revStreamL2)
             val revStreamL3              = pfxMatch.stream
             val streamL3                 = revStreamL3.reverse
             val (streamL4, newFstSegOff) = streamShift(lastLOff, streamL3)
@@ -91,8 +92,8 @@ class Builder(
           )
         }
 
-        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
-        val template = Macro.Match(AST.Marker(0), pfxMatch, shiftSegs, resolved)
+//        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
+        val template = Macro.Match(pfxMatch, shiftSegs, null)
         val newTok   = Shifted(segs2.head.off, template)
 
         (newLeftStream, newTok, tailStream)
@@ -102,26 +103,32 @@ class Builder(
 
   if (isModuleBuilder)
     macroDef = Some(
-      Macro.Definition(AST.Blank -> Pattern.Expr()) {
-        case (_, List(seg)) =>
-          seg.body.toStream match {
-            case List(mod) => mod.el
-            case _         => throw new scala.Error("Impossible happened")
-          }
+      Macro.Definition((AST.Blank(): AST) -> Pattern.Expr()) { ctx =>
+        ctx.body match {
+          case List(seg) =>
+            seg.body.toStream match {
+              case List(mod) => mod.el
+              case _         => throw new scala.Error("Impossible happened")
+            }
+        }
       }
     )
 
   def buildAsModule(): AST = {
-    build(List())._2.head.el match {
-      case m: Macro.Match => m.resolved
-      case _              => throw new scala.Error("Impossible happened.")
+    build(List())._2.el match {
+      case Macro.Match.any(m) =>
+        m.segs.head.body.toStream match {
+          case s :: Nil => s.el
+          case _        => throw new scala.Error("Impossible happened.")
+        }
+      case _ => throw new scala.Error("Impossible happened.")
     }
   }
 }
 
 object Builder {
   def moduleBuilder(): Builder =
-    new Builder(AST.Blank, isModuleBuilder = true, lineBegin = true)
+    new Builder(AST.Blank(), isModuleBuilder = true, lineBegin = true)
 
   /////////////////
   //// Context ////
@@ -167,13 +174,14 @@ object Builder {
       pat: Pattern,
       reversed: Boolean = false
     ): (Shifted[Match.Segment], AST.Stream) = {
-      pat.matchOpt(revStream.reverse, lineBegin, reversed) match {
+      val stream = revStream.reverse
+      pat.matchOpt(stream, lineBegin, reversed) match {
         case None =>
           throw new Error(
-            "Internal error: template pattern segment was unmatched"
+            s"Internal error: template pattern segment was unmatched"
           )
         case Some(rr) =>
-          (Shifted(offset, Match.Segment(ast, rr.elem)), rr.stream)
+          (Shifted(offset, Match.SegmentOf(ast, rr.elem)), rr.stream)
       }
     }
 

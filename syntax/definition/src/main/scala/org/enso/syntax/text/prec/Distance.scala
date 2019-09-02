@@ -40,7 +40,11 @@ object Distance {
     ): List1[Shifted[Segment]] = input match {
       case Nil => List1(Shifted(currentOff, current.reverse), out).reverse
       case ast1 :: ast2_ =>
-        val isGlued = (ast1.off == 0) && (!ast1.el.isInstanceOf[AST.Block])
+        val isBlock = ast1.el match {
+          case AST.Block.any(_) => true
+          case _                => false
+        }
+        val isGlued = (ast1.off == 0) && (!isBlock)
         isGlued match {
           case true => go(ast2_, currentOff, ast1.el :: current, out)
           case false =>

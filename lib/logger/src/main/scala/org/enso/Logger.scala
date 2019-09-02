@@ -123,8 +123,7 @@ object Logger {
         val ownerName = Literal(Constant(oname))
         owner.paramLists match {
           case lst :: _ =>
-            val lst2 = lst.map(x => q"$x")
-            val msg  = List(q"$ownerName")
+            val msg = List(q"$ownerName")
             Apply(Apply(TypeApply(Select(base, newName), typ), msg), body2)
           case _ => throw new Error("Unsupported shape")
         }

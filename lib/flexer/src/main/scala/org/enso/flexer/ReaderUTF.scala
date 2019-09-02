@@ -34,7 +34,7 @@ class ReaderUTF(val input: InputStream) {
       else return ENDOFINPUT
     val byte = buffer(offset)
     offset += 1
-    byte
+    byte.toInt
   }
 
   def empty: Boolean =
@@ -42,7 +42,7 @@ class ReaderUTF(val input: InputStream) {
 
   def nextChar(): Int = {
     charCode = nextByte()
-    charSize = charLength(charCode.toByte)
+    charSize = charLength(charCode.toByte.toInt)
     charCode = charCode & charMask(charSize)
     for (_ <- 1 until charSize)
       charCode = charCode << UTFBYTESIZE | nextByte() & charMask(-1)

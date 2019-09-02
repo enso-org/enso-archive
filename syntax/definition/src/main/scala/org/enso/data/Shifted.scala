@@ -45,5 +45,4 @@ object Shifted {
       List1(lst.head.el, lst.tail)
   }
 
-  implicit def singleton[T](t: T): List1[T] = List1(t, List())
 }

@@ -24,9 +24,9 @@ object Macro {
       case _ =>
         throw new Error(
           s""" ERROR: Wrong shape
-            | Expected Apply(Select(Select(_, name), _), _), got:
-            | ${showRaw(tree)}
-            |""".stripMargin
+             | Expected Apply(Select(Select(_, name), _), _), got:
+             | ${showRaw(tree)}
+             |""".stripMargin
         )
     }
 

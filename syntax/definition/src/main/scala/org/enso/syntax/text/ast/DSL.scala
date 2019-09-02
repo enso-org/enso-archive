@@ -1,6 +1,7 @@
 package org.enso.syntax.text.ast
 
 import org.enso.syntax.text.AST
+import org.enso.syntax.text.AST.implicits._
 import org.enso.syntax.text.AST.App.Infix
 
 object DSL {
@@ -9,14 +10,14 @@ object DSL {
 
   implicit final class ASTHelper(self: AST) {
     private def smartApp(off: Int, r: AST): AST = self match {
-      case self: AST.App.Left => Infix(self.arg, self.off, self.op, off, r)
-      case _                  => smartAppRaw(off, r)
+      case AST.App.Section.Left.any(t) => Infix(t.arg, t.off, t.opr, off, r)
+      case _                           => smartAppRaw(off, r)
     }
 
     private def smartAppRaw(off: Int, r: AST): AST = (self, r) match {
-      case (l, r: Opr) => App.Left(l, off, r)
-      case (l: Opr, r) => App.Right(l, off, r)
-      case (l, r)      => App(l, off, r)
+      case (l, Opr.any(r)) => App.Section.Left(l, off, r)
+      case (Opr.any(l), r) => App.Section.Right(l, off, r)
+      case (l, r)          => App.Prefix(l, off, r)
     }
 
     def $(t: AST)    = smartApp(0, t)
@@ -42,6 +43,6 @@ object DSL {
     def $$___(t: AST) = (self: AST) $$___ t
   }
 
-  implicit def intToNumber(int: Int): Number = Number(int)
+  implicit def intToNumber(int: Int): Literal.Number = Literal.Number(int)
 
 }
