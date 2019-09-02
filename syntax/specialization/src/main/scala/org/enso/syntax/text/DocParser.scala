@@ -89,8 +89,8 @@ object DocParserRunner {
     val preparedDocs = createdDocs match {
       case mod: AST.Module => reformatDocumentation(mod, ast)
     }
-    /* NOTE : Commented out just for ease of debugging procedures */
-//    generateHTMLForEveryDocumentation(preparedDocs)
+    /* NOTE : Comment out for ease of debugging procedures */
+    generateHTMLForEveryDocumentation(preparedDocs)
     preparedDocs
   }
 

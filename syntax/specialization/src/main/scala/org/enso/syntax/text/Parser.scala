@@ -196,6 +196,24 @@ object Main extends App {
 //  val inp = "a = b -> c d"
 //  val inp = "x = skip (a.b)"
 //  val inp = "x(x[a))"
+//  val inp = """## Foo bar baz
+//             |def Maybe a
+//             |    ## Foo bo fo
+//             |    def Just val:a
+//             |    def Nothing
+//             |
+//             |def Maybe b
+//             |    ## Foo bo fo
+//             |    def Just val:b
+//             |    def Nothing
+//             |
+//             |def Foo
+//             |    ##
+//             |     this function takes parameters *x* and *y*
+//             |     and returns x added to y
+//             |    foo x y = x + y
+//             |    bar a b = a - b
+//             |    def Baz""".stripMargin
 
   val inp =
     """##
@@ -232,28 +250,9 @@ object Main extends App {
       |baz x y = x * y
       |## foo bar""".stripMargin
 
-  val inp2 = """## Foo bar baz
-               |def Maybe a
-               |    ## Foo bo fo 
-               |    def Just val:a
-               |    def Nothing
-               |    
-               |def Maybe b
-               |    ## Foo bo fo 
-               |    def Just val:b
-               |    def Nothing
-               |
-               |def Foo
-               |    ##
-               |     this function takes parameters *x* and *y*
-               |     and returns x added to y
-               |    foo x y = x + y
-               |    bar a b = a - b
-               |    def Baz""".stripMargin
-
   val parser = new Parser()
-  val out    = parser.run(new Reader(inp2), Seq())
-  ParserRunner.resultMatcher(parser, inp2, out)
+  val out    = parser.run(new Reader(inp), Seq())
+  ParserRunner.resultMatcher(parser, inp, out)
 }
 
 object ParserRunner {
