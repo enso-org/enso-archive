@@ -141,10 +141,7 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(
-    input: Reader,
-    markers: Markers = Seq()
-  ): Result[AST.Module] =
+  def run(input: Reader, markers: Markers = Seq()): Result[AST.Module] =
     engine.run(input, markers).map(Macro.run)
 
   /** Although this function does not use any Parser-specific API now, it will
@@ -157,7 +154,7 @@ class Parser {
   def resolveMacros(ast: AST): AST = {
     ast match {
       case ast: AST.Macro.Match =>
-        Builtin.registry.get(ast.path) match {
+        Builtin.registry.get(ast.path()) match {
           case None => throw new Error("Macro definition not found")
           case Some(spec) =>
             resolveMacros(spec.fin(ast.pfx, ast.segs.toList().map(_.el)))
@@ -180,54 +177,6 @@ object Parser {
 //////////////
 
 object Main extends App {
-  def pretty(str: String): String = {
-
-    def checkClosing(in: List[Char]): Int = {
-      @tailrec
-      def go(i: Int, rest: Int, in: List[Char], bias: Int): Int =
-        (rest, bias, in) match {
-          case (0, _, _)   => 0
-          case (_, 0, _)   => i
-          case (_, _, Nil) => i
-          case (_, _, s :: ss) =>
-            s match {
-              case '(' => go(i + 1, rest - 1, ss, bias - 1)
-              case ')' => go(i + 1, rest - 1, ss, bias + 1)
-              case _   => go(i + 1, rest - 1, ss, bias)
-            }
-
-        }
-      go(0, 10, in, -1)
-    }
-
-    @tailrec
-    def go(ind: Int, in: List[Char], out: List[String]): List[String] = {
-      def newline(i: Int) = "\n" + " " * i * 2
-      in match {
-        case Nil => out
-        case s :: ss =>
-          val s2 = s.toString
-          s match {
-            case '(' =>
-              checkClosing(ss) match {
-                case 0 => go(ind + 1, ss, newline(ind + 1) :: s2 :: out)
-                case i =>
-                  go(
-                    ind,
-                    ss.drop(i),
-                    ss.take(i).mkString("") :: s2 :: out
-                  )
-              }
-
-            case ')' => go(ind - 1, ss, s2 :: newline(ind - 1) :: out)
-            case ',' => go(ind, ss, newline(ind) :: s2 :: out)
-            case _   => go(ind, ss, s2 :: out)
-          }
-      }
-    }
-    go(0, str.toList, List()).reverse.mkString("")
-  }
-
 //  val in_def_maybe =
 //    """def Maybe a
 //      |    def Just val:a
@@ -285,32 +234,92 @@ object Main extends App {
 
   val parser = new Parser()
   val out    = parser.run(new Reader(inp), Seq())
+  ParserRunner.resultMatcher(parser, inp, out)
+}
 
-  pprint.pprintln(out, width = 50, height = 10000)
-  println("------")
+object ParserRunner {
+  def resultMatcher(
+    parser: Parser,
+    inp: String,
+    out: Parser.Result[AST.Module]
+  ): Unit = {
+    println(Printer.pretty(out.toString))
+    println("------")
 
-  out match {
-    case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
-      pprint.pprintln(mod, width = 50, height = 10000)
-      println("------")
-      val rmod          = parser.resolveMacros(mod)
-      val documentation = DocParserRunner.create(rmod)
-      if (mod != rmod) {
-        pprint.pprintln(rmod, width = 50, height = 10000)
+    out match {
+      case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
+        println(Printer.pretty(mod.toString))
         println("------")
-      }
-      pprint.pprintln(documentation, width = 50, height = 10000)
-      println("------")
-      println(mod.show() == inp)
-      println("------")
-      println(inp)
-      println("------")
-      println(mod.show())
-      println("------")
-      println(documentation.show())
-      println("------")
+        val rmod          = parser.resolveMacros(mod)
+        val documentation = DocParserRunner.create(rmod)
+        if (mod != rmod) {
+          println(Printer.pretty(rmod.toString))
+          println("------")
+        }
+        println(Printer.pretty(documentation.toString))
+        println("------")
+        println(mod.show() == inp)
+        println("------")
+        println(inp)
+        println("------")
+        println(mod.show())
+        println("------")
+        println(documentation.show())
+        println("------")
+      case _ =>
+    }
+    println()
   }
-  println()
+}
+
+object Printer {
+  def pretty(str: String): String = {
+
+    def checkClosing(in: List[Char]): Int = {
+      @tailrec
+      def go(i: Int, rest: Int, in: List[Char], bias: Int): Int =
+        (rest, bias, in) match {
+          case (0, _, _)   => 0
+          case (_, 0, _)   => i
+          case (_, _, Nil) => i
+          case (_, _, s :: ss) =>
+            s match {
+              case '(' => go(i + 1, rest - 1, ss, bias - 1)
+              case ')' => go(i + 1, rest - 1, ss, bias + 1)
+              case _   => go(i + 1, rest - 1, ss, bias)
+            }
+
+        }
+      go(0, 10, in, -1)
+    }
+
+    @tailrec
+    def go(ind: Int, in: List[Char], out: List[String]): List[String] = {
+      def newline(i: Int) = "\n" + " " * i * 2
+      in match {
+        case Nil => out
+        case s :: ss =>
+          val s2 = s.toString
+          s match {
+            case '(' =>
+              checkClosing(ss) match {
+                case 0 => go(ind + 1, ss, newline(ind + 1) :: s2 :: out)
+                case i =>
+                  go(
+                    ind,
+                    ss.drop(i),
+                    ss.take(i).mkString("") :: s2 :: out
+                  )
+              }
+
+            case ')' => go(ind - 1, ss, s2 :: newline(ind - 1) :: out)
+            case ',' => go(ind, ss, newline(ind) :: s2 :: out)
+            case _   => go(ind, ss, s2 :: out)
+          }
+      }
+    }
+    go(0, str.toList, List()).reverse.mkString("")
+  }
 }
 
 // 1. Parsing patterns in-place with segments

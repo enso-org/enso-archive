@@ -87,7 +87,8 @@ object DocParserRunner {
   def create(ast: AST.Module): AST = {
     val createdDocs  = createDocs(ast)
     val preparedDocs = reformatDocumentation(createdDocs, ast)
-    generateHTMLForEveryDocumentation(preparedDocs)
+    /* NOTE : Commented out just for ease of debugging procedures */
+//    generateHTMLForEveryDocumentation(preparedDocs)
     preparedDocs
   }
 
@@ -99,7 +100,6 @@ object DocParserRunner {
     */
   def createDocs(ast: AST.Module): AST.Module = {
     ast.map { elem =>
-      println("ELEM OF AST : " + elem)
       previousElement = elem match {
         case v: AST.Comment.MultiLine  => multiLineAction(v)
         case v: AST.Comment.SingleLine => singleLineAction(v)
@@ -127,8 +127,6 @@ object DocParserRunner {
     * @return - Documentation from single line comment
     */
   def singleLineAction(ast: AST.Comment.SingleLine): Documented = {
-    println("\n--- FOUND SINGLE LINE COMMENT ---\n")
-    pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.text
     DocParser.runMatched(in)
   }
@@ -139,8 +137,6 @@ object DocParserRunner {
     * @return - Documentation from multi line comment
     */
   def multiLineAction(ast: AST.Comment.MultiLine): Documented = {
-    println("\n--- FOUND MULTI LINE COMMENT ---\n")
-    pprint.pprintln(ast, width = 50, height = 10000)
     val in = ast.lines.mkString("\n")
     DocParser.runMatched(in)
   }
@@ -154,8 +150,6 @@ object DocParserRunner {
     ast: AST.App._Infix,
     doc: Documented
   ): Option[Documentation] = {
-    println("\n--- FOUND INFIX ---\n")
-    pprint.pprintln(ast, width = 50, height = 10000)
     ast.larg match {
       case v: AST._App => Some(Documentation(Some(v.show()), doc))
       case _           => None
@@ -191,6 +185,11 @@ object DocParserRunner {
     astDoc
   }
 
+  /** generateHTMLForEveryDocumentation - this method is used for generation of
+    * HTML files from parsed and reformated Documetation(s) and/or Documented(s)
+    *
+    * @param ast - parsed AST.Module and reformatted using Doc Parser
+    */
   def generateHTMLForEveryDocumentation(ast: AST.Module): Unit = {
     ast.map { elem =>
       elem match {
