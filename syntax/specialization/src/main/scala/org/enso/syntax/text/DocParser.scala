@@ -75,9 +75,6 @@ object DocParser {
 ////////////////////////////////////////////////////////////////////////////////
 
 object DocParserRunner {
-  /* TODO [MM] - CreateDocumentation - walk through parsed data and look in
-               Infix for title of function under documentation, then create
-               true documented body */
   var previousElement: AST = AST.Blank
 
   /** create - function for invoking DocParser in right places

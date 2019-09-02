@@ -286,38 +286,29 @@ object Main extends App {
   val parser = new Parser()
   val out    = parser.run(new Reader(inp), Seq())
 
-  println("\n-- RESULT --\n")
   pprint.pprintln(out, width = 50, height = 10000)
+  println("------")
 
   out match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
-      println("\n-- PARSED MODULE --\n")
       pprint.pprintln(mod, width = 50, height = 10000)
-      val rmod = parser.resolveMacros(mod)
-      println(
-        "\n--- --- --- --- BEGIN `DocParserRunner.create` --- --- --- ---\n"
-      )
-      println("\n--- --- DOC IS USING DATA WITH RESOLVED MACROS  --- ---\n")
+      println("------")
+      val rmod          = parser.resolveMacros(mod)
       val documentation = DocParserRunner.create(rmod)
-      println(
-        "\n--- --- --- --- ENF OF `DocParserRunner.create` --- --- --- ---\n"
-      )
-//      if (mod != rmod) {
-//        println("\n-- RESOLVED MACROS ARE DIFFERENT FROM MODULE --\n")
-//        pprint.pprintln(rmod, width = 50, height = 10000)
-//      }
-      println("\n--- DOC PARSED  ---\n")
+      if (mod != rmod) {
+        pprint.pprintln(rmod, width = 50, height = 10000)
+        println("------")
+      }
       pprint.pprintln(documentation, width = 50, height = 10000)
-//      println("\n-- IN == MOD?  --\n")
-//      println(mod.show() == inp)
-//      println("\n----- INPUT -----\n")
-//      println(inp)
-      println("\n-- MODULE SHOW --\n")
+      println("------")
+      println(mod.show() == inp)
+      println("------")
+      println(inp)
+      println("------")
       println(mod.show())
-      println("\n--- DOC SHOW  ---\n")
+      println("------")
       println(documentation.show())
-      println("\n-----------------")
-
+      println("------")
   }
   println()
 }

@@ -5,6 +5,7 @@ import org.enso.syntax.text.ast.Documented._
 import org.enso.syntax.text.ast.Documented.Elem._
 import org.enso.Logger
 import org.enso.flexer.Parser.Result
+import org.enso.syntax.text.ast.Documented.Tags.Tag
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
 import org.scalatest.Assertion
@@ -587,7 +588,8 @@ class DocParserTests extends FlatSpec with Matchers {
   //// Tags ////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  val allPossibleTags = Tags.Tag.Type.codes.-(Tags.Tag.Unrecognized)
+  val allPossibleTags: Set[Tag.Type] =
+    Tags.Tag.Type.codes.-(Tags.Tag.Unrecognized)
 
   allPossibleTags.foreach(
     t =>
