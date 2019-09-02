@@ -115,31 +115,6 @@ object DocParserRunner {
               }
             case _ => v
           }
-        // FIXME - THIS IS UUUUGLY, still, next PR
-//        case v: AST.Def =>
-//          /* NOTE - Only create title if def is right under Doc */
-//          previousElement match {
-//            case documented: Documented =>
-//              v.body match {
-//                case Some(b) =>
-//                  b match {
-//                    case c: AST.Block =>
-//                      AST.Module(
-//                        AST.Block
-//                          ._Line(Some(defAction(v, documented)), c.indent),
-//                        AST.Block._Line(Some(createDocs(v)), c.indent)
-//                      )
-//                    case _ =>
-//                      AST.Module(
-//                        AST.Block
-//                          ._Line(Some(defAction(v, documented)), 0),
-//                        AST.Block._Line(Some(createDocs(v)), 0)
-//                      )
-//                  }
-//                case None => defAction(v, documented)
-//              }
-//            case _ => v
-//          }
         case v => createDocs(v)
       }
       previousElement
@@ -216,80 +191,11 @@ object DocParserRunner {
           val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
 
           astDoc = AST.Module(List1(updatedWithInfix).get)
-//        case v: AST.Def => //FIXME - Loop through Def's
-//          if (astBeginning.lines.toList.length <= elem._2) {
-//            astBeginning.lines.toList(elem._2).elem match {
-//              case Some(value) =>
-//                value match {
-//                  case d: AST.Def =>
-//                    d.body match {
-//                      case Some(value2) =>
-//                        value2 match {
-//                          case b: AST.Block =>
-//                            reformatBlock(v.body.get.asInstanceOf[AST.Block], b)
-//                          case _ =>
-//                        }
-//                      case None =>
-//                    }
-//                  case _ =>
-//                }
-//              case None =>
-//            }
-//          }
         case _ =>
       }
     }
     astDoc
   }
-
-//  def reformatBlock(
-//    astWithDoc: AST.Block,
-//    astBeginning: AST.Block
-//  ): AST.Block = {
-//    var astDoc = astWithDoc
-//    astWithDoc.lines.zipWithIndex.map { elem =>
-//      elem._1.elem.map {
-//        case v: Documentation =>
-//          // NOTE : Documented(before comment) -> Documentation
-//          val DocToLine = AST.Block._Line(Some(v), 0)
-//          val updatedWithDoc =
-//            astDoc.lines.updated(elem._2 - 1, DocToLine)
-//          // NOTE : Documentation -> Infix (to get back func. def)
-//          val infix            = astBeginning.lines(elem._2)
-//          val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
-//
-//          astDoc = AST._Block(
-//            AST.Block.Continuous,
-//            astWithDoc.indent,
-//            astWithDoc.emptyLines,
-//            updatedWithInfix.head.asInstanceOf[AST.Block.Line.NonEmpty],
-//            updatedWithInfix.tail
-//          )
-//        case v: AST.Def => //FIXME - Loop through Def's
-//          if (astBeginning.lines.length <= elem._2) {
-//            astBeginning.lines(elem._2).elem match {
-//              case Some(value) =>
-//                value match {
-//                  case d: AST.Def =>
-//                    d.body match {
-//                      case Some(value2) =>
-//                        value2 match {
-//                          case b: AST.Block =>
-//                            reformatBlock(v.body.get.asInstanceOf[AST.Block], b)
-//                          case _ =>
-//                        }
-//                      case None =>
-//                    }
-//                  case _ =>
-//                }
-//              case None =>
-//            }
-//          }
-//        case _ =>
-//      }
-//    }
-//    astDoc
-//  }
 
   /** generateHTMLForEveryDocumentation - this method is used for generation of
     * HTML files from parsed and reformatted Documentation(s) and/or Documented(s)
