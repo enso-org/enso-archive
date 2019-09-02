@@ -170,6 +170,6 @@ object Parser {
     }
   }
 
-  class InternalParserError(offset: Int, message: String) extends Error
+  class InternalParserError(offset: Int, message: String) extends Exception
 
 }

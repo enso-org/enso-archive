@@ -628,6 +628,11 @@ object AST {
     def flatTraverse[B](f: AST => GenTraversableOnce[B]): List[B] =
       lines.toList.flatMap(_.elem).flatMap(f(_))
 
+    /** Calls function f on each line,
+      *   - if f returns None, line is kept as it was,
+      *   - if f returns Some, line is replaced with f
+      *        and all further lines are kept as they were
+      */
     def findAndReplace(f: Line => Option[List[Line]]): Module = {
       def go(lines: List[Line]): List[Line] = lines match {
         case Nil => Nil
