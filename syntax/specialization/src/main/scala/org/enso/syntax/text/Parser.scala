@@ -213,7 +213,7 @@ object Main extends App {
       | ALAMAKOTA a kot ma Ale
       | Construct and manage a graphical, event-driven user interface for your
       | iOS or tvOS app.
-      | 
+      |
       | The UIKit framework provides the required infrastructure for your iOS or
       | tvOS apps. It provides the window and view architecture for implementing
       | your interface, the event handling infrastructure for delivering Multi-
@@ -221,9 +221,9 @@ object Main extends App {
       | to manage interactions among the user, the system, and your app. Other
       | features offered by the framework include animation support, document
       | support, drawing and printing support, information about the current
-      | device, text management and display, search support, accessibility  
+      | device, text management and display, search support, accessibility
       | support, app extension support, and resource management.
-      | 
+      |
       | ! Important
       |   Use UIKit classes only from your app’s main thread or main dispatch
       |   queue, unless otherwise indicated. This restriction particularly
@@ -232,9 +232,20 @@ object Main extends App {
       |baz x y = x * y
       |## foo bar""".stripMargin
 
+  val inp2 = """## Foo bar baz
+               |def Maybe a
+               |    ## Foo bo fo 
+               |    def Just val:a
+               |    def Nothing
+               |    
+               |def Maybe b
+               |    ## Foo bo fo 
+               |    def Just val:b
+               |    def Nothing""".stripMargin
+
   val parser = new Parser()
-  val out    = parser.run(new Reader(inp), Seq())
-  ParserRunner.resultMatcher(parser, inp, out)
+  val out    = parser.run(new Reader(inp2), Seq())
+  ParserRunner.resultMatcher(parser, inp2, out)
 }
 
 object ParserRunner {

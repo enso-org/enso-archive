@@ -85,7 +85,7 @@ object DocParserRunner {
     * @return - AST with possible documentation
     */
   def create(ast: AST.Module): AST = {
-    val createdDocs  = createDocs(ast)
+    val createdDocs  = createDocs(ast).asInstanceOf[AST.Module]
     val preparedDocs = reformatDocumentation(createdDocs, ast)
     /* NOTE : Commented out just for ease of debugging procedures */
 //    generateHTMLForEveryDocumentation(preparedDocs)
@@ -98,7 +98,7 @@ object DocParserRunner {
     * @param ast - data from Parser
     * @return - modified data containing possibly Documentation(s)
     */
-  def createDocs(ast: AST.Module): AST.Module = {
+  def createDocs(ast: AST): AST = {
     ast.map { elem =>
       previousElement = elem match {
         case v: AST.Comment.MultiLine  => multiLineAction(v)
@@ -113,15 +113,19 @@ object DocParserRunner {
               }
             case _ => v
           }
-
-        case v => v
+//        case v: AST.Def =>
+//          /* NOTE - Only create title if def is right under Doc */
+//          previousElement match {
+//            case documented: Documented => defAction(v, documented)
+//            case _                      => v
+//          }
+        case v => createDocs(v)
       }
       previousElement
     }
   }
 
   /** Single Line Action - creates Doc from comment
-    * (should be Doc(Synopsis(Raw())) )
     *
     * @param ast - Single line comment
     * @return - Documentation from single line comment
@@ -156,6 +160,18 @@ object DocParserRunner {
     }
   }
 
+  /** Def Action - Tries to create Doc Title from def function name
+    *
+    * @param ast - Def
+    * @return - Documentation title from def name
+    */
+  def defAction(
+    ast: AST.Def,
+    doc: Documented
+  ): Documentation = {
+    Documentation(Some(ast.name.show()), doc)
+  }
+
   /** reformatDocumentation
     *
     * @param astWithDoc - ast after running DocParser on it
@@ -186,7 +202,7 @@ object DocParserRunner {
   }
 
   /** generateHTMLForEveryDocumentation - this method is used for generation of
-    * HTML files from parsed and reformated Documetation(s) and/or Documented(s)
+    * HTML files from parsed and reformatted Documentation(s) and/or Documented(s)
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
     */
@@ -201,6 +217,5 @@ object DocParserRunner {
       }
       elem
     }
-
   }
 }
