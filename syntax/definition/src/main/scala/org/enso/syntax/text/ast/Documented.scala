@@ -9,7 +9,6 @@ import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.Comment
 import scalatags.generic
 import scalatags.text.Builder
 
@@ -24,11 +23,10 @@ import scalatags.text.Builder
   * span and show values. In addition to that it specifies html method for
   * extending tokens and getting HTML file out of Doc Parser
   */
-sealed trait Doc extends Repr.Provider with Comment {
+sealed trait Doc extends Repr.Provider {
   def html: Documented.HTML
   def htmlCls(): generic.AttrPair[Builder, String] =
     HTML.`class` := getClass.toString.split('$').last.split('.').last
-  def map(f: AST => AST): AST = this
 }
 
 /** Documentation - Combined output of Doc Parser with data from Parser
@@ -39,7 +37,7 @@ sealed trait Doc extends Repr.Provider with Comment {
   */
 final case class Documentation(title: Option[String], documented: Documented)
     extends Doc {
-  val repr: Repr                 = R + title + Documented.Elem.Newline + documented
+  val repr: Repr.Builder         = R + title + Documented.Elem.Newline + documented
   val titleHTML: Documented.HTML = Seq(HTML.div(HTML.`class` := "Title")(title))
   val html: Documented.HTML = Seq(
     HTML.div(htmlCls())(titleHTML)(documented.html)
@@ -58,7 +56,7 @@ final case class Documented(
   synopsis: Option[Documented.Synopsis],
   body: Option[Documented.Body]
 ) extends Doc {
-  val repr: Repr = R + tags + synopsis + body
+  val repr: Repr.Builder = R + tags + synopsis + body
   val html: Documented.HTML = Seq(
     HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
   )
@@ -104,15 +102,15 @@ object Documented {
       * Newline - used to hold newline ('\n') as elem
       */
     final case class Text(text: String) extends Elem {
-      val repr: Repr = text
-      val html: HTML = Seq(text)
+      val repr: Repr.Builder = R + text
+      val html: HTML         = Seq(text)
     }
 
     implicit def stringToText(str: String): Elem.Text = Elem.Text(str)
 
     case object Newline extends Elem {
-      val repr: Repr = R + "\n"
-      val html: HTML = Seq(" ")
+      val repr: Repr.Builder = R + "\n"
+      val html: HTML         = Seq(" ")
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -126,8 +124,8 @@ object Documented {
       */
     final case class Formatter(typ: Formatter.Type, elems: scala.List[Elem])
         extends Elem {
-      val repr: Repr = R + typ.marker + elems + typ.marker
-      val html: HTML = Seq(typ.htmlMarker(elems.html))
+      val repr: Repr.Builder = R + typ.marker + elems + typ.marker
+      val html: HTML         = Seq(typ.htmlMarker(elems.html))
     }
 
     object Formatter {
@@ -150,8 +148,8 @@ object Documented {
         */
       final case class Unclosed(typ: Type, elems: scala.List[Elem])
           extends Elem.Invalid {
-        val repr: Repr = R + typ.marker + elems
-        val html: HTML = Seq(HTML.div(htmlCls())(typ.htmlMarker(elems.html)))
+        val repr: Repr.Builder = R + typ.marker + elems
+        val html: HTML         = Seq(HTML.div(htmlCls())(typ.htmlMarker(elems.html)))
       }
 
       object Unclosed {
@@ -164,8 +162,8 @@ object Documented {
 
     implicit final class ExtForListOfElem(val self: scala.List[Elem])
         extends Doc {
-      val repr: Repr = R + self.map(_.repr)
-      val html: HTML = Seq(self.map(_.html))
+      val repr: Repr.Builder = R + self.map(_.repr)
+      val html: HTML         = Seq(self.map(_.html))
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -182,8 +180,8 @@ object Documented {
          we want to be able to display it maybe as a button on website
          and completely differently in gui, it should be configurable*/
     final case class CodeBlock(elems: List1[CodeBlock.Line]) extends Elem {
-      val newLn: Elem = Elem.Newline
-      val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _)
+      val newLn: Elem        = Elem.Newline
+      val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
       val html: HTML = {
         val uniqueIDCode = Random.alphanumeric.take(8).mkString("")
         val uniqueIDBtn  = Random.alphanumeric.take(8).mkString("")
@@ -210,13 +208,13 @@ object Documented {
         * Line - elem which is a part of Code Block
         */
       final case class Inline(str: String) extends Elem {
-        val marker     = '`'
-        val repr: Repr = R + marker + str + marker
-        val html: HTML = Seq(HTML.code(str))
+        val marker             = '`'
+        val repr: Repr.Builder = R + marker + str + marker
+        val html: HTML         = Seq(HTML.code(str))
       }
       final case class Line(indent: Int, elem: String) extends Elem {
-        val repr: Repr = R + indent + elem
-        val html: HTML = Seq(HTML.code(elem), HTML.br)
+        val repr: Repr.Builder = R + indent + elem
+        val html: HTML         = Seq(HTML.code(elem), HTML.br)
       }
     }
 
@@ -235,7 +233,7 @@ object Documented {
       */
     abstract class Link(name: String, url: String, val marker: Option[String])
         extends Elem {
-      val repr: Repr = R + marker + "[" + name + "](" + url + ")"
+      val repr: Repr.Builder = R + marker + "[" + name + "](" + url + ")"
       val html: HTML = this match {
         case _: Link.URL   => Seq(HTML.a(HTML.href := url)(name))
         case _: Link.Image => Seq(HTML.img(HTML.src := url), name)
@@ -256,7 +254,7 @@ object Documented {
       }
 
       final case class Invalid(elem: String) extends Elem {
-        val repr: Repr = R + elem
+        val repr: Repr.Builder = R + elem
         val html: HTML = {
           val htmlClass = HTML.`class` := this.productPrefix + getObjectName
           Seq(HTML.div(htmlClass)(elem.html))
@@ -282,12 +280,13 @@ object Documented {
       */
     final case class List(indent: Int, typ: List.Type, elems: List1[Elem])
         extends Elem {
-      val repr: Repr = R + indent + typ.marker + elems.head + elems.tail.map {
-          case elem @ (_: Elem.Invalid) => R + Newline + elem
-          case elem @ (_: List)         => R + Newline + elem
-          case elem =>
-            R + Newline + indent + typ.marker + elem
-        }
+      val repr: Repr.Builder = R + indent + typ.marker + elems.head + elems.tail
+          .map {
+            case elem @ (_: Elem.Invalid) => R + Newline + elem
+            case elem @ (_: List)         => R + Newline + elem
+            case elem =>
+              R + Newline + indent + typ.marker + elem
+          }
 
       val html: HTML = {
         val elemsHTML = elems.toList.map {
@@ -311,7 +310,7 @@ object Documented {
       object Indent {
         final case class Invalid(indent: Int, typ: Type, elem: Elem)
             extends Elem.Invalid {
-          val repr: Repr = R + indent + typ.marker + elem
+          val repr: Repr.Builder = R + indent + typ.marker + elem
           val html: HTML = {
             val className = this.productPrefix
             val htmlCls   = HTML.`class` := className + getObjectName
@@ -342,7 +341,7 @@ object Documented {
     def indent: Int
     def elems: List[Elem]
 
-    def reprOfNormalText(elem: Elem, prevElem: Elem): Repr = {
+    def reprOfNormalText(elem: Elem, prevElem: Elem): Repr.Builder = {
       prevElem match {
         case Elem.Newline => R + indent + elem
         case _            => R + elem
@@ -359,8 +358,8 @@ object Documented {
       * @param elems - elements which make up header
       */
     final case class Header(elems: List[Elem]) extends Elem {
-      val repr: Repr = R + elems.map(_.repr)
-      val html: HTML = Seq(HTML.div(htmlCls())(elems.map(_.html)))
+      val repr: Repr.Builder = R + elems.map(_.repr)
+      val html: HTML         = Seq(HTML.div(htmlCls())(elems.map(_.html)))
     }
     object Header {
       def apply(elem: Elem):   Header = Header(elem :: Nil)
@@ -375,16 +374,16 @@ object Documented {
     ) extends Section {
       val marker: String = typ.marker.toString
       val firstIndentRepr
-        : Repr = R + indentBeforeMarker + marker + indentAfterMarker
+        : Repr.Builder = R + indentBeforeMarker + marker + indentAfterMarker
 
       val dummyElem = Elem.Text("")
-      val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
+      val elemsRepr: List[Repr.Builder] = elems.zip(dummyElem :: elems).map {
         case (elem @ (_: Elem.List), _)      => R + elem
         case (elem @ (_: Elem.CodeBlock), _) => R + elem
         case (elem, prevElem)                => reprOfNormalText(elem, prevElem)
       }
 
-      val repr: Repr = R + firstIndentRepr + elemsRepr
+      val repr: Repr.Builder = R + firstIndentRepr + elemsRepr
       override def htmlCls(): generic.AttrPair[Builder, String] = {
         HTML.`class` := typ.toString
       }
@@ -430,14 +429,14 @@ object Documented {
     final case class Raw(indent: Int, elems: List[Elem]) extends Section {
       val dummyElem   = Elem.Text("")
       val newLn: Elem = Elem.Newline
-      val elemsRepr: List[Repr] = elems.zip(dummyElem :: elems).map {
+      val elemsRepr: List[Repr.Builder] = elems.zip(dummyElem :: elems).map {
         case (elem @ (_: Section.Header), _) => R + newLn + indent + elem
         case (elem @ (_: Elem.List), _)      => R + elem
         case (elem @ (_: Elem.CodeBlock), _) => R + elem
         case (elem, prevElem)                => reprOfNormalText(elem, prevElem)
       }
 
-      val repr: Repr = R + indent + elemsRepr
+      val repr: Repr.Builder = R + indent + elemsRepr
     }
 
     object Raw {
@@ -460,8 +459,8 @@ object Documented {
     * @param elems - sections which make up synopsis
     */
   final case class Synopsis(elems: List1[Section]) extends Doc {
-    val newLn: Elem = Elem.Newline
-    val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _)
+    val newLn: Elem        = Elem.Newline
+    val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
       Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
     }
@@ -482,7 +481,9 @@ object Documented {
     */
   final case class Body(elems: List1[Section]) extends Doc {
     val newLn: Elem = Elem.Newline
-    val repr: Repr  = R + newLn + elems.head + elems.tail.map(R + newLn + _)
+    val repr: Repr.Builder = R + newLn + elems.head + elems.tail.map(
+        R + newLn + _
+      )
     val html: HTML = Seq(
       HTML.div(htmlCls())(HTML.h2("Overview"))(elems.toList.map(_.html))
     )
@@ -504,8 +505,9 @@ object Documented {
     */
   final case class Tags(elems: List1[Tags.Tag]) extends Doc {
     val newLn: Elem = Elem.Newline
-    val repr: Repr  = R + elems.head + elems.tail.map(R + newLn + _) + newLn
-    val html: HTML  = Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
+    val repr
+      : Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _) + newLn
+    val html: HTML   = Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
   }
   object Tags {
     def apply(elem: Tag):   Tags = Tags(List1(elem))
@@ -521,7 +523,7 @@ object Documented {
     final case class Tag(indent: Int, typ: Tag.Type, details: Option[String])
         extends Elem {
       val name: String = typ.toString.toUpperCase
-      val repr: Repr = typ match {
+      val repr: Repr.Builder = typ match {
         case Tag.Unrecognized => R + indent + details
         case _                => R + indent + name + details
       }
