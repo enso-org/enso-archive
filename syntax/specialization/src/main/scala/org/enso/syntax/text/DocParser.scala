@@ -85,8 +85,10 @@ object DocParserRunner {
     * @return - AST with possible documentation
     */
   def create(ast: AST.Module): AST = {
-    val createdDocs  = createDocs(ast).asInstanceOf[AST.Module]
-    val preparedDocs = reformatDocumentation(createdDocs, ast)
+    val createdDocs = createDocs(ast)
+    val preparedDocs = createdDocs match {
+      case mod: AST.Module => reformatDocumentation(mod, ast)
+    }
     /* NOTE : Commented out just for ease of debugging procedures */
 //    generateHTMLForEveryDocumentation(preparedDocs)
     preparedDocs
@@ -113,11 +115,30 @@ object DocParserRunner {
               }
             case _ => v
           }
+        // FIXME - THIS IS UUUUGLY, still, next PR
 //        case v: AST.Def =>
 //          /* NOTE - Only create title if def is right under Doc */
 //          previousElement match {
-//            case documented: Documented => defAction(v, documented)
-//            case _                      => v
+//            case documented: Documented =>
+//              v.body match {
+//                case Some(b) =>
+//                  b match {
+//                    case c: AST.Block =>
+//                      AST.Module(
+//                        AST.Block
+//                          ._Line(Some(defAction(v, documented)), c.indent),
+//                        AST.Block._Line(Some(createDocs(v)), c.indent)
+//                      )
+//                    case _ =>
+//                      AST.Module(
+//                        AST.Block
+//                          ._Line(Some(defAction(v, documented)), 0),
+//                        AST.Block._Line(Some(createDocs(v)), 0)
+//                      )
+//                  }
+//                case None => defAction(v, documented)
+//              }
+//            case _ => v
 //          }
         case v => createDocs(v)
       }
@@ -195,6 +216,8 @@ object DocParserRunner {
           val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
 
           astDoc = AST.Module(List1(updatedWithInfix).get)
+//        case v: AST.Def => //FIXME - Loop through Def's
+//          reformatDocumentation(astWithDoc.lines.toList(elem._2), astBeginning.lines.toList(elem._2))
         case _ =>
       }
     }

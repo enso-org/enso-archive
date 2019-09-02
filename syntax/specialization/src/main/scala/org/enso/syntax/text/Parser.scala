@@ -241,7 +241,15 @@ object Main extends App {
                |def Maybe b
                |    ## Foo bo fo 
                |    def Just val:b
-               |    def Nothing""".stripMargin
+               |    def Nothing
+               |
+               |def Foo
+               |    ##
+               |     this function takes parameters *x* and *y*
+               |     and returns x added to y
+               |    foo x y = x + y
+               |    bar a b = a - b
+               |    def Baz""".stripMargin
 
   val parser = new Parser()
   val out    = parser.run(new Reader(inp2), Seq())
