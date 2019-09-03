@@ -5,8 +5,9 @@ import java.io.PrintWriter
 
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.ast.Documentation
 import org.enso.syntax.text.ast.Documented
+import org.enso.syntax.text.ast.Documentation
+import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
@@ -70,148 +71,169 @@ object DocParser {
   }
 }
 
+//TODO
+// 1. Parsowanie kodu zawierajacego komentarz i funkcje w kolejnej linijce - nic
+// bardziej skomplikowanego - jeden komentarz i jedna funkcja - w rezultacie
+// masz dostac dokumentacje taka jak masz teraz tylko z jej tytulem bedacym
+// tytulem tej fumkcji. Po zrobieniu i zaktualizowaniu kodu do najnowszego
+// parsera (niech branch wdanilo/cata bedzie dla Ciebie referencyjny teraz),
+// zrob do niego PRa i mi podeslij. On jest troche brudny tu i tam,
+// ale powinno zyc.
+// 2. Dodaj do naszego AST node "documented" ktory bedize mial dwa fieldy -
+// inne AST oraz Twojego Doca. Twoj Doc nie ma byc typu AST
+// (na moim branhcu juz nie jest). Osobny PR.
+// 3. Teraz use case ktory dziala tak - w kaodzie mamy tlyko def Maybe
+// (zobacz w testach) i nad tym dokumentacja + dokumentacja do kazdej funckji
+// w srodku - chcemy to straversowac i zrobic ostatecnza forme dokumentacji.
+// z Defa pobierasz nazwe dokumentacji a dokumentacje kazdej funkcji wewnetrznej
+// wyswietlasz tak jak na tym szarym obszarze w apple docs. Rob to po
+// zmergowaniu brancha, bedzie ci duzo latwiej. Ogolnie implementacja tu powinna
+// byc super prosta - definicja jest blokiem i ma liste linijek, wiec
+// przechdozicsz przez ta liste i jak znajdziesz dokumentacje, sprawdzasz czy
+// kolejne linijki to puste lub zawieraja funckje (a to juz masz z punktu 1)
+
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser Runner /////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-//
-//object DocParserRunner {
-//  var previousElement: Option[AST] = None
-//
-//  /** create - function for invoking DocParser in right places
-//    * creating documentation from parsed comments
-//    * and also generating HTML files for created Documentation's
-//    *
-//    * @param ast - parsed data by Parser
-//    * @return - AST with possible documentation
-//    */
-//  def create(ast: AST.Module): AST = {
-//    val createdDocs = createDocs(ast)
-//    val preparedDocs = createdDocs match {
-//      case mod: AST.Module => reformatDocumentation(mod, ast)
-//    }
-//    /* NOTE : Comment out for ease of debugging procedures */
-//    generateHTMLForEveryDocumentation(preparedDocs)
-//    preparedDocs
-//  }
-//
-//  /** createDocs - This function changes single- and multi- line comments into
-//    * Documented(s), and Infix into Documentation Title
-//    *
-//    * @param ast - data from Parser
-//    * @return - modified data containing possibly Documentation(s)
-//    */
-//  def createDocs(ast: AST): AST = {
-//    ast.map { elem =>
-//      previousElement = Some(elem match {
-//        case v: AST.Comment.MultiLine  => multiLineAction(v)
-//        case v: AST.Comment.SingleLine => singleLineAction(v)
-//        case v: AST.App.Infix          =>
-//          /* NOTE - Only create title if infix is right under Doc */
-//          previousElement match {
-//            case documented: Documented =>
-//              infixAction(v, documented) match {
-//                case Some(documentation) => documentation
-//                case None                => v
-//              }
-//            case _ => v
-//          }
-//        case v => createDocs(v)
-//      })
-//      previousElement.get
-//    }
-//  }
-//
-//  /** Single Line Action - creates Doc from comment
-//    *
-//    * @param ast - Single line comment
-//    * @return - Documentation from single line comment
-//    */
-//  def singleLineAction(ast: AST.Comment.SingleLine): Documented = {
-//    val in = ast.text
-//    DocParser.runMatched(in)
-//  }
-//
-//  /** Multi Line Action - creates Doc from comment
-//    *
-//    * @param ast - Multi line comment
-//    * @return - Documentation from multi line comment
-//    */
-//  def multiLineAction(ast: AST.Comment.MultiLine): Documented = {
-//    val in = ast.lines.mkString("\n")
-//    DocParser.runMatched(in)
-//  }
-//
-//  /** Infix Action - Tries to create Doc Title from function name
-//    *
-//    * @param ast - Infix
-//    * @return - Documentation title from infix left argument
-//    */
-//  def infixAction(
-//    ast: AST.App.Infix,
-//    doc: Documented
-//  ): Option[Documentation] = {
-//    ast.larg match {
-//      case v: AST.App => Some(Documentation(Some(v.show()), doc))
-//      case _          => None
-//    }
-//  }
-//
-//  /** Def Action - Tries to create Doc Title from def function name
-//    *
-//    * @param ast - Def
-//    * @return - Documentation title from def name
-//    */
-//  def defAction(
-//    ast: AST.Def,
-//    doc: Documented
-//  ): Documentation = {
-//    Documentation(Some(ast.name.show()), doc)
-//  }
-//
-//  /** reformatDocumentation
-//    *
-//    * @param astWithDoc - ast after running DocParser on it
-//    * @param astBeginning - primary AST without modifications
-//    * @return - properly oriented AST with Documentation(Title,Documented) elems
-//    */
-//  def reformatDocumentation(
-//    astWithDoc: AST.Module,
-//    astBeginning: AST.Module
-//  ): AST.Module = {
-//    var astDoc = astWithDoc
-//    astWithDoc.lines.zipWithIndex.map { elem =>
-//      elem._1.elem.map {
-//        case v: Documentation =>
-//          // NOTE : Documented(before comment) -> Documentation
-//          val DocToLine = AST.Block.Line(Some(v), 0)
-//          val updatedWithDoc =
-//            astDoc.lines.toList.updated(elem._2 - 1, DocToLine)
-//          // NOTE : Documentation -> Infix (to get back func. def)
-//          val infix            = astBeginning.lines.toList(elem._2)
-//          val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
-//
-//          astDoc = AST.Module(List1(updatedWithInfix).get)
-//        case _ =>
-//      }
-//    }
-//    astDoc
-//  }
-//
-//  /** generateHTMLForEveryDocumentation - this method is used for generation of
-//    * HTML files from parsed and reformatted Documentation(s) and/or Documented(s)
-//    *
-//    * @param ast - parsed AST.Module and reformatted using Doc Parser
-//    */
-//  def generateHTMLForEveryDocumentation(ast: AST.Module): Unit = {
-//    ast.map { elem =>
-//      elem match {
-//        case v: Documentation =>
-//          new DocParser().onHTMLRendering(v)
-//        case v: Documented =>
-//          new DocParser().onHTMLRendering(Documentation(None, v))
-//        case _ =>
-//      }
-//      elem
-//    }
-//  }
-//}
+
+object DocParserRunner {
+  var previousElement: Option[AST] = None
+
+  /** create - function for invoking DocParser in right places
+    * creating documentation from parsed comments
+    * and also generating HTML files for created Documentation's
+    *
+    * @param ast - parsed data by Parser
+    * @return - AST with possible documentation
+    */
+  def create(ast: AST.Module): AST = {
+    val createdDocs = createDocs(ast)
+    val preparedDocs = createdDocs match {
+      case mod: AST.Module => reformatDocumentation(mod, ast)
+    }
+    /* NOTE : Comment out for ease of debugging procedures */
+    generateHTMLForEveryDocumentation(preparedDocs)
+    preparedDocs
+  }
+
+  /** createDocs - This function changes single- and multi- line comments into
+    * Documented(s), and Infix into Documentation Title
+    *
+    * @param ast - data from Parser
+    * @return - modified data containing possibly Documentation(s)
+    */
+  def createDocs(ast: AST): AST = {
+    ast.map { elem =>
+      previousElement = Some(elem match {
+        case v: AST.Comment.MultiLine  => multiLineAction(v)
+        case v: AST.Comment.SingleLine => singleLineAction(v)
+        case v: AST.App.Infix          =>
+          /* NOTE - Only create title if infix is right under Doc */
+          previousElement match {
+            case Some(documented: Documented) =>
+              infixAction(v, documented) match {
+                case Some(documentation) => documentation
+                case None                => v
+              }
+            case _ => v
+          }
+        case v => createDocs(v)
+      })
+      previousElement.get
+    }
+  }
+
+  /** Single Line Action - creates Doc from comment
+    *
+    * @param ast - Single line comment
+    * @return - Documentation from single line comment
+    */
+  def singleLineAction(ast: AST.Comment.SingleLine): Documented = {
+    val in = ast.text
+    DocParser.runMatched(in)
+  }
+
+  /** Multi Line Action - creates Doc from comment
+    *
+    * @param ast - Multi line comment
+    * @return - Documentation from multi line comment
+    */
+  def multiLineAction(ast: AST.Comment.MultiLine): Documented = {
+    val in = ast.lines.mkString("\n")
+    DocParser.runMatched(in)
+  }
+
+  /** Infix Action - Tries to create Doc Title from function name
+    *
+    * @param ast - Infix
+    * @return - Documentation title from infix left argument
+    */
+  def infixAction(
+    ast: AST.App.Infix,
+    doc: Documented
+  ): Option[Documentation] = {
+    ast.larg match {
+      case v: AST.App => Some(Documentation(Some(v.show()), doc))
+      case _          => None
+    }
+  }
+
+  /** Def Action - Tries to create Doc Title from def function name
+    *
+    * @param ast - Def
+    * @return - Documentation title from def name
+    */
+  def defAction(
+    ast: AST.Def,
+    doc: Documented
+  ): Documentation = {
+    Documentation(Some(ast.name.show()), doc)
+  }
+
+  /** reformatDocumentation
+    *
+    * @param astWithDoc - ast after running DocParser on it
+    * @param astBeginning - primary AST without modifications
+    * @return - properly oriented AST with Documentation(Title,Documented) elems
+    */
+  def reformatDocumentation(
+    astWithDoc: AST.Module,
+    astBeginning: AST.Module
+  ): AST.Module = {
+    var astDoc = astWithDoc
+    astWithDoc.lines.zipWithIndex.map { elem =>
+      elem._1.elem.map {
+        case v: Documentation =>
+          // NOTE : Documented(before comment) -> Documentation
+          val DocToLine = AST.Block.Line(Some(v), 0)
+          val updatedWithDoc =
+            astDoc.lines.toList.updated(elem._2 - 1, DocToLine)
+          // NOTE : Documentation -> Infix (to get back func. def)
+          val infix            = astBeginning.lines.toList(elem._2)
+          val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
+
+          astDoc = AST.Module(List1(updatedWithInfix).get)
+        case _ =>
+      }
+    }
+    astDoc
+  }
+
+  /** generateHTMLForEveryDocumentation - this method is used for generation of
+    * HTML files from parsed and reformatted Documentation(s) and/or Documented(s)
+    *
+    * @param ast - parsed AST.Module and reformatted using Doc Parser
+    */
+  def generateHTMLForEveryDocumentation(ast: AST.Module): Unit = {
+    ast.map { elem =>
+      elem match {
+        case v: Documentation =>
+          new DocParser().onHTMLRendering(v)
+        case v: Documented =>
+          new DocParser().onHTMLRendering(Documentation(None, v))
+        case _ =>
+      }
+      elem
+    }
+  }
+}
