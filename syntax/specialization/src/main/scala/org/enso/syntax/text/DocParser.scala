@@ -5,9 +5,7 @@ import java.io.PrintWriter
 
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.ast.Documented
 import org.enso.syntax.text.ast.Documentation
-import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
@@ -24,20 +22,24 @@ class DocParser {
   import DocParser._
   private val engine = newEngine()
 
-  def runMatched(input: String): Documented = run(input) match {
+  def runMatched(input: String): Documentation = run(input) match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) => v
-    case _                                                        => Documented()
+    case _                                                        => Documentation()
   }
-  def run(input: String): Result[Documented] = engine.run(new Reader(input))
+  def run(input: String): Result[Documentation] = engine.run(new Reader(input))
 
-  def onHTMLRendering(doc: Documentation): Unit = {
+  def onHTMLRendering(documented: AST.Comment.Documented): Unit = {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
     val cssFileName = "style.css"
-    saveHTMLCodeToLocalFile(path, renderHTML(doc, cssFileName))
+    saveHTMLCodeToLocalFile(
+      path,
+      renderHTML(documented.title, documented.doc, cssFileName)
+    )
   }
 
   def renderHTML(
+    t: Option[AST],
     doc: Documentation,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
@@ -48,7 +50,10 @@ class DocParser {
     val cssRel    = HTML.rel := "stylesheet"
     val cssHref   = HTML.href := cssLink
     val css       = HTML.link(cssRel)(cssHref)
-    HTML.html(HTML.head(meta, css), HTML.body(doc.html))
+    val title = Seq(
+      HTML.div(HTML.`class` := "Title")(t.map(_.show()))
+    )
+    HTML.html(HTML.head(meta, css), HTML.body(title, doc.html))
   }
 }
 
@@ -56,9 +61,9 @@ object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
-  def runMatched(input: String): Documented =
+  def runMatched(input: String): Documentation =
     new DocParser().runMatched(input)
-  def run(input: String): Result[Documented] = new DocParser().run(input)
+  def run(input: String): Result[Documentation] = new DocParser().run(input)
 
   def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {
     val writer = new PrintWriter(
@@ -71,6 +76,7 @@ object DocParser {
   }
 }
 
+// BROKEN AFTER MERGE OF AST_CATA BRANCH - PARSER WONT PRODUCE COMMENTS!
 //TODO ( almost done )
 // 1. Parsowanie kodu zawierajacego komentarz i funkcje w kolejnej linijce - nic
 // bardziej skomplikowanego - jeden komentarz i jedna funkcja - w rezultacie
@@ -80,7 +86,7 @@ object DocParser {
 // zrob do niego PRa i mi podeslij. On jest troche brudny tu i tam,
 // ale powinno zyc.
 //
-//TODO ( in progress )
+//TODO ( almost done )
 // 2. Dodaj do naszego AST node "documented" ktory bedize mial dwa fieldy -
 // inne AST oraz Twojego Doca. Twoj Doc nie ma byc typu AST
 // (na moim branhcu juz nie jest). Osobny PR.
@@ -110,14 +116,15 @@ object DocParserRunner {
     * @param ast - parsed data by Parser
     * @return - AST with possible documentation
     */
-  def create(ast: AST.Module): AST = {
+  def create(ast: AST): AST = {
     val createdDocs = createDocs(ast)
-    val preparedDocs = createdDocs match {
-      case mod: AST.Module => reformatDocumentation(mod, ast)
-    }
-    /* NOTE : Comment out for ease of debugging procedures */
-    generateHTMLForEveryDocumentation(preparedDocs)
-    preparedDocs
+//    val preparedDocs = createdDocs match {
+//      case mod: AST.Module => reformatDocumentation(mod, ast)
+//    }
+//    /* NOTE : Comment out for ease of debugging procedures */
+//    generateHTMLForEveryDocumentation(preparedDocs)
+//    preparedDocs
+    createdDocs
   }
 
   /** createDocs - This function changes single- and multi- line comments into
@@ -129,17 +136,17 @@ object DocParserRunner {
   def createDocs(ast: AST): AST = {
     ast.map { elem =>
       previousElement = Some(elem match {
-        case v: AST.Comment.MultiLine  => multiLineAction(v)
-        case v: AST.Comment.SingleLine => singleLineAction(v)
-        case v: AST.App.Infix          =>
+        case v: AST.Comment.MultiLineOf[AST]  => multiLineAction(v)
+        case v: AST.Comment.SingleLineOf[AST] => singleLineAction(v)
+        case v: AST.App.Infix                 =>
           /* NOTE - Only create title if infix is right under Doc */
           previousElement match {
-            case Some(documented: Documented) =>
-              infixAction(v, documented) match {
-                case Some(documentation) => documentation
-                case None                => v
+            case Some(d: AST.Comment.DocumentedOf[AST]) =>
+              infixAction(v, d) match {
+                case Some(doc) => doc
+                case None      => v
               }
-            case _ => v
+            case _ => v.asInstanceOf[AST]
           }
         case v => createDocs(v)
       })
@@ -152,9 +159,11 @@ object DocParserRunner {
     * @param ast - Single line comment
     * @return - Documentation from single line comment
     */
-  def singleLineAction(ast: AST.Comment.SingleLine): Documented = {
+  def singleLineAction(
+    ast: AST.Comment.SingleLine
+  ): AST.Comment.Documented = {
     val in = ast.text
-    DocParser.runMatched(in)
+    AST.Comment.DocumentedOf[AST](None, DocParser.runMatched(in))
   }
 
   /** Multi Line Action - creates Doc from comment
@@ -162,9 +171,9 @@ object DocParserRunner {
     * @param ast - Multi line comment
     * @return - Documentation from multi line comment
     */
-  def multiLineAction(ast: AST.Comment.MultiLine): Documented = {
+  def multiLineAction(ast: AST.Comment.MultiLine): AST.Comment.Documented = {
     val in = ast.lines.mkString("\n")
-    DocParser.runMatched(in)
+    AST.Comment.DocumentedOf[AST](None, DocParser.runMatched(in))
   }
 
   /** Infix Action - Tries to create Doc Title from function name
@@ -174,11 +183,12 @@ object DocParserRunner {
     */
   def infixAction(
     ast: AST.App.Infix,
-    doc: Documented
-  ): Option[Documentation] = {
+    partialDoc: AST.Comment.Documented
+  ): Option[AST.Comment.Documented] = {
     ast.larg match {
-      case v: AST.App => Some(Documentation(Some(v.show()), doc))
-      case _          => None
+      case v: AST.App =>
+        Some(AST.Comment.DocumentedOf[AST](Some(v), partialDoc.doc))
+      case _ => None
     }
   }
 
@@ -189,9 +199,9 @@ object DocParserRunner {
     */
   def defAction(
     ast: AST.Def,
-    doc: Documented
-  ): Documentation = {
-    Documentation(Some(ast.name.show()), doc)
+    partialDoc: AST.Comment.Documented
+  ): AST.Comment.Documented = {
+    AST.Comment.DocumentedOf[AST](Some(ast.name), partialDoc.doc)
   }
 
   /** reformatDocumentation
@@ -207,7 +217,7 @@ object DocParserRunner {
     var astDoc = astWithDoc
     astWithDoc.lines.zipWithIndex.map { elem =>
       elem._1.elem.map {
-        case v: Documentation =>
+        case v: AST.Comment.Documented =>
           // NOTE : Documented(before comment) -> Documentation
           val DocToLine = AST.Block.Line(Some(v), 0)
           val updatedWithDoc =
@@ -231,10 +241,8 @@ object DocParserRunner {
   def generateHTMLForEveryDocumentation(ast: AST.Module): Unit = {
     ast.map { elem =>
       elem match {
-        case v: Documentation =>
+        case v: AST.Comment.Documented =>
           new DocParser().onHTMLRendering(v)
-        case v: Documented =>
-          new DocParser().onHTMLRendering(Documentation(None, v))
         case _ =>
       }
       elem

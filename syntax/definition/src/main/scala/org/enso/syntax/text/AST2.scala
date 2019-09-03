@@ -12,7 +12,7 @@ import org.enso.data.Tree
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
-import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.ast.Documentation
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
@@ -1160,13 +1160,14 @@ object AST {
     case class SingleLineOf[T](text: String) extends CommentOf[T]
     case class MultiLineOf[T](off: Int, lines: List[String])
         extends CommentOf[T]
-    case class DocumentedOf[T](title: T, doc: Doc) extends CommentOf[T]
+    case class DocumentedOf[T](title: Option[T], doc: Documentation)
+        extends CommentOf[T]
 
     // FIXME: Compatibility mode
-    def SingleLine(t: String):              Comment = ???
-    def MultiLine(i: Int, t: List[String]): Comment = ???
-    def Disable(t: AST):                    Comment = ???
-    def Documented(t: AST, d: Doc):         Comment = ???
+    def SingleLine(t: String):                        Comment = ???
+    def MultiLine(i: Int, t: List[String]):           Comment = ???
+    def Disable(t: AST):                              Comment = ???
+    def Documented(t: Option[AST], d: Documentation): Comment = ???
 
     //// Instances ////
 
@@ -1200,6 +1201,13 @@ object AST {
       }
       // FIXME: How to make it automatic for non-spaced AST?
       implicit def offsetZip[T]: OffsetZip[MultiLineOf, T] = _.map((0, _))
+    }
+    object DocumentedOf {
+      implicit def functor[T]: Functor[DocumentedOf] = semi.functor
+      implicit def repr[T: Repr]: Repr[DocumentedOf[T]] =
+        R + symbol + " " + _.title + newline // FIXME    + _.doc
+      // FIXME: How to make it automatic for non-spaced AST?
+      implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
     }
   }
 

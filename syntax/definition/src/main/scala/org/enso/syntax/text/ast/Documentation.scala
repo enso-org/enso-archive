@@ -12,75 +12,62 @@ import scalatags.generic
 import scalatags.text.Builder
 
 ////////////////////////////////////////////////////////////////////////////////
-//// Doc & Documentation ///////////////////////////////////////////////////////
+//// Symbol ////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-////////////////////////////////////////////////////////////////////////////////
-//// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO  ////
-////////////////////////////////////////////////////////////////////////////////
-/** Doc - the most low-level element, on top of which every other element
+/** Symbol - the most low-level element, on top of which every other element
   * is built
   *
   * It extends Repr.Provider, so it also contain repr method, as well as
   * span and show values. In addition to that it specifies html method for
   * extending tokens and getting HTML file out of Doc Parser
   */
-sealed trait Doc extends Repr.Provider {
+sealed trait Symbol extends Repr.Provider {
   def show: String = repr.build()
-  def html: Documented.HTML
+  def html: Documentation.HTML
   def htmlCls(): generic.AttrPair[Builder, String] =
     HTML.`class` := getClass.toString.split('$').last.split('.').last
 }
 
-/** Documentation - Combined output of Doc Parser with data from Parser
-  *
-  * Documented can be made of up to 3 elements:
-  * @param title - If exists, contains title made from function name
-  * @param documented - holds output of Doc Parser - [[Documented()]]
-  */
-final case class Documentation(title: Option[String], documented: Documented)
-    extends Doc {
-  val repr: Repr.Builder         = R + title + Documented.Elem.Newline + documented
-  val titleHTML: Documented.HTML = Seq(HTML.div(HTML.`class` := "Title")(title))
-  val html: Documented.HTML = Seq(
-    HTML.div(htmlCls())(titleHTML)(documented.html)
-  )
-}
+////////////////////////////////////////////////////////////////////////////////
+//// Documentation /////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 
-/** Documented - The highest level container, the output of Doc Parser
+/** Documentation - The highest level container, the output of Doc Parser
   *
-  * Documented can be made of up to 3 elements:
-  * @param tags - If exists, holds [[Documented#Tags]] to documented text
-  * @param synopsis - If exists, holds [[Documented#Synopsis]] of documented text
-  * @param body - If exists, holds [[Documented#Body]] of documented text
+  * Documentation can be made of up to 3 elements:
+  *
+  * @param tags     - If exists, holds [[Documentation#Tags]] to documented text
+  * @param synopsis - If exists, holds [[Documentation#Synopsis]] of documented text
+  * @param body     - If exists, holds [[Documentation#Body]] of documented text
   */
-final case class Documented(
-  tags: Option[Documented.Tags],
-  synopsis: Option[Documented.Synopsis],
-  body: Option[Documented.Body]
-) extends Doc {
+final case class Documentation(
+  tags: Option[Documentation.Tags],
+  synopsis: Option[Documentation.Synopsis],
+  body: Option[Documentation.Body]
+) extends Symbol {
   val repr: Repr.Builder = R + tags + synopsis + body
-  val html: Documented.HTML = Seq(
+  val html: Documentation.HTML = Seq(
     HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
   )
 }
 
-object Documented {
-  def apply():           Documented = Documented(None, None, None)
-  def apply(tags: Tags): Documented = Documented(Some(tags), None, None)
-  def apply(synopsis: Synopsis): Documented =
-    Documented(None, Some(synopsis), None)
-  def apply(synopsis: Synopsis, body: Body): Documented =
-    Documented(None, Some(synopsis), Some(body))
-  def apply(tags: Tags, synopsis: Synopsis): Documented =
-    Documented(Some(tags), Some(synopsis), None)
-  def apply(tags: Tags, synopsis: Synopsis, body: Body): Documented =
-    Documented(Some(tags), Some(synopsis), Some(body))
+object Documentation {
+  def apply():           Documentation = Documentation(None, None, None)
+  def apply(tags: Tags): Documentation = Documentation(Some(tags), None, None)
+  def apply(synopsis: Synopsis): Documentation =
+    Documentation(None, Some(synopsis), None)
+  def apply(synopsis: Synopsis, body: Body): Documentation =
+    Documentation(None, Some(synopsis), Some(body))
+  def apply(tags: Tags, synopsis: Synopsis): Documentation =
+    Documentation(Some(tags), Some(synopsis), None)
+  def apply(tags: Tags, synopsis: Synopsis, body: Body): Documentation =
+    Documentation(Some(tags), Some(synopsis), Some(body))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
 
-  implicit final class ExtForSymbol[T <: Doc](val self: Option[T]) {
+  implicit final class ExtForSymbol[T <: Symbol](val self: Option[T]) {
     val dummyText  = Elem.Text("")
     val html: HTML = self.getOrElse(dummyText).html
   }
@@ -93,7 +80,7 @@ object Documented {
     * Invalid - trait for invalid element of Doc, which elements can be used in
     * higher level elements
     */
-  sealed trait Elem extends Doc
+  sealed trait Elem extends Symbol
   object Elem {
     sealed trait Invalid extends Elem
 
@@ -164,7 +151,7 @@ object Documented {
     }
 
     implicit final class ExtForListOfElem(val self: scala.List[Elem])
-        extends Doc {
+        extends Symbol {
       val repr: Repr.Builder = R + self.map(_.repr)
       val html: HTML         = Seq(self.map(_.html))
     }
@@ -340,7 +327,7 @@ object Documented {
     * Marked - Section which is marked as Important, Info or Example
     * Raw - normal, unmarked block of text
     */
-  sealed trait Section extends Doc {
+  sealed trait Section extends Symbol {
     def indent: Int
     def elems: List[Elem]
 
@@ -461,7 +448,7 @@ object Documented {
     *
     * @param elems - sections which make up synopsis
     */
-  final case class Synopsis(elems: List1[Section]) extends Doc {
+  final case class Synopsis(elems: List1[Section]) extends Symbol {
     val newLn: Elem        = Elem.Newline
     val repr: Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _)
     val html: HTML = {
@@ -482,7 +469,7 @@ object Documented {
     *
     * @param elems - sections which make up body
     */
-  final case class Body(elems: List1[Section]) extends Doc {
+  final case class Body(elems: List1[Section]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr: Repr.Builder = R + newLn + elems.head + elems.tail.map(
         R + newLn + _
@@ -506,7 +493,7 @@ object Documented {
     *
     * @param elems - list of Tag of which Tags is made of
     */
-  final case class Tags(elems: List1[Tags.Tag]) extends Doc {
+  final case class Tags(elems: List1[Tags.Tag]) extends Symbol {
     val newLn: Elem = Elem.Newline
     val repr
       : Repr.Builder = R + elems.head + elems.tail.map(R + newLn + _) + newLn

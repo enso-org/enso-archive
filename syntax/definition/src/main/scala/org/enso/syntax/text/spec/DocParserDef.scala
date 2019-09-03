@@ -4,18 +4,18 @@ import org.enso.flexer._
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
 import org.enso.data.List1
-import org.enso.syntax.text.ast.Documented._
-import org.enso.syntax.text.ast.Documented
+import org.enso.syntax.text.ast.Documentation._
+import org.enso.syntax.text.ast.Documentation
 
 import scala.reflect.runtime.universe.reify
 
-case class DocParserDef() extends Parser[Documented] {
+case class DocParserDef() extends Parser[Documentation] {
 
   //////////////////////////////////////////////////////////////////////////////
   //// Result //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  override def getResult(): Option[Documented] = result.doc
+  override def getResult(): Option[Documentation] = result.doc
 
   /** result - used to manage result from Doc Parser
     *
@@ -24,9 +24,9 @@ case class DocParserDef() extends Parser[Documented] {
     * stack - used to hold stack of elems
     */
   final object result {
-    var current: Option[Elem]   = None
-    var doc: Option[Documented] = None
-    var stack: List[Elem]       = Nil
+    var current: Option[Elem]      = None
+    var doc: Option[Documentation] = None
+    var stack: List[Elem]          = Nil
 
     def push(): Unit = logger.trace {
       if (current.isDefined) {
@@ -205,10 +205,10 @@ case class DocParserDef() extends Parser[Documented] {
   val notNewLine: Pattern = not(newline).many1
   val CODE: State         = state.define("Code")
 
-  ROOT || code.inlinePattern || reify { code.onPushingInline(currentMatch) }
-  CODE || newline            || reify { state.end(); state.begin(NEWLINE) }
+  ROOT || code.inlinePattern || reify { code.onPushingInline(currentMatch)    }
+  CODE || newline            || reify { state.end(); state.begin(NEWLINE)     }
   CODE || notNewLine         || reify { code.onPushingMultiline(currentMatch) }
-  CODE || eof                || reify { state.end(); documentation.onEOF() }
+  CODE || eof                || reify { state.end(); documentation.onEOF()    }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Formatter ///////////////////////////////////////////////////////////////
@@ -401,10 +401,10 @@ case class DocParserDef() extends Parser[Documented] {
       ).many1 >> eof
   }
 
-  ROOT || link.imagePattern          || reify { link.onCreatingImage() }
-  ROOT || link.urlPattern            || reify { link.onCreatingURL() }
+  ROOT || link.imagePattern          || reify { link.onCreatingImage()      }
+  ROOT || link.urlPattern            || reify { link.onCreatingURL()        }
   ROOT || link.invalidPatternNewline || reify { link.onInvalidLinkNewline() }
-  ROOT || link.invalidPatternEOF     || reify { link.onInvalidLinkEOF() }
+  ROOT || link.invalidPatternEOF     || reify { link.onInvalidLinkEOF()     }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Indent Management & New line ////////////////////////////////////////////
@@ -524,8 +524,8 @@ case class DocParserDef() extends Parser[Documented] {
 
   val NEWLINE: State = state.define("Newline")
 
-  ROOT    || newline              || reify { state.begin(NEWLINE) }
-  NEWLINE || indent.EOFPattern    || reify { indent.onEOFPattern() }
+  ROOT    || newline              || reify { state.begin(NEWLINE)     }
+  NEWLINE || indent.EOFPattern    || reify { indent.onEOFPattern()    }
   NEWLINE || indent.indentPattern || reify { indent.onIndentPattern() }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -597,7 +597,7 @@ case class DocParserDef() extends Parser[Documented] {
       : Pattern = indent.indentPattern >> unorderedListTrigger >> notNewLine
   }
 
-  NEWLINE || list.orderedPattern   || reify { list.onOrdered() }
+  NEWLINE || list.orderedPattern   || reify { list.onOrdered()   }
   NEWLINE || list.unorderedPattern || reify { list.onUnordered() }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -764,7 +764,7 @@ case class DocParserDef() extends Parser[Documented] {
       val tags: Option[Tags]         = createTags()
       val synopsis: Option[Synopsis] = createSynopsis()
       val body: Option[Body]         = createBody()
-      result.doc = Some(Documented(tags, synopsis, body))
+      result.doc = Some(Documentation(tags, synopsis, body))
     }
 
     def createTags(): Option[Tags] = logger.trace {

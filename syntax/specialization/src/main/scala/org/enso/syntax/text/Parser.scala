@@ -314,9 +314,12 @@ object Main extends App {
   //val inp = "(a) b = c"
   //val inp = "a = b -> c"
   //val inp = "a = b -> c d"
-  val inp = "((a))"
+  //val inp = "((a))"
   //  val inp = "x(x[a))"
   // 48
+  val inp =
+    """## this function adds *x* to *y*
+      |foo x y = x + y""".stripMargin
 
   println("--- PARSING ---")
 
@@ -337,6 +340,9 @@ object Main extends App {
   }
   println("------")
   println(mod.show() == inp)
+  val documentation = DocParserRunner.create(rmod)
+  println("------")
+  println(documentation.show)
   println("------")
   println(mod.show())
   println("------")
