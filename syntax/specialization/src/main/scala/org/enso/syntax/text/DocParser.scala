@@ -71,7 +71,7 @@ object DocParser {
   }
 }
 
-//TODO
+//TODO ( almost done )
 // 1. Parsowanie kodu zawierajacego komentarz i funkcje w kolejnej linijce - nic
 // bardziej skomplikowanego - jeden komentarz i jedna funkcja - w rezultacie
 // masz dostac dokumentacje taka jak masz teraz tylko z jej tytulem bedacym
@@ -79,9 +79,13 @@ object DocParser {
 // parsera (niech branch wdanilo/cata bedzie dla Ciebie referencyjny teraz),
 // zrob do niego PRa i mi podeslij. On jest troche brudny tu i tam,
 // ale powinno zyc.
+//
+//TODO ( in progress )
 // 2. Dodaj do naszego AST node "documented" ktory bedize mial dwa fieldy -
 // inne AST oraz Twojego Doca. Twoj Doc nie ma byc typu AST
 // (na moim branhcu juz nie jest). Osobny PR.
+//
+//TODO ( up next )
 // 3. Teraz use case ktory dziala tak - w kaodzie mamy tlyko def Maybe
 // (zobacz w testach) i nad tym dokumentacja + dokumentacja do kazdej funckji
 // w srodku - chcemy to straversowac i zrobic ostatecnza forme dokumentacji.

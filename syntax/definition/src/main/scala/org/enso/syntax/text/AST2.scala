@@ -12,6 +12,7 @@ import org.enso.data.Tree
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
+import org.enso.syntax.text.ast.Doc
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
@@ -1153,16 +1154,19 @@ object AST {
     type Disable    = DisableOf[AST]
     type SingleLine = SingleLineOf[AST]
     type MultiLine  = MultiLineOf[AST]
+    type Documented = DocumentedOf[AST]
 
     case class DisableOf[T](ast: T)          extends CommentOf[T]
     case class SingleLineOf[T](text: String) extends CommentOf[T]
     case class MultiLineOf[T](off: Int, lines: List[String])
         extends CommentOf[T]
+    case class DocumentedOf[T](title: T, doc: Doc) extends CommentOf[T]
 
     // FIXME: Compatibility mode
     def SingleLine(t: String):              Comment = ???
     def MultiLine(i: Int, t: List[String]): Comment = ???
     def Disable(t: AST):                    Comment = ???
+    def Documented(t: AST, d: Doc):         Comment = ???
 
     //// Instances ////
 
