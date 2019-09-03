@@ -76,31 +76,31 @@ object DocParser {
   }
 }
 
-// BROKEN AFTER MERGE OF AST_CATA BRANCH - PARSER WONT PRODUCE COMMENTS!
-//TODO ( almost done )
-// 1. Parsowanie kodu zawierajacego komentarz i funkcje w kolejnej linijce - nic
-// bardziej skomplikowanego - jeden komentarz i jedna funkcja - w rezultacie
-// masz dostac dokumentacje taka jak masz teraz tylko z jej tytulem bedacym
-// tytulem tej fumkcji. Po zrobieniu i zaktualizowaniu kodu do najnowszego
-// parsera (niech branch wdanilo/cata bedzie dla Ciebie referencyjny teraz),
-// zrob do niego PRa i mi podeslij. On jest troche brudny tu i tam,
-// ale powinno zyc.
+//TODO ( almost done, blocked by parser malfunctioning )
+// 1. Parsing code containing comment with function defined in next line -
+//    nothing more complicated. In result we want documentation just like we get
+//    now, but with title created from function name. After updating code to
+//    newest parser ( lets assume wdanilo/cata branch is your reference now on)
+//    make a PR onto it. It may be dirty here and there, but it should work
+//    ( SPOILER ALERT - It doesn't - won't produce comments but
+//    `exception during macro resolution`)
 //
-//TODO ( almost done )
-// 2. Dodaj do naszego AST node "documented" ktory bedize mial dwa fieldy -
-// inne AST oraz Twojego Doca. Twoj Doc nie ma byc typu AST
-// (na moim branhcu juz nie jest). Osobny PR.
+//TODO ( almost done, blocked by point 1 )
+// 2. Add to our AST node "documented" which will contain two fields - other AST
+//    and your Documentation. Your doc shouldn't extend AST ( it doesn't on my
+//    branch already ) - separate PR
+//    ( Cant make in separate PR as it is vital for point 1 )
 //
-//TODO ( up next )
-// 3. Teraz use case ktory dziala tak - w kaodzie mamy tlyko def Maybe
-// (zobacz w testach) i nad tym dokumentacja + dokumentacja do kazdej funckji
-// w srodku - chcemy to straversowac i zrobic ostatecnza forme dokumentacji.
-// z Defa pobierasz nazwe dokumentacji a dokumentacje kazdej funkcji wewnetrznej
-// wyswietlasz tak jak na tym szarym obszarze w apple docs. Rob to po
-// zmergowaniu brancha, bedzie ci duzo latwiej. Ogolnie implementacja tu powinna
-// byc super prosta - definicja jest blokiem i ma liste linijek, wiec
-// przechdozicsz przez ta liste i jak znajdziesz dokumentacje, sprawdzasz czy
-// kolejne linijki to puste lub zawieraja funckje (a to juz masz z punktu 1)
+//TODO ( up next, blocked by point 1 & 2)
+// 3. Now use case working like that - in code we have `def Maybe` with doc
+//    above it and to every function in it (refer to parser tests). We want to
+//    traverse it and make final form of documentation. Take from def name of
+//    documentation, show documentation of every internal function just like
+//    apple displays on grey background in Developer.Apple.com Documentation.
+//    Generally implementation here should be extremely easy as def is block
+//    which contains list of lines so you loop through it and if you find Doc
+//    then check if next line is empty or contain function ( and you have it
+//    already from point 1 )
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser Runner /////////////////////////////////////////////////////////
@@ -118,13 +118,17 @@ object DocParserRunner {
     */
   def create(ast: AST): AST = {
     val createdDocs = createDocs(ast)
-//    val preparedDocs = createdDocs match {
-//      case mod: AST.Module => reformatDocumentation(mod, ast)
-//    }
-//    /* NOTE : Comment out for ease of debugging procedures */
+    val preparedDocs = createdDocs match {
+      case m: AST.Module =>
+        ast match {
+          case v: AST.Module => reformatDocumentation(m, v)
+          case _             => createdDocs
+        }
+      case _ => createdDocs
+    }
+    /* NOTE : Comment out for ease of debugging procedures */
 //    generateHTMLForEveryDocumentation(preparedDocs)
-//    preparedDocs
-    createdDocs
+    preparedDocs
   }
 
   /** createDocs - This function changes single- and multi- line comments into
