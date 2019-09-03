@@ -8,7 +8,6 @@ import scala.util.Random
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import org.enso.syntax.text.AST
 import scalatags.generic
 import scalatags.text.Builder
 
@@ -16,6 +15,9 @@ import scalatags.text.Builder
 //// Doc & Documentation ///////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+////////////////////////////////////////////////////////////////////////////////
+//// TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO  ////
+////////////////////////////////////////////////////////////////////////////////
 /** Doc - the most low-level element, on top of which every other element
   * is built
   *
@@ -24,6 +26,7 @@ import scalatags.text.Builder
   * extending tokens and getting HTML file out of Doc Parser
   */
 sealed trait Doc extends Repr.Provider {
+  def show: String = repr.build()
   def html: Documented.HTML
   def htmlCls(): generic.AttrPair[Builder, String] =
     HTML.`class` := getClass.toString.split('$').last.split('.').last
