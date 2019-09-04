@@ -44,15 +44,9 @@ import org.scalatest.Assertion
 //  //// Formatters //////////////////////////////////////////////////////////////
 //  //////////////////////////////////////////////////////////////////////////////
 //
-//  "*Foo*" ?= Doc(
-//    Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo")))
-//  )
-//  "_Foo_" ?= Doc(
-//    Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo")))
-//  )
-//  "~Foo~" ?= Doc(
-//    Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
-//  )
+//  "*Foo*" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo"))))
+//  "_Foo_" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo"))))
+//  "~Foo~" ?= Doc(Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo"))))
 //  "`Foo`" ?= Doc(Synopsis(Section.Raw(CodeBlock.Inline("Foo"))))
 //  "~*Foo*~" ?= Doc(
 //    Synopsis(

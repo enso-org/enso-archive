@@ -76,22 +76,19 @@ object DocParser {
   }
 }
 
-//TODO ( almost done, blocked by parser malfunctioning )
+//TODO ( almost done )
 // 1. Parsing code containing comment with function defined in next line -
 //    nothing more complicated. In result we want documentation just like we get
 //    now, but with title created from function name. After updating code to
 //    newest parser ( lets assume wdanilo/cata branch is your reference now on)
 //    make a PR onto it. It may be dirty here and there, but it should work
-//    ( SPOILER ALERT - It doesn't - won't produce comments but
-//    `exception during macro resolution`)
 //
-//TODO ( almost done, blocked by point 1 )
+//TODO ( almost done )
 // 2. Add to our AST node "documented" which will contain two fields - other AST
 //    and your Documentation. Your doc shouldn't extend AST ( it doesn't on my
 //    branch already ) - separate PR
-//    ( Cant make in separate PR as it is vital for point 1 )
 //
-//TODO ( up next, blocked by point 1 & 2)
+//TODO ( up next )
 // 3. Now use case working like that - in code we have `def Maybe` with doc
 //    above it and to every function in it (refer to parser tests). We want to
 //    traverse it and make final form of documentation. Take from def name of
