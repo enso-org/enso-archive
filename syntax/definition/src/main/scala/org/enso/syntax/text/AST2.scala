@@ -1200,7 +1200,7 @@ object AST {
     import Documented._
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
     implicit def repr[T]: Repr[DocumentedOf[T]] = t => {
-      R + symbol + symbol + t.ast + newline + t.doc
+      R + symbol + symbol + " " + t.ast + newline + t.doc
     }
 
     // FIXME: How to make it automatic for non-spaced AST?

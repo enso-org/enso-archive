@@ -252,18 +252,27 @@ object DocParserRunner {
   ): AST.Module = {
     var astDoc = astWithDoc
     astWithDoc.lines.zipWithIndex.map { elem =>
-      elem._1.elem.map {
-        case v: AST.DocumentedOf[AST] =>
-          // NOTE : Documented(before comment) -> Documentation
-          val DocToLine = AST.Block.Line(Some(v), 0)
-          val updatedWithDoc =
-            astDoc.lines.toList.updated(elem._2 - 1, DocToLine)
-          // NOTE : Documentation -> Infix (to get back func. def)
-          val infix            = astFromParser.lines.toList(elem._2)
-          val updatedWithInfix = updatedWithDoc.updated(elem._2, infix)
+      val currElem  = elem._1
+      val currIndex = elem._2
+      currElem.elem.map { e =>
+        e.unFix match {
+          case v: AST.DocumentedOf[AST] =>
+            v.ast.unFix match {
+              case AST.Ident.ConsOf("") => // Documented without title
+              case _                    =>
+                // NOTE : Documented(before comment) -> Documentation
+                val DocToLine      = AST.Block.OptLine(v)
+                val prevIndex: Int = currIndex - 1
+                val updatedWithDoc =
+                  astDoc.unFix.lines.toList.updated(prevIndex, DocToLine)
+                // NOTE : Documentation -> Infix (to get back func. def)
+                val infix            = astFromParser.unFix.lines.toList(currIndex)
+                val updatedWithInfix = updatedWithDoc.updated(currIndex, infix)
 
-          astDoc = AST.Module(List1(updatedWithInfix).get)
-        case _ =>
+                astDoc = AST.ModuleOf[AST](List1(updatedWithInfix).get)
+            }
+          case _ =>
+        }
       }
     }
     astDoc
@@ -278,7 +287,7 @@ object DocParserRunner {
     */
   def generateHTMLForEveryDocumented(ast: AST.Module): Unit = {
     ast.map { elem =>
-      elem match {
+      elem.unFix match {
         case v: AST.DocumentedOf[AST] =>
           new DocParser().onHTMLRendering(v)
         case _ =>
