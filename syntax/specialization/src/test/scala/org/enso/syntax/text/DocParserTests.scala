@@ -1,8 +1,8 @@
 package org.enso.syntax.text
 
-import org.enso.syntax.text.ast.Documentation
-import org.enso.syntax.text.ast.Documentation._
-import org.enso.syntax.text.ast.Documentation.Elem._
+import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.ast.Doc._
+import org.enso.syntax.text.ast.Doc.Elem._
 import org.enso.Logger
 import org.enso.flexer.Parser.Result
 import org.scalatest.FlatSpec
@@ -12,7 +12,7 @@ import org.scalatest.Assertion
 //class DocParserTests extends FlatSpec with Matchers {
 //  val logger = new Logger()
 //
-//  def assertExpr(input: String, result: Documentation): Assertion = {
+//  def assertExpr(input: String, result: Doc): Assertion = {
 //    val output = DocParser.run(input)
 //    output match {
 //      case Result(_, Result.Success(value)) =>
@@ -31,7 +31,7 @@ import org.scalatest.Assertion
 //
 //    private val testBase = it should parseDocumentation(input)
 //
-//    def ?=(out: Documentation): Unit = testBase in {
+//    def ?=(out: Doc): Unit = testBase in {
 //      assertExpr(input, out)
 //    }
 //  }
@@ -44,59 +44,59 @@ import org.scalatest.Assertion
 //  //// Formatters //////////////////////////////////////////////////////////////
 //  //////////////////////////////////////////////////////////////////////////////
 //
-//  "*Foo*" ?= Documentation(
+//  "*Foo*" ?= Doc(
 //    Synopsis(Section.Raw(Formatter(Formatter.Bold, "Foo")))
 //  )
-//  "_Foo_" ?= Documentation(
+//  "_Foo_" ?= Doc(
 //    Synopsis(Section.Raw(Formatter(Formatter.Italic, "Foo")))
 //  )
-//  "~Foo~" ?= Documentation(
+//  "~Foo~" ?= Doc(
 //    Synopsis(Section.Raw(Formatter(Formatter.Strikeout, "Foo")))
 //  )
-//  "`Foo`" ?= Documentation(Synopsis(Section.Raw(CodeBlock.Inline("Foo"))))
-//  "~*Foo*~" ?= Documentation(
+//  "`Foo`" ?= Doc(Synopsis(Section.Raw(CodeBlock.Inline("Foo"))))
+//  "~*Foo*~" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Strikeout, Formatter(Formatter.Bold, "Foo"))
 //      )
 //    )
 //  )
-//  "~_Foo_~" ?= Documentation(
+//  "~_Foo_~" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Strikeout, Formatter(Formatter.Italic, "Foo"))
 //      )
 //    )
 //  )
-//  "_~Foo~_" ?= Documentation(
+//  "_~Foo~_" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Italic, Formatter(Formatter.Strikeout, "Foo"))
 //      )
 //    )
 //  )
-//  "_*Foo*_" ?= Documentation(
+//  "_*Foo*_" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
 //      )
 //    )
 //  )
-//  "*_Foo_*" ?= Documentation(
+//  "*_Foo_*" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
 //      )
 //    )
 //  )
-//  "*~Foo~*" ?= Documentation(
+//  "*~Foo~*" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Bold, Formatter(Formatter.Strikeout, "Foo"))
 //      )
 //    )
 //  )
-//  "_~*Foo*~_" ?= Documentation(
+//  "_~*Foo*~_" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(
@@ -106,7 +106,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "`import foo`" ?= Documentation(
+//  "`import foo`" ?= Doc(
 //    Synopsis(
 //      Section.Raw(CodeBlock.Inline("import foo"))
 //    )
@@ -116,14 +116,14 @@ import org.scalatest.Assertion
 //  //// Unclosed formatters /////////////////////////////////////////////////////
 //  //////////////////////////////////////////////////////////////////////////////
 //
-//  "_*Foo*" ?= Documentation(
+//  "_*Foo*" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter.Unclosed(Formatter.Italic, Formatter(Formatter.Bold, "Foo"))
 //      )
 //    )
 //  )
-//  "~*Foo*" ?= Documentation(
+//  "~*Foo*" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter
@@ -131,7 +131,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "***Foo" ?= Documentation(
+//  "***Foo" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Bold),
@@ -139,14 +139,14 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "*_Foo_" ?= Documentation(
+//  "*_Foo_" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter.Unclosed(Formatter.Bold, Formatter(Formatter.Italic, "Foo"))
 //      )
 //    )
 //  )
-//  "~_Foo_" ?= Documentation(
+//  "~_Foo_" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter
@@ -154,7 +154,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "___Foo" ?= Documentation(
+//  "___Foo" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Italic),
@@ -162,7 +162,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "*~Foo~" ?= Documentation(
+//  "*~Foo~" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter
@@ -170,7 +170,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "_~Foo~" ?= Documentation(
+//  "_~Foo~" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter
@@ -178,7 +178,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "~~~Foo" ?= Documentation(
+//  "~~~Foo" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Formatter(Formatter.Strikeout),
@@ -186,7 +186,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  " foo *bar* _baz *bo*_" ?= Documentation(
+//  " foo *bar* _baz *bo*_" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        1,
@@ -198,12 +198,12 @@ import org.scalatest.Assertion
 //    )
 //  )
 //  """foo *bar
-//    |*""".stripMargin ?= Documentation(
+//    |*""".stripMargin ?= Doc(
 //    Synopsis(Section.Raw("foo ", Formatter(Formatter.Bold, "bar", Newline)))
 //  )
 //
 //  """foo _foo
-//    |_foo2""".stripMargin ?= Documentation(
+//    |_foo2""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section
 //        .Raw("foo ", Formatter(Formatter.Italic, "foo", Newline), "foo2")
@@ -211,7 +211,7 @@ import org.scalatest.Assertion
 //  )
 //
 //  """foo *foo
-//    |*foo2""".stripMargin ?= Documentation(
+//    |*foo2""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section
 //        .Raw("foo ", Formatter(Formatter.Bold, "foo", Newline), "foo2")
@@ -219,7 +219,7 @@ import org.scalatest.Assertion
 //  )
 //
 //  """foo ~foo
-//    |~foo2""".stripMargin ?= Documentation(
+//    |~foo2""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section
 //        .Raw("foo ", Formatter(Formatter.Strikeout, "foo", Newline), "foo2")
@@ -230,40 +230,40 @@ import org.scalatest.Assertion
 //  //// Segments ////////////////////////////////////////////////////////////////
 //  //////////////////////////////////////////////////////////////////////////////
 //
-//  "!Important" ?= Documentation(
+//  "!Important" ?= Doc(
 //    Synopsis(
 //      Section.Marked(Section.Marked.Important, Section.Header("Important"))
 //    )
 //  )
-//  " ! Important" ?= Documentation(
+//  " ! Important" ?= Doc(
 //    Synopsis(
 //      Section
 //        .Marked(1, 1, Section.Marked.Important, Section.Header("Important"))
 //    )
 //  )
-//  "   ! Important" ?= Documentation(
+//  "   ! Important" ?= Doc(
 //    Synopsis(
 //      Section
 //        .Marked(3, 1, Section.Marked.Important, Section.Header("Important"))
 //    )
 //  )
-//  " !    Important" ?= Documentation(
+//  " !    Important" ?= Doc(
 //    Synopsis(
 //      Section
 //        .Marked(1, 4, Section.Marked.Important, Section.Header("Important"))
 //    )
 //  )
-//  "?Info" ?= Documentation(
+//  "?Info" ?= Doc(
 //    Synopsis(Section.Marked(Section.Marked.Info, Section.Header("Info")))
 //  )
-//  ">Example" ?= Documentation(
+//  ">Example" ?= Doc(
 //    Synopsis(
 //      Section.Marked(Section.Marked.Example, Section.Header("Example"))
 //    )
 //  )
 //  """?Info
 //    |
-//    |!Important""".stripMargin ?= Documentation(
+//    |!Important""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
 //    ),
@@ -275,7 +275,7 @@ import org.scalatest.Assertion
 //    |
 //    |!Important
 //    |
-//    |>Example""".stripMargin ?= Documentation(
+//    |>Example""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
 //    ),
@@ -297,7 +297,7 @@ import org.scalatest.Assertion
 //    |
 //    |?info
 //    |
-//    |>Example""".stripMargin ?= Documentation(
+//    |>Example""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "Foo ",
@@ -329,7 +329,7 @@ import org.scalatest.Assertion
 //  //// Lists ///////////////////////////////////////////////////////////////////
 //  //////////////////////////////////////////////////////////////////////////////
 //
-//  "ul:\n  - Foo\n  - Bar" ?= Documentation(
+//  "ul:\n  - Foo\n  - Bar" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "ul:",
@@ -338,7 +338,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "ol:\n  * Foo\n  * Bar" ?= Documentation(
+//  "ol:\n  * Foo\n  * Bar" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "ol:",
@@ -352,7 +352,7 @@ import org.scalatest.Assertion
 //    |  - Second unordered item
 //    |    * First ordered sub item
 //    |    * Second ordered sub item
-//    |  - Third unordered item""".stripMargin ?= Documentation(
+//    |  - Third unordered item""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "List",
@@ -378,7 +378,7 @@ import org.scalatest.Assertion
 //    |  - Second unordered item
 //    |    * First ordered sub item
 //    |    *    Second ordered sub item
-//    |  - Third unordered item""".stripMargin ?= Documentation(
+//    |  - Third unordered item""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "List",
@@ -410,7 +410,7 @@ import org.scalatest.Assertion
 //    |      - First unordered sub item
 //    |      - Second unordered sub item
 //    |    * Third ordered sub item
-//    |  - Fourth unordered item""".stripMargin ?= Documentation(
+//    |  - Fourth unordered item""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "List",
@@ -462,7 +462,7 @@ import org.scalatest.Assertion
 //    |      - Second unordered sub item
 //    |    * Third ordered sub item
 //    |   * Wrong Indent Item
-//    |  - Fourth unordered item""".stripMargin ?= Documentation(
+//    |  - Fourth unordered item""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "List",
@@ -503,7 +503,7 @@ import org.scalatest.Assertion
 //  //// Links ///////////////////////////////////////////////////////////////////
 //  //////////////////////////////////////////////////////////////////////////////
 //
-//  "[Hello](Http://Google.com)" ?= Documentation(
+//  "[Hello](Http://Google.com)" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.URL(
@@ -513,7 +513,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "![Media](http://foo.com)" ?= Documentation(
+//  "![Media](http://foo.com)" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.Image(
@@ -523,7 +523,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "![foo)" ?= Documentation(
+//  "![foo)" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.Invalid(
@@ -532,7 +532,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "[foo)" ?= Documentation(
+//  "[foo)" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.Invalid(
@@ -541,7 +541,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "[foo]bo)" ?= Documentation(
+//  "[foo]bo)" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.Invalid(
@@ -550,7 +550,7 @@ import org.scalatest.Assertion
 //      )
 //    )
 //  )
-//  "![foo]google" ?= Documentation(
+//  "![foo]google" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.Invalid(
@@ -560,7 +560,7 @@ import org.scalatest.Assertion
 //    )
 //  )
 //
-//  "[foo]google" ?= Documentation(
+//  "[foo]google" ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.Invalid(
@@ -571,7 +571,7 @@ import org.scalatest.Assertion
 //  )
 //
 //  """[foo]bo)
-//    |basdbasd""".stripMargin ?= Documentation(
+//    |basdbasd""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Link.Invalid(
@@ -592,16 +592,16 @@ import org.scalatest.Assertion
 //
 //  allPossibleTags.foreach(
 //    t =>
-//      s"${t.toString.toUpperCase()}\nFoo" ?= Documentation(
+//      s"${t.toString.toUpperCase()}\nFoo" ?= Doc(
 //        Tags(Tags.Tag(t)),
 //        Synopsis(Section.Raw("Foo"))
 //      )
 //  )
-//  "DEPRECATED in 1.0\nFoo" ?= Documentation(
+//  "DEPRECATED in 1.0\nFoo" ?= Doc(
 //    Tags(Tags.Tag(Tags.Tag.Type.Deprecated, " in 1.0")),
 //    Synopsis(Section.Raw("Foo"))
 //  )
-//  "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Documentation(
+//  "DEPRECATED in 1.0\nMODIFIED\nFoo" ?= Doc(
 //    Tags(
 //      Tags.Tag(Tags.Tag.Type.Deprecated, " in 1.0"),
 //      Tags.Tag(Tags.Tag.Type.Modified)
@@ -609,7 +609,7 @@ import org.scalatest.Assertion
 //    Synopsis(Section.Raw("Foo"))
 //  )
 //  """   ALAMAKOTA a kot ma ale
-//    | foo bar""".stripMargin ?= Documentation(
+//    | foo bar""".stripMargin ?= Doc(
 //    Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA a kot ma ale")),
 //    Synopsis(Section.Raw(1, "foo bar"))
 //  )
@@ -621,7 +621,7 @@ import org.scalatest.Assertion
 //  """afsfasfsfjanfjanfa
 //    |jfnajnfjadnbfjabnf
 //    |   siafjaifhjiasjf
-//    |   fasfknfanfijnf""".stripMargin ?= Documentation(
+//    |   fasfknfanfijnf""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "afsfasfsfjanfjanfa",
@@ -639,7 +639,7 @@ import org.scalatest.Assertion
 //    |jfnajnfjadnbfjabnf
 //    |   siafjaifhjiasjf
 //    |     fasfknfanfijnf
-//    |   fasfknfanfijnf""".stripMargin ?= Documentation(
+//    |   fasfknfanfijnf""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "afsfasfsfjanfjanfa",
@@ -660,7 +660,7 @@ import org.scalatest.Assertion
 //    |     fasfknfanfijnf
 //    |          fasfknfanfijnf
 //    |     fasfknfanfijnf
-//    |   fasfknfanfijnf""".stripMargin ?= Documentation(
+//    |   fasfknfanfijnf""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "afsfasfsfjanfjanfa",
@@ -683,7 +683,7 @@ import org.scalatest.Assertion
 //    |     fasfknfanfijnf
 //    |  fasfknfanfijnf
 //    |     fasfknfanfijnf
-//    |   fasfknfanfijnf""".stripMargin ?= Documentation(
+//    |   fasfknfanfijnf""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        "afsfasfsfjanfjanfa",
@@ -708,7 +708,7 @@ import org.scalatest.Assertion
 //  """
 //    | - bar
 //    | baz
-//    |""".stripMargin ?= Documentation(
+//    |""".stripMargin ?= Doc(
 //    Synopsis(
 //      Section.Raw(
 //        Newline,
@@ -725,7 +725,7 @@ import org.scalatest.Assertion
 //    |Construct and manage a graphical, event-driven user interface for your iOS or
 //    |tvOS app.
 //    |
-//    | foo *foo*""".stripMargin ?= Documentation(
+//    | foo *foo*""".stripMargin ?= Doc(
 //    Tags(
 //      Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
 //      Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
@@ -746,7 +746,7 @@ import org.scalatest.Assertion
 //    |Construct and manage a graphical, event-driven user interface for your iOS or
 //    |tvOS app.
 //    |
-//    | foo *foo""".stripMargin ?= Documentation(
+//    | foo *foo""".stripMargin ?= Doc(
 //    Tags(
 //      Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
 //      Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
@@ -764,7 +764,7 @@ import org.scalatest.Assertion
 //
 //  """    DEPRECATED das sfa asf
 //    |  REMOVED
-//    | Foo""".stripMargin ?= Documentation(
+//    | Foo""".stripMargin ?= Doc(
 //    Tags(
 //      Tags.Tag(4, Tags.Tag.Type.Deprecated, " das sfa asf"),
 //      Tags.Tag(2, Tags.Tag.Type.Removed)
@@ -780,7 +780,7 @@ import org.scalatest.Assertion
 //    |   fooo bar baz
 //    |   dsadasfsaf asfasfas
 //    |   asfasfa sf
-//    |   asfas fasf """.stripMargin ?= Documentation(
+//    |   asfas fasf """.stripMargin ?= Doc(
 //    Tags(
 //      Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
 //      Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")

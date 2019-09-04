@@ -4,18 +4,18 @@ import org.enso.flexer._
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
 import org.enso.data.List1
-import org.enso.syntax.text.ast.Documentation._
-import org.enso.syntax.text.ast.Documentation
+import org.enso.syntax.text.ast.Doc._
+import org.enso.syntax.text.ast.Doc
 
 import scala.reflect.runtime.universe.reify
 
-case class DocParserDef() extends Parser[Documentation] {
+case class DocParserDef() extends Parser[Doc] {
 
   //////////////////////////////////////////////////////////////////////////////
   //// Result //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  override def getResult(): Option[Documentation] = result.doc
+  override def getResult(): Option[Doc] = result.doc
 
   /** result - used to manage result from Doc Parser
     *
@@ -24,9 +24,9 @@ case class DocParserDef() extends Parser[Documentation] {
     * stack - used to hold stack of elems
     */
   final object result {
-    var current: Option[Elem]      = None
-    var doc: Option[Documentation] = None
-    var stack: List[Elem]          = Nil
+    var current: Option[Elem] = None
+    var doc: Option[Doc]      = None
+    var stack: List[Elem]     = Nil
 
     def push(): Unit = logger.trace {
       if (current.isDefined) {
@@ -764,7 +764,7 @@ case class DocParserDef() extends Parser[Documentation] {
       val tags: Option[Tags]         = createTags()
       val synopsis: Option[Synopsis] = createSynopsis()
       val body: Option[Body]         = createBody()
-      result.doc = Some(Documentation(tags, synopsis, body))
+      result.doc = Some(Doc(tags, synopsis, body))
     }
 
     def createTags(): Option[Tags] = logger.trace {

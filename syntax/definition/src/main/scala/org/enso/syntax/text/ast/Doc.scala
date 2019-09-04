@@ -24,7 +24,7 @@ import scalatags.text.Builder
   */
 sealed trait Symbol extends Repr.Provider {
   def show: String = repr.build()
-  def html: Documentation.HTML
+  def html: Doc.HTML
   def htmlCls(): generic.AttrPair[Builder, String] =
     HTML.`class` := getClass.toString.split('$').last.split('.').last
 }
@@ -37,32 +37,32 @@ sealed trait Symbol extends Repr.Provider {
   *
   * Documentation can be made of up to 3 elements:
   *
-  * @param tags     - If exists, holds [[Documentation#Tags]] to documented text
-  * @param synopsis - If exists, holds [[Documentation#Synopsis]] of documented text
-  * @param body     - If exists, holds [[Documentation#Body]] of documented text
+  * @param tags     - If exists, holds [[Doc#Tags]] to documented text
+  * @param synopsis - If exists, holds [[Doc#Synopsis]] of documented text
+  * @param body     - If exists, holds [[Doc#Body]] of documented text
   */
-final case class Documentation(
-  tags: Option[Documentation.Tags],
-  synopsis: Option[Documentation.Synopsis],
-  body: Option[Documentation.Body]
+final case class Doc(
+  tags: Option[Doc.Tags],
+  synopsis: Option[Doc.Synopsis],
+  body: Option[Doc.Body]
 ) extends Symbol {
   val repr: Repr.Builder = R + tags + synopsis + body
-  val html: Documentation.HTML = Seq(
+  val html: Doc.HTML = Seq(
     HTML.div(htmlCls())(tags.html)(synopsis.html)(body.html)
   )
 }
 
-object Documentation {
-  def apply():           Documentation = Documentation(None, None, None)
-  def apply(tags: Tags): Documentation = Documentation(Some(tags), None, None)
-  def apply(synopsis: Synopsis): Documentation =
-    Documentation(None, Some(synopsis), None)
-  def apply(synopsis: Synopsis, body: Body): Documentation =
-    Documentation(None, Some(synopsis), Some(body))
-  def apply(tags: Tags, synopsis: Synopsis): Documentation =
-    Documentation(Some(tags), Some(synopsis), None)
-  def apply(tags: Tags, synopsis: Synopsis, body: Body): Documentation =
-    Documentation(Some(tags), Some(synopsis), Some(body))
+object Doc {
+  def apply():           Doc = Doc(None, None, None)
+  def apply(tags: Tags): Doc = Doc(Some(tags), None, None)
+  def apply(synopsis: Synopsis): Doc =
+    Doc(None, Some(synopsis), None)
+  def apply(synopsis: Synopsis, body: Body): Doc =
+    Doc(None, Some(synopsis), Some(body))
+  def apply(tags: Tags, synopsis: Synopsis): Doc =
+    Doc(Some(tags), Some(synopsis), None)
+  def apply(tags: Tags, synopsis: Synopsis, body: Body): Doc =
+    Doc(Some(tags), Some(synopsis), Some(body))
 
   type HTML    = Seq[Modifier]
   type HTMLTag = TypedTag[String]
