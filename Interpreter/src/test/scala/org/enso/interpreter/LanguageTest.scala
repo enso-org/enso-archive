@@ -15,12 +15,15 @@ trait LanguageRunner {
     new EnsoParser().parseEnso(code)
 }
 
-abstract class LanguageTest extends FlatSpec with Matchers with LanguageRunner {
-
+trait ValueEquality {
   implicit val valueEquality: Equality[Value] = (a: Value, b: Any) =>
     b match {
       case _: Long => a.isNumber && a.fitsInLong && a.asLong == b
       case _: Int  => a.isNumber && a.fitsInInt && a.asInt == b
       case _       => false
     }
+}
+
+abstract class LanguageTest extends FlatSpec with Matchers with LanguageRunner with ValueEquality {
+
 }

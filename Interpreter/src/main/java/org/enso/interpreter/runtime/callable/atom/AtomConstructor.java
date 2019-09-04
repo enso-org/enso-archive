@@ -123,7 +123,7 @@ public class AtomConstructor implements TruffleObject {
    */
   @Override
   public String toString() {
-    return super.toString() + "<" + name + "/" + getArity() + ">";
+    return name;
   }
 
   public Function getConstructorFunction() {

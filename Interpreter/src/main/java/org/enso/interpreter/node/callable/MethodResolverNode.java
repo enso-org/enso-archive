@@ -47,7 +47,7 @@ public abstract class MethodResolverNode extends Node {
    * Handles the actual method lookup. Not for manual use.
    *
    * @param cons Type for which to resolve the method.
-   * @param symbol 
+   * @param symbol
    * @return Resolved method definition.
    */
   public Function resolveMethod(
