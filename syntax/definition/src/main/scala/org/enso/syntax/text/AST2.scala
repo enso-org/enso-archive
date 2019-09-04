@@ -1186,7 +1186,9 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Documented = ASTOf[DocumentedOf]
-  case class DocumentedOf[T](ast: T, doc: Doc) extends ShapeOf[T]
+//  FIXME : This doesn't work `t.ast` with :
+//   case class DocumentedOf[T](ast: T, doc: Doc) extends ShapeOf[T]
+  case class DocumentedOf[T](ast: AST, doc: Doc) extends ShapeOf[T]
   object Documented {
     val symbol = "#"
     def apply(ast: AST, doc: Doc): Documented = ASTOf(DocumentedOf(ast, doc))
@@ -1198,11 +1200,7 @@ object AST {
     import Documented._
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
     implicit def repr[T]: Repr[DocumentedOf[T]] = t => {
-      val astRepr: Repr.Builder = t.ast match {
-        case v: AST => R + v
-        case _      => R
-      }
-      R + symbol + symbol + astRepr + newline + t.doc
+      R + symbol + symbol + t.ast + newline + t.doc
     }
 
     // FIXME: How to make it automatic for non-spaced AST?
