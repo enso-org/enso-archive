@@ -117,11 +117,11 @@ object DocParserRunner {
     */
   def create(ast: AST): AST = {
     val createdDocs = createDocs(ast)
-    val preparedDocs = createdDocs match {
-      case m: AST.Module =>
-        ast match {
-          case v: AST.Module => reorganiseDocs(m, v)
-          case _             => createdDocs
+    val preparedDocs = createdDocs.unFix match {
+      case m: AST.ModuleOf[AST] =>
+        ast.unFix match {
+          case v: AST.ModuleOf[AST] => reorganiseDocs(m, v)
+          case _                    => createdDocs
         }
       case _ => createdDocs
     }
