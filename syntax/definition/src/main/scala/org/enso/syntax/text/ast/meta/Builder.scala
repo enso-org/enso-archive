@@ -4,7 +4,6 @@ import org.enso.data
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.implicits._
 import org.enso.syntax.text.AST.Ident
 import org.enso.syntax.text.AST.Macro
 import Pattern.streamShift

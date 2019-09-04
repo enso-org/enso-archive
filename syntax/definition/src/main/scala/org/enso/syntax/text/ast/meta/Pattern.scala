@@ -1,13 +1,9 @@
 package org.enso.syntax.text.ast.meta
 
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.implicits._
 import org.enso.syntax.text.AST.SAST
-import org.enso.syntax.text.AST.Stream
 import org.enso.syntax.text.prec.Operator
-
 import scala.annotation.tailrec
-import scala.reflect.ClassTag
 import org.enso.data.Shifted
 import org.enso.syntax.text.ast.Repr
 
@@ -140,7 +136,7 @@ object Pattern {
 
   //// Utils ////
 
-  def buildASTFrom(stream: Stream): Option[Shifted[AST]] =
+  def buildASTFrom(stream: AST.Stream): Option[Shifted[AST]] =
     Operator.rebuild(stream)
 
   //// Conversions ////
@@ -200,7 +196,7 @@ object Pattern {
 
     //// Result ////
 
-    case class Result(elem: Match, stream: Stream) {
+    case class Result(elem: Match, stream: AST.Stream) {
       def map(fn: Match => Match): Result = copy(elem = fn(elem))
     }
 
@@ -346,7 +342,10 @@ sealed trait Pattern {
   def tillEnd:            Pattern = this :: End() // fixme: rename
   def fromBegin:          Pattern = Begin() :: this
 
-  def matchRevUnsafe(stream: Stream, lineBegin: Boolean = false): Match.Result =
+  def matchRevUnsafe(
+    stream: AST.Stream,
+    lineBegin: Boolean = false
+  ): Match.Result =
     this.matchUnsafe(stream, lineBegin = lineBegin, reversed = true)
 
   //////////////////////////////////
@@ -357,7 +356,7 @@ sealed trait Pattern {
     * patterns that could not match all input tokens, use [[matchOpt]] instead.
     */
   def matchUnsafe(
-    stream: Stream,
+    stream: AST.Stream,
     lineBegin: Boolean = false,
     reversed: Boolean  = false
   ): Match.Result = {
@@ -373,7 +372,7 @@ sealed trait Pattern {
     * not fail.
     */
   def matchOpt(
-    stream0: Stream,
+    stream0: AST.Stream,
     lineBegin: Boolean,
     reversed: Boolean
   ): Option[Match.Result] = {
@@ -381,9 +380,12 @@ sealed trait Pattern {
     val P = Pattern
     val M = Match
 
-    def matchList(p: Pattern, stream: Stream): (List[Match], Stream) = {
+    def matchList(p: Pattern, stream: AST.Stream): (List[Match], AST.Stream) = {
       @tailrec
-      def go(stream: Stream, revOut: List[Match]): (List[Match], Stream) =
+      def go(
+        stream: AST.Stream,
+        revOut: List[Match]
+      ): (List[Match], AST.Stream) =
         step(p, stream) match {
           case None    => (revOut.reverse, stream)
           case Some(t) => go(t.stream, t.elem :: revOut)
@@ -391,17 +393,17 @@ sealed trait Pattern {
       go(stream, Nil)
     }
 
-    def stepWith(p: Pattern, stream: Stream)(
+    def stepWith(p: Pattern, stream: AST.Stream)(
       f: Match => Match
     ): Option[Match.Result] = step(p, stream).map(_.map(f))
 
-    def step(p: Pattern, stream: Stream): Option[Match.Result] = {
+    def step(p: Pattern, stream: AST.Stream): Option[Match.Result] = {
 
-      def out(m: Match, s: Stream)               = Match.Result(m, s)
-      def ret(m: Match, s: Stream)               = Some(Match.Result(m, s))
-      def ret_(m: Match)                         = Some(Match.Result(m, stream))
-      def retIf(b: Boolean)(m: Match, s: Stream) = Option.when(b)(out(m, s))
-      def retIf_(b: Boolean)(m: Match)           = retIf(b)(m, stream)
+      def out(m: Match, s: AST.Stream)               = Match.Result(m, s)
+      def ret(m: Match, s: AST.Stream)               = Some(Match.Result(m, s))
+      def ret_(m: Match)                             = Some(Match.Result(m, stream))
+      def retIf(b: Boolean)(m: Match, s: AST.Stream) = Option.when(b)(out(m, s))
+      def retIf_(b: Boolean)(m: Match)               = retIf(b)(m, stream)
 
       def matchByCls_[T: AST.UnapplyByType](
         spaced: Pattern.Spaced,

@@ -9,10 +9,10 @@ import org.enso.data.List1._
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.data.Tree
+import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
-import org.enso.syntax.text.ast.Documentation
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
@@ -33,9 +33,9 @@ object AST {
 
   //// Structure ////
 
-  type AST_Type    = ASTOf[ShapeOf]
-  type ASTOf[T[_]] = Node[T, ShapeOf]
-  type Shape       = ShapeOf[AST]
+  type AST_Type = ASTOf[ShapeOf]
+//  type ASTOf[T[_]] = Node[T]
+  type Shape = ShapeOf[AST]
 
   //// Aliases ////
 
@@ -102,8 +102,8 @@ object AST {
     def apply[T](implicit t: Unapply[T]): Unapply[T] { type In = t.In } = t
     implicit def inst[T[_]](
       implicit ev: ClassTag[T[AST]]
-    ): Unapply[Node[T, ShapeOf]] { type In = T[AST] } =
-      new Unapply[Node[T, ShapeOf]] {
+    ): Unapply[ASTOf[T]] { type In = T[AST] } =
+      new Unapply[ASTOf[T]] {
         type In = T[AST]
         val ct                              = implicitly[ClassTag[T[AST]]]
         def run[Out](fn: In => Out)(t: AST) = ct.unapply(t.unFix).map(fn)
@@ -117,10 +117,10 @@ object AST {
     def apply[T](implicit ev: UnapplyByType[T]) = ev
     implicit def instance[T[_]](
       implicit ct: ClassTag[T[_]]
-    ): UnapplyByType[Node[T, ShapeOf]] =
-      new UnapplyByType[Node[T, ShapeOf]] {
+    ): UnapplyByType[ASTOf[T]] =
+      new UnapplyByType[ASTOf[T]] {
         def unapply(t: AST) =
-          ct.unapply(t.unFix).map(_ => t.asInstanceOf[Node[T, ShapeOf]])
+          ct.unapply(t.unFix).map(_ => t.asInstanceOf[ASTOf[T]])
       }
   }
 
@@ -143,73 +143,86 @@ object AST {
 
   //// Wrapper ////
 
-  /** The [[Node]] class wraps each AST node. The implementation is very similar
+  /** The [[ASTOf]] class wraps each AST node. The implementation is very similar
     * to standard catamorphic Fix, however, it takes the head element into
     * consideration. This way we can keep the info of the shape of the AST. For
     * example, [[Var]] is just an alias to [[ Node[VarOf,ShapeOf] ]], and while
     * [[ VarOf[T] <: ShapeOf[T] ]], also [[Var <: AST]].
     *
-    * Another important role of [[Node]] is caching of [[Repr.Builder]] and
-    * allowing for fast method redirection. When [[Node]] is created, it
+    * Another important role of [[ASTOf]] is caching of [[Repr.Builder]] and
+    * allowing for fast method redirection. When [[ASTOf]] is created, it
     * remembers a bunch of stuff, which can be fast accessed even if we cast the
     * type to generic [[AST]]
     */
-  case class Node[+H[_], F[_]](unFix: H[Node[F, F]], id: Option[ID] = None)(
-    implicit ops: NodeOps[H, Node[F, F]]
+  case class ASTOf[+T[_]](unFix: T[AST], id: Option[ID] = None)(
+    implicit cls: ASTClass[T]
   ) {
     override def toString  = s"Node($id,$unFix)"
-    val repr: Repr.Builder = ops.repr(unFix)
-    def show():             String     = repr.build()
-    def setID(newID: ID):   Node[H, F] = copy(id = Some(newID))
-    def withNewID():        Node[H, F] = copy(id = Some(UUID.randomUUID()))
-    def map(f: AST => AST): Node[H, F] = copy(unFix = ops.map(unFix)(f))
-    def mapWithOff(f: (Int, AST) => AST): Node[H, F] =
-      copy(unFix = ops.mapWithOff(unFix)(f))
-    def traverseWithOff(f: (Int, AST) => AST): Node[H, F] =
-      copy(unFix = ops.traverseWithOff(unFix)(f))
-    def zipWithOffset(): H[(Int, Node[F, F])] = ops.zipWithOffset(unFix)
+    val repr: Repr.Builder = cls.repr(unFix)
+    def show():             String   = repr.build()
+    def setID(newID: ID):   ASTOf[T] = copy(id = Some(newID))
+    def withNewID():        ASTOf[T] = copy(id = Some(UUID.randomUUID()))
+    def map(f: AST => AST): ASTOf[T] = copy(unFix = cls.map(unFix)(f))
+    def mapWithOff(f: (Int, AST) => AST): ASTOf[T] =
+      copy(unFix = cls.mapWithOff(unFix)(f))
+    def zipWithOffset(): T[(Int, AST)] = cls.zipWithOffset(unFix)
   }
-  object Node {
-    implicit def repr[H[_], T[_]]:          Repr[Node[H, T]] = _.repr
-    implicit def unwrap[T[_]](t: ASTOf[T]): T[AST]           = t.unFix
-    implicit def wrap[T[_]](t: T[AST])(implicit ev: NodeOps[T, AST]): ASTOf[T] =
-      Node(t)
+  object ASTOf {
+    implicit def repr[H[_]]:                Repr[ASTOf[H]] = _.repr
+    implicit def unwrap[T[_]](t: ASTOf[T]): T[AST]         = t.unFix
+    implicit def wrap[T[_]](t: T[AST])(
+      implicit
+      ev: ASTClass[T]
+    ): ASTOf[T] = ASTOf(t)
   }
 
-  //// Ops ////
+  //// ASTClass ////
 
-  trait NodeOps[T[_], S] {
-    def repr(t: T[S]): Repr.Builder
-    def map(t: T[S])(f: AST => AST): T[S]
-    def mapWithOff(t: T[S])(f: (Int, AST) => AST): T[S]
-    def traverseWithOff(t: T[S])(f: (Int, AST) => AST): T[S]
-    def zipWithOffset(t: T[S]): T[(Int, S)]
+  /** [[ASTClass]] implements set of AST operations based on a precise AST
+    * shape. Because the `T` parameter in [[ASTOf]] is covariant, we may lose
+    * information about the shape after we construct the AST, thus this instance
+    * is used to cache all necessary operations during AST construction.
+    */
+  trait ASTClass[T[_]] {
+    def repr(t: T[AST]): Repr.Builder
+    def map(t: T[AST])(f: AST => AST): T[AST]
+    def mapWithOff(t: T[AST])(f: (Int, AST) => AST): T[AST]
+    def zipWithOffset(t: T[AST]): T[(Int, AST)]
   }
-  object NodeOps {
-    def apply[T[_], S](implicit ev: NodeOps[T, S]): NodeOps[T, S] = ev
+  object ASTClass {
+    def apply[T[_]](implicit ev: ASTClass[T]): ASTClass[T] = ev
     implicit def instance[T[_]](
       implicit
       evRepr: Repr[T[AST]],
       evFtor: Functor[T],
       evOZip: OffsetZip[T, AST]
-    ): NodeOps[T, AST] =
-      new NodeOps[T, AST] {
+    ): ASTClass[T] =
+      new ASTClass[T] {
         def repr(t: T[AST]):               Repr.Builder = evRepr.repr(t)
         def map(t: T[AST])(f: AST => AST): T[AST]       = Functor[T].map(t)(f)
         def mapWithOff(t: T[AST])(f: (Int, AST) => AST): T[AST] =
-          Functor[T].map(OffsetZip(t))(f.tupled)
-
-        def traverseWithOff(t: T[AST])(f: (Int, AST) => AST): T[AST] = {
-          def go(i: Int, x: AST): AST = {
-            x.mapWithOff { (j, ast) =>
-              val off = i + j
-              go(off, f(off, ast))
-            }
-          }
-          mapWithOff(t)((off, ast) => go(off, f(off, ast)))
-        }
+          Functor[T].map(zipWithOffset(t))(f.tupled)
         def zipWithOffset(t: T[AST]): T[(Int, AST)] = OffsetZip(t)
       }
+  }
+
+  //// ASTOps ////
+
+  /** [[ASTOps]] implements handy AST operations. In contrast to [[ASTClass]],
+    * implementations in this class do not require any special knowledge of the
+    * underlying shape and thus are just a high-level AST addons.
+    */
+  implicit class ASTOps[T[S] <: ShapeOf[S]](t: ASTOf[T]) {
+    def as[X: UnapplyByType]: Option[X] = UnapplyByType[X].unapply(t)
+    def traverseWithOff(f: (Int, AST) => AST): ASTOf[T] = {
+      def go(i: Int, x: AST): AST = {
+        x.mapWithOff { (j, ast) =>
+          val off = i + j
+          go(off, f(off, ast))
+        }
+      }
+      t.mapWithOff((off, ast) => go(off, f(off, ast)))
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -485,6 +498,7 @@ object AST {
       implicit def offsetZip[T]: OffsetZip[NumberOf, T] = t => t.coerce
       implicit def repr[T]: Repr[NumberOf[T]] =
         t => t.base.map(_ + "_").getOrElse("") + t.int
+      implicit def fromInt[T](int: Int): Number = Number(int)
     }
 
     //////////////
@@ -785,7 +799,10 @@ object AST {
       emptyLines: List[Int],
       firstLine: LineOf[AST],
       lines: List[LineOf[Option[AST]]]
-    ): Block = BlockOf(typ, indent, emptyLines, firstLine, lines)
+    ): Block = {
+      Unused(isOrphan)
+      BlockOf(typ, indent, emptyLines, firstLine, lines)
+    }
 
     def apply(
       typ: Type,
@@ -840,7 +857,7 @@ object AST {
       val linesRepr = t.lines.map { line =>
         newline + line.elem.map(_ => t.indent) + line
       }
-      R + emptyLinesRepr + firstLineRepr + linesRepr
+      R + newline + emptyLinesRepr + firstLineRepr + linesRepr
     }
     implicit def offZipBlock[T]: OffsetZip[BlockOf, T] = _.map((0, _))
   }
@@ -895,8 +912,8 @@ object AST {
     }
 
     object MatchOf {
-      implicit def xftor: Functor[MatchOf] = semi.functor
-      implicit def xoffZip[T: Repr]: OffsetZip[MatchOf, T] = t => {
+      implicit def functor: Functor[MatchOf] = semi.functor
+      implicit def offsetZip[T: Repr]: OffsetZip[MatchOf, T] = t => {
         var off = 0
         t.copy(segs = t.segs.map { seg =>
           OffsetZip(seg).map(_.map(_.map(s => {
@@ -906,15 +923,13 @@ object AST {
           })))
         })
       }
-      implicit def xrepr[T: Repr]: Repr[MatchOf[T]] = t => {
+      implicit def repr[T: Repr]: Repr[MatchOf[T]] = t => {
         val pfxStream = t.pfx.map(_.toStream.reverse).getOrElse(List())
         val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
         val segsRepr  = t.segs.map(s => R + s.head + s.body) // FIXME: We should be able to use here the repr instance of segment
         R + pfxRepr + segsRepr
       }
     }
-    import MatchOf._
-
     object Match {
       val any = UnapplyByType[Match]
       def apply(
@@ -944,7 +959,7 @@ object AST {
 
         implicit def offZip[T: Repr]: OffsetZip[SegmentOf, T] = t => {
           t.copy(body = OffsetZip(t.body).map {
-            case (i, s) => s.map((i, _))
+            case (i, s) => s.map((i + t.head.repr.span, _))
           })
         }
       }
@@ -965,7 +980,7 @@ object AST {
       def apply(
         segs: Shifted.List1[Ambiguous.Segment],
         paths: Tree[AST, Unit]
-      ): Ambiguous = Node(AmbiguousOf(segs, paths))
+      ): Ambiguous = ASTOf(AmbiguousOf(segs, paths))
 
       final case class Segment(head: AST, body: Option[SAST])
       object Segment {
@@ -1147,68 +1162,23 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Comment = ASTOf[CommentOf]
-  sealed trait CommentOf[T] extends SpacelessASTOf[T] with Phantom
+  case class CommentOf[T](lines: List[String])
+      extends SpacelessASTOf[T]
+      with Phantom
   object Comment {
     val symbol = "#"
+    def apply(lines: List[String]): Comment = ASTOf(CommentOf(lines))
+  }
 
-    type Disable    = DisableOf[AST]
-    type SingleLine = SingleLineOf[AST]
-    type MultiLine  = MultiLineOf[AST]
-    type Documented = DocumentedOf[AST]
+  //// Instances ////
 
-    case class DisableOf[T](ast: T)          extends CommentOf[T]
-    case class SingleLineOf[T](text: String) extends CommentOf[T]
-    case class MultiLineOf[T](off: Int, lines: List[String])
-        extends CommentOf[T]
-    case class DocumentedOf[T](title: Option[T], doc: Documentation)
-        extends CommentOf[T]
-
-    // FIXME: Compatibility mode
-    def SingleLine(t: String):                        Comment = ???
-    def MultiLine(i: Int, t: List[String]):           Comment = ???
-    def Disable(t: AST):                              Comment = ???
-    def Documented(t: Option[AST], d: Documentation): Comment = ???
-
-    //// Instances ////
-
-    object DisableOf {
-      implicit def functor[T]: Functor[DisableOf] = semi.functor
-      implicit def repr[T: Repr]: Repr[DisableOf[T]] =
-        R + symbol + " " + _.ast
-      // FIXME: How to make it automatic for non-spaced AST?
-      implicit def offsetZip[T]: OffsetZip[DisableOf, T] = _.map((0, _))
-    }
-    object SingleLineOf {
-      implicit def functor[T]: Functor[SingleLineOf] = semi.functor
-      implicit def repr[T]: Repr[SingleLineOf[T]] =
-        R + symbol + symbol + _.text
-      // FIXME: How to make it automatic for non-spaced AST?
-      implicit def offsetZip[T]: OffsetZip[SingleLineOf, T] = _.map((0, _))
-    }
-    object MultiLineOf {
-      implicit def functor[T]: Functor[MultiLineOf] = semi.functor
-      implicit def repr[T]: Repr[MultiLineOf[T]] = t => {
-        val commentBlock = t.lines match {
-          case Nil => Nil
-          case line +: lines =>
-            val indentedLines = lines.map { s =>
-              if (s.forall(_ == ' ')) newline + s
-              else newline + 1 + t.off + s
-            }
-            (R + line) +: indentedLines
-        }
-        R + symbol + symbol + commentBlock
-      }
-      // FIXME: How to make it automatic for non-spaced AST?
-      implicit def offsetZip[T]: OffsetZip[MultiLineOf, T] = _.map((0, _))
-    }
-    object DocumentedOf {
-      implicit def functor[T]: Functor[DocumentedOf] = semi.functor
-      implicit def repr[T: Repr]: Repr[DocumentedOf[T]] =
-        R + symbol + " " + _.title + newline // FIXME    + _.doc
-      // FIXME: How to make it automatic for non-spaced AST?
-      implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
-    }
+  object CommentOf {
+    import Comment._
+    implicit def functor[T]: Functor[CommentOf] = semi.functor
+    implicit def repr[T]: Repr[CommentOf[T]] =
+      R + symbol + symbol + _.lines.mkString("\n")
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def offsetZip[T]: OffsetZip[CommentOf, T] = _.map((0, _))
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1331,28 +1301,25 @@ object AST {
     import implicits._
 
     val fff1 = AST.Ident.BlankOf[AST](): Ident.BlankOf[AST]
-    val fff3 = Node(fff1): Blank
+    val fff3 = ASTOf(fff1): Blank
     val fff4 = fff3: AST
 
-    object TT {
-      def fooTest(t: (AST, Int)): Int = 8
-      def fooTest(t: Int):        Int = t
-    }
-    val xr1 = TT.fooTest((fff3, 5))
-
     println(fff3)
+    println(fff4)
 
     val v1   = Ident.Var("foo")
+    val v1_  = v1: AST
     val opr1 = Ident.Opr("+")
     val v2   = App.Prefix(Var("x"), 10, Var("z"))
 
+    println(v1_)
     println(v1.name)
     println(opr1.assoc)
 
     val str1 = "foo": AST
+    println(str1)
 
-    val fff = fff4.map(a => a)
-    val vx  = v2: AST
+    val vx = v2: AST
     vx match {
       case Ident.Blank.any(v) => println(s"blank: $v")
       case Ident.Var.any(v)   => println(s"var: $v")
@@ -1370,5 +1337,8 @@ object AST {
     }
 
     println(voff2.zipWithOffset())
+
+    val v1_x = vx.as[Var]
+    println(v1_x)
   }
 }

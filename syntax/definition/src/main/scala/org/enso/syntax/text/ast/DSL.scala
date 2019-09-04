@@ -1,8 +1,6 @@
 package org.enso.syntax.text.ast
 
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.implicits._
-import org.enso.syntax.text.AST.App.Infix
 
 object DSL {
   import AST._
@@ -10,7 +8,7 @@ object DSL {
 
   implicit final class ASTHelper(self: AST) {
     private def smartApp(off: Int, r: AST): AST = self match {
-      case AST.App.Section.Left.any(t) => Infix(t.arg, t.off, t.opr, off, r)
+      case AST.App.Section.Left.any(t) => App.Infix(t.arg, t.off, t.opr, off, r)
       case _                           => smartAppRaw(off, r)
     }
 
@@ -42,7 +40,4 @@ object DSL {
     def $$__(t: AST)  = (self: AST) $$__ t
     def $$___(t: AST) = (self: AST) $$___ t
   }
-
-  implicit def intToNumber(int: Int): Literal.Number = Literal.Number(int)
-
 }

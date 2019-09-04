@@ -2,7 +2,7 @@ package org.enso
 
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
-import org.enso.lint.Unused.unused
+import org.enso.lint.Unused
 
 class Logger {
   import Logger._
@@ -73,7 +73,7 @@ object Logger {
     c: Context
   )(msg: c.Tree)(body: c.Tree): c.Expr[R] = {
     import c.universe._
-    unused(msg)
+    Unused(msg)
     val target = c.macroApplication match {
       case Apply(Apply(TypeApply(Select(base, name), typ), msg2), body2) =>
         val newName = TermName("_" + name.toString)
@@ -122,7 +122,7 @@ object Logger {
           else owner.name.toString
         val ownerName = Literal(Constant(oname))
         owner.paramLists match {
-          case lst :: _ =>
+          case _ :: _ =>
             val msg = List(q"$ownerName")
             Apply(Apply(TypeApply(Select(base, newName), typ), msg), body2)
           case _ => throw new Error("Unsupported shape")
@@ -134,7 +134,7 @@ object Logger {
 
   def funcRedirect(c: Context)(s: c.Tree): c.Expr[Unit] = {
     import c.universe._
-    unused(s)
+    Unused(s)
     val target = c.macroApplication match {
       case Apply(Select(base, name), args) =>
         val newName = TermName("_" + name.toString)

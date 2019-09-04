@@ -3,10 +3,10 @@ package org.enso.syntax.text.ast.meta
 import org.enso.data.List1
 import org.enso.data.Shifted
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.implicits._
 import org.enso.syntax.text.AST.Macro.Definition
 import org.enso.syntax.text.AST.Opr
 import org.enso.syntax.text.AST.Var
+import org.enso.syntax.text.ast.Repr
 
 import scala.annotation.tailrec
 
@@ -30,7 +30,6 @@ object Builtin {
       }
 
     val defn = Definition(Var("def") -> {
-      import Pattern._
       val head = Pattern.Cons().or("missing name").tag("name")
       val args =
         Pattern.NonSpacedExpr_().tag("parameter").many.tag("parameters")
@@ -44,13 +43,13 @@ object Builtin {
             case Seq(_, (namePat, Seq(_, (argsPat, bodyPat)))) =>
               val args = argsPat.toStream.map(_.el)
               val body = bodyPat.toStream match {
-                case List(Shifted(off, block: AST.Block)) => Some(block)
-                case List()                               => None
-                case _                                    => internalError
+                case List(Shifted(_, AST.Block.any(block))) => Some(block)
+                case List()                                 => None
+                case _                                      => internalError
               }
               namePat.toStream match {
-                case List(Shifted(_, n: AST.Cons)) => AST.Def(n, args, body)
-                case _                             => internalError
+                case List(Shifted(_, AST.Cons.any(n))) => AST.Def(n, args, body)
+                case _                                 => internalError
               }
             case _ => internalError
           }
@@ -139,7 +138,7 @@ object Builtin {
       ctx.body match {
         case List(s1) =>
           s1.body.toStream match {
-            case List(langAST, Shifted(_, bodyAST: AST.Block)) =>
+            case List(langAST, Shifted(_, AST.Block.any(bodyAST))) =>
               val indent     = bodyAST.indent
               val lang       = langAST.el.show()
               val body       = bodyAST.show()
@@ -182,7 +181,7 @@ object Builtin {
       ctx.body match {
         case List(s1) =>
           s1.body.toStream match {
-            case List(Shifted(_, body: AST)) =>
+            case List(Shifted(_, _)) =>
               // TODO: Ability to do parsing here
               Var(s"Save to file using ${ctx.id}")
             case _ => internalError
@@ -197,32 +196,31 @@ object Builtin {
         .many
         .fromBegin
         .or(Pattern.Any().but(Pattern.Block()).many)
+        .tag("comment")
     ) { ctx =>
       ctx.body match {
         case List(s1) =>
           val stream = s1.body.toStream
-          val text   = stream.map(_.el.repr.build()).mkString("")
+          val indent = 2
+          val text   = Repr(stream).build()
           val lines  = text.split("\n").toList
-          lines match {
-            case List(l) => AST.Comment.SingleLine(text)
-            case ls      => AST.Comment.MultiLine(0, ls)
-          }
+          val lines2 = lines.head :: lines.tail.map(_.drop(indent))
+          AST.Comment(lines2)
         case _ => internalError
       }
     }
 
-    val disableComment = Definition(
-      Opr("#") -> Pattern.Expr()
-    ) { ctx =>
-      ctx.body match {
-        case List(s1) =>
-          s1.body.toStream match {
-            case List(expr) => AST.Comment.Disable(expr.el)
-            case _          => internalError
-          }
-        case _ => internalError
+    // TODO
+    // We may want to better represent empty AST. Moreover, there should be a
+    // way to generate multiple top-level entities from macros (like multiple
+    // atom definitions). One of the solutions to consider is to make AST
+    // instance of Monoid, add a `Nothing` node, and replace all lines in a
+    // block with a `Seq` node. This would allow us here to return `Nothing`,
+    // and also return many top-level defs connected with a `Seq`.
+    val disableComment =
+      Definition(Opr("#") -> Pattern.Expr().tag("disable")) { _ =>
+        AST.Blank()
       }
-    }
 
     Registry(
       group,

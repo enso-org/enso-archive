@@ -166,10 +166,10 @@ class Parser {
     mod: AST.Module
   ): AST.Module = mod.traverseWithOff { (off, ast) =>
 //    println()
-//    println("----------")
-//    println(s">> $off (${ast.repr.span})")
-//    println(ast.repr)
-//    println(Main.pretty(ast.toString))
+    println("----------")
+    println(s">> $off (${ast.repr.span})")
+    println(ast.repr.build())
+    println(Main.pretty(ast.toString))
     idMap.get((off, ast.repr.span)) match {
       case Some(id) => ast.setID(id)
       case None =>
@@ -296,7 +296,10 @@ object Main extends App {
   val parser = new Parser()
 
   val in_def_maybe =
-    """def Maybe a
+    """## Foo bar baz
+      |   bax
+      |def Maybe a
+      |    ## test
       |    def Just val:a
       |    def Nothing
     """.stripMargin
@@ -314,12 +317,9 @@ object Main extends App {
   //val inp = "(a) b = c"
   //val inp = "a = b -> c"
   //val inp = "a = b -> c d"
-  //val inp = "((a))"
+  val inp = "a (b (c)) x"
   //  val inp = "x(x[a))"
   // 48
-  val inp =
-    """## this function adds *x* to *y*
-      |foo x y = x + y""".stripMargin
 
   println("--- PARSING ---")
 
@@ -340,9 +340,6 @@ object Main extends App {
   }
   println("------")
   println(mod.show() == inp)
-  val documentation = DocParserRunner.create(rmod)
-  println("------")
-  println(documentation.show)
   println("------")
   println(mod.show())
   println("------")

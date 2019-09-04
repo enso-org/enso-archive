@@ -1,6 +1,7 @@
 package org.enso.flexer.spec
 
 import org.enso.flexer.Parser
+import org.enso.lint.Unused
 
 import scala.reflect.macros.blackbox.Context
 import scala.reflect.runtime.universe
@@ -12,6 +13,7 @@ object Macro {
     c: Context
   )(p: c.Expr[P])(ev: c.Expr[P <:< Parser[T]]): c.Expr[() => P] = {
     import c.universe._
+    Unused(ev)
     val tree   = p.tree
     val expr   = q"$tree"
     val parser = c.eval(c.Expr[Parser[T]](c.untypecheck(expr.duplicate)))
