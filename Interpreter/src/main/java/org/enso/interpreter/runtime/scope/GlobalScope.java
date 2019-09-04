@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.scope;
 
+import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -7,7 +8,6 @@ import java.util.*;
 
 /** A representation of Enso's top-level scope. */
 public class GlobalScope {
-  public static final GlobalScope BUILTIN_SCOPE = new GlobalScope();
 
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
@@ -15,7 +15,7 @@ public class GlobalScope {
   private final Set<GlobalScope> transitiveImports = new HashSet<>();
 
   public GlobalScope() {
-    imports.add(BUILTIN_SCOPE);
+    imports.add(Builtins.BUILTIN_SCOPE);
   }
 
   /**
