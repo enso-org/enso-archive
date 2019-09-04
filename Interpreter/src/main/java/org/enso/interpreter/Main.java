@@ -2,12 +2,14 @@ package org.enso.interpreter;
 
 import org.apache.commons.cli.*;
 import org.enso.interpreter.runtime.RuntimeOptions;
+import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.graalvm.polyglot.Context;
 import org.graalvm.polyglot.Source;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 /** The main CLI entry point class. */
 public class Main {
@@ -99,14 +101,33 @@ public class Main {
 
     File file = new File(line.getOptionValue(RUN_OPTION));
 
+    if (!file.exists()) {
+      System.out.println("File " + file + " does not exist.");
+      exitFail();
+    }
+
+    boolean projectMode = file.isDirectory();
+    String packagePath = projectMode ? file.getAbsolutePath() : "";
+    File mainLocation = file;
+    if (projectMode) {
+      Optional<Package> pkg = ScalaConversions.asJava(Package.fromDirectory(file));
+      Optional<File> main = pkg.map(Package::mainFile);
+      if (!main.isPresent() || !main.get().exists()) {
+        System.out.println("Main file does not exist.");
+        exitFail();
+      }
+      mainLocation = main.get();
+    }
+
     Context context =
         Context.newBuilder(Constants.LANGUAGE_ID)
             .allowExperimentalOptions(true)
-            .option(RuntimeOptions.PACKAGES_PATH, "/elo:/xD:nobeka/lel")
+            .allowAllAccess(true)
+            .option(RuntimeOptions.PACKAGES_PATH, packagePath)
             .out(System.out)
             .in(System.in)
             .build();
-    Source source = Source.newBuilder(Constants.LANGUAGE_ID, file).build();
+    Source source = Source.newBuilder(Constants.LANGUAGE_ID, mainLocation).build();
     context.eval(source);
   }
 }

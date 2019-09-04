@@ -1,8 +1,11 @@
 package org.enso.interpreter.builder;
 
+import com.oracle.truffle.api.TruffleFile;
+import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.*;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
@@ -10,6 +13,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.GlobalScope;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -53,8 +58,17 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
       List<AstMethodDef> bindings,
-      AstExpression executableExpression) {
-    GlobalScope globalScope = language.getCurrentContext().getGlobalScope();
+      AstExpression executableExpression) throws IOException {
+
+    Context context = language.getCurrentContext();
+
+
+    for (AstImport imp : imports) {
+      TruffleFile sourceFile = context.getSourceForName(imp.name());
+      context.parse(sourceFile);
+    }
+
+    GlobalScope globalScope = context.getGlobalScope();
 
     List<AtomConstructor> constructors =
         typeDefs.stream()

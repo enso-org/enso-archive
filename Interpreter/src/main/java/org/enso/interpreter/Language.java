@@ -12,7 +12,13 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.RuntimeOptions;
+import org.enso.interpreter.util.ScalaConversions;
 import org.graalvm.options.OptionDescriptors;
+import org.enso.pkg.Package;
+
+import java.io.File;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * The root of the Enso implementation.
@@ -82,13 +88,8 @@ public final class Language extends TruffleLanguage<Context> {
    * @throws Exception when parsing or AST construction fail
    */
   @Override
-  protected CallTarget parse(ParsingRequest request) throws Exception {
-    System.out.println(RuntimeOptions.getPackagesPaths(getCurrentContext().getEnvironment()));
-    AstGlobalScope parsed =
-        new EnsoParser().parseEnso(request.getSource().getCharacters().toString());
-    ExpressionNode result = new GlobalScopeExpressionFactory(this).run(parsed);
-    EnsoRootNode root = new EnsoRootNode(this, new FrameDescriptor(), result, null, "root");
-    return Truffle.getRuntime().createCallTarget(root);
+  protected CallTarget parse(ParsingRequest request) {
+    return getCurrentContext().parse(request.getSource());
   }
 
   /**
