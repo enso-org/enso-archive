@@ -317,9 +317,14 @@ object Main extends App {
   //val inp = "(a) b = c"
   //val inp = "a = b -> c"
   //val inp = "a = b -> c d"
-  val inp = "a (b (c)) x"
+  //val inp = "a (b (c)) x"
   //  val inp = "x(x[a))"
   // 48
+  val inp =
+    """## This function adds *x* to *y*
+      |add x y = x + y
+      |mul x y = x * y
+      |""".stripMargin
 
   println("--- PARSING ---")
 
@@ -344,6 +349,13 @@ object Main extends App {
   println(mod.show())
   println("------")
 
+  println("===== DOCUMENTATION =====")
+  val documentation = DocParserRunner.create(parser.dropMacroMeta(mod))
+  println(pretty(documentation.toString))
+  println("------")
+  println(documentation.show())
+  println("=========================")
+
   //  mod.traverseWithOff { (off, ast) =>
   //    println(s">> $off - ${off + ast.span}: $ast")
   //    ast
@@ -351,7 +363,7 @@ object Main extends App {
 
   println()
 
-  AST.main()
+//  AST.main()
 //  v3.AST.main()
 
 }

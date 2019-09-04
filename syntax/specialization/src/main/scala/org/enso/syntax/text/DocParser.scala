@@ -74,14 +74,14 @@ object DocParser {
   }
 }
 
-//TODO ( almost done )
+//TODO ( done )
 // 1. Parsing code containing comment with function defined in next line -
 //    nothing more complicated. In result we want documentation just like we get
 //    now, but with title created from function name. After updating code to
 //    newest parser ( lets assume wdanilo/cata branch is your reference now on)
 //    make a PR onto it. It may be dirty here and there, but it should work
 //
-//TODO ( almost done )
+//TODO ( done )
 // 2. Add to our AST node "documented" which will contain two fields - other AST
 //    and your Documentation. Your doc shouldn't extend AST ( it doesn't on my
 //    branch already ) - separate PR
@@ -136,26 +136,45 @@ object DocParserRunner {
     */
   def createDocs(ast: AST): AST = {
     ast.map { elem =>
-      previousElement = Some(elem match {
-        case v: AST.Comment   => createDocFromComment(v)
-        case v: AST.App.Infix => infixFoundWhileCreatingDocs(v)
-        case v: AST.Def       => defFoundWhileCreatingDocs(v)
-        case v                => createDocs(v)
+      println("ELEM IS : " + elem.toString)
+      println("PREVIOUS ELEM IS : " + previousElement.toString)
+      previousElement = Some(elem.unFix match {
+        case v: AST.CommentOf[AST] =>
+          println("==============================================")
+          println("==    CREATING DOCUMENTATION FROM COMMENT   ==")
+          println("==============================================")
+          createDocFromComment(v)
+        case v: AST.App.InfixOf[AST] =>
+          println("==============================================")
+          println("==         CREATING TITLE FROM INFIX        ==")
+          println("==============================================")
+          infixFoundWhileCreatingDocs(v)
+        case v: AST.DefOf[AST] =>
+          println("==============================================")
+          println("==          CREATING TITLE FROM DEF         ==")
+          println("==============================================")
+          defFoundWhileCreatingDocs(v)
+        case _ =>
+          println("==============================================")
+          println("==                  LOOPING                 ==")
+          println("==============================================")
+          createDocs(elem)
       })
       previousElement.get
     }
   }
 
-  private def infixFoundWhileCreatingDocs(v: AST.App.Infix): AST = {
+  private def infixFoundWhileCreatingDocs(v: AST.App.InfixOf[AST]): AST = {
     /* NOTE : Only create title if infix is right under Doc */
     previousElement match {
-      case Some(d: AST.Documented) =>
-        d.ast match {
-          /* NOTE : If there is no title yet in `Documented` */
-          case AST.Cons("") =>
-            createDocumentedWithTitleFromInfix(v, d) match {
-              case Some(doc) => doc
-              case _         => v
+      case Some(value) =>
+        value.unFix match {
+          case d: AST.DocumentedOf[AST] =>
+            d.ast.unFix match {
+              /* NOTE : If there is no title yet in `Documented` */
+              case AST.Ident.ConsOf("") =>
+                createDocumentedWithTitleFromInfix(v, d)
+              case _ => v
             }
           case _ => v
         }
@@ -163,14 +182,18 @@ object DocParserRunner {
     }
   }
 
-  private def defFoundWhileCreatingDocs(v: AST.Def): AST = {
+  private def defFoundWhileCreatingDocs(v: AST.DefOf[AST]): AST = {
     /* NOTE : Only create title if infix is right under Doc */
     previousElement match {
-      case Some(d: AST.Documented) =>
-        d.ast match {
-          /* NOTE : If there is no title yet in `Documented` */
-          case AST.Cons("") =>
-            createDocumentedWithTitleFromDef(v, d)
+      case Some(value) =>
+        value.unFix match {
+          case d: AST.DocumentedOf[AST] =>
+            d.ast.unFix match {
+              /* NOTE : If there is no title yet in `Documented` */
+              case AST.Ident.ConsOf("") =>
+                createDocumentedWithTitleFromDef(v, d)
+              case _ => v
+            }
           case _ => v
         }
       case _ => v
@@ -184,8 +207,8 @@ object DocParserRunner {
     * @return - Documentation
     */
   def createDocFromComment(
-    ast: AST.Comment
-  ): AST.Documented = {
+    ast: AST.CommentOf[AST]
+  ): AST.DocumentedOf[AST] = {
     val in = ast.lines.mkString("\n")
     // FIXME (AST.Cons("")) HOW DO I CREATE EMPTY AST()?
     AST.DocumentedOf[AST](AST.Cons(""), DocParser.runMatched(in))
@@ -198,14 +221,10 @@ object DocParserRunner {
     * @return - Documentation title from infix left argument
     */
   def createDocumentedWithTitleFromInfix(
-    ast: AST.App.Infix,
-    partialDoc: AST.Documented
-  ): Option[AST.Documented] = {
-    ast.larg match {
-      case v: AST.App =>
-        Some(AST.DocumentedOf[AST](v, partialDoc.doc))
-      case _ => None
-    }
+    ast: AST.App.InfixOf[AST],
+    partialDoc: AST.DocumentedOf[AST]
+  ): AST.DocumentedOf[AST] = {
+    AST.DocumentedOf[AST](ast.larg, partialDoc.doc)
   }
 
   /** createDocumentedWithTitleFromDef
@@ -215,9 +234,9 @@ object DocParserRunner {
     * @return - Documentation title from def name
     */
   def createDocumentedWithTitleFromDef(
-    ast: AST.Def,
-    partialDoc: AST.Documented
-  ): AST.Documented = {
+    ast: AST.DefOf[AST],
+    partialDoc: AST.DocumentedOf[AST]
+  ): AST.DocumentedOf[AST] = {
     AST.DocumentedOf[AST](ast.name, partialDoc.doc)
   }
 
@@ -234,7 +253,7 @@ object DocParserRunner {
     var astDoc = astWithDoc
     astWithDoc.lines.zipWithIndex.map { elem =>
       elem._1.elem.map {
-        case v: AST.Documented =>
+        case v: AST.DocumentedOf[AST] =>
           // NOTE : Documented(before comment) -> Documentation
           val DocToLine = AST.Block.Line(Some(v), 0)
           val updatedWithDoc =
@@ -260,7 +279,7 @@ object DocParserRunner {
   def generateHTMLForEveryDocumented(ast: AST.Module): Unit = {
     ast.map { elem =>
       elem match {
-        case v: AST.Documented =>
+        case v: AST.DocumentedOf[AST] =>
           new DocParser().onHTMLRendering(v)
         case _ =>
       }
