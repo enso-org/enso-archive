@@ -13,7 +13,7 @@ import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
-
+import org.enso.syntax.text.ast.Doc
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
@@ -1181,6 +1181,33 @@ object AST {
     implicit def offsetZip[T]: OffsetZip[CommentOf, T] = _.map((0, _))
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  //// Documented //////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Documented = ASTOf[DocumentedOf]
+  case class DocumentedOf[T](ast: T, doc: Doc) extends ShapeOf[T]
+  object Documented {
+    val symbol = "#"
+    def apply(ast: AST, doc: Doc): Documented = ASTOf(DocumentedOf(ast, doc))
+  }
+
+  //// Instances ////
+
+  object DocumentedOf {
+    import Documented._
+    implicit def functor[T]: Functor[DocumentedOf] = semi.functor
+    implicit def repr[T]: Repr[DocumentedOf[T]] = t => {
+      val astRepr: Repr.Builder = t.ast match {
+        case v: AST => R + v
+        case _      => R
+      }
+      R + symbol + symbol + astRepr + newline + t.doc
+    }
+
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
+  }
   //////////////////////////////////////////////////////////////////////////////
   //// Import //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
