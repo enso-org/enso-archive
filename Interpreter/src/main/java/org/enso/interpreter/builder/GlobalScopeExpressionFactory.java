@@ -25,14 +25,16 @@ import java.util.stream.IntStream;
  */
 public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
   private final Language language;
+  private final GlobalScope globalScope;
 
   /**
    * Creates a factory for the given language.
    *
    * @param language the name of the language for which this factory is creating nodes
    */
-  public GlobalScopeExpressionFactory(Language language) {
+  public GlobalScopeExpressionFactory(Language language, GlobalScope globalScope) {
     this.language = language;
+    this.globalScope = globalScope;
   }
 
   /**
@@ -58,21 +60,18 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
       List<AstMethodDef> bindings,
-      AstExpression executableExpression) throws IOException {
+      AstExpression executableExpression)
+      throws IOException {
 
     Context context = language.getCurrentContext();
 
-
     for (AstImport imp : imports) {
-      TruffleFile sourceFile = context.getSourceForName(imp.name());
-      context.parse(sourceFile);
+      globalScope.addImport(context.requestParse(imp.name()));
     }
-
-    GlobalScope globalScope = context.getGlobalScope();
 
     List<AtomConstructor> constructors =
         typeDefs.stream()
-            .map(type -> new AtomConstructor(type.name()))
+            .map(type -> new AtomConstructor(type.name(), globalScope))
             .collect(Collectors.toList());
 
     constructors.forEach(globalScope::registerConstructor);

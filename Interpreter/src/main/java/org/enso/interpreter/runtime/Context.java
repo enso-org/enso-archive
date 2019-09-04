@@ -14,6 +14,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
 import org.enso.interpreter.runtime.scope.GlobalScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
@@ -30,12 +31,32 @@ import java.util.stream.Collectors;
  * a running Enso program.
  */
 public class Context {
+
+  public static class Module {
+    private GlobalScope cachedScope = null;
+    private final Context context;
+    private final TruffleFile file;
+
+    public Module(Context context, TruffleFile file) {
+      this.context = context;
+      this.file = file;
+    }
+
+    public GlobalScope requestParse() throws IOException {
+      if (cachedScope == null) {
+        cachedScope = new GlobalScope();
+        context.parse(file, cachedScope);
+      }
+      return cachedScope;
+    }
+  }
+
   private final Language language;
   private final Env environment;
   private final BufferedReader input;
   private final PrintWriter output;
   private final GlobalScope globalScope;
-  private final Map<String, TruffleFile> knownFiles;
+  private final Map<String, Module> knownFiles;
 
   /**
    * Creates a new Enso context.
@@ -61,18 +82,25 @@ public class Context {
             .collect(
                 Collectors.toMap(
                     SourceFile::qualifiedName,
-                    srcFile -> getEnvironment().getTruffleFile(srcFile.file().getAbsolutePath())));
+                    srcFile ->
+                        new Module(
+                            this,
+                            getEnvironment().getTruffleFile(srcFile.file().getAbsolutePath()))));
   }
 
-  public CallTarget parse(Source source) {
+  public CallTarget parse(Source source, GlobalScope scope) {
     AstGlobalScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
-    ExpressionNode result = new GlobalScopeExpressionFactory(language).run(parsed);
+    ExpressionNode result = new GlobalScopeExpressionFactory(language, scope).run(parsed);
     EnsoRootNode root = new EnsoRootNode(language, new FrameDescriptor(), result, null, "root");
     return Truffle.getRuntime().createCallTarget(root);
   }
 
-  public CallTarget parse(TruffleFile file) throws IOException {
-    return parse(Source.newBuilder(Constants.LANGUAGE_ID, file).build());
+  public CallTarget parse(Source source) {
+    return parse(source, new GlobalScope());
+  }
+
+  public CallTarget parse(TruffleFile file, GlobalScope scope) throws IOException {
+    return parse(Source.newBuilder(Constants.LANGUAGE_ID, file).build(), scope);
   }
 
   /**
@@ -84,8 +112,10 @@ public class Context {
     return globalScope;
   }
 
-  public TruffleFile getSourceForName(String qualName) {
-    return knownFiles.get(qualName);
+  public GlobalScope requestParse(String qualifiedName) throws IOException {
+    Module module = knownFiles.get(qualifiedName);
+    if (module == null) throw new ModuleDoesNotExistException(qualifiedName);
+    return module.requestParse();
   }
 
   public Env getEnvironment() {

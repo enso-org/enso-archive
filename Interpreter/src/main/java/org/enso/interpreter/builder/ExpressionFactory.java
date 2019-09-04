@@ -169,7 +169,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
         .filter(Optional::isPresent)
         .map(Optional::get)
         .findFirst()
-        .orElseGet(() -> new DynamicSymbolNode(new UnresolvedSymbol(name)));
+        .orElseGet(() -> new DynamicSymbolNode(new UnresolvedSymbol(name, globalScope)));
   }
 
   /**

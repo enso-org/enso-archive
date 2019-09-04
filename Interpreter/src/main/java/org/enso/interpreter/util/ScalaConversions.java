@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public class ScalaConversions {
   public static <T> Optional<T> asJava(Option<T> option) {
-    return Optional.ofNullable(option.getOrElse(null));
+    return Optional.ofNullable(option.getOrElse(() -> null));
   }
 
   public static <T> List<T> asJava(Seq<T> list) {

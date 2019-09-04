@@ -12,16 +12,26 @@ import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.scope.GlobalScope;
 
 /** A representation of an Atom constructor. */
 public class AtomConstructor implements TruffleObject {
   public static final AtomConstructor CONS =
-      new AtomConstructor("Cons")
+      new AtomConstructor("Cons", GlobalScope.BUILTIN_SCOPE)
           .initializeFields(new ArgumentDefinition(0, "head"), new ArgumentDefinition(1, "rest"));
-  public static final AtomConstructor NIL = new AtomConstructor("Nil").initializeFields();
-  public static final AtomConstructor UNIT = new AtomConstructor("Unit").initializeFields();
+  public static final AtomConstructor NIL =
+      new AtomConstructor("Nil", GlobalScope.BUILTIN_SCOPE).initializeFields();
+  public static final AtomConstructor UNIT =
+      new AtomConstructor("Unit", GlobalScope.BUILTIN_SCOPE).initializeFields();
+
+  static {
+    GlobalScope.BUILTIN_SCOPE.registerConstructor(CONS);
+    GlobalScope.BUILTIN_SCOPE.registerConstructor(NIL);
+    GlobalScope.BUILTIN_SCOPE.registerConstructor(UNIT);
+  }
 
   private final String name;
+  private final GlobalScope definitionScope;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
@@ -31,8 +41,9 @@ public class AtomConstructor implements TruffleObject {
    *
    * @param name the name of the Atom constructor
    */
-  public AtomConstructor(String name) {
+  public AtomConstructor(String name, GlobalScope definitionScope) {
     this.name = name;
+    this.definitionScope = definitionScope;
   }
 
   /**
@@ -79,6 +90,10 @@ public class AtomConstructor implements TruffleObject {
    */
   public String getName() {
     return name;
+  }
+
+  public GlobalScope getDefinitionScope() {
+    return definitionScope;
   }
 
   /**
