@@ -51,7 +51,10 @@ class DocParser {
     val cssHref   = HTML.href := cssLink
     val css       = HTML.link(cssRel)(cssHref)
     val title     = Seq(HTML.div(HTML.`class` := "Title")(t.show()))
-    HTML.html(HTML.head(meta, css), HTML.body(title, doc.html))
+    val documentation = Seq(
+      HTML.div(HTML.`class` := "Documentation")(title, doc.html)
+    )
+    HTML.html(HTML.head(meta, css), HTML.body(documentation))
   }
 }
 
@@ -123,7 +126,7 @@ object DocParserRunner {
       case _ => createdDocs
     }
     /* NOTE : Comment out for ease of debugging procedures */
-//    generateHTMLForEveryDocumentation(preparedDocs)
+    //generateHTMLForEveryDocumented(preparedDocs)
     preparedDocs
   }
 
@@ -136,29 +139,11 @@ object DocParserRunner {
     */
   def createDocs(ast: AST): AST = {
     ast.map { elem =>
-      println("ELEM IS : " + elem.toString)
-      println("PREVIOUS ELEM IS : " + previousElement.toString)
       previousElement = Some(elem.unFix match {
-        case v: AST.CommentOf[AST] =>
-          println("==============================================")
-          println("==    CREATING DOCUMENTATION FROM COMMENT   ==")
-          println("==============================================")
-          createDocFromComment(v)
-        case v: AST.App.InfixOf[AST] =>
-          println("==============================================")
-          println("==         CREATING TITLE FROM INFIX        ==")
-          println("==============================================")
-          infixFoundWhileCreatingDocs(v)
-        case v: AST.DefOf[AST] =>
-          println("==============================================")
-          println("==          CREATING TITLE FROM DEF         ==")
-          println("==============================================")
-          defFoundWhileCreatingDocs(v)
-        case _ =>
-          println("==============================================")
-          println("==                  LOOPING                 ==")
-          println("==============================================")
-          createDocs(elem)
+        case v: AST.CommentOf[AST]   => createDocFromComment(v)
+        case v: AST.App.InfixOf[AST] => infixFoundWhileCreatingDocs(v)
+        case v: AST.DefOf[AST]       => defFoundWhileCreatingDocs(v)
+        case _                       => createDocs(elem)
       })
       previousElement.get
     }
@@ -251,26 +236,35 @@ object DocParserRunner {
     astFromParser: AST.Module
   ): AST.Module = {
     var astDoc = astWithDoc
+
+    def swapInfixWithDocumentedIntoDocs(
+      currIndex: Int,
+      v: AST.DocumentedOf[AST]
+    ): Unit = {
+      v.ast.unFix match {
+        case AST.Ident.ConsOf("") =>
+        // NOTE : Documented without title - nothing to do
+        case _ =>
+          // NOTE : Documented(before comment) -> Documentation
+          val DocToLine      = AST.Block.OptLine(v)
+          val prevIndex: Int = currIndex - 1
+          val updatedWithDoc =
+            astDoc.unFix.lines.toList.updated(prevIndex, DocToLine)
+          // NOTE : Documentation -> Infix (to get back func. def)
+          val infix            = astFromParser.unFix.lines.toList(currIndex)
+          val updatedWithInfix = updatedWithDoc.updated(currIndex, infix)
+
+          astDoc = AST.ModuleOf[AST](List1(updatedWithInfix).get)
+      }
+    }
+
     astWithDoc.lines.zipWithIndex.map { elem =>
       val currElem  = elem._1
       val currIndex = elem._2
       currElem.elem.map { e =>
         e.unFix match {
           case v: AST.DocumentedOf[AST] =>
-            v.ast.unFix match {
-              case AST.Ident.ConsOf("") => // Documented without title
-              case _                    =>
-                // NOTE : Documented(before comment) -> Documentation
-                val DocToLine      = AST.Block.OptLine(v)
-                val prevIndex: Int = currIndex - 1
-                val updatedWithDoc =
-                  astDoc.unFix.lines.toList.updated(prevIndex, DocToLine)
-                // NOTE : Documentation -> Infix (to get back func. def)
-                val infix            = astFromParser.unFix.lines.toList(currIndex)
-                val updatedWithInfix = updatedWithDoc.updated(currIndex, infix)
-
-                astDoc = AST.ModuleOf[AST](List1(updatedWithInfix).get)
-            }
+            swapInfixWithDocumentedIntoDocs(currIndex, v)
           case _ =>
         }
       }
@@ -285,7 +279,7 @@ object DocParserRunner {
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
     */
-  def generateHTMLForEveryDocumented(ast: AST.Module): Unit = {
+  def generateHTMLForEveryDocumented(ast: AST): Unit = {
     ast.map { elem =>
       elem.unFix match {
         case v: AST.DocumentedOf[AST] =>
