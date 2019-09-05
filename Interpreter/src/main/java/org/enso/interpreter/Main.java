@@ -37,7 +37,7 @@ public class Main {
         Option.builder()
             .hasArg(true)
             .numberOfArgs(1)
-            .argName("name")
+            .argName("path")
             .longOpt(NEW_OPTION)
             .desc("Creates a new Enso project.")
             .build();
@@ -69,10 +69,10 @@ public class Main {
   /**
    * Handles the {@code --new} CLI option.
    *
-   * @param name name of the newly created project
+   * @param path root path of the newly created project
    */
-  private static void createNew(String name) {
-    Package.create(new File(name), name);
+  private static void createNew(String path) {
+    Package.getOrCreate(new File(path));
     exitSuccess();
   }
 
