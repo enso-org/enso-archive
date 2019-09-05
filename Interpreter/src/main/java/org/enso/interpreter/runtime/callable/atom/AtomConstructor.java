@@ -9,17 +9,16 @@ import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
-import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.scope.GlobalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /** A representation of an Atom constructor. */
 public class AtomConstructor implements TruffleObject {
 
   private final String name;
-  private final GlobalScope definitionScope;
+  private final ModuleScope definitionScope;
   private @CompilerDirectives.CompilationFinal Atom cachedInstance;
   private @CompilerDirectives.CompilationFinal Function constructorFunction;
 
@@ -29,7 +28,7 @@ public class AtomConstructor implements TruffleObject {
    *
    * @param name the name of the Atom constructor
    */
-  public AtomConstructor(String name, GlobalScope definitionScope) {
+  public AtomConstructor(String name, ModuleScope definitionScope) {
     this.name = name;
     this.definitionScope = definitionScope;
   }
@@ -80,7 +79,7 @@ public class AtomConstructor implements TruffleObject {
     return name;
   }
 
-  public GlobalScope getDefinitionScope() {
+  public ModuleScope getDefinitionScope() {
     return definitionScope;
   }
 

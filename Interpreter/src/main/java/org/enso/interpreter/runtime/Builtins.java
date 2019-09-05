@@ -2,10 +2,10 @@ package org.enso.interpreter.runtime;
 
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.scope.GlobalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 public class Builtins {
-  public static final GlobalScope BUILTIN_SCOPE = new GlobalScope();
+  public static final ModuleScope BUILTIN_SCOPE = new ModuleScope();
   public static final AtomConstructor UNIT =
       new AtomConstructor("Unit", BUILTIN_SCOPE).initializeFields();
   public static final AtomConstructor NIL =

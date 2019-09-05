@@ -15,7 +15,7 @@ import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
-import org.enso.interpreter.runtime.scope.GlobalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.SourceFile;
@@ -32,30 +32,8 @@ import java.util.stream.Collectors;
  */
 public class Context {
 
-  public static class Module {
-    private GlobalScope cachedScope = null;
-    private final Context context;
-    private final TruffleFile file;
-
-    public Module(Context context, TruffleFile file) {
-      this.context = context;
-      this.file = file;
-    }
-
-    public GlobalScope requestParse() throws IOException {
-      if (cachedScope == null) {
-        cachedScope = new GlobalScope();
-        context.parse(file, cachedScope);
-      }
-      return cachedScope;
-    }
-  }
-
   private final Language language;
   private final Env environment;
-  private final BufferedReader input;
-  private final PrintWriter output;
-  private final GlobalScope globalScope;
   private final Map<String, Module> knownFiles;
 
   /**
@@ -68,10 +46,8 @@ public class Context {
     this.language = language;
     this.environment = environment;
 
-    this.globalScope = new GlobalScope();
-    this.input = new BufferedReader(new InputStreamReader(environment.in()));
-    this.output = new PrintWriter(environment.out(), true);
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
+    // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
     this.knownFiles =
         packagePaths.stream()
             .map(Package::fromDirectory)
@@ -84,11 +60,10 @@ public class Context {
                     SourceFile::qualifiedName,
                     srcFile ->
                         new Module(
-                            this,
                             getEnvironment().getTruffleFile(srcFile.file().getAbsolutePath()))));
   }
 
-  public CallTarget parse(Source source, GlobalScope scope) {
+  public CallTarget parse(Source source, ModuleScope scope) {
     AstGlobalScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
     ExpressionNode result = new GlobalScopeExpressionFactory(language, scope).run(parsed);
     EnsoRootNode root = new EnsoRootNode(language, new FrameDescriptor(), result, null, "root");
@@ -96,26 +71,17 @@ public class Context {
   }
 
   public CallTarget parse(Source source) {
-    return parse(source, new GlobalScope());
+    return parse(source, new ModuleScope());
   }
 
-  public CallTarget parse(TruffleFile file, GlobalScope scope) throws IOException {
+  public CallTarget parse(TruffleFile file, ModuleScope scope) throws IOException {
     return parse(Source.newBuilder(Constants.LANGUAGE_ID, file).build(), scope);
   }
 
-  /**
-   * Obtains a reference to the Enso global scope.
-   *
-   * @return the Enso global scope
-   */
-  public GlobalScope getGlobalScope() {
-    return globalScope;
-  }
-
-  public GlobalScope requestParse(String qualifiedName) throws IOException {
+  public ModuleScope requestParse(String qualifiedName) throws IOException {
     Module module = knownFiles.get(qualifiedName);
     if (module == null) throw new ModuleDoesNotExistException(qualifiedName);
-    return module.requestParse();
+    return module.requestParse(this);
   }
 
   public Env getEnvironment() {

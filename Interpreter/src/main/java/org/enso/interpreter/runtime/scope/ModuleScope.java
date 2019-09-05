@@ -7,14 +7,14 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import java.util.*;
 
 /** A representation of Enso's top-level scope. */
-public class GlobalScope {
+public class ModuleScope {
 
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
-  private final Set<GlobalScope> imports = new HashSet<>();
-  private final Set<GlobalScope> transitiveImports = new HashSet<>();
+  private final Set<ModuleScope> imports = new HashSet<>();
+  private final Set<ModuleScope> transitiveImports = new HashSet<>();
 
-  public GlobalScope() {
+  public ModuleScope() {
     imports.add(Builtins.BUILTIN_SCOPE);
   }
 
@@ -81,11 +81,11 @@ public class GlobalScope {
         .orElse(null);
   }
 
-  protected Set<GlobalScope> getTransitiveImports() {
+  protected Set<ModuleScope> getTransitiveImports() {
     return transitiveImports;
   }
 
-  public void addImport(GlobalScope scope) {
+  public void addImport(ModuleScope scope) {
     imports.add(scope);
     transitiveImports.add(scope);
     transitiveImports.addAll(scope.transitiveImports);
