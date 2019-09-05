@@ -561,6 +561,8 @@ object AST {
 
     object Number {
 
+      implicit def fromInt[T](int: Int): Number = Number(int)
+
       //// Smart Constructors ////
 
       def apply(i: String):            Number = Number(None, i)
@@ -600,7 +602,6 @@ object AST {
       implicit def offsetZip[T]: OffsetZip[NumberOf, T] = t => t.coerce
       implicit def repr[T]: Repr[NumberOf[T]] =
         t => t.base.map(_ + "_").getOrElse("") + t.int
-      implicit def fromInt[T](int: Int): Number = Number(int)
     }
 
 //////////////
@@ -1027,13 +1028,13 @@ object AST {
   object BlockOf {
     implicit def ftorBlock: Functor[BlockOf] = semi.functor
     implicit def reprBlock[T: Repr]: Repr[BlockOf[T]] = t => {
+      val headRepr = if (t.isOrphan) R else newline
       val emptyLinesRepr = t.emptyLines.map(R + _ + newline)
       val firstLineRepr  = R + t.indent + t.firstLine
       val linesRepr = t.lines.map { line =>
         newline + line.elem.map(_ => t.indent) + line
       }
-      val headRepr = if (t.isOrphan) R else newline
-      R + headRepr + newline + emptyLinesRepr + firstLineRepr + linesRepr
+      headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
     implicit def offZipBlock[T]: OffsetZip[BlockOf, T] = _.map((0, _))
   }

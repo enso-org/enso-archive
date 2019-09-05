@@ -102,6 +102,8 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Precedence + Associativity //////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
+  import AST.Number.fromInt
+
   "a b"            ?= ("a" $_ "b")
   "a +  b"         ?= ("a" $_ "+") $__ "b"
   "a + b + c"      ?= ("a" $_ "+" $_ "b") $_ "+" $_ "c"
@@ -400,7 +402,7 @@ class ParserSpec extends FlatSpec with Matchers {
   //// Large Input /////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  ("(" * 33000).testIdentity
+//  ("(" * 33000).testIdentity
 //  ("OVERFLOW " * 5000).testIdentity
 //  ("\uD800\uDF1E " * 10000).testIdentity
 
