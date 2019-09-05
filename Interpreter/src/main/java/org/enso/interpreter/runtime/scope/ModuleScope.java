@@ -81,7 +81,7 @@ public class ModuleScope {
    */
   public Function lookupMethodDefinition(AtomConstructor atom, String name) {
     Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
-    if (definedWithAtom != null) return definedWithAtom;
+    if (definedWithAtom != null) { return definedWithAtom; }
     Function definedHere = getMethodMapFor(atom).get(name);
     if (definedHere != null) return definedHere;
     return transitiveImports.stream()
