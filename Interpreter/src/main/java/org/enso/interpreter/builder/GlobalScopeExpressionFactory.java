@@ -28,6 +28,7 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * Creates a factory for the given language.
    *
    * @param language the name of the language for which this factory is creating nodes
+   * @param moduleScope the scope in which bindings created by this factory should be registered
    */
   public GlobalScopeExpressionFactory(Language language, ModuleScope moduleScope) {
     this.language = language;
@@ -47,6 +48,7 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
   /**
    * Processes definitions in the language global scope.
    *
+   * @param imports any imports requested by this module
    * @param typeDefs any type definitions defined in the global scope
    * @param bindings any bindings made in the global scope
    * @param executableExpression the executable expression for the program

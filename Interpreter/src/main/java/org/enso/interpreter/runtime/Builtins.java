@@ -4,6 +4,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
+/** Container class for static predefined atoms and their containing scope. */
 public class Builtins {
   public static final ModuleScope BUILTIN_SCOPE = new ModuleScope();
   public static final AtomConstructor UNIT =

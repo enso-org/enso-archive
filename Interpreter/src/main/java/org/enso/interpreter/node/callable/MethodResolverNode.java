@@ -47,7 +47,7 @@ public abstract class MethodResolverNode extends Node {
    * Handles the actual method lookup. Not for manual use.
    *
    * @param cons Type for which to resolve the method.
-   * @param symbol
+   * @param symbol symbol representing the method to resolve
    * @return Resolved method definition.
    */
   public Function resolveMethod(
@@ -66,14 +66,6 @@ public abstract class MethodResolverNode extends Node {
    */
   public boolean isValidCache(
       UnresolvedSymbol symbol, UnresolvedSymbol cachedSymbol, Atom atom, AtomConstructor cachedConstructor) {
-    // Note [Safe Name Equality Comparisons]
-    //noinspection StringEquality
     return (symbol == cachedSymbol) && (atom.getConstructor() == cachedConstructor);
   }
-
-  /* Note [Safe Equality Comparisons]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * It is safe to compare the names of the symbols using `==` as all symbol names are intentionally
-   * interned to assist in performance of comparisons.
-   */
 }

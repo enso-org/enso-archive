@@ -14,7 +14,7 @@ public class MethodDoesNotExistException extends RuntimeException implements Tru
    * @param node the node where the erroneous invocation took place
    */
   public MethodDoesNotExistException(Object target, String name, Node node) {
-    super("Object " + target.toString() + " does not define method " + name + ".");
+    super("Object " + target + " does not define method " + name + ".");
     this.node = node;
   }
 

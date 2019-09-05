@@ -107,7 +107,7 @@ public class Main {
         Context.newBuilder(Constants.LANGUAGE_ID)
             .allowExperimentalOptions(true)
             .allowAllAccess(true)
-            .option(RuntimeOptions.PACKAGES_PATH, packagePath)
+            .option(RuntimeOptions.getPackagesPathOption(), packagePath)
             .out(System.out)
             .in(System.in)
             .build();

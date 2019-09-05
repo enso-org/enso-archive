@@ -27,6 +27,7 @@ public class AtomConstructor implements TruffleObject {
    * AtomConstructor#initializeFields(ArgumentDefinition...)} is called.
    *
    * @param name the name of the Atom constructor
+   * @param definitionScope the scope in which this constructor was defined
    */
   public AtomConstructor(String name, ModuleScope definitionScope) {
     this.name = name;
@@ -79,6 +80,11 @@ public class AtomConstructor implements TruffleObject {
     return name;
   }
 
+  /**
+   * Gets the scope in which this constructor was defined.
+   *
+   * @return the scope in which this constructor was defined
+   */
   public ModuleScope getDefinitionScope() {
     return definitionScope;
   }
@@ -113,6 +119,11 @@ public class AtomConstructor implements TruffleObject {
     return name;
   }
 
+  /**
+   * Gets the constructor function of this constructor.
+   *
+   * @return the constructor function of this constructor.
+   */
   public Function getConstructorFunction() {
     return constructorFunction;
   }

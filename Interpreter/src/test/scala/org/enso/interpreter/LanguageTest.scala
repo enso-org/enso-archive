@@ -1,8 +1,10 @@
 package org.enso.interpreter
 
-import org.graalvm.polyglot.{Context, Value}
+import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.Value
 import org.scalactic.Equality
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.FlatSpec
+import org.scalatest.Matchers
 
 trait LanguageRunner {
   implicit class RichValue(value: Value) {
@@ -24,6 +26,8 @@ trait ValueEquality {
     }
 }
 
-abstract class LanguageTest extends FlatSpec with Matchers with LanguageRunner with ValueEquality {
-
-}
+trait LanguageTest
+    extends FlatSpec
+    with Matchers
+    with LanguageRunner
+    with ValueEquality

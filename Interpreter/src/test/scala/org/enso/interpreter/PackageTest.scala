@@ -20,7 +20,7 @@ trait PackageTest extends FlatSpec with Matchers with ValueEquality {
       .newBuilder(Constants.LANGUAGE_ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
-      .option(RuntimeOptions.PACKAGES_PATH, pkgPath.getAbsolutePath)
+      .option(RuntimeOptions.getPackagesPathOption, pkgPath.getAbsolutePath)
       .out(System.out)
       .in(System.in)
       .build()

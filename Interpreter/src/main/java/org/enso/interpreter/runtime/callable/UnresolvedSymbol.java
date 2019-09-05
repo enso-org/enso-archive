@@ -13,7 +13,8 @@ public class UnresolvedSymbol implements TruffleObject {
   /**
    * Creates a new unresolved symbol.
    *
-   * @param name the name of this symbol.
+   * @param name the name of this symbol
+   * @param scope the scope in which this symbol was created
    */
   public UnresolvedSymbol(String name, ModuleScope scope) {
     this.name = name.intern();
@@ -32,6 +33,12 @@ public class UnresolvedSymbol implements TruffleObject {
     return name;
   }
 
+  /**
+   * Resolves the symbol for a given constructor.
+   *
+   * @param cons the constructor for which this symbol should be resolved
+   * @return the resolved function definition, or null if not found
+   */
   public Function resolveFor(AtomConstructor cons) {
     return scope.lookupMethodDefinition(cons, name);
   }
