@@ -26,7 +26,8 @@ trait AstExpressionVisitor[+T] {
 
   def visitFunctionApplication(
     function: AstExpression,
-    arguments: java.util.List[AstCallArg]
+    arguments: java.util.List[AstCallArg],
+    defaultsSuspended: Boolean
   ): T
 
   def visitIf(
@@ -147,10 +148,13 @@ case class AstVariable(name: String) extends AstExpression {
     visitor.visitVariable(name)
 }
 
-case class AstApply(fun: AstExpression, args: List[AstCallArg])
+case class AstApply(
+  fun: AstExpression,
+  args: List[AstCallArg],
+  hasSuspendedDefaults: Boolean)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitFunctionApplication(fun, args.asJava)
+    visitor.visitFunctionApplication(fun, args.asJava, hasSuspendedDefaults)
 }
 
 case class AstFunction(
@@ -258,7 +262,7 @@ class EnsoParserInternal extends JavaTokenParsers {
   def variable: Parser[AstVariable] = ident ^^ AstVariable
 
   def operand: Parser[AstExpression] =
-    long | foreign | variable | "(" ~> expression <~ ")" | call
+    long | foreign | variable | "(" ~> expression <~ ")" | functionCall
 
   def arith: Parser[AstExpression] =
     operand ~ ((("+" | "-" | "*" | "/" | "%") ~ operand) ?) ^^ {
@@ -269,9 +273,17 @@ class EnsoParserInternal extends JavaTokenParsers {
   def expression: Parser[AstExpression] =
     ifZero | matchClause | arith | function
 
-  def call: Parser[AstApply] = "@" ~> expression ~ (argList ?) ^^ {
-    case expr ~ args => AstApply(expr, args.getOrElse(Nil))
-  }
+  def functionCall: Parser[AstApply] =
+    "@" ~> expression ~ (argList ?) ~ defaultSuspend ^^ {
+      case expr ~ args ~ hasSuspendedDefaults =>
+        AstApply(expr, args.getOrElse(Nil), hasSuspendedDefaults)
+    }
+
+  def defaultSuspend: Parser[Boolean] =
+    ("..." ?) ^^ ({
+      case Some(_) => true
+      case None    => false
+    })
 
   def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
     case v ~ exp => AstAssignment(v, exp)
