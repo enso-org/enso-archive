@@ -20,7 +20,7 @@ import java.util.stream.IntStream;
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of
  * an Enso program into AST nodes for the interpreter to evaluate.
  */
-public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
+public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
   private final Language language;
   private final ModuleScope moduleScope;
 
@@ -30,7 +30,7 @@ public class GlobalScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * @param language the name of the language for which this factory is creating nodes
    * @param moduleScope the scope in which bindings created by this factory should be registered
    */
-  public GlobalScopeExpressionFactory(Language language, ModuleScope moduleScope) {
+  public ModuleScopeExpressionFactory(Language language, ModuleScope moduleScope) {
     this.language = language;
     this.moduleScope = moduleScope;
   }

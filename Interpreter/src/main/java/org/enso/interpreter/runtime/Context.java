@@ -11,7 +11,7 @@ import org.enso.interpreter.AstGlobalScope;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.EnsoParser;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
+import org.enso.interpreter.builder.ModuleScopeExpressionFactory;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
@@ -72,7 +72,7 @@ public class Context {
    */
   public CallTarget parse(Source source, ModuleScope scope) {
     AstGlobalScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
-    ExpressionNode result = new GlobalScopeExpressionFactory(language, scope).run(parsed);
+    ExpressionNode result = new ModuleScopeExpressionFactory(language, scope).run(parsed);
     EnsoRootNode root = new EnsoRootNode(language, new FrameDescriptor(), result, null, "root");
     return Truffle.getRuntime().createCallTarget(root);
   }

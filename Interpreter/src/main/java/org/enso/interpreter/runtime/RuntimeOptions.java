@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-/** Class representing runtime options supported by Enso engine. */
+/** Class representing runtime options supported by the Enso engine. */
 public class RuntimeOptions {
   private static final String PACKAGES_PATH = optionName("packagesPath");
   private static final OptionKey<String> PACKAGES_PATH_KEY = new OptionKey<>("");

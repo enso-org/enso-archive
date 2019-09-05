@@ -21,7 +21,7 @@ object CouldNotCreateDirectory extends Exception
 case class SourceFile(qualifiedName: String, file: File)
 
 /**
-  * Represents a sources package.
+  * Represents an Enso package stored on the hard drive.
   *
   * @param root the root directory of this package
   * @param config the metadata contained in the package configuration

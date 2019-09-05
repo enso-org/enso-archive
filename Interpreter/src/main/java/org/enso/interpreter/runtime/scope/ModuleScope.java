@@ -6,7 +6,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 
 import java.util.*;
 
-/** A representation of Enso's top-level scope. */
+/** A representation of Enso's per-file top-level scope. */
 public class ModuleScope {
 
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
@@ -20,7 +20,7 @@ public class ModuleScope {
   }
 
   /**
-   * Adds an Atom constructor definition to the global scope.
+   * Adds an Atom constructor definition to the module scope.
    *
    * @param constructor the constructor to register
    */
@@ -29,9 +29,9 @@ public class ModuleScope {
   }
 
   /**
-   * Looks up a constructor in the global scope.
+   * Looks up a constructor in the module scope.
    *
-   * @param name the name of the global binding
+   * @param name the name of the module binding
    * @return the Atom constructor associated with {@code name}, or {@link Optional#empty()}
    */
   public Optional<AtomConstructor> getConstructor(String name) {

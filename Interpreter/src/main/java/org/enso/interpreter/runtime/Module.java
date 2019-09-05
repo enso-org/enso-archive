@@ -12,6 +12,7 @@ public class Module {
 
   /**
    * Creates a new module.
+   *
    * @param file file in which this module sources are located
    */
   public Module(TruffleFile file) {
@@ -20,6 +21,7 @@ public class Module {
 
   /**
    * Parses the module sources. The results of this operation are cached.
+   *
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
    * @throws IOException when the source file could not be read

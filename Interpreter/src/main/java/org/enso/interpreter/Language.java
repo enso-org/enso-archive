@@ -1,24 +1,13 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.instrumentation.ProvidedTags;
 import com.oracle.truffle.api.instrumentation.StandardTags;
 import org.enso.interpreter.builder.FileDetector;
-import org.enso.interpreter.builder.GlobalScopeExpressionFactory;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.RuntimeOptions;
-import org.enso.interpreter.util.ScalaConversions;
 import org.graalvm.options.OptionDescriptors;
-import org.enso.pkg.Package;
-
-import java.io.File;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * The root of the Enso implementation.
