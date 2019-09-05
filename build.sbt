@@ -12,6 +12,8 @@ scalacOptions ++= Seq(
   "-Xlint"
 )
 
+ThisBuild / useCoursier := false
+
 javacOptions ++= Seq("-source", "12", "-target", "1.8")
 
 // Benchmark Configuration
