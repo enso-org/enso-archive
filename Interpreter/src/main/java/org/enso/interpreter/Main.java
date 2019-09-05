@@ -52,54 +52,38 @@ public class Main {
    *
    * @param options object representing the CLI syntax
    */
-  public static void printHelp(Options options) {
+  private static void printHelp(Options options) {
     new HelpFormatter().printHelp(Constants.LANGUAGE_ID, options);
   }
 
   /** Terminates the process with a failure exit code. */
-  public static void exitFail() {
+  private static void exitFail() {
     System.exit(1);
   }
 
   /** Terminates the process with a success exit code. */
-  public static void exitSuccess() {
+  private static void exitSuccess() {
     System.exit(0);
   }
 
   /**
-   * Main entry point for the CLI program.
+   * Handles the {@code --new} CLI option.
    *
-   * @param args the command line arguments
+   * @param name name of the newly created project
    */
-  public static void main(String[] args) throws IOException {
-    Options options = buildOptions();
-    CommandLineParser parser = new DefaultParser();
-    CommandLine line;
-    try {
-      line = parser.parse(options, args);
-    } catch (ParseException e) {
-      printHelp(options);
-      exitFail();
-      return;
-    }
-    if (line.hasOption(HELP_OPTION)) {
-      printHelp(options);
-      exitSuccess();
-      return;
-    }
-    if (line.hasOption(NEW_OPTION)) {
-      String name = line.getOptionValue(NEW_OPTION);
-      Package.create(new File(name), name);
-      exitSuccess();
-      return;
-    }
-    if (!line.hasOption(RUN_OPTION)) {
-      printHelp(options);
-      exitFail();
-      return;
-    }
+  private static void createNew(String name) {
+    Package.create(new File(name), name);
+    exitSuccess();
+  }
 
-    File file = new File(line.getOptionValue(RUN_OPTION));
+  /**
+   * Handles the {@code --run} CLI option.
+   *
+   * @param path path of the project or file to execute
+   * @throws IOException when source code cannot be parsed
+   */
+  private static void run(String path) throws IOException {
+    File file = new File(path);
 
     if (!file.exists()) {
       System.out.println("File " + file + " does not exist.");
@@ -129,5 +113,38 @@ public class Main {
             .build();
     Source source = Source.newBuilder(Constants.LANGUAGE_ID, mainLocation).build();
     context.eval(source);
+    exitSuccess();
+  }
+
+  /**
+   * Main entry point for the CLI program.
+   *
+   * @param args the command line arguments
+   */
+  public static void main(String[] args) throws IOException {
+    Options options = buildOptions();
+    CommandLineParser parser = new DefaultParser();
+    CommandLine line;
+    try {
+      line = parser.parse(options, args);
+    } catch (ParseException e) {
+      printHelp(options);
+      exitFail();
+      return;
+    }
+    if (line.hasOption(HELP_OPTION)) {
+      printHelp(options);
+      exitSuccess();
+      return;
+    }
+    if (line.hasOption(NEW_OPTION)) {
+      createNew(line.getOptionValue(NEW_OPTION));
+    }
+    if (line.hasOption(RUN_OPTION)) {
+      run(line.getOptionValue(RUN_OPTION));
+    }
+
+    printHelp(options);
+    exitFail();
   }
 }

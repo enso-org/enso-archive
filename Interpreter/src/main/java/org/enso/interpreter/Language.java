@@ -85,7 +85,6 @@ public final class Language extends TruffleLanguage<Context> {
    *
    * @param request the source to parse, plus contextual information
    * @return a ready-to-execute node representing the code provided in {@code request}
-   * @throws Exception when parsing or AST construction fail
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
@@ -101,6 +100,10 @@ public final class Language extends TruffleLanguage<Context> {
     return getCurrentContext(Language.class);
   }
 
+  /**
+   * Returns the supported options descriptors, for use by Graal's engine.
+   * @return The supported options descriptors
+   */
   @Override
   protected OptionDescriptors getOptionDescriptors() {
     return RuntimeOptions.OPTION_DESCRIPTORS;
