@@ -64,7 +64,7 @@ jobs:
     displayName: Install GraalVM
   - script: |
       brew update
-      brew install sbt
+      brew install $(historicMacOSSbtFormula)
     displayName: Install sbt
   - script: |
       sbt -no-colors test
