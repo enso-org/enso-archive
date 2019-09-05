@@ -83,7 +83,7 @@ public class ModuleScope {
     Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
     if (definedWithAtom != null) { return definedWithAtom; }
     Function definedHere = getMethodMapFor(atom).get(name);
-    if (definedHere != null) return definedHere;
+    if (definedHere != null) { return definedHere; }
     return transitiveImports.stream()
         .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)
