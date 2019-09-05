@@ -28,14 +28,11 @@ class DocParser {
   }
   def run(input: String): Result[Doc] = engine.run(new Reader(input))
 
-  def onHTMLRendering(documented: AST.Documented): Unit = {
+  def onHTMLRendering(ast: AST, doc: Doc): Unit = {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
     val cssFileName = "style.css"
-    saveHTMLCodeToLocalFile(
-      path,
-      renderHTML(documented.ast, documented.doc, cssFileName)
-    )
+    saveHTMLCodeToLocalFile(path, renderHTML(ast, doc, cssFileName))
   }
 
   def renderHTML(
@@ -118,10 +115,10 @@ object DocParserRunner {
   def create(ast: AST): AST = {
     val createdDocs = createDocs(ast)
     val preparedDocs = createdDocs.unFix match {
-      case m: AST.ModuleOf[AST] =>
+      case AST.ModuleOf(m) =>
         ast.unFix match {
-          case v: AST.ModuleOf[AST] => reorganiseDocs(m, v)
-          case _                    => createdDocs
+          case AST.ModuleOf(v) => reorganiseDocs(m, v)
+          case _               => createdDocs
         }
       case _ => createdDocs
     }
@@ -140,7 +137,7 @@ object DocParserRunner {
   def createDocs(ast: AST): AST = {
     ast.map { elem =>
       previousElement = Some(elem.unFix match {
-        case v: AST.CommentOf[AST]   => createDocFromComment(v)
+        case AST.CommentOf(v)        => createDocFromComment(AST.Comment(v))
         case v: AST.App.InfixOf[AST] => infixFoundWhileCreatingDocs(v)
         case v: AST.DefOf[AST]       => defFoundWhileCreatingDocs(v)
         case _                       => createDocs(elem)
@@ -154,11 +151,11 @@ object DocParserRunner {
     previousElement match {
       case Some(value) =>
         value.unFix match {
-          case d: AST.DocumentedOf[AST] =>
-            d.ast.unFix match {
+          case AST.DocumentedOf(ast, doc) =>
+            ast.unFix match {
               /* NOTE : If there is no title yet in `Documented` */
               case AST.Ident.ConsOf("") =>
-                createDocumentedWithTitleFromInfix(v, d)
+                createDocumentedWithTitleFromInfix(v, AST.Documented(ast, doc))
               case _ => v
             }
           case _ => v
@@ -172,11 +169,11 @@ object DocParserRunner {
     previousElement match {
       case Some(value) =>
         value.unFix match {
-          case d: AST.DocumentedOf[AST] =>
-            d.ast.unFix match {
+          case AST.DocumentedOf(ast, doc) =>
+            ast.unFix match {
               /* NOTE : If there is no title yet in `Documented` */
               case AST.Ident.ConsOf("") =>
-                createDocumentedWithTitleFromDef(v, d)
+                createDocumentedWithTitleFromDef(v, AST.Documented(ast, doc))
               case _ => v
             }
           case _ => v
@@ -196,7 +193,7 @@ object DocParserRunner {
   ): AST.DocumentedOf[AST] = {
     val in = ast.lines.mkString("\n")
     // FIXME (AST.Cons("")) HOW DO I CREATE EMPTY AST()?
-    AST.DocumentedOf[AST](AST.Cons(""), DocParser.runMatched(in))
+    AST.Documented(AST.Cons(""), DocParser.runMatched(in))
   }
 
   /** createDocumentedWithTitleFromInfix
@@ -209,7 +206,7 @@ object DocParserRunner {
     ast: AST.App.InfixOf[AST],
     partialDoc: AST.DocumentedOf[AST]
   ): AST.DocumentedOf[AST] = {
-    AST.DocumentedOf[AST](ast.larg, partialDoc.doc)
+    AST.Documented(ast.larg, partialDoc.doc)
   }
 
   /** createDocumentedWithTitleFromDef
@@ -222,7 +219,7 @@ object DocParserRunner {
     ast: AST.DefOf[AST],
     partialDoc: AST.DocumentedOf[AST]
   ): AST.DocumentedOf[AST] = {
-    AST.DocumentedOf[AST](ast.name, partialDoc.doc)
+    AST.Documented(ast.name, partialDoc.doc)
   }
 
   /** reorganiseDocs
@@ -232,44 +229,59 @@ object DocParserRunner {
     * @return - properly oriented AST with Documentation(Title,Documented) elems
     */
   def reorganiseDocs(
-    astWithDoc: AST.Module,
-    astFromParser: AST.Module
+    astWithDoc: List1[AST.Block.OptLineOf[AST]],
+    astFromParser: List1[AST.Block.OptLineOf[AST]]
   ): AST.Module = {
     var astDoc = astWithDoc
-
-    def swapInfixWithDocumentedIntoDocs(
-      currIndex: Int,
-      v: AST.DocumentedOf[AST]
-    ): Unit = {
-      v.ast.unFix match {
-        case AST.Ident.ConsOf("") =>
-        // NOTE : Documented without title - nothing to do
-        case _ =>
-          // NOTE : Documented(before comment) -> Documentation
-          val DocToLine      = AST.Block.OptLine(v)
-          val prevIndex: Int = currIndex - 1
-          val updatedWithDoc =
-            astDoc.unFix.lines.toList.updated(prevIndex, DocToLine)
-          // NOTE : Documentation -> Infix (to get back func. def)
-          val infix            = astFromParser.unFix.lines.toList(currIndex)
-          val updatedWithInfix = updatedWithDoc.updated(currIndex, infix)
-
-          astDoc = AST.ModuleOf[AST](List1(updatedWithInfix).get)
-      }
-    }
-
-    astWithDoc.lines.zipWithIndex.map { elem =>
-      val currElem  = elem._1
+    astWithDoc.zipWithIndex.map { elem =>
+      val currLine  = elem._1
       val currIndex = elem._2
-      currElem.elem.map { e =>
+      currLine.elem.map { e =>
         e.unFix match {
-          case v: AST.DocumentedOf[AST] =>
-            swapInfixWithDocumentedIntoDocs(currIndex, v)
+          case AST.DocumentedOf(ast, doc) =>
+            swapInfixWithDocumentedIntoDocs(
+              currIndex,
+              AST.Documented(ast, doc),
+              astWithDoc,
+              astFromParser
+            ) match {
+              case Some(value) => astDoc = value
+              case None        =>
+            }
           case _ =>
         }
       }
     }
-    astDoc
+    AST.Module(astDoc)
+  }
+
+  /** swapInfixWithDocumentedIntoDocs
+    *
+    * @param currIndex - current index from mapping in [[reorganiseDocs]]
+    * @param documented - documented found from [[reorganiseDocs]]
+    * @param astDoc - AST after running [[createDocs]]
+    * @param astFromParser - AST passed into [[create]]
+    * @return - AST with properly created Documented and Infix
+    */
+  def swapInfixWithDocumentedIntoDocs(
+    currIndex: Int,
+    documented: AST.DocumentedOf[AST],
+    astDoc: List1[AST.Block.OptLineOf[AST]],
+    astFromParser: List1[AST.Block.OptLineOf[AST]]
+  ): Option[List1[AST.Block.OptLineOf[AST]]] = {
+    documented.ast.unFix match {
+      case AST.Ident.ConsOf("") => None
+      // NOTE : Documented without any AST -> No infix after -> nothing to do
+      case _ =>
+        // NOTE : Documented( before title ) -> Documented ( w title )
+        val DocToLine      = AST.Block.OptLine(documented)
+        val prevIndex: Int = currIndex - 1
+        val updatedWithDoc = astDoc.toList.updated(prevIndex, DocToLine)
+        // NOTE : 2nd Documented ( with title ) -> Infix (to get back func. def)
+        val infix            = astFromParser.toList(currIndex)
+        val updatedWithInfix = updatedWithDoc.updated(currIndex, infix)
+        List1(updatedWithInfix)
+    }
   }
 
   /** generateHTMLForEveryDocumentation
@@ -282,8 +294,8 @@ object DocParserRunner {
   def generateHTMLForEveryDocumented(ast: AST): Unit = {
     ast.map { elem =>
       elem.unFix match {
-        case v: AST.DocumentedOf[AST] =>
-          new DocParser().onHTMLRendering(v)
+        case AST.DocumentedOf(ast, doc) =>
+          new DocParser().onHTMLRendering(ast, doc)
         case _ =>
       }
       elem
