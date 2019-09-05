@@ -24,11 +24,11 @@ public class CachedArgumentSorterNode extends BaseNode {
    *
    * @param function the function to sort arguments for
    * @param schema information on the calling argument
-   * @param hasSuspendedDefaults whether or not the function to which these arguments are applied
+   * @param hasDefaultsSuspended whether or not the function to which these arguments are applied
    *     has its defaults suspended.
    */
   public CachedArgumentSorterNode(
-      Function function, CallArgumentInfo[] schema, boolean hasSuspendedDefaults) {
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
     this.originalFunction = function;
     CallArgumentInfo.ArgumentMapping mapping =
         CallArgumentInfo.ArgumentMapping.generate(function.getSchema(), schema);
@@ -37,7 +37,7 @@ public class CachedArgumentSorterNode extends BaseNode {
 
     boolean fullApplication = true;
     for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
-      boolean hasValidDefault = postApplicationSchema.hasDefaultAt(i) && !hasSuspendedDefaults;
+      boolean hasValidDefault = postApplicationSchema.hasDefaultAt(i) && !hasDefaultsSuspended;
       boolean hasPreappliedArg = postApplicationSchema.hasPreAppliedAt(i);
 
       if (!(hasValidDefault || hasPreappliedArg)) {
@@ -56,8 +56,8 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
   public static CachedArgumentSorterNode create(
-      Function function, CallArgumentInfo[] schema, boolean hasSuspendedDefaults) {
-    return new CachedArgumentSorterNode(function, schema, hasSuspendedDefaults);
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
+    return new CachedArgumentSorterNode(function, schema, hasDefaultsSuspended);
   }
 
   /**

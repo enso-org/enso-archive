@@ -160,10 +160,10 @@ case class AstVariable(name: String) extends AstExpression {
 case class AstApply(
   fun: AstExpression,
   args: List[AstCallArg],
-  hasSuspendedDefaults: Boolean)
+  hasDefaultsSuspended: Boolean)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitFunctionApplication(fun, args.asJava, hasSuspendedDefaults)
+    visitor.visitFunctionApplication(fun, args.asJava, hasDefaultsSuspended)
 }
 
 case class AstFunction(
@@ -286,8 +286,8 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def functionCall: Parser[AstApply] =
     "@" ~> expression ~ (argList ?) ~ defaultSuspend ^^ {
-      case expr ~ args ~ hasSuspendedDefaults =>
-        AstApply(expr, args.getOrElse(Nil), hasSuspendedDefaults)
+      case expr ~ args ~ hasDefaultsSuspended =>
+        AstApply(expr, args.getOrElse(Nil), hasDefaultsSuspended)
     }
 
   def defaultSuspend: Parser[Boolean] =

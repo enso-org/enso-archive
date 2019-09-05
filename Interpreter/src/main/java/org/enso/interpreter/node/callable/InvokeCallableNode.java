@@ -50,7 +50,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
    *
    * @param callArguments information on the arguments being passed to the {@link Function}
    */
-  public InvokeCallableNode(CallArgument[] callArguments, boolean hasSuspendedDefaults) {
+  public InvokeCallableNode(CallArgument[] callArguments, boolean hasDefaultsSuspended) {
     this.argExpressions =
         Arrays.stream(callArguments)
             .map(CallArgument::getExpression)
@@ -73,7 +73,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.argumentSorter = ArgumentSorterNodeGen.create(argSchema, hasSuspendedDefaults);
+    this.argumentSorter = ArgumentSorterNodeGen.create(argSchema, hasDefaultsSuspended);
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 

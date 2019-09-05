@@ -18,16 +18,16 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public abstract class ArgumentSorterNode extends BaseNode {
 
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
-  private final boolean hasSuspendedDefaults;
+  private final boolean hasDefaultsSuspended;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
    *
    * @param schema information about the call arguments in positional order
    */
-  public ArgumentSorterNode(CallArgumentInfo[] schema, boolean hasSuspendedDefaults) {
+  public ArgumentSorterNode(CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
     this.schema = schema;
-    this.hasSuspendedDefaults = hasSuspendedDefaults;
+    this.hasDefaultsSuspended = hasDefaultsSuspended;
   }
 
   /**
@@ -51,7 +51,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
   public Object invokeCached(
       Function function,
       Object[] arguments,
-      @Cached("create(function, getSchema(), hasSuspendedDefaults())")
+      @Cached("create(function, getSchema(), hasDefaultsSuspended())")
           CachedArgumentSorterNode mappingNode,
       @Cached CallOptimiserNode optimiser) {
     Object[] mappedArguments = mappingNode.execute(function, arguments);
@@ -93,7 +93,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    *
    * @return {@code true} if it has suspended defaults, otherwise {@code false}
    */
-  boolean hasSuspendedDefaults() {
-    return this.hasSuspendedDefaults;
+  boolean hasDefaultsSuspended() {
+    return this.hasDefaultsSuspended;
   }
 }
