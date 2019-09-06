@@ -1186,8 +1186,11 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Documented = ASTOf[DocumentedOf]
-//  FIXME : This doesn't work `t.ast` with :
-//   case class DocumentedOf[T](ast: T, doc: Doc) extends ShapeOf[T]
+  /*
+    FIXME [MM] : This doesn't work - `t.ast` - with :
+                 case class DocumentedOf[T](ast: T, doc: Doc) extends ShapeOf[T]
+                 Hence replaced `T` with `AST`
+   */
   case class DocumentedOf[T](ast: AST, doc: Doc) extends ShapeOf[T]
   object Documented {
     val symbol = "#"
@@ -1202,8 +1205,6 @@ object AST {
     implicit def repr[T]: Repr[DocumentedOf[T]] = t => {
       R + symbol + symbol + " " + t.ast + newline + t.doc
     }
-
-    // FIXME: How to make it automatic for non-spaced AST?
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
   //////////////////////////////////////////////////////////////////////////////

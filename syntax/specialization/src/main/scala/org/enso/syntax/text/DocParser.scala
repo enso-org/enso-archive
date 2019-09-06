@@ -18,16 +18,39 @@ import scala.util.Random
 //// Doc Parser ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+/** This is the main Parser class. It is being used to create documentation from
+  * commented elements created by Parser. It has been built on the same
+  * foundation as Parser, so in order to not duplicate info, please refer to
+  * Parser documentation.
+  */
 class DocParser {
   import DocParser._
   private val engine = newEngine()
 
+  /**
+    * Used to match result of [[run]] function to possibly retrieve Doc
+    * @param input - input string to Doc Parser
+    * @return - If it was able to retrieve Doc, then retrieved data, else empty
+    *           Doc
+    */
   def runMatched(input: String): Doc = run(input) match {
     case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) => v
     case _                                                        => Doc()
   }
+
+  /**
+    * Used to initialize Doc Parser with input string to get parsed Doc
+    * @param input - input string to Doc Parser
+    * @return - unmatched result possibly containing Doc
+    */
   def run(input: String): Result[Doc] = engine.run(new Reader(input))
 
+  /**
+    * Used to create HTML files from Doc with or without title after
+    * Doc Parser Runner finished it's job
+    * @param ast - possible title from infix / def made by Doc Parser Runner
+    * @param doc - Doc created with Doc Parser
+    */
   def onHTMLRendering(ast: AST, doc: Doc): Unit = {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
@@ -35,6 +58,13 @@ class DocParser {
     saveHTMLCodeToLocalFile(path, renderHTML(ast, doc, cssFileName))
   }
 
+  /**
+    * Function invoked by [[onHTMLRendering]] to render HTML File
+    * @param t - title from Doc Parser Runner
+    * @param doc - Doc from Doc Parser
+    * @param cssLink - string containing CSS file name
+    * @return - HTML Code from Doc with optional title from AST
+    */
   def renderHTML(
     t: AST,
     doc: Doc,
@@ -59,52 +89,67 @@ object DocParser {
   type Result[T] = flexer.Parser.Result[T]
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
+  /**
+    * Doc Parser running methods, described above
+    */
   def runMatched(input: String): Doc =
     new DocParser().runMatched(input)
   def run(input: String): Result[Doc] = new DocParser().run(input)
 
+  /**
+    * Saves HTML code to file
+    * @param path - path to file
+    * @param code - HTML code generated with Doc Parser
+    */
   def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {
     val writer = new PrintWriter(
-      new File(
-        path + Random.alphanumeric.take(8).mkString("") + ".html"
-      )
+      new File(path + Random.alphanumeric.take(8).mkString("") + ".html")
     )
     writer.write(code.toString)
     writer.close()
   }
 }
 
-//TODO ( done )
-// 1. Parsing code containing comment with function defined in next line -
-//    nothing more complicated. In result we want documentation just like we get
-//    now, but with title created from function name. After updating code to
-//    newest parser ( lets assume wdanilo/cata branch is your reference now on)
-//    make a PR onto it. It may be dirty here and there, but it should work
-//
-//TODO ( done )
-// 2. Add to our AST node "documented" which will contain two fields - other AST
-//    and your Documentation. Your doc shouldn't extend AST ( it doesn't on my
-//    branch already ) - separate PR
-//
-//TODO ( up next )
-// 3. Now use case working like that - in code we have `def Maybe` with doc
-//    above it and to every function in it (refer to parser tests). We want to
-//    traverse it and make final form of documentation. Take from def name of
-//    documentation, show documentation of every internal function just like
-//    apple displays on grey background in Developer.Apple.com Documentation.
-//    Generally implementation here should be extremely easy as def is block
-//    which contains list of lines so you loop through it and if you find Doc
-//    then check if next line is empty or contain function ( and you have it
-//    already from point 1 )
+/*
+  TODO [MM] ( done, in review )
+   1. Parsing code containing comment with function defined in next line -
+      nothing more complicated. In result we want documentation just like we get
+      now, but with title created from function name. After updating code to
+      newest parser ( lets assume wdanilo/cata branch is your reference now on)
+      make a PR onto it. It may be dirty here and there, but it should work
+
+  TODO [MM] ( done, in review )
+   2. Add to our AST node "documented" which will contain two fields - other AST
+      and your Documentation. Your doc shouldn't extend AST ( it doesn't on my
+      branch already ) - separate PR
+
+  TODO [MM] ( up next )
+   3. Now use case working like that - in code we have `def Maybe` with doc
+      above it and to every function in it (refer to parser tests). We want to
+      traverse it and make final form of documentation. Take from def name of
+      documentation, show documentation of every internal function just like
+      apple displays on grey background in Developer.Apple.com Documentation.
+      Generally implementation here should be extremely easy as def is block
+      which contains list of lines so you loop through it and if you find Doc
+      then check if next line is empty or contain function ( and you have it
+      already from point 1 )
+ */
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser Runner /////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
+/**
+  * This is Doc Parser Runner. Essentially it binds together Enso Parser with
+  * Doc Parser. When Parser finishes its job it invokes runner with its created
+  * AST with resolved macros. Then Doc Parser Runner does it's job - running Doc
+  * Parser on every [[AST.Comment]], Trying to find title for [[AST.Documented]]
+  * from [[AST.App.Infix]] below comments.
+  */
 object DocParserRunner {
   var previousElement: Option[AST] = None
 
-  /** create
+  /**
     * function for invoking DocParser in right places
     * creating Docs from parsed comments
     * and also generating HTML files for created Doc's
@@ -122,12 +167,12 @@ object DocParserRunner {
         }
       case _ => createdDocs
     }
-    /* NOTE : Comment out for ease of debugging procedures */
+    /* NOTE : Commented out for ease of debugging procedures */
     //generateHTMLForEveryDocumented(preparedDocs)
     preparedDocs
   }
 
-  /** createDocs
+  /**
     * This function changes single- and multi- line comments into
     * Doc(s), and Infix into Documented(s) title
     *
@@ -146,14 +191,18 @@ object DocParserRunner {
     }
   }
 
+  /**
+    * Action taken when infix has been found in AST
+    * @param v - infix
+    * @return - either created Documented or the same infix
+    */
   private def infixFoundWhileCreatingDocs(v: AST.App.InfixOf[AST]): AST = {
-    /* NOTE : Only create title if infix is right under Doc */
+    // NOTE : [Infix handling]
     previousElement match {
       case Some(value) =>
         value.unFix match {
           case AST.DocumentedOf(ast, doc) =>
             ast.unFix match {
-              /* NOTE : If there is no title yet in `Documented` */
               case AST.Ident.ConsOf("") =>
                 createDocumentedWithTitleFromInfix(v, AST.Documented(ast, doc))
               case _ => v
@@ -164,14 +213,27 @@ object DocParserRunner {
     }
   }
 
+  /* NOTE : [Infix handling]
+   * ~~~~~~~~~~~~~~~~~~~~~~~
+   * This function firstly checks if previous element ( one before infix ) is
+   * Documented created by Doc Parser from comment, if it is, then it checks if
+   * it has already a title, if it doesnt have it creates new Documented with
+   * Doc from previous element, and title from currently handled infix, in other
+   * case it leaves infix as is
+   */
+
+  /**
+    * TODO [MM] - still WIP, point 3
+    * Action taken when def has been found in AST
+    * @param v - Def
+    * @return - either created Documented or the same def
+    */
   private def defFoundWhileCreatingDocs(v: AST.DefOf[AST]): AST = {
-    /* NOTE : Only create title if infix is right under Doc */
     previousElement match {
       case Some(value) =>
         value.unFix match {
           case AST.DocumentedOf(ast, doc) =>
             ast.unFix match {
-              /* NOTE : If there is no title yet in `Documented` */
               case AST.Ident.ConsOf("") =>
                 createDocumentedWithTitleFromDef(v, AST.Documented(ast, doc))
               case _ => v
@@ -182,8 +244,8 @@ object DocParserRunner {
     }
   }
 
-  /** createDocFromComment
-    * creates Doc from comment found in parsed data
+  /**
+    * creates Docs from comments found in parsed data
     *
     * @param ast - comment
     * @return - Documentation
@@ -192,11 +254,11 @@ object DocParserRunner {
     ast: AST.CommentOf[AST]
   ): AST.DocumentedOf[AST] = {
     val in = ast.lines.mkString("\n")
-    // FIXME (AST.Cons("")) HOW DO I CREATE EMPTY AST()?
+    // FIXME [MM] : (AST.Cons("")) HOW DO I CREATE EMPTY AST()?
     AST.Documented(AST.Cons(""), DocParser.runMatched(in))
   }
 
-  /** createDocumentedWithTitleFromInfix
+  /**
     * Tries to create Doc Title from function name
     *
     * @param ast - Infix
@@ -209,7 +271,7 @@ object DocParserRunner {
     AST.Documented(ast.larg, partialDoc.doc)
   }
 
-  /** createDocumentedWithTitleFromDef
+  /**
     * Tries to create Doc Title from def function name
     *
     * @param ast - Def
@@ -222,7 +284,9 @@ object DocParserRunner {
     AST.Documented(ast.name, partialDoc.doc)
   }
 
-  /** reorganiseDocs
+  /**
+    * reorganizes documented AST with properly placed [[AST.Documented]]
+    * and [[AST.App.Infix]]
     *
     * @param astWithDoc - ast after running DocParser on it
     * @param astFromParser - primary AST without modifications
@@ -255,7 +319,8 @@ object DocParserRunner {
     AST.Module(astDoc)
   }
 
-  /** swapInfixWithDocumentedIntoDocs
+  /**
+    * ran by [[reorganiseDocs]] to properly place Infixes and Documented's
     *
     * @param currIndex - current index from mapping in [[reorganiseDocs]]
     * @param documented - documented found from [[reorganiseDocs]]
@@ -271,23 +336,33 @@ object DocParserRunner {
   ): Option[List1[AST.Block.OptLineOf[AST]]] = {
     documented.ast.unFix match {
       case AST.Ident.ConsOf("") => None
-      // NOTE : Documented without any AST -> No infix after -> nothing to do
+      // NOTE : [Documented with infix handling]
       case _ =>
-        // NOTE : Documented( before title ) -> Documented ( w title )
-        val DocToLine      = AST.Block.OptLine(documented)
-        val prevIndex: Int = currIndex - 1
-        val updatedWithDoc = astDoc.toList.updated(prevIndex, DocToLine)
-        // NOTE : 2nd Documented ( with title ) -> Infix (to get back func. def)
+        val DocToLine        = AST.Block.OptLine(documented)
+        val prevIndex: Int   = currIndex - 1
+        val updatedWithDoc   = astDoc.toList.updated(prevIndex, DocToLine)
         val infix            = astFromParser.toList(currIndex)
         val updatedWithInfix = updatedWithDoc.updated(currIndex, infix)
         List1(updatedWithInfix)
     }
   }
+  /* NOTE : [Documented with infix handling]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * This function is used to properly place elements in AST after creating
+   * Documented(s). When creating documentation with title from infix, runner
+   * firstly creates Documented with Doc from comment, then the next element can
+   * be Documented with title from infix and Doc from previous element, as I've
+   * described above. This leaves us with 2 things to fix - firstly, there are
+   * now 2 documented's in AST, moreover we've lost infix during mapping. So now
+   * this function removes first Documented without title, moves to it's place
+   * documented with title from infix, and to that place moves infix from AST on
+   * beginning ( the one Doc Parser got from Enso Parser )
+   */
 
-  /** generateHTMLForEveryDocumentation
+  /**
     * this method is used for generation of
     * HTML files from parsed and reformatted
-    * Documentation(s) and/or Documented(s)
+    * Documented(s)
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
     */
