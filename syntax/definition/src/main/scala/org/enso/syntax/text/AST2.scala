@@ -1203,7 +1203,13 @@ object AST {
     import Documented._
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
     implicit def repr[T]: Repr[DocumentedOf[T]] = t => {
-      R + symbol + symbol + " " + t.ast + newline + t.doc
+      val tRepr: Repr.Builder = {
+        t.ast.show().length match {
+          case 0 => R
+          case _ => R + " " + t.ast + newline
+        }
+      }
+      R + symbol + symbol + tRepr + t.doc
     }
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }

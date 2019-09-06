@@ -320,11 +320,24 @@ object Main extends App {
   //val inp = "a (b (c)) x"
   //  val inp = "x(x[a))"
   // 48
-  val inp =
-    """## This function adds *x* to *y*
-      |add x y = x + y
-      |mul x y = x * y
-      |""".stripMargin
+//  val inp =
+//    """## This function adds *x* to *y*
+//      |add x y = x + y
+//      |mul x y = x * y
+//      |""".stripMargin
+  val inp = """## This function adds *x* to *y*
+              |add x y = x + y
+              |mul x y = x * y
+              |
+              |## Just a comment
+              |
+              |## Foo bar baz
+              |   bax
+              |def Maybe a
+              |    ## test
+              |    def Just val:a
+              |    def Nothing
+              |""".stripMargin
 
   println("--- PARSING ---")
 

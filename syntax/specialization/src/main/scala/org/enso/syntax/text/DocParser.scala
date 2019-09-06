@@ -184,8 +184,8 @@ object DocParserRunner {
       previousElement = Some(elem.unFix match {
         case AST.CommentOf(v)        => createDocFromComment(AST.Comment(v))
         case v: AST.App.InfixOf[AST] => infixFoundWhileCreatingDocs(v)
-        case v: AST.DefOf[AST]       => defFoundWhileCreatingDocs(v)
-        case _                       => createDocs(elem)
+//        case v: AST.DefOf[AST]       => defFoundWhileCreatingDocs(v)
+        case _ => createDocs(elem)
       })
       previousElement.get
     }
