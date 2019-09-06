@@ -47,7 +47,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param optimiser a cached call optimizer node, capable of performing the actual function call
    * @return the result of applying the function with remapped arguments
    */
-  @Specialization(guards = "mappingNode.isCompatible(function)")
+  @Specialization(guards = "mappingNode.isCompatible(function)", limit="100")
   public Object invokeCached(
       Function function,
       Object[] arguments,

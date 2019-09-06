@@ -10,7 +10,11 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
+import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
+import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -120,13 +124,22 @@ public final class Function implements TruffleObject {
      * @param callNode the cached call node for {@code cachedTarget}
      * @return the result of executing {@code function} on {@code arguments}
      */
-    @Specialization(guards = "function.getCallTarget() == cachedTarget")
+    @Specialization(guards = "arguments.length == cachedArgsLength", limit="100")
     protected static Object callDirect(
         Function function,
         Object[] arguments,
-        @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
-        @Cached("create(cachedTarget)") DirectCallNode callNode) {
-      return callNode.call(function.getScope(), arguments);
+        @Cached("arguments.length") final int cachedArgsLength,
+        @Cached("buildSorter(cachedArgsLength)") final ArgumentSorterNode sorterNode) {
+      return sorterNode.execute(function, arguments);
+    }
+
+    @ExplodeLoop
+    protected static ArgumentSorterNode buildSorter(int length) {
+      CallArgumentInfo[] args = new CallArgumentInfo[length];
+      for (int i = 0; i < length; i++) {
+        args[i] = new CallArgumentInfo(null, false, true);
+      }
+      return ArgumentSorterNodeGen.create(args);
     }
 
     /**
@@ -143,7 +156,9 @@ public final class Function implements TruffleObject {
     @Specialization(replaces = "callDirect")
     protected static Object callIndirect(
         Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
-      return callNode.call(function.getCallTarget(), function.getScope(), arguments);
+      throw new RuntimeException("just don't");
+
+//      return callNode.call(function.getCallTarget(), function.getScope(), arguments);
     }
   }
 
