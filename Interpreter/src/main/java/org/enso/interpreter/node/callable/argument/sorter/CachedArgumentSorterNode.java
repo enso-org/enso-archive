@@ -1,9 +1,12 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
-import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMappingBuilder;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -15,9 +18,10 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public class CachedArgumentSorterNode extends BaseNode {
 
   private final Function originalFunction;
-  private final @CompilationFinal(dimensions = 1) int[] mapping;
+  private final ArgumentMapping mapping;
   private final ArgumentSchema postApplicationSchema;
   private final boolean appliesFully;
+  private @Child ArgumentSorterNode oversaturatedArgumentSorter = null;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -28,10 +32,10 @@ public class CachedArgumentSorterNode extends BaseNode {
    *     has its defaults suspended.
    */
   public CachedArgumentSorterNode(
-      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean isTail) {
+    this.setTail(isTail);
     this.originalFunction = function;
-    CallArgumentInfo.ArgumentMapping mapping =
-        CallArgumentInfo.ArgumentMapping.generate(function.getSchema(), schema);
+    ArgumentMappingBuilder mapping = ArgumentMappingBuilder.generate(function.getSchema(), schema);
     this.mapping = mapping.getAppliedMapping();
     this.postApplicationSchema = mapping.getPostApplicationSchema();
 
@@ -46,6 +50,12 @@ public class CachedArgumentSorterNode extends BaseNode {
       }
     }
     appliesFully = fullApplication;
+
+    if (postApplicationSchema.hasOversaturatedArgs()) {
+      oversaturatedArgumentSorter =
+          ArgumentSorterNodeGen.create(
+              postApplicationSchema.getOversaturatedArguments(), hasDefaultsSuspended);
+    }
   }
 
   /**
@@ -53,11 +63,14 @@ public class CachedArgumentSorterNode extends BaseNode {
    *
    * @param function the function to sort arguments for
    * @param schema information on the calling arguments
+   * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
+   *     function invocation
+   * @param isTail whether or not this node is a tail call
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
   public static CachedArgumentSorterNode create(
-      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
-    return new CachedArgumentSorterNode(function, schema, hasDefaultsSuspended);
+      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean isTail) {
+    return new CachedArgumentSorterNode(function, schema, hasDefaultsSuspended, isTail);
   }
 
   /**
@@ -65,17 +78,63 @@ public class CachedArgumentSorterNode extends BaseNode {
    *
    * @param function the function this node is reordering arguments for
    * @param arguments the arguments to reorder
+   * @param optimiser a call optimiser node, capable of performing the actual function call
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public Object[] execute(Function function, Object[] arguments) {
-    Object[] result;
+  public Object execute(Function function, Object[] arguments, CallOptimiserNode optimiser) {
+    Object[] mappedAppliedArguments;
+
     if (originalFunction.getSchema().hasAnyPreApplied()) {
-      result = function.clonePreAppliedArguments();
+      mappedAppliedArguments = function.clonePreAppliedArguments();
     } else {
-      result = new Object[this.postApplicationSchema.getArgumentsCount()];
+      mappedAppliedArguments = new Object[this.postApplicationSchema.getArgumentsCount()];
     }
-    CallArgumentInfo.reorderArguments(this.mapping, arguments, result);
-    return result;
+
+    mapping.reorderAppliedArguments(arguments, mappedAppliedArguments);
+
+    Object[] oversaturatedArguments = null;
+
+    if (postApplicationSchema.hasOversaturatedArgs()) {
+      oversaturatedArguments =
+          new Object[this.postApplicationSchema.getOversaturatedArguments().length];
+
+      System.arraycopy(
+          function.getOversaturatedArguments(),
+          0,
+          oversaturatedArguments,
+          0,
+          originalFunction.getSchema().getOversaturatedArguments().length);
+
+      mapping.obtainOversaturatedArguments(
+          arguments,
+          oversaturatedArguments,
+          originalFunction.getSchema().getOversaturatedArguments().length);
+    }
+
+    if (this.appliesFully()) {
+      if (!postApplicationSchema.hasOversaturatedArgs()) {
+        if (this.isTail()) {
+          // TODO [AA] Fix the tail-recursive case.
+          throw new TailCallException(this.getOriginalFunction(), mappedAppliedArguments);
+        } else {
+          return optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
+        }
+      } else {
+        Object evaluatedVal =
+            optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
+
+        // TODO [AA] Make this actually work for things that aren't functions
+        return this.oversaturatedArgumentSorter.execute(
+            (Function) evaluatedVal, oversaturatedArguments);
+      }
+    } else {
+      return new Function(
+          function.getCallTarget(),
+          function.getScope(),
+          this.getPostApplicationSchema(),
+          mappedAppliedArguments,
+          oversaturatedArguments);
+    }
   }
 
   /**

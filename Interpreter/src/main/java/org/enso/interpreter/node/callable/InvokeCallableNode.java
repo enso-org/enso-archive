@@ -58,13 +58,14 @@ public abstract class InvokeCallableNode extends ExpressionNode {
 
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
+
     boolean appliesThis = false;
     int idx = 0;
-
     for (; idx < argSchema.length; idx++) {
       CallArgumentInfo arg = argSchema[idx];
-      if (arg.isPositional()
-          || (arg.isNamed() && arg.getName().equals(Constants.THIS_ARGUMENT_NAME))) {
+
+      boolean isNamedThis = arg.isNamed() && arg.getName().equals(Constants.THIS_ARGUMENT_NAME);
+      if (arg.isPositional() || isNamedThis) {
         appliesThis = true;
         break;
       }

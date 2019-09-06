@@ -148,7 +148,9 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptions),
+    inConfig(Benchmark)(
+      truffleRunOptions ++ (javaOptions ++= (RunDebugCommand.truffleDumpGraphsOptions ++ RunDebugCommand.truffleShowCompilationsOptions))
+    ),
     bench := (test in Benchmark).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited

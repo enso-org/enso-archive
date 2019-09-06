@@ -1,10 +1,12 @@
 package org.enso.interpreter.fixtures
 
-import org.enso.interpreter.{Constants, LanguageRunner}
+import org.enso.interpreter.Constants
+import org.enso.interpreter.LanguageRunner
 
 class RecursionFixtures extends LanguageRunner {
   val hundredMillion: Long = 100000000
-  val hundred: Long = 100
+  val million: Long        = 1000000
+  val hundred: Long        = 100
 
   // Currently unused as we know this is very slow.
   val mutRecursiveCode =
@@ -53,5 +55,20 @@ class RecursionFixtures extends LanguageRunner {
     """.stripMargin
 
   val sumRecursive = ctx.eval(Constants.LANGUAGE_ID, sumRecursiveCode)
+
+  // TODO [AA] Come up with a benchmark that actually tests this
+  val oversaturatedRecursiveCallTCOCode =
+    """
+      |{ |x|
+      |  foo = { |n, f| ifZero: [n, f, @foo [n-1, f]] };
+      |  res = @foo [x, {|x| x}, 2];
+      |  res
+      |}
+      |""".stripMargin
+
+  val oversaturatedRecursiveCallTCO =
+    ctx.eval(Constants.LANGUAGE_ID, oversaturatedRecursiveCallTCOCode);
+
+  print(oversaturatedRecursiveCallTCO.call(hundred))
 
 }
