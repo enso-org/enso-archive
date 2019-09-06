@@ -184,7 +184,9 @@ object DocParserRunner {
       previousElement = Some(elem.unFix match {
         case AST.CommentOf(v)        => createDocFromComment(AST.Comment(v))
         case v: AST.App.InfixOf[AST] => infixFoundWhileCreatingDocs(v)
-//        case v: AST.DefOf[AST]       => defFoundWhileCreatingDocs(v)
+//        case v: AST.DefOf[AST] =>
+//          defFoundWhileCreatingDocs(v)
+//        // Maybe just call create(v) ?
         case _ => createDocs(elem)
       })
       previousElement.get
@@ -217,7 +219,7 @@ object DocParserRunner {
    * ~~~~~~~~~~~~~~~~~~~~~~~
    * This function firstly checks if previous element ( one before infix ) is
    * Documented created by Doc Parser from comment, if it is, then it checks if
-   * it has already a title, if it doesnt have it creates new Documented with
+   * it has already a title, if it doesn't have it creates new Documented with
    * Doc from previous element, and title from currently handled infix, in other
    * case it leaves infix as is
    */
@@ -312,6 +314,32 @@ object DocParserRunner {
               case Some(value) => astDoc = value
               case None        =>
             }
+//          case AST.DefOf(a, b, c) =>
+//            println("a : " + a)
+//            println("b : " + b)
+//            println("c : " + c)
+//            astFromParser.toList(currIndex).elem.get.unFix match {
+//              case AST.DefOf(d, e, f) =>
+//                println()
+//                println("d : " + d)
+//                println("e : " + e)
+//                println("f : " + f)
+//                println("========")
+//
+//                c match {
+//                  case Some(cv) =>
+//                    f match {
+//                      case Some(fv) =>
+//                        reorganiseDocs(
+//                          List1(cv.asInstanceOf[AST.Block].lines).get,
+//                          List1(fv.asInstanceOf[AST.Block].lines).get
+//                        )
+//                      case None =>
+//                    }
+//                  case None =>
+//                }
+//              case _ =>
+//            }
           case _ =>
         }
       }
