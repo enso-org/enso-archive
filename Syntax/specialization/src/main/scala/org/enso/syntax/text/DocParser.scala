@@ -1,8 +1,5 @@
 package org.enso.syntax.text
 
-import java.io.File
-import java.io.PrintWriter
-
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.Doc
@@ -11,8 +8,10 @@ import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
 import org.enso.syntax.text.AST.Documented
-
+import scala.annotation.tailrec
 import scala.util.Random
+import java.io.File
+import java.io.PrintWriter
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser ////////////////////////////////////////////////////////////////
@@ -160,9 +159,18 @@ object DocParserRunner {
     }
   }
 
-  /*
-  TODO: This is now being rewritten, therefore those function may not make much sense
-   */
+  /**
+    * Action taken when def has been found in AST
+    * @param v - Def
+    * @return - either created Documented or the same def
+    */
+  private def defFoundWhileCreatingDocs(v: AST.DefOf[AST]): AST = {
+    val body = v.body match {
+      case Some(value) => Some(createDocs(value))
+      case None        => None
+    }
+    AST.Def(v.name, v.args, body)
+  }
 
   /**
     * Action taken when infix has been found in AST
@@ -174,53 +182,14 @@ object DocParserRunner {
   }
 
   /**
-    * Action taken when def has been found in AST
-    * @param v - Def
-    * @return - either created Documented or the same def
-    */
-  private def defFoundWhileCreatingDocs(v: AST.DefOf[AST]): AST = {
-    v
-  }
-
-  /**
     * creates Docs from comments found in parsed data
     *
     * @param ast - comment
     * @return - Documentation
     */
-  def createDocFromComment(
-    ast: AST.CommentOf[AST]
-  ): AST.DocumentedOf[AST] = {
+  def createDocFromComment(ast: AST.CommentOf[AST]): AST.DocumentedOf[AST] = {
     val in = ast.lines.mkString("\n")
     AST.Documented(DocParser.runMatched(in))
-  }
-
-  /**
-    * ries to create Documented with AST from Infix
-    *
-    * @param ast - Infix
-    * @param documentedNoAST - Documented without ast
-    * @return - Documentation with infix left argument
-    */
-  def createDocumentedTitleFromInfix(
-    ast: AST.App.InfixOf[AST],
-    documentedNoAST: AST.DocumentedOf[AST]
-  ): AST.DocumentedOf[AST] = {
-    AST.Documented(documentedNoAST.doc, ast.larg)
-  }
-
-  /**
-    * Tries to create Documented with AST from Def
-    *
-    * @param ast - Def
-    * @param documentedNoAST - Documented without ast
-    * @return - Documentation title from def name
-    */
-  def createDocumentedTitleFromDef(
-    ast: AST.DefOf[AST],
-    documentedNoAST: AST.DocumentedOf[AST]
-  ): AST.DocumentedOf[AST] = {
-    AST.Documented(documentedNoAST.doc, ast.name)
   }
 
   /**
