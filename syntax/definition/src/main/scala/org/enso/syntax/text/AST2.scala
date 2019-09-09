@@ -1186,15 +1186,9 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Documented = ASTOf[DocumentedOf]
-  /*
-    FIXME [MM] : This doesn't work - `t.ast` - with :
-                 case class DocumentedOf[T](ast: T, doc: Doc) extends ShapeOf[T]
-                 Hence replaced `T` with `AST`
-   */
-  case class DocumentedOf[T](ast: AST, doc: Doc) extends ShapeOf[T]
+  case class DocumentedOf[T](doc: Doc, ast: T) extends ShapeOf[T]
   object Documented {
-    val symbol = "#"
-    def apply(ast: AST, doc: Doc): Documented = ASTOf(DocumentedOf(ast, doc))
+    def apply(doc: Doc, ast: AST): Documented = ASTOf(DocumentedOf(doc, ast))
   }
 
   //// Instances ////
@@ -1203,13 +1197,9 @@ object AST {
     import Documented._
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
     implicit def repr[T]: Repr[DocumentedOf[T]] = t => {
-      val tRepr: Repr.Builder = {
-        t.ast.show().length match {
-          case 0 => R
-          case _ => R + " " + t.ast + newline
-        }
-      }
-      R + symbol + symbol + tRepr + t.doc
+      R + t.doc + newline + t.ast
+      // FIXME [MM]
+      //  no implicits found for t.ast when ast: T
     }
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
