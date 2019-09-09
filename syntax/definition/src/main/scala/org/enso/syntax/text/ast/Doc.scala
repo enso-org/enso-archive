@@ -30,12 +30,12 @@ sealed trait Symbol extends Repr.Provider {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-//// Documentation /////////////////////////////////////////////////////////////
+//// Doc ///////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/** Documentation - The highest level container, the output of Doc Parser
+/** Doc - The highest level container, the output of Doc Parser
   *
-  * Documentation can be made of up to 3 elements:
+  * Doc can be made of up to 3 elements:
   *
   * @param tags     - If exists, holds [[Doc#Tags]] to documented text
   * @param synopsis - If exists, holds [[Doc#Synopsis]] of documented text
