@@ -151,34 +151,13 @@ object DocParserRunner {
     * @return - modified data containing possibly Documentation(s)
     */
   def createDocs(ast: AST): AST = {
-    ast.map {
-      case AST.Comment.any(v)   => createDocFromComment(v)
-      case AST.App.Infix.any(v) => infixFoundWhileCreatingDocs(v)
-      case AST.Def.any(v)       => defFoundWhileCreatingDocs(v)
-      case elem                 => createDocs(elem)
+    def accumulator(ast: AST): AST = {
+      ast.map {
+        case AST.Comment.any(v) => createDocFromComment(v)
+        case elem               => accumulator(elem)
+      }
     }
-  }
-
-  /**
-    * Action taken when def has been found in AST
-    * @param v - Def
-    * @return - either created Documented or the same def
-    */
-  private def defFoundWhileCreatingDocs(v: AST.DefOf[AST]): AST = {
-    val body = v.body match {
-      case Some(value) => Some(createDocs(value))
-      case None        => None
-    }
-    AST.Def(v.name, v.args, body)
-  }
-
-  /**
-    * Action taken when infix has been found in AST
-    * @param v - infix
-    * @return - either created Documented or the same infix
-    */
-  private def infixFoundWhileCreatingDocs(v: AST.App.InfixOf[AST]): AST = {
-    v
+    accumulator(ast)
   }
 
   /**
