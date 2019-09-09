@@ -255,20 +255,20 @@ object AST {
   final case class ASTOf[+T[_]](shape: T[AST], id: Option[ID] = None)(
     implicit cls: ASTClass[T]
   ) {
-    override def toString            = s"Node($id,$shape)"
-    val repr: Repr.Builder           = cls.repr(shape)
-    val span: Int                    = cls.repr(shape).span
-    def show(): String               = repr.build()
-    def setID(newID: ID): ASTOf[T]   = copy(id = Some(newID))
-    def withNewID(): ASTOf[T]        = copy(id = Some(UUID.randomUUID()))
+    override def toString  = s"Node($id,$shape)"
+    val repr: Repr.Builder = cls.repr(shape)
+    val span: Int          = cls.repr(shape).span
+    def show():             String   = repr.build()
+    def setID(newID: ID):   ASTOf[T] = copy(id = Some(newID))
+    def withNewID():        ASTOf[T] = copy(id = Some(UUID.randomUUID()))
     def map(f: AST => AST): ASTOf[T] = copy(shape = cls.map(shape)(f))
     def mapWithOff(f: (Int, AST) => AST): ASTOf[T] =
       copy(shape = cls.mapWithOff(shape)(f))
     def zipWithOffset(): T[(Int, AST)] = cls.zipWithOffset(shape)
   }
   object ASTOf {
-    implicit def repr[T[_]]: Repr[ASTOf[T]]        = _.repr
-    implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
+    implicit def repr[T[_]]:                Repr[ASTOf[T]] = _.repr
+    implicit def unwrap[T[_]](t: ASTOf[T]): T[AST]         = t.shape
     implicit def wrap[T[_]](t: T[AST])(
       implicit
       ev: ASTClass[T]
@@ -283,10 +283,10 @@ object AST {
     * is used to cache all necessary operations during AST construction.
     */
   trait ASTClass[T[_]] {
-    def repr(t: T[AST]):                             Repr.Builder
-    def map(t: T[AST])(f: AST => AST):               T[AST]
+    def repr(t: T[AST]): Repr.Builder
+    def map(t: T[AST])(f: AST => AST): T[AST]
     def mapWithOff(t: T[AST])(f: (Int, AST) => AST): T[AST]
-    def zipWithOffset(t: T[AST]):                    T[(Int, AST)]
+    def zipWithOffset(t: T[AST]): T[(Int, AST)]
   }
   object ASTClass {
     def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
@@ -297,9 +297,9 @@ object AST {
       evOzip: OffsetZip[T, AST]
     ): ASTClass[T] =
       new ASTClass[T] {
-        def repr(t: T[AST]): Repr.Builder           = evRepr.repr(t)
-        def map(t: T[AST])(f: AST => AST): T[AST]   = Functor[T].map(t)(f)
-        def zipWithOffset(t: T[AST]): T[(Int, AST)] = OffsetZip(t)
+        def repr(t: T[AST]):               Repr.Builder  = evRepr.repr(t)
+        def map(t: T[AST])(f: AST => AST): T[AST]        = Functor[T].map(t)(f)
+        def zipWithOffset(t: T[AST]):      T[(Int, AST)] = OffsetZip(t)
         def mapWithOff(t: T[AST])(f: (Int, AST) => AST): T[AST] =
           Functor[T].map(zipWithOffset(t))(f.tupled)
       }
@@ -360,8 +360,8 @@ object AST {
     val any = UnapplyByType[Invalid]
 
     object Unrecognized {
-      val any                              = UnapplyByType[Unrecognized]
-      def unapply(t: AST)                  = Unapply[Unrecognized].run(_.str)(t)
+      val any             = UnapplyByType[Unrecognized]
+      def unapply(t: AST) = Unapply[Unrecognized].run(_.str)(t)
       def apply(str: String): Unrecognized = UnrecognizedOf[AST](str)
     }
     object Unexpected {
@@ -374,12 +374,12 @@ object AST {
     //// Instances ////
 
     object UnrecognizedOf {
-      implicit def ftor: Functor[UnrecognizedOf]         = semi.functor
+      implicit def ftor:    Functor[UnrecognizedOf]      = semi.functor
       implicit def repr[T]: Repr[UnrecognizedOf[T]]      = _.str
       implicit def ozip[T]: OffsetZip[UnrecognizedOf, T] = t => t.coerce
     }
     object UnexpectedOf {
-      implicit def ftor: Functor[UnexpectedOf]          = semi.functor
+      implicit def ftor:          Functor[UnexpectedOf] = semi.functor
       implicit def repr[T: Repr]: Repr[UnexpectedOf[T]] = t => Repr(t.stream)
       implicit def ozip[T: Repr]: OffsetZip[UnexpectedOf, T] =
         t => t.copy(stream = OffsetZip(t.stream))
@@ -429,38 +429,38 @@ object AST {
     //// Instances ////
 
     object BlankOf {
-      implicit def functor: Functor[BlankOf]           = semi.functor
-      implicit def repr[T]: Repr[BlankOf[T]]           = _.name
+      implicit def functor:      Functor[BlankOf]      = semi.functor
+      implicit def repr[T]:      Repr[BlankOf[T]]      = _.name
       implicit def offsetZip[T]: OffsetZip[BlankOf, T] = t => t.coerce
     }
     object VarOf {
-      implicit def functor: Functor[VarOf]           = semi.functor
-      implicit def repr[T]: Repr[VarOf[T]]           = _.name
+      implicit def functor:      Functor[VarOf]      = semi.functor
+      implicit def repr[T]:      Repr[VarOf[T]]      = _.name
       implicit def offsetZip[T]: OffsetZip[VarOf, T] = t => t.coerce
     }
     object ConsOf {
-      implicit def functor: Functor[ConsOf]           = semi.functor
-      implicit def repr[T]: Repr[ConsOf[T]]           = _.name
+      implicit def functor:      Functor[ConsOf]      = semi.functor
+      implicit def repr[T]:      Repr[ConsOf[T]]      = _.name
       implicit def offsetZip[T]: OffsetZip[ConsOf, T] = t => t.coerce
     }
     object OprOf {
-      implicit def functor: Functor[OprOf]           = semi.functor
-      implicit def repr[T]: Repr[OprOf[T]]           = _.name
+      implicit def functor:      Functor[OprOf]      = semi.functor
+      implicit def repr[T]:      Repr[OprOf[T]]      = _.name
       implicit def offsetZip[T]: OffsetZip[OprOf, T] = t => t.coerce
     }
     object ModOf {
-      implicit def functor: Functor[ModOf]           = semi.functor
-      implicit def repr[T]: Repr[ModOf[T]]           = R + _.name + "="
+      implicit def functor:      Functor[ModOf]      = semi.functor
+      implicit def repr[T]:      Repr[ModOf[T]]      = R + _.name + "="
       implicit def offsetZip[T]: OffsetZip[ModOf, T] = t => t.coerce
     }
 
     //// Conversions ////
 
     trait Conversions1 {
-      implicit def strToVar(str: String): Var   = Var(str)
+      implicit def strToVar(str: String):  Var  = Var(str)
       implicit def strToCons(str: String): Cons = Cons(str)
-      implicit def strToOpr(str: String): Opr   = Opr(str)
-      implicit def strToMod(str: String): Mod   = Mod(str)
+      implicit def strToOpr(str: String):  Opr  = Opr(str)
+      implicit def strToMod(str: String):  Mod  = Mod(str)
     }
 
     trait conversions extends Conversions1 {
@@ -480,27 +480,27 @@ object AST {
     object Blank {
       val any             = UnapplyByType[Blank]
       def unapply(t: AST) = Unapply[Blank].run(_ => true)(t)
-      def apply(): Blank  = BlankOf[AST]()
+      def apply(): Blank = BlankOf[AST]()
     }
     object Var {
-      val any                      = UnapplyByType[Var]
-      def unapply(t: AST)          = Unapply[Var].run(_.name)(t)
+      val any             = UnapplyByType[Var]
+      def unapply(t: AST) = Unapply[Var].run(_.name)(t)
       def apply(name: String): Var = VarOf[AST](name)
     }
     object Cons {
-      val any                       = UnapplyByType[Cons]
-      def unapply(t: AST)           = Unapply[Cons].run(_.name)(t)
+      val any             = UnapplyByType[Cons]
+      def unapply(t: AST) = Unapply[Cons].run(_.name)(t)
       def apply(name: String): Cons = ConsOf[AST](name)
     }
     object Mod {
-      val any                      = UnapplyByType[Mod]
-      def unapply(t: AST)          = Unapply[Mod].run(_.name)(t)
+      val any             = UnapplyByType[Mod]
+      def unapply(t: AST) = Unapply[Mod].run(_.name)(t)
       def apply(name: String): Mod = ModOf[AST](name)
     }
     object Opr {
-      val app                      = Opr(" ")
-      val any                      = UnapplyByType[Opr]
-      def unapply(t: AST)          = Unapply[Opr].run(_.name)(t)
+      val app             = Opr(" ")
+      val any             = UnapplyByType[Opr]
+      def unapply(t: AST) = Unapply[Opr].run(_.name)(t)
       def apply(name: String): Opr = OprOf[AST](name)
     }
 
@@ -513,7 +513,7 @@ object AST {
         extends InvalidOf[T]
         with Phantom
     object InvalidSuffixOf {
-      implicit def ftor: Functor[InvalidSuffixOf]           = semi.functor
+      implicit def ftor:      Functor[InvalidSuffixOf]      = semi.functor
       implicit def offZip[T]: OffsetZip[InvalidSuffixOf, T] = t => t.coerce
       implicit def repr[T]: Repr[InvalidSuffixOf[T]] =
         t => R + t.elem + t.suffix
@@ -563,12 +563,12 @@ object AST {
 
       //// Smart Constructors ////
 
-      def apply(i: String): Number            = Number(None, i)
+      def apply(i: String):            Number = Number(None, i)
       def apply(b: String, i: String): Number = Number(Some(b), i)
-      def apply(i: Int): Number               = Number(i.toString)
-      def apply(b: Int, i: String): Number    = Number(b.toString, i)
-      def apply(b: String, i: Int): Number    = Number(b, i.toString)
-      def apply(b: Int, i: Int): Number       = Number(b.toString, i.toString)
+      def apply(i: Int):               Number = Number(i.toString)
+      def apply(b: Int, i: String):    Number = Number(b.toString, i)
+      def apply(b: String, i: Int):    Number = Number(b, i.toString)
+      def apply(b: Int, i: Int):       Number = Number(b.toString, i.toString)
       def apply(b: Option[String], i: String): Number =
         NumberOf[AST](b, i)
       def unapply(t: AST) = Unapply[Number].run(t => (t.base, t.int))(t)
@@ -581,13 +581,13 @@ object AST {
           extends InvalidOf[T]
           with Phantom
       object DanglingBase {
-        val any                               = UnapplyByType[DanglingBase]
+        val any = UnapplyByType[DanglingBase]
         def apply(base: String): DanglingBase = DanglingBaseOf[AST](base)
         def unapply(t: AST) =
           Unapply[DanglingBase].run(_.base)(t)
       }
       object DanglingBaseOf {
-        implicit def ftor: Functor[DanglingBaseOf]         = semi.functor
+        implicit def ftor:    Functor[DanglingBaseOf]      = semi.functor
         implicit def ozip[T]: OffsetZip[DanglingBaseOf, T] = t => t.coerce
         implicit def repr[T]: Repr[DanglingBaseOf[T]]      = R + _.base + '_'
       }
@@ -596,7 +596,7 @@ object AST {
     //// Instances ////
 
     object NumberOf {
-      implicit def functor: Functor[NumberOf]           = semi.functor
+      implicit def functor:      Functor[NumberOf]      = semi.functor
       implicit def offsetZip[T]: OffsetZip[NumberOf, T] = t => t.coerce
       implicit def repr[T]: Repr[NumberOf[T]] =
         t => t.base.map(_ + "_").getOrElse("") + t.int
@@ -650,7 +650,7 @@ object AST {
 
       object RawOf {
         implicit def functor[T]: Functor[RawOf] = semi.functor
-        implicit def repr[T]: Repr[RawOf[T]]    = _ => ???
+        implicit def repr[T]:    Repr[RawOf[T]] = _ => ???
         implicit def offsetZip[T]: OffsetZip[RawOf, T] = t => {
           t.copy(
             lines = t.lines
@@ -660,7 +660,7 @@ object AST {
       }
       object InterpolatedOf {
         implicit def functor[T]: Functor[InterpolatedOf] = semi.functor
-        implicit def repr[T]: Repr[InterpolatedOf[T]]    = _ => ???
+        implicit def repr[T]:    Repr[InterpolatedOf[T]] = _ => ???
         implicit def offsetZip[T]: OffsetZip[InterpolatedOf, T] = t => {
           t.copy(
             lines = t.lines
@@ -670,7 +670,7 @@ object AST {
       }
       object UnclosedOf {
         implicit def functor[T]: Functor[UnclosedOf] = semi.functor
-        implicit def repr[T]: Repr[UnclosedOf[T]]    = _ => ???
+        implicit def repr[T]:    Repr[UnclosedOf[T]] = _ => ???
         implicit def offsetZip[T]: OffsetZip[UnclosedOf, T] =
           t => t.copy(text = OffsetZip(t.text))
       }
@@ -717,9 +717,9 @@ object AST {
           implicit def reprTxtSPlain[T]: Repr[_Plain[T]] = _.value
           implicit def reprTxtSExpr[T: Repr]: Repr[_Expr[T]] =
             R + '`' + _.value + '`'
-          implicit def ftorTxtSPlain[T]: Functor[_Plain]        = semi.functor
-          implicit def ftorTxtSExpr[T]: Functor[_Expr]          = semi.functor
-          implicit def offZipTxtSExpr[T]: OffsetZip[_Expr, T]   = _.map((0, _))
+          implicit def ftorTxtSPlain[T]:   Functor[_Plain]      = semi.functor
+          implicit def ftorTxtSExpr[T]:    Functor[_Expr]       = semi.functor
+          implicit def offZipTxtSExpr[T]:  OffsetZip[_Expr, T]  = _.map((0, _))
           implicit def offZipTxtSPlain[T]: OffsetZip[_Plain, T] = t => t.coerce
           implicit def reprTxtSRaw[T]: Repr[_Raw[T]] = {
             case t: _Plain[T] => Repr(t)
@@ -777,10 +777,10 @@ object AST {
     //// Smart Constructors ////
 
     object Prefix {
-      val any                                        = UnapplyByType[Prefix]
-      def unapply(t: AST)                            = Unapply[Prefix].run(t => (t.fn, t.arg))(t)
+      val any             = UnapplyByType[Prefix]
+      def unapply(t: AST) = Unapply[Prefix].run(t => (t.fn, t.arg))(t)
       def apply(fn: AST, off: Int, arg: AST): Prefix = PrefixOf(fn, off, arg)
-      def apply(fn: AST, arg: AST): Prefix           = Prefix(fn, 1, arg)
+      def apply(fn: AST, arg: AST):           Prefix = Prefix(fn, 1, arg)
     }
 
     object Infix {
@@ -856,18 +856,18 @@ object AST {
         def unapply(t: AST) = Unapply[Left].run(t => (t.arg, t.opr))(t)
 
         def apply(arg: AST, off: Int, opr: Opr): Left = LeftOf(arg, off, opr)
-        def apply(arg: AST, opr: Opr): Left           = Left(arg, 1, opr)
+        def apply(arg: AST, opr: Opr):           Left = Left(arg, 1, opr)
       }
       object Right {
         val any             = UnapplyByType[Right]
         def unapply(t: AST) = Unapply[Right].run(t => (t.opr, t.arg))(t)
 
         def apply(opr: Opr, off: Int, arg: AST): Right = RightOf(opr, off, arg)
-        def apply(opr: Opr, arg: AST): Right           = Right(opr, 1, arg)
+        def apply(opr: Opr, arg: AST):           Right = Right(opr, 1, arg)
       }
       object Sides {
-        val any                    = UnapplyByType[Sides]
-        def unapply(t: AST)        = Unapply[Sides].run(_.opr)(t)
+        val any             = UnapplyByType[Sides]
+        def unapply(t: AST) = Unapply[Sides].run(_.opr)(t)
         def apply(opr: Opr): Sides = SidesOf[AST](opr)
       }
 
@@ -888,9 +888,9 @@ object AST {
           t => t.copy(arg = (Repr(t.opr).span + t.off, t.arg))
       }
       object SidesOf {
-        implicit def ftor: Functor[SidesOf]          = semi.functor
-        implicit def repr[T: Repr]: Repr[SidesOf[T]] = t => R + t.opr
-        implicit def ozip[T]: OffsetZip[SidesOf, T]  = t => t.coerce
+        implicit def ftor:          Functor[SidesOf]      = semi.functor
+        implicit def repr[T: Repr]: Repr[SidesOf[T]]      = t => R + t.opr
+        implicit def ozip[T]:       OffsetZip[SidesOf, T] = t => t.coerce
       }
     }
   }
@@ -963,20 +963,20 @@ object AST {
       def toOptional: LineOf[Option[T]] = copy(elem = Some(elem))
     }
     object LineOf {
-      implicit def ftorLine: Functor[LineOf]          = semi.functor
+      implicit def ftorLine:          Functor[LineOf] = semi.functor
       implicit def reprLine[T: Repr]: Repr[LineOf[T]] = t => R + t.elem + t.off
     }
     object Line {
       // FIXME: Compatibility mode
       type NonEmpty = Line
-      val Required                     = Line
-      def apply[T](elem: T, off: Int)  = LineOf(elem, off)
+      val Required                    = Line
+      def apply[T](elem: T, off: Int) = LineOf(elem, off)
       def apply[T](elem: T): LineOf[T] = LineOf(elem, 0)
     }
     object OptLine {
-      def apply(): OptLine          = Line(None, 0)
+      def apply():          OptLine = Line(None, 0)
       def apply(elem: AST): OptLine = Line(Some(elem))
-      def apply(off: Int): OptLine  = Line(None, off)
+      def apply(off: Int):  OptLine = Line(None, off)
     }
   }
   object BlockOf {
@@ -1003,11 +1003,11 @@ object AST {
   object Module {
     import Block._
     type M = Module
-    val any                                     = UnapplyByType[M]
-    def unapply(t: AST)                         = Unapply[M].run(_.lines)(t)
-    def apply(ls: List1[OptLine]): M            = ModuleOf(ls)
-    def apply(l: OptLine): M                    = Module(List1(l))
-    def apply(l: OptLine, ls: OptLine*): M      = Module(List1(l, ls.to[List]))
+    val any             = UnapplyByType[M]
+    def unapply(t: AST) = Unapply[M].run(_.lines)(t)
+    def apply(ls: List1[OptLine]):            M = ModuleOf(ls)
+    def apply(l: OptLine):                    M = Module(List1(l))
+    def apply(l: OptLine, ls: OptLine*):      M = Module(List1(l, ls.to[List]))
     def apply(l: OptLine, ls: List[OptLine]): M = Module(List1(l, ls))
     def traverseWithOff(m: M)(f: (Int, AST) => AST): M = {
       val lines2 = m.lines.map { line: OptLine =>
@@ -1018,7 +1018,7 @@ object AST {
     }
   }
   object ModuleOf {
-    implicit def ftor: Functor[ModuleOf]         = semi.functor
+    implicit def ftor:    Functor[ModuleOf]      = semi.functor
     implicit def ozip[T]: OffsetZip[ModuleOf, T] = _.map((0, _))
     implicit def repr[T: Repr]: Repr[ModuleOf[T]] =
       t => R + t.lines.head + t.lines.tail.map(newline + _)
@@ -1118,14 +1118,14 @@ object AST {
 
       final case class Segment(head: AST, body: Option[SAST])
       object Segment {
-        def apply(head: AST): Segment    = Segment(head, None)
-        implicit def repr: Repr[Segment] = t => R + t.head + t.body
+        def apply(head: AST): Segment       = Segment(head, None)
+        implicit def repr:    Repr[Segment] = t => R + t.head + t.body
       }
     }
 
     object AmbiguousOf {
-      implicit def functor: Functor[AmbiguousOf]        = semi.functor
-      implicit def repr[T]: Repr[AmbiguousOf[T]]        = t => R + t.segs.map(Repr(_))
+      implicit def functor:   Functor[AmbiguousOf]      = semi.functor
+      implicit def repr[T]:   Repr[AmbiguousOf[T]]      = t => R + t.segs.map(Repr(_))
       implicit def offZip[T]: OffsetZip[AmbiguousOf, T] = _.map((0, _))
     }
 
@@ -1288,7 +1288,7 @@ object AST {
 
   sealed trait SpacelessASTOf[T] extends ShapeOf[T]
 
-  implicit def ftorSlessAST[T]: Functor[SpacelessASTOf]        = semi.functor
+  implicit def ftorSlessAST[T]:   Functor[SpacelessASTOf]      = semi.functor
   implicit def offZipSlessAST[T]: OffsetZip[SpacelessASTOf, T] = _.map((0, _))
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1300,8 +1300,8 @@ object AST {
       extends SpacelessASTOf[T]
       with Phantom
   object Comment {
-    val any                                 = UnapplyByType[Comment]
-    val symbol                              = "#"
+    val any    = UnapplyByType[Comment]
+    val symbol = "#"
     def apply(lines: List[String]): Comment = ASTOf(CommentOf(lines))
   }
 
@@ -1321,18 +1321,25 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Documented = ASTOf[DocumentedOf]
-  case class DocumentedOf[T](doc: Doc, ast: T) extends ShapeOf[T]
+  case class DocumentedOf[T](doc: Doc, ast: Option[T]) extends ShapeOf[T]
   object Documented {
-    val any                                   = UnapplyByType[Documented]
-    def apply(doc: Doc, ast: AST): Documented = ASTOf(DocumentedOf(doc, ast))
+    val any = UnapplyByType[Documented]
+    def apply(doc: Doc, ast: AST): Documented =
+      ASTOf(DocumentedOf(doc, Some(ast)))
+    def apply(doc: Doc): Documented =
+      ASTOf(DocumentedOf(doc, None))
   }
 
   //// Instances ////
 
   object DocumentedOf {
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
-    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] =
-      t => R + t.doc + newline + t.ast
+    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
+      t.ast match {
+        case Some(value) => R + t.doc + newline + value
+        case None        => R + t.doc
+      }
+    }
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
   //////////////////////////////////////////////////////////////////////////////
@@ -1342,10 +1349,10 @@ object AST {
   type Import = ASTOf[ImportOf]
   final case class ImportOf[T](path: List1[Cons]) extends SpacelessASTOf[T]
   object Import {
-    def apply(path: List1[Cons]): Import            = ImportOf[AST](path)
-    def apply(head: Cons): Import                   = Import(head, List())
+    def apply(path: List1[Cons]):            Import = ImportOf[AST](path)
+    def apply(head: Cons):                   Import = Import(head, List())
     def apply(head: Cons, tail: List[Cons]): Import = Import(List1(head, tail))
-    def apply(head: Cons, tail: Cons*): Import      = Import(head, tail.toList)
+    def apply(head: Cons, tail: Cons*):      Import = Import(head, tail.toList)
   }
   object ImportOf {
     implicit def functor[T]: Functor[ImportOf] = semi.functor
@@ -1387,12 +1394,12 @@ object AST {
   type Group = ASTOf[GroupOf]
   final case class GroupOf[T](body: Option[T]) extends SpacelessASTOf[T]
   object Group {
-    val any                             = UnapplyByType[Group]
-    def unapply(t: AST)                 = Unapply[Group].run(_.body)(t)
+    val any             = UnapplyByType[Group]
+    def unapply(t: AST) = Unapply[Group].run(_.body)(t)
     def apply(body: Option[AST]): Group = GroupOf(body)
-    def apply(body: AST): Group         = Group(Some(body))
-    def apply(body: SAST): Group        = Group(body.el)
-    def apply(): Group                  = Group(None)
+    def apply(body: AST):         Group = Group(Some(body))
+    def apply(body: SAST):        Group = Group(body.el)
+    def apply():                  Group = Group(None)
   }
   object GroupOf {
     implicit def functpr[T]: Functor[GroupOf] = semi.functor
@@ -1410,9 +1417,9 @@ object AST {
   final case class DefOf[T](name: Cons, args: List[T], body: Option[T])
       extends SpacelessASTOf[T]
   object Def {
-    val any                                     = UnapplyByType[Def]
-    val symbol                                  = "def"
-    def apply(name: Cons): Def                  = Def(name, List())
+    val any    = UnapplyByType[Def]
+    val symbol = "def"
+    def apply(name: Cons):                  Def = Def(name, List())
     def apply(name: Cons, args: List[AST]): Def = Def(name, args, None)
     def apply(name: Cons, args: List[AST], body: Option[AST]): Def =
       DefOf(name, args, body)
