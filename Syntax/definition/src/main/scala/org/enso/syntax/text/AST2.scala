@@ -561,8 +561,6 @@ object AST {
 
     object Number {
 
-      implicit def fromInt[T](int: Int): Number = Number(int)
-
       //// Smart Constructors ////
 
       def apply(i: String):            Number = Number(None, i)
@@ -598,13 +596,14 @@ object AST {
     //// Instances ////
 
     object NumberOf {
+      implicit def fromInt[T](int: Int): Number = Number(int)
       implicit def functor:      Functor[NumberOf]      = semi.functor
       implicit def offsetZip[T]: OffsetZip[NumberOf, T] = t => t.coerce
       implicit def repr[T]: Repr[NumberOf[T]] =
         t => t.base.map(_ + "_").getOrElse("") + t.int
     }
 
-//////////////
+    //////////////
     //// Text ////
     //////////////
 
