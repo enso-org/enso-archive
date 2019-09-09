@@ -50,7 +50,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    */
   @Specialization(
       guards = "mappingNode.isCompatible(function)",
-      limit = Constants.CacheSizes.SORTER_NODE_CACHE_SIZE)
+      limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   public Object invokeCached(
       Function function,
       Object[] arguments,

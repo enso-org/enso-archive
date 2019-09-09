@@ -14,7 +14,7 @@ public class Constants {
 
   /** Cache sizes for different AST nodes. */
   public static class CacheSizes {
-    public static final String SORTER_NODE_CACHE_SIZE = "10";
-    public static final String INTEROP_LIBRARY_CACHE_SIZE = "10";
+    public static final String ARGUMENT_SORTER_NODE = "10";
+    public static final String FUNCTION_INTEROP_LIBRARY = "10";
   }
 }

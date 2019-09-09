@@ -137,7 +137,7 @@ public final class Function implements TruffleObject {
      */
     @Specialization(
         guards = "arguments.length == cachedArgsLength",
-        limit = Constants.CacheSizes.INTEROP_LIBRARY_CACHE_SIZE)
+        limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
     protected static Object callCached(
         Function function,
         Object[] arguments,
