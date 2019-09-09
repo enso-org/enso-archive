@@ -1300,6 +1300,7 @@ object AST {
       extends SpacelessASTOf[T]
       with Phantom
   object Comment {
+    val any                                 = UnapplyByType[Comment]
     val symbol                              = "#"
     def apply(lines: List[String]): Comment = ASTOf(CommentOf(lines))
   }
@@ -1322,19 +1323,16 @@ object AST {
   type Documented = ASTOf[DocumentedOf]
   case class DocumentedOf[T](doc: Doc, ast: T) extends ShapeOf[T]
   object Documented {
+    val any                                   = UnapplyByType[Documented]
     def apply(doc: Doc, ast: AST): Documented = ASTOf(DocumentedOf(doc, ast))
   }
 
   //// Instances ////
 
   object DocumentedOf {
-    import Documented._
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
-    implicit def repr[T]: Repr[DocumentedOf[T]] = t => {
-      R + t.doc + newline + t.ast
-      // FIXME [MM]
-      //  no implicits found for t.ast when ast: T
-    }
+    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] =
+      t => R + t.doc + newline + t.ast
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
   //////////////////////////////////////////////////////////////////////////////
@@ -1412,6 +1410,7 @@ object AST {
   final case class DefOf[T](name: Cons, args: List[T], body: Option[T])
       extends SpacelessASTOf[T]
   object Def {
+    val any                                     = UnapplyByType[Def]
     val symbol                                  = "def"
     def apply(name: Cons): Def                  = Def(name, List())
     def apply(name: Cons, args: List[AST]): Def = Def(name, args, None)
