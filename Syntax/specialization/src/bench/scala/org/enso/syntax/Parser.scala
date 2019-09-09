@@ -16,6 +16,8 @@ import org.enso.syntax.text.v2.AST.implicits._
 
 import scala.math.pow
 
+// FIXME FIXME FIXME
+
 object ParserBenchmark extends Bench.LocalTime {
 
   val range = 5
