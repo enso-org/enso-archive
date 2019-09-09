@@ -79,8 +79,7 @@ object Repr {
     val byteSpan: Int
     val span: Int
 
-    def +[T: Repr](that: T):  Builder = Seq(this, Repr(that))
-    def ++[T: Repr](that: T): Builder = this + " " + that
+    def +[T: Repr](that: T): Builder = this |+| Repr(that)
     def build(): String = {
       val bldr = new StringBuilder()
       @tailrec
@@ -92,7 +91,7 @@ object Repr {
             case r: Letter => bldr += r.char; go(rs)
             case r: Space  => for (_ <- 1 to r.span) { bldr += ' ' }; go(rs)
             case r: Text   => bldr ++= r.str; go(rs)
-            case r: _Seq   => go(r.first :: r.second :: rs)
+            case r: Seq    => go(r.first :: r.second :: rs)
           }
       }
       go(List(this))
@@ -118,11 +117,10 @@ object Repr {
       val byteSpan = str.getBytes(StandardCharsets.UTF_8).length
       val span     = str.length
     }
-    final case class _Seq(first: Builder, second: Builder) extends Builder {
+    final case class Seq(first: Builder, second: Builder) extends Builder {
       val byteSpan = first.byteSpan + second.byteSpan
       val span     = first.span + second.span
     }
-    object Seq { def apply(l: Builder, r: Builder): Builder = l |+| r }
 
     //// Instances ////
 
@@ -134,7 +132,7 @@ object Repr {
       def combine(l: Builder, r: Builder): Builder = (l, r) match {
         case (_: Empty, t) => t
         case (t, _: Empty) => t
-        case _             => _Seq(l, r)
+        case _             => Seq(l, r)
       }
     }
   }

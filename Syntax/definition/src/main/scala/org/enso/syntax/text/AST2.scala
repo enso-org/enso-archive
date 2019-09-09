@@ -596,14 +596,14 @@ object AST {
     //// Instances ////
 
     object NumberOf {
+      implicit def fromInt[T](int: Int): Number = Number(int)
       implicit def functor:      Functor[NumberOf]      = semi.functor
       implicit def offsetZip[T]: OffsetZip[NumberOf, T] = t => t.coerce
       implicit def repr[T]: Repr[NumberOf[T]] =
         t => t.base.map(_ + "_").getOrElse("") + t.int
-      implicit def fromInt[T](int: Int): Number = Number(int)
     }
 
-//////////////
+    //////////////
     //// Text ////
     //////////////
 
@@ -952,9 +952,9 @@ object AST {
     indent: Int,
     emptyLines: List[Int],
     firstLine: Block.LineOf[T],
-    lines: List[Block.LineOf[Option[T]]]
+    lines: List[Block.LineOf[Option[T]]],
+    protected val isOrphan: Boolean = false
   ) extends ShapeOf[T] {
-
     // FIXME: Compatibility mode
     def replaceType(ntyp: Block.Type): BlockOf[T] = copy(typ = ntyp)
   }
@@ -976,7 +976,7 @@ object AST {
       lines: List[LineOf[Option[AST]]]
     ): Block = {
       Unused(isOrphan)
-      BlockOf(typ, indent, emptyLines, firstLine, lines)
+      BlockOf(typ, indent, emptyLines, firstLine, lines, isOrphan)
     }
 
     def apply(
@@ -1027,12 +1027,13 @@ object AST {
   object BlockOf {
     implicit def ftorBlock: Functor[BlockOf] = semi.functor
     implicit def reprBlock[T: Repr]: Repr[BlockOf[T]] = t => {
+      val headRepr = if (t.isOrphan) R else newline
       val emptyLinesRepr = t.emptyLines.map(R + _ + newline)
       val firstLineRepr  = R + t.indent + t.firstLine
       val linesRepr = t.lines.map { line =>
         newline + line.elem.map(_ => t.indent) + line
       }
-      R + newline + emptyLinesRepr + firstLineRepr + linesRepr
+      headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
     implicit def offZipBlock[T]: OffsetZip[BlockOf, T] = _.map((0, _))
   }
@@ -1444,7 +1445,7 @@ object AST {
   object DefOf {
     implicit def functor[T]: Functor[DefOf] = semi.functor
     implicit def repr[T: Repr]: Repr[DefOf[T]] =
-      t => R + Def.symbol ++ t.name + t.args.map(R ++ _) + t.body
+      t => R + Def.symbol + 1 + t.name + t.args.map(R + 1 + _) + t.body
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def offsetZip[T]: OffsetZip[DefOf, T] = _.map((0, _))
   }
