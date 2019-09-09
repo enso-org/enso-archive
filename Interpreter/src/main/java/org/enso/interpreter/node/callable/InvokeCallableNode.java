@@ -12,6 +12,7 @@ import java.util.Arrays;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
+//import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
@@ -43,6 +44,9 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   private final boolean canApplyThis;
   private final int thisArgumentPosition;
 
+  private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
+  private final boolean hasDefaultsSuspended;
+
   private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
 
   /**
@@ -73,7 +77,10 @@ public abstract class InvokeCallableNode extends ExpressionNode {
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.argumentSorter = ArgumentSorterNodeGen.create(argSchema, hasDefaultsSuspended);
+    this.hasDefaultsSuspended = hasDefaultsSuspended;
+    this.schema = argSchema;
+
+    this.argumentSorter = ArgumentSorterNodeGen.create();
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
@@ -85,7 +92,7 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   @Override
   public void setTail(boolean isTail) {
     super.setTail(isTail);
-    argumentSorter.setTail(isTail);
+    //    argumentSorter.setTail(isTail);
   }
 
   /**
@@ -115,7 +122,8 @@ public abstract class InvokeCallableNode extends ExpressionNode {
   @Specialization
   public Object invokeFunction(VirtualFrame frame, Function function) {
     Object[] evaluatedArguments = evaluateArguments(frame);
-    return this.argumentSorter.execute(function, evaluatedArguments);
+    return this.argumentSorter.execute(
+        function, evaluatedArguments, schema, hasDefaultsSuspended, isTail());
   }
 
   /**
@@ -146,7 +154,8 @@ public abstract class InvokeCallableNode extends ExpressionNode {
       if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
         Atom self = (Atom) selfArgument;
         Function function = methodResolverNode.execute(symbol, self);
-        return this.argumentSorter.execute(function, evaluatedArguments);
+        return this.argumentSorter.execute(
+            function, evaluatedArguments, schema, hasDefaultsSuspended, isTail());
       } else {
         throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
       }
