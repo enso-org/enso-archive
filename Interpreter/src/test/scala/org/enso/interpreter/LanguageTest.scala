@@ -8,7 +8,6 @@ import org.scalatest.Matchers
 
 trait LanguageRunner {
   implicit class RichValue(value: Value) {
-//    def call(l: Long): Value = value.execute(l.asInstanceOf[AnyRef])
     def call(l: Long*): Value = value.execute(l.map(_.asInstanceOf[AnyRef]): _*)
   }
   val ctx = Context.newBuilder(Constants.LANGUAGE_ID).build()
