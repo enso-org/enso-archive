@@ -1,7 +1,7 @@
 # Scala Style Guide
 Like many style guides, this Scala style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
-all of the Luna codebases, while the second is to guide people towards a style
+all of the Enso codebases, while the second is to guide people towards a style
 that is expressive while still easy to read and understand.
 
 In general, it aims to create a set of 'zero-thought' rules in order to ease the
@@ -30,19 +30,19 @@ a robust set of guidelines for creating a consistent visual to the code.
 
 Primary formatting is dealt with through use of the Scala formatting tool
 [`scalafmt`](https://scalameta.org/scalafmt/), which enforces rules around
-whitespace, line-wrapping, and alignment. The Luna repository contains the main
+whitespace, line-wrapping, and alignment. The Enso repository contains the main
 [`.scalafmt.conf`](../.scalafmt.conf) configuration file, and this is what
 should be used for all new Scala projects.
 
 All files must be formatted using `scalafmt` before commit, and this should be
 set up as either a precommit hook, or using the integration in IntelliJ. If you
 use the IntelliJ integration, please note that you need only have the official
-[Scala Plugin](https://www.jetbrains.com/help/idea/discover-intellij-idea-for-scala.html) 
-installed, and be using IntelliJ 2019.1 or later. You should _not_ use the 
+[Scala Plugin](https://www.jetbrains.com/help/idea/discover-intellij-idea-for-scala.html)
+installed, and be using IntelliJ 2019.1 or later. You should _not_ use the
 independent Scalafmt plugin.
 
-### Naming
-Luna has some fairly simple general naming conventions, though the sections
+## Naming
+Enso has some fairly simple general naming conventions, though the sections
 below may provide more rules for use in specific cases.
 
 - Types are written using `UpperCamelCase`.
@@ -54,19 +54,46 @@ below may provide more rules for use in specific cases.
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
 
+## Package structure and naming
+Enso follows the 
+[Java convention for naming packages](https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html):
+package name components may contain only lower case characters and, if
+necessary, an underscore character. All Enso package names should be prefixed
+with `org.enso`. For example, the package for implementation of `File Manager` 
+project should be named `org.enso.filemanager`.
+
+When the name of the file in the package is the same as the final component of 
+the package name, the file should be moved one level up. For examples, if 
+`File Manager` project contains `FileManager.scala` file, then the file should
+be placed directly in the `org.enso` package instead of `org.enso.filemanager`.
+This is to avoid repetitious contructs like `org.enso.filemanager.FileManager`.
+
+The root directory for the project should follow the naming scheme of types. 
+For example, if the project name is `File Manager`, then sources of the main
+package shall be located under path 
+`FileManager\src\main\scala\org\enso\filemanager`.
+
 ## Build Tooling
-All Scala projects in the Luna organisation should manage their dependencies and
+All Scala projects in the Enso organisation should manage their dependencies and
 build setup using [SBT](hhttps://www.scala-sbt.org/1.x/docs/index.html).
 
 If you are using IntelliJ, please ensure that you select to use the SBT shell
 for both imports and builds.
 
 ## Commenting
-Comments are a tricky area to get right, as we have found that comments often
-expire quickly and, in absence of a way to validate them, remain incorrect for
-long periods of time. That is not to say, however, that we eschew comments
-entirely. Instead, we make keeping comments up to date an integral part of our
-programming practice, while also limiting the types of comments that we allow.
+Comments in code are a tricky area to get right as we have found that comments
+often expire quickly, and in absence of a way to validate them, remain incorrect
+for long periods of time. In order to best deal with this problem, we make the
+keeping of comments up-to-date into an integral part of our programming practice
+while also limiting the types and kinds of comments we allow.
+
+Comments across the Enso codebases fall into three main types:
+
+- **Documentation Comments:** API documentation for all language constructs that
+  can have it (classes, objects, functions, and so on).
+- **Source Notes:** Detailed explorations of design reasoning that avoid
+  cluttering the code itself.
+- **Tasks:** Things that need doing or fixing in the codebase.
 
 When we write comments, we try to follow one general guideline. A comment should
 explain _what_ and _why_, without mentioning _how_. The _how_ should be
@@ -77,10 +104,11 @@ Code should be written in such a way that it guides you over what it does, and
 comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
-One of the primary forms of comment that we allow across the Luna codebases is
-the doc comment. These are intended to be consumed by users of the API, and use
-the standard [scaladoc](https://docs.scala-lang.org/style/scaladoc.html) syntax.
-Doc comments should:
+One of the primary forms of comment that we allow across the Enso codebases is
+the doc comment. Every language construct that can have an associated doc
+comment should do so. These are intended to be consumed by users of the API, and
+use the standard [scaladoc](https://docs.scala-lang.org/style/scaladoc.html)
+syntax. Doc comments should:
 
 - Provide a short one-line explanation of the object being documented.
 - Provide a longer description of the object, including examples where relevant.
@@ -126,32 +154,31 @@ An example, based on some code in the GHC codebase, can be seen below:
 
 ```scala
 {
-def prepRHS (env : SimplEnv, outExpr : OutExpr) : SimplM (SimplEnv, OutExpr) = {
-    (ty1, _ty2) <- coercionKind env // Note [Float Coercions]
+def prepRHS (env : SimplEnv, outExpr : OutExpr) : SimplM[SimplEnv, OutExpr] = {
+  val (ty1, _ty2) = coercionKind(env) // Note [Float Coercions]
 
-    if (!isUnliftedType ty1) {
-        newTy1 = convertTy ty1 // Note [Float Coercions (Unlifted)]
-
-        ...more expressions defining prepRHS...
-    }
+  if (!isUnliftedType(ty1)) {
+    val newTy1 = convertTy(ty1) // Note [Float Coercions (Unlifted)]
+    ...more expressions defining prepRHS...
+  }
 }
 
 /* Note [Float Coercions]
-~~~~~~~~~~~~~~~~~~~~~~~~~
-When we find the binding
-        x = cast(e, co)
-we'd like to transform it to
-        x' = e
-        x = cast(x, co) // A trivial binding
-There's a chance that e will be a constructor application or function, or
-something like that, so moving the coercion to the usage site may well cancel
-the coercions and lead to further optimisation.
-        ...more stuff about coercion floating...
-
-== Note [Float Coercions (Unlifted)]
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        ...explanations of floating for unlifted types...
-*/
+ * ~~~~~~~~~~~~~~~~~~~~~~
+ * When we find the binding
+ *         x = cast(e, co)
+ * we'd like to transform it to
+ *         x' = e
+ *         x = cast(x, co) // A trivial binding
+ * There's a chance that e will be a constructor application or function, or
+ * something like that, so moving the coercion to the usage site may well cancel
+ * the coercions and lead to further optimisation.
+ *         ...more stuff about coercion floating...
+ * 
+ * Note [Float Coercions (Unlifted)]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ *      ...explanations of floating for unlifted types...
+ */
 }
 ```
 
@@ -248,4 +275,4 @@ that you come across during development.
 
 Sometimes it is impossible to fix a warning (often in situations involving the
 use of macros). In such cases, you are allowed to suppress the warning locally,
-but this must be accompanied by a source note explaining why.
+but this must be accompanied by a source note explaining why you are doing so.

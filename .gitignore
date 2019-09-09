@@ -1,8 +1,21 @@
 
+#############
+## GraalVM ##
+#############
+
+graal_dumps
+
+##########
+## Java ##
+##########
+
+*.class
+
 ###########
 ## Scala ##
 ###########
 
+graal_dumps/
 target/
 *.class
 *.log
@@ -54,3 +67,20 @@ cabal.sandbox.config
 .idea/
 *.swp
 .projections.json
+
+############################
+## Rendered Documentation ##
+############################
+
+javadoc/
+
+#######################
+## Benchmark Reports ##
+#######################
+bench-report.xml
+
+##############
+## Binaries ##
+##############
+
+/enso
