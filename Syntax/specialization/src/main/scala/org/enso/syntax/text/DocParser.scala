@@ -239,18 +239,26 @@ object DocParserRunner {
     }
   }
 
+  /**
+    * this is a helper function for creating docs with AST.
+    * Essentially it traverses through lines and tries to find a pattern on them
+    *
+    * @param lines - AST lines
+    * @return - lines with possibly Doc with added AST
+    */
+  //FIXME - Add offset to AST line
   def transformLines(lines: List[AST.Block.OptLine]): List[AST.Block.OptLine] =
     lines match {
-      case Line(Some(AST.Documented.any(doc)), off1) :: Line(
+      case Line(Some(AST.Documented.any(doc)), docOff) :: Line(
             Some(AST.App.Infix.any(ast)),
-            _
+            astOff
           ) :: rest =>
-        Line(Some(AST.Documented(doc.doc, ast)), off1) :: transformLines(rest)
-      case Line(Some(AST.Documented.any(doc)), off1) :: Line(
+        Line(Some(AST.Documented(doc.doc, ast)), docOff) :: transformLines(rest)
+      case Line(Some(AST.Documented.any(doc)), docOff) :: Line(
             Some(AST.Def.any(ast)),
-            _
+            astOff
           ) :: rest =>
-        Line(Some(AST.Documented(doc.doc, createDocsWithAST(ast))), off1) :: transformLines(
+        Line(Some(AST.Documented(doc.doc, createDocsWithAST(ast))), docOff) :: transformLines(
           rest
         )
       case x :: rest =>
