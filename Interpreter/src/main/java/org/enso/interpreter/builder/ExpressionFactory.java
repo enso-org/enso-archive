@@ -21,7 +21,7 @@ import org.enso.interpreter.AstExpressionVisitor;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
+import org.enso.interpreter.node.callable.ApplicationNodeGen;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.FunctionBodyNode;
@@ -338,7 +338,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       callArgs.add(arg);
     }
 
-    return InvokeCallableNodeGen.create(
+    return ApplicationNodeGen.create(
         callArgs.toArray(new CallArgument[0]), hasDefaultsSuspended, function.visit(this));
   }
 

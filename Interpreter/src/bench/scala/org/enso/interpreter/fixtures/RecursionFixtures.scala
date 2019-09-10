@@ -69,6 +69,4 @@ class RecursionFixtures extends LanguageRunner {
   val oversaturatedRecursiveCallTCO =
     ctx.eval(Constants.LANGUAGE_ID, oversaturatedRecursiveCallTCOCode);
 
-  print(oversaturatedRecursiveCallTCO.call(hundred))
-
 }
