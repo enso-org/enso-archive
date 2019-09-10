@@ -775,6 +775,8 @@ object AST {
           implicit def offZipFmt[T]: OffsetZip[_Fmt, T] = {
             case t: _Plain[T]  => OffsetZip(t)
             case t: _Expr[T]   => OffsetZip(t)
+            case t: _Plain[T]  => OffsetZip(t)
+            case t: _Expr[T]   => OffsetZip(t)
             case t: _Escape[T] => OffsetZip(t)
           }
           implicit def txtFromString[T](str: String): _Plain[T] = _Plain(str)
