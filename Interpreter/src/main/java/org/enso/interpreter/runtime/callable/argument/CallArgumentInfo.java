@@ -210,11 +210,24 @@ public class CallArgumentInfo {
     }
   }
 
+  /**
+   * A class that represents the partitioned mapping of the arguments applied to a given callable.
+   */
   public static class ArgumentMapping {
     private @CompilationFinal(dimensions = 1) int[] appliedArgumentMapping;
     private @CompilationFinal(dimensions = 1) int[] oversaturatedArgumentMapping;
     private @CompilationFinal(dimensions = 1) boolean[] isValidAppliedArg;
 
+    /**
+     * Creates a new instance to represent a mapping.
+     *
+     * @param appliedArgumentMapping the mapping for the arguments that can actually be applied to
+     *     the callable in question
+     * @param oversaturatedArgumentMapping the mapping representing any oversaturated arguments to
+     *     the callable in question
+     * @param isAppliedFlags an array of flags that determines which arguments have been applied to
+     *     the callable
+     */
     public ArgumentMapping(
         int[] appliedArgumentMapping,
         int[] oversaturatedArgumentMapping,
@@ -246,10 +259,11 @@ public class CallArgumentInfo {
     }
 
     /**
-     * TODO [AA] Doc TODO [AA] Maybe factor out
+     * Gets an array containing the oversaturated arguments represented by this mapping.
      *
-     * @param argValues
-     * @param result
+     * @param argValues the values of all arguments applied to the callable in question
+     * @param result the destination array into which this method will put solely the oversaturated
+     *     arguments
      */
     @ExplodeLoop
     public void obtainOversaturatedArguments(Object[] argValues, Object[] result, int offset) {

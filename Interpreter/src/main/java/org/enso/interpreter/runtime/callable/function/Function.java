@@ -87,11 +87,11 @@ public final class Function implements TruffleObject {
   }
 
   /**
-   * TODO [AA]
-   * @return
+   * Obtains the oversaturated arguments associated with this function.
+   *
+   * @return an array of this function's oversaturated arguments
    */
   public Object[] getOversaturatedArguments() {
-    // TODO [AA] This is a hack and shouldn't actually live here.
     return oversaturatedArguments != null ? oversaturatedArguments : new Object[0];
   }
 

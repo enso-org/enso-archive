@@ -74,10 +74,10 @@ public class ApplicationNode extends ExpressionNode {
   }
 
   /**
-   * TODO
+   * Executes the application of arguments to a callable.
    *
    * @param frame the stack frame for execution
-   * @return
+   * @return the value that results from evaluating the callable
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {

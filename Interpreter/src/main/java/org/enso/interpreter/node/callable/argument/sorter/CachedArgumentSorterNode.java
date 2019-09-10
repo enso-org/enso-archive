@@ -41,17 +41,17 @@ public class CachedArgumentSorterNode extends BaseNode {
     this.mapping = mapping.getAppliedMapping();
     this.postApplicationSchema = mapping.getPostApplicationSchema();
 
-    boolean fullApplication = true;
+    boolean functionIsFullyApplied = true;
     for (int i = 0; i < postApplicationSchema.getArgumentsCount(); i++) {
       boolean hasValidDefault = postApplicationSchema.hasDefaultAt(i) && !hasDefaultsSuspended;
       boolean hasPreappliedArg = postApplicationSchema.hasPreAppliedAt(i);
 
       if (!(hasValidDefault || hasPreappliedArg)) {
-        fullApplication = false;
+        functionIsFullyApplied = false;
         break;
       }
     }
-    appliesFully = fullApplication;
+    appliesFully = functionIsFullyApplied;
 
     if (postApplicationSchema.hasOversaturatedArgs()) {
       oversaturatedCallableNode =
@@ -95,25 +95,6 @@ public class CachedArgumentSorterNode extends BaseNode {
 
     mapping.reorderAppliedArguments(arguments, mappedAppliedArguments);
 
-    Object[] oversaturatedArguments = null;
-
-    if (postApplicationSchema.hasOversaturatedArgs()) {
-      oversaturatedArguments =
-          new Object[this.postApplicationSchema.getOversaturatedArguments().length];
-
-      System.arraycopy(
-          function.getOversaturatedArguments(),
-          0,
-          oversaturatedArguments,
-          0,
-          originalFunction.getSchema().getOversaturatedArguments().length);
-
-      mapping.obtainOversaturatedArguments(
-          arguments,
-          oversaturatedArguments,
-          originalFunction.getSchema().getOversaturatedArguments().length);
-    }
-
     if (this.appliesFully()) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         if (this.isTail()) {
@@ -125,7 +106,8 @@ public class CachedArgumentSorterNode extends BaseNode {
         Object evaluatedVal =
             optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
 
-        return this.oversaturatedCallableNode.execute(evaluatedVal, oversaturatedArguments);
+        return this.oversaturatedCallableNode.execute(
+            evaluatedVal, generateOversaturatedArguments(function, arguments));
       }
     } else {
       return new Function(
@@ -133,8 +115,38 @@ public class CachedArgumentSorterNode extends BaseNode {
           function.getScope(),
           this.getPostApplicationSchema(),
           mappedAppliedArguments,
-          oversaturatedArguments);
+          generateOversaturatedArguments(function, arguments));
     }
+  }
+
+  /**
+   * Generates an array containing the oversaturated arguments for the function being executed (if
+   * any).
+   *
+   * <p>It accounts for oversaturated arguments at the function call site, as well as any that have
+   * been 'remembered' in the passed {@link Function} object.
+   *
+   * @param function the function being executed
+   * @param arguments the arguments being applied to {@code function}
+   * @return any oversaturated arguments on {@code function}
+   */
+  private Object[] generateOversaturatedArguments(Function function, Object[] arguments) {
+    Object[] oversaturatedArguments =
+        new Object[this.postApplicationSchema.getOversaturatedArguments().length];
+
+    System.arraycopy(
+        function.getOversaturatedArguments(),
+        0,
+        oversaturatedArguments,
+        0,
+        originalFunction.getSchema().getOversaturatedArguments().length);
+
+    mapping.obtainOversaturatedArguments(
+        arguments,
+        oversaturatedArguments,
+        originalFunction.getSchema().getOversaturatedArguments().length);
+
+    return oversaturatedArguments;
   }
 
   /**

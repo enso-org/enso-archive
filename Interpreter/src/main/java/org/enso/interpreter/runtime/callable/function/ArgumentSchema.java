@@ -131,9 +131,9 @@ public class ArgumentSchema {
   }
 
   /**
-   * TODO [AA]
+   * Returns the oversaturated arguments contained within the schema.
    *
-   * @return
+   * @return an array of the oversaturated arguments in the schema
    */
   public CallArgumentInfo[] getOversaturatedArguments() {
     return oversaturatedArguments;

@@ -4,7 +4,6 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -33,8 +32,8 @@ public class ReadArgumentNode extends ExpressionNode {
    *
    * <p>This function also handles the defaulted case by checking for a {@code null} value at the
    * argument's position. This works in conjunction with {@link
-   * ArgumentMapping#reorderArguments(int[], Object[], Object[])}, which will place nulls in any position where an argument has not been
-   * applied.
+   * org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping#reorderAppliedArguments(Object[],
+   * Object[])} which will place nulls in any position where an argument has not been applied.
    *
    * @param frame the stack frame to execute in
    * @return the computed value of the argument at this position

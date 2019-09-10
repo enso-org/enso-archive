@@ -56,7 +56,6 @@ class RecursionFixtures extends LanguageRunner {
 
   val sumRecursive = ctx.eval(Constants.LANGUAGE_ID, sumRecursiveCode)
 
-  // TODO [AA] Come up with a benchmark that actually tests this
   val oversaturatedRecursiveCallTCOCode =
     """
       |{ |x|
