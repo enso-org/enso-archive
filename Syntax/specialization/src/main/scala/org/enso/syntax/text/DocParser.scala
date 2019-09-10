@@ -155,56 +155,22 @@ object DocParserRunner {
     * @return - AST with possible documentation
     */
   def create(module: AST.Module): AST = {
-    val createdDocs        = createDocs(module)
-    val createdDocsWithAST = createDocsWithAST(createdDocs)
+    val createdDocsWithAST = createDocs(module)
     /* NOTE : Commented out for ease of debugging procedures */
 //    generateHTMLForEveryDocumented(createdDocsWithAST)
     createdDocsWithAST
   }
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Doc creation from comments //////////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
   /**
-    * This function changes comments into Doc(s) with empty AST
+    * This function gets [[AST.Module]] or [[AST.Block]]
+    * and then invokes on their lines [[transformLines]] function
+    * to create Docs from Comments with or without AST from Infix's and
+    * Def's
     *
-    * @param module - data from Parser
-    * @return - modified data containing possibly Documentation(s) without AST
-    */
-  def createDocs(module: AST): AST = {
-    def accumulator(ast: AST): AST = {
-      ast.map {
-        case AST.Comment.any(elem) => createDocFromComment(elem)
-        case elem                  => accumulator(elem)
-      }
-    }
-    accumulator(module)
-  }
-
-  /**
-    * creates Docs from comments found in parsed data
-    *
-    * @param comment - comment found in AST
-    * @return - Documentation
-    */
-  def createDocFromComment(comment: AST.Comment): AST.Documented = {
-    val in = comment.lines.mkString("\n")
-    AST.Documented(DocParser.runMatched(in))
-  }
-
-  //////////////////////////////////////////////////////////////////////////////
-  //// Assigning AST to previously created Doc's ///////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  /**
-    * This function gets Doc(s) with originally empty AST and tries to assign
-    * to them appropriate AST from Infix's and Def's
-    *
-    * @param ast - module with possibly Doc's
+    * @param ast - module with possibility to create Docs from comments
     * @return - modified data containing possibly Documentation(s) with AST
     */
-  def createDocsWithAST(ast: AST): AST = {
+  def createDocs(ast: AST): AST = {
     ast match {
       case AST.Module.any(m) =>
         val transformedLines = List1(transformLines(m.lines.toList))
@@ -214,22 +180,14 @@ object DocParserRunner {
         d.body match {
           case Some(defBody) =>
             defBody match {
-              case AST.Block.any(block) =>
-                val firstLine =
-                  Line(Option(block.firstLine.elem), block.firstLine.off)
-                val linesToTransform = firstLine :: block.lines
-                val transformedLines = transformLines(linesToTransform)
-                val lines            = transformedLines.tail
-                val body = AST.Block(
-                  block.typ,
-                  block.indent,
-                  block.emptyLines,
-                  AST.Block.LineOf[AST](
-                    transformedLines.head.elem.get,
-                    transformedLines.head.off
-                  ),
-                  lines
-                )
+              case AST.Block.any(b) =>
+                val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
+                val linesToTransform = firstLine :: b.lines
+                val tLines           = transformLines(linesToTransform)
+                val head =
+                  AST.Block.LineOf[AST](tLines.head.elem.get, tLines.head.off)
+                val lines = tLines.tail
+                val body  = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
                 AST.Def(d.name, d.args, Some(body))
               case _ => d
             }
@@ -249,23 +207,41 @@ object DocParserRunner {
   //FIXME - Add offset to AST line
   def transformLines(lines: List[AST.Block.OptLine]): List[AST.Block.OptLine] =
     lines match {
-      case Line(Some(AST.Documented.any(doc)), docOff) :: Line(
+      case Line(Some(AST.Comment.any(com)), comOff) :: Line(
             Some(AST.App.Infix.any(ast)),
             astOff
           ) :: rest =>
-        Line(Some(AST.Documented(doc.doc, ast)), docOff) :: transformLines(rest)
-      case Line(Some(AST.Documented.any(doc)), docOff) :: Line(
+        val doc            = createDocFromComment(com)
+        val documentedLine = Line(Some(AST.Documented(doc, ast)), comOff)
+        documentedLine :: transformLines(rest)
+      case Line(Some(AST.Comment.any(com)), comOff) :: Line(
             Some(AST.Def.any(ast)),
             astOff
           ) :: rest =>
-        Line(Some(AST.Documented(doc.doc, createDocsWithAST(ast))), docOff) :: transformLines(
-          rest
-        )
+        val doc = createDocFromComment(com)
+        val documentedLine =
+          Line(Some(AST.Documented(doc, createDocs(ast))), comOff)
+        documentedLine :: transformLines(rest)
+      case Line(Some(AST.Comment.any(com)), comOff) :: rest =>
+        val doc            = createDocFromComment(com)
+        val documentedLine = Line(Some(AST.Documented(doc)), comOff)
+        documentedLine :: transformLines(rest)
       case x :: rest =>
         x :: transformLines(rest)
       case other =>
         other
     }
+
+  /**
+    * creates Docs from comments found in parsed data
+    *
+    * @param comment - comment found in AST
+    * @return - Documentation
+    */
+  def createDocFromComment(comment: AST.Comment): Doc = {
+    val in = comment.lines.mkString("\n")
+    DocParser.runMatched(in)
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Generating HTML for created Doc's ///////////////////////////////////////
