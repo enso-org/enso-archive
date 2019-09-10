@@ -7,11 +7,14 @@ import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import org.enso.syntax.text.AST.Documented
+
 import scala.util.Random
 import java.io.File
 import java.io.PrintWriter
+
 import flexer.Parser.{Result => res}
+import org.enso.data.List1
+import org.enso.syntax.text.AST.Block.{LineOf => Line}
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser ////////////////////////////////////////////////////////////////
@@ -50,7 +53,7 @@ class DocParser {
     * Doc Parser Runner finished it's job
     * @param documented - documented made by Doc Parser Runner from AST and Doc
     */
-  def onHTMLRendering(documented: Documented): Unit = {
+  def onHTMLRendering(documented: AST.Documented): Unit = {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
     val cssFileName = "style.css"
@@ -155,7 +158,7 @@ object DocParserRunner {
     val createdDocs        = createDocs(module)
     val createdDocsWithAST = createDocsWithAST(createdDocs)
     /* NOTE : Commented out for ease of debugging procedures */
-    generateHTMLForEveryDocumented(createdDocsWithAST)
+//    generateHTMLForEveryDocumented(createdDocsWithAST)
     createdDocsWithAST
   }
 
@@ -182,11 +185,11 @@ object DocParserRunner {
   /**
     * creates Docs from comments found in parsed data
     *
-    * @param ast - comment
+    * @param comment - comment found in AST
     * @return - Documentation
     */
-  def createDocFromComment(ast: AST.CommentOf[AST]): AST.DocumentedOf[AST] = {
-    val in = ast.lines.mkString("\n")
+  def createDocFromComment(comment: AST.Comment): AST.Documented = {
+    val in = comment.lines.mkString("\n")
     AST.Documented(DocParser.runMatched(in))
   }
 
@@ -198,20 +201,63 @@ object DocParserRunner {
     * This function gets Doc(s) with originally empty AST and tries to assign
     * to them appropriate AST from Infix's and Def's
     *
-    * @param module - module with possibly Doc's
+    * @param ast - module with possibly Doc's
     * @return - modified data containing possibly Documentation(s) with AST
     */
-  def createDocsWithAST(module: AST): AST = {
-    def accumulator(ast: AST): AST = {
-      ast.map {
-//        case AST.Documented.any(elem) => ???
-//        case AST.Def.any(elem)        => ???
-//        case AST.App.Infix.any(elem)  => ???
-        case elem => accumulator(elem)
-      }
+  def createDocsWithAST(ast: AST): AST = {
+    ast match {
+      case AST.Module.any(m) =>
+        val transformedLines = List1(transformLines(m.lines.toList))
+          .getOrElse(List1(AST.Block.OptLine()))
+        AST.Module(transformedLines)
+      case AST.Def.any(d) =>
+        d.body match {
+          case Some(defBody) =>
+            defBody match {
+              case AST.Block.any(block) =>
+                val firstLine =
+                  Line(Option(block.firstLine.elem), block.firstLine.off)
+                val linesToTransform = firstLine :: block.lines
+                val transformedLines = transformLines(linesToTransform)
+                val lines            = transformedLines.tail
+                val body = AST.Block(
+                  block.typ,
+                  block.indent,
+                  block.emptyLines,
+                  AST.Block.LineOf[AST](
+                    transformedLines.head.elem.get,
+                    transformedLines.head.off
+                  ),
+                  lines
+                )
+                AST.Def(d.name, d.args, Some(body))
+              case _ => d
+            }
+          case None => d
+        }
+      case o => o
     }
-    accumulator(module)
   }
+
+  def transformLines(lines: List[AST.Block.OptLine]): List[AST.Block.OptLine] =
+    lines match {
+      case Line(Some(AST.Documented.any(doc)), off1) :: Line(
+            Some(AST.App.Infix.any(ast)),
+            _
+          ) :: rest =>
+        Line(Some(AST.Documented(doc.doc, ast)), off1) :: transformLines(rest)
+      case Line(Some(AST.Documented.any(doc)), off1) :: Line(
+            Some(AST.Def.any(ast)),
+            _
+          ) :: rest =>
+        Line(Some(AST.Documented(doc.doc, createDocsWithAST(ast))), off1) :: transformLines(
+          rest
+        )
+      case x :: rest =>
+        x :: transformLines(rest)
+      case other =>
+        other
+    }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Generating HTML for created Doc's ///////////////////////////////////////

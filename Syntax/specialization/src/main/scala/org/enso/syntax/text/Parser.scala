@@ -215,7 +215,7 @@ class Parser {
 }
 
 object Parser {
-  def apply(): Parser   = new Parser()
+  def apply(): Parser = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////
@@ -322,6 +322,9 @@ object Main extends App {
   val inp = """## This function adds *x* to *y*
               |add x y = x + y
               |mul x y = x * y
+              |
+              |## This function divides *x* by *y*
+              |div x y = x / y
               |
               |## Just a comment
               |
