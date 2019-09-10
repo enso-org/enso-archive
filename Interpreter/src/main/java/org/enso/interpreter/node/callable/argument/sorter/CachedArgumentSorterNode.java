@@ -2,6 +2,8 @@ package org.enso.interpreter.node.callable.argument.sorter;
 
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -21,7 +23,7 @@ public class CachedArgumentSorterNode extends BaseNode {
   private final ArgumentMapping mapping;
   private final ArgumentSchema postApplicationSchema;
   private final boolean appliesFully;
-  private @Child ArgumentSorterNode oversaturatedArgumentSorter = null;
+  @Child private InvokeCallableNode oversaturatedCallableNode = null;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -52,9 +54,10 @@ public class CachedArgumentSorterNode extends BaseNode {
     appliesFully = fullApplication;
 
     if (postApplicationSchema.hasOversaturatedArgs()) {
-      oversaturatedArgumentSorter =
-          ArgumentSorterNodeGen.create(
+      oversaturatedCallableNode =
+          InvokeCallableNodeGen.create(
               postApplicationSchema.getOversaturatedArguments(), hasDefaultsSuspended);
+      oversaturatedCallableNode.setTail(isTail);
     }
   }
 
@@ -114,7 +117,6 @@ public class CachedArgumentSorterNode extends BaseNode {
     if (this.appliesFully()) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         if (this.isTail()) {
-          // TODO [AA] Fix the tail-recursive case.
           throw new TailCallException(this.getOriginalFunction(), mappedAppliedArguments);
         } else {
           return optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
@@ -123,9 +125,7 @@ public class CachedArgumentSorterNode extends BaseNode {
         Object evaluatedVal =
             optimiser.executeDispatch(this.getOriginalFunction(), mappedAppliedArguments);
 
-        // TODO [AA] Make this actually work for things that aren't functions
-        return this.oversaturatedArgumentSorter.execute(
-            (Function) evaluatedVal, oversaturatedArguments);
+        return this.oversaturatedCallableNode.execute(evaluatedVal, oversaturatedArguments);
       }
     } else {
       return new Function(

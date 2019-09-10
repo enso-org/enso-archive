@@ -60,7 +60,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Function calls" should "be able to return atoms that are evaluated with oversaturated args" in {
-    pending
     val code =
       """
         |@{
@@ -78,10 +77,9 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Methods" should "support the use of oversaturated args" in {
-    pending
     val code =
       """
-        |Unit.foo = 1
+        |Unit.myMethod = 1
         |
         |@{
         |  f = { |x| myMethod };

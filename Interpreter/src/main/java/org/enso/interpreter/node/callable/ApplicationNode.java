@@ -1,27 +1,14 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
-import com.oracle.truffle.api.dsl.Fallback;
-import com.oracle.truffle.api.dsl.NodeChild;
-import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.ConditionProfile;
 import java.util.Arrays;
-import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
-import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
-import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
-import org.enso.interpreter.runtime.error.NotInvokableException;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -30,21 +17,22 @@ import org.enso.interpreter.runtime.type.TypesGen;
  * those arguments into the correct positional order for the callable being called.
  */
 @NodeInfo(shortName = "@", description = "Executes function")
-@NodeChild(value = "callable", type = ExpressionNode.class)
-public abstract class ApplicationNode extends ExpressionNode {
+public class ApplicationNode extends ExpressionNode {
 
   @Children
   @CompilationFinal(dimensions = 1)
   private ExpressionNode[] argExpressions;
 
   @Child private InvokeCallableNode invokeCallableNode;
+  @Child private ExpressionNode callable;
 
   /**
    * Creates a new node for performing callable invocation.
    *
    * @param callArguments information on the arguments being passed to the {@link Function}
    */
-  public ApplicationNode(CallArgument[] callArguments, boolean hasDefaultsSuspended) {
+  public ApplicationNode(
+      ExpressionNode callable, CallArgument[] callArguments, boolean hasDefaultsSuspended) {
     this.argExpressions =
         Arrays.stream(callArguments)
             .map(CallArgument::getExpression)
@@ -52,6 +40,9 @@ public abstract class ApplicationNode extends ExpressionNode {
 
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
+
+    this.callable = callable;
+    this.invokeCallableNode = InvokeCallableNodeGen.create(argSchema, hasDefaultsSuspended);
   }
 
   /**
@@ -82,57 +73,15 @@ public abstract class ApplicationNode extends ExpressionNode {
     return computedArguments;
   }
 
-
-
   /**
-   * Invokes a constructor directly on the arguments contained in this node.
+   * TODO
    *
-   * @param frame the stack frame in which to execute
-   * @param constructor the constructor to be executed
-   * @return the result of executing {@code constructor} on the known arguments
+   * @param frame the stack frame for execution
+   * @return
    */
-  @Specialization
-  public Object invokeConstructor(VirtualFrame frame, AtomConstructor constructor) {
-    return invokeFunction(frame, constructor.getConstructorFunction());
-  }
-
-  /**
-   * Invokes a dynamic symbol after resolving it for the actual symbol for the {@code this}
-   * argument.
-   *
-   * @param frame the stack frame in which to execute
-   * @param symbol the name of the requested symbol
-   * @return the result of resolving and executing the symbol for the {@code this} argument
-   */
-  @Specialization
-  public Object invokeDynamicSymbol(VirtualFrame frame, UnresolvedSymbol symbol) {
-    if (canApplyThis) {
-      Object[] evaluatedArguments = evaluateArguments(frame);
-      Object selfArgument = evaluatedArguments[thisArgumentPosition];
-      if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
-        Atom self = (Atom) selfArgument;
-        Function function = methodResolverNode.execute(symbol, self);
-        return this.argumentSorter.execute(function, evaluatedArguments);
-      } else {
-        throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
-      }
-    } else {
-      throw new RuntimeException("Currying without `this` argument is not yet supported.");
-    }
-  }
-
-  /**
-   * A fallback that should never be called.
-   *
-   * <p>If this is called, something has gone horribly wrong. It throws a {@link
-   * NotInvokableException} to signal this.
-   *
-   * @param frame the stack frame in which to execute
-   * @param callable the callable to be executed
-   * @return error
-   */
-  @Fallback
-  public Object invokeGeneric(VirtualFrame frame, Object callable) {
-    throw new NotInvokableException(callable, this);
+  @Override
+  public Object executeGeneric(VirtualFrame frame) {
+    return this.invokeCallableNode.execute(
+        this.callable.executeGeneric(frame), evaluateArguments(frame));
   }
 }
