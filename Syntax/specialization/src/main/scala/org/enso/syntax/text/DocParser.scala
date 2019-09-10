@@ -8,10 +8,10 @@ import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
 import org.enso.syntax.text.AST.Documented
-import scala.annotation.tailrec
 import scala.util.Random
 import java.io.File
 import java.io.PrintWriter
+import flexer.Parser.{Result => res}
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser ////////////////////////////////////////////////////////////////
@@ -25,6 +25,7 @@ import java.io.PrintWriter
 class DocParser {
   import DocParser._
   private val engine = newEngine()
+  private val errMsg = "Internal Documentation Parser Error"
 
   /**
     * Used to match result of [[run]] function to possibly retrieve Doc
@@ -33,8 +34,8 @@ class DocParser {
     *           Doc
     */
   def runMatched(input: String): Doc = run(input) match {
-    case flexer.Parser.Result(_, flexer.Parser.Result.Success(v)) => v
-    case _                                                        => Doc()
+    case res(_, res.Success(v)) => v
+    case _                      => throw new Error(errMsg)
   }
 
   /**
@@ -53,10 +54,8 @@ class DocParser {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
     val cssFileName = "style.css"
-    saveHTMLCodeToLocalFile(
-      path,
-      renderHTML(documented.ast, documented.doc, cssFileName)
-    )
+    val htmlCode    = renderHTML(documented.ast, documented.doc, cssFileName)
+    saveHTMLCodeToLocalFile(path, htmlCode)
   }
 
   /**
@@ -71,6 +70,27 @@ class DocParser {
     doc: Doc,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
+    val astHtml = ast match {
+      case Some(value) => Seq(HTML.div(HTML.`class` := "Title")(value.show()))
+      case None        => Seq()
+    }
+    val title = ast match {
+      case Some(value) => value.show().split("")(0) //first part of string
+      case None        => "Enso Documentation"
+    }
+    val documentation = Seq(
+      HTML.div(HTML.`class` := "Documentation")(astHtml, doc.html)
+    )
+    HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
+  }
+
+  /**
+    * Function invoked by [[renderHTML]] to create HTML.Head part of file
+    * @param title - HTML page title
+    * @param cssLink - string containing CSS file name
+    * @return - HTML Head Code
+    */
+  def createHTMLHead(title: String, cssLink: String): TypedTag[String] = {
     val metaEquiv = HTML.httpEquiv := "Content-Type"
     val metaCont  = HTML.content := "text/html"
     val metaChar  = HTML.charset := "UTF-8"
@@ -78,15 +98,8 @@ class DocParser {
     val cssRel    = HTML.rel := "stylesheet"
     val cssHref   = HTML.href := cssLink
     val css       = HTML.link(cssRel)(cssHref)
-    val title = ast match {
-      case Some(value) => Seq(HTML.div(HTML.`class` := "Title")(value.show()))
-      case None        => Seq()
-    }
-
-    val documentation = Seq(
-      HTML.div(HTML.`class` := "Documentation")(title, doc.html)
-    )
-    HTML.html(HTML.head(meta, css), HTML.body(documentation))
+    val fileTitle = scalatags.Text.tags2.title(title)
+    HTML.head(meta, css)(fileTitle)
   }
 }
 
@@ -97,9 +110,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above
     */
-  def runMatched(input: String): Doc =
-    new DocParser().runMatched(input)
-  def run(input: String): Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
+  def run(input: String):        Result[Doc] = new DocParser().run(input)
 
   /**
     * Saves HTML code to file
@@ -130,34 +142,41 @@ object DocParserRunner {
 
   /**
     * function for invoking DocParser in right places
-    * creating Docs from parsed comments
-    * and also generating HTML files for created Doc's
+    * Firstly it creates Documentation on every Comment
+    * Then it traverses through ast to add appropriate AST into
+    * previously created Documented's
+    * After all that it generates HTML files for created Documented's
+    * and outputs modified AST
     *
-    * @param ast - parsed data by Parser
+    * @param module - parsed data by Parser
     * @return - AST with possible documentation
     */
-  def create(ast: AST): AST = {
-    val createdDocs = createDocs(ast)
+  def create(module: AST.Module): AST = {
+    val createdDocs        = createDocs(module)
+    val createdDocsWithAST = createDocsWithAST(createdDocs)
     /* NOTE : Commented out for ease of debugging procedures */
-    //generateHTMLForEveryDocumented(createdDocs)
-    createdDocs
+    generateHTMLForEveryDocumented(createdDocsWithAST)
+    createdDocsWithAST
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  //// Doc creation from comments //////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
   /**
-    * This function changes single- and multi- line comments into
-    * Doc(s), and Infix into Documented(s) ast
+    * This function changes comments into Doc(s) with empty AST
     *
-    * @param ast - data from Parser
-    * @return - modified data containing possibly Documentation(s)
+    * @param module - data from Parser
+    * @return - modified data containing possibly Documentation(s) without AST
     */
-  def createDocs(ast: AST): AST = {
+  def createDocs(module: AST): AST = {
     def accumulator(ast: AST): AST = {
       ast.map {
-        case AST.Comment.any(v) => createDocFromComment(v)
-        case elem               => accumulator(elem)
+        case AST.Comment.any(elem) => createDocFromComment(elem)
+        case elem                  => accumulator(elem)
       }
     }
-    accumulator(ast)
+    accumulator(module)
   }
 
   /**
@@ -171,6 +190,33 @@ object DocParserRunner {
     AST.Documented(DocParser.runMatched(in))
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  //// Assigning AST to previously created Doc's ///////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  /**
+    * This function gets Doc(s) with originally empty AST and tries to assign
+    * to them appropriate AST from Infix's and Def's
+    *
+    * @param module - module with possibly Doc's
+    * @return - modified data containing possibly Documentation(s) with AST
+    */
+  def createDocsWithAST(module: AST): AST = {
+    def accumulator(ast: AST): AST = {
+      ast.map {
+//        case AST.Documented.any(elem) => ???
+//        case AST.Def.any(elem)        => ???
+//        case AST.App.Infix.any(elem)  => ???
+        case elem => accumulator(elem)
+      }
+    }
+    accumulator(module)
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Generating HTML for created Doc's ///////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
   /**
     * this method is used for generation of
     * HTML files from parsed and reformatted
@@ -181,9 +227,8 @@ object DocParserRunner {
   def generateHTMLForEveryDocumented(ast: AST): Unit = {
     ast.map { elem =>
       elem match {
-        case AST.Documented.any(d) =>
-          new DocParser().onHTMLRendering(d)
-        case _ =>
+        case AST.Documented.any(d) => new DocParser().onHTMLRendering(d)
+        case _                     => generateHTMLForEveryDocumented(elem)
       }
       elem
     }
