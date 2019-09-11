@@ -1,14 +1,23 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.argument.SuspensionExecutorNode;
+import org.enso.interpreter.node.callable.argument.SuspensionExecutorNodeGen;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.argument.Suspension;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -27,6 +36,7 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   @Child private ArgumentSorterNode argumentSorter;
   @Child private MethodResolverNode methodResolverNode;
+  @Child private SuspensionExecutorNode thisExecutor;
 
   private final boolean canApplyThis;
   private final int thisArgumentPosition;
@@ -56,7 +66,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.argumentSorter = ArgumentSorterNodeGen.create(schema, hasDefaultsSuspended);
+    this.argumentSorter = ArgumentSorterNodeGen.create(schema, hasDefaultsSuspended, false);
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
@@ -95,7 +105,14 @@ public abstract class InvokeCallableNode extends BaseNode {
   @Specialization
   public Object invokeDynamicSymbol(UnresolvedSymbol symbol, Object[] arguments) {
     if (canApplyThis) {
-      Object selfArgument = arguments[thisArgumentPosition];
+      if (thisExecutor == null) {
+        CompilerDirectives.transferToInterpreterAndInvalidate();
+        thisExecutor = SuspensionExecutorNodeGen.create(false);
+      }
+
+      Object selfArgument =
+          thisExecutor.executeSuspension(((Suspension) arguments[thisArgumentPosition]));
+
       if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
         Atom self = (Atom) selfArgument;
         Function function = methodResolverNode.execute(symbol, self);

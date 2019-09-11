@@ -1,16 +1,25 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
+import org.enso.interpreter.node.callable.argument.SuspensionExecutorNode;
+import org.enso.interpreter.node.callable.argument.SuspensionExecutorNodeGen;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMappingBuilder;
+import org.enso.interpreter.runtime.callable.argument.Suspension;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
+
+import java.util.stream.IntStream;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -22,8 +31,11 @@ public class CachedArgumentSorterNode extends BaseNode {
   private final Function originalFunction;
   private final ArgumentMapping mapping;
   private final ArgumentSchema postApplicationSchema;
+  private @CompilerDirectives.CompilationFinal(dimensions = 1) boolean[] argumentShouldExecute;
+  @Children private SuspensionExecutorNode[] executors;
   private final boolean appliesFully;
   @Child private InvokeCallableNode oversaturatedCallableNode = null;
+  private final boolean ignoreArgumentExecution;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -32,11 +44,19 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param schema information on the calling argument
    * @param hasDefaultsSuspended whether or not the function to which these arguments are applied
    *     has its defaults suspended.
+   * @param ignoreArgumentExecution whether this node assumes all arguments are pre-executed and not
+   *     passed in a {@link Suspension}.
+   * @param isTail whether this node is called from a tail call position.
    */
   public CachedArgumentSorterNode(
-      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean isTail) {
+      Function function,
+      CallArgumentInfo[] schema,
+      boolean hasDefaultsSuspended,
+      boolean ignoreArgumentExecution,
+      boolean isTail) {
     this.setTail(isTail);
     this.originalFunction = function;
+    this.ignoreArgumentExecution = ignoreArgumentExecution;
     ArgumentMappingBuilder mapping = ArgumentMappingBuilder.generate(function.getSchema(), schema);
     this.mapping = mapping.getAppliedMapping();
     this.postApplicationSchema = mapping.getPostApplicationSchema();
@@ -59,6 +79,8 @@ public class CachedArgumentSorterNode extends BaseNode {
               postApplicationSchema.getOversaturatedArguments(), hasDefaultsSuspended);
       oversaturatedCallableNode.setTail(isTail);
     }
+
+    argumentShouldExecute = this.mapping.getArgumentShouldExecute();
   }
 
   /**
@@ -72,8 +94,35 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
    */
   public static CachedArgumentSorterNode create(
-      Function function, CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean isTail) {
-    return new CachedArgumentSorterNode(function, schema, hasDefaultsSuspended, isTail);
+      Function function,
+      CallArgumentInfo[] schema,
+      boolean hasDefaultsSuspended,
+      boolean ignoreArgumentExecution,
+      boolean isTail) {
+    return new CachedArgumentSorterNode(
+        function, schema, hasDefaultsSuspended, ignoreArgumentExecution, isTail);
+  }
+
+  private void initArgumentExecutors(Object[] arguments) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    executors = new SuspensionExecutorNode[argumentShouldExecute.length];
+    for (int i = 0; i < argumentShouldExecute.length; i++) {
+      if (argumentShouldExecute[i] && arguments[i] instanceof Suspension) {
+        executors[i] = SuspensionExecutorNodeGen.create(false);
+      }
+    }
+  }
+
+  @ExplodeLoop
+  private void executeArguments(Object[] arguments) {
+    if (executors == null) {
+      initArgumentExecutors(arguments);
+    }
+    for (int i = 0; i < argumentShouldExecute.length; i++) {
+      if (executors[i] != null) {
+        arguments[i] = executors[i].executeSuspension(((Suspension) arguments[i]));
+      }
+    }
   }
 
   /**
@@ -86,6 +135,7 @@ public class CachedArgumentSorterNode extends BaseNode {
    */
   public Object execute(Function function, Object[] arguments, CallOptimiserNode optimiser) {
     Object[] mappedAppliedArguments;
+    if (!ignoreArgumentExecution) executeArguments(arguments);
 
     if (originalFunction.getSchema().hasAnyPreApplied()) {
       mappedAppliedArguments = function.clonePreAppliedArguments();
