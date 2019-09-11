@@ -40,9 +40,6 @@ object Macro {
       }
     }
 
-    def isRoot(): Boolean =
-      builderStack.isEmpty
-
     var isLineBegin: Boolean = true
 
     @tailrec
@@ -94,7 +91,6 @@ object Macro {
               builder.macroDef =
                 tr.value.map(Some(_)).getOrElse(builder.macroDef)
               builder.context = builder.context.copy(tree = tr)
-              val knownMacro = builder.context.isEmpty
               logger.endGroup()
               go(t2_)
 
@@ -133,7 +129,7 @@ object Macro {
                   }
               }
           }
-        case (t1 @ Shifted(off, AST.Block.any(el1))) :: t2_ =>
+        case (Shifted(off, AST.Block.any(el1))) :: t2_ =>
           val nt1 = Shifted(off, el1.map(transform))
           builder.current.revStream +:= nt1
           go(t2_)

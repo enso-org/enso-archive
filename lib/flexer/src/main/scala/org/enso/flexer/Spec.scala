@@ -7,8 +7,6 @@ import scala.collection.immutable.Range
 import scala.collection.mutable
 import scala.reflect.runtime.universe._
 
-// FIXME: This file needs to be refactored. Contains a lot of ugly vars
-//        and does not always provide explanation why something happens
 /** Creates update functions for given DFA ~ nextState : state -> state.
   * Each state has a pattern match on current utf code point.
   * ASCII characters are explicitly matched, so that we get O(1) lookup.
@@ -136,6 +134,7 @@ case class Spec(dfa: DFA) {
 }
 
 object Spec {
+
   /** Covers all ASCII characters (0 - 255) and End Of Input (-1) */
   val MIN_MATCH_CODE = -1
   val MAX_MATCH_CODE = 255

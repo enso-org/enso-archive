@@ -10,7 +10,7 @@ import org.enso.syntax.text.AST.conversions._
 import org.enso.syntax.text.ast.DSL._
 import org.scalatest._
 
-class ParserSpec extends FlatSpec with Matchers {
+class ParserTest extends FlatSpec with Matchers {
 
   def assertModule(input: String, result: AST): Assertion = {
     val parser  = Parser()

@@ -417,13 +417,12 @@ sealed trait Pattern {
           case Shifted(off, pat(t)) :: ss =>
             val ok = spaced match {
               case None => true
-              case Some(s) => {
+              case Some(s) =>
                 val isBlock = t match {
                   case AST.Block.any(_) => true
                   case _                => false
                 }
                 (s == (off > 0)) && (!isBlock)
-              }
             }
             if (ok) f(Shifted(off, t)).map(out(_, ss)) else None
           case _ => None
@@ -484,8 +483,8 @@ sealed trait Pattern {
             )
           }
 
-        case p @ P.Tag(tag, p1) => stepWith(p1, stream)(M.Tag(p, _))
-        case p @ P.Cls(tag, p1) => stepWith(p1, stream)(M.Cls(p, _))
+        case p @ P.Tag(_, p1) => stepWith(p1, stream)(M.Tag(p, _))
+        case p @ P.Cls(_, p1) => stepWith(p1, stream)(M.Cls(p, _))
 
         //// Token Matches ////
 

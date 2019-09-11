@@ -4,9 +4,9 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
-import org.enso.interpreter.optimiser.tco.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 
@@ -24,6 +24,8 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * Creates a node that performs the argument organisation for the provided schema.
    *
    * @param schema information about the call arguments in positional order
+   * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
+   *     function invocation
    */
   public ArgumentSorterNode(CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
     this.schema = schema;
@@ -47,27 +49,33 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param optimiser a cached call optimizer node, capable of performing the actual function call
    * @return the result of applying the function with remapped arguments
    */
-  @Specialization(guards = "mappingNode.isCompatible(function)")
+  @Specialization(
+      guards = "mappingNode.isCompatible(function)",
+      limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   public Object invokeCached(
       Function function,
       Object[] arguments,
-      @Cached("create(function, getSchema(), hasDefaultsSuspended())")
+      @Cached("create(function, getSchema(), hasDefaultsSuspended(), isTail())")
           CachedArgumentSorterNode mappingNode,
       @Cached CallOptimiserNode optimiser) {
-    Object[] mappedArguments = mappingNode.execute(function, arguments);
-    if (mappingNode.appliesFully()) {
-      if (this.isTail()) {
-        throw new TailCallException(mappingNode.getOriginalFunction(), mappedArguments);
-      } else {
-        return optimiser.executeDispatch(mappingNode.getOriginalFunction(), mappedArguments);
-      }
-    } else {
-      return new Function(
-          function.getCallTarget(),
-          function.getScope(),
-          mappingNode.getPostApplicationSchema(),
-          mappedArguments);
-    }
+    return mappingNode.execute(function, arguments, optimiser);
+  }
+
+  /**
+   * Generates an argument mapping and executes a function with properly ordered arguments. Does not
+   * perform any caching and is thus a slow-path operation.
+   *
+   * @param function the function to execute.
+   * @param arguments the arguments to reorder and supply to the {@code function}.
+   * @return the result of calling {@code function} with the supplied {@code arguments}.
+   */
+  @Specialization(replaces = "invokeCached")
+  public Object invokeUncached(Function function, Object[] arguments) {
+    return invokeCached(
+        function,
+        arguments,
+        CachedArgumentSorterNode.create(function, getSchema(), hasDefaultsSuspended(), isTail()),
+        CallOptimiserNode.create());
   }
 
   /**

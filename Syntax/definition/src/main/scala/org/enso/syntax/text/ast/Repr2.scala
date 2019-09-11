@@ -34,14 +34,9 @@ package org.enso.syntax.text.ast2
 // We should probably apply CPS transformation to the code builder here,
 // unless there is any other better solution.
 
-import java.nio.charset.StandardCharsets
-
-import org.enso.data.List1
-import org.enso.data.Shifted
 import cats.Monoid
 import cats.implicits._
-
-import scala.annotation.tailrec
+import org.enso.data.{List1, Shifted}
 
 trait SpannedRepr[T] {
   val spanned: Spanned[T]
