@@ -137,7 +137,7 @@ class DocParser {
     val transforemdLines = transformLines(linesToTransform)
     val head = HTML.div(HTML.`class` := "DefTitle")(
       name.show(),
-      HTML.div(HTML.`class` := "Args")(args.map(_.show()))
+      HTML.div(HTML.`class` := "DefArgs")(args.map(_.show()))
     )
     val lines = HTML.div(HTML.`class` := "DefBody")(transforemdLines)
     HTML.div(HTML.`class` := "Def")(head, lines)
