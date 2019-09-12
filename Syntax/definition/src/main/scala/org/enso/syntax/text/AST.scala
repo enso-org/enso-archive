@@ -1106,8 +1106,7 @@ object AST {
       implicit def repr[T: Repr]: Repr[MatchOf[T]] = t => {
         val pfxStream = t.pfx.map(_.toStream.reverse).getOrElse(List())
         val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
-        val segsRepr  = t.segs.map(s => R + s.head + s.body) // FIXME: We should be able to use here the repr instance of segment
-        R + pfxRepr + segsRepr
+        R + pfxRepr + t.segs
       }
     }
     object Match {

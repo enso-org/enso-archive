@@ -62,8 +62,6 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ypartial-unification",              // Enable partial unification (which is enabled by default in Scala 2.13).
   "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
   "-Xcheckinit"                         // Wrap field accessors to throw an exception on uninitialized access.
-  // "-Xfatal-warnings",                // Fail the compilation if there are any warnings.
-  // "-optimize"                        // Optimize the code (not working in Scala 2.12.8)
 )
 
 /////////////////////////////////
@@ -83,7 +81,7 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(syntax, pkg, interpreter)
-  .settings(Global / concurrentRestrictions := Seq(Tags.exclusive(Exclusive)))
+  .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
 ////////////////////////////
 //// Dependency Bundles ////

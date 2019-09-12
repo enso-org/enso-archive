@@ -135,7 +135,7 @@ object Builder {
 
   case class Context(tree: Registry.Tree, parent: Option[Context]) {
     def lookup(t: AST): Option[Registry.Tree] = tree.get(t)
-    def isEmpty:        Boolean               = tree.isEmpty
+    def isEmpty:        Boolean               = tree.isLeaf
 
     @tailrec
     final def parentLookup(t: AST): Boolean = {

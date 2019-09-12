@@ -26,7 +26,7 @@ case class Tree[K, V](value: Option[V], branches: Map[K, Tree[K, V]]) {
   def getValue(path: List[K]): Option[V] =
     get(path).flatMap(_.value)
 
-  def isEmpty: Boolean =
+  def isLeaf: Boolean =
     branches.isEmpty
 }
 
