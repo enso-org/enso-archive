@@ -208,7 +208,10 @@ object DocParserRunner {
     */
   def document(module: AST.Module): AST = {
     val createdDocs = createDocs(module)
-    /* NOTE : Commented out for ease of debugging procedures */
+
+    /** NOTE : Comment out for ease of debugging procedures
+      * in order not to create zillion .html files
+      */
     generateHTMLForEveryDocumented(createdDocs)
     createdDocs
   }

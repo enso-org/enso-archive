@@ -288,22 +288,11 @@ object Main extends App {
 
   val in_arr1 = "a = b -> c d"
 
-  val in3 = "(a) b = c"
-  val in4 = "if a then (b)"
-  val in2 = "(a) b = c]"
-  //val inp = "a (b (c)) x"
-  //val inp = "foreign Py\n xx"
-  //val inp = "(a) b = c"
-  //val inp = "a = b -> c"
-  //val inp = "a = b -> c d"
-  //val inp = "a (b (c)) x"
-  //  val inp = "x(x[a))"
-  // 48
-//  val inp =
-//    """## This function adds *x* to *y*
-//      |add x y = x + y
-//      |mul x y = x * y
-//      |""".stripMargin
+  val in3  = "(a) b = c"
+  val in4  = "if a then (b)"
+  val in2  = "(a) b = c]"
+  val inp2 = "a (b (c)) x"
+
   val inp = """## This function adds *x* to *y*
               |add x y = x + y
               |mul x y = x * y
@@ -343,17 +332,13 @@ object Main extends App {
   println(mod.show())
   println("------")
 
+  /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
   val documentation = DocParserRunner.document(parser.dropMacroMeta(mod))
   println(pretty(documentation.toString))
   println("------")
   println(documentation.show())
   println("=========================")
-
-  //  mod.traverseWithOff { (off, ast) =>
-  //    println(s">> $off - ${off + ast.span}: $ast")
-  //    ast
-  //  }
 
   println()
 
