@@ -48,6 +48,10 @@ class DocParser {
     */
   def run(input: String): Result[Doc] = engine.run(new Reader(input))
 
+  //////////////////////////////////////////////////////////////////////////////
+  //// HTML Rendering of Documentation /////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
   /**
     * Used to create HTML files from Doc with or without title after
     * Doc Parser Runner finished it's job
@@ -78,8 +82,9 @@ class DocParser {
       case None        => "Enso Documentation"
     }
     val astHtml = ast match {
-      case Some(value) => Seq(HTML.div(HTML.`class` := "ASTData")(value.show()))
-      case None        => Seq()
+      case Some(value) =>
+        Seq(HTML.div(HTML.`class` := "ASTData")(createHTMLFromAST(value)))
+      case None => Seq()
     }
     val documentation = Seq(
       HTML.div(HTML.`class` := "Documentation")(doc.html, astHtml)
@@ -104,6 +109,53 @@ class DocParser {
     val fileTitle = scalatags.Text.tags2.title(title)
     HTML.head(meta, css)(fileTitle)
   }
+
+  def createHTMLFromAST(ast: AST): TypedTag[String] = {
+    ast match {
+      case AST.Def.any(d) =>
+        d.body match {
+          case Some(body) =>
+            body match {
+              case AST.Block.any(b) => traverseThroughDefBody(d.name, d.args, b)
+              case _                => HTML.div(HTML.`class` := "DefNoBody")(d.show())
+            }
+          case None => HTML.div(HTML.`class` := "DefNoBody")(d.show())
+        }
+      case AST.App.Infix.any(i) =>
+        HTML.div(HTML.`class` := "Infix")(i.larg.show())
+      case other => HTML.div(HTML.`class` := "otherAST")(other.show())
+    }
+  }
+
+  def traverseThroughDefBody(
+    name: AST.Cons,
+    args: List[AST],
+    b: AST.Block
+  ): TypedTag[String] = {
+    val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
+    val linesToTransform = firstLine :: b.lines
+    val transforemdLines = transformLines(linesToTransform)
+    val head = HTML.div(HTML.`class` := "DefTitle")(
+      name.show(),
+      HTML.div(HTML.`class` := "Args")(args.map(_.show()))
+    )
+    val lines = HTML.div(HTML.`class` := "DefBody")(transforemdLines)
+    HTML.div(HTML.`class` := "Def")(head, lines)
+  }
+
+  def transformLines(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
+    lines match {
+      case Line(Some(AST.Documented.any(doc)), _) :: rest =>
+        HTML.div(HTML.`class` := "DefDoc")(doc.doc.html) :: transformLines(rest)
+      case x :: rest =>
+        HTML.div(HTML.`class` := "DefNoDoc")(x.elem.map(_.show())) :: transformLines(
+          rest
+        )
+      case other =>
+        HTML.div(HTML.`class` := "DefNoDoc")(
+          other.map(line => line.elem.map(_.show()).getOrElse(""))
+        ) :: List()
+    }
 }
 
 object DocParser {
