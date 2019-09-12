@@ -289,15 +289,14 @@ h2 {
 }
 
 .Documentation .ASTData {
-    margin: 20 auto;
-    padding: 5px;
+    margin: 20px auto;
+    padding: 10px 20px;
     text-align: left;
-    font-size: 40px;
     line-height: 1.05;
-    font-weight: 500;
     letter-spacing: 0.008em;
+    background-color: #fafafa;
+    border-radius: 6px;
 }
-
 
 .Documentation .Documented {
     margin: 0;
