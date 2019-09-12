@@ -110,6 +110,11 @@ class DocParser {
     HTML.head(meta, css)(fileTitle)
   }
 
+  /**
+    * Function invoked by [[renderHTML]] to create HTML from AST in Documented
+    * @param ast - AST
+    * @return - HTML Code
+    */
   def createHTMLFromAST(ast: AST): TypedTag[String] = {
     ast match {
       case AST.Def.any(d) =>
@@ -127,6 +132,9 @@ class DocParser {
     }
   }
 
+  /** Helper functions for [[createHTMLFromAST]] to traverse through Def body
+    * and create HTML code from elements in it
+    */
   def traverseThroughDefBody(
     name: AST.Cons,
     args: List[AST],
@@ -246,7 +254,7 @@ object DocParserRunner {
     }
   }
 
-  /** Helper functions for createDocs to traverse through Module and Def body */
+  /** Helper functions for [[createDocs]] to traverse through Module and Def body */
   def traverseThroughModule(m: AST.Module): AST.Module = {
     val transformedLines = List1(transformLines(m.lines.toList))
       .getOrElse(List1(AST.Block.OptLine()))
