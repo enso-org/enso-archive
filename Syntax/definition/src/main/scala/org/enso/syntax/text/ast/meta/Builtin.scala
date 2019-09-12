@@ -10,24 +10,26 @@ import org.enso.syntax.text.ast.Repr
 
 import scala.annotation.tailrec
 
+/** It contains definitions of built-in macros, like if-then-else or (-). These
+  * macros might get moved to stdlib in the future.
+  */
 object Builtin {
 
   val registry: Registry = {
 
     def internalError = throw new Error("Internal error")
 
-    val group =
-      Definition(Opr("(") -> Pattern.Expr().opt, Opr(")")) { ctx =>
-        ctx.body match {
-          case List(st1, _) =>
-            st1.body.toStream match {
-              case List()  => AST.Group()
-              case List(t) => AST.Group(t)
-              case _       => internalError
-            }
-          case _ => internalError
-        }
+    val group = Definition(Opr("(") -> Pattern.Expr().opt, Opr(")")) { ctx =>
+      ctx.body match {
+        case List(st1, _) =>
+          st1.body.toStream match {
+            case List()  => AST.Group()
+            case List(t) => AST.Group(t)
+            case _       => internalError
+          }
+        case _ => internalError
       }
+    }
 
     val defn = Definition(Var("def") -> {
       val head = Pattern.Cons().or("missing name").tag("name")

@@ -25,7 +25,7 @@ object Operator {
   }
 
   def rebuildNonSpaced(stream: AST.Stream1): AST.Stream1 = {
-    val segs = prec.Distance.partition2(stream)
+    val segs = prec.Distance.partition(stream)
     segs.map(_.map(rebuildSubExpr))
   }
 

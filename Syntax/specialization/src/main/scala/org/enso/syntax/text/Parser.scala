@@ -117,27 +117,32 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   *
   *
   *
-  * ==Finalizers and space-unaware AST==
+  * ==Finalizers==
   *
   * A careful reader will notice that there was no description of how finalizers
-  * (mentioned in the first section) are used. That's because they are NOT used
-  * during parsing. A very important design decision is that Enso AST contains
-  * all information allowing for printing the code back from the AST, while
-  * keeping all whitespaces as they were before parsing. This is why each
-  * space-aware AST, like [[AST.App]] records all positional information. For
-  * convenient usage, all space-aware [[AST]] definitions end with "Of",
-  * like [[AST.App.PrefixOf]] and have a counterpart without "Of" allowing for pattern
-  * matching without thinking about the spacing information. Because macro
-  * system is end-user extensible, we cannot assume that the end-user will care
-  * about recording valid spacing when transforming [[AST]] to another form.
-  * That's why there are also space-unaware [[AST]] structures, which are handy
-  * to work with by automated tools like the interpreter, while all the spacing
-  * information is stored only in the basic set of tokens and [[AST.Macro]]
-  * tokens. Each AST node has a [[AST.map]] function for mapping over sub-nodes,
-  * which allows easy building of AST traversals. The [[Parser#resolveMacros]]
-  * is such a traversal, which applies [[AST.Macro.Definition.Resolver]] to
-  * each [[AST.Macro.Match]] found in the AST, while loosing a lot of positional
-  * information.
+  * (mentioned in the first section) are used. Finalizers are user-provided AST
+  * transformations which are applied to valid AST Macro matches. After
+  * finalizer is applied, the spacing information might be lost.
+  *
+  * ==Space-unaware AST===
+  *
+  * That's because they are NOT used during parsing. A very important design
+  * decision is that Enso AST contains all information allowing for printing the
+  * code back from the AST, while keeping all whitespaces as they were before
+  * parsing. This is why each space-aware AST, like [[AST.App]] records all
+  * positional information. For convenient usage, all space-aware [[AST]]
+  * definitions end with "Of", like [[AST.App.PrefixOf]] and have a counterpart
+  * without "Of" allowing for pattern matching without thinking about the
+  * spacing information. Because macro system is end-user extensible, we cannot
+  * assume that the end-user will care about recording valid spacing when
+  * transforming [[AST]] to another form. That's why there are also
+  * space-unaware [[AST]] structures, which are handy to work with by automated
+  * tools like the interpreter, while all the spacing information is stored only
+  * in the basic set of tokens and [[AST.Macro]] tokens. Each AST node has a
+  * [[AST.map]] function for mapping over sub-nodes, which allows easy building
+  * of AST traversals. The [[Parser#resolveMacros]] is such a traversal, which
+  * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
+  * in the AST, while loosing a lot of positional information.
   */
 class Parser {
   import Parser._
@@ -203,7 +208,7 @@ class Parser {
 }
 
 object Parser {
-  def apply(): Parser   = new Parser()
+  def apply(): Parser = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////

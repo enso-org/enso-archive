@@ -10,27 +10,7 @@ object Distance {
   /** Segment is a list of AST tokens which are not separated with spaces */
   type Segment = List1[AST]
 
-  /** Partition the AST stream to non-spaced segments. */
-  def partition(revLst: List1[Shifted[AST]]): List1[Shifted[Segment]] = {
-    @tailrec
-    def go(
-      input: List[Shifted[AST]],
-      lastOff: Int,
-      current: List1[AST],
-      out: List[Shifted[Segment]]
-    ): List1[Shifted[Segment]] = input match {
-      case Nil => List1(Shifted(lastOff, current), out)
-      case ast1 :: ast2_ =>
-        val (current2, out2) = lastOff match {
-          case 0 => (ast1.el :: current, out)
-          case i => (List1(ast1.el), Shifted(i, current) :: out)
-        }
-        go(ast2_, ast1.off, current2, out2)
-    }
-    go(revLst.tail, revLst.head.off, List1(revLst.head.el), Nil)
-  }
-
-  def partition2(lst: List1[Shifted[AST]]): List1[Shifted[Segment]] = {
+  def partition(lst: List1[Shifted[AST]]): List1[Shifted[Segment]] = {
     @tailrec
     def go(
       input: List[Shifted[AST]],
