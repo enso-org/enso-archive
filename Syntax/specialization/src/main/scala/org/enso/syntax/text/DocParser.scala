@@ -113,8 +113,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above
     */
-  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
-  def run(input: String):        Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 
   /**
     * Saves HTML code to file
@@ -173,28 +173,41 @@ object DocParserRunner {
   def createDocs(ast: AST): AST = {
     ast match {
       case AST.Module.any(m) =>
-        val transformedLines = List1(transformLines(m.lines.toList))
-          .getOrElse(List1(AST.Block.OptLine()))
-        AST.Module(transformedLines)
+        traverseThroughModule(m)
       case AST.Def.any(d) =>
         d.body match {
-          case Some(defBody) =>
-            defBody match {
+          case Some(body) =>
+            body match {
               case AST.Block.any(b) =>
-                val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
-                val linesToTransform = firstLine :: b.lines
-                val tLines           = transformLines(linesToTransform)
-                val head =
-                  AST.Block.LineOf[AST](tLines.head.elem.get, tLines.head.off)
-                val lines = tLines.tail
-                val body  = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
-                AST.Def(d.name, d.args, Some(body))
+                traverseThroughDefBody(d.name, d.args, b)
               case _ => d
             }
           case None => d
         }
-      case o => o
+      case other => other
     }
+  }
+
+  /** Helper functions for createDocs to traverse through Module and Def body */
+  def traverseThroughModule(m: AST.Module): AST.Module = {
+    val transformedLines = List1(transformLines(m.lines.toList))
+      .getOrElse(List1(AST.Block.OptLine()))
+    AST.Module(transformedLines)
+  }
+
+  def traverseThroughDefBody(
+    name: AST.Cons,
+    args: List[AST],
+    b: AST.Block
+  ): AST.Def = {
+    val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
+    val linesToTransform = firstLine :: b.lines
+    val transforemdLines = transformLines(linesToTransform)
+    val head = AST.Block
+      .LineOf[AST](transforemdLines.head.elem.get, transforemdLines.head.off)
+    val lines = transforemdLines.tail
+    val body  = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
+    AST.Def(name, args, Some(body))
   }
 
   /**
@@ -211,25 +224,21 @@ object DocParserRunner {
             Some(AST.App.Infix.any(ast)),
             astOff
           ) :: rest =>
-        val doc            = createDocFromComment(com)
-        val documentedLine = Line(Some(AST.Documented(doc, ast)), comOff)
-        documentedLine :: transformLines(rest)
+        createDocumentedLine(com, Some(ast), comOff, astOff) :: transformLines(
+          rest
+        )
       case Line(Some(AST.Comment.any(com)), comOff) :: Line(
             Some(AST.Def.any(ast)),
             astOff
           ) :: rest =>
-        val doc = createDocFromComment(com)
-        val documentedLine =
-          Line(Some(AST.Documented(doc, createDocs(ast))), comOff)
-        documentedLine :: transformLines(rest)
+        createDocumentedLine(com, Some(createDocs(ast)), comOff, astOff) :: transformLines(
+          rest
+        )
       case Line(Some(AST.Comment.any(com)), comOff) :: rest =>
-        val doc            = createDocFromComment(com)
-        val documentedLine = Line(Some(AST.Documented(doc)), comOff)
-        documentedLine :: transformLines(rest)
+        createDocumentedLine(com, comOff) :: transformLines(rest)
       case x :: rest =>
         x :: transformLines(rest)
-      case other =>
-        other
+      case other => other
     }
 
   /**
@@ -241,6 +250,43 @@ object DocParserRunner {
   def createDocFromComment(comment: AST.Comment): Doc = {
     val in = comment.lines.mkString("\n")
     DocParser.runMatched(in)
+  }
+
+  /**
+    * Function for creating documented lines in [[transformLines]] method
+    * It invokes bottom [[createDocumentedLine]] without AST data
+    *
+    * @param comment - comment found in AST
+    * @param comOff - commented line offset
+    * @return - [[AST.Documented]]
+    */
+  def createDocumentedLine(
+    comment: AST.Comment,
+    comOff: Int
+  ): AST.Block.LineOf[Some[AST.Documented]] =
+    createDocumentedLine(comment, None, comOff, 0)
+
+  /**
+    * Function for creating documented lines in [[transformLines]] method
+    *
+    * @param comment - comment found in AST
+    * @param comOff - commented line offset
+    * @param ast - Optional AST to go with comment into Documented
+    * @param astOff - if there is AST is used to inform about AST offset
+    * @return - [[AST.Documented]]
+    */
+  def createDocumentedLine(
+    comment: AST.Comment,
+    ast: Option[AST],
+    comOff: Int,
+    astOff: Int
+  ): AST.Block.LineOf[Some[AST.Documented]] = {
+    val doc = createDocFromComment(comment)
+    val documented = ast match {
+      case Some(value) => AST.Documented(doc, value)
+      case None        => AST.Documented(doc)
+    }
+    Line(Some(documented), comOff)
   }
 
   //////////////////////////////////////////////////////////////////////////////
