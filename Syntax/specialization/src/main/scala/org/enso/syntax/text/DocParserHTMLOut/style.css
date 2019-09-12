@@ -288,7 +288,7 @@ h2 {
     border-bottom: 1px solid #d6d6d6
 }
 
-.Documentation .Title {
+.Documentation .ASTData {
     margin: 20 auto;
     padding: 5px;
     text-align: left;
@@ -309,7 +309,7 @@ h2 {
     .Synopsis, 
     .Body,
     .Tags,
-    .Documentation .Title {
+    .Documentation .ASTData {
         width: 380px
     }
 }
@@ -318,7 +318,7 @@ h2 {
     .Synopsis, 
     .Body,
     .Tags,
-    .Documentation .Title {
+    .Documentation .ASTData {
         width: 440px
     }
 }
@@ -327,7 +327,7 @@ h2 {
     .Synopsis, 
     .Body,
     .Tags,
-    .Documentation .Title {
+    .Documentation .ASTData {
         width: 490px
     }
 }
@@ -336,7 +336,7 @@ h2 {
     .Synopsis, 
     .Body,
     .Tags,
-    .Documentation .Title {
+    .Documentation .ASTData {
         width: 670px
     }
 }
@@ -345,7 +345,7 @@ h2 {
     .Synopsis,
     .Body,
     .Tags,
-    .Documentation .Title  {
+    .Documentation .ASTData  {
         width: 780px
     }
 }

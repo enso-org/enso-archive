@@ -73,16 +73,16 @@ class DocParser {
     doc: Doc,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
-    val astHtml = ast match {
-      case Some(value) => Seq(HTML.div(HTML.`class` := "Title")(value.show()))
-      case None        => Seq()
-    }
     val title = ast match {
       case Some(value) => value.show().split("")(0) //first part of string
       case None        => "Enso Documentation"
     }
+    val astHtml = ast match {
+      case Some(value) => Seq(HTML.div(HTML.`class` := "ASTData")(value.show()))
+      case None        => Seq()
+    }
     val documentation = Seq(
-      HTML.div(HTML.`class` := "Documentation")(astHtml, doc.html)
+      HTML.div(HTML.`class` := "Documentation")(doc.html, astHtml)
     )
     HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
   }
@@ -154,13 +154,16 @@ object DocParserRunner {
     * @param module - parsed data by Parser
     * @return - AST with possible documentation
     */
-  def create(module: AST.Module): AST = {
-    val createdDocsWithAST = createDocs(module)
+  def document(module: AST.Module): AST = {
+    val createdDocs = createDocs(module)
     /* NOTE : Commented out for ease of debugging procedures */
-//    generateHTMLForEveryDocumented(createdDocsWithAST)
-    createdDocsWithAST
+//    generateHTMLForEveryDocumented(createdDocs)
+    createdDocs
   }
 
+  //////////////////////////////////////////////////////////////////////////////
+  //// Created Doc's in right places with appropriate AST //////////////////////
+  //////////////////////////////////////////////////////////////////////////////
   /**
     * This function gets [[AST.Module]] or [[AST.Block]]
     * and then invokes on their lines [[transformLines]] function

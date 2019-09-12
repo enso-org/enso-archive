@@ -344,7 +344,7 @@ object Main extends App {
   println("------")
 
   println("===== DOCUMENTATION =====")
-  val documentation = DocParserRunner.create(parser.dropMacroMeta(mod))
+  val documentation = DocParserRunner.document(parser.dropMacroMeta(mod))
   println(pretty(documentation.toString))
   println("------")
   println(documentation.show())
