@@ -1,4 +1,4 @@
-package org.enso.interpreter
+package org.enso.interpreter.semantic
 
 class InteropTest extends LanguageTest {
   "Interop library" should "support tail recursive functions" in {

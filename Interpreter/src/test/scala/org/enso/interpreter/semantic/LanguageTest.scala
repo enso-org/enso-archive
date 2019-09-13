@@ -1,10 +1,9 @@
-package org.enso.interpreter
+package org.enso.interpreter.semantic
 
-import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.Value
+import org.enso.interpreter.{AstGlobalScope, Constants, EnsoParser}
+import org.graalvm.polyglot.{Context, Value}
 import org.scalactic.Equality
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.scalatest.{FlatSpec, Matchers}
 
 trait LanguageRunner {
   implicit class RichValue(value: Value) {

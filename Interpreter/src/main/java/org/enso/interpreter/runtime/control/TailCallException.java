@@ -1,4 +1,4 @@
-package org.enso.interpreter.optimiser.tco;
+package org.enso.interpreter.runtime.control;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
 import org.enso.interpreter.runtime.callable.function.Function;

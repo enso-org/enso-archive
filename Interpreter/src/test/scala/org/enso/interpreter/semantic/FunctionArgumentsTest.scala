@@ -1,4 +1,4 @@
-package org.enso.interpreter
+package org.enso.interpreter.semantic
 
 class FunctionArgumentsTest extends LanguageTest {
   "Functions" should "take arguments and use them in their bodies" in {

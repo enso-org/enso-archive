@@ -1,14 +1,12 @@
-package org.enso.interpreter
+package org.enso.interpreter.semantic
 
 import java.io.File
 
+import org.enso.interpreter.Constants
 import org.enso.interpreter.runtime.RuntimeOptions
-import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.Source
-import org.graalvm.polyglot.Value
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
 import org.enso.pkg.Package
+import org.graalvm.polyglot.{Context, Source, Value}
+import org.scalatest.{FlatSpec, Matchers}
 
 trait PackageTest extends FlatSpec with Matchers with ValueEquality {
 

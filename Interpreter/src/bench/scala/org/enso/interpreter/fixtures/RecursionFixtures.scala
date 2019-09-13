@@ -1,7 +1,6 @@
 package org.enso.interpreter.fixtures
 
 import org.enso.interpreter.Constants
-import org.enso.interpreter.LanguageRunner
 
 class RecursionFixtures extends LanguageRunner {
   val hundredMillion: Long = 100000000
