@@ -10,7 +10,6 @@ import org.enso.interpreter.runtime.Builtins;
 @NodeInfo(shortName = "print", description = "Prints the value of child expression.")
 public final class PrintNode extends ExpressionNode {
   @Child private ExpressionNode expression;
-
   /**
    * Creates a node that prints the result of its expression.
    *
