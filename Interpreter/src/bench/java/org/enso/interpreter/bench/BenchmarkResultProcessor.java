@@ -1,4 +1,4 @@
-package org.enso.interpreter;
+package org.enso.interpreter.bench;
 
 import org.openjdk.jmh.results.Result;
 import org.openjdk.jmh.results.RunResult;

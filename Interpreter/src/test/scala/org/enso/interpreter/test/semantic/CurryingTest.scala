@@ -1,4 +1,4 @@
-package org.enso.interpreter.semantic
+package org.enso.interpreter.test.semantic
 
 class CurryingTest extends LanguageTest {
   "Functions" should "allow partial application" in {

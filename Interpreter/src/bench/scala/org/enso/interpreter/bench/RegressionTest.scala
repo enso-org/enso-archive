@@ -1,4 +1,4 @@
-package org.enso.interpreter
+package org.enso.interpreter.bench
 
 import org.scalatest.{FlatSpec, Matchers}
 

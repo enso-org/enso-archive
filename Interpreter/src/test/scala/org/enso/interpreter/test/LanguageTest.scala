@@ -1,4 +1,4 @@
-package org.enso.interpreter.semantic
+package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.{AstGlobalScope, Constants, EnsoParser}
 import org.graalvm.polyglot.{Context, Value}

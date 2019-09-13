@@ -1,4 +1,4 @@
-package org.enso.interpreter.semantic
+package org.enso.interpreter.test.semantic
 
 import org.graalvm.polyglot.PolyglotException
 

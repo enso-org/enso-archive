@@ -1,6 +1,6 @@
-package org.enso.interpreter.benchmarks;
+package org.enso.interpreter.bench.benchmarks.semantic;
 
-import org.enso.interpreter.fixtures.AtomFixtures;
+import org.enso.interpreter.bench.fixtures.semantic.AtomFixtures;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;

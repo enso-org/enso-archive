@@ -1,4 +1,6 @@
-package org.enso.interpreter.fixtures
+package org.enso.interpreter.bench.fixtures.semantic
+
+import org.enso.interpreter.test.semantic.LanguageRunner
 
 class NamedDefaultedArgumentFixtures extends LanguageRunner {
   val hundredMillion: Long = 100000000

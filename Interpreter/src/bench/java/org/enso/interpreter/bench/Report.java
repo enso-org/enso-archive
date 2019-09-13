@@ -1,4 +1,4 @@
-package org.enso.interpreter;
+package org.enso.interpreter.bench;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;

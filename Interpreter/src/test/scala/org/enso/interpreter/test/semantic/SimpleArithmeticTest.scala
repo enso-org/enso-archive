@@ -1,4 +1,4 @@
-package org.enso.interpreter.semantic
+package org.enso.interpreter.test.semantic
 
 class SimpleArithmeticTest extends LanguageTest {
   "1 + 1" should "equal 2" in {
