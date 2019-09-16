@@ -35,7 +35,7 @@ final case class Doc(
 }
 
 object Doc {
-  def apply():           Doc = Doc(None, None, None)
+  def apply(): Doc           = Doc(None, None, None)
   def apply(tags: Tags): Doc = Doc(Some(tags), None, None)
   def apply(synopsis: Synopsis): Doc =
     Doc(None, Some(synopsis), None)
@@ -104,7 +104,7 @@ object Doc {
       * Newline - used to hold newline ('\n') as elem
       */
     final case class Text(text: String) extends Elem {
-      val repr: Repr.Builder = R + text
+      val repr: Repr.Builder = text
       val html: HTML         = Seq(text)
     }
 
@@ -155,7 +155,7 @@ object Doc {
       }
 
       object Unclosed {
-        def apply(typ: Type):             Unclosed = Unclosed(typ, Nil)
+        def apply(typ: Type): Unclosed             = Unclosed(typ, Nil)
         def apply(typ: Type, elem: Elem): Unclosed = Unclosed(typ, elem :: Nil)
         def apply(typ: Type, elems: Elem*): Unclosed =
           Unclosed(typ, elems.toList)
@@ -341,7 +341,7 @@ object Doc {
     */
   sealed trait Section extends Symbol {
     def indent: Int
-    def elems: List[Elem]
+    def elems:  List[Elem]
 
     def reprOfNormalText(elem: Elem, prevElem: Elem): Repr.Builder = {
       prevElem match {
@@ -364,7 +364,7 @@ object Doc {
       val html: HTML         = Seq(HTML.div(htmlCls())(elems.map(_.html)))
     }
     object Header {
-      def apply(elem: Elem):   Header = Header(elem :: Nil)
+      def apply(elem: Elem): Header   = Header(elem :: Nil)
       def apply(elems: Elem*): Header = Header(elems.toList)
     }
 
@@ -442,13 +442,13 @@ object Doc {
     }
 
     object Raw {
-      def apply(indent: Int):               Raw = Raw(indent, Nil)
-      def apply(indent: Int, elem: Elem):   Raw = Raw(indent, elem :: Nil)
+      def apply(indent: Int): Raw               = Raw(indent, Nil)
+      def apply(indent: Int, elem: Elem): Raw   = Raw(indent, elem :: Nil)
       def apply(indent: Int, elems: Elem*): Raw = Raw(indent, elems.toList)
-      val defaultIndent = 0
-      def apply():             Raw = Raw(defaultIndent, Nil)
-      def apply(elem: Elem):   Raw = Raw(defaultIndent, elem :: Nil)
-      def apply(elems: Elem*): Raw = Raw(defaultIndent, elems.toList)
+      val defaultIndent                         = 0
+      def apply(): Raw                          = Raw(defaultIndent, Nil)
+      def apply(elem: Elem): Raw                = Raw(defaultIndent, elem :: Nil)
+      def apply(elems: Elem*): Raw              = Raw(defaultIndent, elems.toList)
     }
   }
 
@@ -512,7 +512,7 @@ object Doc {
     val html: HTML   = Seq(HTML.div(htmlCls())(elems.toList.map(_.html)))
   }
   object Tags {
-    def apply(elem: Tag):   Tags = Tags(List1(elem))
+    def apply(elem: Tag): Tags   = Tags(List1(elem))
     def apply(elems: Tag*): Tags = Tags(List1(elems.head, elems.tail.toList))
 
     /** Tag - one single tag for Tags
@@ -536,7 +536,7 @@ object Doc {
       }
     }
     object Tag {
-      val defaultIndent = 0
+      val defaultIndent         = 0
       def apply(typ: Type): Tag = Tag(defaultIndent, typ, None)
       def apply(typ: Type, details: String): Tag =
         Tag(defaultIndent, typ, Some(details))
@@ -551,7 +551,7 @@ object Doc {
         case object Removed    extends Type
         case object Modified   extends Type
         case object Upcoming   extends Type
-        val codes: Set[Type] = ADT.constructors[Type]
+        val codes = ADT.constructors[Type]
       }
       case object Unrecognized extends Type
 
