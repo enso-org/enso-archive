@@ -298,23 +298,19 @@ object Main extends App {
   val in2  = "(a) b = c]"
   val inp2 = "a (b (c)) x"
 
-  val inp = """## This function adds *x* to *y*
+  val inp = """## This function adds `x` to `y`
               |add x y = x + y
               |mul x y = x * y
               |
-              |## This function divides *x* by *y*
+              |## This function divides `x` by `y`
               |div x y = x / y
               |
               |## Just a comment
               |
-              |## A documented comment connected to Infix
-              |
-              |sub x y = x - y
-              |
               |## Foo bar baz
               |   bax
               |def Maybe a
-              |    ## test
+              |    ## test attached to Just
               |    def Just val:a
               |    def Nothing
               |""".stripMargin
@@ -346,7 +342,9 @@ object Main extends App {
   println("===== DOCUMENTATION =====")
   val isGeneratingHTML = false
   val droppedMeta      = parser.dropMacroMeta(mod)
-  val documentation    = DocParserRunner.document(droppedMeta, isGeneratingHTML)
+  val documentation    = DocParserRunner.createDocs(droppedMeta)
+  val documentationHTML =
+    DocParserRunner.generateHTMLForEveryDocumented(documentation)
   println(pretty(documentation.toString))
   println("------")
   println(documentation.show())

@@ -7,7 +7,6 @@ import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import scala.util.Random
 import java.io.File
 import java.io.PrintWriter
 import flexer.Parser.{Result => res}
@@ -33,12 +32,12 @@ class DocParser {
     * Used to match result of [[run]] function to possibly retrieve Doc
     *
     * @param input - input string to Doc Parser
-    * @return - If it was able to retrieve Doc, then retrieved data, else empty
-    *           Doc
+    * @return - If it was able to retrieve Doc, then retrieved data, else
+    *           exception with error message [[errMsg]]
     */
   def runMatched(input: String): Doc = run(input) match {
     case res(_, res.Success(v)) => v
-    case _                      => throw new Error(errMsg)
+    case _                      => throw new Exception(errMsg)
   }
 
   /**
@@ -60,11 +59,12 @@ class DocParser {
     * @param documented - documented made by Doc Parser Runner from AST and Doc
     */
   def onHTMLRendering(documented: AST.Documented): Unit = {
-    val path =
-      "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
+    val path        = "syntax/specialization/target/"
     val cssFileName = "style.css"
     val htmlCode    = renderHTML(documented.ast.elem, documented.doc, cssFileName)
-    saveHTMLCodeToLocalFile(path, htmlCode)
+    val astLines    = documented.ast.elem.show().split("\n")
+    val fileName    = astLines.head.replaceAll("/", "")
+    saveHTMLToFile(path, fileName, htmlCode)
   }
 
   /**
@@ -80,7 +80,7 @@ class DocParser {
     doc: Doc,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
-    val title         = ast.show().split("").head
+    val title         = ast.show().split("\n").head
     val astHtml       = Seq(HTML.div(HTML.`class` := "ASTData")(ast.show()))
     val docClass      = HTML.`class` := "Documentation"
     val documentation = Seq(HTML.div(docClass)(doc.html, astHtml))
@@ -120,12 +120,15 @@ object DocParser {
   /**
     * Saves HTML code to file
     * @param path - path to file
+    * @param name - file name
     * @param code - HTML code generated with Doc Parser
     */
-  def saveHTMLCodeToLocalFile(path: String, code: TypedTag[String]): Unit = {
-    val writer = new PrintWriter(
-      new File(path + Random.alphanumeric.take(8).mkString("") + ".html")
-    )
+  def saveHTMLToFile(
+    path: String,
+    name: String,
+    code: TypedTag[String]
+  ): Unit = {
+    val writer = new PrintWriter(new File(path + name + ".html"))
     writer.write(code.toString)
     writer.close()
   }
@@ -143,47 +146,29 @@ object DocParser {
   * Documentation node, getting AST from Def's and Infix'es
   */
 object DocParserRunner {
-
-  /**
-    * This function invokes the documentation parser on every instance of
-    * [[AST.Comment]].
-    *
-    * It generates [[Doc]] from every [[AST.Comment]] while traversing through
-    * AST in order to append Document appropriate piece of code.
-    * It then uses this information to generate HTML files containing the
-    * human-readable documentation before returning the modified AST to Parser.
-    *
-    * @param module - parsed data by Parser
-    * @return - AST with possible documentation
-    */
-  def document(module: AST.Module, withHTMLGeneration: Boolean): AST = {
-    val createdDocs = createDocs(module)
-    if (withHTMLGeneration) generateHTMLForEveryDocumented(createdDocs)
-    createdDocs
-  }
-
   //////////////////////////////////////////////////////////////////////////////
   //// Created Doc's in right places with appropriate AST //////////////////////
   //////////////////////////////////////////////////////////////////////////////
   /**
-    * This function gets [[AST.Module]] or [[AST.Def]] in order to traverse
+    * This function invokes the documentation parser on every instance of
+    * [[AST.Comment]].
+    *
+    * It matches on [[AST.Module]] or [[AST.Def]] in order to traverse
     * through their lines to create [[AST.Documented]] from [[AST.Comment]] if
-    * found, with or without AST from [[AST.App.Infix]] or [[AST.Def]]
+    * found, with AST from [[AST.App.Infix]] or [[AST.Def]]
     *
     * @param ast - module with possibility to create Documentation from comments
     * @return - modified data containing possibly Documentation(s) with AST
     */
   def createDocs(ast: AST): AST = {
     ast match {
-      case AST.Module.any(m) =>
-        traverseThroughModule(m)
+      case AST.Module.any(m) => createDocsFromModule(m)
       case AST.Def.any(d) =>
         d.body match {
           case Some(body) =>
             body match {
-              case AST.Block.any(b) =>
-                traverseThroughDefBody(d.name, d.args, b)
-              case _ => d
+              case AST.Block.any(b) => createDocsFromDefBody(d.name, d.args, b)
+              case _                => d
             }
           case None => d
         }
@@ -194,24 +179,26 @@ object DocParserRunner {
   /** Helper functions for [[createDocs]]
     * to traverse through Module and Def body
     */
-  def traverseThroughModule(m: AST.Module): AST.Module = {
-    val transformedLines = List1(transformLines(m.lines.toList))
-      .getOrElse(List1(AST.Block.OptLine()))
+  def createDocsFromModule(m: AST.Module): AST.Module = {
+    val emptyLine = List1(AST.Block.OptLine())
+    val transformedLines =
+      List1(attachDocToSubsequentAST(m.lines.toList)).getOrElse(emptyLine)
     AST.Module(transformedLines)
   }
 
-  def traverseThroughDefBody(
+  def createDocsFromDefBody(
     name: AST.Cons,
     args: List[AST],
     b: AST.Block
   ): AST.Def = {
     val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
     val linesToTransform = firstLine :: b.lines
-    val transforemdLines = transformLines(linesToTransform, b.indent)
-    val head = AST.Block
-      .LineOf[AST](transforemdLines.head.elem.get, transforemdLines.head.off)
-    val lines = transforemdLines.tail
-    val body  = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
+    val transforemdLines = attachDocToSubsequentAST(linesToTransform, b.indent)
+    val TLHeadElem       = transforemdLines.head.elem.get
+    val TLHeadOff        = transforemdLines.head.off
+    val head             = AST.Block.LineOf[AST](TLHeadElem, TLHeadOff)
+    val lines            = transforemdLines.tail
+    val body             = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
     AST.Def(name, args, Some(body))
   }
 
@@ -222,7 +209,7 @@ object DocParserRunner {
     * @param lines - AST lines
     * @return - lines with possibly Doc with added AST
     */
-  def transformLines(
+  def attachDocToSubsequentAST(
     lines: List[AST.Block.OptLine],
     blockOff: Int = 0
   ): List[AST.Block.OptLine] =
@@ -236,18 +223,18 @@ object DocParserRunner {
                   case Line(Some(AST.App.Infix.any(ast)), _) =>
                     val docLine =
                       createDocumentedLine(com, ast, comOff, blockOff)
-                    docLine :: transformLines(rest, blockOff)
+                    docLine :: attachDocToSubsequentAST(rest, blockOff)
                   case Line(Some(AST.Def.any(ast)), _) =>
                     val docFromAst = createDocs(ast)
                     val docLine =
                       createDocumentedLine(com, docFromAst, comOff, blockOff)
-                    docLine :: transformLines(rest, blockOff)
+                    docLine :: attachDocToSubsequentAST(rest, blockOff)
                   case other =>
-                    line1 :: transformLines(other :: rest, blockOff)
+                    line1 :: attachDocToSubsequentAST(other :: rest, blockOff)
                 }
               case Nil => line1 :: Nil
             }
-          case other => other :: transformLines(tail, blockOff)
+          case other => other :: attachDocToSubsequentAST(tail, blockOff)
         }
       case Nil => Nil
     }
@@ -264,7 +251,7 @@ object DocParserRunner {
   }
 
   /**
-    * Function for creating documented lines in [[transformLines]] method
+    * Function for creating documented lines in [[attachDocToSubsequentAST]] method
     *
     * @param comment - comment found in AST
     * @param comOff - commented line offset
