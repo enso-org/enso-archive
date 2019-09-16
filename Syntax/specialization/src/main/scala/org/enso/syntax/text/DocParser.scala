@@ -63,7 +63,7 @@ class DocParser {
     val path =
       "syntax/specialization/src/main/scala/org/enso/syntax/text/DocParserHTMLOut/"
     val cssFileName = "style.css"
-    val htmlCode    = renderHTML(documented.ast, documented.doc, cssFileName)
+    val htmlCode    = renderHTML(documented.ast.elem, documented.doc, cssFileName)
     saveHTMLCodeToLocalFile(path, htmlCode)
   }
 
@@ -121,8 +121,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above
     */
-  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
-  def run(input: String):        Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 
   /**
     * Saves HTML code to file
@@ -214,7 +214,7 @@ object DocParserRunner {
   ): AST.Def = {
     val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
     val linesToTransform = firstLine :: b.lines
-    val transforemdLines = transformLines(linesToTransform)
+    val transforemdLines = transformLines(linesToTransform, b.indent)
     val head = AST.Block
       .LineOf[AST](transforemdLines.head.elem.get, transforemdLines.head.off)
     val lines = transforemdLines.tail
@@ -222,11 +222,6 @@ object DocParserRunner {
     AST.Def(name, args, Some(body))
   }
 
-  /*
-   * FIXME [MM] - if AST is one liner, then on return it doesn't contain
-   *  information about it's offset, and starts on the left border, while it
-   *  should start from the same place as it has started before.
-   */
   /**
     * this is a helper function for creating docs with AST.
     * Essentially it traverses through lines and tries to find a pattern on them
@@ -234,33 +229,33 @@ object DocParserRunner {
     * @param lines - AST lines
     * @return - lines with possibly Doc with added AST
     */
-  def transformLines(lines: List[AST.Block.OptLine]): List[AST.Block.OptLine] =
+  def transformLines(
+    lines: List[AST.Block.OptLine],
+    blockOff: Int = 0
+  ): List[AST.Block.OptLine] =
     lines match {
-      case ::(line1, tail) =>
+      case line1 :: tail =>
         line1 match {
           case Line(Some(AST.Comment.any(com)), comOff) =>
             tail match {
-              case ::(line2, rest) =>
+              case line2 :: rest =>
                 line2 match {
-                  case Line(Some(AST.App.Infix.any(ast)), astOff) =>
-                    createDocumentedLine(com, Some(ast), comOff, astOff) :: transformLines(
-                      rest
-                    )
-                  case Line(Some(AST.Def.any(ast)), astOff) =>
-                    createDocumentedLine(
-                      com,
-                      Some(createDocs(ast)),
-                      comOff,
-                      astOff
-                    ) :: transformLines(rest)
+                  case Line(Some(AST.App.Infix.any(ast)), _) =>
+                    val docLine =
+                      createDocumentedLine(com, Some(ast), comOff, blockOff)
+                    docLine :: transformLines(rest, blockOff)
+                  case Line(Some(AST.Def.any(ast)), _) =>
+                    val docFromAst = Some(createDocs(ast))
+                    val docLine =
+                      createDocumentedLine(com, docFromAst, comOff, blockOff)
+                    docLine :: transformLines(rest, blockOff)
                   case other =>
-                    createDocumentedLine(com, comOff) :: other :: transformLines(
-                      rest
-                    )
+                    val docLine = createDocumentedLine(com, comOff)
+                    docLine :: transformLines(other :: rest, blockOff)
                 }
               case Nil => createDocumentedLine(com, comOff) :: Nil
             }
-          case other => other :: transformLines(tail)
+          case other => other :: transformLines(tail, blockOff)
         }
       case Nil => Nil
     }
@@ -305,12 +300,10 @@ object DocParserRunner {
     comOff: Int,
     astOff: Int
   ): AST.Block.LineOf[Some[AST.Documented]] = {
-    val doc = createDocFromComment(comment)
-    val documented = ast match {
-      case Some(value) => AST.Documented(doc, value)
-      case None        => AST.Documented(doc)
-    }
-    Line(Some(documented), comOff)
+    val doc        = createDocFromComment(comment)
+    val astLine    = AST.Block.Line(ast, astOff)
+    val documented = Some(AST.Documented(doc, astLine))
+    Line(documented, comOff)
   }
 
   //////////////////////////////////////////////////////////////////////////////
