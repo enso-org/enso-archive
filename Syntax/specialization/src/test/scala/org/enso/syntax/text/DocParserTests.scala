@@ -190,12 +190,12 @@ class DocParserTests extends FlatSpec with Matchers {
     )
   )
   """foo *bar
-    |*""".stripMargin ?= Doc(
+    |*""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(Section.Raw("foo ", Formatter(Formatter.Bold, "bar", Newline)))
   )
 
   """foo _foo
-    |_foo2""".stripMargin ?= Doc(
+    |_foo2""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section
         .Raw("foo ", Formatter(Formatter.Italic, "foo", Newline), "foo2")
@@ -203,7 +203,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   """foo *foo
-    |*foo2""".stripMargin ?= Doc(
+    |*foo2""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section
         .Raw("foo ", Formatter(Formatter.Bold, "foo", Newline), "foo2")
@@ -211,7 +211,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   """foo ~foo
-    |~foo2""".stripMargin ?= Doc(
+    |~foo2""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section
         .Raw("foo ", Formatter(Formatter.Strikeout, "foo", Newline), "foo2")
@@ -255,7 +255,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
   """?Info
     |
-    |!Important""".stripMargin ?= Doc(
+    |!Important""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
     ),
@@ -267,7 +267,7 @@ class DocParserTests extends FlatSpec with Matchers {
     |
     |!Important
     |
-    |>Example""".stripMargin ?= Doc(
+    |>Example""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Marked(Section.Marked.Info, Section.Header("Info"), Newline)
     ),
@@ -289,7 +289,7 @@ class DocParserTests extends FlatSpec with Matchers {
     |
     |?info
     |
-    |>Example""".stripMargin ?= Doc(
+    |>Example""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "Foo ",
@@ -344,7 +344,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |  - Second unordered item
     |    * First ordered sub item
     |    * Second ordered sub item
-    |  - Third unordered item""".stripMargin ?= Doc(
+    |  - Third unordered item""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "List",
@@ -370,7 +371,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |  - Second unordered item
     |    * First ordered sub item
     |    *    Second ordered sub item
-    |  - Third unordered item""".stripMargin ?= Doc(
+    |  - Third unordered item""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "List",
@@ -402,7 +404,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |      - First unordered sub item
     |      - Second unordered sub item
     |    * Third ordered sub item
-    |  - Fourth unordered item""".stripMargin ?= Doc(
+    |  - Fourth unordered item""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "List",
@@ -454,7 +457,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |      - Second unordered sub item
     |    * Third ordered sub item
     |   * Wrong Indent Item
-    |  - Fourth unordered item""".stripMargin ?= Doc(
+    |  - Fourth unordered item""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "List",
@@ -563,7 +567,7 @@ class DocParserTests extends FlatSpec with Matchers {
   )
 
   """[foo]bo)
-    |basdbasd""".stripMargin ?= Doc(
+    |basdbasd""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         Link.Invalid(
@@ -600,7 +604,7 @@ class DocParserTests extends FlatSpec with Matchers {
     Synopsis(Section.Raw("Foo"))
   )
   """   ALAMAKOTA a kot ma ale
-    | foo bar""".stripMargin ?= Doc(
+    | foo bar""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Tags(Tags.Tag(3, Tags.Tag.Unrecognized, "ALAMAKOTA a kot ma ale")),
     Synopsis(Section.Raw(1, "foo bar"))
   )
@@ -612,7 +616,8 @@ class DocParserTests extends FlatSpec with Matchers {
   """afsfasfsfjanfjanfa
     |jfnajnfjadnbfjabnf
     |   siafjaifhjiasjf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    |   fasfknfanfijnf""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "afsfasfsfjanfjanfa",
@@ -630,7 +635,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |jfnajnfjadnbfjabnf
     |   siafjaifhjiasjf
     |     fasfknfanfijnf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    |   fasfknfanfijnf""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "afsfasfsfjanfjanfa",
@@ -651,7 +657,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |     fasfknfanfijnf
     |          fasfknfanfijnf
     |     fasfknfanfijnf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    |   fasfknfanfijnf""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "afsfasfsfjanfjanfa",
@@ -674,7 +681,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |     fasfknfanfijnf
     |  fasfknfanfijnf
     |     fasfknfanfijnf
-    |   fasfknfanfijnf""".stripMargin ?= Doc(
+    |   fasfknfanfijnf""".stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         "afsfasfsfjanfjanfa",
@@ -699,7 +707,7 @@ class DocParserTests extends FlatSpec with Matchers {
   """
     | - bar
     | baz
-    |""".stripMargin ?= Doc(
+    |""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Synopsis(
       Section.Raw(
         Newline,
@@ -716,7 +724,7 @@ class DocParserTests extends FlatSpec with Matchers {
     |Construct and manage a graphical, event-driven user interface for your iOS or
     |tvOS app.
     |
-    | foo *foo*""".stripMargin ?= Doc(
+    | foo *foo*""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Tags(
       Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
       Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
@@ -737,7 +745,7 @@ class DocParserTests extends FlatSpec with Matchers {
     |Construct and manage a graphical, event-driven user interface for your iOS or
     |tvOS app.
     |
-    | foo *foo""".stripMargin ?= Doc(
+    | foo *foo""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Tags(
       Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
       Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
@@ -755,7 +763,7 @@ class DocParserTests extends FlatSpec with Matchers {
 
   """    DEPRECATED das sfa asf
     |  REMOVED
-    | Foo""".stripMargin ?= Doc(
+    | Foo""".stripMargin.replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Tags(
       Tags.Tag(4, Tags.Tag.Type.Deprecated, " das sfa asf"),
       Tags.Tag(2, Tags.Tag.Type.Removed)
@@ -771,7 +779,8 @@ class DocParserTests extends FlatSpec with Matchers {
     |   fooo bar baz
     |   dsadasfsaf asfasfas
     |   asfasfa sf
-    |   asfas fasf """.stripMargin ?= Doc(
+    |   asfas fasf """.stripMargin
+    .replaceAll(System.lineSeparator(), "\n") ?= Doc(
     Tags(
       Tags.Tag(3, Tags.Tag.Type.Deprecated, " das sfa asf"),
       Tags.Tag(0, Tags.Tag.Type.Removed, " fdsdf")
