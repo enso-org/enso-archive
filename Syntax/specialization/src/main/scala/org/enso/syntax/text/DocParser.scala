@@ -76,21 +76,14 @@ class DocParser {
     * @return - HTML Code from Doc with optional title from AST
     */
   def renderHTML(
-    ast: Option[AST],
+    ast: AST,
     doc: Doc,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
-    val title = ast match {
-      case Some(value) => value.show().split("")(0) //first part of string
-      case None        => "Enso Documentation"
-    }
-    val astHtml = ast match {
-      case Some(value) => Seq(HTML.div(HTML.`class` := "ASTData")(value.show()))
-      case None        => Seq()
-    }
-    val documentation = Seq(
-      HTML.div(HTML.`class` := "Documentation")(doc.html, astHtml)
-    )
+    val title         = ast.show().split("").head
+    val astHtml       = Seq(HTML.div(HTML.`class` := "ASTData")(ast.show()))
+    val docClass      = HTML.`class` := "Documentation"
+    val documentation = Seq(HTML.div(docClass)(doc.html, astHtml))
     HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
   }
 
@@ -242,18 +235,17 @@ object DocParserRunner {
                 line2 match {
                   case Line(Some(AST.App.Infix.any(ast)), _) =>
                     val docLine =
-                      createDocumentedLine(com, Some(ast), comOff, blockOff)
+                      createDocumentedLine(com, ast, comOff, blockOff)
                     docLine :: transformLines(rest, blockOff)
                   case Line(Some(AST.Def.any(ast)), _) =>
-                    val docFromAst = Some(createDocs(ast))
+                    val docFromAst = createDocs(ast)
                     val docLine =
                       createDocumentedLine(com, docFromAst, comOff, blockOff)
                     docLine :: transformLines(rest, blockOff)
                   case other =>
-                    val docLine = createDocumentedLine(com, comOff)
-                    docLine :: transformLines(other :: rest, blockOff)
+                    line1 :: transformLines(other :: rest, blockOff)
                 }
-              case Nil => createDocumentedLine(com, comOff) :: Nil
+              case Nil => line1 :: Nil
             }
           case other => other :: transformLines(tail, blockOff)
         }
@@ -273,30 +265,16 @@ object DocParserRunner {
 
   /**
     * Function for creating documented lines in [[transformLines]] method
-    * It invokes bottom [[createDocumentedLine]] without AST data
     *
     * @param comment - comment found in AST
     * @param comOff - commented line offset
+    * @param ast - AST to go with comment into Documented
+    * @param astOff - AST line offset
     * @return - [[AST.Documented]]
     */
   def createDocumentedLine(
     comment: AST.Comment,
-    comOff: Int
-  ): AST.Block.LineOf[Some[AST.Documented]] =
-    createDocumentedLine(comment, None, comOff, 0)
-
-  /**
-    * Function for creating documented lines in [[transformLines]] method
-    *
-    * @param comment - comment found in AST
-    * @param comOff - commented line offset
-    * @param ast - Optional AST to go with comment into Documented
-    * @param astOff - if there is AST is used to inform about AST offset
-    * @return - [[AST.Documented]]
-    */
-  def createDocumentedLine(
-    comment: AST.Comment,
-    ast: Option[AST],
+    ast: AST,
     comOff: Int,
     astOff: Int
   ): AST.Block.LineOf[Some[AST.Documented]] = {

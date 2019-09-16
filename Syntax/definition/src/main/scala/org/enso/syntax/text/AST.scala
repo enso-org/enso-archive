@@ -1365,14 +1365,11 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Documented = ASTOf[DocumentedOf]
-  case class DocumentedOf[T](doc: Doc, ast: Block.LineOf[Option[T]])
-      extends ShapeOf[T]
+  case class DocumentedOf[T](doc: Doc, ast: Block.LineOf[T]) extends ShapeOf[T]
   object Documented {
     val any = UnapplyByType[Documented]
-    def apply(doc: Doc, ast: Block.LineOf[Option[AST]]): Documented =
+    def apply(doc: Doc, ast: Block.LineOf[AST]): Documented =
       ASTOf(DocumentedOf(doc, ast))
-    def apply(doc: Doc): Documented =
-      ASTOf(DocumentedOf(doc, Block.LineOf(None, 0)))
   }
 
   //// Instances ////
@@ -1380,13 +1377,8 @@ object AST {
   object DocumentedOf {
     import Comment.symbol
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
-    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
-      t.ast.elem match {
-        case Some(_) =>
-          R + symbol + symbol + t.doc + newline + t.ast.off + t.ast.elem
-        case None => R + symbol + symbol + t.doc
-      }
-    }
+    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] =
+      t => R + symbol + symbol + t.doc + newline + t.ast.off + t.ast.elem
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
 
