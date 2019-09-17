@@ -9,9 +9,14 @@ import scalatags.Text.{all => HTML}
 import HTML._
 import java.io.File
 import java.io.PrintWriter
+
 import flexer.Parser.{Result => res}
 import org.enso.data.List1
+import org.enso.syntax.text.AST.App.Infix
+import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST.Block.{LineOf => Line}
+import org.enso.syntax.text.AST.Comment
+import org.enso.syntax.text.AST.Def
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser ////////////////////////////////////////////////////////////////
@@ -221,19 +226,14 @@ object DocParserRunner {
     lines match {
       case line1 :: tail =>
         line1 match {
-          case Line(Some(AST.Comment.any(com)), comOff) =>
+          case Line(Some(AST.Comment.any(com)), off) =>
             tail match {
               case line2 :: rest =>
                 line2 match {
                   case Line(Some(AST.App.Infix.any(ast)), _) =>
-                    val docLine =
-                      createDocumentedLine(com, 0, ast, comOff)
-                    docLine :: attachDocToSubsequentAST(rest)
+                    commentWithInfixForDocumented(com, off, rest, ast)
                   case Line(Some(AST.Def.any(ast)), _) =>
-                    val docFromAst = createDocs(ast)
-                    val docLine =
-                      createDocumentedLine(com, 0, docFromAst, comOff)
-                    docLine :: attachDocToSubsequentAST(rest)
+                    commentWithDefForDocumented(com, off, rest, ast)
                   case Line(None, _) =>
                     var restTrav  = rest
                     var emp       = 1
@@ -242,16 +242,13 @@ object DocParserRunner {
                       emp += 1
                       restTrav = restTrav.tail
                     }
-                    restTrav.head match {
+                    val rTail = restTrav.tail
+                    val rHead = restTrav.head
+                    rHead match {
                       case Line(Some(AST.App.Infix.any(ast)), _) =>
-                        val docLine =
-                          createDocumentedLine(com, emp, ast, comOff)
-                        docLine :: attachDocToSubsequentAST(restTrav.tail)
+                        commentWithInfixForDocumented(com, off, rTail, ast, emp)
                       case Line(Some(AST.Def.any(ast)), _) =>
-                        val docFromAst = createDocs(ast)
-                        val docLine =
-                          createDocumentedLine(com, emp, docFromAst, comOff)
-                        docLine :: attachDocToSubsequentAST(restTrav.tail)
+                        commentWithDefForDocumented(com, off, rTail, ast, emp)
                       case _ =>
                         line1 :: line2 :: attachDocToSubsequentAST(rest)
                     }
@@ -277,7 +274,55 @@ object DocParserRunner {
   }
 
   /**
-    * Function for creating documented lines in [[attachDocToSubsequentAST]] method
+    * Function for creating documented lines in [[attachDocToSubsequentAST]]
+    * method with [[AST.App.Infix]] as Documented AST
+    *
+    * @param com - comment found in AST
+    * @param comOff - commented line offset
+    * @param rest - lines after documented
+    * @param ast - [[AST.App.Infix]] to go with comment into Documented
+    * @param emptyLines - Empty lines in between Doc and AST
+    * @return - [[AST.Documented]]
+    */
+  def commentWithDefForDocumented(
+    com: Comment,
+    comOff: Int,
+    rest: List[OptLine],
+    ast: Def,
+    emptyLines: Int = 0
+  ): List[OptLine] = {
+    val docFromAst = createDocs(ast)
+    val docLine =
+      createDocumentedLine(com, emptyLines, docFromAst, comOff)
+    docLine :: attachDocToSubsequentAST(rest)
+  }
+
+  /**
+    * Function for creating documented lines in [[attachDocToSubsequentAST]]
+    * method with [[AST.Def]] as Documented AST
+    *
+    * @param com - comment found in AST
+    * @param comOff - commented line offset
+    * @param rest - lines after documented
+    * @param ast - [[AST.Def]] to go with comment into Documented
+    * @param emptyLines - Empty lines in between Doc and AST
+    * @return - [[AST.Documented]]
+    */
+  def commentWithInfixForDocumented(
+    com: Comment,
+    comOff: Int,
+    rest: List[OptLine],
+    ast: Infix,
+    emptyLines: Int = 0
+  ): List[OptLine] = {
+    val docLine =
+      createDocumentedLine(com, emptyLines, ast, comOff)
+    docLine :: attachDocToSubsequentAST(rest)
+  }
+
+  /**
+    * Function for creating documented lines in [[attachDocToSubsequentAST]]
+    * method
     *
     * @param comment - comment found in AST
     * @param comOff - commented line offset
