@@ -2,7 +2,6 @@ package org.enso.syntax.graph
 
 import org.enso.data.List1
 import org.enso.syntax.graph
-import org.enso.syntax.graph.API.Text
 import org.enso.syntax.graph.API._
 import org.enso.syntax.graph.Extensions._
 import org.enso.syntax.text.AST
@@ -91,14 +90,14 @@ class Tests extends FunSuite with org.scalatest.Matchers {
     checkThatTransforms(
       prefix + suffix,
       prefix + middle + suffix,
-      _.insertText(mockModule, Text.Position(prefix.length), middle)
+      _.insertText(mockModule, TextAPI.Position(prefix.length), middle)
     )
     checkThatTransforms(
       prefix + middle + suffix,
       prefix + suffix,
       _.eraseText(
         mockModule,
-        Text.Span(Text.Position(prefix.length), middle.length)
+        TextAPI.Span(TextAPI.Position(prefix.length), middle.length)
       )
     )
     checkOutput(
@@ -106,7 +105,7 @@ class Tests extends FunSuite with org.scalatest.Matchers {
       middle,
       _.copyText(
         mockModule,
-        Text.Span(Text.Position(prefix.length), middle.length)
+        TextAPI.Span(TextAPI.Position(prefix.length), middle.length)
       )
     )
   }

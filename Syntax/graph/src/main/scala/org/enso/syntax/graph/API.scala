@@ -3,7 +3,6 @@ package org.enso.syntax.graph
 import java.util.UUID
 
 import org.enso.data.List1
-import org.enso.syntax.graph.API.Text
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Cons
 
@@ -311,9 +310,9 @@ object API {
 
   /** Each change to the project state shall be covered by a Notification. */
   sealed trait Notification
-  object Notification {
 
-    object Graph {
+  object GraphAPI {
+    object Notification {
 
       /** Node-related updates */
       sealed trait Node extends Notification
@@ -357,21 +356,20 @@ object API {
         case class Project()                           extends Invalidate
       }
     }
+  }
 
-    object Text {
-      case class Erased(module: Module.Location, span: API.Text.Span)
+  object TextAPI {
+
+    object Notification {
+      case class Erased(module: Module.Location, span: Span)
           extends Notification
       case class Inserted(
         module: Module.Location,
-        position: API.Text.Position,
+        position: Position,
         text: String
       ) extends Notification
     }
 
-    ////////////////////////////////////////////////////////////////////////////
-  }
-
-  object Text {
     case class Position(index: Int) extends AnyVal
     case class Span(start: Position, length: Int)
   }
@@ -388,15 +386,16 @@ object API {
 
 trait TextAPI {
   import API._
+  import API.TextAPI._
 
   // view
   def getText(loc: Module.Location): String
 
   // modify
-  def insertText(module: Module.Location, at: Text.Position, text: String): Unit
-  def eraseText(module: Module.Location, span: Text.Span): Unit
-  def copyText(module: Module.Location, span: Text.Span): String
-  def pasteText(module: Module.Location, at: Text.Position, text: String): Unit // FIXME We can get both plain text or metadata from graph
+  def insertText(module: Module.Location, at: Position, text: String): Unit
+  def eraseText(module: Module.Location, span: Span): Unit
+  def copyText(module: Module.Location, span: Span): String
+  def pasteText(module: Module.Location, at: Position, text: String): Unit // FIXME We can get both plain text or metadata from graph
 
   // TODO should we represent here that text notifications are emitted?
 }
