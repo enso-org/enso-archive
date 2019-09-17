@@ -63,8 +63,8 @@ class DocParser {
   def onHTMLRendering(documented: AST.Documented): Unit = {
     val path        = "syntax/specialization/target/"
     val cssFileName = "style.css"
-    val htmlCode    = renderHTML(documented.ast.elem, documented.doc, cssFileName)
-    val astLines    = documented.ast.elem.show().split("\n")
+    val htmlCode    = renderHTML(documented.ast, documented.doc, cssFileName)
+    val astLines    = documented.ast.show().split("\n")
     val fileName    = astLines.head.replaceAll("/", "")
     saveHTMLToFile(path, fileName, htmlCode)
   }
@@ -199,10 +199,10 @@ object DocParserRunner {
   ): AST.Def = {
     val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
     val linesToTransform = firstLine :: b.lines
-    val transforemdLines = attachDocToSubsequentAST(linesToTransform, b.indent)
+    val transforemdLines = attachDocToSubsequentAST(linesToTransform)
     val TLHeadElem       = transforemdLines.head.elem.get
     val TLHeadOff        = transforemdLines.head.off
-    val head             = AST.Block.LineOf[AST](TLHeadElem, TLHeadOff)
+    val head             = AST.Block.Line(TLHeadElem, TLHeadOff)
     val lines            = transforemdLines.tail
     val body             = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
     AST.Def(name, args, Some(body))
@@ -216,8 +216,7 @@ object DocParserRunner {
     * @return - lines with possibly Doc with added AST
     */
   def attachDocToSubsequentAST(
-    lines: List[AST.Block.OptLine],
-    blockOff: Int = 0
+    lines: List[AST.Block.OptLine]
   ): List[AST.Block.OptLine] =
     lines match {
       case line1 :: tail =>
@@ -228,19 +227,40 @@ object DocParserRunner {
                 line2 match {
                   case Line(Some(AST.App.Infix.any(ast)), _) =>
                     val docLine =
-                      createDocumentedLine(com, ast, comOff, blockOff)
-                    docLine :: attachDocToSubsequentAST(rest, blockOff)
+                      createDocumentedLine(com, 0, ast, comOff)
+                    docLine :: attachDocToSubsequentAST(rest)
                   case Line(Some(AST.Def.any(ast)), _) =>
                     val docFromAst = createDocs(ast)
                     val docLine =
-                      createDocumentedLine(com, docFromAst, comOff, blockOff)
-                    docLine :: attachDocToSubsequentAST(rest, blockOff)
+                      createDocumentedLine(com, 0, docFromAst, comOff)
+                    docLine :: attachDocToSubsequentAST(rest)
+                  case Line(None, _) =>
+                    var restTrav  = rest
+                    var emp       = 1
+                    val emptyLine = Line(None, 0)
+                    while (restTrav.nonEmpty && restTrav.head == emptyLine) {
+                      emp += 1
+                      restTrav = restTrav.tail
+                    }
+                    restTrav.head match {
+                      case Line(Some(AST.App.Infix.any(ast)), _) =>
+                        val docLine =
+                          createDocumentedLine(com, emp, ast, comOff)
+                        docLine :: attachDocToSubsequentAST(restTrav.tail)
+                      case Line(Some(AST.Def.any(ast)), _) =>
+                        val docFromAst = createDocs(ast)
+                        val docLine =
+                          createDocumentedLine(com, emp, docFromAst, comOff)
+                        docLine :: attachDocToSubsequentAST(restTrav.tail)
+                      case _ =>
+                        line1 :: line2 :: attachDocToSubsequentAST(rest)
+                    }
                   case other =>
-                    line1 :: attachDocToSubsequentAST(other :: rest, blockOff)
+                    line1 :: attachDocToSubsequentAST(other :: rest)
                 }
               case Nil => line1 :: Nil
             }
-          case other => other :: attachDocToSubsequentAST(tail, blockOff)
+          case other => other :: attachDocToSubsequentAST(tail)
         }
       case Nil => Nil
     }
@@ -262,18 +282,16 @@ object DocParserRunner {
     * @param comment - comment found in AST
     * @param comOff - commented line offset
     * @param ast - AST to go with comment into Documented
-    * @param astOff - AST line offset
     * @return - [[AST.Documented]]
     */
   def createDocumentedLine(
     comment: AST.Comment,
+    emptyLines: Int,
     ast: AST,
-    comOff: Int,
-    astOff: Int
+    comOff: Int
   ): AST.Block.LineOf[Some[AST.Documented]] = {
     val doc        = createDocFromComment(comment)
-    val astLine    = AST.Block.Line(ast, astOff)
-    val documented = Some(AST.Documented(doc, astLine))
+    val documented = Some(AST.Documented(doc, emptyLines, ast))
     Line(documented, comOff)
   }
 
