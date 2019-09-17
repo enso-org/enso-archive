@@ -3,7 +3,7 @@ package org.enso.syntax.graph
 import org.enso.data.List1
 import org.enso.data.List1._
 import org.enso.flexer.Reader
-import org.enso.syntax.graph.API.Notification.Text
+import org.enso.syntax.graph.API.Text
 import org.enso.syntax.graph.API._
 import org.enso.syntax.text.AST.App.Infix
 import org.enso.syntax.text.AST.Block.Line
@@ -158,6 +158,10 @@ object Extensions {
     def lineIndexWhere(p: AST => Boolean): Option[Int] = {
       module.lines.indexWhere(_.elem.exists(p))
     }
+    def lineOffset(lineIx: Int): Int =
+      module.lines.toList.take(lineIx).foldLeft(0) {
+        case (offset, line) => offset + line.span
+      }
 
     /** flatMaps non-empty lines ASTs. */
     def flatTraverse[B](f: AST => GenTraversableOnce[B]): List[B] =
@@ -261,7 +265,7 @@ final case class DoubleRepresentation(
     state.setModule(module, content)
   }
 
-  def getText(loc: Module.Location): String = state.getModule(loc).show
+  def getText(module: Module.Location): String = state.getModule(module).show
 
   def insertText(module: Module.Location, at: Text.Position, text: String) = {
     findAndReplace(module, at) { (pos, line) =>
@@ -269,21 +273,23 @@ final case class DoubleRepresentation(
       val result           = Parser().run(new Reader(prefix + text + suffix))
       result.lines.toList
     }
-    notifier.notify(Text.Inserted(module, at, text))
+    notifier.notify(API.Notification.Text.Inserted(module, at, text))
+    notifier.notify(API.Notification.Graph.Invalidate.Module(module))
   }
 
-  def eraseText(loc: Module.Location, span: Text.Span) = {
-    findAndReplace(loc, span.start) { (pos, line) =>
+  def eraseText(module: Module.Location, span: Text.Span) = {
+    findAndReplace(module, span.start) { (pos, line) =>
       val (line1, line2) = line.show.splitAt(pos.index + span.start.index)
       val result         = Parser().run(new Reader(line1 + line2.drop(span.length)))
       result.lines.toList
     }
-    notifier.notify(Text.Erased(loc, span))
+    notifier.notify(API.Notification.Text.Erased(module, span))
+    notifier.notify(API.Notification.Graph.Invalidate.Module(module))
   }
 
-  def copyText(loc: Module.Location, span: Text.Span): String = {
+  def copyText(module: Module.Location, span: Text.Span): String = {
     var text = ""
-    findAndReplace(loc, span.start) { (pos, line) =>
+    findAndReplace(module, span.start) { (pos, line) =>
       val start = pos.index + span.start.index
       text = line.show.substring(start, start + span.length)
       List(line)
@@ -347,21 +353,29 @@ final case class DoubleRepresentation(
 
     val newAst = module.insert(lineToPlaceImport, Import(importee))
     state.setModule(context, newAst)
-    notifier.notify(API.Notification.Invalidate.Module(context))
+    notifier.notify(API.Notification.Graph.Invalidate.Module(context))
+
+    val text   = "import " + API.Module.Name(importee)
+    val offset = Text.Position(module.lineOffset(lineToPlaceImport))
+    notifier.notify(API.Notification.Text.Inserted(context, offset, text))
   }
 
   override def removeImport(
     context: Module.Id,
     importToRemove: Module.Name
   ): Unit = {
-    val ast = state.getModule(context)
-    val lineIndex = ast.lineIndexWhere(_ imports importToRemove) match {
+    val module = state.getModule(context)
+    val lineIndex = module.lineIndexWhere(_ imports importToRemove) match {
       case Some(index) => index
       case None        => throw NoSuchImportException(importToRemove)
     }
 
-    val newAst = ast.removeAt(lineIndex)
+    val newAst = module.removeAt(lineIndex)
     state.setModule(context, newAst)
-    notifier.notify(API.Notification.Invalidate.Module(context))
+    notifier.notify(API.Notification.Graph.Invalidate.Module(context))
+
+    val offset = Text.Position(module.lineOffset(lineIndex))
+    val span   = Text.Span(offset, module.lines.toList(lineIndex).span)
+    notifier.notify(API.Notification.Text.Erased(context, span))
   }
 }

@@ -2,7 +2,7 @@ package org.enso.syntax.graph
 
 import org.enso.data.List1
 import org.enso.syntax.graph
-import org.enso.syntax.graph.API.Notification.Text
+import org.enso.syntax.graph.API.Text
 import org.enso.syntax.graph.API._
 import org.enso.syntax.graph.Extensions._
 import org.enso.syntax.text.AST

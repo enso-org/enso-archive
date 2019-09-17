@@ -3,7 +3,7 @@ package org.enso.syntax.graph
 import java.util.UUID
 
 import org.enso.data.List1
-import org.enso.syntax.graph.API.Notification.Text
+import org.enso.syntax.graph.API.Text
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Cons
 
@@ -125,6 +125,9 @@ object API {
 
       /** Construct module name from strings like "Foo.Baz" */
       def apply(text: String): Name = Name(text.split('.'))
+
+      /** Construct string from module name */
+      def apply(name: Name): String = name.head + "." + name.tail.mkString(".")
 
       def apply(iterable: Iterable[String]): Name = {
         List1.fromListOption(iterable.toList) match {
@@ -310,63 +313,67 @@ object API {
   sealed trait Notification
   object Notification {
 
-    /** Node-related updates */
-    sealed trait Node extends Notification
-    object Node {
-      import API.Node._
-      case class Added(ctx: Context, node: Info) extends Node
-      case class Removed(loc: Location)          extends Node
-      sealed trait Changed                       extends Node
-      object Changed {
-        case class Expression(node: Location, newExpr: String) extends Node
-        case class Inputs(node: API.Input.Context, inputs: List[Port.Info])
-            extends Node
-        case class Output(node: Location, output: Port.Info)   extends Node
-        case class Metadata(loc: Location, metadata: Metadata) extends Node
+    object Graph {
+
+      /** Node-related updates */
+      sealed trait Node extends Notification
+      object Node {
+        import API.Node._
+        case class Added(ctx: Context, node: Info) extends Node
+        case class Removed(loc: Location)          extends Node
+        sealed trait Changed                       extends Node
+        object Changed {
+          case class Expression(node: Location, newExpr: String) extends Node
+          case class Inputs(node: API.Input.Context, inputs: List[Port.Info])
+              extends Node
+          case class Output(node: Location, output: Port.Info)   extends Node
+          case class Metadata(loc: Location, metadata: Metadata) extends Node
+        }
+
+        sealed trait Flag extends Node
+        object Flag {
+          case class Enabled(node: Location, flag: API.Flag)  extends Flag
+          case class Disabled(node: Location, flag: API.Flag) extends Flag
+        }
       }
 
-      sealed trait Flag extends Node
-      object Flag {
-        case class Enabled(node: Location, flag: API.Flag)  extends Flag
-        case class Disabled(node: Location, flag: API.Flag) extends Flag
+      /** Connection-related updates */
+      sealed trait Connection extends Notification
+      object Connection {
+        case class Added(connection: API.Connection)   extends Connection
+        case class Removed(connection: API.Connection) extends Connection
+      }
+
+      /** Invalidations
+        *
+        * Invalidation happens when given entity information might have been
+        * changed, however more specific extent of change is unknown.
+        */
+      sealed trait Invalidate extends Notification
+      object Invalidate {
+        case class Node(node: API.Node.Location)       extends Invalidate
+        case class Graph(graph: API.Graph.Location)    extends Invalidate
+        case class Module(module: API.Module.Location) extends Invalidate
+        case class Project()                           extends Invalidate
       }
     }
 
-    /** Connection-related updates */
-    sealed trait Connection extends Notification
-    object Connection {
-      case class Added(connection: API.Connection)   extends Connection
-      case class Removed(connection: API.Connection) extends Connection
-    }
-
-    /** Invalidations
-      *
-      * Invalidation happens when given entity information might have been
-      * changed, however more specific extent of change is unknown.
-      */
-    sealed trait Invalidate extends Notification
-    object Invalidate {
-      case class Node(node: API.Node.Location)       extends Invalidate
-      case class Graph(graph: API.Graph.Location)    extends Invalidate
-      case class Module(module: API.Module.Location) extends Invalidate
-      case class Project()                           extends Invalidate
-    }
-
-    sealed trait Text extends Notification
     object Text {
-      case class Erased(module: Module.Location, span: Span)
+      case class Erased(module: Module.Location, span: API.Text.Span)
           extends Notification
       case class Inserted(
         module: Module.Location,
-        position: Position,
+        position: API.Text.Position,
         text: String
       ) extends Notification
-
-      case class Position(index: Int) extends AnyVal
-      case class Span(start: Position, length: Int)
     }
 
     ////////////////////////////////////////////////////////////////////////////
+  }
+
+  object Text {
+    case class Position(index: Int) extends AnyVal
+    case class Span(start: Position, length: Int)
   }
 
   /***** Exceptions */
