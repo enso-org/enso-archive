@@ -17,11 +17,13 @@ import org.enso.syntax.text.AST.Block.{LineOf => Line}
 //// Doc Parser ////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
 
-/** This is the class used to invoke Documentation Parser.
-  * it is used to create structured documentation from the blocks of commented
-  * text created by the main Enso parser. It has been built on the same
-  * foundation as Parser, so in order to not duplicate info, please refer to
-  * Parser documentation.
+/**
+  * This is the class used to invoke Documentation Parser.
+  *
+  * It is used to create structured documentation from the blocks of commented
+  * text created by the main Enso parser.
+  * It has been built on the same foundation as Parser, so in order not to
+  * duplicate information, please refer to Parser documentation.
   */
 class DocParser {
   import DocParser._
@@ -112,13 +114,14 @@ object DocParser {
   private val newEngine = flexer.Parser.compile(DocParserDef())
 
   /**
-    * Doc Parser running methods, as described above
+    * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
-  def run(input: String): Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
+  def run(input: String):        Result[Doc] = new DocParser().run(input)
 
   /**
     * Saves HTML code to file
+    *
     * @param path - path to file
     * @param name - file name
     * @param code - HTML code generated with Doc Parser
@@ -139,11 +142,13 @@ object DocParser {
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
-  * This is Doc Parser Runner. Essentially it binds together Enso Parser with
-  * Doc Parser. When Parser finishes its job it invokes runner with its created
-  * AST with resolved macros. Then Doc Parser Runner does it's job - running Doc
-  * Parser on every [[AST.Comment]], combined with connecting Doc with AST in
-  * Documentation node, getting AST from Def's and Infix'es
+  * This is Doc Parser Runner.
+  *
+  * Essentially it binds together Enso Parser with Doc Parser.
+  * When Parser finishes its job it invokes runner with AST created by it after
+  * resolving macros. Then Runner does it's job - running Doc Parser on every
+  * [[AST.Comment]], combined with connecting [[Doc]] with AST in [[AST.Documented]]
+  * node, which gets AST from [[AST.Def]] and [[AST.App.Infix]]
   */
 object DocParserRunner {
   //////////////////////////////////////////////////////////////////////////////
@@ -176,7 +181,8 @@ object DocParserRunner {
     }
   }
 
-  /** Helper functions for [[createDocs]]
+  /**
+    * Helper functions for [[createDocs]]
     * to traverse through Module and Def body
     */
   def createDocsFromModule(m: AST.Module): AST.Module = {
@@ -203,7 +209,7 @@ object DocParserRunner {
   }
 
   /**
-    * this is a helper function for creating docs with AST.
+    * This is a helper function for creating docs with AST.
     * Essentially it traverses through lines and tries to find a pattern on them
     *
     * @param lines - AST lines
@@ -240,7 +246,7 @@ object DocParserRunner {
     }
 
   /**
-    * creates Docs from comments found in parsed data
+    * Creates Docs from comments found in parsed data
     *
     * @param comment - comment found in AST
     * @return - Documentation
@@ -276,9 +282,8 @@ object DocParserRunner {
   //////////////////////////////////////////////////////////////////////////////
 
   /**
-    * this method is used for generation of
-    * HTML files from parsed and reformatted
-    * Documented(s)
+    * This method is used for generation of HTML files from parsed and
+    * reformatted [[AST.Documented]]
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
     */
