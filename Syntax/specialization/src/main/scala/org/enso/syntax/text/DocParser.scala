@@ -9,14 +9,9 @@ import scalatags.Text.{all => HTML}
 import HTML._
 import java.io.File
 import java.io.PrintWriter
-
 import flexer.Parser.{Result => res}
 import org.enso.data.List1
-import org.enso.syntax.text.AST.App.Infix
-import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST.Block.{LineOf => Line}
-import org.enso.syntax.text.AST.Comment
-import org.enso.syntax.text.AST.Def
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser ////////////////////////////////////////////////////////////////
@@ -231,9 +226,9 @@ object DocParserRunner {
               case line2 :: rest =>
                 line2 match {
                   case Line(Some(AST.App.Infix.any(ast)), _) =>
-                    commentWithInfixForDocumented(com, off, rest, ast)
+                    commentWithInfixForDocumented(com, off, ast, rest)
                   case Line(Some(AST.Def.any(ast)), _) =>
-                    commentWithDefForDocumented(com, off, rest, ast)
+                    commentWithDefForDocumented(com, off, ast, rest)
                   case Line(None, _) =>
                     var restTrav  = rest
                     var emp       = 1
@@ -246,9 +241,9 @@ object DocParserRunner {
                     val rHead = restTrav.head
                     rHead match {
                       case Line(Some(AST.App.Infix.any(ast)), _) =>
-                        commentWithInfixForDocumented(com, off, rTail, ast, emp)
+                        commentWithInfixForDocumented(com, off, ast, rTail, emp)
                       case Line(Some(AST.Def.any(ast)), _) =>
-                        commentWithDefForDocumented(com, off, rTail, ast, emp)
+                        commentWithDefForDocumented(com, off, ast, rTail, emp)
                       case _ =>
                         line1 :: line2 :: attachDocToSubsequentAST(rest)
                     }
@@ -278,22 +273,21 @@ object DocParserRunner {
     * method with [[AST.App.Infix]] as Documented AST
     *
     * @param com - comment found in AST
-    * @param comOff - commented line offset
-    * @param rest - lines after documented
+    * @param off - line offset
     * @param ast - [[AST.App.Infix]] to go with comment into Documented
+    * @param rest - lines after documented
     * @param emptyLines - Empty lines in between Doc and AST
     * @return - [[AST.Documented]]
     */
   def commentWithDefForDocumented(
-    com: Comment,
-    comOff: Int,
-    rest: List[OptLine],
-    ast: Def,
+    com: AST.Comment,
+    off: Int,
+    ast: AST.Def,
+    rest: List[AST.Block.OptLine],
     emptyLines: Int = 0
-  ): List[OptLine] = {
+  ): List[AST.Block.OptLine] = {
     val docFromAst = createDocs(ast)
-    val docLine =
-      createDocumentedLine(com, emptyLines, docFromAst, comOff)
+    val docLine    = createDocumentedLine(com, emptyLines, docFromAst, off)
     docLine :: attachDocToSubsequentAST(rest)
   }
 
@@ -302,21 +296,20 @@ object DocParserRunner {
     * method with [[AST.Def]] as Documented AST
     *
     * @param com - comment found in AST
-    * @param comOff - commented line offset
-    * @param rest - lines after documented
+    * @param off - line offset
     * @param ast - [[AST.Def]] to go with comment into Documented
+    * @param rest - lines after documented
     * @param emptyLines - Empty lines in between Doc and AST
     * @return - [[AST.Documented]]
     */
   def commentWithInfixForDocumented(
-    com: Comment,
-    comOff: Int,
-    rest: List[OptLine],
-    ast: Infix,
+    com: AST.Comment,
+    off: Int,
+    ast: AST.App.Infix,
+    rest: List[AST.Block.OptLine],
     emptyLines: Int = 0
-  ): List[OptLine] = {
-    val docLine =
-      createDocumentedLine(com, emptyLines, ast, comOff)
+  ): List[AST.Block.OptLine] = {
+    val docLine = createDocumentedLine(com, emptyLines, ast, off)
     docLine :: attachDocToSubsequentAST(rest)
   }
 
@@ -325,7 +318,7 @@ object DocParserRunner {
     * method
     *
     * @param comment - comment found in AST
-    * @param comOff - commented line offset
+    * @param off - line offset
     * @param ast - AST to go with comment into Documented
     * @return - [[AST.Documented]]
     */
@@ -333,11 +326,11 @@ object DocParserRunner {
     comment: AST.Comment,
     emptyLines: Int,
     ast: AST,
-    comOff: Int
+    off: Int
   ): AST.Block.LineOf[Some[AST.Documented]] = {
     val doc        = createDocFromComment(comment)
     val documented = Some(AST.Documented(doc, emptyLines, ast))
-    Line(documented, comOff)
+    Line(documented, off)
   }
 
   //////////////////////////////////////////////////////////////////////////////

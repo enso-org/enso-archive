@@ -1369,10 +1369,8 @@ object AST {
       extends ShapeOf[T]
   object Documented {
     val any = UnapplyByType[Documented]
-    def apply(doc: Doc, emptyLinesBetween: Int, ast: AST): Documented =
-      ASTOf(DocumentedOf(doc, emptyLinesBetween, ast))
-    def apply(doc: Doc, ast: AST): Documented =
-      ASTOf(DocumentedOf(doc, 0, ast))
+    def apply(doc: Doc, emp: Int, ast: AST): Documented =
+      ASTOf(DocumentedOf(doc, emp, ast))
   }
 
   //// Instances ////
@@ -1381,9 +1379,9 @@ object AST {
     import Comment.symbol
     implicit def functor[T]: Functor[DocumentedOf] = semi.functor
     implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
-      val symbolRepr           = R + symbol + symbol
-      val betweenDocAndAstRepr = R + newline + newline.build * t.emptyLinesBetween
-      R + symbolRepr + t.doc + betweenDocAndAstRepr + t.ast
+      val symbolRepr        = R + symbol + symbol
+      val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
+      R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
     }
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
