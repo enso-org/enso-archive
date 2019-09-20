@@ -119,7 +119,9 @@ object AST {
 
   //// Structure ////
 
-  sealed trait ShapeOf[T]
+  sealed trait ShapeOf[T] {
+    def children: Seq[T]
+  }
   type Shape = ShapeOf[AST]
   type _AST  = ASTOf[ShapeOf]
 
@@ -254,7 +256,11 @@ object AST {
   final case class ASTOf[+T[_]](shape: T[AST], id: Option[ID] = None)(
     implicit cls: ASTClass[T]
   ) {
-    override def toString  = s"Node($id,$shape)"
+    override def toString = s"Node($id,$shape)"
+    override def equals(obj: Any): Boolean = obj match {
+      case a: ASTOf[T] => shape == a.shape
+      case _           => false
+    }
     val repr: Repr.Builder = cls.repr(shape)
     val span: Int          = cls.repr(shape).span
     def show():             String   = repr.build()
@@ -313,13 +319,23 @@ object AST {
   implicit class ASTOps[T[S] <: ShapeOf[S]](t: ASTOf[T]) {
     def as[X: UnapplyByType]: Option[X] = UnapplyByType[X].unapply(t)
     def traverseWithOff(f: (Int, AST) => AST): ASTOf[T] = {
-      def go(i: Int, ast: AST): AST = {
-        ast.mapWithOff { (j, ast) =>
-          val off = i + j
-          go(off, f(off, ast))
-        }
-      }
+      def go(i: Int, ast: AST): AST =
+        ast.mapWithOff((j, ast) => go(i + j, f(i + j, ast)))
       t.mapWithOff((off, ast) => go(off, f(off, ast)))
+    }
+    def idMap: List[((Int, Int), AST.ID)] = {
+      var ids  = List[((Int, Int), AST.ID)]()
+      var asts = List[(Int, AST)]((0, t))
+      while (asts.nonEmpty) {
+        val (off, ast) = asts.head
+        val children = ast.zipWithOffset().children.map {
+          case (o, ast) => (o + off, ast)
+        }
+        if (ast.id.nonEmpty)
+          ids = ((off, ast.span), ast.id.get) +: ids
+        asts = children.toList ++ asts.tail
+      }
+      ids.reverse
     }
   }
 
@@ -327,13 +343,14 @@ object AST {
   //// Phantom /////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-  /** Phantom type. Use with care, as Scala cannot prove its proper usage. When
-    * a type is phantom, then its last type argument is not used and we can
-    * safely coerce it to something else.
+  /** Leaf of AST. Should be used only for AST types with no children. Use with
+    * care, since scala cannot infer its right usage.
     */
-  trait Phantom
-  implicit class PhantomOps[T[_] <: Phantom](ident: T[_]) {
-    def coerce[S]: T[S] = ident.asInstanceOf[T[S]]
+  trait Leaf[T] extends ShapeOf[T] {
+    def children: Seq[T] = Nil
+  }
+  implicit class LeafOps[Of[T] <: Leaf[T]](leaf: Of[_]) {
+    def coerce[T]: Of[T] = leaf.asInstanceOf[Of[T]]
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -350,9 +367,11 @@ object AST {
     type Unexpected   = ASTOf[UnexpectedOf]
     final case class UnrecognizedOf[T](str: String)
         extends InvalidOf[T]
-        with Phantom
+        with Leaf[T]
     final case class UnexpectedOf[T](msg: String, stream: StreamOf[T])
-        extends InvalidOf[T]
+        extends InvalidOf[T] {
+      def children = stream.map(_.el)
+    }
 
     //// Smart Constructors ////
 
@@ -406,7 +425,9 @@ object AST {
   //// Definition ////
 
   type Ident = ASTOf[IdentOf]
-  sealed trait IdentOf[T] extends ShapeOf[T] with Phantom { val name: String }
+  sealed trait IdentOf[T] extends Leaf[T] {
+    val name: String
+  }
   object IdentOf {
     implicit def functor: Functor[IdentOf] = semi.functor
   }
@@ -510,7 +531,7 @@ object AST {
     type InvalidSuffix = ASTOf[InvalidSuffixOf]
     final case class InvalidSuffixOf[T](elem: Ident, suffix: String)
         extends InvalidOf[T]
-        with Phantom
+        with Leaf[T]
     object InvalidSuffixOf {
       implicit def ftor:      Functor[InvalidSuffixOf]      = semi.functor
       implicit def offZip[T]: OffsetZip[InvalidSuffixOf, T] = t => t.coerce
@@ -556,7 +577,7 @@ object AST {
     type Number = ASTOf[NumberOf]
     final case class NumberOf[T](base: Option[String], int: String)
         extends LiteralOf[T]
-        with Phantom
+        with Leaf[T]
 
     object Number {
 
@@ -578,7 +599,7 @@ object AST {
       type DanglingBase = ASTOf[DanglingBaseOf]
       final case class DanglingBaseOf[T](base: String)
           extends InvalidOf[T]
-          with Phantom
+          with Leaf[T]
       object DanglingBase {
         val any = UnapplyByType[DanglingBase]
         def apply(base: String): DanglingBase = DanglingBaseOf[AST](base)
@@ -595,9 +616,9 @@ object AST {
     //// Instances ////
 
     object NumberOf {
-      implicit def fromInt[T](int: Int): Number = Number(int)
-      implicit def functor:      Functor[NumberOf]      = semi.functor
-      implicit def offsetZip[T]: OffsetZip[NumberOf, T] = t => t.coerce
+      implicit def fromInt[T](int: Int): Number                 = Number(int)
+      implicit def functor:              Functor[NumberOf]      = semi.functor
+      implicit def offsetZip[T]:         OffsetZip[NumberOf, T] = t => t.coerce
       implicit def repr[T]: Repr[NumberOf[T]] =
         t => t.base.map(_ + "_").getOrElse("") + t.int
     }
@@ -643,13 +664,20 @@ object AST {
 
       case class RawOf[T](body: BodyOf[Raw.Segment[T]])
           extends TextOf[T]
-          with Phantom {
+          with Leaf[T] {
         val quoteChar = '"'
       }
       case class FmtOf[T](body: BodyOf[Fmt.Segment[T]]) extends TextOf[T] {
         val quoteChar = '\''
+        def children =
+          body.lines.toList.flatMap(_.elem.flatMap {
+            case t: Segment._Expr[T] => t.value
+            case _                   => None
+          })
       }
-      case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
+      case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T] {
+        def children = text.children
+      }
 
       object Body {
         def apply[S <: Segment[AST]](q: Quote, s: S*) =
@@ -717,7 +745,7 @@ object AST {
       //// Segment ////
       /////////////////
 
-      sealed trait Segment[T]
+      sealed trait Segment[T] extends ShapeOf[T]
       object Segment {
 
         type Escape = ast.text.Escape
@@ -728,11 +756,13 @@ object AST {
         type Fmt = _Fmt[AST]
         type Raw = _Raw[AST]
         sealed trait _Fmt[T] extends Segment[T]
-        sealed trait _Raw[T] extends _Fmt[T] with Phantom
+        sealed trait _Raw[T] extends _Fmt[T] with Leaf[T]
 
-        final case class _Plain[T](value: String)   extends _Raw[T]
-        final case class _Expr[T](value: Option[T]) extends _Fmt[T]
-        final case class _Escape[T](code: Escape)   extends _Fmt[T] with Phantom
+        final case class _Plain[T](value: String) extends _Raw[T]
+        final case class _Escape[T](code: Escape) extends _Fmt[T] with Leaf[T]
+        final case class _Expr[T](value: Option[T]) extends _Fmt[T] {
+          def children = value.toSeq
+        }
 
         object Expr {
           def apply(t: Option[AST]): Fmt = _Expr(t)
@@ -762,8 +792,8 @@ object AST {
             case t: _Plain[T] => Repr(t)
           }
           implicit def reprFmt[T: Repr]: Repr[_Fmt[T]] = {
-            case t: _Plain[T] => Repr(t)
-            case t: _Expr[T]  => Repr(t)
+            case t: _Plain[T]  => Repr(t)
+            case t: _Expr[T]   => Repr(t)
             case t: _Escape[T] => Repr(t)
           }
           implicit def ftorRaw[T]: Functor[_Raw] = semi.functor
@@ -772,8 +802,8 @@ object AST {
             case t: _Plain[T] => OffsetZip(t)
           }
           implicit def offZipFmt[T]: OffsetZip[_Fmt, T] = {
-            case t: _Plain[T] => OffsetZip(t)
-            case t: _Expr[T]  => OffsetZip(t)
+            case t: _Plain[T]  => OffsetZip(t)
+            case t: _Expr[T]   => OffsetZip(t)
             case t: _Escape[T] => OffsetZip(t)
           }
           implicit def txtFromString[T](str: String): _Plain[T] = _Plain(str)
@@ -809,14 +839,18 @@ object AST {
 
     type Prefix = ASTOf[PrefixOf]
     type Infix  = ASTOf[InfixOf]
-    final case class PrefixOf[T](fn: T, off: Int, arg: T) extends AppOf[T]
+    final case class PrefixOf[T](fn: T, off: Int, arg: T) extends AppOf[T] {
+      def children = Seq(fn, arg)
+    }
     final case class InfixOf[T](
       larg: T,
       loff: Int,
       opr: Opr,
       roff: Int,
       rarg: T
-    ) extends AppOf[T]
+    ) extends AppOf[T] {
+      def children = Seq(larg, rarg)
+    }
 
     //// Smart Constructors ////
 
@@ -888,10 +922,14 @@ object AST {
       type Sides = ASTOf[SidesOf]
 
       final case class LeftOf[T](arg: T, off: Int, opr: Opr)
-          extends SectionOf[T]
+          extends SectionOf[T] {
+        def children = Seq(arg)
+      }
       final case class RightOf[T](opr: Opr, off: Int, arg: T)
-          extends SectionOf[T]
-      final case class SidesOf[T](opr: Opr) extends SectionOf[T] with Phantom
+          extends SectionOf[T] {
+        def children = Seq(arg)
+      }
+      final case class SidesOf[T](opr: Opr) extends SectionOf[T] with Leaf[T]
 
       //// Smart Constructors ////
 
@@ -954,6 +992,7 @@ object AST {
     lines: List[Block.LineOf[Option[T]]],
     protected val isOrphan: Boolean = false
   ) extends ShapeOf[T] {
+    def children = firstLine.elem +: lines.flatMap(_.elem)
     // FIXME: Compatibility mode
     def replaceType(ntyp: Block.Type): BlockOf[T] = copy(typ = ntyp)
   }
@@ -1026,7 +1065,7 @@ object AST {
   object BlockOf {
     implicit def ftorBlock: Functor[BlockOf] = semi.functor
     implicit def reprBlock[T: Repr]: Repr[BlockOf[T]] = t => {
-      val headRepr = if (t.isOrphan) R else newline
+      val headRepr       = if (t.isOrphan) R else newline
       val emptyLinesRepr = t.emptyLines.map(R + _ + newline)
       val firstLineRepr  = R + t.indent + t.firstLine
       val linesRepr = t.lines.map { line =>
@@ -1043,7 +1082,9 @@ object AST {
 
   type Module = ASTOf[ModuleOf]
   final case class ModuleOf[T](lines: List1[Block.OptLineOf[T]])
-      extends ShapeOf[T]
+      extends ShapeOf[T] {
+    def children = lines.toList.flatMap(_.elem)
+  }
 
   object Module {
     import Block._
@@ -1087,6 +1128,7 @@ object AST {
       segs: Shifted.List1[Match.SegmentOf[T]],
       resolved: AST
     ) extends MacroOf[T] {
+      def children = segs.toList().map(???)
       def path(): List1[AST] = segs.toList1().map(_.el.head)
     }
 
@@ -1154,6 +1196,7 @@ object AST {
       segs: Shifted.List1[Ambiguous.Segment],
       paths: Tree[AST, Unit]
     ) extends MacroOf[T]
+        with Leaf[T]
     object Ambiguous {
       def apply(
         segs: Shifted.List1[Ambiguous.Segment],
@@ -1342,7 +1385,7 @@ object AST {
   type Comment = ASTOf[CommentOf]
   final case class CommentOf[T](lines: List[String])
       extends SpacelessASTOf[T]
-      with Phantom
+      with Leaf[T]
   object Comment {
     val symbol = "#"
     def apply(lines: List[String]): Comment = ASTOf(CommentOf(lines))
@@ -1364,7 +1407,9 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Import = ASTOf[ImportOf]
-  final case class ImportOf[T](path: List1[Cons]) extends SpacelessASTOf[T]
+  final case class ImportOf[T](path: List1[Cons])
+      extends SpacelessASTOf[T]
+      with Leaf[T]
   object Import {
     def apply(path: List1[Cons]):            Import = ImportOf[AST](path)
     def apply(head: Cons):                   Import = Import(head, List())
@@ -1386,7 +1431,9 @@ object AST {
 
   type Mixfix = MixfixOf[AST]
   final case class MixfixOf[T](name: List1[Ident], args: List1[T])
-      extends SpacelessASTOf[T]
+      extends SpacelessASTOf[T] {
+    def children = args.toList
+  }
 
   object Mixfix {
     def apply(name: List1[Ident], args: List1[AST]): Mixfix =
@@ -1409,7 +1456,9 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Group = ASTOf[GroupOf]
-  final case class GroupOf[T](body: Option[T]) extends SpacelessASTOf[T]
+  final case class GroupOf[T](body: Option[T]) extends SpacelessASTOf[T] {
+    def children = body.toSeq
+  }
   object Group {
     val any             = UnapplyByType[Group]
     def unapply(t: AST) = Unapply[Group].run(_.body)(t)
@@ -1432,7 +1481,9 @@ object AST {
 
   type Def = ASTOf[DefOf]
   final case class DefOf[T](name: Cons, args: List[T], body: Option[T])
-      extends SpacelessASTOf[T]
+      extends SpacelessASTOf[T] {
+    def children = args ++ body.toSeq
+  }
   object Def {
     val symbol = "def"
     def apply(name: Cons):                  Def = Def(name, List())
@@ -1455,6 +1506,7 @@ object AST {
   type Foreign = ForeignOf[AST]
   final case class ForeignOf[T](indent: Int, lang: String, code: List[String])
       extends SpacelessASTOf[T]
+      with Leaf[T]
   object Foreign {
     def apply(indent: Int, lang: String, code: List[String]): Foreign =
       ForeignOf(indent, lang, code)
