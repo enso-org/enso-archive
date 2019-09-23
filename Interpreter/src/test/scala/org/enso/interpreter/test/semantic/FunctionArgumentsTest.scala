@@ -93,4 +93,17 @@ class FunctionArgumentsTest extends LanguageTest {
 
     eval(code) shouldEqual 1
   }
+
+  "Recursion closing over lexical scope" should "work properly" in {
+    val code =
+      """
+        |@{
+        |  summator = { |current| ifZero: [current, 0,  @{@summator [current - 1]} ] };
+        |  res = @summator [0];
+        |  res
+        |}
+        |""".stripMargin
+
+    eval(code) shouldEqual 0
+  }
 }
