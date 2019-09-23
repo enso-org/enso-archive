@@ -17,7 +17,7 @@ trigger:
 pr: none
 
 variables:
-  graalVersion: 19.2.0
+  graalVersion: 19.2.0.1
   historicMacOSSbtFormula: https://raw.githubusercontent.com/Homebrew/homebrew-core/5311047af872538de3bd9fa10d78eda3185a7559/Formula/sbt.rb
 
 jobs:
