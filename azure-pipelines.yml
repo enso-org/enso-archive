@@ -107,15 +107,15 @@ jobs:
   - script: |
       curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
       tar -x -z -C %USERPROFILE% -f sbt.tgz
-      echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
     displayName: "Install sbt"
   - script: |
       call refreshenv
       echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-$(graalVersion)
       echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-$(graalVersion)\bin;%PATH%
+      echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
     displayName: "Adjust environment variables"
   - script: |
-      sbt test
+      sbt.bat test
     continueOnError: true
     displayName: "sbt test"
 #  - script: |
