@@ -41,18 +41,18 @@ jobs:
       sbt -no-colors test
     displayName: sbt test
     continueOnError: true
-#  - script: |
-#      sbt -no-colors syntax/bench
-#    displayName: sbt bench parser
-#    continueOnError: true
-#  - script: |
-#      sbt -no-colors interpreter/bench
-#    displayName: sbt bench interpreter
-#    continueOnError: true
-#  - task: PublishTestResults@2
-#    inputs:
-#      testResultsFormat: 'JUnit'
-#      testResultsFiles: '**/TEST-*.xml'
+  - script: |
+      sbt -no-colors syntax/bench
+    displayName: sbt bench parser
+    continueOnError: true
+  - script: |
+      sbt -no-colors interpreter/bench
+    displayName: sbt bench interpreter
+    continueOnError: true
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
   - script: |
       echo "##vso[task.complete result=Failed;]DONE"
     condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
@@ -79,18 +79,18 @@ jobs:
       sbt -no-colors test
     displayName: sbt test
     continueOnError: true
-#  - script: |
-#      sbt -no-colors syntax/bench
-#    displayName: sbt bench parser
-#    continueOnError: true
-#  - script: |
-#      sbt -no-colors interpreter/bench
-#    displayName: sbt bench interpreter
-#    continueOnError: true
-#  - task: PublishTestResults@2
-#    inputs:
-#      testResultsFormat: 'JUnit'
-#      testResultsFiles: '**/TEST-*.xml'
+  - script: |
+      sbt -no-colors syntax/bench
+    displayName: sbt bench parser
+    continueOnError: true
+  - script: |
+      sbt -no-colors interpreter/bench
+    displayName: sbt bench interpreter
+    continueOnError: true
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
   - script: |
       echo "##vso[task.complete result=Failed;]DONE"
     condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
@@ -118,18 +118,18 @@ jobs:
       sbt.bat test
     continueOnError: true
     displayName: "sbt test"
-#  - script: |
-#      sbt syntax/bench
-#    displayName: sbt bench parser
-#    continueOnError: true
-#  - script: |
-#      sbt interpreter/bench
-#    displayName: sbt bench interpreter
-#    continueOnError: true
-#  - task: PublishTestResults@2
-#    inputs:
-#      testResultsFormat: 'JUnit'
-#      testResultsFiles: '**/TEST-*.xml'
+  - script: |
+      sbt syntax/bench
+    displayName: sbt bench parser
+    continueOnError: true
+  - script: |
+      sbt interpreter/bench
+    displayName: sbt bench interpreter
+    continueOnError: true
+  - task: PublishTestResults@2
+    inputs:
+      testResultsFormat: 'JUnit'
+      testResultsFiles: '**/TEST-*.xml'
   - script: |
       echo "##vso[task.complete result=Failed;]DONE"
     condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
