@@ -17,7 +17,8 @@ trigger:
 pr: none
 
 variables:
-  graalVersion: 19.2.0.1
+  graalVersion: 19.2.0.1 # Please ensure this is in sync with the graalAPIVersion in build.sbt
+  sbtVersion: 1.2.8      # Please ensure this is in sync with project/build.properties
   historicMacOSSbtFormula: https://raw.githubusercontent.com/Homebrew/homebrew-core/5311047af872538de3bd9fa10d78eda3185a7559/Formula/sbt.rb
 
 jobs:
@@ -32,29 +33,30 @@ jobs:
   - script: /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y sudo"
     displayName: Setup sudo
   - script: |
-      curl https://bintray.com/sbt/rpm/rpm | sudo tee /etc/yum.repos.d/bintray-sbt-rpm.repo
-      sudo yum install -y sbt
+      curl -fSL -o sbt.tar.gz https://piccolo.link/sbt-$(sbtVersion).tgz
+      tar -x -x -C ~ -f sbt.tar.gz
+      echo "##vso[task.setvariable variable=PATH]./sbt/bin/:$PATH"
     displayName: "Install sbt"
-  - script: |
-      sbt -no-colors test
-    displayName: sbt test
-    continueOnError: true
-  - script: |
-      sbt -no-colors syntax/bench
-    displayName: sbt bench parser
-    continueOnError: true
-  - script: |
-      sbt -no-colors interpreter/bench
-    displayName: sbt bench interpreter
-    continueOnError: true
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFormat: 'JUnit'
-      testResultsFiles: '**/TEST-*.xml'
-  - script: |
-      echo "##vso[task.complete result=Failed;]DONE"
-    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
-    displayName: "Fail if there were issues"
+#  - script: |
+#      sbt -no-colors test
+#    displayName: sbt test
+#    continueOnError: true
+#  - script: |
+#      sbt -no-colors syntax/bench
+#    displayName: sbt bench parser
+#    continueOnError: true
+#  - script: |
+#      sbt -no-colors interpreter/bench
+#    displayName: sbt bench interpreter
+#    continueOnError: true
+#  - task: PublishTestResults@2
+#    inputs:
+#      testResultsFormat: 'JUnit'
+#      testResultsFiles: '**/TEST-*.xml'
+#  - script: |
+#      echo "##vso[task.complete result=Failed;]DONE"
+#    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+#    displayName: "Fail if there were issues"
 - job: macOS
   timeoutInMinutes: 90
   pool:
@@ -69,29 +71,29 @@ jobs:
       echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home/bin:$PATH"
     displayName: Install GraalVM
   - script: |
-      brew update
-      brew install $(historicMacOSSbtFormula)
+#      brew update
+#      brew install $(historicMacOSSbtFormula)
     displayName: Install sbt
-  - script: |
-      sbt -no-colors test
-    displayName: sbt test
-    continueOnError: true
-  - script: |
-      sbt -no-colors syntax/bench
-    displayName: sbt bench parser
-    continueOnError: true
-  - script: |
-      sbt -no-colors interpreter/bench
-    displayName: sbt bench interpreter
-    continueOnError: true
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFormat: 'JUnit'
-      testResultsFiles: '**/TEST-*.xml'
-  - script: |
-      echo "##vso[task.complete result=Failed;]DONE"
-    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
-    displayName: "Fail if there were issues"
+#  - script: |
+#      sbt -no-colors test
+#    displayName: sbt test
+#    continueOnError: true
+#  - script: |
+#      sbt -no-colors syntax/bench
+#    displayName: sbt bench parser
+#    continueOnError: true
+#  - script: |
+#      sbt -no-colors interpreter/bench
+#    displayName: sbt bench interpreter
+#    continueOnError: true
+#  - task: PublishTestResults@2
+#    inputs:
+#      testResultsFormat: 'JUnit'
+#      testResultsFiles: '**/TEST-*.xml'
+#  - script: |
+#      echo "##vso[task.complete result=Failed;]DONE"
+#    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+#    displayName: "Fail if there were issues"
 - job: Windows
   timeoutInMinutes: 90
   pool:
@@ -102,30 +104,30 @@ jobs:
       7z x -y -oC:\ graal.zip
     displayName: "Install GraalVM"
   - script: |
-      choco install -y sbt
+#      choco install -y sbt
     displayName: "Install sbt"
-  - script: |
-        call refreshenv
-        echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-$(graalVersion)
-        echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-$(graalVersion)\bin;%PATH%
-    displayName: "Adjust environment variables"
-  - script: |
-      sbt test
-    continueOnError: true
-    displayName: "sbt test"
-  - script: |
-      sbt syntax/bench
-    displayName: sbt bench parser
-    continueOnError: true
-  - script: |
-      sbt interpreter/bench
-    displayName: sbt bench interpreter
-    continueOnError: true
-  - task: PublishTestResults@2
-    inputs:
-      testResultsFormat: 'JUnit'
-      testResultsFiles: '**/TEST-*.xml'
-  - script: |
-      echo "##vso[task.complete result=Failed;]DONE"
-    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
-    displayName: "Fail if there were issues"
+#  - script: |
+#        call refreshenv
+#        echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-$(graalVersion)
+#        echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-$(graalVersion)\bin;%PATH%
+#    displayName: "Adjust environment variables"
+#  - script: |
+#      sbt test
+#    continueOnError: true
+#    displayName: "sbt test"
+#  - script: |
+#      sbt syntax/bench
+#    displayName: sbt bench parser
+#    continueOnError: true
+#  - script: |
+#      sbt interpreter/bench
+#    displayName: sbt bench interpreter
+#    continueOnError: true
+#  - task: PublishTestResults@2
+#    inputs:
+#      testResultsFormat: 'JUnit'
+#      testResultsFiles: '**/TEST-*.xml'
+#  - script: |
+#      echo "##vso[task.complete result=Failed;]DONE"
+#    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+#    displayName: "Fail if there were issues"
