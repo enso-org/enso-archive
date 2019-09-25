@@ -37,10 +37,10 @@ jobs:
       tar -x -x -C ~ -f sbt.tar.gz
       echo "##vso[task.setvariable variable=PATH]./sbt/bin/:$PATH"
     displayName: "Install sbt"
-#  - script: |
-#      sbt -no-colors test
-#    displayName: sbt test
-#    continueOnError: true
+  - script: |
+      sbt -no-colors test
+    displayName: sbt test
+    continueOnError: true
 #  - script: |
 #      sbt -no-colors syntax/bench
 #    displayName: sbt bench parser
@@ -57,23 +57,23 @@ jobs:
 #      echo "##vso[task.complete result=Failed;]DONE"
 #    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
 #    displayName: "Fail if there were issues"
-- job: macOS
-  timeoutInMinutes: 90
-  pool:
-    vmImage: macOS-10.13
-  steps:
-  - script: |
-      curl -fSL -o graal.tar.gz https://github.com/oracle/graal/releases/download/vm-$(graalVersion)/graalvm-ce-darwin-amd64-$(graalVersion).tar.gz
-      tar -x -z -C ~ -f graal.tar.gz
-      ls ~/graalvm-ce-$(graalVersion)
-      sudo mv ~/graalvm-ce-$(graalVersion) /Library/Java/JavaVirtualMachines
-      echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home"
-      echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home/bin:$PATH"
-    displayName: Install GraalVM
-  - script: |
+#- job: macOS
+#  timeoutInMinutes: 90
+#  pool:
+#    vmImage: macOS-10.13
+#  steps:
+#  - script: |
+#      curl -fSL -o graal.tar.gz https://github.com/oracle/graal/releases/download/vm-$(graalVersion)/graalvm-ce-darwin-amd64-$(graalVersion).tar.gz
+#      tar -x -z -C ~ -f graal.tar.gz
+#      ls ~/graalvm-ce-$(graalVersion)
+#      sudo mv ~/graalvm-ce-$(graalVersion) /Library/Java/JavaVirtualMachines
+#      echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home"
+#      echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/graalvm-ce-$(graalVersion)/Contents/Home/bin:$PATH"
+#    displayName: Install GraalVM
+#  - script: |
 #      brew update
 #      brew install $(historicMacOSSbtFormula)
-    displayName: Install sbt
+#    displayName: Install sbt
 #  - script: |
 #      sbt -no-colors test
 #    displayName: sbt test
@@ -94,18 +94,18 @@ jobs:
 #      echo "##vso[task.complete result=Failed;]DONE"
 #    condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
 #    displayName: "Fail if there were issues"
-- job: Windows
-  timeoutInMinutes: 90
-  pool:
-    vmImage: windows-2019
-  steps:
-  - script: |
-      curl -fSL -o graal.zip https://github.com/oracle/graal/releases/download/vm-$(graalVersion)/graalvm-ce-windows-amd64-$(graalVersion).zip
-      7z x -y -oC:\ graal.zip
-    displayName: "Install GraalVM"
-  - script: |
+#- job: Windows
+#  timeoutInMinutes: 90
+#  pool:
+#    vmImage: windows-2019
+#  steps:
+#  - script: |
+#      curl -fSL -o graal.zip https://github.com/oracle/graal/releases/download/vm-$(graalVersion)/graalvm-ce-windows-amd64-$(graalVersion).zip
+#      7z x -y -oC:\ graal.zip
+#    displayName: "Install GraalVM"
+#  - script: |
 #      choco install -y sbt
-    displayName: "Install sbt"
+#    displayName: "Install sbt"
 #  - script: |
 #        call refreshenv
 #        echo ##vso[task.setvariable variable=JAVA_HOME]C:\graalvm-ce-$(graalVersion)
