@@ -115,9 +115,9 @@ jobs:
       echo ##vso[task.setvariable variable=PATH]C:\graalvm-ce-$(graalVersion)\bin;%PATH%
     displayName: "Adjust environment variables"
   - script: |
-      sbt test
+      sbt.bat test
     continueOnError: true
-#    displayName: "sbt test"
+    displayName: "sbt test"
 #  - script: |
 #      sbt syntax/bench
 #    displayName: sbt bench parser
