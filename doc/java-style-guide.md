@@ -71,7 +71,7 @@ package shall be located under path
 
 ### The Public API
 In order to produce as flexible a codebase as possible, we tend not to make use
-of access modifiers in our code (`public`, `private`, and so on). Instead, we
+of access modifiers in our code (`protected`, `private`, and so on). Instead, we
 use the concept of `Internal` modules to separate public from private.
 
 If you are writing code in a package `X.Y.MyType` and would like to signal that
@@ -308,7 +308,7 @@ These are intended to allow us to catch performance regressions as the code
 evolves, but also ensure that we have some idea of the code's performance in
 general.
 
-- We use Caliper for our benchmarks.
+- We use JMH for our benchmarks.
 - We measure time, but also memory usage and CPU time where possible.
 - Where relevant, benchmarks may set thresholds which, when surpassed, cause the
   benchmark to fail. These thresholds should be set for a release build, and not

@@ -56,9 +56,9 @@ below may provide more rules for use in specific cases.
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
 - Any function that performs an unsafe operation that is not documented in its
-  type (e.g. `head : [a] -> a`, which fails if the list is empty), must be named
-  using the word 'unsafe' (e.g. `unsafeHead`). For more information on unsafe
-  function usage, see the section on [safety](#safety).
+  type (e.g. `def head[T](ts: List[T]): T`, which fails if the list is empty), 
+  must be named using the word 'unsafe' (e.g. `unsafeHead`). For more 
+  information on unsafe function usage, see the section on [safety](#safety).
 
 ## Package Structure and Naming
 Enso follows the
