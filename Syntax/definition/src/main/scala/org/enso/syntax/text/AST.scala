@@ -2,13 +2,16 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
+import shapeless.Id
 import cats.Foldable
 import cats.Functor
-import cats.derived.MkFoldable
 import cats.derived._
 import cats.implicits._
 import org.enso.data.List1._
-import org.enso.data.{List1, Pool, Shifted, Tree}
+import org.enso.data.List1
+import org.enso.data.Pool
+import org.enso.data.Shifted
+import org.enso.data.Tree
 import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
@@ -387,17 +390,15 @@ object AST {
     //// Instances ////
 
     object UnrecognizedOf {
-      implicit def ftor: Functor[UnrecognizedOf] = semi.functor
-      implicit def fld: Foldable[UnrecognizedOf] =
-        semi.foldable(MkFoldable[UnrecognizedOf])
+      implicit def ftor:    Functor[UnrecognizedOf]      = semi.functor
+      implicit def fld:     Foldable[UnrecognizedOf]     = semi.foldable
       implicit def repr[T]: Repr[UnrecognizedOf[T]]      = _.str
       implicit def ozip[T]: OffsetZip[UnrecognizedOf, T] = t => t.coerce
     }
     object UnexpectedOf {
-      implicit def ftor: Functor[UnexpectedOf] = semi.functor
-      implicit def fold: Foldable[UnexpectedOf] =
-        semi.foldable(MkFoldable[UnexpectedOf])
-      implicit def repr[T: Repr]: Repr[UnexpectedOf[T]] = t => Repr(t.stream)
+      implicit def ftor:          Functor[UnexpectedOf]  = semi.functor
+      implicit def fold:          Foldable[UnexpectedOf] = semi.foldable
+      implicit def repr[T: Repr]: Repr[UnexpectedOf[T]]  = t => Repr(t.stream)
       implicit def ozip[T: Repr]: OffsetZip[UnexpectedOf, T] =
         t => t.copy(stream = OffsetZip(t.stream))
     }
@@ -427,7 +428,7 @@ object AST {
   sealed trait IdentOf[T] extends ShapeOf[T] with Phantom { val name: String }
   object IdentOf {
     implicit def ftor: Functor[IdentOf]  = semi.functor
-    implicit def fold: Foldable[IdentOf] = semi.foldable(MkFoldable[IdentOf])
+    implicit def fold: Foldable[IdentOf] = semi.foldable
   }
   object Ident {
     type Blank = ASTOf[BlankOf]
@@ -448,31 +449,32 @@ object AST {
 
     object BlankOf {
       implicit def ftor:    Functor[BlankOf]      = semi.functor
-      implicit def fold:    Foldable[BlankOf]     = semi.foldable(MkFoldable[BlankOf])
+      implicit def fold:    Foldable[BlankOf]     = semi.foldable
       implicit def repr[T]: Repr[BlankOf[T]]      = _.name
       implicit def ozip[T]: OffsetZip[BlankOf, T] = t => t.coerce
     }
     object VarOf {
+      implicit val x = Generic[VarOf[AST]]
       implicit def ftor:    Functor[VarOf]      = semi.functor
-      implicit def fold:    Foldable[VarOf]     = semi.foldable(MkFoldable[VarOf])
+      implicit def fold:    Foldable[VarOf]     = semi.foldable
       implicit def repr[T]: Repr[VarOf[T]]      = _.name
       implicit def ozip[T]: OffsetZip[VarOf, T] = t => t.coerce
     }
     object ConsOf {
       implicit def ftor:    Functor[ConsOf]      = semi.functor
-      implicit def fold:    Foldable[ConsOf]     = semi.foldable(MkFoldable[ConsOf])
+      implicit def fold:    Foldable[ConsOf]     = semi.foldable
       implicit def repr[T]: Repr[ConsOf[T]]      = _.name
       implicit def ozip[T]: OffsetZip[ConsOf, T] = t => t.coerce
     }
     object OprOf {
       implicit def ftor:    Functor[OprOf]      = semi.functor
-      implicit def fold:    Foldable[OprOf]     = semi.foldable(MkFoldable[OprOf])
+      implicit def fold:    Foldable[OprOf]     = semi.foldable
       implicit def repr[T]: Repr[OprOf[T]]      = _.name
       implicit def ozip[T]: OffsetZip[OprOf, T] = t => t.coerce
     }
     object ModOf {
       implicit def ftor:    Functor[ModOf]      = semi.functor
-      implicit def fold:    Foldable[ModOf]     = semi.foldable(MkFoldable[ModOf])
+      implicit def fold:    Foldable[ModOf]     = semi.foldable
       implicit def repr[T]: Repr[ModOf[T]]      = R + _.name + "="
       implicit def ozip[T]: OffsetZip[ModOf, T] = t => t.coerce
     }
@@ -522,14 +524,14 @@ object AST {
       private val pool    = new Pool[ModOf[AST]]()
       val any             = UnapplyByType[Mod]
       def unapply(t: AST) = Unapply[Mod].run(_.name)(t)
-      def apply(name: String): Mod =  pool.get(ModOf[AST](name))
+      def apply(name: String): Mod = pool.get(ModOf[AST](name))
     }
     object Opr {
       private val pool    = new Pool[OprOf[AST]]()
       val app             = Opr(" ")
       val any             = UnapplyByType[Opr]
       def unapply(t: AST) = Unapply[Opr].run(_.name)(t)
-      def apply(name: String): Opr =  pool.get(OprOf[AST](name))
+      def apply(name: String): Opr = pool.get(OprOf[AST](name))
     }
 
     ///////////////////////
@@ -541,9 +543,8 @@ object AST {
         extends InvalidOf[T]
         with Phantom
     object InvalidSuffixOf {
-      implicit def ftor: Functor[InvalidSuffixOf] = semi.functor
-      implicit def fold: Foldable[InvalidSuffixOf] =
-        semi.foldable(MkFoldable[InvalidSuffixOf])
+      implicit def ftor:    Functor[InvalidSuffixOf]      = semi.functor
+      implicit def fold:    Foldable[InvalidSuffixOf]     = semi.foldable
       implicit def ozip[T]: OffsetZip[InvalidSuffixOf, T] = t => t.coerce
       implicit def repr[T]: Repr[InvalidSuffixOf[T]] =
         t => R + t.elem + t.suffix
@@ -574,9 +575,8 @@ object AST {
   type Literal = ASTOf[LiteralOf]
   sealed trait LiteralOf[T] extends ShapeOf[T]
   object LiteralOf {
-    implicit def ftor: Functor[LiteralOf] = semi.functor
-    implicit def fold: Foldable[LiteralOf] =
-      semi.foldable(MkFoldable[LiteralOf])
+    implicit def ftor: Functor[LiteralOf]  = semi.functor
+    implicit def fold: Foldable[LiteralOf] = semi.foldable
   }
   object Literal {
 
@@ -619,9 +619,8 @@ object AST {
           Unapply[DanglingBase].run(_.base)(t)
       }
       object DanglingBaseOf {
-        implicit def ftor: Functor[DanglingBaseOf] = semi.functor
-        implicit def fold: Foldable[DanglingBaseOf] =
-          semi.foldable(MkFoldable[DanglingBaseOf])
+        implicit def ftor:    Functor[DanglingBaseOf]      = semi.functor
+        implicit def fold:    Foldable[DanglingBaseOf]     = semi.foldable
         implicit def ozip[T]: OffsetZip[DanglingBaseOf, T] = t => t.coerce
         implicit def repr[T]: Repr[DanglingBaseOf[T]]      = R + _.base + '_'
       }
@@ -630,11 +629,10 @@ object AST {
     //// Instances ////
 
     object NumberOf {
-      implicit def fromInt[T](int: Int): Number            = Number(int)
-      implicit def ftor:                 Functor[NumberOf] = semi.functor
-      implicit def fold: Foldable[NumberOf] =
-        semi.foldable(MkFoldable[NumberOf])
-      implicit def ozip[T]: OffsetZip[NumberOf, T] = t => t.coerce
+      implicit def fromInt[T](int: Int): Number                 = Number(int)
+      implicit def ftor:                 Functor[NumberOf]      = semi.functor
+      implicit def fold:                 Foldable[NumberOf]     = semi.foldable
+      implicit def ozip[T]:              OffsetZip[NumberOf, T] = t => t.coerce
       implicit def repr[T]: Repr[NumberOf[T]] =
         t => t.base.map(_ + "_").getOrElse("") + t.int
     }
@@ -655,7 +653,7 @@ object AST {
 
     object TextOf {
       implicit def ftor: Functor[TextOf]  = semi.functor
-      implicit def fold: Foldable[TextOf] = semi.foldable(MkFoldable[TextOf])
+      implicit def fold: Foldable[TextOf] = semi.foldable
       implicit def repr[T: Repr]: Repr[TextOf[T]] =
         t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
       implicit def ozip[T: Repr]: OffsetZip[TextOf, T] = {
@@ -712,14 +710,14 @@ object AST {
 
       object RawOf {
         implicit def ftor: Functor[RawOf]  = semi.functor
-        implicit def fold: Foldable[RawOf] = semi.foldable(MkFoldable[RawOf])
+        implicit def fold: Foldable[RawOf] = semi.foldable
         implicit def repr[T: Repr]: Repr[RawOf[T]] =
           t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
         implicit def ozip[T]: OffsetZip[RawOf, T] = t => t.coerce
       }
       object FmtOf {
         implicit def ftor: Functor[FmtOf]  = semi.functor
-        implicit def fold: Foldable[FmtOf] = semi.foldable(MkFoldable[FmtOf])
+        implicit def fold: Foldable[FmtOf] = semi.foldable
         implicit def repr[T: Repr]: Repr[FmtOf[T]] =
           t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
         implicit def ozip[T: Repr]: OffsetZip[FmtOf, T] = t => {
@@ -736,7 +734,7 @@ object AST {
       }
       object LineOf {
         implicit def ftor:          Functor[LineOf]  = semi.functor
-        implicit def fold:          Foldable[LineOf] = semi.foldable(MkFoldable[LineOf])
+        implicit def fold:          Foldable[LineOf] = semi.foldable
         implicit def repr[T: Repr]: Repr[LineOf[T]]  = R + _.elem.map(R + _)
         implicit def ozip[T: Repr]: OffsetZip[LineOf, T] = t => {
           var offset = t.off
@@ -749,9 +747,8 @@ object AST {
         }
       }
       object UnclosedOf {
-        implicit def ftor: Functor[UnclosedOf] = semi.functor
-        implicit def fold: Foldable[UnclosedOf] =
-          semi.foldable(MkFoldable[UnclosedOf])
+        implicit def ftor: Functor[UnclosedOf]  = semi.functor
+        implicit def fold: Foldable[UnclosedOf] = semi.foldable
         implicit def repr[T: Repr]: Repr[UnclosedOf[T]] =
           t => R + t.text.quoteRepr + t.text.bodyRepr
         implicit def ozip[T: Repr]: OffsetZip[UnclosedOf, T] =
@@ -790,35 +787,32 @@ object AST {
         final case class _Escape[T](code: Escape)   extends _Fmt[T] with Phantom
 
         object Expr  { def apply(t: Option[AST]): Fmt = _Expr(t)  }
-        object Plain { def apply(s: String): Raw      = _Plain(s) }
+        object Plain { def apply(s: String):      Raw = _Plain(s) }
 
         //// Instances ////
 
         object implicits extends implicits
         trait implicits {
 
-          implicit def ftorEscape: Functor[_Escape] = semi.functor
-          implicit def foldEscape: Foldable[_Escape] =
-            semi.foldable(MkFoldable[_Escape])
+          implicit def ftorEscape: Functor[_Escape]  = semi.functor
+          implicit def foldEscape: Foldable[_Escape] = semi.foldable
           implicit def reprEscape[T: Repr]: Repr[_Escape[T]] =
             t => R + ("\\" + t.code.repr)
           implicit def ozipEscape[T]: OffsetZip[_Escape, T] = t => t.coerce
 
-          implicit def foldPlain: Foldable[_Plain] =
-            semi.foldable(MkFoldable[_Plain])
+          implicit def foldPlain:    Foldable[_Plain]     = semi.foldable
           implicit def ftorPlain[T]: Functor[_Plain]      = semi.functor
           implicit def reprPlain[T]: Repr[_Plain[T]]      = _.value
           implicit def ozipPlain[T]: OffsetZip[_Plain, T] = t => t.coerce
 
-          implicit def ftorExpr[T]: Functor[_Expr] = semi.functor
-          implicit def foldExpr: Foldable[_Expr] =
-            semi.foldable(MkFoldable[_Expr])
+          implicit def ftorExpr[T]: Functor[_Expr]  = semi.functor
+          implicit def foldExpr:    Foldable[_Expr] = semi.foldable
           implicit def reprExpr[T: Repr]: Repr[_Expr[T]] =
             R + '`' + _.value + '`'
           implicit def ozipExpr[T]: OffsetZip[_Expr, T] = _.map((0, _))
 
           implicit def ftorRaw[T]: Functor[_Raw]  = semi.functor
-          implicit def foldRaw:    Foldable[_Raw] = semi.foldable(MkFoldable[_Raw])
+          implicit def foldRaw:    Foldable[_Raw] = semi.foldable
           implicit def reprRaw[T]: Repr[_Raw[T]] = {
             case t: _Plain[T] => Repr(t)
           }
@@ -827,7 +821,7 @@ object AST {
           }
 
           implicit def ftorFmt[T]: Functor[_Fmt]  = semi.functor
-          implicit def foldFmt:    Foldable[_Fmt] = semi.foldable(MkFoldable[_Fmt])
+          implicit def foldFmt:    Foldable[_Fmt] = semi.foldable
           implicit def reprFmt[T: Repr]: Repr[_Fmt[T]] = {
             case t: _Plain[T]  => Repr(t)
             case t: _Expr[T]   => Repr(t)
@@ -843,9 +837,8 @@ object AST {
         }
 
         import implicits._
-        implicit def ftor: Functor[Segment] = semi.functor
-        implicit def fold: Foldable[Segment] =
-          semi.foldable(MkFoldable[Segment])
+        implicit def ftor: Functor[Segment]  = semi.functor
+        implicit def fold: Foldable[Segment] = semi.foldable
         implicit def repr[T: Repr]: Repr[Segment[T]] = {
           case t: _Raw[T] => Repr(t)
           case t: _Fmt[T] => Repr(t)
@@ -908,9 +901,8 @@ object AST {
     //// Instances ////
 
     object PrefixOf {
-      implicit def ftor: Functor[PrefixOf] = semi.functor
-      implicit def fold: Foldable[PrefixOf] =
-        semi.foldable(MkFoldable[PrefixOf])
+      implicit def ftor: Functor[PrefixOf]  = semi.functor
+      implicit def fold: Foldable[PrefixOf] = semi.foldable
       implicit def repr[T: Repr]: Repr[PrefixOf[T]] =
         t => R + t.fn + t.off + t.arg
       implicit def ozip[T: Repr]: OffsetZip[PrefixOf, T] =
@@ -918,7 +910,7 @@ object AST {
     }
     object InfixOf {
       implicit def ftor: Functor[InfixOf]  = semi.functor
-      implicit def fold: Foldable[InfixOf] = semi.foldable(MkFoldable[InfixOf])
+      implicit def fold: Foldable[InfixOf] = semi.foldable
       implicit def repr[T: Repr]: Repr[InfixOf[T]] =
         t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
       implicit def ozip[T: Repr]: OffsetZip[InfixOf, T] = t => {
@@ -987,25 +979,23 @@ object AST {
 
       object LeftOf {
         implicit def ftor: Functor[LeftOf]  = semi.functor
-        implicit def fold: Foldable[LeftOf] = semi.foldable(MkFoldable[LeftOf])
+        implicit def fold: Foldable[LeftOf] = semi.foldable
         implicit def repr[T: Repr]: Repr[LeftOf[T]] =
           t => R + t.arg + t.off + t.opr
         implicit def ozip[T]: OffsetZip[LeftOf, T] =
           t => t.copy(arg = (0, t.arg))
       }
       object RightOf {
-        implicit def ftor: Functor[RightOf] = semi.functor
-        implicit def fold: Foldable[RightOf] =
-          semi.foldable(MkFoldable[RightOf])
+        implicit def ftor: Functor[RightOf]  = semi.functor
+        implicit def fold: Foldable[RightOf] = semi.foldable
         implicit def repr[T: Repr]: Repr[RightOf[T]] =
           t => R + t.opr + t.off + t.arg
         implicit def ozip[T]: OffsetZip[RightOf, T] =
           t => t.copy(arg = (Repr(t.opr).span + t.off, t.arg))
       }
       object SidesOf {
-        implicit def ftor: Functor[SidesOf] = semi.functor
-        implicit def fold: Foldable[SidesOf] =
-          semi.foldable(MkFoldable[SidesOf])
+        implicit def ftor:          Functor[SidesOf]      = semi.functor
+        implicit def fold:          Foldable[SidesOf]     = semi.foldable
         implicit def repr[T: Repr]: Repr[SidesOf[T]]      = t => R + t.opr
         implicit def ozip[T]:       OffsetZip[SidesOf, T] = t => t.coerce
       }
@@ -1081,7 +1071,7 @@ object AST {
     }
     object LineOf {
       implicit def ftorLine:          Functor[LineOf]  = semi.functor
-      implicit def fold:              Foldable[LineOf] = semi.foldable(MkFoldable[LineOf])
+      implicit def fold:              Foldable[LineOf] = semi.foldable
       implicit def reprLine[T: Repr]: Repr[LineOf[T]]  = t => R + t.elem + t.off
     }
     object Line {
@@ -1099,7 +1089,7 @@ object AST {
   }
   object BlockOf {
     implicit def ftorBlock: Functor[BlockOf]  = semi.functor
-    implicit def fold:      Foldable[BlockOf] = semi.foldable(MkFoldable[BlockOf])
+    implicit def fold:      Foldable[BlockOf] = semi.foldable
     implicit def reprBlock[T: Repr]: Repr[BlockOf[T]] = t => {
       val headRepr       = if (t.isOrphan) R else newline
       val emptyLinesRepr = t.emptyLines.map(R + _ + newline)
@@ -1148,7 +1138,7 @@ object AST {
   }
   object ModuleOf {
     implicit def ftor:    Functor[ModuleOf]      = semi.functor
-    implicit def fold:    Foldable[ModuleOf]     = semi.foldable(MkFoldable[ModuleOf])
+    implicit def fold:    Foldable[ModuleOf]     = semi.foldable
     implicit def ozip[T]: OffsetZip[ModuleOf, T] = _.map((0, _))
     implicit def repr[T: Repr]: Repr[ModuleOf[T]] =
       t => R + t.lines.head + t.lines.tail.map(newline + _)
@@ -1177,7 +1167,7 @@ object AST {
 
     object MatchOf {
       implicit def ftor: Functor[MatchOf]  = semi.functor
-      implicit def fold: Foldable[MatchOf] = semi.foldable(MkFoldable[MatchOf])
+      implicit def fold: Foldable[MatchOf] = semi.foldable
       implicit def ozip[T: Repr]: OffsetZip[MatchOf, T] = t => {
         var off = 0
         t.copy(segs = t.segs.map { seg =>
@@ -1254,9 +1244,8 @@ object AST {
     }
 
     object AmbiguousOf {
-      implicit def ftor: Functor[AmbiguousOf] = semi.functor
-      implicit def fold: Foldable[AmbiguousOf] =
-        semi.foldable(MkFoldable[AmbiguousOf])
+      implicit def ftor:    Functor[AmbiguousOf]      = semi.functor
+      implicit def fold:    Foldable[AmbiguousOf]     = semi.foldable
       implicit def repr[T]: Repr[AmbiguousOf[T]]      = t => R + t.segs.map(Repr(_))
       implicit def ozip[T]: OffsetZip[AmbiguousOf, T] = _.map((0, _))
     }
@@ -1420,10 +1409,8 @@ object AST {
 
   sealed trait SpacelessASTOf[T] extends ShapeOf[T]
 
-  implicit def ftorSlessAST[T]: Functor[SpacelessASTOf] = semi.functor
-  implicit def fold: Foldable[SpacelessASTOf] =
-    semi.foldable(MkFoldable[SpacelessASTOf])
-  implicit def ozipSlessAST[T]: OffsetZip[SpacelessASTOf, T] = _.map((0, _))
+//  implicit def ftor:    Functor[SpacelessASTOf]      = semi.functor implicit def fold:    Foldable[SpacelessASTOf]     = semi.foldable
+//  implicit def ozip[T]: OffsetZip[SpacelessASTOf, T] = _.map((0, _))
 
   //////////////////////////////////////////////////////////////////////////////
   /// Comment //////////////////////////////////////////////////////////////////
@@ -1442,9 +1429,8 @@ object AST {
 
   object CommentOf {
     import Comment._
-    implicit def ftor: Functor[CommentOf] = semi.functor
-    implicit def fold: Foldable[CommentOf] =
-      semi.foldable(MkFoldable[CommentOf])
+    implicit def ftor: Functor[CommentOf]  = semi.functor
+    implicit def fold: Foldable[CommentOf] = semi.foldable
     implicit def repr[T]: Repr[CommentOf[T]] =
       R + symbol + symbol + _.lines.mkString("\n")
     // FIXME: How to make it automatic for non-spaced AST?
@@ -1465,7 +1451,7 @@ object AST {
   }
   object ImportOf {
     implicit def ftor: Functor[ImportOf]  = semi.functor
-    implicit def fold: Foldable[ImportOf] = semi.foldable(MkFoldable[ImportOf])
+    implicit def fold: Foldable[ImportOf] = semi.foldable
     implicit def repr[T]: Repr[ImportOf[T]] =
       t => R + ("import " + t.path.map(_.repr.build()).toList.mkString("."))
 
@@ -1487,7 +1473,7 @@ object AST {
   }
   object MixfixOf {
     implicit def ftor: Functor[MixfixOf]  = semi.functor
-    implicit def fold: Foldable[MixfixOf] = semi.foldable(MkFoldable[MixfixOf])
+    implicit def fold: Foldable[MixfixOf] = semi.foldable
     implicit def repr[T: Repr]: Repr[MixfixOf[T]] = t => {
       val lastRepr = if (t.name.length == t.args.length) List() else List(R)
       val argsRepr = t.args.toList.map(R + " " + _) ++ lastRepr
@@ -1514,7 +1500,7 @@ object AST {
   }
   object GroupOf {
     implicit def ftor: Functor[GroupOf]  = semi.functor
-    implicit def fold: Foldable[GroupOf] = semi.foldable(MkFoldable[GroupOf])
+    implicit def fold: Foldable[GroupOf] = semi.foldable
     implicit def repr[T: Repr]: Repr[GroupOf[T]] =
       R + "(" + _.body + ")"
     // FIXME: How to make it automatic for non-spaced AST?
@@ -1537,7 +1523,7 @@ object AST {
   }
   object DefOf {
     implicit def ftor: Functor[DefOf]  = semi.functor
-    implicit def fold: Foldable[DefOf] = semi.foldable(MkFoldable[DefOf])
+    implicit def fold: Foldable[DefOf] = semi.foldable
     implicit def repr[T: Repr]: Repr[DefOf[T]] =
       t => R + Def.symbol + 1 + t.name + t.args.map(R + 1 + _) + t.body
     // FIXME: How to make it automatic for non-spaced AST?
@@ -1556,9 +1542,8 @@ object AST {
       ForeignOf(indent, lang, code)
   }
   object ForeignOf {
-    implicit def ftor: Functor[ForeignOf] = semi.functor
-    implicit def fold: Foldable[ForeignOf] =
-      semi.foldable(MkFoldable[ForeignOf])
+    implicit def ftor: Functor[ForeignOf]  = semi.functor
+    implicit def fold: Foldable[ForeignOf] = semi.foldable
     implicit def repr[T: Repr]: Repr[ForeignOf[T]] = t => {
       val code2 = t.code.map(R + t.indent + _).mkString("\n")
       R + "foreign " + t.lang + "\n" + code2
