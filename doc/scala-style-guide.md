@@ -10,7 +10,9 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Code Formatting](#code-formatting)
-  - [Naming](#naming)
+- [Naming](#naming)
+- [Package Structure and Naming](#package-structure-and-naming)
+  - [The Public API](#the-public-api)
 - [Build Tooling](#build-tooling)
 - [Commenting](#commenting)
   - [Documentation Comments](#documentation-comments)
@@ -53,25 +55,55 @@ below may provide more rules for use in specific cases.
   there is no other appropriate name, and should _never_ be used to refer to
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
+- Any function that performs an unsafe operation that is not documented in its
+  type (e.g. `head : [a] -> a`, which fails if the list is empty), must be named
+  using the word 'unsafe' (e.g. `unsafeHead`). For more information on unsafe
+  function usage, see the section on [safety](#safety).
 
 ## Package Structure and Naming
-Enso follows the 
+Enso follows the
 [Java convention for naming packages](https://docs.oracle.com/javase/tutorial/java/package/namingpkgs.html):
 package name components may contain only lower case characters and, if
 necessary, an underscore character. All Enso package names should be prefixed
-with `org.enso`. For example, the package for implementation of `File Manager` 
+with `org.enso`. For example, the package for implementation of `File Manager`
 project should be named `org.enso.filemanager`.
 
-When the name of the file in the package is the same as the final component of 
-the package name, the file should be moved one level up. For examples, if 
+When the name of the file in the package is the same as the final component of
+the package name, the file should be moved one level up. For examples, if
 `File Manager` project contains `FileManager.scala` file, then the file should
 be placed directly in the `org.enso` package instead of `org.enso.filemanager`.
-This is to avoid repetitious contructs like `org.enso.filemanager.FileManager`.
+This is to avoid repetitious constructs like `org.enso.filemanager.FileManager`.
 
-The root directory for the project should follow the naming scheme of types. 
+The root directory for the project should follow the naming scheme of types.
 For example, if the project name is `File Manager`, then sources of the main
-package shall be located under path 
+package shall be located under path
 `FileManager\src\main\scala\org\enso\filemanager`.
+
+### The Public API
+In order to produce as flexible a codebase as possible, we tend not to make use
+of access modifiers in our code (`public`, `private`, and so on). Instead, we
+use the concept of `Internal` modules to separate public from private.
+
+If you are writing code in a package `X.Y.MyType` and would like to signal that
+a particular construct (e.g. a function) is for internal use in that package,
+you should create a `X.Y.MyType.Internal` package. You can then write the
+relevant language construct in that package instead of the source package.
+
+#### Using Access Modifiers
+There are, however, a few notable exceptions to the above:
+
+- **Safety:** Privacy modifiers (e.g. `private` and `private[this]`) should be
+  used to enforce an API contract around safety. An example of this is Scala's
+  immutable `List`, which contains a private mutable buffer for performance
+  reasons.
+- **Reducing Overhead:** As the `Internal` module is a separate module, there
+  can (under some circumstances) be some overhead for its use. If you are
+  writing code on a performance-critical path, you may instead make use of
+  access modifiers.
+- **Enabling Optimisations:** The JVM is capable of performing optimisations by
+  making use of visibility information (e.g. in the interpreter). If you are
+  writing performance-critical code, you may use access modifiers to provide the
+  JVM with additional information.
 
 ## Build Tooling
 All Scala projects in the Enso organisation should manage their dependencies and
@@ -89,8 +121,8 @@ while also limiting the types and kinds of comments we allow.
 
 Comments across the Enso codebases fall into three main types:
 
-- **Documentation Comments:** API documentation for all language constructs that
-  can have it (classes, objects, functions, and so on).
+- **Documentation Comments:** API documentation for all appropriate language
+  constructs.
 - **Source Notes:** Detailed explorations of design reasoning that avoid
   cluttering the code itself.
 - **Tasks:** Things that need doing or fixing in the codebase.
@@ -105,23 +137,118 @@ comments should not be used as a crutch for badly-designed code.
 
 ### Documentation Comments
 One of the primary forms of comment that we allow across the Enso codebases is
-the doc comment. Every language construct that can have an associated doc
-comment should do so. These are intended to be consumed by users of the API, and
-use the standard [scaladoc](https://docs.scala-lang.org/style/scaladoc.html)
-syntax. Doc comments should:
+the doc comment. We use these comments to document the public API of a module,
+as defined in [The Public API](#the-public-api). For constructs that _are_ part
+of the public API, the following should be documented:
 
-- Provide a short one-line explanation of the object being documented.
-- Provide a longer description of the object, including examples where relevant.
-- Explain the arguments to a function where relevant.
+1. **Top-Level Type Definitions:** All top-level type definitions must have a
+   doc comment. If a type is defined multiple times (e.g. `trait T` and
+   `object T`), you need only document it once. Under these circumstances it is
+   recommended to document the in the order of: `trait`, `class`, `object`.
+2. **Functions:** Function documentation should provide at-a-glance intuition
+   for how to use that function.
 
-They should not reference internal implementation details, or be used to explain
-choices made in the function's implementation. See [Source Notes](#source-notes)
-below for how to indicate that kind of information.
+An example of a valid set of comments is as follows:
+
+```scala
+package org.enso.syntax.graph
+
+/** An [[Action]] is a representation of an operation that can be made on a
+  * [[SpanTree]].
+  */
+sealed trait Action
+object Action {
+  object Insert extends Action
+  object Erase  extends Action
+  object Set    extends Action
+}
+
+/** Values representing sets of [[Action]]s at a given point.
+  */
+object Actions {
+  val All: Set[Action]      = Set(Action.Insert, Action.Erase, Action.Set)
+  val Function: Set[Action] = Set(Action.Set)
+  val Root: Set[Action]     = Set(Action.Set)
+
+  /** Makes a set from the provided actions.
+    *
+    * @param actions a variable number of actions
+    * @return a set containing the provided actions
+    */
+  def mkActionSet(actions: Action*): Set[Action] = {
+    // ...
+  }
+}
+```
+
+Documentation comments are intended for consumption by the users of the API, and
+are written using the standard [scaladoc](https://docs.scala-lang.org/style/scaladoc.html)
+syntax. Doc comments should contain:
+
+1. **Summary:** A one-line summary of the construct's behaviour. This should be
+   a valid sentence with 'this X' (where X = function, trait, etc) prepended to
+   it.
+2. **Description (Optional):** Any useful information that would be necessary
+   for a consumer of the API to know (that is not encoded in the types). This
+   should be written in grammatically correct English.
+3. **Parameters and Returns:** Brief descriptions of the parameters and return
+   value, including any requirements on them not expressed in their type.
+
+An example comment that requires a description is as follows (but omits the
+necessary comment on `Tree` for brevity):
+
+```scala
+trait Tree[T}] {
+  /** Provides a sequence representation of the tree.
+    *
+    * The function provides configurable behaviour for the order in which the
+    * tree is walked. See [[WalkStrategy]] for the provided options.
+    *
+    * @param order the strategy by which the tree's elements are traversed
+    * @return the elements contained in the tree arranged according to the
+    *     provided `order`
+    */
+  def walkToSequence(order: WalkStrategy[Tree[T]]): Seq[T]
+}
+```
+
+A simpler example that does _not_ require a description is as follows (but omits
+the necessary comment on `Tree` for brevity):
+
+```scala
+trait Tree[T] {
+  /** Provides a sequence representation of the tree.
+    *
+    * @return the elements of the tree arranged in preorder-walk sequence
+    */
+  def toSeq(): Seq[T]
+}
+```
+
+Documentation comments should not reference internal implementation details, or
+be used to explain choices made in the implementation. For this kind of info,
+you should use [Source Notes](#source-notes) as described below.
+
+You may document _more_ than what is specified here, but this is the _minimum_
+required for acceptance at code-review time.
 
 ### Source Notes
 Source Notes is a mechanism for moving detailed design information about a piece
 of code out of the code itself. In doing so, it retains the key information
-about the design while not impeding the flow of the code.
+about the design while not impeding the flow of the code. They are used in the
+following circumstances:
+
+- **Design Information:** Documentation about _why_ something was written in a
+  particular fashion, as well as information on the process that led to it being
+  done this way.
+- **Explaining Complexity:** If an implementation uses complex constructs or any
+  elements that are non-obvious, these should be explained as part of a source
+  note.
+- **Knowledge Provenance:** Explaining where some knowledge (e.g. a mathematical
+  formula or an algorithm) was obtained from. It is also useful to accompany
+  these by some commentary on _why_ the choice was made.
+- **Safety:** Any unsafe usage of a function must be accompanied by a source
+  note that explains what makes this particular usage safe.
 
 Source notes are detailed comments that, like all comments, explain both the
 _what_ and the _why_ of the code being described. In very rare cases, it may
@@ -174,7 +301,7 @@ def prepRHS (env : SimplEnv, outExpr : OutExpr) : SimplM[SimplEnv, OutExpr] = {
  * something like that, so moving the coercion to the usage site may well cancel
  * the coercions and lead to further optimisation.
  *         ...more stuff about coercion floating...
- * 
+ *
  * Note [Float Coercions (Unlifted)]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  *      ...explanations of floating for unlifted types...
@@ -182,22 +309,12 @@ def prepRHS (env : SimplEnv, outExpr : OutExpr) : SimplM[SimplEnv, OutExpr] = {
 }
 ```
 
-A source note like this is useful whenever you have design decisions to explain,
-but can also be used for:
-
-- **Formulae and Algorithms:** If your code makes use of a mathematical formula,
-  or algorithm, it should note where the design element came from, preferably
-  with a link.
-- **Safety:** Sometimes it is necessary to use an unsafe API in a context where
-  it is trivially made safe. You should always use a source note to explain why
-  its usage is safe in this context.
-
 ### TODO Comments
 We follow a simple convention for `TODO` comments in our codebases:
 
 - The line starts with `TODO` or `FIXME`.
 - It is then followed by the author's initials `[ARA]`, or for multiple people
-  `[ARA, WD]`, in square brackets.
+  `[ARA, MK]`, in square brackets.
 - It is then followed by an explanation of what needs to be done.
 
 For example:
@@ -228,7 +345,7 @@ It is incredibly important that we can trust the code that we use, and hence we
 tend to disallow the definition of unsafe functions in our public API. When
 defining an unsafe function, you must account for the following:
 
-- It must be named `unsafeX`.
+- It must be named `unsafeX`, as mentioned above in [naming](#naming).
 - Unsafe functions should only be used in the minimal scope in which it can be
   shown correct, not in larger pieces of code.
 - Unsafe function definition must be accompanied by a source note explaining why
