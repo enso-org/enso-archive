@@ -4,7 +4,7 @@ also important that we have an idea of how Enso compares to other languages. In
 order to do this we have a set of comparative benchmarks that execute the same
 algorithm across the following languages:
 
-- [C](./benchmarks/c), as the usual fastest benchmark.
+- [C++](./benchmarks/cpp), as the usual fastest benchmark.
 - [JavaScript](./benchmarks/js), as a commonly used language.
 - [Haskell](./benchmarks/haskell), as the fastest functional language.
 - [Java](./benchmarks/java), as the peak of performance on the JVM.
