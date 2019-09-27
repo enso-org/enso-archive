@@ -17,6 +17,7 @@ library:
   source-dirs: src
   dependencies:
     - base
+    - deepseq
 
 benchmarks:
   haskell-benchmark:
@@ -26,6 +27,7 @@ benchmarks:
     dependencies:
       - base
       - criterion
+      - deepseq
       - haskell-benchmark
 
 default-extensions:
