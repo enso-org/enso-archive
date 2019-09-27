@@ -5,9 +5,6 @@ author:              "Ara Adkins"
 maintainer:          "ara.adkins@luna-lang.org"
 copyright:           "Luna Team 2019"
 
-extra-source-files:
-- README.md
-
 description: A benchmark for comparing Haskell to Enso.
 
 dependencies:
