@@ -123,7 +123,7 @@ as defined in [The Public API](#the-public-api). For constructs that _are_ part
 of the public API, the following should be documented:
 
 1. **Top-Level Type Definitions:** All type definitions must be accompanied by a
-   doc comment. This includes nested classes.z
+   doc comment. This includes nested classes.
 2. **Functions:** Function documentation should provide at-a-glance intuition
    for how to use that function.
 
@@ -136,8 +136,10 @@ are written using the standard JavaDoc syntax. Doc comments should contain:
 2. **Description (Optional):** Any useful information that would be necessary
    for a consumer of the API to know (that is not encoded in the types). This
    should be written in grammatically correct English.
-3. **Parameters and Returns:** Brief descriptions of the parameters and return
-   value, including any requirements on them not expressed in their type.
+3. **Parameters and Returns:** The return value must always be described. If the
+   parameters are _all_ obvious from their names, you must omit the `@param`
+   annotations. If one or more parameters require explanation (for things not
+   expressed in their name or type), then all parameters must be annotated.
 
 An example of a valid set of doc comments is provided below:
 
@@ -152,9 +154,7 @@ An example of a valid set of doc comments is provided below:
  */
 public class SpanTree<T> implements Tree<T> {
 
-  /**
-   * Constructs an empty tree.
-   */
+  /** Constructs an empty tree. */
   public Tree() {}
 
   /**
@@ -207,7 +207,7 @@ A source note comment is broken into two parts:
    already in use.
 2. **Source Note:** This is the comment itself, which is a large block comment
    placed after the first function in which it is referred to in the module. It
-   uses the scala block-comment syntax `/* ... */`, and the first line names
+   uses the java block-comment syntax `/* ... */`, and the first line names
    the note using the same referrer as above: `/* Note [Note Name]`. The name(s)
    in the note are underlined using a string of the `~` (tilde) character.
 

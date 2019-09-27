@@ -1,5 +1,5 @@
 # Rust Style Guide
-Like many style guides, this Scala style guide exists for two primary reasons.
+Like many style guides, this Rust style guide exists for two primary reasons.
 The first is to provide guidelines that result in a consistent code style across
 all of the Enso codebases, while the second is to guide people towards a style
 that is expressive while still easy to read and understand.
@@ -30,7 +30,7 @@ programmer burden; there is usually only _one way_ to lay out code correctly.
 This section explains the rules for visually laying out your code. They provide
 a robust set of guidelines for creating a consistent visual to the code.
 
-Primary formatting is dealt with using the Rust formatting tool 
+Primary formatting is dealt with using the Rust formatting tool
 ['rustfmt'](https://rust-lang.github.io/rustfmt/), which enforces rules around
 whitespace, line-wrapping, and alignment. The Enso repository contains the main
 [`.rustfmt.toml`](../.rustfmt.toml) configuration file, and this is what should
@@ -49,22 +49,25 @@ below may provide more rules for use in specific cases.
 - Variables and function names are written using `snake_case`.
 - If a name contains an initialism or acronym, all parts of that initialism
   should be lower-case: `make_http_request`, not `make_HTTP_request`.
-- Short variable names such as `a` and `b` should only be used in contexts where
-  there is no other appropriate name, and should _never_ be used to refer to
-  temporary data in a function.
+- Short variable names such as `a` and `b` should only be used in the following
+  contexts:
+  - Where there is no other appropriate name.
+  - Named lifetimes.
+  They should _never_ be used to refer to temporary data in a function, as all
+  temporaries should be given descriptive names.
 - Names should be descriptive, even if this makes them longer.
 - Any function that performs an unsafe operation that is not documented in its
-  type (e.g. `fn head<T>(ts: Vec<T>) -> T`, which fails if the list is empty), 
-  must be named using the word 'unsafe' (e.g. `unsafeHead`). For more 
-  information on unsafe   function usage, see the section on [safety](#safety).
+  type (e.g. `fn head<T>(ts: Vec<T>) -> T`, which fails if the list is empty),
+  must be named using the word 'unsafe' (e.g. `unsafeHead`). For more
+  information on unsafe function usage, see the section on [safety](#safety).
 
 ## Package Structure and Naming
 Enso follows the standard rust convention for structuring crates, as provided
 by `cargo new`. This is discussed more in depth [here](https://learning-rust.github.io/docs/a4.cargo,crates_and_basic_project_structure.html#Project-Structure).
 
-In order to match up with the project naming convention we use for Scala and 
+In order to match up with the project naming convention we use for Scala and
 Java projects, any rust code must be in a directory named using `UpperCamelCase`
-in the root of the project (e.g. `enso/BaseGL`). 
+in the root of the project (e.g. `enso/BaseGL`).
 
 ### The Public API
 Whereas Rust defaults to making module members _private_ by default, this is not
@@ -281,19 +284,19 @@ New code should always be accompanied by tests. These can be unit, integration,
 or some combination of the two, and they should always aim to test the new code
 in a rigorous fashion.
 
-- We tend to use ScalaTest, but also make use of ScalaCheck for property-based
-  testing.
-- Tests should be declared in the project configuration so they can be trivially
-  run.
-- A test file should be named after the module it tests.
+- Testing should be performed as described in [the Rust book](https://doc.rust-lang.org/book/ch11-00-testing.html)
+  and should use the functionality for testing built into the language.
+- Tests should cover as much code as possible, and may be a combination of unit
+  and integration tests.
 
 Any performance-critical code should also be accompanied by a set of benchmarks.
 These are intended to allow us to catch performance regressions as the code
 evolves, but also ensure that we have some idea of the code's performance in
 general.
 
-- We use Caliper for our benchmarks.
-- We measure time, but also memory usage and CPU time where possible.
+- We use nightly rust in order to access the built-in [benchmarking](https://doc.rust-lang.org/unstable-book/library-features/test.html)
+  functionality.
+- We measure time, CPU, and memory usage where possible.
 - Where relevant, benchmarks may set thresholds which, when surpassed, cause the
   benchmark to fail. These thresholds should be set for a release build, and not
   for a development build.

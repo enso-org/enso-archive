@@ -56,9 +56,11 @@ below may provide more rules for use in specific cases.
   temporary data in a function.
 - Names should be descriptive, even if this makes them longer.
 - Any function that performs an unsafe operation that is not documented in its
-  type (e.g. `def head[T](ts: List[T]): T`, which fails if the list is empty), 
-  must be named using the word 'unsafe' (e.g. `unsafeHead`). For more 
+  type (e.g. `def head[T](ts: List[T]): T`, which fails if the list is empty),
+  must be named using the word 'unsafe' (e.g. `unsafeHead`). For more
   information on unsafe function usage, see the section on [safety](#safety).
+  The one exception to this rule is for functions which fail intentionally on a
+  broken implementation (e.g. "should not happen"-style fatal crashes).
 
 ## Package Structure and Naming
 Enso follows the
@@ -191,8 +193,10 @@ syntax. Doc comments should contain:
 2. **Description (Optional):** Any useful information that would be necessary
    for a consumer of the API to know (that is not encoded in the types). This
    should be written in grammatically correct English.
-3. **Parameters and Returns:** Brief descriptions of the parameters and return
-   value, including any requirements on them not expressed in their type.
+3. **Parameters and Returns:** The return value must always be described. If the
+   parameters are _all_ obvious from their names, you must omit the `@param`
+   annotations. If one or more parameters require explanation (for things not
+   expressed in their name or type), then all parameters must be annotated.
 
 An example comment that requires a description is as follows (but omits the
 necessary comment on `Tree` for brevity):

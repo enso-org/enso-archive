@@ -158,7 +158,9 @@ below may provide more rules for use in specific cases.
 - Any function that performs an unsafe operation that is not documented in its
   type (e.g. `head : [a] -> a`, which fails if the list is empty), must be named
   using the word 'unsafe' (e.g. `unsafeHead`). For more information on unsafe
-  function usage, see the section on [safety](#safety).
+  function usage, see the section on [safety](#safety). The one exception to
+  this rule is for functions which fail intentionally on a broken implementation
+  (e.g. "should not happen"-style fatal crashes).
 
 ### Imports
 Organising imports properly means that it's easy to find the provenance of a
@@ -341,7 +343,7 @@ prepareRhs :: SimplEnv -> OutExpr -> SimplM (SimplEnv, OutExpr)
 -- Adds new floats to the env iff that allows us to return a good RHS
 prepareRhs env (Cast rhs co)    -- Note [Float Coercions]
   | (ty1, _ty2) <- coercionKind co      -- Do *not* do this if rhs is unlifted
-  , not (isUnLiftedType ty1)            -- see Note [Float Coercions (Unlifted)]
+  , not (isUnLiftedType ty1)            -- seUnsae Note [Float Coercions (Unlifted)]
   = do  { (env', rhs') <- makeTrivial env rhs
         ; return (env', Cast rhs' co) }
 
