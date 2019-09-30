@@ -1,15 +1,12 @@
 
 #include <chrono>
+#include <cstdlib>
 #include <functional>
+#include <iomanip>
 #include <iostream>
 #include <list>
 #include <numeric>
 #include <vector>
-
-// INPUTS =====================================================================
-
-std::int64_t hundred_million = 1e8;
-std::int64_t million = 1e6;
 
 // BENCHMARK RUNNER ===========================================================
 
@@ -24,20 +21,27 @@ template <typename R, typename T> void run_benchmark(
 
     for (auto i = 0; i < n_runs; ++i) {
         auto start = std::chrono::high_resolution_clock::now();
-        volatile R result = benchmark(function_arg);
+        R result = benchmark(function_arg);
         auto end = std::chrono::high_resolution_clock::now();
 
         auto difference = end - start;
 
-        times.push_back(std::chrono::duration_cast<std::chrono::microseconds>(difference).count());
+        times.push_back(std::chrono::duration_cast<
+                std::chrono::nanoseconds
+                >(difference).count());
     }
 
-    std::int64_t result_microseconds =
-        std::accumulate(times.begin(), times.end(), 0, [](auto a, auto b) {return a + b;}) / n_runs;
+    std::int64_t result_nanoseconds =
+        std::accumulate(
+                times.begin(),
+                times.end(),
+                0,
+                [](auto a, auto b) {return a + b;}
+                ) / n_runs;
 
-    double result = result_microseconds / 1e6;
+    double result = result_nanoseconds / 1e9;
 
-    std::cout
+    std::cout << std::setprecision(10)
         << "BENCHMARK: " << bench_name
         << " RUNS: " << n_runs
         << " RESULT: " << result << " secs"
@@ -99,9 +103,9 @@ struct linked_list {
 // FIXTURES ===================================================================
 
 std::int64_t sum_tco(std::int64_t sum_to) {
-    volatile std::int64_t result = 0;
+    std::int64_t result = 0;
 
-    for (auto i = 0; i <= sum_to; ++i) {
+    for (int64_t i = 0; i <= sum_to; ++i) {
         result += i;
     }
 
@@ -109,8 +113,8 @@ std::int64_t sum_tco(std::int64_t sum_to) {
 }
 
 std::int64_t sum_list(linked_list* list) {
-    volatile std::int64_t accumulator = 0;
-    volatile auto current_pos = list;
+    std::int64_t accumulator = 0;
+    auto current_pos = list;
 
     while (current_pos->next != nullptr) {
         accumulator += current_pos->node_value;
@@ -144,38 +148,48 @@ std::int64_t sum_list_left_fold(linked_list* list) {
 
 // MAIN =======================================================================
 
-int main() {
-    auto million_element_list = linked_list::generate(million);
+int main(int argc, char* argv[]) {
+    if (argc < 3) {
+        std::cout << "Please run as `benchmark [sum_to] [num_elements]`"
+                  << std::endl;
+
+        return 1;
+    }
+
+    std::int64_t sum_to = atoll(argv[1]);
+    std::int64_t num_elements = atoll(argv[2]);
+
+    auto n_element_list = linked_list::generate(num_elements);
 
     run_benchmark<std::int64_t, std::int64_t>(
             "sumTCO",
             10,
             sum_tco,
-            hundred_million
+            sum_to
             );
 
     run_benchmark<std::int64_t, linked_list*>(
             "sumList",
             10,
             sum_list,
-            million_element_list
+            n_element_list
             );
 
     run_benchmark<linked_list*, linked_list*>(
             "reverseList",
             10,
             reverse_list,
-            million_element_list
+            n_element_list
             );
 
     run_benchmark<std::int64_t, linked_list*>(
             "sumListLeftFold",
             10,
             sum_list_left_fold,
-            million_element_list
+            n_element_list
             );
 
-    delete million_element_list;
+    delete n_element_list;
 
     return 0;
 }
