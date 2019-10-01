@@ -200,9 +200,9 @@ lazy val syntax_graph = (project in file("Syntax/graph"))
   .dependsOn(syntax)
   .configs(Test)
   .settings(
+    libraryDependencies += "org.typelevel" %% "mouse"     % "0.23",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test
   )
-
 
 lazy val pkg = (project in file("Pkg"))
   .settings(

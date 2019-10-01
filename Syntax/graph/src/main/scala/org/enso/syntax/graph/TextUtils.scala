@@ -5,38 +5,6 @@ import org.enso.syntax.text.AST
 import org.enso.syntax.text.ast.meta.Pattern
 
 import scala.annotation.tailrec
-import scala.collection.GenIterable
-
-object Ops {
-  implicit class GenIterableOps[A](seq: GenIterable[A]) {
-    // FIXME sample
-    def mapPairs[B](f: (A, A) => B): GenIterable[B] =
-      seq.zip(seq.drop(1)).map { case (a, b) => f(a, b) }
-  }
-
-  // TODO -> move to Pattern
-  implicit class PatternOps(pat: Pattern) {
-
-    /** Tests if given [[Pattern]] matches an empty
-      * string.
-      */
-    def matchesEmpty: Boolean = matches(List())
-
-    /** Tests if pat matches given token sequence. */
-    def matches(tokens: AST.Stream): Boolean =
-      pat.matchOpt(tokens, lineBegin = false, reversed = false).nonEmpty
-  }
-}
-
-// FIXME: Dont use "Utils"
-object TextUtils {
-
-  // https://github.com/typelevel/mouse
-  // https://stackoverflow.com/questions/19690531/scala-boolean-to-option
-  def perhaps[T](isSome: Boolean, someValue: T): Option[T] =
-    if (isSome) Some(someValue)
-    else None
-}
 
 ////////////////////
 //// TextLength ////
@@ -129,4 +97,20 @@ object TextSpan {
     def substring(span: TextSpan): String =
       text.substring(span.begin.index, span.end.index)
   }
+}
+
+////////////////////
+//// Positioned ////
+////////////////////
+case class Positioned[+T](elem: T, position: TextPosition)
+object Positioned {
+  implicit def unwrap[T](t: Positioned[T]): T = t.elem
+}
+
+////////////////////
+//// Spanned ////
+////////////////////
+case class Spanned[+T](elem: T, span: TextSpan)
+object Spanned {
+  implicit def unwrap[T](t: Positioned[T]): T = t.elem
 }

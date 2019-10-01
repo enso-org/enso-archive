@@ -1,16 +1,16 @@
 package org.enso.syntax.graph
 
 import org.enso.data.List1
+import org.enso.data.Shifted
 import org.enso.data.List1.List1_ops
-import org.enso.syntax.graph.API.Flag
 import org.enso.syntax.graph.API.Module
-import org.enso.syntax.graph.API.Node
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.AST.App.Infix
+import org.enso.syntax.text.AST.App
+import org.enso.syntax.text.AST.Import
+import org.enso.syntax.text.AST.SAST
+import org.enso.syntax.text.AST.UnapplyByType
 import org.enso.syntax.text.AST.Block.Line
 import org.enso.syntax.text.AST.Block.OptLine
-import org.enso.syntax.text.AST.Import
-import org.enso.syntax.text.AST.UnapplyByType
 import org.enso.syntax.text.ast.opr.Assoc
 import org.enso.syntax.text.ast.Repr._
 
@@ -23,14 +23,19 @@ object KnownOperators {
   val Minus      = "-"
 }
 
-object AstOps {
-  implicit class Opr_ops(opr: AST.Opr) {
-    def isAssignment: Boolean = opr.name == KnownOperators.Assignment
-    def isAccess:     Boolean = opr.name == KnownOperators.Access
-    def isMinus:      Boolean = opr.name == KnownOperators.Minus
-  }
+/////////////////
+//// AST ops ////
+/////////////////
 
-  implicit class Ast_opsttttttttt(ast: AST) {
+object AstOps {
+  implicit class AstOps_syntax_graph(ast: AST) {
+    ////////////////////////////////////////////////////////
+    ///// Parts to be moved to AST operations from here ////
+    ////////////////////////////////////////////////////////
+    case class MissingIdException(ast: AST) extends Exception {
+      override def getMessage: String =
+        s"missing id for node with expression `${ast.show()}`"
+    }
 
     /** Gets [[AST.ID]] from this AST, throwing [[MissingIdException]] if ID
       * has not been set. */
@@ -39,10 +44,9 @@ object AstOps {
     def as[T: UnapplyByType]: Option[T] = UnapplyByType[T].unapply(ast)
     def is[T: UnapplyByType]: Boolean   = ast.as[T].isDefined
 
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
-    ///////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////
+    //// parts specific to double rep ////
+    //////////////////////////////////////
 
     def toImport: Option[AST.Import] =
       // FIXME [mwu] I doubt we can use here resolved macro
@@ -56,94 +60,50 @@ object AstOps {
 
     /** Checks if this AST imports a given module. */
     def doesImport(module: Module.Name): Boolean = {
-      ast.toImport.exists(_.path sameTarget module)
+      ast.toImport.exists(_.path == module)
     }
 
-    /** Linearizes nested sequence of App.Prefix.
+    /** Linearizes nested sequence of [[AST.App.Prefix]].
       *
       * For example structures for code like `foo a b c` will be flattened to
       * sequence like Seq(foo, a, b, c).
       */
     def flattenPrefix(
       pos: TextPosition,
-      ast: AST.App.Prefix
-    ): Seq[(TextPosition, AST)] = {
+      ast: App.Prefix
+    ): Seq[Positioned[AST]] = {
       val init = ast.fn match {
         case AST.App.Prefix.any(lhsApp) => flattenPrefix(pos, lhsApp)
-        case nonAppAst                  => Seq(pos -> nonAppAst)
+        case nonAppAst                  => Seq(Positioned(nonAppAst, pos))
       }
-      val rhsPos = pos + ast.fn.repr.span + ast.off
-      val last   = rhsPos -> ast.arg
+      val rhsPos = pos + ast.fn.span + ast.off
+      val last   = Positioned(ast.arg, rhsPos)
       init :+ last
     }
-
-    /** [[AST.Opr]] node when this AST is infix operator usage (full application
-      * or a section.
-      */
-    def usedInfixOperator: Option[AST.Opr] =
-      GeneralizedInfix(ast).map(_.operatorAst)
-
-    def isInfixOperatorUsage: Boolean =
-      ast.usedInfixOperator.nonEmpty
-
-    def isInfixOperatorUsage(oprName: String): Boolean =
-      ast.usedInfixOperator.exists(_.name == oprName)
-
-    def flattenInfix(
-      pos: TextPosition
-    ): Seq[ExpressionPartOrPoint] = GeneralizedInfix(ast) match {
-      case None       => Seq(ExpressionPart(pos, ast))
-      case Some(info) => info.flattenInfix(pos)
-    }
-
-    def asNode: Option[Node.Description] = {
-      val (lhs, rhs) = ast.toAssignment match {
-        case Some(Infix(l, _, r)) => (Some(l), r)
-        case None                 => (None, ast)
-      }
-
-      // FIXME: [mwu] provisional rule to not generate nodes from imports
-      if (rhs.toImport.nonEmpty)
-        return None
-
-      // FIXME: [mwu] Provisional rule to not generate nodes for function
-      //  definitions. However, smarter rules are needed to deal with operator
-      //  definitions and behave when `lhs` involves macros like brackets.
-      if (lhs.exists(_.is[AST.App.Prefix]))
-        return None
-
-      val id       = ast.unsafeID
-      val spanTree = SpanTree(rhs, TextPosition.Start)
-      val output   = lhs.map(SpanTree(_, TextPosition.Start))
-
-      // TODO [mwu] check the expression for flag-represented macro usage
-      val flags: Set[Flag] = Set.empty
-
-      // FIXME [mwu] consider whether this should be present on this API level
-      //  if it is, then it's just FIXME to implement
-      val stats = None
-
-      // TODO [mwu] need to obtain metadata for node
-      val metadata = null
-
-      val node = Node.Description(id, spanTree, output, flags, stats, metadata)
-      Some(node)
-    }
   }
+
+  ////////////////////////////////////////////////////////
+  ///// Parts to be moved to AST operations from here ////
+  ////////////////////////////////////////////////////////
+
+  implicit class Opr_ops(opr: AST.Opr) {
+    def isAssignment: Boolean = opr.name == KnownOperators.Assignment
+    def isAccess: Boolean     = opr.name == KnownOperators.Access
+    def isMinus: Boolean      = opr.name == KnownOperators.Minus
+  }
+
+  /////////////////////////
+  //// Module name ops ////
+  /////////////////////////
 
   // FIXME: [mwu] is this safe if module name is List1 ?
   implicit class ModuleName_ops(moduleName: API.Module.Name) {
     def nameAsString(): String = moduleName.toList.map(_.name).mkString(".")
-
-    /** Checks both names designate the same module.
-      *
-      * Can be non-trivial due to node comparing `id`.
-      * FIXME [mwu] other changes made comparison id-insensitive, might not
-      *  be needed anymore if change will be kept
-      */
-    def sameTarget(rhs: API.Module.Name): Boolean =
-      moduleName.map(_.shape) == rhs.map(_.shape)
   }
+
+  ////////////////////
+  //// Module ops ////
+  ////////////////////
 
   implicit class Module_ops(module: AST.Module) {
     def imports: List[Import] = module.flatTraverse(_.toImport)
@@ -203,89 +163,57 @@ object AstOps {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-//// ExpressionPart //////////////////////////////////////////////////////////
-//////////////////////////////////////////////////////////////////////////////
-
-/** Optional part of AST or point in it that knows its place in the
-  * expression. Used e.g. to represent infix operator operands.
-  */
-sealed trait ExpressionPartOrPoint {
-  def span: TextSpan
-  def astOpt: Option[AST]
-}
-object ExpressionPartOrPoint {
-  def apply(pos: TextPosition, astOpt: Option[AST]): ExpressionPartOrPoint =
-    astOpt match {
-      case Some(ast) => ExpressionPart(pos, ast)
-      case None      => EmptyPlace(pos)
-    }
-}
-
-final case class ExpressionPart(pos: TextPosition, ast: AST)
-    extends ExpressionPartOrPoint {
-  override def span:   TextSpan    = TextSpan(pos, ast)
-  override def astOpt: Option[AST] = Some(ast)
-}
-
-/** Place in expression where some AST could have been present but was not. */
-final case class EmptyPlace(pos: TextPosition) extends ExpressionPartOrPoint {
-  override def span:   TextSpan    = TextSpan(pos, TextLength.Empty)
-  override def astOpt: Option[AST] = None
-}
-
-final case class InfixExpressionParts(
-  left: ExpressionPartOrPoint,
-  operator: ExpressionPart,
-  right: ExpressionPartOrPoint
-)
-
-//////////////////////////////////////////////////////////////////////////////
 //// GeneralizedInfix ////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
 /** A helper type to abstract away differences between proper infix operator
-  * application and ones with missing argument (section apps). */
+  * application and ones with missing argument (section apps).
+  * Also provides operator chain usage flattening.
+  *
+  * @note SAST's offset refer to spacing between operand and operator
+  */
 final case class GeneralizedInfix(
-  leftArgAst: Option[AST],
-  leftSpace: Int,
-  operatorAst: AST.Opr,
-  rightSpace: Int,
-  rightArgAst: Option[AST]
+  leftAST: Option[SAST],
+  oprAST: AST.Opr,
+  rightAST: Option[SAST]
 ) {
-  import AstOps._
+  import GeneralizedInfix._
 
-  def name:                   String = operatorAst.name
-  def span(ast: Option[AST]): Int    = ast.map(_.span).getOrElse(0)
-
-  def operatorOffset: Int = span(leftArgAst) + leftSpace
-  def rightArgumentOffset: Int =
-    operatorOffset + operatorAst.span + rightSpace
-
-  def sameOperatorAsIn(ast: AST): Boolean =
-    ast.isInfixOperatorUsage(operatorAst.name)
-
-  def getParts(offset: TextPosition): InfixExpressionParts = {
-    InfixExpressionParts(
-      ExpressionPartOrPoint(offset, leftArgAst),
-      ExpressionPart(offset + operatorOffset, operatorAst),
-      ExpressionPartOrPoint(offset + rightArgumentOffset, rightArgAst)
-    )
+  def assoc: Assoc = Assoc.of(name)
+  def name: String = oprAST.name
+  def leftOperand(offset: TextPosition): Operand =
+    Positioned(leftAST.map(_.el), offset)
+  def operator(offset: TextPosition): Operator =
+    Positioned(oprAST, offset + operatorOffset)
+  def rightOperand(offset: TextPosition): Operand =
+    Positioned(rightAST.map(_.el), offset + rightArgumentOffset)
+  def selfOperand(offset: TextPosition): Operand = assoc match {
+    case Assoc.Left  => leftOperand(offset)
+    case Assoc.Right => rightOperand(offset)
   }
+  def nonSelfOperand(offset: TextPosition): Operand = assoc match {
+    case Assoc.Left  => rightOperand(offset)
+    case Assoc.Right => leftOperand(offset)
+  }
+  def operatorOffset: Int =
+    leftAST.map(arg => arg.el.span + arg.off).getOrElse(0)
+  def rightArgumentOffset: Int =
+    operatorOffset + oprAST.span + rightAST.map(_.off).getOrElse(0)
 
   /** Converts nested operator applications into a flat list of all operands. */
-  def flattenInfix(pos: TextPosition): Seq[ExpressionPartOrPoint] = {
-    def flatten(child: ExpressionPartOrPoint): Seq[ExpressionPartOrPoint] =
-      child.astOpt match {
-        case Some(ast) if sameOperatorAsIn(ast) =>
-          ast.flattenInfix(child.span.begin)
-        case _ => Seq(child)
-      }
+  def flattenInfix(pos: TextPosition): Chain = {
+    val self      = selfOperand(pos)
+    val otherPart = ChainElem(operator(pos), nonSelfOperand(pos))
 
-    val parts = getParts(pos)
-    Assoc.of(operatorAst.name) match {
-      case Assoc.Left  => flatten(parts.left) :+ parts.operator :+ parts.right
-      case Assoc.Right => parts.left +: parts.operator +: flatten(parts.right)
+    val selfSubtreeAsInfix = self.flatMap(GeneralizedInfix(_))
+    val selfSubtreeFlattened = selfSubtreeAsInfix match {
+      case Some(selfInfix) if selfInfix.name == name =>
+        selfInfix.flattenInfix(self.position)
+      case _ =>
+        Chain(self, Seq())
     }
+
+    selfSubtreeFlattened.copy(parts = selfSubtreeFlattened.parts :+ otherPart)
   }
 }
 object GeneralizedInfix {
@@ -295,19 +223,23 @@ object GeneralizedInfix {
     case AST.App.Infix.any(ast) =>
       Some(
         GeneralizedInfix(
-          Some(ast.larg),
-          ast.loff,
+          Some(Shifted(ast.loff, ast.larg)),
           ast.opr,
-          ast.roff,
-          Some(ast.rarg)
+          Some(Shifted(ast.roff, ast.rarg))
         )
       )
     case AST.App.Section.Left.any(ast) =>
-      Some(GeneralizedInfix(Some(ast.arg), ast.off, ast.opr, 0, None))
+      Some(GeneralizedInfix(Some(Shifted(ast.off, ast.arg)), ast.opr, None))
     case AST.App.Section.Right.any(ast) =>
-      Some(GeneralizedInfix(None, 0, ast.opr, ast.off, Some(ast.arg)))
+      Some(GeneralizedInfix(None, ast.opr, Some(Shifted(ast.off, ast.arg))))
     case AST.App.Section.Sides(opr) =>
-      Some(GeneralizedInfix(None, 0, opr, 0, None))
+      Some(GeneralizedInfix(None, opr, None))
     case _ => None
   }
+
+  type Operand  = Positioned[Option[AST]]
+  type Operator = Positioned[AST.Opr]
+  final case class Parts(left: Operand, operator: Operator, right: Operand)
+  final case class ChainElem(operator: Operator, operand: Operand)
+  final case class Chain(self: Operand, parts: Seq[ChainElem])
 }

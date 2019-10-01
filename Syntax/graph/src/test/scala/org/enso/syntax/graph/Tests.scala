@@ -133,7 +133,6 @@ class Tests extends FunSuite with TestUtils {
     checkModuleSingleNodeGraph("15") { node =>
       node.expr.text shouldEqual "15"
       node.outputs shouldEqual None
-      node.flags shouldBe empty
     }
   }
   test("atom in in brackets") {
@@ -158,9 +157,9 @@ class Tests extends FunSuite with TestUtils {
         children match {
           case Seq(leftInfo, rightInfo) =>
             val rightSegment =
-              asExpected[SpanTree.MacroSegment](rightInfo.spanTree)
+              asExpected[SpanTree.MacroSegment](rightInfo.elem)
             val leftSegment =
-              asExpected[SpanTree.MacroSegment](leftInfo.spanTree)
+              asExpected[SpanTree.MacroSegment](leftInfo.elem)
 
             leftSegment.text shouldEqual testedCase.leftSegment
             leftInfo.actions shouldEqual Set()
@@ -169,7 +168,7 @@ class Tests extends FunSuite with TestUtils {
             leftChildren should have size 1
             val bracketContents = leftChildren.head
             val leftChildNode =
-              asExpected[SpanTree.AstLeaf](bracketContents.spanTree)
+              asExpected[SpanTree.AstLeaf](bracketContents.elem)
             leftChildNode.text shouldEqual testedCase.literal
             bracketContents.actions shouldEqual Set(Action.Set, Action.Erase)
 
@@ -223,7 +222,7 @@ class Tests extends FunSuite with TestUtils {
     children.zip(expectedActionsPerChild).map {
       case (child, expectedActions) =>
         child.actions shouldEqual expectedActions
-        child.spanTree
+        child.elem
     }
   }
   test("span tree: if foo bar baz then   a+b") {
@@ -279,7 +278,6 @@ class Tests extends FunSuite with TestUtils {
   test("get trivial named node") {
     checkModuleSingleNodeGraph("a = 15") { node =>
       node.expr.text should equal("15")
-      node.flags shouldBe empty
     }
   }
 
@@ -292,16 +290,32 @@ class Tests extends FunSuite with TestUtils {
   }
 
   test("infix operator chains") {
-    testSpanTreeMarkdown("⎀‹+›⎀")
-    testSpanTreeMarkdown("⎀«a»‹+›⎀")
-    testSpanTreeMarkdown("⎀‹+›⎀«b»⎀")
-    testSpanTreeMarkdown("⎀‹+›⎀«5»⎀")
-    testSpanTreeMarkdown("⎀‹+›⎀«b»‹+›⎀")
-    testSpanTreeMarkdown("⎀‹+›⎀«b»‹+›⎀«c»⎀")
-    testSpanTreeMarkdown("⎀«a»‹+›⎀«b»‹+›⎀")
-    testSpanTreeMarkdown("⎀«a»‹+›⎀«b»⎀")
-    testSpanTreeMarkdown("⎀‹+›⎀ ‹+›⎀")
-    testSpanTreeMarkdown("⎀‹+›⎀«a»‹+›⎀«b»‹+›⎀")
+    // test programs that are independent whether operator is left- or
+    // right-associative
+    def generalCases(opr: String) =
+      Seq(
+        "⎀‹+›⎀",
+        "⎀«a»‹+›⎀",
+        "⎀‹+›⎀«b»⎀",
+        "⎀‹+›⎀«5»⎀",
+        "⎀‹+› ⎀«5»⎀",
+        "⎀‹+›⎀«b»‹+›⎀",
+        "⎀‹+›⎀«b»‹+›⎀«c»⎀",
+        "⎀«a»‹+›⎀«b»‹+›⎀",
+        "⎀«a»‹+›⎀«b»⎀",
+        "⎀‹+›⎀«a»‹+›⎀«b»‹+›⎀"
+      ).map(_.replace("+", opr))
+
+    val leftAssocCases = Seq("⎀‹+›⎀ ‹+›⎀") ++ generalCases("+")
+    leftAssocCases.foreach(testSpanTreeMarkdown)
+
+    val rightAssocCases = Seq("⎀‹,› ⎀‹,›⎀") ++ generalCases(",")
+    rightAssocCases.foreach(testSpanTreeMarkdown)
+  }
+
+  test("arrow macro") {
+    // not like other operators, as it is a macro
+    testSpanTreeMarkdown("‹a›->‹b›")
   }
 
   test("mixed infix and app") {

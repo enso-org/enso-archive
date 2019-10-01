@@ -1,12 +1,12 @@
 package org.enso.syntax.graph
 
+import org.enso.syntax.graph
 import org.enso.syntax.graph.AstOps._
+import org.enso.syntax.graph.SpanTree.Node.AstLeaf
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Opr
 import org.enso.syntax.text.ast.meta.Pattern
-
-import scala.util.Success
-import scala.util.Try
+import org.enso.syntax.text.ast.opr.Assoc
 
 /** A GUI-friendly structure describing expression with nodes mapped to
   * expression text spans.
@@ -38,16 +38,15 @@ sealed trait SpanTree {
   /** The span of expression part being described by this node. Indices are
     * relative to the beginning of the expression described by the tree root.
     *
-    * For some nodes, like [[SpanTree.Empty]] span can be of zero
-    * length — in such case they only represent a point within a string.
+    * For some nodes, like [[SpanTree.Empty]] span can be of zero length — in
+    * such case the node represents a point within a string.
     */
   def span: TextSpan
 
-  /** Sequence of children and operations that can be performed on them. */
-  def describeChildren: Seq[SpanTreeWithActions]
+  /** Left-to-right ordered sequence of children with available actions. */
+  def describeChildren: Seq[WithActions[SpanTree]]
 
-  /** Children nodes. */
-  def children: Seq[SpanTree] = describeChildren.map(_.spanTree)
+  def children: Seq[SpanTree] = describeChildren.map(_.elem)
 
   /** Index of the first character in the [[span]]. */
   def begin: TextPosition = span.begin
@@ -64,224 +63,193 @@ sealed trait SpanTree {
   }
 
   /** Calls function `f` for all nodes in the tree. */
-  def foreach[U](f: LocatedSpanTreeWithActions => U): Unit = {
+  def foreach[U](f: Pathed[WithActions[SpanTree]] => U): Unit = {
     def go(node: SpanTree, pathSoFar: Path): Unit =
       node.describeChildren.zipWithIndex.foreach {
         case (childInfo, index) =>
           val childPath = pathSoFar :+ index
-          f(childInfo.addPath(childPath))
-          go(childInfo.spanTree, childPath)
+          f(Pathed(childInfo, childPath))
+          go(childInfo, childPath)
       }
 
-    f(LocatedSpanTreeWithActions(this, RootPath, Actions.Root))
+    f(Pathed(WithActions(this, Actions.Root), RootPath))
     go(this, RootPath)
   }
 
-  def foldLeft[B](z: B)(op: (B, LocatedSpanTreeWithActions) => B): B = {
+  def foldLeft[B](z: B)(op: (B, Pathed[WithActions[SpanTree]]) => B): B = {
     var result = z
     foreach(nodeInfo => result = op(result, nodeInfo))
     result
   }
 
-  def toSeq(): Seq[LocatedSpanTreeWithActions] =
-    foldLeft(Seq[LocatedSpanTreeWithActions]()) { (acc, node) =>
+  def toSeq(): Seq[Pathed[WithActions[SpanTree]]] =
+    foldLeft(Seq[Pathed[WithActions[SpanTree]]]()) { (acc, node) =>
       node +: acc
     }
 }
 
 object SpanTree {
+  /////////////////////////////////////
+  // Node subtypes aliases ////////////
+  /////////////////////////////////////
+  type Empty        = Node.Empty
+  type Ast          = Node.Ast
+  type App          = Node.App
+  type OprChain     = Node.OprChain
+  type AppChain     = Node.AppChain
+  type Leaf         = Node.Leaf
+  type AstLeaf      = Node.AstLeaf
+  type MacroMatch   = Node.MacroMatch
+  type MacroSegment = Node.MacroSegment
 
-  /** Just a [[SpanTree]] with a sequence of [[Action]] that are supported for
-    * it.
-    */
-  trait NodeInfoUtil {
-    val spanTree: SpanTree
-    val actions: Set[Action]
+  ///////////////////////////////////////
+  // Node subtypes definitions //////////
+  ///////////////////////////////////////
+  object Node {
 
-    def supports(action: Action): Boolean = actions.contains(action)
-    def settable:                 Boolean = supports(Action.Set)
-    def erasable:                 Boolean = supports(Action.Erase)
-    def insertable:               Boolean = supports(Action.Insert)
-  }
+    /** Base for leaves. */
+    sealed trait Leaf {
+      this -> SpanTree
+      final def describeChildren: Seq[WithActions[SpanTree]] = Seq()
+    }
 
-  case class WithActions[T](elem: T, actions: Set[Action])
-  object WithActions {
-    implicit def unwrap[T](t: WithActions[T]):                   T = t.elem
-    implicit def unwrapWithPath[T](t: WithActions[WithPath[T]]): T = t.elem
-  }
+    /** Node denoting a location that could contain some value but currently is
+      * empty. Its span has length zero and it is not paired with any
+      * AST. Typically it supports only [[Action.Insert]].
+      *
+      * E.g. `+` is an operator with two empty endpoints.
+      */
+    final case class Empty(position: TextPosition) extends SpanTree with Leaf {
+      override def text: String   = ""
+      override def span: TextSpan = TextSpan.Empty(position)
+    }
 
-  case class WithPath[T](elem: T, path: Path)
-  object WithPath {
-    implicit def unwrap[T](t: WithPath[T]):                         T = t.elem
-    implicit def unwrapWithActions[T](t: WithPath[WithActions[T]]): T = t.elem
+    /** Node describing certain AST subtree, has non-zero span. */
+    sealed trait Ast extends SpanTree {
+      def info: Positioned[AST]
+      def ast: AST       = info.elem
+      def text: String   = ast.show()
+      def span: TextSpan = TextSpan(info.position, TextLength(ast))
+    }
 
-  }
+    /** Includes prefix applications and generalized infix applications, like:
+      * `foo bar`, `a + b`, `1,2,3`, `+`
+      */
+    sealed trait App extends Ast
 
-  /** Type used to describe node's children and actions it can be target of.
-    * @see [[SpanTree.describeChildren]]
-    */
-  final case class SpanTreeWithActions(
-    spanTree: SpanTree,
-    actions: Set[Action] = Set()
-  ) extends NodeInfoUtil {
-    def addPath(path: SpanTree.Path): LocatedSpanTreeWithActions =
-      LocatedSpanTreeWithActions(spanTree, path, actions)
-  }
+    /** E.g. `a + b + c` flattened to a single 5-child node. Operands can be
+      * set and erased. New operands can be inserted next to existing operands.
+      *
+      * @param opr The infix operator on which we apply operands. If there are
+      *            multiple operators in chain, any of them might be referenced.
+      * @param self Left- or right-most operand, depending on opr's
+      *             associativity.
+      * @param parts Subsequent pairs (operator, operand), beginning with the
+      *              ones near-most to self operand.
+      */
+    final case class OprChain(
+      info: Positioned[AST],
+      opr: Opr,
+      self: SpanTree,
+      parts: Seq[OprChain.Elem]
+    ) extends App {
 
-  /** Like [[SpanTreeWithActions]] but with [[Path]] - so it also allows to uniquely
-    * denote the node position in the tree.
-    */
-  final case class LocatedSpanTreeWithActions(
-    spanTree: SpanTree,
-    path: SpanTree.Path,
-    actions: Set[Action] = Set()
-  ) extends NodeInfoUtil
+      private def describeOperand(operand: SpanTree): WithActions[SpanTree] =
+        operand match {
+          case Empty(_) => WithActions(operand, Action.Insert)
+          case _        => WithActions(operand, Actions.All)
+        }
 
-  object SpanTreeWithActions {
-    def apply(spanTree: SpanTree, action: Action): SpanTreeWithActions =
-      SpanTreeWithActions(spanTree, Set(action))
+      override def describeChildren: Seq[WithActions[SpanTree]] = {
+        val selfOperandInfo = describeOperand(self)
+        var childrenInfos = parts.foldLeft(Seq(selfOperandInfo)) {
+          case (acc, part) =>
+            val operatorInfo = WithActions(part.operator, Actions.Function)
+            val operandInfo  = describeOperand(part.operand)
+            acc :+ operatorInfo :+ operandInfo
+        }
 
-    def withAllActions(spanTree: SpanTree): SpanTreeWithActions =
-      SpanTreeWithActions(
-        spanTree,
-        Set(Action.Set, Action.Erase, Action.Insert)
-      )
+        // to make children left-to-right
+        if (Assoc.of(opr.name) == Assoc.Right)
+          childrenInfos = childrenInfos.reverse
 
-    /** Create info for node that supports only [[Set]] [[Action]]. */
-    def insertionPoint(position: TextPosition): SpanTreeWithActions =
-      SpanTreeWithActions(Empty(position), Action.Insert)
-  }
+        // If we already miss last the argument, don't add additional
+        // placeholder.
+        val insertAfterLast = childrenInfos.lastOption.map(_.elem) match {
+          case Some(Empty(_)) => None
+          case _              => Some(WithActions.insertionPoint(end))
+        }
 
-  final case class LocatedAST(
-    position: TextPosition,
-    ast: AST
-  )
-
-  // FIXME: object Node { ... }
-
-  /** Node denoting a location that could contain some value but currently is
-    * empty. Its span has length zero and it is not paired with any
-    * AST. Typically it supports only [[Action.Insert]].
-    *
-    * E.g. `+` is an operator with two empty endpoints.
-    */
-  final case class Empty(position: TextPosition) extends SpanTree with Leaf {
-    override def text: String   = ""
-    override def span: TextSpan = TextSpan.Empty(position)
-  }
-
-  /** Node describing certain AST subtree, has non-zero span. */
-  sealed trait Ast extends SpanTree {
-    def info: LocatedAST
-    def ast:  AST      = info.ast
-    def text: String   = ast.show()
-    def span: TextSpan = TextSpan(info.position, TextLength(ast))
-  }
-
-  /** Generalization over prefix application (e.g. `print "Hello"`) and
-    * infix operator application (e.g. `a + b`).
-    */
-  sealed trait App extends Ast
-
-  /** E.g. `a + b + c` flattened to a single 5-child node. Operands can be
-    * set and erased. New operands can be inserted next to existing operands.
-    *
-    * @param opr The infix operator on which we apply operands. If there are
-    *            multiple operators in chain, any of them might be referenced.
-    * @param leftmostOperand The left-most operand and the first input.
-    * @param parts Subsequent pairs of children (operator, operand).
-    */
-  final case class OprChain(
-    info: LocatedAST,
-    opr: Opr,
-    leftmostOperand: SpanTree,
-    parts: Seq[(AstLeaf, SpanTree)]
-  ) extends App {
-
-    private def describeOperand(operand: SpanTree): SpanTreeWithActions =
-      operand match {
-        case _: Empty => SpanTreeWithActions(operand, Action.Insert)
-        case _        => SpanTreeWithActions(operand, Actions.All)
+        childrenInfos ++ insertAfterLast
       }
+    }
+    object OprChain {
+      case class Elem(operator: AstLeaf, operand: SpanTree)
+    }
 
-    override def describeChildren: Seq[SpanTree.SpanTreeWithActions] = {
-      val leftmostOperandInfo = describeOperand(leftmostOperand)
-      val childrenInfos = parts.foldLeft(Seq(leftmostOperandInfo)) {
-        case (acc, (oprAtom, operand)) =>
-          val operatorInfo = SpanTreeWithActions(oprAtom, Actions.Function)
-          val operandInfo  = describeOperand(operand)
-          acc :+ operatorInfo :+ operandInfo
+    /** E.g. `foo bar baz`.
+      *
+      * @param callee In the example: foo
+      * @param arguments In the example: Seq(bar, baz)
+      */
+    final case class AppChain(
+      info: Positioned[AST],
+      callee: SpanTree,
+      arguments: Seq[SpanTree]
+    ) extends App {
+      def describeChildren: Seq[WithActions[SpanTree]] = {
+        val calleeInfo           = WithActions(callee, Actions.Function)
+        val argumentsInfo        = arguments.map(WithActions.withAll)
+        val potentialNewArgument = WithActions.insertionPoint(end)
+        calleeInfo +: argumentsInfo :+ potentialNewArgument
       }
+    }
 
-      // If we already miss last the argument, don't add additional placeholder.
-      val insertAfterLast = childrenInfos.lastOption.map(_.spanTree) match {
-        case Some(Empty(_)) => None
-        case _              => Some(SpanTreeWithActions.insertionPoint(end))
+    /** A leaf representing an AST element that Span Tree does not decompose
+      * any further.
+      */
+    final case class AstLeaf(info: Positioned[AST]) extends Ast with Leaf
+    object AstLeaf {
+      def apply(position: TextPosition, ast: AST): SpanTree.AstLeaf =
+        AstLeaf(Positioned(ast, position))
+    }
+
+    /** Node representing a macro usage. */
+    final case class MacroMatch(
+      info: Positioned[AST],
+      prefix: Option[MacroSegment],
+      segments: Seq[MacroSegment]
+    ) extends Ast {
+      override def describeChildren: Seq[WithActions[SpanTree]] = {
+        val prefixChild     = prefix.map(WithActions.withNone)
+        val segmentChildren = segments.map(WithActions.withNone)
+        prefixChild.toSeq ++ segmentChildren
       }
+    }
 
-      childrenInfos ++ insertAfterLast
+    /** Node representing a macro prefix or segment. [[introducer]] is empty iff
+      * represented node was prefix. Otherwise, it contains segment's head name.
+      */
+    final case class MacroSegment(
+      override val begin: TextPosition,
+      introducer: Option[String],
+      patternMatch: Pattern.Match,
+      override val describeChildren: Seq[WithActions[SpanTree]]
+    ) extends SpanTree {
+      override def span: TextSpan = {
+        val introLength = TextLength(introducer.map(_.length).getOrElse(0))
+        TextSpan(begin, introLength + TextLength(patternMatch))
+      }
+      override def text: String =
+        patternMatch.toStream.foldLeft(introducer.getOrElse(""))(
+          (s, ast) => s + (" " * ast.off) + ast.el.show()
+        )
     }
   }
 
-  final case class AppChain(
-    info: LocatedAST,
-    callee: SpanTree,
-    arguments: Seq[SpanTree]
-  ) extends App {
-    def describeChildren: Seq[SpanTree.SpanTreeWithActions] = {
-      val calleeInfo           = SpanTreeWithActions(callee, Actions.Function)
-      val argumentsInfo        = arguments.map(SpanTreeWithActions.withAllActions)
-      val potentialNewArgument = SpanTreeWithActions.insertionPoint(end)
-      calleeInfo +: argumentsInfo :+ potentialNewArgument
-    }
-  }
-
-  /** Helper trait to facilitate recognizing leaf nodes in span tree. */
-  sealed trait Leaf {
-    this -> SpanTree
-    final def describeChildren: Seq[SpanTree.SpanTreeWithActions] = Seq()
-  }
-
-  /** A leaf representing an AST element that cannot be decomposed any
-    * further.
-    */
-  final case class AstLeaf(info: LocatedAST) extends Ast with Leaf
-  object AstLeaf {
-    def apply(textPosition: TextPosition, ast: AST): SpanTree.AstLeaf =
-      AstLeaf(LocatedAST(textPosition, ast))
-  }
-
-  /** Node representing a macro usage. */
-  final case class MacroMatch(
-    info: LocatedAST,
-    prefix: Option[MacroSegment],
-    segments: Seq[MacroSegment]
-  ) extends Ast {
-    override def describeChildren: Seq[SpanTreeWithActions] = {
-      prefix.map(SpanTreeWithActions(_)).toSeq ++ segments.map(
-        SpanTreeWithActions(_)
-      )
-    }
-  }
-
-  /** Node representing a macro prefix or segment. [[introducer]] is empty iff
-    * represented node was prefix. Otherwise, it contains segment's head name.
-    */
-  final case class MacroSegment(
-    override val begin: TextPosition,
-    introducer: Option[String],
-    patternMatch: Pattern.Match,
-    override val describeChildren: Seq[SpanTreeWithActions]
-  ) extends SpanTree {
-    override def span: TextSpan = {
-      val introLength = TextLength(introducer.map(_.length).getOrElse(0))
-      TextSpan(begin, introLength + TextLength(patternMatch))
-    }
-    override def text: String =
-      patternMatch.toStream.foldLeft(introducer.getOrElse(""))(
-        (s, ast) => s + (" " * ast.off) + ast.el.show()
-      )
-  }
+  //////////////
+  //// Path ////
+  //////////////
 
   /** An index in the sequence returned by [[SpanTree.children]] method. */
   type ChildIndex = Int
@@ -294,45 +262,53 @@ object SpanTree {
   /** [[Path]] to the root of the [[SpanTree]], i.e. empty path. */
   val RootPath: Path = Seq()
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// BUILDING SPAN TREE CODE BELOW ///////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
+  ////////////////
+  //// Pathed ////
+  ////////////////
+
+  case class Pathed[+T](elem: T, path: Path)
+  object Pathed {
+    implicit def unwrap[T](t: Pathed[T]): T                         = t.elem
+    implicit def unwrapWithActions[T](t: Pathed[WithActions[T]]): T = t.elem
+  }
+
+  //////////////////////////
+  //// Building Span Tree //
+  //////////////////////////
 
   def apply(s: AST.Macro.Match.Segment, pos: TextPosition): MacroSegment = {
-    import Ops._
     val bodyPos  = pos + TextLength(s.head)
-    var children = patternStructure(bodyPos, s.body)
+    var children = patternStructure(s.body, bodyPos)
     if (s.body.pat.matchesEmpty)
       children = children.map { child =>
         child.copy(actions = child.actions + Action.Erase)
       }
-    MacroSegment(pos, Some(s.head.show()), s.body, children)
+    Node.MacroSegment(pos, Some(s.head.show()), s.body, children)
   }
 
+  def apply(last: Positioned[AST]): SpanTree =
+    SpanTree(last.elem, last.position)
+
   def apply(ast: AST, pos: TextPosition): SpanTree = ast match {
-    case AST.Opr.any(opr)          => AstLeaf(pos, opr)
-    case AST.Blank.any(_)          => AstLeaf(pos, ast)
-    case AST.Literal.Number.any(_) => AstLeaf(pos, ast)
-    case AST.Var.any(_)            => AstLeaf(pos, ast)
+    case AST.Opr.any(opr)          => Node.AstLeaf(pos, opr)
+    case AST.Blank.any(_)          => Node.AstLeaf(pos, ast)
+    case AST.Literal.Number.any(_) => Node.AstLeaf(pos, ast)
+    case AST.Var.any(_)            => Node.AstLeaf(pos, ast)
     case AST.App.Prefix.any(app) =>
-      val info         = LocatedAST(pos, ast)
-      val childrenAsts = ast.flattenPrefix(pos, app)
-      val childrenNodes = childrenAsts.map {
-        case (childPos, childAst) =>
-          SpanTree(childAst, childPos)
-      }
+      val info          = Positioned(ast, pos)
+      val childrenAsts  = ast.flattenPrefix(pos, app)
+      val childrenNodes = childrenAsts.map(SpanTree(_))
       childrenNodes match {
-        case callee :: args =>
-          AppChain(info, callee, args)
-        case _ =>
+        case callee :: args => Node.AppChain(info, callee, args)
+        case _              =>
           // app prefix always has two children, flattening can only add more
           throw new Exception("impossible: failed to find application target")
       }
 
     case m @ AST.Macro.Match(optPrefix, segments, resolved @ _) =>
       val optPrefixNode = optPrefix.map { m =>
-        val children = patternStructure(pos, m)
-        MacroSegment(pos, None, m, children)
+        val children = patternStructure(m, pos)
+        Node.MacroSegment(pos, None, m, children)
       }
       var i = pos + optPrefixNode
           .map(_.span.length)
@@ -344,63 +320,57 @@ object SpanTree {
         node
       }
 
-      MacroMatch(LocatedAST(pos, m), optPrefixNode, segmentNodes)
+      Node.MacroMatch(Positioned(m, pos), optPrefixNode, segmentNodes)
 
     case _ =>
       GeneralizedInfix(ast) match {
         case Some(info) =>
-          val childrenAsts = info.flattenInfix(pos)
-          val childrenNodes = childrenAsts.map {
-            case part: ExpressionPart =>
-              SpanTree(part.ast, part.pos)
-            case part: EmptyPlace =>
-              SpanTree.Empty(part.pos)
-          }
-
-          val nodeInfo = LocatedAST(pos, ast)
-
-          // FIXME wrap sliding
-          val self = childrenNodes.headOption.getOrElse(
-            throw new Exception(
-              "internal error: infix with no children nodes"
-            )
-          )
-          val calls = childrenNodes
-            .drop(1)
-            .sliding(2, 2)
-            .map {
-              case (opr: AstLeaf) :: (arg: SpanTree) :: Nil =>
-                (opr, arg)
+          def toNode(operand: GeneralizedInfix.Operand): SpanTree =
+            operand.elem match {
+              case Some(operandAST) =>
+                SpanTree(operandAST, operand.position)
+              case None =>
+                Node.Empty(operand.position)
             }
-            .toSeq
 
-          OprChain(nodeInfo, info.operatorAst, self, calls)
+          val nodeInfo = Positioned(ast, pos)
+          val chain    = info.flattenInfix(pos)
+          val selfNode = toNode(chain.self)
+          val parts = chain.parts.map { part =>
+            val operatorNode = AstLeaf(part.operator)
+            val operandNode  = toNode(part.operand)
+            Node.OprChain.Elem(operatorNode, operandNode)
+          }
+          Node.OprChain(nodeInfo, info.oprAST, selfNode, parts)
         case _ =>
-          throw new Exception("internal error: not supported ast")
+          throw new NotImplementedError(
+            s"internal error: not supported ast: $ast"
+          )
       }
   }
 
   /** Sequence of nodes with their possible actions for a macro pattern. */
   def patternStructure(
-    pos: TextPosition,
-    patMatch: Pattern.Match
-  ): Seq[SpanTreeWithActions] = patMatch match {
+    patMatch: Pattern.Match,
+    pos: TextPosition
+  ): Seq[WithActions[SpanTree]] = patMatch match {
     case Pattern.Match.Or(_, elem) =>
-      patternStructure(pos, elem.fold(identity, identity))
+      patternStructure(elem.fold(identity, identity), pos)
     case Pattern.Match.Seq(_, elems) =>
-      val left       = patternStructure(pos, elems._1)
+      val left       = patternStructure(elems._1, pos)
       val leftLength = TextLength(elems._1)
-      val right      = patternStructure(pos + leftLength, elems._2)
+      val right      = patternStructure(elems._2, pos + leftLength)
       left ++ right
     case Pattern.Match.Build(_, elem) =>
       val node = SpanTree(elem.el, pos + elem.off)
-      Seq(SpanTreeWithActions(node, Action.Set))
+      Seq(WithActions(node, Action.Set))
     case Pattern.Match.End(_) =>
       Seq()
     case Pattern.Match.Nothing(_) =>
       Seq()
-    case a =>
-      println(a)
-      null
+    case _ =>
+      throw new NotImplementedError(
+        s"internal error: not supported pattern: $patMatch"
+      )
   }
 }
