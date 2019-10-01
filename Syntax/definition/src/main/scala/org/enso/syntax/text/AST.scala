@@ -17,7 +17,7 @@ import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
-
+import org.enso.syntax.text.ast.Doc
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
@@ -786,7 +786,7 @@ object AST {
         final case class _Escape[T](code: Escape)   extends _Fmt[T] with Phantom
 
         object Expr  { def apply(t: Option[AST]): Fmt = _Expr(t)  }
-        object Plain { def apply(s: String):      Raw = _Plain(s) }
+        object Plain { def apply(s: String):      Raw      = _Plain(s) }
 
         //// Instances ////
 
@@ -1420,6 +1420,7 @@ object AST {
       extends SpacelessASTOf[T]
       with Phantom
   object Comment {
+    val any    = UnapplyByType[Comment]
     val symbol = "#"
     def apply(lines: List[String]): Comment = ASTOf(CommentOf(lines))
   }
@@ -1434,6 +1435,32 @@ object AST {
       R + symbol + symbol + _.lines.mkString("\n")
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[CommentOf, T] = _.map((0, _))
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Documented //////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Documented = ASTOf[DocumentedOf]
+  case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
+      extends ShapeOf[T]
+  object Documented {
+    val any = UnapplyByType[Documented]
+    def apply(doc: Doc, emp: Int, ast: AST): Documented =
+      ASTOf(DocumentedOf(doc, emp, ast))
+  }
+
+  //// Instances ////
+
+  object DocumentedOf {
+    import Comment.symbol
+    implicit def functor[T]: Functor[DocumentedOf] = semi.functor
+    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
+      val symbolRepr        = R + symbol + symbol
+      val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
+      R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
+    }
+    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1514,6 +1541,7 @@ object AST {
   final case class DefOf[T](name: Cons, args: List[T], body: Option[T])
       extends SpacelessASTOf[T]
   object Def {
+    val any    = UnapplyByType[Def]
     val symbol = "def"
     def apply(name: Cons):                  Def = Def(name, List())
     def apply(name: Cons, args: List[AST]): Def = Def(name, args, None)
