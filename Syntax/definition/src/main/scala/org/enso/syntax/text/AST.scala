@@ -259,7 +259,7 @@ object AST {
   ) {
     override def toString = s"Node($id,$shape)"
     override def equals(obj: Any): Boolean = obj match {
-      case a: ASTOf[T] => shape == a.shape
+      case a: ASTOf[_] => shape == a.shape
       case _           => false
     }
     val repr: Repr.Builder = cls.repr(shape)
@@ -391,7 +391,7 @@ object AST {
 
     object UnrecognizedOf {
       implicit def ftor:    Functor[UnrecognizedOf]      = semi.functor
-      implicit def fld:     Foldable[UnrecognizedOf]     = semi.foldable
+      implicit def fold:     Foldable[UnrecognizedOf]     = semi.foldable
       implicit def repr[T]: Repr[UnrecognizedOf[T]]      = _.str
       implicit def ozip[T]: OffsetZip[UnrecognizedOf, T] = t => t.coerce
     }
@@ -454,7 +454,6 @@ object AST {
       implicit def ozip[T]: OffsetZip[BlankOf, T] = t => t.coerce
     }
     object VarOf {
-      implicit val x = Generic[VarOf[AST]]
       implicit def ftor:    Functor[VarOf]      = semi.functor
       implicit def fold:    Foldable[VarOf]     = semi.foldable
       implicit def repr[T]: Repr[VarOf[T]]      = _.name
