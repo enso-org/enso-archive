@@ -7,6 +7,7 @@ import org.enso.syntax.text.AST.Import
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.Parser
 import org.enso.syntax.text.ast.Repr._
+import org.enso.syntax.text.AST.ASTOps
 
 case class MissingIdException(ast: AST) extends Exception {
   override def getMessage: String =
@@ -64,9 +65,20 @@ final case class DoubleRepresentation(
 
   def eraseText(module: Module.Location, span: TextSpan): Unit = {
     findAndReplace(module, span.begin) { (pos, line) =>
+      val off            = span.begin.index
+      val len            = span.length.value
       val (line1, line2) = line.show.splitAt(pos.index + span.begin.index)
-      val result =
-        Parser().run(new Reader(line1 + line2.drop(span.length.value)))
+      val input          = new Reader(line1 + line2.drop(span.length.value))
+      val idMap = line.elem.map(_.idMap).getOrElse(Nil).flatMap {
+        case ((o, l), id) =>
+          if (o > off + len) Some((o - len, l) -> id)
+          else if (o > off && o + l > off + len) None
+          else if (o > off) Some((off, o + l - off - len) -> id)
+          else if (o < off + len) Some((off, off - o) -> id)
+          else Some((o, l)                            -> id)
+      }
+
+      val result = Parser().run(input, idMap)
       result.lines.toList
     }
     notifier.notify(TextAPI.Notification.Erased(module, span))

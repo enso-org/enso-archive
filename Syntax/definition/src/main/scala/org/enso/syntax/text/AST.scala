@@ -146,6 +146,10 @@ object AST {
     go(ast, List())
   }
 
+  object ShapeOf {
+    implicit def fold: Foldable[ShapeOf] = semi.foldable
+  }
+
   //// Conversions ////
 
   object conversions extends conversions

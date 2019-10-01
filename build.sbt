@@ -7,7 +7,7 @@ import org.enso.build.WithDebugCommand
 //// Global Configuration ////
 //////////////////////////////
 
-val scalacVersion = "2.12.8"
+val scalacVersion = "2.12.10"
 val graalVersion = "19.2.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
@@ -99,7 +99,7 @@ val monocle = {
 val cats = {
   Seq(
     "org.typelevel" %% "cats-core" % "2.0.0-RC1",
-    "org.typelevel" %% "kittens"   % "1.2.1"
+    "org.typelevel" %% "kittens"   % "2.0.0"
   )
 }
 

@@ -148,9 +148,9 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(input: Reader): AST.Module = run(input, Map())
+  def run(input: Reader): AST.Module = run(input, Nil)
 
-  def run(input: Reader, idMap: Map[(Int, Int), AST.ID]): AST.Module =
+  def run(input: Reader, idMap: Seq[((Int, Int), AST.ID)]): AST.Module =
     engine.run(input).map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
@@ -160,7 +160,7 @@ class Parser {
     }
 
   def annotateModule(
-    idMap: Map[(Int, Int), AST.ID],
+    idMap: Seq[((Int, Int), AST.ID)],
     mod: AST.Module
   ): AST.Module = mod.traverseWithOff { (off, ast) =>
     idMap.get((off, ast.repr.span)) match {
