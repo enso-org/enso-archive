@@ -56,8 +56,13 @@ final case class DoubleRepresentation(
   ): Unit = {
     findAndReplace(module, at) { (pos, line) =>
       val (prefix, suffix) = line.show.splitAt(pos.index + at.index)
-      val result           = Parser().run(new Reader(prefix + text + suffix))
-      result.lines.toList
+      val input = new Reader(prefix + text + suffix)
+      val idMap = line.elem.map(_.idMap).getOrElse(Nil).map {
+        case ((o, l), id) =>
+          val newSpan = TextSpan(at.index, text.length) + TextSpan(o, l)
+          (newSpan.begin.index, newSpan.length.value) -> id
+      }
+      Parser().run(input, idMap).lines.toList
     }
     notifier.notify(TextAPI.Notification.Inserted(module, at, text))
     notifier.notify(GraphAPI.Notification.Invalidate.Module(module))
@@ -65,21 +70,15 @@ final case class DoubleRepresentation(
 
   def eraseText(module: Module.Location, span: TextSpan): Unit = {
     findAndReplace(module, span.begin) { (pos, line) =>
-      val off            = span.begin.index
-      val len            = span.length.value
       val (line1, line2) = line.show.splitAt(pos.index + span.begin.index)
       val input          = new Reader(line1 + line2.drop(span.length.value))
       val idMap = line.elem.map(_.idMap).getOrElse(Nil).flatMap {
         case ((o, l), id) =>
-          if (o > off + len) Some((o - len, l) -> id)
-          else if (o > off && o + l > off + len) None
-          else if (o > off) Some((off, o + l - off - len) -> id)
-          else if (o < off + len) Some((off, off - o) -> id)
-          else Some((o, l)                            -> id)
+          val newSpan = span - TextSpan(o, l)
+          if (newSpan.length.value <= 0) None
+          else Some((newSpan.begin.index, newSpan.length.value) -> id)
       }
-
-      val result = Parser().run(input, idMap)
-      result.lines.toList
+      Parser().run(input, idMap).lines.toList
     }
     notifier.notify(TextAPI.Notification.Erased(module, span))
     notifier.notify(GraphAPI.Notification.Invalidate.Module(module))
