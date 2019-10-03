@@ -119,6 +119,17 @@ class Tests extends FunSuite with TestUtils {
       graph.links should have size 0
     }
   }
+  test("test definitions") {
+    val program =
+      """import Foo.Bar
+        |the a = a
+        |a , b = the, Bar
+        |""".stripMargin
+    withDR(program) { dr =>
+      val definitions = dr.getDefinitions(mockModule).map(_.name)
+      definitions shouldBe List("the")
+    }
+  }
 //  test("no nodes from operator def") {
 //    withDR(
 //      "+ a b = a + b",
