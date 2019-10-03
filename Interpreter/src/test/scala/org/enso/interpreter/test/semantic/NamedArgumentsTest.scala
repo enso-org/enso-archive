@@ -5,6 +5,7 @@ import org.graalvm.polyglot.PolyglotException
 
 class NamedArgumentsTest extends LanguageTest {
   "Functions" should "take arguments by name and use them in their bodies" in {
+    pending
     val code =
       """
         |Unit.a = 10
@@ -17,6 +18,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Functions" should "be able to have named arguments given out of order" in {
+    pending
     val code =
       """
         |Unit.subtract = { |a, b| a - b }
@@ -28,6 +30,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Functions" should "be able to have scope values as named arguments" in {
+    pending
     val code =
       """
         |@{
@@ -42,6 +45,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Functions" should "be able to be defined with default argument values" in {
+    pending
     val code =
       """
         |Unit.addNum = { |a, num = 10| a + num }
@@ -53,6 +57,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Default arguments" should "be able to default to complex expressions" in {
+    pending
     val code =
       """
         |Unit.add = { |a, b| a + b }
@@ -66,6 +71,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Default arguments" should "be able to close over their outer scope" in {
+    pending
     val code =
       """
         |@{
@@ -82,6 +88,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Functions" should "use their default values when none is supplied" in {
+    pending
     val code =
       """
         |Unit.addTogether = { |a = 5, b = 6| a + b }
@@ -93,6 +100,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Functions" should "override defaults by name" in {
+    pending
     val code =
       """
         |Unit.addNum = { |a, num = 10| a + num }
@@ -104,6 +112,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Functions" should "override defaults by position" in {
+    pending
     val code =
       """
         |Unit.addNum = { |a, num = 10| a + num }
@@ -115,6 +124,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Defaulted arguments" should "work in a recursive context" in {
+    pending
     val code =
       """
         |Unit.summer = { |sumTo|
@@ -132,6 +142,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Named Arguments" should "only be scoped to their definitions" in {
+    pending
     val code =
       """
         |@{
@@ -151,6 +162,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Named arguments" should "be applied in a sequence compatible with Eta-expansions" in {
+    pending
     val code =
       """
         |Unit.foo = { |a, b, c| a + b }
@@ -159,6 +171,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Default arguments" should "be able to depend on prior arguments" in {
+    pending
     val code =
       """
         |Unit.doubleOrAdd = { |a, b = a| a + b }
@@ -171,6 +184,7 @@ class NamedArgumentsTest extends LanguageTest {
 
   "Default arguments" should "not be able to depend on later arguments" in {
     //TODO: Currently throws something equivalent to "Can't add dynamic symbol to Long". Needs rethinking.
+    pending
     val code =
       """
         |Unit.badArgFn = { | a, b = c, c = a | (a + b) + c }
@@ -182,6 +196,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Constructors" should "be able to use named arguments" in {
+    pending
     val code =
       """
         |type Cons2 head rest;
@@ -204,6 +219,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Constructors" should "be able to take default arguments that are overridden" in {
+    pending
     val code =
       """
         |type Nil2;
@@ -225,6 +241,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Default arguments to constructors" should "be resolved dynamically" in {
+    pending
     val code =
       """
         |type Cons2 head (rest = Nil2);
@@ -237,6 +254,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Constructors" should "be able to take and use default arguments" in {
+    pending
     val code =
       """
         |type Cons2 head (rest = @Nil2);
@@ -252,5 +270,4 @@ class NamedArgumentsTest extends LanguageTest {
 
     eval(code) shouldEqual 10
   }
-
 }

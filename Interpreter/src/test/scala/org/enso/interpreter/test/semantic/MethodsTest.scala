@@ -5,6 +5,7 @@ import org.graalvm.polyglot.PolyglotException
 
 class MethodsTest extends LanguageTest {
   "Methods" should "be defined in the global scope and dispatched to" in {
+    pending
     val code =
       """
         |type Foo;
@@ -15,6 +16,7 @@ class MethodsTest extends LanguageTest {
   }
 
   "Methods" should "be dispatched to the proper constructor" in {
+    pending
     val code =
       """
         |Nil.sum = { |acc| acc }
@@ -29,6 +31,7 @@ class MethodsTest extends LanguageTest {
   }
 
   "Method call target" should "be passable by-name" in {
+    pending
     val code =
       """
         |Unit.testMethod = { |x, y, z| (x + y) + z }
@@ -39,6 +42,7 @@ class MethodsTest extends LanguageTest {
   }
 
   "Calling a non-existent method" should "throw an exception" in {
+    pending
     val code =
       """
         |@foo [7]

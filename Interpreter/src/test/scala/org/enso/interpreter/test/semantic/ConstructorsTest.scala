@@ -6,6 +6,7 @@ import org.graalvm.polyglot.PolyglotException
 class ConstructorsTest extends LanguageTest {
 
   "Pattern matching" should "dispatch to the proper branch" in {
+    pending
     val patternMatchingCode =
       """
         |@{
@@ -20,6 +21,7 @@ class ConstructorsTest extends LanguageTest {
   }
 
   "Recursion with pattern matching" should "terminate" in {
+    pending
     val testCode =
       """
         |@{
@@ -36,6 +38,7 @@ class ConstructorsTest extends LanguageTest {
   }
 
   "Pattern match expression" should "behave correctly in non-tail positions" in {
+    pending
     val testCode =
       """
         |{
@@ -51,6 +54,7 @@ class ConstructorsTest extends LanguageTest {
   }
 
   "Pattern match expressions" should "accept a catch-all fallback clause" in {
+    pending
     val testCode =
       """
         |{
@@ -65,6 +69,7 @@ class ConstructorsTest extends LanguageTest {
   }
 
   "Pattern match expressions" should "throw an exception when match fails" in {
+    pending
     val testCode =
       """
         |{
@@ -79,6 +84,7 @@ class ConstructorsTest extends LanguageTest {
   }
 
   "Constructor definitions" should "be usable in code, with arbitrary definition order" in {
+    pending
     val testCode =
       """
         |type Cons2 a b;

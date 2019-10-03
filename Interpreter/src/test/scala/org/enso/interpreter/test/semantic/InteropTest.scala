@@ -4,6 +4,7 @@ import org.enso.interpreter.test.LanguageTest
 
 class InteropTest extends LanguageTest {
   "Interop library" should "support tail recursive functions" in {
+    pending
     val code =
       """
         |@{
@@ -16,6 +17,7 @@ class InteropTest extends LanguageTest {
   }
 
   "Interop library" should "support calling curried functions" in {
+    pending
     val code =
       """
         |@{
@@ -28,6 +30,7 @@ class InteropTest extends LanguageTest {
   }
 
   "Interop library" should "support creating curried calls" in {
+    pending
     val code =
       """
         |{ |x, y, z| (x + y) + z }

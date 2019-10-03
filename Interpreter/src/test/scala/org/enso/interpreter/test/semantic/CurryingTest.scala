@@ -4,6 +4,7 @@ import org.enso.interpreter.test.LanguageTest
 
 class CurryingTest extends LanguageTest {
   "Functions" should "allow partial application" in {
+    pending
     val code =
       """
         |@{
@@ -18,6 +19,7 @@ class CurryingTest extends LanguageTest {
   }
 
   "Functions" should "allow default arguments to be suspended" in {
+    pending
     val code =
       """
         |@{
@@ -35,6 +37,7 @@ class CurryingTest extends LanguageTest {
   }
 
   "Functions" should "allow defaults to be suspended in application chains" in {
+    pending
     val code =
       """
         |@{
