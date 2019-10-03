@@ -458,9 +458,7 @@ object AST {
       implicit def ozip[T]: OffsetZip[BlankOf, T] = t => t.coerce
     }
     object VarOf {
-      implicit val x = Generic[VarOf[AST]]
       implicit def ftor:    Functor[VarOf]      = semi.functor
-      implicit def fold:    Foldable[VarOf]     = semi.foldable
       implicit def fold:    Foldable[VarOf]     = semi.foldable
       implicit def repr[T]: Repr[VarOf[T]]      = _.name
       implicit def ozip[T]: OffsetZip[VarOf, T] = t => t.coerce

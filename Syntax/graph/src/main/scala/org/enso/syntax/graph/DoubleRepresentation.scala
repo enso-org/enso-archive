@@ -55,7 +55,7 @@ final case class DoubleRepresentation(
       val input = new Reader(prefix + text + suffix)
       val idMap = line.elem.map(_.idMap).getOrElse(Nil).map {
         case ((o, l), id) =>
-          val newSpan = TextSpan(at.index, text.length) + TextSpan(o, l)
+          val newSpan = TextSpan(o, l) + TextSpan(at.index, text.length)
           (newSpan.begin.index, newSpan.length.value) -> id
       }
       Parser().run(input, idMap).lines.toList
@@ -70,7 +70,7 @@ final case class DoubleRepresentation(
       val input          = new Reader(line1 + line2.drop(span.length.value))
       val idMap = line.elem.map(_.idMap).getOrElse(Nil).flatMap {
         case ((o, l), id) =>
-          val newSpan = span - TextSpan(o, l)
+          val newSpan = TextSpan(o, l) - span
           if (newSpan.length.value <= 0) None
           else Some((newSpan.begin.index, newSpan.length.value) -> id)
       }

@@ -9,6 +9,9 @@ class Tests extends FunSuite with TestUtils {
   test("text modifications") {
     List(
       "a (»«) c",
+      "+(»  «)+",
+      "a(»xx«)c",
+      "a(»  «)c",
       "a (»1 2«) c",
       "'text(»'«)",
       "if a then b(» then x«) else c",
