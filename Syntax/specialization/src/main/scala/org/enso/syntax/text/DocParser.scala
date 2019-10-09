@@ -72,10 +72,11 @@ class DocParser {
   /**
     * Function invoked by [[onHTMLRendering]] to render HTML File
     *
-    * @param ast - ast from Doc Parser Runner
+    * @param ast - AST from Parser
     * @param doc - Doc from Doc Parser
     * @param cssLink - string containing CSS file name
-    * @return - HTML Code from Doc with optional title from AST
+    * @return - HTML Code from Doc and contents of [[AST.Def]] or
+    *           [[AST.App.Infix]], with optional title made from AST
     */
   def renderHTML(
     ast: AST,
@@ -83,11 +84,21 @@ class DocParser {
     cssLink: String = "style.css"
   ): TypedTag[String] = {
     val title         = ast.show().split("\n").head
-    val documentation = renderHTML(ast, doc)
+    val documentation = DocumentedToHtml(ast, doc)
     HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
   }
 
-  def renderHTML(
+  /**
+    * This function is used to get HTML content of Doc and try to render AST,
+    * by finding if it also contains Documented to retrieve Doc and it's AST,
+    * or simply call show() method on other element of AST.
+    *
+    * @param ast - AST from Parser
+    * @param doc - Doc from Doc Parser
+    * @return -  HTML Code from Doc and contents of [[AST.Def]] or
+    *            [[AST.App.Infix]]
+    */
+  def DocumentedToHtml(
     ast: AST,
     doc: Doc
   ): TypedTag[String] = {
@@ -99,7 +110,8 @@ class DocParser {
   }
 
   /**
-    * Function invoked by [[renderHTML]] to create HTML from AST in Documented
+    * Function invoked by [[DocumentedToHtml]] to create HTML from AST in Documented
+    *
     * @param ast - AST
     * @return - HTML Code
     */
@@ -109,21 +121,21 @@ class DocParser {
         d.body match {
           case Some(body) =>
             body match {
-              case AST.Block.any(b) => traverseThroughDefBody(d.name, d.args, b)
-              case _                => HTML.div(HTML.`class` := "DefNoBody")(d.show())
+              case AST.Block.any(b) => createDefWithBody(d.name, d.args, b)
+              case _                => createDefWithoutBody(d.name, d.args)
             }
-          case None => HTML.div(HTML.`class` := "DefNoBody")(d.show())
+          case None => createDefWithoutBody(d.name, d.args)
         }
-      case AST.App.Infix.any(i) =>
-        HTML.div(HTML.`class` := "Infix")(i.larg.show())
-      case other => HTML.div(HTML.`class` := "otherAST")(other.show())
+      case AST.App.Infix.any(i) => createInfixHtmlRepr(i)
+      case _                    => HTML.div()
     }
   }
 
-  /** Helper functions for [[createHTMLFromAST]] to traverse through Def body
+  /**
+    * Helper functions for [[createHTMLFromAST]] to traverse through Def body
     * and create HTML code from elements in it
     */
-  def traverseThroughDefBody(
+  def createDefWithBody(
     name: AST.Cons,
     args: List[AST],
     b: AST.Block
@@ -131,32 +143,54 @@ class DocParser {
     val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
     val linesToTransform = firstLine :: b.lines
     val transforemdLines = transformLines(linesToTransform)
-    val head = HTML.div(HTML.`class` := "DefTitle")(
+    val head             = createDefTitle(name, args)
+    val lines            = HTML.div(HTML.`class` := "DefBody")(transforemdLines)
+    HTML.div(HTML.`class` := "Def")(head, lines)
+  }
+
+  def createDefWithoutBody(
+    name: AST.Cons,
+    args: List[AST]
+  ): TypedTag[String] = {
+    HTML.div(HTML.`class` := "DefNoBody")(
+      createDefTitle(name, args)
+    )
+  }
+
+  def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
+    HTML.div(HTML.`class` := "DefTitle")(
       name.show(),
       HTML.div(HTML.`class` := "DefArgs")(args.map(_.show()))
     )
-    val lines = HTML.div(HTML.`class` := "DefBody")(transforemdLines)
-    HTML.div(HTML.`class` := "Def")(head, lines)
+  }
+
+  def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
+    HTML.div(HTML.`class` := "Infix")(infix.larg.show())
   }
 
   def transformLines(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
-        HTML.div(HTML.`class` := "DefDoc")(renderHTML(doc.ast, doc.doc)) :: transformLines(
+        HTML.div(HTML.`class` := "DefDoc")(DocumentedToHtml(doc.ast, doc.doc)) :: transformLines(
           rest
         )
       case x :: rest =>
-        HTML.div(HTML.`class` := "DefNoDoc")(x.elem.map(_.show())) :: transformLines(
-          rest
-        )
+        x match {
+          case Line(Some(d), _) =>
+            HTML.div(HTML.`class` := "DefNoDoc")(createHTMLFromAST(d)) :: transformLines(
+              rest
+            )
+          case _ => transformLines(rest)
+        }
       case other =>
-        HTML.div(HTML.`class` := "DefNoDoc")(
-          other.map(line => line.elem.map(_.show()).getOrElse(""))
-        ) :: List()
+        other match {
+          case Nil       => List()
+          case x :: rest => transformLines(x :: rest)
+        }
     }
 
   /**
-    * Function invoked by [[renderHTML]] to create HTML.Head part of file
+    * Function invoked by [[DocumentedToHtml]] to create HTML.Head part of file
     *
     * @param title - HTML page title
     * @param cssLink - string containing CSS file name

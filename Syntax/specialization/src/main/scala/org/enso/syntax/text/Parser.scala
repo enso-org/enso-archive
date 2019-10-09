@@ -208,7 +208,7 @@ class Parser {
 }
 
 object Parser {
-  def apply(): Parser = new Parser()
+  def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////
@@ -298,26 +298,40 @@ object Main extends App {
   val in2  = "(a) b = c]"
   val inp2 = "a (b (c)) x"
 
-  val inp = """## This function adds `x` to `y`
-              |add x y = x + y
-              |mul x y = x * y
-              |
-              |## This function divides `x` by `y`
-              |div x y = x / y
-              |
-              |## Just a comment
-              |
-              |## Doc for infix with empty lines between 
-              |
-              |sub x y = x - y
-              |
-              |## Foo bar baz
-              |   bax
-              |def Maybe a
-              |    ## test attached to Just
-              |    def Just val:a
-              |    def Nothing
-              |""".stripMargin
+  val inp =
+    """
+      |##
+      |  DEPRECATED
+      |  REMOVED - replaced by SwiftUI
+      |  ADDED
+      |  MODIFIED
+      |  UPCOMING
+      |  ALAMAKOTA a kot ma Ale
+      |  Construct and manage a graphical, event-driven user interface for your
+      |  iOS or tvOS app.
+      | 
+      |  The UIKit framework provides the required infrastructure for your iOS or
+      |  tvOS apps. It provides the window and view architecture for implementing
+      |  your interface, the event handling infrastructure for delivering Multi-
+      |  Touch and other types of input to your app, and the main run loop needed
+      |  to manage interactions among the user, the system, and your app. Other
+      |  features offered by the framework include animation support, document
+      |  support, drawing and printing support, information about the current
+      |  device, text management and display, search support, accessibility  
+      |  support, app extension support, and resource management.
+      | 
+      |  ! Important
+      |    Use UIKit classes only from your app’s main thread or main dispatch
+      |    queue, unless otherwise indicated. This restriction particularly
+      |    applies to classes derived from UIResponder or that involve
+      |    manipulating your app’s user interface in any way.
+      |def Maybe a
+      |    ## test attached to Just
+      |    def Just val:a
+      |    ## this function subtracts numbers
+      |    sub x y = x - y
+      |    def Nothing
+      |""".stripMargin
 
   println("--- PARSING ---")
 

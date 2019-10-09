@@ -271,13 +271,17 @@ h2 {
 /*///////////////////////////////////
 //// HTML generated - Def, Infix ////
 ///////////////////////////////////*/
-.Def{}
 
+.Def {
+    padding: 10px 20px;
+}
 
-.DefNoBody{}
-
-.DefBody{}
-
+.Def .Synopsis,
+.Def .Body,
+.Def .Tags,
+.Def .ASTData {
+    width: 90% !important;
+}
 
 .DefTitle{
     display: inline-flex;
@@ -292,15 +296,11 @@ h2 {
     color: #0070c9
 }
 
-.DefDoc{}
-
-.DefNoDoc{}
-
-
-.Infix{}
-
-
-.OtherAST{}
+.Infix{
+    font-size: large;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
 
 /*/////////////////////////
 //// Synopsis & Detail ////
@@ -324,7 +324,6 @@ h2 {
 
 .Documentation .ASTData {
     margin: 20px auto;
-    padding: 10px 20px;
     text-align: left;
     line-height: 1.05;
     letter-spacing: 0.008em;
