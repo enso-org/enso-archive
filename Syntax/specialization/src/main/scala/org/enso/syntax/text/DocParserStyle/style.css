@@ -1,8 +1,3 @@
-/*//////////////////////////////////////////////////////////////////////////////
-////                           UNDER CONSTRUCTION                           ////
-//////////////////////////////////////////////////////////////////////////////*/
-
-
 /*///////////
 //// DOM ////
 ///////////*/
@@ -76,7 +71,7 @@ button:hover {
     background-color: #333;
 }
 
-b { 
+b {
     font-weight: 600;
 }
 
@@ -142,26 +137,28 @@ h2 {
 //// Tags ////
 ////////////*/
 
-.Doc .Tags {
+ .Tags {
     margin-left: auto;
     margin-right: auto;
     margin-bottom: 20px;
-    padding: 15px 0;
+    padding: 15px 10px;
     text-align: center;
     background-color: #fafafa;
+    border-radius: 8px;
+
 }
 
-.Doc .ExtForTagDetails {
+ .ExtForTagDetails {
     margin: 0 3px;
     color: #999999;
 }
 
-.Doc .Tags .DEPRECATED,
-.Doc .Tags .MODIFIED,
-.Doc .Tags .ADDED,
-.Doc .Tags .UPCOMING,
-.Doc .Tags .REMOVED,
-.Doc .Tags .UNRECOGNIZED {
+ .Tags .DEPRECATED,
+ .Tags .MODIFIED,
+ .Tags .ADDED,
+ .Tags .UPCOMING,
+ .Tags .REMOVED,
+ .Tags .UNRECOGNIZED {
     line-height: 1.5;
     font-weight: 400;
     border-radius: 3px;
@@ -175,29 +172,29 @@ h2 {
     background: transparent;
 }
 
-.Doc .Tags .DEPRECATED {
+ .Tags .DEPRECATED {
     border-color: #c35400;
     color: #c35400;
 }
 
-.Doc .Tags .MODIFIED {
+ .Tags .MODIFIED {
     border-color: #8A82CF;
     color: #8A82CF;
 }
 
-.Doc .Tags .ADDED {
+ .Tags .ADDED {
     border-color: #79A129;
     color: #79A129;
 }
 
-.Doc .Tags .UPCOMING,
-.Doc .Tags .REMOVED,
-.Doc .Tags .UNRECOGNIZED {
+ .Tags .UPCOMING,
+ .Tags .REMOVED,
+ .Tags .UNRECOGNIZED {
     border-color: #888888;
     color: #666666;
 }
 
-.creator .Doc .Tags .UNRECOGNIZED {
+.creator  .Tags .UNRECOGNIZED {
     border: 2px solid;
     color: orangered;
 }
@@ -271,6 +268,31 @@ h2 {
     display: none;
 }
 
+/*///////////////////////////////////
+//// HTML generated - Def, Infix ////
+///////////////////////////////////*/
+.Def{}
+
+
+.DefNoBody{}
+
+.DefBody{}
+
+
+.DefTitle{}
+
+.DefArgs{}
+
+.DefDoc{}
+
+.DefNoDoc{}
+
+
+.Infix{}
+
+
+.OtherAST{}
+
 /*/////////////////////////
 //// Synopsis & Detail ////
 /////////////////////////*/
@@ -291,43 +313,63 @@ h2 {
     border-bottom: 1px solid #d6d6d6
 }
 
-.Doc {
+.Documentation .ASTData {
+    margin: 20px auto;
+    padding: 10px 20px;
+    text-align: left;
+    line-height: 1.05;
+    letter-spacing: 0.008em;
+    background-color: #fafafa;
+    border-radius: 6px;
+}
+
+.Documentation .Documented {
     margin: 0;
     width: 100%;
     background-color: #ffffff;
 }
 
 @media (min-width: 300px) {
-    .Synopsis, 
-    .Body {
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData {
         width: 380px
     }
 }
 
 @media (min-width: 500px) {
-    .Synopsis, 
-    .Body {
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData {
         width: 440px
     }
 }
 
 @media (min-width: 600px) {
-    .Synopsis, 
-    .Body {
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData {
         width: 490px
     }
 }
 
 @media (min-width: 900px) {
-    .Synopsis, 
-    .Body {
+    .Synopsis,
+    .Body,
+    .Tags,
+    .Documentation .ASTData {
         width: 670px
     }
 }
 
 @media (min-width: 1300px) {
     .Synopsis,
-    .Body  {
+    .Body,
+    .Tags,
+    .Documentation .ASTData  {
         width: 780px
     }
 }
