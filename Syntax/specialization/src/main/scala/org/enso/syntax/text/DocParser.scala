@@ -82,13 +82,20 @@ class DocParser {
     doc: Doc,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
-    val title = ast.show().split("\n").head
+    val title         = ast.show().split("\n").head
+    val documentation = renderHTML(ast, doc)
+    HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
+  }
+
+  def renderHTML(
+    ast: AST,
+    doc: Doc
+  ): TypedTag[String] = {
     val astHtml = Seq(
       HTML.div(HTML.`class` := "ASTData")(createHTMLFromAST(ast))
     )
-    val docClass      = HTML.`class` := "Documentation"
-    val documentation = Seq(HTML.div(docClass)(doc.html, astHtml))
-    HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
+    val docClass = HTML.`class` := "Documentation"
+    HTML.div(docClass)(doc.html, astHtml)
   }
 
   /**
@@ -135,7 +142,9 @@ class DocParser {
   def transformLines(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
-        HTML.div(HTML.`class` := "DefDoc")(doc.doc.html) :: transformLines(rest)
+        HTML.div(HTML.`class` := "DefDoc")(renderHTML(doc.ast, doc.doc)) :: transformLines(
+          rest
+        )
       case x :: rest =>
         HTML.div(HTML.`class` := "DefNoDoc")(x.elem.map(_.show())) :: transformLines(
           rest

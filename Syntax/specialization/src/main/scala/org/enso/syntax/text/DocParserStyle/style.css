@@ -279,9 +279,18 @@ h2 {
 .DefBody{}
 
 
-.DefTitle{}
+.DefTitle{
+    display: inline-flex;
+    font-size: x-large;
+    font-weight: 600;
+    margin-bottom: 20px;
+}
 
-.DefArgs{}
+.DefArgs{
+    margin-left: 5px;
+    font-weight: 400;
+    color: #0070c9
+}
 
 .DefDoc{}
 
