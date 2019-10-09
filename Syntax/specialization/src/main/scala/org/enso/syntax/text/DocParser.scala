@@ -82,12 +82,69 @@ class DocParser {
     doc: Doc,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
-    val title         = ast.show().split("\n").head
-    val astHtml       = Seq(HTML.div(HTML.`class` := "ASTData")(ast.show()))
+    val title = ast.show().split("\n").head
+    val astHtml = Seq(
+      HTML.div(HTML.`class` := "ASTData")(createHTMLFromAST(ast))
+    )
     val docClass      = HTML.`class` := "Documentation"
     val documentation = Seq(HTML.div(docClass)(doc.html, astHtml))
     HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
   }
+
+  /**
+    * Function invoked by [[renderHTML]] to create HTML from AST in Documented
+    * @param ast - AST
+    * @return - HTML Code
+    */
+  def createHTMLFromAST(ast: AST): TypedTag[String] = {
+    ast match {
+      case AST.Def.any(d) =>
+        d.body match {
+          case Some(body) =>
+            body match {
+              case AST.Block.any(b) => traverseThroughDefBody(d.name, d.args, b)
+              case _                => HTML.div(HTML.`class` := "DefNoBody")(d.show())
+            }
+          case None => HTML.div(HTML.`class` := "DefNoBody")(d.show())
+        }
+      case AST.App.Infix.any(i) =>
+        HTML.div(HTML.`class` := "Infix")(i.larg.show())
+      case other => HTML.div(HTML.`class` := "otherAST")(other.show())
+    }
+  }
+
+  /** Helper functions for [[createHTMLFromAST]] to traverse through Def body
+    * and create HTML code from elements in it
+    */
+  def traverseThroughDefBody(
+    name: AST.Cons,
+    args: List[AST],
+    b: AST.Block
+  ): TypedTag[String] = {
+    val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
+    val linesToTransform = firstLine :: b.lines
+    val transforemdLines = transformLines(linesToTransform)
+    val head = HTML.div(HTML.`class` := "DefTitle")(
+      name.show(),
+      HTML.div(HTML.`class` := "DefArgs")(args.map(_.show()))
+    )
+    val lines = HTML.div(HTML.`class` := "DefBody")(transforemdLines)
+    HTML.div(HTML.`class` := "Def")(head, lines)
+  }
+
+  def transformLines(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
+    lines match {
+      case Line(Some(AST.Documented.any(doc)), _) :: rest =>
+        HTML.div(HTML.`class` := "DefDoc")(doc.doc.html) :: transformLines(rest)
+      case x :: rest =>
+        HTML.div(HTML.`class` := "DefNoDoc")(x.elem.map(_.show())) :: transformLines(
+          rest
+        )
+      case other =>
+        HTML.div(HTML.`class` := "DefNoDoc")(
+          other.map(line => line.elem.map(_.show()).getOrElse(""))
+        ) :: List()
+    }
 
   /**
     * Function invoked by [[renderHTML]] to create HTML.Head part of file
@@ -116,8 +173,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
-  def run(input: String):        Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 
   /**
     * Saves HTML code to file
