@@ -13,13 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-import org.enso.interpreter.AstGlobalScope;
 import org.enso.interpreter.Constants;
-import org.enso.interpreter.EnsoParser;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.builder.ModuleScopeExpressionFactory;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.RewriteRootNode;
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
@@ -71,9 +67,9 @@ public class Context {
    * @return a call target which execution corresponds to the toplevel executable bits in the module
    */
   public CallTarget parse(Source source, ModuleScope scope) {
-    AstGlobalScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
-    ExpressionNode result = new ModuleScopeExpressionFactory(language, scope).run(parsed);
-    EnsoRootNode root = new EnsoRootNode(language, new FrameDescriptor(), result, null, "root");
+    RewriteRootNode root =
+        new RewriteRootNode(language, new FrameDescriptor(), "root", null, scope, source);
+
     return Truffle.getRuntime().createCallTarget(root);
   }
 
@@ -96,6 +92,7 @@ public class Context {
    * @throws IOException when the file could not be read
    */
   public CallTarget parse(TruffleFile file, ModuleScope scope) throws IOException {
+    System.out.println("Parsing" + file.getName());
     return parse(Source.newBuilder(Constants.LANGUAGE_ID, file).build(), scope);
   }
 
@@ -107,6 +104,7 @@ public class Context {
    * @throws IOException when the source file could not be read
    */
   public ModuleScope requestParse(String qualifiedName) throws IOException {
+    System.out.println("Requesting parse of " + qualifiedName);
     Module module = knownFiles.get(qualifiedName);
     if (module == null) throw new ModuleDoesNotExistException(qualifiedName);
     return module.requestParse(this);

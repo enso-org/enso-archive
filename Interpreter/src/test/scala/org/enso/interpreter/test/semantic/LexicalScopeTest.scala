@@ -5,7 +5,6 @@ import org.graalvm.polyglot.PolyglotException
 
 class LexicalScopeTest extends LanguageTest {
   "Scope capture from outer scope" should "work" in {
-    pending
     val code =
       """
         |@{
@@ -21,7 +20,6 @@ class LexicalScopeTest extends LanguageTest {
   }
 
   "Variable shadowing" should "work" in {
-    pending
     val code =
       """
         |@{
@@ -36,7 +34,6 @@ class LexicalScopeTest extends LanguageTest {
   }
 
   "Variable redefinition in same scope" should "throw error" in {
-    pending
     val code =
       """
         |@{ 

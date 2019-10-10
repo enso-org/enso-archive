@@ -1,11 +1,16 @@
 package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.AstGlobalScope;
+import org.enso.interpreter.EnsoParser;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.builder.ModuleScopeExpressionFactory;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * This node handles static transformation of the input AST before execution.
@@ -15,26 +20,28 @@ import com.oracle.truffle.api.source.SourceSection;
  * result, this node handles the transformations and re-writes
  */
 public class RewriteRootNode extends RootNode {
+  private final Language language;
   private final String name;
   private final SourceSection sourceSection;
-  private final boolean isExecutingInStaticContext; // Note [Execution in a Static Context]
-  @Child private ExpressionNode ensoProgram = null;
-  // TODO [ARA] Storage for the AST
 
-  /* Note [Execution in a Static Context]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   */
+  private final ModuleScope executionScope;
+  private final Source sourceCode;
+
+  @Child private ExpressionNode ensoProgram = null;
 
   public RewriteRootNode(
-      TruffleLanguage<?> language,
+      Language language,
       FrameDescriptor frameDescriptor,
       String name,
       SourceSection sourceSection,
-      boolean isExecutingInStaticContext) {
+      ModuleScope executionScope,
+      Source sourceCode ) {
     super(language, frameDescriptor);
+    this.language = language;
     this.name = name;
     this.sourceSection = sourceSection;
-    this.isExecutingInStaticContext = isExecutingInStaticContext;
+    this.executionScope = executionScope;
+    this.sourceCode = sourceCode;
   }
 
   /**
@@ -45,12 +52,17 @@ public class RewriteRootNode extends RootNode {
    */
   @Override
   public Object execute(VirtualFrame frame) {
+    // TODO [AA] It somehow needs to evaluate the imported files
     // Note [Static Passes]
     if (this.ensoProgram == null) {
       // Note [Static Passes (Lack of Profiling)]
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      // TODO [ARA] Begin the desugaring, rewrite, etc, process.
-      throw new RuntimeException("No static analysis yet implemented");
+      AstGlobalScope programAST = new EnsoParser().parseEnso(this.sourceCode.getCharacters().toString());
+
+      this.ensoProgram =
+          this.insert(
+              new ModuleScopeExpressionFactory(this.language, this.executionScope)
+                  .run(programAST));
     }
 
     return this.ensoProgram.executeGeneric(frame);
@@ -102,7 +114,7 @@ public class RewriteRootNode extends RootNode {
 
   /** Marks the node as not tail-recursive. */
   public void markNotTail() {
-    this.markNotTail();
+    ensoProgram.markNotTail();
   }
 
   /**

@@ -6,7 +6,6 @@ import org.graalvm.polyglot.PolyglotException
 class GlobalScopeTest extends LanguageTest {
 
   "Variables" should "be able to be read from the global scope" in {
-    pending
     val code =
       """
         |Unit.a = 10
@@ -18,7 +17,6 @@ class GlobalScopeTest extends LanguageTest {
   }
 
   "Functions" should "use values from the global scope in their bodies" in {
-    pending
     val code =
       """
         |Unit.a = 10
@@ -31,7 +29,6 @@ class GlobalScopeTest extends LanguageTest {
   }
 
   "Functions" should "be able to call other functions in scope" in {
-    pending
     val code =
       """
         |Unit.adder = { |a, b| a + b }
@@ -47,7 +44,6 @@ class GlobalScopeTest extends LanguageTest {
   }
 
   "Functions" should "be able to be passed as values when in scope" in {
-    pending
     val code =
       """
         |Unit.adder = { |a, b| a + b }
@@ -64,7 +60,6 @@ class GlobalScopeTest extends LanguageTest {
   }
 
   "Functions" should "be able to mutually recurse in the global scope" in {
-    pending
     val code =
       """
         |Unit.decrementCall = { |number|
@@ -83,7 +78,6 @@ class GlobalScopeTest extends LanguageTest {
   }
 
   "Functions" should "be suspended within blocks" in {
-    pending
     val code =
       """
         |Unit.a = 10/0
@@ -96,7 +90,6 @@ class GlobalScopeTest extends LanguageTest {
   }
 
   "Exceptions" should "be thrown when called" in {
-    pending
     val code =
       """
         |Unit.a = 10/0

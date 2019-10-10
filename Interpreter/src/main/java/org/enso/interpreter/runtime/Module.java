@@ -27,7 +27,9 @@ public class Module {
    * @throws IOException when the source file could not be read
    */
   public ModuleScope requestParse(Context context) throws IOException {
+    System.out.println("Requesting parse in module " + file.getName());
     if (cachedScope == null) {
+      System.out.println("No cached scope for file");
       cachedScope = new ModuleScope();
       context.parse(file, cachedScope);
     }

@@ -4,7 +4,6 @@ import org.enso.interpreter.test.LanguageTest
 
 class FunctionArgumentsTest extends LanguageTest {
   "Functions" should "take arguments and use them in their bodies" in {
-    pending
     val code     = "{ |x| x * x }"
     val function = eval(code)
     function.call(1) shouldEqual 1
@@ -12,7 +11,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Function arguments from outer scope" should "be visible in the inner scope" in {
-    pending
     val code =
       """
         |{ |a|
@@ -26,7 +24,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Recursion" should "work" in {
-    pending
     val code =
       """
         |@{
@@ -39,7 +36,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Function calls" should "accept more arguments than needed and pass them to the result upon execution" in {
-    pending
     val code =
       """
         |@{
@@ -53,7 +49,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Function calls" should "allow oversaturation and execute until completion" in {
-    pending
     val code =
       """
         |@{
@@ -67,7 +62,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Function calls" should "be able to return atoms that are evaluated with oversaturated args" in {
-    pending
     val code =
       """
         |@{
@@ -85,7 +79,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Methods" should "support the use of oversaturated args" in {
-    pending
     val code =
       """
         |Unit.myMethod = 1
@@ -102,7 +95,6 @@ class FunctionArgumentsTest extends LanguageTest {
   }
 
   "Recursion closing over lexical scope" should "work properly" in {
-    pending
     val code =
       """
         |@{

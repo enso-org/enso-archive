@@ -63,15 +63,20 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       throws IOException {
 
     Context context = language.getCurrentContext();
+    System.out.println(context);
 
     for (AstImport imp : imports) {
+      System.out.println("Found " + imp.name());
       moduleScope.addImport(context.requestParse(imp.name()));
+      System.out.println("Finished with " + imp.name());
     }
 
     List<AtomConstructor> constructors =
         typeDefs.stream()
             .map(type -> new AtomConstructor(type.name(), moduleScope))
             .collect(Collectors.toList());
+
+    constructors.forEach(c -> System.out.println(c.getName()));
 
     constructors.forEach(moduleScope::registerConstructor);
 

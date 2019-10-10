@@ -77,6 +77,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
+    // TODO [AA] Push it down from here
     return getCurrentContext().parse(request.getSource());
   }
 

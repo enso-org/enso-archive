@@ -216,7 +216,6 @@ lazy val interpreter = (project in file("Interpreter"))
     version := "0.1",
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptions),
-    inConfig(Test)(truffleRunOptions),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
@@ -266,7 +265,6 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptions),
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
