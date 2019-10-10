@@ -165,7 +165,7 @@ class Parser {
   ): AST.Module = {
     var ids = idMap.sorted.toList
     mod.traverseWithOff { (off, ast) =>
-      val key = Span(Index(off), ast)
+      val key = Span(off, ast)
 
       while (ids.nonEmpty && ids.head._1 < key) ids = ids.tail
 
