@@ -60,12 +60,16 @@ class DocParser {
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
     * @param path - path onto which file will be saved
+    * @param cssFileName - name of file containing stylesheets for the HTML code
     */
-  def onHTMLRendering(documented: AST.Documented, path: String): Unit = {
-    val cssFileName = "style.css"
-    val htmlCode    = renderHTML(documented.ast, documented.doc, cssFileName)
-    val astLines    = documented.ast.show().split("\n")
-    val fileName    = astLines.head.replaceAll("/", "")
+  def onHTMLRendering(
+    documented: AST.Documented,
+    path: String,
+    cssFileName: String
+  ): Unit = {
+    val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
+    val astLines = documented.ast.show().split("\n")
+    val fileName = astLines.head.replaceAll("/", "")
     saveHTMLToFile(path, fileName, htmlCode)
   }
 
@@ -459,6 +463,7 @@ object DocParserRunner {
     * method
     *
     * @param comment - comment found in AST
+    * @param emptyLines - Empty lines in between Doc and AST
     * @param off - line offset
     * @param ast - AST to go with comment into Documented
     * @return - [[AST.Documented]]
@@ -483,12 +488,19 @@ object DocParserRunner {
     * reformatted [[AST.Documented]]
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
+    * @param path - path to save file
+    * @param cssFileName - name of file containing stylesheets for the HTML code
     */
-  def generateHTMLForEveryDocumented(ast: AST, path: String): Unit = {
+  def generateHTMLForEveryDocumented(
+    ast: AST,
+    path: String,
+    cssFileName: String
+  ): Unit = {
     ast.map { elem =>
       elem match {
-        case AST.Documented.any(d) => new DocParser().onHTMLRendering(d, path)
-        case _                     => generateHTMLForEveryDocumented(elem, path)
+        case AST.Documented.any(d) =>
+          new DocParser().onHTMLRendering(d, path, cssFileName)
+        case _ => generateHTMLForEveryDocumented(elem, path, cssFileName)
       }
       elem
     }
