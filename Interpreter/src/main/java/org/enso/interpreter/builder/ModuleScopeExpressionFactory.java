@@ -41,7 +41,7 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * @param expr the expression to execute on
    * @return a runtime node representing the top-level expression
    */
-  public ExpressionNode run(AstGlobalScope expr) {
+  public ExpressionNode run(AstModuleScope expr) {
     return expr.visit(this);
   }
 

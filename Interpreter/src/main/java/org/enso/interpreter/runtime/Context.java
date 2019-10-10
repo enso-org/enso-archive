@@ -1,11 +1,8 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.source.Source;
 import java.io.File;
 import java.io.IOException;
@@ -13,9 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.enso.interpreter.AstModuleScope;
 import org.enso.interpreter.Constants;
+import org.enso.interpreter.EnsoParser;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.RewriteRootNode;
+import org.enso.interpreter.builder.ModuleScopeExpressionFactory;
+import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
@@ -25,9 +25,11 @@ import org.enso.pkg.SourceFile;
 /**
  * The language context is the internal state of the language that is associated with each thread in
  * a running Enso program.
+ *
+ * <p>Please note that a given context instance may be accessed from multiple threads at once as
+ * long as Enso is executing in multi-threaded mode.
  */
 public class Context {
-
   private final Language language;
   private final Env environment;
   private final Map<String, Module> knownFiles;
@@ -66,11 +68,10 @@ public class Context {
    * @param scope the scope in which to register any new bindings
    * @return a call target which execution corresponds to the toplevel executable bits in the module
    */
-  public CallTarget parse(Source source, ModuleScope scope) {
-    RewriteRootNode root =
-        new RewriteRootNode(language, new FrameDescriptor(), "root", null, scope, source);
+  public ExpressionNode parse(Source source, ModuleScope scope) {
+    AstModuleScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
 
-    return Truffle.getRuntime().createCallTarget(root);
+    return new ModuleScopeExpressionFactory(language, scope).run(parsed);
   }
 
   /**
@@ -79,7 +80,7 @@ public class Context {
    * @param source the source to be parsed
    * @return a call target which execution corresponds to the toplevel executable bits in the module
    */
-  public CallTarget parse(Source source) {
+  public ExpressionNode parse(Source source) {
     return parse(source, new ModuleScope());
   }
 
@@ -91,8 +92,7 @@ public class Context {
    * @return a call target which execution corresponds to the toplevel executable bits in the module
    * @throws IOException when the file could not be read
    */
-  public CallTarget parse(TruffleFile file, ModuleScope scope) throws IOException {
-    System.out.println("Parsing" + file.getName());
+  public ExpressionNode parse(TruffleFile file, ModuleScope scope) throws IOException {
     return parse(Source.newBuilder(Constants.LANGUAGE_ID, file).build(), scope);
   }
 
@@ -104,7 +104,6 @@ public class Context {
    * @throws IOException when the source file could not be read
    */
   public ModuleScope requestParse(String qualifiedName) throws IOException {
-    System.out.println("Requesting parse of " + qualifiedName);
     Module module = knownFiles.get(qualifiedName);
     if (module == null) throw new ModuleDoesNotExistException(qualifiedName);
     return module.requestParse(this);

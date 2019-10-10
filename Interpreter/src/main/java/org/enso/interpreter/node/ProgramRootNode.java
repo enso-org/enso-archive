@@ -1,15 +1,12 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.AstGlobalScope;
-import org.enso.interpreter.EnsoParser;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.builder.ModuleScopeExpressionFactory;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
@@ -19,28 +16,25 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
  * must have access to the interpreter, it must take place as part of the interpreter context. As a
  * result, this node handles the transformations and re-writes
  */
-public class RewriteRootNode extends RootNode {
+public class ProgramRootNode extends RootNode {
   private final Language language;
   private final String name;
   private final SourceSection sourceSection;
 
-  private final ModuleScope executionScope;
   private final Source sourceCode;
 
   @Child private ExpressionNode ensoProgram = null;
 
-  public RewriteRootNode(
+  public ProgramRootNode(
       Language language,
       FrameDescriptor frameDescriptor,
       String name,
       SourceSection sourceSection,
-      ModuleScope executionScope,
-      Source sourceCode ) {
+      Source sourceCode) {
     super(language, frameDescriptor);
     this.language = language;
     this.name = name;
     this.sourceSection = sourceSection;
-    this.executionScope = executionScope;
     this.sourceCode = sourceCode;
   }
 
@@ -50,19 +44,14 @@ public class RewriteRootNode extends RootNode {
    * @param frame the stack frame to execute in
    * @return the result of executing this node
    */
+  // TODO [AA] It somehow needs to evaluate the imported files
   @Override
   public Object execute(VirtualFrame frame) {
-    // TODO [AA] It somehow needs to evaluate the imported files
+    Context context = this.language.getCurrentContext();
+
     // Note [Static Passes]
     if (this.ensoProgram == null) {
-      // Note [Static Passes (Lack of Profiling)]
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      AstGlobalScope programAST = new EnsoParser().parseEnso(this.sourceCode.getCharacters().toString());
-
-      this.ensoProgram =
-          this.insert(
-              new ModuleScopeExpressionFactory(this.language, this.executionScope)
-                  .run(programAST));
+      this.ensoProgram = this.insert(context.parse(this.sourceCode));
     }
 
     return this.ensoProgram.executeGeneric(frame);

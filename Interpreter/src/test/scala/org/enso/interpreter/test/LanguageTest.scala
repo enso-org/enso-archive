@@ -1,6 +1,6 @@
 package org.enso.interpreter.test
 
-import org.enso.interpreter.{AstGlobalScope, Constants, EnsoParser}
+import org.enso.interpreter.{AstModuleScope, Constants, EnsoParser}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalactic.Equality
 import org.scalatest.{FlatSpec, Matchers}
@@ -12,7 +12,7 @@ trait LanguageRunner {
   val ctx = Context.newBuilder(Constants.LANGUAGE_ID).build()
   def eval(code: String): Value = ctx.eval(Constants.LANGUAGE_ID, code)
 
-  def parse(code: String): AstGlobalScope =
+  def parse(code: String): AstModuleScope =
     new EnsoParser().parseEnso(code)
 }
 
