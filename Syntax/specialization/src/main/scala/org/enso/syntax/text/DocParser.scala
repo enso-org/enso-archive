@@ -131,17 +131,22 @@ class DocParser {
   }
 
   /**
-    * Helper functions for [[createHTMLFromAST]] to generate appropriate code
-    * for [[AST.Def]] with traversing through body and creating HTML code
+    * Helper function for [[createHTMLFromAST]] to generate appropriate code
+    * from [[AST.Def]] with traversing through body and creating HTML code
     * on elements in it
+    *
+    * @param name - Def Name
+    * @param args - Def Arguments
+    * @param body - Def body
+    * @return - HTML code generated from Def
     */
   def createDefWithBody(
     name: AST.Cons,
     args: List[AST],
-    b: AST.Block
+    body: AST.Block
   ): TypedTag[String] = {
-    val firstLine     = Line(Option(b.firstLine.elem), b.firstLine.off)
-    val allLines      = firstLine :: b.lines
+    val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
     val head          = createDefTitle(name, args)
     val clsBody       = HTML.`class` := "DefBody"
@@ -151,8 +156,12 @@ class DocParser {
   }
 
   /**
-    * Helper functions for [[createHTMLFromAST]] to generate appropriate code
-    * for [[AST.Def]] when it doesn't contain anything in it's body
+    * Helper function for [[createHTMLFromAST]] to generate appropriate code
+    * from [[AST.Def]] when it doesn't contain anything in it's body
+    *
+    * @param name - Def Name
+    * @param args - Def Arguments
+    * @return - HTML code generated from Def
     */
   def createDefWithoutBody(
     name: AST.Cons,
@@ -163,8 +172,12 @@ class DocParser {
   }
 
   /**
-    * Helper functions for [[createDefWithBody]] or [[createDefWithoutBody]]
+    * Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
     * to generate [[AST.Def]] title form it's name and args
+    *
+    * @param name - Def Name
+    * @param args - Def Arguments
+    * @return - Def title in HTML
     */
   def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
     val clsTitle = HTML.`class` := "DefTitle"
@@ -173,8 +186,11 @@ class DocParser {
   }
 
   /**
-    * Helper functions for [[createHTMLFromAST]] to generate appropriate HTML
+    * Helper function for [[createHTMLFromAST]] to generate appropriate HTML
     * code from [[AST.App.Infix]]
+    *
+    * @param infix - AST Infix
+    * @return - HTML code generated from Infix
     */
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
     val cls = HTML.`class` := "Infix"
@@ -182,9 +198,12 @@ class DocParser {
   }
 
   /**
-    * Helper functions for [[createDefWithBody]] to traverse through body's lines
+    * Helper function for [[createDefWithBody]] to traverse through body's lines
     * and try to generate HTML code from [[AST.Documented]] parts of it. It also
     * tries to find nested [[AST.Def]] and [[AST.App.Infix]] inside of body
+    *
+    * @param lines - lines inside of Def body
+    * @return - HTML code generated from contents of lines
     */
   def renderHTMLOnLine(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
     lines match {
