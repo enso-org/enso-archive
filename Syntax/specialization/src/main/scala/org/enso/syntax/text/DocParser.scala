@@ -49,204 +49,6 @@ class DocParser {
     * @return - unmatched result possibly containing Doc
     */
   def run(input: String): Result[Doc] = engine.run(new Reader(input))
-
-  //////////////////////////////////////////////////////////////////////////////
-  //// HTML Rendering of Documentation /////////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
-
-  /**
-    * Used to create HTML files from Doc with or without title after Doc Parser
-    * Runner finished it's job
-    *
-    * @param documented - documented made by Doc Parser Runner from AST and Doc
-    * @param cssFileName - name of file containing stylesheets for the HTML code
-    * @return - tuple containing HTML code with file name
-    */
-  def onHTMLRendering(
-    documented: AST.Documented,
-    cssFileName: String
-  ): (TypedTag[String], String) = {
-    val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
-    val astLines = documented.ast.show().split("\n")
-    val fileName = astLines.head.replaceAll("/", "")
-    (htmlCode, fileName)
-  }
-
-  /**
-    * Function invoked by [[onHTMLRendering]] to render HTML File
-    *
-    * @param ast - AST from Parser
-    * @param doc - Doc from Doc Parser
-    * @param cssLink - string containing CSS file name
-    * @return - HTML Code from Doc and contents of [[AST.Def]] or
-    *           [[AST.App.Infix]], with optional title made from AST
-    */
-  def renderHTML(
-    ast: AST,
-    doc: Doc,
-    cssLink: String = "style.css"
-  ): TypedTag[String] = {
-    val title         = ast.show().split("\n").head
-    val documentation = DocumentedToHtml(ast, doc)
-    HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
-  }
-
-  /**
-    * This function is used to get HTML content of Doc and try to render AST,
-    * by finding if it also contains Documented to retrieve Doc and it's AST,
-    * or simply call show() method on other element of AST.
-    *
-    * @param ast - AST from Parser
-    * @param doc - Doc from Doc Parser
-    * @return -  HTML Code from Doc and contents of [[AST.Def]] or
-    *            [[AST.App.Infix]]
-    */
-  def DocumentedToHtml(
-    ast: AST,
-    doc: Doc
-  ): TypedTag[String] = {
-    val astCls   = HTML.`class` := "ASTData"
-    val astHtml  = Seq(HTML.div(astCls)(createHTMLFromAST(ast)))
-    val docClass = HTML.`class` := "Documentation"
-    HTML.div(docClass)(doc.html, astHtml)
-  }
-
-  /**
-    * Function invoked by [[DocumentedToHtml]] to create HTML from AST in Documented
-    *
-    * @param ast - AST
-    * @return - HTML Code
-    */
-  def createHTMLFromAST(ast: AST): TypedTag[String] = {
-    ast match {
-      case AST.Def.any(d) =>
-        d.body match {
-          case Some(body) =>
-            body match {
-              case AST.Block.any(b) => createDefWithBody(d.name, d.args, b)
-              case _                => createDefWithoutBody(d.name, d.args)
-            }
-          case None => createDefWithoutBody(d.name, d.args)
-        }
-      case AST.App.Infix.any(i) => createInfixHtmlRepr(i)
-      case _                    => HTML.div()
-    }
-  }
-
-  /**
-    * Helper function for [[createHTMLFromAST]] to generate appropriate code
-    * from [[AST.Def]] with traversing through body and creating HTML code
-    * on elements in it
-    *
-    * @param name - Def Name
-    * @param args - Def Arguments
-    * @param body - Def body
-    * @return - HTML code generated from Def
-    */
-  def createDefWithBody(
-    name: AST.Cons,
-    args: List[AST],
-    body: AST.Block
-  ): TypedTag[String] = {
-    val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
-    val allLines      = firstLine :: body.lines
-    val generatedCode = renderHTMLOnLine(allLines)
-    val head          = createDefTitle(name, args)
-    val clsBody       = HTML.`class` := "DefBody"
-    val lines         = HTML.div(clsBody)(generatedCode)
-    val cls           = HTML.`class` := "Def"
-    HTML.div(cls)(head, lines)
-  }
-
-  /**
-    * Helper function for [[createHTMLFromAST]] to generate appropriate code
-    * from [[AST.Def]] when it doesn't contain anything in it's body
-    *
-    * @param name - Def Name
-    * @param args - Def Arguments
-    * @return - HTML code generated from Def
-    */
-  def createDefWithoutBody(
-    name: AST.Cons,
-    args: List[AST]
-  ): TypedTag[String] = {
-    val cls = HTML.`class` := "DefNoBody"
-    HTML.div(cls)(createDefTitle(name, args))
-  }
-
-  /**
-    * Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
-    * to generate [[AST.Def]] title form it's name and args
-    *
-    * @param name - Def Name
-    * @param args - Def Arguments
-    * @return - Def title in HTML
-    */
-  def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
-    val clsTitle = HTML.`class` := "DefTitle"
-    val clsArgs  = HTML.`class` := "DefArgs"
-    HTML.div(clsTitle)(name.show(), HTML.div(clsArgs)(args.map(_.show())))
-  }
-
-  /**
-    * Helper function for [[createHTMLFromAST]] to generate appropriate HTML
-    * code from [[AST.App.Infix]]
-    *
-    * @param infix - AST Infix
-    * @return - HTML code generated from Infix
-    */
-  def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
-    val cls = HTML.`class` := "Infix"
-    HTML.div(cls)(infix.larg.show())
-  }
-
-  /**
-    * Helper function for [[createDefWithBody]] to traverse through body's lines
-    * and try to generate HTML code from [[AST.Documented]] parts of it. It also
-    * tries to find nested [[AST.Def]] and [[AST.App.Infix]] inside of body
-    *
-    * @param lines - lines inside of Def body
-    * @return - HTML code generated from contents of lines
-    */
-  def renderHTMLOnLine(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
-    lines match {
-      case Line(Some(AST.Documented.any(doc)), _) :: rest =>
-        val cls     = HTML.`class` := "DefDoc"
-        val docHtml = DocumentedToHtml(doc.ast, doc.doc)
-        HTML.div(cls)(docHtml) :: renderHTMLOnLine(rest)
-      case x :: rest =>
-        x match {
-          case Line(Some(d), _) =>
-            val cls     = HTML.`class` := "DefNoDoc"
-            val astHtml = createHTMLFromAST(d)
-            HTML.div(cls)(astHtml) :: renderHTMLOnLine(rest)
-          case _ => renderHTMLOnLine(rest)
-        }
-      case other =>
-        other match {
-          case Nil       => List()
-          case _ :: rest => renderHTMLOnLine(rest)
-        }
-    }
-
-  /**
-    * Function invoked by [[DocumentedToHtml]] to create HTML.Head part of file
-    *
-    * @param title - HTML page title
-    * @param cssLink - string containing CSS file name
-    * @return - HTML Head Code
-    */
-  def createHTMLHead(title: String, cssLink: String): TypedTag[String] = {
-    val metaEquiv = HTML.httpEquiv := "Content-Type"
-    val metaCont  = HTML.content := "text/html"
-    val metaChar  = HTML.charset := "UTF-8"
-    val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
-    val cssRel    = HTML.rel := "stylesheet"
-    val cssHref   = HTML.href := cssLink
-    val css       = HTML.link(cssRel)(cssHref)
-    val fileTitle = scalatags.Text.tags2.title(title)
-    HTML.head(meta, css)(fileTitle)
-  }
 }
 
 object DocParser {
@@ -258,23 +60,6 @@ object DocParser {
     */
   def runMatched(input: String): Doc  = new DocParser().runMatched(input)
   def run(input: String): Result[Doc] = new DocParser().run(input)
-
-  /**
-    * Saves HTML code to file
-    *
-    * @param path - path to file
-    * @param name - file name
-    * @param code - HTML code generated with Doc Parser
-    */
-  def saveHTMLToFile(
-    path: String,
-    name: String,
-    code: TypedTag[String]
-  ): Unit = {
-    val writer = new PrintWriter(new File(path + name + ".html"))
-    writer.write(code.toString)
-    writer.close()
-  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -477,10 +262,24 @@ object DocParserRunner {
     val documented = Some(AST.Documented(doc, emptyLines, ast))
     Line(documented, off)
   }
+}
 
-  //////////////////////////////////////////////////////////////////////////////
-  //// Generating HTML for created Doc's ///////////////////////////////////////
-  //////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+//// Doc Parser HTML Generator /////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+
+/**
+  * This is Doc Parser HTML Generator.
+  *
+  * Essentially it enables Doc Parser to create pretty HTML files from documented
+  * code.
+  * When Doc Parser finishes its job user can invoke DocParserHTMLGenerator by
+  * simply passing the output of Doc Parser onto function called
+  * [[DocParserHTMLGenerator.generateHTMLForEveryDocumented]]
+  * It will automatically traverse through AST prepared by Doc Parser and generate
+  * HTML files in all appropriate places.
+  */
+object DocParserHTMLGenerator {
 
   /**
     * This method is used for generation of HTML files from parsed and
@@ -498,11 +297,226 @@ object DocParserRunner {
     ast.map { elem =>
       elem match {
         case AST.Documented.any(d) =>
-          val file = new DocParser().onHTMLRendering(d, cssFileName)
-          DocParser.saveHTMLToFile(path, file._2, file._1)
+          val file = onHTMLRendering(d, cssFileName)
+          saveHTMLToFile(path, file._2, file._1)
         case _ => generateHTMLForEveryDocumented(elem, path, cssFileName)
       }
       elem
     }
+  }
+
+  /**
+    * Saves HTML code to file
+    *
+    * @param path - path to file
+    * @param name - file name
+    * @param code - HTML code generated with Doc Parser
+    */
+  def saveHTMLToFile(
+    path: String,
+    name: String,
+    code: TypedTag[String]
+  ): Unit = {
+    val writer = new PrintWriter(new File(path + name + ".html"))
+    writer.write(code.toString)
+    writer.close()
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// HTML Rendering of Documentation /////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  /**
+    * Used to create HTML files from Doc with or without title after Doc Parser
+    * Runner finished it's job
+    *
+    * @param documented - documented made by Doc Parser Runner from AST and Doc
+    * @param cssFileName - name of file containing stylesheets for the HTML code
+    * @return - tuple containing HTML code with file name
+    */
+  def onHTMLRendering(
+    documented: AST.Documented,
+    cssFileName: String
+  ): (TypedTag[String], String) = {
+    val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
+    val astLines = documented.ast.show().split("\n")
+    val fileName = astLines.head.replaceAll("/", "")
+    (htmlCode, fileName)
+  }
+
+  /**
+    * Function invoked by [[onHTMLRendering]] to render HTML File
+    *
+    * @param ast - AST from Parser
+    * @param doc - Doc from Doc Parser
+    * @param cssLink - string containing CSS file name
+    * @return - HTML Code from Doc and contents of [[AST.Def]] or
+    *           [[AST.App.Infix]], with optional title made from AST
+    */
+  def renderHTML(
+    ast: AST,
+    doc: Doc,
+    cssLink: String = "style.css"
+  ): TypedTag[String] = {
+    val title         = ast.show().split("\n").head
+    val documentation = DocumentedToHtml(ast, doc)
+    HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
+  }
+
+  /**
+    * This function is used to get HTML content of Doc and try to render AST,
+    * by finding if it also contains Documented to retrieve Doc and it's AST,
+    * or simply call show() method on other element of AST.
+    *
+    * @param ast - AST from Parser
+    * @param doc - Doc from Doc Parser
+    * @return -  HTML Code from Doc and contents of [[AST.Def]] or
+    *            [[AST.App.Infix]]
+    */
+  def DocumentedToHtml(
+    ast: AST,
+    doc: Doc
+  ): TypedTag[String] = {
+    val astCls   = HTML.`class` := "ASTData"
+    val astHtml  = Seq(HTML.div(astCls)(createHTMLFromAST(ast)))
+    val docClass = HTML.`class` := "Documentation"
+    HTML.div(docClass)(doc.html, astHtml)
+  }
+
+  /**
+    * Function invoked by [[DocumentedToHtml]] to create HTML from AST in Documented
+    *
+    * @param ast - AST
+    * @return - HTML Code
+    */
+  def createHTMLFromAST(ast: AST): TypedTag[String] = {
+    ast match {
+      case AST.Def.any(d) =>
+        d.body match {
+          case Some(body) =>
+            body match {
+              case AST.Block.any(b) => createDefWithBody(d.name, d.args, b)
+              case _                => createDefWithoutBody(d.name, d.args)
+            }
+          case None => createDefWithoutBody(d.name, d.args)
+        }
+      case AST.App.Infix.any(i) => createInfixHtmlRepr(i)
+      case _                    => HTML.div()
+    }
+  }
+
+  /**
+    * Helper function for [[createHTMLFromAST]] to generate appropriate code
+    * from [[AST.Def]] with traversing through body and creating HTML code
+    * on elements in it
+    *
+    * @param name - Def Name
+    * @param args - Def Arguments
+    * @param body - Def body
+    * @return - HTML code generated from Def
+    */
+  def createDefWithBody(
+    name: AST.Cons,
+    args: List[AST],
+    body: AST.Block
+  ): TypedTag[String] = {
+    val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val allLines      = firstLine :: body.lines
+    val generatedCode = renderHTMLOnLine(allLines)
+    val head          = createDefTitle(name, args)
+    val clsBody       = HTML.`class` := "DefBody"
+    val lines         = HTML.div(clsBody)(generatedCode)
+    val cls           = HTML.`class` := "Def"
+    HTML.div(cls)(head, lines)
+  }
+
+  /**
+    * Helper function for [[createHTMLFromAST]] to generate appropriate code
+    * from [[AST.Def]] when it doesn't contain anything in it's body
+    *
+    * @param name - Def Name
+    * @param args - Def Arguments
+    * @return - HTML code generated from Def
+    */
+  def createDefWithoutBody(
+    name: AST.Cons,
+    args: List[AST]
+  ): TypedTag[String] = {
+    val cls = HTML.`class` := "DefNoBody"
+    HTML.div(cls)(createDefTitle(name, args))
+  }
+
+  /**
+    * Helper function for [[createDefWithBody]] or [[createDefWithoutBody]]
+    * to generate [[AST.Def]] title form it's name and args
+    *
+    * @param name - Def Name
+    * @param args - Def Arguments
+    * @return - Def title in HTML
+    */
+  def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
+    val clsTitle = HTML.`class` := "DefTitle"
+    val clsArgs  = HTML.`class` := "DefArgs"
+    HTML.div(clsTitle)(name.show(), HTML.div(clsArgs)(args.map(_.show())))
+  }
+
+  /**
+    * Helper function for [[createHTMLFromAST]] to generate appropriate HTML
+    * code from [[AST.App.Infix]]
+    *
+    * @param infix - AST Infix
+    * @return - HTML code generated from Infix
+    */
+  def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
+    val cls = HTML.`class` := "Infix"
+    HTML.div(cls)(infix.larg.show())
+  }
+
+  /**
+    * Helper function for [[createDefWithBody]] to traverse through body's lines
+    * and try to generate HTML code from [[AST.Documented]] parts of it. It also
+    * tries to find nested [[AST.Def]] and [[AST.App.Infix]] inside of body
+    *
+    * @param lines - lines inside of Def body
+    * @return - HTML code generated from contents of lines
+    */
+  def renderHTMLOnLine(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
+    lines match {
+      case Line(Some(AST.Documented.any(doc)), _) :: rest =>
+        val cls     = HTML.`class` := "DefDoc"
+        val docHtml = DocumentedToHtml(doc.ast, doc.doc)
+        HTML.div(cls)(docHtml) :: renderHTMLOnLine(rest)
+      case x :: rest =>
+        x match {
+          case Line(Some(d), _) =>
+            val cls     = HTML.`class` := "DefNoDoc"
+            val astHtml = createHTMLFromAST(d)
+            HTML.div(cls)(astHtml) :: renderHTMLOnLine(rest)
+          case _ => renderHTMLOnLine(rest)
+        }
+      case other =>
+        other match {
+          case Nil       => List()
+          case _ :: rest => renderHTMLOnLine(rest)
+        }
+    }
+
+  /**
+    * Function invoked by [[DocumentedToHtml]] to create HTML.Head part of file
+    *
+    * @param title - HTML page title
+    * @param cssLink - string containing CSS file name
+    * @return - HTML Head Code
+    */
+  def createHTMLHead(title: String, cssLink: String): TypedTag[String] = {
+    val metaEquiv = HTML.httpEquiv := "Content-Type"
+    val metaCont  = HTML.content := "text/html"
+    val metaChar  = HTML.charset := "UTF-8"
+    val meta      = HTML.meta(metaEquiv)(metaCont)(metaChar)
+    val cssRel    = HTML.rel := "stylesheet"
+    val cssHref   = HTML.href := cssLink
+    val css       = HTML.link(cssRel)(cssHref)
+    val fileTitle = scalatags.Text.tags2.title(title)
+    HTML.head(meta, css)(fileTitle)
   }
 }

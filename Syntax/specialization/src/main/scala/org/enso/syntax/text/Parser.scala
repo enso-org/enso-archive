@@ -370,7 +370,7 @@ object Main extends App {
   val htmlPath         = "syntax/specialization/target/"
   val cssFileName      = "style.css"
   val documentationHtml =
-    DocParserRunner.generateHTMLForEveryDocumented(
+    DocParserHTMLGenerator.generateHTMLForEveryDocumented(
       documentation,
       htmlPath,
       cssFileName
