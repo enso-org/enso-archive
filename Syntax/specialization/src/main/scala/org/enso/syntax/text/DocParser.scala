@@ -59,18 +59,17 @@ class DocParser {
     * Runner finished it's job
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
-    * @param path - path onto which file will be saved
     * @param cssFileName - name of file containing stylesheets for the HTML code
+    * @return - tuple containing HTML code with file name
     */
   def onHTMLRendering(
     documented: AST.Documented,
-    path: String,
     cssFileName: String
-  ): Unit = {
+  ): (TypedTag[String], String) = {
     val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines = documented.ast.show().split("\n")
     val fileName = astLines.head.replaceAll("/", "")
-    saveHTMLToFile(path, fileName, htmlCode)
+    (htmlCode, fileName)
   }
 
   /**
@@ -499,7 +498,8 @@ object DocParserRunner {
     ast.map { elem =>
       elem match {
         case AST.Documented.any(d) =>
-          new DocParser().onHTMLRendering(d, path, cssFileName)
+          val file = new DocParser().onHTMLRendering(d, cssFileName)
+          DocParser.saveHTMLToFile(path, file._2, file._1)
         case _ => generateHTMLForEveryDocumented(elem, path, cssFileName)
       }
       elem
