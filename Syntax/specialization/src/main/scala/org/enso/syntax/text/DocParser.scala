@@ -59,9 +59,9 @@ class DocParser {
     * Runner finished it's job
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
+    * @param path - path onto which file will be saved
     */
-  def onHTMLRendering(documented: AST.Documented): Unit = {
-    val path        = "syntax/specialization/target/"
+  def onHTMLRendering(documented: AST.Documented, path: String): Unit = {
     val cssFileName = "style.css"
     val htmlCode    = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines    = documented.ast.show().split("\n")
@@ -132,22 +132,27 @@ class DocParser {
   }
 
   /**
-    * Helper functions for [[createHTMLFromAST]] to traverse through Def body
-    * and create HTML code from elements in it
+    * Helper functions for [[createHTMLFromAST]] to generate appropriate code
+    * for [[AST.Def]] with traversing through body and creating HTML code
+    * on elements in it
     */
   def createDefWithBody(
     name: AST.Cons,
     args: List[AST],
     b: AST.Block
   ): TypedTag[String] = {
-    val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
-    val linesToTransform = firstLine :: b.lines
-    val transforemdLines = transformLines(linesToTransform)
-    val head             = createDefTitle(name, args)
-    val lines            = HTML.div(HTML.`class` := "DefBody")(transforemdLines)
+    val firstLine     = Line(Option(b.firstLine.elem), b.firstLine.off)
+    val allLines      = firstLine :: b.lines
+    val generatedCode = renderHTMLOnLine(allLines)
+    val head          = createDefTitle(name, args)
+    val lines         = HTML.div(HTML.`class` := "DefBody")(generatedCode)
     HTML.div(HTML.`class` := "Def")(head, lines)
   }
 
+  /**
+    * Helper functions for [[createHTMLFromAST]] to generate appropriate code
+    * for [[AST.Def]] when it doesn't contain anything in it's body
+    */
   def createDefWithoutBody(
     name: AST.Cons,
     args: List[AST]
@@ -157,6 +162,10 @@ class DocParser {
     )
   }
 
+  /**
+    * Helper functions for [[createDefWithBody]] or [[createDefWithoutBody]]
+    * to generate [[AST.Def]] title form it's name and args
+    */
   def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
     HTML.div(HTML.`class` := "DefTitle")(
       name.show(),
@@ -164,28 +173,37 @@ class DocParser {
     )
   }
 
+  /**
+    * Helper functions for [[createHTMLFromAST]] to generate appropriate HTML
+    * code from [[AST.App.Infix]]
+    */
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
     HTML.div(HTML.`class` := "Infix")(infix.larg.show())
   }
 
-  def transformLines(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
+  /**
+    * Helper functions for [[createDefWithBody]] to traverse through body's lines
+    * and try to generate HTML code from [[AST.Documented]] parts of it. It also
+    * tries to find nested [[AST.Def]] and [[AST.App.Infix]] inside of body
+    */
+  def renderHTMLOnLine(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
-        HTML.div(HTML.`class` := "DefDoc")(DocumentedToHtml(doc.ast, doc.doc)) :: transformLines(
+        HTML.div(HTML.`class` := "DefDoc")(DocumentedToHtml(doc.ast, doc.doc)) :: renderHTMLOnLine(
           rest
         )
       case x :: rest =>
         x match {
           case Line(Some(d), _) =>
-            HTML.div(HTML.`class` := "DefNoDoc")(createHTMLFromAST(d)) :: transformLines(
+            HTML.div(HTML.`class` := "DefNoDoc")(createHTMLFromAST(d)) :: renderHTMLOnLine(
               rest
             )
-          case _ => transformLines(rest)
+          case _ => renderHTMLOnLine(rest)
         }
       case other =>
         other match {
           case Nil       => List()
-          case x :: rest => transformLines(x :: rest)
+          case x :: rest => renderHTMLOnLine(x :: rest)
         }
     }
 
@@ -282,8 +300,8 @@ object DocParserRunner {
   }
 
   /**
-    * Helper functions for [[createDocs]]
-    * to traverse through Module and Def body
+    * This is a helper function for [[createDocs]] to traverse through [[AST.Module]]
+    * and create Docs from comments with appropriate [[AST]]
     */
   def createDocsFromModule(m: AST.Module): AST.Module = {
     val emptyLine = List1(AST.Block.OptLine())
@@ -292,6 +310,10 @@ object DocParserRunner {
     AST.Module(transformedLines)
   }
 
+  /**
+    * This is a helper function for [[createDocs]] to traverse through [[AST.Def]]
+    * and create Docs from comments inside [[AST.Def]] with appropriate [[AST]]
+    */
   def createDocsFromDefBody(
     name: AST.Cons,
     args: List[AST],
@@ -443,11 +465,11 @@ object DocParserRunner {
     *
     * @param ast - parsed AST.Module and reformatted using Doc Parser
     */
-  def generateHTMLForEveryDocumented(ast: AST): Unit = {
+  def generateHTMLForEveryDocumented(ast: AST, path: String): Unit = {
     ast.map { elem =>
       elem match {
-        case AST.Documented.any(d) => new DocParser().onHTMLRendering(d)
-        case _                     => generateHTMLForEveryDocumented(elem)
+        case AST.Documented.any(d) => new DocParser().onHTMLRendering(d, path)
+        case _                     => generateHTMLForEveryDocumented(elem, path)
       }
       elem
     }

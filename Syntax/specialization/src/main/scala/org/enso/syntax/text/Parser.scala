@@ -367,8 +367,9 @@ object Main extends App {
   val isGeneratingHTML = false
   val droppedMeta      = parser.dropMacroMeta(mod)
   val documentation    = DocParserRunner.createDocs(droppedMeta)
-  val documentationHTML =
-    DocParserRunner.generateHTMLForEveryDocumented(documentation)
+  val htmlPath         = "syntax/specialization/target/"
+  val documentationHtml =
+    DocParserRunner.generateHTMLForEveryDocumented(documentation, htmlPath)
   println(pretty(documentation.toString))
   println("------")
   println(documentation.show())
