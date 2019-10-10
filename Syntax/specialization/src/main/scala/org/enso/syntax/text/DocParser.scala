@@ -102,9 +102,8 @@ class DocParser {
     ast: AST,
     doc: Doc
   ): TypedTag[String] = {
-    val astHtml = Seq(
-      HTML.div(HTML.`class` := "ASTData")(createHTMLFromAST(ast))
-    )
+    val astCls   = HTML.`class` := "ASTData"
+    val astHtml  = Seq(HTML.div(astCls)(createHTMLFromAST(ast)))
     val docClass = HTML.`class` := "Documentation"
     HTML.div(docClass)(doc.html, astHtml)
   }
@@ -145,8 +144,10 @@ class DocParser {
     val allLines      = firstLine :: b.lines
     val generatedCode = renderHTMLOnLine(allLines)
     val head          = createDefTitle(name, args)
-    val lines         = HTML.div(HTML.`class` := "DefBody")(generatedCode)
-    HTML.div(HTML.`class` := "Def")(head, lines)
+    val clsBody       = HTML.`class` := "DefBody"
+    val lines         = HTML.div(clsBody)(generatedCode)
+    val cls           = HTML.`class` := "Def"
+    HTML.div(cls)(head, lines)
   }
 
   /**
@@ -157,9 +158,8 @@ class DocParser {
     name: AST.Cons,
     args: List[AST]
   ): TypedTag[String] = {
-    HTML.div(HTML.`class` := "DefNoBody")(
-      createDefTitle(name, args)
-    )
+    val cls = HTML.`class` := "DefNoBody"
+    HTML.div(cls)(createDefTitle(name, args))
   }
 
   /**
@@ -167,10 +167,9 @@ class DocParser {
     * to generate [[AST.Def]] title form it's name and args
     */
   def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
-    HTML.div(HTML.`class` := "DefTitle")(
-      name.show(),
-      HTML.div(HTML.`class` := "DefArgs")(args.map(_.show()))
-    )
+    val clsTitle = HTML.`class` := "DefTitle"
+    val clsArgs  = HTML.`class` := "DefArgs"
+    HTML.div(clsTitle)(name.show(), HTML.div(clsArgs)(args.map(_.show())))
   }
 
   /**
@@ -178,7 +177,8 @@ class DocParser {
     * code from [[AST.App.Infix]]
     */
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
-    HTML.div(HTML.`class` := "Infix")(infix.larg.show())
+    val cls = HTML.`class` := "Infix"
+    HTML.div(cls)(infix.larg.show())
   }
 
   /**
@@ -189,21 +189,21 @@ class DocParser {
   def renderHTMLOnLine(lines: List[AST.Block.OptLine]): List[TypedTag[String]] =
     lines match {
       case Line(Some(AST.Documented.any(doc)), _) :: rest =>
-        HTML.div(HTML.`class` := "DefDoc")(DocumentedToHtml(doc.ast, doc.doc)) :: renderHTMLOnLine(
-          rest
-        )
+        val cls     = HTML.`class` := "DefDoc"
+        val docHtml = DocumentedToHtml(doc.ast, doc.doc)
+        HTML.div(cls)(docHtml) :: renderHTMLOnLine(rest)
       case x :: rest =>
         x match {
           case Line(Some(d), _) =>
-            HTML.div(HTML.`class` := "DefNoDoc")(createHTMLFromAST(d)) :: renderHTMLOnLine(
-              rest
-            )
+            val cls     = HTML.`class` := "DefNoDoc"
+            val astHtml = createHTMLFromAST(d)
+            HTML.div(cls)(astHtml) :: renderHTMLOnLine(rest)
           case _ => renderHTMLOnLine(rest)
         }
       case other =>
         other match {
           case Nil       => List()
-          case x :: rest => renderHTMLOnLine(x :: rest)
+          case _ :: rest => renderHTMLOnLine(rest)
         }
     }
 
