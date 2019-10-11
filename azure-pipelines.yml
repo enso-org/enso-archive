@@ -44,10 +44,10 @@ jobs:
       sbt -no-colors syntax/bench
     displayName: sbt bench parser
     continueOnError: true
-  - script: |
-      sbt -no-colors interpreter/bench
-    displayName: sbt bench interpreter
-    continueOnError: true
+#  - script: |
+#      sbt -no-colors interpreter/bench
+#    displayName: sbt bench interpreter
+#    continueOnError: true
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'
@@ -82,10 +82,10 @@ jobs:
       sbt -no-colors syntax/bench
     displayName: sbt bench parser
     continueOnError: true
-  - script: |
-      sbt -no-colors interpreter/bench
-    displayName: sbt bench interpreter
-    continueOnError: true
+#  - script: |
+#      sbt -no-colors interpreter/bench
+#    displayName: sbt bench interpreter
+#    continueOnError: true
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'
@@ -121,10 +121,10 @@ jobs:
       sbt syntax/bench
     displayName: sbt bench parser
     continueOnError: true
-  - script: |
-      sbt interpreter/bench
-    displayName: sbt bench interpreter
-    continueOnError: true
+#  - script: |
+#      sbt interpreter/bench
+#    displayName: sbt bench interpreter
+#    continueOnError: true
   - task: PublishTestResults@2
     inputs:
       testResultsFormat: 'JUnit'

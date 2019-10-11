@@ -55,16 +55,15 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * @return a runtime node representing the whole top-level program scope
    */
   @Override
-  public ExpressionNode visitGlobalScope(
+  public ExpressionNode visitModuleScope(
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
       List<AstMethodDef> bindings,
-      AstExpression executableExpression)
-      throws IOException {
+      AstExpression executableExpression) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
-      moduleScope.addImport(context.requestParse(imp.name()));
+      this.moduleScope.addImport(context.compiler().requestProcess(imp.name()));
     }
 
     List<AtomConstructor> constructors =

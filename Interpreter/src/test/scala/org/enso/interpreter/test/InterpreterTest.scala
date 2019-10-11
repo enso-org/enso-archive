@@ -1,13 +1,12 @@
 package org.enso.interpreter.test
 
-import org.enso.interpreter.{AstModuleScope, Constants, EnsoParser}
-import org.graalvm.polyglot.{Context, Value}
 import java.io.ByteArrayOutputStream
 
-import org.scalactic.Equality
+import org.enso.interpreter.Constants
+import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
-trait LanguageRunner {
+trait InterpreterRunner {
   implicit class RichValue(value: Value) {
     def call(l: Long*): Value = value.execute(l.map(_.asInstanceOf[AnyRef]): _*)
   }
@@ -25,21 +24,12 @@ trait LanguageRunner {
     result.lines.toList
   }
 
-  def parse(code: String): AstModuleScope =
-    new EnsoParser().parseEnso(code)
+  def parse(code: String): Value = eval(code)
+
 }
 
-trait ValueEquality {
-  implicit val valueEquality: Equality[Value] = (a: Value, b: Any) =>
-    b match {
-      case _: Long => a.isNumber && a.fitsInLong && a.asLong == b
-      case _: Int  => a.isNumber && a.fitsInInt && a.asInt == b
-      case _       => false
-    }
-}
-
-trait LanguageTest
+trait InterpreterTest
     extends FlatSpec
     with Matchers
-    with LanguageRunner
+    with InterpreterRunner
     with ValueEquality

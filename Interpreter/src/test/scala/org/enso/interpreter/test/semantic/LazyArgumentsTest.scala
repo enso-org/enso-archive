@@ -1,9 +1,12 @@
 package org.enso.interpreter.test.semantic
 
-class LazyArgumentsTest extends LanguageTest {
+import org.enso.interpreter.test.InterpreterTest
+
+class LazyArgumentsTest extends InterpreterTest {
   val subject = "Lazy arguments"
 
   subject should "not get executed upfront" in {
+    pending
     val code =
       """
         |@{
@@ -17,6 +20,7 @@ class LazyArgumentsTest extends LanguageTest {
   }
 
   subject should "work well with tail recursion" in {
+    pending
     val code =
       """
         |@{
@@ -30,6 +34,7 @@ class LazyArgumentsTest extends LanguageTest {
   }
 
   subject should "work in non-tail positions" in {
+    pending
     val code =
       """
         |@{
@@ -44,6 +49,7 @@ class LazyArgumentsTest extends LanguageTest {
   }
 
   subject should "work properly with method dispatch" in {
+    pending
     val code =
       """
         |type Foo;
@@ -63,6 +69,7 @@ class LazyArgumentsTest extends LanguageTest {
   }
 
   subject should "work properly with oversaturated arguments" in {
+    pending
     val code =
       """
         |@{
