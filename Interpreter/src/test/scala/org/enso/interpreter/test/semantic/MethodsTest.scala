@@ -1,5 +1,6 @@
 package org.enso.interpreter.test.semantic
 
+import org.enso.interpreter.test.LanguageTest
 import org.graalvm.polyglot.PolyglotException
 
 class MethodsTest extends LanguageTest {

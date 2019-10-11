@@ -75,7 +75,7 @@ case class AstMethodDef(typeName: String, methodName: String, fun: AstFunction)
 
 case class AstImport(name: String)
 
-case class AstGlobalScope(
+case class AstModuleScope(
   imports: List[AstImport],
   bindings: List[AstGlobalSymbol],
   expression: AstExpression) {
@@ -365,13 +365,13 @@ class EnsoParserInternal extends JavaTokenParsers {
       case seg ~ segs => AstImport((seg :: segs).mkString("."))
     }
 
-  def globalScope: Parser[AstGlobalScope] =
+  def globalScope: Parser[AstModuleScope] =
     (importStmt *) ~ ((typeDef | methodDef) *) ~ expression ^^ {
       case imports ~ assignments ~ expr =>
-        AstGlobalScope(imports, assignments, expr)
+        AstModuleScope(imports, assignments, expr)
     }
 
-  def parseGlobalScope(code: String): AstGlobalScope = {
+  def parseGlobalScope(code: String): AstModuleScope = {
     parseAll(globalScope, code).get
   }
 
@@ -382,7 +382,7 @@ class EnsoParserInternal extends JavaTokenParsers {
 
 class EnsoParser {
 
-  def parseEnso(code: String): AstGlobalScope = {
+  def parseEnso(code: String): AstModuleScope = {
     new EnsoParserInternal().parseGlobalScope(code)
   }
 }

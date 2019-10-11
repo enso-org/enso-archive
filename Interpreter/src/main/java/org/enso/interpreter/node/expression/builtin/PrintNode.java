@@ -17,7 +17,6 @@ import java.io.PrintStream;
 @NodeInfo(shortName = "print", description = "Prints the value of child expression.")
 public abstract class PrintNode extends ExpressionNode {
   @Child private ExpressionNode expression;
-
   /**
    * Creates a node that prints the result of its expression.
    *

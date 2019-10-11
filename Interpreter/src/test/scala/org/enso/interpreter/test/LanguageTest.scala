@@ -1,6 +1,6 @@
-package org.enso.interpreter.test.semantic
+package org.enso.interpreter.test
 
-import org.enso.interpreter.{AstGlobalScope, Constants, EnsoParser}
+import org.enso.interpreter.{AstModuleScope, Constants, EnsoParser}
 import org.graalvm.polyglot.{Context, Value}
 import java.io.ByteArrayOutputStream
 
@@ -25,7 +25,7 @@ trait LanguageRunner {
     result.lines.toList
   }
 
-  def parse(code: String): AstGlobalScope =
+  def parse(code: String): AstModuleScope =
     new EnsoParser().parseEnso(code)
 }
 
