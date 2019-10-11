@@ -34,7 +34,7 @@ trait LanguageRunner {
     result.lines.toList
   }
 
-  def parse(code: String): AstGlobalScope =
+  def parse(code: String): AstModuleScope =
     new EnsoParser().parseEnso(code)
 
   implicit def toPolyglotException(

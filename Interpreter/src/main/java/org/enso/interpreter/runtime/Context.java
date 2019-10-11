@@ -78,7 +78,7 @@ public class Context {
    * @return a call target which execution corresponds to the toplevel executable bits in the module
    */
   public CallTarget parse(Source source, ModuleScope scope) {
-    AstGlobalScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
+    AstModuleScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
     ExpressionNode result = new ModuleScopeExpressionFactory(language, scope).run(parsed);
     EnsoRootNode root =
         new EnsoRootNode(
