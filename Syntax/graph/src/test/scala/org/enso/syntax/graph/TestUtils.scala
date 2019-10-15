@@ -12,7 +12,7 @@ import scala.reflect.ClassTag
 trait TestUtils extends org.scalatest.Matchers {
   type ProgramText = String
 
-  val mockModule: Module.Id = StateManagerMock.mainModule
+  val mockModule: Module.ID = StateManagerMock.mainModule
 
   /** Runs action with DoubleRepresentation being set up with given program */
   def withDR[R](program: ProgramText)(

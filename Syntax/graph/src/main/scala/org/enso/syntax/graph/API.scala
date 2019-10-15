@@ -42,7 +42,7 @@ trait SessionManager {
     * @return a string that can be passed to [[paste]] method later. Likely it
     *         is meant to be stored in the clipboard.
     */
-  def copy(context: Node.Context, nodes: List[Node.Id])
+  def copy(context: Node.Context, nodes: List[Node.ID])
 
   /** Pastes nodes in a given graph location.
     *
@@ -78,25 +78,25 @@ trait StateManager {
   import SessionManager.Metadata
 
   /** Lists modules in a project. */
-  def moduleInProject(): Seq[Module.Id]
+  def moduleInProject(): Seq[Module.ID]
 
-  /** Obtains the AST for a given [[Module.Id]] */
-  def getModule(module: Module.Id): AST.Module
+  /** Obtains the AST for a given [[Module.ID]] */
+  def getModule(module: Module.ID): AST.Module
 
   /** Overwrites module's AST with a new one. */
-  def setModule(module: Module.Id, ast: AST.Module): Unit
+  def setModule(module: Module.ID, ast: AST.Module): Unit
 
-  def getMetadata(module: Module.Id, id: AST.ID): Option[Metadata]
+  def getMetadata(module: Module.ID, id: AST.ID): Option[Metadata]
 
-  def setMetadata(module: Module.Id, id: AST.ID, metadata: Metadata)
+  def setMetadata(module: Module.ID, id: AST.ID, metadata: Metadata)
 
-  def removeMetadata(module: Module.Id, id: AST.ID)
+  def removeMetadata(module: Module.ID, id: AST.ID)
 
   // TODO: external update notifications
 }
 
 object StateManager {
-  case class ModuleNotFoundException(module: API.Module.Id) extends Exception {
+  case class ModuleNotFoundException(module: API.Module.ID) extends Exception {
     override def getMessage: String =
       s"Module $module cannot be found in the project"
   }
@@ -113,8 +113,8 @@ object API {
     **/
   object Project {
     type Context  = Nothing
-    type Id       = Unit
-    type Location = Id
+    type ID       = Unit
+    type Location = ID
 
     // TODO: if we wanted to add some representation of project state, it might
     // go here. or not.
@@ -153,13 +153,13 @@ object API {
     }
 
     type Context  = Project.Location
-    type Id       = Name
-    type Location = Id
+    type ID       = Name
+    type Location = ID
 
     /** Module's root-level graph. It has no inputs nor outputs. */
     object Graph {
       val Graph: API.Graph.type = API.Graph
-      final case class Id(id: Module.Id)              extends Graph.Id
+      final case class ID(id: Module.ID)              extends Graph.ID
       final case class Context(id: Module.Context)    extends Graph.Context
       final case class Location(loc: Module.Location) extends Graph.Location
 
@@ -176,11 +176,11 @@ object API {
       *
       * All entities that can be entered, i.e. that can be accessed through the
       * graph API, like function definitions and lambdas, are required to bear
-      * an Id. This should be ensured before DR even gets the project state for
-      * the first time. If Ids are not present in the file, they should be added
+      * an ID. This should be ensured before DR even gets the project state for
+      * the first time. If IDs are not present in the file, they should be added
       * automatically right after the parsing.
       */
-    type Id = UUID
+    type ID = UUID
   }
 
   // TODO: this is about graph-having defintions (functions, perhaps vars)
@@ -189,17 +189,17 @@ object API {
     trait Context {
       @tailrec
       final def module: Module.Location = this match {
-        case ModuleContext(moduleId)  => moduleId
-        case DefinitionContext(defId) => defId.context.module
+        case ModuleContext(moduleID)  => moduleID
+        case DefinitionContext(defID) => defID.context.module
       }
     }
     case class ModuleContext(id: Module.Location)         extends Context
     case class DefinitionContext(id: Definition.Location) extends Context
 
-    type Id = AST.Id
-    final case class Location(context: Context, id: Id)
+    type ID = AST.ID
+    final case class Location(context: Context, id: ID)
 
-    final case class Description(name: String, id: Id)
+    final case class Description(name: String, id: ID)
 
     /** Definition's graph. It has output and may have inputs. */
     object Graph {
@@ -211,7 +211,7 @@ object API {
       ) extends API.Graph.Description
 
       val Graph: API.Graph.type = API.Graph
-      final case class Id(id: Definition.Id)             extends Graph.Id
+      final case class ID(id: Definition.ID)             extends Graph.ID
       final case class Context(id: Definition.Context)   extends Graph.Context
       final case class Location(id: Definition.Location) extends Graph.Location
     }
@@ -223,7 +223,7 @@ object API {
     * the traits defined here.
     */
   object Graph {
-    sealed trait Id
+    sealed trait ID
     sealed trait Context
     sealed trait Location {
       def module: Module.Location = this match {
@@ -239,32 +239,32 @@ object API {
 
     /** Class of ports being graph inputs and outputs. */
     object Port {
-      type Id      = API.Port.Id
+      type ID      = API.Port.ID
       type Context = API.Port.GraphSocket
-      final case class Location(context: Context, id: Id)
+      final case class Location(context: Context, id: ID)
       type Description = API.Port.Description
     }
     object Output {
-      type Id      = API.Port.OutputPath
+      type ID      = API.Port.OutputPath
       type Context = Port.Context
-      final case class Location(context: Context, id: Id)
+      final case class Location(context: Context, id: ID)
       type Description = Port.Description
     }
     object Input {
-      type Id      = API.Port.InputPath
+      type ID      = API.Port.InputPath
       type Context = Port.Context
-      final case class Location(context: Context, id: Id)
+      final case class Location(context: Context, id: ID)
       type Description = Port.Description
     }
   }
 
   object Node {
-    type Id      = AST.Id
+    type ID      = AST.ID
     type Context = Graph.Location
-    final case class Location(context: Context, node: Id)
+    final case class Location(context: Context, node: ID)
 
     final case class Description(
-      id: Id,
+      id: ID,
       expr: SpanTree,
       outputs: Option[SpanTree], // TODO rename
       metadata: Option[SessionManager.Metadata]
@@ -278,14 +278,14 @@ object API {
 
   sealed trait Port
   object Port {
-    sealed trait Id
-    sealed case class InputPath(path: List1[Int]) extends Id
-    sealed case class OutputPath(path: List[Int]) extends Id
+    sealed trait ID
+    sealed case class InputPath(path: List1[Int]) extends ID
+    sealed case class OutputPath(path: List[Int]) extends ID
 
     sealed trait Context
     final case class NodeSocket(node: Node.Location)    extends Context
     final case class GraphSocket(graph: Graph.Location) extends Context
-    final case class Location(context: Context, id: Id)
+    final case class Location(context: Context, id: ID)
 
     final case class Description(
       tp: Option[Type],
@@ -306,16 +306,16 @@ object API {
 
   /** A port that produces values ("output", "source"). */
   object Output extends Port {
-    type Id      = Port.OutputPath
+    type ID      = Port.OutputPath
     type Context = Port.Context
-    final case class Location(context: Context, id: Id)
+    final case class Location(context: Context, id: ID)
   }
 
   /** A port that consumes values ("input", "sink") */
   object Input extends Port {
-    type Id      = Port.InputPath
+    type ID      = Port.InputPath
     type Context = Port.Context
-    final case class Location(context: Context, id: Id)
+    final case class Location(context: Context, id: ID)
   }
 
   sealed trait Flag
@@ -432,21 +432,21 @@ trait GraphAPI {
   // TODO other entities? (visible through Graph API)
   /** Manage Imports */
   def importedModules(module: Module.Location):                      Seq[Module.Name]
-  def importModule(context: Module.Id, importee: Module.Name):       Unit
-  def removeImport(context: Module.Id, importToRemove: Module.Name): Unit
+  def importModule(context: Module.ID, importee: Module.Name):       Unit
+  def removeImport(context: Module.ID, importToRemove: Module.Name): Unit
   //////////////////////////////////////////////////////////////////////////////
   def addNode(
     context: Node.Context,
     metadata: graph.SessionManager.Metadata,
     expr: String
-  ): Node.Id
+  ): Node.ID
   def setMetadata(node: Node.Location, newMetadata: SessionManager.Metadata)
   def setExpression(node: Node.Location, expression: String)
   def removeNode(node: Node.Location)
   def extractToFunction(
     context: Node.Context,
-    node: Set[Node.Id]
-  ): Definition.Id
+    node: Set[Node.ID]
+  ): Definition.ID
 
   //////////////////////////////////////////////////////////////////////////////
   def setPortName(port: Graph.Port.Location, name: String)
@@ -457,6 +457,6 @@ trait GraphAPI {
   //      preferably generated name should use information from interpreter
   //      (like the resolved function definition) so we should either take here
   //      optional name or optional name generator
-  def addConnection(graph: Port.Context, from: Output.Id, to: Input.Id)
-  def removeConnection(graph: Port.Context, from: Output.Id, to: Input.Id)
+  def addConnection(graph: Port.Context, from: Output.ID, to: Input.ID)
+  def removeConnection(graph: Port.Context, from: Output.ID, to: Input.ID)
 }
