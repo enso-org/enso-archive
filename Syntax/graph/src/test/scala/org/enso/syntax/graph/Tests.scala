@@ -124,6 +124,8 @@ class Tests extends FunSuite with TestUtils {
       """import Foo.Bar
         |the a = a
         |The a = a
+        |node = a
+        |Match = a
         |a , b = the, Bar
         |""".stripMargin
     withDR(program) { dr =>
