@@ -193,8 +193,8 @@ final case class DoubleRepresentation(
       case Some(Infix(AST.App.Prefix(ast, _), _, _)) => findName(ast)
       case _                                         => return None
     }
-    val description = Definition.Description(name, ast.unsafeID)
-    Some(description)
+
+    ast.id.map(Definition.Description(name, _))
   }
 
   def describeNode(
