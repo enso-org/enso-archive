@@ -123,6 +123,7 @@ class Tests extends FunSuite with TestUtils {
     val program =
       """import Foo.Bar
         |the a = a
+        |The a = a
         |a , b = the, Bar
         |""".stripMargin
     withDR(program) { dr =>

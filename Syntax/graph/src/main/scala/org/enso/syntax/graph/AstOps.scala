@@ -62,18 +62,18 @@ object AstOps {
     def doesImport(module: Module.Name): Boolean = {
       ast.toImport.exists(_.path == module)
     }
+  }
+
+  implicit class Prefix_ops(ast: App.Prefix) {
 
     /** Linearizes nested sequence of [[AST.App.Prefix]].
       *
       * For example structures for code like `foo a b c` will be flattened to
       * sequence like Seq(foo, a, b, c).
       */
-    def flattenPrefix(
-      pos: TextPosition,
-      ast: App.Prefix
-    ): Seq[Positioned[AST]] = {
+    def flattenPrefix(pos: TextPosition): Seq[Positioned[AST]] = {
       val init = ast.fn match {
-        case AST.App.Prefix.any(lhsApp) => flattenPrefix(pos, lhsApp)
+        case AST.App.Prefix.any(lhsApp) => lhsApp.flattenPrefix(pos)
         case nonAppAst                  => Seq(Positioned(nonAppAst, pos))
       }
       val rhsPos = pos + ast.fn.span + ast.off
@@ -160,6 +160,32 @@ object AstOps {
       AST.Module(List1(go(module.lines.toList)).get)
     }
   }
+}
+
+/////////////////////////////
+//// Describe definition ////
+/////////////////////////////
+
+/** Helper structure describing AST piece that is a function definition. */
+case class DefinitionInfo(ast: App.Infix, name: AST.Var, args: List1[AST]) {}
+
+object DefinitionInfo {
+  import AstOps._
+
+  def apply(ast: AST): Option[DefinitionInfo] =
+    for {
+      infix  <- ast.toAssignment
+      lhsApp <- infix.larg.as[App.Prefix]
+      lhsParts = lhsApp.flattenPrefix(TextPosition.Start)
+      (name, args) <- lhsParts match {
+        case name :: args =>
+          for {
+            ident   <- name.elem.as[AST.Var]
+            argList <- List1(args.map(_.elem))
+          } yield ident -> argList
+        case _ => None
+      }
+    } yield DefinitionInfo(infix, name, args)
 }
 
 //////////////////////////////////////////////////////////////////////////////

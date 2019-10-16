@@ -97,7 +97,7 @@ final case class DoubleRepresentation(
 
   def getDefinitions(loc: Module.Location): List[Definition.Description] = {
     val ast = state.getModule(loc)
-    ast.flatTraverse(describeDefinition(loc, _))
+    ast.flatTraverse(describeDefinition)
   }
   def addNode(
     context: Node.Context,
@@ -181,21 +181,11 @@ final case class DoubleRepresentation(
   //// Helpers ////
   /////////////////
 
-  def describeDefinition(
-    module: Module.Location,
-    ast: AST
-  ): Option[API.Definition.Description] = {
-    def findName(ast: AST): String = ast match {
-      case AST.App.Prefix(fn, _) => findName(fn)
-      case AST.Var(name)         => name
-    }
-    val name = ast.toAssignment match {
-      case Some(Infix(AST.App.Prefix(ast, _), _, _)) => findName(ast)
-      case _                                         => return None
-    }
-
-    ast.id.map(Definition.Description(name, _))
-  }
+  def describeDefinition(ast: AST): Option[API.Definition.Description] =
+    for {
+      info <- DefinitionInfo(ast)
+      id   <- ast.id
+    } yield Definition.Description(info.name.name, id)
 
   def describeNode(
     module: Module.Location,

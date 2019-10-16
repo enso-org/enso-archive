@@ -296,7 +296,7 @@ object SpanTree {
     case AST.Var.any(_)            => Node.AstLeaf(pos, ast)
     case AST.App.Prefix.any(app) =>
       val info          = Positioned(ast, pos)
-      val childrenAsts  = ast.flattenPrefix(pos, app)
+      val childrenAsts  = app.flattenPrefix(pos)
       val childrenNodes = childrenAsts.map(SpanTree(_))
       childrenNodes match {
         case callee :: args => Node.AppChain(info, callee, args)
