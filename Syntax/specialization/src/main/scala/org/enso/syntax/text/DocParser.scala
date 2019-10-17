@@ -73,8 +73,9 @@ object DocParser {
   * Essentially it binds together Enso Parser with Doc Parser.
   * When Parser finishes its job it invokes runner with AST created by it after
   * resolving macros. Then Runner does it's job - running Doc Parser on every
-  * [[AST.Comment]], combined with connecting [[Doc]] with AST in [[AST.Documented]]
-  * node, which gets AST from [[AST.Def]] and [[AST.App.Infix]]
+  * [[AST.Comment]], combined with connecting [[Doc]] with AST in
+  * [[AST.Documented]] node, which gets AST from [[AST.Def]] and
+  * [[AST.App.Infix]]
   */
 object DocParserRunner {
   //////////////////////////////////////////////////////////////////////////////
@@ -108,8 +109,8 @@ object DocParserRunner {
   }
 
   /**
-    * This is a helper function for [[createDocs]] to traverse through [[AST.Module]]
-    * and create Docs from comments with appropriate [[AST]]
+    * This is a helper function for [[createDocs]] to traverse through
+    * [[AST.Module]] and create Docs from comments with appropriate [[AST]]
     */
   def createDocsFromModule(m: AST.Module): AST.Module = {
     val emptyLine = List1(AST.Block.OptLine())
@@ -119,8 +120,9 @@ object DocParserRunner {
   }
 
   /**
-    * This is a helper function for [[createDocs]] to traverse through [[AST.Def]]
-    * and create Docs from comments inside [[AST.Def]] with appropriate [[AST]]
+    * This is a helper function for [[createDocs]] to traverse through
+    * [[AST.Def]] and create Docs from comments inside [[AST.Def]] with
+    * appropriate [[AST]]
     */
   def createDocsFromDefBody(
     name: AST.Cons,
@@ -272,8 +274,8 @@ object DocParserRunner {
 /**
   * This is Doc Parser HTML Generator.
   *
-  * Essentially it enables Doc Parser to create pretty HTML files from documented
-  * code.
+  * Essentially it enables Doc Parser to create pretty HTML files from
+  * documented code.
   *
   * When Doc Parser finishes its job user can invoke DocParserHTMLGenerator by
   * simply passing the output of Doc Parser onto function called
@@ -386,7 +388,8 @@ object DocParserHTMLGenerator {
   }
 
   /**
-    * Function invoked by [[DocumentedToHtml]] to create HTML from AST in Documented
+    * Function invoked by [[DocumentedToHtml]] to create HTML from AST in
+    * [[AST.Documented]]
     *
     * @param ast - AST
     * @return - HTML Code
