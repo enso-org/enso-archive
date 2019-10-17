@@ -22,6 +22,7 @@ import org.enso.syntax.text.AST.Block.{LineOf => Line}
   *
   * It is used to create structured documentation from the blocks of commented
   * text created by the main Enso parser.
+  *
   * It has been built on the same foundation as Parser, so in order not to
   * duplicate information, please refer to Parser documentation.
   */
@@ -58,8 +59,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
-  def run(input: String): Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
+  def run(input: String):        Result[Doc] = new DocParser().run(input)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -273,10 +274,11 @@ object DocParserRunner {
   *
   * Essentially it enables Doc Parser to create pretty HTML files from documented
   * code.
+  *
   * When Doc Parser finishes its job user can invoke DocParserHTMLGenerator by
   * simply passing the output of Doc Parser onto function called
-  * [[DocParserHTMLGenerator.generateHTMLForEveryDocumented]]
-  * It will automatically traverse through AST prepared by Doc Parser and generate
+  * [[DocParserHTMLGenerator.generateHTMLForEveryDocumented]], and it will
+  * automatically traverse through AST prepared by Doc Parser and generate
   * HTML files in all appropriate places.
   */
 object DocParserHTMLGenerator {
