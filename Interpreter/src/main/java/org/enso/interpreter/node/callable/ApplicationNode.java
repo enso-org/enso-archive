@@ -10,7 +10,7 @@ import java.util.Arrays;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.argument.Suspension;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -70,7 +70,7 @@ public class ApplicationNode extends ExpressionNode {
     Object[] computedArguments = new Object[this.argExpressions.length];
     MaterializedFrame scope = frame.materialize();
     for (int i = 0; i < this.argExpressions.length; ++i) {
-      computedArguments[i] = new Suspension(this.argExpressions[i], scope);
+      computedArguments[i] = new Thunk(this.argExpressions[i], scope);
     }
     return computedArguments;
   }

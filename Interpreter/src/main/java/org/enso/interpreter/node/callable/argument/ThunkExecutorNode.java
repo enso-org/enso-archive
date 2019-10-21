@@ -9,35 +9,35 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
 import org.enso.interpreter.runtime.control.TailCallException;
-import org.enso.interpreter.runtime.callable.argument.Suspension;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 
-/** Node responsible for executing (forcing) suspensions passed to it as runtime values. */
+/** Node responsible for executing (forcing) thunks passed to it as runtime values. */
 @NodeField(name = "isTail", type = Boolean.class)
-public abstract class SuspensionExecutorNode extends Node {
+public abstract class ThunkExecutorNode extends Node {
 
   /**
-   * Forces the suspension to its resulting value.
+   * Forces the thunk to its resulting value.
    *
-   * @param suspension the suspension to force
-   * @return the return value of this suspension
+   * @param thunk the thunk to force
+   * @return the return value of this thunk
    */
-  public abstract Object executeSuspension(Suspension suspension);
+  public abstract Object executeThunk(Thunk thunk);
 
   protected abstract boolean getIsTail();
 
   @Specialization(
-      guards = "callNode.getCallTarget() == suspension.getCallTarget()",
-      limit = Constants.CacheSizes.SUSPENSION_EXECUTOR_NODE)
+      guards = "callNode.getCallTarget() == thunk.getCallTarget()",
+      limit = Constants.CacheSizes.THUNK_EXECUTOR_NODE)
   protected Object doCached(
-      Suspension suspension,
-      @Cached("create(suspension.getCallTarget())") DirectCallNode callNode,
+      Thunk thunk,
+      @Cached("create(thunk.getCallTarget())") DirectCallNode callNode,
       @Cached("createLoopingOptimizerIfNeeded()")
           LoopingCallOptimiserNode loopingCallOptimiserNode) {
     if (getIsTail()) {
-      return callNode.call(suspension.getScope());
+      return callNode.call(thunk.getScope());
     } else {
       try {
-        return callNode.call(suspension.getScope());
+        return callNode.call(thunk.getScope());
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(e.getFunction(), e.getArguments());
       }
@@ -46,12 +46,12 @@ public abstract class SuspensionExecutorNode extends Node {
 
   @Specialization(replaces = "doCached")
   protected Object doUncached(
-      Suspension suspension,
+      Thunk thunk,
       @Cached IndirectCallNode callNode,
       @Cached("createLoopingOptimizerIfNeeded()")
           LoopingCallOptimiserNode loopingCallOptimiserNode) {
     try {
-      return callNode.call(suspension.getCallTarget(), suspension.getScope());
+      return callNode.call(thunk.getCallTarget(), thunk.getScope());
     } catch (TailCallException e) {
       return loopingCallOptimiserNode.executeDispatch(e.getFunction(), e.getArguments());
     }

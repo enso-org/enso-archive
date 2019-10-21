@@ -5,10 +5,10 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.ExpressionNode;
 
 /**
- * Node acting as root for argument suspensions. Executes its child by passing it a definition-site
+ * Node acting as root for argument thunks. Executes its child by passing it a definition-site
  * stack frame obtained from arguments.
  */
-public class SuspensionNode extends ExpressionNode {
+public class ThunkNode extends ExpressionNode {
   @Child private ExpressionNode exprNode;
 
   /**
@@ -16,7 +16,7 @@ public class SuspensionNode extends ExpressionNode {
    *
    * @param exprNode the child node representing the suspended computation.
    */
-  public SuspensionNode(ExpressionNode exprNode) {
+  public ThunkNode(ExpressionNode exprNode) {
     this.exprNode = exprNode;
   }
 

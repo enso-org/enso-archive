@@ -19,7 +19,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
 
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final boolean hasDefaultsSuspended;
-  private final boolean ignoreArgumentsExecution;
+  private final boolean ignoresArgumentsExecution;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
@@ -29,10 +29,10 @@ public abstract class ArgumentSorterNode extends BaseNode {
    *     function invocation
    */
   public ArgumentSorterNode(
-      CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean ignoreArgumentsExecution) {
+      CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean ignoresArgumentsExecution) {
     this.schema = schema;
     this.hasDefaultsSuspended = hasDefaultsSuspended;
-    this.ignoreArgumentsExecution = ignoreArgumentsExecution;
+    this.ignoresArgumentsExecution = ignoresArgumentsExecution;
   }
 
   /**
@@ -59,7 +59,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
       Function function,
       Object[] arguments,
       @Cached(
-              "create(function, getSchema(), hasDefaultsSuspended(), ignoreArgumentsExecution(), isTail())")
+              "create(function, getSchema(), hasDefaultsSuspended(), ignoresArgumentsExecution(), isTail())")
           CachedArgumentSorterNode mappingNode,
       @Cached CallOptimiserNode optimiser) {
     return mappingNode.execute(function, arguments, optimiser);
@@ -79,7 +79,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
         function,
         arguments,
         CachedArgumentSorterNode.create(
-            function, getSchema(), hasDefaultsSuspended(), ignoreArgumentsExecution, isTail()),
+            function, getSchema(), hasDefaultsSuspended(), ignoresArgumentsExecution, isTail()),
         CallOptimiserNode.create());
   }
 
@@ -115,7 +115,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    *
    * @return {@code true} if arguments should be assumed pre-executed, {@code false} otherwise.
    */
-  public boolean ignoreArgumentsExecution() {
-    return ignoreArgumentsExecution;
+  public boolean ignoresArgumentsExecution() {
+    return ignoresArgumentsExecution;
   }
 }

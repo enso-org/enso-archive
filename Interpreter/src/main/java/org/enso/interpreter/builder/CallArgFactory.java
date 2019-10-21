@@ -1,19 +1,16 @@
 package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.Frame;
-import com.oracle.truffle.api.frame.FrameDescriptor;
 import org.enso.interpreter.AstCallArgVisitor;
 import org.enso.interpreter.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.callable.argument.SuspensionNode;
+import org.enso.interpreter.node.callable.argument.ThunkNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
 
-import java.beans.Expression;
 import java.util.Optional;
 
 /**
@@ -67,7 +64,7 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
                 new EnsoRootNode(
                     language,
                     scope.getFrameDescriptor(),
-                    new SuspensionNode(expr),
+                    new ThunkNode(expr),
                     null,
                     displayName)));
   }
