@@ -1,4 +1,4 @@
-package org.enso.interpreter
+package org.enso.interpreter.test.semantic
 
 class LazyArgumentsTest extends LanguageTest {
   val subject = "Lazy arguments"

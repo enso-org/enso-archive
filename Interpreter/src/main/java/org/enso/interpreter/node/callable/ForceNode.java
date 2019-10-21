@@ -9,7 +9,7 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.argument.SuspensionExecutorNode;
 import org.enso.interpreter.node.callable.argument.SuspensionExecutorNodeGen;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
-import org.enso.interpreter.optimiser.tco.TailCallException;
+import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.Suspension;
 
 /** Node responsible for handling user-requested suspensions forcing. */

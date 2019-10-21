@@ -8,7 +8,7 @@ import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
-import org.enso.interpreter.optimiser.tco.TailCallException;
+import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.callable.argument.Suspension;
 
 /** Node responsible for executing (forcing) suspensions passed to it as runtime values. */
