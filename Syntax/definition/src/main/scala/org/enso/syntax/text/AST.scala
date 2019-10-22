@@ -8,7 +8,7 @@ import cats.Functor
 import cats.derived._
 import cats.implicits._
 import org.enso.data.List1._
-import org.enso.data.{Index, List1, Pool, Shifted, Span, Tree}
+import org.enso.data.{Index, List1, Pool, Shifted, Size, Span, Tree}
 import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
@@ -223,11 +223,11 @@ object AST {
     //// Default Instances ////
 
     implicit def fromStream[T: Repr]: OffsetZip[StreamOf, T] = { stream =>
-      var off = Index(0)
+      var off = Index.Start
       stream.map { t =>
-        off += t.off
+        off += Size(t.off)
         val out = t.map((off, _))
-        off += Repr(t.el).span
+        off += Size(Repr(t.el).span)
         out
       }
     }
@@ -319,7 +319,7 @@ object AST {
     def as[X: UnapplyByType]: Option[X] = UnapplyByType[X].unapply(t)
     def traverseWithOff(f: (Index, AST) => AST): ASTOf[T] = {
       def go(i: Index, ast: AST): AST =
-        ast.mapWithOff((j, ast) => go(i + j, f(i + j, ast)))
+        ast.mapWithOff((j, ast) => go(i + j.asSize, f(i + j.asSize, ast)))
       t.mapWithOff((j, ast) => go(j, f(j, ast)))
     }
     def idMap(implicit ev: Foldable[ShapeOf]): List[(Span, AST.ID)] = {
@@ -328,7 +328,7 @@ object AST {
       while (asts.nonEmpty) {
         val (off, ast) = asts.head
         val children = ast.zipWithOffset().toList.map {
-          case (o, ast) => (o + off, ast)
+          case (o, ast) => (o + off.asSize, ast)
         }
         if (ast.id.nonEmpty)
           ids +:= Span(off, ast) -> ast.id.get
@@ -718,12 +718,12 @@ object AST {
         implicit def repr[T: Repr]: Repr[FmtOf[T]] =
           t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
         implicit def ozip[T: Repr]: OffsetZip[FmtOf, T] = t => {
-          var offset = Index(0)
+          var offset = Index.Start
           val lines = for (line <- t.body.lines) yield {
             val offLine = line.map {
-              OffsetZip(_).map { case (o, e) => (offset + o, e) }
+              OffsetZip(_).map { case (o, e) => (offset + o.asSize, e) }
             }
-            offset += line.span
+            offset += Size(line.span)
             offLine
           }
           t.copy(body = t.body.copy(lines = lines))
@@ -737,7 +737,7 @@ object AST {
           var offset = Index(t.off)
           val elem = for (elem <- t.elem) yield {
             val offElem = (offset, elem)
-            offset += elem.span
+            offset += Size(elem.span)
             offElem
           }
           t.copy(elem = elem)
@@ -1101,7 +1101,7 @@ object AST {
       var offset = Index(t.firstLine.span)
       val lines = for (line <- t.lines) yield {
         val elem = line.elem.map((offset, _))
-        offset += line.span
+        offset += Size(line.span)
         line.copy(elem = elem)
       }
       t.copy(firstLine = line, lines = lines)
@@ -1171,7 +1171,7 @@ object AST {
           OffsetZip(seg).map(_.map(_.map(s => {
             val loff = off
             off = Repr(s._2).span
-            (s._1 + loff, s._2)
+            (s._1 + Size(loff), s._2)
           })))
         })
       }
@@ -1210,7 +1210,7 @@ object AST {
 
         implicit def ozip[T: Repr]: OffsetZip[SegmentOf, T] = t => {
           t.copy(body = OffsetZip(t.body).map {
-            case (i, s) => s.map((i + t.head.repr.span, _))
+            case (i, s) => s.map((i + Size(t.head.repr.span), _))
           })
         }
       }

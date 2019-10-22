@@ -3,9 +3,8 @@ package org.enso.data
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.ast.meta.Pattern
 
-
 /** Strongly typed size for a container. */
-case class Size(value: Int) extends Ordered[Size] {
+case class Size(value: Int) extends AnyVal with Ordered[Size] {
   def +(offset: Size): Size   = Size(value + offset.value)
   def compare(rhs: Size): Int = value compare rhs.value
 }
