@@ -7,7 +7,6 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * This node handles static transformation of the input AST before execution.
@@ -20,11 +19,20 @@ public class ProgramRootNode extends RootNode {
   private final Language language;
   private final String name;
   private final SourceSection sourceSection;
-
   private final Source sourceCode;
 
   @Child private ExpressionNode ensoProgram = null;
+  private boolean programShouldBeTailRecursive = false;
 
+  /**
+   * Constructs the root node.
+   *
+   * @param language the language instance in which this will execute
+   * @param frameDescriptor a reference to the program root frame
+   * @param name the name of the program
+   * @param sourceSection a reference to the source code being executed
+   * @param sourceCode the code to compile and execute
+   */
   public ProgramRootNode(
       Language language,
       FrameDescriptor frameDescriptor,
@@ -51,8 +59,10 @@ public class ProgramRootNode extends RootNode {
 
     // Note [Static Passes]
     if (this.ensoProgram == null) {
-      this.ensoProgram = this.insert(context.parse(this.sourceCode));
+      this.ensoProgram = this.insert(context.compiler().run(this.sourceCode));
     }
+
+    this.ensoProgram.setTail(programShouldBeTailRecursive);
 
     return this.ensoProgram.executeGeneric(frame);
   }
@@ -72,8 +82,8 @@ public class ProgramRootNode extends RootNode {
    *
    * To that end, we have a special kind of root node. It is constructed with the input AST only,
    * and when executed acts as follows:
-   * 1. It takes the input AST and executes a sequence of analyses and transformations such that the
-   *    end result is a `Node`-based AST representing the program.
+   * 1. It takes the input source and executes a sequence of analyses and transformations such that
+   *    the end result is a `Node`-based AST representing the program.
    * 2. It rewrites itself to contain the program, and then executes that program.
    *
    * Note [Static Passes (Lack of Profiling)]
@@ -94,24 +104,23 @@ public class ProgramRootNode extends RootNode {
     return this.name;
   }
 
-  /** Marks the node as tail-recursive. */
-  public void markTail() {
-    // TODO [ARA] How do we handle setting this? Will need to use a flag that is set and then
-    // acted upon at the end of transformation.
-    ensoProgram.markTail();
-  }
-
-  /** Marks the node as not tail-recursive. */
-  public void markNotTail() {
-    ensoProgram.markNotTail();
-  }
-
   /**
    * Sets whether the node is tail-recursive.
    *
    * @param isTail whether or not the node is tail-recursive.
    */
   public void setTail(boolean isTail) {
-    ensoProgram.setTail(isTail);
+    // Note [Delayed Tail Calls]
+    this.programShouldBeTailRecursive = isTail;
   }
+
+  /* Note [Delayed Tail Calls]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~
+   * As there is no guarantee that the program has been generated at the point at which setTail is
+   * called, we need to ensure that the tail-calledness information still makes its way to the
+   * program itself.
+   *
+   * To do this, we set a variable internally, that is then passed to the program just before it is
+   * executed.
+   */
 }

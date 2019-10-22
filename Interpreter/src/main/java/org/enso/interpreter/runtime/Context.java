@@ -5,6 +5,7 @@ import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
+import org.enso.compiler.Compiler;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.AstGlobalScope;
@@ -22,6 +23,13 @@ import org.enso.pkg.Package;
 import org.enso.pkg.SourceFile;
 
 import java.io.File;
+import java.io.PrintStream;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
@@ -37,7 +45,7 @@ public class Context {
 
   private final Language language;
   private final Env environment;
-  private final Map<String, Module> knownFiles;
+  private final Compiler compiler;
   private final PrintStream out;
   private final Builtins builtins;
 
@@ -55,7 +63,7 @@ public class Context {
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
     // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
-    this.knownFiles =
+    Map<String, Module> knownFiles =
         packagePaths.stream()
             .map(Package::fromDirectory)
             .map(ScalaConversions::asJava)
@@ -68,6 +76,8 @@ public class Context {
                     srcFile ->
                         new Module(
                             getEnvironment().getTruffleFile(srcFile.file().getAbsolutePath()))));
+
+      this.compiler = new Compiler(this.language, knownFiles);
   }
 
   /**
@@ -92,38 +102,18 @@ public class Context {
   }
 
   /**
-   * Parses language sources.
+   * Gets the compiler instance.
    *
-   * @param source the source to be parsed
-   * @return a call target which execution corresponds to the toplevel executable bits in the module
-   */
-  public CallTarget parse(Source source) {
-    return parse(source, createScope());
-  }
-
-  /**
-   * Parses language sources from file, registering bindings in the given scope.
+   * <p>The compiler is the portion of the interpreter that performs static analysis and
+   * transformation passes on the input program. A handle to the compiler lets you execute various
+   * portions of the compilation pipeline, including parsing, analysis, and final code generation.
    *
-   * @param file file containing the source to be parsed
-   * @param scope the scope in which to register any new bindings
-   * @return a call target which execution corresponds to the toplevel executable bits in the module
-   * @throws IOException when the file could not be read
-   */
-  public CallTarget parse(TruffleFile file, ModuleScope scope) throws IOException {
-    return parse(Source.newBuilder(Constants.LANGUAGE_ID, file).build(), scope);
-  }
-
-  /**
-   * Finds and parses a language source by its qualified name. Results of this operation are cached.
+   * <p>Having this access available means that Enso programs can metaprogram Enso itself.
    *
-   * @param qualifiedName the qualified name of module to parse
-   * @return the scope of the requested module
-   * @throws IOException when the source file could not be read
+   * @return a handle to the compiler
    */
-  public ModuleScope requestParse(String qualifiedName) throws IOException {
-    Module module = knownFiles.get(qualifiedName);
-    if (module == null) throw new ModuleDoesNotExistException(qualifiedName);
-    return module.requestParse(this);
+  public final Compiler compiler() {
+    return compiler;
   }
 
   /**
@@ -133,6 +123,15 @@ public class Context {
    */
   public Env getEnvironment() {
     return environment;
+  }
+
+  /**
+   * Gets the language to which this context belongs.
+   *
+   * @return the language to which this context belongs
+   */
+  public Language getLanguage() {
+    return language;
   }
 
   /**

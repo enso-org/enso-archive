@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterException, LanguageTest}
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 
 class GlobalScopeTest extends LanguageTest {
 

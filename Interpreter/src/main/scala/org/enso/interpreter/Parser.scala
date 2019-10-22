@@ -53,7 +53,7 @@ trait AstExpressionVisitor[+T] {
 trait AstGlobalScopeVisitor[+T] {
 
   @throws(classOf[Exception])
-  def visitGlobalScope(
+  def visitModuleScope(
     imports: java.util.List[AstImport],
     typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstMethodDef],
@@ -87,7 +87,7 @@ case class AstModuleScope(
       case typeDef: AstTypeDef      => types.add(typeDef)
     }
 
-    visitor.visitGlobalScope(imports.asJava, types, defs, expression)
+    visitor.visitModuleScope(imports.asJava, types, defs, expression)
   }
 }
 
