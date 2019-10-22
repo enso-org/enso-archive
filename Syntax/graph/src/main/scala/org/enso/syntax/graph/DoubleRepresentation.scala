@@ -204,11 +204,12 @@ final case class DoubleRepresentation(
     if (lhs.exists(_.is[AST.App.Prefix]))
       return None
 
-    val id       = ast.unsafeID
-    val spanTree = SpanTree(rhs, TextPosition.Start)
-    val output   = lhs.map(SpanTree(_, TextPosition.Start))
-    val metadata = state.getMetadata(module, id)
-    val node     = Node.Description(id, spanTree, output, metadata)
-    Some(node)
+    ast.id.map { id =>
+      val spanTree = SpanTree(rhs, TextPosition.Start)
+      val output   = lhs.map(SpanTree(_, TextPosition.Start))
+      val metadata = state.getMetadata(module, id)
+      val node     = Node.Description(id, spanTree, output, metadata)
+      node
+    }
   }
 }
