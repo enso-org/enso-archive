@@ -10,7 +10,6 @@ import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 
-import java.io.OutputStream;
 import java.io.PrintStream;
 
 /** This node allows for printing the result of an arbitrary expression to standard output. */
@@ -31,13 +30,13 @@ public abstract class PrintNode extends ExpressionNode {
    * Executes the print node.
    *
    * @param frame the stack frame for execution
-   * @return unit {@link Builtins#UNIT unit} type
+   * @return unit {@link Builtins#getUnit()} type
    */
   @Specialization
   public Object doPrint(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
     doPrint(ctx.getOut(), expression.executeGeneric(frame));
 
-    return Builtins.UNIT.newInstance();
+    return ctx.getUnit().newInstance();
   }
 
   /**
