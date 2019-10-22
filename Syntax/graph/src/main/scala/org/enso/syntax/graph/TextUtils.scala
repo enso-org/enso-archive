@@ -62,6 +62,7 @@ case class TextSpan(begin: TextPosition, length: TextLength)
   override def compare(that: TextSpan): Int =
     (begin -> length).compare(that.begin -> that.length)
 
+  /** Erases span which is ( before | overlapping | behind ) the current span */
   def -(t: TextSpan): TextSpan = () match {
     case () if end < t.begin    => this
     case () if begin > t.end    => TextSpan(begin - t.length, length)
@@ -69,6 +70,7 @@ case class TextSpan(begin: TextPosition, length: TextLength)
     case () if end >= t.end     => TextSpan(begin, length - t.length)
     case ()                     => TextSpan(begin, t.begin + length - end)
   }
+  /** Inserts span ( before | into | after ) the current text span */
   def +(t: TextSpan): TextSpan = () match {
     case () if end < t.begin   => this
     case () if begin > t.begin => TextSpan(begin + t.length, length)
