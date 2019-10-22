@@ -7,7 +7,7 @@ class FunctionArgumentsTest extends InterpreterTest {
     pending
     val code =
         """
-        |x -> x * x
+        |{ |x| x * x }
         |""".stripMargin
 
     noException should be thrownBy parse(code)
@@ -18,22 +18,14 @@ class FunctionArgumentsTest extends InterpreterTest {
 
   "Function arguments from outer scope" should "be visible in the inner scope" in {
     pending
-//    val code =
-//      """
-//        |{ |a|
-//        |  adder = { |b| a + b };
-//        |  res = @adder [2];
-//        |  res
-//        |}
-//      """.stripMargin
-
     val code =
       """
-        |fn a b =
-        |  case a of
-        |    Bar x -> (foo x) + b
-        |    Baz x y -> x + y + b
-        |""".stripMargin
+        |{ |a|
+        |  adder = { |b| a + b };
+        |  res = @adder [2];
+        |  res
+        |}
+      """.stripMargin
 
     noException should be thrownBy parse(code)
 //    eval(code).call(3) shouldEqual 5

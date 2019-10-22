@@ -82,13 +82,8 @@ public class ProgramRootNode extends RootNode {
    *
    * To that end, we have a special kind of root node. It is constructed with the input AST only,
    * and when executed acts as follows:
-<<<<<<< HEAD
-   * 1. It takes the input AST and executes a sequence of analyses and transformations such that the
-   *    end result is a `Node`-based AST representing the program.
-=======
    * 1. It takes the input source and executes a sequence of analyses and transformations such that
    *    the end result is a `Node`-based AST representing the program.
->>>>>>> a82f2c1... Translate the parser AST to internal IR
    * 2. It rewrites itself to contain the program, and then executes that program.
    *
    * Note [Static Passes (Lack of Profiling)]
@@ -108,6 +103,7 @@ public class ProgramRootNode extends RootNode {
   public String toString() {
     return this.name;
   }
+
   /**
    * Sets whether the node is tail-recursive.
    *

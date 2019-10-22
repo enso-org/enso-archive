@@ -5,7 +5,7 @@ import java.util
 
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.Compiler
-import org.enso.compiler.ir.HLIR
+import org.enso.compiler.ir.IR
 import org.enso.interpreter.Constants
 import org.enso.interpreter.runtime.Module
 import org.enso.syntax.text.AST
@@ -27,9 +27,9 @@ trait AnalysisRunner {
     * This method tests the translation of source code into the high-level IR.
     *
     * @param code the input code
-    * @return the HLIR that results from the input code
+    * @return the IR that results from the input code
     */
-  def translate(code: String): HLIR.IR = {
+  def translate(code: String): IR = {
     val ast: AST = compiler.parse(
       Source
         .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), "test")
@@ -39,4 +39,3 @@ trait AnalysisRunner {
     compiler.translate(ast)
   }
 }
-

@@ -1,6 +1,6 @@
 package org.enso.compiler.analyse
 
-// TODO [AA] Traverse the HLIR and report any parsing errors.
+// TODO [AA] Traverse the IR and report any parsing errors.
 class ReportErrors {
 
 }

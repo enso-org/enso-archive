@@ -1,19 +1,19 @@
 package org.enso.compiler.ir
 
-import org.enso.compiler.ir.HLIR.Literal.Text
+import org.enso.compiler.ir.IR.Literal.Text
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.ast.text.Escape
 
 /**
   * This is the compiler's high-level intermediate representation.
   *
-  * [[HLIR]] is a close match for the program structure of the source language,
+  * [[IR]] is a close match for the program structure of the source language,
   * allowing it to be used for a number of high-level operations, including
   * desugaring and analysis passes that rely on the structure of the source
   * program to operate.
   */
-object HLIR {
-  sealed trait IR
+sealed trait IR
+object IR {
 
   /**
     * An expression is any language construct that returns a value, even if that
@@ -29,7 +29,7 @@ object HLIR {
     *
     * @param elements all constructs contained within the module
     */
-  final case class Module(elements: List[HLIR.IR]) extends Expression
+  final case class Module(elements: List[IR]) extends Expression
 
   /**
     * An identifier is a name given to an Enso language construct.
@@ -156,12 +156,11 @@ object HLIR {
   object Error {
     final case class UnexpectedToken(msg: String, unexpectedIR: List[IR])
         extends Error
-    final case class UnrecognisedSymbol(symbol: String) extends Error
-    final case class EmptyGroup()                       extends Error
-    final case class UnhandledAST(ast: AST)             extends Error
-    final case class InvalidSuffix(identifier: HLIR.IR, suffix: String)
-        extends Error
-    final case class UnclosedText(lines: List[Text.Line]) extends Error
+    final case class UnrecognisedSymbol(symbol: String)            extends Error
+    final case class EmptyGroup()                                  extends Error
+    final case class UnhandledAST(ast: AST)                        extends Error
+    final case class InvalidSuffix(identifier: IR, suffix: String) extends Error
+    final case class UnclosedText(lines: List[Text.Line])          extends Error
   }
 
   /** Comments in the program source. */

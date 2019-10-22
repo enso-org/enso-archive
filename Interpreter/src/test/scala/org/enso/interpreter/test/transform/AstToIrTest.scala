@@ -1,9 +1,9 @@
 package org.enso.interpreter.test.transform
 
-import org.enso.compiler.ir.HLIR.{Application, Binding, Block, Comment, Error, Identifier, Literal, Module}
+import org.enso.compiler.ir.IR.{Application, Binding, Block, Comment, Error, Identifier, Literal, Module}
 import org.enso.interpreter.test.CompilerTest
 
-class ASTToHLIRTest extends CompilerTest {
+class AstToIrTest extends CompilerTest {
   val work = "translate properly"
 
   "Number literals" should work in {

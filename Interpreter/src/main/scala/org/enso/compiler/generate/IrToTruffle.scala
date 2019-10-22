@@ -1,5 +1,5 @@
 package org.enso.compiler.generate
 
-class HLIRToTruffle {
+class IrToTruffle {
 
 }

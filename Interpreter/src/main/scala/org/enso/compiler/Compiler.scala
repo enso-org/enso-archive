@@ -2,8 +2,8 @@ package org.enso.compiler
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.generate.ASTToHLIR
-import org.enso.compiler.ir.HLIR
+import org.enso.compiler.generate.AstToIr
+import org.enso.compiler.ir.IR
 import org.enso.flexer.Reader
 import org.enso.interpreter.Constants
 import org.enso.interpreter.Language
@@ -48,8 +48,8 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): ExpressionNode = {
-    val parsedAST: AST       = parse(source)
-    val desugaredIR: HLIR.IR = translate(parsedAST)
+    val parsedAST: AST  = parse(source)
+    val desugaredIR: IR = translate(parsedAST)
 
     // FIXME [AA] Temporary, to prevent a billion errors while testing parsing
     new IntegerLiteralNode(10)
@@ -140,5 +140,5 @@ class Compiler(
     * @return an IR representation with a 1:1 mapping to the parser AST
     *         constructs
     */
-  def translate(sourceAST: AST): HLIR.IR = ASTToHLIR.process(sourceAST)
+  def translate(sourceAST: AST): IR = AstToIr.process(sourceAST)
 }
