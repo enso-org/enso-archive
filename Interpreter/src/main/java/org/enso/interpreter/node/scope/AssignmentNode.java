@@ -23,7 +23,8 @@ public abstract class AssignmentNode extends ExpressionNode {
    *
    * @param frame the frame to write to
    * @param value the value to write
-   * @return the {@link Builtins#unit unit} type
+   * @param ctx language context for global values access
+   * @return the unit type
    */
   @Specialization
   protected Object writeLong(
@@ -39,7 +40,8 @@ public abstract class AssignmentNode extends ExpressionNode {
    *
    * @param frame the frame to write to
    * @param value the value to write
-   * @return the {@link Builtins#unit unit} type
+   * @param ctx language context for global values access
+   * @return the unit type
    */
   @Specialization
   protected Object writeObject(

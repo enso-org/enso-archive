@@ -135,16 +135,27 @@ public class Context {
     return out;
   }
 
+  /**
+   * Creates a new module scope that automatically imports all the builtin types and methods.
+   *
+   * @return a new module scope with automatic builtins dependency.
+   */
   public ModuleScope createScope() {
     ModuleScope moduleScope = new ModuleScope();
     moduleScope.addImport(getBuiltins().getScope());
     return moduleScope;
   }
 
-  public Builtins getBuiltins() {
+  private Builtins getBuiltins() {
     return builtins;
   }
 
+  /**
+   * Returns the atom constructor corresponding to the {@code Unit} type, for builtin constructs
+   * that need to return an atom of this type.
+   *
+   * @return the builtin {@code Unit} atom constructor
+   */
   public AtomConstructor getUnit() {
     return getBuiltins().getUnit();
   }
