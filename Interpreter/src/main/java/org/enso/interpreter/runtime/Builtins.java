@@ -1,58 +1,54 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.PrintNode;
-import org.enso.interpreter.node.expression.builtin.PrintNodeGen;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
-import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-/** Container class for static predefined atoms and their containing scope. */
+/** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
-  private final ModuleScope scope = new ModuleScope();
-  private final AtomConstructor unit = new AtomConstructor("Unit", scope).initializeFields();
-  private final AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
-  private final AtomConstructor cons =
-      new AtomConstructor("Cons", scope)
-          .initializeFields(
-              new ArgumentDefinition(0, "head", false), new ArgumentDefinition(1, "rest", false));
-  private final AtomConstructor builtins =
-      new AtomConstructor("Builtins", scope).initializeFields();
+  private final ModuleScope scope;
+  private final AtomConstructor unit;
 
+  /**
+   * Creates an instance with builtin methods installed.
+   *
+   * @param language the current {@link Language} instance
+   */
   public Builtins(Language language) {
+    scope = new ModuleScope();
+    unit = new AtomConstructor("Unit", scope).initializeFields();
+
+    AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();
+    AtomConstructor cons =
+        new AtomConstructor("Cons", scope)
+            .initializeFields(
+                new ArgumentDefinition(0, "head", false), new ArgumentDefinition(1, "rest", false));
+    AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
+
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
     scope.registerConstructor(unit);
-    scope.registerConstructor(builtins);
+    scope.registerConstructor(io);
 
-    installBuiltinMethods(builtins, language);
+    scope.registerMethod(io, "println", PrintNode.toFunction(language));
   }
 
-  private void installBuiltinMethods(AtomConstructor atom, Language language) {
-    scope.registerMethod(
-        atom,
-        "print",
-        new Function(
-            printCallTarget(language),
-            null,
-            new ArgumentSchema(
-                new ArgumentDefinition(0, "this", false),
-                new ArgumentDefinition(1, "value", false))));
-  }
-
-  private RootCallTarget printCallTarget(Language language) {
-    PrintNode node = PrintNodeGen.create(language);
-    return Truffle.getRuntime().createCallTarget(node);
-  }
-
+  /**
+   * Returns the {@code Unit} atom constructor.
+   *
+   * @return the {@code Unit} atom constructor
+   */
   public AtomConstructor getUnit() {
     return unit;
   }
 
+  /**
+   * Returns the builtin module scope.
+   *
+   * @return the builtin module scope
+   */
   public ModuleScope getScope() {
     return scope;
   }
