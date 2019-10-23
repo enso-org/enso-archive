@@ -8,7 +8,7 @@ class LazyArgumentsTest extends LanguageTest {
       """
         |@{
         |  foo = { |i, $x, $y| ifZero: [i, $x, $y] };
-        |  @foo [1, (print: 1), (print: 2)]
+        |  @foo [1, @print [@Builtins, 1], @print [@Builtins, 2]]
         |}
         |""".stripMargin
     noException should be thrownBy parse(code)
@@ -53,9 +53,9 @@ class LazyArgumentsTest extends LanguageTest {
         |Bar.method = { |x| 10 }
         |
         |@{
-        |  @method [@Foo, (print: 1)];
-        |  @method [@Bar, (print: 2)];
-        |  @method [@Foo, (print: 3)]
+        |  @method [@Foo, @print [@Builtins, 1]];
+        |  @method [@Bar, @print [@Builtins, 2]];
+        |  @method [@Foo, @print [@Builtins, 3]]
         |}
         |""".stripMargin
     eval(code)
@@ -68,8 +68,8 @@ class LazyArgumentsTest extends LanguageTest {
         |@{
         |  if = { |c, $ifT, $ifF| ifZero: [c, $ifT, $ifF] };
         |  foo = { |c| @if [c] };
-        |  @foo [0, (print: 1), (print: 2)];
-        |  @foo [1, (print: 3), (print: 4)]
+        |  @foo [0, @print [@Builtins, 1], @print [@Builtins, 2]];
+        |  @foo [1, @print [@Builtins, 3], @print [@Builtins, 4]]
         |}
         |""".stripMargin
     eval(code)
