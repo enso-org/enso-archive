@@ -40,7 +40,7 @@ public class Builtins {
    *
    * @return the {@code Unit} atom constructor
    */
-  public AtomConstructor getUnit() {
+  public AtomConstructor unit() {
     return unit;
   }
 

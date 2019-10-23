@@ -157,6 +157,6 @@ public class Context {
    * @return the builtin {@code Unit} atom constructor
    */
   public AtomConstructor getUnit() {
-    return getBuiltins().getUnit();
+    return getBuiltins().unit();
   }
 }
