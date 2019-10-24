@@ -13,7 +13,8 @@ import org.enso.interpreter.runtime.error.InexhaustivePatternMatchException;
 public class DefaultFallbackNode extends CaseNode {
 
   /**
-   * Executes the case expression's error case.
+   * Executes the case expression's error case, by throwing a {@link
+   * InexhaustivePatternMatchException}.
    *
    * @param frame the stack frame in which to execute
    * @param target the constructor to destructure
@@ -22,16 +23,37 @@ public class DefaultFallbackNode extends CaseNode {
     throw new InexhaustivePatternMatchException(this.getParent());
   }
 
+  /**
+   * Executes the case expression's error case, by throwing a {@link
+   * InexhaustivePatternMatchException}.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the atom to match and destructure
+   */
   @Override
   public void executeAtom(VirtualFrame frame, Atom target) {
     execute(frame, target);
   }
 
+  /**
+   * Executes the case expression's error case, by throwing a {@link
+   * InexhaustivePatternMatchException}.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the function to match
+   */
   @Override
   public void executeFunction(VirtualFrame frame, Function target) {
     execute(frame, target);
   }
 
+  /**
+   * Executes the case expression's error case, by throwing a {@link
+   * InexhaustivePatternMatchException}.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the number to match
+   */
   @Override
   public void executeNumber(VirtualFrame frame, long target) {
     execute(frame, target);

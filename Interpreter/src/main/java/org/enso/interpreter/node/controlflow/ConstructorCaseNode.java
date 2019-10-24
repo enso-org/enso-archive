@@ -42,7 +42,7 @@ public class ConstructorCaseNode extends CaseNode {
   /**
    * Handles the atom scrutinee case.
    *
-   * <p>The atoms constructor is checked and if it matches, the conditional branch is executed with
+   * <p>The atom's constructor is checked and if it matches the conditional branch is executed with
    * all the atom's fields as arguments.
    *
    * @param frame the stack frame in which to execute
