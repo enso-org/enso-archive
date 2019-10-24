@@ -1,10 +1,12 @@
 package org.enso.interpreter.runtime.scope;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
+import javax.swing.text.html.Option;
 import java.util.*;
 
 /** A representation of Enso's per-file top-level scope. */
@@ -12,6 +14,7 @@ public class ModuleScope {
 
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
+  private final Map<String, Function> anyMethods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
   private final Set<ModuleScope> transitiveImports = new HashSet<>();
 
@@ -65,30 +68,54 @@ public class ModuleScope {
     getMethodMapFor(atom).put(method, function);
   }
 
+  public void registerAnyMethod(String method, Function function) {
+    anyMethods.put(method, function);
+  }
+
   /**
-   * Looks up the definition for a given type and method name. The resolution algorithm is first
-   * looking for methods defined at the constructor definition site (i.e. non-overloads), then looks
-   * for methods defined in this scope and finally tries to resolve the method in all transitive
-   * dependencies of this module.
+   * Looks up the definition for a given type and method name.
+   *
+   * <p>The resolution algorithm is first looking for methods defined at the constructor definition
+   * site (i.e. non-overloads), then looks for methods defined in this scope and finally tries to
+   * resolve the method in all transitive dependencies of this module.
+   *
+   * <p>If the specific search fails, methods defined for any type are searched, first looking at
+   * locally defined methods and then all the transitive imports.
    *
    * @param atom type to lookup the method for.
    * @param name the method name.
    * @return the matching method definition or null if not found.
    */
+  @CompilerDirectives.TruffleBoundary
   public Function lookupMethodDefinition(AtomConstructor atom, String name) {
+    return lookupMethodDefinitionForAtom(atom, name)
+        .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null));
+  }
+
+  private Optional<Function> lookupMethodDefinitionForAny(String name) {
+    Function definedHere = anyMethods.get(name);
+    if (definedHere != null) {
+      return Optional.of(definedHere);
+    }
+    return transitiveImports.stream()
+        .map(scope -> scope.getAnyMethods().get(name))
+        .filter(Objects::nonNull)
+        .findFirst();
+  }
+
+  private Optional<Function> lookupMethodDefinitionForAtom(AtomConstructor atom, String name) {
     Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
     if (definedWithAtom != null) {
-      return definedWithAtom;
+      return Optional.of(definedWithAtom);
     }
     Function definedHere = getMethodMapFor(atom).get(name);
     if (definedHere != null) {
-      return definedHere;
+      return Optional.of(definedHere);
     }
     return transitiveImports.stream()
         .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)
-        .findFirst()
-        .orElse(null);
+        .findFirst();
   }
 
   /**
@@ -96,8 +123,12 @@ public class ModuleScope {
    *
    * @return a set of all the transitive dependencies of this module
    */
-  protected Set<ModuleScope> getTransitiveImports() {
+  private Set<ModuleScope> getTransitiveImports() {
     return transitiveImports;
+  }
+
+  private Map<String, Function> getAnyMethods() {
+    return anyMethods;
   }
 
   /**

@@ -44,4 +44,31 @@ class MethodsTest extends LanguageTest {
         |""".stripMargin
     the[PolyglotException] thrownBy eval(code) should have message "Object 7 does not define method foo."
   }
+
+  "Methods defined on Any type" should "be callable for any atom" in {
+    val code =
+      """
+        |type Foo;
+        |type Bar;
+        |type Baz;
+        |
+        |Any.method = { match this <
+        |  Foo ~ { 1 };
+        |  Bar ~ { 2 };
+        |  Baz ~ { 3 };
+        |  { 0 };
+        |>}
+        |
+        |@{
+        |  @println [@IO, @method [@Foo]];
+        |  @println [@IO, @method [@Bar]];
+        |  @println [@IO, @method [@Baz]];
+        |  @println [@IO, @method [@Unit]];
+        |  @println [@IO, @method [@Nil]];
+        |  0
+        |}
+        |""".stripMargin
+    eval(code)
+    consumeOut shouldEqual List("1", "2", "3", "0", "0")
+  }
 }
