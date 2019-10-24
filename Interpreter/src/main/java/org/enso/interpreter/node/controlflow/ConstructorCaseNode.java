@@ -9,6 +9,7 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on explicit constructors. */
 public class ConstructorCaseNode extends CaseNode {
@@ -49,11 +50,18 @@ public class ConstructorCaseNode extends CaseNode {
    * @throws UnexpectedResultException when the result of desctructuring {@code target} can't be
    *     represented as a value of the expected return type
    */
-  public void execute(VirtualFrame frame, Atom target) throws UnexpectedResultException {
+  @Override
+  public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
     AtomConstructor matcherVal = matcher.executeAtomConstructor(frame);
     if (profile.profile(matcherVal == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
       throw new BranchSelectedException(executeCallNode.executeCall(function, target.getFields()));
     }
   }
+
+  @Override
+  public void executeFunction(VirtualFrame frame, Function target) {}
+
+  @Override
+  public void executeNumber(VirtualFrame frame, long target) {}
 }

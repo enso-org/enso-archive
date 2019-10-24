@@ -36,9 +36,24 @@ public class FallbackNode extends CaseNode {
    * @throws UnexpectedResultException when the result of desctructuring {@code target} can't be
    *     represented as a value of the expected return type
    */
-  @Override
-  public void execute(VirtualFrame frame, Atom target) throws UnexpectedResultException {
+  public void execute(VirtualFrame frame, Object target) throws UnexpectedResultException {
     Function function = functionNode.executeFunction(frame);
     throw new BranchSelectedException(executeCallNode.executeCall(function, new Object[0]));
+  }
+
+  @Override
+  public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
+    execute(frame, target);
+  }
+
+  @Override
+  public void executeFunction(VirtualFrame frame, Function target)
+      throws UnexpectedResultException {
+    execute(frame, target);
+  }
+
+  @Override
+  public void executeNumber(VirtualFrame frame, long target) throws UnexpectedResultException {
+    execute(frame, target);
   }
 }

@@ -1,5 +1,6 @@
 package org.enso.interpreter.runtime.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.TruffleObject;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -41,5 +42,15 @@ public class UnresolvedSymbol implements TruffleObject {
    */
   public Function resolveFor(AtomConstructor cons) {
     return scope.lookupMethodDefinition(cons, name);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public Function resolveForNumber() {
+    return scope.lookupMethodDefinitionForAny(name).orElse(null);
+  }
+
+  @CompilerDirectives.TruffleBoundary
+  public Function resolveForFunction() {
+    return scope.lookupMethodDefinitionForAny(name).orElse(null);
   }
 }

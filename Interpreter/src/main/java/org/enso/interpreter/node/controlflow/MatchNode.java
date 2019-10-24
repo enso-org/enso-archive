@@ -1,30 +1,27 @@
 package org.enso.interpreter.node.controlflow;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.dsl.NodeChild;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.TypeError;
 
+import java.util.function.Consumer;
+
 /** A node representing a pattern match on an Atom. */
-public class MatchNode extends ExpressionNode {
-  @Child private ExpressionNode target;
+@NodeChild(value = "target", type = ExpressionNode.class)
+public abstract class MatchNode extends ExpressionNode {
   @Children private final CaseNode[] cases;
   @Child private CaseNode fallback;
   private final BranchProfile typeErrorProfile = BranchProfile.create();
 
-  /**
-   * Creates a node that pattern matches on an Atom.
-   *
-   * @param target the atom to pattern match on
-   * @param cases the branches of the pattern match
-   * @param fallback the fallback case of the pattern match
-   */
-  public MatchNode(ExpressionNode target, CaseNode[] cases, CaseNode fallback) {
-    this.target = target;
+  protected MatchNode(CaseNode[] cases, CaseNode fallback) {
     this.cases = cases;
     this.fallback = fallback;
   }
@@ -43,21 +40,57 @@ public class MatchNode extends ExpressionNode {
     fallback.setTail(isTail);
   }
 
-  /**
-   * Executes the pattern match.
-   *
-   * @param frame the stack frame for execution
-   * @return the result of the pattern match
-   */
   @ExplodeLoop
-  @Override
-  public Object executeGeneric(VirtualFrame frame) {
+  @Specialization
+  protected Object doAtom(VirtualFrame frame, Atom atom) {
     try {
-      Atom atom = target.executeAtom(frame);
       for (CaseNode caseNode : cases) {
-        caseNode.execute(frame, atom);
+        caseNode.executeAtom(frame, atom);
       }
-      fallback.execute(frame, atom);
+      fallback.executeAtom(frame, atom);
+      CompilerDirectives.transferToInterpreter();
+      throw new RuntimeException("Impossible behavior.");
+
+    } catch (BranchSelectedException e) {
+      // Note [Branch Selection Control Flow]
+      return e.getResult();
+
+    } catch (UnexpectedResultException e) {
+      typeErrorProfile.enter();
+      throw new TypeError("Expected an Atom.", this);
+    }
+  }
+
+  @ExplodeLoop
+  @Specialization
+  protected Object doFun(VirtualFrame frame, Function function) {
+    try {
+      for (CaseNode caseNode : cases) {
+        caseNode.executeFunction(frame, function);
+      }
+      fallback.executeFunction(frame, function);
+      CompilerDirectives.transferToInterpreter();
+      throw new RuntimeException("Impossible behavior.");
+
+    } catch (BranchSelectedException e) {
+      // Note [Branch Selection Control Flow]
+      return e.getResult();
+
+    } catch (UnexpectedResultException e) {
+      typeErrorProfile.enter();
+      throw new TypeError("Expected an Atom.", this);
+    }
+  }
+
+  @ExplodeLoop
+  @Specialization
+  protected Object doNumber(VirtualFrame frame, long number) {
+    try {
+
+      for (CaseNode caseNode : cases) {
+        caseNode.executeNumber(frame, number);
+      }
+      fallback.executeNumber(frame, number);
       CompilerDirectives.transferToInterpreter();
       throw new RuntimeException("Impossible behavior.");
 

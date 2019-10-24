@@ -92,7 +92,7 @@ public class ModuleScope {
         .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null));
   }
 
-  private Optional<Function> lookupMethodDefinitionForAny(String name) {
+  public Optional<Function> lookupMethodDefinitionForAny(String name) {
     Function definedHere = anyMethods.get(name);
     if (definedHere != null) {
       return Optional.of(definedHere);

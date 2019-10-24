@@ -107,16 +107,9 @@ public abstract class InvokeCallableNode extends BaseNode {
         thisExecutor = ThunkExecutorNodeGen.create(false);
       }
 
-      Object selfArgument =
-          thisExecutor.executeThunk(((Thunk) arguments[thisArgumentPosition]));
-
-      if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
-        Atom self = (Atom) selfArgument;
-        Function function = methodResolverNode.execute(symbol, self);
-        return this.argumentSorter.execute(function, arguments);
-      } else {
-        throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
-      }
+      Object selfArgument = thisExecutor.executeThunk(((Thunk) arguments[thisArgumentPosition]));
+      Function function = methodResolverNode.execute(symbol, selfArgument);
+      return this.argumentSorter.execute(function, arguments);
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
