@@ -8,7 +8,7 @@ import org.enso.build.WithDebugCommand
 //////////////////////////////
 
 val scalacVersion = "2.12.10"
-val graalVersion = "19.2.0.1"
+val graalVersion  = "19.2.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -75,15 +75,6 @@ lazy val Benchmark = config("bench") extend sbt.Test
 lazy val buildNativeImage =
   taskKey[Unit]("Build native image for the Enso executable")
 
-////////////////////////
-//// Global Project ////
-////////////////////////
-
-lazy val enso = (project in file("."))
-  .settings(version := "0.1")
-  .aggregate(syntax, pkg, interpreter)
-  .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
-
 ////////////////////////////
 //// Dependency Bundles ////
 ////////////////////////////
@@ -96,40 +87,10 @@ val monocle = {
     "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % "test"
   )
 }
-val cats = {
-  Seq(
-    "org.typelevel" %% "cats-core" % "2.0.0-RC1",
-    "org.typelevel" %% "kittens"   % "2.0.0"
-  )
-}
 
 val scala_compiler = Seq(
   "org.scala-lang" % "scala-reflect"  % scalacVersion,
   "org.scala-lang" % "scala-compiler" % scalacVersion
-)
-
-val circe = Seq("circe-core", "circe-generic", "circe-yaml")
-  .map("io.circe" %% _ % "0.10.0")
-
-def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
-def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
-
-val akkaURL          = "com.typesafe.akka"
-val akkaVersion      = "2.5.23"
-val akkaHTTPVersion  = "10.1.8"
-val akkaActor        = akkaPkg("actor")
-val akkaStream       = akkaPkg("stream")
-val akkaTyped        = akkaPkg("actor-typed")
-val akkaTestkit      = akkaPkg("testkit")
-val akkaSLF4J        = akkaPkg("slf4j")
-val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
-val akkaHttp         = akkaHTTPPkg("http")
-val akkaSpray        = akkaHTTPPkg("http-spray-json")
-val akka             = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
-
-val jmh = Seq(
-  "org.openjdk.jmh" % "jmh-core"                 % "1.21" % Benchmark,
-  "org.openjdk.jmh" % "jmh-generator-annprocess" % "1.21" % Benchmark
 )
 
 //////////////////////
@@ -142,6 +103,7 @@ lazy val logger = (project in file("lib/logger"))
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val flexer = (project in file("lib/flexer"))
   .dependsOn(logger)
@@ -153,17 +115,22 @@ lazy val flexer = (project in file("lib/flexer"))
       "org.feijoas" %% "mango" % "0.14"
     )
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val unused = (project in file("lib/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val syntax_definition = (project in file("Syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %% "scalatags" % "0.7.0"
+    libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
+      "com.lihaoyi" %%% "scalatags"   % "0.7.0",
+      "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
+      "org.typelevel" %%% "kittens"   % "2.0.0"
     )
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val syntax = (project in file("Syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
@@ -178,9 +145,9 @@ lazy val syntax = (project in file("Syntax/specialization"))
     bench := (test in Benchmark).tag(Exclusive).value,
     parallelExecution in Benchmark := false,
     libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
-      "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %% "pprint"     % "0.5.3"
+//      "com.storm-enroute" %%% "scalameter" % "0.17" % "bench",
+      "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
+      "com.lihaoyi" %%% "pprint"      % "0.5.3"
     ),
     (Compile / compile) := (Compile / compile)
       .dependsOn(Def.taskDyn {
@@ -195,123 +162,14 @@ lazy val syntax = (project in file("Syntax/specialization"))
       })
       .value
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val syntax_graph = (project in file("Syntax/graph"))
   .dependsOn(syntax)
   .configs(Test)
   .settings(
-    libraryDependencies += "org.typelevel" %% "mouse"     % "0.23",
-    libraryDependencies += "org.scalatest" %% "scalatest" % "3.0.5" % Test
+    libraryDependencies += "org.typelevel" %%% "mouse"     % "0.23",
+    libraryDependencies += "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
+    scalaJSUseMainModuleInitializer := true
   )
-
-lazy val pkg = (project in file("Pkg"))
-  .settings(
-    mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
-    version := "0.1",
-    libraryDependencies ++= circe ++ Seq("commons-io" % "commons-io" % "2.6")
-  )
-
-val truffleRunOptions = Seq(
-  fork := true,
-  javaOptions += s"-Dgraal.TruffleIterativePartialEscape=true",
-  javaOptions += s"-XX:-UseJVMCIClassLoader",
-  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
-)
-
-lazy val interpreter = (project in file("Interpreter"))
-  .settings(
-    mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
-    version := "0.1",
-    commands += WithDebugCommand.withDebug,
-    inConfig(Compile)(truffleRunOptions),
-    inConfig(Test)(truffleRunOptions),
-    parallelExecution in Test := false,
-    logBuffered in Test := false,
-    libraryDependencies ++= jmh ++ Seq(
-      "com.chuusai"            %% "shapeless"                % "2.3.3",
-      "org.apache.commons"     % "commons-lang3"             % "3.9",
-      "org.apache.tika"        % "tika-core"                 % "1.21",
-      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion,
-      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion,
-      "org.graalvm.truffle"    % "truffle-api"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion,
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
-      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
-      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
-      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
-      "commons-cli"            % "commons-cli"               % "1.4"
-    ),
-    libraryDependencies ++= jmh
-  )
-  .settings(
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath
-    )
-  )
-  .settings(
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
-  )
-  .settings(
-    buildNativeImage := Def
-      .task {
-        val javaHome        = System.getProperty("java.home")
-        val nativeImagePath = s"$javaHome/bin/native-image"
-        val classPath       = (Runtime / fullClasspath).value.files.mkString(":")
-        val cmd =
-          s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
-        cmd !
-      }
-      .dependsOn(Compile / compile)
-      .value
-  )
-  .configs(Benchmark)
-  .settings(
-    logBuffered := false,
-    inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptions),
-    bench := (test in Benchmark).tag(Exclusive).value,
-    benchOnly := Def.inputTaskDyn {
-      import complete.Parsers.spaceDelimited
-      val name = spaceDelimited("<name>").parsed match {
-        case List(name) => name
-        case _          => throw new IllegalArgumentException("Expected one argument.")
-      }
-      Def.task {
-        (testOnly in Benchmark).toTask(" -- -z " + name).value
-      }
-    }.evaluated,
-    parallelExecution in Benchmark := false
-  )
-  .dependsOn(pkg)
-
-lazy val fileManager = (project in file("FileManager"))
-  .settings(
-    (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
-  )
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies += akkaSLF4J,
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
-    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-SNAP10" % Test,
-    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.0" % Test,
-    libraryDependencies += akkaTestkitTyped,
-    libraryDependencies += "commons-io" % "commons-io"        % "2.6",
-    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
-  )
-
-lazy val projectManager = (project in file("ProjectManager"))
-  .settings(
-    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
-  )
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
-  )
-  .dependsOn(pkg)
+  .enablePlugins(ScalaJSPlugin)

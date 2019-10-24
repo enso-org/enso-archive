@@ -1,9 +1,9 @@
 package org.enso.data
 
-import scala.reflect.internal.util.WeakHashSet
+//import scala.reflect.internal.util.WeakHashSet
 
 /** Thread safe pool for objects with 1-1 hashcode-object mapping.
- *
+  *
   * Useful for not having lots of duplicate objects in memory.
   *
   * As an example it can be used to pool small strings:
@@ -19,7 +19,7 @@ import scala.reflect.internal.util.WeakHashSet
   */
 final class Pool[T <: AnyRef] {
 
-  private val astPool = WeakHashSet[T]()
+//  private val astPool = WeakHashSet[T]()
 
   /** Returns object from pool such that `object == t`, or puts t into pool
     * and returns it, if no such object is found.
@@ -27,6 +27,6 @@ final class Pool[T <: AnyRef] {
     * The asymptotic complexity is almost identical to the of HashSet.get (logN)
     * The function is thread safe and throws an error when t is null
     */
-  def get(t: T): T = synchronized(astPool.findEntryOrUpdate(t))
+  def get(t: T): T = t
 
 }
