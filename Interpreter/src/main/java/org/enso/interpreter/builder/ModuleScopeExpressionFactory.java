@@ -103,7 +103,7 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
           new Function(funNode.getCallTarget(), null, new ArgumentSchema(funNode.getArgs()));
 
       if (method.typeName().equals(Constants.ANY_TYPE_NAME)) {
-        moduleScope.registerAnyMethod(method.methodName(), function);
+        moduleScope.registerMethodForAny(method.methodName(), function);
       } else {
         AtomConstructor constructor =
             moduleScope

@@ -14,14 +14,20 @@ import org.enso.interpreter.runtime.error.TypeError;
 
 import java.util.function.Consumer;
 
-/** A node representing a pattern match on an Atom. */
-@NodeChild(value = "target", type = ExpressionNode.class)
+/**
+ * A node representing a pattern match on an arbitrary runtime value.
+ *
+ * <p>Has a scrutinee node and a collection of {@link CaseNode}s. The case nodes get executed one by
+ * one, until one throws an {@link BranchSelectedException}, the value of which becomes the result
+ * of this pattern match.
+ */
+@NodeChild(value = "scrutinee", type = ExpressionNode.class)
 public abstract class MatchNode extends ExpressionNode {
   @Children private final CaseNode[] cases;
   @Child private CaseNode fallback;
   private final BranchProfile typeErrorProfile = BranchProfile.create();
 
-  protected MatchNode(CaseNode[] cases, CaseNode fallback) {
+  MatchNode(CaseNode[] cases, CaseNode fallback) {
     this.cases = cases;
     this.fallback = fallback;
   }
@@ -42,7 +48,7 @@ public abstract class MatchNode extends ExpressionNode {
 
   @ExplodeLoop
   @Specialization
-  protected Object doAtom(VirtualFrame frame, Atom atom) {
+  Object doAtom(VirtualFrame frame, Atom atom) {
     try {
       for (CaseNode caseNode : cases) {
         caseNode.executeAtom(frame, atom);
@@ -63,7 +69,7 @@ public abstract class MatchNode extends ExpressionNode {
 
   @ExplodeLoop
   @Specialization
-  protected Object doFun(VirtualFrame frame, Function function) {
+  Object doFunction(VirtualFrame frame, Function function) {
     try {
       for (CaseNode caseNode : cases) {
         caseNode.executeFunction(frame, function);
@@ -84,7 +90,7 @@ public abstract class MatchNode extends ExpressionNode {
 
   @ExplodeLoop
   @Specialization
-  protected Object doNumber(VirtualFrame frame, long number) {
+  Object doNumber(VirtualFrame frame, long number) {
     try {
 
       for (CaseNode caseNode : cases) {

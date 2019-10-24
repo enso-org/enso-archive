@@ -1,12 +1,9 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import org.enso.interpreter.runtime.Builtins;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
-import javax.swing.text.html.Option;
 import java.util.*;
 
 /** A representation of Enso's per-file top-level scope. */
@@ -60,16 +57,22 @@ public class ModuleScope {
   /**
    * Registers a method defined for a given type.
    *
-   * @param atom type the method was defined for.
-   * @param method method name.
-   * @param function the {@link Function} associated with this definition.
+   * @param atom type the method was defined for
+   * @param method method name
+   * @param function the {@link Function} associated with this definition
    */
   public void registerMethod(AtomConstructor atom, String method, Function function) {
     getMethodMapFor(atom).put(method, function);
   }
 
-  public void registerAnyMethod(String method, Function function) {
-    anyMethods.put(method, function);
+  /**
+   * Registers a method for the {@code Any} type.
+   *
+   * @param methodName the name of the method to register
+   * @param function the {@link Function} associated with this definition
+   */
+  public void registerMethodForAny(String methodName, Function function) {
+    anyMethods.put(methodName, function);
   }
 
   /**
@@ -87,23 +90,35 @@ public class ModuleScope {
    * @return the matching method definition or null if not found.
    */
   @CompilerDirectives.TruffleBoundary
-  public Function lookupMethodDefinition(AtomConstructor atom, String name) {
-    return lookupMethodDefinitionForAtom(atom, name)
+  public Function lookupMethodDefinitionForAtom(AtomConstructor atom, String name) {
+    return lookupSpecificMethodDefinitionForAtom(atom, name)
         .orElseGet(() -> lookupMethodDefinitionForAny(name).orElse(null));
   }
 
+  /**
+   * Looks up a method definition by-name, for methods defined on the type Any.
+   *
+   * <p>The resolution algorithm prefers methods defined locally over any other method. The
+   * definitions are imported into scope transitively.
+   *
+   * @param name the name of the method to look up
+   * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
+   *     otherwise
+   */
+  @CompilerDirectives.TruffleBoundary
   public Optional<Function> lookupMethodDefinitionForAny(String name) {
     Function definedHere = anyMethods.get(name);
     if (definedHere != null) {
       return Optional.of(definedHere);
     }
     return transitiveImports.stream()
-        .map(scope -> scope.getAnyMethods().get(name))
+        .map(scope -> scope.getMethodsOfAny().get(name))
         .filter(Objects::nonNull)
         .findFirst();
   }
 
-  private Optional<Function> lookupMethodDefinitionForAtom(AtomConstructor atom, String name) {
+  private Optional<Function> lookupSpecificMethodDefinitionForAtom(
+      AtomConstructor atom, String name) {
     Function definedWithAtom = atom.getDefinitionScope().getMethodMapFor(atom).get(name);
     if (definedWithAtom != null) {
       return Optional.of(definedWithAtom);
@@ -127,7 +142,7 @@ public class ModuleScope {
     return transitiveImports;
   }
 
-  private Map<String, Function> getAnyMethods() {
+  private Map<String, Function> getMethodsOfAny() {
     return anyMethods;
   }
 
