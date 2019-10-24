@@ -12,8 +12,6 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.TypeError;
 
-import java.util.function.Consumer;
-
 /**
  * A node representing a pattern match on an arbitrary runtime value.
  *
@@ -45,6 +43,11 @@ public abstract class MatchNode extends ExpressionNode {
     }
     fallback.setTail(isTail);
   }
+
+  // TODO[MK]: The atom, number and function cases are very repetitive and should be refactored.
+  // It poses some engineering challenge – the approaches tried so far included passing the only
+  // changing line as a lambda and introducing a separate node between this and the CaseNodes.
+  // Both attempts resulted in a performance drop.
 
   @ExplodeLoop
   @Specialization
