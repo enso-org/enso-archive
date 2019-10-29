@@ -284,9 +284,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   import AST.Text.Quote
 
   class TextState(
-    var lines: List[AST.Text.LineOf[AST.Text.Segment._Fmt[AST]]],
-    var lineBuilder: List[AST.Text.Segment.Fmt],
-    val quote: Quote
+                   var lines: List[AST.Text.Line[AST.Text.Segment._Fmt[AST]]],
+                   var lineBuilder: List[AST.Text.Segment.Fmt],
+                   val quote: Quote
   )
 
   final object text {
@@ -428,7 +428,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     def onSubmitLine(): Unit = logger.trace {
       off.pop()
-      current.lines +:= AST.Text.LineOf(off.use(), current.lineBuilder.reverse)
+      current.lines +:= AST.Text.Line(off.use(), current.lineBuilder.reverse)
       current.lineBuilder = Nil
     }
 

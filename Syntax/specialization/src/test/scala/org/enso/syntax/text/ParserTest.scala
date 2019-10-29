@@ -210,10 +210,10 @@ class ParserTest extends FlatSpec with Matchers {
     Text.BodyOf(
       q3,
       List1(
-        Text.LineOf(0, Nil),
-        Text.LineOf(0, List("X")),
-        Text.LineOf(1, List("Y")),
-        Text.LineOf(0, Nil)
+        Text.Line(0, Nil),
+        Text.Line(0, List("X")),
+        Text.Line(1, List("Y")),
+        Text.Line(0, Nil)
       )
     )
   )
