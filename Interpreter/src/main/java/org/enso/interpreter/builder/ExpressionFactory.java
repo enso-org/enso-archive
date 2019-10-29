@@ -22,16 +22,11 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.ForceNodeGen;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.FunctionBodyNode;
-import org.enso.interpreter.node.controlflow.CaseNode;
-import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
-import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
-import org.enso.interpreter.node.controlflow.FallbackNode;
-import org.enso.interpreter.node.controlflow.IfZeroNode;
-import org.enso.interpreter.node.controlflow.MatchNode;
-import org.enso.interpreter.node.expression.builtin.PrintNode;
+import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
@@ -370,17 +365,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   }
 
   /**
-   * Creates a runtime node representing a print expression.
-   *
-   * @param body an expression that computes the value to print
-   * @return a runtime node representing the print
-   */
-  @Override
-  public ExpressionNode visitPrint(AstExpression body) {
-    return new PrintNode(body.visit(this));
-  }
-
-  /**
    * Creates a runtime node representing a pattern match.
    *
    * @param target the value to destructure in the pattern match
@@ -406,7 +390,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
             .map(fb -> (CaseNode) new FallbackNode(fb.visit(this)))
             .orElseGet(DefaultFallbackNode::new);
 
-    return new MatchNode(targetNode, cases, fallbackNode);
+    return MatchNodeGen.create(cases, fallbackNode, targetNode);
   }
 
   /* Note [Pattern Match Fallbacks]
@@ -416,4 +400,15 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * user-provided fallback or catch-all case in a pattern match, the interpreter has to ensure that
    * it has one to catch that error.
    */
+
+
+  /**
+   * Creates a runtime representation of lazy function argument forcing.
+   * @param target the parser AST fragment representing a value to force
+   * @return the AST fragment representing forcing of the requested value
+   */
+  @Override
+  public ExpressionNode visitDesuspend(AstExpression target) {
+    return ForceNodeGen.create(target.visit(this));
+  }
 }

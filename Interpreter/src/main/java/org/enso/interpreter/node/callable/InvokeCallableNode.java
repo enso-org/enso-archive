@@ -1,20 +1,21 @@
 package org.enso.interpreter.node.callable;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
+import org.enso.interpreter.node.callable.argument.ThunkExecutorNodeGen;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
-import org.enso.interpreter.runtime.callable.atom.Atom;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.MethodDoesNotExistException;
 import org.enso.interpreter.runtime.error.NotInvokableException;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This class is responsible for performing the actual invocation of a given callable with its
@@ -27,9 +28,12 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   @Child private ArgumentSorterNode argumentSorter;
   @Child private MethodResolverNode methodResolverNode;
+  @Child private ThunkExecutorNode thisExecutor;
 
   private final boolean canApplyThis;
   private final int thisArgumentPosition;
+
+  private final boolean argumentsArePreExecuted;
 
   private final ConditionProfile methodCalledOnNonAtom = ConditionProfile.createCountingProfile();
 
@@ -39,8 +43,11 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @param schema a description of the arguments being applied to the callable
    * @param hasDefaultsSuspended whether or not the invocation has the callable's default arguments
    *     (if any) suspended
+   * @param argumentsArePreExecuted whether the arguments will be provided as thunks or fully
+   *     computed values
    */
-  public InvokeCallableNode(CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
+  public InvokeCallableNode(
+      CallArgumentInfo[] schema, boolean hasDefaultsSuspended, boolean argumentsArePreExecuted) {
     boolean appliesThis = false;
     int idx = 0;
     for (; idx < schema.length; idx++) {
@@ -56,7 +63,10 @@ public abstract class InvokeCallableNode extends BaseNode {
     this.canApplyThis = appliesThis;
     this.thisArgumentPosition = idx;
 
-    this.argumentSorter = ArgumentSorterNodeGen.create(schema, hasDefaultsSuspended);
+    this.argumentsArePreExecuted = argumentsArePreExecuted;
+
+    this.argumentSorter =
+        ArgumentSorterNodeGen.create(schema, hasDefaultsSuspended, argumentsArePreExecuted);
     this.methodResolverNode = MethodResolverNodeGen.create();
   }
 
@@ -96,13 +106,15 @@ public abstract class InvokeCallableNode extends BaseNode {
   public Object invokeDynamicSymbol(UnresolvedSymbol symbol, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
-      if (methodCalledOnNonAtom.profile(TypesGen.isAtom(selfArgument))) {
-        Atom self = (Atom) selfArgument;
-        Function function = methodResolverNode.execute(symbol, self);
-        return this.argumentSorter.execute(function, arguments);
-      } else {
-        throw new MethodDoesNotExistException(selfArgument, symbol.getName(), this);
+      if (!argumentsArePreExecuted) {
+        if (thisExecutor == null) {
+          CompilerDirectives.transferToInterpreterAndInvalidate();
+          thisExecutor = ThunkExecutorNodeGen.create(false);
+        }
+        selfArgument = thisExecutor.executeThunk((Thunk) selfArgument);
       }
+      Function function = methodResolverNode.execute(symbol, selfArgument);
+      return this.argumentSorter.execute(function, arguments);
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }

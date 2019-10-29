@@ -8,7 +8,7 @@ import org.enso.build.WithDebugCommand
 //////////////////////////////
 
 val scalacVersion = "2.12.10"
-val graalVersion = "19.2.0.1"
+val graalVersion  = "19.2.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -182,7 +182,7 @@ lazy val syntax = (project in file("Syntax/specialization"))
       "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
       "com.lihaoyi"       %% "pprint"     % "0.5.3"
     ),
-    (Compile / compile) := (Compile / compile)
+    compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
         val parserCompile =
           (syntax_definition / Compile / compileIncremental).value
@@ -252,11 +252,12 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     buildNativeImage := Def
       .task {
-        val javaHome        = System.getProperty("java.home")
-        val nativeImagePath = s"$javaHome/bin/native-image"
-        val classPath       = (Runtime / fullClasspath).value.files.mkString(":")
+        val javaHome         = System.getProperty("java.home")
+        val nativeImagePath  = s"$javaHome/bin/native-image"
+        val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
+        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
         val cmd =
-          s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+          s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
         cmd !
       }
       .dependsOn(Compile / compile)
