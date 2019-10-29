@@ -137,6 +137,7 @@ lazy val syntax = (project in file("Syntax/specialization"))
   .configs(Test)
   .configs(Benchmark)
   .settings(
+    scalaJSUseMainModuleInitializer := true,
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),

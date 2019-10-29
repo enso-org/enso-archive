@@ -1,6 +1,6 @@
 package org.enso.syntax.graph
 
-import org.enso.data.ADT
+import org.enso.flexer.ADT
 import org.enso.syntax.graph.SpanTree.Node
 import org.enso.syntax.graph.SpanTree.Pathed
 
