@@ -1,7 +1,8 @@
 package org.enso.syntax.text.ast
 
-import org.enso.data.ADT
 import org.enso.data.List1
+import org.enso.flexer.ADT
+import org.enso.syntax.text.ast.Doc.Elem.List.Indent.getClass
 import org.enso.syntax.text.ast.Repr.R
 import scalatags.Text.all._
 import scalatags.Text.TypedTag
@@ -194,7 +195,7 @@ object Doc {
           s"""var code = document.getElementById("$uniqueIDCode");
              |var btn = document.getElementById("$uniqueIDBtn").firstChild;
              |btn.data = btn.data == "Show" ? "Hide" : "Show";
-             |code.style.display = code.style.display == 
+             |code.style.display = code.style.display ==
              |"inline-block" ? "none" : "inline-block";""".stripMargin
             .replaceAll("\n", "")
         val btn = HTML.button(btnAction)(htmlIdBtn)("Show")
@@ -319,11 +320,10 @@ object Doc {
             Seq(HTML.div(htmlCls)(elem.html))
           }
         }
-
-        def getObjectName: String = {
-          getClass.getEnclosingClass.toString.split('$').last
-        }
       }
+
+      def getObjectName: String =
+        getClass.toString.split('$').last
     }
   }
 
@@ -559,7 +559,7 @@ object Doc {
 
     implicit final class ExtForTagDetails(val self: Option[String]) {
       val html: HTML = {
-        val htmlCls = HTML.`class` := this.getClass.toString.split('$').last
+        val htmlCls = HTML.`class` := "ExtForTagDetails"
         Seq(self.map(HTML.div(htmlCls)(_)))
       }
     }
