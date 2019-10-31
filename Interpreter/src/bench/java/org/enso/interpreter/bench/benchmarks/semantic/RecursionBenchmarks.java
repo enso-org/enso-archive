@@ -7,8 +7,8 @@ import java.util.concurrent.TimeUnit;
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(1)
-@Warmup(iterations = 5)
-@Measurement(iterations = 5)
+@Warmup(iterations = 0)
+@Measurement(iterations = 3)
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class RecursionBenchmarks {
   private static RecursionFixtures recursionFixtures = new RecursionFixtures();
@@ -31,5 +31,10 @@ public class RecursionBenchmarks {
   @Benchmark
   public void benchOversaturatedRecursiveCall() {
     recursionFixtures.oversaturatedRecursiveCall().execute(recursionFixtures.hundredMillion());
+  }
+
+  @Benchmark
+  public void benchSumStateTCO() {
+    recursionFixtures.sumStateTCO().execute(recursionFixtures.hundredMillion());
   }
 }

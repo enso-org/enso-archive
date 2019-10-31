@@ -10,6 +10,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
  */
 public class TailCallException extends ControlFlowException {
   private final Function function;
+  private final Object state;
   private final Object[] arguments;
 
   /**
@@ -18,9 +19,10 @@ public class TailCallException extends ControlFlowException {
    * @param function the function to execute in a loop
    * @param arguments the arguments to {@code function}
    */
-  public TailCallException(Function function, Object[] arguments) {
+  public TailCallException(Function function, Object state, Object[] arguments) {
     this.function = function;
     this.arguments = arguments;
+    this.state = state;
   }
 
   /**
@@ -39,5 +41,9 @@ public class TailCallException extends ControlFlowException {
    */
   public Object[] getArguments() {
     return arguments;
+  }
+
+  public Object getState() {
+    return state;
   }
 }

@@ -10,6 +10,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.RuntimeError;
+import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** Root node for the {@code catch} function. */
@@ -36,15 +37,16 @@ public class CatchErrorNode extends RootNode {
    * @return the result of calling the handler function
    */
   @Override
-  public Object execute(VirtualFrame frame) {
+  public Stateful execute(VirtualFrame frame) {
     Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
+    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     Object scrutinee = arguments[0];
     Object handler = arguments[1];
     if (executionProfile.profile(TypesGen.isRuntimeError(scrutinee))) {
       return invokeCallableNode.execute(
-          handler, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
+          handler, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
     } else {
-      return scrutinee;
+      return new Stateful(state, scrutinee);
     }
   }
 

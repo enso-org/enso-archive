@@ -1,7 +1,9 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
+import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 
@@ -10,6 +12,15 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 @ReportPolymorphism
 public class BaseNode extends Node {
   private @CompilationFinal boolean isTail = false;
+  private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
+
+  protected FrameSlot getStateFrameSlot() {
+    if (stateFrameSlot == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      stateFrameSlot = ((EnsoRootNode) getRootNode()).getStateFrameSlot();
+    }
+    return stateFrameSlot;
+  }
 
   /**
    * Sets whether the node is tail-recursive.
@@ -20,17 +31,13 @@ public class BaseNode extends Node {
     this.isTail = isTail;
   }
 
-  /**
-   * Marks the node as tail-recursive.
-   */
-  final public void markTail() {
+  /** Marks the node as tail-recursive. */
+  public final void markTail() {
     setTail(true);
   }
 
-  /**
-   * Marks the node as not tail-recursive.
-   */
-  final public void markNotTail() {
+  /** Marks the node as not tail-recursive. */
+  public final void markNotTail() {
     setTail(false);
   }
 

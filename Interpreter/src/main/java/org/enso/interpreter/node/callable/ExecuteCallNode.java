@@ -7,6 +7,7 @@ import com.oracle.truffle.api.nodes.DirectCallNode;
 import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This node is responsible for optimising function calls.
@@ -29,12 +30,14 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   @Specialization(guards = "function.getCallTarget() == cachedTarget")
-  protected Object callDirect(
+  protected Stateful callDirect(
       Function function,
+      Object state,
       Object[] arguments,
       @Cached("function.getCallTarget()") RootCallTarget cachedTarget,
       @Cached("create(cachedTarget)") DirectCallNode callNode) {
-    return callNode.call(Function.ArgumentsHelper.buildArguments(function, arguments));
+    return (Stateful)
+        callNode.call(Function.ArgumentsHelper.buildArguments(function, state, arguments));
   }
 
   /**
@@ -49,10 +52,12 @@ public abstract class ExecuteCallNode extends Node {
    * @return the result of executing {@code function} on {@code arguments}
    */
   @Specialization(replaces = "callDirect")
-  protected Object callIndirect(
-      Function function, Object[] arguments, @Cached IndirectCallNode callNode) {
-    return callNode.call(
-        function.getCallTarget(), Function.ArgumentsHelper.buildArguments(function, arguments));
+  protected Stateful callIndirect(
+      Function function, Object state, Object[] arguments, @Cached IndirectCallNode callNode) {
+    return (Stateful)
+        callNode.call(
+            function.getCallTarget(),
+            Function.ArgumentsHelper.buildArguments(function, state, arguments));
   }
 
   /**
@@ -62,5 +67,5 @@ public abstract class ExecuteCallNode extends Node {
    * @param arguments the arguments to be passed to {@code function}
    * @return the result of executing {@code function} on {@code arguments}
    */
-  public abstract Object executeCall(Object function, Object[] arguments);
+  public abstract Stateful executeCall(Object function, Object state, Object[] arguments);
 }

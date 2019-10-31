@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 
 import java.io.PrintStream;
 
@@ -27,10 +28,11 @@ public abstract class PrintNode extends RootNode {
   }
 
   @Specialization
-  Object doPrint(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
+  Stateful doPrint(VirtualFrame frame, @CachedContext(Language.class) Context ctx) {
     doPrint(ctx.getOut(), Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1]);
+    Object state = Function.ArgumentsHelper.getState(frame.getArguments());
 
-    return ctx.getUnit().newInstance();
+    return new Stateful(state, ctx.getUnit().newInstance());
   }
 
   @CompilerDirectives.TruffleBoundary

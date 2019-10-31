@@ -19,6 +19,7 @@ import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -163,7 +164,7 @@ public final class Function implements TruffleObject {
         Object[] arguments,
         @Cached(value = "arguments.length") int cachedArgsLength,
         @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
-      return sorterNode.execute(function, arguments);
+      return ((Stateful) sorterNode.execute(function, null, arguments)).getValue();
     }
 
     /**
@@ -198,8 +199,13 @@ public final class Function implements TruffleObject {
      * @param positionalArguments the arguments to that function, sorted into positional order
      * @return an array containing the necessary information to call an Enso function
      */
-    public static Object[] buildArguments(Function function, Object[] positionalArguments) {
-      return new Object[] {function.getScope(), positionalArguments};
+    public static Object[] buildArguments(
+        Function function, Object state, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), state, positionalArguments};
+    }
+
+    public static Object[] buildArguments(Object state) {
+      return new Object[] {null, state, new Object[0]};
     }
 
     /**
@@ -210,7 +216,11 @@ public final class Function implements TruffleObject {
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
-      return (Object[]) arguments[1];
+      return (Object[]) arguments[2];
+    }
+
+    public static Object getState(Object[] arguments) {
+      return arguments[1];
     }
 
     /**

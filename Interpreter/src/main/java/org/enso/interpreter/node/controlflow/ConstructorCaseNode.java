@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -52,9 +53,10 @@ public class ConstructorCaseNode extends CaseNode {
   @Override
   public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
     AtomConstructor matcherVal = matcher.executeAtomConstructor(frame);
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(matcherVal == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
-      throw new BranchSelectedException(executeCallNode.executeCall(function, target.getFields()));
+      throw new BranchSelectedException(executeCallNode.executeCall(function, state, target.getFields()));
     }
   }
 
