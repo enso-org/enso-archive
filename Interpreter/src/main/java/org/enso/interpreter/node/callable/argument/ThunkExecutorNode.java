@@ -38,11 +38,11 @@ public abstract class ThunkExecutorNode extends Node {
           LoopingCallOptimiserNode loopingCallOptimiserNode) {
     if (getIsTail()) {
       return (Stateful)
-          callNode.call(thunk.getScope(), Function.ArgumentsHelper.buildArguments(state));
+          callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
     } else {
       try {
         return (Stateful)
-            callNode.call(thunk.getScope(), Function.ArgumentsHelper.buildArguments(state));
+            callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
             e.getFunction(), e.getState(), e.getArguments());
@@ -61,8 +61,7 @@ public abstract class ThunkExecutorNode extends Node {
       return (Stateful)
           callNode.call(
               thunk.getCallTarget(),
-              thunk.getScope(),
-              Function.ArgumentsHelper.buildArguments(state));
+              Function.ArgumentsHelper.buildArguments(thunk, state));
     } catch (TailCallException e) {
       return loopingCallOptimiserNode.executeDispatch(
           e.getFunction(), e.getState(), e.getArguments());

@@ -19,6 +19,7 @@ import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** A runtime representation of a function object in Enso. */
@@ -204,8 +205,8 @@ public final class Function implements TruffleObject {
       return new Object[] {function.getScope(), state, positionalArguments};
     }
 
-    public static Object[] buildArguments(Object state) {
-      return new Object[] {null, state, new Object[0]};
+    public static Object[] buildArguments(Thunk thunk, Object state) {
+      return new Object[] {thunk.getScope(), state, new Object[0]};
     }
 
     /**

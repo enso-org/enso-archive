@@ -2,6 +2,8 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.LanguageTest
 
+import scala.util.Try
+
 class StateTest extends LanguageTest {
   "State" should "be accessible from functions" in {
     val code =
@@ -45,6 +47,7 @@ class StateTest extends LanguageTest {
         |@{
         |  stateSum = { |n|
         |    acc = @get [@State];
+        |    @println[@IO, acc];
         |    @put [@State, acc + n];
         |    ifZero: [n, @get [@State], @stateSum [n-1]]
         |  };

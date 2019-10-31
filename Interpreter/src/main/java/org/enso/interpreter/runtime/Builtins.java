@@ -2,6 +2,8 @@ package org.enso.interpreter.runtime;
 
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.builtin.*;
+import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
+import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -29,6 +31,7 @@ public class Builtins {
     AtomConstructor io = new AtomConstructor("IO", scope).initializeFields();
     AtomConstructor panic = new AtomConstructor("Panic", scope).initializeFields();
     AtomConstructor error = new AtomConstructor("Error", scope).initializeFields();
+    AtomConstructor state = new AtomConstructor("State", scope).initializeFields();
 
     scope.registerConstructor(cons);
     scope.registerConstructor(nil);
@@ -36,6 +39,7 @@ public class Builtins {
     scope.registerConstructor(io);
     scope.registerConstructor(panic);
     scope.registerConstructor(error);
+    scope.registerConstructor(state);
 
     scope.registerMethod(io, "println", PrintNode.makeFunction(language));
     scope.registerMethod(panic, "throw", PanicNode.makeFunction(language));
@@ -43,6 +47,10 @@ public class Builtins {
     scope.registerMethod(error, "throw", ThrowErrorNode.makeFunction(language));
 
     scope.registerMethodForAny("catch", CatchErrorNode.makeFunction(language));
+
+    scope.registerMethod(io, "println", PrintNode.makeFunction(language));
+    scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
+    scope.registerMethod(state, "put", PutStateNode.makeFunction(language));
   }
 
   /**

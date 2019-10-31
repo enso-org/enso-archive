@@ -10,6 +10,8 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
+import java.util.Arrays;
+
 /**
  * A version of {@link CallOptimiserNode} that is fully prepared to handle tail calls. Tail calls
  * are handled through exceptions – whenever a tail-recursive call would be executed, an exception
@@ -107,7 +109,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
 
     public Object getNextState(VirtualFrame frame) {
       Object result = FrameUtil.getObjectSafe(frame, stateSlot);
-      frame.setObject(functionSlot, null);
+      frame.setObject(stateSlot, null);
       return result;
     }
 
