@@ -1,5 +1,6 @@
 package org.enso.syntax.text
 
+import java.io.{File, PrintWriter}
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.syntax.text.ast.Doc
@@ -7,8 +8,6 @@ import org.enso.syntax.text.spec.DocParserDef
 import scalatags.Text.TypedTag
 import scalatags.Text.{all => HTML}
 import HTML._
-import java.io.File
-import java.io.PrintWriter
 import flexer.Parser.{Result => res}
 import org.enso.data.List1
 import org.enso.syntax.text.AST.Block.{LineOf => Line}
