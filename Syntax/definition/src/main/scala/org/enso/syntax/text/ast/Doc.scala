@@ -2,7 +2,6 @@ package org.enso.syntax.text.ast
 
 import org.enso.data.List1
 import org.enso.flexer.ADT
-import org.enso.syntax.text.ast.Doc.Elem.List.Indent.getClass
 import org.enso.syntax.text.ast.Repr.R
 import scalatags.Text.all._
 import scalatags.Text.TypedTag
@@ -559,7 +558,7 @@ object Doc {
 
     implicit final class ExtForTagDetails(val self: Option[String]) {
       val html: HTML = {
-        val htmlCls = HTML.`class` := "ExtForTagDetails"
+        val htmlCls = HTML.`class` := this.getClass.toString.split('$').last
         Seq(self.map(HTML.div(htmlCls)(_)))
       }
     }
