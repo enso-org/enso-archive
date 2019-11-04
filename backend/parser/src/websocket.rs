@@ -14,11 +14,9 @@ use crate::api::ParserService;
 const LOCALHOST: &str = "localhost";
 const DEFAULT_PORT: i32 = 30615;
 const DEFAULT_HOSTNAME: &str = LOCALHOST;
-const DEFAULT_RESOURCE: &str = "/";
 
-const HOSTNAME_ENV_VAR_NAME: &str = "ENSO_PARSER_HOSTNAME";
-const PORT_ENV_VAR_NAME: &str = "ENSO_PARSER_PORT";
-const RESOURCE_ENV_VAR_NAME: &str = "ENSO_PARSER_RESOURCE";
+const HOSTNAME_VAR: &str = "ENSO_PARSER_HOSTNAME";
+const PORT_VAR: &str = "ENSO_PARSER_PORT";
 
 
 ////////////
@@ -28,20 +26,18 @@ const RESOURCE_ENV_VAR_NAME: &str = "ENSO_PARSER_RESOURCE";
 pub struct Config {
     pub host: String,
     pub port: i32,
-    pub resource: String,
 }
 
 impl Config {
     pub fn address_string(&self) -> String {
-        format!("http://{}:{}{}", self.host, self.port, self.resource)
+        format!("ws://{}:{}", self.host, self.port)
     }
 
     pub fn from_env() -> Config {
-        let host = env_var_or(HOSTNAME_ENV_VAR_NAME, DEFAULT_HOSTNAME);
-        let port = env_var_or(PORT_ENV_VAR_NAME, "")
+        let host = env_var_or(HOSTNAME_VAR, DEFAULT_HOSTNAME);
+        let port = env_var_or(PORT_VAR, "")
             .parse().unwrap_or(DEFAULT_PORT);
-        let resource = env_var_or(RESOURCE_ENV_VAR_NAME, DEFAULT_RESOURCE);
-        Config {host, port, resource}
+        Config {host, port}
     }
 }
 

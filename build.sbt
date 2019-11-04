@@ -206,7 +206,10 @@ lazy val syntax = (project in file("Syntax/specialization"))
 
 lazy val parser_service = (project in file("ParserService"))
   .dependsOn(syntax)
-  .settings(libraryDependencies ++= akka)
+  .settings(
+    libraryDependencies ++= akka,
+    mainClass := Some("org.enso.ParserServiceMain")
+  )
 
 lazy val pkg = (project in file("Pkg"))
   .settings(
