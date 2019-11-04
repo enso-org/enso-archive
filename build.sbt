@@ -18,6 +18,8 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 //// Compiler Options ////
 //////////////////////////
 
+javacOptions in ThisBuild ++= Seq("-encoding", "UTF-8")
+
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",                       // Emit warning and location for usages of deprecated APIs.
   "-encoding",                          // Provide explicit encoding (the next line)
