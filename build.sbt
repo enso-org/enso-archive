@@ -187,7 +187,8 @@ lazy val syntax = (project in file("Syntax/specialization"))
     libraryDependencies ++= Seq(
       "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
       "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %% "pprint"     % "0.5.3"
+      "com.lihaoyi"       %% "pprint"     % "0.5.3",
+      "io.spray"          %% "spray-json" % "1.3.5"
     ),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
@@ -202,6 +203,10 @@ lazy val syntax = (project in file("Syntax/specialization"))
       })
       .value
   )
+
+lazy val parser_service = (project in file("ParserService"))
+  .dependsOn(syntax)
+  .settings(libraryDependencies ++= akka)
 
 lazy val pkg = (project in file("Pkg"))
   .settings(
