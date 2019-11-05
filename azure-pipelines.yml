@@ -63,7 +63,7 @@ jobs:
   - task: PublishBuildArtifacts@1
     inputs:
       pathtoPublish: '$(Build.ArtifactStagingDirectory)'
-      artifactName: enso.jar
+      artifactName: enso-cli
   - script: |
       echo "##vso[task.complete result=Failed;]DONE"
     condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
