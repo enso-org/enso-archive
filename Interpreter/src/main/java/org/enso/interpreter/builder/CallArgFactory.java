@@ -7,8 +7,8 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.util.Optional;
 

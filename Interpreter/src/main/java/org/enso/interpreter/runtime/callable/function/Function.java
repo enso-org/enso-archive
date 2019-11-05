@@ -23,7 +23,6 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
-import org.enso.interpreter.runtime.state.Stateful;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)

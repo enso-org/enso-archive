@@ -10,7 +10,6 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 /** An implementation of the case expression specialised to working on constructors. */
 public class ConstructorCaseNode extends CaseNode {

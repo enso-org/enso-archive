@@ -1,6 +1,5 @@
 package org.enso.interpreter.node.controlflow;
 
-import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;

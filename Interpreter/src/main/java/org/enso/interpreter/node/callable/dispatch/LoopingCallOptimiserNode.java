@@ -10,8 +10,6 @@ import org.enso.interpreter.node.callable.ExecuteCallNodeGen;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
-import java.util.Arrays;
-
 /**
  * A version of {@link CallOptimiserNode} that is fully prepared to handle tail calls. Tail calls
  * are handled through exceptions – whenever a tail-recursive call would be executed, an exception
