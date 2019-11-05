@@ -1,9 +1,13 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 
@@ -13,12 +17,41 @@ import org.enso.interpreter.runtime.state.Stateful;
  * <p>All new computations in Enso must be executed from within an {@link EnsoRootNode}, as
  * determined by the API provided by Truffle.
  */
+@ReportPolymorphism
 public class EnsoRootNode extends RootNode {
   private final String name;
   private final SourceSection sourceSection;
   @Child private ExpressionNode body;
   private final FrameSlot stateFrameSlot;
-  private final boolean deStatify;
+  private final boolean returnFinalState;
+  private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
+      contextReference;
+
+  /**
+   * Creates a new root node.
+   *
+   * @param language the language identifier
+   * @param frameDescriptor a description of the stack frame
+   * @param body the program body to be executed
+   * @param section a mapping from {@code body} to the program source
+   * @param name a name for the node
+   * @param returnFinalState whether this node should return the final state together with the
+   *     result
+   */
+  public EnsoRootNode(
+      Language language,
+      FrameDescriptor frameDescriptor,
+      ExpressionNode body,
+      SourceSection section,
+      String name,
+      boolean returnFinalState) {
+    super(language, frameDescriptor);
+    this.body = body;
+    this.sourceSection = section;
+    this.name = name;
+    this.stateFrameSlot = frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
+    this.returnFinalState = returnFinalState;
+  }
 
   /**
    * Creates a new root node.
@@ -34,23 +67,16 @@ public class EnsoRootNode extends RootNode {
       FrameDescriptor frameDescriptor,
       ExpressionNode body,
       SourceSection section,
-      String name,
-      boolean deStatify) {
-    super(language, frameDescriptor);
-    this.body = body;
-    this.sourceSection = section;
-    this.name = name;
-    this.stateFrameSlot = frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
-    this.deStatify = deStatify;
+      String name) {
+    this(language, frameDescriptor, body, section, name, true);
   }
 
-  public EnsoRootNode(
-      Language language,
-      FrameDescriptor frameDescriptor,
-      ExpressionNode body,
-      SourceSection section,
-      String name) {
-    this(language, frameDescriptor, body, section, name, false);
+  private Context getContext() {
+    if (contextReference == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      contextReference = lookupContextReference(Language.class);
+    }
+    return contextReference.get();
   }
 
   /**
@@ -61,17 +87,17 @@ public class EnsoRootNode extends RootNode {
    */
   @Override
   public Object execute(VirtualFrame frame) {
-    if (frame.getArguments().length == 0) {
-      frame.setObject(stateFrameSlot, null);
-    } else {
-      frame.setObject(stateFrameSlot, Function.ArgumentsHelper.getState(frame.getArguments()));
-    }
+    Object state =
+        frame.getArguments().length == 0
+            ? getContext().getUnit().newInstance()
+            : Function.ArgumentsHelper.getState(frame.getArguments());
+    frame.setObject(stateFrameSlot, state);
     Object result = body.executeGeneric(frame);
-    Object state = FrameUtil.getObjectSafe(frame, stateFrameSlot);
-    if (deStatify) {
-      return result;
-    } else {
+    state = FrameUtil.getObjectSafe(frame, stateFrameSlot);
+    if (returnFinalState) {
       return new Stateful(state, result);
+    } else {
+      return result;
     }
   }
 
@@ -104,7 +130,12 @@ public class EnsoRootNode extends RootNode {
     body.setTail(isTail);
   }
 
-  public FrameSlot getStateFrameSlot() {
+  /**
+   * Returns the frame slot reference to state variable.
+   *
+   * @return the frame slot corresponding to state monad
+   */
+  FrameSlot getStateFrameSlot() {
     return stateFrameSlot;
   }
 }

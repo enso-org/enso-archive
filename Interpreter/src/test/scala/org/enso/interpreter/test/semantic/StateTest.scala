@@ -41,6 +41,24 @@ class StateTest extends LanguageTest {
     eval(code) shouldEqual 5
   }
 
+  "State" should "be localized with State.run" in {
+    val code =
+      """
+        |@{
+        |  @put[@State, 20];
+        |  myFun = {
+        |    res = @get[@State];
+        |    @put[@State, 0];
+        |    res
+        |  };
+        |  res = @run[@State, 10, @myFun];
+        |  state = @get[@State];
+        |  res + state
+        |}
+        |""".stripMargin
+    eval(code) shouldEqual 30
+  }
+
   "State" should "work well with recursive code" in {
     val code =
       """
@@ -51,10 +69,18 @@ class StateTest extends LanguageTest {
         |    @put [@State, acc + n];
         |    ifZero: [n, @get [@State], @stateSum [n-1]]
         |  };
-        |  @put [@State, 0];
-        |  @stateSum [10]
+        |  @run [@State, 0, @stateSum [10]]
         |}
         |""".stripMargin
     eval(code) shouldEqual 55
+  }
+
+  "State" should "be initialized to a Unit by default" in {
+    val code =
+      """
+        |@println[@IO, @get[@State]]
+        |""".stripMargin
+    eval(code)
+    consumeOut shouldEqual List("Unit<>")
   }
 }

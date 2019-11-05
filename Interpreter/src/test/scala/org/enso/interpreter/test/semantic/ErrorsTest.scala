@@ -18,7 +18,6 @@ class ErrorsTest extends LanguageTest {
         |""".stripMargin
 
     val exception = the[InterpreterException] thrownBy eval(code)
-    println(exception)
     exception.isGuestException shouldEqual true
     exception.getGuestObject.toString shouldEqual "Bar<>"
     consumeOut shouldEqual List("Foo<>")

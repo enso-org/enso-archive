@@ -78,7 +78,8 @@ public class Context {
   public CallTarget parse(Source source, ModuleScope scope) {
     AstGlobalScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
     ExpressionNode result = new ModuleScopeExpressionFactory(language, scope).run(parsed);
-    EnsoRootNode root = new EnsoRootNode(language, new FrameDescriptor(), result, null, "root", true);
+    EnsoRootNode root =
+        new EnsoRootNode(language, new FrameDescriptor(), result, null, "root", false);
     return Truffle.getRuntime().createCallTarget(root);
   }
 

@@ -5,6 +5,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.dsl.Cached;
+import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.interop.InteropLibrary;
@@ -14,9 +15,11 @@ import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
+import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -163,9 +166,10 @@ public final class Function implements TruffleObject {
     protected static Object callCached(
         Function function,
         Object[] arguments,
+        @CachedContext(Language.class) Context context,
         @Cached(value = "arguments.length") int cachedArgsLength,
         @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
-      return ((Stateful) sorterNode.execute(function, null, arguments)).getValue();
+      return sorterNode.execute(function, context.getUnit().newInstance(), arguments).getValue();
     }
 
     /**
@@ -176,8 +180,10 @@ public final class Function implements TruffleObject {
      * @return the result of function application.
      */
     @Specialization(replaces = "callCached")
-    protected static Object callUncached(Function function, Object[] arguments) {
-      return callCached(function, arguments, arguments.length, buildSorter(arguments.length));
+    protected static Object callUncached(
+        Function function, Object[] arguments, @CachedContext(Language.class) Context context) {
+      return callCached(
+          function, arguments, context, arguments.length, buildSorter(arguments.length));
     }
   }
 
@@ -197,6 +203,7 @@ public final class Function implements TruffleObject {
      * org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode}.
      *
      * @param function the function to be called
+     * @param state the state to execute the function with
      * @param positionalArguments the arguments to that function, sorted into positional order
      * @return an array containing the necessary information to call an Enso function
      */
@@ -212,7 +219,7 @@ public final class Function implements TruffleObject {
     /**
      * Gets the positional arguments out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
      *     Object[])}
      * @return the positional arguments to the function
      */
@@ -220,6 +227,13 @@ public final class Function implements TruffleObject {
       return (Object[]) arguments[2];
     }
 
+    /**
+     * Gets the state out of the array.
+     *
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
+     *     Object[])}
+     * @return the state for the function
+     */
     public static Object getState(Object[] arguments) {
       return arguments[1];
     }
@@ -227,7 +241,7 @@ public final class Function implements TruffleObject {
     /**
      * Gets the function's local scope out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
      *     Object[])}
      * @return the local scope for the associated function
      */

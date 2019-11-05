@@ -1,4 +1,4 @@
-package org.enso.interpreter.node.expression.builtin;
+package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
@@ -6,7 +6,6 @@ import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
-import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.error.RuntimeError;
