@@ -14,6 +14,11 @@ public class BaseNode extends Node {
   private @CompilationFinal boolean isTail = false;
   private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
 
+  /**
+   * Obtains the frame slot containing state variable for this node.
+   *
+   * @return The frame slot for state variable
+   */
   protected FrameSlot getStateFrameSlot() {
     if (stateFrameSlot == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
