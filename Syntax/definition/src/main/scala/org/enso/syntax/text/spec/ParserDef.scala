@@ -39,15 +39,15 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   val alphaNum: Pattern    = digit | lowerLetter | upperLetter
   val space: Pattern       = ' '.many1
   val newline: Pattern     = '\n'
-  val emptyLine: Pattern   = ' ' >> newline
+  val emptyLine: Pattern   = ' '.many >> newline
 
   ////////////////
   //// Result ////
   ////////////////
 
   override def getResult() = result.current.flatMap {
-    case mod: AST.Module => Some(mod)
-    case _               => None
+    case AST.Module.any(mod) => Some(mod)
+    case _                   => None
   }
 
   final object result {
@@ -281,9 +281,8 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   //// Text ////
   //////////////
 
-  import AST.Text.Quote
-
   class TextState(
+    var offset: Int,
     var lines: List[List[AST.Text.Segment.Fmt]],
     var lineBuilder: List[AST.Text.Segment.Fmt]
   )
@@ -293,7 +292,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val S = AST.Text.Segment
 
     var stack: List[TextState] = Nil
-    var current                = new TextState(Nil, Nil)
+    var current                = new TextState(0, Nil, Nil)
 
     def push(): Unit = logger.trace {
       stack +:= current
@@ -304,25 +303,18 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       stack   = stack.tail
     }
 
-    def submitEmpty(groupIx: State): Unit = logger.trace {
-      if (groupIx == RAW) result.app(AST.Text.Line.Raw(Nil))
-      else result.app(AST.Text.Line.Fmt(Nil))
-    }
-
-    def getLines(): List[List[S.Fmt]] = logger.trace {
+    def finish(
+      raw: List[List[S.Raw]] => AST,
+      fmt: List[List[S.Fmt]] => AST
+    ): Unit = logger.trace {
       onSubmitLine()
-      val body = current.lines.reverse
+      val isFMT = state.current.parent.contains(FMT)
+      val body  = current.lines.reverse
+      val text =
+        if (isFMT) fmt(body) else raw(body.asInstanceOf[List[List[S.Raw]]])
       pop()
       off.pop()
       state.end()
-      body
-    }
-
-    def submit(): Unit = logger.trace {
-      val line = getLines().head
-      val text =
-        if (state.current == FMT) AST.Text(line)
-        else AST.Text(line.asInstanceOf[List[S.Raw]])
       result.app(text)
     }
 
@@ -330,20 +322,46 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       current.lineBuilder +:= segment
     }
 
+    def submit(): Unit = logger.trace {
+      finish(t => AST.Text.Raw(t.head), t => AST.Text(t.head:_*))
+    }
+
     def submitUnclosed(): Unit = logger.trace {
-      val line = getLines().head
-      val text =
-        if (state.current == FMT) AST.Text.Unclosed(line)
-        else AST.Text.Unclosed(line.asInstanceOf[List[S.Raw]])
-      result.app(text)
+      val T = AST.Text
+      finish(t => T.Raw.Unclosed(t.head), t => T.Unclosed(t.head :_*))
+    }
+
+    def submitBlock(): Unit = logger.trace {
+      val offset = current.offset
+      finish(t => AST.Text.Raw(t, offset), t => AST.Text(offset, t:_*))
+      rewind()
     }
 
     def onBegin(grp: State): Unit = logger.trace {
       push()
       off.push()
       off.push()
-      current = new TextState(Nil, Nil)
+      current = new TextState(0, Nil, Nil)
       state.begin(grp)
+    }
+
+    def onBegin(grp: State, newline: Boolean): Unit = logger.trace {
+      onBegin(grp)
+
+      val lines  = currentMatch.split('\n')
+      val offset = lines.last.length
+
+      if (offset < block.current.offset) {
+        submitBlock()
+        rewind()
+        reader.offset += BLOCK_QUOTE_SIZE
+      } else {
+        current.offset = if (newline) block.current.offset else offset
+        off.current    = offset - current.offset
+        off.push()
+        current.lines =
+          for (_ <- List.range(0, lines.length - 2)) yield List(S.Plain(""))
+      }
     }
 
     def submitPlainSegment(): Unit = logger.trace {
@@ -422,8 +440,17 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       state.end()
       onSubmitLine()
       off.on()
-      if (currentMatch.length > 0) submitPlainSegment()
+      val spaces = currentMatch.length - block.current.offset
+      if (spaces < 0)
+        submitBlock()
+      else
+        current.lineBuilder +:= S.Plain(" " * spaces)
     }
+
+    val BLOCK_QUOTE_SIZE = 3
+
+    def fmtBlock = "'''" >> (newline >> ' '.many).many1
+    def rawBlock = "\"\"\"" >> (newline >> ' '.many).many1
 
     val fmtChar    = noneOf("'`\\\n")
     val escape_int = "\\" >> num.decimal
@@ -433,43 +460,45 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val rawSeg     = noneOf("\"\n").many1
 
     val FMT: State         = state.define("Formatted Text")
-    val RAW: State         = state.define("Raw Text")
+    val FMT_LINE: State    = state.define("Formatted Line Of Text")
+    val RAW_LINE: State    = state.define("Raw Line Of Text")
     val FMT_BLCK: State    = state.define("Formatted Block Of Text")
     val RAW_BLCK: State    = state.define("Raw Block Of Text")
     val NEWLINE: State     = state.define("Text Newline")
     val INTERPOLATE: State = state.define("Interpolate")
     INTERPOLATE.parent = ROOT
+    FMT_LINE.parent    = FMT
+    FMT_BLCK.parent    = FMT
   }
 
-  ROOT     || '`'         || reify { text.onInterpolateEnd()   }
-  text.FMT || '`'         || reify { text.onInterpolateBegin() }
-  ROOT     || "'"         || reify { text.onBegin(text.FMT)    }
-  text.FMT || "'"         || reify { text.submit()             }
-  text.FMT || text.fmtSeg || reify { text.submitPlainSegment() }
-  text.FMT || eof         || reify { text.onEOF()              }
-  text.FMT || newline     || reify { text.submitUnclosed()     }
+  ROOT     || '`' || reify { text.onInterpolateEnd()   }
+  text.FMT || '`' || reify { text.onInterpolateBegin() }
 
-  ROOT          || '`'                     || reify { text.onInterpolateEnd()      }
-  text.FMT      || '`'                     || reify { text.onInterpolateBegin()    }
-  block.NEWLINE || "'''" >> emptyLine      || reify { text.onBeginBlock1(text.FMT) }
-  ROOT          || "'''" >> emptyLine.many || reify { text.onBeginBlock2(text.FMT) }
-  text.FMT      || text.fmtSeg             || reify { text.submitPlainSegment()    }
-  text.FMT      || eof                     || reify { text.onEOFBlock()            }
-  text.FMT      || newline                 || reify { state.begin(text.NEWLINE)    }
+  ROOT          || "'"         || reify { text.onBegin(text.FMT)    }
+  text.FMT_LINE || "'"         || reify { text.submit()             }
+  text.FMT_LINE || text.fmtSeg || reify { text.submitPlainSegment() }
+  text.FMT_LINE || eof         || reify { text.onEOF()              }
+  text.FMT_LINE || newline     || reify { text.submitUnclosed()     }
+
+  block.CHAR1   || text.fmtBlock || reify { text.onBegin(text.FMT, true)  } //TODO FMT_BLCK
+  ROOT          || text.fmtBlock || reify { text.onBegin(text.FMT, false) }
+  text.FMT_BLCK || text.fmtSeg   || reify { text.submitPlainSegment()     }
+  text.FMT_BLCK || eof           || reify { text.submitBlock()             }
+  text.FMT_BLCK || newline       || reify { state.begin(text.NEWLINE)     }
 
   text.NEWLINE || space.opt || reify { text.onNewLine() }
 
   AST.Text.Segment.Escape.Character.codes.foreach { code =>
     import scala.reflect.runtime.universe._
     val name = TermName(code.toString)
-    val char = q"text.Segment.Escape.Character.$name"
+    val char = q"text.S.Escape.Character.$name"
     text.FMT || s"\\$code" || q"text.onEscape($char)"
   }
 
   AST.Text.Segment.Escape.Control.codes.foreach { code =>
     import scala.reflect.runtime.universe._
     val name = TermName(code.toString)
-    val ctrl = q"text.Segment.Escape.Control.$name"
+    val ctrl = q"text.S.Escape.Control.$name"
     text.FMT || s"\\$code" || q"text.onEscape($ctrl)"
   }
 
@@ -490,7 +519,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   class BlockState(
     val isOrphan: Boolean,
     var isValid: Boolean,
-    var indent: Int,
+    var offset: Int,
     var emptyLines: List[Int],
     var firstLine: Option[AST.Block.Line.NonEmpty],
     var lines: List[AST.Block.OptLine]
@@ -520,7 +549,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       AST.Block(
         current.isOrphan,
         AST.Block.Continuous,
-        current.indent,
+        current.offset,
         current.emptyLines,
         unwrap(current.firstLine),
         current.lines.reverse
@@ -614,18 +643,18 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     def onNewLine(): Unit = logger.trace {
       state.end()
       off.on()
-      if (off.current == current.indent)
+      if (off.current == current.offset)
         submitLine()
-      else if (off.current > current.indent)
+      else if (off.current > current.offset)
         onBegin(off.use())
       else
         onEnd(off.use())
-      state.begin(FIRSTCHAR)
+      state.begin(CHAR1)
     }
 
     def onEnd(newIndent: Int): Unit = logger.trace {
-      while (newIndent < current.indent) submit()
-      if (newIndent > current.indent) {
+      while (newIndent < current.offset) submit()
+      if (newIndent > current.offset) {
         logger.log("Block with invalid indentation")
         onBegin(newIndent)
         current.isValid = false
@@ -635,18 +664,18 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       }
     }
 
-    val MODULE    = state.define("Module")
-    val NEWLINE   = state.define("Newline")
-    val FIRSTCHAR = state.define("First Char")
+    val MODULE  = state.define("Module")
+    val NEWLINE = state.define("Newline")
+    val CHAR1   = state.define("First Char")
   }
 
-  ROOT            || newline          || reify { block.onEndLine()     }
-  block.NEWLINE   || emptyLine        || reify { block.onEmptyLine()   }
-  block.NEWLINE   || space.opt >> eof || reify { block.onEOFLine()     }
-  block.NEWLINE   || space.opt        || reify { block.onNewLine()     }
-  block.MODULE    || emptyLine        || reify { block.onEmptyLine()   }
-  block.MODULE    || space.opt        || reify { block.onModuleBegin() }
-  block.FIRSTCHAR || always           || reify { state.end()           }
+  ROOT          || newline          || reify { block.onEndLine()     }
+  block.NEWLINE || emptyLine        || reify { block.onEmptyLine()   }
+  block.NEWLINE || space.opt >> eof || reify { block.onEOFLine()     }
+  block.NEWLINE || space.opt        || reify { block.onNewLine()     }
+  block.MODULE  || emptyLine        || reify { block.onEmptyLine()   }
+  block.MODULE  || space.opt        || reify { block.onModuleBegin() }
+  block.CHAR1   || always           || reify { state.end()           }
 
   ////////////////
   /// Defaults ///

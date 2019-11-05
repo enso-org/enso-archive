@@ -650,19 +650,21 @@ object AST {
       import Text.Segment.implicits._
       import Text._
 
-      implicit def inst(body: TextOf[AST]): Text = body
+//      implicit def inst(body: TextOf[AST]): Text = body
 
       implicit def ftor: Functor[TextOf]  = semi.functor
       implicit def fold: Foldable[TextOf] = semi.foldable
       implicit def repr[T: Repr]: Repr[TextOf[T]] = t => {
         val q = t.quote
         t match {
+          case InvalidQuote(_)          => q
+          case InlineBlock(_)           => q
           case Unclosed(Line.Raw(text)) => q + text
           case Unclosed(Line.Fmt(text)) => q + text
           case Line.Raw(text)           => q + text + q
           case Line.Fmt(text)           => q + text + q
-          case Blck.Raw(off, text)      => q + text.map(newline + off + _)
-          case Blck.Fmt(off, text)      => q + text.map(newline + off + _)
+          case Blck.Raw(text, off)      => q + text.map(newline + off + _)
+          case Blck.Fmt(text, off)      => q + text.map(newline + off + _)
         }
       }
 
@@ -680,10 +682,12 @@ object AST {
         }
 
         val body: TextOf[(Int, T)] = t match {
-          case body: Unclosed[T] => Unclosed(lineBody(body.line))
-          case body: Line.Raw[T] => lineBody(body)
-          case body: Line.Fmt[T] => lineBody(body)
-          case body: Blck.Raw[T] => t.asInstanceOf[Blck.Raw[(Int, T)]]
+          case body: InvalidQuote[T] => t.asInstanceOf[Blck.Raw[(Int, T)]]
+          case body: InlineBlock[T]  => t.asInstanceOf[Blck.Raw[(Int, T)]]
+          case body: Unclosed[T]     => Unclosed(lineBody(body.line))
+          case body: Line.Raw[T]     => lineBody(body)
+          case body: Line.Fmt[T]     => lineBody(body)
+          case body: Blck.Raw[T]     => t.asInstanceOf[Blck.Raw[(Int, T)]]
           case body: Blck.Fmt[T] =>
             var offset = t.quote.span
             val text2 =
@@ -706,11 +710,6 @@ object AST {
 
       val S = Segment
 
-      def apply(body: List[S.Raw]): Text                 = Line.Raw(body)
-      def apply(body: List[S.Fmt]): Text                 = Line.Fmt(body)
-      def apply(off: Int, body: List[List[S.Raw]]): Text = Blck.Raw(off, body)
-      def apply(off: Int, body: List[List[S.Fmt]]): Text = Blck.Fmt(off, body)
-
       //// Definition ////
 
       sealed trait Line[T] extends TextOf[T]
@@ -725,12 +724,12 @@ object AST {
         }
       }
       object Blck {
-        case class Raw[T](offset: Int, text: List[List[S._Raw[T]]])
+        case class Raw[T](text: List[List[S._Raw[T]]], offset: Int)
             extends Blck[T]
             with Phantom {
           val quote = "\"\"\""
         }
-        case class Fmt[T](offset: Int, text: List[List[S._Fmt[T]]])
+        case class Fmt[T](text: List[List[S._Fmt[T]]], offset: Int)
             extends Blck[T] {
           val quote = "'''"
         }
@@ -741,9 +740,37 @@ object AST {
           with AST.InvalidOf[T] {
         def quote = line.quote
       }
+
+      case class InvalidQuote[T](quote: Builder)
+          extends TextOf[T]
+          with AST.InvalidOf[T]
+          with Phantom
+
+      case class InlineBlock[T](quote: Builder)
+          extends TextOf[T]
+          with AST.InvalidOf[T]
+          with Phantom
+
+      ////// CONSTRUCTORS ///////
+
       object Unclosed {
-        def apply(body: List[S.Raw]): Text = Unclosed(Line.Raw(body))
-        def apply(body: List[S.Fmt]): Text = Unclosed(Line.Fmt(body))
+        def apply(segment: S.Fmt*): Text =
+          Unclosed(Line.Fmt(segment.to[List])): TextOf[AST]
+      }
+
+      def apply(text: TextOf[AST]): Text = text
+      def apply(segment: S.Fmt*): Text   = Text(Line.Fmt(segment.to[List]))
+      def apply(off: Int, line: List[S.Fmt]*): Text =
+        Text(Blck.Fmt(line.to[List], off))
+
+      object Raw {
+        object Unclosed {
+          def apply(body: List[S.Raw]): Text =
+            Text(Text.Unclosed(Line.Raw(body)))
+        }
+        def apply(body: List[S.Raw]): Text = Line.Raw(body): TextOf[AST]
+        def apply(body: List[List[S.Raw]], off: Int): Text =
+          Blck.Raw(body, off): TextOf[AST]
       }
 
       /////////////////
