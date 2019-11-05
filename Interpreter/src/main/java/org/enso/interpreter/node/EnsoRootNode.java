@@ -19,11 +19,29 @@ import org.enso.interpreter.runtime.state.Stateful;
  */
 @ReportPolymorphism
 public class EnsoRootNode extends RootNode {
+
+  /** Flag wrapper for whether the resulting state should be returned or ignored. */
+  public enum ResultStateHandlingMode {
+    /** Return the new state. */
+    RETURN,
+    /** Ignore the new state. */
+    IGNORE;
+
+    /**
+     * Should the new state be returned?
+     *
+     * @return {@code true} if the new state should be returned, {@code false} otherwise.
+     */
+    public boolean shouldReturn() {
+      return this == RETURN;
+    }
+  }
+
   private final String name;
   private final SourceSection sourceSection;
   @Child private ExpressionNode body;
   private final FrameSlot stateFrameSlot;
-  private final boolean returnFinalState;
+  private final ResultStateHandlingMode resultStateHandlingMode;
   private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
       contextReference;
 
@@ -35,8 +53,8 @@ public class EnsoRootNode extends RootNode {
    * @param body the program body to be executed
    * @param section a mapping from {@code body} to the program source
    * @param name a name for the node
-   * @param returnFinalState whether this node should return the final state together with the
-   *     result
+   * @param resultStateHandlingMode whether this node should return the final state together with
+   *     the result
    */
   public EnsoRootNode(
       Language language,
@@ -44,13 +62,13 @@ public class EnsoRootNode extends RootNode {
       ExpressionNode body,
       SourceSection section,
       String name,
-      boolean returnFinalState) {
+      ResultStateHandlingMode resultStateHandlingMode) {
     super(language, frameDescriptor);
     this.body = body;
     this.sourceSection = section;
     this.name = name;
     this.stateFrameSlot = frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
-    this.returnFinalState = returnFinalState;
+    this.resultStateHandlingMode = resultStateHandlingMode;
   }
 
   /**
@@ -68,7 +86,7 @@ public class EnsoRootNode extends RootNode {
       ExpressionNode body,
       SourceSection section,
       String name) {
-    this(language, frameDescriptor, body, section, name, true);
+    this(language, frameDescriptor, body, section, name, ResultStateHandlingMode.RETURN);
   }
 
   private Context getContext() {
@@ -94,7 +112,7 @@ public class EnsoRootNode extends RootNode {
     frame.setObject(stateFrameSlot, state);
     Object result = body.executeGeneric(frame);
     state = FrameUtil.getObjectSafe(frame, stateFrameSlot);
-    if (returnFinalState) {
+    if (resultStateHandlingMode.shouldReturn()) {
       return new Stateful(state, result);
     } else {
       return result;

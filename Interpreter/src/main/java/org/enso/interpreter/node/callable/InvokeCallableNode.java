@@ -154,9 +154,9 @@ public abstract class InvokeCallableNode extends BaseNode {
           CompilerDirectives.transferToInterpreterAndInvalidate();
           thisExecutor = ThunkExecutorNode.build(false);
         }
-        Stateful selfRes = thisExecutor.executeThunk((Thunk) selfArgument, state);
-        selfArgument = selfRes.getValue();
-        state = selfRes.getState();
+        Stateful selfResult = thisExecutor.executeThunk((Thunk) selfArgument, state);
+        selfArgument = selfResult.getValue();
+        state = selfResult.getState();
       }
       Function function = methodResolverNode.execute(symbol, selfArgument);
       return this.argumentSorter.execute(function, state, arguments);
