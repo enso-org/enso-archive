@@ -75,7 +75,7 @@ class RecursionFixtures extends LanguageRunner {
       |  stateSum = { |n|
       |    acc = @get [@State];
       |    @put [@State, acc + n];
-      |    ifZero: [n, @get [@State], @stateSum [n-1]]
+      |    ifZero: [n, 0, @stateSum [n-1]]
       |  };
       |  @put [@State, 0];
       |  @stateSum [sumTo]
