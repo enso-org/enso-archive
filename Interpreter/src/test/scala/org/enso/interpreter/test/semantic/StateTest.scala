@@ -83,4 +83,37 @@ class StateTest extends LanguageTest {
     eval(code)
     consumeOut shouldEqual List("Unit<>")
   }
+
+  "State" should "work with pattern matches" in {
+    val code =
+      """
+        |@{
+        |  matcher = { |x| match x <
+        |    Unit ~ { y = @get[@State]; @put[@State, y+5] };
+        |    Nil ~ { y = @get[@State]; @put[@State, y+10] };
+        |  >};
+        |  @put[@State, 1];
+        |  @matcher[@Nil];
+        |  @println[@IO, @get[@State]];
+        |  @matcher[@Unit];
+        |  @println[@IO, @get[@State]];
+        |  0
+        |}
+        |""".stripMargin
+    eval(code)
+    consumeOut shouldEqual List("11", "16")
+  }
+
+  "Panics" should "undo state changes" in {
+    val code =
+      """
+        |@{
+        |  panicker = { @put[@State, 400]; @throw[@Panic, @Unit] };
+        |  @put[@State,-5];
+        |  @recover[@Panic, @panicker];
+        |  @get[@State]
+        |}
+        |""".stripMargin
+    eval(code) shouldEqual (-5)
+  }
 }

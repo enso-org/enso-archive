@@ -211,6 +211,13 @@ public final class Function implements TruffleObject {
       return new Object[] {function.getScope(), state, positionalArguments};
     }
 
+    /**
+     * Generates an array of arguments using the schema to be passed to a call target.
+     *
+     * @param thunk the thunk to be called
+     * @param state the state to execute the thunk with
+     * @return an array containing the necessary information to call an Enso thunk
+     */
     public static Object[] buildArguments(Thunk thunk, Object state) {
       return new Object[] {thunk.getScope(), state, new Object[0]};
     }

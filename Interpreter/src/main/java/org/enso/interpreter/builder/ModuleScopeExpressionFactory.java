@@ -2,7 +2,6 @@ package org.enso.interpreter.builder;
 
 import org.enso.interpreter.*;
 import org.enso.interpreter.node.ExpressionNode;
-import org.enso.interpreter.node.RunStateNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -115,6 +114,6 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
     }
 
     ExpressionFactory factory = new ExpressionFactory(this.language, moduleScope);
-    return new RunStateNode(factory.run(executableExpression));
+    return factory.run(executableExpression);
   }
 }
