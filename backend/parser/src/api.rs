@@ -12,7 +12,7 @@ pub trait ParserService {
     fn call(&mut self, input: String) -> Result<String>;
 }
 
-// TODO : deserialziation should also handle failure
+// TODO : deserialization should also handle failure
 fn deserialize_ast(serialized_ast: String) -> AST {
     serialized_ast
 }

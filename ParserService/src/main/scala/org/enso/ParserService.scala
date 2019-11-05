@@ -27,28 +27,11 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 
-case class ParserServerConfig(
-  interface: String = ParserServerConfig.DEFAULT_HOSTNAME,
-  port: Int         = ParserServerConfig.DEFAULT_PORT
+case class ServerConfig(
+  interface: String,
+  port: Int
 ) {
-  def address_string(): String = s"ws://$interface:$port"
-}
-
-object ParserServerConfig {
-  val HOSTNAME_VAR = "ENSO_PARSER_HOSTNAME"
-  val PORT_VAR     = "ENSO_PARSER_PORT"
-
-  val DEFAULT_PORT     = 30615
-  val DEFAULT_HOSTNAME = "localhost"
-
-  def from_env(): ParserServerConfig = {
-    val hostname = sys.env.getOrElse(HOSTNAME_VAR, DEFAULT_HOSTNAME)
-    val port = sys.env
-      .get(PORT_VAR)
-      .flatMap(str => Try { str.toInt }.toOption)
-      .getOrElse(DEFAULT_PORT)
-    ParserServerConfig(hostname, port)
-  }
+  def addressString(): String = s"ws://$interface:$port"
 }
 
 trait TextMessageServer {
@@ -57,7 +40,7 @@ trait TextMessageServer {
 
   def handleMessage(input: String): String
 
-  val config: ParserServerConfig
+  val config: ServerConfig
 
   val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
     Flow[Message]
@@ -96,7 +79,7 @@ trait TextMessageServer {
     implicit val ec = ExecutionContext.global
     bindingFuture.onComplete({
       case b @ Success(_) =>
-        println(s"Server online at ${config.address_string()}")
+        println(s"Server online at ${config.addressString()}")
       case Failure(exception) =>
         println(s"Failed to start server: $exception")
         system.terminate()
@@ -108,9 +91,24 @@ trait TextMessageServer {
 object ParserService {
   case class Request(codeToParse: String)
   case class Response(serializedAst: String)
+
+  val HOSTNAME_VAR = "ENSO_PARSER_HOSTNAME"
+  val PORT_VAR     = "ENSO_PARSER_PORT"
+
+  val DEFAULT_PORT     = 30615
+  val DEFAULT_HOSTNAME = "localhost"
+
+  def configFromEnv(): ServerConfig = {
+    val hostname = sys.env.getOrElse(HOSTNAME_VAR, DEFAULT_HOSTNAME)
+    val port = sys.env
+      .get(PORT_VAR)
+      .flatMap(str => Try { str.toInt }.toOption)
+      .getOrElse(DEFAULT_PORT)
+    ServerConfig(hostname, port)
+  }
 }
 
-case class ParserService(config: ParserServerConfig) extends TextMessageServer {
+case class ParserService(config: ServerConfig) extends TextMessageServer {
   import ParserService._
 
   val parser = new Parser()
@@ -130,10 +128,10 @@ case class ParserService(config: ParserServerConfig) extends TextMessageServer {
 }
 
 object ParserServiceMain extends App {
-  import ParserServerConfig._
+  import ParserService._
   println("Getting configuration from environment...")
-  val config = ParserServerConfig.from_env()
-  println(s"Will serve ${config.address_string()}")
+  val config = configFromEnv()
+  println(s"Will serve ${config.addressString()}")
   println(
     s"To change configuration, restart with $HOSTNAME_VAR or " +
     s"$PORT_VAR variables set to desired values"
