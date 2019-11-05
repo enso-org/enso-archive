@@ -47,13 +47,12 @@ public class Builtins {
     scope.registerConstructor(state);
 
     scope.registerMethod(io, "println", PrintNode.makeFunction(language));
+
     scope.registerMethod(panic, "throw", PanicNode.makeFunction(language));
     scope.registerMethod(panic, "recover", CatchPanicNode.makeFunction(language));
     scope.registerMethod(error, "throw", ThrowErrorNode.makeFunction(language));
-
     scope.registerMethodForAny("catch", CatchErrorNode.makeFunction(language));
 
-    scope.registerMethod(io, "println", PrintNode.makeFunction(language));
     scope.registerMethod(state, "get", GetStateNode.makeFunction(language));
     scope.registerMethod(state, "put", PutStateNode.makeFunction(language));
     scope.registerMethod(state, "run", RunStateNode.makeFunction(language));

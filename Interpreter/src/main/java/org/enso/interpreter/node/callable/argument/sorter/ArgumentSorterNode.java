@@ -50,6 +50,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * matches with the one stored in the cached argument sorter object.
    *
    * @param function the function to sort arguments for
+   * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code callable}
    * @param mappingNode a cached node that tracks information about the mapping to enable a fast
    *     path
@@ -75,6 +76,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * perform any caching and is thus a slow-path operation.
    *
    * @param function the function to execute.
+   * @param state the state to pass to the function
    * @param arguments the arguments to reorder and supply to the {@code function}.
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
@@ -97,6 +99,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * Executes the {@link ArgumentSorterNode} to reorder the arguments.
    *
    * @param callable the function to sort arguments for
+   * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code function}
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */

@@ -17,6 +17,7 @@ public class TailCallException extends ControlFlowException {
    * Creates a new exception containing the necessary data to continue computation.
    *
    * @param function the function to execute in a loop
+   * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
    */
   public TailCallException(Function function, Object state, Object[] arguments) {
@@ -43,6 +44,11 @@ public class TailCallException extends ControlFlowException {
     return arguments;
   }
 
+  /**
+   * Gets the state to pass to the function
+   *
+   * @return the state to pass for next call
+   */
   public Object getState() {
     return state;
   }

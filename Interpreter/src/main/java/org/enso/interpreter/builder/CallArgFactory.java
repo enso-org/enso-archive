@@ -62,10 +62,6 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
         Truffle.getRuntime()
             .createCallTarget(
                 new EnsoRootNode(
-                    language,
-                    childScope.getFrameDescriptor(),
-                    expr,
-                    null,
-                    displayName)));
+                    language, childScope.getFrameDescriptor(), expr, null, displayName)));
   }
 }

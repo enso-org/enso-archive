@@ -30,16 +30,17 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
   }
 
   /**
-   * Calls the provided {@code callable} using the provided {@code arguments}.
+   * Calls the provided {@code function} using the provided {@code arguments}.
    *
-   * @param callable the callable to execute
-   * @param arguments the arguments to {@code callable}
-   * @return the result of executing {@code callable} using {@code arguments}
+   * @param function the function to execute
+   * @param state the state to pass to the function
+   * @param arguments the arguments to {@code function}
+   * @return the result of executing {@code function} using {@code arguments}
    */
   @Override
-  public Stateful executeDispatch(Object callable, Object state, Object[] arguments) {
+  public Stateful executeDispatch(Object function, Object state, Object[] arguments) {
     VirtualFrame frame = Truffle.getRuntime().createVirtualFrame(null, loopFrameDescriptor);
-    ((RepeatedCallNode) loopNode.getRepeatingNode()).setNextCall(frame, callable, state, arguments);
+    ((RepeatedCallNode) loopNode.getRepeatingNode()).setNextCall(frame, function, state, arguments);
     loopNode.executeLoop(frame);
 
     return ((RepeatedCallNode) loopNode.getRepeatingNode()).getResult(frame);
@@ -75,6 +76,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
      *
      * @param frame the stack frame for execution
      * @param function the function to execute in {@code frame}
+     * @param state the state to pass to the function
      * @param arguments the arguments to execute {@code function} with
      */
     public void setNextCall(VirtualFrame frame, Object function, Object state, Object[] arguments) {
@@ -105,6 +107,12 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
       return result;
     }
 
+    /**
+     * Generates the next state value for the looping function
+     *
+     * @param frame the stack frame for execution
+     * @return the state to pass to the next function
+     */
     public Object getNextState(VirtualFrame frame) {
       Object result = FrameUtil.getObjectSafe(frame, stateSlot);
       frame.setObject(stateSlot, null);

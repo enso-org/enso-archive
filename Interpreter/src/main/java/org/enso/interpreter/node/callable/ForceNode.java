@@ -15,12 +15,11 @@ import org.enso.interpreter.runtime.state.Stateful;
 /** Node responsible for handling user-requested thunks forcing. */
 @NodeChild(value = "target", type = ExpressionNode.class)
 public abstract class ForceNode extends ExpressionNode {
-  private @CompilerDirectives.CompilationFinal FrameSlot stateSlot;
-
-
   @Specialization
   Object passToExecutorNode(
-      VirtualFrame frame, Thunk thunk, @Cached("build(isTail())") ThunkExecutorNode thunkExecutorNode) {
+      VirtualFrame frame,
+      Thunk thunk,
+      @Cached("build(isTail())") ThunkExecutorNode thunkExecutorNode) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     Stateful result = thunkExecutorNode.executeThunk(thunk, state);
     frame.setObject(getStateFrameSlot(), result.getState());

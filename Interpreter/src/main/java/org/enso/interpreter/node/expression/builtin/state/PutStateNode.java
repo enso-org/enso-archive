@@ -23,7 +23,7 @@ public class PutStateNode extends RootNode {
    * @return The new state value and a modification setting the state to the same value
    */
   @Override
-  public Object execute(VirtualFrame frame) {
+  public Stateful execute(VirtualFrame frame) {
     Object newState = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
     return new Stateful(newState, newState);
   }

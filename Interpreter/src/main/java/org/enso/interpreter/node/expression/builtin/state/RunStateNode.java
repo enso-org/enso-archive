@@ -11,6 +11,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
+import javax.swing.plaf.nimbus.State;
+
 /** Root for the builtin State.run function. */
 @NodeInfo(shortName = "State.run", description = "Root for the builtin State.run function")
 public class RunStateNode extends RootNode {
@@ -32,7 +34,7 @@ public class RunStateNode extends RootNode {
    * @return the result of running the stateful computation with the desired initial state
    */
   @Override
-  public Object execute(VirtualFrame frame) {
+  public Stateful execute(VirtualFrame frame) {
     Object localState = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
     Object maybeThunk = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[2];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());

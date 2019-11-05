@@ -131,6 +131,7 @@ public class CachedArgumentSorterNode extends BaseNode {
    * Reorders the provided arguments into the necessary order for the cached callable.
    *
    * @param function the function this node is reordering arguments for
+   * @param state the state to pass to the function
    * @param arguments the arguments to reorder
    * @param optimiser a call optimiser node, capable of performing the actual function call
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}

@@ -155,6 +155,7 @@ public final class Function implements TruffleObject {
      *
      * @param function the function to execute
      * @param arguments the arguments passed to {@code function} in the expected positional order
+     * @param context the current language context
      * @param cachedArgsLength the cached arguments count
      * @param sorterNode the cached argument sorter node for the particular arguments array length.
      * @return the result of executing {@code function} on {@code arguments}
@@ -176,6 +177,7 @@ public final class Function implements TruffleObject {
      *
      * @param function the function to execute.
      * @param arguments the arguments to pass to the {@code function}.
+     * @param context the current language context
      * @return the result of function application.
      */
     @Specialization(replaces = "callCached")

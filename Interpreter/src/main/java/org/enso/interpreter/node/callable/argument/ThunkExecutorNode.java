@@ -21,6 +21,7 @@ public abstract class ThunkExecutorNode extends Node {
    * Forces the thunk to its resulting value.
    *
    * @param thunk the thunk to force
+   * @param state the state to pass to the thunk
    * @return the return value of this thunk
    */
   public abstract Stateful executeThunk(Thunk thunk, Object state);

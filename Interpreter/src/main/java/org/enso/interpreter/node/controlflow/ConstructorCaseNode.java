@@ -55,7 +55,8 @@ public class ConstructorCaseNode extends CaseNode {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(matcherVal == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
-      throw new BranchSelectedException(executeCallNode.executeCall(function, state, target.getFields()));
+      throw new BranchSelectedException(
+          executeCallNode.executeCall(function, state, target.getFields()));
     }
   }
 

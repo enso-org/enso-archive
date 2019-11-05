@@ -24,6 +24,7 @@ public abstract class ExecuteCallNode extends Node {
    * already cached. THis means that the call can be made quickly.
    *
    * @param function the function to execute
+   * @param state the current state value
    * @param arguments the arguments passed to {@code function} in the expected positional order
    * @param cachedTarget the cached call target for {@code function}
    * @param callNode the cached call node for {@code cachedTarget}
@@ -47,6 +48,7 @@ public abstract class ExecuteCallNode extends Node {
    * provided function. This is much slower and should, in general, be avoided.
    *
    * @param function the function to execute
+   * @param state the current state value
    * @param arguments the arguments passed to {@code function} in the expected positional order
    * @param callNode the cached call node for making indirect calls
    * @return the result of executing {@code function} on {@code arguments}
@@ -64,6 +66,7 @@ public abstract class ExecuteCallNode extends Node {
    * Executes the function call.
    *
    * @param function the function to execute
+   * @param state the state value to pass to the function
    * @param arguments the arguments to be passed to {@code function}
    * @return the result of executing {@code function} on {@code arguments}
    */
