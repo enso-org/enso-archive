@@ -4,7 +4,6 @@ import org.enso.interpreter.test.InterpreterTest
 
 class CurryingTest extends InterpreterTest {
   "Functions" should "allow partial application" in {
-    pending
     val code =
       """
         |@{
@@ -15,12 +14,11 @@ class CurryingTest extends InterpreterTest {
         |  result
         |}
         |""".stripMargin
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 11
+
+    eval(code) shouldEqual 11
   }
 
   "Functions" should "allow default arguments to be suspended" in {
-    pending
     val code =
       """
         |@{
@@ -34,12 +32,10 @@ class CurryingTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 26
+    eval(code) shouldEqual 26
   }
 
   "Functions" should "allow defaults to be suspended in application chains" in {
-    pending
     val code =
       """
         |@{
@@ -49,7 +45,6 @@ class CurryingTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
-//    eval(code) shouldEqual 32
+    eval(code) shouldEqual 32
   }
 }

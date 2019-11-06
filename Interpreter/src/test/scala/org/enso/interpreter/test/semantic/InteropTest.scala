@@ -4,7 +4,6 @@ import org.enso.interpreter.test.InterpreterTest
 
 class InteropTest extends InterpreterTest {
   "Interop library" should "support tail recursive functions" in {
-    pending
     val code =
       """
         |@{
@@ -13,13 +12,11 @@ class InteropTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
-//    val recurFun = eval(code)
-//    recurFun.call(15) shouldEqual 0
+    val recurFun = eval(code)
+    recurFun.call(15) shouldEqual 0
   }
 
   "Interop library" should "support calling curried functions" in {
-    pending
     val code =
       """
         |@{
@@ -28,21 +25,18 @@ class InteropTest extends InterpreterTest {
         |}
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
-//    val curriedFun = eval(code)
-//    curriedFun.call(2, 3) shouldEqual 6
+    val curriedFun = eval(code)
+    curriedFun.call(2, 3) shouldEqual 6
   }
 
   "Interop library" should "support creating curried calls" in {
-    pending
     val code =
       """
         |{ |x, y, z| (x + y) + z }
         |""".stripMargin
 
-    noException should be thrownBy parse(code)
-//    val fun = eval(code)
-//    fun.call(1).call(2).call(3) shouldEqual 6
+    val fun = eval(code)
+    fun.call(1).call(2).call(3) shouldEqual 6
   }
 
   "Interop library" should "work with oversaturated calls on unresolved methods returned from functions" in {
@@ -52,6 +46,7 @@ class InteropTest extends InterpreterTest {
         |
         |{ |x| method }
         |""".stripMargin
+
     val fun = eval(code)
     fun.call(1, 2) shouldEqual 2
   }

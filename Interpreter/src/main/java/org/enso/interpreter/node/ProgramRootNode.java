@@ -1,12 +1,15 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.frame.*;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This node handles static transformation of the input AST before execution.
@@ -16,10 +19,32 @@ import org.enso.interpreter.runtime.Context;
  * result, this node handles the transformations and re-writes
  */
 public class ProgramRootNode extends RootNode {
+
+  /** Flag wrapper for whether the resulting state should be returned or ignored. */
+  public enum ResultStateHandlingMode {
+    /** Return the new state. */
+    RETURN,
+    /** Ignore the new state. */
+    IGNORE;
+
+    /**
+     * Should the new state be returned?
+     *
+     * @return {@code true} if the new state should be returned, {@code false} otherwise.
+     */
+    public boolean shouldReturn() {
+      return this == RETURN;
+    }
+  }
+
   private final Language language;
   private final String name;
   private final SourceSection sourceSection;
   private final Source sourceCode;
+  private final FrameSlot stateFrameSlot;
+  private final ResultStateHandlingMode resultStateHandlingMode;
+  private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
+      contextReference;
 
   @Child private ExpressionNode ensoProgram = null;
   private boolean programShouldBeTailRecursive = false;
@@ -38,12 +63,33 @@ public class ProgramRootNode extends RootNode {
       FrameDescriptor frameDescriptor,
       String name,
       SourceSection sourceSection,
-      Source sourceCode) {
+      Source sourceCode,
+      ResultStateHandlingMode resultStateHandlingMode) {
     super(language, frameDescriptor);
     this.language = language;
     this.name = name;
     this.sourceSection = sourceSection;
     this.sourceCode = sourceCode;
+    this.stateFrameSlot = frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
+    this.resultStateHandlingMode = resultStateHandlingMode;
+  }
+
+  public ProgramRootNode(
+      Language language,
+      FrameDescriptor frameDescriptor,
+      String name,
+      SourceSection sourceSection,
+      Source sourceCode) {
+    this(
+        language, frameDescriptor, name, sourceSection, sourceCode, ResultStateHandlingMode.RETURN);
+  }
+
+  private Context getContext() {
+    if (contextReference == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      contextReference = lookupContextReference(Language.class);
+    }
+    return contextReference.get();
   }
 
   /**
@@ -64,7 +110,22 @@ public class ProgramRootNode extends RootNode {
 
     this.ensoProgram.setTail(programShouldBeTailRecursive);
 
-    return this.ensoProgram.executeGeneric(frame);
+    // Handle State
+    Object state =
+        frame.getArguments().length == 0
+            ? getContext().getUnit().newInstance()
+            : Function.ArgumentsHelper.getState(frame.getArguments());
+
+    frame.setObject(stateFrameSlot, state);
+    Object result = this.ensoProgram.executeGeneric(frame);
+    state = FrameUtil.getObjectSafe(frame, stateFrameSlot);
+
+    if (resultStateHandlingMode.shouldReturn()) {
+//      return new Stateful(state, result);
+        return result;
+    } else {
+      return result;
+    }
   }
 
   /* Note [Static Passes]
@@ -123,4 +184,13 @@ public class ProgramRootNode extends RootNode {
    * To do this, we set a variable internally, that is then passed to the program just before it is
    * executed.
    */
+
+  /**
+   * Returns the frame slot reference to state variable.
+   *
+   * @return the frame slot corresponding to state monad
+   */
+  FrameSlot getStateFrameSlot() {
+    return stateFrameSlot;
+  }
 }

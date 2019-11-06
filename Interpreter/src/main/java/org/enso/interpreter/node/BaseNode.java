@@ -22,7 +22,12 @@ public class BaseNode extends Node {
   protected FrameSlot getStateFrameSlot() {
     if (stateFrameSlot == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      stateFrameSlot = ((EnsoRootNode) getRootNode()).getStateFrameSlot();
+      if (getRootNode() instanceof ProgramRootNode) {
+        stateFrameSlot = ((ProgramRootNode) getRootNode()).getStateFrameSlot();
+      }
+      else {
+        stateFrameSlot = ((EnsoRootNode) getRootNode()).getStateFrameSlot();
+      }
     }
     return stateFrameSlot;
   }

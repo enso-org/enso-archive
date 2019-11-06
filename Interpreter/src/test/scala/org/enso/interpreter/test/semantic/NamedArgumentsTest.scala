@@ -1,7 +1,7 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterException
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
+import org.graalvm.polyglot.PolyglotException
 
 class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "take arguments by name and use them in their bodies" in {
@@ -179,7 +179,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |@badArgFn [@Unit, 3]
         |""".stripMargin
 
-    a[PolyglotException] should be thrownBy eval(code)
+    an[InterpreterException] should be thrownBy eval(code)
   }
 
   "Constructors" should "be able to use named arguments" in {

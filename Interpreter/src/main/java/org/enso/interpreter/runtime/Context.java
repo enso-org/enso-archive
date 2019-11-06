@@ -1,36 +1,15 @@
 package org.enso.interpreter.runtime;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.TruffleLanguage.Env;
 import org.enso.compiler.Compiler;
-import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.source.Source;
-import org.enso.interpreter.AstGlobalScope;
-import org.enso.interpreter.Constants;
-import org.enso.interpreter.EnsoParser;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.builder.ModuleScopeExpressionFactory;
-import org.enso.interpreter.node.EnsoRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
-import org.enso.interpreter.runtime.error.ModuleDoesNotExistException;
-import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.SourceFile;
 
 import java.io.File;
-import java.io.PrintStream;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
-
-import java.io.File;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +26,6 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
-  private final Builtins builtins;
 
   /**
    * Creates a new Enso context.
@@ -59,7 +37,6 @@ public class Context {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
-    this.builtins = new Builtins(language);
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
     // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
@@ -77,28 +54,7 @@ public class Context {
                         new Module(
                             getEnvironment().getTruffleFile(srcFile.file().getAbsolutePath()))));
 
-      this.compiler = new Compiler(this.language, knownFiles);
-  }
-
-  /**
-   * Parses language sources, registering bindings in the given scope.
-   *
-   * @param source the source to be parsed
-   * @param scope the scope in which to register any new bindings
-   * @return a call target which execution corresponds to the toplevel executable bits in the module
-   */
-  public CallTarget parse(Source source, ModuleScope scope) {
-    AstModuleScope parsed = new EnsoParser().parseEnso(source.getCharacters().toString());
-    ExpressionNode result = new ModuleScopeExpressionFactory(language, scope).run(parsed);
-    EnsoRootNode root =
-        new EnsoRootNode(
-            language,
-            new FrameDescriptor(),
-            result,
-            null,
-            "root",
-            EnsoRootNode.ResultStateHandlingMode.IGNORE);
-    return Truffle.getRuntime().createCallTarget(root);
+    this.compiler = new Compiler(this.language, knownFiles, new Builtins(language));
   }
 
   /**
@@ -144,27 +100,12 @@ public class Context {
   }
 
   /**
-   * Creates a new module scope that automatically imports all the builtin types and methods.
-   *
-   * @return a new module scope with automatic builtins dependency.
-   */
-  public ModuleScope createScope() {
-    ModuleScope moduleScope = new ModuleScope();
-    moduleScope.addImport(getBuiltins().getScope());
-    return moduleScope;
-  }
-
-  private Builtins getBuiltins() {
-    return builtins;
-  }
-
-  /**
    * Returns the atom constructor corresponding to the {@code Unit} type, for builtin constructs
    * that need to return an atom of this type.
    *
    * @return the builtin {@code Unit} atom constructor
    */
   public AtomConstructor getUnit() {
-    return getBuiltins().unit();
+    return compiler.getBuiltins().unit();
   }
 }

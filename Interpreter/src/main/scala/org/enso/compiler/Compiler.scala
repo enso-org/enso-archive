@@ -6,9 +6,11 @@ import org.enso.compiler.generate.AstToIr
 import org.enso.compiler.ir.IR
 import org.enso.flexer.Reader
 import org.enso.interpreter.Constants
+import org.enso.interpreter.EnsoParser
 import org.enso.interpreter.Language
+import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
+import org.enso.interpreter.runtime.Builtins
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.ModuleScope
@@ -33,10 +35,30 @@ import scala.collection.mutable
   */
 class Compiler(
   val language: Language,
-  val files: java.util.Map[String, Module]
+  val files: java.util.Map[String, Module],
+  val builtins: Builtins
 ) {
 
   val knownFiles: mutable.Map[String, Module] = files.asScala
+
+  /**
+    * Creates a new module scope that automatically imports all the builtin
+    * types and methods.
+    *
+    * @return a new module scope with automatic builtins dependency.
+    */
+  def createScope: ModuleScope = {
+    val moduleScope = new ModuleScope
+    moduleScope.addImport(getBuiltins.getScope)
+    moduleScope
+  }
+
+  /**
+    * Gets the builtin functions from the compiler.
+    *
+    * @return an object containing the builtin functions
+    */
+  def getBuiltins = builtins
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -48,15 +70,10 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): ExpressionNode = {
-    val parsedAST: AST  = parse(source)
-    val desugaredIR: IR = translate(parsedAST)
+    val parsed =
+      new EnsoParser().parseEnso(source.getCharacters.toString)
 
-    // FIXME [AA] Temporary, to prevent a billion errors while testing parsing
-    new IntegerLiteralNode(10)
-
-//    val parsed: AstModuleScope =
-//      new EnsoParser().parseEnso(source.getCharacters.toString)
-//    new ModuleScopeExpressionFactory(language, scope).run(parsed)
+    new ModuleScopeExpressionFactory(language, scope).run(parsed)
   }
 
   // TODO [AA] This needs to evolve to support scope execution
@@ -86,7 +103,7 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source): ExpressionNode = {
-    run(source, new ModuleScope)
+    run(source, createScope)
   }
 
   /**

@@ -1,15 +1,10 @@
 package org.enso.interpreter.test
 
-import org.enso.interpreter.AstGlobalScope
-import org.enso.interpreter.Constants
-import org.enso.interpreter.EnsoParser
-import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.PolyglotException
-import org.graalvm.polyglot.Value
 import java.io.ByteArrayOutputStream
 
 import org.enso.interpreter.Constants
 import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.PolyglotException
 import org.graalvm.polyglot.Value
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
@@ -35,12 +30,8 @@ trait InterpreterRunner {
     result.lines.toList
   }
 
-  def parse(code: String): Value = eval(code)
-
-  implicit def toPolyglotException(
-    interpreterException: InterpreterException
-  ): PolyglotException = interpreterException.polyglotException
-
+  def parse(code: String): Value =
+    InterpreterException.rethrowPolyglot(eval(code))
 }
 
 trait InterpreterTest
