@@ -1,11 +1,10 @@
 use websocket::stream::sync::TcpStream;
 use websocket::{ClientBuilder, Message, OwnedMessage};
-use websocket::result::WebSocketError::NoDataAvailable;
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
-type Result<T> = websocket::result::WebSocketResult<T>;
 
-use crate::api::ParserService;
+use crate::api::{ParserService, ParserError};
+use crate::api::Result;
 
 //////////////////////////
 // Constants & literals //
@@ -17,7 +16,6 @@ const DEFAULT_HOSTNAME: &str = LOCALHOST;
 
 const HOSTNAME_VAR: &str = "ENSO_PARSER_HOSTNAME";
 const PORT_VAR: &str = "ENSO_PARSER_PORT";
-
 
 ////////////
 // Config //
@@ -69,7 +67,22 @@ impl ParserService for Client {
         let response = self.connection.recv_message()?;
         match response {
             OwnedMessage::Text(text) => Ok(text),
-            _ => Err(NoDataAvailable),
+            _ => Err(ParserError::NonTextResponse(response)),
         }
+    }
+}
+
+///////////
+// tests //
+///////////
+
+#[test]
+fn wrong_url_reported() {
+    let invalid_hostname = String::from("bgjhkb 7");
+    let wrong_config = Config { host: invalid_hostname, port: 8080 };
+    let client = Client::new(&wrong_config);
+
+    if let Err(ParserError::WrongUrl(_)) = client {} else {
+        assert!(false, "expected WrongUrl error");
     }
 }
