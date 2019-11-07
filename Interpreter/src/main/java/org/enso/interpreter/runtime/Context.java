@@ -5,6 +5,7 @@ import com.oracle.truffle.api.TruffleLanguage.Env;
 import org.enso.compiler.Compiler;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.SourceFile;
@@ -26,6 +27,7 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
+  private final Builtins builtins;
 
   /**
    * Creates a new Enso context.
@@ -37,6 +39,7 @@ public class Context {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
+    this.builtins = new Builtins(language);
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
     // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
@@ -54,7 +57,7 @@ public class Context {
                         new Module(
                             getEnvironment().getTruffleFile(srcFile.file().getAbsolutePath()))));
 
-    this.compiler = new Compiler(this.language, knownFiles, new Builtins(language));
+    this.compiler = new Compiler(this.language, knownFiles, this);
   }
 
   /**
@@ -100,12 +103,32 @@ public class Context {
   }
 
   /**
+   * Creates a new module scope that automatically imports all the builtin types and methods.
+   *
+   * @return a new module scope with automatic builtins dependency.
+   */
+  public ModuleScope createScope() {
+    ModuleScope moduleScope = new ModuleScope();
+    moduleScope.addImport(getBuiltins().getScope());
+    return moduleScope;
+  }
+
+  /**
+   * Gets the builtin functions from the compiler.
+   *
+   * @return an object containing the builtin functions
+   */
+  Builtins getBuiltins() {
+    return this.builtins;
+  }
+
+  /**
    * Returns the atom constructor corresponding to the {@code Unit} type, for builtin constructs
    * that need to return an atom of this type.
    *
    * @return the builtin {@code Unit} atom constructor
    */
   public AtomConstructor getUnit() {
-    return compiler.getBuiltins().unit();
+    return getBuiltins().unit();
   }
 }

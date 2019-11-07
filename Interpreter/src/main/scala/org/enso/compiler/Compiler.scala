@@ -11,6 +11,7 @@ import org.enso.interpreter.Language
 import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.Builtins
+import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.ModuleScope
@@ -20,14 +21,6 @@ import org.enso.syntax.text.Parser
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
-// TODO [AA] Process as follows:
-//  1. Traverse the output AST to transform it into the IR (needs the ability to
-//  store and return arbitrary info in the AST) [DONE]
-//  2. Validate the IR
-//  3. Desugar the IR (pass by pass)
-//  4. Analyse the IR (may be interleaved with the above)
-//  5. Codegen to interpreter AST
-
 /**
   * This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -36,29 +29,10 @@ import scala.collection.mutable
 class Compiler(
   val language: Language,
   val files: java.util.Map[String, Module],
-  val builtins: Builtins
+  val context: Context
 ) {
 
   val knownFiles: mutable.Map[String, Module] = files.asScala
-
-  /**
-    * Creates a new module scope that automatically imports all the builtin
-    * types and methods.
-    *
-    * @return a new module scope with automatic builtins dependency.
-    */
-  def createScope: ModuleScope = {
-    val moduleScope = new ModuleScope
-    moduleScope.addImport(getBuiltins.getScope)
-    moduleScope
-  }
-
-  /**
-    * Gets the builtin functions from the compiler.
-    *
-    * @return an object containing the builtin functions
-    */
-  def getBuiltins = builtins
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -77,9 +51,6 @@ class Compiler(
   }
 
   // TODO [AA] This needs to evolve to support scope execution
-
-  // TODO [AA] Need to walk the AST and report the parse errors as they are
-  //  encountered. The interpreter is not expected to execute on errored code.
 
   /**
     * Processes the language sources in the provided file, registering any
@@ -103,7 +74,7 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source): ExpressionNode = {
-    run(source, createScope)
+    run(source, context.createScope)
   }
 
   /**

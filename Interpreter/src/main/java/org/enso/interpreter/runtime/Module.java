@@ -29,7 +29,7 @@ public class Module {
   public ModuleScope requestParse(Context context) throws IOException {
     // TODO [AA] This needs to evolve to support scope execution
     if (cachedScope == null) {
-      cachedScope = new ModuleScope();
+      cachedScope = context.createScope();
       context.compiler().run(file, cachedScope);
     }
     return cachedScope;

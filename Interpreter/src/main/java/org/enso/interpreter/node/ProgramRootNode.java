@@ -18,34 +18,9 @@ import org.enso.interpreter.runtime.state.Stateful;
  * must have access to the interpreter, it must take place as part of the interpreter context. As a
  * result, this node handles the transformations and re-writes
  */
-public class ProgramRootNode extends RootNode {
+public class ProgramRootNode extends EnsoRootNode {
 
-  /** Flag wrapper for whether the resulting state should be returned or ignored. */
-  public enum ResultStateHandlingMode {
-    /** Return the new state. */
-    RETURN,
-    /** Ignore the new state. */
-    IGNORE;
-
-    /**
-     * Should the new state be returned?
-     *
-     * @return {@code true} if the new state should be returned, {@code false} otherwise.
-     */
-    public boolean shouldReturn() {
-      return this == RETURN;
-    }
-  }
-
-  private final Language language;
-  private final String name;
-  private final SourceSection sourceSection;
   private final Source sourceCode;
-  private final FrameSlot stateFrameSlot;
-  private final ResultStateHandlingMode resultStateHandlingMode;
-  private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
-      contextReference;
-
   @Child private ExpressionNode ensoProgram = null;
   private boolean programShouldBeTailRecursive = false;
 
@@ -63,33 +38,14 @@ public class ProgramRootNode extends RootNode {
       FrameDescriptor frameDescriptor,
       String name,
       SourceSection sourceSection,
-      Source sourceCode,
-      ResultStateHandlingMode resultStateHandlingMode) {
-    super(language, frameDescriptor);
-    this.language = language;
-    this.name = name;
-    this.sourceSection = sourceSection;
-    this.sourceCode = sourceCode;
-    this.stateFrameSlot = frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
-    this.resultStateHandlingMode = resultStateHandlingMode;
-  }
-
-  public ProgramRootNode(
-      Language language,
-      FrameDescriptor frameDescriptor,
-      String name,
-      SourceSection sourceSection,
       Source sourceCode) {
-    this(
-        language, frameDescriptor, name, sourceSection, sourceCode, ResultStateHandlingMode.RETURN);
-  }
-
-  private Context getContext() {
-    if (contextReference == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      contextReference = lookupContextReference(Language.class);
-    }
-    return contextReference.get();
+    super(
+        language,
+        frameDescriptor,
+        name,
+        sourceSection,
+        frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
+    this.sourceCode = sourceCode;
   }
 
   /**
@@ -98,10 +54,9 @@ public class ProgramRootNode extends RootNode {
    * @param frame the stack frame to execute in
    * @return the result of executing this node
    */
-  // TODO [AA] It somehow needs to evaluate the imported files
   @Override
   public Object execute(VirtualFrame frame) {
-    Context context = this.language.getCurrentContext();
+    Context context = this.getLanguage().getCurrentContext();
 
     // Note [Static Passes]
     if (this.ensoProgram == null) {
@@ -109,23 +64,10 @@ public class ProgramRootNode extends RootNode {
     }
 
     this.ensoProgram.setTail(programShouldBeTailRecursive);
+    Object state = getContext().getUnit().newInstance();
+    frame.setObject(this.getStateFrameSlot(), state);
 
-    // Handle State
-    Object state =
-        frame.getArguments().length == 0
-            ? getContext().getUnit().newInstance()
-            : Function.ArgumentsHelper.getState(frame.getArguments());
-
-    frame.setObject(stateFrameSlot, state);
-    Object result = this.ensoProgram.executeGeneric(frame);
-    state = FrameUtil.getObjectSafe(frame, stateFrameSlot);
-
-    if (resultStateHandlingMode.shouldReturn()) {
-//      return new Stateful(state, result);
-        return result;
-    } else {
-      return result;
-    }
+    return this.ensoProgram.executeGeneric(frame);
   }
 
   /* Note [Static Passes]
@@ -156,16 +98,6 @@ public class ProgramRootNode extends RootNode {
    */
 
   /**
-   * Converts this node to a textual representation good for debugging.
-   *
-   * @return a {@link String} representation of this node
-   */
-  @Override
-  public String toString() {
-    return this.name;
-  }
-
-  /**
    * Sets whether the node is tail-recursive.
    *
    * @param isTail whether or not the node is tail-recursive.
@@ -184,13 +116,4 @@ public class ProgramRootNode extends RootNode {
    * To do this, we set a variable internally, that is then passed to the program just before it is
    * executed.
    */
-
-  /**
-   * Returns the frame slot reference to state variable.
-   *
-   * @return the frame slot corresponding to state monad
-   */
-  FrameSlot getStateFrameSlot() {
-    return stateFrameSlot;
-  }
 }
