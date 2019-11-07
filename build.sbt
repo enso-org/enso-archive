@@ -194,6 +194,7 @@ lazy val graph = (project in file("lib/graph/"))
   .settings(
     version := "0.1",
     scalacOptions -= "-deprecation", // FIXME [WD]
+//    scalacOptions += "-Ymacro-debug-lite", // TODO [AA] Remove this
     resolvers ++= Seq(
       Resolver.sonatypeRepo("releases"),
       Resolver.sonatypeRepo("snapshots")

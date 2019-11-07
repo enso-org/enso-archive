@@ -728,7 +728,8 @@ object Main {
       implicit def sized = new Sized[Shape] { type Out = _2 }
 
       object implicits {
-        implicit class EdgeShapeInstance[G <: Graph, C <: Component](
+        // TODO [AA] Macro will need enclosing type name
+        implicit class ShapeInstance[G <: Graph, C <: Component](
           node: Component.Ref[G, C]
         ) {
 
@@ -763,14 +764,14 @@ object Main {
         }
 
         // Not needed in Dotty
-        implicit def EdgeShape_transInstance[
+        implicit def Shape_transInstance[
           F <: Component.Field,
           R,
           G <: Graph,
           C <: Component
         ](
           t: Component.Refined[F, R, Component.Ref[G, C]]
-        ): EdgeShapeInstance[G, C] =
+        ): ShapeInstance[G, C] =
           t.wrapped
       }
     }
