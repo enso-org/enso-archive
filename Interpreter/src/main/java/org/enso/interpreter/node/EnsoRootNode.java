@@ -65,20 +65,6 @@ public abstract class EnsoRootNode extends RootNode {
   }
 
   /**
-   * Gets a reference to the language with which this node is associated.
-   *
-   * @return a language reference
-   */
-  public Language getLanguage() {
-    if (languageReference == null) {
-      CompilerDirectives.transferToInterpreterAndInvalidate();
-      languageReference = lookupLanguageReference(Language.class);
-    }
-
-    return languageReference.get();
-  }
-
-  /**
    * Sets whether the node is tail-recursive.
    *
    * @param isTail whether or not the node is tail-recursive
