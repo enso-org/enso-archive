@@ -185,7 +185,7 @@ class ParserTest extends FlatSpec with Matchers {
   "'a''" ?= Text.Unclosed("a") $ Text(Text.InvalidQuote[AST]("''"))
   "'\"'" ?= Text("\"")
 
-  " '''\n\n X\n\n Y"    ?= Text(0, 1, line("X", 0), line("Y", 0))
+  "''' \n\n X\n\n Y"    ?= Text(1, 0, line(" X", 0), line(" Y", 0))
   "a '''\n\n\n X\n\n Y" ?= "a" $_ Text(0, 1, line("X", 0, 0), line("Y", 0))
 
   "\""      ?= Text.Raw.Unclosed()

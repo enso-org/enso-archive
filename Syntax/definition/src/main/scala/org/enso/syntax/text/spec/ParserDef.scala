@@ -512,51 +512,51 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     FMT_BLCK.parent    = FMT
   }
 
-  ROOT     || '`' || reify { text.onInterpolateEnd()   }
-  text.FMT || '`' || reify { text.onInterpolateBegin() }
+  ROOT     || '`' ||  text.onInterpolateEnd()
+  text.FMT || '`' ||  text.onInterpolateBegin()
 
-  ROOT || "'''" >> "'".many1     || reify { text.onInvalidQuote() }
-  ROOT || "\"\"\"" >> "\"".many1 || reify { text.onInvalidQuote() }
+  ROOT || "'''" >> "'".many1     ||  text.onInvalidQuote()
+  ROOT || "\"\"\"" >> "\"".many1 ||  text.onInvalidQuote()
 
-  ROOT          || "'"         || reify { text.onBegin(text.FMT_LINE) }
-  text.FMT_LINE || "'"         || reify { text.submit()               }
-  text.FMT_LINE || "''"        || reify { text.submitDoubleQuote()    }
-  text.FMT_LINE || "'".many1   || reify { text.submitUnclosed()       }
-  text.FMT_LINE || text.fmtSeg || reify { text.submitPlainSegment()   }
-  text.FMT_LINE || eof         || reify { text.onTextEOF()            }
-  text.FMT_LINE || newline     || reify { text.submitUnclosed()       }
+  ROOT          || "'"         ||  text.onBegin(text.FMT_LINE)
+  text.FMT_LINE || "'"         ||  text.submit()
+  text.FMT_LINE || "''"        ||  text.submitDoubleQuote()
+  text.FMT_LINE || "'".many1   ||  text.submitUnclosed()
+  text.FMT_LINE || text.fmtSeg ||  text.submitPlainSegment()
+  text.FMT_LINE || eof         ||  text.onTextEOF()
+  text.FMT_LINE || newline     ||  text.submitUnclosed()
 
-  block.CHAR1 || text.fmtBlock || reify {
-    text.onBegin(text.FMT_BLCK, block.current.offset)
-  }
-  ROOT          || text.fmtBlock || reify { text.onBegin(text.FMT_BLCK, -1) }
-  ROOT          || "'''"         || reify { text.onInlineBlock()            }
-  text.FMT_BLCK || text.fmtBSeg  || reify { text.submitPlainSegment()       }
-  text.FMT_BLCK || eof           || reify { text.onEndOfBlock()             }
-  text.FMT_BLCK || newline       || reify { text.onEndOfLine()}
+  block.CHAR1 || text.fmtBlock || text
+    .onBegin(text.FMT_BLCK, block.current.offset)
 
-
-  ROOT          || '"'         || reify { text.onBegin(text.RAW_LINE) }
-  text.RAW_LINE || '"'       || reify { text.submit()               }
-  text.RAW_LINE || "\"\""        || reify { text.submitDoubleQuote()    }
-  text.RAW_LINE || '"'.many1   || reify { text.submitUnclosed()       }
-  text.RAW_LINE || text.rawSeg || reify { text.submitPlainSegment()   }
-  text.RAW_LINE || eof         || reify { text.onTextEOF()            }
-  text.RAW_LINE || newline     || reify { text.submitUnclosed()       }
-
-  block.CHAR1 || text.rawBlock || reify {
-    text.onBegin(text.RAW_BLCK, block.current.offset)
-  }
-  ROOT          || text.rawBlock || reify { text.onBegin(text.RAW_BLCK, -1) }
-  ROOT          || "\"\"\""         || reify { text.onInlineBlock()            }
-  text.RAW_BLCK || text.rawBSeg  || reify { text.submitPlainSegment()       }
-  text.RAW_BLCK || eof           || reify { text.onEndOfBlock()             }
-  text.RAW_BLCK || newline       || reify { text.onEndOfLine()}
+  ROOT          || text.fmtBlock ||  text.onBegin(text.FMT_BLCK, -1)
+  ROOT          || "'''"         ||  text.onInlineBlock()
+  text.FMT_BLCK || text.fmtBSeg  ||  text.submitPlainSegment()
+  text.FMT_BLCK || eof           ||  text.onEndOfBlock()
+  text.FMT_BLCK || newline       ||  text.onEndOfLine()
 
 
-  text.NEWLINE || space.opt            || reify { text.onNewLine()    }
-  text.NEWLINE || space.opt >> newline || reify { text.onEmptyLine()  }
-  text.NEWLINE || space.opt >> eof     || reify { text.onEOFNewLine() }
+  ROOT          || '"'         ||  text.onBegin(text.RAW_LINE)
+  text.RAW_LINE || '"'       ||  text.submit()
+  text.RAW_LINE || "\"\""        ||  text.submitDoubleQuote()
+  text.RAW_LINE || '"'.many1   ||  text.submitUnclosed()
+  text.RAW_LINE || text.rawSeg ||  text.submitPlainSegment()
+  text.RAW_LINE || eof         ||  text.onTextEOF()
+  text.RAW_LINE || newline     ||  text.submitUnclosed()
+
+  block.CHAR1 || text.rawBlock || text
+    .onBegin(text.RAW_BLCK, block.current.offset)
+
+  ROOT          || text.rawBlock ||  text.onBegin(text.RAW_BLCK, -1)
+  ROOT          || "\"\"\""         ||  text.onInlineBlock()
+  text.RAW_BLCK || text.rawBSeg  ||  text.submitPlainSegment()
+  text.RAW_BLCK || eof           ||  text.onEndOfBlock()
+  text.RAW_BLCK || newline       ||  text.onEndOfLine()
+
+
+  text.NEWLINE || space.opt            ||  text.onNewLine()
+  text.NEWLINE || space.opt >> newline ||  text.onEmptyLine()
+  text.NEWLINE || space.opt >> eof     ||  text.onEOFNewLine()
 
   AST.Text.Segment.Escape.Character.codes.foreach { code =>
     val char = s"text.S.Escape.Character.$code"

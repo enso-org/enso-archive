@@ -293,10 +293,10 @@ object AST {
     * is used to cache all necessary operations during AST construction.
     */
   trait ASTClass[T[_]] {
-    def repr(t: T[AST]):                             Repr.Builder
-    def map(t: T[AST])(f: AST => AST):               T[AST]
+    def repr(t: T[AST]):                               Repr.Builder
+    def map(t: T[AST])(f: AST => AST):                 T[AST]
     def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
-    def zipWithOffset(t: T[AST]):                    T[(Index, AST)]
+    def zipWithOffset(t: T[AST]):                      T[(Index, AST)]
   }
   object ASTClass {
     def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
@@ -307,8 +307,8 @@ object AST {
       evOzip: OffsetZip[T, AST]
     ): ASTClass[T] =
       new ASTClass[T] {
-        def repr(t: T[AST]): Repr.Builder           = evRepr.repr(t)
-        def map(t: T[AST])(f: AST => AST): T[AST]   = Functor[T].map(t)(f)
+        def repr(t: T[AST]): Repr.Builder             = evRepr.repr(t)
+        def map(t: T[AST])(f: AST => AST): T[AST]     = Functor[T].map(t)(f)
         def zipWithOffset(t: T[AST]): T[(Index, AST)] = OffsetZip(t)
         def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
           Functor[T].map(zipWithOffset(t))(f.tupled)
@@ -677,19 +677,19 @@ object AST {
       }
 
       implicit def ozip[T: Repr]: OffsetZip[TextOf, T] = t => {
-        val lineBody: Line[T] => Line[(Int, T)] = {
+        val lineBody: Line[T] => Line[(Index, T)] = {
           case body: Line.Raw[T] => body.coerce
           case body: Line.Fmt[T] =>
-            var offset = t.quote.span
+            var offset = Index(t.quote.span)
             val text2 = for (elem <- body.text) yield {
               val offElem = elem.map(offset -> _)
-              offset += elem.span
+              offset += Size(elem.span)
               offElem
             }
             Line.Fmt(text2)
         }
 
-        val body: TextOf[(Int, T)] = t match {
+        val body: TextOf[(Index, T)] = t match {
           case body: InvalidQuote[T] => body.coerce
           case body: InlineBlock[T]  => body.coerce
           case body: Unclosed[T]     => Unclosed(lineBody(body.line))
@@ -697,14 +697,14 @@ object AST {
           case body: Line.Fmt[T]     => lineBody(body)
           case body: Blck.Raw[T]     => body.coerce
           case body: Blck.Fmt[T] =>
-            var offset = t.quote.span
+            var offset = Index(t.quote.span)
             val text =
               for (line <- body.text) yield {
-                offset += line.emptyLines.length+ line.emptyLines.sum
-                offset += 1 + body.offset
+                offset += Size(line.emptyLines.length + line.emptyLines.sum)
+                offset += Size(1 + body.offset)
                 val text = for (elem <- line.text) yield {
                   val offElem = elem.map(offset -> _)
-                  offset += elem.span
+                  offset += Size(elem.span)
                   offElem
                 }
                 line.copy(text = text)
@@ -726,18 +726,23 @@ object AST {
       sealed trait Blck[T] extends TextOf[T]
 
       object Line {
-        case class Raw[T](text: List[S._Raw[T]]) extends Line[T] with Phantom {
+        final case class Raw[T](text: List[S._Raw[T]])
+            extends Line[T]
+            with Phantom {
           val quote = '"'
         }
-        case class Fmt[T](text: List[S._Fmt[T]]) extends Line[T] {
+        final case class Fmt[T](text: List[S._Fmt[T]]) extends Line[T] {
           val quote = '\''
         }
       }
       object Blck {
-        case class Line[+T](emptyLines: List[Int], text: List[T])
+        final case class Line[+T](emptyLines: List[Int], text: List[T])
 
-        case class Raw[T](text: List[Line[S._Raw[T]]], spaces: Int, offset: Int)
-            extends Blck[T]
+        final case class Raw[T](
+          text: List[Line[S._Raw[T]]],
+          spaces: Int,
+          offset: Int
+        ) extends Blck[T]
             with Phantom {
           val quote = "\"\"\""
         }
@@ -747,18 +752,18 @@ object AST {
         }
       }
 
-      case class Unclosed[T](line: Line[T])
+      final case class Unclosed[T](line: Line[T])
           extends TextOf[T]
           with AST.InvalidOf[T] {
         def quote = line.quote
       }
 
-      case class InvalidQuote[T](quote: Builder)
+      final case class InvalidQuote[T](quote: Builder)
           extends TextOf[T]
           with AST.InvalidOf[T]
           with Phantom
 
-      case class InlineBlock[T](quote: Builder)
+      final case class InlineBlock[T](quote: Builder)
           extends TextOf[T]
           with AST.InvalidOf[T]
           with Phantom
@@ -781,7 +786,7 @@ object AST {
           def apply(segment: S.Raw*): Text =
             Text(Text.Unclosed(Line.Raw(segment.to[List])))
         }
-      def apply(segment: S.Raw*): Text   = Text(Line.Raw(segment.to[List]))
+        def apply(segment: S.Raw*): Text = Text(Line.Raw(segment.to[List]))
         def apply(spaces: Int, offset: Int, line: Blck.Line[S.Raw]*): Text =
           Text(Blck.Raw(line.to[List], spaces, offset))
       }
