@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -20,7 +19,7 @@ import java.util.stream.IntStream;
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of
  * an Enso program into AST nodes for the interpreter to evaluate.
  */
-public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
+public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<ExpressionNode> {
   private final Language language;
   private final ModuleScope moduleScope;
 
@@ -41,7 +40,7 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * @param expr the expression to execute on
    * @return a runtime node representing the top-level expression
    */
-  public ExpressionNode run(AstGlobalScope expr) {
+  public ExpressionNode run(AstModuleScope expr) {
     return expr.visit(this);
   }
 
@@ -55,17 +54,15 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
    * @return a runtime node representing the whole top-level program scope
    */
   @Override
-  public ExpressionNode visitGlobalScope(
+  public ExpressionNode visitModuleScope(
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
       List<AstMethodDef> bindings,
-      AstExpression executableExpression)
-      throws IOException {
-
+      AstExpression executableExpression) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
-      moduleScope.addImport(context.requestParse(imp.name()));
+      this.moduleScope.addImport(context.compiler().requestProcess(imp.name()));
     }
 
     List<AtomConstructor> constructors =
@@ -90,10 +87,6 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
             });
 
     for (AstMethodDef method : bindings) {
-      AtomConstructor constructor =
-          moduleScope
-              .getConstructor(method.typeName())
-              .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
       ExpressionFactory expressionFactory =
           new ExpressionFactory(
               language,
@@ -105,7 +98,16 @@ public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<Expre
       funNode.markTail();
       Function function =
           new Function(funNode.getCallTarget(), null, new ArgumentSchema(funNode.getArgs()));
-      moduleScope.registerMethod(constructor, method.methodName(), function);
+
+      if (method.typeName().equals(Constants.ANY_TYPE_NAME)) {
+        moduleScope.registerMethodForAny(method.methodName(), function);
+      } else {
+        AtomConstructor constructor =
+            moduleScope
+                .getConstructor(method.typeName())
+                .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
+        moduleScope.registerMethod(constructor, method.methodName(), function);
+      }
     }
 
     ExpressionFactory factory = new ExpressionFactory(this.language, moduleScope);

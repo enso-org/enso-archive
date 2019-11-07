@@ -3,8 +3,9 @@ package org.enso.syntax.text.ast.meta
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.SAST
 import org.enso.syntax.text.prec.Operator
+
 import scala.annotation.tailrec
-import org.enso.data.Shifted
+import org.enso.data.{Index, Shifted}
 import org.enso.syntax.text.ast.Repr
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -12,13 +13,11 @@ import org.enso.syntax.text.ast.Repr
 ////////////////////////////////////////////////////////////////////////////////
 
 object Pattern {
-  import cats.Functor
-  import cats.Foldable
-  import cats.Traverse
+  import cats.{Foldable, Functor, Traverse}
   import cats.derived._
 
   type P      = Pattern
-  type Spaced = Option[Boolean]
+  type Spaced = Option[Boolean] // TODO [AA] Make this an actual ADT
 
   // TODO: Refactorme
   def streamShift_(off: Int, revStream: AST.Stream): AST.Stream =
@@ -129,7 +128,7 @@ object Pattern {
     SepList(seg, div)
   }
 
-  def OprExpr(opr: String) = {
+  def ExprUntilOpr(opr: String) = {
     val base = Except(Opr(None, Some(AST.Opr(opr).prec)), Any())
     base.many1.build
   }
@@ -204,8 +203,8 @@ object Pattern {
 
   type Match = MatchOf[SAST]
   sealed trait MatchOf[T] {
-    import cats.implicits._
     import MatchOf._
+    import cats.implicits._
 
     val M = Match
     val pat: Pattern
@@ -264,7 +263,7 @@ object Pattern {
     implicit def offZipMatch[T: Repr]: AST.OffsetZip[MatchOf, T] = t => {
       val s  = t.map(Shifted(0, _))
       val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.el) }
-      val s3 = s2.map(t => (t.off, t.el))
+      val s3 = s2.map(t => (Index(t.off), t.el))
       s3
     }
 
@@ -302,7 +301,6 @@ object Pattern {
     def ftorMatch: Functor[MatchOf]  = semi.functor
     def travMatch: Traverse[MatchOf] = semi.traverse[MatchOf]
     def foldMatch: Foldable[MatchOf] = {
-      import cats.derived.auto.foldable._
       semi.foldable[MatchOf]
     }
   }

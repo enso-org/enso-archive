@@ -1,80 +1,92 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameDescriptor;
-import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Context;
 
-/**
- * This node represents the root of all Enso computations.
- *
- * <p>All new computations in Enso must be executed from within an {@link EnsoRootNode}, as
- * determined by the API provided by Truffle.
- */
-public class EnsoRootNode extends RootNode {
+/** A common base class for all kinds of root node in Enso. */
+public abstract class EnsoRootNode extends RootNode {
   private final String name;
   private final SourceSection sourceSection;
-  @Child private ExpressionNode body;
+  private final FrameSlot stateFrameSlot;
+  private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
+      contextReference;
+  private @CompilerDirectives.CompilationFinal TruffleLanguage.LanguageReference<Language>
+      languageReference;
 
   /**
-   * Creates a new root node.
+   * Constructs the root node.
    *
-   * @param language the language identifier
-   * @param frameDescriptor a description of the stack frame
-   * @param body the program body to be executed
-   * @param section a mapping from {@code body} to the program source
-   * @param name a name for the node
+   * @param language the language instance in which this will execute
+   * @param frameDescriptor a reference to the construct root frame
+   * @param name the name of the construct
+   * @param sourceSection a reference to the source code being executed
+   * @param stateFrameSlot the code to compile and execute
    */
   public EnsoRootNode(
       Language language,
       FrameDescriptor frameDescriptor,
-      ExpressionNode body,
-      SourceSection section,
-      String name) {
+      String name,
+      SourceSection sourceSection,
+      FrameSlot stateFrameSlot) {
     super(language, frameDescriptor);
-    this.body = body;
-    this.sourceSection = section;
     this.name = name;
+    this.sourceSection = sourceSection;
+    this.stateFrameSlot = stateFrameSlot;
   }
 
   /**
-   * Executes the node.
+   * Gets a reference to the language context associated with this program.
    *
-   * @param frame the stack frame to execute in
-   * @return the result of executing this node
+   * @return a reference to the language context
    */
-  @Override
-  public Object execute(VirtualFrame frame) {
-    return body.executeGeneric(frame);
+  public Context getContext() {
+    if (contextReference == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      contextReference = lookupContextReference(Language.class);
+    }
+
+    return contextReference.get();
   }
 
   /**
-   * Converts this node to a textual representation good for debugging.
+   * Creates a string representation of this node.
    *
-   * @return a {@link String} representation of this node
+   * @return a string representation of the node
    */
   @Override
   public String toString() {
     return this.name;
   }
 
-  /** Marks the node as tail-recursive. */
-  public void markTail() {
-    body.markTail();
-  }
-
-  /** Marks the node as not tail-recursive. */
-  public void markNotTail() {
-    body.markNotTail();
-  }
-
   /**
    * Sets whether the node is tail-recursive.
    *
-   * @param isTail whether or not the node is tail-recursive.
+   * @param isTail whether or not the node is tail-recursive
    */
-  public void setTail(boolean isTail) {
-    body.setTail(isTail);
+  public abstract void setTail(boolean isTail);
+
+  /**
+   * Gets the frame slot containing the program state.
+   *
+   * @return the state frame slot
+   */
+  public FrameSlot getStateFrameSlot() {
+    return this.stateFrameSlot;
+  }
+
+  /**
+   * Gets the source code represented by this node.
+   *
+   * @return a reference to the source code
+   */
+  @Override
+  public SourceSection getSourceSection() {
+    return sourceSection;
   }
 }

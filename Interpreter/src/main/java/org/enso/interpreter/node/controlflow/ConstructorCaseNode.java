@@ -1,5 +1,6 @@
 package org.enso.interpreter.node.controlflow;
 
+import com.oracle.truffle.api.frame.FrameUtil;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.ConditionProfile;
@@ -10,7 +11,7 @@ import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
-/** An implementation of the case expression specialised to working on explicit constructors. */
+/** An implementation of the case expression specialised to working on constructors. */
 public class ConstructorCaseNode extends CaseNode {
   @Child private ExpressionNode matcher;
   @Child private ExpressionNode branch;
@@ -39,21 +40,41 @@ public class ConstructorCaseNode extends CaseNode {
   }
 
   /**
-   * Executes the case expression.
+   * Handles the atom scrutinee case.
    *
-   * <p>It has no direct return value and instead uses a {@link BranchSelectedException} to signal
-   * the correct result back to the parent of the case expression.
+   * <p>The atom's constructor is checked and if it matches the conditional branch is executed with
+   * all the atom's fields as arguments.
    *
    * @param frame the stack frame in which to execute
-   * @param target the constructor to destructure
-   * @throws UnexpectedResultException when the result of desctructuring {@code target} can't be
-   *     represented as a value of the expected return type
+   * @param target the atom to destructure
+   * @throws UnexpectedResultException
    */
-  public void execute(VirtualFrame frame, Atom target) throws UnexpectedResultException {
+  @Override
+  public void executeAtom(VirtualFrame frame, Atom target) throws UnexpectedResultException {
     AtomConstructor matcherVal = matcher.executeAtomConstructor(frame);
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     if (profile.profile(matcherVal == target.getConstructor())) {
       Function function = branch.executeFunction(frame);
-      throw new BranchSelectedException(executeCallNode.executeCall(function, target.getFields()));
+      throw new BranchSelectedException(
+          executeCallNode.executeCall(function, state, target.getFields()));
     }
   }
+
+  /**
+   * Handles the function scrutinee case, by not matching it at all.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the function to match
+   */
+  @Override
+  public void executeFunction(VirtualFrame frame, Function target) {}
+
+  /**
+   * Handles the number scrutinee case, by not matching it at all.
+   *
+   * @param frame the stack frame in which to execute
+   * @param target the function to match
+   */
+  @Override
+  public void executeNumber(VirtualFrame frame, long target) {}
 }

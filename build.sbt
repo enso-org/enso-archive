@@ -2,24 +2,32 @@ import sbt.Keys.scalacOptions
 import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 //////////////////////////////
 //// Global Configuration ////
 //////////////////////////////
 
 val scalacVersion = "2.12.10"
-val graalVersion = "19.2.0.1"
+val graalVersion  = "19.2.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
+
+Global / onChangedBuildSource := ReloadOnSourceChanges
 
 //////////////////////////
 //// Compiler Options ////
 //////////////////////////
 
+javacOptions in ThisBuild ++= Seq(
+  "-encoding", // Provide explicit encoding (the next line)
+  "UTF-8"      // Specify character encoding used by Java source files.
+)
+
 scalacOptions in ThisBuild ++= Seq(
   "-deprecation",                       // Emit warning and location for usages of deprecated APIs.
   "-encoding",                          // Provide explicit encoding (the next line)
-  "utf-8",                              // Specify character encoding used by source files.
+  "utf-8",                              // Specify character encoding used by Scala source files.
   "-explaintypes",                      // Explain type errors in more detail.
   "-feature",                           // Emit warning and location for usages of features that should be imported explicitly.
   "-language:existentials",             // Existential types (besides wildcard types) can be written and inferred
@@ -182,7 +190,7 @@ lazy val syntax = (project in file("Syntax/specialization"))
       "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
       "com.lihaoyi"       %% "pprint"     % "0.5.3"
     ),
-    (Compile / compile) := (Compile / compile)
+    compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
         val parserCompile =
           (syntax_definition / Compile / compileIncremental).value
@@ -204,31 +212,47 @@ lazy val pkg = (project in file("Pkg"))
   )
 
 val truffleRunOptions = Seq(
+  "-Dgraal.TruffleIterativePartialEscape=true",
+  "-XX:-UseJVMCIClassLoader",
+  "-Dgraal.TruffleBackgroundCompilation=false"
+)
+
+val truffleRunOptionsSettings = Seq(
   fork := true,
-  javaOptions += s"-Dgraal.TruffleIterativePartialEscape=true",
-  javaOptions += s"-XX:-UseJVMCIClassLoader",
-  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
+  javaOptions ++= truffleRunOptions
 )
 
 lazy val interpreter = (project in file("Interpreter"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
+    mainClass in assembly := (Compile / run / mainClass).value,
+    assemblyJarName in assembly := "enso.jar",
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("enso.jar"),
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
+      prependShellScript = Some(
+        defaultUniversalScript(
+          shebang  = false,
+          javaOpts = truffleRunOptions
+        )
+      )
+    ),
     version := "0.1",
     commands += WithDebugCommand.withDebug,
-    inConfig(Compile)(truffleRunOptions),
-    inConfig(Test)(truffleRunOptions),
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Test)(truffleRunOptionsSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"            %% "shapeless"                % "2.3.3",
       "org.apache.commons"     % "commons-lang3"             % "3.9",
       "org.apache.tika"        % "tika-core"                 % "1.21",
-      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion,
-      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion,
-      "org.graalvm.truffle"    % "truffle-api"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion,
+      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion % "provided",
+      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
@@ -252,11 +276,12 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     buildNativeImage := Def
       .task {
-        val javaHome        = System.getProperty("java.home")
-        val nativeImagePath = s"$javaHome/bin/native-image"
-        val classPath       = (Runtime / fullClasspath).value.files.mkString(":")
+        val javaHome         = System.getProperty("java.home")
+        val nativeImagePath  = s"$javaHome/bin/native-image"
+        val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
+        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
         val cmd =
-          s"$nativeImagePath --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+          s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
         cmd !
       }
       .dependsOn(Compile / compile)
@@ -266,7 +291,7 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptions),
+    inConfig(Benchmark)(truffleRunOptionsSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
@@ -281,6 +306,7 @@ lazy val interpreter = (project in file("Interpreter"))
     parallelExecution in Benchmark := false
   )
   .dependsOn(pkg)
+  .dependsOn(syntax)
 
 lazy val fileManager = (project in file("FileManager"))
   .settings(

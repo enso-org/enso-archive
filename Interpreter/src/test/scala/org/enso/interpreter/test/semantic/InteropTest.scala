@@ -1,6 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-class InteropTest extends LanguageTest {
+import org.enso.interpreter.test.InterpreterTest
+
+class InteropTest extends InterpreterTest {
   "Interop library" should "support tail recursive functions" in {
     val code =
       """
@@ -9,6 +11,7 @@ class InteropTest extends LanguageTest {
         |  recurFun
         |}
         |""".stripMargin
+
     val recurFun = eval(code)
     recurFun.call(15) shouldEqual 0
   }
@@ -21,6 +24,7 @@ class InteropTest extends LanguageTest {
         |  @fun [y = 1]
         |}
         |""".stripMargin
+
     val curriedFun = eval(code)
     curriedFun.call(2, 3) shouldEqual 6
   }
@@ -30,7 +34,20 @@ class InteropTest extends LanguageTest {
       """
         |{ |x, y, z| (x + y) + z }
         |""".stripMargin
+
     val fun = eval(code)
     fun.call(1).call(2).call(3) shouldEqual 6
+  }
+
+  "Interop library" should "work with oversaturated calls on unresolved methods returned from functions" in {
+    val code =
+      """
+        |Any.method = this
+        |
+        |{ |x| method }
+        |""".stripMargin
+
+    val fun = eval(code)
+    fun.call(1, 2) shouldEqual 2
   }
 }

@@ -4,42 +4,20 @@ import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameSlot;
 import com.oracle.truffle.api.nodes.RootNode;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import org.enso.interpreter.AstArgDefinition;
-import org.enso.interpreter.AstCallArg;
-import org.enso.interpreter.AstCase;
-import org.enso.interpreter.AstCaseFunction;
-import org.enso.interpreter.AstExpression;
-import org.enso.interpreter.AstExpressionVisitor;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.*;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.ForceNodeGen;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.function.FunctionBodyNode;
-import org.enso.interpreter.node.controlflow.CaseNode;
-import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
-import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
-import org.enso.interpreter.node.controlflow.FallbackNode;
-import org.enso.interpreter.node.controlflow.IfZeroNode;
-import org.enso.interpreter.node.controlflow.MatchNode;
-import org.enso.interpreter.node.expression.builtin.PrintNode;
+import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.*;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
 import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
@@ -49,6 +27,11 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.error.DuplicateArgumentNameException;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+
+import java.util.*;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * An {@code ExpressionFactory} is responsible for converting the majority of Enso's parsed AST into
@@ -251,7 +234,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     FunctionBodyNode fnBodyNode =
         new FunctionBodyNode(allFnExpressions.toArray(new ExpressionNode[0]), returnExpr);
     RootNode fnRootNode =
-        new EnsoRootNode(
+        new ClosureRootNode(
             language, scope.getFrameDescriptor(), fnBodyNode, null, "lambda::" + scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(fnRootNode);
 
@@ -338,8 +321,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       callArgs.add(arg);
     }
 
+    InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode =
+        hasDefaultsSuspended
+            ? InvokeCallableNode.DefaultsExecutionMode.IGNORE
+            : InvokeCallableNode.DefaultsExecutionMode.EXECUTE;
+
     return new ApplicationNode(
-        function.visit(this), callArgs.toArray(new CallArgument[0]), hasDefaultsSuspended);
+        function.visit(this), callArgs.toArray(new CallArgument[0]), defaultsExecutionMode);
   }
 
   /**
@@ -370,17 +358,6 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   }
 
   /**
-   * Creates a runtime node representing a print expression.
-   *
-   * @param body an expression that computes the value to print
-   * @return a runtime node representing the print
-   */
-  @Override
-  public ExpressionNode visitPrint(AstExpression body) {
-    return new PrintNode(body.visit(this));
-  }
-
-  /**
    * Creates a runtime node representing a pattern match.
    *
    * @param target the value to destructure in the pattern match
@@ -406,7 +383,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
             .map(fb -> (CaseNode) new FallbackNode(fb.visit(this)))
             .orElseGet(DefaultFallbackNode::new);
 
-    return new MatchNode(targetNode, cases, fallbackNode);
+    return MatchNodeGen.create(cases, fallbackNode, targetNode);
   }
 
   /* Note [Pattern Match Fallbacks]
@@ -416,4 +393,15 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * user-provided fallback or catch-all case in a pattern match, the interpreter has to ensure that
    * it has one to catch that error.
    */
+
+  /**
+   * Creates a runtime representation of lazy function argument forcing.
+   *
+   * @param target the parser AST fragment representing a value to force
+   * @return the AST fragment representing forcing of the requested value
+   */
+  @Override
+  public ExpressionNode visitDesuspend(AstExpression target) {
+    return ForceNodeGen.create(target.visit(this));
+  }
 }

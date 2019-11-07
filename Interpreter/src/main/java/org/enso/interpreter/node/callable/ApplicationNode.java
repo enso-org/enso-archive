@@ -1,14 +1,20 @@
 package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import java.util.Arrays;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
+import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
+
+import java.util.Arrays;
 
 /**
  * This node is responsible for organising callable calls so that they are ready to be made.
@@ -19,9 +25,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 @NodeInfo(shortName = "@", description = "Executes function")
 public class ApplicationNode extends ExpressionNode {
 
-  @Children
   @CompilationFinal(dimensions = 1)
-  private ExpressionNode[] argExpressions;
+  private RootCallTarget[] argExpressions;
 
   @Child private InvokeCallableNode invokeCallableNode;
   @Child private ExpressionNode callable;
@@ -32,17 +37,21 @@ public class ApplicationNode extends ExpressionNode {
    * @param callArguments information on the arguments being passed to the {@link Function}
    */
   public ApplicationNode(
-      ExpressionNode callable, CallArgument[] callArguments, boolean hasDefaultsSuspended) {
+      ExpressionNode callable,
+      CallArgument[] callArguments,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
     this.argExpressions =
         Arrays.stream(callArguments)
             .map(CallArgument::getExpression)
-            .toArray(ExpressionNode[]::new);
+            .toArray(RootCallTarget[]::new);
 
     CallArgumentInfo[] argSchema =
         Arrays.stream(callArguments).map(CallArgumentInfo::new).toArray(CallArgumentInfo[]::new);
 
     this.callable = callable;
-    this.invokeCallableNode = InvokeCallableNodeGen.create(argSchema, hasDefaultsSuspended);
+    this.invokeCallableNode =
+        InvokeCallableNodeGen.create(
+            argSchema, defaultsExecutionMode, InvokeCallableNode.ArgumentsExecutionMode.EXECUTE);
   }
 
   /**
@@ -65,11 +74,10 @@ public class ApplicationNode extends ExpressionNode {
   @ExplodeLoop
   public Object[] evaluateArguments(VirtualFrame frame) {
     Object[] computedArguments = new Object[this.argExpressions.length];
-
+    MaterializedFrame scope = frame.materialize();
     for (int i = 0; i < this.argExpressions.length; ++i) {
-      computedArguments[i] = this.argExpressions[i].executeGeneric(frame);
+      computedArguments[i] = new Thunk(this.argExpressions[i], scope);
     }
-
     return computedArguments;
   }
 
@@ -81,7 +89,10 @@ public class ApplicationNode extends ExpressionNode {
    */
   @Override
   public Object executeGeneric(VirtualFrame frame) {
-    return this.invokeCallableNode.execute(
-        this.callable.executeGeneric(frame), evaluateArguments(frame));
+    Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
+    Stateful result = this.invokeCallableNode.execute(
+        this.callable.executeGeneric(frame), state, evaluateArguments(frame));
+    frame.setObject(getStateFrameSlot(), result.getState());
+    return result.getValue();
   }
 }

@@ -27,9 +27,10 @@ public class Module {
    * @throws IOException when the source file could not be read
    */
   public ModuleScope requestParse(Context context) throws IOException {
+    // TODO [AA] This needs to evolve to support scope execution
     if (cachedScope == null) {
-      cachedScope = new ModuleScope();
-      context.parse(file, cachedScope);
+      cachedScope = context.createScope();
+      context.compiler().run(file, cachedScope);
     }
     return cachedScope;
   }

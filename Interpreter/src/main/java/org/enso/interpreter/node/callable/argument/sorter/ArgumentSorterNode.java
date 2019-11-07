@@ -6,9 +6,11 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.state.Stateful;
 
 /**
  * This class represents the protocol for remapping the arguments provided at a call site into the
@@ -18,18 +20,23 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public abstract class ArgumentSorterNode extends BaseNode {
 
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
-  private final boolean hasDefaultsSuspended;
+  private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
+  private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
    *
    * @param schema information about the call arguments in positional order
-   * @param hasDefaultsSuspended whether or not the default arguments are suspended for this
-   *     function invocation
+   * @param defaultsExecutionMode the defaults execution mode for this function invocation
+   * @param argumentsExecutionMode the arguments execution mode for this function invocation
    */
-  public ArgumentSorterNode(CallArgumentInfo[] schema, boolean hasDefaultsSuspended) {
+  public ArgumentSorterNode(
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     this.schema = schema;
-    this.hasDefaultsSuspended = hasDefaultsSuspended;
+    this.defaultsExecutionMode = defaultsExecutionMode;
+    this.argumentsExecutionMode = argumentsExecutionMode;
   }
 
   /**
@@ -43,6 +50,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * matches with the one stored in the cached argument sorter object.
    *
    * @param function the function to sort arguments for
+   * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code callable}
    * @param mappingNode a cached node that tracks information about the mapping to enable a fast
    *     path
@@ -52,13 +60,15 @@ public abstract class ArgumentSorterNode extends BaseNode {
   @Specialization(
       guards = "mappingNode.isCompatible(function)",
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
-  public Object invokeCached(
+  public Stateful invokeCached(
       Function function,
+      Object state,
       Object[] arguments,
-      @Cached("create(function, getSchema(), hasDefaultsSuspended(), isTail())")
+      @Cached(
+              "build(function, getSchema(), getDefaultsExecutionMode(), getArgumentsExecutionMode(), isTail())")
           CachedArgumentSorterNode mappingNode,
       @Cached CallOptimiserNode optimiser) {
-    return mappingNode.execute(function, arguments, optimiser);
+    return mappingNode.execute(function, state, arguments, optimiser);
   }
 
   /**
@@ -66,15 +76,22 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * perform any caching and is thus a slow-path operation.
    *
    * @param function the function to execute.
+   * @param state the state to pass to the function
    * @param arguments the arguments to reorder and supply to the {@code function}.
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
   @Specialization(replaces = "invokeCached")
-  public Object invokeUncached(Function function, Object[] arguments) {
+  public Stateful invokeUncached(Function function, Object state, Object[] arguments) {
     return invokeCached(
         function,
+        state,
         arguments,
-        CachedArgumentSorterNode.create(function, getSchema(), hasDefaultsSuspended(), isTail()),
+        CachedArgumentSorterNode.build(
+            function,
+            getSchema(),
+            getDefaultsExecutionMode(),
+            getArgumentsExecutionMode(),
+            isTail()),
         CallOptimiserNode.create());
   }
 
@@ -82,26 +99,21 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * Executes the {@link ArgumentSorterNode} to reorder the arguments.
    *
    * @param callable the function to sort arguments for
+   * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code function}
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
-  public abstract Object execute(Function callable, Object[] arguments);
+  public abstract Stateful execute(Function callable, Object state, Object[] arguments);
 
-  /**
-   * Gets the schema for use in Truffle DSL guards.
-   *
-   * @return the argument schema
-   */
   CallArgumentInfo[] getSchema() {
     return schema;
   }
 
-  /**
-   * Checks whether the function whose arguments are being sorted has suspended defaults arguments.
-   *
-   * @return {@code true} if it has suspended defaults, otherwise {@code false}
-   */
-  boolean hasDefaultsSuspended() {
-    return this.hasDefaultsSuspended;
+  InvokeCallableNode.DefaultsExecutionMode getDefaultsExecutionMode() {
+    return this.defaultsExecutionMode;
+  }
+
+  InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
+    return argumentsExecutionMode;
   }
 }

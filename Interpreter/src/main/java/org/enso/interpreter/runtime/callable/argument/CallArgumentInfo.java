@@ -2,10 +2,11 @@ package org.enso.interpreter.runtime.callable.argument;
 
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
+
 import java.util.OptionalInt;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
-import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
 
 /**
  * Tracks simple information about call-site arguments, used to make processing of caller argument
@@ -13,8 +14,6 @@ import org.enso.interpreter.runtime.callable.function.ArgumentSchema;
  */
 public class CallArgumentInfo {
   private final String name;
-  private final boolean isNamed;
-  private final boolean isPositional;
 
   /**
    * Creates the information from a {@link CallArgument}.
@@ -22,20 +21,23 @@ public class CallArgumentInfo {
    * @param callArgNode the structure to take information from
    */
   public CallArgumentInfo(CallArgument callArgNode) {
-    this(callArgNode.getName(), callArgNode.isNamed(), callArgNode.isPositional());
+    this(callArgNode.getName());
   }
 
   /**
-   * Creates the information explicitly.
+   * Creates a named call argument.
    *
    * @param name the name of the argument, if present
-   * @param isNamed whether or not the argument is passed by name
-   * @param isPositional whether or not the argument is passed by position
    */
-  public CallArgumentInfo(String name, boolean isNamed, boolean isPositional) {
+  public CallArgumentInfo(String name) {
     this.name = name;
-    this.isNamed = isNamed;
-    this.isPositional = isPositional;
+  }
+
+  /**
+   * Creates an unnamed call argument.
+   */
+  public CallArgumentInfo() {
+    this.name = null;
   }
 
   /**
@@ -53,7 +55,7 @@ public class CallArgumentInfo {
    * @return {@code true} if the argument was applied by name, otherwise {@code false}
    */
   public boolean isNamed() {
-    return isNamed;
+    return name != null;
   }
 
   /**
@@ -62,7 +64,7 @@ public class CallArgumentInfo {
    * @return {@code true} if the argument was applied positionally, otherwise {@code false}
    */
   public boolean isPositional() {
-    return isPositional;
+    return !isNamed();
   }
 
   /**
@@ -71,6 +73,7 @@ public class CallArgumentInfo {
   public static class ArgumentMappingBuilder {
     private int[] appliedMapping;
     private int[] oversaturatedArgumentMapping;
+    private boolean[] argumentShouldExecute;
     private ArgumentDefinition[] definitions;
     private CallArgumentInfo[] callArgs;
     private CallArgumentInfo[] existingOversaturatedArgs;
@@ -89,6 +92,7 @@ public class CallArgumentInfo {
       this.appliedMapping = new int[callArgs.length];
       this.oversaturatedArgumentMapping = new int[callArgs.length];
       this.callSiteArgApplied = new boolean[callArgs.length];
+      this.argumentShouldExecute = new boolean[callArgs.length];
 
       this.callArgs = callArgs;
       this.definitions = schema.getArgumentInfos();
@@ -142,6 +146,9 @@ public class CallArgumentInfo {
         appliedMapping[callArgIndex] = position;
         argumentUsed[position] = true;
         callSiteArgApplied[callArgIndex] = true;
+        if (!definitions[position].isSuspended()) {
+          argumentShouldExecute[callArgIndex] = true;
+        }
       } else {
         oversaturatedArgumentMapping[callArgIndex] = oversaturatedWritePosition;
         oversaturatedWritePosition++;
@@ -173,7 +180,8 @@ public class CallArgumentInfo {
      * @return the computed argument mapping
      */
     public ArgumentMapping getAppliedMapping() {
-      return new ArgumentMapping(appliedMapping, oversaturatedArgumentMapping, callSiteArgApplied);
+      return new ArgumentMapping(
+          appliedMapping, oversaturatedArgumentMapping, callSiteArgApplied, argumentShouldExecute);
     }
 
     /**
@@ -217,6 +225,7 @@ public class CallArgumentInfo {
     private @CompilationFinal(dimensions = 1) int[] appliedArgumentMapping;
     private @CompilationFinal(dimensions = 1) int[] oversaturatedArgumentMapping;
     private @CompilationFinal(dimensions = 1) boolean[] isValidAppliedArg;
+    private @CompilationFinal(dimensions = 1) boolean[] argumentShouldExecute;
 
     /**
      * Creates a new instance to represent a mapping.
@@ -231,10 +240,12 @@ public class CallArgumentInfo {
     public ArgumentMapping(
         int[] appliedArgumentMapping,
         int[] oversaturatedArgumentMapping,
-        boolean[] isAppliedFlags) {
+        boolean[] isAppliedFlags,
+        boolean[] argumentShouldExecute) {
       this.appliedArgumentMapping = appliedArgumentMapping;
       this.oversaturatedArgumentMapping = oversaturatedArgumentMapping;
       this.isValidAppliedArg = isAppliedFlags;
+      this.argumentShouldExecute = argumentShouldExecute;
     }
 
     /**
@@ -272,6 +283,17 @@ public class CallArgumentInfo {
           result[offset + this.oversaturatedArgumentMapping[i]] = argValues[i];
         }
       }
+    }
+
+    /**
+     * Returns a boolean array where the i-th entry is {@code true} iff the i-th argument should be
+     * executed immediately and not passed suspended.
+     *
+     * @return a boolean array where the i-th entry is {@code true} iff the i-th argument should be
+     *     executed immediately and not passed suspended.
+     */
+    public boolean[] getArgumentShouldExecute() {
+      return argumentShouldExecute;
     }
   }
 }

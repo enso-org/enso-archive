@@ -1,8 +1,9 @@
 package org.enso.interpreter.test.semantic
 
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 import org.graalvm.polyglot.PolyglotException
 
-class NamedArgumentsTest extends LanguageTest {
+class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "take arguments by name and use them in their bodies" in {
     val code =
       """
@@ -150,6 +151,7 @@ class NamedArgumentsTest extends LanguageTest {
   }
 
   "Named arguments" should "be applied in a sequence compatible with Eta-expansions" in {
+    pending
     val code =
       """
         |Unit.foo = { |a, b, c| a + b }
@@ -177,7 +179,7 @@ class NamedArgumentsTest extends LanguageTest {
         |@badArgFn [@Unit, 3]
         |""".stripMargin
 
-    a[PolyglotException] should be thrownBy eval(code)
+    an[InterpreterException] should be thrownBy eval(code)
   }
 
   "Constructors" should "be able to use named arguments" in {

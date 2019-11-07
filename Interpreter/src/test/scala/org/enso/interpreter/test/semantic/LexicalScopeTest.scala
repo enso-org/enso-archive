@@ -1,8 +1,8 @@
 package org.enso.interpreter.test.semantic
 
-import org.graalvm.polyglot.PolyglotException
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 
-class LexicalScopeTest extends LanguageTest {
+class LexicalScopeTest extends InterpreterTest {
   "Scope capture from outer scope" should "work" in {
     val code =
       """
@@ -44,13 +44,13 @@ class LexicalScopeTest extends LanguageTest {
         |  }
         |}
       """.stripMargin
-    the[PolyglotException] thrownBy eval(code) should have message "Variable y was already defined in this scope."
+    the[InterpreterException] thrownBy eval(code) should have message "Variable y was already defined in this scope."
   }
 
   "Reference to an undefined variable" should "throw error" in {
-    //TODO: Pending, because we're not yet sure what the behavior should be in the presence
-    // of dynamic dispatch. `y` in this code is actually equivalent to `x -> x.y`.
     pending
+    //TODO [AA] Pending, because we're not yet sure what the behavior should be in the presence
+    // of dynamic dispatch. `y` in this code is actually equivalent to `x -> x.y`.
     val code =
       """
         |@{
@@ -58,7 +58,7 @@ class LexicalScopeTest extends LanguageTest {
         |  y
         |}
       """.stripMargin
-    the[PolyglotException] thrownBy eval(code) should have message "Variable y is not defined."
+    the[InterpreterException] thrownBy eval(code) should have message "Variable y is not defined."
   }
 
 }
