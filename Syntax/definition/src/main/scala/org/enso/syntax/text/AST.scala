@@ -8,7 +8,13 @@ import cats.Functor
 import cats.derived._
 import cats.implicits._
 import org.enso.data.List1._
-import org.enso.data.{Index, List1, Pool, Shifted, Size, Span, Tree}
+import org.enso.data.Index
+import org.enso.data.List1
+import org.enso.data.Pool
+import org.enso.data.Shifted
+import org.enso.data.Size
+import org.enso.data.Span
+import org.enso.data.Tree
 import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
@@ -287,10 +293,10 @@ object AST {
     * is used to cache all necessary operations during AST construction.
     */
   trait ASTClass[T[_]] {
-    def repr(t: T[AST]): Repr.Builder
-    def map(t: T[AST])(f: AST => AST): T[AST]
+    def repr(t: T[AST]):                               Repr.Builder
+    def map(t: T[AST])(f: AST => AST):                 T[AST]
     def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
-    def zipWithOffset(t: T[AST]): T[(Index, AST)]
+    def zipWithOffset(t: T[AST]):                      T[(Index, AST)]
   }
   object ASTClass {
     def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
@@ -301,9 +307,9 @@ object AST {
       evOzip: OffsetZip[T, AST]
     ): ASTClass[T] =
       new ASTClass[T] {
-        def repr(t: T[AST]):               Repr.Builder  = evRepr.repr(t)
-        def map(t: T[AST])(f: AST => AST): T[AST]        = Functor[T].map(t)(f)
-        def zipWithOffset(t: T[AST]):      T[(Index, AST)] = OffsetZip(t)
+        def repr(t: T[AST]): Repr.Builder             = evRepr.repr(t)
+        def map(t: T[AST])(f: AST => AST): T[AST]     = Functor[T].map(t)(f)
+        def zipWithOffset(t: T[AST]): T[(Index, AST)] = OffsetZip(t)
         def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
           Functor[T].map(zipWithOffset(t))(f.tupled)
       }
@@ -819,7 +825,8 @@ object AST {
           implicit def foldExpr: Foldable[_Expr]   = semi.foldable
           implicit def reprExpr[T: Repr]: Repr[_Expr[T]] =
             R + '`' + _.value + '`'
-          implicit def ozipExpr[T]: OffsetZip[_Expr, T] = _.map(Index.Start -> _)
+          implicit def ozipExpr[T]: OffsetZip[_Expr, T] =
+            _.map(Index.Start -> _)
 
           implicit def ftorRaw[T]: Functor[_Raw] = semi.functor
           implicit def foldRaw: Foldable[_Raw]   = semi.foldable
@@ -916,7 +923,11 @@ object AST {
       implicit def repr[T: Repr]: Repr[PrefixOf[T]] =
         t => R + t.fn + t.off + t.arg
       implicit def ozip[T: Repr]: OffsetZip[PrefixOf, T] =
-        t => t.copy(fn = (Index.Start, t.fn), arg = (Index(t.fn.span + t.off), t.arg))
+        t =>
+          t.copy(
+            fn  = (Index.Start, t.fn),
+            arg = (Index(t.fn.span + t.off), t.arg)
+          )
     }
     object InfixOf {
       implicit def ftor: Functor[InfixOf]  = semi.functor
@@ -1147,8 +1158,8 @@ object AST {
     }
   }
   object ModuleOf {
-    implicit def ftor:    Functor[ModuleOf]      = semi.functor
-    implicit def fold:    Foldable[ModuleOf]     = semi.foldable
+    implicit def ftor: Functor[ModuleOf]         = semi.functor
+    implicit def fold: Foldable[ModuleOf]        = semi.foldable
     implicit def ozip[T]: OffsetZip[ModuleOf, T] = _.map(Index.Start -> _)
     implicit def repr[T: Repr]: Repr[ModuleOf[T]] =
       t => R + t.lines.head + t.lines.tail.map(newline + _)
@@ -1483,7 +1494,8 @@ object AST {
       val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
       R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
     }
-    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map(Index.Start -> _)
+    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] =
+      _.map(Index.Start -> _)
   }
 
   //////////////////////////////////////////////////////////////////////////////

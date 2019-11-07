@@ -10,7 +10,6 @@ import org.enso.interpreter.EnsoParser
 import org.enso.interpreter.Language
 import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.runtime.Builtins
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException

@@ -1,18 +1,17 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.FrameUtil;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
- * This node represents the root of all Enso computations.
+ * This node represents the root of Enso computations.
  *
  * <p>All new computations in Enso must be executed from within an {@link ClosureRootNode}, as
  * determined by the API provided by Truffle.
@@ -66,6 +65,7 @@ public class ClosureRootNode extends EnsoRootNode {
    *
    * @param isTail whether or not the node is tail-recursive.
    */
+  @Override
   public void setTail(boolean isTail) {
     body.setTail(isTail);
   }

@@ -1,18 +1,16 @@
 package org.enso.interpreter.node;
 
-import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.TruffleLanguage;
-import com.oracle.truffle.api.frame.*;
-import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.frame.FrameDescriptor;
+import com.oracle.truffle.api.frame.FrameSlotKind;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.state.Stateful;
 
 /**
- * This node handles static transformation of the input AST before execution.
+ * This node handles static transformation of the input AST before execution and represents the root
+ * of an Enso program.
  *
  * <p>As much of the static transformation and analysis functionality required by the interpreter
  * must have access to the interpreter, it must take place as part of the interpreter context. As a
@@ -102,6 +100,7 @@ public class ProgramRootNode extends EnsoRootNode {
    *
    * @param isTail whether or not the node is tail-recursive.
    */
+  @Override
   public void setTail(boolean isTail) {
     // Note [Delayed Tail Calls]
     this.programShouldBeTailRecursive = isTail;

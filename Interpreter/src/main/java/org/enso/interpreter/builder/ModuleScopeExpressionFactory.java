@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -20,7 +19,7 @@ import java.util.stream.IntStream;
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of
  * an Enso program into AST nodes for the interpreter to evaluate.
  */
-public class ModuleScopeExpressionFactory implements AstGlobalScopeVisitor<ExpressionNode> {
+public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<ExpressionNode> {
   private final Language language;
   private final ModuleScope moduleScope;
 

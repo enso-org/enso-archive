@@ -4,7 +4,6 @@ import java.io.ByteArrayOutputStream
 
 import org.enso.interpreter.Constants
 import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.PolyglotException
 import org.graalvm.polyglot.Value
 import org.scalatest.FlatSpec
 import org.scalatest.Matchers
