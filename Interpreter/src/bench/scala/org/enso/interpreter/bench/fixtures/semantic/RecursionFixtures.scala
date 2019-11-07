@@ -1,9 +1,9 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
 import org.enso.interpreter.Constants
-import org.enso.interpreter.test.LanguageRunner
+import org.enso.interpreter.test.InterpreterRunner
 
-class RecursionFixtures extends LanguageRunner {
+class RecursionFixtures extends InterpreterRunner {
   val hundredMillion: Long = 100000000
   val million: Long        = 1000000
   val thousand: Long       = 1000
@@ -69,4 +69,18 @@ class RecursionFixtures extends LanguageRunner {
   val oversaturatedRecursiveCall =
     ctx.eval(Constants.LANGUAGE_ID, oversaturatedRecursiveCallTCOCode);
 
+  val sumStateTCOCode =
+    """
+      |{ |sumTo|
+      |  stateSum = { |n|
+      |    acc = @get [@State];
+      |    @put [@State, acc + n];
+      |    ifZero: [n, 0, @stateSum [n-1]]
+      |  };
+      |  @put [@State, 0];
+      |  @stateSum [sumTo]
+      |}
+      |""".stripMargin
+
+  val sumStateTCO = eval(sumStateTCOCode)
 }
