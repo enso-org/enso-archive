@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.frame.VirtualFrame;
@@ -54,14 +55,15 @@ public class ProgramRootNode extends EnsoRootNode {
    */
   @Override
   public Object execute(VirtualFrame frame) {
-    Context context = this.getLanguage().getCurrentContext();
+    Context context = getContext();
 
     // Note [Static Passes]
     if (this.ensoProgram == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
       this.ensoProgram = this.insert(context.compiler().run(this.sourceCode));
+      this.ensoProgram.setTail(programShouldBeTailRecursive);
     }
 
-    this.ensoProgram.setTail(programShouldBeTailRecursive);
     Object state = getContext().getUnit().newInstance();
     frame.setObject(this.getStateFrameSlot(), state);
 
@@ -73,7 +75,7 @@ public class ProgramRootNode extends EnsoRootNode {
    * Almost all of the static analysis functionality required by the interpreter requires access to
    * the interpreter to execute small amounts of code. This is for purposes such as:
    * - Type-level computation and evaluation during typechecking.
-   * - CTFE for optimisation.
+   * - Compile-Time Function Evaluation (CTFE) for optimisation.
    * - Various other re-write mechanisms that involve code execution.
    *
    * The contract expected from a Truffle Language states that there is to be no access to the

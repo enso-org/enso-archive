@@ -1,5 +1,6 @@
 package org.enso.interpreter.node;
 
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.ReportPolymorphism;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlotKind;
@@ -11,7 +12,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
- * This node represents the root of Enso computations.
+ * This node represents the root of Enso closures and closure-like structures.
  *
  * <p>All new computations in Enso must be executed from within an {@link ClosureRootNode}, as
  * determined by the API provided by Truffle.
@@ -67,6 +68,7 @@ public class ClosureRootNode extends EnsoRootNode {
    */
   @Override
   public void setTail(boolean isTail) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
     body.setTail(isTail);
   }
 }

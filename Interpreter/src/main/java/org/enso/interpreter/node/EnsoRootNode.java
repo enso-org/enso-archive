@@ -11,12 +11,13 @@ import org.enso.interpreter.runtime.Context;
 
 /** A common base class for all kinds of root node in Enso. */
 public abstract class EnsoRootNode extends RootNode {
-  private final Language language;
   private final String name;
   private final SourceSection sourceSection;
   private final FrameSlot stateFrameSlot;
   private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
       contextReference;
+  private @CompilerDirectives.CompilationFinal TruffleLanguage.LanguageReference<Language>
+      languageReference;
 
   /**
    * Constructs the root node.
@@ -34,7 +35,6 @@ public abstract class EnsoRootNode extends RootNode {
       SourceSection sourceSection,
       FrameSlot stateFrameSlot) {
     super(language, frameDescriptor);
-    this.language = language;
     this.name = name;
     this.sourceSection = sourceSection;
     this.stateFrameSlot = stateFrameSlot;
@@ -70,7 +70,12 @@ public abstract class EnsoRootNode extends RootNode {
    * @return a language reference
    */
   public Language getLanguage() {
-    return language;
+    if (languageReference == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      languageReference = lookupLanguageReference(Language.class);
+    }
+
+    return languageReference.get();
   }
 
   /**
@@ -90,7 +95,7 @@ public abstract class EnsoRootNode extends RootNode {
   }
 
   /**
-   * Gets a reference to the source code represented by this node.
+   * Gets the source code represented by this node.
    *
    * @return a reference to the source code
    */
