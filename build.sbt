@@ -9,6 +9,7 @@ import org.enso.build.WithDebugCommand
 
 val scalacVersion = "2.12.10"
 val graalVersion  = "19.2.0.1"
+val circeVersion  = "0.11.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -169,7 +170,12 @@ lazy val syntax_definition = (project in file("Syntax/definition"))
   .settings(
     libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
       "com.lihaoyi" %% "scalatags" % "0.7.0"
-    )
+    ),
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion)
   )
 
 lazy val syntax = (project in file("Syntax/specialization"))
@@ -190,6 +196,11 @@ lazy val syntax = (project in file("Syntax/specialization"))
       "com.lihaoyi"       %% "pprint"     % "0.5.3",
       "io.spray"          %% "spray-json" % "1.3.5"
     ),
+    libraryDependencies ++= Seq(
+      "io.circe" %% "circe-core",
+      "io.circe" %% "circe-generic",
+      "io.circe" %% "circe-parser"
+    ).map(_ % circeVersion),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
         val parserCompile =

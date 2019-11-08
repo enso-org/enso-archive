@@ -1,11 +1,21 @@
 package org.enso.syntax.text
 
+import cats.derived.semi
 import org.enso.data.Index
 import org.enso.data.Span
 import org.enso.flexer
 import org.enso.flexer.Reader
+import org.enso.syntax.text.AST.ASTOf
+import org.enso.syntax.text.AST.ID
+import org.enso.syntax.text.AST.Ident.VarOf
+import org.enso.syntax.text.AST.Invalid.UnrecognizedOf
 import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.ast.opr.Prec
+import org.enso.syntax.text.ast.text.Escape
+import org.enso.syntax.text.ast.text.Escape.Quote.toString
+import org.enso.syntax.text.ast.text.Escape.RawQuote.toString
+import org.enso.syntax.text.ast.text.Escape.Slash.toString
+import org.enso.syntax.text.ast.text.Escape.Unicode
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.prec.Operator
@@ -219,7 +229,7 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser = new Parser()
+  def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////
@@ -239,131 +249,279 @@ object Parser {
 //// Main ////
 //////////////
 
-object InteractiveTest extends App {
+import io.circe._
+//import io.circe.generic.auto._
+import io.circe.generic.auto._
+import io.circe.parser._
+import io.circe.syntax._
+import io.circe.generic.encoding.DerivedObjectEncoder
+import shapeless.LabelledGeneric
+import shapeless.Lazy
+import cats.Functor
 
-  def pretty(str: String): String = {
+object Main extends App {
 
-    def checkClosing(in: List[Char]): Int = {
-      @tailrec
-      def go(i: Int, rest: Int, in: List[Char], bias: Int): Int =
-        (rest, bias, in) match {
-          case (0, _, _)   => 0
-          case (_, 0, _)   => i
-          case (_, _, Nil) => i
-          case (_, _, s :: ss) =>
-            s match {
-              case '(' => go(i + 1, rest - 1, ss, bias - 1)
-              case ')' => go(i + 1, rest - 1, ss, bias + 1)
-              case _   => go(i + 1, rest - 1, ss, bias)
-            }
+//  def pretty(str: String): String = {
+//
+//    def checkClosing(in: List[Char]): Int = {
+//      @tailrec
+//      def go(i: Int, rest: Int, in: List[Char], bias: Int): Int =
+//        (rest, bias, in) match {
+//          case (0, _, _)   => 0
+//          case (_, 0, _)   => i
+//          case (_, _, Nil) => i
+//          case (_, _, s :: ss) =>
+//            s match {
+//              case '(' => go(i + 1, rest - 1, ss, bias - 1)
+//              case ')' => go(i + 1, rest - 1, ss, bias + 1)
+//              case _   => go(i + 1, rest - 1, ss, bias)
+//            }
+//
+//        }
+//      go(0, 10, in, -1)
+//    }
+//
+//    @tailrec
+//    def go(ind: Int, in: List[Char], out: List[String]): List[String] = {
+//      def newline(i: Int) = "\n" + " " * i * 2
+//      in match {
+//        case Nil => out
+//        case s :: ss =>
+//          val s2 = s.toString
+//          s match {
+//            case '(' =>
+//              checkClosing(ss) match {
+//                case 0 => go(ind + 1, ss, newline(ind + 1) :: s2 :: out)
+//                case i =>
+//                  go(
+//                    ind,
+//                    ss.drop(i),
+//                    ss.take(i).mkString("") :: s2 :: out
+//                  )
+//              }
+//
+//            case ')' => go(ind - 1, ss, s2 :: newline(ind - 1) :: out)
+//            case ',' => go(ind, ss, newline(ind) :: s2 :: out)
+//            case _   => go(ind, ss, s2 :: out)
+//          }
+//      }
+//    }
+//    go(0, str.toList, List()).reverse.mkString("")
+//  }
+//
+//  println("--- START ---")
+//
+//  val parser = new Parser()
+//
+//  val in_def_maybe =
+//    """## Foo bar baz
+//      |   bax
+//      |def Maybe a
+//      |    ## test
+//      |    def Just val:a
+//      |    def Nothing
+//    """.stripMargin
+//
+//  val in_arr1 = "a = b -> c d"
+//
+//  val in3  = "(a) b = c"
+//  val in4  = "if a then (b)"
+//  val in2  = "(a) b = c]"
+//  val inp2 = "a (b (c)) x"
+//
+//  val inp = """## This function adds `x` to `y`
+//              |add x y = x + y
+//              |mul x y = x * y
+//              |
+//              |## This function divides `x` by `y`
+//              |div x y = x / y
+//              |
+//              |## Just a comment
+//              |
+//              |## Doc for infix with empty lines between
+//              |
+//              |sub x y = x - y
+//              |
+//              |## Foo bar baz
+//              |   bax
+//              |def Maybe a
+//              |    ## test attached to Just
+//              |    def Just val:a
+//              |    def Nothing
+//              |""".stripMargin
+//
+//  println("--- PARSING ---")
+//
+//  val mod = parser.run(new Reader(inp))
+//
+//  println(pretty(mod.toString))
+//
+//  println("=========================")
+//  println(pretty(parser.dropMacroMeta(mod).toString))
+//  val rmod = parser.resolveMacros(mod)
+//  if (mod != rmod) {
+//    println("\n---\n")
+//    println(pretty(rmod.toString))
+//  }
+//
+//  println("------")
+//  println(mod.show() == inp)
+//  println("------")
+//  println(mod.show())
+//  println("------")
 
-        }
-      go(0, 10, in, -1)
-    }
+  val v1: AST.Ident.VarOf[AST] = AST.Var("foo").shape
+  val v1_2: AST.Ident          = v1
+  val v2: AST.Invalid.UnexpectedOf[AST] =
+    AST.Invalid.UnexpectedOf("foo", List())
+  val v3: AST.App.Prefix = AST.App.Prefix(v1, 10, v1)
 
-    @tailrec
-    def go(ind: Int, in: List[Char], out: List[String]): List[String] = {
-      def newline(i: Int) = "\n" + " " * i * 2
-      in match {
-        case Nil => out
-        case s :: ss =>
-          val s2 = s.toString
-          s match {
-            case '(' =>
-              checkClosing(ss) match {
-                case 0 => go(ind + 1, ss, newline(ind + 1) :: s2 :: out)
-                case i =>
-                  go(
-                    ind,
-                    ss.drop(i),
-                    ss.take(i).mkString("") :: s2 :: out
-                  )
-              }
+//  implicitly[DerivedObjectEncoder[AST.Ident]](
+//    DerivedObjectEncoder.deriveEncoder
+//  )
 
-            case ')' => go(ind - 1, ss, s2 :: newline(ind - 1) :: out)
-            case ',' => go(ind, ss, newline(ind) :: s2 :: out)
-            case _   => go(ind, ss, s2 :: out)
-          }
+//  implicitly[shapeless.LabelledGeneric[AST.Ident.VarOf[AST]]](
+//    shapeless.LabelledGeneric.materializeProduct(
+//      shapeless.DefaultSymbolicLabelling.apply,
+//      shapeless.Generic.apply,
+//      shapeless.ops.hlist.ZipWithKeys.apply,
+//      scala.Predef.$conforms
+//    )
+//  )
+
+//  implicitly[shapeless.LabelledGeneric[AST.Ident]]
+//  implicitly[shapeless.LabelledGeneric[AST.Ident.VarOf[AST]]](
+//    shapeless.LabelledGeneric.materializeProduct( // (
+//      shapeless.DefaultSymbolicLabelling.mkDefaultSymbolicLabelling,
+//      shapeless.Generic.materialize,
+//      shapeless.ops.hlist.ZipWithKeys.hnilZipWithKeys,
+//      scala.Predef.$conforms
+//    )
+//  )
+
+//  implicitly[shapeless.DefaultSymbolicLabelling[AST.Ident]](
+//    shapeless.DefaultSymbolicLabelling.mkDefaultSymbolicLabelling
+//  )
+
+//  println(v1.asJson(Encoder.importedEncoder(exportEncoder)))
+
+//  /** Invoking the Enso Documentation Parser */
+//  println("===== DOCUMENTATION =====")
+//  val isGeneratingHTML = false
+//  val droppedMeta      = parser.dropMacroMeta(mod)
+//  val documentation    = DocParserRunner.createDocs(droppedMeta)
+//  val documentationHTML =
+//    DocParserRunner.generateHTMLForEveryDocumented(documentation)
+//  println(pretty(documentation.toString))
+//  println("------")
+//  println(documentation.show())
+//  println("=========================")
+//
+//  println()
+
+  trait X[T] {}
+
+  trait ASTClass[T] {
+    def getJson(t: T): Json
+  }
+  object ASTClass {
+    implicit def instance[T](
+      implicit
+      ev: Encoder[T],
+      ev2: X[T]
+    ): ASTClass[T] = new ASTClass[T] {
+      def getJson(t: T): Json = {
+        implicitly[Encoder[T]].apply(t)
       }
     }
-    go(0, str.toList, List()).reverse.mkString("")
   }
-
-  println("--- START ---")
-
-  val parser = new Parser()
-
-  val in_def_maybe =
-    """## Foo bar baz
-      |   bax
-      |def Maybe a
-      |    ## test
-      |    def Just val:a
-      |    def Nothing
-    """.stripMargin
-
-  val in_arr1 = "a = b -> c d"
-
-  val in3  = "(a) b = c"
-  val in4  = "if a then (b)"
-  val in2  = "(a) b = c]"
-  val inp2 = "a (b (c)) x"
-
-  val inp = """## This function adds `x` to `y`
-              |add x y = x + y
-              |mul x y = x * y
-              |
-              |## This function divides `x` by `y`
-              |div x y = x / y
-              |
-              |## Just a comment
-              |
-              |## Doc for infix with empty lines between 
-              |
-              |sub x y = x - y
-              |
-              |## Foo bar baz
-              |   bax
-              |def Maybe a
-              |    ## test attached to Just
-              |    def Just val:a
-              |    def Nothing
-              |""".stripMargin
-
-  println("--- PARSING ---")
-
-  val mod = parser.run(new Reader(inp))
-
-  println(pretty(mod.toString))
-
-  println("=========================")
-  println(pretty(parser.dropMacroMeta(mod).toString))
-  val rmod = parser.resolveMacros(mod)
-  if (mod != rmod) {
-    println("\n---\n")
-    println(pretty(rmod.toString))
-  }
-
-  println("------")
-  println(mod.show() == inp)
-  println("------")
-  println(mod.show())
-  println("------")
-
-  /** Invoking the Enso Documentation Parser */
-  println("===== DOCUMENTATION =====")
-  val isGeneratingHTML = false
-  val droppedMeta      = parser.dropMacroMeta(mod)
-  val documentation    = DocParserRunner.createDocs(droppedMeta)
-  val documentationHTML =
-    DocParserRunner.generateHTMLForEveryDocumented(documentation)
-  println(pretty(documentation.toString))
-  println("------")
-  println(documentation.show())
-  println("=========================")
-
-  println()
 
   AST.main()
+  sealed trait ShapeOf2[T]
+  type AST2 = ASTOf2[ShapeOf2]
+  final case class ASTOf2[+T[_]](shape: T[AST2])(
+    implicit cls: ASTClass[T[AST2]]
+  ) {
+    def myAsJson(): Json = cls.getJson(shape)
+  }
+
+  implicit def ASTOf2Encoder[T[_]]: Encoder[ASTOf2[T]] =
+    Encoder.instance(_.myAsJson())
+//
+//  implicit def ASTEncoder: Encoder[AST2] =
+//    Encoder.instance(_.myAsJson())
+
+  final case class AOf[T](i: Int) extends ShapeOf2[T]
+  final case class BOf[T](t: T)   extends ShapeOf2[T]
+
+  implicit def XforA[T]: X[AOf[T]] = new X[AOf[T]] {}
+  implicit def XforB[T]: X[BOf[T]] = new X[BOf[T]] {}
+
+  implicit def ftorA: Functor[AOf] = semi.functor
+  implicit def ftorB: Functor[BOf] = semi.functor
+
+//  implicit def encoderGen[T[_]: Functor]: Encoder[T[AST2]] = Encoder.instance {
+//    t =>
+//      {
+//        Functor[T].map(t)(_.asJson)
+//        ???
+//      }
+//  }
+  //  val t1: AST2 = ASTOf2(AOf(5))
+//  println(t1.asJson)
+  sealed trait Escape2 {
+    val repr: String
+  }
+
+  sealed trait Unicode2 extends Escape2
+  object Unicode2 {
+
+    final case class Invalid(unicode: Unicode2) extends Unicode2 {
+      val repr = unicode.repr
+    }
+
+    final case class U16(digits: String) extends Unicode2 {
+      val pfx  = "u"
+      val sfx  = ""
+      val repr = pfx + digits + sfx
+    }
+
+    final case class U32(digits: String) extends Unicode2 {
+      val pfx  = "U"
+      val sfx  = ""
+      val repr = pfx + digits + sfx
+    }
+
+    final case class U21(digits: String) extends Unicode2 {
+      val pfx  = "u{"
+      val sfx  = "}"
+      val repr = pfx + digits + sfx
+    }
+
+  }
+
+  case object Slash extends Escape2 {
+    val code: Int     = '\\'
+    def name          = toString
+    override val repr = "\\"
+  }
+  case object Quote extends Escape2 {
+    val code: Int     = '\''
+    def name          = toString
+    override val repr = "\'"
+  }
+  case object RawQuote extends Escape2 {
+    val code: Int     = '"'
+    def name          = toString
+    override val repr = "\""
+  }
+
+  //  implicitly[Encoder[AST.Invalid.UnexpectedOf[AST]]]
+  implicitly[Encoder[AST.App.PrefixOf[AST]]]
+  implicitly[Encoder[BOf[AST2]]]
+  implicitly[Encoder[org.enso.syntax.text.ast.text.Escape2]]
+  implicitly[Encoder[Escape2]]
+
+//  type Ident2 = ASTOf2[AST.IdentOf]
 
 }
