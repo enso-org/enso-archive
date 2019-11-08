@@ -89,7 +89,16 @@ lazy val buildNativeImage =
 
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
-  .aggregate(syntax, pkg, runtime)
+  .aggregate(
+    syntax,
+    pkg,
+    runtime,
+    flexer,
+    unused,
+    syntax_definition,
+    file_manager,
+    project_manager
+  )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
 ////////////////////////////
@@ -307,3 +316,29 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax)
+
+lazy val file_manager = (project in file("common/scala/file-manager"))
+  .settings(
+    (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
+  )
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies += akkaSLF4J,
+    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
+    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-SNAP10" % Test,
+    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.0" % Test,
+    libraryDependencies += akkaTestkitTyped,
+    libraryDependencies += "commons-io" % "commons-io"        % "2.6",
+    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
+  )
+
+lazy val project_manager = (project in file("common/scala/project-manager"))
+  .settings(
+    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
+  )
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe,
+    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
+  )
+  .dependsOn(pkg)
