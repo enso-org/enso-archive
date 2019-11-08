@@ -281,7 +281,6 @@ object AST {
     def mapWithOff(f: (Index, AST) => AST): ASTOf[T] =
       copy(shape = cls.mapWithOff(shape)(f))
     def zipWithOffset(): T[(Index, AST)] = cls.zipWithOffset(shape)
-    def myJson(): String                 = cls.giveMeJson(shape)
   }
   object ASTOf {
     implicit def repr[T[_]]: Repr[ASTOf[T]]        = _.repr
@@ -297,18 +296,6 @@ object AST {
 
   //// ASTClass ////
 
-  trait Foo[T] {
-    def myJson(t: T): String
-  }
-
-  trait MyEncoder[T] {
-    def myJson(t: T): String;
-  }
-
-  implicit def MyEncoderDefault[T]: MyEncoder[T] = new MyEncoder[T] {
-    def myJson(t: T): String = "no json for you :("
-  }
-
   /** [[ASTClass]] implements set of AST operations based on a precise AST
     * shape. Because the [[T]] parameter in [[ASTOf]] is covariant, we may lose
     * information about the shape after we construct the AST, thus this instance
@@ -319,7 +306,6 @@ object AST {
     def map(t: T[AST])(f: AST => AST):                 T[AST]
     def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
     def zipWithOffset(t: T[AST]):                      T[(Index, AST)]
-    def giveMeJson(t: T[AST]):                         String
   }
   object ASTClass {
     def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
@@ -328,10 +314,8 @@ object AST {
       evRepr: Repr[T[AST]],
       evFtor: Functor[T],
       evOzip: OffsetZip[T, AST],
-      encoder: MyEncoder[T[AST]],
       classTag: ClassTag[T[AST]],
       jsonEv: Encoder[T[AST]]
-      //      jsonEncoder: Encoder[T[AST]]
     ): ASTClass[T] =
       new ASTClass[T] {
         def repr(t: T[AST]): Repr.Builder             = evRepr.repr(t)
@@ -339,11 +323,6 @@ object AST {
         def zipWithOffset(t: T[AST]): T[(Index, AST)] = OffsetZip(t)
         def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
           Functor[T].map(zipWithOffset(t))(f.tupled)
-        def giveMeJson(t: T[AST]): String =
-          classTag.toString
-            .dropWhile(_ != '$')
-            .replace('$', '_')
-            .drop(1) + "{" + encoder.myJson(t) + "}"
       }
   }
 
@@ -495,7 +474,6 @@ object AST {
       implicit def fold: Foldable[VarOf]        = semi.foldable
       implicit def repr[T]: Repr[VarOf[T]]      = _.name
       implicit def ozip[T]: OffsetZip[VarOf, T] = t => t.coerce
-      implicit def json[T]: MyEncoder[VarOf[T]] = t => t.asJson.noSpaces
     }
     object ConsOf {
       implicit def ftor: Functor[ConsOf]         = semi.functor
@@ -1255,7 +1233,7 @@ object AST {
           t => R + t.head + t.body
 
         implicit def ozip[T: Repr]: OffsetZip[SegmentOf, T] = t => {
-          t.copy(body = OffsetZip(t.body)(Pattern.MatchOf.offZipMatch).map {
+          t.copy(body = OffsetZip(t.body).map {
             case (i, s) => s.map((i + Size(t.head.repr.span), _))
           })
         }
@@ -1265,34 +1243,34 @@ object AST {
       }
 
     }
-//
-//    //// Ambiguous ////
-//
-//    type Ambiguous = ASTOf[AmbiguousOf]
-//    final case class AmbiguousOf[T](
-//      segs: Shifted.List1[Ambiguous.Segment],
-//      paths: Tree[AST, Unit]
-//    ) extends MacroOf[T]
-//    object Ambiguous {
-//      def apply(
-//        segs: Shifted.List1[Ambiguous.Segment],
-//        paths: Tree[AST, Unit]
-//      ): Ambiguous = ASTOf(AmbiguousOf(segs, paths))
-//
-//      final case class Segment(head: AST, body: Option[SAST])
-//      object Segment {
-//        def apply(head: AST): Segment    = Segment(head, None)
-//        implicit def repr: Repr[Segment] = t => R + t.head + t.body
-//      }
-//    }
-//
-//    object AmbiguousOf {
-//      implicit def ftor: Functor[AmbiguousOf]         = semi.functor
-//      implicit def fold: Foldable[AmbiguousOf]        = semi.foldable
-//      implicit def repr[T]: Repr[AmbiguousOf[T]]      = t => R + t.segs.map(Repr(_))
-//      implicit def ozip[T]: OffsetZip[AmbiguousOf, T] = _.map(Index.Start -> _)
-//    }
-//
+
+    //// Ambiguous ////
+
+    type Ambiguous = ASTOf[AmbiguousOf]
+    final case class AmbiguousOf[T](
+      segs: Shifted.List1[Ambiguous.Segment],
+      paths: Tree[AST, Unit]
+    ) extends MacroOf[T]
+    object Ambiguous {
+      def apply(
+        segs: Shifted.List1[Ambiguous.Segment],
+        paths: Tree[AST, Unit]
+      ): Ambiguous = ASTOf(AmbiguousOf(segs, paths))
+
+      final case class Segment(head: AST, body: Option[SAST])
+      object Segment {
+        def apply(head: AST): Segment    = Segment(head, None)
+        implicit def repr: Repr[Segment] = t => R + t.head + t.body
+      }
+    }
+
+    object AmbiguousOf {
+      implicit def ftor: Functor[AmbiguousOf]         = semi.functor
+      implicit def fold: Foldable[AmbiguousOf]        = semi.foldable
+      implicit def repr[T]: Repr[AmbiguousOf[T]]      = t => R + t.segs.map(Repr(_))
+      implicit def ozip[T]: OffsetZip[AmbiguousOf, T] = _.map(Index.Start -> _)
+    }
+
 //    //// Resolver ////
 //
 //    type Resolver = Resolver.Context => AST
