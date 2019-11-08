@@ -656,215 +656,216 @@ object AST {
     //// Text ////
     //////////////
 
-//    type Text = ASTOf[TextOf]
-//
-//    sealed trait TextOf[T] extends ShapeOf[T] {
-//      val body: Text.BodyOf[Text.Segment[T]]
-//      val quoteChar: Char
-//      def quoteRepr: String = quoteChar.toString * body.quote.asInt
-//      def bodyRepr(implicit ev: Repr[T]): Repr.Builder =
-//        R + body.lines.head + body.lines.tail.map(t => newline + t.off + t.elem)
-//    }
-//
-//    object TextOf {
-//      implicit def ftor: Functor[TextOf]  = semi.functor
-//      implicit def fold: Foldable[TextOf] = semi.foldable
-//      implicit def repr[T: Repr]: Repr[TextOf[T]] =
-//        t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
-//      implicit def ozip[T: Repr]: OffsetZip[TextOf, T] = {
-//        case t: Text.RawOf[T] => OffsetZip(t)
-//        case t: Text.FmtOf[T] => OffsetZip(t)
-//      }
-//    }
-//    object Text {
-//
-//      import Segment.implicits._
-//
-//      def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = Fmt(body)
-//
-//      //// Definition ////
-//
-//      type Block[+T] = List1[LineOf[T]]
-//
-//      type Raw      = ASTOf[RawOf]
-//      type Fmt      = ASTOf[FmtOf]
-//      type Unclosed = ASTOf[UnclosedOf]
-//
-//      final case class LineOf[+T](off: Int, elem: List[T])
-//
-//      final case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
-//
-//      final case class RawOf[T](body: BodyOf[Segment._Raw[T]])
-//          extends TextOf[T]
-//          with Phantom {
-//        val quoteChar = '"'
-//      }
-//      final case class FmtOf[T](body: BodyOf[Segment._Fmt[T]]) extends TextOf[T] {
-//        val quoteChar = '\''
-//      }
-//      final case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
-//
-//      object Body {
-//        def apply[S <: Segment[AST]](q: Quote, s: S*) =
-//          BodyOf(q, List1(LineOf(0, s.to[List])))
-//      }
-//
-//      object Raw {
-//        def apply(body: BodyOf[Segment._Raw[AST]]): Raw = RawOf(body)
-//      }
-//
-//      object Fmt {
-//        def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = FmtOf(body)
-//      }
-//
-//      object Unclosed {
-//        def apply(text: TextOf[AST]): Unclosed = UnclosedOf(text)
-//      }
-//
-//      //// Instances ////
-//
-//      object RawOf {
-//        implicit def ftor: Functor[RawOf]  = semi.functor
-//        implicit def fold: Foldable[RawOf] = semi.foldable
-//        implicit def repr[T: Repr]: Repr[RawOf[T]] =
-//          t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
-//        implicit def ozip[T]: OffsetZip[RawOf, T] = t => t.coerce
-//      }
-//      object FmtOf {
-//        implicit def ftor: Functor[FmtOf]  = semi.functor
-//        implicit def fold: Foldable[FmtOf] = semi.foldable
-//        implicit def repr[T: Repr]: Repr[FmtOf[T]] =
-//          t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
-//        implicit def ozip[T: Repr]: OffsetZip[FmtOf, T] = t => {
-//          var offset = Index.Start
-//          val lines = for (line <- t.body.lines) yield {
-//            val offLine = line.map {
-//              OffsetZip(_).map { case (o, e) => (offset + o.asSize, e) }
-//            }
-//            offset += Size(line.span)
-//            offLine
-//          }
-//          t.copy(body = t.body.copy(lines = lines))
-//        }
-//      }
-//      object LineOf {
-//        implicit def ftor: Functor[LineOf]          = semi.functor
-//        implicit def fold: Foldable[LineOf]         = semi.foldable
-//        implicit def repr[T: Repr]: Repr[LineOf[T]] = R + _.elem.map(R + _)
-//        implicit def ozip[T: Repr]: OffsetZip[LineOf, T] = t => {
-//          var offset = Index(t.off)
-//          val elem = for (elem <- t.elem) yield {
-//            val offElem = (offset, elem)
-//            offset += Size(elem.span)
-//            offElem
-//          }
-//          t.copy(elem = elem)
-//        }
-//      }
-//      object UnclosedOf {
-//        implicit def ftor: Functor[UnclosedOf]  = semi.functor
-//        implicit def fold: Foldable[UnclosedOf] = semi.foldable
-//        implicit def repr[T: Repr]: Repr[UnclosedOf[T]] =
-//          t => R + t.text.quoteRepr + t.text.bodyRepr
-//        implicit def ozip[T: Repr]: OffsetZip[UnclosedOf, T] =
-//          t => t.copy(text = OffsetZip(t.text))
-//      }
-//
+    type Text = ASTOf[TextOf]
+
+    sealed trait TextOf[T] extends ShapeOf[T] {
+      val body: Text.BodyOf[Text.Segment[T]]
+      val quoteChar: Char
+      def quoteRepr: String = quoteChar.toString * body.quote.asInt
+      def bodyRepr(implicit ev: Repr[T]): Repr.Builder =
+        R + body.lines.head + body.lines.tail.map(t => newline + t.off + t.elem)
+    }
+
+    object TextOf {
+      implicit def ftor: Functor[TextOf]  = semi.functor
+      implicit def fold: Foldable[TextOf] = semi.foldable
+      implicit def repr[T: Repr]: Repr[TextOf[T]] =
+        t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
+      implicit def ozip[T: Repr]: OffsetZip[TextOf, T] = {
+        case t: Text.RawOf[T] => OffsetZip(t)
+        case t: Text.FmtOf[T] => OffsetZip(t)
+      }
+    }
+    object Text {
+
+      import Segment.implicits._
+
+      def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = Fmt(body)
+
+      //// Definition ////
+
+      type Block[+T] = List1[LineOf[T]]
+
+      type Raw      = ASTOf[RawOf]
+      type Fmt      = ASTOf[FmtOf]
+      type Unclosed = ASTOf[UnclosedOf]
+
+      final case class LineOf[+T](off: Int, elem: List[T])
+
+      final case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
+
+      final case class RawOf[T](body: BodyOf[Segment._Raw[T]])
+          extends TextOf[T]
+          with Phantom {
+        val quoteChar = '"'
+      }
+      final case class FmtOf[T](body: BodyOf[Segment._Fmt[T]])
+          extends TextOf[T] {
+        val quoteChar = '\''
+      }
+      final case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
+
+      object Body {
+        def apply[S <: Segment[AST]](q: Quote, s: S*) =
+          BodyOf(q, List1(LineOf(0, s.to[List])))
+      }
+
+      object Raw {
+        def apply(body: BodyOf[Segment._Raw[AST]]): Raw = RawOf(body)
+      }
+
+      object Fmt {
+        def apply(body: BodyOf[Segment._Fmt[AST]]): Fmt = FmtOf(body)
+      }
+
+      object Unclosed {
+        def apply(text: TextOf[AST]): Unclosed = UnclosedOf(text)
+      }
+
+      //// Instances ////
+
+      object RawOf {
+        implicit def ftor: Functor[RawOf]  = semi.functor
+        implicit def fold: Foldable[RawOf] = semi.foldable
+        implicit def repr[T: Repr]: Repr[RawOf[T]] =
+          t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
+        implicit def ozip[T]: OffsetZip[RawOf, T] = t => t.coerce
+      }
+      object FmtOf {
+        implicit def ftor: Functor[FmtOf]  = semi.functor
+        implicit def fold: Foldable[FmtOf] = semi.foldable
+        implicit def repr[T: Repr]: Repr[FmtOf[T]] =
+          t => R + t.quoteRepr + t.bodyRepr + t.quoteRepr
+        implicit def ozip[T: Repr]: OffsetZip[FmtOf, T] = t => {
+          var offset = Index.Start
+          val lines = for (line <- t.body.lines) yield {
+            val offLine = line.map {
+              OffsetZip(_).map { case (o, e) => (offset + o.asSize, e) }
+            }
+            offset += Size(line.span)
+            offLine
+          }
+          t.copy(body = t.body.copy(lines = lines))
+        }
+      }
+      object LineOf {
+        implicit def ftor: Functor[LineOf]          = semi.functor
+        implicit def fold: Foldable[LineOf]         = semi.foldable
+        implicit def repr[T: Repr]: Repr[LineOf[T]] = R + _.elem.map(R + _)
+        implicit def ozip[T: Repr]: OffsetZip[LineOf, T] = t => {
+          var offset = Index(t.off)
+          val elem = for (elem <- t.elem) yield {
+            val offElem = (offset, elem)
+            offset += Size(elem.span)
+            offElem
+          }
+          t.copy(elem = elem)
+        }
+      }
+      object UnclosedOf {
+        implicit def ftor: Functor[UnclosedOf]  = semi.functor
+        implicit def fold: Foldable[UnclosedOf] = semi.foldable
+        implicit def repr[T: Repr]: Repr[UnclosedOf[T]] =
+          t => R + t.text.quoteRepr + t.text.bodyRepr
+        implicit def ozip[T: Repr]: OffsetZip[UnclosedOf, T] =
+          t => t.copy(text = OffsetZip(t.text))
+      }
+
 //      ///////////////
 //      //// Quote ////
 //      ///////////////
-//
-//      sealed trait Quote { val asInt: Int }
-//      object Quote {
-//        final case object Single extends Quote { val asInt = 1 }
-//        final case object Triple extends Quote { val asInt = 3 }
-//      }
-//
-//      /////////////////
-//      //// Segment ////
-//      /////////////////
-//
-//      sealed trait Segment[T]
-//      object Segment {
-//
-//        type Escape = ast.text.Escape
-//        val Escape = ast.text.Escape
-//
-//        //// Definition ////
-//
-//        type Fmt = _Fmt[AST]
-//        type Raw = _Raw[AST]
-//        sealed trait _Fmt[T] extends Segment[T]
-//        sealed trait _Raw[T] extends _Fmt[T] with Phantom
-//
-//        final case class _Plain[T](value: String)   extends _Raw[T]
-//        final case class _Expr[T](value: Option[T]) extends _Fmt[T]
-//        final case class _Escape[T](code: Escape)   extends _Fmt[T] with Phantom
-//
-//        object Expr  { def apply(t: Option[AST]): Fmt = _Expr(t)  }
-//        object Plain { def apply(s: String): Raw      = _Plain(s) }
-//
-//        //// Instances ////
-//
-//        object implicits extends implicits
-//        trait implicits {
-//
-//          implicit def ftorEscape: Functor[_Escape]  = semi.functor
-//          implicit def foldEscape: Foldable[_Escape] = semi.foldable
-//          implicit def reprEscape[T: Repr]: Repr[_Escape[T]] =
-//            t => R + ("\\" + t.code.repr)
-//          implicit def ozipEscape[T]: OffsetZip[_Escape, T] = t => t.coerce
-//
-//          implicit def foldPlain: Foldable[_Plain]        = semi.foldable
-//          implicit def ftorPlain[T]: Functor[_Plain]      = semi.functor
-//          implicit def reprPlain[T]: Repr[_Plain[T]]      = _.value
-//          implicit def ozipPlain[T]: OffsetZip[_Plain, T] = t => t.coerce
-//
-//          implicit def ftorExpr[T]: Functor[_Expr] = semi.functor
-//          implicit def foldExpr: Foldable[_Expr]   = semi.foldable
-//          implicit def reprExpr[T: Repr]: Repr[_Expr[T]] =
-//            R + '`' + _.value + '`'
-//          implicit def ozipExpr[T]: OffsetZip[_Expr, T] =
-//            _.map(Index.Start -> _)
-//
-//          implicit def ftorRaw[T]: Functor[_Raw] = semi.functor
-//          implicit def foldRaw: Foldable[_Raw]   = semi.foldable
-//          implicit def reprRaw[T]: Repr[_Raw[T]] = {
-//            case t: _Plain[T] => Repr(t)
-//          }
-//          implicit def ozipRaw[T]: OffsetZip[_Raw, T] = {
-//            case t: _Plain[T] => OffsetZip(t)
-//          }
-//
-//          implicit def ftorFmt[T]: Functor[_Fmt] = semi.functor
-//          implicit def foldFmt: Foldable[_Fmt]   = semi.foldable
-//          implicit def reprFmt[T: Repr]: Repr[_Fmt[T]] = {
-//            case t: _Plain[T]  => Repr(t)
-//            case t: _Expr[T]   => Repr(t)
-//            case t: _Escape[T] => Repr(t)
-//          }
-//          implicit def ozipFmt[T]: OffsetZip[_Fmt, T] = {
-//            case t: _Plain[T]  => OffsetZip(t)
-//            case t: _Expr[T]   => OffsetZip(t)
-//            case t: _Escape[T] => OffsetZip(t)
-//          }
-//
-//          implicit def txtFromString[T](str: String): _Plain[T] = _Plain(str)
-//        }
-//
-//        import implicits._
-//        implicit def ftor: Functor[Segment]  = semi.functor
-//        implicit def fold: Foldable[Segment] = semi.foldable
-//        implicit def repr[T: Repr]: Repr[Segment[T]] = {
-//          case t: _Raw[T] => Repr(t)
-//          case t: _Fmt[T] => Repr(t)
-//        }
-//        implicit def ozip[T]: OffsetZip[Segment, T] = {
-//          case t: _Raw[T] => OffsetZip(t)
-//          case t: _Fmt[T] => OffsetZip(t)
-//        }
-//      }
-//    }
+
+      sealed trait Quote { val asInt: Int }
+      object Quote {
+        final case object Single extends Quote { val asInt = 1 }
+        final case object Triple extends Quote { val asInt = 3 }
+      }
+
+      /////////////////
+      //// Segment ////
+      /////////////////
+
+      sealed trait Segment[T]
+      object Segment {
+
+        type Escape = ast.text.Escape
+        val Escape = ast.text.Escape
+
+        //// Definition ////
+
+        type Fmt = _Fmt[AST]
+        type Raw = _Raw[AST]
+        sealed trait _Fmt[T] extends Segment[T]
+        sealed trait _Raw[T] extends _Fmt[T] with Phantom
+
+        final case class _Plain[T](value: String)   extends _Raw[T]
+        final case class _Expr[T](value: Option[T]) extends _Fmt[T]
+        final case class _Escape[T](code: Escape)   extends _Fmt[T] with Phantom
+
+        object Expr  { def apply(t: Option[AST]): Fmt = _Expr(t)  }
+        object Plain { def apply(s: String): Raw      = _Plain(s) }
+
+        //// Instances ////
+
+        object implicits extends implicits
+        trait implicits {
+
+          implicit def ftorEscape: Functor[_Escape]  = semi.functor
+          implicit def foldEscape: Foldable[_Escape] = semi.foldable
+          implicit def reprEscape[T: Repr]: Repr[_Escape[T]] =
+            t => R + ("\\" + t.code.repr)
+          implicit def ozipEscape[T]: OffsetZip[_Escape, T] = t => t.coerce
+
+          implicit def foldPlain: Foldable[_Plain]        = semi.foldable
+          implicit def ftorPlain[T]: Functor[_Plain]      = semi.functor
+          implicit def reprPlain[T]: Repr[_Plain[T]]      = _.value
+          implicit def ozipPlain[T]: OffsetZip[_Plain, T] = t => t.coerce
+
+          implicit def ftorExpr[T]: Functor[_Expr] = semi.functor
+          implicit def foldExpr: Foldable[_Expr]   = semi.foldable
+          implicit def reprExpr[T: Repr]: Repr[_Expr[T]] =
+            R + '`' + _.value + '`'
+          implicit def ozipExpr[T]: OffsetZip[_Expr, T] =
+            _.map(Index.Start -> _)
+
+          implicit def ftorRaw[T]: Functor[_Raw] = semi.functor
+          implicit def foldRaw: Foldable[_Raw]   = semi.foldable
+          implicit def reprRaw[T]: Repr[_Raw[T]] = {
+            case t: _Plain[T] => Repr(t)
+          }
+          implicit def ozipRaw[T]: OffsetZip[_Raw, T] = {
+            case t: _Plain[T] => OffsetZip(t)
+          }
+
+          implicit def ftorFmt[T]: Functor[_Fmt] = semi.functor
+          implicit def foldFmt: Foldable[_Fmt]   = semi.foldable
+          implicit def reprFmt[T: Repr]: Repr[_Fmt[T]] = {
+            case t: _Plain[T]  => Repr(t)
+            case t: _Expr[T]   => Repr(t)
+            case t: _Escape[T] => Repr(t)
+          }
+          implicit def ozipFmt[T]: OffsetZip[_Fmt, T] = {
+            case t: _Plain[T]  => OffsetZip(t)
+            case t: _Expr[T]   => OffsetZip(t)
+            case t: _Escape[T] => OffsetZip(t)
+          }
+
+          implicit def txtFromString[T](str: String): _Plain[T] = _Plain(str)
+        }
+
+        import implicits._
+        implicit def ftor: Functor[Segment]  = semi.functor
+        implicit def fold: Foldable[Segment] = semi.foldable
+        implicit def repr[T: Repr]: Repr[Segment[T]] = {
+          case t: _Raw[T] => Repr(t)
+          case t: _Fmt[T] => Repr(t)
+        }
+        implicit def ozip[T]: OffsetZip[Segment, T] = {
+          case t: _Raw[T] => OffsetZip(t)
+          case t: _Fmt[T] => OffsetZip(t)
+        }
+      }
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1272,155 +1273,156 @@ object AST {
     }
 
 //    //// Resolver ////
-//
-//    type Resolver = Resolver.Context => AST
-//    object Resolver {
-//      type Context = ContextOf[AST]
-//      final case class ContextOf[T](
-//        prefix: Option[Pattern.Match],
-//        body: List[Macro.Match.SegmentOf[T]],
-//        id: ID
-//      )
-//      object Context {
-//        def apply(
-//          prefix: Option[Pattern.Match],
-//          body: List[Macro.Match.Segment],
-//          id: ID
-//        ): Context = ContextOf(prefix, body, id)
-//      }
-//    }
-//
+
+    type Resolver = Resolver.Context => AST
+    object Resolver {
+      type Context = ContextOf[AST]
+      final case class ContextOf[T](
+        prefix: Option[Pattern.Match],
+        body: List[Macro.Match.SegmentOf[T]],
+        id: ID
+      )
+      object Context {
+        def apply(
+          prefix: Option[Pattern.Match],
+          body: List[Macro.Match.Segment],
+          id: ID
+        ): Context = ContextOf(prefix, body, id)
+      }
+    }
+
 //    //// Definition ////
-//
-//    type Definition = __Definition__
-//    final case class __Definition__(
-//      back: Option[Pattern],
-//      init: List[Definition.Segment],
-//      last: Definition.LastSegment,
-//      resolver: Resolver
-//    ) {
-//      def path: List1[AST] = init.map(_.head) +: List1(last.head)
-//      def fwdPats: List1[Pattern] =
-//        init.map(_.pattern) +: List1(last.pattern.getOrElse(Pattern.Nothing()))
-//    }
-//    object Definition {
-//      import Pattern._
-//
-//      final case class Segment(head: AST, pattern: Pattern) {
-//        def map(f: Pattern => Pattern): Segment = copy(pattern = f(pattern))
-//      }
-//      object Segment {
-//        type Tup = (AST, Pattern)
-//        def apply(t: Tup): Segment = Segment(t._1, t._2)
-//      }
-//
-//      final case class LastSegment(head: AST, pattern: Option[Pattern]) {
-//        def map(f: Pattern => Pattern): LastSegment =
-//          copy(pattern = pattern.map(f))
-//      }
-//      object LastSegment {
-//        type Tup = (AST, Option[Pattern])
-//        def apply(t: Tup): LastSegment = LastSegment(t._1, t._2)
-//      }
-//
-//      def apply(back: Option[Pattern], t1: Segment.Tup, ts: List[Segment.Tup])(
-//        fin: Resolver
-//      ): Definition = {
-//        val segs    = List1(t1, ts)
-//        val init    = segs.init
-//        val lastTup = segs.last
-//        val last    = (lastTup._1, Some(lastTup._2))
-//        Definition(back, init, last, fin)
-//      }
-//
-//      def apply(back: Option[Pattern], t1: Segment.Tup, ts: Segment.Tup*)(
-//        fin: Resolver
-//      ): Definition = Definition(back, t1, ts.toList)(fin)
-//
-//      def apply(t1: Segment.Tup, t2_ : Segment.Tup*)(
-//        fin: Resolver
-//      ): Definition = Definition(None, t1, t2_.toList)(fin)
-//
-//      def apply(initTups: List[Segment.Tup], lastHead: AST)(
-//        fin: Resolver
-//      ): Definition =
-//        Definition(None, initTups, (lastHead, None), fin)
-//
-//      def apply(t1: Segment.Tup, last: AST)(fin: Resolver): Definition =
-//        Definition(List(t1), last)(fin)
-//
-//      def apply(
-//        back: Option[Pattern],
-//        initTups: List[Segment.Tup],
-//        lastTup: LastSegment.Tup,
-//        resolver: Resolver
-//      ): Definition = {
-//        type PP = Pattern => Pattern
-//        val applyValidChecker: PP     = _ | ErrTillEnd("unmatched pattern")
-//        val applyFullChecker: PP      = _ :: ErrUnmatched("unmatched tokens")
-//        val applyDummyFullChecker: PP = _ :: Nothing()
-//
-//        val unapplyValidChecker: Pattern.Match => Pattern.Match = {
-//          case Pattern.Match.Or(_, Left(tgt)) => tgt
-//          case _                              => throw new Error("Internal error")
-//        }
-//        val unapplyFullChecker: Pattern.Match => Pattern.Match = {
-//          case Pattern.Match.Seq(_, (tgt, _)) => tgt
-//          case _                              => throw new Error("Internal error")
-//        }
-//        val applySegInitCheckers: List[Segment] => List[Segment] =
-//          _.map(_.map(p => applyFullChecker(applyValidChecker(p))))
-//
-//        val applySegLastCheckers: LastSegment => LastSegment =
-//          _.map(p => applyDummyFullChecker(applyValidChecker(p)))
-//
-//        val unapplySegCheckers
-//          : List[AST.Macro.Match.Segment] => List[AST.Macro.Match.Segment] =
-//          _.map(_.map({
-//            case m @ Pattern.Match.Nothing(_) => m
-//            case m                            => ???
-////              unapplyValidChecker(unapplyFullChecker(m))
-//          }))
-//
-//        val initSegs           = initTups.map(Segment(_))
-//        val lastSeg            = LastSegment(lastTup)
-//        val backPatWithCheck   = back.map(applyValidChecker)
-//        val initSegsWithChecks = applySegInitCheckers(initSegs)
-//        val lastSegWithChecks  = applySegLastCheckers(lastSeg)
-//
-//        def unexpected(ctx: Resolver.Context, msg: String): AST = {
-//          val pfxStream  = ctx.prefix.map(_.toStream).getOrElse(List())
-//          val segsStream = ctx.body.flatMap(_.toStream)
-//          val stream     = pfxStream ++ segsStream
-////          AST.Invalid.Unexpected(msg, stream)
-//          ???
-//        }
-//
-//        def resolverWithChecks(ctx: Resolver.Context) = {
-//          val pfxFail  = !ctx.prefix.forall(_.isValid)
-//          val segsFail = !ctx.body.forall(_.isValid)
-//          if (pfxFail || segsFail) unexpected(ctx, "invalid statement")
-//          else {
-//            val ctx2 = ctx.copy(
-//              prefix = ctx.prefix.map(unapplyValidChecker),
-//              body   = unapplySegCheckers(ctx.body)
-//            )
-//            try resolver(ctx2)
-//            catch {
-//              case _: Throwable =>
-//                unexpected(ctx, "exception during macro resolution")
-//            }
-//          }
-//        }
-//        __Definition__(
-//          backPatWithCheck,
-//          initSegsWithChecks,
-//          lastSegWithChecks,
-//          resolverWithChecks
-//        )
-//      }
-//
-//    }
+
+    type Definition = __Definition__
+    final case class __Definition__(
+      back: Option[Pattern],
+      init: List[Definition.Segment],
+      last: Definition.LastSegment,
+      resolver: Resolver
+    ) {
+      def path: List1[AST] = init.map(_.head) +: List1(last.head)
+      def fwdPats: List1[Pattern] =
+        init.map(_.pattern) +: List1(last.pattern.getOrElse(Pattern.Nothing()))
+    }
+    object Definition {
+      import Pattern._
+
+      final case class Segment(head: AST, pattern: Pattern) {
+        def map(f: Pattern => Pattern): Segment = copy(pattern = f(pattern))
+      }
+      object Segment {
+        type Tup = (AST, Pattern)
+        def apply(t: Tup): Segment = Segment(t._1, t._2)
+      }
+
+      final case class LastSegment(head: AST, pattern: Option[Pattern]) {
+        def map(f: Pattern => Pattern): LastSegment =
+          copy(pattern = pattern.map(f))
+      }
+      object LastSegment {
+        type Tup = (AST, Option[Pattern])
+        def apply(t: Tup): LastSegment = LastSegment(t._1, t._2)
+      }
+
+      def apply(back: Option[Pattern], t1: Segment.Tup, ts: List[Segment.Tup])(
+        fin: Resolver
+      ): Definition = {
+        val segs    = List1(t1, ts)
+        val init    = segs.init
+        val lastTup = segs.last
+        val last    = (lastTup._1, Some(lastTup._2))
+        Definition(back, init, last, fin)
+      }
+
+      def apply(back: Option[Pattern], t1: Segment.Tup, ts: Segment.Tup*)(
+        fin: Resolver
+      ): Definition = Definition(back, t1, ts.toList)(fin)
+
+      def apply(t1: Segment.Tup, t2_ : Segment.Tup*)(
+        fin: Resolver
+      ): Definition = Definition(None, t1, t2_.toList)(fin)
+
+      def apply(initTups: List[Segment.Tup], lastHead: AST)(
+        fin: Resolver
+      ): Definition =
+        Definition(None, initTups, (lastHead, None), fin)
+
+      def apply(t1: Segment.Tup, last: AST)(fin: Resolver): Definition =
+        Definition(List(t1), last)(fin)
+
+      def apply(
+        back: Option[Pattern],
+        initTups: List[Segment.Tup],
+        lastTup: LastSegment.Tup,
+        resolver: Resolver
+      ): Definition = {
+        type PP = Pattern => Pattern
+        val applyValidChecker: PP     = _ | ErrTillEnd("unmatched pattern")
+        val applyFullChecker: PP      = _ :: ErrUnmatched("unmatched tokens")
+        val applyDummyFullChecker: PP = _ :: Nothing()
+
+        val unapplyValidChecker: Pattern.Match => Pattern.Match = {
+          case Pattern.Match.Or(_, Left(tgt)) => tgt
+          case _                              => throw new Error("Internal error")
+        }
+        val unapplyFullChecker: Pattern.Match => Pattern.Match = {
+          case Pattern.Match.Seq(_, (tgt, _)) => tgt
+          case _                              => throw new Error("Internal error")
+        }
+        val applySegInitCheckers: List[Segment] => List[Segment] =
+          _.map(_.map(p => applyFullChecker(applyValidChecker(p))))
+
+        val applySegLastCheckers: LastSegment => LastSegment =
+          _.map(p => applyDummyFullChecker(applyValidChecker(p)))
+
+        val unapplySegCheckers
+          : List[AST.Macro.Match.Segment] => List[AST.Macro.Match.Segment] =
+          _.map(_.map({
+            case m @ Pattern.Match.Nothing(_) => m
+            case m =>
+              ???
+//              unapplyValidChecker(unapplyFullChecker(m))
+          }))
+
+        val initSegs           = initTups.map(Segment(_))
+        val lastSeg            = LastSegment(lastTup)
+        val backPatWithCheck   = back.map(applyValidChecker)
+        val initSegsWithChecks = applySegInitCheckers(initSegs)
+        val lastSegWithChecks  = applySegLastCheckers(lastSeg)
+
+        def unexpected(ctx: Resolver.Context, msg: String): AST = {
+          val pfxStream  = ctx.prefix.map(_.toStream).getOrElse(List())
+          val segsStream = ctx.body.flatMap(_.toStream)
+          val stream     = pfxStream ++ segsStream
+//          AST.Invalid.Unexpected(msg, stream)
+          ???
+        }
+
+        def resolverWithChecks(ctx: Resolver.Context) = {
+          val pfxFail  = !ctx.prefix.forall(_.isValid)
+          val segsFail = !ctx.body.forall(_.isValid)
+          if (pfxFail || segsFail) unexpected(ctx, "invalid statement")
+          else {
+            val ctx2 = ctx.copy(
+              prefix = ctx.prefix.map(unapplyValidChecker),
+              body   = unapplySegCheckers(ctx.body)
+            )
+            try resolver(ctx2)
+            catch {
+              case _: Throwable =>
+                unexpected(ctx, "exception during macro resolution")
+            }
+          }
+        }
+        __Definition__(
+          backPatWithCheck,
+          initSegsWithChecks,
+          lastSegWithChecks,
+          resolverWithChecks
+        )
+      }
+
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1458,34 +1460,44 @@ object AST {
       R + symbol + symbol + _.lines.mkString("\n")
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[CommentOf, T] = _.map(Index.Start -> _)
+
+//    Aimplicitly[Encoder[Doc.Tags]]
+//    implicitly[Encoder[Doc.Section]]
+//    implicitly[Encoder[Doc.Section.Marked.Type]]
+//    implicitly[Encoder[Doc.Elem]]
+//    implicitly[Encoder[Doc.Body]]
   }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Documented //////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-//  type Documented = ASTOf[DocumentedOf]
-//  final case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
-//      extends ShapeOf[T]
-//  object Documented {
-//    val any = UnapplyByType[Documented]
-//    def apply(doc: Doc, emp: Int, ast: AST): Documented =
-//      ASTOf(DocumentedOf(doc, emp, ast))
-//  }
-//
-//  //// Instances ////
-//
-//  object DocumentedOf {
-//    import Comment.symbol
-//    implicit def functor[T]: Functor[DocumentedOf] = semi.functor
-//    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
-//      val symbolRepr        = R + symbol + symbol
-//      val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
-//      R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
-//    }
-//    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] =
-//      _.map(Index.Start -> _)
-//  }
+  type Documented = ASTOf[DocumentedOf]
+  final case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
+      extends ShapeOf[T]
+  object Documented {
+    implicitly[Encoder[Doc.Tags]]
+
+    val any = UnapplyByType[Documented]
+    def apply(doc: Doc, emp: Int, ast: AST): Documented =
+      ASTOf(DocumentedOf(doc, emp, ast))
+  }
+
+  //// Instances ////
+
+  object DocumentedOf {
+    import Comment.symbol
+    implicit def functor[T]: Functor[DocumentedOf] = semi.functor
+    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
+      val symbolRepr        = R + symbol + symbol
+      val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
+      R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
+    }
+    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] =
+      _.map(Index.Start -> _)
+
+    implicit def toJson[T]: Encoder[DocumentedOf[T]] = ???
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Import //////////////////////////////////////////////////////////////////

@@ -337,7 +337,11 @@ object Escape {
   sealed trait Unicode extends Escape
   object Unicode {
 
-    final case class Invalid(unicode: Unicode) extends Unicode {
+    // NOTE [mwu]
+    // Name of the class below cannot be Invalid, as we already have
+    // Escape.Invalid. And to be able to derive JSON serialization with circe
+    // case class names within a trait subtree need to be unique.
+    final case class InvalidUnicode(unicode: Unicode) extends Unicode {
       val repr = unicode.repr
     }
 
@@ -372,7 +376,7 @@ object Escape {
     object U16 {
       def apply(digits: String): Unicode =
         if (validate(digits)) _U16(digits)
-        else Invalid(_U16(digits))
+        else InvalidUnicode(_U16(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length == 4
@@ -383,7 +387,7 @@ object Escape {
     object U32 {
       def apply(digits: String): Unicode =
         if (validate(digits)) _U32(digits)
-        else Invalid(_U32(digits))
+        else InvalidUnicode(_U32(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length == 8
@@ -395,7 +399,7 @@ object Escape {
     object U21 {
       def apply(digits: String): Unicode =
         if (validate(digits)) _U21(digits)
-        else Invalid(_U21(digits))
+        else InvalidUnicode(_U21(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length >= 1 && digits.length <= 6
