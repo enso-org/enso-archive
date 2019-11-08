@@ -1,5 +1,7 @@
 package org.enso.graph.definition
 
+import shapeless.Nat
+
 import scala.annotation.{compileTimeOnly, StaticAnnotation}
 import scala.reflect.macros.whitebox
 
@@ -79,6 +81,15 @@ object Macro {
       )
 
       /**
+        * Creates a constant type-level identifier for Shapeless' [[Nat]] type.
+        *
+        * @param num the natural number you want to represent as a [[Nat]]
+        * @return a [[TypeName]] representing that [[Nat]]
+        */
+      def mkNatConstantTypeName(num: Int): TypeName =
+        TypeName("_" + num.toString)
+
+      /**
         * Generates a set of definitions that correspond to defining a
         * non-variant field for a graph component.
         *
@@ -86,26 +97,57 @@ object Macro {
         * @return a full definition for the field
         */
       def processSingleField(classDef: ClassDef): c.Expr[Any] = {
-        // Typecheck?
-        val fieldName: TypeName     = classDef.name
+        val fieldTypeName: TypeName = classDef.name
+        val fieldTermName: TermName = TermName(fieldTypeName.toString)
         val classArgs: List[ValDef] = extractConstructorArguments(classDef)
+        val natSubfields: TypeName  = mkNatConstantTypeName(classArgs.length)
+        val implicitClassName: TypeName = TypeName(
+          fieldTypeName.toString + "Instance"
+        )
+
+        import org.enso.graph.Graph
+        import org.enso.graph.Graph.Component
 
         val imports: Block = Block(
           List(
             q"""import org.enso.graph.Graph.Component.Field""",
             q"""import org.enso.graph.Sized""",
-            q"""import shapeless.nat._"""
+            q"""import shapeless.nat._""",
+            q"""import shapeless.Nat""",
+            q"""import org.enso.graph.Graph""",
+            q"""import org.enso.graph.Graph.Component"""
           ),
           EmptyTree
         )
 
         val baseClass: Tree =
-          q"final case class $fieldName() extends Graph.Component.Field"
+          q"final case class $fieldTypeName() extends Graph.Component.Field"
 
-        val result: Block = appendToBlock(imports, baseClass)
+        val companionModule: Tree =
+          q"""
+             object $fieldTermName {
+               implicit def sized: Sized[$fieldTypeName] =
+                 new Sized[$fieldTypeName] { type Out = $natSubfields }
+             }
+           """
+
+        val implicitsModule: Tree =
+          q"""
+            object implicits {
+            }
+           """
+
+        val accessorClassStub: Tree =
+          q"""
+            implicit class $implicitClassName[G <: Graph, C <: Component](
+              node: Component.Ref[G, C]
+            )
+           """
+
+        val result: Block = appendToBlock(imports, baseClass, companionModule)
 
         println("\n ===============DEBUG:")
-        println(show(result))
+        println(show(implicitsModule))
 
         c.Expr(result)
       }
