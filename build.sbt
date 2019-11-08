@@ -92,15 +92,15 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    syntax,
-    pkg,
-    runtime,
-    flexer,
-    unused,
-    syntax_definition,
     file_manager,
+    flexer,
+    graph,
+    pkg,
     project_manager,
-    graph
+    runtime,
+    syntax,
+    syntax_definition,
+    unused
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -188,7 +188,7 @@ lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
     )
   )
 
-lazy val graph = (project in file("lib/graph/"))
+lazy val graph = (project in file("common/scala/graph/"))
   .dependsOn(logger)
   .configs(Test)
   .settings(
