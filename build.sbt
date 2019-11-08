@@ -144,14 +144,14 @@ val jmh = Seq(
 //// Sub-Projects ////
 //////////////////////
 
-lazy val logger = (project in file("common/logger"))
+lazy val logger = (project in file("common/scala/logger"))
   .dependsOn(unused)
   .settings(
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
 
-lazy val flexer = (project in file("common/flexer"))
+lazy val flexer = (project in file("common/scala/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -162,7 +162,7 @@ lazy val flexer = (project in file("common/flexer"))
     )
   )
 
-lazy val unused = (project in file("common/unused"))
+lazy val unused = (project in file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
 
 lazy val syntax_definition = (project in file("common/syntax/definition"))
@@ -173,7 +173,7 @@ lazy val syntax_definition = (project in file("common/syntax/definition"))
     )
   )
 
-lazy val syntax = (project in file("common/syntax/specialization"))
+lazy val syntax = (project in file("common/scala/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
   .configs(Test)
   .configs(Benchmark)
@@ -204,7 +204,7 @@ lazy val syntax = (project in file("common/syntax/specialization"))
       .value
   )
 
-lazy val pkg = (project in file("common/pkg"))
+lazy val pkg = (project in file("common/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
