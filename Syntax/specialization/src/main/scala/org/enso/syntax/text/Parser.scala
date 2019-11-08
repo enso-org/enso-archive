@@ -519,7 +519,7 @@ object Main extends App {
   //  implicitly[Encoder[AST.Invalid.UnexpectedOf[AST]]]
   implicitly[Encoder[AST.App.PrefixOf[AST]]]
   implicitly[Encoder[BOf[AST2]]]
-  implicitly[Encoder[org.enso.syntax.text.ast.text.Escape2]]
+//  implicitly[Encoder[org.enso.syntax.text.ast.text.Escape2]]
   implicitly[Encoder[Escape2]]
 
 //  type Ident2 = ASTOf2[AST.IdentOf]
