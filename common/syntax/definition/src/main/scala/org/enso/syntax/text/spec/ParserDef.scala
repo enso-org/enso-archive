@@ -212,7 +212,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val errSfx: Pattern   = errChar.many1
     val body: Pattern     = char.many1
     val opsEq: Pattern    = "=" | "==" | ">=" | "<=" | "/=" | "#="
-    val opsDot: Pattern   = "." | ".." | "..." | ","
+    val opsDot: Pattern   = "." | "src/main" | "..." | ","
     val opsGrp: Pattern   = anyOf("()[]{}")
     val opsCmm: Pattern   = "#" | "##"
     val opsNoMod: Pattern = opsEq | opsDot | opsCmm

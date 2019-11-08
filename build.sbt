@@ -89,7 +89,7 @@ lazy val buildNativeImage =
 
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
-  .aggregate(syntax, pkg, interpreter)
+  .aggregate(syntax, pkg, runtime)
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
 ////////////////////////////
@@ -144,14 +144,14 @@ val jmh = Seq(
 //// Sub-Projects ////
 //////////////////////
 
-lazy val logger = (project in file("lib/logger"))
+lazy val logger = (project in file("common/logger"))
   .dependsOn(unused)
   .settings(
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
 
-lazy val flexer = (project in file("lib/flexer"))
+lazy val flexer = (project in file("common/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -162,10 +162,10 @@ lazy val flexer = (project in file("lib/flexer"))
     )
   )
 
-lazy val unused = (project in file("lib/unused"))
+lazy val unused = (project in file("common/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
 
-lazy val syntax_definition = (project in file("Syntax/definition"))
+lazy val syntax_definition = (project in file("common/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
@@ -173,7 +173,7 @@ lazy val syntax_definition = (project in file("Syntax/definition"))
     )
   )
 
-lazy val syntax = (project in file("Syntax/specialization"))
+lazy val syntax = (project in file("common/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
   .configs(Test)
   .configs(Benchmark)
@@ -204,7 +204,7 @@ lazy val syntax = (project in file("Syntax/specialization"))
       .value
   )
 
-lazy val pkg = (project in file("Pkg"))
+lazy val pkg = (project in file("common/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
@@ -222,7 +222,7 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= truffleRunOptions
 )
 
-lazy val interpreter = (project in file("Interpreter"))
+lazy val runtime = (project in file("engine/runtime"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
@@ -307,29 +307,3 @@ lazy val interpreter = (project in file("Interpreter"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax)
-
-lazy val fileManager = (project in file("FileManager"))
-  .settings(
-    (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
-  )
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies += akkaSLF4J,
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
-    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-SNAP10" % Test,
-    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.0" % Test,
-    libraryDependencies += akkaTestkitTyped,
-    libraryDependencies += "commons-io" % "commons-io"        % "2.6",
-    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
-  )
-
-lazy val projectManager = (project in file("ProjectManager"))
-  .settings(
-    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
-  )
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
-  )
-  .dependsOn(pkg)
