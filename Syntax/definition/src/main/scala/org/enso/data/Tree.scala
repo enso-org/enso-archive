@@ -1,8 +1,7 @@
 package org.enso.data
 
-import io.circe._
-import io.circe.generic.auto._
-import io.circe.syntax._
+import io.circe.Decoder
+import io.circe.Encoder
 
 final case class Tree[K, V](value: Option[V], branches: Map[K, Tree[K, V]]) {
   def +(item: (List[K], V)): Tree[K, V] = item._1 match {
@@ -39,8 +38,26 @@ object Tree {
   def apply[K, V](deps: (List[K], V)*): Tree[K, V] =
     deps.foldLeft(Tree[K, V]())(_ + _)
 
-  implicit def jsonEncode[K, V]: Encoder[Tree[K, V]] = null
-  implicit def jsonDecode[K, V]: Decoder[Tree[K, V]] = null
+  //////////////////
+  // JSON support //
+  //////////////////
+
+  // Note [MWU]
+  // We can't directly serialize Map[K,V], as circe tries to use whole K as a
+  // key string in the generated JSON. Thus, we serialize Map[K, V] by
+  // converting it to Seq[(K,V)] first.
+
+  implicit def jsonEncode[K: Encoder, V: Encoder]: Encoder[Tree[K, V]] =
+    Encoder.forProduct2("value", "branches")(
+      tree => tree.value -> tree.branches.toSeq
+    )
+  implicit def jsonDecode[K: Decoder, V: Decoder]: Decoder[Tree[K, V]] = {
+    val treeNull: Tree[K, V] = null
+    Decoder.forProduct2("value", "branches")(
+      (value: Option[V], branches: Seq[(K, Tree[K, V])]) =>
+        Tree(value, branches.toMap)
+    )
+  }
   //
 //  implicit def encoder[K: Encoder, V: Encoder]: Encoder[Tree[K, V]] = {
 //    type MapType = Map[K, Tree[K, V]]
