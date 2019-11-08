@@ -7,7 +7,6 @@ import cats.Foldable
 import cats.Functor
 import cats.derived._
 import cats.implicits._
-import com.sun.tools.javac.code.TypeTag
 import org.enso.data.List1._
 import org.enso.data.Index
 import org.enso.data.List1

@@ -7,7 +7,6 @@ import cats.Foldable
 import cats.Functor
 import cats.derived._
 import cats.implicits._
-import com.sun.tools.javac.code.TypeTag
 import org.enso.data.List1._
 import org.enso.data.Index
 import org.enso.data.List1
@@ -713,19 +712,19 @@ object AST {
 //      type Fmt      = ASTOf[FmtOf]
 //      type Unclosed = ASTOf[UnclosedOf]
 //
-//      case class LineOf[+T](off: Int, elem: List[T])
+//      final case class LineOf[+T](off: Int, elem: List[T])
 //
-//      case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
+//      final case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
 //
-//      case class RawOf[T](body: BodyOf[Segment._Raw[T]])
+//      final case class RawOf[T](body: BodyOf[Segment._Raw[T]])
 //          extends TextOf[T]
 //          with Phantom {
 //        val quoteChar = '"'
 //      }
-//      case class FmtOf[T](body: BodyOf[Segment._Fmt[T]]) extends TextOf[T] {
+//      final case class FmtOf[T](body: BodyOf[Segment._Fmt[T]]) extends TextOf[T] {
 //        val quoteChar = '\''
 //      }
-//      case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
+//      final case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
 //
 //      object Body {
 //        def apply[S <: Segment[AST]](q: Quote, s: S*) =
@@ -1192,81 +1191,80 @@ object AST {
   //// Macro ///////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
 
-//  type Macro = ASTOf[MacroOf]
-//  sealed trait MacroOf[T] extends ShapeOf[T]
-//  object Macro {
-//
-//    import org.enso.syntax.text.ast.meta.Pattern
-//
-//    //// Matched ////
-//
-//    type Match = ASTOf[MatchOf]
-//    final case class MatchOf[T](
-//      pfx: Option[Pattern.Match],
-//      segs: Shifted.List1[Match.SegmentOf[T]],
-//      resolved: AST
-//    ) extends MacroOf[T] {
-//      def path(): List1[AST] = segs.toList1().map(_.el.head)
-//    }
-//
-//    object MatchOf {
-//      implicit def ftor: Functor[MatchOf]  = semi.functor
-//      implicit def fold: Foldable[MatchOf] = semi.foldable
-//      implicit def ozip[T: Repr]: OffsetZip[MatchOf, T] = t => {
-//        var off = 0
-//        t.copy(segs = t.segs.map { seg =>
-//          OffsetZip(seg).map(_.map(_.map(s => {
-//            val loff = off
-//            off = Repr(s._2).span
-//            (s._1 + Size(loff), s._2)
-//          })))
-//        })
-//      }
-//      implicit def repr[T: Repr]: Repr[MatchOf[T]] = t => {
-//        val pfxStream = t.pfx.map(_.toStream.reverse).getOrElse(List())
-//        val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
-//        R + pfxRepr + t.segs
-//      }
-//    }
-//    object Match {
-//      val any = UnapplyByType[Match]
-//      def apply(
-//        pfx: Option[Pattern.Match],
-//        segs: Shifted.List1[Match.Segment],
-//        resolved: AST
-//      ): Match = MatchOf[AST](pfx, segs, resolved)
-//
-//      type Segment = SegmentOf[AST]
-//      final case class SegmentOf[T](
-//        head: Ident,
-//        body: Pattern.MatchOf[Shifted[T]]
-//      ) {
-//        def isValid: Boolean = body.isValid
-//        def map(
-//          f: Pattern.MatchOf[Shifted[T]] => Pattern.MatchOf[Shifted[T]]
-//        ): SegmentOf[T] =
-//          copy(body = f(body))
-//      }
-//      object SegmentOf {
-//        def apply[T](head: Ident): SegmentOf[T] =
-//          SegmentOf(head, Pattern.Match.Nothing())
-//
-//        //// Instances ////
-//        implicit def repr[T: Repr]: Repr[SegmentOf[T]] =
-//          t => R + t.head + t.body
-//
-//        implicit def ozip[T: Repr]: OffsetZip[SegmentOf, T] = t => {
-////          t.copy(body = OffsetZip(t.body).map {
-////            case (i, s) => s.map((i + Size(t.head.repr.span), _))
-////          })
-//          ???
-//        }
-//      }
-//      implicit class SegmentOps(t: Segment) {
-//        def toStream: AST.Stream = Shifted(t.head) :: t.body.toStream
-//      }
-//
-//    }
+  type Macro = ASTOf[MacroOf]
+  sealed trait MacroOf[T] extends ShapeOf[T]
+  object Macro {
+
+    import org.enso.syntax.text.ast.meta.Pattern
+
+    //// Matched ////
+
+    type Match = ASTOf[MatchOf]
+    final case class MatchOf[T](
+      pfx: Option[Pattern.Match],
+      segs: Shifted.List1[Match.SegmentOf[T]],
+      resolved: AST
+    ) extends MacroOf[T] {
+      def path(): List1[AST] = segs.toList1().map(_.el.head)
+    }
+
+    object MatchOf {
+      implicit def ftor: Functor[MatchOf]  = semi.functor
+      implicit def fold: Foldable[MatchOf] = semi.foldable
+      implicit def ozip[T: Repr]: OffsetZip[MatchOf, T] = t => {
+        var off = 0
+        t.copy(segs = t.segs.map { seg =>
+          OffsetZip(seg).map(_.map(_.map(s => {
+            val loff = off
+            off = Repr(s._2).span
+            (s._1 + Size(loff), s._2)
+          })))
+        })
+      }
+      implicit def repr[T: Repr]: Repr[MatchOf[T]] = t => {
+        val pfxStream = t.pfx.map(_.toStream.reverse).getOrElse(List())
+        val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
+        R + pfxRepr + t.segs
+      }
+    }
+    object Match {
+      val any = UnapplyByType[Match]
+      def apply(
+        pfx: Option[Pattern.Match],
+        segs: Shifted.List1[Match.Segment],
+        resolved: AST
+      ): Match = MatchOf[AST](pfx, segs, resolved)
+
+      type Segment = SegmentOf[AST]
+      final case class SegmentOf[T](
+        head: Ident,
+        body: Pattern.MatchOf[Shifted[T]]
+      ) {
+        def isValid: Boolean = body.isValid
+        def map(
+          f: Pattern.MatchOf[Shifted[T]] => Pattern.MatchOf[Shifted[T]]
+        ): SegmentOf[T] =
+          copy(body = f(body))
+      }
+      object SegmentOf {
+        def apply[T](head: Ident): SegmentOf[T] =
+          SegmentOf(head, Pattern.Match.Nothing())
+
+        //// Instances ////
+        implicit def repr[T: Repr]: Repr[SegmentOf[T]] =
+          t => R + t.head + t.body
+
+        implicit def ozip[T: Repr]: OffsetZip[SegmentOf, T] = t => {
+          t.copy(body = OffsetZip(t.body)(Pattern.MatchOf.offZipMatch).map {
+            case (i, s) => s.map((i + Size(t.head.repr.span), _))
+          })
+        }
+      }
+      implicit class SegmentOps(t: Segment) {
+        def toStream: AST.Stream = Shifted(t.head) :: t.body.toStream
+      }
+
+    }
 //
 //    //// Ambiguous ////
 //
@@ -1445,7 +1443,7 @@ object AST {
 //      }
 //
 //    }
-//  }
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -1489,7 +1487,7 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
 //  type Documented = ASTOf[DocumentedOf]
-//  case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
+//  final case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
 //      extends ShapeOf[T]
 //  object Documented {
 //    val any = UnapplyByType[Documented]
