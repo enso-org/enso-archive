@@ -73,7 +73,6 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
   val filename = "common/scala/syntax/specialization/target/bench-input.txt"
 
   if (!new File(filename).exists()) {
-    println("FILE NOT EXIST")
     val file = new PrintWriter(new File(filename))
     for (_ <- 1 to 10000) {
       file.print("rewuipf\uD800\uDF1Edsahkjlzcvxm,/\uD800\uDF1E.m,';k]o1&**&$")
