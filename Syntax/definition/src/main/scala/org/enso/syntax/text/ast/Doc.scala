@@ -137,22 +137,10 @@ object Doc {
       def apply(typ: Type, elems: Elem*): Formatter =
         Formatter(typ, elems.toList)
 
-      sealed trait Type {
-        val marker: Char
-        val htmlMarker: HTMLTag
-      }
-      final case object Bold extends Type {
-        val marker     = '*'
-        val htmlMarker = HTML.b
-      }
-      final case object Italic extends Type {
-        val marker     = '_'
-        val htmlMarker = HTML.i
-      }
-      final case object Strikeout extends Type {
-        val marker     = '~'
-        val htmlMarker = HTML.s
-      }
+      abstract class Type(val marker: Char, val htmlMarker: HTMLTag)
+      case object Bold      extends Type('*', HTML.b)
+      case object Italic    extends Type('_', HTML.i)
+      case object Strikeout extends Type('~', HTML.s)
 
       /** Unclosed - Invalid formatter made by parser if user has invoked
         * formatter but hasn't ended it
@@ -245,11 +233,8 @@ object Doc {
       *
       * Link.Invalid - something that couldn't be pattern matched to create link
       */
-    sealed trait Link extends Elem {
-      val name: String
-      val url: String
-      val marker: Option[String]
-
+    abstract class Link(name: String, url: String, val marker: Option[String])
+        extends Elem {
       val repr: Repr.Builder = R + marker + "[" + name + "](" + url + ")"
       val html: HTML = this match {
         case _: Link.URL   => Seq(HTML.a(HTML.href := url)(name))
@@ -258,16 +243,14 @@ object Doc {
     }
 
     object Link {
-      final case class URL(name: String, url: String) extends Link {
-        val marker = None
-      }
+      final case class URL(name: String, url: String)
+          extends Link(name, url, None)
       object URL {
         def apply(): URL = URL("", "")
       }
 
-      final case class Image(name: String, url: String) extends Link {
-        val marker = Some("!")
-      }
+      final case class Image(name: String, url: String)
+          extends Link(name, url, Some("!"))
       object Image {
         def apply(): Image = Image("", "")
       }
@@ -322,18 +305,9 @@ object Doc {
       def apply(indent: Int, listType: Type, elems: Elem*): List =
         List(indent, listType, List1(elems.head, elems.tail.toList))
 
-      sealed trait Type {
-        val marker: Char
-        val HTMLMarker: HTMLTag
-      }
-      final case object Unordered extends Type {
-        val marker     = '-'
-        val HTMLMarker = HTML.ul
-      }
-      final case object Ordered extends Type {
-        val marker     = '*'
-        val HTMLMarker = HTML.ol
-      }
+      abstract class Type(val marker: Char, val HTMLMarker: HTMLTag)
+      final case object Unordered extends Type('-', HTML.ul)
+      final case object Ordered   extends Type('*', HTML.ol)
 
       object Indent {
         final case class Invalid(indent: Int, typ: Type, elem: Elem)
@@ -447,10 +421,10 @@ object Doc {
       def apply(typ: Type, elems: Elem*): Marked =
         Marked(defaultIndent, defaultIndent, typ, elems.toList)
 
-      sealed trait Type { val marker: Char }
-      case object Important extends Type { val marker = '!' }
-      case object Info      extends Type { val marker = '?' }
-      case object Example   extends Type { val marker = '>' }
+      abstract class Type(val marker: Char)
+      case object Important extends Type('!')
+      case object Info      extends Type('?')
+      case object Example   extends Type('>')
     }
 
     final case class Raw(indent: Int, elems: List[Elem]) extends Section {
