@@ -2,33 +2,25 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import shapeless.Id
 import cats.Foldable
 import cats.Functor
 import cats.derived._
 import cats.implicits._
+import io.circe.Encoder
+import io.circe.Json
+import io.circe.generic.AutoDerivation
+import io.circe.generic.auto._
 import org.enso.data.List1._
-import org.enso.data.Index
-import org.enso.data.List1
-import org.enso.data.Pool
-import org.enso.data.Shifted
-import org.enso.data.Size
-import org.enso.data.Span
-import org.enso.data.Tree
+import org.enso.data._
 import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
+import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
-import org.enso.syntax.text.ast.Doc
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
-import io.circe.{Error => _, _}
-import io.circe.generic.auto._
-import io.circe.parser._
-import io.circe.syntax._
-import org.enso.syntax.text.ast.text.Escape.Character.t
 
 /** =AST=
   *
@@ -171,6 +163,10 @@ object AST {
     }
   }
 
+  /** Re-export of circe's encoding implicits necessary for Shape -> AST
+    * implicit conversions. */
+  object implicits extends AutoDerivation
+
   ////////////////////////////////////
   //// Apply / Unapply Generators ////
   ////////////////////////////////////
@@ -280,45 +276,33 @@ object AST {
     def mapWithOff(f: (Index, AST) => AST): ASTOf[T] =
       copy(shape = cls.mapWithOff(shape)(f))
     def zipWithOffset(): T[(Index, AST)] = cls.zipWithOffset(shape)
-    def myJson(): String                 = cls.giveMeJson(shape)
+    def encodeShape(): Json              = cls.encode(shape)
   }
-  object ASTOf {
+  object ASTOf extends AutoDerivation {
     implicit def repr[T[_]]: Repr[ASTOf[T]]        = _.repr
     implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
     implicit def wrap[T[_]](t: T[AST])(
       implicit
       ev: ASTClass[T]
     ): ASTOf[T] = ASTOf(t)
-  }
 
-  implicit def jsonEncoderForASTOf[T[_]]: Encoder[ASTOf[T]] =
-    Encoder.instance(_ => ???)
+    implicit def jsonEncoder[T[_]]: Encoder[ASTOf[T]] =
+      Encoder.forProduct2("shape", "id")(ast => ast.encodeShape() -> ast.id)
+  }
 
   //// ASTClass ////
-
-  trait Foo[T] {
-    def myJson(t: T): String
-  }
-
-  trait MyEncoder[T] {
-    def myJson(t: T): String;
-  }
-
-  implicit def MyEncoderDefault[T]: MyEncoder[T] = new MyEncoder[T] {
-    def myJson(t: T): String = "no json for you :("
-  }
 
   /** [[ASTClass]] implements set of AST operations based on a precise AST
     * shape. Because the [[T]] parameter in [[ASTOf]] is covariant, we may lose
     * information about the shape after we construct the AST, thus this instance
     * is used to cache all necessary operations during AST construction.
     */
-  trait ASTClass[T[_]] {
+  sealed trait ASTClass[T[_]] {
     def repr(t: T[AST]):                               Repr.Builder
     def map(t: T[AST])(f: AST => AST):                 T[AST]
     def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
     def zipWithOffset(t: T[AST]):                      T[(Index, AST)]
-    def giveMeJson(t: T[AST]):                         String
+    def encode(t: T[AST]):                             Json
   }
   object ASTClass {
     def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
@@ -327,9 +311,7 @@ object AST {
       evRepr: Repr[T[AST]],
       evFtor: Functor[T],
       evOzip: OffsetZip[T, AST],
-      encoder: MyEncoder[T[AST]],
-      classTag: ClassTag[T[AST]]
-//      jsonEncoder: Encoder[T[AST]]
+      jsonEv: Encoder[T[AST]]
     ): ASTClass[T] =
       new ASTClass[T] {
         def repr(t: T[AST]): Repr.Builder             = evRepr.repr(t)
@@ -337,11 +319,7 @@ object AST {
         def zipWithOffset(t: T[AST]): T[(Index, AST)] = OffsetZip(t)
         def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
           Functor[T].map(zipWithOffset(t))(f.tupled)
-        def giveMeJson(t: T[AST]): String =
-          classTag.toString
-            .dropWhile(_ != '$')
-            .replace('$', '_')
-            .drop(1) + "{" + encoder.myJson(t) + "}"
+        def encode(t: T[AST]): Json = jsonEv(t)
       }
   }
 
@@ -492,7 +470,6 @@ object AST {
       implicit def fold: Foldable[VarOf]        = semi.foldable
       implicit def repr[T]: Repr[VarOf[T]]      = _.name
       implicit def ozip[T]: OffsetZip[VarOf, T] = t => t.coerce
-      implicit def json[T]: MyEncoder[VarOf[T]] = t => t.asJson.noSpaces
     }
     object ConsOf {
       implicit def ftor: Functor[ConsOf]         = semi.functor
@@ -709,19 +686,20 @@ object AST {
       type Fmt      = ASTOf[FmtOf]
       type Unclosed = ASTOf[UnclosedOf]
 
-      case class LineOf[+T](off: Int, elem: List[T])
+      final case class LineOf[+T](off: Int, elem: List[T])
 
-      case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
+      final case class BodyOf[+T](quote: Quote, lines: Text.Block[T])
 
-      case class RawOf[T](body: BodyOf[Segment._Raw[T]])
+      final case class RawOf[T](body: BodyOf[Segment._Raw[T]])
           extends TextOf[T]
           with Phantom {
         val quoteChar = '"'
       }
-      case class FmtOf[T](body: BodyOf[Segment._Fmt[T]]) extends TextOf[T] {
+      final case class FmtOf[T](body: BodyOf[Segment._Fmt[T]])
+          extends TextOf[T] {
         val quoteChar = '\''
       }
-      case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
+      final case class UnclosedOf[T](text: TextOf[T]) extends AST.InvalidOf[T]
 
       object Body {
         def apply[S <: Segment[AST]](q: Quote, s: S*) =
@@ -1397,8 +1375,7 @@ object AST {
           : List[AST.Macro.Match.Segment] => List[AST.Macro.Match.Segment] =
           _.map(_.map({
             case m @ Pattern.Match.Nothing(_) => m
-            case m =>
-              unapplyValidChecker(unapplyFullChecker(m))
+            case m                            => unapplyValidChecker(unapplyFullChecker(m))
           }))
 
         val initSegs           = initTups.map(Segment(_))
@@ -1483,7 +1460,7 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Documented = ASTOf[DocumentedOf]
-  case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
+  final case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends ShapeOf[T]
   object Documented {
     val any = UnapplyByType[Documented]
@@ -1503,6 +1480,8 @@ object AST {
     }
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] =
       _.map(Index.Start -> _)
+
+    implicit def toJson[T]: Encoder[DocumentedOf[T]] = ???
   }
 
   //////////////////////////////////////////////////////////////////////////////

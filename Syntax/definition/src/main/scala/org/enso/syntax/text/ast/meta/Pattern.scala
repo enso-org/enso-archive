@@ -269,14 +269,6 @@ object Pattern {
       val s3 = s2.map(t => (Index(t.off), t.el))
       s3
     }
-    // FIXME[mwu] ERADICATE!
-    implicit def offZipMatch2[T: Repr]
-      : org.enso.syntax.text2.AST.OffsetZip[MatchOf, T] = t => {
-      val s  = t.map(Shifted(0, _))
-      val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.el) }
-      val s3 = s2.map(t => (Index(t.off), t.el))
-      s3
-    }
 
     val M = Match
     // format: off
