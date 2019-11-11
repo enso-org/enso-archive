@@ -17,20 +17,24 @@ impl std::fmt::Display for ParserError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use ParserError::*;
         match self {
-            WrongUrl(url_parse_error) =>
-                write!(f, "Failed to parse given address url: {}", url_parse_error),
-            ConnectivityError(ws_error) =>
-                write!(f, "Connection error: {}", ws_error),
+            WrongUrl(url_parse_error) => write!(
+                f,
+                "Failed to parse given address url: {}",
+                url_parse_error
+            ),
+            ConnectivityError(ws_error) => {
+                write!(f, "Connection error: {}", ws_error)
+            }
             NonTextResponse(msg) => match msg {
-                websocket::OwnedMessage::Close(close_data) =>
-                    write!(f, "Peer closed connection: {:?}", close_data),
-                _ =>
-                    write!(f, "Expected text response, got: {:?}", msg),
+                websocket::OwnedMessage::Close(close_data) => {
+                    write!(f, "Peer closed connection: {:?}", close_data)
+                }
+                _ => write!(f, "Expected text response, got: {:?}", msg),
             },
-            ParsingError(msg) =>
-                write!(f, "Internal parser error: {:?}", msg),
-            JsonSerializationError(msg) =>
-                write!(f, "Response deserialization error: {:?}", msg),
+            ParsingError(msg) => write!(f, "Internal parser error: {:?}", msg),
+            JsonSerializationError(msg) => {
+                write!(f, "JSON (de)serialization failed: {:?}", msg)
+            }
         }
     }
 }
@@ -70,7 +74,8 @@ pub trait ParserService {
 
 type AST = String;
 
-// TODO : deserialization should also handle failure (e.g. if schema was mismatched)
+// TODO : deserialization should also handle failure (e.g. if schema was
+// mismatched)
 fn ast_from_parser_response(serialized_ast: String) -> Result<AST> {
     // TODO check for parser internal error
     Ok(serialized_ast)

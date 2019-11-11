@@ -1,11 +1,13 @@
-use websocket::stream::sync::TcpStream;
-use websocket::{ClientBuilder, Message, OwnedMessage};
+use websocket::{
+    stream::sync::TcpStream, ClientBuilder, Message, OwnedMessage,
+};
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
 
-use crate::api::{ParserService, ParserError};
-use crate::api::Result;
-use crate::websocket::Request::ParseRequest;
+use crate::{
+    api::{ParserError, ParserService, Result},
+    websocket::Request::ParseRequest,
+};
 
 //////////////////////////
 // Constants & literals //
@@ -24,13 +26,13 @@ const PORT_VAR: &str = "ENSO_PARSER_PORT";
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
-    ParseRequest{program: String},
+    ParseRequest { program: String },
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Response {
-    Success{ast: String},
-    Error{message: String}
+    Success { ast: String },
+    Error { message: String },
 }
 
 ////////////
@@ -49,9 +51,8 @@ impl Config {
 
     pub fn from_env() -> Config {
         let host = env_var_or(HOSTNAME_VAR, DEFAULT_HOSTNAME);
-        let port = env_var_or(PORT_VAR, "")
-            .parse().unwrap_or(DEFAULT_PORT);
-        Config {host, port}
+        let port = env_var_or(PORT_VAR, "").parse().unwrap_or(DEFAULT_PORT);
+        Config { host, port }
     }
 }
 
@@ -72,7 +73,7 @@ impl Client {
         let address = config.address_string();
         let mut builder = ClientBuilder::new(&address)?;
         let connection = builder.connect_insecure()?;
-        Ok(Client {connection})
+        Ok(Client { connection })
     }
 
     pub fn text_rpc(&mut self, input: String) -> Result<String> {
@@ -88,13 +89,15 @@ impl Client {
 
 impl ParserService for Client {
     fn call(&mut self, input: String) -> Result<String> {
-        let request = ParseRequest {program: input};
+        let request = ParseRequest { program: input };
         let request_txt = serde_json::to_string(&request)?;
-        let response_txt  = self.text_rpc(request_txt)?;
+        let response_txt = self.text_rpc(request_txt)?;
         let response: Response = serde_json::from_str(&response_txt)?;
         match response {
-            Response::Success{ast} => Ok(ast),
-            Response::Error{message} => Err(ParserError::ParsingError(message)),
+            Response::Success { ast } => Ok(ast),
+            Response::Error { message } => {
+                Err(ParserError::ParsingError(message))
+            }
         }
     }
 }
@@ -106,10 +109,14 @@ impl ParserService for Client {
 #[test]
 fn wrong_url_reported() {
     let invalid_hostname = String::from("bgjhkb 7");
-    let wrong_config = Config { host: invalid_hostname, port: 8080 };
+    let wrong_config = Config {
+        host: invalid_hostname,
+        port: 8080,
+    };
     let client = Client::new(&wrong_config);
 
-    if let Err(ParserError::WrongUrl(_)) = client {} else {
+    if let Err(ParserError::WrongUrl(_)) = client {
+    } else {
         assert!(false, "expected WrongUrl error");
     }
 }
