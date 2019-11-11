@@ -11,7 +11,13 @@ import io.circe.Json
 import io.circe.generic.AutoDerivation
 import io.circe.generic.auto._
 import org.enso.data.List1._
-import org.enso.data._
+import org.enso.data.Index
+import org.enso.data.List1
+import org.enso.data.Pool
+import org.enso.data.Shifted
+import org.enso.data.Size
+import org.enso.data.Span
+import org.enso.data.Tree
 import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
@@ -924,7 +930,6 @@ object AST {
             fn  = (Index.Start, t.fn),
             arg = (Index(t.fn.span + t.off), t.arg)
           )
-
     }
     object InfixOf {
       implicit def ftor: Functor[InfixOf]  = semi.functor

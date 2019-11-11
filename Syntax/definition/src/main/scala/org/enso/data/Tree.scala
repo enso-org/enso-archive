@@ -51,21 +51,9 @@ object Tree {
     Encoder.forProduct2("value", "branches")(
       tree => tree.value -> tree.branches.toSeq
     )
-  implicit def jsonDecode[K: Decoder, V: Decoder]: Decoder[Tree[K, V]] = {
-    val treeNull: Tree[K, V] = null
+  implicit def jsonDecode[K: Decoder, V: Decoder]: Decoder[Tree[K, V]] =
     Decoder.forProduct2("value", "branches")(
       (value: Option[V], branches: Seq[(K, Tree[K, V])]) =>
         Tree(value, branches.toMap)
     )
-  }
-  //
-//  implicit def encoder[K: Encoder, V: Encoder]: Encoder[Tree[K, V]] = {
-//    type MapType = Map[K, Tree[K, V]]
-//    type SeqType = Seq[(K, Tree[K, V])]
-//
-//    val asSeq: MapType => SeqType = (a: MapType) => a.toSeq
-//    val seqEncoder                = implicitly[Encoder[SeqType]]
-//    implicit val mapEncoder       = seqEncoder.contramap(asSeq)
-//
-//  }
 }
