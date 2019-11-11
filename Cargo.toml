@@ -1,5 +1,5 @@
 [workspace]
 
 members = [
-    "parser"
+    "common/rust/parser"
 ]
