@@ -7,6 +7,7 @@ import org.enso.flexer.State
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
 import org.enso.syntax.text.AST
+import org.enso.syntax.text.AST.implicits._
 
 import scala.annotation.tailrec
 

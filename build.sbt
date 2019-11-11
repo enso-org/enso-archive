@@ -116,8 +116,8 @@ val scala_compiler = Seq(
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
 
-val circe = Seq("circe-core", "circe-generic", "circe-yaml")
-  .map("io.circe" %% _ % "0.10.0")
+val circe = Seq("circe-core", "circe-generic", "circe-parser")
+  .map("io.circe" %% _ % circeVersion)
 
 def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
@@ -168,14 +168,9 @@ lazy val unused = (project in file("lib/unused"))
 lazy val syntax_definition = (project in file("Syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
+    libraryDependencies ++= monocle ++ cats ++ circe ++ scala_compiler ++ Seq(
       "com.lihaoyi" %% "scalatags" % "0.7.0"
-    ),
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core",
-      "io.circe" %% "circe-generic",
-      "io.circe" %% "circe-parser"
-    ).map(_ % circeVersion)
+    )
   )
 
 lazy val syntax = (project in file("Syntax/specialization"))
@@ -190,17 +185,11 @@ lazy val syntax = (project in file("Syntax/specialization"))
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     parallelExecution in Benchmark := false,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= circe ++ Seq(
       "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
       "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %% "pprint"     % "0.5.3",
-      "io.spray"          %% "spray-json" % "1.3.5"
+      "com.lihaoyi"       %% "pprint"     % "0.5.3"
     ),
-    libraryDependencies ++= Seq(
-      "io.circe" %% "circe-core",
-      "io.circe" %% "circe-generic",
-      "io.circe" %% "circe-parser"
-    ).map(_ % circeVersion),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
         val parserCompile =
@@ -226,7 +215,10 @@ lazy val pkg = (project in file("Pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
-    libraryDependencies ++= circe ++ Seq("commons-io" % "commons-io" % "2.6")
+    libraryDependencies ++= circe ++ Seq(
+      "io.circe"   %% "circe-yaml" % "0.10.0", // separate from other circe deps because its independent project with its own versioning
+      "commons-io" % "commons-io"  % "2.6"
+    )
   )
 
 val truffleRunOptions = Seq(
