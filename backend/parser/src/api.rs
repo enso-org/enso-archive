@@ -21,8 +21,12 @@ impl std::fmt::Display for ParserError {
                 write!(f, "Failed to parse given address url: {}", url_parse_error),
             ConnectivityError(ws_error) =>
                 write!(f, "Connection error: {}", ws_error),
-            NonTextResponse(msg) =>
-                write!(f, "Expected text response, got: {:?}", msg),
+            NonTextResponse(msg) => match msg {
+                websocket::OwnedMessage::Close(close_data) =>
+                    write!(f, "Peer closed connection: {:?}", close_data),
+                _ =>
+                    write!(f, "Expected text response, got: {:?}", msg),
+            },
             ParsingError(msg) =>
                 write!(f, "Internal parser error: {:?}", msg),
             DeserializationError(msg) =>

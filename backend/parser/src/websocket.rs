@@ -5,6 +5,7 @@ type WsTcpClient = websocket::sync::Client<TcpStream>;
 
 use crate::api::{ParserService, ParserError};
 use crate::api::Result;
+use crate::websocket::Request::ParseRequest;
 
 //////////////////////////
 // Constants & literals //
@@ -16,6 +17,24 @@ const DEFAULT_HOSTNAME: &str = LOCALHOST;
 
 const HOSTNAME_VAR: &str = "ENSO_PARSER_HOSTNAME";
 const PORT_VAR: &str = "ENSO_PARSER_PORT";
+
+
+
+
+//////////////
+// Protocol //
+//////////////
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+enum Request {
+    ParseRequest{program: String},
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+enum Response {
+    Success{ast: String},
+    Error{message: String}
+}
 
 ////////////
 // Config //
@@ -58,16 +77,27 @@ impl Client {
         let connection = builder.connect_insecure()?;
         Ok(Client {connection})
     }
-}
 
-impl ParserService for Client {
-    fn call(&mut self, input: String) -> Result<String> {
+    pub fn text_rpc(&mut self, input: String) -> Result<String> {
         let message = Message::text(input);
         self.connection.send_message(&message)?;
         let response = self.connection.recv_message()?;
         match response {
             OwnedMessage::Text(text) => Ok(text),
             _ => Err(ParserError::NonTextResponse(response)),
+        }
+    }
+}
+
+impl ParserService for Client {
+    fn call(&mut self, input: String) -> Result<String> {
+        let request = ParseRequest {program: input};
+        let request_txt = serde_json::to_string(&request)?;
+        let response_txt  = self.text_rpc(request_txt)?;
+        let response: Response = serde_json::from_str(&response_txt)?;
+        match response {
+            Response::Success{ast} => Ok(ast),
+            Response::Error{message} => Err(ParserError::ParsingError(message)),
         }
     }
 }
