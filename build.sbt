@@ -2,6 +2,7 @@ import sbt.Keys.scalacOptions
 import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import sbtassembly.AssemblyPlugin.defaultUniversalScript
 
 //////////////////////////////
 //// Global Configuration ////
@@ -89,7 +90,16 @@ lazy val buildNativeImage =
 
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
-  .aggregate(syntax, pkg, interpreter)
+  .aggregate(
+    syntax,
+    pkg,
+    runtime,
+    flexer,
+    unused,
+    syntax_definition,
+    file_manager,
+    project_manager
+  )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
 ////////////////////////////
@@ -144,14 +154,14 @@ val jmh = Seq(
 //// Sub-Projects ////
 //////////////////////
 
-lazy val logger = (project in file("lib/logger"))
+lazy val logger = (project in file("common/scala/logger"))
   .dependsOn(unused)
   .settings(
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
 
-lazy val flexer = (project in file("lib/flexer"))
+lazy val flexer = (project in file("common/scala/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -162,10 +172,10 @@ lazy val flexer = (project in file("lib/flexer"))
     )
   )
 
-lazy val unused = (project in file("lib/unused"))
+lazy val unused = (project in file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
 
-lazy val syntax_definition = (project in file("Syntax/definition"))
+lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ cats ++ circe ++ scala_compiler ++ Seq(
@@ -173,7 +183,7 @@ lazy val syntax_definition = (project in file("Syntax/definition"))
     )
   )
 
-lazy val syntax = (project in file("Syntax/specialization"))
+lazy val syntax = (project in file("common/scala/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
   .configs(Test)
   .configs(Benchmark)
@@ -204,14 +214,14 @@ lazy val syntax = (project in file("Syntax/specialization"))
       .value
   )
 
-lazy val parser_service = (project in file("ParserService"))
+lazy val parser_service = (project in file("common/scala/parser-service"))
   .dependsOn(syntax)
   .settings(
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
   )
 
-lazy val pkg = (project in file("Pkg"))
+lazy val pkg = (project in file("common/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
@@ -222,31 +232,47 @@ lazy val pkg = (project in file("Pkg"))
   )
 
 val truffleRunOptions = Seq(
-  fork := true,
-  javaOptions += s"-Dgraal.TruffleIterativePartialEscape=true",
-  javaOptions += s"-XX:-UseJVMCIClassLoader",
-  javaOptions += s"-Dgraal.TruffleBackgroundCompilation=false"
+  "-Dgraal.TruffleIterativePartialEscape=true",
+  "-XX:-UseJVMCIClassLoader",
+  "-Dgraal.TruffleBackgroundCompilation=false"
 )
 
-lazy val interpreter = (project in file("Interpreter"))
+val truffleRunOptionsSettings = Seq(
+  fork := true,
+  javaOptions ++= truffleRunOptions
+)
+
+lazy val runtime = (project in file("engine/runtime"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
+    mainClass in assembly := (Compile / run / mainClass).value,
+    assemblyJarName in assembly := "enso.jar",
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("enso.jar"),
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
+      prependShellScript = Some(
+        defaultUniversalScript(
+          shebang  = false,
+          javaOpts = truffleRunOptions
+        )
+      )
+    ),
     version := "0.1",
     commands += WithDebugCommand.withDebug,
-    inConfig(Compile)(truffleRunOptions),
-    inConfig(Test)(truffleRunOptions),
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Test)(truffleRunOptionsSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"            %% "shapeless"                % "2.3.3",
       "org.apache.commons"     % "commons-lang3"             % "3.9",
       "org.apache.tika"        % "tika-core"                 % "1.21",
-      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion,
-      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion,
-      "org.graalvm.truffle"    % "truffle-api"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion,
-      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion,
+      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion % "provided",
+      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
@@ -285,7 +311,7 @@ lazy val interpreter = (project in file("Interpreter"))
   .settings(
     logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptions),
+    inConfig(Benchmark)(truffleRunOptionsSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited
@@ -300,8 +326,9 @@ lazy val interpreter = (project in file("Interpreter"))
     parallelExecution in Benchmark := false
   )
   .dependsOn(pkg)
+  .dependsOn(syntax)
 
-lazy val fileManager = (project in file("FileManager"))
+lazy val file_manager = (project in file("common/scala/file-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
   )
@@ -316,7 +343,7 @@ lazy val fileManager = (project in file("FileManager"))
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
-lazy val projectManager = (project in file("ProjectManager"))
+lazy val project_manager = (project in file("common/scala/project-manager"))
   .settings(
     (Compile / mainClass) := Some("org.enso.projectmanager.Server")
   )
