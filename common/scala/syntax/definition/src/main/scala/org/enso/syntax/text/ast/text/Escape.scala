@@ -95,232 +95,232 @@ object Escape {
 
   case object Slash extends Escape {
     val code: Int     = '\\'
-    def name          = toString
+    def name: String  = toString
     override val repr = "\\"
   }
   case object Quote extends Escape {
     val code: Int     = '\''
-    def name          = toString
+    def name: String  = toString
     override val repr = "\'"
   }
   case object RawQuote extends Escape {
     val code: Int     = '"'
-    def name          = toString
+    def name: String  = toString
     override val repr = "\""
   }
 
   // Reference: https://en.wikipedia.org/wiki/String_literal
-  sealed trait Character
+  sealed trait Character extends Escape
   object Character {
-    case object a extends Escape with Character {
+    case object a extends Character {
       val code: Int     = '\u0007'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object b extends Escape with Character {
+    case object b extends Character {
       val code: Int     = '\u0008'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object f extends Escape with Character {
+    case object f extends Character {
       val code: Int     = '\u000C'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object n extends Escape with Character {
+    case object n extends Character {
       val code: Int     = '\n'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object r extends Escape with Character {
+    case object r extends Character {
       val code: Int     = '\r'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object t extends Escape with Character {
+    case object t extends Character {
       val code: Int     = '\u0009'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object v extends Escape with Character {
+    case object v extends Character {
       val code: Int     = '\u000B'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object e extends Escape with Character {
+    case object e extends Character {
       val code: Int     = '\u001B'
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
     val codes = ADT.constructors[Character]
   }
 
   // Reference: https://en.wikipedia.org/wiki/Control_character
-  sealed trait Control // extends Simple
+  sealed trait Control extends Escape
   object Control {
-    case object NUL extends Escape with Control {
+    case object NUL extends Control {
       val code: Int     = 0x00
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object SOH extends Escape with Control {
+    case object SOH extends Control {
       val code: Int     = 0x01
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object STX extends Escape with Control {
+    case object STX extends Control {
       val code: Int     = 0x02
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object ETX extends Escape with Control {
+    case object ETX extends Control {
       val code: Int     = 0x03
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object EOT extends Escape with Control {
+    case object EOT extends Control {
       val code: Int     = 0x04
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object ENQ extends Escape with Control {
+    case object ENQ extends Control {
       val code: Int     = 0x05
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object ACK extends Escape with Control {
+    case object ACK extends Control {
       val code: Int     = 0x06
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object BEL extends Escape with Control {
+    case object BEL extends Control {
       val code: Int     = 0x07
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object BS extends Escape with Control {
+    case object BS extends Control {
       val code: Int     = 0x08
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object TAB extends Escape with Control {
+    case object TAB extends Control {
       val code: Int     = 0x09
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object LF extends Escape with Control {
+    case object LF extends Control {
       val code: Int     = 0x0A
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object VT extends Escape with Control {
+    case object VT extends Control {
       val code: Int     = 0x0B
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object FF extends Escape with Control {
+    case object FF extends Control {
       val code: Int     = 0x0C
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object CR extends Escape with Control {
+    case object CR extends Control {
       val code: Int     = 0x0D
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object SO extends Escape with Control {
+    case object SO extends Control {
       val code: Int     = 0x0E
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object SI extends Escape with Control {
+    case object SI extends Control {
       val code: Int     = 0x0F
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object DLE extends Escape with Control {
+    case object DLE extends Control {
       val code: Int     = 0x10
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object DC1 extends Escape with Control {
+    case object DC1 extends Control {
       val code: Int     = 0x11
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object DC2 extends Escape with Control {
+    case object DC2 extends Control {
       val code: Int     = 0x12
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object DC3 extends Escape with Control {
+    case object DC3 extends Control {
       val code: Int     = 0x13
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object DC4 extends Escape with Control {
+    case object DC4 extends Control {
       val code: Int     = 0x14
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object NAK extends Escape with Control {
+    case object NAK extends Control {
       val code: Int     = 0x15
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object SYN extends Escape with Control {
+    case object SYN extends Control {
       val code: Int     = 0x16
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object ETB extends Escape with Control {
+    case object ETB extends Control {
       val code: Int     = 0x17
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object CAN extends Escape with Control {
+    case object CAN extends Control {
       val code: Int     = 0x18
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object EM extends Escape with Control {
+    case object EM extends Control {
       val code: Int     = 0x19
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object SUB extends Escape with Control {
+    case object SUB extends Control {
       val code: Int     = 0x1A
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object ESC extends Escape with Control {
+    case object ESC extends Control {
       val code: Int     = 0x1B
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object FS extends Escape with Control {
+    case object FS extends Control {
       val code: Int     = 0x1C
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object GS extends Escape with Control {
+    case object GS extends Control {
       val code: Int     = 0x1D
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object RS extends Escape with Control {
+    case object RS extends Control {
       val code: Int     = 0x1E
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object US extends Escape with Control {
+    case object US extends Control {
       val code: Int     = 0x1F
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
-    case object DEL extends Escape with Control {
+    case object DEL extends Control {
       val code: Int     = 0x7F
-      def name          = toString
+      def name: String  = toString
       override val repr = name
     }
     val codes = ADT.constructors[Control]
