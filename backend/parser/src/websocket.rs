@@ -18,20 +18,17 @@ const DEFAULT_HOSTNAME: &str = LOCALHOST;
 const HOSTNAME_VAR: &str = "ENSO_PARSER_HOSTNAME";
 const PORT_VAR: &str = "ENSO_PARSER_PORT";
 
-
-
-
 //////////////
 // Protocol //
 //////////////
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-enum Request {
+pub enum Request {
     ParseRequest{program: String},
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-enum Response {
+pub enum Response {
     Success{ast: String},
     Error{message: String}
 }

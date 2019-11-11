@@ -10,7 +10,7 @@ pub enum ParserError {
     ConnectivityError(websocket::WebSocketError),
     NonTextResponse(websocket::OwnedMessage),
     ParsingError(String),
-    DeserializationError(String),
+    JsonSerializationError(serde_json::error::Error),
 }
 
 impl std::fmt::Display for ParserError {
@@ -29,7 +29,7 @@ impl std::fmt::Display for ParserError {
             },
             ParsingError(msg) =>
                 write!(f, "Internal parser error: {:?}", msg),
-            DeserializationError(msg) =>
+            JsonSerializationError(msg) =>
                 write!(f, "Response deserialization error: {:?}", msg),
         }
     }
@@ -43,6 +43,11 @@ impl From<websocket::client::ParseError> for ParserError {
 impl From<websocket::WebSocketError> for ParserError {
     fn from(error: websocket::WebSocketError) -> Self {
         ParserError::ConnectivityError(error)
+    }
+}
+impl From<serde_json::error::Error> for ParserError {
+    fn from(error: serde_json::error::Error) -> Self {
+        ParserError::JsonSerializationError(error)
     }
 }
 
