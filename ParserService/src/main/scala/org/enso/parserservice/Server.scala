@@ -56,10 +56,10 @@ trait Server {
       }
 
   val handleRequest: HttpRequest => HttpResponse = {
-    case req @ HttpRequest(GET, Uri.Path(requestedResource), _, _, _) =>
+    case req @ HttpRequest(GET, _, _, _, _) =>
       req.header[UpgradeToWebSocket] match {
         case Some(upgrade) =>
-          println("Establishing connection " + req.toString())
+          println("Establishing a new connection")
           upgrade.handleMessages(handlerFlow)
         case None =>
           HttpResponse(400, entity = "Not a valid websocket request!")
@@ -78,7 +78,7 @@ trait Server {
       )
 
     bindingFuture.onComplete({
-      case b @ Success(_) =>
+      case Success(_) =>
         println(s"Server online at ${config.addressString()}")
       case Failure(exception) =>
         println(s"Failed to start server: $exception")

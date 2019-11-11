@@ -1,10 +1,8 @@
 package org.enso.parserservice
 
-import io.circe.Json
 import io.circe.parser._
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.enso.syntax.text.AST
 
 object Protocol {
   sealed trait Request
@@ -15,7 +13,7 @@ object Protocol {
   final case class Error(message: String) extends Response
 }
 
-/** Exchanging JSON-encoded messages: a single Response for a Request. */
+/** Exchanging JSON text messages: a single Response for a Request. */
 trait Protocol {
   import Protocol._
 

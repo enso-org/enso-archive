@@ -1,9 +1,8 @@
 package org.enso
 
-import org.enso.flexer.Reader
 import io.circe.syntax._
-import io.circe.{Error => _, _}
 import io.circe.generic.auto._
+import org.enso.flexer.Reader
 import org.enso.parserservice.Protocol
 import org.enso.parserservice.Server
 import org.enso.syntax.text.AST
@@ -49,9 +48,9 @@ case class ParserService(config: Server.Config) extends Server with Protocol {
   }
 }
 
+/** Runs a simple WebSocket server that wraps Parser into a service. */
 object ParserServiceMain extends App {
   import ParserService._
-  println((Protocol.ParseRequest("fff"): Protocol.Request).asJson.toString)
   println("Getting configuration from environment...")
   val config = configFromEnv()
   println(s"Will serve ${config.addressString()}")
