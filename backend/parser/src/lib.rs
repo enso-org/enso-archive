@@ -9,13 +9,13 @@ pub struct Parser {
 
 impl Parser {
     #[cfg(not(target_arch = "wasm32"))]
-    pub fn new() -> wsclient::Result<Parser> {
+    pub fn new() -> api::Result<Parser> {
         let client = wsclient::Client::new()?;
         let parser = Box::new(client);
         Ok(Parser { parser })
     }
     #[cfg(target_arch = "wasm32")]
-    pub fn new() -> jsclient::Result<Parser> {
+    pub fn new() -> api::Result<Parser> {
         let client = jsclient::Client::new()?;
         let parser = Box::new(client);
         Ok(Parser { parser })

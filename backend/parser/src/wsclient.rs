@@ -119,7 +119,7 @@ impl Config {
 }
 
 fn env_var_or(varname: &str, default_value: &str) -> String {
-    std::env::var(varname).unwrap_or(String::from(default_value))
+    std::env::var(varname).unwrap_or_else(|_| String::from(default_value))
 }
 
 ////////////
