@@ -173,29 +173,29 @@ class ParserTest extends FlatSpec with Matchers {
   import Text.Segment.implicits.txtFromString
 
   def line(s: String, empty: Int*) =
-    Text.Blck.Line(empty.to[List], List(txtFromString[AST](s)))
+    Text.Block.Line(empty.to[List], List(txtFromString[AST](s)))
 
   "'"    ?= Text.Unclosed()
   "''"   ?= Text()
   "'''"  ?= Text(0, 0)
-  "'''a" ?= Text(Text.InlineBlock[AST]("'''")) $ "a"
+  "'''a" ?= Text.InlineBlock("'''") $ "a"
   "''a"  ?= Text() $ "a"
   "'a'"  ?= Text("a")
   "'a"   ?= Text.Unclosed("a")
-  "'a''" ?= Text.Unclosed("a") $ Text(Text.InvalidQuote[AST]("''"))
+  "'a''" ?= Text.Unclosed("a") $ Text.InvalidQuote("''")
   "'\"'" ?= Text("\"")
 
   "''' \n\n X\n\n Y"    ?= Text(1, 0, line(" X", 0), line(" Y", 0))
   "a '''\n\n\n X\n\n Y" ?= "a" $_ Text(0, 1, line("X", 0, 0), line("Y", 0))
 
-  "\""      ?= Text.Raw.Unclosed()
+  "\""      ?= Text.Unclosed.Raw()
   "\"\""    ?= Text.Raw()
   "\"\"\""  ?= Text.Raw(0, 0)
-  "\"\"\"a" ?= Text(Text.InlineBlock[AST]("\"\"\"")) $ "a"
+  "\"\"\"a" ?= Text.InlineBlock("\"\"\"") $ "a"
   "\"\"a"   ?= Text.Raw() $ "a"
   "\"a\""   ?= Text.Raw("a")
-  "\"a"     ?= Text.Raw.Unclosed("a")
-  "\"a\"\"" ?= Text.Raw.Unclosed("a") $ Text(Text.InvalidQuote[AST]("\"\""))
+  "\"a"     ?= Text.Unclosed.Raw("a")
+  "\"a\"\"" ?= Text.Unclosed.Raw("a") $ Text.InvalidQuote("\"\"")
   "\"'\""   ?= Text.Raw("'")
 
   "\"\"\" \n\n X\n\n Y"    ?= Text.Raw(1, 0, line(" X", 0), line(" Y", 0))
@@ -224,10 +224,10 @@ class ParserTest extends FlatSpec with Matchers {
 
   //// Interpolation ////
 
-  "'a`b`c'" ?= Text(segment = "a", Text.Segment._Expr(Some("b")), "c")
+  "'a`b`c'" ?= Text("a", Text.Segment._Expr[AST](Some("b")), "c")
   "'a`b 'c`d`e' f`g'" ?= {
-    val bd = "b" $_ Text(segment = "c", Text.Segment._Expr(Some("d")), "e") $_ "f"
-    Text("a", Text.Segment._Expr(Some(bd)), "g")
+    val bd = "b" $_ Text("c", Text.Segment._Expr[AST](Some("d")), "e") $_ "f"
+    Text("a", Text.Segment._Expr[AST](Some(bd)), "g")
   }
 
 ////  //  // Comments
@@ -426,9 +426,9 @@ class ParserTest extends FlatSpec with Matchers {
   //// Preprocessing ////
   ///////////////////////
 
-//  "\t" ??= Module(OptLine(4))
-//  "\r" ??= Module(OptLine(), OptLine())
-//  "\r\n" ??= Module(OptLine(), OptLine())
+  "\t" ??= Module(OptLine(4))
+  "\r" ??= Module(OptLine(), OptLine())
+  "\r\n" ??= Module(OptLine(), OptLine())
 
 }
 ////////////////////////////////////////////////////////////////////////////
