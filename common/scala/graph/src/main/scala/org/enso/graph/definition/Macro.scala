@@ -321,11 +321,24 @@ object Macro {
         c.Expr(result)
       }
 
-      def processVariantFields(moduleDef: ModuleDef): c.Expr[Any] = {
-        println(show(members.head))
-        println(showRaw(members.head))
+      def extractVariantDefs(template: Template): List[ClassDef] = {
+        template.body
+      }
 
-        ???
+      def processVariantFields(moduleDef: ModuleDef): c.Expr[Any] = {
+        val variantTermName: TermName = moduleDef.name
+        val variantTypeName: TypeName = variantTermName.toTypeName
+
+        val baseTrait: ClassDef =
+          q"""
+            sealed trait $variantTypeName extends Graph.Component.Field
+           """.asInstanceOf[ClassDef]
+
+        val variantDefs = extractVariantDefs(moduleDef.impl)
+
+        println(showCode(baseTrait))
+
+        c.Expr(moduleDef)
       }
 
       members.head match {

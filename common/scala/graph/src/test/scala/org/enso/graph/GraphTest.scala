@@ -31,7 +31,7 @@ class GraphTest extends FlatSpec with Matchers {
       final case class App()  extends Shape
       object Shape {
         // It has to include max of all fields + 1. The first field encodes constructor ID
-        implicit def sized = new Sized[Shape] { type Out = _4 }
+        implicit def sized = new Sized[Shape] { type Out = _3 }
       }
 
       object Null {
