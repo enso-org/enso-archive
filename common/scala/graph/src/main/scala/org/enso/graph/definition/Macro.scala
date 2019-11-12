@@ -2,11 +2,72 @@ package org.enso.graph.definition
 
 import shapeless.Nat
 
-import scala.annotation.{compileTimeOnly, StaticAnnotation}
+import scala.annotation.{StaticAnnotation, compileTimeOnly}
 import scala.reflect.macros.whitebox
 
 object Macro {
 
+  /**
+    * This macro generates a field definition for the graph, and can generate
+    * these definitions for both single and variant fields for a
+    * [[org.enso.graph.Graph.Component]].
+    *
+    * For a single field, you provide it a definition as follows:
+    *
+    * {{{
+    *   @field case class MyName[TParams..](args...)
+    * }}}
+    *
+    * It will then generate the required boilerplate for this field definition,
+    * including field setters and getters for each of the constructor arguments
+    * in the template definition.
+    *
+    * As an examble, consider the following:
+    *
+    * {{{@field case class ParentLink[G <: Graph](parent: Edge[G])}}}
+    *
+    * This application of the macro will generate the following code:
+    *
+    * {{{
+    *   final case class ParentLink() extends Graph.Component.Field
+    *   object ParentLink {
+    *     implicit def sized = new Sized[ParentLink] { type Out = _1 }
+    *
+    *     object implicits {
+    *       implicit class ParentLinkInstance[G <: Graph, C <: Component](
+    *         node: Component.Ref[G, C]
+    *       ) {
+    *         def parent(
+    *           implicit graph: GraphData[G],
+    *           ev: HasComponentField[G, C, ParentLink]
+    *         ): Edge[G] = {
+    *           Component.Ref(graph.unsafeReadField[C, ParentLink](node.ix, 0))
+    *         }
+    *
+    *         def parent_=(value: Edge[G])(
+    *           implicit graph: GraphData[G],
+    *           ev: HasComponentField[G, C, ParentLink]
+    *         ): Unit = {
+    *           graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
+    *         }
+    *       }
+    *
+    *       implicit def ParentLink_transInstance[
+    *         F <: Component.Field,
+    *         R,
+    *         G <: Graph,
+    *         C <: Component
+    *       ](
+    *         t: Component.Refined[F, R, Component.Ref[G, C]]
+    *       ): ParentLinkInstance[G, C] =
+    *         t.wrapped
+    *     }
+    *   }
+    * }}}
+    *
+    * You will need to ensure that `MyName.implicits._` is imported into scope
+    * as we currently have no way of making that work better.
+    */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class field extends StaticAnnotation {
     def macroTransform(annottees: Any*): Any = macro FieldMacro.impl
@@ -89,6 +150,86 @@ object Macro {
       def mkNatConstantTypeName(num: Int): TypeName =
         TypeName("_" + num.toString)
 
+      def genSubfieldGetter(
+        paramDef: ValDef,
+        enclosingTypeName: TypeName,
+        index: Int
+      ): Tree = {
+        val paramName: TermName = paramDef.name
+        val paramType: Tree     = paramDef.tpt
+
+        q"""
+          def $paramName(
+            implicit graph: GraphData[G],
+            ev: HasComponentField[G, C, $enclosingTypeName]
+          ): $paramType = {
+            Component.Ref(
+              graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
+            )
+          }
+         """
+      }
+
+      def genSubfieldSetter(
+        paramDef: ValDef,
+        enclosingTypeName: TypeName,
+        index: Int
+      ): Tree = {
+        val accessorName: TermName = TermName(paramDef.name.toString + "_$eq")
+        val paramType: Tree        = paramDef.tpt
+
+        q"""
+          def $accessorName(value: $paramType)(
+            implicit graph: GraphData[G],
+            ev: HasComponentField[G, C, $enclosingTypeName]
+          ): Unit = {
+            graph.unsafeWriteField[C, $enclosingTypeName](
+              node.ix, $index, value.ix
+            )
+          }
+         """
+      }
+
+      def genSubfieldAccessors(
+        subfields: List[ValDef],
+        enclosingName: TypeName
+      ): List[Tree] = {
+        var accessorDefs: List[Tree] = List()
+
+        for ((subfield, ix) <- subfields.view.zipWithIndex) {
+          accessorDefs = accessorDefs :+ genSubfieldGetter(
+              subfield,
+              enclosingName,
+              ix
+            )
+          accessorDefs = accessorDefs :+ genSubfieldSetter(
+              subfield,
+              enclosingName,
+              ix
+            )
+        }
+
+        accessorDefs
+      }
+
+      def genTransInstance(
+        enclosingName: TermName,
+        implicitClassName: TypeName
+      ): Tree = {
+        val defName = TermName(enclosingName.toString + "_transInstance")
+
+        q"""
+          implicit def $defName[
+            F <: Component.Field,
+            R,
+            G <: Graph,
+            C <: Component
+          ](
+            t: Component.Refined[F, R, Component.Ref[G, C]]
+          ): $implicitClassName[G, C] = t.wrapped
+         """
+      }
+
       /**
         * Generates a set of definitions that correspond to defining a
         * non-variant field for a graph component.
@@ -98,56 +239,88 @@ object Macro {
         */
       def processSingleField(classDef: ClassDef): c.Expr[Any] = {
         val fieldTypeName: TypeName = classDef.name
-        val fieldTermName: TermName = TermName(fieldTypeName.toString)
-        val classArgs: List[ValDef] = extractConstructorArguments(classDef)
-        val natSubfields: TypeName  = mkNatConstantTypeName(classArgs.length)
+        val fieldTermName: TermName = fieldTypeName.toTermName
+        val subfields: List[ValDef] = extractConstructorArguments(classDef)
+        val natSubfields: TypeName  = mkNatConstantTypeName(subfields.length)
         val implicitClassName: TypeName = TypeName(
           fieldTypeName.toString + "Instance"
         )
 
-        import org.enso.graph.Graph
-        import org.enso.graph.Graph.Component
-
         val imports: Block = Block(
           List(
             q"""import org.enso.graph.Graph.Component.Field""",
-            q"""import org.enso.graph.Sized""",
+//            q"""import org.enso.graph.Sized""",
             q"""import shapeless.nat._""",
-            q"""import shapeless.Nat""",
-            q"""import org.enso.graph.Graph""",
-            q"""import org.enso.graph.Graph.Component"""
+//            q"""import org.enso.graph.Graph""",
+            q"""import org.enso.graph.Graph.Component""",
+            q"""import org.enso.graph.Graph.GraphData""",
+            q"""import org.enso.graph.Graph.HasComponentField"""
           ),
           EmptyTree
         )
 
+        // TODO [AA] Should not actually take type parameters
         val baseClass: Tree =
           q"final case class $fieldTypeName() extends Graph.Component.Field"
 
-        val companionModule: Tree =
-          q"""
-             object $fieldTermName {
-               implicit def sized: Sized[$fieldTypeName] =
-                 new Sized[$fieldTypeName] { type Out = $natSubfields }
-             }
-           """
-
-        val implicitsModule: Tree =
-          q"""
-            object implicits {
-            }
-           """
-
-        val accessorClassStub: Tree =
-          q"""
+        val accessorClassStub: ClassDef = q"""
             implicit class $implicitClassName[G <: Graph, C <: Component](
               node: Component.Ref[G, C]
             )
-           """
+           """.asInstanceOf[ClassDef]
 
-        val result: Block = appendToBlock(imports, baseClass, companionModule)
+        val accessorClass: ClassDef = ClassDef(
+          accessorClassStub.mods,
+          accessorClassStub.name,
+          accessorClassStub.tparams,
+          Template(
+            accessorClassStub.impl.parents,
+            accessorClassStub.impl.self,
+            accessorClassStub.impl.body ++ genSubfieldAccessors(
+              subfields,
+              fieldTypeName
+            )
+          )
+        )
 
-        println("\n ===============DEBUG:")
-        println(show(implicitsModule))
+        val implicitsModuleStub = q"object implicits".asInstanceOf[ModuleDef]
+        val implicitsModule = ModuleDef(
+          Modifiers(),
+          implicitsModuleStub.name,
+          Template(
+            implicitsModuleStub.impl.parents,
+            implicitsModuleStub.impl.self,
+            implicitsModuleStub.impl.body.filter(stat => stat != EmptyTree)
+            :+ accessorClass :+ genTransInstance(
+              fieldTermName,
+              implicitClassName
+            )
+          )
+        )
+
+        val companionModuleStub: ModuleDef =
+          q"""
+            object $fieldTermName {
+              implicit def sized = new Sized[$fieldTypeName] {
+                type Out = $natSubfields
+              }
+            }
+            """.asInstanceOf[ModuleDef]
+
+        val companionModule = ModuleDef(
+          Modifiers(),
+          companionModuleStub.name,
+          Template(
+            companionModuleStub.impl.parents,
+            companionModuleStub.impl.self,
+            companionModuleStub.impl.body :+ implicitsModule
+          )
+        )
+
+        val resultBlock =
+          appendToBlock(imports, baseClass, companionModule).stats
+
+        val result = q"..$resultBlock"
 
         c.Expr(result)
       }
