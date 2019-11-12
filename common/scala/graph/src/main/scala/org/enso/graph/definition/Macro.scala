@@ -1,8 +1,6 @@
 package org.enso.graph.definition
 
-import shapeless.Nat
-
-import scala.annotation.{StaticAnnotation, compileTimeOnly}
+import scala.annotation.{compileTimeOnly, StaticAnnotation}
 import scala.reflect.macros.whitebox
 
 object Macro {
@@ -230,6 +228,31 @@ object Macro {
          """
       }
 
+      def appendToTemplate(template: Template, trees: List[Tree]): Template = {
+        Template(
+          template.parents,
+          template.self,
+          template.body ++ trees
+        )
+      }
+
+      def appendToClass(classDef: ClassDef, trees: List[Tree]): ClassDef = {
+        ClassDef(
+          classDef.mods,
+          classDef.name,
+          classDef.tparams,
+          appendToTemplate(classDef.impl, trees)
+        )
+      }
+
+      def appendToModule(module: ModuleDef, trees: List[Tree]): ModuleDef = {
+        ModuleDef(
+          Modifiers(),
+          module.name,
+          appendToTemplate(module.impl, trees)
+        )
+      }
+
       /**
         * Generates a set of definitions that correspond to defining a
         * non-variant field for a graph component.
@@ -248,18 +271,14 @@ object Macro {
 
         val imports: Block = Block(
           List(
-            q"""import org.enso.graph.Graph.Component.Field""",
-//            q"""import org.enso.graph.Sized""",
             q"""import shapeless.nat._""",
-//            q"""import org.enso.graph.Graph""",
             q"""import org.enso.graph.Graph.Component""",
             q"""import org.enso.graph.Graph.GraphData""",
-            q"""import org.enso.graph.Graph.HasComponentField"""
+            q"""import org.enso.graph.Graph.HasComponentField""",
           ),
           EmptyTree
         )
 
-        // TODO [AA] Should not actually take type parameters
         val baseClass: Tree =
           q"final case class $fieldTypeName() extends Graph.Component.Field"
 
@@ -268,33 +287,17 @@ object Macro {
               node: Component.Ref[G, C]
             )
            """.asInstanceOf[ClassDef]
-
-        val accessorClass: ClassDef = ClassDef(
-          accessorClassStub.mods,
-          accessorClassStub.name,
-          accessorClassStub.tparams,
-          Template(
-            accessorClassStub.impl.parents,
-            accessorClassStub.impl.self,
-            accessorClassStub.impl.body ++ genSubfieldAccessors(
-              subfields,
-              fieldTypeName
-            )
-          )
+        val accessorClass: ClassDef = appendToClass(
+          accessorClassStub,
+          genSubfieldAccessors(subfields, fieldTypeName)
         )
 
         val implicitsModuleStub = q"object implicits".asInstanceOf[ModuleDef]
-        val implicitsModule = ModuleDef(
-          Modifiers(),
-          implicitsModuleStub.name,
-          Template(
-            implicitsModuleStub.impl.parents,
-            implicitsModuleStub.impl.self,
-            implicitsModuleStub.impl.body.filter(stat => stat != EmptyTree)
-            :+ accessorClass :+ genTransInstance(
-              fieldTermName,
-              implicitClassName
-            )
+        val implicitsModule = appendToModule(
+          implicitsModuleStub,
+          List(
+            accessorClass,
+            genTransInstance(fieldTermName, implicitClassName)
           )
         )
 
@@ -307,15 +310,8 @@ object Macro {
             }
             """.asInstanceOf[ModuleDef]
 
-        val companionModule = ModuleDef(
-          Modifiers(),
-          companionModuleStub.name,
-          Template(
-            companionModuleStub.impl.parents,
-            companionModuleStub.impl.self,
-            companionModuleStub.impl.body :+ implicitsModule
-          )
-        )
+        val companionModule =
+          appendToModule(companionModuleStub, List(implicitsModule))
 
         val resultBlock =
           appendToBlock(imports, baseClass, companionModule).stats
