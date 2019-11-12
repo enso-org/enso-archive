@@ -174,6 +174,8 @@ class ParserTest extends FlatSpec with Matchers {
 
   def line(s: String, empty: Int*) =
     Text.Block.Line(empty.to[List], List(txtFromString[AST](s)))
+  def line(segment: AST.Text.Segment.Fmt, empty: Int*) =
+    Text.Block.Line(empty.to[List], List(segment))
 
   "'"    ?= Text.Unclosed()
   "''"   ?= Text()
@@ -224,11 +226,23 @@ class ParserTest extends FlatSpec with Matchers {
 
   //// Interpolation ////
 
-  "'a`b`c'" ?= Text("a", Text.Segment._Expr[AST](Some("b")), "c")
+  def expr(ast: AST) = Text.Segment._Expr(Some(ast))
+
+  "'a`b`c'" ?= Text("a", expr("b"), "c")
   "'a`b 'c`d`e' f`g'" ?= {
-    val bd = "b" $_ Text("c", Text.Segment._Expr[AST](Some("d")), "e") $_ "f"
-    Text("a", Text.Segment._Expr[AST](Some(bd)), "g")
+    val bd = "b" $_ Text("c", expr("d"), "e") $_ "f"
+    Text("a", expr(bd), "g")
   }
+
+  "say \n  '''\n  Hello\n  `World`\npal" ??= Module(
+    OptLine("say" $_ Block(2, Text(0, 2, line("Hello"), line(expr("World"))))),
+    OptLine("pal")
+  )
+
+  "say '''\n  Hello\n  `World`\npal" ??= Module(
+    OptLine("say" $_ Text(0, 2, line("Hello"), line(expr("World")))),
+    OptLine("pal")
+  )
 
 ////  //  // Comments
 //////    expr("#"              , Comment)
@@ -324,14 +338,7 @@ class ParserTest extends FlatSpec with Matchers {
     Def(
       "Maybe",
       List("a"),
-      Some(
-        Block(
-          Block.Continuous,
-          4,
-          Block.Line(defJust),
-          List(Block.Line(Some(defNothing)))
-        )
-      )
+      Some(Block(4, defJust, defNothing))
     )
   }
 //

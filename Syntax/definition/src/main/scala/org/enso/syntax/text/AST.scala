@@ -1133,11 +1133,16 @@ object AST {
     ): Block = BlockOf(typ, indent, emptyLines, firstLine, lines)
 
     def apply(
-      typ: Type,
       indent: Int,
-      firstLine: LineOf[AST],
-      lines: List[LineOf[Option[AST]]]
-    ): Block = Block(typ, indent, List(), firstLine, lines)
+      firstLine: AST,
+      lines: AST*
+    ): Block = Block(
+      Continuous,
+      indent,
+      List(),
+      Line(firstLine),
+      lines.to[List].map(ast => Line(Some(ast)))
+    )
 
     val any = UnapplyByType[Block]
     def unapply(t: AST) =

@@ -287,11 +287,11 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   //////////////
 
   class TextState(
-                   var offset: Int,
-                   var spaces: Int,
-                   var lines: List[AST.Text.Block.Line[AST.Text.Segment.Fmt]],
-                   var emptyLines: List[Int],
-                   var lineBuilder: List[AST.Text.Segment.Fmt]
+    var offset: Int,
+    var spaces: Int,
+    var lines: List[AST.Text.Block.Line[AST.Text.Segment.Fmt]],
+    var emptyLines: List[Int],
+    var lineBuilder: List[AST.Text.Segment.Fmt]
   )
 
   final object text {
@@ -360,6 +360,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         block.emptyLines = text.emptyLines ++ block.emptyLines
       val (s, o) = (text.spaces, text.offset)
       finish(t => AST.Text.Raw(s, o, t: _*), t => AST.Text(s, o, t: _*))
+      off.push()
       rewind()
     }
 
@@ -369,9 +370,12 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       text = new TextState(0, 0, Nil, Nil, Nil)
     }
 
-    def onBegin(grp: State, offset: Int): Unit = logger.trace {
-      if(state.current == block.CHAR1)
+    def onBeginBlock(grp: State): Unit = logger.trace {
+      val offset = if (state.current == block.FIRSTCHAR) {
         state.end()
+        block.current.offset
+      } else
+        OFFSET_OF_FIRST_LINE_FOUND
       if (currentMatch.last == '\n') {
         onBegin(grp)
         text.offset = offset
@@ -380,8 +384,8 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       } else {
         val spaces = currentMatch.length - BLOCK_QUOTE_SIZE
         result.app(
-          if (grp == FMT_BLCK) AST.Text(spaces = spaces, off = offset)
-          else AST.Text.Raw(spaces = spaces, off = offset)
+          if (grp == FMT_BLCK) AST.Text(spaces = spaces, offset)
+          else AST.Text.Raw(spaces             = spaces, offset)
         )
         onEOF()
       }
@@ -475,7 +479,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       if (leadingSpaces < 0) {
         onEndOfBlock()
         state.begin(block.NEWLINE)
-      } else
+      } else if (leadingSpaces != 0)
         text.lineBuilder +:= Segment.Plain(" " * leadingSpaces)
     }
 
@@ -521,41 +525,33 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
   ROOT || "'''" >> "'".many1     || text.onInvalidQuote()
   ROOT || "\"\"\"" >> "\"".many1 || text.onInvalidQuote()
 
-  ROOT          || "'"         || text.onBegin(text.FMT_LINE)
-  text.FMT_LINE || "'"         || text.submit()
-  text.FMT_LINE || "''"        || text.submitDoubleQuote()
-  text.FMT_LINE || "'".many1   || text.submitUnclosed()
-  text.FMT_LINE || text.fmtSeg || text.submitPlainSegment()
-  text.FMT_LINE || eof         || text.onTextEOF()
-  text.FMT_LINE || newline     || text.submitUnclosed()
+  ROOT            || "'"           || text.onBegin(text.FMT_LINE)
+  text.FMT_LINE   || "'"           || text.submit()
+  text.FMT_LINE   || "''"          || text.submitDoubleQuote()
+  text.FMT_LINE   || "'".many1     || text.submitUnclosed()
+  text.FMT_LINE   || text.fmtSeg   || text.submitPlainSegment()
+  text.FMT_LINE   || eof           || text.onTextEOF()
+  text.FMT_LINE   || newline       || text.submitUnclosed()
+  block.FIRSTCHAR || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
+  ROOT            || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
+  ROOT            || "'''"         || text.onInlineBlock()
+  text.FMT_BLCK   || text.fmtBSeg  || text.submitPlainSegment()
+  text.FMT_BLCK   || eof           || text.onEndOfBlock()
+  text.FMT_BLCK   || newline       || text.onEndOfLine()
 
-  block.CHAR1 || text.fmtBlock || text
-    .onBegin(text.FMT_BLCK, block.current.offset)
-  ROOT || text.fmtBlock || text
-    .onBegin(text.FMT_BLCK, text.OFFSET_OF_FIRST_LINE_FOUND)
-
-  ROOT          || "'''"        || text.onInlineBlock()
-  text.FMT_BLCK || text.fmtBSeg || text.submitPlainSegment()
-  text.FMT_BLCK || eof          || text.onEndOfBlock()
-  text.FMT_BLCK || newline      || text.onEndOfLine()
-
-  ROOT          || '"'         || text.onBegin(text.RAW_LINE)
-  text.RAW_LINE || '"'         || text.submit()
-  text.RAW_LINE || "\"\""      || text.submitDoubleQuote()
-  text.RAW_LINE || '"'.many1   || text.submitUnclosed()
-  text.RAW_LINE || text.rawSeg || text.submitPlainSegment()
-  text.RAW_LINE || eof         || text.onTextEOF()
-  text.RAW_LINE || newline     || text.submitUnclosed()
-
-  block.CHAR1 || text.rawBlock || text
-    .onBegin(text.RAW_BLCK, block.current.offset)
-  ROOT || text.rawBlock || text
-    .onBegin(text.RAW_BLCK, text.OFFSET_OF_FIRST_LINE_FOUND)
-
-  ROOT          || "\"\"\""     || text.onInlineBlock()
-  text.RAW_BLCK || text.rawBSeg || text.submitPlainSegment()
-  text.RAW_BLCK || eof          || text.onEndOfBlock()
-  text.RAW_BLCK || newline      || text.onEndOfLine()
+  ROOT            || '"'           || text.onBegin(text.RAW_LINE)
+  text.RAW_LINE   || '"'           || text.submit()
+  text.RAW_LINE   || "\"\""        || text.submitDoubleQuote()
+  text.RAW_LINE   || '"'.many1     || text.submitUnclosed()
+  text.RAW_LINE   || text.rawSeg   || text.submitPlainSegment()
+  text.RAW_LINE   || eof           || text.onTextEOF()
+  text.RAW_LINE   || newline       || text.submitUnclosed()
+  block.FIRSTCHAR || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
+  ROOT            || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
+  ROOT            || "\"\"\""      || text.onInlineBlock()
+  text.RAW_BLCK   || text.rawBSeg  || text.submitPlainSegment()
+  text.RAW_BLCK   || eof           || text.onEndOfBlock()
+  text.RAW_BLCK   || newline       || text.onEndOfLine()
 
   text.NEWLINE || space.opt            || text.onNewLine()
   text.NEWLINE || space.opt >> newline || text.onEmptyLine()
@@ -630,15 +626,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       result.pop()
       off.pop()
       pop()
-      val block2 = result.last() match {
-        case None => block
-        case Some(ast) =>
-          ast match {
-            case AST.Opr.any(_) =>
-              block.replaceType(AST.Block.Discontinuous): AST.Block
-            case _ => block
-
-          }
+      val block2: AST.Block = result.last() match {
+        case Some(AST.Opr.any(_)) => block.replaceType(AST.Block.Discontinuous)
+        case _                    => block
       }
       result.app(block2)
       off.push()
@@ -718,7 +708,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
         onBegin(off.use())
       else
         onEnd(off.use())
-      state.begin(CHAR1)
+      state.begin(FIRSTCHAR)
     }
 
     def onEnd(newIndent: Int): Unit = logger.trace {
@@ -733,18 +723,18 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       }
     }
 
-    val MODULE  = state.define("Module")
-    val NEWLINE = state.define("Newline")
-    val CHAR1   = state.define("First Char")
+    val MODULE    = state.define("Module")
+    val NEWLINE   = state.define("Newline")
+    val FIRSTCHAR = state.define("First Char")
   }
 
-  ROOT          || newline          || block.onEndLine()
-  block.NEWLINE || emptyLine        || block.onEmptyLine()
-  block.NEWLINE || space.opt >> eof || block.onEOFLine()
-  block.NEWLINE || space.opt        || block.onNewLine()
-  block.MODULE  || emptyLine        || block.onEmptyLine()
-  block.MODULE  || space.opt        || block.onModuleBegin()
-  block.CHAR1   || always           || state.end()
+  ROOT            || newline          || block.onEndLine()
+  block.NEWLINE   || emptyLine        || block.onEmptyLine()
+  block.NEWLINE   || space.opt >> eof || block.onEOFLine()
+  block.NEWLINE   || space.opt        || block.onNewLine()
+  block.MODULE    || emptyLine        || block.onEmptyLine()
+  block.MODULE    || space.opt        || block.onModuleBegin()
+  block.FIRSTCHAR || always           || state.end()
 
   ////////////////
   /// Defaults ///
