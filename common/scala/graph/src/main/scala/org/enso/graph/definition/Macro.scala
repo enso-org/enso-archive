@@ -31,35 +31,33 @@ object Macro {
     *   object ParentLink {
     *     implicit def sized = new Sized[ParentLink] { type Out = _1 }
     *
-    *     object implicits {
-    *       implicit class ParentLinkInstance[G <: Graph, C <: Component](
-    *         node: Component.Ref[G, C]
-    *       ) {
-    *         def parent(
-    *           implicit graph: GraphData[G],
-    *           ev: HasComponentField[G, C, ParentLink]
-    *         ): Edge[G] = {
-    *           Component.Ref(graph.unsafeReadField[C, ParentLink](node.ix, 0))
-    *         }
-    *
-    *         def parent_=(value: Edge[G])(
-    *           implicit graph: GraphData[G],
-    *           ev: HasComponentField[G, C, ParentLink]
-    *         ): Unit = {
-    *           graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
-    *         }
+    *     implicit class ParentLinkInstance[G <: Graph, C <: Component](
+    *       node: Component.Ref[G, C]
+    *     ) {
+    *       def parent(
+    *         implicit graph: GraphData[G],
+    *         ev: HasComponentField[G, C, ParentLink]
+    *       ): Edge[G] = {
+    *         Component.Ref(graph.unsafeReadField[C, ParentLink](node.ix, 0))
     *       }
     *
-    *       implicit def ParentLink_transInstance[
-    *         F <: Component.Field,
-    *         R,
-    *         G <: Graph,
-    *         C <: Component
-    *       ](
-    *         t: Component.Refined[F, R, Component.Ref[G, C]]
-    *       ): ParentLinkInstance[G, C] =
-    *         t.wrapped
+    *       def parent_=(value: Edge[G])(
+    *         implicit graph: GraphData[G],
+    *         ev: HasComponentField[G, C, ParentLink]
+    *       ): Unit = {
+    *         graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
+    *       }
     *     }
+    *
+    *     implicit def ParentLink_transInstance[
+    *       F <: Component.Field,
+    *       R,
+    *       G <: Graph,
+    *       C <: Component
+    *     ](
+    *       t: Component.Refined[F, R, Component.Ref[G, C]]
+    *     ): ParentLinkInstance[G, C] =
+    *       t.wrapped
     *   }
     * }}}
     *
@@ -253,6 +251,9 @@ object Macro {
         )
       }
 
+      def mkImplicitClassName(typeName: TypeName): TypeName =
+        TypeName(typeName.toString + "Instance")
+
       /**
         * Generates a set of definitions that correspond to defining a
         * non-variant field for a graph component.
@@ -261,13 +262,11 @@ object Macro {
         * @return a full definition for the field
         */
       def processSingleField(classDef: ClassDef): c.Expr[Any] = {
-        val fieldTypeName: TypeName = classDef.name
-        val fieldTermName: TermName = fieldTypeName.toTermName
-        val subfields: List[ValDef] = extractConstructorArguments(classDef)
-        val natSubfields: TypeName  = mkNatConstantTypeName(subfields.length)
-        val implicitClassName: TypeName = TypeName(
-          fieldTypeName.toString + "Instance"
-        )
+        val fieldTypeName: TypeName     = classDef.name
+        val fieldTermName: TermName     = fieldTypeName.toTermName
+        val subfields: List[ValDef]     = extractConstructorArguments(classDef)
+        val natSubfields: TypeName      = mkNatConstantTypeName(subfields.length)
+        val implicitClassName: TypeName = mkImplicitClassName(fieldTypeName)
 
         val imports: Block = Block(
           List(
@@ -313,7 +312,13 @@ object Macro {
             """.asInstanceOf[ModuleDef]
 
         val companionModule =
-          appendToModule(companionModuleStub, List(implicitsModule))
+          appendToModule(
+            companionModuleStub,
+            List(
+              accessorClass,
+              genTransInstance(fieldTermName, implicitClassName)
+            )
+          )
 
         val resultBlock =
           appendToBlock(imports, baseClass, companionModule).stats
@@ -327,6 +332,58 @@ object Macro {
         template.body.collect { case classDef: ClassDef => classDef }
       }
 
+      def generateVariantDef(
+        classDef: ClassDef,
+        parentName: TypeName,
+        index: Int
+      ): Tree = {
+        val typeName          = classDef.name
+        val termName          = typeName.toTermName
+        val subfields         = extractConstructorArguments(classDef)
+        val natSubfields      = mkNatConstantTypeName(subfields.length)
+        val implicitClassName = mkImplicitClassName(typeName)
+
+        val variantClass: ClassDef =
+          q"""
+            final case class $typeName() extends $parentName
+           """.asInstanceOf[ClassDef]
+
+        val implicitClassStub: ClassDef =
+          q"""
+            implicit class $implicitClassName[G <: Graph, C <: Component](
+              node: Component.Refined
+            ) {
+            }
+           """.asInstanceOf[ClassDef]
+
+        val variantModuleStub: ModuleDef =
+          q"""
+            object $termName {
+              val any = Component.VariantMatcher[$parentName, $typeName]($index)
+              implicit def sized = new Sized[$typeName] {
+                type Out = $natSubfields
+              }
+            }
+           """.asInstanceOf[ModuleDef]
+
+//        def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
+//          implicit
+//          graph: GraphData[G],
+//          ev: HasComponentField[G, C, Shape]
+//        ): Option[(Edge[G], Edge[G])] =
+//          any
+//            .unapply(arg)
+//            .map(t => (Component.Ref(t.fn), Component.Ref(t.arg)))
+
+        // TODO [AA] Actually implement this
+//        val unapplyDef: DefDef =
+//          q"""
+//
+//           """.asInstanceOf[DefDef]
+
+        q"..${List(variantClass, variantModuleStub)}"
+      }
+
       def processVariantFields(moduleDef: ModuleDef): c.Expr[Any] = {
         val variantTermName: TermName = moduleDef.name
         val variantTypeName: TypeName = variantTermName.toTypeName
@@ -336,13 +393,31 @@ object Macro {
             sealed trait $variantTypeName extends Graph.Component.Field
            """.asInstanceOf[ClassDef]
 
+        // Requires size knowledge to generate
+        val baseModuleStub: ModuleDef =
+          q"""
+            object $variantTermName {
+              implicit def sized = new Sized[$variantTypeName] {
+                type Out = ${mkNatConstantTypeName(3)}
+              }
+            }
+           """.asInstanceOf[ModuleDef]
+
         val variantDefs = extractVariantDefs(moduleDef.impl)
 
+        val variantResults =
+          for ((cls, ix) <- variantDefs.view.zipWithIndex)
+            yield generateVariantDef(cls, variantTypeName, ix)
+
+//        val variantResults: List[Tree] =
+//          extractVariantDefs(moduleDef.impl).view.zipWithIndex
+//            .map(tpl => generateVariantDef(tpl._1, variantTypeName, tpl._2))
+
         // TODO [AA]
-        //  1. Generate variant bodies
+        //  1. Generate variant bodies + concat them
         //  2. Use this information to generate main `Shape` body
 
-        println(showCode(baseTrait))
+        println(showCode(variantResults.head))
 
         c.Expr(moduleDef)
       }

@@ -199,10 +199,11 @@ lazy val graph = (project in file("common/scala/graph/"))
       Resolver.sonatypeRepo("snapshots")
     ),
     libraryDependencies ++= scala_compiler ++ Seq(
-      "com.chuusai"    %% "shapeless"  % "2.3.3",
-      "io.estatico"    %% "newtype"    % "0.4.3",
-      "org.scalatest"  %% "scalatest"  % "3.2.0-SNAP10" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+      "com.chuusai"                %% "shapeless"    % "2.3.3",
+      "io.estatico"                %% "newtype"      % "0.4.3",
+      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
+      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
     ),
     addCompilerPlugin(
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full

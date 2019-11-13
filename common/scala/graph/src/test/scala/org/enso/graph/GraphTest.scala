@@ -10,7 +10,6 @@ import shapeless.{::, HNil}
 class GraphTest extends FlatSpec with Matchers {
   object Impl {
 
-
     // ==========================================================================
     // === Component definitions ================================================
     // ==========================================================================
@@ -26,71 +25,75 @@ class GraphTest extends FlatSpec with Matchers {
       // ==================
 
       // provide a @variantField that takes a trait and some case classes
-      sealed trait Shape      extends Graph.Component.Field
-      final case class Null() extends Shape
-      final case class App()  extends Shape
+      sealed trait Shape extends Graph.Component.Field
       object Shape {
         // It has to include max of all fields + 1. The first field encodes constructor ID
         implicit def sized = new Sized[Shape] { type Out = _3 }
-      }
 
-      object Null {
-        val any            = Component.VariantMatcher[Shape, Null](0)
-        implicit def sized = new Sized[Null] { type Out = _0 }
-      }
+        final case class Null() extends Shape
+        object Null {
+          val any            = Component.VariantMatcher[Shape, Null](0)
+          implicit def sized = new Sized[Null] { type Out = _0 }
+        }
 
-      object App {
-        implicit def sized = new Sized[App] { type Out = _1 }
+        final case class App() extends Shape
+        object App {
+          implicit def sized = new Sized[App] { type Out = _1 }
 
-        val any = Component.VariantMatcher[Shape, App](1)
-        def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
-          implicit
-          graph: GraphData[G],
-          ev: HasComponentField[G, C, Shape]
-        ): Option[(Edge[G], Edge[G])] =
-          any.unapply(arg).map(t => (Component.Ref(t.fn), Component.Ref(t.arg)))
+          val any = Component.VariantMatcher[Shape, App](1)
 
-        implicit class Instance[G <: Graph, C <: Component](
-          node: Component.Refined[Shape, App, Component.Ref[G, C]]
-        ) {
-
-          // TODO [AA] This boilerplate should be macro'd away
-          def fn(
-            implicit graph: GraphData[G],
+          // TODO [AA] Surely this should store Edges not ints
+          def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
+            implicit
+            graph: GraphData[G],
             ev: HasComponentField[G, C, Shape]
-          ): Int = {
-            graph
-              .unsafeReadField[C, Shape](Component.Refined.unwrap(node).ix, 1)
-          }
+          ): Option[(Edge[G], Edge[G])] =
+            any
+              .unapply(arg)
+              .map(t => (Component.Ref(t.fn), Component.Ref(t.arg)))
 
-          def fn_=(value: Int)(
-            implicit graph: GraphData[G],
-            ev: HasComponentField[G, C, Shape]
-          ): Unit = {
-            graph.unsafeWriteField[C, Shape](
-              Component.Refined.unwrap(node).ix,
-              1,
-              value
-            )
-          }
+          implicit class Instance[G <: Graph, C <: Component](
+            node: Component.Refined[Shape, App, Component.Ref[G, C]]
+          ) {
 
-          def arg(
-            implicit graph: GraphData[G],
-            ev: HasComponentField[G, C, Shape]
-          ): Int = {
-            graph
-              .unsafeReadField[C, Shape](Component.Refined.unwrap(node).ix, 2)
-          }
+            // TODO [AA] This boilerplate should be macro'd away
+            def fn(
+              implicit graph: GraphData[G],
+              ev: HasComponentField[G, C, Shape]
+            ): Int = {
+              graph
+                .unsafeReadField[C, Shape](Component.Refined.unwrap(node).ix, 1)
+            }
 
-          def arg_=(value: Int)(
-            implicit graph: GraphData[G],
-            ev: HasComponentField[G, C, Shape]
-          ): Unit = {
-            graph.unsafeWriteField[C, Shape](
-              Component.Refined.unwrap(node).ix,
-              2,
-              value
-            )
+            def fn_=(value: Int)(
+              implicit graph: GraphData[G],
+              ev: HasComponentField[G, C, Shape]
+            ): Unit = {
+              graph.unsafeWriteField[C, Shape](
+                Component.Refined.unwrap(node).ix,
+                1,
+                value
+              )
+            }
+
+            def arg(
+              implicit graph: GraphData[G],
+              ev: HasComponentField[G, C, Shape]
+            ): Int = {
+              graph
+                .unsafeReadField[C, Shape](Component.Refined.unwrap(node).ix, 2)
+            }
+
+            def arg_=(value: Int)(
+              implicit graph: GraphData[G],
+              ev: HasComponentField[G, C, Shape]
+            ): Unit = {
+              graph.unsafeWriteField[C, Shape](
+                Component.Refined.unwrap(node).ix,
+                2,
+                value
+              )
+            }
           }
         }
       }
@@ -99,7 +102,7 @@ class GraphTest extends FlatSpec with Matchers {
       // === ParentLink ===
       // ==================
 
-       @field case class ParentLink[G <: Graph](parent: Edge[G])
+      @field case class ParentLink[G <: Graph](parent: Edge[G])
     }
 
     object Edge {
@@ -131,8 +134,8 @@ class GraphTest extends FlatSpec with Matchers {
   }
 
   "Test graph implementations" should "work properly" in {
-    import Impl.Edge.Shape.implicits._
-    import Impl.Node.ParentLink.implicits._
+    import Impl.Edge.Shape._
+    import Impl.Node.ParentLink._
     import GraphComponents._
 
     implicit val graph = Graph[Impl.MyGraph]();
@@ -153,15 +156,15 @@ class GraphTest extends FlatSpec with Matchers {
     graph.unsafeWriteField[Nodes, Impl.Node.Shape](n1.ix, 0, 1)
 
 //    n1 match {
-//      case Impl.Node.Null.any(n @ _) => {
+//      case Impl.Node.Shape.Null.any(n @ _) => {
 //        println("Null!")
 //      }
-//      case Impl.Node.App.any(app) => {
+//      case Impl.Node.Shape.App.any(app) => {
 //        println("App!")
 //        println(app.fn)
 //        println(app.parent)
 //      }
-//      case Impl.Node.App(fn, arg) => {
+//      case Impl.Node.Shape.App(fn, arg) => {
 //        println("App!")
 //        println((fn, arg))
 //      }
