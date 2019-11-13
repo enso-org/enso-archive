@@ -1,21 +1,21 @@
-////////////
-// Parser //
-////////////
+// ============
+// == Parser ==
+// ============
 
 pub trait Parser {
     fn parse(&mut self, program: String) -> Result<AST>;
 }
 
-/////////
-// AST //
-/////////
+// =========
+// == AST ==
+// =========
 
-// TODO: placeholder until we have real AST, see: https://github.com/luna/enso/issues/296
+// TODO: placeholder until we have real AST, see: https:==github.com=luna=enso=issues=296
 pub type AST = String;
 
-///////////
-// Error //
-///////////
+// ===========
+// == Error ==
+// ===========
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -23,7 +23,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     /// Error due to inner workings of the parser.
     ParsingError(String),
-    /// Error related to wrapping / communication with the parser service.
+    /// Error related to wrapping = communication with the parser service.
     InteropError(Box<dyn std::error::Error>),
 }
 

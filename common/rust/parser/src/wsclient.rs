@@ -11,9 +11,9 @@ use crate::api;
 use api::Error::*;
 use Error::*;
 
-//////////////////////////
-// Constants & literals //
-//////////////////////////
+// ==========================
+// == Constants & literals ==
+// ==========================
 
 const LOCALHOST: &str = "localhost";
 const DEFAULT_PORT: i32 = 30615;
@@ -22,9 +22,9 @@ const DEFAULT_HOSTNAME: &str = LOCALHOST;
 const HOSTNAME_VAR: &str = "ENSO_PARSER_HOSTNAME";
 const PORT_VAR: &str = "ENSO_PARSER_PORT";
 
-///////////
-// Error //
-///////////
+// ===========
+// == Error ==
+// ===========
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -82,9 +82,9 @@ impl std::fmt::Display for Error {
     }
 }
 
-//////////////
-// Protocol //
-//////////////
+// ==============
+// == Protocol ==
+// ==============
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Request {
@@ -97,9 +97,9 @@ pub enum Response {
     Error { message: String },
 }
 
-////////////
-// Config //
-////////////
+// ============
+// == Config ==
+// ============
 
 pub struct Config {
     pub host: String,
@@ -122,9 +122,9 @@ fn env_var_or(varname: &str, default_value: &str) -> String {
     std::env::var(varname).unwrap_or_else(|_| String::from(default_value))
 }
 
-////////////
-// Client //
-////////////
+// ============
+// == Client ==
+// ============
 
 pub struct Client {
     connection: WsTcpClient,
@@ -181,9 +181,9 @@ impl api::Parser for Client {
     }
 }
 
-///////////
-// tests //
-///////////
+// ===========
+// == tests ==
+// ===========
 
 #[test]
 fn wrong_url_reported() {
