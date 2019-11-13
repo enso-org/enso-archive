@@ -1,4 +1,4 @@
-use crate::{api, api::Parser};
+use crate::{api, api::IsParser};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -24,7 +24,7 @@ impl Client {
     }
 }
 
-impl Parser for Client {
+impl IsParser for Client {
     fn parse(&mut self, _program: String) -> api::Result<api::AST> {
         Err(api::Error::InteropError(Box::new(Error::NotImplemented)))
     }

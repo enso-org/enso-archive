@@ -1,3 +1,5 @@
+use parser::api::IsParser;
+
 /// Simple interactive tester - calls parser with its argument (or a
 /// hardcoded default) and prints the result
 fn main() {
@@ -5,8 +7,7 @@ fn main() {
     let input = std::env::args().skip(1).next().unwrap_or(default_input);
     println!("Will parse: {}", input);
 
-    let mut parser = parser::new_parser()
-        .unwrap_or_else(|e| panic!("Failed to create a parser: {:?}", e));
+    let mut parser = parser::Parser::new_or_panic();
     let output = parser.parse(input);
     match output {
         Ok(result) => {

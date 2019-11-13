@@ -170,7 +170,7 @@ impl Client {
     }
 }
 
-impl api::Parser for Client {
+impl api::IsParser for Client {
     fn parse(&mut self, program: String) -> api::Result<api::AST> {
         let request = Request::ParseRequest { program };
         let response = self.rpc_call(request)?;

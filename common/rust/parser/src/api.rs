@@ -2,7 +2,7 @@
 // == Parser ==
 // ============
 
-pub trait Parser {
+pub trait IsParser {
     fn parse(&mut self, program: String) -> Result<AST>;
 }
 
