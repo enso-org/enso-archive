@@ -98,7 +98,8 @@ lazy val enso = (project in file("."))
     unused,
     syntax_definition,
     file_manager,
-    project_manager
+    project_manager,
+    parser_service
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
