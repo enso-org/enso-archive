@@ -1,29 +1,17 @@
 package org.enso.syntax.text
 
-import cats.derived.semi
-import org.enso.data.Index
 import org.enso.data.Span
 import org.enso.flexer
 import org.enso.flexer.Reader
-import org.enso.syntax.text.AST.ASTOf
+import org.enso.syntax.text.AST.App.Section
+import org.enso.syntax.text.AST.Macro.Ambiguous
 import org.enso.syntax.text.AST.implicits._
-import org.enso.syntax.text.AST.ID
-import org.enso.syntax.text.AST.Ident.VarOf
-import org.enso.syntax.text.AST.Invalid.UnrecognizedOf
 import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.ast.opr.Prec
-import org.enso.syntax.text.ast.text.Escape
-import org.enso.syntax.text.ast.text.Escape.Quote.toString
-import org.enso.syntax.text.ast.text.Escape.RawQuote.toString
-import org.enso.syntax.text.ast.text.Escape.Slash.toString
-import org.enso.syntax.text.ast.text.Escape.Unicode
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.spec.ParserDef
-
-import scala.math.Ordering.Implicits._
-import scala.annotation.tailrec
 
 ////////////////////////////////
 
@@ -251,7 +239,7 @@ object Parser {
 //////////////
 
 import io.circe._
-//import io.circe.generic.auto._
+import io.circe.generic.auto._
 import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
@@ -262,81 +250,38 @@ import cats.Functor
 
 object Main extends App {
 
-  println("--- START ---")
+  import AST._
+  import AST.implicits._
+  Section.Left(Var("foo"), 1, Opr("=")): AST
 
-  val parser = new Parser()
+  val a: ShapeOf[AST] = null
+//  implicitly[Encoder[ShapeOf2[AST]]]
+  implicitly[Encoder[ShapeOf[AST]]]
 
-  val in_def_maybe =
-    """## Foo bar baz
-      |   bax
-      |def Maybe a
-      |    ## test
-      |    def Just val:a
-      |    def Nothing
-    """.stripMargin
+//  implicitly[Encoder[ShapeOf2[AST]]]
+  implicitly[Encoder[Ambiguous]]
+  implicitly[Encoder[App]]
+  implicitly[Encoder[Invalid]]
+  implicitly[Encoder[Ident]]
+  implicitly[Encoder[Literal]]
+  implicitly[Encoder[Text]]
+  implicitly[Encoder[Block]]
+  implicitly[Encoder[Module]]
+  implicitly[Encoder[Macro]]
+  implicitly[Encoder[SpacelessASTOf[AST]]]
+  implicitly[Encoder[Documented]]
 
-  val in_arr1 = "a = b -> c d"
+//  implicitly[Encoder[As]]
+//  println("--- START ---")
 
-  val in3  = "(a) b = c"
-  val in4  = "if a then (b)"
-  val in2  = "(a) b = c]"
-  val inp2 = "a (b (c)) x"
+  def parse(input: String) = new Parser().run(new Reader(input))
 
-  val inp = """## This function adds `x` to `y`
-              |add x y = x + y
-              |mul x y = x * y
-              |
-              |## This function divides `x` by `y`
-              |div x y = x / y
-              |
-              |## Just a comment
-              |
-              |## Doc for infix with empty lines between 
-              |
-              |sub x y = x - y
-              |
-              |## Foo bar baz
-              |   bax
-              |def Maybe a
-              |    ## test attached to Just
-              |    def Just val:a
-              |    def Nothing
-              |""".stripMargin
+  val v: AST = AST.Var("foo")
+  println(v.asJson.toString())
+  println(v.asJson.toString())
 
-  println("--- PARSING ---")
-
-  val mod = parser.run(new Reader(inp))
-
-  println(Debug.pretty(mod.toString))
-
-  println("=========================")
-  println(Debug.pretty(parser.dropMacroMeta(mod).toString))
-  val rmod = parser.resolveMacros(mod)
-  if (mod != rmod) {
-    println("\n---\n")
-    println(Debug.pretty(rmod.toString))
-  }
-
-  println("------")
-  println(mod.show() == inp)
-  println("------")
-  println(mod.show())
-  println("------")
-
-  /** Invoking the Enso Documentation Parser */
-  println("===== DOCUMENTATION =====")
-  val isGeneratingHTML = false
-  val droppedMeta      = parser.dropMacroMeta(mod)
-  val documentation    = DocParserRunner.createDocs(droppedMeta)
-  val documentationHTML =
-    DocParserRunner.generateHTMLForEveryDocumented(documentation)
-  println(Debug.pretty(documentation.toString))
-  println("------")
-  println(documentation.show())
-  println("=========================")
-
-  println()
-
-  AST.main()
+  val parseResult = parse("foo bar [1,foo bar + 2,3]")
+  println(parseResult.asJson.noSpaces)
+//  println(parser.run(new Reader("foo")).asJson.toString())
 
 }

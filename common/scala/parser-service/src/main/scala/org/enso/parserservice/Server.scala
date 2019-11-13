@@ -6,6 +6,7 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.HttpMethods.GET
 import akka.http.scaladsl.model.HttpRequest
 import akka.http.scaladsl.model.HttpResponse
+import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.BinaryMessage
 import akka.http.scaladsl.model.ws.Message
 import akka.http.scaladsl.model.ws.TextMessage
@@ -20,6 +21,8 @@ import scala.util.Failure
 import scala.util.Success
 
 object Server {
+
+  /** Describes endpoint to which [[Server]] can bind. */
   final case class Config(interface: String, port: Int) {
     def addressString(): String = s"ws://$interface:$port"
   }
@@ -27,20 +30,25 @@ object Server {
 
 /** WebSocket server supporting synchronous request-response protocol.
   *
+  * Server when run binds to endpoint and accepts establishing web socket
+  * connection for any number of peers.
+  *
+  * Server replies to each incoming text message with a single text message.
   * Server accepts a single Text Message from a peer and responds with
   * another Text Message.
-  *
-  * Incoming binary messages are ignored.
-  *
   */
 trait Server {
   implicit val system: ActorSystem             = ActorSystem()
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
+  /** Generate text reply for given request text message. */
   def handleMessage(input: String): String
 
-  val config: Server.Config
-
+  /** Akka stream defining server behavior.
+    *
+    * Incoming [[TextMessage]]s are replied to (see [[handleMessage]]).
+    * Incoming binary messages are ignored.
+    */
   val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
     Flow[Message]
       .flatMapConcat {
@@ -48,12 +56,17 @@ trait Server {
           val strict = tm.textStream.fold("")(_ + _)
           strict.map(input => TextMessage(handleMessage(input)))
         case bm: BinaryMessage =>
-          // ignore binary messages but drain content to avoid the stream being
-          // clogged
           bm.dataStream.runWith(Sink.ignore)
           Source.empty
       }
 
+  /** Server behavior upon receiving HTTP request.
+    *
+    * As server implements websocket-based protocol, this implementation accepts
+    * only GET requests to set up WebSocket connection.
+    *
+    * The request's URI is not checked.
+    */
   val handleRequest: HttpRequest => HttpResponse = {
     case req @ HttpRequest(GET, _, _, _, _) =>
       req.header[UpgradeToWebSocket] match {
@@ -61,14 +74,22 @@ trait Server {
           println("Establishing a new connection")
           upgrade.handleMessages(handlerFlow)
         case None =>
-          HttpResponse(400, entity = "Not a valid websocket request!")
+          HttpResponse(
+            StatusCodes.BadRequest,
+            entity = "Not a valid websocket request!"
+          )
       }
     case r: HttpRequest =>
-      r.discardEntityBytes() // important to drain incoming HTTP Entity stream
-      HttpResponse(404, entity = "Unknown resource!")
+      r.discardEntityBytes()
+      HttpResponse(StatusCodes.MethodNotAllowed)
   }
 
-  def start(): Unit = {
+  /** Starts a HTTP server listening at the given endpoint.
+    *
+    * Function is asynchronous, will return immediately. If the server fails to
+    * start, function will exit the process with a non-zero code.
+    */
+  def start(config: Server.Config): Unit = {
     val bindingFuture =
       Http().bindAndHandleSync(
         handleRequest,

@@ -17,6 +17,9 @@ object ParserService {
   val DEFAULT_PORT     = 30615
   val DEFAULT_HOSTNAME = "localhost"
 
+  /** Obtains configuration from environment, filling missing values with
+    * defaults.
+    */
   def configFromEnv(): Server.Config = {
     val hostname = sys.env.getOrElse(HOSTNAME_VAR, DEFAULT_HOSTNAME)
     val port = sys.env
@@ -27,7 +30,8 @@ object ParserService {
   }
 }
 
-case class ParserService(config: Server.Config) extends Server with Protocol {
+/** Class that allows setting up parser service with given configuration. */
+case class ParserService() extends Server with Protocol {
   import parserservice._
   import Protocol._
 
@@ -53,11 +57,12 @@ object ParserServiceMain extends App {
   import ParserService._
   println("Getting configuration from environment...")
   val config = configFromEnv()
+
   println(s"Will serve ${config.addressString()}")
   println(
     s"To change configuration, restart with $HOSTNAME_VAR or " +
     s"$PORT_VAR variables set to desired values"
   )
-  val service = ParserService(config)
-  service.start()
+  val service = ParserService()
+  service.start(config)
 }
