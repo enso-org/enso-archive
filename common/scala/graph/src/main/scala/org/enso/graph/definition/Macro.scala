@@ -274,7 +274,7 @@ object Macro {
             q"""import shapeless.nat._""",
             q"""import org.enso.graph.Graph.Component""",
             q"""import org.enso.graph.Graph.GraphData""",
-            q"""import org.enso.graph.Graph.HasComponentField""",
+            q"""import org.enso.graph.Graph.HasComponentField"""
           ),
           EmptyTree
         )
@@ -292,6 +292,8 @@ object Macro {
           genSubfieldAccessors(subfields, fieldTypeName)
         )
 
+        // TODO [AA] Should we have this implicits module at all?
+        //  it doesn't match the layout for variant classes
         val implicitsModuleStub = q"object implicits".asInstanceOf[ModuleDef]
         val implicitsModule = appendToModule(
           implicitsModuleStub,
@@ -322,7 +324,7 @@ object Macro {
       }
 
       def extractVariantDefs(template: Template): List[ClassDef] = {
-        template.body
+        template.body.collect { case classDef: ClassDef => classDef }
       }
 
       def processVariantFields(moduleDef: ModuleDef): c.Expr[Any] = {
@@ -335,6 +337,10 @@ object Macro {
            """.asInstanceOf[ClassDef]
 
         val variantDefs = extractVariantDefs(moduleDef.impl)
+
+        // TODO [AA]
+        //  1. Generate variant bodies
+        //  2. Use this information to generate main `Shape` body
 
         println(showCode(baseTrait))
 
