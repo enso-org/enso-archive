@@ -296,39 +296,6 @@ object AST {
       Encoder.forProduct2("shape", "id")(ast => ast.encodeShape() -> ast.id)
   }
 
-  //// ASTClass ////
-
-  /** [[ASTClass]] implements set of AST operations based on a precise AST
-    * shape. Because the [[T]] parameter in [[ASTOf]] is covariant, we may lose
-    * information about the shape after we construct the AST, thus this instance
-    * is used to cache all necessary operations during AST construction.
-    */
-  sealed trait ASTClass[T[_]] {
-    def repr(t: T[AST]):                               Repr.Builder
-    def map(t: T[AST])(f: AST => AST):                 T[AST]
-    def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
-    def zipWithOffset(t: T[AST]):                      T[(Index, AST)]
-    def encode(t: T[AST]):                             Json
-  }
-  object ASTClass {
-    def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
-    implicit def instance[T[_]](
-      implicit
-      evRepr: Repr[T[AST]],
-      evFtor: Functor[T],
-      evOzip: OffsetZip[T, AST],
-      jsonEv: Encoder[T[AST]]
-    ): ASTClass[T] =
-      new ASTClass[T] {
-        def repr(t: T[AST]): Repr.Builder             = evRepr.repr(t)
-        def map(t: T[AST])(f: AST => AST): T[AST]     = Functor[T].map(t)(f)
-        def zipWithOffset(t: T[AST]): T[(Index, AST)] = OffsetZip(t)
-        def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
-          Functor[T].map(zipWithOffset(t))(f.tupled)
-        def encode(t: T[AST]): Json = jsonEv(t)
-      }
-  }
-
   //// ASTOps ////
 
   /** [[ASTOps]] implements handy AST operations. In contrast to [[ASTClass]],
@@ -1401,7 +1368,8 @@ object AST {
           : List[AST.Macro.Match.Segment] => List[AST.Macro.Match.Segment] =
           _.map(_.map({
             case m @ Pattern.Match.Nothing(_) => m
-            case m                            => unapplyValidChecker(unapplyFullChecker(m))
+            case m =>
+              unapplyValidChecker(unapplyFullChecker(m))
           }))
 
         val initSegs           = initTups.map(Segment(_))
@@ -1511,7 +1479,8 @@ object AST {
     implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] =
       _.map(Index.Start -> _)
 
-    implicit def toJson[T]: Encoder[DocumentedOf[T]] = ???
+    implicit def toJson[T]: Encoder[DocumentedOf[T]] =
+      _ => throw new NotImplementedError()
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1638,6 +1607,41 @@ object AST {
     }
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[ForeignOf, T] = _.map(Index.Start -> _)
+  }
+
+  //// ASTClass ////
+
+  /** [[ASTClass]] implements set of AST operations based on a precise AST
+    * shape. Because the [[T]] parameter in [[ASTOf]] is covariant, we may lose
+    * information about the shape after we construct the AST, thus this instance
+    * is used to cache all necessary operations during AST construction.
+    */
+  sealed trait ASTClass[T[_]] {
+    def repr(t: T[AST]):                               Repr.Builder
+    def map(t: T[AST])(f: AST => AST):                 T[AST]
+    def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
+    def zipWithOffset(t: T[AST]):                      T[(Index, AST)]
+    def encode(t: T[AST]):                             Json
+  }
+  object ASTClass {
+    def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
+    implicit def instance[T[S] <: ShapeOf[S]](
+      implicit
+      evRepr: Repr[T[AST]],
+      evFtor: Functor[T],
+      evOzip: OffsetZip[T, AST]
+    ): ASTClass[T] =
+      new ASTClass[T] {
+        def repr(t: T[AST]): Repr.Builder             = evRepr.repr(t)
+        def map(t: T[AST])(f: AST => AST): T[AST]     = Functor[T].map(t)(f)
+        def zipWithOffset(t: T[AST]): T[(Index, AST)] = OffsetZip(t)
+        def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
+          Functor[T].map(zipWithOffset(t))(f.tupled)
+        def encode(t: T[AST]): Json = {
+          val shapeEncoder = implicitly[Encoder[ShapeOf[AST]]]
+          shapeEncoder(t)
+        }
+      }
   }
 
   /////////////////////////////////////////////////
