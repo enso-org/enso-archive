@@ -3,6 +3,7 @@ import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
+import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 //////////////////////////////
 //// Global Configuration ////
@@ -90,12 +91,16 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    syntax,
+    unused.jvm,
+    unused.js,
+    flexer.jvm,
+    flexer.js,
+    syntax_definition.jvm,
+    syntax_definition.js,
+    syntax.jvm,
+    syntax.js,
     pkg,
     runtime,
-    flexer,
-    unused,
-    syntax_definition,
     file_manager,
     project_manager
   )
@@ -153,7 +158,10 @@ val jmh = Seq(
 //// Sub-Projects ////
 //////////////////////
 
-lazy val logger = (project in file("common/scala/logger"))
+lazy val logger = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/logger"))
   .dependsOn(unused)
   .settings(
     version := "0.1",
@@ -161,7 +169,10 @@ lazy val logger = (project in file("common/scala/logger"))
   )
   .enablePlugins(ScalaJSPlugin)
 
-lazy val flexer = (project in file("common/scala/flexer"))
+lazy val flexer = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/flexer"))
   .dependsOn(logger)
   .settings(
     version := "0.1",
@@ -175,12 +186,18 @@ lazy val flexer = (project in file("common/scala/flexer"))
   )
   .enablePlugins(ScalaJSPlugin)
 
-lazy val unused = (project in file("common/scala/unused"))
+lazy val unused = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
   .enablePlugins(ScalaJSPlugin)
 
 
-lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
+lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
@@ -189,11 +206,15 @@ lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
   )
   .enablePlugins(ScalaJSPlugin)
 
-lazy val syntax = (project in file("common/scala/syntax/specialization"))
+lazy val syntax = crossProject(JVMPlatform, JSPlatform)
+  .withoutSuffixFor(JVMPlatform)
+  .crossType(CrossType.Pure)
+  .in(file("common/scala/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
   .configs(Test)
   .configs(Benchmark)
   .settings(
+    scalaJSUseMainModuleInitializer := true,
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
@@ -209,7 +230,7 @@ lazy val syntax = (project in file("common/scala/syntax/specialization"))
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
         val parserCompile =
-          (syntax_definition / Compile / compileIncremental).value
+          (syntax_definition.jvm / Compile / compileIncremental).value
         if (parserCompile.hasModified) {
           Def.task {
             streams.value.log.info("Parser changed, forcing recompilation.")
@@ -323,7 +344,7 @@ lazy val runtime = (project in file("engine/runtime"))
     parallelExecution in Benchmark := false
   )
   .dependsOn(pkg)
-  .dependsOn(syntax)
+  .dependsOn(syntax.jvm)
 
 lazy val file_manager = (project in file("common/scala/file-manager"))
   .settings(
