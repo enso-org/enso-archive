@@ -3,11 +3,13 @@ package org.enso.interpreter.node.callable;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -119,8 +121,9 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @return the result of executing {@code callable} on the known arguments
    */
   @Specialization
-  public Stateful invokeFunction(Function function, Object state, Object[] arguments) {
-    return this.argumentSorter.execute(function, state, arguments);
+  public Stateful invokeFunction(
+      Function function, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+    return this.argumentSorter.execute(function, callerFrame, state, arguments);
   }
 
   /**
@@ -132,8 +135,9 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @return the result of executing {@code constructor} on the known arguments
    */
   @Specialization
-  public Stateful invokeConstructor(AtomConstructor constructor, Object state, Object[] arguments) {
-    return invokeFunction(constructor.getConstructorFunction(), state, arguments);
+  public Stateful invokeConstructor(
+      AtomConstructor constructor, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+    return invokeFunction(constructor.getConstructorFunction(), callerFrame, state, arguments);
   }
 
   /**
@@ -146,7 +150,8 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @return the result of resolving and executing the symbol for the {@code this} argument
    */
   @Specialization
-  public Stateful invokeDynamicSymbol(UnresolvedSymbol symbol, Object state, Object[] arguments) {
+  public Stateful invokeDynamicSymbol(
+      UnresolvedSymbol symbol, MaterializedFrame callerFrame, Object state, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
@@ -159,7 +164,7 @@ public abstract class InvokeCallableNode extends BaseNode {
         state = selfResult.getState();
       }
       Function function = methodResolverNode.execute(symbol, selfArgument);
-      return this.argumentSorter.execute(function, state, arguments);
+      return this.argumentSorter.execute(function, callerFrame, state, arguments);
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }
@@ -177,7 +182,8 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @return error
    */
   @Fallback
-  public Stateful invokeGeneric(Object callable, Object state, Object[] arguments) {
+  public Stateful invokeGeneric(
+      Object callable, MaterializedFrame callerFrame, Object state, Object[] arguments) {
     throw new NotInvokableException(callable, this);
   }
 
@@ -189,7 +195,8 @@ public abstract class InvokeCallableNode extends BaseNode {
    * @param arguments the arguments to evaluate {@code callable} on
    * @return the result of executing {@code callable} on the supplied {@code arguments}
    */
-  public abstract Stateful execute(Object callable, Object state, Object[] arguments);
+  public abstract Stateful execute(
+      Object callable, MaterializedFrame callerFrame, Object state, Object[] arguments);
 
   /**
    * Sets whether or not the current node is tail-recursive.

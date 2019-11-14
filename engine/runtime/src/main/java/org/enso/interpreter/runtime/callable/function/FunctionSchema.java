@@ -39,12 +39,22 @@ public class FunctionSchema {
     }
   }
 
+  public enum CallerFrameAccess {
+    READ_ONLY,
+    NONE;
+
+    public boolean isAllowed() {
+      return this == READ_ONLY;
+    }
+  }
+
   private final @CompilationFinal(dimensions = 1) ArgumentDefinition[] argumentInfos;
   private final @CompilationFinal(dimensions = 1) boolean[] hasPreApplied;
   private final @CompilationFinal(dimensions = 1) CallArgumentInfo[] oversaturatedArguments;
   private final CallStrategy callStrategy;
   private final boolean hasAnyPreApplied;
   private final boolean hasOversaturatedArguments;
+  private final CallerFrameAccess callerFrameAccess;
 
   /**
    * Creates an {@link FunctionSchema} instance.
@@ -58,6 +68,7 @@ public class FunctionSchema {
    */
   public FunctionSchema(
       CallStrategy callStrategy,
+      CallerFrameAccess callerFrameAccess,
       ArgumentDefinition[] argumentInfos,
       boolean[] hasPreApplied,
       CallArgumentInfo[] oversaturatedArguments) {
@@ -65,8 +76,8 @@ public class FunctionSchema {
     this.argumentInfos = argumentInfos;
     this.oversaturatedArguments = oversaturatedArguments;
     this.hasPreApplied = hasPreApplied;
+    this.callerFrameAccess = callerFrameAccess;
     boolean hasAnyPreApplied = false;
-
     for (boolean b : hasPreApplied) {
       if (b) {
         hasAnyPreApplied = true;
@@ -84,8 +95,20 @@ public class FunctionSchema {
    *
    * @param argumentInfos Definition site arguments information
    */
+  public FunctionSchema(
+      CallStrategy callStrategy,
+      CallerFrameAccess callerFrameAccess,
+      ArgumentDefinition... argumentInfos) {
+    this(
+        callStrategy,
+        callerFrameAccess,
+        argumentInfos,
+        new boolean[argumentInfos.length],
+        new CallArgumentInfo[0]);
+  }
+
   public FunctionSchema(CallStrategy callStrategy, ArgumentDefinition... argumentInfos) {
-    this(callStrategy, argumentInfos, new boolean[argumentInfos.length], new CallArgumentInfo[0]);
+    this(callStrategy, CallerFrameAccess.NONE, argumentInfos);
   }
 
   /**
@@ -182,5 +205,9 @@ public class FunctionSchema {
    */
   public CallStrategy getCallStrategy() {
     return callStrategy;
+  }
+
+  public CallerFrameAccess getCallerFrameAccess() {
+    return callerFrameAccess;
   }
 }

@@ -8,6 +8,7 @@ import com.oracle.truffle.api.nodes.IndirectCallNode;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.callable.dispatch.LoopingCallOptimiserNode;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
@@ -38,15 +39,13 @@ public abstract class ThunkExecutorNode extends Node {
       @Cached("createLoopingOptimizerIfNeeded()")
           LoopingCallOptimiserNode loopingCallOptimiserNode) {
     if (getIsTail()) {
-      return (Stateful)
-          callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
+      return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
     } else {
       try {
-        return (Stateful)
-            callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
+        return (Stateful) callNode.call(Function.ArgumentsHelper.buildArguments(thunk, state));
       } catch (TailCallException e) {
         return loopingCallOptimiserNode.executeDispatch(
-            e.getFunction(), e.getState(), e.getArguments());
+            e.getFunction(), null, e.getState(), e.getArguments());
       }
     }
   }
@@ -58,14 +57,21 @@ public abstract class ThunkExecutorNode extends Node {
       @Cached IndirectCallNode callNode,
       @Cached("createLoopingOptimizerIfNeeded()")
           LoopingCallOptimiserNode loopingCallOptimiserNode) {
-    try {
+    if (getIsTail()) {
       return (Stateful)
           callNode.call(
               thunk.getCallTarget(),
               Function.ArgumentsHelper.buildArguments(thunk, state));
-    } catch (TailCallException e) {
-      return loopingCallOptimiserNode.executeDispatch(
-          e.getFunction(), e.getState(), e.getArguments());
+    } else {
+      try {
+        return (Stateful)
+            callNode.call(
+                thunk.getCallTarget(),
+                Function.ArgumentsHelper.buildArguments(thunk, state));
+      } catch (TailCallException e) {
+        return loopingCallOptimiserNode.executeDispatch(
+            e.getFunction(),null, e.getState(), e.getArguments());
+      }
     }
   }
 

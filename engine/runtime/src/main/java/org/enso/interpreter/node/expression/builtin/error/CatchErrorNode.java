@@ -45,7 +45,7 @@ public class CatchErrorNode extends BuiltinRootNode {
     Object handler = arguments[1];
     if (executionProfile.profile(TypesGen.isRuntimeError(scrutinee))) {
       return invokeCallableNode.execute(
-          handler, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
+          handler, null, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
     } else {
       return new Stateful(state, scrutinee);
     }

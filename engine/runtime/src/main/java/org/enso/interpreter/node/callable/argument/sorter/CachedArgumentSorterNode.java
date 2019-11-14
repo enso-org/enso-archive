@@ -1,14 +1,19 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
+import org.enso.interpreter.node.EnsoRootNode;
+import org.enso.interpreter.node.callable.CaptureCallerFrameNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMappingBuilder;
@@ -17,6 +22,8 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
+
+import java.util.Arrays;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -35,6 +42,7 @@ public class CachedArgumentSorterNode extends BaseNode {
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
+  private @Child CaptureCallerFrameNode captureCallerFrameNode;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -64,8 +72,11 @@ public class CachedArgumentSorterNode extends BaseNode {
     initializeOversaturatedCallNode(defaultsExecutionMode, argumentsExecutionMode);
 
     argumentShouldExecute = this.mapping.getArgumentShouldExecute();
-
     initializeCallNodes();
+
+    if (originalFunction.getSchema().getCallerFrameAccess().isAllowed()) {
+      this.captureCallerFrameNode = CaptureCallerFrameNode.build();
+    }
   }
 
   private void initializeCallNodes() {
@@ -160,7 +171,12 @@ public class CachedArgumentSorterNode extends BaseNode {
    * @param arguments the arguments to reorder
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public Stateful execute(Function function, Object state, Object[] arguments) {
+  public Stateful execute(
+      Function function, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+    CallerInfo callerInfo = null;
+    if (captureCallerFrameNode != null) {
+      callerInfo = captureCallerFrameNode.execute(callerFrame);
+    }
     if (argumentsExecutionMode.shouldExecute()) {
       state = executeArguments(arguments, state);
     }
@@ -169,13 +185,14 @@ public class CachedArgumentSorterNode extends BaseNode {
 
     if (this.appliesFully()) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
-        return doCall(function, state, mappedAppliedArguments);
+        return doCall(function, callerInfo, state, mappedAppliedArguments);
       } else {
         Stateful evaluatedVal =
-            loopingCall.executeDispatch(function, state, mappedAppliedArguments);
+            loopingCall.executeDispatch(function, callerInfo, state, mappedAppliedArguments);
 
         return this.oversaturatedCallableNode.execute(
             evaluatedVal.getValue(),
+            callerFrame,
             evaluatedVal.getState(),
             generateOversaturatedArguments(function, arguments));
       }
@@ -232,13 +249,14 @@ public class CachedArgumentSorterNode extends BaseNode {
     return oversaturatedArguments;
   }
 
-  private Stateful doCall(Function function, Object state, Object[] arguments) {
+  private Stateful doCall(
+      Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
     if (getOriginalFunction().getCallStrategy().shouldCallDirect(isTail())) {
-      return directCall.executeCall(function, state, arguments);
+      return directCall.executeCall(function, callerInfo, state, arguments);
     } else if (isTail()) {
       throw new TailCallException(function, state, arguments);
     } else {
-      return loopingCall.executeDispatch(function, state, arguments);
+      return loopingCall.executeDispatch(function, callerInfo, state, arguments);
     }
   }
 

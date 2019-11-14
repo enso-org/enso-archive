@@ -21,6 +21,7 @@ import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
 import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -80,6 +81,22 @@ public final class Function implements TruffleObject {
       BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
     FunctionSchema schema = new FunctionSchema(callStrategy, args);
+    return new Function(callTarget, null, schema);
+  }
+
+  /**
+   * Creates a Function object from a {@link RootNode} and argument definitions.
+   *
+   * @param node the {@link RootNode} for the function logic
+   * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
+   * @param args argument definitons
+   * @return a Function object with specified behavior and arguments
+   */
+  public static Function fromBuiltinRootNodeWithFrameAccess(
+      BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
+    FunctionSchema schema =
+        new FunctionSchema(callStrategy, FunctionSchema.CallerFrameAccess.READ_ONLY, args);
     return new Function(callTarget, null, schema);
   }
 
@@ -194,7 +211,9 @@ public final class Function implements TruffleObject {
         @CachedContext(Language.class) Context context,
         @Cached(value = "arguments.length") int cachedArgsLength,
         @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
-      return sorterNode.execute(function, context.getUnit().newInstance(), arguments).getValue();
+      return sorterNode
+          .execute(function, null, context.getUnit().newInstance(), arguments)
+          .getValue();
     }
 
     /**
@@ -234,8 +253,8 @@ public final class Function implements TruffleObject {
      * @return an array containing the necessary information to call an Enso function
      */
     public static Object[] buildArguments(
-        Function function, Object state, Object[] positionalArguments) {
-      return new Object[] {function.getScope(), state, positionalArguments};
+        Function function, CallerInfo callerInfo, Object state, Object[] positionalArguments) {
+      return new Object[] {function.getScope(), callerInfo, state, positionalArguments};
     }
 
     /**
@@ -246,7 +265,7 @@ public final class Function implements TruffleObject {
      * @return an array containing the necessary information to call an Enso thunk
      */
     public static Object[] buildArguments(Thunk thunk, Object state) {
-      return new Object[] {thunk.getScope(), state, new Object[0]};
+      return new Object[] {thunk.getScope(), null, state, new Object[0]};
     }
 
     /**
@@ -257,7 +276,7 @@ public final class Function implements TruffleObject {
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
-      return (Object[]) arguments[2];
+      return (Object[]) arguments[3];
     }
 
     /**
@@ -268,7 +287,11 @@ public final class Function implements TruffleObject {
      * @return the state for the function
      */
     public static Object getState(Object[] arguments) {
-      return arguments[1];
+      return arguments[2];
+    }
+
+    public static CallerInfo getCallerInfo(Object[] arguments) {
+      return (CallerInfo) arguments[1];
     }
 
     /**

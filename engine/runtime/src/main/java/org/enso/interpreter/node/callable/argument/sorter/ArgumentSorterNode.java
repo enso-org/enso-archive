@@ -3,11 +3,13 @@ package org.enso.interpreter.node.callable.argument.sorter;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
+import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.state.Stateful;
@@ -62,12 +64,13 @@ public abstract class ArgumentSorterNode extends BaseNode {
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   public Stateful invokeCached(
       Function function,
+      MaterializedFrame callerFrame,
       Object state,
       Object[] arguments,
       @Cached(
               "build(function, getSchema(), getDefaultsExecutionMode(), getArgumentsExecutionMode(), isTail())")
           CachedArgumentSorterNode mappingNode) {
-    return mappingNode.execute(function, state, arguments);
+    return mappingNode.execute(function, callerFrame, state, arguments);
   }
 
   /**
@@ -80,9 +83,11 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
   @Specialization(replaces = "invokeCached")
-  public Stateful invokeUncached(Function function, Object state, Object[] arguments) {
+  public Stateful invokeUncached(
+      Function function, MaterializedFrame callerFrame, Object state, Object[] arguments) {
     return invokeCached(
         function,
+        callerFrame,
         state,
         arguments,
         CachedArgumentSorterNode.build(
@@ -101,7 +106,8 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param arguments the arguments being passed to {@code function}
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
-  public abstract Stateful execute(Function callable, Object state, Object[] arguments);
+  public abstract Stateful execute(
+      Function callable, MaterializedFrame callerFrame, Object state, Object[] arguments);
 
   CallArgumentInfo[] getSchema() {
     return schema;

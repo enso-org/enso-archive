@@ -11,6 +11,8 @@ import org.enso.interpreter.builder.FileDetector;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.RuntimeOptions;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.graalvm.options.OptionDescriptors;
 
 /**
@@ -82,7 +84,8 @@ public final class Language extends TruffleLanguage<Context> {
   @Override
   protected CallTarget parse(ParsingRequest request) {
     RootNode root =
-        new ProgramRootNode(this, new FrameDescriptor(), "root", null, request.getSource());
+        new ProgramRootNode(
+            this, new LocalScope(), new ModuleScope(), "root", null, request.getSource());
 
     return Truffle.getRuntime().createCallTarget(root);
   }

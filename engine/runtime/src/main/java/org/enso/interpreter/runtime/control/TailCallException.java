@@ -1,6 +1,7 @@
 package org.enso.interpreter.runtime.control;
 
 import com.oracle.truffle.api.nodes.ControlFlowException;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 /**
@@ -20,7 +21,8 @@ public class TailCallException extends ControlFlowException {
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
    */
-  public TailCallException(Function function, Object state, Object[] arguments) {
+  public TailCallException(
+      Function function, Object state, Object[] arguments) {
     this.function = function;
     this.arguments = arguments;
     this.state = state;

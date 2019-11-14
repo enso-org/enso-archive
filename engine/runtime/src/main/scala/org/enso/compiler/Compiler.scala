@@ -1,5 +1,7 @@
 package org.enso.compiler
 
+import com.oracle.truffle.api.RootCallTarget
+import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.generate.AstToIr
@@ -8,11 +10,14 @@ import org.enso.flexer.Reader
 import org.enso.interpreter.Constants
 import org.enso.interpreter.EnsoParser
 import org.enso.interpreter.Language
+import org.enso.interpreter.builder.ExpressionFactory
 import org.enso.interpreter.builder.ModuleScopeExpressionFactory
+import org.enso.interpreter.node.ClosureRootNode
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
+import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.runtime.scope.ModuleScope
 import org.enso.syntax.text.AST
 import org.enso.syntax.text.Parser
@@ -86,6 +91,17 @@ class Compiler(
     */
   def run(file: TruffleFile): ExpressionNode = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build)
+  }
+
+  def runInline(
+    source: String,
+    language: Language,
+    localScope: LocalScope,
+    moduleScope: ModuleScope
+  ): ExpressionNode = {
+    val parsed = new EnsoParser().parseEnsoInline(source)
+    new ExpressionFactory(language, localScope, "<inline>", moduleScope)
+      .run(parsed)
   }
 
   /**

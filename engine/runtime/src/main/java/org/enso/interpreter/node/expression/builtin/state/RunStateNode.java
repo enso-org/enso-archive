@@ -6,6 +6,7 @@ import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
@@ -40,7 +41,9 @@ public class RunStateNode extends BuiltinRootNode {
     if (thunksProfile.profile(TypesGen.isThunk(maybeThunk))) {
       return new Stateful(
           state,
-          thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), localState).getValue());
+          thunkExecutorNode
+              .executeThunk(TypesGen.asThunk(maybeThunk), localState)
+              .getValue());
     } else {
       return new Stateful(state, maybeThunk);
     }

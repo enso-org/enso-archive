@@ -9,6 +9,8 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
@@ -33,16 +35,18 @@ public class ClosureRootNode extends EnsoRootNode {
    */
   public ClosureRootNode(
       Language language,
-      FrameDescriptor frameDescriptor,
+      LocalScope localScope,
+      ModuleScope moduleScope,
       ExpressionNode body,
       SourceSection section,
       String name) {
     super(
         language,
-        frameDescriptor,
+        localScope,
+        moduleScope,
         name,
         section,
-        frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
+        localScope.getFrameDescriptor().findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
     this.body = body;
   }
 

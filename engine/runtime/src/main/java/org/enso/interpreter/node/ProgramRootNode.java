@@ -8,6 +8,8 @@ import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 
 /**
  * This node handles static transformation of the input AST before execution and represents the root
@@ -34,16 +36,18 @@ public class ProgramRootNode extends EnsoRootNode {
    */
   public ProgramRootNode(
       Language language,
-      FrameDescriptor frameDescriptor,
+      LocalScope localScope,
+      ModuleScope moduleScope,
       String name,
       SourceSection sourceSection,
       Source sourceCode) {
     super(
         language,
-        frameDescriptor,
+        localScope,
+        moduleScope,
         name,
         sourceSection,
-        frameDescriptor.findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
+        localScope.getFrameDescriptor().findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
     this.sourceCode = sourceCode;
   }
 

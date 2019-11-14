@@ -7,7 +7,10 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import jdk.nashorn.internal.codegen.CompilerConstants;
+import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
@@ -90,8 +93,13 @@ public class ApplicationNode extends ExpressionNode {
   @Override
   public Object executeGeneric(VirtualFrame frame) {
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
-    Stateful result = this.invokeCallableNode.execute(
-        this.callable.executeGeneric(frame), state, evaluateArguments(frame));
+
+    Stateful result =
+        this.invokeCallableNode.execute(
+            this.callable.executeGeneric(frame),
+            frame.materialize(),
+            state,
+            evaluateArguments(frame));
     frame.setObject(getStateFrameSlot(), result.getState());
     return result.getValue();
   }
