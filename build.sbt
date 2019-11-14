@@ -159,6 +159,7 @@ lazy val logger = (project in file("common/scala/logger"))
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val flexer = (project in file("common/scala/flexer"))
   .dependsOn(logger)
@@ -167,20 +168,26 @@ lazy val flexer = (project in file("common/scala/flexer"))
     scalacOptions -= "-deprecation", // FIXME
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scala_compiler ++ Seq(
-      "org.feijoas" %% "mango" % "0.14"
+      "org.feijoas" %% "mango" % "0.14",
+      "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
+      "org.typelevel" %%% "kittens"   % "2.0.0"
     )
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val unused = (project in file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
+  .enablePlugins(ScalaJSPlugin)
+
 
 lazy val syntax_definition = (project in file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %% "scalatags" % "0.7.0"
+      "com.lihaoyi" %%% "scalatags" % "0.7.0"
     )
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val syntax = (project in file("common/scala/syntax/specialization"))
   .dependsOn(logger, flexer, syntax_definition)
@@ -196,8 +203,8 @@ lazy val syntax = (project in file("common/scala/syntax/specialization"))
     parallelExecution in Benchmark := false,
     libraryDependencies ++= Seq(
       "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
-      "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %% "pprint"     % "0.5.3"
+      "org.scalatest"     %%% "scalatest"  % "3.0.5" % Test,
+      "com.lihaoyi"       %%% "pprint"     % "0.5.3"
     ),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
@@ -212,6 +219,7 @@ lazy val syntax = (project in file("common/scala/syntax/specialization"))
       })
       .value
   )
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val pkg = (project in file("common/scala/pkg"))
   .settings(
