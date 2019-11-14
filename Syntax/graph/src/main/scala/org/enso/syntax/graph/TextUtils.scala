@@ -11,8 +11,9 @@ import scala.annotation.tailrec
 ////////////////////
 
 case class TextLength(value: Int) extends Ordered[TextLength] {
-  def +(offset: TextLength): TextLength = TextLength(value + offset.value)
-  def compare(rhs: TextLength): Int     = value compare rhs.value
+  def +(that: TextLength): TextLength = TextLength(value + that.value)
+  def -(that: TextLength): TextLength = TextLength(value - that.value)
+  def compare(rhs: TextLength): Int   = value compare rhs.value
 }
 object TextLength {
   val Empty                                 = TextLength(0)
@@ -34,9 +35,10 @@ object TextLength {
 
 /** Strongly typed index position in a text. */
 case class TextPosition(index: Int) extends Ordered[TextPosition] {
-  def +(offset: Int): TextPosition        = TextPosition(index + offset)
-  def +(offset: TextLength): TextPosition = TextPosition(index + offset.value)
-  def -(offset: TextLength): TextPosition = TextPosition(index - offset.value)
+  def +(offset: Int): TextPosition          = TextPosition(index + offset)
+  def +(offset: TextLength): TextPosition   = TextPosition(index + offset.value)
+  def -(offset: TextLength): TextPosition   = TextPosition(index - offset.value)
+  def -(offset: TextPosition): TextPosition = TextPosition(index - offset.index)
 
   /** Span between two text positions. Operands order is irrelevant. */
   def <->(that: TextPosition): TextSpan = TextSpan(this, that)
@@ -59,6 +61,21 @@ case class TextSpan(begin: TextPosition, length: TextLength)
 
   override def compare(that: TextSpan): Int =
     (begin -> length).compare(that.begin -> that.length)
+
+  /** Erases span which is ( before | overlapping | behind ) the current span */
+  def -(t: TextSpan): TextSpan = () match {
+    case () if end < t.begin    => this
+    case () if begin > t.end    => TextSpan(begin - t.length, length)
+    case () if begin >= t.begin => TextSpan(t.begin, end - t.end)
+    case () if end >= t.end     => TextSpan(begin, length - t.length)
+    case ()                     => TextSpan(begin, t.begin + length - end)
+  }
+  /** Inserts span ( before | into | after ) the current text span */
+  def +(t: TextSpan): TextSpan = () match {
+    case () if end < t.begin   => this
+    case () if begin > t.begin => TextSpan(begin + t.length, length)
+    case ()                    => TextSpan(begin, length + t.length)
+  }
 }
 object TextSpan {
 
@@ -69,6 +86,9 @@ object TextSpan {
 
   def apply(pos: TextPosition, ast: AST): TextSpan =
     TextSpan(pos, TextLength(ast.span))
+
+  def apply(offset: Int, length: Int): TextSpan =
+    TextSpan(TextPosition(offset), TextLength(length))
 
   def apply(text: String): TextSpan =
     TextSpan(TextPosition.Start, TextLength(text))

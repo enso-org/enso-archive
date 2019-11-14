@@ -6,14 +6,52 @@ import org.scalatest._
 import scala.reflect.ClassTag
 
 class Tests extends FunSuite with TestUtils {
-  test("text modifications") {
-    List(
-      "a (»«) c",
-      "a (»1 2«) c",
-      "'text(»'«)",
-      "if a then b(» then x«) else c",
-      "((( a (»+ b«) )))"
-    ).foreach(checkTextModifications)
+
+  val programs = List(
+    "a (»«) c",
+    "+(»  «)+",
+    "a(»xx«)c",
+    "a(»  «)c",
+    "a (»1 2«) c",
+    "'text(»'«)",
+    "if a then b(» then x«) else c",
+    "((( a (»+ b«) )))"
+  )
+
+  test("text copy") {
+    for (prog <- programs) checkCopyText(prog)
+  }
+
+  test("text insertion") {
+    val spans = List(
+      List(TextSpan(0, 4)),
+      List(TextSpan(0, 4)),
+      List(TextSpan(0, 4)),
+      List(TextSpan(0, 4)),
+      List(TextSpan(0, 7)),
+      List(TextSpan(0, 6)),
+      List(TextSpan(0, 25)),
+      List(TextSpan(0,13), TextSpan(1,11), TextSpan(2,9))
+    )
+
+    for ((prog, span) <- (programs, spans).zipped)
+      checkInsertText(prog, span)
+  }
+
+  test("text erasure") {
+    val spans = List(
+      List(TextSpan(0, 4)),
+      List(TextSpan(0, 2)),
+      List(TextSpan(0, 2)),
+      List(TextSpan(0, 2)),
+      List(TextSpan(0, 4)),
+      List(TextSpan(0, 5)),
+      List(TextSpan(0, 18)),
+      List(TextSpan(0,10), TextSpan(1,8), TextSpan(2,6))
+    )
+
+    for ((prog, span) <- (programs, spans).zipped)
+      checkEraseText(prog, span)
   }
 
   test("recognizing lack of imports") {

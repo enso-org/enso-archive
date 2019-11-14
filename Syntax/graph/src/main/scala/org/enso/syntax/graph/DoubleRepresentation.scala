@@ -8,6 +8,8 @@ import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.App.Infix
 import org.enso.syntax.text.Parser
 import org.enso.syntax.text.ast.Repr._
+import org.enso.syntax.text.AST.ASTOps
+import ParserUtils.parse
 
 object ParserUtils {
   def prettyPrint(ast: AST.Module): Unit = {
@@ -16,11 +18,9 @@ object ParserUtils {
     println("------")
     println(ast.show())
   }
-  def parse(program: String): AST.Module = {
-    val parser = new Parser()
-    val ast    = parser.run(new Reader(program))
-    ast
-  }
+  def parse(program: String, idMap: Parser.IDMap = Seq()): AST.Module =
+    new Parser().run(new Reader(program), idMap)
+
   def preprocess(program: String): String = new Reader(program).toString()
 }
 
@@ -51,8 +51,13 @@ final case class DoubleRepresentation(
   ): Unit = {
     findAndReplace(module, at) { (pos, line) =>
       val (prefix, suffix) = line.show.splitAt(pos.index + at.index)
-      val result           = Parser().run(new Reader(prefix + text + suffix))
-      result.lines.toList
+      val input = prefix + text + suffix
+      val idMap = line.elem.map(_.idMap).getOrElse(Nil).map {
+        case ((o, l), id) =>
+          val newSpan = TextSpan(o, l) + TextSpan(at.index, text.length)
+          (newSpan.begin.index, newSpan.length.value) -> id
+      }
+      parse(input, idMap).lines.toList
     }
     notifier.notify(TextAPI.Notification.Inserted(module, at, text))
     notifier.notify(GraphAPI.Notification.Invalidate.Module(module))
@@ -61,9 +66,14 @@ final case class DoubleRepresentation(
   def eraseText(module: Module.Location, span: TextSpan): Unit = {
     findAndReplace(module, span.begin) { (pos, line) =>
       val (line1, line2) = line.show.splitAt(pos.index + span.begin.index)
-      val result =
-        Parser().run(new Reader(line1 + line2.drop(span.length.value)))
-      result.lines.toList
+      val input          = line1 + line2.drop(span.length.value)
+      val idMap = line.elem.map(_.idMap).getOrElse(Nil).flatMap {
+        case ((o, l), id) =>
+          val newSpan = TextSpan(o, l) - span
+          if (newSpan.length.value <= 0) None
+          else Some((newSpan.begin.index, newSpan.length.value) -> id)
+      }
+      parse(input, idMap).lines.toList
     }
     notifier.notify(TextAPI.Notification.Erased(module, span))
     notifier.notify(GraphAPI.Notification.Invalidate.Module(module))

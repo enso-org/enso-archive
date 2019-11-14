@@ -5,6 +5,7 @@ import mouse.boolean._
 import org.enso.syntax.graph.API._
 import org.enso.syntax.graph.AstOps._
 import org.enso.syntax.graph.SpanTree.Pathed
+import org.enso.syntax.text
 
 import scala.reflect.ClassTag
 
@@ -49,31 +50,67 @@ trait TestUtils extends org.scalatest.Matchers {
     result
   }
 
-  def checkTextModifications(program: String): Unit = {
-    val prefix = program.takeWhile(_ != '»').dropRight(1)
-    val suffix = program.dropWhile(_ != '«').drop(2)
-    val middle = program.dropWhile(_ != '»').drop(1).takeWhile(_ != '«')
+  def checkIDs[R](
+    program: ProgramText,
+    action: DoubleRepresentation => R,
+    getIDMap: text.AST => text.Parser.IDMap
+  ): R = {
+    val state  = StateManagerMock(program)
+    val idMap  = getIDMap(state.ast)
+    val result = action(DoubleRepresentation(state, NotificationSinkMock()))
+    state.ast.idMap should contain allElementsOf idMap
+    result
+  }
 
-    val position = TextPosition(prefix.length)
-    val span     = TextSpan(position, TextLength(middle.length))
+  def splitText(text: String): (String, String, String) = {
+    val prefix = text.takeWhile(_ != '»').dropRight(1)
+    val suffix = text.dropWhile(_ != '«').drop(2)
+    val middle = text.dropWhile(_ != '»').drop(1).takeWhile(_ != '«')
+    (prefix, suffix, middle)
+  }
 
+  def checkInsertText(program: String, spans: Seq[TextSpan]): Unit = {
+    val (prefix, suffix, middle) = splitText(program)
+
+    val pos = TextPosition(prefix.length)
+
+    def ids(ast: text.AST) = (spans, ast.idMap).zipped.map {
+      case (TextSpan(o, l), (_, id)) => (o.index, l.value) -> id
+    }
+
+    checkIDs(prefix + suffix, _.insertText(mockModule, pos, middle), ids)
     checkThatTransforms(
       prefix + suffix,
       prefix + middle + suffix,
-      _.insertText(mockModule, position, middle),
-      Some(TextAPI.Notification.Inserted(mockModule, position, middle))
+      _.insertText(mockModule, pos, middle),
+      Some(TextAPI.Notification.Inserted(mockModule, pos, middle))
     )
+  }
+
+  def checkEraseText(program: String, spans: Seq[TextSpan]): Unit = {
+    val (prefix, suffix, middle) = splitText(program)
+
+    val span = TextSpan(TextPosition(prefix.length), TextLength(middle.length))
+
+    def ids(ast: text.AST) = (spans, ast.idMap).zipped.map {
+      case (TextSpan(o, l), (_, id)) => (o.index, l.value) -> id
+    }
+
+    checkIDs(prefix + middle + suffix, _.eraseText(mockModule, span), ids)
     checkThatTransforms(
       prefix + middle + suffix,
       prefix + suffix,
       _.eraseText(mockModule, span),
       Some(TextAPI.Notification.Erased(mockModule, span))
     )
-    checkOutput(
-      prefix + middle + suffix,
-      middle,
-      _.copyText(mockModule, span)
-    )
+  }
+
+  def checkCopyText(program: String): Unit = {
+    val (prefix, suffix, middle) = splitText(program)
+
+    val span = TextSpan(TextPosition(prefix.length), TextLength(middle.length))
+
+    checkOutput(prefix + middle + suffix, middle, _.copyText(mockModule, span))
   }
 
   def expectTransformationError[E: ClassTag](

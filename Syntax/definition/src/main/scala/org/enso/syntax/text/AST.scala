@@ -146,6 +146,10 @@ object AST {
     go(ast, List())
   }
 
+  object ShapeOf {
+    implicit def fold: Foldable[ShapeOf] = semi.foldable
+  }
+
   //// Conversions ////
 
   object conversions extends conversions
@@ -1462,7 +1466,7 @@ object AST {
       val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
       R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
     }
-    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
+    implicit def ozip[T]: OffsetZip[DocumentedOf, T] = _.map((0, _))
   }
 
   //////////////////////////////////////////////////////////////////////////////
