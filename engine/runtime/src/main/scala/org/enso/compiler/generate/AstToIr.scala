@@ -105,7 +105,7 @@ object AstToIr {
     literal match {
       case AST.Literal.Number(base, number) => IR.Literal.Number(number, base)
 
-//      TODO handle text
+//      TODO [AA] Handle text properly
 //      case AST.Literal.Text.Raw(body) =>
 //        IR.Literal.Text.Raw(body.lines.toList.map(processLine))
 //
