@@ -292,7 +292,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
       "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
       "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
-      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
+      "org.scalacheck"         %%% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
       "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
