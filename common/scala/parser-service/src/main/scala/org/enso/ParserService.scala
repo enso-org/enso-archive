@@ -35,11 +35,11 @@ case class ParserService() extends Server with Protocol {
   import parserservice._
   import Protocol._
 
-  val parser = new Parser()
   def serializeAst(ast: AST.Module): String =
     ast.asJson.noSpaces
 
-  def runParser(program: String): AST = new Parser().run(new Reader(program))
+  def runParser(program: String): AST =
+    new Parser().run(new Reader(program))
 
   def handleRequest(request: Request): Response = {
     request match {

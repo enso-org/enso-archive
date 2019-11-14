@@ -3,9 +3,15 @@ pub mod api;
 mod jsclient;
 mod wsclient;
 
-pub struct Parser(Box<dyn api::IsParser>);
+/// Handle to a parser implementation.
+///
+/// Currently this component is implemented as a wrapper over parser written
+/// in Scala. Depending on compilation target (native or wasm) it uses either
+/// implementation provided by `wsclient` or `jsclient`.
+pub struct Parser(pub Box<dyn api::IsParser>);
 
 impl Parser {
+    /// Obtains a default parser implementation.
     #[cfg(not(target_arch = "wasm32"))]
     pub fn new() -> api::Result<Parser> {
         let client = wsclient::Client::new()?;
@@ -13,16 +19,18 @@ impl Parser {
         Ok(Parser(parser))
     }
 
-    pub fn new_or_panic() -> Parser {
-        Parser::new()
-            .unwrap_or_else(|e| panic!("Failed to create a parser: {:?}", e))
-    }
-
+    /// Obtains a default parser implementation.
     #[cfg(target_arch = "wasm32")]
     pub fn new() -> api::Result<ParserWrapper> {
         let client = jsclient::Client::new()?;
         let parser = Box::new(client);
         Ok(parser)
+    }
+
+    /// Obtains a default parser implementation, panicking in case of failure.
+    pub fn new_or_panic() -> Parser {
+        Parser::new()
+            .unwrap_or_else(|e| panic!("Failed to create a parser: {:?}", e))
     }
 }
 

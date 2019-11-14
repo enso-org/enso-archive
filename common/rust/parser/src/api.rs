@@ -2,6 +2,7 @@
 // == Parser ==
 // ============
 
+/// Entity being able to parse Luna programs into Luna's AST.
 pub trait IsParser {
     fn parse(&mut self, program: String) -> Result<AST>;
 }
@@ -10,7 +11,8 @@ pub trait IsParser {
 // == AST ==
 // =========
 
-// TODO: placeholder until we have real AST, see: https:==github.com=luna=enso=issues=296
+// TODO: placeholder until we have real AST, see:
+// https:==github.com=luna=enso=issues=296
 pub type AST = String;
 
 // ===========

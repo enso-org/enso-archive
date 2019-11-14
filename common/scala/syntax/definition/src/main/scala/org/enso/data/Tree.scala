@@ -42,15 +42,19 @@ object Tree {
   // JSON support //
   //////////////////
 
-  // Note [MWU]
-  // We can't directly serialize Map[K,V], as circe tries to use whole K as a
-  // key string in the generated JSON. Thus, we serialize Map[K, V] by
-  // converting it to Seq[(K,V)] first.
-
+  /* Note [Tree Serialization] */
   implicit def jsonEncode[K: Encoder, V: Encoder]: Encoder[Tree[K, V]] =
     Encoder.forProduct2("value", "branches")(
       tree => tree.value -> tree.branches.toSeq
     )
+
+  /* Note [Tree Serialization]
+   * We can't directly serialize Map[K,V], as circe tries to use whole K as a
+   * key string in the generated JSON. Thus, we serialize Map[K, V] by
+   * converting it to Seq[(K,V)] first.
+   */
+
+  /* Note [Tree Serialization] */
   implicit def jsonDecode[K: Decoder, V: Decoder]: Decoder[Tree[K, V]] =
     Decoder.forProduct2("value", "branches")(
       (value: Option[V], branches: Seq[(K, Tree[K, V])]) =>

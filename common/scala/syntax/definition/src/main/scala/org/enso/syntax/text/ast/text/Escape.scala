@@ -21,13 +21,25 @@ object Escape {
   sealed trait Unicode extends Escape
   object Unicode {
 
-    // NOTE [mwu]
-    // Name of the class below cannot be Invalid, as we already have
-    // Escape.Invalid. And to be able to derive JSON serialization with circe
-    // case class names within a trait subtree need to be unique.
+    /* Note [Circe and Naming] */
+    type Invalid = InvalidUnicode
+
+    /* Note [Circe and Naming] */
+    val Invalid = InvalidUnicode
+
+    /* Note [Circe and Naming] */
     final case class InvalidUnicode(unicode: Unicode) extends Unicode {
       val repr = unicode.repr
     }
+
+    /* NOTE [Circe and Naming]
+     * Name of the class above cannot be Invalid, as we already have
+     * Escape.Invalid. And to be able to derive JSON serialization with circe
+     * case class names within a trait subtree need to be unique.
+     *
+     * To keep this unpleasant detail hidden from library users, we introduce
+     * aliases for type and object named `Invalid`.
+     */
 
     type U16 = _U16
     final case class _U16(digits: String) extends Unicode {
@@ -60,7 +72,7 @@ object Escape {
     object U16 {
       def apply(digits: String): Unicode =
         if (validate(digits)) _U16(digits)
-        else InvalidUnicode(_U16(digits))
+        else Invalid(_U16(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length == 4
@@ -71,7 +83,7 @@ object Escape {
     object U32 {
       def apply(digits: String): Unicode =
         if (validate(digits)) _U32(digits)
-        else InvalidUnicode(_U32(digits))
+        else Invalid(_U32(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length == 8
@@ -83,7 +95,7 @@ object Escape {
     object U21 {
       def apply(digits: String): Unicode =
         if (validate(digits)) _U21(digits)
-        else InvalidUnicode(_U21(digits))
+        else Invalid(_U21(digits))
       def validate(digits: String) = {
         import Validator._
         val validLength = digits.length >= 1 && digits.length <= 6

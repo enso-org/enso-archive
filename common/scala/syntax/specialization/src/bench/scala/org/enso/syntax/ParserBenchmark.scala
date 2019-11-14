@@ -69,7 +69,6 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
     )
   )
 
-
   val filename = "common/scala/syntax/specialization/target/bench-input.txt"
 
   if (!new File(filename).exists()) {
@@ -113,7 +112,7 @@ object ParserBenchmark extends Bench.OfflineRegressionReport {
     measure method "Flexer" in    { using(dummy) in (_ => runReader())         }
   }
 
-  def run(str: String) = Parser().run(new flexer.Reader(str))
+  def run(str: String) = Parser.run(new flexer.Reader(str))
 
   performance of "parser" in {
     parserInput.foreach {

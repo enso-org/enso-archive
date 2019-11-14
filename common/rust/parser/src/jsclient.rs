@@ -15,6 +15,9 @@ impl std::fmt::Display for Error {
     }
 }
 
+/// Wrapper over the JS-compiled parser.
+///
+/// Can only be used when targeting WebAssembly. Not yet implemented.
 pub struct Client {}
 
 impl Client {
