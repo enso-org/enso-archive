@@ -12,7 +12,7 @@ pub trait IsParser {
 // =========
 
 // TODO: placeholder until we have real AST, see:
-// https:==github.com=luna=enso=issues=296
+// https://github.com/luna/enso/issues/296
 pub type AST = String;
 
 // ===========
