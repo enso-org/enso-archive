@@ -22,6 +22,7 @@ pub struct Client {}
 
 impl Client {
     // avoid warnings when compiling natively and having this usage cfg-ed out
+    #[cfg(not(target_arch = "wasm32"))]
     #[allow(dead_code)]
     pub fn new() -> Result<Client> {
         Err(Error::NotImplemented)
