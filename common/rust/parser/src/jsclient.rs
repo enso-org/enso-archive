@@ -1,18 +1,12 @@
 use crate::{api, api::IsParser};
+use failure::Fail;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub enum Error {
+    #[fail(display = "JS parser client has not been yet implemented!")]
     NotImplemented,
-}
-
-impl std::error::Error for Error {}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "JS parser client has not been yet implemented!")
-    }
 }
 
 /// Wrapper over the JS-compiled parser.

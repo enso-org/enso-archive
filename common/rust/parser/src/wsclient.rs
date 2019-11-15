@@ -1,12 +1,13 @@
 #![cfg(not(target_arch = "wasm32"))]
 
-use crate::api;
-use api::Error::*;
+use failure::Fail;
 use std::default::Default;
 use websocket::{
     stream::sync::TcpStream, ClientBuilder, Message, OwnedMessage,
 };
 
+use crate::api;
+use api::Error::*;
 use Error::*;
 
 type WsTcpClient = websocket::sync::Client<TcpStream>;
@@ -28,12 +29,12 @@ pub const PORT_VAR:     &str = "ENSO_PARSER_PORT";
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub enum Error {
-    WrongUrl              (websocket::client::ParseError),
-    ConnectivityError     (websocket::WebSocketError),
-    NonTextResponse       (websocket::OwnedMessage),
-    JsonSerializationError(serde_json::error::Error),
+    WrongUrl              (#[cause] websocket::client::ParseError),
+    ConnectivityError     (#[cause] websocket::WebSocketError),
+    NonTextResponse       (         websocket::OwnedMessage),
+    JsonSerializationError(#[cause] serde_json::error::Error),
 }
 
 impl From<Error> for api::Error {
@@ -56,7 +57,6 @@ impl From<serde_json::error::Error> for Error {
         JsonSerializationError(error)
     }
 }
-impl std::error::Error for Error {}
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Error::*;
