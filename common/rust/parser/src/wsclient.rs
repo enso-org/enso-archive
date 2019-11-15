@@ -30,9 +30,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
-    WrongUrl(websocket::client::ParseError),
-    ConnectivityError(websocket::WebSocketError),
-    NonTextResponse(websocket::OwnedMessage),
+    WrongUrl              (websocket::client::ParseError),
+    ConnectivityError     (websocket::WebSocketError),
+    NonTextResponse       (websocket::OwnedMessage),
     JsonSerializationError(serde_json::error::Error),
 }
 
@@ -95,7 +95,7 @@ pub enum Request {
 /// All responses that Parser Service might reply with.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Response {
-    Success { ast: String     },
+    Success { ast:     String },
     Error   { message: String },
 }
 
@@ -198,7 +198,7 @@ impl Client {
 
 impl api::IsParser for Client {
     fn parse(&mut self, program: String) -> api::Result<api::AST> {
-        let request = Request::ParseRequest { program };
+        let request  = Request::ParseRequest { program };
         let response = self.rpc_call(request)?;
         match response {
             Response::Success { ast     } => Ok(ast),
