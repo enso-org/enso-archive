@@ -504,7 +504,7 @@ object Macro {
         classDef: ClassDef,
         parentName: TypeName,
         index: Int
-      ): (Tree, Int) = {
+      ): (Block, Int) = {
         val typeName          = classDef.name
         val termName          = typeName.toTermName
         val subfields         = extractConstructorArguments(classDef)
@@ -560,7 +560,10 @@ object Macro {
           variantModuleStub
         }
 
-        (q"..${List(variantClass, result)}", subfields.length)
+        (
+          q"..${List(variantClass, result)}".asInstanceOf[Block],
+          subfields.length
+        )
       }
 
       def processVariantFields(moduleDef: ModuleDef): c.Expr[Any] = {
@@ -574,11 +577,20 @@ object Macro {
 
         val variantDefs = extractVariantDefs(moduleDef.impl)
 
+        if (variantDefs.length < 1) {
+          c.error(
+            c.enclosingPosition,
+            "A variant must contain at least one case"
+          )
+        }
+
         val variantResults =
           for ((cls, ix) <- variantDefs.view.zipWithIndex)
             yield generateVariantDef(cls, variantTypeName, ix)
 
-        val variantDefinitions = variantResults.map(_._1)
+        // We want to flatten the block structure for correct codegen
+        val variantDefinitions =
+          variantResults.map(_._1).map(t => t.stats).flatten
 
         // Note [Encoding Variant Size]
         val numTotalSize = variantResults
@@ -638,7 +650,7 @@ object Macro {
         case _ => {
           c.error(
             c.enclosingPosition,
-            "The @field macro only operates on case classes."
+            "The @field macro only operates on case classes"
           )
           annottees.head
         }
@@ -679,7 +691,7 @@ object Macro {
     * }}}
     *
     */
-  @compileTimeOnly("please enable macroparadise to expand macro annotations")
+  @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class component extends StaticAnnotation {
     def macroTransform(annottees: Any*): Any = macro ComponentMacro.impl
   }
@@ -733,7 +745,7 @@ object Macro {
         if (typeDefs.isEmpty) {
           c.error(
             c.enclosingPosition,
-            "You must provide a name for the contained type, none found."
+            "You must provide a name for the contained type, none found"
           )
           TypeName("ERROR")
         } else {
@@ -757,14 +769,14 @@ object Macro {
             } else {
               c.error(
                 c.enclosingPosition,
-                "The contained type's parameter must be a subtype of Graph."
+                "The contained type's parameter must be a subtype of Graph"
               )
               tDef.name
             }
           } else {
             c.error(
               c.enclosingPosition,
-              "Your contained type must only have one type parameter."
+              "Your contained type must only have one type parameter"
             )
             tDef.name
           }
@@ -772,6 +784,13 @@ object Macro {
       }
 
       def genComponentFromClassDef(classDef: ClassDef): c.Expr[Any] = {
+        if (!classDef.mods.hasFlag(Flag.CASE)) {
+          c.error(
+            c.enclosingPosition,
+            "@component must be applied to a case class"
+          )
+        }
+
         val componentTypeName = classDef.name
         val componentItemName = extractItemName(classDef.impl)
 
