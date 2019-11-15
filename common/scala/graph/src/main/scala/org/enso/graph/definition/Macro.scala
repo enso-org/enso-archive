@@ -20,14 +20,14 @@ object Macro {
     * including field setters and getters for each of the constructor arguments
     * in the template definition.
     *
-    * As an examble, consider the following:
+    * As an example, consider the following:
     *
     * {{{@field case class ParentLink[G <: Graph](parent: Edge[G])}}}
     *
     * This application of the macro will generate the following code:
     *
     * {{{
-    *   final case class ParentLink() extends Graph.Component.Field
+    *   sealed case class ParentLink() extends Graph.Component.Field
     *   object ParentLink {
     *     implicit def sized = new Sized[ParentLink] { type Out = _1 }
     *
@@ -61,8 +61,118 @@ object Macro {
     *   }
     * }}}
     *
-    * You will need to ensure that `MyName.implicits._` is imported into scope
-    * as we currently have no way of making that work better.
+    * You will need to ensure that `T._` is imported into scope as we currently
+    * have no way of making that work better.
+    *
+    * For a variant field (tagged union), the same macro can be applied to an
+    * object definition. This object definition must be provided as follows:
+    *
+    * {{{
+    *   @field object VariantType {
+    *     case class V1()
+    *     case class V2[T](field1: T)
+    *     case class V3[T, Q](field1: T, field2: Q)
+    *     // ...
+    *   }
+    * }}}
+    *
+    * For this type of definition, the name of the object (here `VariantType`)
+    * defines the type of the variant, and the case classes in the body define
+    * the variant cases. Each case is supplied with subfield accessors, as well
+    * ]as custom unapply methods, where necessary. The fields are nested in the
+    * scope of the variant, so above you would have `VariantType.V1`, for
+    * access.
+    *
+    * The following is a simple definition of a variant component:
+    *
+    * {{{
+    *   @field object Shape {
+    *     case class Null()
+    *     case class App[G <: Graph](fn: Edge[G], argTest: Edge[G])
+    *   }
+    * }}}
+    *
+    * This generates the following field definition:
+    *
+    * {{{
+    *   sealed trait Shape extends Graph.Component.Field
+    *   object Shape {
+    *     implicit def sized = new Sized[Shape] { type Out = _3 }
+    *
+    *     sealed case class Null() extends Shape
+    *     object Null {
+    *       val any            = Component.VariantMatcher[Shape, Null](0)
+    *       implicit def sized = new Sized[Null] { type Out = _0 }
+    *     }
+    *
+    *     sealed case class App() extends Shape
+    *     object App {
+    *       implicit def sized = new Sized[App] { type Out = _1 }
+    *
+    *       val any = Component.VariantMatcher[Shape, App](1)
+    *
+    *       def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
+    *         implicit
+    *         graph: GraphData[G],
+    *         ev: HasComponentField[G, C, Shape]
+    *       ): Option[(Edge[G], Edge[G])] =
+    *         any.unapply(arg).map(t => (t.fn, t.arg))
+    *
+    *       implicit class Instance[G <: Graph, C <: Component](
+    *         node: Component.Refined[Shape, App, Component.Ref[G, C]]
+    *       ) {
+    *
+    *         def fn(
+    *           implicit graph: GraphData[G],
+    *           ev: HasComponentField[G, C, Shape]
+    *         ): Edge[G] = {
+    *           Component.Ref(
+    *             graph
+    *               .unsafeReadField[C, Shape](
+    *                 Component.Refined.unwrap(node).ix,
+    *                 1
+    *               )
+    *           )
+    *         }
+    *
+    *         def fn_=(value: Edge[G])(
+    *           implicit graph: GraphData[G],
+    *           ev: HasComponentField[G, C, Shape]
+    *         ): Unit = {
+    *           graph.unsafeWriteField[C, Shape](
+    *             Component.Refined.unwrap(node).ix,
+    *             1,
+    *             value.ix
+    *           )
+    *         }
+    *
+    *         def arg(
+    *           implicit graph: GraphData[G],
+    *           ev: HasComponentField[G, C, Shape]
+    *         ): Edge[G] = {
+    *           Component.Ref(
+    *             graph
+    *               .unsafeReadField[C, Shape](
+    *                 Component.Refined.unwrap(node).ix,
+    *                 2
+    *               )
+    *           )
+    *         }
+    *
+    *         def arg_=(value: Edge[G])(
+    *           implicit graph: GraphData[G],
+    *           ev: HasComponentField[G, C, Shape]
+    *         ): Unit = {
+    *           graph.unsafeWriteField[C, Shape](
+    *             Component.Refined.unwrap(node).ix,
+    *             2,
+    *             value.ix
+    *           )
+    *         }
+    *       }
+    *     }
+    *   }
+    * }}}
     */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class field extends StaticAnnotation {
@@ -76,9 +186,19 @@ object Macro {
       if (members.size != 1) {
         c.error(
           c.enclosingPosition,
-          "You must apply the @field annotation to a single case class"
+          "You must apply the @field annotation to a single entity"
         )
       }
+
+      val imports: Block = Block(
+        List(
+          q"""import shapeless.nat._""",
+          q"""import org.enso.graph.Graph.Component""",
+          q"""import org.enso.graph.Graph.GraphData""",
+          q"""import org.enso.graph.Graph.HasComponentField"""
+        ),
+        EmptyTree
+      )
 
       /**
         * Extracts the template from a type definition.
@@ -138,15 +258,17 @@ object Macro {
       )
 
       /**
-        * Creates a constant type-level identifier for Shapeless' [[Nat]] type.
+        * Creates a constant type-level identifier for Shapeless'
+        * [[shapeless.Nat]] type.
         *
-        * @param num the natural number you want to represent as a [[Nat]]
-        * @return a [[TypeName]] representing that [[Nat]]
+        * @param num the natural number you want to represent as a
+        *            [[shapeless.Nat]]
+        * @return a [[TypeName]] representing that [[shapeless.Nat]]
         */
       def mkNatConstantTypeName(num: Int): TypeName =
         TypeName("_" + num.toString)
 
-      def genSubfieldGetter(
+      def genSimpleSubfieldGetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
         index: Int
@@ -166,7 +288,7 @@ object Macro {
          """
       }
 
-      def genSubfieldSetter(
+      def genSimpleSubfieldSetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
         index: Int
@@ -186,19 +308,19 @@ object Macro {
          """
       }
 
-      def genSubfieldAccessors(
+      def genSimpleSubfieldAccessors(
         subfields: List[ValDef],
         enclosingName: TypeName
       ): List[Tree] = {
         var accessorDefs: List[Tree] = List()
 
         for ((subfield, ix) <- subfields.view.zipWithIndex) {
-          accessorDefs = accessorDefs :+ genSubfieldGetter(
+          accessorDefs = accessorDefs :+ genSimpleSubfieldGetter(
               subfield,
               enclosingName,
               ix
             )
-          accessorDefs = accessorDefs :+ genSubfieldSetter(
+          accessorDefs = accessorDefs :+ genSimpleSubfieldSetter(
               subfield,
               enclosingName,
               ix
@@ -268,18 +390,8 @@ object Macro {
         val natSubfields: TypeName      = mkNatConstantTypeName(subfields.length)
         val implicitClassName: TypeName = mkImplicitClassName(fieldTypeName)
 
-        val imports: Block = Block(
-          List(
-            q"""import shapeless.nat._""",
-            q"""import org.enso.graph.Graph.Component""",
-            q"""import org.enso.graph.Graph.GraphData""",
-            q"""import org.enso.graph.Graph.HasComponentField"""
-          ),
-          EmptyTree
-        )
-
         val baseClass: Tree =
-          q"final case class $fieldTypeName() extends Graph.Component.Field"
+          q"sealed case class $fieldTypeName() extends Graph.Component.Field"
 
         val accessorClassStub: ClassDef = q"""
             implicit class $implicitClassName[G <: Graph, C <: Component](
@@ -288,18 +400,7 @@ object Macro {
            """.asInstanceOf[ClassDef]
         val accessorClass: ClassDef = appendToClass(
           accessorClassStub,
-          genSubfieldAccessors(subfields, fieldTypeName)
-        )
-
-        // TODO [AA] Should we have this implicits module at all?
-        //  it doesn't match the layout for variant classes
-        val implicitsModuleStub = q"object implicits".asInstanceOf[ModuleDef]
-        val implicitsModule = appendToModule(
-          implicitsModuleStub,
-          List(
-            accessorClass,
-            genTransInstance(fieldTermName, implicitClassName)
-          )
+          genSimpleSubfieldAccessors(subfields, fieldTypeName)
         )
 
         val companionModuleStub: ModuleDef =
@@ -328,6 +429,73 @@ object Macro {
         c.Expr(result)
       }
 
+      def genVariantSubfieldGetter(
+        paramDef: ValDef,
+        enclosingTypeName: TypeName,
+        index: Int
+      ): Tree = {
+        val paramName: TermName = paramDef.name
+        val paramType: Tree     = paramDef.tpt
+
+        q"""
+          def $paramName(
+            implicit graph: GraphData[G],
+            ev: HasComponentField[G, C, $enclosingTypeName]
+          ): $paramType = {
+            Component.Ref(
+              graph.unsafeReadField[C, $enclosingTypeName](
+                Component.Refined.unwrap(node).ix,
+                $index
+              )
+            )
+          }
+         """
+      }
+
+      def genVariantSubfieldSetter(
+        paramDef: ValDef,
+        enclosingTypeName: TypeName,
+        index: Int
+      ): Tree = {
+        val accessorName: TermName = TermName(paramDef.name.toString + "_$eq")
+        val paramType: Tree        = paramDef.tpt
+
+        q"""
+          def $accessorName(value: $paramType)(
+            implicit graph: GraphData[G],
+            ev: HasComponentField[G, C, $enclosingTypeName]
+          ): Unit = {
+            graph.unsafeWriteField[C, $enclosingTypeName](
+              Component.Refined.unwrap(node).ix,
+              $index,
+              value.ix
+            )
+          }
+         """
+      }
+
+      def genVariantSubfieldAccessors(
+        subfields: List[ValDef],
+        enclosingName: TypeName
+      ): List[Tree] = {
+        var accessorDefs: List[Tree] = List()
+
+        for ((subfield, ix) <- subfields.view.zipWithIndex) {
+          accessorDefs = accessorDefs :+ genVariantSubfieldGetter(
+              subfield,
+              enclosingName,
+              ix
+            )
+          accessorDefs = accessorDefs :+ genVariantSubfieldSetter(
+              subfield,
+              enclosingName,
+              ix
+            )
+        }
+
+        accessorDefs
+      }
+
       def extractVariantDefs(template: Template): List[ClassDef] = {
         template.body.collect { case classDef: ClassDef => classDef }
       }
@@ -336,24 +504,17 @@ object Macro {
         classDef: ClassDef,
         parentName: TypeName,
         index: Int
-      ): Tree = {
+      ): (Tree, Int) = {
         val typeName          = classDef.name
         val termName          = typeName.toTermName
         val subfields         = extractConstructorArguments(classDef)
         val natSubfields      = mkNatConstantTypeName(subfields.length)
         val implicitClassName = mkImplicitClassName(typeName)
+        val subfieldTypes     = subfields.map(f => f.tpt)
 
         val variantClass: ClassDef =
           q"""
-            final case class $typeName() extends $parentName
-           """.asInstanceOf[ClassDef]
-
-        val implicitClassStub: ClassDef =
-          q"""
-            implicit class $implicitClassName[G <: Graph, C <: Component](
-              node: Component.Refined
-            ) {
-            }
+            sealed case class $typeName() extends $parentName
            """.asInstanceOf[ClassDef]
 
         val variantModuleStub: ModuleDef =
@@ -366,22 +527,40 @@ object Macro {
             }
            """.asInstanceOf[ModuleDef]
 
-//        def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
-//          implicit
-//          graph: GraphData[G],
-//          ev: HasComponentField[G, C, Shape]
-//        ): Option[(Edge[G], Edge[G])] =
-//          any
-//            .unapply(arg)
-//            .map(t => (Component.Ref(t.fn), Component.Ref(t.arg)))
+        val unapplyDef: DefDef =
+          q"""
+            def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
+              implicit
+              graph: GraphData[G],
+              ev: HasComponentField[G, C, $parentName]
+            ): Option[(..$subfieldTypes)] = {
+              any.unapply(arg).map(
+                t => (..${subfields.map(f => q"t.${f.name}")})
+              )
+            }
+           """.asInstanceOf[DefDef]
 
-        // TODO [AA] Actually implement this
-//        val unapplyDef: DefDef =
-//          q"""
-//
-//           """.asInstanceOf[DefDef]
+        val accessorClassStub: ClassDef = q"""
+            implicit class $implicitClassName[G <: Graph, C <: Component](
+              node: Component.Refined[
+                $parentName,
+                $typeName,
+                Component.Ref[G, C]
+              ]
+            )
+           """.asInstanceOf[ClassDef]
+        val accessorClass: ClassDef = appendToClass(
+          accessorClassStub,
+          genVariantSubfieldAccessors(subfields, parentName)
+        )
 
-        q"..${List(variantClass, variantModuleStub)}"
+        val result = if (subfields.nonEmpty) {
+          appendToModule(variantModuleStub, List(unapplyDef, accessorClass))
+        } else {
+          variantModuleStub
+        }
+
+        (q"..${List(variantClass, result)}", subfields.length)
       }
 
       def processVariantFields(moduleDef: ModuleDef): c.Expr[Any] = {
@@ -393,34 +572,51 @@ object Macro {
             sealed trait $variantTypeName extends Graph.Component.Field
            """.asInstanceOf[ClassDef]
 
-        // Requires size knowledge to generate
-        val baseModuleStub: ModuleDef =
-          q"""
-            object $variantTermName {
-              implicit def sized = new Sized[$variantTypeName] {
-                type Out = ${mkNatConstantTypeName(3)}
-              }
-            }
-           """.asInstanceOf[ModuleDef]
-
         val variantDefs = extractVariantDefs(moduleDef.impl)
 
         val variantResults =
           for ((cls, ix) <- variantDefs.view.zipWithIndex)
             yield generateVariantDef(cls, variantTypeName, ix)
 
-//        val variantResults: List[Tree] =
-//          extractVariantDefs(moduleDef.impl).view.zipWithIndex
-//            .map(tpl => generateVariantDef(tpl._1, variantTypeName, tpl._2))
+        val variantDefinitions = variantResults.map(_._1)
 
-        // TODO [AA]
-        //  1. Generate variant bodies + concat them
-        //  2. Use this information to generate main `Shape` body
+        // Note [Encoding Variant Size]
+        val numTotalSize = variantResults
+            .map(_._2)
+            .foldLeft(0)((x: Int, y: Int) => Math.max(x, y)) + 1
 
-        println(showCode(variantResults.head))
+        val baseModuleStub: ModuleDef =
+          q"""
+            object $variantTermName {
+              implicit def sized = new Sized[$variantTypeName] {
+                type Out = ${mkNatConstantTypeName(numTotalSize)}
+              }
+            }
+           """.asInstanceOf[ModuleDef]
 
-        c.Expr(moduleDef)
+        val traitCompanionModule =
+          appendToModule(baseModuleStub, variantDefinitions.toList)
+
+        val result =
+          q"..${appendToBlock(imports, baseTrait, traitCompanionModule).stats}"
+
+        c.Expr(result)
       }
+
+      /* Note [Encoding Variant Size]
+       * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       * Variant fields are encoded on the graph much like a union is in C. The
+       * space allocation for storing the type is always the maximum size of any
+       * of the variant types.
+       *
+       * However, the encoding used by the graphs operates more like a _tagged_
+       * union, and hence we need to encode the constructor of the variant that
+       * is stored in its allocation.
+       *
+       * To this end, the size of the variant type is _actually_ the maximum
+       * size of all the variant constructors + 1, where that additional
+       * field is used to encode the constructor tag.
+       */
 
       members.head match {
         case classDef: ClassDef => {
@@ -450,6 +646,177 @@ object Macro {
     }
   }
 
-  // TODO [AA] Handle variant fields (in @field or in separate macro)
-  // TODO [AA] Do @component too
+  /** This macro generates a component definition for the graph to help avoid
+    * the boilerplate necessary to defined a [[org.enso.graph.Graph.Component]].
+    *
+    * You must apply the macro to a definition as follows:
+    *
+    * {{{
+    *   @component case class Types() { type Type[G <: Graph] }
+    * }}}
+    *
+    * The macro will generate the required boilerplate for the component
+    * definition. It will generate a parent class named `Types`, and the a
+    * contained type with name taken from the first type definition in the body.
+    * That type must take one type parameter that is a subtype of Graph.
+    *
+    * By way of example, consider the following macro invocation:
+    *
+    * {{{
+    *   @component case class Nodes() { type Node[G <: Graph] }
+    * }}}
+    *
+    * This will generate the following code (along with required imports):
+    *
+    * {{{
+    *   sealed case class Nodes() extends Component
+    *   type Node[G <: Graph] = Component.Ref[G, Nodes]
+    *   implicit class GraphWithNodes[G <: Graph](graph: GraphData[G]) {
+    *     def addNode()(implicit ev: HasComponent[G, Nodes]): Node[G] = {
+    *       graph.addComponent[Nodes]()
+    *     }
+    *   }
+    * }}}
+    *
+    */
+  @compileTimeOnly("please enable macroparadise to expand macro annotations")
+  class component extends StaticAnnotation {
+    def macroTransform(annottees: Any*): Any = macro ComponentMacro.impl
+  }
+  object ComponentMacro {
+    def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
+      import c.universe._
+      val members = annottees.map(_.tree).toList
+
+      if (members.size != 1) {
+        c.error(
+          c.enclosingPosition,
+          "You must apply the @component annotation to a single entity"
+        )
+      }
+
+      val imports: Block = Block(
+        List(
+          q"""import org.enso.graph.Graph""",
+          q"""import org.enso.graph.Graph.Component""",
+          q"""import org.enso.graph.Graph.GraphData""",
+          q"""import org.enso.graph.Graph.HasComponent"""
+        ),
+        EmptyTree
+      )
+
+      /**
+        * Appends a statement to a block with no return value.
+        *
+        * @param block the block to append to
+        * @param statement the statement to append to `block`
+        * @return `block` with `statement` appended to it
+        */
+      def appendToBlock(block: Block, statement: Tree*): Block = Block(
+        block.stats ++ statement,
+        EmptyTree
+      )
+
+      /**
+        * Extracts the name of the child type in the definition. This name is
+        * used to define the type contained in a given component.
+        *
+        * If multiple `type T` definitions are found, the first will be used.
+        *
+        * @param template the body of the class the macro is applied to
+        * @return the name of the type declared in the body of `template`
+        */
+      def extractItemName(template: Template): TypeName = {
+        val typeDefs  = template.body.collect { case tDef: TypeDef => tDef }
+        val boundName = TypeName("Graph")
+
+        if (typeDefs.isEmpty) {
+          c.error(
+            c.enclosingPosition,
+            "You must provide a name for the contained type, none found."
+          )
+          TypeName("ERROR")
+        } else {
+          val tDef = typeDefs.head
+          val typeParams = tDef.children.collect {
+            case typeDef: TypeDef => typeDef
+          }
+
+          if (typeParams.length == 1) {
+            val boundNames = typeParams.head.children
+              .collect {
+                case tree: TypeBoundsTree => tree
+              }
+              .map(_.hi)
+              .collect {
+                case Ident(name) => name.toTypeName
+              }
+
+            if (boundNames.contains(boundName)) {
+              tDef.name
+            } else {
+              c.error(
+                c.enclosingPosition,
+                "The contained type's parameter must be a subtype of Graph."
+              )
+              tDef.name
+            }
+          } else {
+            c.error(
+              c.enclosingPosition,
+              "Your contained type must only have one type parameter."
+            )
+            tDef.name
+          }
+        }
+      }
+
+      def genComponentFromClassDef(classDef: ClassDef): c.Expr[Any] = {
+        val componentTypeName = classDef.name
+        val componentItemName = extractItemName(classDef.impl)
+
+        val caseClass: ClassDef =
+          q"""
+            sealed case class $componentTypeName() extends Component
+           """.asInstanceOf[ClassDef]
+
+        val typeDef: TypeDef =
+          q"""
+            type $componentItemName[G <: Graph] =
+              Component.Ref[G, $componentTypeName]
+           """.asInstanceOf[TypeDef]
+
+        val implClassName = TypeName("GraphWith" + componentTypeName.toString)
+        val addName       = TermName("add" + componentItemName.toString)
+        val implicitClass: ClassDef =
+          q"""
+            implicit class $implClassName[G <: Graph](graph: GraphData[G]) {
+              def $addName()(
+                implicit ev: HasComponent[G, $componentTypeName]
+              ): $componentItemName[G] = {
+                graph.addComponent[$componentTypeName]()
+              }
+            }
+           """.asInstanceOf[ClassDef]
+
+        val block  = appendToBlock(imports, caseClass, typeDef, implicitClass)
+        val result = q"..${block.stats}"
+
+        c.Expr(result)
+      }
+
+      val annotatedItem = members.head
+
+      annotatedItem match {
+        case classDef: ClassDef => genComponentFromClassDef(classDef)
+        case _ => {
+          c.error(
+            c.enclosingPosition,
+            "You must provide a class definition to the @component macro"
+          )
+          c.Expr(annotatedItem)
+        }
+      }
+    }
+  }
 }

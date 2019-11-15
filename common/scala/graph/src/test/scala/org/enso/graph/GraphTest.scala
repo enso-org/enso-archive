@@ -1,10 +1,9 @@
 package org.enso.graph
 
-import org.enso.graph.Graph.{Component, _}
+import org.enso.graph.Graph.Component
 import org.enso.graph.GraphComponents.{Edge, Edges, Node, Nodes}
 import org.enso.graph.definition.Macro.field
 import org.scalatest.{FlatSpec, Matchers}
-import shapeless.nat._
 import shapeless.{::, HNil}
 
 class GraphTest extends FlatSpec with Matchers {
@@ -14,88 +13,15 @@ class GraphTest extends FlatSpec with Matchers {
     // === Component definitions ================================================
     // ==========================================================================
 
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // Please note, that the following definitions are very error prone to both
-    // read and write and should be refactored using macros.
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     object Node {
+
       // ==================
       // === Node Shape ===
       // ==================
 
-      // provide a @variantField that takes a trait and some case classes
-      sealed trait Shape extends Graph.Component.Field
-      object Shape {
-        // It has to include max of all fields + 1. The first field encodes constructor ID
-        implicit def sized = new Sized[Shape] { type Out = _3 }
-
-        final case class Null() extends Shape
-        object Null {
-          val any            = Component.VariantMatcher[Shape, Null](0)
-          implicit def sized = new Sized[Null] { type Out = _0 }
-        }
-
-        final case class App() extends Shape
-        object App {
-          implicit def sized = new Sized[App] { type Out = _1 }
-
-          val any = Component.VariantMatcher[Shape, App](1)
-
-          // TODO [AA] Surely this should store Edges not ints
-          def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
-            implicit
-            graph: GraphData[G],
-            ev: HasComponentField[G, C, Shape]
-          ): Option[(Edge[G], Edge[G])] =
-            any
-              .unapply(arg)
-              .map(t => (Component.Ref(t.fn), Component.Ref(t.arg)))
-
-          implicit class Instance[G <: Graph, C <: Component](
-            node: Component.Refined[Shape, App, Component.Ref[G, C]]
-          ) {
-
-            // TODO [AA] This boilerplate should be macro'd away
-            def fn(
-              implicit graph: GraphData[G],
-              ev: HasComponentField[G, C, Shape]
-            ): Int = {
-              graph
-                .unsafeReadField[C, Shape](Component.Refined.unwrap(node).ix, 1)
-            }
-
-            def fn_=(value: Int)(
-              implicit graph: GraphData[G],
-              ev: HasComponentField[G, C, Shape]
-            ): Unit = {
-              graph.unsafeWriteField[C, Shape](
-                Component.Refined.unwrap(node).ix,
-                1,
-                value
-              )
-            }
-
-            def arg(
-              implicit graph: GraphData[G],
-              ev: HasComponentField[G, C, Shape]
-            ): Int = {
-              graph
-                .unsafeReadField[C, Shape](Component.Refined.unwrap(node).ix, 2)
-            }
-
-            def arg_=(value: Int)(
-              implicit graph: GraphData[G],
-              ev: HasComponentField[G, C, Shape]
-            ): Unit = {
-              graph.unsafeWriteField[C, Shape](
-                Component.Refined.unwrap(node).ix,
-                2,
-                value
-              )
-            }
-          }
-        }
+      @field object Shape {
+        case class Null()
+        case class App[G <: Graph](fn: Edge[G], argTest: Edge[G])
       }
 
       // ==================
