@@ -15,12 +15,12 @@ type WsTcpClient = websocket::sync::Client<TcpStream>;
 // == Constants & literals ==
 // ==========================
 
-pub const LOCALHOST: &str = "localhost";
-pub const DEFAULT_PORT: i32 = 30615;
+pub const LOCALHOST:        &str = "localhost";
+pub const DEFAULT_PORT:      i32 = 30615;
 pub const DEFAULT_HOSTNAME: &str = LOCALHOST;
 
 pub const HOSTNAME_VAR: &str = "ENSO_PARSER_HOSTNAME";
-pub const PORT_VAR: &str = "ENSO_PARSER_PORT";
+pub const PORT_VAR:     &str = "ENSO_PARSER_PORT";
 
 // ===========
 // == Error ==
@@ -70,10 +70,10 @@ impl std::fmt::Display for Error {
                 write!(f, "Connection error: {}", ws_error)
             }
             NonTextResponse(msg) => match msg {
-                websocket::OwnedMessage::Close(close_data) => {
-                    write!(f, "Peer closed connection: {:?}", close_data)
-                }
-                _ => write!(f, "Expected text response, got: {:?}", msg),
+                websocket::OwnedMessage::Close(close_data) =>
+                    write!(f, "Peer closed connection: {:?}", close_data),
+                _ =>
+                    write!(f, "Expected text response, got: {:?}", msg),
             },
             JsonSerializationError(msg) => {
                 write!(f, "JSON (de)serialization failed: {:?}", msg)
@@ -148,7 +148,7 @@ mod internal {
         /// Serializes `Request` to JSON and sends to peer as a text message.
         pub fn send_request(&mut self, request: Request) -> Result<()> {
             let request_txt = serde_json::to_string(&request)?;
-            let message = Message::text(request_txt);
+            let message     = Message::text(request_txt);
             self.connection.send_message(&message)?;
             Ok(())
         }
@@ -211,17 +211,12 @@ impl api::IsParser for Client {
 // == tests ==
 // ===========
 
+
 #[test]
 fn wrong_url_reported() {
-    let invalid_hostname = String::from("bgjhkb 7");
-    let wrong_config = Config {
-        host: invalid_hostname,
-        port: 8080,
-    };
-    let client = Client::from_conf(&wrong_config);
-
-    if let Err(WrongUrl(_)) = client {
-    } else {
-        assert!(false, "expected WrongUrl error");
-    }
+    let invalid_hostname    = String::from("bgjhkb 7");
+    let wrong_config        = Config { host: invalid_hostname, port: 8080 };
+    let client              = Client::from_conf(&wrong_config);
+    let got_wrong_url_error = matches::matches!(client, Err(WrongUrl(_)));
+    assert!(got_wrong_url_error, "expected WrongUrl error");
 }
