@@ -31,9 +31,19 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Fail)]
 pub enum Error {
-    WrongUrl              (#[cause] websocket::client::ParseError),
-    ConnectivityError     (#[cause] websocket::WebSocketError),
-    NonTextResponse       (         websocket::OwnedMessage),
+    #[fail(display = "Failed to parse given address url: {}", _0)]
+    WrongUrl(#[cause] websocket::client::ParseError),
+
+    #[fail(display = "Connection error: {}", _0)]
+    ConnectivityError(#[cause] websocket::WebSocketError),
+
+    #[fail(display = "Peer has closed the connection")]
+    PeerClosedConnection,
+
+    #[fail(display = "Received non-text response: {:?}", _0)]
+    NonTextResponse(websocket::OwnedMessage),
+
+    #[fail(display = "JSON (de)serialization failed: {:?}", _0)]
     JsonSerializationError(#[cause] serde_json::error::Error),
 }
 
@@ -55,30 +65,6 @@ impl From<websocket::WebSocketError> for Error {
 impl From<serde_json::error::Error> for Error {
     fn from(error: serde_json::error::Error) -> Self {
         JsonSerializationError(error)
-    }
-}
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Error::*;
-        match self {
-            WrongUrl(url_parse_error) => write!(
-                f,
-                "Failed to parse given address url: {}",
-                url_parse_error
-            ),
-            ConnectivityError(ws_error) => {
-                write!(f, "Connection error: {}", ws_error)
-            }
-            NonTextResponse(msg) => match msg {
-                websocket::OwnedMessage::Close(close_data) =>
-                    write!(f, "Peer closed connection: {:?}", close_data),
-                _ =>
-                    write!(f, "Expected text response, got: {:?}", msg),
-            },
-            JsonSerializationError(msg) => {
-                write!(f, "JSON (de)serialization failed: {:?}", msg)
-            }
-        }
     }
 }
 
