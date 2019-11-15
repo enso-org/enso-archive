@@ -38,7 +38,7 @@ pub enum Error {
 
 impl From<Error> for api::Error {
     fn from(e: Error) -> Self {
-        InteropError(Box::new(e))
+        api::interop_error(e)
     }
 }
 impl From<websocket::client::ParseError> for Error {

@@ -29,6 +29,6 @@ impl Client {
 
 impl IsParser for Client {
     fn parse(&mut self, _program: String) -> api::Result<api::AST> {
-        Err(api::Error::InteropError(Box::new(Error::NotImplemented)))
+        Err(api::interop_error(Error::NotImplemented))
     }
 }

@@ -29,6 +29,12 @@ pub enum Error {
     InteropError(Box<dyn std::error::Error>),
 }
 
+/// Wraps an arbitrary `std::error::Error` as an `InteropError.`
+pub fn interop_error<T>(error: T) -> Error
+    where T: std::error::Error + 'static {
+    Error::InteropError(Box::new(error))
+}
+
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         use Error::*;
