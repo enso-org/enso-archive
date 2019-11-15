@@ -34,6 +34,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
    * Calls the provided {@code function} using the provided {@code arguments}.
    *
    * @param function the function to execute
+   * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
    * @return the result of executing {@code function} using {@code arguments}
@@ -165,7 +166,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
             resultSlot, dispatchNode.executeCall(function, callerInfo, state, arguments));
         return false;
       } catch (TailCallException e) {
-        setNextCall(frame, e.getFunction(), null, e.getState(), e.getArguments());
+        setNextCall(frame, e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
         return true;
       }
     }

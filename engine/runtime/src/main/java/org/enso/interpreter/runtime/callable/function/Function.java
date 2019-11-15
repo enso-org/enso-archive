@@ -44,6 +44,9 @@ public final class Function implements TruffleObject {
    * @param preappliedArguments the preapplied arguments for this function. The layout of this array
    *     must be conforming to the {@code schema}. {@code null} is allowed if the function does not
    *     have any partially applied arguments.
+   * @param oversaturatedArguments the oversaturated arguments this function may have accumulated.
+   *     The layout of this array must be conforming to the {@code schema}. @{code null} is allowed
+   *     if the function does not carry any oversaturated arguments.
    */
   public Function(
       RootCallTarget callTarget,
@@ -70,7 +73,7 @@ public final class Function implements TruffleObject {
   }
 
   /**
-   * Creates a Function object from a {@link RootNode} and argument definitions.
+   * Creates a Function object from a {@link BuiltinRootNode} and argument definitions.
    *
    * @param node the {@link RootNode} for the function logic
    * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
@@ -85,18 +88,21 @@ public final class Function implements TruffleObject {
   }
 
   /**
-   * Creates a Function object from a {@link RootNode} and argument definitions.
+   * Creates a Function object from a {@link BuiltinRootNode} and argument definitions.
+   *
+   * <p>The root node wrapped using this method can safely assume the {@link CallerInfo} argument
+   * will be non-null.
    *
    * @param node the {@link RootNode} for the function logic
    * @param callStrategy the {@link FunctionSchema.CallStrategy} to use for this function
    * @param args argument definitons
    * @return a Function object with specified behavior and arguments
    */
-  public static Function fromBuiltinRootNodeWithFrameAccess(
+  public static Function fromBuiltinRootNodeWithCallerFrameAccess(
       BuiltinRootNode node, FunctionSchema.CallStrategy callStrategy, ArgumentDefinition... args) {
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(node);
     FunctionSchema schema =
-        new FunctionSchema(callStrategy, FunctionSchema.CallerFrameAccess.READ_ONLY, args);
+        new FunctionSchema(callStrategy, FunctionSchema.CallerFrameAccess.FULL, args);
     return new Function(callTarget, null, schema);
   }
 
@@ -271,8 +277,8 @@ public final class Function implements TruffleObject {
     /**
      * Gets the positional arguments out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
-     *     Object[])}
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     *     CallerInfo, Object, Object[])}
      * @return the positional arguments to the function
      */
     public static Object[] getPositionalArguments(Object[] arguments) {
@@ -282,14 +288,25 @@ public final class Function implements TruffleObject {
     /**
      * Gets the state out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
-     *     Object[])}
+     * @param arguments an array produced by {@link
+     *     ArgumentsHelper#buildArguments(Function,CallerInfo, Object, Object[])}
      * @return the state for the function
      */
     public static Object getState(Object[] arguments) {
       return arguments[2];
     }
 
+    /**
+     * Gets the caller info out of the array.
+     *
+     * <p>Any function using this method should declare {@link
+     * FunctionSchema.CallerFrameAccess#FULL} in its schema for the result to be guaranteed
+     * non-null.
+     *
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     *     CallerInfo, Object, Object[])}
+     * @return the caller info for the function
+     */
     public static CallerInfo getCallerInfo(Object[] arguments) {
       return (CallerInfo) arguments[1];
     }
@@ -297,8 +314,8 @@ public final class Function implements TruffleObject {
     /**
      * Gets the function's local scope out of the array.
      *
-     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function, Object,
-     *     Object[])}
+     * @param arguments an array produced by {@link ArgumentsHelper#buildArguments(Function,
+     *     CallerInfo, Object, Object[])}
      * @return the local scope for the associated function
      */
     public static MaterializedFrame getLocalScope(Object[] arguments) {

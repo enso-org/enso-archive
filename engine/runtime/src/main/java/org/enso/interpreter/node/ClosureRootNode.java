@@ -28,7 +28,8 @@ public class ClosureRootNode extends EnsoRootNode {
    * Creates a new root node.
    *
    * @param language the language identifier
-   * @param frameDescriptor a description of the stack frame
+   * @param localScope a description of the local scope
+   * @param moduleScope a description of the module scope
    * @param body the program body to be executed
    * @param section a mapping from {@code body} to the program source
    * @param name a name for the node
@@ -40,13 +41,7 @@ public class ClosureRootNode extends EnsoRootNode {
       ExpressionNode body,
       SourceSection section,
       String name) {
-    super(
-        language,
-        localScope,
-        moduleScope,
-        name,
-        section,
-        localScope.getFrameDescriptor().findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
+    super(language, localScope, moduleScope, name, section);
     this.body = body;
   }
 

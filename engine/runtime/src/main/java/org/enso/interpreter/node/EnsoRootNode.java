@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.frame.FrameDescriptor;
 import com.oracle.truffle.api.frame.FrameSlot;
+import com.oracle.truffle.api.frame.FrameSlotKind;
 import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
@@ -27,24 +28,24 @@ public abstract class EnsoRootNode extends RootNode {
    * Constructs the root node.
    *
    * @param language the language instance in which this will execute
-   * @param frameDescriptor a reference to the construct root frame
+   * @param localScope a reference to the construct local scope
+   * @param moduleScope a reference to the construct module scope
    * @param name the name of the construct
    * @param sourceSection a reference to the source code being executed
-   * @param stateFrameSlot the code to compile and execute
    */
   public EnsoRootNode(
       Language language,
       LocalScope localScope,
       ModuleScope moduleScope,
       String name,
-      SourceSection sourceSection,
-      FrameSlot stateFrameSlot) {
+      SourceSection sourceSection) {
     super(language, localScope.getFrameDescriptor());
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
     this.sourceSection = sourceSection;
-    this.stateFrameSlot = stateFrameSlot;
+    this.stateFrameSlot =
+        localScope.getFrameDescriptor().findOrAddFrameSlot("<<state>>", FrameSlotKind.Object);
   }
 
   /**
@@ -97,10 +98,20 @@ public abstract class EnsoRootNode extends RootNode {
     return sourceSection;
   }
 
+  /**
+   * Gets the local scope this node expects to work with
+   *
+   * @return the local scope for this node
+   */
   public LocalScope getLocalScope() {
     return localScope;
   }
 
+  /**
+   * Gets the module scope this node was defined with
+   *
+   * @return the module scope for this node
+   */
   public ModuleScope getModuleScope() {
     return moduleScope;
   }

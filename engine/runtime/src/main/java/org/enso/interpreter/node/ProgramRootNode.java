@@ -29,7 +29,8 @@ public class ProgramRootNode extends EnsoRootNode {
    * Constructs the root node.
    *
    * @param language the language instance in which this will execute
-   * @param frameDescriptor a reference to the program root frame
+   * @param localScope a reference to the program local scope
+   * @param moduleScope a reference to the program module scope
    * @param name the name of the program
    * @param sourceSection a reference to the source code being executed
    * @param sourceCode the code to compile and execute
@@ -46,8 +47,7 @@ public class ProgramRootNode extends EnsoRootNode {
         localScope,
         moduleScope,
         name,
-        sourceSection,
-        localScope.getFrameDescriptor().findOrAddFrameSlot("<<state>>", FrameSlotKind.Object));
+        sourceSection);
     this.sourceCode = sourceCode;
   }
 

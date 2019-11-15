@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Fallback;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
@@ -116,13 +117,14 @@ public abstract class InvokeCallableNode extends BaseNode {
    * Invokes a function directly on the arguments contained in this node.
    *
    * @param function the function to be executed
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to the function
    * @return the result of executing {@code callable} on the known arguments
    */
   @Specialization
-  public Stateful invokeFunction(
-      Function function, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+  Stateful invokeFunction(
+      Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
     return this.argumentSorter.execute(function, callerFrame, state, arguments);
   }
 
@@ -130,13 +132,14 @@ public abstract class InvokeCallableNode extends BaseNode {
    * Invokes a constructor directly on the arguments contained in this node.
    *
    * @param constructor the constructor to be executed
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to the constructor
    * @return the result of executing {@code constructor} on the known arguments
    */
   @Specialization
-  public Stateful invokeConstructor(
-      AtomConstructor constructor, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+  Stateful invokeConstructor(
+      AtomConstructor constructor, VirtualFrame callerFrame, Object state, Object[] arguments) {
     return invokeFunction(constructor.getConstructorFunction(), callerFrame, state, arguments);
   }
 
@@ -145,13 +148,14 @@ public abstract class InvokeCallableNode extends BaseNode {
    * argument.
    *
    * @param symbol the name of the requested symbol
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to the dynamic symbol
    * @return the result of resolving and executing the symbol for the {@code this} argument
    */
   @Specialization
   public Stateful invokeDynamicSymbol(
-      UnresolvedSymbol symbol, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+      UnresolvedSymbol symbol, VirtualFrame callerFrame, Object state, Object[] arguments) {
     if (canApplyThis) {
       Object selfArgument = arguments[thisArgumentPosition];
       if (argumentsExecutionMode.shouldExecute()) {
@@ -177,13 +181,14 @@ public abstract class InvokeCallableNode extends BaseNode {
    * NotInvokableException} to signal this.
    *
    * @param callable the callable to be executed
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to the callable
    * @return error
    */
   @Fallback
   public Stateful invokeGeneric(
-      Object callable, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+      Object callable, VirtualFrame callerFrame, Object state, Object[] arguments) {
     throw new NotInvokableException(callable, this);
   }
 
@@ -191,12 +196,13 @@ public abstract class InvokeCallableNode extends BaseNode {
    * Executes the provided {@code callable} on the supplied {@code arguments}.
    *
    * @param callable the callable to evaluate
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to evaluate {@code callable} on
    * @return the result of executing {@code callable} on the supplied {@code arguments}
    */
   public abstract Stateful execute(
-      Object callable, MaterializedFrame callerFrame, Object state, Object[] arguments);
+      Object callable, VirtualFrame callerFrame, Object state, Object[] arguments);
 
   /**
    * Sets whether or not the current node is tail-recursive.

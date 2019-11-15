@@ -14,6 +14,8 @@ public abstract class CallOptimiserNode extends Node {
    * Calls the provided {@code callable} using the provided {@code arguments}.
    *
    * @param callable the callable to execute
+   * @param callerInfo the caller info to pass to the function
+   * @param state the state to pass to the function
    * @param arguments the arguments to {@code callable}
    * @return the result of executing {@code callable} using {@code arguments}
    */

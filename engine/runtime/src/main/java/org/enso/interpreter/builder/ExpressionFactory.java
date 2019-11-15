@@ -114,10 +114,17 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @param l the value to represent
    * @return a runtime node representing that value
    */
+  @Override
   public ExpressionNode visitLong(long l) {
     return new IntegerLiteralNode(l);
   }
 
+  /**
+   * Creates a runtime String literal value from an AST node.
+   *
+   * @param string the string value of this literal
+   * @return a runtime node representing this literal
+   */
   @Override
   public ExpressionNode visitStringLiteral(String string) {
     return new StringLiteralNode(string);

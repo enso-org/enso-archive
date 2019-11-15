@@ -20,6 +20,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
    * Calls the provided {@code function} using the provided {@code arguments}.
    *
    * @param function the function to execute
+   * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
    * @return the result of executing {@code function} using {@code arguments}
@@ -34,7 +35,7 @@ public class SimpleCallOptimiserNode extends CallOptimiserNode {
       CallOptimiserNode replacement = new LoopingCallOptimiserNode();
       this.replace(replacement);
       return replacement.executeDispatch(
-          e.getFunction(), callerInfo, e.getState(), e.getArguments());
+          e.getFunction(), e.getCallerInfo(), e.getState(), e.getArguments());
     }
   }
 }

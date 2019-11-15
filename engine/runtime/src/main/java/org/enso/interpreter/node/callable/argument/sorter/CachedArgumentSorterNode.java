@@ -1,11 +1,10 @@
 package org.enso.interpreter.node.callable.argument.sorter;
 
 import com.oracle.truffle.api.CompilerDirectives;
-import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.EnsoRootNode;
 import org.enso.interpreter.node.callable.CaptureCallerFrameNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -13,7 +12,6 @@ import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
 import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMapping;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo.ArgumentMappingBuilder;
@@ -22,8 +20,6 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
-
-import java.util.Arrays;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -74,7 +70,7 @@ public class CachedArgumentSorterNode extends BaseNode {
     argumentShouldExecute = this.mapping.getArgumentShouldExecute();
     initializeCallNodes();
 
-    if (originalFunction.getSchema().getCallerFrameAccess().isAllowed()) {
+    if (originalFunction.getSchema().getCallerFrameAccess().shouldFrameBePassed()) {
       this.captureCallerFrameNode = CaptureCallerFrameNode.build();
     }
   }
@@ -167,12 +163,13 @@ public class CachedArgumentSorterNode extends BaseNode {
    * Reorders the provided arguments into the necessary order for the cached callable.
    *
    * @param function the function this node is reordering arguments for
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to reorder
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
   public Stateful execute(
-      Function function, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+      Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
     CallerInfo callerInfo = null;
     if (captureCallerFrameNode != null) {
       callerInfo = captureCallerFrameNode.execute(callerFrame);
@@ -254,7 +251,7 @@ public class CachedArgumentSorterNode extends BaseNode {
     if (getOriginalFunction().getCallStrategy().shouldCallDirect(isTail())) {
       return directCall.executeCall(function, callerInfo, state, arguments);
     } else if (isTail()) {
-      throw new TailCallException(function, state, arguments);
+      throw new TailCallException(function, callerInfo, state, arguments);
     } else {
       return loopingCall.executeDispatch(function, callerInfo, state, arguments);
     }

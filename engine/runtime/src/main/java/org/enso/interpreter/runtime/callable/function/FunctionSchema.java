@@ -39,12 +39,21 @@ public class FunctionSchema {
     }
   }
 
+  /** Denotes the caller frame access functions with this schema require to run properly. */
   public enum CallerFrameAccess {
-    READ_ONLY,
+    /** Requires full access to the (materialized) caller frame. */
+    FULL,
+    /** Does not use the caller frame at all. */
     NONE;
 
-    public boolean isAllowed() {
-      return this == READ_ONLY;
+    /**
+     * Is there any level of caller frame access required by the function?
+     *
+     * @return {@code true} if the function must be passed the caller frame, {@code false}
+     *     otherwise.
+     */
+    public boolean shouldFrameBePassed() {
+      return this != NONE;
     }
   }
 
@@ -60,6 +69,8 @@ public class FunctionSchema {
    * Creates an {@link FunctionSchema} instance.
    *
    * @param callStrategy the call strategy to use for functions having this schema
+   * @param callerFrameAccess the declaration of whether access to caller frame is required for this
+   *     function
    * @param argumentInfos Definition site arguments information
    * @param hasPreApplied A flags collection such that {@code hasPreApplied[i]} is true iff a
    *     function has a partially applied argument at position {@code i}
@@ -93,6 +104,8 @@ public class FunctionSchema {
    * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
    * arguments.
    *
+   * @param callStrategy the call strategy to use for this function
+   * @param callerFrameAccess the declaration of need to access the caller frame from the function
    * @param argumentInfos Definition site arguments information
    */
   public FunctionSchema(
@@ -107,6 +120,15 @@ public class FunctionSchema {
         new CallArgumentInfo[0]);
   }
 
+  /**
+   * Creates an {@link FunctionSchema} instance assuming the function has no partially applied
+   * arguments.
+   *
+   * <p>Caller frame access is assumed to be {@link CallerFrameAccess#NONE}.
+   *
+   * @param callStrategy the call strategy to use for this function
+   * @param argumentInfos Definition site arguments information
+   */
   public FunctionSchema(CallStrategy callStrategy, ArgumentDefinition... argumentInfos) {
     this(callStrategy, CallerFrameAccess.NONE, argumentInfos);
   }
@@ -207,6 +229,11 @@ public class FunctionSchema {
     return callStrategy;
   }
 
+  /**
+   * Returns the caller frame access declaration for this function.
+   *
+   * @return the caller frame access declaration
+   */
   public CallerFrameAccess getCallerFrameAccess() {
     return callerFrameAccess;
   }

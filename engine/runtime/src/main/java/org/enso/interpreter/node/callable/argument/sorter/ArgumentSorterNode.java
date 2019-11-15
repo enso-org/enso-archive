@@ -4,6 +4,7 @@ import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
@@ -52,11 +53,11 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * matches with the one stored in the cached argument sorter object.
    *
    * @param function the function to sort arguments for
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code callable}
    * @param mappingNode a cached node that tracks information about the mapping to enable a fast
    *     path
-   * @param optimiser a cached call optimizer node, capable of performing the actual function call
    * @return the result of applying the function with remapped arguments
    */
   @Specialization(
@@ -64,7 +65,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   public Stateful invokeCached(
       Function function,
-      MaterializedFrame callerFrame,
+      VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
       @Cached(
@@ -78,13 +79,14 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * perform any caching and is thus a slow-path operation.
    *
    * @param function the function to execute.
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to reorder and supply to the {@code function}.
    * @return the result of calling {@code function} with the supplied {@code arguments}.
    */
   @Specialization(replaces = "invokeCached")
   public Stateful invokeUncached(
-      Function function, MaterializedFrame callerFrame, Object state, Object[] arguments) {
+      Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
     return invokeCached(
         function,
         callerFrame,
@@ -102,12 +104,13 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * Executes the {@link ArgumentSorterNode} to reorder the arguments.
    *
    * @param callable the function to sort arguments for
+   * @param callerFrame the caller frame to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments being passed to {@code function}
    * @return the result of executing the {@code function} with reordered {@code arguments}
    */
   public abstract Stateful execute(
-      Function callable, MaterializedFrame callerFrame, Object state, Object[] arguments);
+      Function callable, VirtualFrame callerFrame, Object state, Object[] arguments);
 
   CallArgumentInfo[] getSchema() {
     return schema;
