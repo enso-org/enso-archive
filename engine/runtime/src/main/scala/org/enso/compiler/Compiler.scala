@@ -5,13 +5,20 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.generate.AstToIr
 import org.enso.compiler.ir.IR
 import org.enso.flexer.Reader
-import org.enso.interpreter.{Constants, EnsoParser, Language}
-import org.enso.interpreter.builder.{ExpressionFactory, ModuleScopeExpressionFactory}
+import org.enso.interpreter.AstExpression
+import org.enso.interpreter.Constants
+import org.enso.interpreter.EnsoParser
+import org.enso.interpreter.Language
+import org.enso.interpreter.builder.ExpressionFactory
+import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.runtime.{Context, Module}
+import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
-import org.enso.syntax.text.{AST, Parser}
+import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.interpreter.runtime.scope.ModuleScope
+import org.enso.syntax.text.AST
+import org.enso.syntax.text.Parser
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -100,7 +107,7 @@ class Compiler(
     localScope: LocalScope,
     moduleScope: ModuleScope
   ): ExpressionNode = {
-    val parsed = new EnsoParser().parseEnsoInline(source)
+    val parsed = parseInline(source)
     new ExpressionFactory(language, localScope, "<inline_source>", moduleScope)
       .run(parsed)
   }
@@ -134,6 +141,17 @@ class Compiler(
     val resolvedAST: AST.Module = parser.dropMacroMeta(unresolvedAST)
 
     resolvedAST
+  }
+
+  /**
+    * Parses the provided language source expression in inline mode.
+    *
+    * @param source the code to parse
+    * @return an AST representation of `source`
+    */
+  def parseInline(source: String): AstExpression = {
+    val parsed = new EnsoParser().parseEnsoInline(source)
+    parsed
   }
 
   /**

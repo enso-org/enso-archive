@@ -38,8 +38,7 @@ public class CachedArgumentSorterNode extends BaseNode {
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
-  private @Child
-  CaptureCallerInfoNode captureCallerInfoNode;
+  private @Child CaptureCallerInfoNode captureCallerInfoNode;
 
   /**
    * Creates a node that generates and then caches the argument mapping.

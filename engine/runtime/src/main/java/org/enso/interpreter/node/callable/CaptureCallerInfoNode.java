@@ -9,7 +9,12 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
-/** Captures the current caller info to pass to functions. */
+/**
+ * Captures the current caller info to pass to functions requiring it.
+ *
+ * <p>The information captured includes current execution frame, as well as static context,
+ * including the local and module scope metadata.
+ */
 @NodeInfo(
     description = "Captures the caller info for use in functions called from this node's scope")
 public class CaptureCallerInfoNode extends Node {
