@@ -30,7 +30,8 @@ public class FallbackNode extends CaseNode {
     Function function = functionNode.executeFunction(frame);
     Object state = FrameUtil.getObjectSafe(frame, getStateFrameSlot());
     throw new BranchSelectedException(
-        executeCallNode.executeCall(function, null, state, new Object[0]));
+        executeCallNode.executeCall(
+            function, null, state, new Object[0])); // Note [Caller Info For Case Branches]
   }
 
   /**

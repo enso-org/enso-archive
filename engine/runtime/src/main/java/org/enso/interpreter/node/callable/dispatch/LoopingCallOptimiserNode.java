@@ -82,6 +82,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
      *
      * @param frame the stack frame for execution
      * @param function the function to execute in {@code frame}
+     * @param callerInfo the caller info to pass to the function
      * @param state the state to pass to the function
      * @param arguments the arguments to execute {@code function} with
      */
@@ -107,7 +108,7 @@ public class LoopingCallOptimiserNode extends CallOptimiserNode {
       return (Stateful) FrameUtil.getObjectSafe(frame, resultSlot);
     }
 
-    public CallerInfo getCallerInfo(VirtualFrame frame) {
+    private CallerInfo getCallerInfo(VirtualFrame frame) {
       CallerInfo result = (CallerInfo) FrameUtil.getObjectSafe(frame, callerInfoSlot);
       frame.setObject(callerInfoSlot, null);
       return result;

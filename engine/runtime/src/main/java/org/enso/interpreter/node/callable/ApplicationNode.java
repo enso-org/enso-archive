@@ -96,10 +96,7 @@ public class ApplicationNode extends ExpressionNode {
 
     Stateful result =
         this.invokeCallableNode.execute(
-            this.callable.executeGeneric(frame),
-            frame.materialize(),
-            state,
-            evaluateArguments(frame));
+            this.callable.executeGeneric(frame), frame, state, evaluateArguments(frame));
     frame.setObject(getStateFrameSlot(), result.getState());
     return result.getValue();
   }

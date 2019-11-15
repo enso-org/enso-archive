@@ -5,7 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.CaptureCallerFrameNode;
+import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
@@ -38,7 +38,8 @@ public class CachedArgumentSorterNode extends BaseNode {
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
-  private @Child CaptureCallerFrameNode captureCallerFrameNode;
+  private @Child
+  CaptureCallerInfoNode captureCallerInfoNode;
 
   /**
    * Creates a node that generates and then caches the argument mapping.
@@ -71,7 +72,7 @@ public class CachedArgumentSorterNode extends BaseNode {
     initializeCallNodes();
 
     if (originalFunction.getSchema().getCallerFrameAccess().shouldFrameBePassed()) {
-      this.captureCallerFrameNode = CaptureCallerFrameNode.build();
+      this.captureCallerInfoNode = CaptureCallerInfoNode.build();
     }
   }
 
@@ -171,8 +172,8 @@ public class CachedArgumentSorterNode extends BaseNode {
   public Stateful execute(
       Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
     CallerInfo callerInfo = null;
-    if (captureCallerFrameNode != null) {
-      callerInfo = captureCallerFrameNode.execute(callerFrame);
+    if (captureCallerInfoNode != null) {
+      callerInfo = captureCallerInfoNode.execute(callerFrame);
     }
     if (argumentsExecutionMode.shouldExecute()) {
       state = executeArguments(arguments, state);

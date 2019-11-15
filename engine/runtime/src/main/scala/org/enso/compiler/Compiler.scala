@@ -93,6 +93,16 @@ class Compiler(
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build)
   }
 
+  /**
+    * Processes the language source, interpreting it as an expression.
+    * Processes the source in the context of given local and module scopes.
+    *
+    * @param source string representing the expression to process
+    * @param language current language instance
+    * @param localScope local scope to process the source in
+    * @param moduleScope module scope to process the source in
+    * @return an expression node representing the parsed and analyzed source
+    */
   def runInline(
     source: String,
     language: Language,
@@ -100,7 +110,7 @@ class Compiler(
     moduleScope: ModuleScope
   ): ExpressionNode = {
     val parsed = new EnsoParser().parseEnsoInline(source)
-    new ExpressionFactory(language, localScope, "<inline>", moduleScope)
+    new ExpressionFactory(language, localScope, "<inline_source>", moduleScope)
       .run(parsed)
   }
 
