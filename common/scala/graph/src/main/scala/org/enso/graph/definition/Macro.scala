@@ -5,8 +5,7 @@ import scala.reflect.macros.whitebox
 
 object Macro {
 
-  /**
-    * This macro generates a field definition for the graph, and can generate
+  /** This macro generates a field definition for the graph, and can generate
     * these definitions for both single and variant fields for a
     * [[org.enso.graph.Graph.Component]].
     *
@@ -118,7 +117,7 @@ object Macro {
     *       ): Option[(Edge[G], Edge[G])] =
     *         any.unapply(arg).map(t => (t.fn, t.arg))
     *
-    *       implicit class Instance[G <: Graph, C <: Component](
+    *       implicit class AppInstance[G <: Graph, C <: Component](
     *         node: Component.Refined[Shape, App, Component.Ref[G, C]]
     *       ) {
     *
@@ -200,8 +199,7 @@ object Macro {
         EmptyTree
       )
 
-      /**
-        * Extracts the template from a type definition.
+      /** Extracts the template from a type definition.
         *
         * The template contains the body of the type definition, as well as the
         * definition of its constructor.
@@ -219,8 +217,7 @@ object Macro {
         None
       }
 
-      /**
-        * Extracts the constructor arguments from the class definition.
+      /** Extracts the constructor arguments from the class definition.
         *
         * @param classDef the class definition
         * @return a list containing the constructor arguments from `classDef`
@@ -245,8 +242,7 @@ object Macro {
         }
       }
 
-      /**
-        * Appends a statement to a block with no return value.
+      /** Appends a statement to a block with no return value.
         *
         * @param block the block to append to
         * @param statement the statement to append to `block`
@@ -257,8 +253,7 @@ object Macro {
         EmptyTree
       )
 
-      /**
-        * Creates a constant type-level identifier for Shapeless'
+      /** Creates a constant type-level identifier for Shapeless'
         * [[shapeless.Nat]] type.
         *
         * @param num the natural number you want to represent as a
@@ -268,6 +263,13 @@ object Macro {
       def mkNatConstantTypeName(num: Int): TypeName =
         TypeName("_" + num.toString)
 
+      /** Generates a getter for an element of a non-variant field.
+        *
+        * @param paramDef the definition of the subfield
+        * @param enclosingTypeName the name of the field type
+        * @param index the index of this subfield in the field
+        * @return a definition for this subfield getter
+        */
       def genSimpleSubfieldGetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
@@ -288,6 +290,13 @@ object Macro {
          """
       }
 
+      /** Generates a setter for an element of a non-variant field.
+        *
+        * @param paramDef the definition of the subfield
+        * @param enclosingTypeName the name of the field type
+        * @param index the index of this subfield in the field
+        * @return a definition for this subfield setter
+        */
       def genSimpleSubfieldSetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
@@ -308,6 +317,14 @@ object Macro {
          """
       }
 
+      /** Generates setters and getters for all the subfields for a given
+        * non-variant field.
+        *
+        * @param subfields a list containing the subfield definitions
+        * @param enclosingName the name of the field type
+        * @return the definitions of getters and setters for all the subfields
+        *         in `subfields`
+        */
       def genSimpleSubfieldAccessors(
         subfields: List[ValDef],
         enclosingName: TypeName
@@ -330,6 +347,13 @@ object Macro {
         accessorDefs
       }
 
+      /** Generates an instance that is used for assisting inference with
+        * refined subfields.
+        *
+        * @param enclosingName the name of the field
+        * @param implicitClassName the name of the instance
+        * @return an instance definition that assists with inference
+        */
       def genTransInstance(
         enclosingName: TermName,
         implicitClassName: TypeName
@@ -348,6 +372,12 @@ object Macro {
          """
       }
 
+      /** Appends trees to a template definition.
+        *
+        * @param template the template to append to
+        * @param trees the trees to append
+        * @return `template` with `trees` appended to the end of its body
+        */
       def appendToTemplate(template: Template, trees: List[Tree]): Template = {
         Template(
           template.parents,
@@ -356,6 +386,12 @@ object Macro {
         )
       }
 
+      /** Appends trees to the body of a class definition.
+        *
+        * @param classDef the definition to append to
+        * @param trees the trees to append
+        * @return `classDef` with `trees` appended to the end of its body
+        */
       def appendToClass(classDef: ClassDef, trees: List[Tree]): ClassDef = {
         ClassDef(
           classDef.mods,
@@ -365,6 +401,12 @@ object Macro {
         )
       }
 
+      /** Appends trees to the body of a module (object) definition.
+        *
+        * @param module the definition to append to
+        * @param trees the trees to append
+        * @return `module` with `trees` appended to the end of its body
+        */
       def appendToModule(module: ModuleDef, trees: List[Tree]): ModuleDef = {
         ModuleDef(
           Modifiers(),
@@ -373,11 +415,15 @@ object Macro {
         )
       }
 
+      /** Generates the name for the implicit class containing the accessors.
+        *
+        * @param typeName the name of the field
+        * @return the name of the field's implicit accessor class
+        */
       def mkImplicitClassName(typeName: TypeName): TypeName =
         TypeName(typeName.toString + "Instance")
 
-      /**
-        * Generates a set of definitions that correspond to defining a
+      /** Generates a set of definitions that correspond to defining a
         * non-variant field for a graph component.
         *
         * @param classDef the class definition to expand
@@ -429,6 +475,13 @@ object Macro {
         c.Expr(result)
       }
 
+      /** Generates a getter for an element of a variant
+        *
+        * @param paramDef the definition of the subfield
+        * @param enclosingTypeName the name of the field type
+        * @param index the index of this subfield in the field
+        * @return a definition for this subfield getter
+        */
       def genVariantSubfieldGetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
@@ -452,6 +505,13 @@ object Macro {
          """
       }
 
+      /** Generates a setter for an element of a variant field.
+        *
+        * @param paramDef the definition of the subfield
+        * @param enclosingTypeName the name of the field type
+        * @param index the index of this subfield in the field
+        * @return a definition for this subfield setter
+        */
       def genVariantSubfieldSetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
@@ -474,6 +534,14 @@ object Macro {
          """
       }
 
+      /** Generates setters and getters for all the subfields for a given
+        * variant field.
+        *
+        * @param subfields a list containing the subfield definitions
+        * @param enclosingName the name of the field type
+        * @return the definitions of getters and setters for all the subfields
+        *         in `subfields`
+        */
       def genVariantSubfieldAccessors(
         subfields: List[ValDef],
         enclosingName: TypeName
@@ -496,11 +564,24 @@ object Macro {
         accessorDefs
       }
 
+      /** Extracts the variant case definitions from the module body.
+        *
+        * @param template the template of the variant defining module
+        * @return a list of the variant cases
+        */
       def extractVariantDefs(template: Template): List[ClassDef] = {
         template.body.collect { case classDef: ClassDef => classDef }
       }
 
-      def generateVariantDef(
+      /** Generates the definition body for a variant case.
+        *
+        * @param classDef the definition of the variant case
+        * @param parentName the name of the parent variant
+        * @param index the case's index in the variant
+        * @return the expanded defintion for the variant case described by
+        *         `classDef`
+        */
+      def generateVariantCaseDef(
         classDef: ClassDef,
         parentName: TypeName,
         index: Int
@@ -566,7 +647,13 @@ object Macro {
         )
       }
 
-      def processVariantFields(moduleDef: ModuleDef): c.Expr[Any] = {
+      /** Generates the whole set of definitions necessary for a variant
+        * component field from the provided description.
+        *
+        * @param moduleDef the description of the variant field
+        * @return the expanded defintion of the variant described by `moduleDef`
+        */
+      def processVariantField(moduleDef: ModuleDef): c.Expr[Any] = {
         val variantTermName: TermName = moduleDef.name
         val variantTypeName: TypeName = variantTermName.toTypeName
 
@@ -586,7 +673,7 @@ object Macro {
 
         val variantResults =
           for ((cls, ix) <- variantDefs.view.zipWithIndex)
-            yield generateVariantDef(cls, variantTypeName, ix)
+            yield generateVariantCaseDef(cls, variantTypeName, ix)
 
         // We want to flatten the block structure for correct codegen
         val variantDefinitions =
@@ -645,7 +732,7 @@ object Macro {
           }
         }
         case moduleDef: ModuleDef => {
-          processVariantFields(moduleDef)
+          processVariantField(moduleDef)
         }
         case _ => {
           c.error(
@@ -783,6 +870,11 @@ object Macro {
         }
       }
 
+      /** Generates a graph component from the provided description.
+        *
+        * @param classDef a description of the variant component
+        * @return the expanded form of the variant described by `classDef`
+        */
       def genComponentFromClassDef(classDef: ClassDef): c.Expr[Any] = {
         if (!classDef.mods.hasFlag(Flag.CASE)) {
           c.error(

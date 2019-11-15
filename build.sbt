@@ -195,7 +195,7 @@ lazy val graph = (project in file("common/scala/graph/"))
   .configs(Test)
   .settings(
     version := "0.1",
-    scalacOptions -= "-deprecation", // FIXME [WD]
+    scalacOptions -= "-deprecation", // FIXME
     resolvers ++= Seq(
       Resolver.sonatypeRepo("releases"),
       Resolver.sonatypeRepo("snapshots")

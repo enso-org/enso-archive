@@ -15,6 +15,7 @@ import shapeless.nat._
  *  - Storage should keep a free-list and re-use space in the underlying buffers
  *    as much as possible.
  *  - Basic equality testing (that should be overridden as needed).
+ *  - An ability to define fields that store complex data such as `String`.
  */
 
 // ============================================================================
@@ -25,6 +26,10 @@ import shapeless.nat._
 // === HListSum ===
 // ================
 
+/** Sums a [[HList]] that contains only [[Nat]].
+  *
+  * @tparam L the [[HList]] to sum
+  */
 trait HListSum[L <: HList] {
   type Out <: Nat
 }
@@ -55,6 +60,11 @@ object HListSum {
 // === HListOfNatToVec ===
 // =======================
 
+/** Converts an [[HList]] of [[Nat]] to a vactor containing those same numbers
+  * as integers.
+  *
+  * @tparam L the [[HList]] to convert
+  */
 trait HListOfNatToVec[L <: HList] {
   val out: Vector[Int]
 }
@@ -75,10 +85,26 @@ object HListOfNatToVec {
 // === HListTakeUntil ===
 // ======================
 
+/** Takes members from an [[HList]] until it reaches a specified member [[T]].
+  *
+  * The sentinel member [[T]] is not included in the result list. For example,
+  * the following code will result in the list `A :: HNil`:
+  *
+  * {{{
+  *   type MyList   = A :: B :: C :: HNil
+  *   type Sentinel = B
+  *
+  *   type HListTakeUntil[Sentinel, MyList]
+  * }}}
+  *
+  * If the sentinel [[T]] is not found in [[List]], the entire list is returned.
+  *
+  * @tparam T the sentinel member
+  * @tparam List the list to take members from
+  */
 trait HListTakeUntil[T, List <: HList] {
   type Out <: HList
 }
-
 object HListTakeUntil extends HListTakeUntilDefaults {
   type Aux[T, List <: HList, X] = HListTakeUntil[T, List] { type Out = X }
 
@@ -92,14 +118,6 @@ object HListTakeUntil extends HListTakeUntilDefaults {
   implicit def onConsFound[Head, Tail <: HList]
     : HListTakeUntil.Aux[Head, Head :: Tail, HNil] =
     new HListTakeUntil[Head, Head :: Tail] { type Out = HNil }
-}
-
-trait HListTakeUntilDefaults {
-  implicit def onConsNotFound[T, Head, Tail <: HList, Tail2 <: HList](
-    implicit
-    ev1: HListTakeUntil.Aux[T, Tail, Tail2]
-  ): HListTakeUntil.Aux[T, Head :: Tail, Head :: Tail2] =
-    new HListTakeUntil[T, Head :: Tail] { type Out = Head :: Tail2 }
 
   object test {
     case class A()
@@ -112,6 +130,14 @@ trait HListTakeUntilDefaults {
   }
 }
 
+trait HListTakeUntilDefaults {
+  implicit def onConsNotFound[T, Head, Tail <: HList, Tail2 <: HList](
+    implicit
+    ev1: HListTakeUntil.Aux[T, Tail, Tail2]
+  ): HListTakeUntil.Aux[T, Head :: Tail, Head :: Tail2] =
+    new HListTakeUntil[T, Head :: Tail] { type Out = Head :: Tail2 }
+}
+
 // ============================================================================
 // === Graph-specific utilities ===============================================
 // ============================================================================
@@ -120,8 +146,13 @@ trait HListTakeUntilDefaults {
 // === Sized ===
 // =============
 
-/** Abstraction for sized objects. Each sized object is compile-time aware of
-  * the number of ints it occupies. */
+/** An abstraction for sized objects.
+  *
+  * Every sized object is aware of the size it occupies (specified as a number
+  * of [[Int]]) at compile time.
+  *
+  * @tparam T the [[Sized]] type
+  */
 trait Sized[T] {
   type Out <: Nat
 }
@@ -141,7 +172,7 @@ object Sized {
     new Sized[List] { type Out = TotalSize }
 }
 
-/** Utility for accessing size as Int */
+/** A utility for accessing a the Size of a [[Sized]] object as an [[Int]]. */
 trait KnownSize[T] extends Sized[T] {
   val asInt: Int
 }
@@ -157,8 +188,7 @@ object KnownSize {
 // === MapSized ===
 // ================
 
-/**
-  * Extracts the sizes of all types in a list of types. All of these types must
+/** Extracts the sizes of all types in a list of types. All of these types must
   * be `Sized`.
   *
   * @tparam L the list of elements to extract sizes from
@@ -197,8 +227,10 @@ object MapSized {
 // === SizeUntil ===
 // =================
 
-/**
-  * Computes the size of the types in a HList up to but not including `Elem`.
+/** Computes the size of the types in a HList up to some sentinel [[Elem]].
+  *
+  * When summing the sizes in the list, the sentinel element [[Elem]] is not
+  * included in the sum.
   *
   * @tparam Elem the type of the element to stop computing at
   * @tparam List the list of types to compute over
@@ -252,8 +284,9 @@ object SizeUntil {
 
 /** A generic graph implementation.
   *
-  * It should not be used directly by your programs, and instead should be used
-  * to implement custom graph instances by extending the [[Graph]] trait.
+  * The type [[Graph]] should not be used directly by programs that use this
+  * library. Instead, it should be used to implement custom graph instances by
+  * extending the [[Graph]] trait.
   */
 trait Graph
 object Graph {
@@ -268,26 +301,42 @@ object Graph {
   // === Component ===
   // =================
 
-  /** A graph is a set of tightly connected components, such as nodes, edges,
-    * or groups. Users of this library are free to define custom components
-    * by extending the component trait. See the examples to learn more. */
+  /** A graph component is a type of thing that can be stored in the graph.
+    *
+    * Components can be arbitrary, such as nodes, edges, groups, and so on. They
+    * are defined entirely by the users, and this is done by extending the
+    * [[Component]] trait. Please see the tests for examples of how this can be
+    * done.
+    */
   trait Component
   object Component {
 
     // === Ref ===
 
-    /** A generic reference to a graph component. For example, the `Node` type
-      * could be defined as `type Node = Ref[MyGraph, Nodes]`, where `Nodes` is
-      * the appropriate component in the graph. */
+    /** A generic reference to a graph component.
+      *
+      * For example, the `Node` type could be defined as follows, where `Nodes`
+      * is the appropriate component in the graph.
+      *
+      * {{{
+      *   type Node = Ref[MyGraph, Nodes]
+      * }}}
+      */
     @newtype
     final case class Ref[G <: Graph, C <: Component](ix: Int)
 
     // === Refined ===
 
-    /** Type refinement for component references. It can be used to add
-      * additional information to components. For example, a node with an
-      * information that its shape is `App`, can be encoded with the following
-      * type: `Refined[Shape,App,Node]`*/
+    /** Type refinement for component references.
+      *
+      * Type refinement is used to add additional information to a [[Component]]
+      * to encode properties into the graph structure. This information can be
+      * type information, but can also be used to tag graph components with
+      * arbitrary properties.
+      *
+      * For example, a node with information that its shape is `App` can be
+      * encoded having the following type `Refined[Shape, App, Node]`.
+      */
     @newtype
     final case class Refined[C <: Component.Field, Spec, T](wrapped: T)
     object Refined {
@@ -301,6 +350,15 @@ object Graph {
     /** Defines the set of components in a graph by assigning a type to the
       * `Out` parameter when implementing the trait.
       *
+      * This is used to encode the graph structure at the type level. An example
+      * is as follows:
+      *
+      * {{{
+      *   implicit def components = new Component.List[MyGraph] {
+      *     type Out = Nodes :: Edges :: HNil
+      *   }
+      * }}}
+      *
       * @tparam G the graph for which the components are defined.
       */
     trait List[G <: Graph] {
@@ -312,16 +370,26 @@ object Graph {
 
     // === Field ===
 
-    /** A component can have one of more [[Field]]s.
+    /** A field is a portion of a [[Component]].
       *
-      * An example would be a `Node` that consists of fields such as `parent`,
-      * the link to its parent nodes, and `generationMeta`, some information
-      * about how that node was created.
+      * They are used to attribute data to components, and store data within a
+      * component.
+      *
+      * An example would be a component `Node`, that consists of fields such as
+      * `ParentLink` and `Shape`.
       */
     trait Field
     object Field {
 
       /** Defines the set of fields for a given kind of component.
+        *
+        * An example is as follows:
+        *
+        * {{{
+        *   implicit def nodeFields = new Component.Field.List[MyGraph, Nodes] {
+        *     type Out = Node.Shape :: Node.ParentLink :: HNil
+        *   }
+        * }}}
         *
         * @tparam G the graph to which the component type [[C]] belongs
         * @tparam C the component type to which the fields in the list belong
@@ -353,10 +421,11 @@ object Graph {
 
     // === VariantMatcher ===
 
-    /** An utility for generating matches for components containing sum types.
+    /** A utility for generating unapply and match methods for a [[Component]]
+      * that contains a sum type.
       *
-      * This is very important for cases where we want to be able to express sum
-      * types on graph components.
+      * It is used internally by the [[org.enso.graph.definition.Macro.field]]
+      * macro to autogenerate matchers for variant fields.
       */
     case class VariantMatcher[T <: Component.Field, V](ix: Int) {
       def unapply[G <: Graph, C <: Component](
@@ -378,7 +447,9 @@ object Graph {
   // =================
 
   /** [[GraphData]] is the underlying storage representation used by the
-    * [[Graph]]. It contains the raw data for all components.
+    * [[Graph]].
+    *
+    * It contains the raw data for all the graph components and their fields.
     *
     * @param info information about the graph's underlying structure
     * @tparam G the graph type that the data is for
@@ -433,8 +504,7 @@ object Graph {
 
   // === GraphInfo ===
 
-  /**
-    * Information about the number and sizes of components stored in the graph.
+  /** Information about the number and sizes of components stored in the graph.
     *
     * @tparam G the graph for which this metadata exists
     */
@@ -462,8 +532,7 @@ object Graph {
 
   // === HasComponent ===
 
-  /**
-    * Encodes that a given graph [[G]] has a component with given type [[C]].
+  /** Encodes that a given graph [[G]] has a component with given type [[C]].
     *
     * @tparam G the graph type
     * @tparam C the component type
@@ -496,8 +565,7 @@ object Graph {
 
   // === HasComponentField ===
 
-  /**
-    * Encodes that a graph [[G]] has field [[F]] in component [[C]].
+  /** Encodes that a graph [[G]] has field [[F]] in component [[C]].
     *
     * @tparam G the graph type
     * @tparam C the component type in [[G]]
@@ -528,8 +596,7 @@ object Graph {
 
   // === ComponentListToSizes ===
 
-  /**
-    * Obtains the sizes of all the components from the graph's list of
+  /** Obtains the sizes of all the components from the graph's list of
     * components.
     *
     * @tparam G the graph
@@ -551,5 +618,4 @@ object Graph {
         val sizes = info.componentSize +: tail.sizes
       }
   }
-
 }
