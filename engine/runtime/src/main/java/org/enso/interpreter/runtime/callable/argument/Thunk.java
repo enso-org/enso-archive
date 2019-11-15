@@ -3,7 +3,6 @@ package org.enso.interpreter.runtime.callable.argument;
 import com.oracle.truffle.api.CallTarget;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import org.enso.interpreter.runtime.callable.CallerInfo;
 
 /** Runtime representation of a suspended function argument. */
 public class Thunk {
