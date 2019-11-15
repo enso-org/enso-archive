@@ -169,10 +169,6 @@ object AST {
     }
   }
 
-  /** Re-export of circe's encoding implicits necessary for Shape -> AST
-    * implicit conversions. */
-  object implicits extends AutoDerivation
-
   ////////////////////////////////////
   //// Apply / Unapply Generators ////
   ////////////////////////////////////
