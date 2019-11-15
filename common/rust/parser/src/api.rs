@@ -1,3 +1,5 @@
+use failure::Fail;
+
 // ============
 // == Parser ==
 // ============
@@ -21,28 +23,18 @@ pub type AST = String;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub enum Error {
     /// Error due to inner workings of the parser.
+    #[fail(display = "Internal parser error: {:?}", _0)]
     ParsingError(String),
     /// Error related to wrapping = communication with the parser service.
-    InteropError(Box<dyn std::error::Error>),
+    #[fail(display = "Interop error: {}", _0)]
+    InteropError(#[cause] Box<dyn failure::Fail>),
 }
 
 /// Wraps an arbitrary `std::error::Error` as an `InteropError.`
 pub fn interop_error<T>(error: T) -> Error
-    where T: std::error::Error + 'static {
+    where T: Fail {
     Error::InteropError(Box::new(error))
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use Error::*;
-        match self {
-            ParsingError(msg) =>
-                write!(f, "Internal parser error: {:?}", msg),
-            InteropError(error) =>
-                write!(f, "Interop error: {}", error.to_string())
-        }
-    }
 }
