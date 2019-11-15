@@ -21,7 +21,8 @@ impl std::fmt::Display for Error {
 pub struct Client {}
 
 impl Client {
-    #[allow(dead_code)] // avoid warnings when compiling natively and having this usage cfg-ed out
+    // avoid warnings when compiling natively and having this usage cfg-ed out
+    #[allow(dead_code)]
     pub fn new() -> Result<Client> {
         Err(Error::NotImplemented)
     }
