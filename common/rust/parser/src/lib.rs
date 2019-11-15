@@ -3,11 +3,15 @@ pub mod api;
 mod jsclient;
 mod wsclient;
 
+use std::ops::DerefMut;
+
 /// Handle to a parser implementation.
 ///
 /// Currently this component is implemented as a wrapper over parser written
 /// in Scala. Depending on compilation target (native or wasm) it uses either
 /// implementation provided by `wsclient` or `jsclient`.
+#[derive(shrinkwraprs::Shrinkwrap)]
+#[shrinkwrap(mutable)]
 pub struct Parser(pub Box<dyn api::IsParser>);
 
 impl Parser {
@@ -36,6 +40,6 @@ impl Parser {
 
 impl api::IsParser for Parser {
     fn parse(&mut self, program: String) -> api::Result<api::AST> {
-        self.0.parse(program)
+        self.deref_mut().parse(program)
     }
 }
