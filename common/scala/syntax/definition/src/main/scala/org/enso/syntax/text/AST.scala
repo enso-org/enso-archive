@@ -666,14 +666,35 @@ object AST {
           with Phantom
 
       object Line {
-        final case class Raw[T](text: List[Segment._Raw[T]])
+        /* Note [Circe and naming] */
+        val Raw = LineRaw
+        /* Note [Circe and naming] */
+        type Raw[T] = LineRaw[T]
+
+        /* Note [Circe and naming] */
+        val Fmt = LineFmt
+        /* Note [Circe and naming] */
+        type Fmt[T] = LineFmt[T]
+
+        /* Note [Circe and naming] */
+        final case class LineRaw[T](text: List[Segment._Raw[T]])
             extends Line[T]
             with Phantom {
           val quote = '"'
         }
-        final case class Fmt[T](text: List[Segment._Fmt[T]]) extends Line[T] {
+        /* Note [Circe and naming] */
+        final case class LineFmt[T](text: List[Segment._Fmt[T]])
+            extends Line[T] {
           val quote = '\''
         }
+
+        /* Note [Circe and naming]
+         * ~~~~~~~~~~~~~~~~~~~~~~~~
+         * To be able to use Circe automatic derivation for traits, all case
+         * classes in its subtree must bear unique names. So `Line.Fmt` and
+         * `Line.Raw` cannot be used as they would collide with [[Block.Raw]]
+         * and [[Block.Fmt]].
+         */
 
         ////// INSTANCES /////
         import Segment.implicits._
@@ -707,7 +728,7 @@ object AST {
             with Phantom {
           val quote = "\"\"\""
         }
-        case class Fmt[T](
+        final case class Fmt[T](
           text: List[Line[Segment._Fmt[T]]],
           spaces: Int,
           offset: Int
