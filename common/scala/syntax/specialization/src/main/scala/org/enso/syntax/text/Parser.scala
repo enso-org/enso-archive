@@ -293,10 +293,10 @@ object Main extends App {
       |    Here is a small test of Example Section
       |        Import Foo
       |        def Bar a
-      |def Maybe a
+      |type Maybe a
       |    ## test attached to Just
-      |    def Just val:a
-      |    def Nothing
+      |    type Just val:a
+      |    type Nothing
       |""".stripMargin
 
   println("--- PARSING ---")
@@ -324,7 +324,7 @@ object Main extends App {
   val isGeneratingHTML = false
   val droppedMeta      = parser.dropMacroMeta(mod)
   val documentation    = DocParserRunner.createDocs(droppedMeta)
-  val htmlPath         = "syntax/specialization/target/"
+  val htmlPath         = "target/"
   val cssFileName      = "style.css"
   val documentationHtml =
     DocParserHTMLGenerator.generateHTMLForEveryDocumented(
@@ -332,7 +332,7 @@ object Main extends App {
       htmlPath,
       cssFileName
     )
-  println(pretty(documentation.toString))
+  println(Debug.pretty(documentation.toString))
   println("------")
   println(documentation.show())
   println("=========================")
