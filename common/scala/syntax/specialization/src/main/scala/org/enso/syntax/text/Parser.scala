@@ -321,17 +321,13 @@ object Main extends App {
 
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
-  val isGeneratingHTML = false
   val droppedMeta      = parser.dropMacroMeta(mod)
   val documentation    = DocParserRunner.createDocs(droppedMeta)
   val htmlPath         = "target/"
   val cssFileName      = "style.css"
-  val documentationHtml =
-    DocParserHTMLGenerator.generateHTMLForEveryDocumented(
-      documentation,
-      htmlPath,
-      cssFileName
-    )
+  DocParserHTMLGenerator.generateHTMLForEveryDocumented(documentation, htmlPath,
+    cssFileName
+  )
   println(Debug.pretty(documentation.toString))
   println("------")
   println(documentation.show())
