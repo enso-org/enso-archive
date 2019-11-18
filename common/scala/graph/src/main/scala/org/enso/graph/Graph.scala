@@ -18,6 +18,16 @@ import shapeless.nat._
  *  - An ability to define fields that store complex data such as `String`.
  */
 
+/** This file contains the implementation of an incredibly generic graph.
+  *
+  * There are a few key notes that should be kept in mind when analysing this
+  * solution:
+  * - This is a _highly_ generic graph structure, which provides the plumbing
+  *   for building your own graph structures.
+  * - It only provides an _unsafe_ API. As a result, this graph should never be
+  *   used directly by client code. Instead, it should be used to implement a
+  *   custom graph structure that provides a safe API.
+  */
 // ============================================================================
 // === HList generic utilities ================================================
 // ============================================================================
@@ -47,13 +57,6 @@ object HListSum {
     all: nat.Sum[H, TS]
   ): HListSum.Aux[H :: T, all.Out] =
     new HListSum[H :: T] { type Out = all.Out }
-
-  object test {
-    implicitly[HListSum.Aux[HNil, _0]]
-    implicitly[HListSum.Aux[_1 :: HNil, _1]]
-    implicitly[HListSum.Aux[_1 :: _2 :: HNil, _3]]
-    implicitly[HListSum.Aux[_1 :: _2 :: _3 :: HNil, _6]]
-  }
 }
 
 // =======================
@@ -118,16 +121,6 @@ object HListTakeUntil extends HListTakeUntilDefaults {
   implicit def onConsFound[Head, Tail <: HList]
     : HListTakeUntil.Aux[Head, Head :: Tail, HNil] =
     new HListTakeUntil[Head, Head :: Tail] { type Out = HNil }
-
-  object test {
-    case class A()
-    case class B()
-    case class C()
-    implicitly[HListTakeUntil.Aux[A, HNil, HNil]]
-    implicitly[HListTakeUntil.Aux[A, A :: B :: C :: HNil, HNil]]
-    implicitly[HListTakeUntil.Aux[B, A :: B :: C :: HNil, A :: HNil]]
-    implicitly[HListTakeUntil.Aux[C, A :: B :: C :: HNil, A :: B :: HNil]]
-  }
 }
 
 trait HListTakeUntilDefaults {
@@ -210,17 +203,6 @@ object MapSized {
     headSize: Sized.Aux[H, HSize]
   ): MapSized.Aux[H :: T, HSize :: TS] =
     new MapSized[H :: T] { type Out = HSize :: TS }
-
-  object test {
-    case class A()
-    case class B()
-    case class C()
-    implicit def sizedA = new Sized[A] { type Out = _1 }
-    implicit def sizedB = new Sized[B] { type Out = _3 }
-    implicit def sizedC = new Sized[C] { type Out = _5 }
-    implicitly[MapSized.Aux[HNil, HNil]]
-    implicitly[MapSized.Aux[A :: B :: C :: HNil, _1 :: _3 :: _5 :: HNil]]
-  }
 }
 
 // =================
@@ -263,19 +245,6 @@ object SizeUntil {
       type Out = PriorFieldsSize
       val asInt = sizeAsInt()
     }
-
-  object test {
-    case class A()
-    case class B()
-    case class C()
-    implicit def sizedA = new Sized[A] { type Out = _1 }
-    implicit def sizedB = new Sized[B] { type Out = _3 }
-    implicit def sizedC = new Sized[C] { type Out = _5 }
-    implicitly[SizeUntil.Aux[A, HNil, _0]]
-    implicitly[SizeUntil.Aux[A, A :: B :: C :: HNil, _0]]
-    implicitly[SizeUntil.Aux[B, A :: B :: C :: HNil, _1]]
-    implicitly[SizeUntil.Aux[C, A :: B :: C :: HNil, _4]]
-  }
 }
 
 // ============================================================================
