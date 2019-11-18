@@ -20,6 +20,12 @@ target/
 *.class
 *.log
 
+##########
+## Rust ##
+##########
+
+Cargo.lock
+
 #############
 ## Haskell ##
 #############
@@ -92,3 +98,4 @@ bench-report.xml
 #########
 
 .editorconfig
+.bloop
