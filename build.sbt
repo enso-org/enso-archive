@@ -309,11 +309,13 @@ val truffleRunOptionsSettings = Seq(
 )
 
 lazy val runtime = (project in file("engine/runtime"))
+  .configs(Benchmark)
   .settings(
     version := "0.1",
     commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Test)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
@@ -331,8 +333,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
       "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
-    ),
-    libraryDependencies ++= jmh
+    )
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -345,10 +346,8 @@ lazy val runtime = (project in file("engine/runtime"))
       .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
       .value
   )
-  .configs(Benchmark)
   .settings(
     logBuffered := false,
-    inConfig(Benchmark)(Defaults.testSettings),
     inConfig(Benchmark)(truffleRunOptionsSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {

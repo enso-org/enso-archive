@@ -15,8 +15,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 @NodeInfo(shortName = "Debug.eval", description = "Root node for the builtin Debug.eval function")
 public class DebugEvalNode extends BuiltinRootNode {
 
-  private @Child
-  EvalNode evalNode = EvalNode.build();
+  private @Child EvalNode evalNode = EvalNode.build();
 
   private DebugEvalNode(Language language) {
     super(language);
