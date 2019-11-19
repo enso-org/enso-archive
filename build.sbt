@@ -104,7 +104,6 @@ lazy val enso = (project in file("."))
 //    file_manager,
 //    project_manager
   )
-  .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
 ////////////////////////////
 //// Dependency Bundles ////
