@@ -22,6 +22,4 @@ class SimpleArithmeticTest extends InterpreterTest {
   "2 * 2 / 2" should "equal 2" in {
     eval("2 * 2 / 2") shouldEqual 2
   }
-
-  // TODO [AA] Non-parensed tests with new AST to check parens logic
 }

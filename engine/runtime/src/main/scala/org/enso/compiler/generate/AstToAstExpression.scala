@@ -12,6 +12,10 @@ import org.enso.interpreter.{
 }
 import org.enso.syntax.text.{AST, Debug}
 
+// TODO [AA] Please note that this entire translation is _very_ work-in-progress
+//  and is hence quite ugly right now. It will be cleaned up as work progresses,
+//  but it was thought best to land in increments where possible.
+
 /**
   * This is a representation of the raw conversion from the Parser [[AST AST]]
   * to the internal [[IR IR]] used by the static transformation passes.
