@@ -88,19 +88,23 @@ h2
 //// Invalid AST ////
 ///////////////////*/
 
-.creator .Unclosed,
-.creator .invalidIndent,
-.creator .invalidLink
-    display: inline
-    color: orangered
+// Creator - a special mode for displaying parsing errors in output
+.creator
+    .Unclosed,
+    .invalidIndent,
+    .invalidLink
+        display: inline
+        color: orangered
 
+    .Tags
+        .UNRECOGNIZED
+            border: 2px solid
+            color: orangered
 
 .Unclosed,
 .invalidIndent,
 .invalidLink 
     display: inline
-
-
 
 /*//////////////
 //// Header ////
@@ -153,37 +157,24 @@ h2
         white-space: nowrap
         background: transparent
 
+    .DEPRECATED
+        border-color: #c35400
+        color: #c35400
+    .MODIFIED
+        border-color: #8A82CF
+        color: #8A82CF
+    .ADDED
+        border-color: #79A129
+        color: #79A129
+    .UPCOMING,
+    .REMOVED,
+    .UNRECOGNIZED
+        border-color: #888888
+        color: #666666
 
 .ExtForTagDetails
     margin: 0 3px
     color: #999999
-
-
-.Tags .DEPRECATED
-    border-color: #c35400
-    color: #c35400
-
-
-.Tags .MODIFIED
-    border-color: #8A82CF
-    color: #8A82CF
-
-
-.Tags .ADDED
-    border-color: #79A129
-    color: #79A129
-
-
-.Tags .UPCOMING,
-.Tags .REMOVED,
-.Tags .UNRECOGNIZED
-    border-color: #888888
-    color: #666666
-
-
-.creator  .Tags .UNRECOGNIZED 
-    border: 2px solid
-    color: orangered
 
 /*////////////////
 //// Sections ////
@@ -307,26 +298,26 @@ h2
     border-bottom: 1px solid #d6d6d6
 
 
-.Documentation .ASTData 
-    margin: 20px auto
-    text-align: left
-    line-height: 1.05
-    letter-spacing: 0.008em
-    background-color: #fafafa
-    border-radius: 6px
+.Documentation
+    .ASTData
+        margin: 20px auto
+        text-align: left
+        line-height: 1.05
+        letter-spacing: 0.008em
+        background-color: #fafafa
+        border-radius: 6px
 
-
-.Documentation .Documented 
-    margin: 0
-    width: 100%
-    background-color: #ffffff
+    .Documented
+        margin: 0
+        width: 100%
+        background-color: #ffffff
 
 
 @media (min-width: 300px) 
     .Synopsis,
     .Body,
     .Tags,
-    .Documentation .ASTData 
+    .Documentation .ASTData
         width: 380px
     
 
