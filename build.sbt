@@ -387,7 +387,8 @@ lazy val language_server = project
       "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
       "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
       "commons-cli"           % "commons-cli"            % "1.4",
-      "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0"
+      "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
+      "org.jline"             % "jline"                  % "3.1.3"
     )
   )
   .settings(
