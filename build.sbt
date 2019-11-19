@@ -91,12 +91,12 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    unused.jvm,
-    unused.js,
-    flexer.jvm,
-    flexer.js,
-    syntax_definition.jvm,
-    syntax_definition.js,
+//    unused.jvm,
+//    unused.js,
+//    flexer.jvm,
+//    flexer.js,
+//    syntax_definition.jvm,
+//    syntax_definition.js,
     syntax.jvm,
     syntax.js,
 //    pkg,
@@ -158,89 +158,105 @@ val jmh = Seq(
 //// Sub-Projects ////
 //////////////////////
 
-lazy val logger = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("common/scala/logger"))
-  .dependsOn(unused)
-  .settings(
-    version := "0.1",
-    libraryDependencies ++= scala_compiler
-  )
-  .enablePlugins(ScalaJSPlugin)
-
-lazy val flexer = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("common/scala/flexer"))
-  .dependsOn(logger)
-  .settings(
-    version := "0.1",
-    scalacOptions -= "-deprecation", // FIXME
-    resolvers += Resolver.sonatypeRepo("releases"),
-    libraryDependencies ++= scala_compiler ++ Seq(
-      "org.feijoas" %% "mango" % "0.14",
-      "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
-      "org.typelevel" %%% "kittens"   % "2.0.0"
-    )
-  )
-  .enablePlugins(ScalaJSPlugin)
-
-lazy val unused = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("common/scala/unused"))
-  .settings(version := "0.1", scalacOptions += "-nowarn")
-  .enablePlugins(ScalaJSPlugin)
-
-
-lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("common/scala/syntax/definition"))
-  .dependsOn(logger, flexer)
-  .settings(
-    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %%% "scalatags" % "0.7.0"
-    )
-  )
-  .enablePlugins(ScalaJSPlugin)
+//lazy val logger = crossProject(JVMPlatform, JSPlatform)
+//  .withoutSuffixFor(JVMPlatform)
+//  .crossType(CrossType.Pure)
+//  .in(file("common/scala/logger"))
+//  .dependsOn(unused)
+//  .settings(
+//    version := "0.1",
+//    libraryDependencies ++= scala_compiler
+//  )
+//  .enablePlugins(ScalaJSPlugin)
+//
+//lazy val flexer = crossProject(JVMPlatform, JSPlatform)
+//  .withoutSuffixFor(JVMPlatform)
+//  .crossType(CrossType.Pure)
+//  .in(file("common/scala/flexer"))
+//  .dependsOn(logger)
+//  .settings(
+//    version := "0.1",
+//    scalacOptions -= "-deprecation", // FIXME
+//    resolvers += Resolver.sonatypeRepo("releases"),
+//    libraryDependencies ++= scala_compiler ++ Seq(
+//      "org.feijoas" %% "mango" % "0.14",
+//      "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
+//      "org.typelevel" %%% "kittens"   % "2.0.0"
+//    )
+//  )
+//  .enablePlugins(ScalaJSPlugin)
+//
+//lazy val unused = crossProject(JVMPlatform, JSPlatform)
+//  .withoutSuffixFor(JVMPlatform)
+//  .crossType(CrossType.Pure)
+//  .in(file("common/scala/unused"))
+//  .settings(version := "0.1", scalacOptions += "-nowarn")
+//  .enablePlugins(ScalaJSPlugin)
+//
+//
+//lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
+//  .withoutSuffixFor(JVMPlatform)
+//  .crossType(CrossType.Pure)
+//  .in(file("common/scala/syntax/definition"))
+//  .dependsOn(logger, flexer)
+//  .settings(
+//    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
+//      "com.lihaoyi" %%% "scalatags" % "0.7.0"
+//    )
+//  )
+//  .enablePlugins(ScalaJSPlugin)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
-  .in(file("common/scala/syntax/specialization"))
-  .dependsOn(logger, flexer, syntax_definition)
+  .in(file("project"))
   .configs(Test)
   .configs(Benchmark)
   .settings(
     scalaJSUseMainModuleInitializer := true,
-    mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
-    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
-    logBuffered := false,
-    inConfig(Benchmark)(Defaults.testSettings),
-    bench := (test in Benchmark).tag(Exclusive).value,
-    parallelExecution in Benchmark := false,
     libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
       "org.scalatest"     %%% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %%% "pprint"     % "0.5.3"
-    ),
-    compile := (Compile / compile)
-      .dependsOn(Def.taskDyn {
-        val parserCompile =
-          (syntax_definition.jvm / Compile / compileIncremental).value
-        if (parserCompile.hasModified) {
-          Def.task {
-            streams.value.log.info("Parser changed, forcing recompilation.")
-            clean.value
-          }
-        } else Def.task {}
-      })
-      .value
+    )
+
   )
   .enablePlugins(ScalaJSPlugin)
+
+//lazy val syntax = crossProject(JVMPlatform, JSPlatform)
+//  .withoutSuffixFor(JVMPlatform)
+//  .crossType(CrossType.Pure)
+//  .in(file("common/scala/syntax/specialization"))
+//  .dependsOn(logger, flexer, syntax_definition)
+//  .configs(Test)
+//  .configs(Benchmark)
+//  .settings(
+//    scalaJSUseMainModuleInitializer := true,
+//    mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
+//    version := "0.1",
+//    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
+//    logBuffered := false,
+//    inConfig(Benchmark)(Defaults.testSettings),
+//    bench := (test in Benchmark).tag(Exclusive).value,
+//    parallelExecution in Benchmark := false,
+//    libraryDependencies ++= Seq(
+//      "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
+//      "org.scalatest"     %%% "scalatest"  % "3.0.5" % Test,
+//      "com.lihaoyi"       %%% "pprint"     % "0.5.3"
+//    ),
+//    compile := (Compile / compile)
+//      .dependsOn(Def.taskDyn {
+//        val parserCompile =
+//          (syntax_definition.jvm / Compile / compileIncremental).value
+//        if (parserCompile.hasModified) {
+//          Def.task {
+//            streams.value.log.info("Parser changed, forcing recompilation.")
+//            clean.value
+//          }
+//        } else Def.task {}
+//      })
+//      .value
+//  )
+//  .enablePlugins(ScalaJSPlugin)
 //
 //lazy val pkg = (project in file("common/scala/pkg"))
 //  .settings(
