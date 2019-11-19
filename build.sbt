@@ -385,6 +385,7 @@ lazy val language_server = project
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
+      "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
       "commons-cli"           % "commons-cli"            % "1.4",
       "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0"
     )
