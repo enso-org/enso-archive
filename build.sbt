@@ -242,11 +242,11 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     inConfig(Benchmark)(Defaults.testSettings),
     unmanagedSourceDirectories in Benchmark +=
       baseDirectory.value.getParentFile / "src/bench/scala",
+    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
-      new TestFramework("org.scalameter.ScalaMeterFramework")
+//      new TestFramework("org.scalameter.ScalaMeterFramework")
     ),
-    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
     bench := (test in Benchmark).tag(Exclusive).value,
   )
   .jsSettings(
