@@ -2,7 +2,14 @@ package org.enso.compiler.generate
 
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.compiler.core.IR
-import org.enso.interpreter.{AstExpression, AstModuleScope}
+import org.enso.interpreter.{
+  AstArithOp,
+  AstExpression,
+  AstImport,
+  AstLong,
+  AstModuleScope,
+  AstModuleSymbol
+}
 import org.enso.syntax.text.{AST, Debug}
 
 /**
@@ -20,39 +27,127 @@ object AstToAstExpression {
     *         `inputAST` in the compiler's [[IR IR]]
     */
   def translate(inputAST: AST): AstModuleScope = {
+//    println(Debug.pretty(inputAST.toString))
+//    println("=========================================")
+
     inputAST match {
       case AST.Module.any(inputAST) => translateModule(inputAST)
       case _ => {
-        println(Debug.pretty(inputAST.toString))
         throw new UnhandledEntity(inputAST, "process")
       }
     }
-//    inputAST match {
-//      case AST.App.any(inputAST)     => processApplication(inputAST)
-//      case AST.Block.any(inputAST)   => processBlock(inputAST)
-//      case AST.Comment.any(inputAST) => processComment(inputAST)
-//      case AST.Ident.any(inputAST)   => processIdent(inputAST)
-//      case AST.Import.any(inputAST)  => processBinding(inputAST)
-//      case AST.Invalid.any(inputAST) => processInvalid(inputAST)
-//      case AST.Literal.any(inputAST) => processLiteral(inputAST)
-//      case AST.Mixfix.any(inputAST)  => processApplication(inputAST)
-//      case AST.Module.any(inputAST)  => processModule(inputAST)
-//      case AST.Group.any(inputAST)   => processGroup(inputAST)
-//      case AST.Def.any(inputAST)     => processBinding(inputAST)
-//      case AST.Foreign.any(inputAST) => processBlock(inputAST)
-//      case _ =>
-//        IR.Error.UnhandledAST(inputAST)
-//    }
   }
 
+  def translateModuleSymbol(inputAST: AST): AstModuleSymbol = {
+    ???
+  }
+
+  def translateLiteral(literal: AST.Literal): AstLong = {
+    literal match {
+      case AST.Literal.Number(base, number) => {
+        if (base.isDefined && base.get != "10") {
+          throw new RuntimeException("Only base 10 is currently supported")
+        }
+
+        AstLong(number.toLong)
+      }
+//      case AST.Literal.Text.any(literal) =>
+      case _ => throw new UnhandledEntity(literal, "processLiteral")
+    }
+  }
+
+  def translateApplication(application: AST): AstExpression = {
+    application match {
+      case AST.App.Infix(left, fn, right) => {
+        // FIXME [AA] We should accept all ops when translating to core
+        val validInfixOps = List("+", "/", "-", "*", "%")
+
+        if (validInfixOps.contains(fn.name)) {
+          AstArithOp(
+            fn.name,
+            translateExpression(left),
+            translateExpression(right)
+          )
+        } else {
+          throw new RuntimeException(
+            s"${fn.name} is not currently a valid infix operator"
+          )
+        }
+      }
+//      case AST.App.Prefix(fn, arg) =>
+//      case AST.App.Section.any(application) => // TODO [AA] left, sides, right
+//      case AST.Mixfix(application) => // TODO [AA] translate if
+      case _ => throw new UnhandledEntity(application, "translateApplication")
+    }
+  }
+
+  def translateExpression(inputAST: AST): AstExpression = {
+    inputAST match {
+      case AST.App.any(inputAST)     => translateApplication(inputAST)
+      case AST.Literal.any(inputAST) => translateLiteral(inputAST)
+      case AST.Group.any(inputAST)   => translateGroup(inputAST)
+      case _ =>
+        throw new UnhandledEntity(inputAST, "translateExpression")
+    }
+    //    inputAST match {
+    //      case AST.App.any(inputAST)     => processApplication(inputAST)
+    //      case AST.Block.any(inputAST)   => processBlock(inputAST)
+    //      case AST.Comment.any(inputAST) => processComment(inputAST)
+    //      case AST.Ident.any(inputAST)   => processIdent(inputAST)
+    //      case AST.Import.any(inputAST)  => processBinding(inputAST)
+    //      case AST.Invalid.any(inputAST) => processInvalid(inputAST)
+    //      case AST.Literal.any(inputAST) => processLiteral(inputAST)
+    //      case AST.Mixfix.any(inputAST)  => processApplication(inputAST)
+    //      case AST.Group.any(inputAST)   => processGroup(inputAST)
+    //      case AST.Def.any(inputAST)     => processBinding(inputAST)
+    //      case AST.Foreign.any(inputAST) => processBlock(inputAST)
+    //      case _ =>
+    //        IR.Error.UnhandledAST(inputAST)
+    //    }
+  }
+
+  def translateGroup(group: AST.Group): AstExpression = {
+    group.body match {
+      case Some(ast) => translateExpression(ast)
+      case None => {
+        // FIXME [AA] This should generate an error node in core
+        throw new RuntimeException("Empty group")
+      }
+    }
+  }
+
+  // TODO [AA] Fix the types
   def translateModule(module: AST.Module): AstModuleScope = {
     module match {
-      case AST.Module(blocks) =>
-        val imports = List() // TODO [AA]
-        val statements = List() // TODO [AA]
-        val expression = ???
+      case AST.Module(blocks) => {
+        val presentBlocks = blocks.collect {
+          case t if t.elem.isDefined => t.elem.get
+        }
+
+        val imports = presentBlocks.collect {
+          case AST.Import.any(list) => translateImport(list)
+        }
+
+        val nonImportBlocks = presentBlocks.filter {
+          case AST.Import.any(_) => false
+          case _                 => true
+        }
+
+        if (nonImportBlocks.isEmpty) {
+          // FIXME [AA] This is temporary, and should be moved to generate an
+          //  error node in Core.
+          throw new RuntimeException("Cannot have no expressions")
+        }
+
+        val statements = nonImportBlocks.dropRight(1).map(translateModuleSymbol)
+        val expression = translateExpression(nonImportBlocks.last)
         AstModuleScope(imports, statements, expression)
+      }
     }
+  }
+
+  def translateImport(imp: AST.Import): AstImport = {
+    AstImport(imp.path.map(t => t.name).reduceLeft((l, r) => l + "." + r))
   }
 
   /**
@@ -125,28 +220,6 @@ object AstToAstExpression {
   ): IR.Identifier.Constructor = {
     ???
 //    IR.Identifier.Constructor(constructor.name)
-  }
-
-  /**
-    * Transforms a literal from the parser AST.
-    *
-    * @param literal the literal to transform
-    * @return a representation of `literal` in the compiler's [[IR IR]]
-    */
-  def processLiteral(literal: AST.Literal): IR.Literal = {
-    ???
-//    literal match {
-//      case AST.Literal.Number(base, number) => IR.Literal.Number(number, base)
-
-//      TODO [AA] Handle text properly
-//      case AST.Literal.Text.Raw(body) =>
-//        IR.Literal.Text.Raw(body.lines.toList.map(processLine))
-//
-//      case AST.Literal.Text.Line.Fmt(lines) =>
-//        IR.Literal.Text.Format(lines.toList.map(processLine))
-
-//      case _ => throw new UnhandledEntity(literal, "processLiteral")
-//    }
   }
 
   /**
@@ -265,28 +338,6 @@ object AstToAstExpression {
 //    comment match {
 //      case AST.Comment(lines) => IR.Comment(lines)
 //      case _                  => throw new UnhandledEntity(comment, "processComment")
-//    }
-  }
-
-  /**
-    * Transforms a group from the parser AST.
-    *
-    * In [[IR]], groups are actually non-entities, as all grouping is handled
-    * implicitly by the IR format. A valid group is replaced by its contents in
-    * the IR, while invalid groups are replaced by error nodes.
-    *
-    * @param group the group to transform
-    * @return a representation of `group` in the compiler's [[IR IR]]
-    */
-  def processGroup(group: AST): IR = {
-    ???
-//    group match {
-//      case AST.Group(maybeAST) =>
-//        maybeAST match {
-//          case Some(ast) => process(ast)
-//          case None      => IR.Error.EmptyGroup()
-//        }
-//      case _ => throw new UnhandledEntity(group, "processGroup")
 //    }
   }
 
