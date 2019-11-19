@@ -5,7 +5,7 @@ import com.oracle.truffle.api.frame.MaterializedFrame;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.debug.CaptureResultScope;
+import org.enso.interpreter.node.expression.debug.CaptureResultScopeNode;
 import org.enso.interpreter.node.expression.debug.EvalNode;
 import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
@@ -149,8 +149,8 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       try {
         Stateful result = evalNode.execute(lastScope, lastState, expression);
         lastState = result.getState();
-        CaptureResultScope.WithCallerInfo payload =
-            (CaptureResultScope.WithCallerInfo) result.getValue();
+        CaptureResultScopeNode.WithCallerInfo payload =
+            (CaptureResultScopeNode.WithCallerInfo) result.getValue();
         lastScope = payload.getCallerInfo();
         lastReturn = payload.getResult();
         return lastReturn;

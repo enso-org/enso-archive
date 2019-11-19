@@ -63,7 +63,7 @@ public abstract class EvalNode extends BaseNode {
             .compiler()
             .runInline(expression, language, localScope, moduleScope);
     if (shouldCaptureResultScope) {
-      expr = CaptureResultScope.build(expr);
+      expr = CaptureResultScopeNode.build(expr);
     }
     ClosureRootNode framedNode =
         new ClosureRootNode(
