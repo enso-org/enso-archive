@@ -298,10 +298,35 @@ object Main extends App {
       |    type Just val:a
       |    type Nothing
       |""".stripMargin
+  val inC =
+    """
+      |## Optional values.
+      |   Type `Option` represents an optional value: every `Option` is either `Some`
+      |   and contains a value, or `None`, and does not. Option types are very common
+      |   in Enso code, as they have a number of uses:
+      |     - Initial values.
+      |     - Return values for functions that are not defined over their entire input range (partial functions).
+      |     - Return value for otherwise reporting simple errors, where `None` is returned on error.
+      |     - Optional struct fields.
+      |     - Optional function arguments.
+      |   `Option`s are commonly paired with pattern matching to query the presence of
+      |   a value and take action, always accounting for the None case.
+      |
+      |type Option a
+      |    ## The `None` type indicates a presence of a value.
+      |    type Some a
+      |
+      |    ##
+      |     The `None` type indicates a lack of a value.
+      |     It is a very common type and is used by such types as `Maybe` or `List`.
+      |     Also, `None` is the return value of functions which do not return an
+      |     explicit value.
+      |    type None
+      |""".stripMargin
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inp))
+  val mod = parser.run(new Reader(inC))
 
   println(Debug.pretty(mod.toString))
 
@@ -314,18 +339,20 @@ object Main extends App {
   }
 
   println("------")
-  println(mod.show() == inp)
+  println(mod.show() == inC)
   println("------")
   println(mod.show())
   println("------")
 
   /** Invoking the Enso Documentation Parser */
   println("===== DOCUMENTATION =====")
-  val droppedMeta      = parser.dropMacroMeta(mod)
-  val documentation    = DocParserRunner.createDocs(droppedMeta)
-  val htmlPath         = "target/"
-  val cssFileName      = "style.css"
-  DocParserHTMLGenerator.generateHTMLForEveryDocumented(documentation, htmlPath,
+  val droppedMeta   = parser.dropMacroMeta(mod)
+  val documentation = DocParserRunner.createDocs(droppedMeta)
+  val htmlPath      = "target/"
+  val cssFileName   = "style.css"
+  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
+    documentation,
+    htmlPath,
     cssFileName
   )
   println(Debug.pretty(documentation.toString))
