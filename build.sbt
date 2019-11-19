@@ -217,6 +217,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .configs(Test)
   .configs(Benchmark)
   .settings(
+    testFrameworks := Nil,
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
