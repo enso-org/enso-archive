@@ -166,8 +166,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
-  .settings(testFrameworks := Nil)
-  .enablePlugins(ScalaJSPlugin)
+  .jsSettings(testFrameworks := Nil)
 
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -184,16 +183,14 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel" %%% "kittens"   % "2.0.0"
     )
   )
-  .settings(testFrameworks := Nil)
-  .enablePlugins(ScalaJSPlugin)
+  .jsSettings(testFrameworks := Nil)
 
 lazy val unused = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
-  .settings(testFrameworks := Nil)
-  .enablePlugins(ScalaJSPlugin)
+  .jsSettings(testFrameworks := Nil)
 
 
 lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
@@ -206,8 +203,7 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
       "com.lihaoyi" %%% "scalatags" % "0.7.0"
     )
   )
-  .settings(testFrameworks := Nil)
-  .enablePlugins(ScalaJSPlugin)
+  .jsSettings(testFrameworks := Nil)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -245,7 +241,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
-//      new TestFramework("org.scalameter.ScalaMeterFramework")
+      new TestFramework("org.scalameter.ScalaMeterFramework")
     ),
     bench := (test in Benchmark).tag(Exclusive).value,
   )
@@ -253,7 +249,6 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     scalaJSUseMainModuleInitializer := true,
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework"))
   )
-  .enablePlugins(ScalaJSPlugin)
 
 lazy val pkg = (project in file("common/scala/pkg"))
   .settings(
