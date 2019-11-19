@@ -316,6 +316,7 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Compile)(truffleRunOptionsSettings),
     inConfig(Test)(truffleRunOptionsSettings),
     inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(truffleRunOptionsSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
@@ -332,6 +333,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % Benchmark,
       "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
     )
   )
@@ -348,7 +350,6 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .settings(
     logBuffered := false,
-    inConfig(Benchmark)(truffleRunOptionsSettings),
     bench := (test in Benchmark).tag(Exclusive).value,
     benchOnly := Def.inputTaskDyn {
       import complete.Parsers.spaceDelimited

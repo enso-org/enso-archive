@@ -7,6 +7,7 @@ import com.oracle.truffle.api.instrumentation.*;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.expression.debug.CaptureResultScope;
 import org.enso.interpreter.node.expression.debug.EvalNode;
+import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.FramePointer;
@@ -15,35 +16,67 @@ import org.enso.interpreter.runtime.state.Stateful;
 import java.util.HashMap;
 import java.util.Map;
 
+/** The Instrument implementation for the interactive debugger REPL. */
 @TruffleInstrument.Registration(
     id = ReplDebuggerInstrument.INSTRUMENT_ID,
     services = ReplDebuggerInstrument.class)
 public class ReplDebuggerInstrument extends TruffleInstrument {
+  /** This instrument's registration id. */
   public static final String INSTRUMENT_ID = "enso-repl";
 
+  /**
+   * Internal reference type to store session manager and get the current version on each execution
+   * of this instrument.
+   */
   private static class SessionManagerReference {
     private SessionManager sessionManager;
 
+    /**
+     * Create a new instanc of this class
+     *
+     * @param sessionManager the session manager to initially store
+     */
     private SessionManagerReference(SessionManager sessionManager) {
       this.sessionManager = sessionManager;
     }
 
-    public SessionManager get() {
+    /**
+     * Get the current session manager
+     *
+     * @return the current session manager
+     */
+    private SessionManager get() {
       return sessionManager;
     }
 
+    /**
+     * Set a new session manager for subsequent {@link #get()} calls.
+     *
+     * @param sessionManager the new session manager
+     */
     private void set(SessionManager sessionManager) {
       this.sessionManager = sessionManager;
     }
   }
 
+  /** An object controlling the execution of REPL. */
   public interface SessionManager {
-    void startSession(MyExecutionEventListener executionNode);
+    /**
+     * Starts a new session with the provided execution node.
+     *
+     * @param executionNode the execution node that should be used for the duration of this session.
+     */
+    void startSession(ReplExecutionEventNode executionNode);
   }
 
   private SessionManagerReference sessionManagerReference =
-      new SessionManagerReference(MyExecutionEventListener::exit);
+      new SessionManagerReference(ReplExecutionEventNode::exit);
 
+  /**
+   * Called by Truffle when this instrument is installed.
+   *
+   * @param env the instrumentation environment
+   */
   @Override
   protected void onCreate(Env env) {
     SourceSectionFilter filter =
@@ -51,14 +84,20 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     Instrumenter instrumenter = env.getInstrumenter();
     env.registerService(this);
     instrumenter.attachExecutionEventFactory(
-        filter, ctx -> new MyExecutionEventListener(ctx, sessionManagerReference));
+        filter, ctx -> new ReplExecutionEventNode(ctx, sessionManagerReference));
   }
 
+  /**
+   * Registers the session manager to use whenever this instrument is activated.
+   *
+   * @param sessionManager the session manager to use
+   */
   public void setSessionManager(SessionManager sessionManager) {
     this.sessionManagerReference.set(sessionManager);
   }
 
-  public static class MyExecutionEventListener extends ExecutionEventNode {
+  /** The actual node that's installed as a probe on any node the instrument was launched for. */
+  public static class ReplExecutionEventNode extends ExecutionEventNode {
     private @Child EvalNode evalNode = EvalNode.buildWithResultScopeCapture();
 
     private Object lastReturn;
@@ -68,7 +107,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private EventContext eventContext;
     private SessionManagerReference sessionManagerReference;
 
-    private MyExecutionEventListener(
+    private ReplExecutionEventNode(
         EventContext eventContext, SessionManagerReference sessionManagerReference) {
       this.eventContext = eventContext;
       this.sessionManagerReference = sessionManagerReference;
@@ -81,15 +120,16 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     private MaterializedFrame getProperFrame(MaterializedFrame frame, FramePointer ptr) {
       MaterializedFrame currentFrame = frame;
       for (int i = 0; i < ptr.getParentLevel(); i++) {
-        currentFrame = getParentFrame(currentFrame);
+        currentFrame = Function.ArgumentsHelper.getLocalScope(currentFrame.getArguments());
       }
       return currentFrame;
     }
 
-    private MaterializedFrame getParentFrame(MaterializedFrame frame) {
-      return Function.ArgumentsHelper.getLocalScope(frame.getArguments());
-    }
-
+    /**
+     * Lists all the bindings available in the current execution scope.
+     *
+     * @return a map, where keys are variable names and values are current values of variables.
+     */
     public Map<String, Object> listBindings() {
       Map<String, FramePointer> flatScope = lastScope.getLocalScope().flatten();
       Map<String, Object> result = new HashMap<>();
@@ -99,6 +139,12 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       return result;
     }
 
+    /**
+     * Evaluates an arbitrary expression in the current execution context.
+     *
+     * @param expression the expression to evaluate
+     * @return the result of evaluating the expression
+     */
     public Object evaluate(String expression) {
       try {
         Stateful result = evalNode.execute(lastScope, lastState, expression);
@@ -113,10 +159,24 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       }
     }
 
+    /**
+     * Terminates this REPL session.
+     *
+     * <p>The last result of {@link #evaluate(String)} (or {@link Builtins#unit()} if {@link
+     * #evaluate(String)} was not called before) will be returned from the instrumented node.
+     *
+     * <p>This function must always be called at the end of REPL session, as otherwise the program
+     * will never resume. It's forbidden to use this object after exit has been called.
+     */
     public void exit() {
       throw eventContext.createUnwind(lastReturn);
     }
 
+    /**
+     * Called by Truffle whenever this node starts execution.
+     *
+     * @param frame current execution frame
+     */
     @Override
     protected void onEnter(VirtualFrame frame) {
       lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
@@ -125,6 +185,16 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
       sessionManagerReference.get().startSession(this);
     }
 
+    /**
+     * Called by Truffle whenever an unwind {@see {@link EventContext#createUnwind(Object)}} was
+     * thrown in the course of REPL execution.
+     *
+     * <p>We use this mechanism to inject the REPL-returned value back into caller code.
+     *
+     * @param frame current execution frame
+     * @param info The unwind's payload. Currently unused.
+     * @return the object that will become the instrumented node's return value
+     */
     @Override
     protected Object onUnwind(VirtualFrame frame, Object info) {
       return new Stateful(lastState, lastReturn);
