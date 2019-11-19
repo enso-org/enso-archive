@@ -98,7 +98,6 @@ lazy val enso = (project in file("."))
     syntax_definition.jvm,
     syntax_definition.js,
     syntax.jvm,
-    syntax.js,
     pkg,
     runtime,
     file_manager,
@@ -214,20 +213,12 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .configs(Test)
   .configs(Benchmark)
   .settings(
-    scalaJSUseMainModuleInitializer := true,
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
-    testFrameworks := List(
-      new TestFramework("org.scalameter.ScalaMeterFramework"),
-      new TestFramework("org.scalatest.tools.Framework")
-    ),
     logBuffered := false,
-    inConfig(Benchmark)(Defaults.testSettings),
-    bench := (test in Benchmark).tag(Exclusive).value,
     libraryDependencies ++= Seq(
-      "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
-      "org.scalatest"     %%% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %%% "pprint"     % "0.5.3"
+      "org.scalatest"     %% "scalatest"  % "3.0.5" % Test,
+      "com.lihaoyi"       %% "pprint"     % "0.5.3"
     ),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
@@ -241,6 +232,18 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
         } else Def.task {}
       })
       .value
+  )
+  .jvmSettings(
+    inConfig(Benchmark)(Defaults.testSettings),
+    unmanagedSourceDirectories in Benchmark +=
+      baseDirectory.value.getParentFile / "src/bench/scala",
+    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
+    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
+    bench := (test in Benchmark).tag(Exclusive).value,
+  )
+  .jsSettings(
+    scalaJSUseMainModuleInitializer := true,
+    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework"))
   )
   .enablePlugins(ScalaJSPlugin)
 
