@@ -166,7 +166,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     libraryDependencies ++= scala_compiler
   )
-  .jsSettings(testFrameworks := Nil)
+  .settings(testFrameworks := Nil)
   .enablePlugins(ScalaJSPlugin)
 
 lazy val flexer = crossProject(JVMPlatform, JSPlatform)
@@ -184,7 +184,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
       "org.typelevel" %%% "kittens"   % "2.0.0"
     )
   )
-  .jsSettings(testFrameworks := Nil)
+  .settings(testFrameworks := Nil)
   .enablePlugins(ScalaJSPlugin)
 
 lazy val unused = crossProject(JVMPlatform, JSPlatform)
@@ -192,7 +192,7 @@ lazy val unused = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("common/scala/unused"))
   .settings(version := "0.1", scalacOptions += "-nowarn")
-  .jsSettings(testFrameworks := Nil)
+  .settings(testFrameworks := Nil)
   .enablePlugins(ScalaJSPlugin)
 
 
@@ -206,7 +206,7 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
       "com.lihaoyi" %%% "scalatags" % "0.7.0"
     )
   )
-  .jsSettings(testFrameworks := Nil)
+  .settings(testFrameworks := Nil)
   .enablePlugins(ScalaJSPlugin)
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
@@ -241,7 +241,10 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     inConfig(Benchmark)(Defaults.testSettings),
     unmanagedSourceDirectories in Benchmark +=
       baseDirectory.value.getParentFile / "src/bench/scala",
-    testFrameworks += new TestFramework("org.scalameter.ScalaMeterFramework"),
+    testFrameworks := List(
+      new TestFramework("org.scalatest.tools.Framework"),
+      new TestFramework("org.scalameter.ScalaMeterFramework")
+    ),
     libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
     bench := (test in Benchmark).tag(Exclusive).value,
   )
