@@ -210,7 +210,6 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .crossType(CrossType.Pure)
   .in(file("project"))
   .configs(Test)
-  .configs(Benchmark)
   .settings(
     scalaJSUseMainModuleInitializer := true,
     version := "0.1",
