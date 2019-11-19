@@ -215,7 +215,7 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .jsSettings(testFrameworks := Nil)
 
 lazy val graph = (project in file("common/scala/graph/"))
-  .dependsOn(logger)
+  .dependsOn(logger.jvm)
   .configs(Test)
   .settings(
     version := "0.1",
@@ -288,7 +288,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   )
 
 lazy val parser_service = (project in file("common/scala/parser-service"))
-  .dependsOn(syntax)
+  .dependsOn(syntax.jvm)
   .settings(
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
