@@ -219,7 +219,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     testFrameworks := List(
       new TestFramework("org.scalameter.ScalaMeterFramework"),
-      new TestFramework("org.scalatest.ScalaTestFramework")
+      new TestFramework("org.scalatest.tools.Framework")
     ),
     logBuffered := false,
     inConfig(Benchmark)(Defaults.testSettings),
