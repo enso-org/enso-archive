@@ -107,6 +107,8 @@ case class Repl(replIO: ReplIO) extends ReplDebuggerInstrument.SessionManager {
     * Runs the Repl session by asking for user input and performing
     * the requested action with the execution node.
     *
+    * End of input causes exit from the Repl.
+    *
     * @param executionNode the execution node capable of performing
     *                      language-level operations
     */
