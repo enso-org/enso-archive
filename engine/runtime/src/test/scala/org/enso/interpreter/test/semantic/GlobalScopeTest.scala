@@ -1,7 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.InterpreterException
-import org.enso.interpreter.test.InterpreterTest
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 
 class GlobalScopeTest extends InterpreterTest {
 
@@ -68,7 +67,7 @@ class GlobalScopeTest extends InterpreterTest {
         |}
         |
         |Unit.fn1 = { |number|
-        |  ifZero: [number % 3, number, @decrementCall [@Unit, number]]
+        |  @ifZero [number % 3, number, @decrementCall [@Unit, number]]
         |}
         |
         |@fn1 [@Unit, 5]

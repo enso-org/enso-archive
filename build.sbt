@@ -11,6 +11,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 val scalacVersion = "2.12.10"
 val graalVersion  = "19.2.0.1"
+val circeVersion  = "0.11.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -36,6 +37,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-language:higherKinds",              // Allow higher-kinded types
   "-language:implicitConversions",      // Allow definition of implicit functions called views
   "-unchecked",                         // Enable additional warnings where generated code depends on assumptions.
+  "-Xcheckinit",                        // Wrap field accessors to throw an exception on uninitialized access.
   "-Xlint:adapted-args",                // Warn if an argument list is modified to match the receiver.
   "-Xlint:by-name-right-associative",   // By-name parameter of right associative operator.
   "-Xlint:constant",                    // Evaluation of a constant arithmetic expression results in an error.
@@ -51,8 +53,8 @@ scalacOptions in ThisBuild ++= Seq(
   "-Xlint:poly-implicit-overload",      // Parameterized overloaded implicit methods are not visible as view bounds.
   "-Xlint:private-shadow",              // A private field (or class parameter) shadows a superclass field.
   "-Xlint:stars-align",                 // Pattern sequence wildcard must align with sequence component.
-  "-Xlint:type-parameter-shadow",       // A local type parameter shadows a type already in scope.
   "-Xlint:unsound-match",               // Pattern match may not be typesafe.
+  "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
   "-Yno-adapted-args",                  // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
   "-Ypartial-unification",              // Enable partial unification in type constructor inference
   "-Ywarn-dead-code",                   // Warn when dead code is identified.
@@ -62,17 +64,17 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-nullary-override",            // Warn when non-nullary `def f()' overrides nullary `def f'.
   "-Ywarn-nullary-unit",                // Warn when nullary methods return Unit.
   "-Ywarn-numeric-widen",               // Warn when numerics are widened.
-  "-Ywarn-unused:implicits",            // Warn if an implicit parameter is unused.
   "-Ywarn-unused:imports",              // Warn if an import selector is not referenced.
   "-Ywarn-unused:locals",               // Warn if a local definition is unused.
-  "-Ywarn-unused:params",               // Warn if a value parameter is unused.
   "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates",             // Warn if a private member is unused.
-  "-Ywarn-value-discard",               // Warn when non-Unit expression results are unused.
-  "-Ypartial-unification",              // Enable partial unification (which is enabled by default in Scala 2.13).
-  "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
-  "-Xcheckinit"                         // Wrap field accessors to throw an exception on uninitialized access.
+  "-Ywarn-value-discard"                // Warn when non-Unit expression results are unused.
 )
+
+// ENABLE THIS IN Scala 2.13.1 (where import annotation.unused is available).
+//  "-Xlint:type-parameter-shadow",     // A local type parameter shadows a type already in scope.
+//  "-Ywarn-unused:implicits",          // Warn if an implicit parameter is unused.
+//  "-Ywarn-unused:params",             // Warn if a value parameter is unused.
 
 /////////////////////////////////
 //// Benchmark Configuration ////
@@ -99,7 +101,9 @@ lazy val enso = (project in file("."))
     syntax_definition.js,
     syntax.jvm,
     pkg,
+    project_manager,
     runtime,
+    parser_service,
     file_manager,
     project_manager
   )
@@ -119,8 +123,11 @@ val monocle = {
 }
 val cats = {
   Seq(
-    "org.typelevel" %% "cats-core" % "2.0.0-RC1",
-    "org.typelevel" %% "kittens"   % "2.0.0"
+    "org.typelevel" %% "cats-core"   % "2.0.0",
+    "org.typelevel" %% "cats-effect" % "2.0.0",
+    "org.typelevel" %% "cats-free"   % "2.0.0",
+    "org.typelevel" %% "cats-macros" % "2.0.0",
+    "org.typelevel" %% "kittens"     % "2.0.0"
   )
 }
 
@@ -129,8 +136,8 @@ val scala_compiler = Seq(
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
 
-val circe = Seq("circe-core", "circe-generic", "circe-yaml")
-  .map("io.circe" %% _ % "0.10.0")
+val circe = Seq("circe-core", "circe-generic", "circe-parser")
+  .map("io.circe" %% _ % circeVersion)
 
 def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
@@ -153,9 +160,11 @@ val jmh = Seq(
   "org.openjdk.jmh" % "jmh-generator-annprocess" % "1.21" % Benchmark
 )
 
-//////////////////////
-//// Sub-Projects ////
-//////////////////////
+val silencerVersion = "1.4.4"
+
+////////////////////////////
+//// Internal Libraries ////
+////////////////////////////
 
 lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -199,11 +208,39 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .in(file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
+    libraryDependencies ++= monocle ++ cats ++ circe ++ scala_compiler ++ Seq(
       "com.lihaoyi" %%% "scalatags" % "0.7.0"
     )
   )
   .jsSettings(testFrameworks := Nil)
+
+lazy val graph = (project in file("common/scala/graph/"))
+  .dependsOn(logger)
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    scalacOptions -= "-deprecation", // FIXME
+    resolvers ++= Seq(
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots")
+    ),
+    libraryDependencies ++= scala_compiler ++ Seq(
+      "com.chuusai"                %% "shapeless"    % "2.3.3",
+      "io.estatico"                %% "newtype"      % "0.4.3",
+      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
+      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
+    ),
+    libraryDependencies ++= Seq(
+      compilerPlugin(
+        "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
+      ),
+      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+    ),
+    addCompilerPlugin(
+      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    )
+  )
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -217,7 +254,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
-    libraryDependencies ++= Seq(
+    libraryDependencies ++= circe ++ Seq(
       "org.scalatest"     %%% "scalatest"  % "3.0.5" % Test,
       "com.lihaoyi"       %%% "pprint"     % "0.5.3"
     ),
@@ -250,109 +287,22 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework"))
   )
 
+lazy val parser_service = (project in file("common/scala/parser-service"))
+  .dependsOn(syntax)
+  .settings(
+    libraryDependencies ++= akka,
+    mainClass := Some("org.enso.ParserServiceMain")
+  )
+
 lazy val pkg = (project in file("common/scala/pkg"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
-    libraryDependencies ++= circe ++ Seq("commons-io" % "commons-io" % "2.6")
-  )
-
-val truffleRunOptions = Seq(
-  "-Dgraal.TruffleIterativePartialEscape=true",
-  "-XX:-UseJVMCIClassLoader",
-  "-Dgraal.TruffleBackgroundCompilation=false"
-)
-
-val truffleRunOptionsSettings = Seq(
-  fork := true,
-  javaOptions ++= truffleRunOptions
-)
-
-lazy val runtime = (project in file("engine/runtime"))
-  .settings(
-    mainClass in (Compile, run) := Some("org.enso.interpreter.Main"),
-    mainClass in assembly := (Compile / run / mainClass).value,
-    assemblyJarName in assembly := "enso.jar",
-    test in assembly := {},
-    assemblyOutputPath in assembly := file("enso.jar"),
-    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
-      prependShellScript = Some(
-        defaultUniversalScript(
-          shebang  = false,
-          javaOpts = truffleRunOptions
-        )
-      )
-    ),
-    version := "0.1",
-    commands += WithDebugCommand.withDebug,
-    inConfig(Compile)(truffleRunOptionsSettings),
-    inConfig(Test)(truffleRunOptionsSettings),
-    parallelExecution in Test := false,
-    logBuffered in Test := false,
-    libraryDependencies ++= jmh ++ Seq(
-      "com.chuusai"            %% "shapeless"                % "2.3.3",
-      "org.apache.commons"     % "commons-lang3"             % "3.9",
-      "org.apache.tika"        % "tika-core"                 % "1.21",
-      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion % "provided",
-      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
-      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
-      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
-      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4",
-      "commons-cli"            % "commons-cli"               % "1.4"
-    ),
-    libraryDependencies ++= jmh
-  )
-  .settings(
-    (Compile / javacOptions) ++= Seq(
-      "-s",
-      (Compile / sourceManaged).value.getAbsolutePath
+    libraryDependencies ++= circe ++ Seq(
+      "io.circe"   %% "circe-yaml" % "0.10.0", // separate from other circe deps because its independent project with its own versioning
+      "commons-io" % "commons-io"  % "2.6"
     )
   )
-  .settings(
-    (Compile / compile) := (Compile / compile)
-      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
-      .value
-  )
-  .settings(
-    buildNativeImage := Def
-      .task {
-        val javaHome         = System.getProperty("java.home")
-        val nativeImagePath  = s"$javaHome/bin/native-image"
-        val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
-        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
-        val cmd =
-          s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
-        cmd !
-      }
-      .dependsOn(Compile / compile)
-      .value
-  )
-  .configs(Benchmark)
-  .settings(
-    logBuffered := false,
-    inConfig(Benchmark)(Defaults.testSettings),
-    inConfig(Benchmark)(truffleRunOptionsSettings),
-    bench := (test in Benchmark).tag(Exclusive).value,
-    benchOnly := Def.inputTaskDyn {
-      import complete.Parsers.spaceDelimited
-      val name = spaceDelimited("<name>").parsed match {
-        case List(name) => name
-        case _          => throw new IllegalArgumentException("Expected one argument.")
-      }
-      Def.task {
-        (testOnly in Benchmark).toTask(" -- -z " + name).value
-      }
-    }.evaluated,
-    parallelExecution in Benchmark := false
-  )
-  .dependsOn(pkg)
-  .dependsOn(syntax.jvm)
 
 lazy val file_manager = (project in file("common/scala/file-manager"))
   .settings(
@@ -378,4 +328,119 @@ lazy val project_manager = (project in file("common/scala/project-manager"))
     libraryDependencies ++= circe,
     libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
   )
+  .dependsOn(pkg)
+
+//////////////////////
+//// Sub Projects ////
+//////////////////////
+
+val truffleRunOptions = Seq(
+  "-Dgraal.TruffleIterativePartialEscape=true",
+  "-XX:-UseJVMCIClassLoader",
+  "-Dgraal.TruffleBackgroundCompilation=false"
+)
+
+val truffleRunOptionsSettings = Seq(
+  fork := true,
+  javaOptions ++= truffleRunOptions
+)
+
+lazy val runtime = (project in file("engine/runtime"))
+  .configs(Benchmark)
+  .settings(
+    version := "0.1",
+    commands += WithDebugCommand.withDebug,
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Test)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    inConfig(Benchmark)(truffleRunOptionsSettings),
+    parallelExecution in Test := false,
+    logBuffered in Test := false,
+    libraryDependencies ++= jmh ++ Seq(
+      "com.chuusai"            %% "shapeless"                % "2.3.3",
+      "org.apache.commons"     % "commons-lang3"             % "3.9",
+      "org.apache.tika"        % "tika-core"                 % "1.21",
+      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion % "provided",
+      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
+      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
+      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
+      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
+      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
+      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
+      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % Benchmark,
+      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
+    )
+  )
+  .settings(
+    (Compile / javacOptions) ++= Seq(
+      "-s",
+      (Compile / sourceManaged).value.getAbsolutePath
+    )
+  )
+  .settings(
+    (Compile / compile) := (Compile / compile)
+      .dependsOn(Def.task { (Compile / sourceManaged).value.mkdirs })
+      .value
+  )
+  .settings(
+    logBuffered := false,
+    bench := (test in Benchmark).tag(Exclusive).value,
+    benchOnly := Def.inputTaskDyn {
+      import complete.Parsers.spaceDelimited
+      val name = spaceDelimited("<name>").parsed match {
+        case List(name) => name
+        case _          => throw new IllegalArgumentException("Expected one argument.")
+      }
+      Def.task {
+        (testOnly in Benchmark).toTask(" -- -z " + name).value
+      }
+    }.evaluated,
+    parallelExecution in Benchmark := false
+  )
+  .dependsOn(pkg)
+  .dependsOn(syntax.jvm)
+
+lazy val language_server = project
+  .in(file("engine/language-server"))
+  .settings(
+    mainClass in (Compile, run) := Some("org.enso.languageserver.Main"),
+    mainClass in assembly := (Compile / run / mainClass).value,
+    assemblyJarName in assembly := "enso.jar",
+    test in assembly := {},
+    assemblyOutputPath in assembly := file("enso.jar"),
+    assemblyOption in assembly := (assemblyOption in assembly).value.copy(
+      prependShellScript = Some(
+        defaultUniversalScript(
+          shebang  = false,
+          javaOpts = truffleRunOptions
+        )
+      )
+    ),
+    inConfig(Compile)(truffleRunOptionsSettings),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
+      "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
+      "commons-cli"           % "commons-cli"            % "1.4",
+      "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
+      "org.jline"             % "jline"                  % "3.1.3"
+    )
+  )
+  .settings(
+    buildNativeImage := Def
+      .task {
+        val javaHome         = System.getProperty("java.home")
+        val nativeImagePath  = s"$javaHome/bin/native-image"
+        val classPath        = (Runtime / fullClasspath).value.files.mkString(":")
+        val resourcesGlobOpt = "-H:IncludeResources=.*Main.enso$"
+        val cmd =
+          s"$nativeImagePath $resourcesGlobOpt --macro:truffle --no-fallback --initialize-at-build-time -cp $classPath ${(Compile / mainClass).value.get} enso"
+        cmd !
+      }
+      .dependsOn(Compile / compile)
+      .value
+  )
+  .dependsOn(runtime)
   .dependsOn(pkg)

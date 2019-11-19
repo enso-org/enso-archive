@@ -2,6 +2,8 @@ package org.enso.interpreter
 
 import java.util.Optional
 
+import org.apache.commons.lang3.StringEscapeUtils
+
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.parsing.combinator._
@@ -33,12 +35,6 @@ trait AstExpressionVisitor[+T] {
     defaultsSuspended: Boolean
   ): T
 
-  def visitIf(
-    cond: AstExpression,
-    ifTrue: AstExpression,
-    ifFalse: AstExpression
-  ): T
-
   def visitAssignment(varName: String, expr: AstExpression): T
 
   def visitMatch(
@@ -48,6 +44,8 @@ trait AstExpressionVisitor[+T] {
   ): T
 
   def visitDesuspend(target: AstExpression): T
+
+  def visitStringLiteral(string: String): T
 }
 
 trait AstModuleScopeVisitor[+T] {
@@ -150,6 +148,11 @@ case class AstLong(l: Long) extends AstExpression {
     visitor.visitLong(l)
 }
 
+case class AstStringLiteral(string: String) extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitStringLiteral(string)
+}
+
 case class AstArithOp(op: String, left: AstExpression, right: AstExpression)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
@@ -201,15 +204,6 @@ case class AstAssignment(name: String, body: AstExpression)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitAssignment(name, body)
-}
-
-case class AstIfZero(
-  cond: AstExpression,
-  ifTrue: AstExpression,
-  ifFalse: AstExpression
-) extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitIf(cond, ifTrue, ifFalse)
 }
 
 case class AstCase(cons: AstExpression, function: AstCaseFunction)
@@ -276,6 +270,12 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def foreignLiteral: Parser[String] = "**" ~> "[^\\*]*".r <~ "**"
 
+  def string: Parser[AstStringLiteral] = stringLiteral ^^ { lit =>
+    AstStringLiteral(
+      StringEscapeUtils.unescapeJava(lit.substring(1, lit.length - 1))
+    )
+  }
+
   def variable: Parser[AstVariable] = ident ^^ AstVariable
 
   def operand: Parser[AstExpression] =
@@ -288,7 +288,7 @@ class EnsoParserInternal extends JavaTokenParsers {
     }
 
   def expression: Parser[AstExpression] =
-    desuspend | ifZero | matchClause | arith | function
+    desuspend | matchClause | arith | function | string
 
   def functionCall: Parser[AstApply] =
     "@" ~> expression ~ (argList ?) ~ defaultSuspend ^^ {
@@ -307,11 +307,6 @@ class EnsoParserInternal extends JavaTokenParsers {
   def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
     case v ~ exp => AstAssignment(v, exp)
   }
-
-  def ifZero: Parser[AstIfZero] =
-    "ifZero:" ~> "[" ~> (expression ~ ("," ~> expression ~ ("," ~> expression))) <~ "]" ^^ {
-      case cond ~ (ift ~ iff) => AstIfZero(cond, ift, iff)
-    }
 
   def function: Parser[AstFunction] =
     ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {
@@ -371,11 +366,19 @@ class EnsoParserInternal extends JavaTokenParsers {
   def parse(code: String): AstExpression = {
     parseAll(expression | function, code).get
   }
+
+  def parseLine(code: String): AstExpression = {
+    parseAll(statement, code).get
+  }
 }
 
 class EnsoParser {
 
   def parseEnso(code: String): AstModuleScope = {
     new EnsoParserInternal().parseGlobalScope(code)
+  }
+
+  def parseEnsoInline(code: String): AstExpression = {
+    new EnsoParserInternal().parseLine(code)
   }
 }

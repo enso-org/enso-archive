@@ -2,20 +2,19 @@ package org.enso.interpreter.node.expression.builtin.state;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.argument.ThunkExecutorNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-import javax.swing.plaf.nimbus.State;
-
 /** Root for the builtin State.run function. */
 @NodeInfo(shortName = "State.run", description = "Root for the builtin State.run function")
-public class RunStateNode extends RootNode {
+public class RunStateNode extends BuiltinRootNode {
   private RunStateNode(Language language) {
     super(language);
   }
@@ -41,7 +40,9 @@ public class RunStateNode extends RootNode {
     if (thunksProfile.profile(TypesGen.isThunk(maybeThunk))) {
       return new Stateful(
           state,
-          thunkExecutorNode.executeThunk(TypesGen.asThunk(maybeThunk), localState).getValue());
+          thunkExecutorNode
+              .executeThunk(TypesGen.asThunk(maybeThunk), localState)
+              .getValue());
     } else {
       return new Stateful(state, maybeThunk);
     }
@@ -54,8 +55,9 @@ public class RunStateNode extends RootNode {
    * @return a function wrapping this node
    */
   public static Function makeFunction(Language language) {
-    return Function.fromRootNode(
+    return Function.fromBuiltinRootNode(
         new RunStateNode(language),
+        FunctionSchema.CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "state", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(

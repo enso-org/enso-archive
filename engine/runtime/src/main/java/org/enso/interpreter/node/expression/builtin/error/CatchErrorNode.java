@@ -2,19 +2,23 @@ package org.enso.interpreter.node.expression.builtin.error;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
+import org.enso.interpreter.runtime.scope.LocalScope;
+import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
 /** Root node for the {@code catch} function. */
 @NodeInfo(shortName = "Error.catch", description = "Root node for the catch function.")
-public class CatchErrorNode extends RootNode {
+public class CatchErrorNode extends BuiltinRootNode {
   private @Child InvokeCallableNode invokeCallableNode;
   private final ConditionProfile executionProfile = ConditionProfile.createCountingProfile();
 
@@ -25,6 +29,7 @@ public class CatchErrorNode extends RootNode {
             new CallArgumentInfo[] {new CallArgumentInfo()},
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
             InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
+    this.invokeCallableNode.markTail();
   }
 
   /**
@@ -43,7 +48,7 @@ public class CatchErrorNode extends RootNode {
     Object handler = arguments[1];
     if (executionProfile.profile(TypesGen.isRuntimeError(scrutinee))) {
       return invokeCallableNode.execute(
-          handler, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
+          handler, frame, state, new Object[] {TypesGen.asRuntimeError(scrutinee).getPayload()});
     } else {
       return new Stateful(state, scrutinee);
     }
@@ -56,8 +61,9 @@ public class CatchErrorNode extends RootNode {
    * @return a function wrapping this node
    */
   public static Function makeFunction(Language language) {
-    return Function.fromRootNode(
+    return Function.fromBuiltinRootNode(
         new CatchErrorNode(language),
+        FunctionSchema.CallStrategy.DIRECT_WHEN_TAIL,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "handler", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
