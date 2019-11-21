@@ -13,7 +13,7 @@ use std::pin::Pin;
 // === GeneratingIterator ===
 // ==========================
 
-/// Type allowing iterating over values yielded from the wrapped `Generator`.
+/// Iterates over values yielded from the wrapped `Generator`.
 pub struct GeneratingIterator<G: Generator>(pub G);
 
 impl<G> Iterator for GeneratingIterator<G>
