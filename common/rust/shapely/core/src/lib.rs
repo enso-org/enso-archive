@@ -31,7 +31,7 @@ where G: Generator<Return = ()> + Unpin {
 // === EmptyIterator ===
 // =====================
 
-/// An `Iterator` type that yields no values of type `T`.
+/// An `Iterator` type that yields no values of the given type `T`.
 pub struct EmptyIterator<T>(PhantomData<T>);
 
 impl<T> EmptyIterator<T> {

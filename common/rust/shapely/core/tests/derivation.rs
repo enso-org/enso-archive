@@ -3,16 +3,25 @@
 
 use shapely::*;
 
-/// Fails compilation if `T` is not `IntoIterator`.
+// =============
+// === Utils ===
+// =============
+
+/// To fail compilation if `T` is not `IntoIterator`.
 fn is_into_iterator<T: IntoIterator>(){}
+
+fn to_vector<T>(t: T) -> Vec<T::Item>
+where T: IntoIterator,
+      T::Item: Copy {
+    t.into_iter().collect()
+}
+
+// =====================================
+// === Struct with single type param ===
+// =====================================
 
 #[derive(Iterator, Eq, PartialEq, Debug)]
 pub struct PairTT<T>(T, T);
-
-fn to_vector<T: IntoIterator>(t: T) -> Vec<T::Item>
-where T::Item: Copy{
-    t.into_iter().collect()
-}
 
 #[test]
 fn derive_iterator_single_t() {
@@ -48,6 +57,10 @@ fn derive_iterator_single_t() {
     assert_eq!(sum, pair.0 + pair.1)
 }
 
+// ===================================
+// === Struct with two type params ===
+// ===================================
+
 #[derive(Iterator, Eq, PartialEq, Debug)]
 pub struct PairUV<U,V>(U,V);
 
@@ -58,16 +71,15 @@ fn two_params() {
     assert_eq!(to_vector(pair.iter().copied()), vec![10]);
 }
 
+// ======================================
+// === Struct without any type params ===
+// ======================================
 
 #[derive(Iterator, Eq, PartialEq, Debug)]
 pub struct Monomorphic(i32);
 
 #[test]
 fn no_params() {
-    is_into_iterator::<& Monomorphic>();
-    is_into_iterator::<&mut Monomorphic>();
-
-    let mono = Monomorphic(15);
-    mono.iter();
+    // `derive(Iterator)` is no-op for structures with no type parameters.
+    // We just make sure that it does not cause compilation error.
 }
-////////////////////////////////////////////////////////////////////////////////
