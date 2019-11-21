@@ -102,7 +102,7 @@ impl Ast {
         &self.wrapped.wrapped.wrapped
     }
 
-    pub fn new<S: Into<Shape<Ast>>>(shape: S, id: Option<Id>) -> Ast {
+    pub fn new<S: Into<Shape<Ast>>>(shape: S, id: Option<ID>) -> Ast {
         let shape     = shape.into();
         let span      = shape.span();
         let with_span = WithSpan { wrapped: shape,     span };
@@ -111,7 +111,7 @@ impl Ast {
     }
 }
 
-impl Spanned for Ast {
+impl HasSpan for Ast {
     fn span(&self) -> usize {
         self.wrapped.span()
     }
@@ -374,22 +374,22 @@ pub type MacroPatternMatch<T> = Rc<FooRaw<T>>;
 // === AST ===
 // ===========
 
-// === Spanned ===
+// === HasSpan ===
 
 /// Things that can be asked about their span.
-pub trait Spanned {
+pub trait HasSpan {
     fn span(&self) -> usize;
 }
 
 /// Counts codepoints.
-impl Spanned for String {
+impl HasSpan for String {
     fn span(&self) -> usize {
         self.as_str().span()
     }
 }
 
 /// Counts codepoints.
-impl Spanned for &str {
+impl HasSpan for &str {
     fn span(&self) -> usize {
         self.chars().count()
     }
@@ -397,7 +397,11 @@ impl Spanned for &str {
 
 // === WithID ===
 
-pub type Id = i32;
+pub trait HasID {
+    fn id(&self) -> Option<ID>;
+}
+
+pub type ID = i32;
 
 #[derive(Eq, PartialEq, Debug, Shrinkwrap, Serialize, Deserialize)]
 #[shrinkwrap(mutable)]
@@ -405,7 +409,14 @@ pub struct WithID<T> {
     #[shrinkwrap(main_field)]
     #[serde(flatten)]
     pub wrapped: T,
-    pub id: Option<Id>
+    pub id: Option<ID>
+}
+
+impl<T> HasID for WithID<T>
+    where T: HasID {
+    fn id(&self) -> Option<ID> {
+        self.id
+    }
 }
 
 impl<T, S:Layer<T>>
@@ -415,8 +426,8 @@ Layer<T> for WithID<S> {
     }
 }
 
-impl<T> Spanned for WithID<T>
-where T: Spanned {
+impl<T> HasSpan for WithID<T>
+where T: HasSpan {
     fn span(&self) -> usize {
         self.deref().span()
     }
@@ -437,15 +448,22 @@ pub struct WithSpan<T> {
     pub span: usize
 }
 
-impl<T> Spanned for WithSpan<T> {
+impl<T> HasSpan for WithSpan<T> {
     fn span(&self) -> usize { self.span }
 }
 
 impl<T, S> Layer<T> for WithSpan<S>
-where T: Spanned + Into<S> {
+where T: HasSpan + Into<S> {
     fn layered(t: T) -> Self {
         let span = t.span();
         WithSpan { wrapped: t.into(), span }
+    }
+}
+
+impl<T> HasID for WithSpan<T>
+    where T: HasID {
+    fn id(&self) -> Option<ID> {
+        self.deref().id()
     }
 }
 
@@ -460,6 +478,7 @@ where T: Spanned + Into<S> {
 
 impl Ast {
     // TODO smart constructors for other cases
+    //  as part of https://github.com/luna/enso/issues/338
     pub fn var(name: String) -> Ast {
         let var = Var{ name };
         Ast::from(var)
@@ -471,13 +490,15 @@ impl Ast {
 impl<T> Shape<T> {
     pub fn iter(&self) -> Box<dyn Iterator<Item = &'_ T> + '_> {
         // TODO: use child's derived iterator
+        //  as part of https://github.com/luna/enso/issues/338
         unimplemented!()
     }
 }
 
-impl<T> Spanned for Shape<T> {
+impl<T> HasSpan for Shape<T> {
     fn span(&self) -> usize {
         // TODO: sum spans of all members
+        //  as part of https://github.com/luna/enso/issues/338
         //unimplemented!()
         0
     }
@@ -485,7 +506,7 @@ impl<T> Spanned for Shape<T> {
 
 // === Var ===
 
-impl Spanned for Var {
+impl HasSpan for Var {
     fn span(&self) -> usize {
         self.name.span()
     }
