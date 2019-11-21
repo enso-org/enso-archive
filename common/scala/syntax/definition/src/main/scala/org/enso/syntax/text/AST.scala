@@ -640,6 +640,7 @@ object AST {
     }
 
     object Text {
+      val any = UnapplyByType[Text]
 
       //// Definition ////
 
