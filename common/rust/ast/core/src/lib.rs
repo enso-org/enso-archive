@@ -97,16 +97,32 @@ impl Ast {
         // TODO https://github.com/luna/enso/issues/338
         unimplemented!();
     }
+
+    pub fn shape(&self) -> &Shape<Ast> {
+        &self.wrapped.wrapped.wrapped
+    }
+
+    pub fn new<S: Into<Shape<Ast>>>(shape: S, id: Option<Id>) -> Ast {
+        let shape     = shape.into();
+        let span      = shape.span();
+        let with_span = WithSpan { wrapped: shape,     span };
+        let with_id   = WithID   { wrapped: with_span, id   };
+        Ast { wrapped: Rc::new(with_id) }
+    }
 }
 
-impl<T: Spanned + Into<Shape<Ast>>>
+impl Spanned for Ast {
+    fn span(&self) -> usize {
+        self.wrapped.span()
+    }
+}
+
+/// Fills `id` with `None` by default.
+impl<T: Into<Shape<Ast>>>
 From<T> for Ast {
     fn from(t: T) -> Self {
-        let span      = t.span();
-        let shape     = t.into();
-        let with_span = WithSpan { wrapped: shape, span };
-        let with_id   = WithID   { wrapped: with_span, id: None };
-        Ast { wrapped: Rc::new(with_id) }
+        let id = None;
+        Ast::new(t, id)
     }
 }
 
@@ -365,8 +381,15 @@ pub trait Spanned {
     fn span(&self) -> usize;
 }
 
-/// Treats codepoint count as a span of a `String`.
+/// Counts codepoints.
 impl Spanned for String {
+    fn span(&self) -> usize {
+        self.as_str().span()
+    }
+}
+
+/// Counts codepoints.
+impl Spanned for &str {
     fn span(&self) -> usize {
         self.chars().count()
     }
@@ -374,19 +397,28 @@ impl Spanned for String {
 
 // === WithID ===
 
+pub type Id = i32;
+
 #[derive(Eq, PartialEq, Debug, Shrinkwrap, Serialize, Deserialize)]
 #[shrinkwrap(mutable)]
 pub struct WithID<T> {
     #[shrinkwrap(main_field)]
     #[serde(flatten)]
     pub wrapped: T,
-    pub id: Option<i32>
+    pub id: Option<Id>
 }
 
 impl<T, S:Layer<T>>
 Layer<T> for WithID<S> {
     fn layered(t: T) -> Self {
         WithID { wrapped: Layer::layered(t), id: None }
+    }
+}
+
+impl<T> Spanned for WithID<T>
+where T: Spanned {
+    fn span(&self) -> usize {
+        self.deref().span()
     }
 }
 
@@ -417,11 +449,22 @@ where T: Spanned + Into<S> {
     }
 }
 
+
 // =============================================================================
 // === TO BE GENERATED =========================================================
 // =============================================================================
 // TODO: the definitions below should be removed and instead generated using
 //  macros, as part of https://github.com/luna/enso/issues/338
+
+// === AST ===
+
+impl Ast {
+    // TODO smart constructors for other cases
+    pub fn var(name: String) -> Ast {
+        let var = Var{ name };
+        Ast::from(var)
+    }
+}
 
 // === Shape ===
 
@@ -435,20 +478,62 @@ impl<T> Shape<T> {
 impl<T> Spanned for Shape<T> {
     fn span(&self) -> usize {
         // TODO: sum spans of all members
-        unimplemented!()
+        //unimplemented!()
+        0
     }
 }
 
 // === Var ===
 
-impl Var {
-    pub fn new(name: String) -> Ast {
-        Ast::from (Var { name })
-    }
-}
-
 impl Spanned for Var {
     fn span(&self) -> usize {
         self.name.span()
+    }
+}
+
+
+// =============
+// === Tests ===
+// =============
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn var_smart_constructor() {
+        let name = "foo".to_string();
+        let v    = Ast::var(name.clone());
+        match v.shape() {
+            Shape::Var(var) if *var.name == name =>
+                (),
+            _ =>
+                panic!("expected Var with name `{}`", name),
+        }
+    }
+
+    #[test]
+    fn ast_wrapping() {
+        // We can convert `Var` into AST without worrying about span nor id.
+        let sample_name = "foo".to_string();
+        let v = Var{ name: sample_name.clone() };
+        let ast = Ast::from(v);
+        assert_eq!(ast.wrapped.id, None);
+        assert_eq!(ast.wrapped.wrapped.span, sample_name.span());
+    }
+
+    #[test]
+    fn serialization_round_trip() {
+        let var_name = "foo";
+        let v1       = Var { name: var_name.to_string() };
+        let v1_str   = serde_json::to_string(&v1).unwrap();
+        let v2: Var  = serde_json::from_str(&v1_str).unwrap();
+        assert_eq!(v1, v2);
+
+        let id        = Some(15);
+        let ast1      = Ast::new(v1, id);
+        let ast_str   = serde_json::to_string(&ast1).unwrap();
+        let ast2: Ast = serde_json::from_str(&ast_str).unwrap();
+        assert_eq!(ast1, ast2);
     }
 }

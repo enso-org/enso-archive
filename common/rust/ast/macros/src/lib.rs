@@ -21,7 +21,9 @@ use macro_utils::repr;
 /// need to use this macro directly.
 #[proc_macro_attribute]
 pub fn ast_node
-(_meta: proc_macro::TokenStream, input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+(_meta: proc_macro::TokenStream
+ , input: proc_macro::TokenStream
+) -> proc_macro::TokenStream {
     let input: TokenStream = input.into();
     let output = quote! {
         #[derive(Eq, PartialEq, Debug)]
@@ -32,11 +34,12 @@ pub fn ast_node
     output.into()
 }
 
-///
+/// Marks target declaration as `ast_node`. If it is an enumeration, also
+/// applies `to_variant_types`.
 #[proc_macro_attribute]
 pub fn ast
 ( attrs : proc_macro::TokenStream
-  , input : proc_macro::TokenStream
+ , input : proc_macro::TokenStream
 ) -> proc_macro::TokenStream {
     let attrs: TokenStream = attrs.into();
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
@@ -60,31 +63,33 @@ pub fn ast
 // === Macros ===
 // ==============
 
-struct TypeGather {
+/// Visitor that accumulates all visited `syn::TypePath` node representations.
+struct TypeGatherer {
     pub types: Vec<String>
 }
 
-impl TypeGather {
+impl TypeGatherer {
     pub fn new() -> Self {
         let types = default();
         Self { types }
     }
 }
 
-impl<'ast> Visit<'ast> for TypeGather {
+impl<'ast> Visit<'ast> for TypeGatherer {
     fn visit_type_path(&mut self, node: &'ast syn::TypePath) {
         self.types.push(repr(node));
         visit::visit_type_path(self, node);
     }
 }
 
+/// Text representation of all `TypePath`s in the given's `Type` subtree.
 fn gather_all_types(node: &syn::Type) -> Vec<String> {
-    let mut type_gather = TypeGather::new();
+    let mut type_gather = TypeGatherer::new();
     type_gather.visit_type(node);
     type_gather.types
 }
 
-
+/// Produces declaration of the structure for given source enum variant.
 fn mk_product_type
 ( is_flat : bool
   , decl    : &syn::DeriveInput
@@ -110,25 +115,49 @@ fn mk_product_type
     ItemStruct { attrs, vis, struct_token, ident, generics, fields, semi_token }
 }
 
+/// Generates rewritten enumeration declaration.
+///
+/// Each constructor will be a single-elem tuple holder for extracted type.
 fn gen_variant_decl
 (ident: &syn::Ident, variant: &syn::ItemStruct) -> TokenStream {
     let variant_ident = &variant.ident;
-    let params = variant.generics.params.iter();
+    let params        = variant.generics.params.iter();
     quote! {
+        // See note [Expansion Example]
         // App(ShapeApp<T>),
         // Var(ShapeVar),
         #ident(#variant_ident<#(#params),*>)
     }
 }
 
+// Note [Expansion Example]
+// ~~~~~~~~~~~~~~~~~~~~~~~~
+// In order to make the definition easier to read, an example expansion of the
+// following definition was provided for each quotation:
+//
+// #[to_variant_types]
+// pub enum Shape<T> {
+//     Var(Var),
+//     App(App<T>),
+// }
+
+/// Generate `From` trait implementations converting from each of extracted
+/// types back into primary enumeration.
 fn gen_from_impls
-(ident: &syn::Ident, decl: &syn::DeriveInput, variant: &syn::ItemStruct) -> TokenStream {
-    let sum_label = &decl.ident;
+(ident: &syn::Ident
+ , decl: &syn::DeriveInput
+ , variant: &syn::ItemStruct
+) -> TokenStream {
+    let sum_label     = &decl.ident;
     let variant_label = &variant.ident;
-    let sum_params = &decl.generics.params.iter().cloned().collect::<Vec<_>>();
-    let variant_params = &variant.generics.params.iter().cloned().collect::<Vec<_>>();
+
+    let sum_params = &decl.generics.params
+        .iter().cloned().collect::<Vec<_>>();
+    let variant_params = &variant.generics.params
+        .iter().cloned().collect::<Vec<_>>();
 
     quote! {
+        // See note [Expansion Example]
         // impl<T> From<App<T>> for Shape<T> {
         //     fn from(t: App<T>) -> Self { Shape::App(t) }
         // }
@@ -142,14 +171,15 @@ fn gen_from_impls
     }
 }
 
-/// In order to make the definition easier to read, an example expansion of the
-/// following definition was provided for each quotation:
+
+/// Rewrites enum definition by creating a new type for each constructor.
 ///
-/// #[to_variant_types]
-/// pub enum Shape<T> {
-///     Var(Var),
-///     App(App<T>),
-/// }
+/// Each nested constructor will be converted to a new `struct` and placed in
+/// the parent scope. The created type name will be {EnumName}{ConstructorName}.
+/// To name generated types with only their constructor name, use `flat`
+/// attribute: `#[ast(flat)]`.
+///
+/// The target enum will
 #[proc_macro_attribute]
 pub fn to_variant_types
 ( attrs: proc_macro::TokenStream
