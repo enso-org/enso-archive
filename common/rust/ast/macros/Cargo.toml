@@ -1,5 +1,5 @@
 [package]
-name    = "shapely-macros"
+name    = "ast-macros"
 version = "0.1.0"
 authors = ["Wojciech Danilo <wojciech.danilo@luna-lang.org>"]
 edition = "2018"
@@ -11,9 +11,9 @@ proc-macro = true
 default = []
 
 [dependencies]
-Inflector      = "0.11.4"
 proc-macro2    = "1.0"
 quote          = "1.0"
+Inflector      = "0.11.4"
 
 macro-utils    = { version = "0.1.0"  , path = "../../macro-utils" }
 prelude        = { version = "0.1.0"  , path = "../../prelude" }

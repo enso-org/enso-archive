@@ -10,6 +10,7 @@ use inflector::Inflector;
 use proc_macro2::{TokenStream, Ident, Span};
 use quote::quote;
 use syn;
+use macro_utils::{fields_list, repr};
 
 
 ////////////////////////////////////////////////
@@ -169,19 +170,4 @@ fn derive_iterator_for
         }
     };
     proc_macro::TokenStream::from(expanded)
-}
-
-
-/// Obtains text representation of given `ToTokens`-compatible input.
-fn repr<T: quote::ToTokens>(t: &T) -> String {
-    quote!(#t).to_string()
-}
-
-/// Collects all fields, named or not.
-fn fields_list(fields: &syn::Fields) -> Vec<&syn::Field> {
-    match fields {
-        syn::Fields::Named   (ref f) => { f.named.iter().collect()   }
-        syn::Fields::Unnamed (ref f) => { f.unnamed.iter().collect() }
-        syn::Fields::Unit            => default()
-    }
 }
