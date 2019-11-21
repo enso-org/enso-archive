@@ -126,7 +126,7 @@ jobs:
       echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
     displayName: Adjust Environment Variables
   - script: |
-      sbt.bat test
+      sbt test
     continueOnError: true
     displayName: Test All
   - script: |
