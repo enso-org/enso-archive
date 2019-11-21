@@ -1,2 +1,4 @@
 -Xss8M
--Xmx3072M
+-Xmx5G
+-XX:+UseConcMarkSweepGC
+-XX:+CMSClassUnloadingEnabled
