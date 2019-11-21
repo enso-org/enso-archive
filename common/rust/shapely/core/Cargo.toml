@@ -10,6 +10,6 @@ edition = "2018"
 default = []
 
 [dependencies]
-shapely-macros = { version = "0.1.0"  , path = "../macros"     }
 prelude        = { version = "0.1.0"  , path = "../../prelude" }
+shapely-macros = { version = "0.1.0"  , path = "../macros"     }
 
