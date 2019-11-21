@@ -13,8 +13,6 @@ use syn;
 use macro_utils::{fields_list, repr};
 
 
-////////////////////////////////////////////////
-
 /// For `struct Foo<T>` provides:
 /// * `IntoIterator` implementations for `&'t Foo<T>` and `&mut 't Foo<T>`;
 /// * `iter` and `into_iter` methods.
@@ -41,11 +39,7 @@ pub fn derive_iterator
     }
 }
 
-/// In order to make the definition easier to read, an example expansion of the
-/// following definition was provided for each quotation:
-///
-/// #[derive(Iterator)]
-/// pub struct Foo<S, T> { foo: T }
+/// Derives iterator that iterates over fields of type `target_param`.
 fn derive_iterator_for
 ( decl         : &syn::DeriveInput
 , target_param : &syn::GenericParam
@@ -92,6 +86,7 @@ fn derive_iterator_for
     let iter_body       = if empty { &iter_body_dummy } else { &iter_body_ref };
     let iter_body_mut   = if empty { &iter_body_dummy } else { &iter_body_mut };
     let expanded        = quote! {
+        // See Note [Expansion Example] - for this and further examples meaning.
         // type FooIterator<'t, T> = impl Iterator<Item = &'t T>;
         type #t_iterator<'t, #(#params),*> =
             impl Iterator<Item = &'t #target_param>;
@@ -171,3 +166,11 @@ fn derive_iterator_for
     };
     proc_macro::TokenStream::from(expanded)
 }
+
+// Note [Expansion Example]
+// ~~~~~~~~~~~~~~~~~~~~~~~~
+// In order to make the definition easier to read, an example expansion of the
+// following definition was provided for each quotation:
+//
+// #[derive(Iterator)]
+// pub struct Foo<S, T> { foo: T }
