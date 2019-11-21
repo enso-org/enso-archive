@@ -1,30 +1,49 @@
 use crate::{api, api::IsParser};
 use failure::Fail;
+use wasm_bindgen::prelude::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Fail)]
 pub enum Error {
-    #[fail(display = "JS parser client has not been yet implemented!")]
-    NotImplemented,
+    #[fail(display = "JSON (de)serialization failed: {:?}", _0)]
+    JsonSerializationError(#[cause] serde_json::error::Error)
 }
+
+impl From<Error> for api::Error {
+    fn from(e: Error) -> Self {
+        api::interop_error(e)
+    }
+}
+impl From<serde_json::error::Error> for Error {
+    fn from(error: serde_json::error::Error) -> Self {
+        Error::JsonSerializationError(error)
+    }
+}
+
 
 /// Wrapper over the JS-compiled parser.
 ///
-/// Can only be used when targeting WebAssembly. Not yet implemented.
+/// Can only be used when targeting WebAssembly.
 pub struct Client {}
 
 impl Client {
-    // avoid warnings when compiling natively and having this usage cfg-ed out
-    #[cfg(not(target_arch = "wasm32"))]
     #[allow(dead_code)]
     pub fn new() -> Result<Client> {
-        Err(Error::NotImplemented)
+       let path = std::env::current_dir()?;
+       let jsparser = std
+        Ok(Client {})
     }
 }
 
 impl IsParser for Client {
     fn parse(&mut self, _program: String) -> api::Result<api::AST> {
-        Err(api::interop_error(Error::NotImplemented))
+        Ok(parse(&_program))
     }
+}
+
+
+#[wasm_bindgen(module = "/foo.js")]
+extern "C" {
+   fn parse(program: &str) -> String;
 }
