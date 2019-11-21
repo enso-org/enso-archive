@@ -11,7 +11,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 val scalacVersion = "2.12.10"
 val graalVersion  = "19.2.0.1"
-val circeVersion  = "0.11.1"
+val circeVersion  = "0.12.3"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
