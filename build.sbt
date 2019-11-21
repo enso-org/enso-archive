@@ -204,8 +204,11 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .in(file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ circe ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %%% "scalatags"  % "0.7.0"
+    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
+      "com.lihaoyi" %%% "scalatags"  % "0.7.0",
+      "io.circe" %%% "circe-core"    % circeVersion,
+      "io.circe" %%% "circe-generic" % circeVersion,
+      "io.circe" %%% "circe-parser"  % circeVersion
     )
   )
   .jsSettings(testFrameworks := Nil)
@@ -223,9 +226,12 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
-    libraryDependencies ++= circe ++ Seq(
+    libraryDependencies ++=  Seq(
       "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
-      "com.lihaoyi" %%% "pprint"      % "0.5.3"
+      "com.lihaoyi" %%% "pprint"      % "0.5.3",
+      "io.circe" %%% "circe-core"    % circeVersion,
+      "io.circe" %%% "circe-generic" % circeVersion,
+      "io.circe" %%% "circe-parser"  % circeVersion
     ),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
