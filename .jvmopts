@@ -1,5 +1,3 @@
--Xss16M
--Xmx7G
+-Xss8M
+-Xmx3G
 -XX:+UseCompressedOops
--XX:+UseConcMarkSweepGC
--XX:+CMSClassUnloadingEnabled

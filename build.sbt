@@ -94,11 +94,8 @@ lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
     unused.jvm,
-    unused.js,
     flexer.jvm,
-    flexer.js,
     syntax_definition.jvm,
-    syntax_definition.js,
     syntax.jvm,
     pkg,
     project_manager,
