@@ -496,11 +496,13 @@ impl<T> Shape<T> {
 }
 
 impl<T> HasSpan for Shape<T> {
+    // TODO: sum spans of all members
+    //  as part of https://github.com/luna/enso/issues/338
     fn span(&self) -> usize {
-        // TODO: sum spans of all members
-        //  as part of https://github.com/luna/enso/issues/338
-        //unimplemented!()
-        0
+        match self {
+            Shape::Var(var) => var.span(),
+            _               => 0,
+        }
     }
 }
 
