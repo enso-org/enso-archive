@@ -2,6 +2,7 @@ pub mod api;
 
 mod jsclient;
 mod wsclient;
+mod jswrapper;
 
 use std::ops::DerefMut;
 
@@ -36,6 +37,10 @@ impl Parser {
         Parser::new()
             .unwrap_or_else(|e| panic!("Failed to create a parser: {:?}", e))
     }
+
+   pub fn new_wrapper() -> Parser {
+      Parser(Box::new(jswrapper::Wrapper::new()))
+   }
 }
 
 impl api::IsParser for Parser {

@@ -7,7 +7,7 @@ fn main() {
     let program = std::env::args().nth(1).unwrap_or(default_input);
     println!("Will parse: {}", program);
 
-    let mut parser = parser::Parser::new_or_panic();
+    let mut parser = parser::Parser::new_wrapper();
     let     output = parser.parse(program);
     match output {
         Ok(result) => println!("Parser responded with: {:?}", result),
