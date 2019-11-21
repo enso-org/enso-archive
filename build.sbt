@@ -210,33 +210,6 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(testFrameworks := Nil)
 
-lazy val graph = (project in file("common/scala/graph/"))
-  .dependsOn(logger.jvm)
-  .configs(Test)
-  .settings(
-    version := "0.1",
-    scalacOptions -= "-deprecation", // FIXME
-    resolvers ++= Seq(
-      Resolver.sonatypeRepo("releases"),
-      Resolver.sonatypeRepo("snapshots")
-    ),
-    libraryDependencies ++= scala_compiler ++ Seq(
-      "com.chuusai"                %% "shapeless"    % "2.3.3",
-      "io.estatico"                %% "newtype"      % "0.4.3",
-      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
-      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
-      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
-    ),
-    libraryDependencies ++= Seq(
-      compilerPlugin(
-        "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
-      ),
-      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-    ),
-    addCompilerPlugin(
-      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
-    )
-  )
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -288,6 +261,34 @@ lazy val parser_service = (project in file("common/scala/parser-service"))
   .settings(
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
+  )
+
+lazy val graph = (project in file("common/scala/graph/"))
+  .dependsOn(logger.jvm)
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    scalacOptions -= "-deprecation", // FIXME
+    resolvers ++= Seq(
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots")
+    ),
+    libraryDependencies ++= scala_compiler ++ Seq(
+      "com.chuusai"                %% "shapeless"    % "2.3.3",
+      "io.estatico"                %% "newtype"      % "0.4.3",
+      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
+      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
+    ),
+    libraryDependencies ++= Seq(
+      compilerPlugin(
+        "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
+      ),
+      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+    ),
+    addCompilerPlugin(
+      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    )
   )
 
 lazy val pkg = (project in file("common/scala/pkg"))
