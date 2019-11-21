@@ -187,7 +187,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
     scalacOptions -= "-deprecation", // FIXME
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scala_compiler ++ Seq(
-      "org.feijoas" %% "mango" % "0.14",
+      "org.feijoas"                   %% "mango" % "0.14",
       "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
       "org.typelevel" %%% "kittens"   % "2.0.0"
     )
@@ -201,15 +201,17 @@ lazy val unused = crossProject(JVMPlatform, JSPlatform)
   .settings(version := "0.1", scalacOptions += "-nowarn")
   .jsSettings(testFrameworks := Nil)
 
-
 lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ circe ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %%% "scalatags" % "0.7.0"
+    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
+      "com.lihaoyi" %%% "scalatags"  % "0.7.0",
+      "io.circe" %%% "circe-core"    % circeVersion,
+      "io.circe" %%% "circe-generic" % circeVersion,
+      "io.circe" %%% "circe-parser"  % circeVersion
     )
   )
   .jsSettings(testFrameworks := Nil)
@@ -254,9 +256,12 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
-    libraryDependencies ++= circe ++ Seq(
-      "org.scalatest"     %%% "scalatest"  % "3.0.5" % Test,
-      "com.lihaoyi"       %%% "pprint"     % "0.5.3"
+    libraryDependencies ++= Seq(
+      "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
+      "com.lihaoyi" %%% "pprint"      % "0.5.3",
+      "io.circe" %%% "circe-core"     % circeVersion,
+      "io.circe" %%% "circe-generic"  % circeVersion,
+      "io.circe" %%% "circe-parser"   % circeVersion
     ),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
@@ -274,13 +279,13 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .jvmSettings(
     inConfig(Benchmark)(Defaults.testSettings),
     unmanagedSourceDirectories in Benchmark +=
-      baseDirectory.value.getParentFile / "src/bench/scala",
+    baseDirectory.value.getParentFile / "src/bench/scala",
     libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
     ),
-    bench := (test in Benchmark).tag(Exclusive).value,
+    bench := (test in Benchmark).tag(Exclusive).value
   )
   .jsSettings(
     scalaJSUseMainModuleInitializer := true,
