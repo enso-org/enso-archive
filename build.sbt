@@ -307,8 +307,6 @@ val truffleRunOptions = Seq(
 val truffleRunOptionsSettings = Seq(
   fork := true,
   javaOptions ++= truffleRunOptions
-//  javaOptions ++= Seq("-cp", fullClasspath.in(Compile).value.files.mkString(":")),
-//  javaOptions ++= Seq(s"-Dtruffle.classpath.append=${fullClasspath.in(Compile).value.files.mkString(":")}")
 )
 
 lazy val runtime = (project in file("engine/runtime"))

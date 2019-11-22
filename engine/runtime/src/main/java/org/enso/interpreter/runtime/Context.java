@@ -55,7 +55,7 @@ public class Context {
                     SourceFile::qualifiedName,
                     srcFile ->
                         new Module(
-                            getEnvironment().getTruffleFile(srcFile.file().getAbsolutePath()))));
+                            getEnvironment().getInternalTruffleFile(srcFile.file().getAbsolutePath()))));
 
     this.compiler = new Compiler(this.language, knownFiles, this);
   }
