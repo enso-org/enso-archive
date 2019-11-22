@@ -63,6 +63,17 @@ pub fn ast
 // === Macros ===
 // ==============
 
+// Note [Expansion Example]
+// ~~~~~~~~~~~~~~~~~~~~~~~~
+// In order to make the definition easier to read, an example expansion of the
+// following definition was provided for each quotation:
+//
+// #[to_variant_types]
+// pub enum Shape<T> {
+//     Var(Var),
+//     App(App<T>),
+// }
+
 /// Visitor that accumulates all visited `syn::TypePath` node representations.
 struct TypeGatherer {
     pub types: Vec<String>
@@ -129,17 +140,6 @@ fn gen_variant_decl
         #ident(#variant_ident<#(#params),*>)
     }
 }
-
-// Note [Expansion Example]
-// ~~~~~~~~~~~~~~~~~~~~~~~~
-// In order to make the definition easier to read, an example expansion of the
-// following definition was provided for each quotation:
-//
-// #[to_variant_types]
-// pub enum Shape<T> {
-//     Var(Var),
-//     App(App<T>),
-// }
 
 /// Generate `From` trait implementations converting from each of extracted
 /// types back into primary enumeration.
