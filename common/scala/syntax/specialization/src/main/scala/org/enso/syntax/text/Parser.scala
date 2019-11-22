@@ -14,6 +14,8 @@ import org.enso.syntax.text.spec.ParserDef
 import scala.math.Ordering.Implicits._
 import scala.annotation.tailrec
 
+import org.enso.syntax.text2
+
 ////////////////////////////////
 
 class InternalError(reason: String, cause: Throwable = None.orNull)
@@ -315,7 +317,9 @@ object Main extends App {
   println("=========================")
 
   println()
+//
+//  AST.main()
 
-  AST.main()
+  text2.AST.main()
 
 }
