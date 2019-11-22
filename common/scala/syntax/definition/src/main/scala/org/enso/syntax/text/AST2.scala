@@ -110,39 +110,25 @@ object Phantom {
 
 sealed trait Shape[T]
 
-/** Implicits for traits deriving [[Shape]], like [[Shape.Ident]]. */
-sealed trait ShapeImplicit2 {
-
-  implicit def repr[S, T[S] <: Shape[S]]: Repr[T[S]] = { in =>
-    val shape: Shape[S] = in
-    Repr(shape)
-  }
-
-  implicit def ozip[S, T[S] <: Shape[S]]: OffsetZip[T, S] = { in =>
-    val shape: Shape[S] = in
-    //OffsetZip(shape)
-    ???
-  }
-}
-
 /** Implicits for [[Shape]], will overwrite inherited ones from
   * [[ShapeImplicit2]]
   */
-sealed trait ShapeImplicit extends ShapeImplicit2 {
+sealed trait ShapeImplicit {
   import Shape._
 
   implicit def ftor: Functor[Shape]    = semi.functor
   implicit def fold: Foldable[Shape]   = semi.foldable
   implicit def repr[T]: Repr[Shape[T]] = ??? // TODO do big match
   implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
-    case s: Unrecognized[T] => OffsetZip[Unrecognized, T].zipWithOffset(s)
-    case s: Unexpected[T]   => OffsetZip[Unexpected, T].zipWithOffset(s)
-    case s: Blank[T]        => OffsetZip[Blank, T].zipWithOffset(s)
-    case s: Var[T]          => OffsetZip[Var, T].zipWithOffset(s)
-    case s: Cons[T]         => OffsetZip[Cons, T].zipWithOffset(s)
-    case s: Opr[T]          => OffsetZip[Opr, T].zipWithOffset(s)
-    case s: Mod[T]          => OffsetZip[Mod, T].zipWithOffset(s)
-    case s: App[T]          => OffsetZip[App, T].zipWithOffset(s)
+    case s: Unrecognized[T]  => OffsetZip[Unrecognized, T].zipWithOffset(s)
+    case s: Unexpected[T]    => OffsetZip[Unexpected, T].zipWithOffset(s)
+    case s: Blank[T]         => OffsetZip[Blank, T].zipWithOffset(s)
+    case s: Var[T]           => OffsetZip[Var, T].zipWithOffset(s)
+    case s: Cons[T]          => OffsetZip[Cons, T].zipWithOffset(s)
+    case s: Opr[T]           => OffsetZip[Opr, T].zipWithOffset(s)
+    case s: Mod[T]           => OffsetZip[Mod, T].zipWithOffset(s)
+    case s: App[T]           => OffsetZip[App, T].zipWithOffset(s)
+    case s: InvalidSuffix[T] => OffsetZip[InvalidSuffix, T].zipWithOffset(s)
   }
 }
 
@@ -158,7 +144,9 @@ object Shape extends ShapeImplicit {
   final case class Unexpected[T](msg: String, stream: StreamOf[T])
       extends InvalidOf[T]
 
-  sealed trait IdentOf[T]                extends Shape[T] with Phantom { val name: String }
+  sealed trait IdentOf[T] extends Shape[T] with Phantom {
+    val name: String
+  }
   final case class Blank[T]()            extends IdentOf[T] { val name = "_" }
   final case class Var[T](name: String)  extends IdentOf[T]
   final case class Cons[T](name: String) extends IdentOf[T]
@@ -168,9 +156,26 @@ object Shape extends ShapeImplicit {
   }
   final case class InvalidSuffix[T](elem: AST.Ident, suffix: String) // TODO: why `elem` doesn't depend on `T`
       extends InvalidOf[T]
+      with Phantom
 
   sealed trait AppOf[T]                            extends Shape[T]
   final case class App[T](fn: T, off: Int, arg: T) extends AppOf[T]
+
+  object IdentOf {
+    implicit def ftor: Functor[IdentOf]    = semi.functor
+    implicit def fold: Foldable[IdentOf]   = semi.foldable
+    implicit def repr[T]: Repr[IdentOf[T]] = _.name
+    implicit def ozip[T: HasSpan]: OffsetZip[IdentOf, T] = { ident =>
+      val ev  = implicitly[HasSpan[T]]
+      val ret = Shape.ozip(ev).zipWithOffset(ident: Shape[T])
+      ret match {
+        case identOf: Shape.IdentOf[(Index, T)] => identOf
+        case _ =>
+          throw new Exception("internal error")
+      }
+    }
+    implicit def span[T: HasSpan]: HasSpan[IdentOf[T]] = t => (t: Shape[T]).span
+  }
 
   ////Companions ///
   // TODO: All companion objects can be generated with macros
@@ -229,12 +234,13 @@ object Shape extends ShapeImplicit {
     implicit def span[T]: HasSpan[Opr[T]]   = t => t.name.length
   }
   object InvalidSuffix {
-    implicit def ftor: Functor[InvalidSuffix]  = semi.functor
-    implicit def fold: Foldable[InvalidSuffix] = semi.foldable
-//    implicit def ozip[T]: OffsetZip[InvalidSuffix, T] = t => t.coerce
-//    implicit def repr[T]: Repr[InvalidSuffix[T]] =
-//      t => R + t.elem + t.suffix
-//    implicit def span[T]: InvalidSuffix[Opr[T]] = t => t.elem.length
+    implicit def ftor: Functor[InvalidSuffix]         = semi.functor
+    implicit def fold: Foldable[InvalidSuffix]        = semi.foldable
+    implicit def ozip[T]: OffsetZip[InvalidSuffix, T] = t => t.coerce
+    implicit def repr[T]: Repr[InvalidSuffix[T]] =
+      t => R + t.elem.shape.repr + t.suffix
+    implicit def span[T]: HasSpan[InvalidSuffix[T]] =
+      t => t.elem.span + t.suffix.length
   }
 
   object App {
@@ -264,7 +270,7 @@ object Shape extends ShapeImplicit {
       ozip: OffsetZip[T, AST]
     ) {
       def mapWithOff(f: (Index, AST) => AST): T[AST] =
-        Functor[T].map(OffsetZip(t))(f.tupled)
+        Functor[T].map(ozip.zipWithOffset(t))(f.tupled)
     }
   }
 }
