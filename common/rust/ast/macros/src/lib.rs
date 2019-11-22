@@ -21,8 +21,8 @@ use macro_utils::repr;
 /// need to use this macro directly.
 #[proc_macro_attribute]
 pub fn ast_node
-(_meta: proc_macro::TokenStream
- , input: proc_macro::TokenStream
+( _meta: proc_macro::TokenStream
+, input: proc_macro::TokenStream
 ) -> proc_macro::TokenStream {
     let input: TokenStream = input.into();
     let output = quote! {
@@ -39,7 +39,7 @@ pub fn ast_node
 #[proc_macro_attribute]
 pub fn ast
 ( attrs : proc_macro::TokenStream
- , input : proc_macro::TokenStream
+, input : proc_macro::TokenStream
 ) -> proc_macro::TokenStream {
     let attrs: TokenStream = attrs.into();
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
@@ -92,8 +92,8 @@ fn gather_all_types(node: &syn::Type) -> Vec<String> {
 /// Produces declaration of the structure for given source enum variant.
 fn mk_product_type
 ( is_flat : bool
-  , decl    : &syn::DeriveInput
-  , variant : &syn::Variant
+, decl    : &syn::DeriveInput
+, variant : &syn::Variant
 ) -> syn::ItemStruct {
     use syn::ItemStruct;
     let fields       = &variant.fields;
@@ -144,9 +144,9 @@ fn gen_variant_decl
 /// Generate `From` trait implementations converting from each of extracted
 /// types back into primary enumeration.
 fn gen_from_impls
-(ident: &syn::Ident
- , decl: &syn::DeriveInput
- , variant: &syn::ItemStruct
+( ident  : &syn::Ident
+, decl   : &syn::DeriveInput
+, variant: &syn::ItemStruct
 ) -> TokenStream {
     let sum_label     = &decl.ident;
     let variant_label = &variant.ident;
@@ -183,7 +183,7 @@ fn gen_from_impls
 #[proc_macro_attribute]
 pub fn to_variant_types
 ( attrs: proc_macro::TokenStream
-  , input: proc_macro::TokenStream
+, input: proc_macro::TokenStream
 ) -> proc_macro::TokenStream {
     let attrs: TokenStream = attrs.into();
     let decl     = syn::parse_macro_input!(input as syn::DeriveInput);
