@@ -109,19 +109,54 @@ object Phantom {
 //////////////////////////////////////////////////////////////////////////////
 
 sealed trait Shape[T]
-object Shape {
+
+/** Implicits for traits deriving [[Shape]], like [[Shape.Ident]]. */
+sealed trait ShapeImplicit2 {
+
+  implicit def repr[S, T[S] <: Shape[S]]: Repr[T[S]] = { in =>
+    val shape: Shape[S] = in
+    Repr(shape)
+  }
+
+  implicit def ozip[S, T[S] <: Shape[S]]: OffsetZip[T, S] = { in =>
+    val shape: Shape[S] = in
+    //OffsetZip(shape)
+    ???
+  }
+}
+
+/** Implicits for [[Shape]], will overwrite inherited ones from
+  * [[ShapeImplicit2]]
+  */
+sealed trait ShapeImplicit extends ShapeImplicit2 {
+  import Shape._
+
+  implicit def ftor: Functor[Shape]    = semi.functor
+  implicit def fold: Foldable[Shape]   = semi.foldable
+  implicit def repr[T]: Repr[Shape[T]] = ??? // TODO do big match
+  implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
+    case s: Unrecognized[T] => OffsetZip[Unrecognized, T].zipWithOffset(s)
+    case s: Unexpected[T]   => OffsetZip[Unexpected, T].zipWithOffset(s)
+    case s: Blank[T]        => OffsetZip[Blank, T].zipWithOffset(s)
+    case s: Var[T]          => OffsetZip[Var, T].zipWithOffset(s)
+    case s: Cons[T]         => OffsetZip[Cons, T].zipWithOffset(s)
+    case s: Opr[T]          => OffsetZip[Opr, T].zipWithOffset(s)
+    case s: Mod[T]          => OffsetZip[Mod, T].zipWithOffset(s)
+    case s: App[T]          => OffsetZip[App, T].zipWithOffset(s)
+  }
+}
+
+object Shape extends ShapeImplicit {
   import HasSpan.implicits._
   import AST.StreamOf
 
-  //// Invalid ///
+  //// Variants ///
   sealed trait InvalidOf[T] extends Shape[T]
   final case class Unrecognized[T](str: String)
       extends InvalidOf[T]
       with Phantom
   final case class Unexpected[T](msg: String, stream: StreamOf[T])
       extends InvalidOf[T]
-
-  //// Variants ///
 
   sealed trait IdentOf[T]                extends Shape[T] with Phantom { val name: String }
   final case class Blank[T]()            extends IdentOf[T] { val name = "_" }
@@ -131,6 +166,8 @@ object Shape {
   final case class Opr[T](name: String) extends IdentOf[T] {
     val (prec, assoc) = opr.Info.of(name)
   }
+  final case class InvalidSuffix[T](elem: AST.Ident, suffix: String) // TODO: why `elem` doesn't depend on `T`
+      extends InvalidOf[T]
 
   sealed trait AppOf[T]                            extends Shape[T]
   final case class App[T](fn: T, off: Int, arg: T) extends AppOf[T]
@@ -161,7 +198,7 @@ object Shape {
     implicit def fold: Foldable[Blank]        = semi.foldable
     implicit def repr[T]: Repr[Blank[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Blank, T] = t => t.coerce
-    implicit def span[T]: HasSpan[Blank[T]]   = _ => 0
+    implicit def span[T]: HasSpan[Blank[T]]   = _ => 1
   }
   object Var {
     implicit def ftor: Functor[Var]         = semi.functor
@@ -177,6 +214,13 @@ object Shape {
     implicit def ozip[T]: OffsetZip[Cons, T] = t => t.coerce
     implicit def span[T]: HasSpan[Cons[T]]   = t => t.name.length
   }
+  object Mod {
+    implicit def ftor: Functor[Mod]         = semi.functor
+    implicit def fold: Foldable[Mod]        = semi.foldable
+    implicit def repr[T]: Repr[Mod[T]]      = R + _.name + "="
+    implicit def ozip[T]: OffsetZip[Mod, T] = t => t.coerce
+    implicit def span[T]: HasSpan[Mod[T]]   = t => t.name.length
+  }
   object Opr {
     implicit def ftor: Functor[Opr]         = semi.functor
     implicit def fold: Foldable[Opr]        = semi.foldable
@@ -184,12 +228,13 @@ object Shape {
     implicit def ozip[T]: OffsetZip[Opr, T] = t => t.coerce
     implicit def span[T]: HasSpan[Opr[T]]   = t => t.name.length
   }
-  object Mod {
-    implicit def ftor: Functor[Mod]         = semi.functor
-    implicit def fold: Foldable[Mod]        = semi.foldable
-    implicit def repr[T]: Repr[Mod[T]]      = R + _.name + "="
-    implicit def ozip[T]: OffsetZip[Mod, T] = t => t.coerce
-    implicit def span[T]: HasSpan[Mod[T]]   = t => t.name.length
+  object InvalidSuffix {
+    implicit def ftor: Functor[InvalidSuffix]  = semi.functor
+    implicit def fold: Foldable[InvalidSuffix] = semi.foldable
+//    implicit def ozip[T]: OffsetZip[InvalidSuffix, T] = t => t.coerce
+//    implicit def repr[T]: Repr[InvalidSuffix[T]] =
+//      t => R + t.elem + t.suffix
+//    implicit def span[T]: InvalidSuffix[Opr[T]] = t => t.elem.length
   }
 
   object App {
@@ -209,20 +254,6 @@ object Shape {
   }
 
   //// Implicits ////
-
-  implicit def ftor: Functor[Shape]  = semi.functor
-  implicit def fold: Foldable[Shape] = semi.foldable
-  //    implicit def repr[T]: Repr[Shape[T]]      = _.name
-  implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
-    case s: Unrecognized[T] => OffsetZip[Unrecognized, T].zipWithOffset(s)
-    case s: Unexpected[T]   => OffsetZip[Unexpected, T].zipWithOffset(s)
-    case s: Blank[T]        => OffsetZip[Blank, T].zipWithOffset(s)
-    case s: Var[T]          => OffsetZip[Var, T].zipWithOffset(s)
-    case s: Cons[T]         => OffsetZip[Cons, T].zipWithOffset(s)
-    case s: Opr[T]          => OffsetZip[Opr, T].zipWithOffset(s)
-    case s: Mod[T]          => OffsetZip[Mod, T].zipWithOffset(s)
-    case s: App[T]          => OffsetZip[App, T].zipWithOffset(s)
-  }
 
   object implicits {
     import AST.AST
@@ -536,15 +567,13 @@ object AST {
     val any = UnapplyByType[Invalid]
 
     object Unrecognized {
-      private val pool = new Pool[Shape.Unrecognized[AST]]()
-      val any          = UnapplyByType[Unrecognized]
+      val any = UnapplyByType[Unrecognized]
       def unapply(t: AST) =
         Unapply[Unrecognized].run(_.str)(t)
       def apply(str: String): Unrecognized = Shape.Unrecognized[AST](str)
     }
     object Unexpected {
-      private val pool = new Pool[Shape.Unexpected[AST]]()
-      val any          = UnapplyByType[Unexpected]
+      val any = UnapplyByType[Unexpected]
       def unapply(t: AST) =
         Unapply[Unexpected].run(t => (t.msg, t.stream))(t)
       def apply(msg: String, str: Stream): Unexpected =
@@ -578,8 +607,10 @@ object AST {
     type Blank = ASTOf[Shape.Blank]
     type Var   = ASTOf[Shape.Var]
     type Cons  = ASTOf[Shape.Cons]
-    type Opr   = ASTOf[Shape.Opr]
     type Mod   = ASTOf[Shape.Mod]
+    type Opr   = ASTOf[Shape.Opr]
+
+    type InvalidSuffix = ASTOf[Shape.InvalidSuffix]
 
     //// Conversions ////
 
