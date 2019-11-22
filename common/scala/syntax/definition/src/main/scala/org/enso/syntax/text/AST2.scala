@@ -48,6 +48,17 @@ object HasSpan {
       }
     }
   }
+
+  implicit def fromShifted[T: HasSpan]: HasSpan[Shifted[T]] = { shifted =>
+    val ev = implicitly[HasSpan[T]]
+    shifted.off + ev.span(shifted.el)
+  }
+
+  // FIXME consider if this is any good, if `span` collides with List method
+  implicit def fromStream[T: HasSpan]: HasSpan[AST.StreamOf[T]] = { stream =>
+    val ev: HasSpan[Shifted[T]] = fromShifted
+    stream.foldLeft(0)((acc, sast) => acc + ev.span(sast))
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -66,16 +77,16 @@ object OffsetZip {
     OffsetZip[F, A].zipWithOffset(t)
 
   //// Default Instances ////
-
-  //    implicit def fromStream[T: Repr]: OffsetZip[StreamOf, T] = { stream =>
-  //      var off = Index.Start
-  //      stream.map { t =>
-  //        off += Size(t.off)
-  //        val out = t.map((off, _))
-  //        off += Size(Repr(t.el).span)
-  //        out
-  //      }
-  //    }
+  implicit def fromStream[T: HasSpan]: OffsetZip[AST.StreamOf, T] = { stream =>
+    val ev  = implicitly[HasSpan[T]]
+    var off = Index.Start
+    stream.map { t =>
+      off += Size(t.off)
+      val out = t.map((off, _))
+      off += Size(ev.span(t.el))
+      out
+    }
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -100,12 +111,19 @@ object Phantom {
 sealed trait Shape[T]
 object Shape {
   import HasSpan.implicits._
+  import AST.StreamOf
+
+  //// Invalid ///
+  sealed trait InvalidOf[T] extends Shape[T]
+  final case class Unrecognized[T](str: String)
+      extends InvalidOf[T]
+      with Phantom
+  final case class Unexpected[T](msg: String, stream: StreamOf[T])
+      extends InvalidOf[T]
 
   //// Variants ///
 
-  sealed trait IdentOf[T] extends Shape[T] with Phantom { val name: String }
-  sealed trait AppOf[T]   extends Shape[T]
-
+  sealed trait IdentOf[T]                extends Shape[T] with Phantom { val name: String }
   final case class Blank[T]()            extends IdentOf[T] { val name = "_" }
   final case class Var[T](name: String)  extends IdentOf[T]
   final case class Cons[T](name: String) extends IdentOf[T]
@@ -114,42 +132,61 @@ object Shape {
     val (prec, assoc) = opr.Info.of(name)
   }
 
+  sealed trait AppOf[T]                            extends Shape[T]
   final case class App[T](fn: T, off: Int, arg: T) extends AppOf[T]
 
   ////Companions ///
   // TODO: All companion objects can be generated with macros
 
+  object Unrecognized {
+    implicit def ftor: Functor[Unrecognized]         = semi.functor
+    implicit def fold: Foldable[Unrecognized]        = semi.foldable
+    implicit def repr[T]: Repr[Unrecognized[T]]      = _.str
+    implicit def ozip[T]: OffsetZip[Unrecognized, T] = t => t.coerce
+    implicit def span[T]: HasSpan[Unrecognized[T]]   = _.str.length
+  }
+
+  object Unexpected {
+    implicit def ftor: Functor[Unexpected]          = semi.functor
+    implicit def fold: Foldable[Unexpected]         = semi.foldable
+    implicit def repr[T: Repr]: Repr[Unexpected[T]] = t => Repr(t.stream)
+    implicit def ozip[T: HasSpan]: OffsetZip[Unexpected, T] =
+      t => t.copy(stream = OffsetZip(t.stream))
+    implicit def span[T: HasSpan]: HasSpan[Unexpected[T]] =
+      t => HasSpan.fromStream[T].span(t.stream)
+  }
+
   object Blank {
-    implicit def ftor:    Functor[Blank]      = semi.functor
-    implicit def fold:    Foldable[Blank]     = semi.foldable
+    implicit def ftor: Functor[Blank]         = semi.functor
+    implicit def fold: Foldable[Blank]        = semi.foldable
     implicit def repr[T]: Repr[Blank[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Blank, T] = t => t.coerce
     implicit def span[T]: HasSpan[Blank[T]]   = _ => 0
   }
   object Var {
-    implicit def ftor:    Functor[Var]      = semi.functor
-    implicit def fold:    Foldable[Var]     = semi.foldable
+    implicit def ftor: Functor[Var]         = semi.functor
+    implicit def fold: Foldable[Var]        = semi.foldable
     implicit def repr[T]: Repr[Var[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Var, T] = t => t.coerce
     implicit def span[T]: HasSpan[Var[T]]   = t => t.name.length
   }
   object Cons {
-    implicit def ftor:    Functor[Cons]      = semi.functor
-    implicit def fold:    Foldable[Cons]     = semi.foldable
+    implicit def ftor: Functor[Cons]         = semi.functor
+    implicit def fold: Foldable[Cons]        = semi.foldable
     implicit def repr[T]: Repr[Cons[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Cons, T] = t => t.coerce
     implicit def span[T]: HasSpan[Cons[T]]   = t => t.name.length
   }
   object Opr {
-    implicit def ftor:    Functor[Opr]      = semi.functor
-    implicit def fold:    Foldable[Opr]     = semi.foldable
+    implicit def ftor: Functor[Opr]         = semi.functor
+    implicit def fold: Foldable[Opr]        = semi.foldable
     implicit def repr[T]: Repr[Opr[T]]      = _.name
     implicit def ozip[T]: OffsetZip[Opr, T] = t => t.coerce
     implicit def span[T]: HasSpan[Opr[T]]   = t => t.name.length
   }
   object Mod {
-    implicit def ftor:    Functor[Mod]      = semi.functor
-    implicit def fold:    Foldable[Mod]     = semi.foldable
+    implicit def ftor: Functor[Mod]         = semi.functor
+    implicit def fold: Foldable[Mod]        = semi.foldable
     implicit def repr[T]: Repr[Mod[T]]      = R + _.name + "="
     implicit def ozip[T]: OffsetZip[Mod, T] = t => t.coerce
     implicit def span[T]: HasSpan[Mod[T]]   = t => t.name.length
@@ -177,12 +214,14 @@ object Shape {
   implicit def fold: Foldable[Shape] = semi.foldable
   //    implicit def repr[T]: Repr[Shape[T]]      = _.name
   implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
-    case s: Blank[T] => OffsetZip[Blank, T].zipWithOffset(s)
-    case s: Var[T]   => OffsetZip[Var, T].zipWithOffset(s)
-    case s: Cons[T]  => OffsetZip[Cons, T].zipWithOffset(s)
-    case s: Opr[T]   => OffsetZip[Opr, T].zipWithOffset(s)
-    case s: Mod[T]   => OffsetZip[Mod, T].zipWithOffset(s)
-    case s: App[T]   => OffsetZip[App, T].zipWithOffset(s)
+    case s: Unrecognized[T] => OffsetZip[Unrecognized, T].zipWithOffset(s)
+    case s: Unexpected[T]   => OffsetZip[Unexpected, T].zipWithOffset(s)
+    case s: Blank[T]        => OffsetZip[Blank, T].zipWithOffset(s)
+    case s: Var[T]          => OffsetZip[Var, T].zipWithOffset(s)
+    case s: Cons[T]         => OffsetZip[Cons, T].zipWithOffset(s)
+    case s: Opr[T]          => OffsetZip[Opr, T].zipWithOffset(s)
+    case s: Mod[T]          => OffsetZip[Mod, T].zipWithOffset(s)
+    case s: App[T]          => OffsetZip[App, T].zipWithOffset(s)
   }
 
   object implicits {
@@ -485,57 +524,33 @@ object AST {
     }
   }
 
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Invalid /////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Invalid = ASTOf[InvalidOf]
-//  sealed trait InvalidOf[T] extends Shape[T]
-//  object Invalid {
-//
-//    //// Types ////
-//
-//    type Unrecognized = ASTOf[UnrecognizedOf]
-//    type Unexpected   = ASTOf[UnexpectedOf]
-//    final case class UnrecognizedOf[T](str: String)
-//      extends InvalidOf[T]
-//        with Phantom
-//    final case class UnexpectedOf[T](msg: String, stream: StreamOf[T])
-//      extends InvalidOf[T]
-//
-//    //// Smart Constructors ////
-//
-//    val any = UnapplyByType[Invalid]
-//
-//    object Unrecognized {
-//      val any             = UnapplyByType[Unrecognized]
-//      def unapply(t: AST) = Unapply[Unrecognized].run(_.str)(t)
-//      def apply(str: String): Unrecognized = UnrecognizedOf[AST](str)
-//    }
-//    object Unexpected {
-//      val any             = UnapplyByType[Unexpected]
-//      def unapply(t: AST) = Unapply[Unexpected].run(t => (t.msg, t.stream))(t)
-//      def apply(msg: String, str: Stream): Unexpected =
-//        UnexpectedOf(msg, str)
-//    }
-//
-//    //// Instances ////
-//
-//    object UnrecognizedOf {
-//      implicit def ftor:    Functor[UnrecognizedOf]      = semi.functor
-//      implicit def fold:    Foldable[UnrecognizedOf]     = semi.foldable
-//      implicit def repr[T]: Repr[UnrecognizedOf[T]]      = _.str
-//      implicit def ozip[T]: OffsetZip[UnrecognizedOf, T] = t => t.coerce
-//    }
-//    object UnexpectedOf {
-//      implicit def ftor:          Functor[UnexpectedOf]  = semi.functor
-//      implicit def fold:          Foldable[UnexpectedOf] = semi.foldable
-//      implicit def repr[T: Repr]: Repr[UnexpectedOf[T]]  = t => Repr(t.stream)
-//      implicit def ozip[T: Repr]: OffsetZip[UnexpectedOf, T] =
-//        t => t.copy(stream = OffsetZip(t.stream))
-//    }
-//  }
+  //////////////////////////////////////////////////////////////////////////////
+  //// Invalid /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Invalid = ASTOf[Shape.InvalidOf]
+  object Invalid {
+    type Unrecognized = AST.ASTOf[Shape.Unrecognized]
+    type Unexpected   = AST.ASTOf[Shape.Unexpected]
+
+    val any = UnapplyByType[Invalid]
+
+    object Unrecognized {
+      private val pool = new Pool[Shape.Unrecognized[AST]]()
+      val any          = UnapplyByType[Unrecognized]
+      def unapply(t: AST) =
+        Unapply[Unrecognized].run(_.str)(t)
+      def apply(str: String): Unrecognized = Shape.Unrecognized[AST](str)
+    }
+    object Unexpected {
+      private val pool = new Pool[Shape.Unexpected[AST]]()
+      val any          = UnapplyByType[Unexpected]
+      def unapply(t: AST) =
+        Unapply[Unexpected].run(t => (t.msg, t.stream))(t)
+      def apply(msg: String, str: Stream): Unexpected =
+        Shape.Unexpected(msg, str)
+    }
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// Ident ///////////////////////////////////////////////////////////////////
@@ -569,10 +584,10 @@ object AST {
     //// Conversions ////
 
     trait Conversions1 {
-      implicit def strToVar(str: String):  Var  = Var(str)
+      implicit def strToVar(str: String): Var   = Var(str)
       implicit def strToCons(str: String): Cons = Cons(str)
-      implicit def strToOpr(str: String):  Opr  = Opr(str)
-      implicit def strToMod(str: String):  Mod  = Mod(str)
+      implicit def strToOpr(str: String): Opr   = Opr(str)
+      implicit def strToMod(str: String): Mod   = Mod(str)
     }
 
     trait conversions extends Conversions1 {
@@ -593,31 +608,31 @@ object AST {
       private val cachedBlank = Shape.Blank[AST]()
       val any                 = UnapplyByType[Blank]
       def unapply(t: AST)     = Unapply[Blank].run(_ => true)(t)
-      def apply(): Blank = cachedBlank
+      def apply(): Blank      = cachedBlank
     }
     object Var {
-      private val pool    = new Pool[Shape.Var[AST]]()
-      val any             = UnapplyByType[Var]
-      def unapply(t: AST) = Unapply[Var].run(_.name)(t)
+      private val pool             = new Pool[Shape.Var[AST]]()
+      val any                      = UnapplyByType[Var]
+      def unapply(t: AST)          = Unapply[Var].run(_.name)(t)
       def apply(name: String): Var = pool.get(Shape.Var[AST](name))
     }
     object Cons {
-      private val pool    = new Pool[Shape.Cons[AST]]()
-      val any             = UnapplyByType[Cons]
-      def unapply(t: AST) = Unapply[Cons].run(_.name)(t)
+      private val pool              = new Pool[Shape.Cons[AST]]()
+      val any                       = UnapplyByType[Cons]
+      def unapply(t: AST)           = Unapply[Cons].run(_.name)(t)
       def apply(name: String): Cons = pool.get(Shape.Cons[AST](name))
     }
     object Mod {
-      private val pool    = new Pool[Shape.Mod[AST]]()
-      val any             = UnapplyByType[Mod]
-      def unapply(t: AST) = Unapply[Mod].run(_.name)(t)
+      private val pool             = new Pool[Shape.Mod[AST]]()
+      val any                      = UnapplyByType[Mod]
+      def unapply(t: AST)          = Unapply[Mod].run(_.name)(t)
       def apply(name: String): Mod = pool.get(Shape.Mod[AST](name))
     }
     object Opr {
-      private val pool    = new Pool[Shape.Opr[AST]]()
-      val app             = Opr(" ")
-      val any             = UnapplyByType[Opr]
-      def unapply(t: AST) = Unapply[Opr].run(_.name)(t)
+      private val pool             = new Pool[Shape.Opr[AST]]()
+      val app                      = Opr(" ")
+      val any                      = UnapplyByType[Opr]
+      def unapply(t: AST)          = Unapply[Opr].run(_.name)(t)
       def apply(name: String): Opr = pool.get(Shape.Opr[AST](name))
     }
 //
