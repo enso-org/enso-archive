@@ -194,12 +194,15 @@ pub fn to_variant_types
         _ => unimplemented!()
     }.collect::<Vec<_>>();
 
-    let is_flat        = repr(&attrs) == "flat";
+    let is_flat = repr(&attrs) == "flat";
+    let structs = variants.iter().map(|v| mk_product_type(is_flat, &decl, v));
+    let structs = structs.collect::<Vec<_>>();
+
     let variant_idents = variants.iter().map(|v| &v.ident).collect::<Vec<_>>();
-    let structs        = variants.iter().map(|v| mk_product_type(is_flat, &decl, v));
-    let structs        = structs.collect::<Vec<_>>();
-    let variant_decls  = variant_idents.iter().zip(structs.iter()).map(|(i,v)| gen_variant_decl(i,&v));
-    let variant_froms  = variant_idents.iter().zip(structs.iter()).map(|(i,v)| gen_from_impls(i, &decl, &v));
+    let variant_decls  = variant_idents.iter().zip(structs.iter())
+        .map(|(i,v)| gen_variant_decl(i,v));
+    let variant_froms  = variant_idents.iter().zip(structs.iter())
+        .map(|(i,v)| gen_from_impls(i, &decl, &v));
 
     // Handle single value, unnamed params as created by user.
     let structs = structs.iter().filter(|v| match &v.fields {
