@@ -166,8 +166,7 @@ object Shape extends ShapeImplicit {
     implicit def fold: Foldable[IdentOf]   = semi.foldable
     implicit def repr[T]: Repr[IdentOf[T]] = _.name
     implicit def ozip[T: HasSpan]: OffsetZip[IdentOf, T] = { ident =>
-      val shape: Shape[T] = ident
-      OffsetZip(shape).asInstanceOf[Shape.IdentOf[(Index, T)]]
+      OffsetZip(ident: Shape[T]).asInstanceOf
     }
     implicit def span[T: HasSpan]: HasSpan[IdentOf[T]] = t => (t: Shape[T]).span
   }
