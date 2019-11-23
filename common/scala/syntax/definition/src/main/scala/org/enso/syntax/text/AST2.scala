@@ -21,10 +21,10 @@ import org.enso.data.Tree
 import org.enso.lint.Unused
 //import org.enso.syntax.text.AST
 //import org.enso.syntax.text.AST.OffsetZip
-import org.enso.syntax.text.ast.Repr.R
-import org.enso.syntax.text.ast.Repr._
+import org.enso.syntax.text2.ast.Repr.R
+import org.enso.syntax.text2.ast.Repr._
 //import org.enso.syntax.text.ast.Doc
-import org.enso.syntax.text.ast.Repr
+import org.enso.syntax.text2.ast.Repr
 import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text2.AST.Ident.Cons.pool
 
@@ -120,23 +120,29 @@ sealed trait ShapeImplicit {
   implicit def fold: Foldable[Shape]   = semi.foldable
   implicit def repr[T]: Repr[Shape[T]] = ??? // TODO do big match
   implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
-    case s: Unrecognized[T]  => OffsetZip[Unrecognized, T].zipWithOffset(s)
-    case s: Unexpected[T]    => OffsetZip[Unexpected, T].zipWithOffset(s)
-    case s: Blank[T]         => OffsetZip[Blank, T].zipWithOffset(s)
-    case s: Var[T]           => OffsetZip[Var, T].zipWithOffset(s)
-    case s: Cons[T]          => OffsetZip[Cons, T].zipWithOffset(s)
-    case s: Opr[T]           => OffsetZip[Opr, T].zipWithOffset(s)
-    case s: Mod[T]           => OffsetZip[Mod, T].zipWithOffset(s)
-    case s: App[T]           => OffsetZip[App, T].zipWithOffset(s)
-    case s: InvalidSuffix[T] => OffsetZip[InvalidSuffix, T].zipWithOffset(s)
+    case s: Unrecognized[T] => OffsetZip[Unrecognized, T].zipWithOffset(s)
+    case s: Unexpected[T]   => OffsetZip[Unexpected, T].zipWithOffset(s)
+    case s: Blank[T]        => OffsetZip[Blank, T].zipWithOffset(s)
+    case s: Var[T]          => OffsetZip[Var, T].zipWithOffset(s)
+    case s: Cons[T]         => OffsetZip[Cons, T].zipWithOffset(s)
+    case s: Opr[T]          => OffsetZip[Opr, T].zipWithOffset(s)
+    case s: Mod[T]          => OffsetZip[Mod, T].zipWithOffset(s)
+    case s: App[T]          => OffsetZip[App, T].zipWithOffset(s)
+    case s: InvalidSuffix[T] =>
+      OffsetZip[InvalidSuffix, T].zipWithOffset(s)
+    case s: Number[T]       => OffsetZip[Number, T].zipWithOffset(s)
+    case s: DanglingBase[T] => OffsetZip[DanglingBase, T].zipWithOffset(s)
   }
+  implicit def span[T: HasSpan]: HasSpan[Shape[T]] = ???
 }
 
 object Shape extends ShapeImplicit {
   import HasSpan.implicits._
   import AST.StreamOf
 
-  //// Variants ///
+  //////////////////
+  //// Variants ////
+  //////////////////
   sealed trait InvalidOf[T] extends Shape[T]
   final case class Unrecognized[T](str: String)
       extends InvalidOf[T]
@@ -144,6 +150,7 @@ object Shape extends ShapeImplicit {
   final case class Unexpected[T](msg: String, stream: StreamOf[T])
       extends InvalidOf[T]
 
+  /// Identifiers ///
   sealed trait IdentOf[T] extends Shape[T] with Phantom {
     val name: String
   }
@@ -158,18 +165,24 @@ object Shape extends ShapeImplicit {
       extends InvalidOf[T]
       with Phantom
 
+  /// Literals ///
+  sealed trait LiteralOf[T] extends Shape[T]
+
+  final case class Number[T](base: Option[String], int: String)
+      extends LiteralOf[T]
+      with Phantom
+  final case class DanglingBase[T](base: String)
+      extends InvalidOf[T]
+      with Phantom
+
+//  sealed trait Text[T] extends Shape[T] with LiteralOf[T] {
+//    def quote: Repr.Builder
+//  }
+//  sealed trait TextLine[T]  extends Text[T]
+//  sealed trait TextBlock[T] extends Text[T]
+
   sealed trait AppOf[T]                            extends Shape[T]
   final case class App[T](fn: T, off: Int, arg: T) extends AppOf[T]
-
-  object IdentOf {
-    implicit def ftor: Functor[IdentOf]    = semi.functor
-    implicit def fold: Foldable[IdentOf]   = semi.foldable
-    implicit def repr[T]: Repr[IdentOf[T]] = _.name
-    implicit def ozip[T: HasSpan]: OffsetZip[IdentOf, T] = { ident =>
-      OffsetZip[Shape, T](ident).asInstanceOf
-    }
-    implicit def span[T: HasSpan]: HasSpan[IdentOf[T]] = t => (t: Shape[T]).span
-  }
 
   ////Companions ///
   // TODO: All companion objects can be generated with macros
@@ -191,7 +204,16 @@ object Shape extends ShapeImplicit {
     implicit def span[T: HasSpan]: HasSpan[Unexpected[T]] =
       t => HasSpan.fromStream[T].span(t.stream)
   }
-
+  object IdentOf {
+    implicit def ftor: Functor[IdentOf]    = semi.functor
+    implicit def fold: Foldable[IdentOf]   = semi.foldable
+    implicit def repr[T]: Repr[IdentOf[T]] = _.name
+    implicit def ozip[T: HasSpan]: OffsetZip[IdentOf, T] = { ident =>
+      OffsetZip[Shape, T](ident).asInstanceOf
+    }
+    implicit def span[T: HasSpan]: HasSpan[IdentOf[T]] =
+      t => (t: Shape[T]).span // TODO doesn't this break span caching?
+  }
   object Blank {
     implicit def ftor: Functor[Blank]         = semi.functor
     implicit def fold: Foldable[Blank]        = semi.foldable
@@ -235,6 +257,34 @@ object Shape extends ShapeImplicit {
       t => R + t.elem.shape.repr + t.suffix
     implicit def span[T]: HasSpan[InvalidSuffix[T]] =
       t => t.elem.span + t.suffix.length
+  }
+  object LiteralOf {
+    implicit def ftor: Functor[LiteralOf]    = semi.functor
+    implicit def fold: Foldable[LiteralOf]   = semi.foldable
+    implicit def repr[T]: Repr[LiteralOf[T]] = t => (t: Shape[T]).repr
+    implicit def ozip[T: HasSpan]: OffsetZip[LiteralOf, T] = { t =>
+      OffsetZip[Shape, T](t).asInstanceOf
+    }
+    implicit def span[T: HasSpan]: HasSpan[LiteralOf[T]] =
+      t => (t: Shape[T]).span
+  }
+  object Number {
+    implicit def fromInt[T](int: Int): AST.Number = AST.Number(int)
+    implicit def ftor: Functor[Number]            = semi.functor
+    implicit def fold: Foldable[Number]           = semi.foldable
+    implicit def ozip[T]: OffsetZip[Number, T]    = t => t.coerce
+    implicit def repr[T]: Repr[Number[T]] =
+      t => t.base.map(_ + "_").getOrElse("") + t.int
+    implicit def span[T]: HasSpan[Number[T]] =
+      t => t.base.map(_.length + 1).getOrElse(0) + t.int.length
+  }
+  object DanglingBase {
+    implicit def ftor: Functor[DanglingBase]         = semi.functor
+    implicit def fold: Foldable[DanglingBase]        = semi.foldable
+    implicit def ozip[T]: OffsetZip[DanglingBase, T] = t => t.coerce
+    implicit def repr[T]: Repr[DanglingBase[T]]      = R + _.base + '_'
+    implicit def span[T]: HasSpan[DanglingBase[T]] =
+      t => t.base.length + 1
   }
 
   object App {
@@ -666,110 +716,55 @@ object AST {
       def unapply(t: AST)          = Unapply[Opr].run(_.name)(t)
       def apply(name: String): Opr = pool.get(Shape.Opr[AST](name))
     }
-//
-//    ///////////////////////
-//    //// InvalidSuffix ////
-//    ///////////////////////
-//
-//    type InvalidSuffix = ASTOf[InvalidSuffixOf]
-//    final case class InvalidSuffixOf[T](elem: Ident, suffix: String)
-//      extends InvalidOf[T]
-//        with Phantom
-//    object InvalidSuffixOf {
-//      implicit def ftor:    Functor[InvalidSuffixOf]      = semi.functor
-//      implicit def fold:    Foldable[InvalidSuffixOf]     = semi.foldable
-//      implicit def ozip[T]: OffsetZip[InvalidSuffixOf, T] = t => t.coerce
-//      implicit def repr[T]: Repr[InvalidSuffixOf[T]] =
-//        t => R + t.elem + t.suffix
-//    }
-//    object InvalidSuffix {
-//      val any = UnapplyByType[InvalidSuffix]
-//      def unapply(t: AST) =
-//        Unapply[InvalidSuffix].run(t => (t.elem, t.suffix))(t)
-//      def apply(elem: Ident, suffix: String): InvalidSuffix =
-//        InvalidSuffixOf[AST](elem, suffix)
-//    }
-//
   }
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Literal /////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  //// Reexports ////
-//
-//  type Number = Literal.Number
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Literal /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  //// Reexports ////
+
+  type Number = Literal.Number
 //  type Text   = Literal.Text
-//  val Number = Literal.Number
+  val Number = Literal.Number
 //  val Text   = Literal.Text
 //
 //  //// Definition ////
 //
-//  type Literal = ASTOf[LiteralOf]
-//  sealed trait LiteralOf[T] extends Shape[T]
-//  object LiteralOf {
-//    implicit def ftor: Functor[LiteralOf]  = semi.functor
-//    implicit def fold: Foldable[LiteralOf] = semi.foldable
-//  }
-//  object Literal {
-//
-//    val any = UnapplyByType[Literal]
-//
-//    ////////////////
-//    //// Number ////
-//    ////////////////
-//
-//    type Number = ASTOf[NumberOf]
-//    final case class NumberOf[T](base: Option[String], int: String)
-//      extends LiteralOf[T]
-//        with Phantom
-//
-//    object Number {
-//
-//      //// Smart Constructors ////
-//
-//      def apply(i: String):            Number = Number(None, i)
-//      def apply(b: String, i: String): Number = Number(Some(b), i)
-//      def apply(i: Int):               Number = Number(i.toString)
-//      def apply(b: Int, i: String):    Number = Number(b.toString, i)
-//      def apply(b: String, i: Int):    Number = Number(b, i.toString)
-//      def apply(b: Int, i: Int):       Number = Number(b.toString, i.toString)
-//      def apply(b: Option[String], i: String): Number =
-//        NumberOf[AST](b, i)
-//      def unapply(t: AST) = Unapply[Number].run(t => (t.base, t.int))(t)
-//      val any             = UnapplyByType[Number]
-//
-//      //// DanglingBase ////
-//
-//      type DanglingBase = ASTOf[DanglingBaseOf]
-//      final case class DanglingBaseOf[T](base: String)
-//        extends InvalidOf[T]
-//          with Phantom
-//      object DanglingBase {
-//        val any = UnapplyByType[DanglingBase]
-//        def apply(base: String): DanglingBase = DanglingBaseOf[AST](base)
-//        def unapply(t: AST) =
-//          Unapply[DanglingBase].run(_.base)(t)
-//      }
-//      object DanglingBaseOf {
-//        implicit def ftor:    Functor[DanglingBaseOf]      = semi.functor
-//        implicit def fold:    Foldable[DanglingBaseOf]     = semi.foldable
-//        implicit def ozip[T]: OffsetZip[DanglingBaseOf, T] = t => t.coerce
-//        implicit def repr[T]: Repr[DanglingBaseOf[T]]      = R + _.base + '_'
-//      }
-//    }
-//
-//    //// Instances ////
-//
-//    object NumberOf {
-//      implicit def fromInt[T](int: Int): Number                 = Number(int)
-//      implicit def ftor:                 Functor[NumberOf]      = semi.functor
-//      implicit def fold:                 Foldable[NumberOf]     = semi.foldable
-//      implicit def ozip[T]:              OffsetZip[NumberOf, T] = t => t.coerce
-//      implicit def repr[T]: Repr[NumberOf[T]] =
-//        t => t.base.map(_ + "_").getOrElse("") + t.int
-//    }
-//
+  type Literal = ASTOf[Shape.LiteralOf]
+  object Literal {
+
+    val any = UnapplyByType[Literal]
+
+    ////////////////
+    //// Number ////
+    ////////////////
+
+    type Number = ASTOf[Shape.Number]
+    object Number {
+      type DanglingBase = ASTOf[Shape.DanglingBase]
+
+      //// Smart Constructors ////
+      def apply(i: String): Number            = Number(None, i)
+      def apply(b: String, i: String): Number = Number(Some(b), i)
+      def apply(i: Int): Number               = Number(i.toString)
+      def apply(b: Int, i: String): Number    = Number(b.toString, i)
+      def apply(b: String, i: Int): Number    = Number(b, i.toString)
+      def apply(b: Int, i: Int): Number       = Number(b.toString, i.toString)
+      def apply(b: Option[String], i: String): Number =
+        Shape.Number[AST](b, i)
+      def unapply(t: AST) = Unapply[Number].run(t => (t.base, t.int))(t)
+      val any             = UnapplyByType[Number]
+
+      //// DanglingBase ////
+      object DanglingBase {
+        val any                               = UnapplyByType[DanglingBase]
+        def apply(base: String): DanglingBase = Shape.DanglingBase[AST](base)
+        def unapply(t: AST) =
+          Unapply[DanglingBase].run(_.base)(t)
+      }
+    }
+
 //    //////////////
 //    //// Text ////
 //    //////////////
@@ -1078,7 +1073,7 @@ object AST {
 //        }
 //      }
 //    }
-//  }
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// App /////////////////////////////////////////////////////////////////////
