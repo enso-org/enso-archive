@@ -9,8 +9,8 @@ import org.enso.syntax.text.{AST, Debug}
   * return [[Some]] when more complex conditions are met.
   */
 object AstView {
-  object Assignment {
-    val assignmentOpSym = AST.Ident.Opr("=")
+  object Binding {
+    val bindingOpSym = AST.Ident.Opr("=")
 
     def unapply(ast: AST): Option[(AST, AST)] = {
       ast match {
@@ -19,15 +19,23 @@ object AstView {
           val op    = ast.opr
           val right = ast.rarg
 
-          if (op == assignmentOpSym) {
-            left match {
-              case name @ AST.Ident.Var(_) => Some((name, right))
-              case _                       => None
-            }
+          if (op == bindingOpSym) {
+            Some((left, right))
           } else {
             None
           }
         case _ => None
+      }
+    }
+  }
+
+  object Assignment {
+    val assignmentOpSym = AST.Ident.Opr("=")
+
+    def unapply(ast: AST): Option[(AST, AST)] = {
+      ast match {
+        case Binding(left @ AST.Ident.Var(_), right) => Some((left, right))
+        case _                                       => None
       }
     }
   }
@@ -107,14 +115,35 @@ object AstView {
   }
 
   object MethodDefinition {
-    def unapply(ast: AST): Option[(List[AST], AST, AST)] = ast match {
-      case Assignment(lhs, rhs) =>
-        lhs match {
-          case MethodReference(targetPath, name) => Some((targetPath, name, rhs))
-          case _ =>
+    def unapply(ast: AST): Option[(List[AST], AST, AST)] = {
+      ast match {
+        case Binding(lhs, rhs) =>
+          lhs match {
+            case MethodReference(targetPath, name) =>
+              Some((targetPath, name, rhs))
+            case _ =>
+              None
+          }
+        case _ =>
+          println("NOT AN ASSIGNMENT")
+          None
+      }
+    }
+  }
+
+  // TODO [AA] THIS
+  object Path {
+    val pathSeparator = AST.Ident.Opr(".")
+
+    def unapply(ast: AST): Option[(AST, AST)] = {
+      ast match {
+        case AST.App.Infix(left, op, right) =>
+          if (op == pathSeparator) {
+            Some((left, right))
+          } else {
             None
-        }
-      case _ => None
+          }
+      }
     }
   }
 
@@ -127,7 +156,6 @@ object AstView {
             right match {
               case AST.Ident.Var(_) => Some((matchMethodReference(left), right))
               case _                => None
-
             }
           } else {
             None
@@ -137,18 +165,19 @@ object AstView {
     }
 
     def matchMethodReference(ast: AST): List[AST] = {
+      println("CALL")
       ast match {
         case AST.App.Infix(left, op, right) =>
           if (op == pathSeparator) {
             right match {
-              case AST.Ident.Var(_) => matchMethodReference(left) :+ right
-              case _                => List()
-
+              case AST.Ident.Cons(_) => matchMethodReference(left) :+ right
+              case _                 => List()
             }
           } else {
             List()
           }
-        case _ => List()
+        case AST.Ident.Cons(_) => List(ast)
+        case _                 => List()
       }
     }
   }

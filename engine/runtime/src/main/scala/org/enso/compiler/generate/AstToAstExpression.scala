@@ -43,11 +43,13 @@ object AstToAstExpression {
   }
 
   def translateModuleSymbol(inputAST: AST): AstModuleSymbol = {
-    println("======== MODULE SYM ==========")
-    println(Debug.pretty(inputAST.toString))
-    println("==============================")
+//    println("======== MODULE SYM ==========")
+//    println(Debug.pretty(inputAST.toString))
+//    println("==============================")
     inputAST match {
       case AstView.MethodDefinition(targetPath, name, definition) =>
+        println(s"===== TARGET PATH =====")
+        println(Debug.pretty(targetPath.toString))
         val path =
           targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
         val nameStr       = name match { case AST.Ident.Var(name) => name }
@@ -81,7 +83,7 @@ object AstToAstExpression {
     }
   }
 
-  def translateDefinitonArgument(arg: AST): AstArgDefinition = {
+  def translateArgumentDefinition(arg: AST): AstArgDefinition = {
     // TODO [AA] Do this properly
     arg match {
       case AST.Ident.Var(name) => AstArgDefinition(name, None, false)
@@ -99,7 +101,7 @@ object AstToAstExpression {
           false
         )
       case AstView.Lambda(args, body) =>
-        val realArgs                      = args.map(translateDefinitonArgument)
+        val realArgs                      = args.map(translateArgumentDefinition)
         val realBody: List[AstExpression] = translateBlock(body)
         val retExpression                 = realBody.last
         val statements                    = realBody.dropRight(1)
