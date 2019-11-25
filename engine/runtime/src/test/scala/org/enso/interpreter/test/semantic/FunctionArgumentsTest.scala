@@ -6,10 +6,10 @@ class FunctionArgumentsTest extends InterpreterTest {
   "Functions" should "take arguments and use them in their bodies" in {
     val code =
         """
-        |{ |x| x * x }
+        |x -> x * x
         |""".stripMargin
 
-    val function = evalOld(code)
+    val function = eval(code)
     function.call(1) shouldEqual 1
     function.call(4) shouldEqual 16
   }
@@ -17,15 +17,13 @@ class FunctionArgumentsTest extends InterpreterTest {
   "Function arguments from outer scope" should "be visible in the inner scope" in {
     val code =
       """
-        |{ |a|
-        |  add = { |a, b| a + b };
-        |  adder = { |b| @add [a,b] };
-        |  res = @adder [2];
-        |  res
-        |}
+        |a ->
+        |  add = a b -> a + b
+        |  adder = b -> add a b
+        |  adder 2
       """.stripMargin
 
-    evalOld(code).call(3) shouldEqual 5
+    eval(code).call(3) shouldEqual 5
   }
 
   "Recursion" should "work" in {

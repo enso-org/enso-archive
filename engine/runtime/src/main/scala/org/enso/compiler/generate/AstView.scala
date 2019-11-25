@@ -55,47 +55,6 @@ object AstView {
     }
   }
 
-  // TODO [AA] Return the AST representing each arg, in a flat list
-  /** x y (z = def), ... */
-  object ArgList {
-    val argListSep = AST.Ident.Opr(",")
-
-    def unapply(ast: AST): Option[List[AST]] = {
-      val args = matchArgList(ast)
-
-      if (args.isEmpty) {
-        None
-      } else {
-        Some(args)
-      }
-    }
-
-    // FIXME [AA] Not currently tested in a mixture of arg types:
-    //  https://github.com/luna/enso/issues/343
-    // TODO [AA] handle invalid things in the arg list properly
-    // Irrefutable matches (including ones with no args), vars, and defaults
-    def matchArgList(ast: AST): List[AST] = {
-      ast match {
-        case AST.Group(code) =>
-          matchArgList(
-            code.getOrElse(throw new RuntimeException("Empty group"))
-          )
-        case cons @ Application(_, _) => List(cons)
-        case app @ AST.App.Prefix(fn, arg) =>
-          fn match {
-            case AST.Ident.Cons(_) => List(app)
-            case _ =>
-              matchArgList(fn) ++ matchArgList(arg)
-          }
-        case default @ Assignment(_, _) => List(default)
-        case AST.Ident.Var.any(ast)     => List(ast)
-        case _ =>
-          println(Debug.pretty(ast.toString))
-          throw new RuntimeException("should not happen")
-      }
-    }
-  }
-
   object Constructor {
     def unapply(arg: AST): Option[(AST, List[AST])] = {
       arg match {
@@ -113,6 +72,8 @@ object AstView {
     def unapply(ast: AST): Option[List[AST]] = {
       ast match {
         case Application(fn, args) => Some(fn :: args)
+          // TODO [AA] This really isn't true........
+        case _ => Some(List(ast))
       }
     }
   }

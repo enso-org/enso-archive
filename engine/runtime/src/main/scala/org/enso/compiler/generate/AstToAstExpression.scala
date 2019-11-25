@@ -9,6 +9,10 @@ import org.enso.syntax.text.{AST, Debug}
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
 //  but it was thought best to land in increments where possible.
 
+// TODO [MK]
+//  - Method dispatch on unapplied constructors
+//  - Explicit block entities in old AST (expressions)
+
 /**
   * This is a representation of the raw conversion from the Parser [[AST AST]]
   * to the internal [[IR IR]] used by the static transformation passes.
@@ -53,6 +57,27 @@ object AstToAstExpression {
       }
 //      case AST.Literal.Text.any(literal) =>
       case _ => throw new UnhandledEntity(literal, "processLiteral")
+    }
+  }
+
+  def translateBlock(ast: AST): List[AstExpression] = {
+    ast match {
+      case AST.Block(_, _, firstLine, lines) =>
+        val actualLines = lines.collect {
+          case ln if ln.elem.isDefined => ln.elem.get
+        }
+
+        (firstLine.elem :: actualLines).map(translateExpression)
+      case _ => List(translateExpression(ast))
+    }
+  }
+
+  def translateDefinitonArgument(arg: AST): AstArgDefinition = {
+    // TODO [AA] Do this properly
+    arg match {
+      case AST.Ident.Var(name) => AstArgDefinition(name, None, false)
+      case _ =>
+        throw new UnhandledEntity(arg, "translateDefinitionArgument")
     }
   }
 
@@ -111,12 +136,21 @@ object AstToAstExpression {
     }
   }
 
+  def translateAssignment(name: AST, expr: AST): AstAssignment = {
+    name match {
+      case AST.Ident.Var(name) => AstAssignment(name, translateExpression(expr))
+      case _ =>
+        throw new UnhandledEntity(name, "translateAssignment")
+    }
+  }
+
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
-      case AST.App.any(inputAST)     => translateCallable(inputAST)
-      case AST.Literal.any(inputAST) => translateLiteral(inputAST)
-      case AST.Group.any(inputAST)   => translateGroup(inputAST)
-      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AstView.Assignment(name, expr) => translateAssignment(name, expr)
+      case AST.App.any(inputAST)          => translateCallable(inputAST)
+      case AST.Literal.any(inputAST)      => translateLiteral(inputAST)
+      case AST.Group.any(inputAST)        => translateGroup(inputAST)
+      case AST.Ident.any(inputAST)        => translateIdent(inputAST)
       case _ =>
         throw new UnhandledEntity(inputAST, "translateExpression")
     }
