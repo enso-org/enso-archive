@@ -5,7 +5,7 @@ import org.enso.interpreter.test.InterpreterTest
 class FunctionArgumentsTest extends InterpreterTest {
   "Functions" should "take arguments and use them in their bodies" in {
     val code =
-        """
+      """
         |x -> x * x
         |""".stripMargin
 
@@ -24,6 +24,14 @@ class FunctionArgumentsTest extends InterpreterTest {
       """.stripMargin
 
     eval(code).call(3) shouldEqual 5
+  }
+
+  "Lambdas" should "be callable directly without assignment" in {
+    val code =
+      """
+        |(x y -> x * y) 5 6
+        |""".stripMargin
+    eval(code) shouldEqual 30
   }
 
   "Recursion" should "work" in {

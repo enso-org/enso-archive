@@ -13,6 +13,9 @@ import org.enso.syntax.text.{AST, Debug}
 //  - Method dispatch on unapplied constructors
 //  - Explicit block entities in old AST (expressions)
 
+// TODO [Generic]
+//  - Type signatures
+
 /**
   * This is a representation of the raw conversion from the Parser [[AST AST]]
   * to the internal [[IR IR]] used by the static transformation passes.
@@ -40,7 +43,16 @@ object AstToAstExpression {
   }
 
   def translateModuleSymbol(inputAST: AST): AstModuleSymbol = {
+    println("======== MODULE SYM ==========")
+    println(Debug.pretty(inputAST.toString))
+    println("==============================")
     inputAST match {
+      case AstView.MethodDefinition(targetPath, name, definition) =>
+        val path =
+          targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
+        val nameStr       = name match { case AST.Ident.Var(name) => name }
+        val defExpression = translateExpression(definition)
+        AstMethodDef(path, nameStr, defExpression.asInstanceOf[AstFunction])
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")
     }
@@ -63,10 +75,7 @@ object AstToAstExpression {
   def translateBlock(ast: AST): List[AstExpression] = {
     ast match {
       case AST.Block(_, _, firstLine, lines) =>
-        val actualLines = lines.collect {
-          case ln if ln.elem.isDefined => ln.elem.get
-        }
-
+        val actualLines = lines.flatMap(_.elem)
         (firstLine.elem :: actualLines).map(translateExpression)
       case _ => List(translateExpression(ast))
     }
@@ -84,19 +93,12 @@ object AstToAstExpression {
   def translateCallable(application: AST): AstExpression = {
     application match {
       case AstView.Application(name, args) =>
-        println("found application")
-        println("==== FUN ====")
-        println(Debug.pretty(name.toString))
-        println("==== ARGS ====")
-        println(Debug.pretty(args.toString))
         AstApply(
           translateExpression(name),
           args.map(arg => AstUnnamedCallArg(translateExpression(arg))),
           false
         )
       case AstView.Lambda(args, body) =>
-        println("found lambda")
-        println(Debug.pretty(args.toString))
         val realArgs                      = args.map(translateDefinitonArgument)
         val realBody: List[AstExpression] = translateBlock(body)
         val retExpression                 = realBody.last

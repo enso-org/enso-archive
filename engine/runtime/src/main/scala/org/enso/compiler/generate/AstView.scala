@@ -72,7 +72,7 @@ object AstView {
     def unapply(ast: AST): Option[List[AST]] = {
       ast match {
         case Application(fn, args) => Some(fn :: args)
-          // TODO [AA] This really isn't true........
+        // TODO [AA] This really isn't true........
         case _ => Some(List(ast))
       }
     }
@@ -87,9 +87,6 @@ object AstView {
       * @return the constructor, and a list of its arguments
       */
     def unapply(ast: AST): Option[(AST, List[AST])] = {
-      println("===== AST =====")
-      println(Debug.pretty(ast.toString))
-      println("===============")
       matchApplication(ast)
 
     }
@@ -105,6 +102,53 @@ object AstView {
           }
 
         case _ => None
+      }
+    }
+  }
+
+  object MethodDefinition {
+    def unapply(ast: AST): Option[(List[AST], AST, AST)] = ast match {
+      case Assignment(lhs, rhs) =>
+        lhs match {
+          case MethodReference(targetPath, name) => Some((targetPath, name, rhs))
+          case _ =>
+            None
+        }
+      case _ => None
+    }
+  }
+
+  object MethodReference {
+    val pathSeparator = AST.Ident.Opr(".")
+    def unapply(ast: AST): Option[(List[AST], AST)] = {
+      ast match {
+        case AST.App.Infix(left, op, right) =>
+          if (op == pathSeparator) {
+            right match {
+              case AST.Ident.Var(_) => Some((matchMethodReference(left), right))
+              case _                => None
+
+            }
+          } else {
+            None
+          }
+        case _ => None
+      }
+    }
+
+    def matchMethodReference(ast: AST): List[AST] = {
+      ast match {
+        case AST.App.Infix(left, op, right) =>
+          if (op == pathSeparator) {
+            right match {
+              case AST.Ident.Var(_) => matchMethodReference(left) :+ right
+              case _                => List()
+
+            }
+          } else {
+            List()
+          }
+        case _ => List()
       }
     }
   }

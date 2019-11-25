@@ -13,6 +13,15 @@ class MethodsTest extends InterpreterTest {
     evalOld(code) shouldEqual 11
   }
 
+  "MethodsXXXX" should "be defined in the global scope and dispatched to" in {
+    val code =
+      """
+        |Cons.bar = number -> number + 1
+        |bar (Cons 1 2) 10
+        |""".stripMargin
+    eval(code) shouldEqual 11
+  }
+
   "Methods" should "be dispatched to the proper constructor" in {
     val code =
       """

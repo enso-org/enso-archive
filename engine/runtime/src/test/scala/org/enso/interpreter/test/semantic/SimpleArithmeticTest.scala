@@ -44,12 +44,6 @@ class SimpleArithmeticTest extends InterpreterTest {
 //      """
 //        |(Cons h t : a) -> a
 //        |""".stripMargin
-    val code =
-      """
-        |(x y -> x + y) 4 4
-        |""".stripMargin
-    // P(P(fn, b), c)
 
-    eval(code) shouldEqual 8
   }
 }
