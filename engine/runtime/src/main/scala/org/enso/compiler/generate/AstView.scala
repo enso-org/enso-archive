@@ -44,8 +44,8 @@ object AstView {
 
           if (op == lambdaOpSym) {
             left match {
-              case ArgList(args) => Some((args, right))
-              case _             => None
+              case LambdaParamList(args) => Some((args, right))
+              case _                     => None
             }
           } else {
             None
@@ -109,30 +109,38 @@ object AstView {
     }
   }
 
+  object LambdaParamList {
+    def unapply(ast: AST): Option[List[AST]] = {
+      ast match {
+        case Application(fn, args) => Some(fn :: args)
+      }
+    }
+  }
+
   object Application {
 
+    //TODO named arguments
     /**
       *
       * @param ast
       * @return the constructor, and a list of its arguments
       */
     def unapply(ast: AST): Option[(AST, List[AST])] = {
+      println("===== AST =====")
+      println(Debug.pretty(ast.toString))
+      println("===============")
       matchApplication(ast)
+
     }
 
     def matchApplication(ast: AST): Option[(AST, List[AST])] = {
       ast match {
         case AST.App.Prefix(fn, arg) =>
-          fn match {
-            case AST.App.Prefix(fn, arg) =>
-              val fnRecurse = matchApplication(fn)
+          val fnRecurse = matchApplication(fn)
 
-              fnRecurse match {
-                case Some((fnCons, fnArg)) => Some((fnCons, fnArg :+ arg))
-                case None => Some((fn, List(arg)))
-              }
-
-            case _ => None
+          fnRecurse match {
+            case Some((fnCons, fnArg)) => Some((fnCons, fnArg :+ arg))
+            case None                  => Some((fn, List(arg)))
           }
 
         case _ => None

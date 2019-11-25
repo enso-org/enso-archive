@@ -60,12 +60,23 @@ object AstToAstExpression {
     application match {
       case AstView.Application(name, args) =>
         println("found application")
+        println("==== FUN ====")
+        println(Debug.pretty(name.toString))
+        println("==== ARGS ====")
         println(Debug.pretty(args.toString))
-        ???
+        AstApply(
+          translateExpression(name),
+          args.map(arg => AstUnnamedCallArg(translateExpression(arg))),
+          false
+        )
       case AstView.Lambda(args, body) =>
         println("found lambda")
         println(Debug.pretty(args.toString))
-        ???
+        val realArgs                      = args.map(translateDefinitonArgument)
+        val realBody: List[AstExpression] = translateBlock(body)
+        val retExpression                 = realBody.last
+        val statements                    = realBody.dropRight(1)
+        AstFunction(realArgs, statements, retExpression)
       case AST.App.Infix(left, fn, right) =>
         // FIXME [AA] We should accept all ops when translating to core
         val validInfixOps = List("+", "/", "-", "*", "%")
@@ -88,11 +99,24 @@ object AstToAstExpression {
     }
   }
 
+  def translateIdent(identifier: AST.Ident): AstExpression = {
+    identifier match {
+//      case AST.Ident.Blank(_) => throw new UnhandledEntity("Blank") IR.Identifier.Blank()
+      case AST.Ident.Var(name)  => AstVariable(name)
+      case AST.Ident.Cons(name) => AstVariable(name)
+//      case AST.Ident.Opr.any(identifier) => processIdentOperator(identifier)
+//      case AST.Ident.Mod(name) => IR.Identifier.Module(name)
+      case _ =>
+        throw new UnhandledEntity(identifier, "translateIdent")
+    }
+  }
+
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
+      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case _ =>
         throw new UnhandledEntity(inputAST, "translateExpression")
     }

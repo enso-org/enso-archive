@@ -46,7 +46,7 @@ class SimpleArithmeticTest extends InterpreterTest {
 //        |""".stripMargin
     val code =
       """
-        |fn b c
+        |println IO 10
         |""".stripMargin
     // P(P(fn, b), c)
 
