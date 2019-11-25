@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.runtime.scope.ModuleScope
-import org.enso.syntax.text.{AST, Parser}
+import org.enso.syntax.text.{AST, Debug, Parser}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

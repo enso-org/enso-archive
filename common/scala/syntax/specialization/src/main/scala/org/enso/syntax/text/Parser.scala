@@ -1,5 +1,7 @@
 package org.enso.syntax.text
 
+import java.util.UUID
+
 import org.enso.data.Index
 import org.enso.data.Span
 import org.enso.flexer
@@ -194,7 +196,7 @@ class Parser {
         Builtin.registry.get(resolvedAST.path) match {
           case None => throw MissingMacroDefinition
           case Some(spec) =>
-            val id       = resolvedAST.id.getOrElse(throw new Error(s"Missing ID"))
+            val id       = resolvedAST.id.getOrElse(UUID.randomUUID)
             val segments = resolvedAST.segs.toList().map(_.el)
             val ctx      = AST.Macro.Resolver.Context(resolvedAST.pfx, segments, id)
             resolvedAST.copy(shape = resolvedAST.shape.copy[AST](resolved = {
@@ -219,7 +221,7 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser = new Parser()
+  def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////

@@ -1,16 +1,9 @@
 package org.enso.compiler.generate
 
-import org.enso.compiler.exception.UnhandledEntity
 import org.enso.compiler.core.IR
-import org.enso.interpreter.{
-  AstArithOp,
-  AstExpression,
-  AstImport,
-  AstLong,
-  AstModuleScope,
-  AstModuleSymbol
-}
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.compiler.exception.UnhandledEntity
+import org.enso.interpreter._
+import org.enso.syntax.text.{AST, Debug, View}
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
@@ -31,19 +24,22 @@ object AstToAstExpression {
     *         `inputAST` in the compiler's [[IR IR]]
     */
   def translate(inputAST: AST): AstModuleScope = {
-//    println(Debug.pretty(inputAST.toString))
-//    println("=========================================")
+    println(Debug.pretty(inputAST.toString))
+    println("=========================================")
 
     inputAST match {
       case AST.Module.any(inputAST) => translateModule(inputAST)
       case _ => {
-        throw new UnhandledEntity(inputAST, "process")
+        throw new UnhandledEntity(inputAST, "translate")
       }
     }
   }
 
   def translateModuleSymbol(inputAST: AST): AstModuleSymbol = {
-    ???
+    inputAST match {
+      case _ =>
+        throw new UnhandledEntity(inputAST, "translateModuleSymbol")
+    }
   }
 
   def translateLiteral(literal: AST.Literal): AstLong = {
@@ -60,9 +56,17 @@ object AstToAstExpression {
     }
   }
 
-  def translateApplication(application: AST): AstExpression = {
+  def translateCallable(application: AST): AstExpression = {
     application match {
-      case AST.App.Infix(left, fn, right) => {
+      case View.Application(name, args) =>
+        println("found constructor")
+        println(Debug.pretty(args.toString))
+        ???
+      case View.Lambda(args, body) =>
+        println("found lambda")
+        println(Debug.pretty(args.toString))
+        ???
+      case AST.App.Infix(left, fn, right) =>
         // FIXME [AA] We should accept all ops when translating to core
         val validInfixOps = List("+", "/", "-", "*", "%")
 
@@ -77,8 +81,7 @@ object AstToAstExpression {
             s"${fn.name} is not currently a valid infix operator"
           )
         }
-      }
-//      case AST.App.Prefix(fn, arg) =>
+      //      case AST.App.Prefix(fn, arg) =>
 //      case AST.App.Section.any(application) => // TODO [AA] left, sides, right
 //      case AST.Mixfix(application) => // TODO [AA] translate if
       case _ => throw new UnhandledEntity(application, "translateApplication")
@@ -87,7 +90,7 @@ object AstToAstExpression {
 
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
-      case AST.App.any(inputAST)     => translateApplication(inputAST)
+      case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case _ =>
