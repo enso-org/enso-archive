@@ -131,53 +131,62 @@ object AstView {
     }
   }
 
-  // TODO [AA] THIS
   object Path {
     val pathSeparator = AST.Ident.Opr(".")
 
-    def unapply(ast: AST): Option[(AST, AST)] = {
+    def unapply(ast: AST): Option[List[AST]] = {
+      val path = matchPath(ast)
+
+      if (path.isEmpty) {
+        None
+      } else {
+        Some(path)
+      }
+    }
+
+    def matchPath(ast: AST): List[AST] = {
       ast match {
         case AST.App.Infix(left, op, right) =>
           if (op == pathSeparator) {
-            Some((left, right))
+            right match {
+              case AST.Ident.any(right) => matchPath(left) :+ right
+              case _                    => List()
+            }
           } else {
-            None
+            List()
           }
+        case AST.Ident.any(ast) => List(ast)
+        case _                  => List()
       }
     }
   }
 
   object MethodReference {
-    val pathSeparator = AST.Ident.Opr(".")
     def unapply(ast: AST): Option[(List[AST], AST)] = {
       ast match {
-        case AST.App.Infix(left, op, right) =>
-          if (op == pathSeparator) {
-            right match {
-              case AST.Ident.Var(_) => Some((matchMethodReference(left), right))
-              case _                => None
+        case Path(segments) =>
+          if (segments.length >= 2) {
+            val consPath = segments.dropRight(1)
+            val maybeVar = segments.last
+
+            val isValid = consPath.collect {
+                case a @ AST.Ident.Cons(_) => a
+              }.length == consPath.length
+
+            println(isValid)
+
+            if (isValid) {
+              maybeVar match {
+                case AST.Ident.Var(_) => Some((consPath, maybeVar))
+                case _                => None
+              }
+            } else {
+              None
             }
           } else {
             None
           }
         case _ => None
-      }
-    }
-
-    def matchMethodReference(ast: AST): List[AST] = {
-      println("CALL")
-      ast match {
-        case AST.App.Infix(left, op, right) =>
-          if (op == pathSeparator) {
-            right match {
-              case AST.Ident.Cons(_) => matchMethodReference(left) :+ right
-              case _                 => List()
-            }
-          } else {
-            List()
-          }
-        case AST.Ident.Cons(_) => List(ast)
-        case _                 => List()
       }
     }
   }
