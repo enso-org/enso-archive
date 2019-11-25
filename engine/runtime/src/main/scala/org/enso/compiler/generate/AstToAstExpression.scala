@@ -3,7 +3,7 @@ package org.enso.compiler.generate
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter._
-import org.enso.syntax.text.{AST, Debug, View}
+import org.enso.syntax.text.{AST, Debug}
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
@@ -58,11 +58,11 @@ object AstToAstExpression {
 
   def translateCallable(application: AST): AstExpression = {
     application match {
-      case View.Application(name, args) =>
-        println("found constructor")
+      case AstView.Application(name, args) =>
+        println("found application")
         println(Debug.pretty(args.toString))
         ???
-      case View.Lambda(args, body) =>
+      case AstView.Lambda(args, body) =>
         println("found lambda")
         println(Debug.pretty(args.toString))
         ???

@@ -46,8 +46,9 @@ class SimpleArithmeticTest extends InterpreterTest {
 //        |""".stripMargin
     val code =
       """
-        |fn b c d e
+        |fn b c
         |""".stripMargin
+    // P(P(fn, b), c)
 
     eval(code) shouldEqual 8
   }

@@ -1,4 +1,6 @@
-package org.enso.syntax.text
+package org.enso.compiler.generate
+
+import org.enso.syntax.text.{AST, Debug}
 
 /** This object contains view patterns that allow matching on the parser AST for
   * more sophisticated constructs.
@@ -6,7 +8,7 @@ package org.enso.syntax.text
   * These view patterns are implemented as custom unapply methods that only
   * return [[Some]] when more complex conditions are met.
   */
-object View {
+object AstView {
   object Assignment {
     val assignmentOpSym = AST.Ident.Opr("=")
 
@@ -100,7 +102,7 @@ object View {
         case Application(fn, args) =>
           fn match {
             case AST.Ident.Cons(_) => Some((fn, args))
-            case _ => None
+            case _                 => None
           }
         case _ => None
       }
@@ -115,47 +117,25 @@ object View {
       * @return the constructor, and a list of its arguments
       */
     def unapply(ast: AST): Option[(AST, List[AST])] = {
-      println(Debug.pretty(ast.toString))
-
-      val tmp@(cons, args) = matchApplication(ast)
-
-      println(tmp)
-
-      cons match {
-        case Some(cons) => Some((cons, args))
-        case None       => None
-      }
+      matchApplication(ast)
     }
 
-    def matchApplication(ast: AST): (Option[AST], List[AST]) = {
+    def matchApplication(ast: AST): Option[(AST, List[AST])] = {
       ast match {
         case AST.App.Prefix(fn, arg) =>
           fn match {
-//            case cons @ Constructor(_, _) => (None, List(cons))
-            case arg @ AST.Ident.Var(_)   => (None, List(arg))
-            case cons @ AST.Ident.Cons(_) => (Some(cons), List())
             case AST.App.Prefix(fn, arg) =>
-              val t1@(fnCons, fnArgs)   = matchApplication(fn)
-              val t2@(argCons, argArgs) = matchApplication(arg)
+              val fnRecurse = matchApplication(fn)
 
-              println(t1)
-              println(t2)
-
-              fnCons match {
-                case Some(fnName) =>
-                  argCons match {
-                    case Some(name) => throw new RuntimeException("oops")
-                    case None       => (Some(fnName), fnArgs ++ argArgs)
-                  }
-                case None => argCons match {
-                  case Some(argName) => (Some(argName), fnArgs ++ argArgs)
-                  case None       => (None, fnArgs ++ argArgs)
-                }
+              fnRecurse match {
+                case Some((fnCons, fnArg)) => Some((fnCons, fnArg :+ arg))
+                case None => Some((fn, List(arg)))
               }
-            case _ => (None, List())
+
+            case _ => None
           }
 
-        case _ => (None, List())
+        case _ => None
       }
     }
   }
