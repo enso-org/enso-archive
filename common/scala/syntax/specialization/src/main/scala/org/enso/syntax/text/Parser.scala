@@ -221,7 +221,7 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser = new Parser()
+  def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////
@@ -263,26 +263,7 @@ object Main extends App {
   val in2  = "(a) b = c]"
   val inp2 = "a (b (c)) x"
 
-  val inp = """## This function adds `x` to `y`
-              |add x y = x + y
-              |mul x y = x * y
-              |
-              |## This function divides `x` by `y`
-              |div x y = x / y
-              |
-              |## Just a comment
-              |
-              |## Doc for infix with empty lines between 
-              |
-              |sub x y = x - y
-              |
-              |## Foo bar baz
-              |   bax
-              |def Maybe a
-              |    ## test attached to Just
-              |    def Just val:a
-              |    def Nothing
-              |""".stripMargin
+  val inp = """"FOO""".stripMargin
 
   println("--- PARSING ---")
 

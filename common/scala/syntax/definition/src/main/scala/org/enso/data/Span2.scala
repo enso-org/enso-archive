@@ -1,8 +1,6 @@
 package org.enso.data2
 
 import org.enso.syntax.text2.AST.AST
-import org.enso.data.Index
-import org.enso.data.Size
 
 /** Strongly typed span in a container. */
 case class Span(begin: Index, length: Size) extends Ordered[Span] {
