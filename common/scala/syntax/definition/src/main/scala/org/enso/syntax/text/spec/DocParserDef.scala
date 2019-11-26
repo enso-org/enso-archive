@@ -184,7 +184,7 @@ case class DocParserDef() extends Parser[Doc] {
       } while (result.current.get == Elem.Newline)
       result.current match {
         case Some(code @ (_: Elem.CodeBlock)) =>
-          val newElem = Elem.CodeBlock.Line(indent.latest, in)
+          val newElem = Elem.CodeBlock.Line(indent.stack.head, in)
           if (code.elems.head == dummyLine) {
             result.current = Some(Elem.CodeBlock(newElem))
           } else {
@@ -413,21 +413,22 @@ case class DocParserDef() extends Parser[Doc] {
     * inListFlag - used to check if currently creating list
     */
   final object indent {
-    var latest: Int     = 0
-    val listIndent: Int = 2
+//    var latest: Int = stack.head
+//    val listIndent: Int = 2
+    var stack: List[Int] = 0 :: Nil
 
     def onIndent(): Unit = logger.trace {
-      val diff = currentMatch.length - latest
-      if (diff == -listIndent && list.inListFlag) {
+      val diff = currentMatch.length - stack.head
+      if (diff < 0 && list.inListFlag) {
         list.appendInnerToOuter()
-        latest = currentMatch.length
+        stack = stack.tail
       } else if (currentMatch.length > section.currentIndentRaw && result.stack.nonEmpty) {
         tryToFindCodeInStack()
+        stack +:= currentMatch.length
         state.begin(CODE)
       } else {
         section.currentIndentRaw = currentMatch.length
       }
-      latest = currentMatch.length
     }
 
     def tryToFindCodeInStack(): Unit = logger.trace {
@@ -445,25 +446,28 @@ case class DocParserDef() extends Parser[Doc] {
       typ: Elem.List.Type,
       content: String
     ): Unit = logger.trace {
-      var wantToChangeIndent = true
-      val diff               = indent - latest
-      if (diff >= listIndent) {
+      val diff = indent - stack.head
+      if (diff > 0) {
         /* NOTE
          * Used to push new line before pushing first list
          */
         if (!list.inListFlag) onPushingNewLine()
+        stack +:= indent
         list.inListFlag = true
         list.addNew(indent, typ, content)
       } else if (diff == 0 && list.inListFlag) {
         list.addContent(content)
-      } else if (diff >= -listIndent && list.inListFlag) {
-        list.appendInnerToOuter()
-        list.addContent(content)
+      } else if (diff < 0 && list.inListFlag) {
+        if (stack.tail.head != indent) {
+          onInvalidIndent(indent, typ, content)
+        } else {
+          list.appendInnerToOuter()
+          list.addContent(content)
+          stack = stack.tail
+        }
       } else {
         onInvalidIndent(indent, typ, content)
-        wantToChangeIndent = false
       }
-      if (wantToChangeIndent) latest = indent
     }
 
     def onInvalidIndent(

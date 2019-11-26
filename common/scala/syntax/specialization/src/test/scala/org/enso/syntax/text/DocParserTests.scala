@@ -711,7 +711,7 @@ class DocParserTests extends FlatSpec with Matchers {
     Synopsis(
       Section.Raw(
         Newline,
-        " - bar",
+        List(1, List.Unordered, " bar"),
         Newline,
         CodeBlock(CodeBlock.Line(1, "baz")),
         Newline
