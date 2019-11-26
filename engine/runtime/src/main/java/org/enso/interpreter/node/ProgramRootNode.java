@@ -5,9 +5,12 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+
+import java.util.Optional;
 
 /**
  * This node handles static transformation of the input AST before execution and represents the root
@@ -40,12 +43,7 @@ public class ProgramRootNode extends EnsoRootNode {
       String name,
       SourceSection sourceSection,
       Source sourceCode) {
-    super(
-        language,
-        localScope,
-        moduleScope,
-        name,
-        sourceSection);
+    super(language, localScope, moduleScope, name, sourceSection);
     this.sourceCode = sourceCode;
   }
 
@@ -62,8 +60,14 @@ public class ProgramRootNode extends EnsoRootNode {
     // Note [Static Passes]
     if (this.ensoProgram == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      this.ensoProgram = this.insert(context.compiler().run(this.sourceCode));
-      this.ensoProgram.setTail(programShouldBeTailRecursive);
+      Optional<ExpressionNode> program = context.compiler().run(this.sourceCode);
+      if (program.isPresent()) {
+        this.ensoProgram = insert(program.get());
+        this.ensoProgram.setTail(programShouldBeTailRecursive);
+      } else {
+        this.ensoProgram =
+            insert(new InstantiateNode(getContext().getUnit(), new ExpressionNode[0]));
+      }
     }
 
     Object state = getContext().getUnit().newInstance();

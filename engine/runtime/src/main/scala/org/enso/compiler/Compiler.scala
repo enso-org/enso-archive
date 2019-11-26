@@ -1,5 +1,7 @@
 package org.enso.compiler
 
+import java.util.Optional
+
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.generate.AstToAstExpression
@@ -41,7 +43,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): ExpressionNode = {
+  def run(source: Source, scope: ModuleScope): Optional[ExpressionNode] = {
     val mimeType = source.getMimeType
 
     val expr: AstModuleScope = if (mimeType == Constants.MIME_TYPE) {
@@ -63,7 +65,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): ExpressionNode = {
+  def run(file: TruffleFile, scope: ModuleScope): Optional[ExpressionNode] = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, scope)
   }
 
@@ -75,7 +77,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source): ExpressionNode = {
+  def run(source: Source): Optional[ExpressionNode] = {
     run(source, context.createScope)
   }
 
@@ -87,7 +89,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile): ExpressionNode = {
+  def run(file: TruffleFile): Optional[ExpressionNode] = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build)
   }
 

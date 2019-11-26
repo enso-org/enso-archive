@@ -221,15 +221,22 @@ object AstToAstExpression {
           case _                 => true
         }
 
-        if (nonImportBlocks.isEmpty) {
-          // FIXME [AA] This is temporary, and should be moved to generate an
-          //  error node in Core.
-          throw new RuntimeException("Cannot have no expressions")
+        val definitions = nonImportBlocks.takeWhile {
+          case AST.Def(_, _, _)            => true
+          case AstView.MethodDefinition(_) => true
+          case _                           => false
         }
 
-        val statements = nonImportBlocks.dropRight(1).map(translateModuleSymbol)
-        val expression = translateExpression(nonImportBlocks.last)
-        AstModuleScope(imports, statements, expression)
+        val executableExpressions = nonImportBlocks.drop(definitions.length)
+
+        val statements = definitions.map(translateModuleSymbol)
+        val expressions = executableExpressions.map(translateExpression)
+        val block = expressions match {
+          case List() => None
+          case List(expr) => Some(expr)
+          case _ => Some(AstBlock(expressions.dropRight(1), expressions.last))
+        }
+        AstModuleScope(imports, statements, block)
       }
     }
   }

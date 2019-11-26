@@ -51,15 +51,15 @@ trait AstExpressionVisitor[+T] {
   ): T
 }
 
-trait AstModuleScopeVisitor[+T] {
+trait AstModuleScopeVisitor[T] {
 
   @throws(classOf[Exception])
   def visitModuleScope(
     imports: java.util.List[AstImport],
     typeDefs: java.util.List[AstTypeDef],
     bindings: java.util.List[AstMethodDef],
-    expression: AstExpression
-  ): T
+    expression: java.util.Optional[AstExpression]
+  ): java.util.Optional[T]
 }
 
 sealed trait AstModuleSymbol
@@ -77,10 +77,10 @@ case class AstImport(name: String)
 case class AstModuleScope(
   imports: List[AstImport],
   bindings: List[AstModuleSymbol],
-  expression: AstExpression
+  expression: Option[AstExpression]
 ) {
 
-  def visit[T](visitor: AstModuleScopeVisitor[T]): T = {
+  def visit[T](visitor: AstModuleScopeVisitor[T]): Optional[T] = {
     val types = new java.util.ArrayList[AstTypeDef]()
     val defs  = new java.util.ArrayList[AstMethodDef]()
 
@@ -89,7 +89,12 @@ case class AstModuleScope(
       case typeDef: AstTypeDef      => types.add(typeDef)
     }
 
-    visitor.visitModuleScope(imports.asJava, types, defs, expression)
+    visitor.visitModuleScope(
+      imports.asJava,
+      types,
+      defs,
+      Optional.ofNullable(expression.orNull)
+    )
   }
 }
 
@@ -360,7 +365,7 @@ class EnsoParserInternal extends JavaTokenParsers {
   def globalScope: Parser[AstModuleScope] =
     (importStmt *) ~ ((typeDef | methodDef) *) ~ expression ^^ {
       case imports ~ assignments ~ expr =>
-        AstModuleScope(imports, assignments, expr)
+        AstModuleScope(imports, assignments, Some(expr))
     }
 
   def parseGlobalScope(code: String): AstModuleScope = {

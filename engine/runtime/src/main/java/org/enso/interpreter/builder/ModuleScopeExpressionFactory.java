@@ -13,6 +13,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -41,7 +42,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
    * @param expr the expression to execute on
    * @return a runtime node representing the top-level expression
    */
-  public ExpressionNode run(AstModuleScope expr) {
+  public Optional<ExpressionNode> run(AstModuleScope expr) {
     return expr.visit(this);
   }
 
@@ -55,11 +56,11 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
    * @return a runtime node representing the whole top-level program scope
    */
   @Override
-  public ExpressionNode visitModuleScope(
+  public Optional<ExpressionNode> visitModuleScope(
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
       List<AstMethodDef> bindings,
-      AstExpression executableExpression) {
+      Optional<AstExpression> executableExpression) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
@@ -102,8 +103,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
       realArgs.add(0, thisArgument);
 
       CreateFunctionNode funNode =
-          expressionFactory.processFunctionBody(
-              realArgs, method.fun().body());
+          expressionFactory.processFunctionBody(realArgs, method.fun().body());
       funNode.markTail();
       Function function =
           new Function(
@@ -123,6 +123,6 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
     }
 
     ExpressionFactory factory = new ExpressionFactory(this.language, moduleScope);
-    return factory.run(executableExpression);
+    return executableExpression.map(factory::run);
   }
 }
