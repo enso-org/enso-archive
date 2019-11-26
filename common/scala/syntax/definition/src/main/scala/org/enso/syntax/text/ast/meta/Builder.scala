@@ -64,18 +64,26 @@ final class Builder(
       case Some(mdef) =>
         println("BUILD SOME")
         val revSegPats    = mdef.fwdPats.reverse
+        println(1)
         val revSegsOuts   = revSegBldrs.zipWith(revSegPats)(_.build(_))
+        println(2)
         val revSegs       = revSegsOuts.map(_._1)
+        println(3)
         val revSegStreams = revSegsOuts.map(_._2)
+        println(4)
         val tailStream    = revSegStreams.head
+        println(5)
         val segs          = revSegs.reverse
+        println(6)
 
         val (segs2, pfxMatch, newLeftStream) = mdef.back match {
           case None => (segs, None, revStreamL)
           case Some(pat) =>
+            println(7)
             val fstSegOff                = segs.head.off
-            println("MATCH 1")
+            println(8)
             val (revStreamL2, lastLOff)  = streamShift(fstSegOff, revStreamL)
+            println(9)
             val pfxMatch                 = pat.matchRevUnsafe(revStreamL2)
             val revStreamL3              = pfxMatch.stream
             val streamL3                 = revStreamL3.reverse
@@ -89,8 +97,10 @@ final class Builder(
 
         }
 
+        println(10)
         val shiftSegs = Shifted.List1(segs2.head.el, segs2.tail)
 
+        println(11)
         if (!revSegStreams.tail.forall(_.isEmpty)) {
           throw new Error(
             "Internal error: not all template segments were fully matched"
@@ -98,7 +108,9 @@ final class Builder(
         }
 
 //        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
+        println(12)
         val template = Macro.Match(pfxMatch, shiftSegs, null)
+        println(13)
         val newTok   = Shifted(segs2.head.off, template)
 
         println("FINISH 2")
