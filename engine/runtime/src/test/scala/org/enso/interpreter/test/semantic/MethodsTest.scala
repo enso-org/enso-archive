@@ -55,12 +55,26 @@ class MethodsTest extends InterpreterTest {
   }
 
   "Methods" should "be able to be defined without arguments" in {
-    val code = """
-      |type Foo
-      |Foo.bar = 1
-      |bar Foo + 5
-      |""".stripMargin
+    val code =
+      """
+        |type Foo
+        |Foo.bar = 1
+        |bar Foo + 5
+        |""".stripMargin
     eval(code) shouldEqual 6
+  }
+
+  "Methods" should "be definable as blocks without arguments" in {
+    val code =
+      """
+        |Any.method =
+        |    x = this * this
+        |    y = x * 2
+        |    y + 1
+        |    
+        |3.method
+        |""".stripMargin
+    eval(code) shouldEqual 19
   }
 
   "Methods" should "be dispatched to the proper constructor" in {

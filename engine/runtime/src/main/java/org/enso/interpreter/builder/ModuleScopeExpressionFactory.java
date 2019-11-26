@@ -103,7 +103,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
 
       CreateFunctionNode funNode =
           expressionFactory.processFunctionBody(
-              realArgs, method.fun().getStatements(), method.fun().ret());
+              realArgs, method.fun().body());
       funNode.markTail();
       Function function =
           new Function(

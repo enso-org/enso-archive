@@ -57,7 +57,7 @@ object AstToAstExpression {
         val defExpression = translateExpression(definition)
         val defExpr: AstFunction = defExpression match {
           case fun: AstFunction => fun
-          case expr             => AstFunction(List(), List(), expr)
+          case expr             => AstFunction(List(), expr)
         }
         AstMethodDef(path, nameStr, defExpr)
       case _ =>
@@ -76,15 +76,6 @@ object AstToAstExpression {
       }
 //      case AST.Literal.Text.any(literal) =>
       case _ => throw new UnhandledEntity(literal, "processLiteral")
-    }
-  }
-
-  def translateBlock(ast: AST): List[AstExpression] = {
-    ast match {
-      case AST.Block(_, _, firstLine, lines) =>
-        val actualLines = lines.flatMap(_.elem)
-        (firstLine.elem :: actualLines).map(translateExpression)
-      case _ => List(translateExpression(ast))
     }
   }
 
@@ -127,11 +118,9 @@ object AstToAstExpression {
           false
         )
       case AstView.Lambda(args, body) =>
-        val realArgs                      = args.map(translateArgumentDefinition)
-        val realBody: List[AstExpression] = translateBlock(body)
-        val retExpression                 = realBody.last
-        val statements                    = realBody.dropRight(1)
-        AstFunction(realArgs, statements, retExpression)
+        val realArgs = args.map(translateArgumentDefinition)
+        val realBody = translateExpression(body)
+        AstFunction(realArgs, realBody)
       case AST.App.Infix(left, fn, right) =>
         // FIXME [AA] We should accept all ops when translating to core
         val validInfixOps = List("+", "/", "-", "*", "%")
@@ -183,6 +172,8 @@ object AstToAstExpression {
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AstView.Block(lines, retLine) =>
+        AstBlock(lines.map(translateExpression), translateExpression(retLine))
       case _ =>
         throw new UnhandledEntity(inputAST, "translateExpression")
     }

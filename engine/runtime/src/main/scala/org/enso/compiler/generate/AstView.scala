@@ -1,5 +1,6 @@
 package org.enso.compiler.generate
 
+import org.enso.interpreter.AstBlock
 import org.enso.syntax.text.{AST, Debug}
 
 // TODO [AA] Handle arbitrary parens
@@ -11,6 +12,19 @@ import org.enso.syntax.text.{AST, Debug}
   * return [[Some]] when more complex conditions are met.
   */
 object AstView {
+  object Block {
+    def unapply(ast: AST): Option[(List[AST], AST)] = ast match {
+      case AST.Block(_, _, firstLine, lines) =>
+        val actualLines = firstLine.elem :: lines.flatMap(_.elem)
+        if (actualLines.nonEmpty) {
+          Some((actualLines.dropRight(1), actualLines.last))
+        } else {
+          None
+        }
+      case _ => None
+    }
+  }
+
   object Binding {
     val bindingOpSym = AST.Ident.Opr("=")
 
