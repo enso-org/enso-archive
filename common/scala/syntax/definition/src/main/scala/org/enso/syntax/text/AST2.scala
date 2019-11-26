@@ -136,13 +136,17 @@ sealed trait ShapeImplicit {
     case s: InlineBlock[T]  => OffsetZip[InlineBlock, T].zipWithOffset(s)
     case s: LineRaw[T]      => OffsetZip[LineRaw, T].zipWithOffset(s)
     case s: LineFmt[T]      => OffsetZip[LineFmt, T].zipWithOffset(s)
-//    case s: BlockLine[T]    => OffsetZip[BlockLine, T].zipWithOffset(s)
-//    case s: BlockRaw[T] => OffsetZip[BlockRaw, T].zipWithOffset(s)
-//    case s: BlockFmt[T] => OffsetZip[BlockFmt, T].zipWithOffset(s)
+    case s: BlockRaw[T]     => OffsetZip[BlockRaw, T].zipWithOffset(s) // TODO
+    case s: BlockFmt[T]     => OffsetZip[BlockFmt, T].zipWithOffset(s) // TODO
 //    case s: SegmentPlain[T]  => OffsetZip[InlineBlock, T].zipWithOffset(s)
 //    case s: SegmentExpr[T]   => OffsetZip[LineRaw, T].zipWithOffset(s)
 //    case s: SegmentEscape[T] => OffsetZip[LineFmt, T].zipWithOffset(s)
-    case s: App[T] => OffsetZip[App, T].zipWithOffset(s)
+    case s: App[T]          => OffsetZip[App, T].zipWithOffset(s)
+    case s: Infix[T]        => OffsetZip[Infix, T].zipWithOffset(s)
+    case s: SectionLeft[T]  => OffsetZip[SectionLeft, T].zipWithOffset(s)
+    case s: SectionRight[T] => OffsetZip[SectionRight, T].zipWithOffset(s)
+    case s: SectionSides[T] => OffsetZip[SectionSides, T].zipWithOffset(s)
+
   }
   implicit def span[T: HasSpan]: HasSpan[Shape[T]] = ???
 }
@@ -451,22 +455,16 @@ object Shape extends ShapeImplicit {
     implicit def span[T]: HasSpan[LineFmt[T]] = ??? // _.repr.span // FIXME
   }
 
+  // FIXME trait could delegate to shape
   object Block {
+    def line[T: Repr](off: Int, l: BlockLine[SegmentFmt[T]]): Builder =
+      R + l.emptyLines.map(AST.newline + _) + AST.newline + off + l.text
+
     implicit def ftor: Functor[Block]  = semi.functor
     implicit def fold: Foldable[Block] = semi.foldable
-//    implicit def repr[T]: Repr[Block[T]] = t => (t: Shape[T]).repr
-//    implicit def ozip[T: HasSpan]: OffsetZip[Block, T] = { t =>
-//      OffsetZip[Shape, T](t).asInstanceOf
-//    }
-//    implicit def span[T: HasSpan]: HasSpan[Block[T]] =
-//      t => (t: Shape[T]).span
 
     implicit def repr[T: Repr]: Repr[Block[T]] = t => {
       val q = t.quote
-
-      def line(off: Int, l: BlockLine[SegmentFmt[T]]): Builder =
-        R + l.emptyLines.map(AST.newline + _) + AST.newline + off + l.text
-
       t match {
         case BlockRaw(text, s, off) => q + s + text.map(line(off, _))
         case BlockFmt(text, s, off) => q + s + text.map(line(off, _))
@@ -474,29 +472,43 @@ object Shape extends ShapeImplicit {
     }
     implicit def ozip[T: HasSpan]: OffsetZip[Block, T] = {
       case body: BlockRaw[T] => body.coerce
-      case body: BlockFmt[T] =>
-        var offset = Index(body.quote.span)
-        val text =
-          for (line <- body.text) yield {
-            offset += Size(line.emptyLines.length + line.emptyLines.sum)
-            offset += Size(1 + body.offset)
-            val text = for (elem <- line.text) yield {
-              val offElem = elem.map(offset -> _)
-              offset += Size(elem.span)
-              offElem
-            }
-            line.copy(text = text)
-          }
-        body.copy(text = text)
+      case body: BlockFmt[T] => OffsetZip(body)
     }
     implicit def span[T: HasSpan]: HasSpan[Block[T]] =
       t => (t: Shape[T]).span
   }
 
-  // TODO
-  //  BlockLine
-  //  BlockRaw
-  //  BlockFmt
+  object BlockRaw {
+    implicit def ftor: Functor[BlockRaw]  = semi.functor
+    implicit def fold: Foldable[BlockRaw] = semi.foldable
+    implicit def repr[T: Repr]: Repr[BlockRaw[T]] =
+      t => t.quote + t.spaces + t.text.map(Block.line(t.offset, _))
+    implicit def ozip[T: HasSpan]: OffsetZip[BlockRaw, T] = t => t.coerce
+    implicit def span[T]: HasSpan[BlockRaw[T]]            = ??? //_.str.length
+  }
+
+  object BlockFmt {
+    implicit def ftor: Functor[BlockFmt]  = semi.functor
+    implicit def fold: Foldable[BlockFmt] = semi.foldable
+    implicit def repr[T: Repr]: Repr[BlockFmt[T]] =
+      t => t.quote + t.spaces + t.text.map(Block.line(t.offset, _))
+    implicit def ozip[T: HasSpan]: OffsetZip[BlockFmt, T] = { body =>
+      var offset = Index(body.quote.span)
+      val text =
+        for (line <- body.text) yield {
+          offset += Size(line.emptyLines.length + line.emptyLines.sum)
+          offset += Size(1 + body.offset)
+          val text = for (elem <- line.text) yield {
+            val offElem = elem.map(offset -> _)
+            offset += Size(elem.span)
+            offElem
+          }
+          line.copy(text = text)
+        }
+      body.copy(text = text)
+    }
+    implicit def span[T]: HasSpan[BlockFmt[T]] = ??? //_.str.length
+  }
 
   object Segment {
     implicit def ftor: Functor[Segment]  = semi.functor
