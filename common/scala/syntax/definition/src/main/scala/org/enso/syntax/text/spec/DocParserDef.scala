@@ -6,6 +6,7 @@ import org.enso.flexer.automata.Pattern._
 import org.enso.data.List1
 import org.enso.syntax.text.ast.Doc._
 import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text.ast.Doc.Elem.{CodeBlock, Link}
 
 case class DocParserDef() extends Parser[Doc] {
 
@@ -184,7 +185,7 @@ case class DocParserDef() extends Parser[Doc] {
       } while (result.current.get == Elem.Newline)
       result.current match {
         case Some(code @ (_: Elem.CodeBlock)) =>
-          val newElem = Elem.CodeBlock.Line(indent.stack.head, in)
+          val newElem = Elem.CodeBlock.Line(indent.current, in)
           if (code.elems.head == dummyLine) {
             result.current = Some(Elem.CodeBlock(newElem))
           } else {
@@ -412,10 +413,14 @@ case class DocParserDef() extends Parser[Doc] {
     * stack - holds indents for code blocks and lists
     */
   final object indent {
-    var stack: List[Int] = 0 :: Nil
+    var stack: List[Int] = Nil
+    def current: Int = stack match {
+      case Nil         => 0
+      case ::(head, _) => head
+    }
 
     def onIndent(): Unit = logger.trace {
-      val diff = currentMatch.length - stack.head
+      val diff = currentMatch.length - current
       if (diff < 0 && list.inListFlag) {
         list.appendInnerToOuter()
         stack = stack.tail
@@ -430,10 +435,12 @@ case class DocParserDef() extends Parser[Doc] {
 
     def tryToFindCodeInStack(): Unit = logger.trace {
       result.pop()
-      if (!result.stack.head.isInstanceOf[Elem.CodeBlock]) {
-        result.push()
-        val dummyLine = Elem.CodeBlock.Line(0, "")
-        result.current = Some(Elem.CodeBlock(dummyLine))
+      result.stack.head match {
+        case _: Elem.CodeBlock =>
+        case _ =>
+          result.push()
+          val dummyLine = Elem.CodeBlock.Line(0, "")
+          result.current = Some(Elem.CodeBlock(dummyLine))
       }
       result.push()
     }
@@ -443,7 +450,7 @@ case class DocParserDef() extends Parser[Doc] {
       typ: Elem.List.Type,
       content: String
     ): Unit = logger.trace {
-      val diff = indent - stack.head
+      val diff = indent - current
       if (diff > 0) {
         /* NOTE
          * Used to push new line before pushing first list
