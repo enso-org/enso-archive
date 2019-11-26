@@ -13,6 +13,7 @@ import org.enso.interpreter.builder.ModuleScopeExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.Module
+import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.enso.interpreter.runtime.scope.ModuleScope
@@ -43,7 +44,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): Optional[ExpressionNode] = {
+  def run(source: Source, scope: ModuleScope): Optional[Function] = {
     val mimeType = source.getMimeType
 
     val expr: AstModuleScope = if (mimeType == Constants.MIME_TYPE) {
@@ -65,7 +66,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): Optional[ExpressionNode] = {
+  def run(file: TruffleFile, scope: ModuleScope): Optional[Function] = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, scope)
   }
 
@@ -77,7 +78,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source): Optional[ExpressionNode] = {
+  def run(source: Source): Optional[Function] = {
     run(source, context.createScope)
   }
 
@@ -89,7 +90,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile): Optional[ExpressionNode] = {
+  def run(file: TruffleFile): Optional[Function] = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build)
   }
 
