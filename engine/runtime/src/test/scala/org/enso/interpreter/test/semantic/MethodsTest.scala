@@ -13,6 +13,32 @@ class MethodsTest extends InterpreterTest {
     eval(code) shouldEqual 11
   }
 
+  "Methods" should "be callable with dot operator" in {
+    val code =
+      """
+        |type Foo
+        |Foo.bar = number -> number + 1
+        |Foo.bar 10
+        |""".stripMargin
+    eval(code) shouldEqual 11
+  }
+
+  "Methods" should "be chainable with dot operator" in {
+    val code =
+      """
+        |type Foo
+        |type Bar
+        |type Baz
+        |
+        |Foo.bar = Bar
+        |Bar.baz = x -> Baz
+        |Baz.spam = y -> y + 25
+        |
+        |Foo . bar . baz 54 . spam 2
+        |""".stripMargin
+    eval(code) shouldEqual 27
+  }
+
   "Methods" should "be able to be defined without arguments" in {
     val code = """
       |type Foo

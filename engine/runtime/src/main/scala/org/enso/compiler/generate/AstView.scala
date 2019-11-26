@@ -92,7 +92,7 @@ object AstView {
     def unapply(ast: AST): Option[AST] = {
       ast match {
         case AST.Group(mExpr) => mExpr.flatMap(unapply)
-        case a => Some(a)
+        case a                => Some(a)
       }
     }
   }
@@ -114,12 +114,32 @@ object AstView {
   object SuspendedArgument {}
 
   object Application {
-    //TODO named arguments
     def unapply(ast: AST): Option[(AST, List[AST])] =
       SpacedList.unapply(ast).flatMap {
-        case fun :: args => Some((fun, args))
-        case _           => None
+        case fun :: args =>
+          fun match {
+            case MethodCall(target, function, methodArgs) =>
+              Some((function, target :: methodArgs ++ args))
+            case _ => Some((fun, args))
+          }
+        case _ => None
       }
+  }
+
+  object IdentApplication {
+    def unapply(ast: AST): Option[(AST.Ident, List[AST])] =
+      Application.unapply(ast).flatMap {
+        case (fun, args) => ConsOrVar.unapply(fun).map((_, args))
+      }
+  }
+
+  object MethodCall {
+    def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] = ast match {
+      case OperatorDot(target, IdentApplication(ident, args)) =>
+        Some((target, ident, args))
+      case OperatorDot(target, ConsOrVar(ident)) => Some((target, ident, List()))
+      case _ => None
+    }
   }
 
   object SpacedList {
@@ -159,14 +179,28 @@ object AstView {
               None
           }
         case _ =>
-          println("NOT AN ASSIGNMENT")
           None
       }
     }
   }
 
+  object ConsOrVar {
+    def unapply(arg: AST): Option[AST.Ident] = arg match {
+      case AST.Ident.Var.any(arg)  => Some(arg)
+      case AST.Ident.Cons.any(arg) => Some(arg)
+      case _                       => None
+    }
+  }
+
+  object OperatorDot {
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case AST.App.Infix(left, AST.Ident.Opr("."), right) => Some((left, right))
+      case _ =>
+        None
+    }
+  }
+
   object Path {
-    val pathSeparator = AST.Ident.Opr(".")
 
     def unapply(ast: AST): Option[List[AST]] = {
       val path = matchPath(ast)
@@ -180,14 +214,10 @@ object AstView {
 
     def matchPath(ast: AST): List[AST] = {
       ast match {
-        case AST.App.Infix(left, op, right) =>
-          if (op == pathSeparator) {
-            right match {
-              case AST.Ident.any(right) => matchPath(left) :+ right
-              case _                    => List()
-            }
-          } else {
-            List()
+        case OperatorDot(left, right) =>
+          right match {
+            case AST.Ident.any(right) => matchPath(left) :+ right
+            case _                    => List()
           }
         case AST.Ident.any(ast) => List(ast)
         case _                  => List()

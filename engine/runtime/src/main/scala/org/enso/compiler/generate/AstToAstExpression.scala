@@ -100,12 +100,30 @@ object AstToAstExpression {
     }
   }
 
+  def translateCallArgument(arg: AST): AstCallArg = arg match {
+    case AstView.AssignedArgument(left, right) =>
+      AstNamedCallArg(left.name, translateExpression(right))
+    case _ => AstUnnamedCallArg(translateExpression(arg))
+  }
+
+  def translateMethodCall(
+    target: AST,
+    ident: AST.Ident,
+    args: List[AST]
+  ): AstExpression = {
+    AstApply(
+      translateExpression(ident),
+      (target :: args).map(translateCallArgument),
+      false
+    )
+  }
+
   def translateCallable(application: AST): AstExpression = {
     application match {
       case AstView.Application(name, args) =>
         AstApply(
           translateExpression(name),
-          args.map(arg => AstUnnamedCallArg(translateExpression(arg))),
+          args.map(translateCallArgument),
           false
         )
       case AstView.Lambda(args, body) =>
@@ -159,10 +177,12 @@ object AstToAstExpression {
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
       case AstView.Assignment(name, expr) => translateAssignment(name, expr)
-      case AST.App.any(inputAST)          => translateCallable(inputAST)
-      case AST.Literal.any(inputAST)      => translateLiteral(inputAST)
-      case AST.Group.any(inputAST)        => translateGroup(inputAST)
-      case AST.Ident.any(inputAST)        => translateIdent(inputAST)
+      case AstView.MethodCall(target, name, args) =>
+        translateMethodCall(target, name, args)
+      case AST.App.any(inputAST)     => translateCallable(inputAST)
+      case AST.Literal.any(inputAST) => translateLiteral(inputAST)
+      case AST.Group.any(inputAST)   => translateGroup(inputAST)
+      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case _ =>
         throw new UnhandledEntity(inputAST, "translateExpression")
     }

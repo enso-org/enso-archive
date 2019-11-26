@@ -7,23 +7,23 @@ class NamedArgumentsTest extends InterpreterTest {
     val code =
       """
         |Unit.a = 10
-        |Unit.addTen = { |b| (@a [@Unit]) + b }
+        |Unit.addTen = b -> a Unit + b
         |
-        |@addTen [@Unit, b = 10]
+        |addTen Unit (b = 10)
       """.stripMargin
 
-    evalOld(code) shouldEqual 20
+    eval(code) shouldEqual 20
   }
 
   "Functions" should "be able to have named arguments given out of order" in {
     val code =
       """
-        |Unit.subtract = { |a, b| a - b }
+        |Unit.subtract = a b -> a - b
         |
-        |@subtract [@Unit, b = 10, a = 5]
+        |subtract Unit (b = 10) (a = 5)
     """.stripMargin
 
-    evalOld(code) shouldEqual -5
+    eval(code) shouldEqual -5
   }
 
   "Functions" should "be able to have scope values as named arguments" in {
@@ -115,18 +115,16 @@ class NamedArgumentsTest extends InterpreterTest {
   "Defaulted arguments" should "work in a recursive context" in {
     val code =
       """
-        |Unit.summer = { |sumTo|
-        |  summator = { |acc = 0, current|
-        |      @ifZero [current, acc, @summator [current = current - 1, acc = acc + current]]
-        |  };
-        |  res = @summator [current = sumTo];
+        |Unit.summer = sumTo ->
+        |  summator = (acc = 0) current ->
+        |      ifZero current acc (summator (current = current - 1) (acc = acc + current))
+        |  res = summator (current = sumTo)
         |  res
-        |}
         |
-        |@summer [@Unit, 100]
+        |summer Unit 100
     """.stripMargin
 
-    evalOld(code) shouldEqual 5050
+    eval(code) shouldEqual 5050
   }
 
   "Named Arguments" should "only be scoped to their definitions" in {
@@ -152,8 +150,8 @@ class NamedArgumentsTest extends InterpreterTest {
     pending
     val code =
       """
-        |Unit.foo = { |a, b, c| a + b }
-        |@foo [@Unit, 20, a = 10]
+        |Unit.foo = a b c -> a + b
+        |foo Unit 20 (a = 10)
         |""".stripMargin
   }
 
