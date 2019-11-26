@@ -19,9 +19,9 @@ object Macro {
     module.map(transform)
 
   private def transform(t: AST): AST =
-    new Transform(t).go(AST.tokenize(t).toList())
+    new Transformer(t).run(AST.tokenize(t).toList())
 
-  final private class Transform(t: AST) {
+  final private class Transformer(t: AST) {
     val root                        = Builder.Context(Builtin.registry.tree)
 
     var builder: Builder            = Builder.moduleBuilder()
@@ -59,7 +59,7 @@ object Macro {
     }
 
     @tailrec
-    def go(input: AST.Stream): AST = {
+    def run(input: AST.Stream): AST = {
       input match {
         case Nil =>
           val builders                      = builder :: builderStack
@@ -96,7 +96,7 @@ object Macro {
                 tr.value.map(Some(_)).getOrElse(builder.macroDef)
               builder.context = builder.context.copy(tree = tr)
               logger.endGroup()
-              go(t2_)
+              run(t2_)
 
             case None =>
               root.lookup(el1) match {
@@ -107,7 +107,7 @@ object Macro {
                   builder.macroDef = tr.value
                   builder.context  = Builder.Context(tr, Some(context))
                   logger.endGroup()
-                  go(t2_)
+                  run(t2_)
 
                 case _ =>
                   val currentClosed = builder.context.isEmpty
@@ -124,23 +124,23 @@ object Macro {
                       popBuilder()
                       builder.merge(subBuilder)
                       logger.endGroup()
-                      go(input)
+                      run(input)
                     case false =>
                       logger.log("Add token")
                       builder.current.revStream +:= t1
                       logger.endGroup()
-                      go(t2_)
+                      run(t2_)
                   }
               }
           }
         case Shifted(off, AST.Block.any(el1)) :: t2_ =>
           val nt1 = Shifted(off, el1.map(transform))
           builder.current.revStream +:= nt1
-          go(t2_)
+          run(t2_)
 
         case t1 :: t2_ =>
           builder.current.revStream +:= t1
-          go(t2_)
+          run(t2_)
 
       }
     }

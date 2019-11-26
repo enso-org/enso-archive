@@ -46,7 +46,6 @@ final class Builder(
     val revSegBldrs = List1(current, revSegs)
     macroDef match {
       case None =>
-        println("BUILD NONE")
         val revSegs = revSegBldrs.map { segBldr =>
           val optAst = segBldr.buildAST()
           val seg    = Macro.Ambiguous.Segment(segBldr.ast, optAst)
@@ -59,49 +58,34 @@ final class Builder(
         val stream   = Shifted.List1(head.el, tail)
         val template = Macro.Ambiguous(stream, paths)
         val newTok   = Shifted(head.off, template)
-        println("FINISH")
         (revStreamL, newTok, List())
 
       case Some(mdef) =>
-        println("BUILD SOME")
         val revSegPats    = mdef.fwdPats.reverse
-        println(1)
         val revSegsOuts   = zipWith(revSegBldrs, revSegPats)(_.build(_))
-        println(2)
         val revSegs       = revSegsOuts.map(_._1)
-        println(3)
         val revSegStreams = revSegsOuts.map(_._2)
-        println(4)
         val tailStream    = revSegStreams.head
-        println(5)
         val segs          = revSegs.reverse
-        println(6)
 
         val (segs2, pfxMatch, newLeftStream) = mdef.back match {
           case None => (segs, None, revStreamL)
           case Some(pat) =>
-            println(7)
             val fstSegOff                = segs.head.off
-            println(8)
             val (revStreamL2, lastLOff)  = streamShift(fstSegOff, revStreamL)
-            println(9)
             val pfxMatch                 = pat.matchRevUnsafe(revStreamL2)
             val revStreamL3              = pfxMatch.stream
             val streamL3                 = revStreamL3.reverse
-            println("MATCH 2")
             val (streamL4, newFstSegOff) = streamShift(lastLOff, streamL3)
             val revStreamL4              = streamL4.reverse
             val newFirstSeg              = segs.head.copy(off = newFstSegOff)
             val newSegs                  = segs.copy(head = newFirstSeg)
-            println("FINISH 1")
             (newSegs, Some(pfxMatch.elem), revStreamL4)
 
         }
 
-        println(10)
         val shiftSegs = Shifted.List1(segs2.head.el, segs2.tail)
 
-        println(11)
         if (!revSegStreams.tail.forall(_.isEmpty)) {
           throw new Error(
             "Internal error: not all template segments were fully matched"
@@ -109,26 +93,27 @@ final class Builder(
         }
 
 //        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
-        println(12)
         val template = Macro.Match(pfxMatch, shiftSegs, null)
-        println(13)
         val newTok   = Shifted(segs2.head.off, template)
 
-        println("FINISH 2")
         (newLeftStream, newTok, tailStream)
 
     }
   }
 
-  def zipWith[A, B, C](a: NonEmptyList[A], b: NonEmptyList[B])(f: (A, B) => C): NonEmptyList[C] = {
+  // FIXME This is here because of bug in scalajs https://github.com/scala-js/scala-js/issues/3885
+  private def zipWith[A, B, C](a: NonEmptyList[A], b: NonEmptyList[B])(
+    f: (A, B) => C
+  ): NonEmptyList[C] = {
 
     @tailrec
-    def zwRev(as: List[A], bs: List[B], acc: List[C]): List[C] = (as, bs) match {
-      case (Nil, Nil)         => acc
-      case (Nil, _)           => acc
-      case (_, Nil)           => acc
-      case (x :: xs, y :: ys) => zwRev(xs, ys, f(x, y) :: acc)
-    }
+    def zwRev(as: List[A], bs: List[B], acc: List[C]): List[C] =
+      (as, bs) match {
+        case (Nil, Nil)         => acc // without this we get match error
+        case (Nil, _)           => acc
+        case (_, Nil)           => acc
+        case (x :: xs, y :: ys) => zwRev(xs, ys, f(x, y) :: acc)
+      }
 
     NonEmptyList(f(a.head, b.head), zwRev(a.tail, b.tail, Nil).reverse)
   }
@@ -168,7 +153,7 @@ object Builder {
 
   case class Context(tree: Registry.Tree, parent: Option[Context]) {
     def lookup(t: AST): Option[Registry.Tree] = tree.get(t)
-    def isEmpty:        Boolean               = tree.isLeaf
+    def isEmpty: Boolean                      = tree.isLeaf
 
     @tailrec
     final def parentLookup(t: AST): Boolean = {
@@ -183,7 +168,7 @@ object Builder {
     }
   }
   object Context {
-    def apply():                    Context = Context(data.Tree(), None)
+    def apply(): Context                    = Context(data.Tree(), None)
     def apply(tree: Registry.Tree): Context = Context(tree, None)
   }
 
