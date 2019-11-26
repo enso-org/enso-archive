@@ -126,18 +126,12 @@ object AstView {
       }
   }
 
-  object IdentApplication {
-    def unapply(ast: AST): Option[(AST.Ident, List[AST])] =
-      Application.unapply(ast).flatMap {
-        case (fun, args) => ConsOrVar.unapply(fun).map((_, args))
-      }
-  }
-
   object MethodCall {
     def unapply(ast: AST): Option[(AST, AST.Ident, List[AST])] = ast match {
-      case OperatorDot(target, IdentApplication(ident, args)) =>
+      case OperatorDot(target, Application(ConsOrVar(ident), args)) =>
         Some((target, ident, args))
-      case OperatorDot(target, ConsOrVar(ident)) => Some((target, ident, List()))
+      case OperatorDot(target, ConsOrVar(ident)) =>
+        Some((target, ident, List()))
       case _ => None
     }
   }
