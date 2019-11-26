@@ -409,12 +409,9 @@ case class DocParserDef() extends Parser[Doc] {
 
   /** indent - used to manage text and block indentation
     *
-    * latest - holds last found indent
-    * inListFlag - used to check if currently creating list
+    * stack - holds indents for code blocks and lists
     */
   final object indent {
-//    var latest: Int = stack.head
-//    val listIndent: Int = 2
     var stack: List[Int] = 0 :: Nil
 
     def onIndent(): Unit = logger.trace {
@@ -565,13 +562,20 @@ case class DocParserDef() extends Parser[Doc] {
       result.stack.head match {
         case outerList @ (_: Elem.List) =>
           var outerContent = outerList.elems
-          outerContent = outerContent.append(innerList)
+          innerList match {
+            case Elem.Newline =>
+            case _            => outerContent = outerContent.append(innerList)
+          }
           result.pop()
           result.current =
             Some(Elem.List(outerList.indent, outerList.typ, outerContent))
         case _ =>
       }
       result.push()
+      innerList match {
+        case Elem.Newline => indent.onPushingNewLine()
+        case _            =>
+      }
     }
 
     def onOrdered(): Unit = logger.trace {
