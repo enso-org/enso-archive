@@ -14,7 +14,7 @@ import scala.annotation.tailrec
 //// Builder ////
 /////////////////
 
-class Builder(
+final class Builder(
   head: Ident,
   offset: Int                  = 0,
   lineBegin: Boolean           = false,
@@ -45,6 +45,7 @@ class Builder(
     val revSegBldrs = List1(current, revSegs)
     macroDef match {
       case None =>
+        println("BUILD NONE")
         val revSegs = revSegBldrs.map { segBldr =>
           val optAst = segBldr.buildAST()
           val seg    = Macro.Ambiguous.Segment(segBldr.ast, optAst)
@@ -57,9 +58,11 @@ class Builder(
         val stream   = Shifted.List1(head.el, tail)
         val template = Macro.Ambiguous(stream, paths)
         val newTok   = Shifted(head.off, template)
+        println("FINISH")
         (revStreamL, newTok, List())
 
       case Some(mdef) =>
+        println("BUILD SOME")
         val revSegPats    = mdef.fwdPats.reverse
         val revSegsOuts   = revSegBldrs.zipWith(revSegPats)(_.build(_))
         val revSegs       = revSegsOuts.map(_._1)
@@ -71,14 +74,17 @@ class Builder(
           case None => (segs, None, revStreamL)
           case Some(pat) =>
             val fstSegOff                = segs.head.off
+            println("MATCH 1")
             val (revStreamL2, lastLOff)  = streamShift(fstSegOff, revStreamL)
             val pfxMatch                 = pat.matchRevUnsafe(revStreamL2)
             val revStreamL3              = pfxMatch.stream
             val streamL3                 = revStreamL3.reverse
+            println("MATCH 2")
             val (streamL4, newFstSegOff) = streamShift(lastLOff, streamL3)
             val revStreamL4              = streamL4.reverse
             val newFirstSeg              = segs.head.copy(off = newFstSegOff)
             val newSegs                  = segs.copy(head = newFirstSeg)
+            println("FINISH 1")
             (newSegs, Some(pfxMatch.elem), revStreamL4)
 
         }
@@ -95,6 +101,7 @@ class Builder(
         val template = Macro.Match(pfxMatch, shiftSegs, null)
         val newTok   = Shifted(segs2.head.off, template)
 
+        println("FINISH 2")
         (newLeftStream, newTok, tailStream)
 
     }
