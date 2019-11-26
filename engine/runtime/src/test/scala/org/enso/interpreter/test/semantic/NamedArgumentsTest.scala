@@ -29,15 +29,13 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "be able to have scope values as named arguments" in {
     val code =
       """
-        |@{
-        |  a = 10;
-        |  addTen = { |num| num + a };
-        |  res = @addTen [num = a];
-        |  res
-        |}
+        |a = 10
+        |addTen = num -> num + a
+        |res = addTen (num = a)
+        |res
     """.stripMargin
 
-    evalOld(code) shouldEqual 20
+    eval(code) shouldEqual 20
   }
 
   "Functions" should "be able to be defined with default argument values" in {
@@ -66,17 +64,13 @@ class NamedArgumentsTest extends InterpreterTest {
   "Default arguments" should "be able to close over their outer scope" in {
     val code =
       """
-        |@{
-        |  id = { |x| x };
-        |
-        |  apply = { |val, fn = id| @fn [val] };
-        |
-        |  res = @apply [val = 1];
-        |  res
-        |}
+        |id = x -> x
+        |apply = val (fn = id) -> fn val
+        |res = apply (val = 1)
+        |res
         |""".stripMargin
 
-    evalOld(code) shouldEqual 1
+    eval(code) shouldEqual 1
   }
 
   "Functions" should "use their default values when none is supplied" in {
@@ -93,12 +87,12 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "override defaults by name" in {
     val code =
       """
-        |Unit.addNum = { |a, num = 10| a + num }
+        |Unit.addNum = a (num = 10) -> a + num
         |
-        |@addNum [@Unit, 1, num = 1]
+        |addNum Unit 1 (num = 1)
     """.stripMargin
 
-    evalOld(code) shouldEqual 2
+    eval(code) shouldEqual 2
   }
 
   "Functions" should "override defaults by position" in {
@@ -130,20 +124,15 @@ class NamedArgumentsTest extends InterpreterTest {
   "Named Arguments" should "only be scoped to their definitions" in {
     val code =
       """
-        |@{
-        |  foo = { |x, y| x - y };
-        |  bar = { |y, x| x - y };
-        |
-        |  baz = { |f| @f [x = 10, y = 11] };
-        |
-        |  a = @baz [foo];
-        |  b = @baz [bar];
-        |
-        |  a - b
-        |}
+        |foo = x y -> x - y
+        |bar = y x -> x - y
+        |baz = f -> f (x=10) (y=11)
+        |a = baz foo
+        |b = baz bar
+        |a - b
         |""".stripMargin
 
-    evalOld(code) shouldEqual 0
+    eval(code) shouldEqual 0
   }
 
   "Named arguments" should "be applied in a sequence compatible with Eta-expansions" in {
