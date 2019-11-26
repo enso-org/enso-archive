@@ -43,25 +43,24 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "be able to be defined with default argument values" in {
     val code =
       """
-        |Unit.addNum = { |a, num = 10| a + num }
+        |Unit.addNum = a (num = 10) -> a + num
         |
-        |@addNum [@Unit, 5]
+        |addNum Unit 5
     """.stripMargin
 
-    evalOld(code) shouldEqual 15
+    eval(code) shouldEqual 15
   }
 
   "Default arguments" should "be able to default to complex expressions" in {
     val code =
       """
-        |Unit.add = { |a, b| a + b }
+        |Unit.add = a b -> a + b
+        |Unit.doThing = a (b = add Unit 1 2) -> a + b
         |
-        |Unit.doThing = { |a, b = @add [@Unit, 1, 2]| a + b }
-        |
-        |@doThing [@Unit, 10]
+        |doThing Unit 10
         |""".stripMargin
 
-    evalOld(code) shouldEqual 13
+    eval(code) shouldEqual 13
   }
 
   "Default arguments" should "be able to close over their outer scope" in {
@@ -83,12 +82,12 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "use their default values when none is supplied" in {
     val code =
       """
-        |Unit.addTogether = { |a = 5, b = 6| a + b }
+        |Unit.addTogether = (a = 5) (b = 6) -> a + b
         |
-        |@addTogether [@Unit]
+        |addTogether Unit
     """.stripMargin
 
-    evalOld(code) shouldEqual 11
+    eval(code) shouldEqual 11
   }
 
   "Functions" should "override defaults by name" in {
@@ -105,12 +104,12 @@ class NamedArgumentsTest extends InterpreterTest {
   "Functions" should "override defaults by position" in {
     val code =
       """
-        |Unit.addNum = { |a, num = 10| a + num }
+        |Unit.addNum = a (num = 10) -> a + num
         |
-        |@addNum [@Unit, 1, 2]
+        |addNum Unit 1 2
         |""".stripMargin
 
-    evalOld(code) shouldEqual 3
+    eval(code) shouldEqual 3
   }
 
   "Defaulted arguments" should "work in a recursive context" in {
@@ -161,24 +160,24 @@ class NamedArgumentsTest extends InterpreterTest {
   "Default arguments" should "be able to depend on prior arguments" in {
     val code =
       """
-        |Unit.doubleOrAdd = { |a, b = a| a + b }
+        |Unit.doubleOrAdd = a (b = a) -> a + b
         |
-        |@doubleOrAdd [@Unit, 5]
+        |doubleOrAdd Unit 5
         |""".stripMargin
 
-    evalOld(code) shouldEqual 10
+    eval(code) shouldEqual 10
   }
 
   "Default arguments" should "not be able to depend on later arguments" in {
     //TODO: Currently throws something equivalent to "Can't add dynamic symbol to Long". Needs rethinking.
     val code =
       """
-        |Unit.badArgFn = { | a, b = c, c = a | (a + b) + c }
+        |Unit.badArgFn = a (b = c) (c = a) -> a + b + c
         |
-        |@badArgFn [@Unit, 3]
+        |badArgFn Unit 3
         |""".stripMargin
 
-    an[InterpreterException] should be thrownBy evalOld(code)
+    an[InterpreterException] should be thrownBy eval(code)
   }
 
   "Constructors" should "be able to use named arguments" in {
@@ -227,13 +226,13 @@ class NamedArgumentsTest extends InterpreterTest {
   "Default arguments to constructors" should "be resolved dynamically" in {
     val code =
       """
-        |type Cons2 head (rest = Nil2);
-        |type Nil2;
+        |type Cons2 head (rest = Nil2)
+        |type Nil2
         |
         |5
         |""".stripMargin
 
-    evalOld(code) shouldEqual 5
+    eval(code) shouldEqual 5
   }
 
   "Constructors" should "be able to take and use default arguments" in {

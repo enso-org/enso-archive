@@ -2,6 +2,8 @@ package org.enso.compiler.generate
 
 import org.enso.syntax.text.{AST, Debug}
 
+// TODO [AA] Handle arbitrary parens
+
 /** This object contains view patterns that allow matching on the parser AST for
   * more sophisticated constructs.
   *
@@ -32,9 +34,9 @@ object AstView {
   object Assignment {
     val assignmentOpSym = AST.Ident.Opr("=")
 
-    def unapply(ast: AST): Option[(AST, AST)] = {
+    def unapply(ast: AST): Option[(AST.Ident.Var, AST)] = {
       ast match {
-        case Binding(left @ AST.Ident.Var(_), right) => Some((left, right))
+        case Binding(AST.Ident.Var.any(left), right) => Some((left, right))
         case _                                       => None
       }
     }
@@ -63,34 +65,53 @@ object AstView {
     }
   }
 
-  object Constructor {
-    def unapply(arg: AST): Option[(AST, List[AST])] = {
-      arg match {
-        case Application(fn, args) =>
-          fn match {
-            case AST.Ident.Cons(_) => Some((fn, args))
-            case _                 => None
-          }
-        case _ => None
-      }
-    }
-  }
-
   object LambdaParamList {
     //TODO suspended arguments
 
     def unapply(ast: AST): Option[List[AST]] = {
       ast match {
-        case SpacedList(args) => Some(args)
+        case SpacedList(args) =>
+          val realArgs = args.collect {
+            case a @ AssignedArgument(_, _) => a
+            case a @ DefinitionArgument(_)  => a
+          }
+
+          if (realArgs.length == args.length) {
+            Some(args)
+          } else {
+            None
+          }
+
         // TODO [AA] This really isn't true........
         case _ => Some(List(ast))
       }
     }
   }
 
-  object AssignedArgument {
-    def unapply(ast: AST): Option[(AST, AST)] = Assignment.unapply(ast)
+  object MaybeParensed {
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case AST.Group(mExpr) => mExpr.flatMap(unapply)
+        case a => Some(a)
+      }
+    }
   }
+
+  /** Used for named and defaulted argument syntactic forms. */
+  object AssignedArgument {
+    def unapply(ast: AST): Option[(AST.Ident.Var, AST)] =
+      MaybeParensed.unapply(ast).flatMap(Assignment.unapply)
+  }
+
+  object DefinitionArgument {
+    def unapply(ast: AST): Option[AST.Ident.Var] = ast match {
+      case AST.Ident.Var.any(ast) => Some(ast)
+      case _                      => None
+    }
+  }
+
+  /** Used for arguments declared as lazy. */
+  object SuspendedArgument {}
 
   object Application {
     //TODO named arguments

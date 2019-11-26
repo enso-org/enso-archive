@@ -53,7 +53,7 @@ object AstToAstExpression {
       case AstView.MethodDefinition(targetPath, name, definition) =>
         val path =
           targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
-        val nameStr = name match { case AST.Ident.Var(name) => name }
+        val nameStr       = name match { case AST.Ident.Var(name) => name }
         val defExpression = translateExpression(definition)
         val defExpr: AstFunction = defExpression match {
           case fun: AstFunction => fun
@@ -91,7 +91,10 @@ object AstToAstExpression {
   def translateArgumentDefinition(arg: AST): AstArgDefinition = {
     // TODO [AA] Do this properly
     arg match {
-      case AST.Ident.Var(name) => AstArgDefinition(name, None, false)
+      case AstView.DefinitionArgument(arg) =>
+        AstArgDefinition(arg.name, None, false)
+      case AstView.AssignedArgument(name, value) =>
+        AstArgDefinition(name.name, Some(translateExpression(value)), false)
       case _ =>
         throw new UnhandledEntity(arg, "translateDefinitionArgument")
     }
