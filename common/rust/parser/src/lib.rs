@@ -1,5 +1,7 @@
 pub mod api;
 
+use prelude::*;
+
 mod jsclient;
 mod wsclient;
 
@@ -12,7 +14,7 @@ use crate::api::IsParser;
 /// Currently this component is implemented as a wrapper over parser written
 /// in Scala. Depending on compilation target (native or wasm) it uses either
 /// implementation provided by `wsclient` or `jsclient`.
-#[derive(shrinkwraprs::Shrinkwrap)]
+#[derive(Shrinkwrap)]
 #[shrinkwrap(mutable)]
 pub struct Parser(pub Box<dyn api::IsParser>);
 

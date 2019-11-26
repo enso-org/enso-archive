@@ -10,7 +10,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 //////////////////////////////
 
 val scalacVersion = "2.12.10"
-val graalVersion  = "19.2.0.1"
+val graalVersion  = "19.3.0"
 val circeVersion  = "0.12.3"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
@@ -94,11 +94,8 @@ lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
     unused.jvm,
-    unused.js,
     flexer.jvm,
-    flexer.js,
     syntax_definition.jvm,
-    syntax_definition.js,
     syntax.jvm,
     pkg,
     project_manager,
@@ -187,7 +184,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
     scalacOptions -= "-deprecation", // FIXME
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scala_compiler ++ Seq(
-      "org.feijoas"                   %% "mango" % "0.14",
+      "org.feijoas"   %% "mango"      % "0.14",
       "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
       "org.typelevel" %%% "kittens"   % "2.0.0"
     )
@@ -207,42 +204,16 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .in(file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %%% "scalatags"  % "0.7.0",
-      "io.circe" %%% "circe-core"    % circeVersion,
-      "io.circe" %%% "circe-generic" % circeVersion,
-      "io.circe" %%% "circe-parser"  % circeVersion
+    libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
+      "org.typelevel" %%% "cats-core"     % "2.0.0-RC1",
+      "org.typelevel" %%% "kittens"       % "2.0.0",
+      "com.lihaoyi"   %%% "scalatags"     % "0.7.0",
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
     )
   )
   .jsSettings(testFrameworks := Nil)
-
-lazy val graph = (project in file("common/scala/graph/"))
-  .dependsOn(logger.jvm)
-  .configs(Test)
-  .settings(
-    version := "0.1",
-    scalacOptions -= "-deprecation", // FIXME
-    resolvers ++= Seq(
-      Resolver.sonatypeRepo("releases"),
-      Resolver.sonatypeRepo("snapshots")
-    ),
-    libraryDependencies ++= scala_compiler ++ Seq(
-      "com.chuusai"                %% "shapeless"    % "2.3.3",
-      "io.estatico"                %% "newtype"      % "0.4.3",
-      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
-      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
-      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
-    ),
-    libraryDependencies ++= Seq(
-      compilerPlugin(
-        "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
-      ),
-      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-    ),
-    addCompilerPlugin(
-      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
-    )
-  )
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -257,11 +228,11 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
-      "com.lihaoyi" %%% "pprint"      % "0.5.3",
-      "io.circe" %%% "circe-core"     % circeVersion,
-      "io.circe" %%% "circe-generic"  % circeVersion,
-      "io.circe" %%% "circe-parser"   % circeVersion
+      "org.scalatest" %%% "scalatest"     % "3.0.5" % Test,
+      "com.lihaoyi"   %%% "pprint"        % "0.5.3",
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
     ),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
@@ -297,6 +268,34 @@ lazy val parser_service = (project in file("common/scala/parser-service"))
   .settings(
     libraryDependencies ++= akka,
     mainClass := Some("org.enso.ParserServiceMain")
+  )
+
+lazy val graph = (project in file("common/scala/graph/"))
+  .dependsOn(logger.jvm)
+  .configs(Test)
+  .settings(
+    version := "0.1",
+    scalacOptions -= "-deprecation", // FIXME
+    resolvers ++= Seq(
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots")
+    ),
+    libraryDependencies ++= scala_compiler ++ Seq(
+      "com.chuusai"                %% "shapeless"    % "2.3.3",
+      "io.estatico"                %% "newtype"      % "0.4.3",
+      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
+      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
+    ),
+    libraryDependencies ++= Seq(
+      compilerPlugin(
+        "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
+      ),
+      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+    ),
+    addCompilerPlugin(
+      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    )
   )
 
 lazy val pkg = (project in file("common/scala/pkg"))
@@ -342,7 +341,8 @@ lazy val project_manager = (project in file("common/scala/project-manager"))
 val truffleRunOptions = Seq(
   "-Dgraal.TruffleIterativePartialEscape=true",
   "-XX:-UseJVMCIClassLoader",
-  "-Dgraal.TruffleBackgroundCompilation=false"
+  "-Dgraal.TruffleBackgroundCompilation=false",
+  "-Dgraalvm.locatorDisabled=true"
 )
 
 val truffleRunOptionsSettings = Seq(
