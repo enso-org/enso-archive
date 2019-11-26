@@ -34,9 +34,24 @@ class MethodsTest extends InterpreterTest {
         |Bar.baz = x -> Baz
         |Baz.spam = y -> y + 25
         |
-        |Foo . bar . baz 54 . spam 2
+        |Foo.bar.baz 54 . spam 2
         |""".stripMargin
     eval(code) shouldEqual 27
+  }
+
+  "Dot operator" should "behave like parenthesised when non-spaced" in {
+    val code =
+      """
+        |type Foo
+        |type Bar
+        |
+        |Foo.bar = a b -> a + b
+        |Bar.constant = 10
+        |
+        |Foo.bar Bar.constant Bar.constant
+        |
+        |""".stripMargin
+    eval(code) shouldEqual 20
   }
 
   "Methods" should "be able to be defined without arguments" in {
