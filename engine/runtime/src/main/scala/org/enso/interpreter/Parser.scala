@@ -338,12 +338,9 @@ class EnsoParserInternal extends JavaTokenParsers {
   def methodDef: Parser[AstMethodDef] =
     (ident <~ ".") ~ (ident <~ "=") ~ expression ^^ {
       case typeName ~ methodName ~ body =>
-        val thisArg =
-          AstArgDefinition(Constants.THIS_ARGUMENT_NAME, None, false)
         val fun = body match {
-          case b: AstFunction =>
-            b.copy(arguments = thisArg :: b.arguments)
-          case _ => AstFunction(List(thisArg), List(), body)
+          case b: AstFunction => b
+          case _ => AstFunction(List(), List(), body)
         }
         AstMethodDef(typeName, methodName, fun)
     }

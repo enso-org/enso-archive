@@ -81,9 +81,9 @@ part of the compiler that they relate to.
 In order to build and run Enso you will need the following tools:
 
 - [sbt](https://www.scala-sbt.org/) with version at least 1.3.0.
-- [GraalVM](https://www.graalvm.org/) with version at least 19.2.0 and
-  configured as your default JVM. [Jenv](http://www.jenv.be/) is a useful tool
-  for managing multiple JVMs.
+- [GraalVM](https://www.graalvm.org/) with version at least that described in
+  the [`build.sbt`](build.sbt) file configured as your default JVM. 
+  [Jenv](http://www.jenv.be/) is a useful tool for managing multiple JVMs.
 
 ### Getting the Sources
 Given you've probably been reading this document on GitHub, you might have an

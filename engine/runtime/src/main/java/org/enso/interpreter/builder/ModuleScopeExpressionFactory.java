@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -87,14 +88,22 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
             });
 
     for (AstMethodDef method : bindings) {
+      scala.Option<AstExpression> scalaNone = scala.Option.apply(null);
+      AstArgDefinition thisArgument =
+          new AstArgDefinition(Constants.THIS_ARGUMENT_NAME, scalaNone, false);
+
       ExpressionFactory expressionFactory =
           new ExpressionFactory(
               language,
               method.typeName() + Constants.SCOPE_SEPARATOR + method.methodName(),
               moduleScope);
+
+      List<AstArgDefinition> realArgs = new ArrayList<>(method.fun().getArguments());
+      realArgs.add(0, thisArgument);
+
       CreateFunctionNode funNode =
           expressionFactory.processFunctionBody(
-              method.fun().getArguments(), method.fun().getStatements(), method.fun().ret());
+              realArgs, method.fun().getStatements(), method.fun().ret());
       funNode.markTail();
       Function function =
           new Function(

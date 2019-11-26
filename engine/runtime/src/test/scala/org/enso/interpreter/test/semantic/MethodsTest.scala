@@ -6,11 +6,11 @@ class MethodsTest extends InterpreterTest {
   "Methods" should "be defined in the global scope and dispatched to" in {
     val code =
       """
-        |type Foo;
-        |Foo.bar = { |number| number + 1 }
-        |@bar [@Foo, 10]
+        |type Foo
+        |Foo.bar = number -> number + 1
+        |bar Foo 10
         |""".stripMargin
-    evalOld(code) shouldEqual 11
+    eval(code) shouldEqual 11
   }
 
   "MethodsXXXX" should "be defined in the global scope and dispatched to" in {

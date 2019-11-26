@@ -173,8 +173,6 @@ object AstView {
                 case a @ AST.Ident.Cons(_) => a
               }.length == consPath.length
 
-            println(isValid)
-
             if (isValid) {
               maybeVar match {
                 case AST.Ident.Var(_) => Some((consPath, maybeVar))
