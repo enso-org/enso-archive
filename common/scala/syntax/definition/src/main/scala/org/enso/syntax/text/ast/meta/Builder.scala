@@ -62,7 +62,7 @@ final class Builder(
 
       case Some(mdef) =>
         val revSegPats    = mdef.fwdPats.reverse
-        val revSegsOuts   = zipWith(revSegBldrs, revSegPats)(_.build(_))
+        val revSegsOuts   = revSegBldrs.zipWith(revSegPats)(_.build(_))
         val revSegs       = revSegsOuts.map(_._1)
         val revSegStreams = revSegsOuts.map(_._2)
         val tailStream    = revSegStreams.head

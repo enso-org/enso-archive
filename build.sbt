@@ -184,7 +184,7 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
     scalacOptions -= "-deprecation", // FIXME
     resolvers += Resolver.sonatypeRepo("releases"),
     libraryDependencies ++= scala_compiler ++ Seq(
-      "org.feijoas"                   %% "mango" % "0.14",
+      "org.feijoas"   %% "mango"      % "0.14",
       "org.typelevel" %%% "cats-core" % "2.0.0-RC1",
       "org.typelevel" %%% "kittens"   % "2.0.0"
     )
@@ -204,15 +204,16 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .in(file("common/scala/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
-    libraryDependencies ++= monocle ++ cats ++ scala_compiler ++ Seq(
-      "com.lihaoyi" %%% "scalatags"  % "0.7.0",
-      "io.circe" %%% "circe-core"    % circeVersion,
-      "io.circe" %%% "circe-generic" % circeVersion,
-      "io.circe" %%% "circe-parser"  % circeVersion
+    libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
+      "org.typelevel" %%% "cats-core"     % "2.0.0-RC1",
+      "org.typelevel" %%% "kittens"       % "2.0.0",
+      "com.lihaoyi"   %%% "scalatags"     % "0.7.0",
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
     )
   )
   .jsSettings(testFrameworks := Nil)
-
 
 lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
@@ -226,12 +227,12 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,
-    libraryDependencies ++=  Seq(
-      "org.scalatest" %%% "scalatest" % "3.0.5" % Test,
-      "com.lihaoyi" %%% "pprint"      % "0.5.3",
-      "io.circe" %%% "circe-core"    % circeVersion,
-      "io.circe" %%% "circe-generic" % circeVersion,
-      "io.circe" %%% "circe-parser"  % circeVersion
+    libraryDependencies ++= Seq(
+      "org.scalatest" %%% "scalatest"     % "3.0.5" % Test,
+      "com.lihaoyi"   %%% "pprint"        % "0.5.3",
+      "io.circe"      %%% "circe-core"    % circeVersion,
+      "io.circe"      %%% "circe-generic" % circeVersion,
+      "io.circe"      %%% "circe-parser"  % circeVersion
     ),
     compile := (Compile / compile)
       .dependsOn(Def.taskDyn {
