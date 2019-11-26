@@ -381,9 +381,11 @@ object DocParserHTMLGenerator {
     doc: Doc
   ): TypedTag[String] = {
     val astCls   = HTML.`class` := "ASTData"
-    val astHtml  = Seq(HTML.div(astCls)(createHTMLFromAST(ast)))
+    val astHTML  = createHTMLFromAST(ast)
+    val astName  = Seq(HTML.div(astCls)(astHTML._1))
+    val astBody  = Seq(HTML.div(astCls)(astHTML._2))
     val docClass = HTML.`class` := "Documentation"
-    HTML.div(docClass)(astHtml, doc.html)
+    HTML.div(docClass)(astName, doc.html, astBody)
   }
 
   /**
@@ -393,19 +395,19 @@ object DocParserHTMLGenerator {
     * @param ast - AST
     * @return - HTML Code
     */
-  def createHTMLFromAST(ast: AST): TypedTag[String] = {
+  def createHTMLFromAST(ast: AST): (TypedTag[String], TypedTag[String]) = {
     ast match {
       case AST.Def.any(d) =>
         d.body match {
           case Some(body) =>
             body match {
               case AST.Block.any(b) => createDefWithBody(d.name, d.args, b)
-              case _                => createDefWithoutBody(d.name, d.args)
+              case _                => (createDefWithoutBody(d.name, d.args), HTML.div())
             }
-          case None => createDefWithoutBody(d.name, d.args)
+          case None => (createDefWithoutBody(d.name, d.args), HTML.div())
         }
-      case AST.App.Infix.any(i) => createInfixHtmlRepr(i)
-      case _                    => HTML.div()
+      case AST.App.Infix.any(i) => (createInfixHtmlRepr(i), HTML.div())
+      case _                    => (HTML.div(), HTML.div())
     }
   }
 
@@ -423,7 +425,7 @@ object DocParserHTMLGenerator {
     name: AST.Cons,
     args: List[AST],
     body: AST.Block
-  ): TypedTag[String] = {
+  ): (TypedTag[String], TypedTag[String]) = {
     val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
@@ -431,7 +433,7 @@ object DocParserHTMLGenerator {
     val clsBody       = HTML.`class` := "DefBody"
     val lines         = HTML.div(clsBody)(generatedCode)
     val cls           = HTML.`class` := "Def"
-    HTML.div(cls)(head, lines)
+    (HTML.div(cls)(head), HTML.div(cls)(lines))
   }
 
   /**
@@ -495,7 +497,7 @@ object DocParserHTMLGenerator {
           case Line(Some(d), _) =>
             val cls     = HTML.`class` := "DefNoDoc"
             val astHtml = createHTMLFromAST(d)
-            HTML.div(cls)(astHtml) :: renderHTMLOnLine(rest)
+            HTML.div(cls)(astHtml._1, astHtml._2) :: renderHTMLOnLine(rest)
           case _ => renderHTMLOnLine(rest)
         }
       case other =>
