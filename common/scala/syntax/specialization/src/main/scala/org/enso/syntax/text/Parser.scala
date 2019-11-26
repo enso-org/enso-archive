@@ -1,5 +1,6 @@
 package org.enso.syntax.text
 
+import scala.scalajs.js.annotation._
 import org.enso.data.Index
 import org.enso.data.Span
 import org.enso.flexer
@@ -8,11 +9,9 @@ import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.ast.opr.Prec
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
-import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.spec.ParserDef
 
 import scala.math.Ordering.Implicits._
-import scala.annotation.tailrec
 
 ////////////////////////////////
 
@@ -146,9 +145,13 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
+
 class Parser {
   import Parser._
   private val engine = newEngine()
+
+  @JSExport
+  def run(input: String): AST.Module = run(new Reader(input))
 
   def run(input: Reader): AST.Module = run(input, Nil)
 
@@ -216,11 +219,14 @@ class Parser {
   }
 
 }
-
+@JSExportTopLevel("parser")
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser = new Parser()
+
   private val newEngine = flexer.Parser.compile(ParserDef())
+
+  @JSExport
+  def apply(): Parser = new Parser()
 
   //// Exceptions ////
 
@@ -350,11 +356,7 @@ object Main extends App {
   val documentation = DocParserRunner.createDocs(droppedMeta)
   val htmlPath      = "target/"
   val cssFileName   = "style.css"
-  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
-    documentation,
-    htmlPath,
-    cssFileName
-  )
+
   println(Debug.pretty(documentation.toString))
   println("------")
   println(documentation.show())
