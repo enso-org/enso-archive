@@ -13,13 +13,13 @@ class MethodsTest extends InterpreterTest {
     eval(code) shouldEqual 11
   }
 
-  "MethodsXXXX" should "be defined in the global scope and dispatched to" in {
-    val code =
-      """
-        |Cons.bar = number -> number + 1
-        |bar (Cons 1 2) 10
-        |""".stripMargin
-    eval(code) shouldEqual 11
+  "Methods" should "be able to be defined without arguments" in {
+    val code = """
+      |type Foo
+      |Foo.bar = 1
+      |bar Foo + 5
+      |""".stripMargin
+    eval(code) shouldEqual 6
   }
 
   "Methods" should "be dispatched to the proper constructor" in {
@@ -49,9 +49,9 @@ class MethodsTest extends InterpreterTest {
   "Calling a non-existent method" should "throw an exception" in {
     val code =
       """
-        |@foo [7]
+        |foo 7
         |""".stripMargin
-    the[InterpreterException] thrownBy evalOld(code) should have message "Object Number does not define method foo."
+    the[InterpreterException] thrownBy eval(code) should have message "Object Number does not define method foo."
   }
 
   "Methods defined on Any type" should "be callable for any type" in {

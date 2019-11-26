@@ -51,15 +51,15 @@ object AstToAstExpression {
           AstTypeDef(consName.name, args.map(translateArgumentDefinition))
         }
       case AstView.MethodDefinition(targetPath, name, definition) =>
-        println(s"===== TARGET PATH =====")
-        println(Debug.pretty(targetPath.toString))
         val path =
           targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
-        val nameStr       = name match { case AST.Ident.Var(name) => name }
-        println("==== TRANSLATING EXPR ====")
+        val nameStr = name match { case AST.Ident.Var(name) => name }
         val defExpression = translateExpression(definition)
-        println("==== DONE TRANSLATING EXPR ====")
-        AstMethodDef(path, nameStr, defExpression.asInstanceOf[AstFunction])
+        val defExpr: AstFunction = defExpression match {
+          case fun: AstFunction => fun
+          case expr             => AstFunction(List(), List(), expr)
+        }
+        AstMethodDef(path, nameStr, defExpr)
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")
     }
@@ -100,19 +100,16 @@ object AstToAstExpression {
   def translateCallable(application: AST): AstExpression = {
     application match {
       case AstView.Application(name, args) =>
-        println("===== APP =====")
         AstApply(
           translateExpression(name),
           args.map(arg => AstUnnamedCallArg(translateExpression(arg))),
           false
         )
       case AstView.Lambda(args, body) =>
-        println("===== LAMBDA =====")
         val realArgs                      = args.map(translateArgumentDefinition)
         val realBody: List[AstExpression] = translateBlock(body)
         val retExpression                 = realBody.last
         val statements                    = realBody.dropRight(1)
-        println(realArgs)
         AstFunction(realArgs, statements, retExpression)
       case AST.App.Infix(left, fn, right) =>
         // FIXME [AA] We should accept all ops when translating to core

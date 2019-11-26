@@ -77,36 +77,49 @@ object AstView {
   }
 
   object LambdaParamList {
+    //TODO suspended arguments
+
     def unapply(ast: AST): Option[List[AST]] = {
       ast match {
-        case Application(fn, args) => Some(fn :: args)
+        case SpacedList(args) => Some(args)
         // TODO [AA] This really isn't true........
         case _ => Some(List(ast))
       }
     }
   }
 
-  object Application {
+  object AssignedArgument {
+    def unapply(ast: AST): Option[(AST, AST)] = Assignment.unapply(ast)
+  }
 
+  object Application {
     //TODO named arguments
+    def unapply(ast: AST): Option[(AST, List[AST])] =
+      SpacedList.unapply(ast).flatMap {
+        case fun :: args => Some((fun, args))
+        case _           => None
+      }
+  }
+
+  object SpacedList {
+
     /**
       *
       * @param ast
       * @return the constructor, and a list of its arguments
       */
-    def unapply(ast: AST): Option[(AST, List[AST])] = {
-      matchApplication(ast)
-
+    def unapply(ast: AST): Option[List[AST]] = {
+      matchSpacedList(ast)
     }
 
-    def matchApplication(ast: AST): Option[(AST, List[AST])] = {
+    def matchSpacedList(ast: AST): Option[List[AST]] = {
       ast match {
         case AST.App.Prefix(fn, arg) =>
-          val fnRecurse = matchApplication(fn)
+          val fnRecurse = matchSpacedList(fn)
 
           fnRecurse match {
-            case Some((fnCons, fnArg)) => Some((fnCons, fnArg :+ arg))
-            case None                  => Some((fn, List(arg)))
+            case Some(headItems) => Some(headItems :+ arg)
+            case None            => Some(List(fn, arg))
           }
 
         case _ => None
