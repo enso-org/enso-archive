@@ -1,6 +1,10 @@
 package org.enso.interpreter.builder;
 
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import org.enso.compiler.core.IR;
 import org.enso.interpreter.*;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.Context;
@@ -9,6 +13,7 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
+import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.util.ArrayList;
@@ -21,7 +26,7 @@ import java.util.stream.IntStream;
  * A {@code GlobalScopeExpressionFactory} is responsible for converting the top-level definitions of
  * an Enso program into AST nodes for the interpreter to evaluate.
  */
-public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<ExpressionNode> {
+public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Function> {
   private final Language language;
   private final ModuleScope moduleScope;
 
@@ -42,7 +47,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
    * @param expr the expression to execute on
    * @return a runtime node representing the top-level expression
    */
-  public Optional<ExpressionNode> run(AstModuleScope expr) {
+  public Optional<Function> run(AstModuleScope expr) {
     return expr.visit(this);
   }
 
@@ -56,7 +61,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
    * @return a runtime node representing the whole top-level program scope
    */
   @Override
-  public Optional<ExpressionNode> visitModuleScope(
+  public Optional<Function> visitModuleScope(
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
       List<AstMethodDef> bindings,
@@ -122,7 +127,19 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Expre
       }
     }
 
-    ExpressionFactory factory = new ExpressionFactory(this.language, moduleScope);
-    return executableExpression.map(factory::run);
+    return executableExpression.map(this::wrapExecutableExpression);
+  }
+
+  private Function wrapExecutableExpression(AstExpression expr) {
+    LocalScope scope = new LocalScope();
+    String name = "executable_expression";
+    ExpressionFactory expressionFactory =
+        new ExpressionFactory(this.language, scope, name, moduleScope);
+    ExpressionNode expression = expressionFactory.run(expr);
+    ClosureRootNode rootNode =
+        new ClosureRootNode(language, scope, moduleScope, expression, null, name);
+    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
+    return new Function(
+        callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP));
   }
 }

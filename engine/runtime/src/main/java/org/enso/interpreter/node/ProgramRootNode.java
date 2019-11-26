@@ -2,11 +2,15 @@ package org.enso.interpreter.node;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.DirectCallNode;
+import com.oracle.truffle.api.nodes.RootNode;
 import com.oracle.truffle.api.source.Source;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
 import org.enso.interpreter.node.expression.atom.InstantiateNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
@@ -23,7 +27,8 @@ import java.util.Optional;
 public class ProgramRootNode extends EnsoRootNode {
 
   private final Source sourceCode;
-  @Child private ExpressionNode ensoProgram = null;
+  @Child private CallOptimiserNode executableExpressionCaller = CallOptimiserNode.build();
+  private @CompilerDirectives.CompilationFinal Function executableExpression = null;
   private boolean programShouldBeTailRecursive = false;
 
   /**
@@ -58,22 +63,16 @@ public class ProgramRootNode extends EnsoRootNode {
     Context context = getContext();
 
     // Note [Static Passes]
-    if (this.ensoProgram == null) {
+    if (this.executableExpression == null) {
       CompilerDirectives.transferToInterpreterAndInvalidate();
-      Optional<ExpressionNode> program = context.compiler().run(this.sourceCode);
-      if (program.isPresent()) {
-        this.ensoProgram = insert(program.get());
-        this.ensoProgram.setTail(programShouldBeTailRecursive);
-      } else {
-        this.ensoProgram =
-            insert(new InstantiateNode(getContext().getUnit(), new ExpressionNode[0]));
-      }
+      Optional<Function> program = context.compiler().run(this.sourceCode);
+      executableExpression =
+          program.orElseGet(() -> getContext().getUnit().getConstructorFunction());
     }
 
-    Object state = getContext().getUnit().newInstance();
-    frame.setObject(this.getStateFrameSlot(), state);
-
-    return this.ensoProgram.executeGeneric(frame);
+    return this.executableExpressionCaller
+        .executeDispatch(executableExpression, null, context.getUnit().newInstance(), new Object[0])
+        .getValue();
   }
 
   /* Note [Static Passes]

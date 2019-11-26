@@ -94,11 +94,11 @@ class MethodsTest extends InterpreterTest {
   "Method call target" should "be passable by-name" in {
     val code =
       """
-        |Unit.testMethod = { |x, y, z| (x + y) + z }
-        |@testMethod [x = 1, y = 2, this = @Unit, z = 3]
+        |Unit.testMethod = x y z -> x + y + z
+        |testMethod x=1 y=2 this=Unit z=3
         |""".stripMargin
 
-    evalOld(code) shouldEqual 6
+    eval(code) shouldEqual 6
   }
 
   "Calling a non-existent method" should "throw an exception" in {
