@@ -18,10 +18,15 @@ object Macro {
   def run(module: AST.Module): AST.Module =
     module.map(transform)
 
-  private def transform(t: AST): AST = {
+  private def transform(t: AST): AST =
+    new Transform(t).go(AST.tokenize(t).toList())
+
+  final private class Transform(t: AST) {
     val root                        = Builder.Context(Builtin.registry.tree)
+
     var builder: Builder            = Builder.moduleBuilder()
     var builderStack: List[Builder] = Nil
+    var isLineBegin: Boolean        = true
 
     def pushBuilder(name: AST.Ident, off: Int, lineBegin: Boolean): Unit =
       logger.trace {
@@ -40,20 +45,19 @@ object Macro {
       }
     }
 
-    var isLineBegin: Boolean = true
-
     @tailrec
-    def finalize(): AST = {
+    def finish(): AST = {
       popBuilder() match {
         case Some(bldr) =>
           logger.log("End of input (in stack)")
           builder.merge(bldr)
-          finalize()
+          finish()
         case None =>
           logger.log("End of input (not in stack)")
           builder.buildAsModule()
       }
     }
+
     @tailrec
     def go(input: AST.Stream): AST = {
       input match {
@@ -78,7 +82,7 @@ object Macro {
 
           builder      = newBuilders.head
           builderStack = newBuilders.tail
-          finalize()
+          finish()
         case (t1 @ Shifted(off, AST.Ident.any(el1))) :: t2_ =>
           logger.log(s"Token $t1")
           logger.beginGroup()
@@ -129,7 +133,7 @@ object Macro {
                   }
               }
           }
-        case (Shifted(off, AST.Block.any(el1))) :: t2_ =>
+        case Shifted(off, AST.Block.any(el1)) :: t2_ =>
           val nt1 = Shifted(off, el1.map(transform))
           builder.current.revStream +:= nt1
           go(t2_)
@@ -140,7 +144,5 @@ object Macro {
 
       }
     }
-    val stream = AST.tokenize(t).toList()
-    go(stream)
   }
 }

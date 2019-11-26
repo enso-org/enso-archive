@@ -1,3 +1,3 @@
--Xss8M
+-Xss4M
 -Xmx3G
 -XX:+UseCompressedOops

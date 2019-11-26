@@ -54,7 +54,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-Xlint:private-shadow",              // A private field (or class parameter) shadows a superclass field.
   "-Xlint:stars-align",                 // Pattern sequence wildcard must align with sequence component.
   "-Xlint:unsound-match",               // Pattern match may not be typesafe.
-  "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
+//  "-Xmacro-settings:-logging@org.enso", // Disable the debug logging globally.
   "-Yno-adapted-args",                  // Do not adapt an argument list (either by inserting () or creating a tuple) to match the receiver.
   "-Ypartial-unification",              // Enable partial unification in type constructor inference
   "-Ywarn-dead-code",                   // Warn when dead code is identified.
