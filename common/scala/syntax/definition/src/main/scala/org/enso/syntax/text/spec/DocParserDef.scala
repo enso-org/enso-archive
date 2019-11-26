@@ -447,7 +447,7 @@ case class DocParserDef() extends Parser[Doc] {
     ): Unit = logger.trace {
       var wantToChangeIndent = true
       val diff               = indent - latest
-      if (diff == listIndent) {
+      if (diff >= listIndent) {
         /* NOTE
          * Used to push new line before pushing first list
          */
@@ -456,7 +456,7 @@ case class DocParserDef() extends Parser[Doc] {
         list.addNew(indent, typ, content)
       } else if (diff == 0 && list.inListFlag) {
         list.addContent(content)
-      } else if (diff == -listIndent && list.inListFlag) {
+      } else if (diff >= -listIndent && list.inListFlag) {
         list.appendInnerToOuter()
         list.addContent(content)
       } else {

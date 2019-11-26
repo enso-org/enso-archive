@@ -219,7 +219,7 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser = new Parser()
+  def apply(): Parser   = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   //// Exceptions ////
@@ -304,11 +304,11 @@ object Main extends App {
       |   Type `Option` represents an optional value: every `Option` is either `Some`
       |   and contains a value, or `None`, and does not. Option types are very common
       |   in Enso code, as they have a number of uses:
-      |     - Initial values.
-      |     - Return values for functions that are not defined over their entire input range (partial functions).
-      |     - Return value for otherwise reporting simple errors, where `None` is returned on error.
-      |     - Optional struct fields.
-      |     - Optional function arguments.
+      |      - Initial values.
+      |      - Return values for functions that are not defined over their entire input range (partial functions).
+      |      - Return value for otherwise reporting simple errors, where `None` is returned on error.
+      |      - Optional struct fields.
+      |      - Optional function arguments.
       |   `Option`s are commonly paired with pattern matching to query the presence of
       |   a value and take action, always accounting for the None case.
       |

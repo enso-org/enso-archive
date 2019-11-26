@@ -17,6 +17,7 @@ class DocParserTests extends FlatSpec with Matchers {
     val output = DocParser.run(input)
     output match {
       case Result(_, Result.Success(value)) =>
+        pprint.pprintln(value)
         assert(value == result)
         assert(value.show() == new Reader(input).toString())
       case _ =>
@@ -486,7 +487,7 @@ class DocParserTests extends FlatSpec with Matchers {
               " Second unordered sub item"
             ),
             " Third ordered sub item",
-            List.Indent.Invalid(3, List.Ordered, " Wrong Indent Item")
+            List.Indent.Invalid(3, List.Ordered, " Wrong Indent Item") //FIXME this doesnt work with indent >= 2
           ),
           " Fourth unordered item"
         )
