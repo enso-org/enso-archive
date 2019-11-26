@@ -136,4 +136,23 @@ class MethodsTest extends InterpreterTest {
     evalOld(code)
     consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
   }
+
+  "Test" should "test test" in {
+//    val code =
+//      """
+//        |Nil.sum = 0
+//        |Cons.sum = case this of
+//        |  Cons h t -> h + sum t
+//        |
+//        |myList = Cons (Cons (Cons 3 Nil) 2) 1
+//        |
+//        |""".stripMargin
+    val code =
+      """
+        |Cons.sum = case a of
+        |  b
+        |""".stripMargin
+
+    eval(code) shouldEqual 6
+  }
 }

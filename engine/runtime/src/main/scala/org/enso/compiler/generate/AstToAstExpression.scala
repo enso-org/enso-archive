@@ -168,6 +168,8 @@ object AstToAstExpression {
       case AstView.Assignment(name, expr) => translateAssignment(name, expr)
       case AstView.MethodCall(target, name, args) =>
         translateMethodCall(target, name, args)
+      case AstView.CaseExpression(scrutinee, branches) =>
+        ???
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
