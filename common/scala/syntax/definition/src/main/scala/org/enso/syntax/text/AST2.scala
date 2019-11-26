@@ -247,6 +247,20 @@ object Shape extends ShapeImplicit {
 
   sealed trait AppOf[T]                            extends Shape[T]
   final case class App[T](fn: T, off: Int, arg: T) extends AppOf[T]
+  final case class Infix[T](
+    larg: T,
+    loff: Int,
+    opr: AST.Opr, // FIXME: likely should be a different type, same for other apps
+    roff: Int,
+    rarg: T
+  ) extends AppOf[T]
+
+  sealed trait Section[T] extends AppOf[T]
+  final case class SectionLeft[T](arg: T, off: Int, opr: AST.Opr)
+      extends Section[T]
+  final case class SectionRight[T](opr: AST.Opr, off: Int, arg: T)
+      extends Section[T]
+  final case class SectionSides[T](opr: AST.Opr) extends Section[T] with Phantom
 
   ////Companions ///
   // TODO: All companion objects can be generated with macros
@@ -575,6 +589,50 @@ object Shape extends ShapeImplicit {
     implicit def span[T: HasSpan]: HasSpan[App[T]] =
       t => t.fn.span + t.off + t.arg.span
 
+  }
+
+  object Infix {
+    implicit def ftor: Functor[Infix]  = semi.functor
+    implicit def fold: Foldable[Infix] = semi.foldable
+    implicit def repr[T: Repr]: Repr[Infix[T]] =
+      t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
+    implicit def ozip[T: HasSpan]: OffsetZip[Infix, T] = t => {
+      val rargIndex = Index(t.larg.span + t.loff + t.opr.span + t.roff)
+      t.copy(larg = (Index.Start, t.larg), rarg = (rargIndex, t.rarg))
+    }
+    implicit def span[T: HasSpan]: HasSpan[Infix[T]] =
+      t => t.larg.span + t.loff + t.opr.span + t.roff + t.rarg.span
+  }
+
+  // TODO Section
+
+  object SectionLeft {
+    implicit def ftor: Functor[SectionLeft]  = semi.functor
+    implicit def fold: Foldable[SectionLeft] = semi.foldable
+    implicit def repr[T: Repr]: Repr[SectionLeft[T]] =
+      t => R + t.arg + t.off + t.opr
+    implicit def ozip[T]: OffsetZip[SectionLeft, T] =
+      t => t.copy(arg = (Index.Start, t.arg))
+    implicit def span[T: HasSpan]: HasSpan[SectionLeft[T]] =
+      t => t.arg.span + t.off + t.opr.span
+  }
+  object SectionRight {
+    implicit def ftor: Functor[SectionRight]  = semi.functor
+    implicit def fold: Foldable[SectionRight] = semi.foldable
+    implicit def repr[T: Repr]: Repr[SectionRight[T]] =
+      t => R + t.opr + t.off + t.arg
+    implicit def ozip[T]: OffsetZip[SectionRight, T] =
+      t => t.copy(arg = (Index(t.opr.span + t.off), t.arg))
+    implicit def span[T: HasSpan]: HasSpan[SectionRight[T]] =
+      t => t.opr.span + t.off + t.arg.span
+  }
+  object SectionSides {
+    implicit def ftor: Functor[SectionSides]          = semi.functor
+    implicit def fold: Foldable[SectionSides]         = semi.foldable
+    implicit def repr[T: Repr]: Repr[SectionSides[T]] = t => R + t.opr
+    implicit def ozip[T]: OffsetZip[SectionSides, T]  = t => t.coerce
+    implicit def span[T: HasSpan]: HasSpan[SectionSides[T]] =
+      t => t.opr.span
   }
 
   //// Implicits ////
@@ -1132,141 +1190,91 @@ object AST {
 
   //// Definition ////
 
-//  type App = ASTOf[AppOf]
+//  type App = ASTOf[Shape.AppOf]
   object App {
-//
+
 //    val any = UnapplyByType[App]
-//
-//    //// Constructors ////
-//
+
+    //// Constructors ////
+
     type Prefix = ASTOf[Shape.App]
-//    type Infix  = ASTOf[InfixOf]
-//    final case class InfixOf[T](
-//                                 larg: T,
-//                                 loff: Int,
-//                                 opr: Opr,
-//                                 roff: Int,
-//                                 rarg: T
-//                               ) extends AppOf[T]
-//
-//    //// Smart Constructors ////
-//
+    type Infix  = ASTOf[Shape.Infix]
+
+    //// Smart Constructors ////
+
     object Prefix {
-//      val any             = UnapplyByType[Prefix]
-//      def unapply(t: AST) = Unapply[Prefix].run(t => (t.fn, t.arg))(t)
+      val any             = UnapplyByType[Prefix]
+      def unapply(t: AST) = Unapply[Prefix].run(t => (t.fn, t.arg))(t)
       def apply(fn: AST, off: Int, arg: AST): Prefix =
-        ASTOf.wrap(Shape.App(fn, off, arg))
+        Shape.App(fn, off, arg)
       def apply(fn: AST, arg: AST): Prefix = Prefix(fn, 1, arg)
     }
-//
-//    object Infix {
-//      val any             = UnapplyByType[Infix]
-//      def unapply(t: AST) = Unapply[Infix].run(t => (t.larg, t.opr, t.rarg))(t)
-//      def apply(larg: AST, loff: Int, opr: Opr, roff: Int, rarg: AST): Infix =
-//        InfixOf(larg, loff, opr, roff, rarg)
-//      def apply(larg: AST, loff: Int, opr: Opr, rarg: AST): Infix =
-//        Infix(larg, loff, opr, 1, rarg)
-//      def apply(larg: AST, opr: Opr, roff: Int, rarg: AST): Infix =
-//        Infix(larg, 1, opr, roff, rarg)
-//      def apply(larg: AST, opr: Opr, rarg: AST): Infix =
-//        Infix(larg, 1, opr, 1, rarg)
-//    }
-//
-//    //// Instances ////
-//
 
-//    object InfixOf {
-//      implicit def ftor: Functor[InfixOf]  = semi.functor
-//      implicit def fold: Foldable[InfixOf] = semi.foldable
-//      implicit def repr[T: Repr]: Repr[InfixOf[T]] =
-//        t => R + t.larg + t.loff + t.opr + t.roff + t.rarg
-//      implicit def ozip[T: Repr]: OffsetZip[InfixOf, T] = t => {
-//        val rargIndex = Index(t.larg.span + t.loff + t.opr.span + t.roff)
-//        t.copy(larg = (Index.Start, t.larg), rarg = (rargIndex, t.rarg))
-//      }
-//    }
-//
-//    /////////////////
-//    //// Section ////
-//    /////////////////
-//
-//    //// Reexports ////
-//
-//    type Left  = Section.Left
-//    type Right = Section.Right
-//    type Sides = Section.Sides
-//
-//    val Left  = Section.Left
-//    val Right = Section.Right
-//    val Sides = Section.Sides
-//
-//    //// Definition ////
-//
-//    type Section = ASTOf[SectionOf]
-//    sealed trait SectionOf[T] extends AppOf[T]
-//    object Section {
-//
-//      val any = UnapplyByType[Section]
-//
-//      //// Constructors ////
-//
-//      type Left  = ASTOf[LeftOf]
-//      type Right = ASTOf[RightOf]
-//      type Sides = ASTOf[SidesOf]
-//
-//      final case class LeftOf[T](arg: T, off: Int, opr: Opr)
-//        extends SectionOf[T]
-//      final case class RightOf[T](opr: Opr, off: Int, arg: T)
-//        extends SectionOf[T]
-//      final case class SidesOf[T](opr: Opr) extends SectionOf[T] with Phantom
-//
-//      //// Smart Constructors ////
-//
-//      object Left {
-//        val any             = UnapplyByType[Left]
-//        def unapply(t: AST) = Unapply[Left].run(t => (t.arg, t.opr))(t)
-//
-//        def apply(arg: AST, off: Int, opr: Opr): Left = LeftOf(arg, off, opr)
-//        def apply(arg: AST, opr: Opr):           Left = Left(arg, 1, opr)
-//      }
-//      object Right {
-//        val any             = UnapplyByType[Right]
-//        def unapply(t: AST) = Unapply[Right].run(t => (t.opr, t.arg))(t)
-//
-//        def apply(opr: Opr, off: Int, arg: AST): Right = RightOf(opr, off, arg)
-//        def apply(opr: Opr, arg: AST):           Right = Right(opr, 1, arg)
-//      }
-//      object Sides {
-//        val any             = UnapplyByType[Sides]
-//        def unapply(t: AST) = Unapply[Sides].run(_.opr)(t)
-//        def apply(opr: Opr): Sides = SidesOf[AST](opr)
-//      }
-//
-//      //// Instances ////
-//
-//      object LeftOf {
-//        implicit def ftor: Functor[LeftOf]  = semi.functor
-//        implicit def fold: Foldable[LeftOf] = semi.foldable
-//        implicit def repr[T: Repr]: Repr[LeftOf[T]] =
-//          t => R + t.arg + t.off + t.opr
-//        implicit def ozip[T]: OffsetZip[LeftOf, T] =
-//          t => t.copy(arg = (Index.Start, t.arg))
-//      }
-//      object RightOf {
-//        implicit def ftor: Functor[RightOf]  = semi.functor
-//        implicit def fold: Foldable[RightOf] = semi.foldable
-//        implicit def repr[T: Repr]: Repr[RightOf[T]] =
-//          t => R + t.opr + t.off + t.arg
-//        implicit def ozip[T]: OffsetZip[RightOf, T] =
-//          t => t.copy(arg = (Index(t.opr.span + t.off), t.arg))
-//      }
-//      object SidesOf {
-//        implicit def ftor:          Functor[SidesOf]      = semi.functor
-//        implicit def fold:          Foldable[SidesOf]     = semi.foldable
-//        implicit def repr[T: Repr]: Repr[SidesOf[T]]      = t => R + t.opr
-//        implicit def ozip[T]:       OffsetZip[SidesOf, T] = t => t.coerce
-//      }
-//    }
+    object Infix {
+      val any             = UnapplyByType[Infix]
+      def unapply(t: AST) = Unapply[Infix].run(t => (t.larg, t.opr, t.rarg))(t)
+      def apply(larg: AST, loff: Int, opr: Opr, roff: Int, rarg: AST): Infix =
+        Shape.Infix(larg, loff, opr, roff, rarg)
+      def apply(larg: AST, loff: Int, opr: Opr, rarg: AST): Infix =
+        Infix(larg, loff, opr, 1, rarg)
+      def apply(larg: AST, opr: Opr, roff: Int, rarg: AST): Infix =
+        Infix(larg, 1, opr, roff, rarg)
+      def apply(larg: AST, opr: Opr, rarg: AST): Infix =
+        Infix(larg, 1, opr, 1, rarg)
+    }
+
+    //// Instances ////
+    /////////////////
+    //// Section ////
+    /////////////////
+
+    //// Reexports ////
+
+    type Left  = Section.Left
+    type Right = Section.Right
+    type Sides = Section.Sides
+
+    val Left  = Section.Left
+    val Right = Section.Right
+    val Sides = Section.Sides
+
+    //// Definition ////
+
+    type Section = ASTOf[Shape.Section]
+    object Section {
+
+      val any = UnapplyByType[Section]
+
+      //// Constructors ////
+
+      type Left  = ASTOf[Shape.SectionLeft]
+      type Right = ASTOf[Shape.SectionRight]
+      type Sides = ASTOf[Shape.SectionSides]
+
+      //// Smart Constructors ////
+
+      object Left {
+        val any             = UnapplyByType[Left]
+        def unapply(t: AST) = Unapply[Left].run(t => (t.arg, t.opr))(t)
+
+        def apply(arg: AST, off: Int, opr: Opr): Left =
+          Shape.SectionLeft(arg, off, opr)
+        def apply(arg: AST, opr: Opr): Left = Left(arg, 1, opr)
+      }
+      object Right {
+        val any             = UnapplyByType[Right]
+        def unapply(t: AST) = Unapply[Right].run(t => (t.opr, t.arg))(t)
+
+        def apply(opr: Opr, off: Int, arg: AST): Right =
+          Shape.SectionRight(opr, off, arg)
+        def apply(opr: Opr, arg: AST): Right = Right(opr, 1, arg)
+      }
+      object Sides {
+        val any                    = UnapplyByType[Sides]
+        def unapply(t: AST)        = Unapply[Sides].run(_.opr)(t)
+        def apply(opr: Opr): Sides = Shape.SectionSides[AST](opr)
+      }
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
