@@ -7,6 +7,7 @@ import org.enso.syntax.text.AST
 import org.enso.syntax.text.AST.Ident
 import org.enso.syntax.text.AST.Macro
 import Pattern.streamShift
+import cats.data.NonEmptyList
 
 import scala.annotation.tailrec
 
@@ -65,7 +66,7 @@ final class Builder(
         println("BUILD SOME")
         val revSegPats    = mdef.fwdPats.reverse
         println(1)
-        val revSegsOuts   = revSegBldrs.zipWith(revSegPats)(_.build(_))
+        val revSegsOuts   = zipWith(revSegBldrs, revSegPats)(_.build(_))
         println(2)
         val revSegs       = revSegsOuts.map(_._1)
         println(3)
@@ -117,6 +118,19 @@ final class Builder(
         (newLeftStream, newTok, tailStream)
 
     }
+  }
+
+  def zipWith[A, B, C](a: NonEmptyList[A], b: NonEmptyList[B])(f: (A, B) => C): NonEmptyList[C] = {
+
+    @tailrec
+    def zwRev(as: List[A], bs: List[B], acc: List[C]): List[C] = (as, bs) match {
+      case (Nil, Nil)         => acc
+      case (Nil, _)           => acc
+      case (_, Nil)           => acc
+      case (x :: xs, y :: ys) => zwRev(xs, ys, f(x, y) :: acc)
+    }
+
+    NonEmptyList(f(a.head, b.head), zwRev(a.tail, b.tail, Nil).reverse)
   }
 
   if (isModuleBuilder)
