@@ -24,7 +24,7 @@ import org.enso.syntax.text2.AST.ASTOf
 //import org.enso.syntax.text.AST.OffsetZip
 import org.enso.syntax.text2.ast.Repr.R
 import org.enso.syntax.text2.ast.Repr._
-//import org.enso.syntax.text.ast.Doc
+import org.enso.syntax.text2.ast.Doc
 import org.enso.syntax.text2.ast.Repr
 import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text2.ast.meta.Pattern
@@ -148,6 +148,8 @@ sealed trait ShapeImplicit {
     case s: Module[T]        => OffsetZip[Module, T].zipWithOffset(s)
     case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
     case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
+    case s: Comment[T]       => OffsetZip[Comment, T].zipWithOffset(s)
+    case s: Documented[T]    => OffsetZip[Documented, T].zipWithOffset(s)
 
   }
   implicit def span[T: HasSpan]: HasSpan[Shape[T]] = ???
@@ -298,7 +300,8 @@ object Shape extends ShapeImplicit {
   final case class Comment[T](lines: List[String])
       extends SpacelessAST[T]
       with Phantom
-
+  final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
+      extends Shape[T]
   ////Companions ///
   // TODO: All companion objects can be generated with macros
 
@@ -810,9 +813,24 @@ object Shape extends ShapeImplicit {
       R + symbol + symbol + _.lines.mkString("\n")
     // FIXME: How to make it automatic for non-spaced AST?
     implicit def ozip[T]: OffsetZip[Comment, T]        = _.map(Index.Start -> _)
-    implicit def span[T: HasSpan]: HasSpan[Comment[T]] = t => 0 // FIXME
+    implicit def span[T: HasSpan]: HasSpan[Comment[T]] = t => 0
   }
 
+  object Documented {
+    import Comment.symbol
+    implicit def functor[T]: Functor[Documented] = semi.functor
+    implicit def repr[T: Repr]: Repr[Documented[T]] = t => {
+      val symbolRepr        = R + symbol + symbol
+      val betweenDocAstRepr = R + Block.newline + Block.newline.build * t.emptyLinesBetween
+      R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
+    }
+    implicit def offsetZip[T]: OffsetZip[Documented, T] =
+      _.map(Index.Start -> _)
+    implicit def span[T: HasSpan]: HasSpan[Documented[T]] = t => 0
+
+    implicit def toJson[T]: Encoder[Documented[T]] =
+      _ => throw new NotImplementedError()
+  }
   //// Implicits ////
 
   object implicits {
@@ -1780,38 +1798,23 @@ object AST {
     def unapply(t: AST): Option[List[String]] =
       Unapply[Comment].run(t => t.lines)(t)
   }
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Documented //////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Documented = ASTOf[DocumentedOf]
-//  final case class DocumentedOf[T](doc: Doc, emptyLinesBetween: Int, ast: T)
-//    extends Shape[T]
-//  object Documented {
-//    val any = UnapplyByType[Documented]
-//    def apply(doc: Doc, emp: Int, ast: AST): Documented =
-//      ASTOf(DocumentedOf(doc, emp, ast))
-//    def unapply(t: AST): Option[(Doc, Int, AST)] =
-//      Unapply[Documented].run(t => (t.doc, t.emptyLinesBetween, t.ast))(t)
-//  }
-//
-//  //// Instances ////
-//
-//  object DocumentedOf {
-//    import Comment.symbol
-//    implicit def functor[T]: Functor[DocumentedOf] = semi.functor
-//    implicit def repr[T: Repr]: Repr[DocumentedOf[T]] = t => {
-//      val symbolRepr        = R + symbol + symbol
-//      val betweenDocAstRepr = R + newline + newline.build * t.emptyLinesBetween
-//      R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
-//    }
-//    implicit def offsetZip[T]: OffsetZip[DocumentedOf, T] =
-//      _.map(Index.Start -> _)
-//
-//    implicit def toJson[T]: Encoder[DocumentedOf[T]] =
-//      _ => throw new NotImplementedError()
-//  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Documented //////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Documented = ASTOf[Shape.Documented]
+
+  object Documented {
+    val any = UnapplyByType[Documented]
+    def apply(doc: Doc, emp: Int, ast: AST): Documented =
+      Shape.Documented(doc, emp, ast)
+    def unapply(t: AST): Option[(Doc, Int, AST)] =
+      Unapply[Documented].run(t => (t.doc, t.emptyLinesBetween, t.ast))(t)
+  }
+
+  //// Instances ////
+
 //
 //  //////////////////////////////////////////////////////////////////////////////
 //  //// Import //////////////////////////////////////////////////////////////////
@@ -1995,13 +1998,13 @@ object AST {
     val v1  = Ident.Var("foo")
     val v1_ = v1: AST
 
-    println(v1_.asJson)
+//    println(v1_.asJson)
 //    val opr1 = Ident.Opr("+")
     val v2  = App.Prefix(Ident.Var("x"), 10, Ident.Var("z"))
     val v2_ = v2: AST
 //
-////    println(v2.asJson)
-    println(v2_.asJson)
+//    println(v2.asJson)
+//    println(v2_.asJson)
     println(OffsetZip(v2.shape))
 
 //    v2_.mapWithOff { (ix, a) =>
