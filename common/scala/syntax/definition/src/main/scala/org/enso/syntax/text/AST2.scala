@@ -915,6 +915,10 @@ object Shape extends ShapeImplicit {
       functor: Functor[T],
       ozip: OffsetZip[T, AST]
     ) {
+      def map(f: AST => AST): T[AST] = {
+        Functor[T].map(t)(f)
+      }
+
       def mapWithOff(f: (Index, AST) => AST): T[AST] =
         Functor[T].map(ozip.zipWithOffset(t))(f.tupled)
     }
@@ -1136,9 +1140,7 @@ object AST {
     shape: T[AST],
     span: Int,
     id: Option[ID] = None
-  ) {
-    def map(f: AST => AST): ASTOf[T] = ??? // copy(shape = cls.map(shape)(f))
-  }
+  )
 
   object ASTOf extends AstImplicits {
     implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
@@ -1191,6 +1193,9 @@ object AST {
     functor: Functor[T],
     ozip: OffsetZip[T, AST]
   ) {
+    def map(f: AST => AST): ASTOf[T] =
+      t.copy(shape = t.shape.map(f))
+
     def mapWithOff(f: (Index, AST) => AST): ASTOf[T] =
       t.copy(shape = ToShapeOps(t.shape).mapWithOff(f))
 
