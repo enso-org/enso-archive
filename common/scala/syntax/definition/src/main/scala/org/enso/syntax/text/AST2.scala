@@ -294,6 +294,11 @@ object Shape extends ShapeImplicit {
     paths: Tree[AST.AST, Unit]
   ) extends Macro[T]
 
+  sealed trait SpacelessAST[T] extends Shape[T]
+  final case class Comment[T](lines: List[String])
+      extends SpacelessAST[T]
+      with Phantom
+
   ////Companions ///
   // TODO: All companion objects can be generated with macros
 
@@ -795,6 +800,17 @@ object Shape extends ShapeImplicit {
       def apply(head: AST.AST): Segment = Segment(head, None)
       implicit def repr: Repr[Segment]  = t => R + t.head + t.body
     }
+  }
+
+  object Comment {
+    val symbol                           = "#"
+    implicit def ftor: Functor[Comment]  = semi.functor
+    implicit def fold: Foldable[Comment] = semi.foldable
+    implicit def repr[T]: Repr[Comment[T]] =
+      R + symbol + symbol + _.lines.mkString("\n")
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Comment, T]        = _.map(Index.Start -> _)
+    implicit def span[T: HasSpan]: HasSpan[Comment[T]] = t => 0 // FIXME
   }
 
   //// Implicits ////
@@ -1741,44 +1757,29 @@ object AST {
     }
   }
 
-//  //////////////////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Space-Unaware AST ///////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  sealed trait SpacelessASTOf[T] extends Shape[T]
-//
-//  //  implicit def ftor:    Functor[SpacelessASTOf]      = semi.functor implicit def fold:    Foldable[SpacelessASTOf]     = semi.foldable
-//  //  implicit def ozip[T]: OffsetZip[SpacelessASTOf, T] = _.map((0, _))
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  /// Comment //////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Comment = ASTOf[CommentOf]
-//  final case class CommentOf[T](lines: List[String])
-//    extends SpacelessASTOf[T]
-//      with Phantom
-//  object Comment {
-//    val any    = UnapplyByType[Comment]
-//    val symbol = "#"
-//    def apply(lines: List[String]): Comment = ASTOf(CommentOf(lines))
-//    def unapply(t: AST): Option[List[String]] =
-//      Unapply[Comment].run(t => t.lines)(t)
-//  }
-//
-//  //// Instances ////
-//
-//  object CommentOf {
-//    import Comment._
-//    implicit def ftor: Functor[CommentOf]  = semi.functor
-//    implicit def fold: Foldable[CommentOf] = semi.foldable
-//    implicit def repr[T]: Repr[CommentOf[T]] =
-//      R + symbol + symbol + _.lines.mkString("\n")
-//    // FIXME: How to make it automatic for non-spaced AST?
-//    implicit def ozip[T]: OffsetZip[CommentOf, T] = _.map(Index.Start -> _)
-//  }
+  //////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Space-Unaware AST ///////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  sealed trait SpacelessASTOf[T] extends Shape[T]
+
+  //  implicit def ftor:    Functor[SpacelessASTOf]      = semi.functor implicit def fold:    Foldable[SpacelessASTOf]     = semi.foldable
+  //  implicit def ozip[T]: OffsetZip[SpacelessASTOf, T] = _.map((0, _))
+
+  //////////////////////////////////////////////////////////////////////////////
+  /// Comment //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Comment = ASTOf[Shape.Comment]
+  object Comment {
+    val any = UnapplyByType[Comment]
+    def apply(lines: List[String]): Comment =
+      Shape.Comment(lines): Shape.Comment[AST]
+    def unapply(t: AST): Option[List[String]] =
+      Unapply[Comment].run(t => t.lines)(t)
+  }
 //
 //  //////////////////////////////////////////////////////////////////////////////
 //  //// Documented //////////////////////////////////////////////////////////////
