@@ -135,10 +135,10 @@ sealed trait ShapeImplicit {
     case s: TextUnclosed[T]  => s.repr
     case s: InvalidQuote[T]  => s.repr
     case s: InlineBlock[T]   => s.repr
-    case s: LineRaw[T]       => s.repr
-    case s: LineFmt[T]       => s.repr
-    case s: BlockRaw[T]      => s.repr
-    case s: BlockFmt[T]      => s.repr
+    case s: TextLineRaw[T]   => s.repr
+    case s: TextLineFmt[T]   => s.repr
+    case s: TextBlockRaw[T]  => s.repr
+    case s: TextBlockFmt[T]  => s.repr
     case s: App[T]           => s.repr
     case s: Infix[T]         => s.repr
     case s: SectionLeft[T]   => s.repr
@@ -171,19 +171,21 @@ sealed trait ShapeImplicit {
     case s: TextUnclosed[T]  => OffsetZip[TextUnclosed, T].zipWithOffset(s)
     case s: InvalidQuote[T]  => OffsetZip[InvalidQuote, T].zipWithOffset(s)
     case s: InlineBlock[T]   => OffsetZip[InlineBlock, T].zipWithOffset(s)
-    case s: LineRaw[T]       => OffsetZip[LineRaw, T].zipWithOffset(s)
-    case s: LineFmt[T]       => OffsetZip[LineFmt, T].zipWithOffset(s)
-    case s: BlockRaw[T]      => OffsetZip[BlockRaw, T].zipWithOffset(s) // TODO
-    case s: BlockFmt[T]      => OffsetZip[BlockFmt, T].zipWithOffset(s) // TODO
-    case s: App[T]           => OffsetZip[App, T].zipWithOffset(s)
-    case s: Infix[T]         => OffsetZip[Infix, T].zipWithOffset(s)
-    case s: SectionLeft[T]   => OffsetZip[SectionLeft, T].zipWithOffset(s)
-    case s: SectionRight[T]  => OffsetZip[SectionRight, T].zipWithOffset(s)
-    case s: SectionSides[T]  => OffsetZip[SectionSides, T].zipWithOffset(s)
-    case s: Block[T]         => OffsetZip[Block, T].zipWithOffset(s)
-    case s: Module[T]        => OffsetZip[Module, T].zipWithOffset(s)
-    case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
-    case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
+    case s: TextLineRaw[T]   => OffsetZip[TextLineRaw, T].zipWithOffset(s)
+    case s: TextLineFmt[T]   => OffsetZip[TextLineFmt, T].zipWithOffset(s)
+    case s: TextBlockRaw[T] =>
+      OffsetZip[TextBlockRaw, T].zipWithOffset(s) // TODO
+    case s: TextBlockFmt[T] =>
+      OffsetZip[TextBlockFmt, T].zipWithOffset(s) // TODO
+    case s: App[T]          => OffsetZip[App, T].zipWithOffset(s)
+    case s: Infix[T]        => OffsetZip[Infix, T].zipWithOffset(s)
+    case s: SectionLeft[T]  => OffsetZip[SectionLeft, T].zipWithOffset(s)
+    case s: SectionRight[T] => OffsetZip[SectionRight, T].zipWithOffset(s)
+    case s: SectionSides[T] => OffsetZip[SectionSides, T].zipWithOffset(s)
+    case s: Block[T]        => OffsetZip[Block, T].zipWithOffset(s)
+    case s: Module[T]       => OffsetZip[Module, T].zipWithOffset(s)
+    case s: Ambiguous[T]    => OffsetZip[Ambiguous, T].zipWithOffset(s)
+    case s: Match[T]        => OffsetZip[Match, T].zipWithOffset(s)
     // spaceless
     case s: Comment[T]    => OffsetZip[Comment, T].zipWithOffset(s)
     case s: Documented[T] => OffsetZip[Documented, T].zipWithOffset(s)
@@ -208,10 +210,10 @@ sealed trait ShapeImplicit {
     case s: TextUnclosed[T]  => s.span
     case s: InvalidQuote[T]  => s.span
     case s: InlineBlock[T]   => s.span
-    case s: LineRaw[T]       => s.span
-    case s: LineFmt[T]       => s.span
-    case s: BlockRaw[T]      => s.span
-    case s: BlockFmt[T]      => s.span
+    case s: TextLineRaw[T]   => s.span
+    case s: TextLineFmt[T]   => s.span
+    case s: TextBlockRaw[T]  => s.span
+    case s: TextBlockFmt[T]  => s.span
     case s: App[T]           => s.span
     case s: Infix[T]         => s.span
     case s: SectionLeft[T]   => s.span
@@ -274,7 +276,7 @@ object Shape extends ShapeImplicit {
   sealed trait Text[T] extends Shape[T] with LiteralOf[T] {
     def quote: Repr.Builder
   }
-  final case class TextUnclosed[T](line: Line[T])
+  final case class TextUnclosed[T](line: TextLine[T])
       extends Text[T]
       with InvalidOf[T] {
     def quote = line.quote
@@ -287,21 +289,22 @@ object Shape extends ShapeImplicit {
       extends InvalidOf[T]
       with Phantom
 
-  sealed trait Line[T] extends Text[T]
-  final case class LineRaw[T](text: List[SegmentRaw[T]])
-      extends Line[T]
+  sealed trait TextLine[T] extends Text[T]
+  final case class TextLineRaw[T](text: List[SegmentRaw[T]])
+      extends TextLine[T]
       with Phantom {
     val quote = '"'
   }
   /* Note [Circe and naming] */
-  final case class LineFmt[T](text: List[SegmentFmt[T]]) extends Line[T] {
+  final case class TextLineFmt[T](text: List[SegmentFmt[T]])
+      extends TextLine[T] {
     val quote = '\''
   }
 
   sealed trait TextBlock[T] extends Text[T]
   final case class BlockLine[+T](emptyLines: List[Int], text: List[T])
 
-  final case class BlockRaw[T](
+  final case class TextBlockRaw[T](
     text: List[BlockLine[SegmentRaw[T]]],
     spaces: Int,
     offset: Int
@@ -309,7 +312,7 @@ object Shape extends ShapeImplicit {
       with Phantom {
     val quote = "\"\"\""
   }
-  final case class BlockFmt[T](
+  final case class TextBlockFmt[T](
     text: List[BlockLine[SegmentFmt[T]]],
     spaces: Int,
     offset: Int
@@ -517,8 +520,8 @@ object Shape extends ShapeImplicit {
     implicit def ftor: Functor[TextUnclosed]  = semi.functor
     implicit def fold: Foldable[TextUnclosed] = semi.foldable
     implicit def repr[T: Repr]: Repr[TextUnclosed[T]] = {
-      case TextUnclosed(t: LineRaw[T]) => t.repr
-      case TextUnclosed(t: LineFmt[T]) => t.repr
+      case TextUnclosed(t: TextLineRaw[T]) => t.repr
+      case TextUnclosed(t: TextLineFmt[T]) => t.repr
     }
     implicit def ozip[T: HasSpan]: OffsetZip[TextUnclosed, T] =
       t => t.copy(line = OffsetZip(t.line))
@@ -538,44 +541,48 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T]: OffsetZip[InlineBlock, T] = t => t.coerce
     implicit def span[T]: HasSpan[InlineBlock[T]]   = _.quote.span
   }
-  object Line {
-    implicit def ftor: Functor[Line]  = semi.functor
-    implicit def fold: Foldable[Line] = semi.foldable
-    implicit def repr[T: Repr]: Repr[Line[T]] = {
-      case t: LineRaw[T] => t.quote + t.text + t.quote
-      case t: LineFmt[T] => t.quote + t.text + t.quote
+  object TextLine {
+    implicit def ftor: Functor[TextLine]  = semi.functor
+    implicit def fold: Foldable[TextLine] = semi.foldable
+    implicit def repr[T: Repr]: Repr[TextLine[T]] = {
+      case t: TextLineRaw[T] => t.repr
+      case t: TextLineFmt[T] => t.repr
     }
-    implicit def ozip[T: HasSpan]: OffsetZip[Line, T] = {
-      case t: LineRaw[T] => OffsetZip(t)
-      case t: LineFmt[T] => OffsetZip(t)
+    implicit def ozip[T: HasSpan]: OffsetZip[TextLine, T] = {
+      case t: TextLineRaw[T] => OffsetZip(t)
+      case t: TextLineFmt[T] => OffsetZip(t)
     }
-    implicit def span[T: HasSpan]: HasSpan[Line[T]] = {
-      case t: LineRaw[T] => t.span()
-      case t: LineFmt[T] => t.span()
+    implicit def span[T: HasSpan]: HasSpan[TextLine[T]] = {
+      case t: TextLineRaw[T] => t.span
+      case t: TextLineFmt[T] => t.span
     }
   }
 
-  object LineRaw {
-    implicit def ftor: Functor[LineRaw]          = semi.functor
-    implicit def fold: Foldable[LineRaw]         = semi.foldable
-    implicit def repr[T: Repr]: Repr[LineRaw[T]] = t => t.quote + t.text
-    implicit def ozip[T]: OffsetZip[LineRaw, T]  = t => t.coerce
-    implicit def span[T]: HasSpan[LineRaw[T]]    = ??? // _.repr.span // FIXME
+  object TextLineRaw {
+    implicit def ftor: Functor[TextLineRaw]  = semi.functor
+    implicit def fold: Foldable[TextLineRaw] = semi.foldable
+    implicit def repr[T: Repr]: Repr[TextLineRaw[T]] =
+      t => t.quote + t.text + t.quote
+    implicit def ozip[T]: OffsetZip[TextLineRaw, T] = t => t.coerce
+    implicit def span[T]: HasSpan[TextLineRaw[T]] =
+      t => (2 * t.quote.span) + t.text.map(_.span).sum
   }
-  object LineFmt {
-    implicit def ftor: Functor[LineFmt]          = semi.functor
-    implicit def fold: Foldable[LineFmt]         = semi.foldable
-    implicit def repr[T: Repr]: Repr[LineFmt[T]] = t => t.quote + t.text
-    implicit def ozip[T: HasSpan]: OffsetZip[LineFmt, T] = { t =>
+  object TextLineFmt {
+    implicit def ftor: Functor[TextLineFmt]  = semi.functor
+    implicit def fold: Foldable[TextLineFmt] = semi.foldable
+    implicit def repr[T: Repr]: Repr[TextLineFmt[T]] =
+      t => t.quote + t.text + t.quote
+    implicit def ozip[T: HasSpan]: OffsetZip[TextLineFmt, T] = { t =>
       var offset = Index(t.quote.span)
       val text2 = for (elem <- t.text) yield {
         val offElem = elem.map(offset -> _)
         offset += Size(elem.span)
         offElem
       }
-      LineFmt(text2)
+      TextLineFmt(text2)
     }
-    implicit def span[T]: HasSpan[LineFmt[T]] = ??? // _.repr.span // FIXME
+    implicit def span[T: HasSpan]: HasSpan[TextLineFmt[T]] =
+      t => (2 * t.quote.span) + t.text.map(_.span).sum
   }
 
   // FIXME trait could delegate to shape
@@ -589,33 +596,33 @@ object Shape extends ShapeImplicit {
     implicit def repr[T: Repr]: Repr[TextBlock[T]] = t => {
       val q = t.quote
       t match {
-        case BlockRaw(text, s, off) => q + s + text.map(line(off, _))
-        case BlockFmt(text, s, off) => q + s + text.map(line(off, _))
+        case TextBlockRaw(text, s, off) => q + s + text.map(line(off, _))
+        case TextBlockFmt(text, s, off) => q + s + text.map(line(off, _))
       }
     }
     implicit def ozip[T: HasSpan]: OffsetZip[TextBlock, T] = {
-      case body: BlockRaw[T] => body.coerce
-      case body: BlockFmt[T] => OffsetZip(body)
+      case body: TextBlockRaw[T] => OffsetZip(body)
+      case body: TextBlockFmt[T] => OffsetZip(body)
     }
     implicit def span[T: HasSpan]: HasSpan[TextBlock[T]] =
       t => (t: Shape[T]).span
   }
 
-  object BlockRaw {
-    implicit def ftor: Functor[BlockRaw]  = semi.functor
-    implicit def fold: Foldable[BlockRaw] = semi.foldable
-    implicit def repr[T: Repr]: Repr[BlockRaw[T]] =
+  object TextBlockRaw {
+    implicit def ftor: Functor[TextBlockRaw]  = semi.functor
+    implicit def fold: Foldable[TextBlockRaw] = semi.foldable
+    implicit def repr[T: Repr]: Repr[TextBlockRaw[T]] =
       t => t.quote + t.spaces + t.text.map(TextBlock.line(t.offset, _))
-    implicit def ozip[T: HasSpan]: OffsetZip[BlockRaw, T] = t => t.coerce
-    implicit def span[T]: HasSpan[BlockRaw[T]]            = ??? //_.str.length
+    implicit def ozip[T: HasSpan]: OffsetZip[TextBlockRaw, T] = t => t.coerce
+    implicit def span[T]: HasSpan[TextBlockRaw[T]]            = ??? //_.str.length
   }
 
-  object BlockFmt {
-    implicit def ftor: Functor[BlockFmt]  = semi.functor
-    implicit def fold: Foldable[BlockFmt] = semi.foldable
-    implicit def repr[T: Repr]: Repr[BlockFmt[T]] =
+  object TextBlockFmt {
+    implicit def ftor: Functor[TextBlockFmt]  = semi.functor
+    implicit def fold: Foldable[TextBlockFmt] = semi.foldable
+    implicit def repr[T: Repr]: Repr[TextBlockFmt[T]] =
       t => t.quote + t.spaces + t.text.map(TextBlock.line(t.offset, _))
-    implicit def ozip[T: HasSpan]: OffsetZip[BlockFmt, T] = { body =>
+    implicit def ozip[T: HasSpan]: OffsetZip[TextBlockFmt, T] = { body =>
       var offset = Index(body.quote.span)
       val text =
         for (line <- body.text) yield {
@@ -630,7 +637,7 @@ object Shape extends ShapeImplicit {
         }
       body.copy(text = text)
     }
-    implicit def span[T]: HasSpan[BlockFmt[T]] = ??? //_.str.length
+    implicit def span[T]: HasSpan[TextBlockFmt[T]] = ??? //_.str.length
   }
 
   object Segment {
@@ -1475,10 +1482,10 @@ object AST {
       //// Definition ////
 
       object Line {
-        val Raw = Shape.LineRaw
-        type Raw[T] = Shape.LineRaw[T]
-        val Fmt = Shape.LineFmt
-        type Fmt[T] = Shape.LineFmt[T]
+        val Raw = Shape.TextLineRaw
+        type Raw[T] = Shape.TextLineRaw[T]
+        val Fmt = Shape.TextLineFmt
+        type Fmt[T] = Shape.TextLineFmt[T]
       }
 
       ////// CONSTRUCTORS ///////
@@ -1516,7 +1523,7 @@ object AST {
         off: Int,
         line: Shape.BlockLine[Segment.Fmt]*
       ): Text =
-        Text(Shape.BlockFmt(line.to[List], spaces, off))
+        Text(Shape.TextBlockFmt(line.to[List], spaces, off))
 
       object Raw {
         def apply(segment: Segment.Raw*): Text =
@@ -1526,7 +1533,7 @@ object AST {
           off: Int,
           line: Shape.BlockLine[Segment.Raw]*
         ): Text =
-          Text(Shape.BlockRaw(line.to[List], spaces, off))
+          Text(Shape.TextBlockRaw(line.to[List], spaces, off))
       }
 
       /////////////////
