@@ -1,5 +1,7 @@
 package org.enso.compiler.generate
 
+import org.enso.data
+import org.enso.data.Shifted.List1
 import org.enso.interpreter.AstBlock
 import org.enso.syntax.text.{AST, Debug}
 
@@ -79,16 +81,47 @@ object AstView {
     }
   }
 
+  object PatternMatch {
+    // Cons, args
+    def unapply(ast: AST): Option[(AST.Ident.Cons, List[AST])] = {
+      ast match {
+        case SpacedList(AST.Ident.Cons.any(cons) :: xs) =>
+          val realArgs = xs.collect { case a @ MatchParam(_) => a }
+
+          if (realArgs.length == xs.length) {
+            Some((cons, xs))
+          } else {
+            None
+          }
+        case _ => None
+      }
+    }
+  }
+
+  object MatchParam {
+    def unapply(ast: AST): Option[AST] = ast match {
+      case DefinitionArgument(_) => Some(ast)
+      case PatternMatch(_, _)    => Some(ast)
+      case _                     => None
+    }
+  }
+
+  object FunctionParam {
+    def unapply(ast: AST): Option[AST] = ast match {
+      case AssignedArgument(_, _) => Some(ast)
+      case DefinitionArgument(_)  => Some(ast)
+      case PatternMatch(_)        => Some(ast)
+      case _                      => None
+    }
+  }
+
   object LambdaParamList {
     //TODO suspended arguments
 
     def unapply(ast: AST): Option[List[AST]] = {
       ast match {
         case SpacedList(args) =>
-          val realArgs = args.collect {
-            case a @ AssignedArgument(_, _) => a
-            case a @ DefinitionArgument(_)  => a
-          }
+          val realArgs = args.collect { case a @ FunctionParam(_) => a }
 
           if (realArgs.length == args.length) {
             Some(args)
@@ -261,7 +294,27 @@ object AstView {
     }
   }
 
-  object CaseExpression {
+  object CaseBranch {
+    // TODO [AA]
+  }
 
+  object CaseExpression {
+    val caseName = data.List1(AST.Ident.Var("case"), AST.Ident.Var("of"))
+
+    // scrutinee and branches
+    def unapply(ast: AST): Option[(AST, List[AST])] = {
+      ast match {
+        case AST.Mixfix(identSegments, argSegments) =>
+          if (identSegments == caseName) {
+            println("==== MIXFIX ====")
+            println(Debug.pretty(ast.toString))
+
+            None
+          } else {
+            None
+          }
+        case _ => None
+      }
+    }
   }
 }

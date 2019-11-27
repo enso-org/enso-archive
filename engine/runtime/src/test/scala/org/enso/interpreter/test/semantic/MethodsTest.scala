@@ -138,6 +138,7 @@ class MethodsTest extends InterpreterTest {
   }
 
   "Test" should "test test" in {
+    pending
 //    val code =
 //      """
 //        |Nil.sum = 0
