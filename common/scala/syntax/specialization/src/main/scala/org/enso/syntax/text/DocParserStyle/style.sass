@@ -83,6 +83,9 @@ h2
     margin: 0
     margin-top: 0.65rem
 
+li
+    padding-left: 10px
+
 
 /*///////////////////
 //// Invalid AST ////
@@ -243,6 +246,9 @@ h2
     margin: 10px 20px
     display: none
 
+    code
+        font-family: monospace
+
 
 /*///////////////////////////////////
 //// HTML generated - Def, Infix ////
@@ -261,7 +267,7 @@ h2
 .DefTitle
     display: inline-flex
     font-size: x-large
-    font-weight: 600
+    font-weight: 400
     margin-bottom: 20px
 
 
@@ -298,7 +304,8 @@ h2
 
 
 .Documentation
-    .ASTData
+    .ASTData,
+    .ASTHead
         margin: 20px auto
         text-align: left
         line-height: 1.05
@@ -307,78 +314,81 @@ h2
         border-radius: 6px
 
     .ASTHead
-        margin: 20px auto
-        text-align: left
-        line-height: 1.05
-        letter-spacing: 0.008em
         background-color: #ffffff
-        border-radius: 6px
         .DefTitle
             font-size: 42px
             margin:0
+
+    .ASTData
+        .ASTHead
+            margin: 20px auto
+            background-color: #fafafa
+            .DefTitle
+                font-size: x-large
 
     .Documented
         margin: 0
         width: 100%
         background-color: #ffffff
 
-
 @media (max-width: 500px)
     .Synopsis,
     .Body,
     .Tags
-        width: 380px
+        max-width: 380px
 
     .Documentation .ASTData,
-    .Documentation .ASTHead
-        width: 400px
-
-
+    .Documentation .ASTHead,
+    .DefNoBody,
+    .DefBody
+        max-width: 400px
 
 @media (min-width: 500px)
     .Synopsis,
     .Body,
     .Tags
-        width: 440px
+        max-width: 440px
 
     .Documentation .ASTData,
-    .Documentation .ASTHead
-        width: 470px
-
-
+    .Documentation .ASTHead,
+    .DefNoBody,
+    .DefBody
+        max-width: 470px
 
 @media (min-width: 600px)
     .Synopsis,
     .Body,
     .Tags
-        width: 490px
+        max-width: 490px
 
     .Documentation .ASTData,
-    .Documentation .ASTHead
-        width: 520px
-
-
+    .Documentation .ASTHead,
+    .DefNoBody,
+    .DefBody
+        max-width: 520px
 
 @media (min-width: 900px)
     .Synopsis,
     .Body,
     .Tags
-        width: 670px
+        max-width: 670px
 
     .Documentation .ASTData,
-    .Documentation .ASTHead
-        width: 710px
-
-
+    .Documentation .ASTHead,
+    .DefNoBody,
+    .DefBody
+        max-width: 710px
 
 @media (min-width: 1300px)
     .Synopsis,
     .Body,
     .Tags
-        width: 780px
+        max-width: 780px
 
     .Documentation .ASTData,
-    .Documentation .ASTHead
-        width: 820px
+    .Documentation .ASTHead,
+    .DefNoBody,
+    .DefBody
+        max-width: 820px
     
 
