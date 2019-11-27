@@ -9,10 +9,6 @@ import org.enso.syntax.text.{AST, Debug}
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
 //  but it was thought best to land in increments where possible.
 
-// TODO [MK]
-//  - Method dispatch on unapplied constructors
-//  - Explicit block entities in old AST (expressions)
-
 // TODO [Generic]
 //  - Type signatures
 

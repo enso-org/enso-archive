@@ -244,8 +244,8 @@ need to follow these steps:
    'Debugger mode:'
 5. Where it provides the command-line arguments for the remote JVM, copy these
    and add them to `truffleRunOptions` in [`build.sbt`](build.sbt). Remove the
-   portion of these options after `suspend=y`, including the comma. They don't
-   seem to play nicely with GraalVM.
+   portion of these options after `suspend=y`, including the comma. They are
+   placeholders that we don't use.
 6. Now, when you want to debug something, you can place a breakpoint as usual in
    IntelliJ, and then execute your remote debugging configuration. Now, in the
    SBT shell, run a command to execute the code you want to debug (e.g.
