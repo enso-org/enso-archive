@@ -2,7 +2,7 @@
 //// DOM ////
 ///////////*/
 
-body 
+body
     -webkit-font-smoothing: antialiased
     font-style: normal
     word-wrap: break-word
@@ -15,28 +15,28 @@ body
     color: #333333
     font-style: normal
 
-p 
+p
     display: block
     margin-block-start: 1em
     margin-block-end: 1em
     margin-inline-start: 0
     margin-inline-end: 0
 
-a:hover 
+a:hover
     color: #35a5ff !important
     text-decoration: none
 
-a 
+a
     color: #0070c9
     background-color: transparent
     text-decoration: none
     display: inline-block
     transition: all 0.3s ease
 
-img 
+img
     display: block
 
-code 
+code
     color: #0070c9
     background-color: transparent
     font-size: inherit
@@ -45,7 +45,7 @@ code
     display: inline-block
     white-space: pre-wrap
 
-button 
+button
     display: inline-block
     padding: 8px 30px
     margin: 10px 0
@@ -59,20 +59,20 @@ button
     vertical-align: top
     transition: all 0.3s ease
 
-button:hover 
+button:hover
     background-color: #333
 
-b 
+b
     font-weight: 600
 
-h1 
+h1
     font-size: 34px
     line-height: 1.08824
     font-weight: 500
     letter-spacing: 0.01em
 
 
-h2 
+h2
     font-size: 28px
     line-height: 1.1073
     font-weight: 500
@@ -103,21 +103,21 @@ h2
 
 .Unclosed,
 .invalidIndent,
-.invalidLink 
+.invalidLink
     display: inline
 
 /*//////////////
 //// Header ////
 //////////////*/
 
-.Header 
+.Header
     font-size: 19px
     font-weight: 500
 
 
 .Important .Header,
 .Info .Header,
-.Example .Header 
+.Example .Header
     margin-bottom: 0.7em
     font-weight: 600
     letter-spacing: -0.021em
@@ -184,14 +184,14 @@ h2
 .Important,
 .Info,
 .CodeBlock,
-.Example 
+.Example
     margin-top: 0
     margin-left: auto
     margin-right: auto
     position: relative
 
 
-.Body .Raw 
+.Body .Raw
     padding: 0.75em 0
     margin-bottom: 0.6rem
     font-size: 17px
@@ -203,14 +203,14 @@ h2
     font-style: normal
 
 
-.Synopsis .Raw 
+.Synopsis .Raw
     margin-bottom: 2rem
 
 
 .Important,
 .Info,
 .CodeBlock,
-.Example 
+.Example
     font-size: 17px
     padding-top: 0.94118rem
     padding-bottom: 0.94118rem
@@ -222,7 +222,7 @@ h2
     margin: 0.7em 0
 
 
-.Important 
+.Important
     border-right: 0
     border-top: 0
     border-bottom: 0
@@ -230,15 +230,15 @@ h2
     background-color: #fbf8e8
 
 
-.Info 
+.Info
     border-color: #69c5e8
 
 
-.Example 
+.Example
     border-color: #8a82cf
 
 
-.CodeBlock 
+.CodeBlock
     border-color: #7cd58b
     margin: 10px 20px
     display: none
@@ -248,7 +248,7 @@ h2
 //// HTML generated - Def, Infix ////
 ///////////////////////////////////*/
 
-.Def 
+.Def
     padding: 10px 20px
 
     .Synopsis,
@@ -282,14 +282,14 @@ h2
 /////////////////////////*/
 
 .Synopsis,
-.Body  
+.Body
     margin: 0 auto
     padding: 5px
     margin-bottom: 20px
     text-align: left
 
 
-.Synopsis 
+.Synopsis
     font-size: 20px
     line-height: 1.5
     font-weight: 300
@@ -306,6 +306,17 @@ h2
         background-color: #fafafa
         border-radius: 6px
 
+    .ASTHead
+        margin: 20px auto
+        text-align: left
+        line-height: 1.05
+        letter-spacing: 0.008em
+        background-color: #ffffff
+        border-radius: 6px
+        .DefTitle
+            font-size: 42px
+            margin:0
+
     .Documented
         margin: 0
         width: 100%
@@ -313,56 +324,61 @@ h2
 
 
 @media (max-width: 500px)
-  .Synopsis,
-  .Body,
-  .Tags
-    width: 380px
+    .Synopsis,
+    .Body,
+    .Tags
+        width: 380px
 
-  .Documentation .ASTData
-    width: 400px
-    
+    .Documentation .ASTData,
+    .Documentation .ASTHead
+        width: 400px
+
 
 
 @media (min-width: 500px)
-  .Synopsis,
-  .Body,
-  .Tags
-    width: 440px
+    .Synopsis,
+    .Body,
+    .Tags
+        width: 440px
 
-  .Documentation .ASTData
-    width: 470px
-    
+    .Documentation .ASTData,
+    .Documentation .ASTHead
+        width: 470px
+
 
 
 @media (min-width: 600px)
-  .Synopsis,
-  .Body,
-  .Tags
-    width: 490px
+    .Synopsis,
+    .Body,
+    .Tags
+        width: 490px
 
-  .Documentation .ASTData
-    width: 520px
-    
+    .Documentation .ASTData,
+    .Documentation .ASTHead
+        width: 520px
+
 
 
 @media (min-width: 900px)
-  .Synopsis,
-  .Body,
-  .Tags
-    width: 670px
+    .Synopsis,
+    .Body,
+    .Tags
+        width: 670px
 
-  .Documentation .ASTData
-    width: 710px
-    
+    .Documentation .ASTData,
+    .Documentation .ASTHead
+        width: 710px
 
 
-@media (min-width: 1300px) 
+
+@media (min-width: 1300px)
     .Synopsis,
     .Body,
     .Tags
         width: 780px
 
-    .Documentation .ASTData
+    .Documentation .ASTData,
+    .Documentation .ASTHead
         width: 820px
     
 

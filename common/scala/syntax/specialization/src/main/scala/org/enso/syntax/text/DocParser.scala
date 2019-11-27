@@ -380,11 +380,12 @@ object DocParserHTMLGenerator {
     ast: AST,
     doc: Doc
   ): TypedTag[String] = {
-    val astCls   = HTML.`class` := "ASTData"
-    val astHTML  = createHTMLFromAST(ast)
-    val astName  = Seq(HTML.div(astCls)(astHTML.header))
-    val astBody  = Seq(HTML.div(astCls)(astHTML.body))
-    val docClass = HTML.`class` := "Documentation"
+    val astHeadCls = HTML.`class` := "ASTHead"
+    val astBodyCls = HTML.`class` := "ASTData"
+    val astHTML    = createHTMLFromAST(ast)
+    val astName    = Seq(HTML.div(astHeadCls)(astHTML.header))
+    val astBody    = Seq(HTML.div(astBodyCls)(astHTML.body))
+    val docClass   = HTML.`class` := "Documentation"
     HTML.div(docClass)(astName, doc.html, astBody)
   }
 
