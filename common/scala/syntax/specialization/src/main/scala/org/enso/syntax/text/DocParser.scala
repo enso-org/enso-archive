@@ -443,11 +443,12 @@ object DocParserHTMLGenerator {
     body: AST.Block
   ): astHtmlRepr = {
     val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val constructors  = HTML.h2(`class` := "constr")("Constructors")
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
     val head          = createDefTitle(name, args)
     val clsBody       = HTML.`class` := "DefBody"
-    val lines         = HTML.div(clsBody)(generatedCode)
+    val lines         = HTML.div(clsBody)(constructors, generatedCode)
     val cls           = HTML.`class` := "Def"
     astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
   }
