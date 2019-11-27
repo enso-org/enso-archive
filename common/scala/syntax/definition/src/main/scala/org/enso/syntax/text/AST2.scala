@@ -915,6 +915,8 @@ object Shape extends ShapeImplicit {
       functor: Functor[T],
       ozip: OffsetZip[T, AST]
     ) {
+      def show(): String = Shape.repr.repr(t).build()
+
       def map(f: AST => AST): T[AST] = {
         Functor[T].map(t)(f)
       }
@@ -1144,12 +1146,8 @@ object AST {
 
   object ASTOf extends AstImplicits {
     implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
-    implicit def repr[T[_]]: Repr[ASTOf[T]]        = ???
-//    implicit def repr[T[_]]: Repr[ASTOf[T]]        = _.shape.repr
-//    implicit def repr[TA[ST] <: Shape[AST]]: Repr[ASTOf[T]] = { t =>
-//      val shape: Shape[AST] = t.shape
-//      shape.repr
-//    }
+    implicit def repr[T[S] <: Shape[S]]: Repr[ASTOf[T]] =
+      t => Shape.repr.repr(t.shape)
     implicit def span[T[_]]: HasSpan[ASTOf[T]] = t => t.span
     implicit def wrap[T[_]](t: T[AST])(implicit ev: HasSpan[T[AST]]): ASTOf[T] =
       ASTOf(t, ev.span(t))
@@ -1193,6 +1191,8 @@ object AST {
     functor: Functor[T],
     ozip: OffsetZip[T, AST]
   ) {
+    def show(): String = ToShapeOps(t.shape).show()
+
     def map(f: AST => AST): ASTOf[T] =
       t.copy(shape = t.shape.map(f))
 

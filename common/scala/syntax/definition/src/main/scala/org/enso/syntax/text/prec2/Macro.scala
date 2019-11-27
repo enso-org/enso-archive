@@ -4,7 +4,7 @@ import org.enso.Logger
 import org.enso.data.Shifted
 import org.enso.syntax.text2.AST
 import org.enso.syntax.text2.ast.meta.Builder
-//import org.enso.syntax.text2.ast.meta.Builtin
+import org.enso.syntax.text2.ast.meta.Builtin
 
 import scala.annotation.tailrec
 
@@ -19,8 +19,7 @@ object Macro {
     module.map(transform)
 
   private def transform(t: AST): AST = {
-    val root: Builder.Context = ???
-    // Builder.Context(Builtin.registry.tree) // FIXME
+    val root: Builder.Context       = Builder.Context(Builtin.registry.tree)
     var builder: Builder            = Builder.moduleBuilder()
     var builderStack: List[Builder] = Nil
 
