@@ -325,6 +325,34 @@ object Main extends App {
       |     Also, `None` is the return value of functions which do not return an
       |     explicit value.
       |    type None
+      |    
+      |    ## The `None` type indicates a lack of a value.
+      |     
+      |     It is a very common type and is used by such types as `Maybe` or `List`.
+      |     Also, `None` is the return value of functions which do not return an
+      |     explicit value.
+      |    type None
+      |    
+      |    ## The `None` type indicates a lack of a value.
+      |     
+      |     It is a very common type and is used by such types as `Maybe` or `List`.
+      |     Also, `None` is the return value of functions which do not return an
+      |     explicit value.
+      |    type None
+      |    
+      |    ## The `None` type indicates a lack of a value.
+      |     
+      |     It is a very common type and is used by such types as `Maybe` or `List`.
+      |     Also, `None` is the return value of functions which do not return an
+      |     explicit value.
+      |    type None
+      |    
+      |    ## The `None` type indicates a lack of a value.
+      |     
+      |     It is a very common type and is used by such types as `Maybe` or `List`.
+      |     Also, `None` is the return value of functions which do not return an
+      |     explicit value.
+      |    type None
       |""".stripMargin
 
   println("--- PARSING ---")

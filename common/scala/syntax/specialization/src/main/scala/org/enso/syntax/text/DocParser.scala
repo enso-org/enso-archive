@@ -302,7 +302,6 @@ object DocParserHTMLGenerator {
         case AST.Documented.any(d) =>
           val file = onHTMLRendering(d, cssFileName)
           saveHTMLToFile(path, file.name, file.code)
-        case _ => generateHTMLForEveryDocumented(elem, path, cssFileName)
       }
       elem
     }
