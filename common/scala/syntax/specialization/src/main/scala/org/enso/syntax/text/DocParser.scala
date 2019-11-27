@@ -301,7 +301,7 @@ object DocParserHTMLGenerator {
       elem match {
         case AST.Documented.any(d) =>
           val file = onHTMLRendering(d, cssFileName)
-          saveHTMLToFile(path, file._2, file._1)
+          saveHTMLToFile(path, file.name, file.code)
         case _ => generateHTMLForEveryDocumented(elem, path, cssFileName)
       }
       elem
@@ -335,17 +335,18 @@ object DocParserHTMLGenerator {
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
     * @param cssFileName - name of file containing stylesheets for the HTML code
-    * @return - tuple containing HTML code with file name
+    * @return - HTML code with file name
     */
   def onHTMLRendering(
     documented: AST.Documented,
     cssFileName: String
-  ): (TypedTag[String], String) = {
+  ): htmlFile = {
     val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines = documented.ast.show().split("\n")
     val fileName = astLines.head.replaceAll("/", "")
-    (htmlCode, fileName)
+    htmlFile(htmlCode, fileName)
   }
+  case class htmlFile(code: TypedTag[String], name: String)
 
   /**
     * Function invoked by [[onHTMLRendering]] to render HTML File
