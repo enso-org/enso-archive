@@ -1,13 +1,14 @@
 package org.enso.syntax.text.ast.meta
 
-import org.enso.syntax.text.AST
+import org.enso.syntax.text.{AST, HasSpan, OffsetZip}
+import org.enso.syntax.text.HasSpan.implicits._
 import org.enso.syntax.text.AST.SAST
 import org.enso.syntax.text.prec.Operator
+import org.enso.syntax.text.ast.Repr
 
 import scala.annotation.tailrec
 import org.enso.data.Index
 import org.enso.data.Shifted
-import org.enso.syntax.text.ast.Repr
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Pattern ///////////////////////////////////////////////////////////////////
@@ -56,7 +57,7 @@ object Pattern {
   final case class Or      (pat1 : P     , pat2   : P)              extends P
   final case class Many    (pat  : P)                               extends P
   final case class Except  (not  : P     , pat    : P)              extends P
-  
+
   /** Meta Patterns */
   final case class Build   (pat  : P)                               extends P
   final case class Err     (msg  : String, pat    : P)              extends P
@@ -83,28 +84,28 @@ object Pattern {
     def apply(ast: AST): Tok = Tok(None, ast)
   }
   object Var {
-    def apply():                Var = Var(None)
+    def apply(): Var                = Var(None)
     def apply(spaced: Boolean): Var = Var(Some(spaced))
   }
   object Cons {
-    def apply():                Cons = Cons(None)
+    def apply(): Cons                = Cons(None)
     def apply(spaced: Boolean): Cons = Cons(Some(spaced))
   }
   object Opr {
-    def apply():                Opr = Opr(None, None)
-    def apply(spaced: Spaced):  Opr = Opr(spaced, None)
+    def apply(): Opr                = Opr(None, None)
+    def apply(spaced: Spaced): Opr  = Opr(spaced, None)
     def apply(spaced: Boolean): Opr = Opr(Some(spaced))
   }
   object Num {
-    def apply():                Num = Num(None)
+    def apply(): Num                = Num(None)
     def apply(spaced: Boolean): Num = Num(Some(spaced))
   }
   object Text {
-    def apply():                Text = Text(None)
+    def apply(): Text                = Text(None)
     def apply(spaced: Boolean): Text = Text(Some(spaced))
   }
   object Block {
-    def apply():                Block = Block(None)
+    def apply(): Block                = Block(None)
     def apply(spaced: Boolean): Block = Block(Some(spaced))
   }
 
@@ -119,12 +120,12 @@ object Pattern {
     Block(spaced) |
     Macro(spaced) |
     Invalid(spaced)
-  def Any(spaced: Boolean): Pattern = Any(Some(spaced))
-  def ErrTillEnd(msg: String)   = Any().tillEnd.err(msg)
-  def ErrUnmatched(msg: String) = End() | ErrTillEnd(msg)
-  def Expr()                    = Any().many1.build
-  def NonSpacedExpr()           = Any(spaced = false).many1.build
-  def NonSpacedExpr_()          = (Any().but(Block()) :: Any(spaced = false).many).build
+  def Any(spaced: Boolean): Pattern                = Any(Some(spaced))
+  def ErrTillEnd(msg: String)                      = Any().tillEnd.err(msg)
+  def ErrUnmatched(msg: String)                    = End() | ErrTillEnd(msg)
+  def Expr()                                       = Any().many1.build
+  def NonSpacedExpr()                              = Any(spaced = false).many1.build
+  def NonSpacedExpr_()                             = (Any().but(Block()) :: Any(spaced = false).many).build
   def SepList(pat: Pattern, div: Pattern): Pattern = pat :: (div :: pat).many
   def SepList(pat: Pattern, div: Pattern, err: String): Pattern = {
     val seg = pat | Any().till(div).err(err)
@@ -263,7 +264,7 @@ object Pattern {
     implicit def travMatch: Traverse[MatchOf] = _MatchOf.travMatch
     implicit def foldMatch: Foldable[MatchOf] = _MatchOf.foldMatch
 
-    implicit def offZipMatch[T: Repr]: AST.OffsetZip[MatchOf, T] = t => {
+    implicit def offZipMatch[T: HasSpan]: OffsetZip[MatchOf, T] = t => {
       val s  = t.map(Shifted(0, _))
       val s2 = mapWithOff(s) { case (i, el) => Shifted(i, el.el) }
       val s3 = s2.map(t => (Index(t.off), t.el))
@@ -272,23 +273,23 @@ object Pattern {
 
     val M = Match
     // format: off
-    def mapWithOff[T:Repr](self:MatchOf[T])(f: (Int,T) => T): MatchOf[T] =
+    def mapWithOff[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T): MatchOf[T] =
       mapWithOff_(self)(f,0)._1
-    
-    def mapWithOff_[T:Repr](self:MatchOf[T])(f: (Int,T) => T, off:Int): (MatchOf[T], Int) = self match {
-      case m: M.Build[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Err[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Tok[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Blank[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Var[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Cons[T]    => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Opr[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Mod[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Num[T]     => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Text[T]    => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Block[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Macro[T]   => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
-      case m: M.Invalid[T] => (m.copy(elem = f(off,m.elem)), off + Repr(m.elem).span)
+
+    def mapWithOff_[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T, off:Int): (MatchOf[T], Int) = self match {
+      case m: M.Build[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Err[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Tok[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Blank[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Var[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Cons[T]    => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Opr[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Mod[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Num[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Text[T]    => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Block[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Macro[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
+      case m: M.Invalid[T] => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
       case m: Pattern.MatchOf[T] =>
         var loff = off
         val out  = m.mapStructShallow {p =>
@@ -325,23 +326,23 @@ sealed trait Pattern {
   ////////////////////////////
 
   def ::(that: Pattern): Pattern = Seq(that, this)
-  def !(that: Pattern):  Pattern = Except(that, this)
-  def |(that: Pattern):  Pattern = Or(this, that)
-  def |(msg: String):    Pattern = this | Err(msg, Nothing())
-  def |?(tag: String):   Pattern = Tag(tag, this)
+  def !(that: Pattern): Pattern  = Except(that, this)
+  def |(that: Pattern): Pattern  = Or(this, that)
+  def |(msg: String): Pattern    = this | Err(msg, Nothing())
+  def |?(tag: String): Pattern   = Tag(tag, this)
 
-  def or(that: Pattern):  Pattern = Or(this, that)
-  def or(msg: String):    Pattern = this | Err(msg, Nothing())
-  def err(msg: String):   Pattern = Err(msg, this)
-  def but(pat: Pattern):  Pattern = Except(pat, this)
-  def many:               Pattern = Many(this)
-  def many1:              Pattern = this :: this.many
-  def tag(tag: String):   Pattern = Tag(tag, this)
-  def opt:                Pattern = this | Nothing()
-  def build:              Pattern = Build(this)
+  def or(that: Pattern): Pattern  = Or(this, that)
+  def or(msg: String): Pattern    = this | Err(msg, Nothing())
+  def err(msg: String): Pattern   = Err(msg, this)
+  def but(pat: Pattern): Pattern  = Except(pat, this)
+  def many: Pattern               = Many(this)
+  def many1: Pattern              = this :: this.many
+  def tag(tag: String): Pattern   = Tag(tag, this)
+  def opt: Pattern                = this | Nothing()
+  def build: Pattern              = Build(this)
   def till(end: Pattern): Pattern = this.but(end).many
-  def tillEnd:            Pattern = this :: End() // fixme: rename
-  def fromBegin:          Pattern = Begin() :: this
+  def tillEnd: Pattern            = this :: End() // fixme: rename
+  def fromBegin: Pattern          = Begin() :: this
 
   def matchRevUnsafe(
     stream: AST.Stream,

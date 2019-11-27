@@ -19,7 +19,7 @@ object Macro {
     module.map(transform)
 
   private def transform(t: AST): AST = {
-    val root                        = Builder.Context(Builtin.registry.tree)
+    val root: Builder.Context       = Builder.Context(Builtin.registry.tree)
     var builder: Builder            = Builder.moduleBuilder()
     var builderStack: List[Builder] = Nil
 

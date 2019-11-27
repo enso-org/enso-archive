@@ -14,8 +14,6 @@ import org.enso.syntax.text.spec.ParserDef
 import scala.math.Ordering.Implicits._
 import scala.annotation.tailrec
 
-import org.enso.syntax.text2
-
 ////////////////////////////////
 
 class InternalError(reason: String, cause: Throwable = None.orNull)
@@ -263,7 +261,7 @@ object Main extends App {
   val in2  = "(a) b = c]"
   val inp2 = "a (b (c)) x"
 
-  val inp = """"FOO""".stripMargin
+  val inp = "\"\"\" \n\n X\n\n Y".stripMargin
 
   println("--- PARSING ---")
 
@@ -298,9 +296,7 @@ object Main extends App {
   println("=========================")
 
   println()
-//
-//  AST.main()
 
-  text2.AST.main()
+  AST.main()
 
 }

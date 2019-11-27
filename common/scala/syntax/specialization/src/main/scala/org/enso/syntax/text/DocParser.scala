@@ -9,7 +9,7 @@ import scalatags.Text.{all => HTML}
 import HTML._
 import flexer.Parser.{Result => res}
 import org.enso.data.List1
-import org.enso.syntax.text.AST.Block.{LineOf => Line}
+import org.enso.syntax.text.Shape.Block.Line
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser ////////////////////////////////////////////////////////////////
@@ -115,8 +115,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
-  def run(input: String):        Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 
 }
 
@@ -310,7 +310,7 @@ object DocParserRunner {
     emptyLines: Int,
     ast: AST,
     off: Int
-  ): AST.Block.LineOf[Some[AST.Documented]] = {
+  ): Line[Some[AST.Documented]] = {
     val doc        = createDocFromComment(comment)
     val documented = Some(AST.Documented(doc, emptyLines, ast))
     Line(documented, off)

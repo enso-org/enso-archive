@@ -91,7 +91,7 @@ class Builder(
           )
         }
 
-//        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
+        //        val resolved = mdef.fin(pfxMatch, shiftSegs.toList().map(_.el))
         val template = Macro.Match(pfxMatch, shiftSegs, null)
         val newTok   = Shifted(segs2.head.off, template)
 
@@ -135,7 +135,7 @@ object Builder {
 
   case class Context(tree: Registry.Tree, parent: Option[Context]) {
     def lookup(t: AST): Option[Registry.Tree] = tree.get(t)
-    def isEmpty:        Boolean               = tree.isLeaf
+    def isEmpty: Boolean                      = tree.isLeaf
 
     @tailrec
     final def parentLookup(t: AST): Boolean = {
@@ -150,7 +150,7 @@ object Builder {
     }
   }
   object Context {
-    def apply():                    Context = Context(data.Tree(), None)
+    def apply(): Context                    = Context(data.Tree(), None)
     def apply(tree: Registry.Tree): Context = Context(tree, None)
   }
 
@@ -180,7 +180,7 @@ object Builder {
             s"Internal error: template pattern segment was unmatched"
           )
         case Some(rr) =>
-          (Shifted(offset, Match.SegmentOf(ast, rr.elem)), rr.stream)
+          (Shifted(offset, Match.Segment(ast, rr.elem)), rr.stream)
       }
     }
 
