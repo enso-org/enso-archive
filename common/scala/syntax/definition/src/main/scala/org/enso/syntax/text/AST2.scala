@@ -444,7 +444,7 @@ object Shape extends ShapeImplicit {
     implicit def fold: Foldable[Mod]        = semi.foldable
     implicit def repr[T]: Repr[Mod[T]]      = R + _.name + "="
     implicit def ozip[T]: OffsetZip[Mod, T] = t => t.coerce
-    implicit def span[T]: HasSpan[Mod[T]]   = t => t.name.length
+    implicit def span[T]: HasSpan[Mod[T]]   = t => t.name.length + 1
   }
   object Opr {
     implicit def ftor: Functor[Opr]         = semi.functor
@@ -458,7 +458,7 @@ object Shape extends ShapeImplicit {
     implicit def fold: Foldable[InvalidSuffix]        = semi.foldable
     implicit def ozip[T]: OffsetZip[InvalidSuffix, T] = t => t.coerce
     implicit def repr[T]: Repr[InvalidSuffix[T]] =
-      t => R + t.elem.shape.repr + t.suffix
+      t => R + t.elem.repr + t.suffix
     implicit def span[T]: HasSpan[InvalidSuffix[T]] =
       t => t.elem.span + t.suffix.length
   }
@@ -505,7 +505,8 @@ object Shape extends ShapeImplicit {
     //        case t: UnclosedOf[T] => OffsetZip(t)
     //      }
 
-    implicit def repr[T: Repr]: Repr[Text[T]] = t => (t: Shape[T]).repr
+    implicit def repr[T: Repr]: Repr[Text[T]] =
+      Shape.repr[T].repr(_)
     implicit def ozip[T: HasSpan]: OffsetZip[Text, T] = { t =>
       OffsetZip[Shape, T](t).asInstanceOf
     }
@@ -2096,6 +2097,10 @@ object AST {
 //
     val v1  = Ident.Var("foo")
     val v1_ = v1: AST
+
+    println(v1.span)
+    println((v1: AST.Ident).span)
+    println(v1.span)
 
 //    println(v1_.asJson)
 //    val opr1 = Ident.Opr("+")
