@@ -284,7 +284,7 @@ object AstView {
                   val blockLines = firstLine.elem :: restLines.flatMap(_.elem)
 
                   val matchBranches = blockLines.collect {
-                    case b @ CaseBranch(_, _) => b
+                    case b @ CaseBranch(_) => b
                   }
 
                   if (matchBranches.length == blockLines.length) {
@@ -305,22 +305,33 @@ object AstView {
     }
   }
 
+  object ConsCaseBranch {
+    def unapply(ast: AST): Option[(AST, List[AST], AST)] = {
+      CaseBranch.unapply(ast).flatMap {
+        case (cons, args, ast) => cons.map((_, args, ast))
+      }
+    }
+  }
+
+  object FallbackCaseBranch {
+    def unapply(ast: AST): Option[AST] = {
+      CaseBranch.unapply(ast).flatMap {
+        case (cons, args, ast) =>
+          if (cons.isEmpty && args.isEmpty) Some(ast) else None
+      }
+    }
+  }
+
   object CaseBranch {
-    // Match(es), body
-    def unapply(ast: AST): Option[(List[AST], AST)] = {
+    // matcher, arguments, body
+    def unapply(ast: AST): Option[(Option[AST], List[AST], AST)] = {
       ast match {
         case AST.App.Infix(left, AST.Ident.Opr("->"), right) =>
           left match {
-            case MatchParam(_) => Some((List(left), right))
-            case SpacedList(xs) =>
-              val matchArgs = xs.collect { case m @ MatchParam(_) => m }
-
-              if (matchArgs.length == xs.length) {
-                Some((matchArgs, right))
-              } else {
-                None
-              }
-            case _ => None
+            case PatternMatch(cons, args) => Some((Some(cons), args, right))
+            case AST.Ident.Blank.any(_)   => Some((None, List(), right))
+            case DefinitionArgument(v)    => Some((None, List(v), right))
+            case _                        => None
           }
         case _ => None
       }

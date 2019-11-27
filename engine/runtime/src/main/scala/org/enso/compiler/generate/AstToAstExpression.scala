@@ -160,33 +160,27 @@ object AstToAstExpression {
     }
   }
 
-  def translateMatcher(matcher: AST): AstExpression = {
-    matcher match {
-      case AstView.PatternMatch(cons, _) => translateExpression(cons)
-      case _ =>
-        throw new UnhandledEntity(matcher, "translateMatcher")
+  def translateCaseBranch(branch: AST): AstCase = {
+    branch match {
+      case AstView.ConsCaseBranch(cons, args, body) =>
+        println(Debug.pretty(branch.toString))
+        AstCase(
+          translateExpression(cons),
+          AstCaseFunction(
+            args.map(translateArgumentDefinition),
+            translateExpression(body)
+          )
+        )
+
+      case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
     }
   }
 
-  def translateCaseBranch(branch: AST): AstCase = {
+  def translateFallbackBranch(branch: AST): AstCaseFunction = {
     branch match {
-      case AstView.CaseBranch(matchers, body) =>
-        println(Debug.pretty(branch.toString))
-        val realMatchers = matchers.map(translateMatcher)
-        val matcherArgs = matchers.collect {
-          case AstView.PatternMatch(_, args) =>
-            args.map(translateArgumentDefinition)
-        }.flatten
-
-        if (realMatchers.length != 1) {
-          throw new RuntimeException("Complex matches aren't yet supported")
-        }
-
-        AstCase(
-          realMatchers.head,
-          AstCaseFunction(matcherArgs, translateExpression(body))
-        )
-      case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
+      case AstView.FallbackCaseBranch(body) =>
+        AstCaseFunction(List(), translateExpression(body))
+      case _ => throw new UnhandledEntity(branch, "translateFallbackBranch")
     }
   }
 
@@ -197,9 +191,16 @@ object AstToAstExpression {
         translateMethodCall(target, name, args)
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
-        val caseBranches    = branches.map(translateCaseBranch)
-
-        ???
+        val nonFallbackBranches =
+          branches
+            .takeWhile(AstView.FallbackCaseBranch.unapply(_).isEmpty)
+            .map(translateCaseBranch)
+        val potentialFallback =
+          branches
+            .drop(nonFallbackBranches.length)
+            .headOption
+            .map(translateFallbackBranch)
+        AstMatch(actualScrutinee, nonFallbackBranches, potentialFallback)
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)

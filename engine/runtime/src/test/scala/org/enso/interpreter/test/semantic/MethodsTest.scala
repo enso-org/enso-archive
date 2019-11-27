@@ -97,7 +97,6 @@ class MethodsTest extends InterpreterTest {
         |Unit.testMethod = x y z -> x + y + z
         |testMethod x=1 y=2 this=Unit z=3
         |""".stripMargin
-
     eval(code) shouldEqual 6
   }
 
@@ -138,21 +137,22 @@ class MethodsTest extends InterpreterTest {
   }
 
   "Test" should "test test" in {
-      //    val code =
-//      """
-//        |Nil.sum = 0
-//        |Cons.sum = case this of
-//        |  Cons h t -> h + sum t
-//        |
-//        |myList = Cons (Cons (Cons 3 Nil) 2) 1
-//        |
-//        |""".stripMargin
     val code =
       """
-        |Cons.sum = case a of
-        |  Cons a b -> a + b
-        |  Nil -> 0
+        |Nil.sum = 0
+        |Cons.sum = case this of
+        |  Cons h t -> h + sum t
+        |
+        |myList = Cons 1 (Cons 2 (Cons 3 Nil))
+        |myList.sum
+        |
         |""".stripMargin
+//    val code =
+//      """
+//        |Cons.sum = case a of
+//        |  Cons a b -> a + b
+//        |  Nil -> 0
+//        |""".stripMargin
 
     eval(code) shouldEqual 6
   }
