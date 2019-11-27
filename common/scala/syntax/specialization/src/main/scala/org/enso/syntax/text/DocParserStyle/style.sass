@@ -14,6 +14,8 @@ body
     background-color: white
     color: #333333
     font-style: normal
+    margin: 0
+    padding: 0
 
 p
     display: block
@@ -255,13 +257,14 @@ li
 ///////////////////////////////////*/
 
 .Def
-    padding: 10px 20px
+    margin: auto
+    padding: 10px 15px
 
     .Synopsis,
     .Body,
     .Tags,
     .ASTData
-        width: 90% !important
+        padding-left: 20px
 
 
 .DefTitle
@@ -306,14 +309,17 @@ li
 .Documentation
     .ASTData,
     .ASTHead
-        margin: 20px auto
         text-align: left
         line-height: 1.05
         letter-spacing: 0.008em
         background-color: #fafafa
         border-radius: 6px
 
+    .ASTData
+        width: 100%
+
     .ASTHead
+        margin: 20px auto
         background-color: #ffffff
         .DefTitle
             font-size: 42px
@@ -321,7 +327,6 @@ li
 
     .ASTData
         .ASTHead
-            margin: 20px auto
             background-color: #fafafa
             .DefTitle
                 font-size: x-large
@@ -334,10 +339,10 @@ li
 @media (max-width: 500px)
     .Synopsis,
     .Body,
-    .Tags
+    .Tags,
+    .Documentation .ASTData .Def
         max-width: 380px
 
-    .Documentation .ASTData,
     .Documentation .ASTHead,
     .DefNoBody,
     .DefBody
@@ -346,10 +351,10 @@ li
 @media (min-width: 500px)
     .Synopsis,
     .Body,
-    .Tags
+    .Tags,
+    .Documentation .ASTData .Def
         max-width: 440px
 
-    .Documentation .ASTData,
     .Documentation .ASTHead,
     .DefNoBody,
     .DefBody
@@ -358,10 +363,10 @@ li
 @media (min-width: 600px)
     .Synopsis,
     .Body,
-    .Tags
+    .Tags,
+    .Documentation .ASTData .Def
         max-width: 490px
 
-    .Documentation .ASTData,
     .Documentation .ASTHead,
     .DefNoBody,
     .DefBody
@@ -370,10 +375,10 @@ li
 @media (min-width: 900px)
     .Synopsis,
     .Body,
-    .Tags
+    .Tags,
+    .Documentation .ASTData .Def
         max-width: 670px
 
-    .Documentation .ASTData,
     .Documentation .ASTHead,
     .DefNoBody,
     .DefBody
@@ -382,10 +387,10 @@ li
 @media (min-width: 1300px)
     .Synopsis,
     .Body,
-    .Tags
+    .Tags,
+    .Documentation .ASTData .Def
         max-width: 780px
 
-    .Documentation .ASTData,
     .Documentation .ASTHead,
     .DefNoBody,
     .DefBody
