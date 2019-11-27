@@ -51,7 +51,7 @@ class GlobalScopeTest extends InterpreterTest {
         |  result = function a b
         |  result
         |
-        |binaryFn Unit 1 2 (a b -> adder Unit a b)
+        |Unit.binaryFn 1 2 (a b -> Unit.adder a b)
     """.stripMargin
 
     eval(code) shouldEqual 3

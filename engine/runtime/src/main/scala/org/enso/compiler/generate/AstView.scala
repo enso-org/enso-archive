@@ -1,8 +1,6 @@
 package org.enso.compiler.generate
 
 import org.enso.data
-import org.enso.data.Shifted.List1
-import org.enso.interpreter.AstBlock
 import org.enso.syntax.text.{AST, Debug}
 
 // TODO [AA] Handle arbitrary parens
@@ -81,36 +79,11 @@ object AstView {
     }
   }
 
-  object PatternMatch {
-    // Cons, args
-    def unapply(ast: AST): Option[(AST.Ident.Cons, List[AST])] = {
-      ast match {
-        case SpacedList(AST.Ident.Cons.any(cons) :: xs) =>
-          val realArgs = xs.collect { case a @ MatchParam(_) => a }
-
-          if (realArgs.length == xs.length) {
-            Some((cons, xs))
-          } else {
-            None
-          }
-        case _ => None
-      }
-    }
-  }
-
-  object MatchParam {
-    def unapply(ast: AST): Option[AST] = ast match {
-      case DefinitionArgument(_) => Some(ast)
-      case PatternMatch(_, _)    => Some(ast)
-      case _                     => None
-    }
-  }
-
   object FunctionParam {
     def unapply(ast: AST): Option[AST] = ast match {
       case AssignedArgument(_, _) => Some(ast)
       case DefinitionArgument(_)  => Some(ast)
-      case PatternMatch(_)        => Some(ast)
+      case PatternMatch(_, _)     => Some(ast)
       case _                      => None
     }
   }
@@ -196,7 +169,7 @@ object AstView {
 
     def matchSpacedList(ast: AST): Option[List[AST]] = {
       ast match {
-        case AST.App.Prefix(fn, arg) =>
+        case MaybeParensed(AST.App.Prefix(fn, arg)) =>
           val fnRecurse = matchSpacedList(fn)
 
           fnRecurse match {
@@ -294,10 +267,6 @@ object AstView {
     }
   }
 
-  object CaseBranch {
-    // TODO [AA]
-  }
-
   object CaseExpression {
     val caseName = data.List1(AST.Ident.Var("case"), AST.Ident.Var("of"))
 
@@ -306,15 +275,82 @@ object AstView {
       ast match {
         case AST.Mixfix(identSegments, argSegments) =>
           if (identSegments == caseName) {
-            println("==== MIXFIX ====")
-            println(Debug.pretty(ast.toString))
+            if (argSegments.length == 2) {
+              val scrutinee    = argSegments.head
+              val caseBranches = argSegments.last
 
-            None
+              caseBranches match {
+                case AST.Block(_, _, firstLine, restLines) =>
+                  val blockLines = firstLine.elem :: restLines.flatMap(_.elem)
+
+                  val matchBranches = blockLines.collect {
+                    case b @ CaseBranch(_, _) => b
+                  }
+
+                  if (matchBranches.length == blockLines.length) {
+                    Some((scrutinee, matchBranches))
+                  } else {
+                    None
+                  }
+                case _ => None
+              }
+            } else {
+              None
+            }
           } else {
             None
           }
         case _ => None
       }
+    }
+  }
+
+  object CaseBranch {
+    // Match(es), body
+    def unapply(ast: AST): Option[(List[AST], AST)] = {
+      ast match {
+        case AST.App.Infix(left, AST.Ident.Opr("->"), right) =>
+          left match {
+            case MatchParam(_) => Some((List(left), right))
+            case SpacedList(xs) =>
+              val matchArgs = xs.collect { case m @ MatchParam(_) => m }
+
+              if (matchArgs.length == xs.length) {
+                Some((matchArgs, right))
+              } else {
+                None
+              }
+            case _ => None
+          }
+        case _ => None
+      }
+    }
+  }
+
+  object PatternMatch {
+    // Cons, args
+    def unapply(ast: AST): Option[(AST.Ident.Cons, List[AST])] = {
+      ast match {
+        case SpacedList(AST.Ident.Cons.any(cons) :: xs) =>
+          val realArgs: List[AST] = xs.collect { case a @ MatchParam(_) => a }
+
+          if (realArgs.length == xs.length) {
+            Some((cons, xs))
+          } else {
+            None
+          }
+        case AST.Ident.Cons.any(cons) => Some((cons, List()))
+        case _                        => None
+      }
+    }
+  }
+
+  object MatchParam {
+    def unapply(ast: AST): Option[AST] = ast match {
+      case DefinitionArgument(_)  => Some(ast)
+      case PatternMatch(_, _)     => Some(ast)
+      case AST.Ident.Blank.any(b) => Some(b)
+      case _                      => None
     }
   }
 }

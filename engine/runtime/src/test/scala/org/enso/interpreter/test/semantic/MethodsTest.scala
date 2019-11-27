@@ -138,8 +138,7 @@ class MethodsTest extends InterpreterTest {
   }
 
   "Test" should "test test" in {
-    pending
-//    val code =
+      //    val code =
 //      """
 //        |Nil.sum = 0
 //        |Cons.sum = case this of
@@ -151,7 +150,8 @@ class MethodsTest extends InterpreterTest {
     val code =
       """
         |Cons.sum = case a of
-        |  b
+        |  Cons a b -> a + b
+        |  Nil -> 0
         |""".stripMargin
 
     eval(code) shouldEqual 6

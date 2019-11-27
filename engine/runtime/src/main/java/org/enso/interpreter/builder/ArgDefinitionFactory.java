@@ -1,7 +1,7 @@
 package org.enso.interpreter.builder;
 
-import org.enso.interpreter.AstArgDefinitionVisitor;
-import org.enso.interpreter.AstExpression;
+import org.enso.compiler.core.AstArgDefinitionVisitor;
+import org.enso.compiler.core.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;

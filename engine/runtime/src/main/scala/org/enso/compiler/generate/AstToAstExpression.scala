@@ -1,8 +1,9 @@
 package org.enso.compiler.generate
 
-import org.enso.compiler.core.IR
+import org.enso.compiler.core
+import org.enso.compiler.core._
 import org.enso.compiler.exception.UnhandledEntity
-import org.enso.interpreter._
+import org.enso.compiler.generate.AstView.MatchParam
 import org.enso.syntax.text.{AST, Debug}
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
@@ -159,12 +160,45 @@ object AstToAstExpression {
     }
   }
 
+  def translateMatcher(matcher: AST): AstExpression = {
+    matcher match {
+      case AstView.PatternMatch(cons, _) => translateExpression(cons)
+      case _ =>
+        throw new UnhandledEntity(matcher, "translateMatcher")
+    }
+  }
+
+  def translateCaseBranch(branch: AST): AstCase = {
+    branch match {
+      case AstView.CaseBranch(matchers, body) =>
+        println(Debug.pretty(branch.toString))
+        val realMatchers = matchers.map(translateMatcher)
+        val matcherArgs = matchers.collect {
+          case AstView.PatternMatch(_, args) =>
+            args.map(translateArgumentDefinition)
+        }.flatten
+
+        if (realMatchers.length != 1) {
+          throw new RuntimeException("Complex matches aren't yet supported")
+        }
+
+        AstCase(
+          realMatchers.head,
+          AstCaseFunction(matcherArgs, translateExpression(body))
+        )
+      case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
+    }
+  }
+
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
       case AstView.Assignment(name, expr) => translateAssignment(name, expr)
       case AstView.MethodCall(target, name, args) =>
         translateMethodCall(target, name, args)
       case AstView.CaseExpression(scrutinee, branches) =>
+        val actualScrutinee = translateExpression(scrutinee)
+        val caseBranches    = branches.map(translateCaseBranch)
+
         ???
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
@@ -227,14 +261,14 @@ object AstToAstExpression {
 
         val executableExpressions = nonImportBlocks.drop(definitions.length)
 
-        val statements = definitions.map(translateModuleSymbol)
+        val statements  = definitions.map(translateModuleSymbol)
         val expressions = executableExpressions.map(translateExpression)
         val block = expressions match {
-          case List() => None
+          case List()     => None
           case List(expr) => Some(expr)
-          case _ => Some(AstBlock(expressions.dropRight(1), expressions.last))
+          case _          => Some(AstBlock(expressions.dropRight(1), expressions.last))
         }
-        AstModuleScope(imports, statements, block)
+        core.AstModuleScope(imports, statements, block)
       }
     }
   }
