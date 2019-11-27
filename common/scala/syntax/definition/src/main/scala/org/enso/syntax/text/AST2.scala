@@ -24,6 +24,7 @@ import org.enso.syntax.text2.AST.ASTOf
 //import org.enso.syntax.text.AST.OffsetZip
 import org.enso.syntax.text2.ast.Repr.R
 import org.enso.syntax.text2.ast.Repr._
+import org.enso.syntax.text2.HasSpan.implicits._
 import org.enso.syntax.text2.ast.Doc
 import org.enso.syntax.text2.ast.Repr
 import org.enso.syntax.text.ast.opr
@@ -118,9 +119,44 @@ sealed trait Shape[T]
 sealed trait ShapeImplicit {
   import Shape._
 
-  implicit def ftor: Functor[Shape]    = semi.functor
-  implicit def fold: Foldable[Shape]   = semi.foldable
-  implicit def repr[T]: Repr[Shape[T]] = ??? // TODO do big match
+  implicit def ftor: Functor[Shape]  = semi.functor
+  implicit def fold: Foldable[Shape] = semi.foldable
+  implicit def repr[T: Repr]: Repr[Shape[T]] = {
+    case s: Unrecognized[T]  => s.repr
+    case s: Unexpected[T]    => s.repr
+    case s: Blank[T]         => s.repr
+    case s: Var[T]           => s.repr
+    case s: Cons[T]          => s.repr
+    case s: Opr[T]           => s.repr
+    case s: Mod[T]           => s.repr
+    case s: InvalidSuffix[T] => s.repr
+    case s: Number[T]        => s.repr
+    case s: DanglingBase[T]  => s.repr
+    case s: TextUnclosed[T]  => s.repr
+    case s: InvalidQuote[T]  => s.repr
+    case s: InlineBlock[T]   => s.repr
+    case s: LineRaw[T]       => s.repr
+    case s: LineFmt[T]       => s.repr
+    case s: BlockRaw[T]      => s.repr
+    case s: BlockFmt[T]      => s.repr
+    case s: App[T]           => s.repr
+    case s: Infix[T]         => s.repr
+    case s: SectionLeft[T]   => s.repr
+    case s: SectionRight[T]  => s.repr
+    case s: SectionSides[T]  => s.repr
+    case s: Block[T]         => s.repr
+    case s: Module[T]        => s.repr
+    case s: Ambiguous[T]     => s.repr
+    case s: Match[T]         => s.repr
+    // spaceless
+    case s: Comment[T]    => s.repr
+    case s: Documented[T] => s.repr
+    case s: Import[T]     => s.repr
+    case s: Mixfix[T]     => s.repr
+    case s: Group[T]      => s.repr
+    case s: Def[T]        => s.repr
+    case s: Foreign[T]    => s.repr
+  }
   implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
     case s: Unrecognized[T]  => OffsetZip[Unrecognized, T].zipWithOffset(s)
     case s: Unexpected[T]    => OffsetZip[Unexpected, T].zipWithOffset(s)
@@ -156,9 +192,44 @@ sealed trait ShapeImplicit {
     case s: Group[T]      => OffsetZip[Group, T].zipWithOffset(s)
     case s: Def[T]        => OffsetZip[Def, T].zipWithOffset(s)
     case s: Foreign[T]    => OffsetZip[Foreign, T].zipWithOffset(s)
-
   }
-  implicit def span[T: HasSpan]: HasSpan[Shape[T]] = ???
+
+  implicit def span[T: HasSpan]: HasSpan[Shape[T]] = {
+    case s: Unrecognized[T]  => s.span
+    case s: Unexpected[T]    => s.span
+    case s: Blank[T]         => s.span
+    case s: Var[T]           => s.span
+    case s: Cons[T]          => s.span
+    case s: Opr[T]           => s.span
+    case s: Mod[T]           => s.span
+    case s: InvalidSuffix[T] => s.span
+    case s: Number[T]        => s.span
+    case s: DanglingBase[T]  => s.span
+    case s: TextUnclosed[T]  => s.span
+    case s: InvalidQuote[T]  => s.span
+    case s: InlineBlock[T]   => s.span
+    case s: LineRaw[T]       => s.span
+    case s: LineFmt[T]       => s.span
+    case s: BlockRaw[T]      => s.span
+    case s: BlockFmt[T]      => s.span
+    case s: App[T]           => s.span
+    case s: Infix[T]         => s.span
+    case s: SectionLeft[T]   => s.span
+    case s: SectionRight[T]  => s.span
+    case s: SectionSides[T]  => s.span
+    case s: Block[T]         => s.span
+    case s: Module[T]        => s.span
+    case s: Ambiguous[T]     => s.span
+    case s: Match[T]         => s.span
+    // spaceless
+    case s: Comment[T]    => s.span
+    case s: Documented[T] => s.span
+    case s: Import[T]     => s.span
+    case s: Mixfix[T]     => s.span
+    case s: Group[T]      => s.span
+    case s: Def[T]        => s.span
+    case s: Foreign[T]    => s.span
+  }
 }
 
 object Shape extends ShapeImplicit {
@@ -392,9 +463,9 @@ object Shape extends ShapeImplicit {
       t => t.elem.span + t.suffix.length
   }
   object LiteralOf {
-    implicit def ftor: Functor[LiteralOf]    = semi.functor
-    implicit def fold: Foldable[LiteralOf]   = semi.foldable
-    implicit def repr[T]: Repr[LiteralOf[T]] = t => (t: Shape[T]).repr
+    implicit def ftor: Functor[LiteralOf]          = semi.functor
+    implicit def fold: Foldable[LiteralOf]         = semi.foldable
+    implicit def repr[T: Repr]: Repr[LiteralOf[T]] = t => (t: Shape[T]).repr
     implicit def ozip[T: HasSpan]: OffsetZip[LiteralOf, T] = { t =>
       OffsetZip[Shape, T](t).asInstanceOf
     }
@@ -434,7 +505,7 @@ object Shape extends ShapeImplicit {
     //        case t: UnclosedOf[T] => OffsetZip(t)
     //      }
 
-    implicit def repr[T]: Repr[Text[T]] = t => (t: Shape[T]).repr
+    implicit def repr[T: Repr]: Repr[Text[T]] = t => (t: Shape[T]).repr
     implicit def ozip[T: HasSpan]: OffsetZip[Text, T] = { t =>
       OffsetZip[Shape, T](t).asInstanceOf
     }
@@ -915,7 +986,6 @@ object Shape extends ShapeImplicit {
       functor: Functor[T],
       ozip: OffsetZip[T, AST]
     ) {
-      def show(): String = Shape.repr.repr(t).build()
 
       def map(f: AST => AST): T[AST] = {
         Functor[T].map(t)(f)
@@ -923,6 +993,13 @@ object Shape extends ShapeImplicit {
 
       def mapWithOff(f: (Index, AST) => AST): T[AST] =
         Functor[T].map(ozip.zipWithOffset(t))(f.tupled)
+    }
+
+    implicit class ToShapeOpsRepr[T[S] <: Shape[S]](t: T[AST])(
+      implicit
+      repr: Repr[T[AST]]
+    ) {
+      def show(): String = repr.repr(t).build()
     }
   }
 }
@@ -1147,7 +1224,7 @@ object AST {
   object ASTOf extends AstImplicits {
     implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
     implicit def repr[T[S] <: Shape[S]]: Repr[ASTOf[T]] =
-      t => Shape.repr.repr(t.shape)
+      t => implicitly[Repr[Shape[AST]]].repr(t.shape)
     implicit def span[T[_]]: HasSpan[ASTOf[T]] = t => t.span
     implicit def wrap[T[_]](t: T[AST])(implicit ev: HasSpan[T[AST]]): ASTOf[T] =
       ASTOf(t, ev.span(t))
@@ -1189,9 +1266,10 @@ object AST {
   implicit class AstOps[T[S] <: Shape[S]](t: ASTOf[T])(
     implicit
     functor: Functor[T],
+    repr: Repr[T[AST]],
     ozip: OffsetZip[T, AST]
   ) {
-    def show(): String = ToShapeOps(t.shape).show()
+    def show(): String = repr.repr(t.shape).build()
 
     def map(f: AST => AST): ASTOf[T] =
       t.copy(shape = t.shape.map(f))
