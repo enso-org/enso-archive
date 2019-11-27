@@ -174,7 +174,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |type Nil2;
         |
         |@{
-        |  genList = { |i| @ifZero [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
+        |  genList = { |i| @ifZero [i, Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
         |
         |  sumList = { |list| match list <
         |    Cons2 ~ { |head, rest| head + @sumList [rest] };
@@ -195,7 +195,7 @@ class NamedArgumentsTest extends InterpreterTest {
         |type Nil2;
         |type Cons2 head (rest = Nil2);
         |@{
-        |  genList = { |i| @ifZero [i, @Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
+        |  genList = { |i| @ifZero [i, Nil2, @Cons2 [rest = @genList [i-1], head = i]] };
         |
         |  sumList = { |list| match list <
         |    Cons2 ~ { |head, rest| head + @sumList [rest] };
@@ -225,15 +225,15 @@ class NamedArgumentsTest extends InterpreterTest {
   "Constructors" should "be able to take and use default arguments" in {
     val code =
       """
-        |type Cons2 head (rest = @Nil2);
+        |type Cons2 head (rest = Nil2);
         |type Nil2;
         |
         |Unit.sumList = { |list| match list <
-        |  Cons2 ~ { |head, rest| head + @sumList [@Unit, rest] };
+        |  Cons2 ~ { |head, rest| head + @sumList [Unit, rest] };
         |  Nil2 ~ { 0 };
         |>}
         |
-        |@sumList [@Unit, @Cons2 [10]]
+        |@sumList [Unit, @Cons2 [10]]
         """.stripMargin
 
     evalOld(code) shouldEqual 10

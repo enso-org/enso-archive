@@ -3,14 +3,19 @@ package org.enso.compiler.generate
 import org.enso.compiler.core
 import org.enso.compiler.core._
 import org.enso.compiler.exception.UnhandledEntity
-import org.enso.compiler.generate.AstView.MatchParam
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.syntax.text.AST
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
 //  but it was thought best to land in increments where possible.
 
 // TODO [Generic]
+//  - Laziness markers (~) as temporary marker
+//  - Groups
+//  - String literals
+//  - Do not execute defaults (..)
+//  - Remove evalOld / rewrite benchmarks to new syntax
+//  - Suspended blocks
 //  - Type signatures
 
 /**
@@ -163,7 +168,6 @@ object AstToAstExpression {
   def translateCaseBranch(branch: AST): AstCase = {
     branch match {
       case AstView.ConsCaseBranch(cons, args, body) =>
-        println(Debug.pretty(branch.toString))
         AstCase(
           translateExpression(cons),
           AstCaseFunction(
@@ -211,15 +215,11 @@ object AstToAstExpression {
         throw new UnhandledEntity(inputAST, "translateExpression")
     }
     //    inputAST match {
-    //      case AST.App.any(inputAST)     => processApplication(inputAST)
-    //      case AST.Block.any(inputAST)   => processBlock(inputAST)
     //      case AST.Comment.any(inputAST) => processComment(inputAST)
     //      case AST.Ident.any(inputAST)   => processIdent(inputAST)
     //      case AST.Import.any(inputAST)  => processBinding(inputAST)
     //      case AST.Invalid.any(inputAST) => processInvalid(inputAST)
-    //      case AST.Literal.any(inputAST) => processLiteral(inputAST)
     //      case AST.Mixfix.any(inputAST)  => processApplication(inputAST)
-    //      case AST.Group.any(inputAST)   => processGroup(inputAST)
     //      case AST.Def.any(inputAST)     => processBinding(inputAST)
     //      case AST.Foreign.any(inputAST) => processBlock(inputAST)
     //      case _ =>
@@ -255,9 +255,9 @@ object AstToAstExpression {
         }
 
         val definitions = nonImportBlocks.takeWhile {
-          case AST.Def(_, _, _)            => true
-          case AstView.MethodDefinition(_) => true
-          case _                           => false
+          case AST.Def(_, _, _)                  => true
+          case AstView.MethodDefinition(_, _, _) => true
+          case _                                 => false
         }
 
         val executableExpressions = nonImportBlocks.drop(definitions.length)

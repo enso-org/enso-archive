@@ -10,7 +10,7 @@ class LazyArgumentsTest extends InterpreterTest {
       """
         |@{
         |  foo = { |i, $x, $y| @ifZero [i, $x, $y] };
-        |  @foo [1, @println [@IO, 1], @println [@IO, 2]]
+        |  @foo [1, @println [IO, 1], @println [IO, 2]]
         |}
         |""".stripMargin
     noException should be thrownBy parse(code)
@@ -55,9 +55,9 @@ class LazyArgumentsTest extends InterpreterTest {
         |Bar.method = { |x| 10 }
         |
         |@{
-        |  @method [@Foo, @println [@IO, 1]];
-        |  @method [@Bar, @println [@IO, 2]];
-        |  @method [@Foo, @println [@IO, 3]]
+        |  @method [Foo, @println [IO, 1]];
+        |  @method [Bar, @println [IO, 2]];
+        |  @method [Foo, @println [IO, 3]]
         |}
         |""".stripMargin
     evalOld(code)
@@ -70,8 +70,8 @@ class LazyArgumentsTest extends InterpreterTest {
         |@{
         |  if = { |c, $ifT, $ifF| @ifZero [c, $ifT, $ifF] };
         |  foo = { |c| @if [c] };
-        |  @foo [0, @println [@IO, 1], @println [@IO, 2]];
-        |  @foo [1, @println [@IO, 3], @println [@IO, 4]]
+        |  @foo [0, @println [IO, 1], @println [IO, 2]];
+        |  @foo [1, @println [IO, 3], @println [IO, 4]]
         |}
         |""".stripMargin
     evalOld(code)

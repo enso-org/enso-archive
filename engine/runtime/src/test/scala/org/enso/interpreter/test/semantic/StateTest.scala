@@ -39,14 +39,14 @@ class StateTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  @put[@State, 20];
+        |  @put[State, 20];
         |  myFun = {
-        |    res = @get[@State];
-        |    @put[@State, 0];
+        |    res = @get[State];
+        |    @put[State, 0];
         |    res
         |  };
-        |  res = @run[@State, 10, @myFun];
-        |  state = @get[@State];
+        |  res = @run[State, 10, @myFun];
+        |  state = @get[State];
         |  res + state
         |}
         |""".stripMargin
@@ -80,14 +80,14 @@ class StateTest extends InterpreterTest {
       """
         |@{
         |  matcher = { |x| match x <
-        |    Unit ~ { y = @get[@State]; @put[@State, y+5] };
-        |    Nil ~ { y = @get[@State]; @put[@State, y+10] };
+        |    Unit ~ { y = @get[State]; @put[State, y+5] };
+        |    Nil ~ { y = @get[State]; @put[State, y+10] };
         |  >};
-        |  @put[@State, 1];
-        |  @matcher[@Nil];
-        |  @println[@IO, @get[@State]];
-        |  @matcher[@Unit];
-        |  @println[@IO, @get[@State]];
+        |  @put[State, 1];
+        |  @matcher[Nil];
+        |  @println[IO, @get[State]];
+        |  @matcher[Unit];
+        |  @println[IO, @get[State]];
         |  0
         |}
         |""".stripMargin
@@ -99,10 +99,10 @@ class StateTest extends InterpreterTest {
     val code =
       """
         |@{
-        |  panicker = { @put[@State, 400]; @throw[@Panic, @Unit] };
-        |  @put[@State,-5];
-        |  @recover[@Panic, @panicker];
-        |  @get[@State]
+        |  panicker = { @put[State, 400]; @throw[Panic, Unit] };
+        |  @put[State,-5];
+        |  @recover[Panic, @panicker];
+        |  @get[State]
         |}
         |
         |""".stripMargin

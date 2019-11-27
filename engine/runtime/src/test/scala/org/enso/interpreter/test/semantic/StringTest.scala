@@ -6,7 +6,7 @@ class StringTest extends InterpreterTest {
   "Strings" should "exist in the language and be printable" in {
     val code =
       """
-        |@println [@IO, "hello world!"]
+        |@println [IO, "hello world!"]
         |""".stripMargin
 
     noException shouldBe thrownBy(evalOld(code))

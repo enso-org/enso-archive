@@ -45,4 +45,14 @@ class CurryingTest extends InterpreterTest {
 
     evalOld(code) shouldEqual 32
   }
+
+  "Test" should "testy" in {
+    pending
+    val code =
+      """
+        |fn a b ... a
+        |""".stripMargin
+
+    eval(code) shouldEqual 1
+  }
 }

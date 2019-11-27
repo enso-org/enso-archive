@@ -85,7 +85,7 @@ class MethodsTest extends InterpreterTest {
         |  Cons ~ { |h, t| @sum [t, h + acc] };
         |>}
         |
-        |@sum [@Cons [1, @Cons [2, @Nil]], 0]
+        |@sum [@Cons [1, @Cons [2, Nil]], 0]
         |""".stripMargin
 
     evalOld(code) shouldEqual 3
@@ -123,12 +123,12 @@ class MethodsTest extends InterpreterTest {
         |>}
         |
         |@{
-        |  @println [@IO, @method [@Foo]];
-        |  @println [@IO, @method [@Bar]];
-        |  @println [@IO, @method [@Baz]];
-        |  @println [@IO, @method [@Unit]];
-        |  @println [@IO, @method [123]];
-        |  @println [@IO, @method [{|x| x }]];
+        |  @println [IO, @method [Foo]];
+        |  @println [IO, @method [Bar]];
+        |  @println [IO, @method [Baz]];
+        |  @println [IO, @method [Unit]];
+        |  @println [IO, @method [123]];
+        |  @println [IO, @method [{|x| x }]];
         |  0
         |}
         |""".stripMargin
@@ -136,6 +136,7 @@ class MethodsTest extends InterpreterTest {
     consumeOut shouldEqual List("1", "2", "3", "0", "0", "0")
   }
 
+  // TODO [AA] Name this
   "Test" should "test test" in {
     val code =
       """

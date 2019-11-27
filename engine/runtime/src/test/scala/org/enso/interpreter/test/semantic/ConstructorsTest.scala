@@ -7,22 +7,20 @@ class ConstructorsTest extends InterpreterTest {
   "Pattern matching" should "dispatch to the proper branch" in {
     val patternMatchingCode =
       """
-        |@{
-        |  x = @Cons [1, @Nil];
-        |  match x <
-        |    Cons ~ { |h, t| h };
-        |    Nil  ~ { 0 };
-        |  >
-        |}  
+        |x = Cons 1 Nil
+        |
+        |case x of
+        |  Cons h t -> h
+        |  Nil -> 0
       """.stripMargin
-    evalOld(patternMatchingCode) shouldEqual 1
+    eval(patternMatchingCode) shouldEqual 1
   }
 
   "Recursion with pattern matching" should "terminate" in {
     val testCode =
       """
         |@{
-        |  genList = { |i| @ifZero [i, @Nil, @Cons [i, @genList [i-1]]] };
+        |  genList = { |i| @ifZero [i, Nil, @Cons [i, @genList [i-1]]] };
         |  sumList = { |list| match list <
         |    Cons ~ { |h, t| h + (@sumList [t]) };
         |    Nil  ~ { 0 };
@@ -53,7 +51,7 @@ class ConstructorsTest extends InterpreterTest {
     val testCode =
       """
         |{
-        |  nil = @Nil;
+        |  nil = Nil;
         |  match nil <
         |    Cons ~ { 0 };
         |    { 1 };
@@ -67,7 +65,7 @@ class ConstructorsTest extends InterpreterTest {
     val testCode =
       """
         |{
-        |  nil = @Nil;
+        |  nil = Nil;
         |  match nil <
         |    Cons ~ { 0 };
         |  >
@@ -82,16 +80,16 @@ class ConstructorsTest extends InterpreterTest {
       """
         |type Cons2 a b;
         |
-        |Unit.genList = { |i| @ifZero [i, @Nil2, @Cons2 [i, @genList [@Unit, i-1]]] }
+        |Unit.genList = { |i| @ifZero [i, Nil2, @Cons2 [i, @genList [Unit, i-1]]] }
         |
         |type Nil2;
         |
         |Unit.sumList = { |list| match list <
-        |  Cons2 ~ { |a, b| a + @sumList [@Unit, b] };
+        |  Cons2 ~ { |a, b| a + @sumList [Unit, b] };
         |  Nil2 ~ { 0 };
         |>}
         |
-        |@sumList [@Unit, @genList [@Unit, 10]]
+        |@sumList [Unit, @genList [Unit, 10]]
       """.stripMargin
     evalOld(testCode) shouldEqual 55
   }

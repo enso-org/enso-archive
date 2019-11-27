@@ -230,6 +230,14 @@ object Builtin {
       }
     }
 
+//    val defaultSuspendOp = Definition(
+//      Opr("...") -> Pattern.Nothing()
+//    ) { ctx =>
+//      ctx.body match {
+//
+//      }
+//    }
+
     // TODO
     // We may want to better represent empty AST. Moreover, there should be a
     // way to generate multiple top-level entities from macros (like multiple
