@@ -148,8 +148,14 @@ sealed trait ShapeImplicit {
     case s: Module[T]        => OffsetZip[Module, T].zipWithOffset(s)
     case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
     case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
-    case s: Comment[T]       => OffsetZip[Comment, T].zipWithOffset(s)
-    case s: Documented[T]    => OffsetZip[Documented, T].zipWithOffset(s)
+    // spaceless
+    case s: Comment[T]    => OffsetZip[Comment, T].zipWithOffset(s)
+    case s: Documented[T] => OffsetZip[Documented, T].zipWithOffset(s)
+    case s: Import[T]     => OffsetZip[Import, T].zipWithOffset(s)
+    case s: Mixfix[T]     => OffsetZip[Mixfix, T].zipWithOffset(s)
+    case s: Group[T]      => OffsetZip[Group, T].zipWithOffset(s)
+    case s: Def[T]        => OffsetZip[Def, T].zipWithOffset(s)
+    case s: Foreign[T]    => OffsetZip[Foreign, T].zipWithOffset(s)
 
   }
   implicit def span[T: HasSpan]: HasSpan[Shape[T]] = ???
@@ -302,6 +308,15 @@ object Shape extends ShapeImplicit {
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
       extends Shape[T]
+  final case class Import[T](path: List1[AST.Cons]) extends SpacelessAST[T]
+  final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
+      extends SpacelessAST[T]
+  final case class Group[T](body: Option[T]) extends SpacelessAST[T]
+  final case class Def[T](name: AST.Cons, args: List[T], body: Option[T])
+      extends SpacelessAST[T]
+  final case class Foreign[T](indent: Int, lang: String, code: List[String])
+      extends SpacelessAST[T]
+
   ////Companions ///
   // TODO: All companion objects can be generated with macros
 
@@ -812,8 +827,8 @@ object Shape extends ShapeImplicit {
     implicit def repr[T]: Repr[Comment[T]] =
       R + symbol + symbol + _.lines.mkString("\n")
     // FIXME: How to make it automatic for non-spaced AST?
-    implicit def ozip[T]: OffsetZip[Comment, T]        = _.map(Index.Start -> _)
-    implicit def span[T: HasSpan]: HasSpan[Comment[T]] = t => 0
+    implicit def ozip[T]: OffsetZip[Comment, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Comment[T]]   = t => 0
   }
 
   object Documented {
@@ -830,6 +845,65 @@ object Shape extends ShapeImplicit {
 
     implicit def toJson[T]: Encoder[Documented[T]] =
       _ => throw new NotImplementedError()
+  }
+
+  object Import {
+    implicit def ftor: Functor[Import]  = semi.functor
+    implicit def fold: Foldable[Import] = semi.foldable
+    implicit def repr[T]: Repr[Import[T]] =
+      t => R + ("import " + t.path.map(_.repr.build()).toList.mkString("."))
+
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Import, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Import[T]]   = t => 0
+  }
+
+  object Mixfix {
+    implicit def ftor: Functor[Mixfix]  = semi.functor
+    implicit def fold: Foldable[Mixfix] = semi.foldable
+    implicit def repr[T: Repr]: Repr[Mixfix[T]] = t => {
+      val lastRepr = if (t.name.length == t.args.length) List() else List(R)
+      val argsRepr = t.args.toList.map(R + " " + _) ++ lastRepr
+      val nameRepr = t.name.toList.map(Repr(_))
+      R + (nameRepr, argsRepr).zipped.map(_ + _)
+    }
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Mixfix, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Mixfix[T]]   = t => 0
+  }
+
+  object Group {
+    implicit def ftor: Functor[Group]  = semi.functor
+    implicit def fold: Foldable[Group] = semi.foldable
+    implicit def repr[T: Repr]: Repr[Group[T]] =
+      R + "(" + _.body + ")"
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Group, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Group[T]]   = t => 0
+  }
+
+  object Def {
+    implicit def ftor: Functor[Def]  = semi.functor
+    implicit def fold: Foldable[Def] = semi.foldable
+    implicit def repr[T: Repr]: Repr[Def[T]] =
+      t => R + Def.symbol + 1 + t.name + t.args.map(R + 1 + _) + t.body
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Def, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Def[T]]   = t => 0
+
+    val symbol = "def"
+  }
+
+  object Foreign {
+    implicit def ftor: Functor[Foreign]  = semi.functor
+    implicit def fold: Foldable[Foreign] = semi.foldable
+    implicit def repr[T: Repr]: Repr[Foreign[T]] = t => {
+      val code2 = t.code.map(R + t.indent + _).mkString("\n")
+      R + "foreign " + t.lang + "\n" + code2
+    }
+    // FIXME: How to make it automatic for non-spaced AST?
+    implicit def ozip[T]: OffsetZip[Foreign, T] = _.map(Index.Start -> _)
+    implicit def span[T]: HasSpan[Foreign[T]]   = t => 0
   }
   //// Implicits ////
 
@@ -1813,135 +1887,77 @@ object AST {
       Unapply[Documented].run(t => (t.doc, t.emptyLinesBetween, t.ast))(t)
   }
 
-  //// Instances ////
+  //////////////////////////////////////////////////////////////////////////////
+  //// Import //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
 
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Import //////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Import = ASTOf[ImportOf]
-//  final case class ImportOf[T](path: List1[Cons]) extends SpacelessASTOf[T]
-//  object Import {
-//    def apply(path: List1[Cons]):            Import = ImportOf[AST](path)
-//    def apply(head: Cons):                   Import = Import(head, List())
-//    def apply(head: Cons, tail: List[Cons]): Import = Import(List1(head, tail))
-//    def apply(head: Cons, tail: Cons*):      Import = Import(head, tail.toList)
-//    def unapply(t: AST): Option[List1[Cons]] =
-//      Unapply[Import].run(t => t.path)(t)
-//    val any = UnapplyByType[Import]
-//  }
-//  object ImportOf {
-//    implicit def ftor: Functor[ImportOf]  = semi.functor
-//    implicit def fold: Foldable[ImportOf] = semi.foldable
-//    implicit def repr[T]: Repr[ImportOf[T]] =
-//      t => R + ("import " + t.path.map(_.repr.build()).toList.mkString("."))
-//
-//    // FIXME: How to make it automatic for non-spaced AST?
-//    implicit def ozip[T]: OffsetZip[ImportOf, T] = _.map(Index.Start -> _)
-//  }
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Mixfix //////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Mixfix = ASTOf[MixfixOf]
-//  final case class MixfixOf[T](name: List1[Ident], args: List1[T])
-//    extends SpacelessASTOf[T]
-//
-//  object Mixfix {
-//    def apply(name: List1[Ident], args: List1[AST]): Mixfix =
-//      MixfixOf(name, args)
-//    def unapply(t: AST) = Unapply[Mixfix].run(t => (t.name, t.args))(t)
-//    val any             = UnapplyByType[Mixfix]
-//  }
-//  object MixfixOf {
-//    implicit def ftor: Functor[MixfixOf]  = semi.functor
-//    implicit def fold: Foldable[MixfixOf] = semi.foldable
-//    implicit def repr[T: Repr]: Repr[MixfixOf[T]] = t => {
-//      val lastRepr = if (t.name.length == t.args.length) List() else List(R)
-//      val argsRepr = t.args.toList.map(R + " " + _) ++ lastRepr
-//      val nameRepr = t.name.toList.map(Repr(_))
-//      R + (nameRepr, argsRepr).zipped.map(_ + _)
-//    }
-//    // FIXME: How to make it automatic for non-spaced AST?
-//    implicit def ozip[T]: OffsetZip[MixfixOf, T] = _.map(Index.Start -> _)
-//  }
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Group ///////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Group = ASTOf[GroupOf]
-//  final case class GroupOf[T](body: Option[T]) extends SpacelessASTOf[T]
-//  object Group {
-//    val any             = UnapplyByType[Group]
-//    def unapply(t: AST) = Unapply[Group].run(_.body)(t)
-//    def apply(body: Option[AST]): Group = GroupOf(body)
-//    def apply(body: AST):         Group = Group(Some(body))
-//    def apply(body: SAST):        Group = Group(body.el)
-//    def apply():                  Group = Group(None)
-//  }
-//  object GroupOf {
-//    implicit def ftor: Functor[GroupOf]  = semi.functor
-//    implicit def fold: Foldable[GroupOf] = semi.foldable
-//    implicit def repr[T: Repr]: Repr[GroupOf[T]] =
-//      R + "(" + _.body + ")"
-//    // FIXME: How to make it automatic for non-spaced AST?
-//    implicit def ozip[T]: OffsetZip[GroupOf, T] = _.map(Index.Start -> _)
-//  }
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Def /////////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Def = ASTOf[DefOf]
-//  final case class DefOf[T](name: Cons, args: List[T], body: Option[T])
-//    extends SpacelessASTOf[T]
-//  object Def {
-//    val any    = UnapplyByType[Def]
-//    val symbol = "def"
-//    def apply(name: Cons):                  Def = Def(name, List())
-//    def apply(name: Cons, args: List[AST]): Def = Def(name, args, None)
-//    def apply(name: Cons, args: List[AST], body: Option[AST]): Def =
-//      DefOf(name, args, body)
-//    def unapply(t: AST): Option[(Cons, List[AST], Option[AST])] =
-//      Unapply[Def].run(t => (t.name, t.args, t.body))(t)
-//  }
-//  object DefOf {
-//    implicit def ftor: Functor[DefOf]  = semi.functor
-//    implicit def fold: Foldable[DefOf] = semi.foldable
-//    implicit def repr[T: Repr]: Repr[DefOf[T]] =
-//      t => R + Def.symbol + 1 + t.name + t.args.map(R + 1 + _) + t.body
-//    // FIXME: How to make it automatic for non-spaced AST?
-//    implicit def ozip[T]: OffsetZip[DefOf, T] = _.map(Index.Start -> _)
-//  }
-//
-//  //////////////////////////////////////////////////////////////////////////////
-//  //// Foreign /////////////////////////////////////////////////////////////////
-//  //////////////////////////////////////////////////////////////////////////////
-//
-//  type Foreign = ASTOf[ForeignOf]
-//  final case class ForeignOf[T](indent: Int, lang: String, code: List[String])
-//    extends SpacelessASTOf[T]
-//  object Foreign {
-//    def apply(indent: Int, lang: String, code: List[String]): Foreign =
-//      Foreign(indent, lang, code)
-//    def unapply(t: AST): Option[(Int, String, List[String])] =
-//      Unapply[Foreign].run(t => (t.indent, t.lang, t.code))(t)
-//    val any = UnapplyByType[Foreign]
-//  }
-//  object ForeignOf {
-//    implicit def ftor: Functor[ForeignOf]  = semi.functor
-//    implicit def fold: Foldable[ForeignOf] = semi.foldable
-//    implicit def repr[T: Repr]: Repr[ForeignOf[T]] = t => {
-//      val code2 = t.code.map(R + t.indent + _).mkString("\n")
-//      R + "foreign " + t.lang + "\n" + code2
-//    }
-//    // FIXME: How to make it automatic for non-spaced AST?
-//    implicit def ozip[T]: OffsetZip[ForeignOf, T] = _.map(Index.Start -> _)
-//  }
-//
+  type Import = ASTOf[Shape.Import]
+
+  object Import {
+    def apply(path: List1[Cons]): Import            = Shape.Import[AST](path)
+    def apply(head: Cons): Import                   = Import(head, List())
+    def apply(head: Cons, tail: List[Cons]): Import = Import(List1(head, tail))
+    def apply(head: Cons, tail: Cons*): Import      = Import(head, tail.toList)
+    def unapply(t: AST): Option[List1[Cons]] =
+      Unapply[Import].run(t => t.path)(t)
+    val any = UnapplyByType[Import]
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Mixfix //////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Mixfix = ASTOf[Shape.Mixfix]
+
+  object Mixfix {
+    def apply(name: List1[Ident], args: List1[AST]): Mixfix =
+      Shape.Mixfix(name, args)
+    def unapply(t: AST) = Unapply[Mixfix].run(t => (t.name, t.args))(t)
+    val any             = UnapplyByType[Mixfix]
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Group ///////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Group = ASTOf[Shape.Group]
+  object Group {
+    val any                             = UnapplyByType[Group]
+    def unapply(t: AST)                 = Unapply[Group].run(_.body)(t)
+    def apply(body: Option[AST]): Group = Shape.Group(body)
+    def apply(body: AST): Group         = Group(Some(body))
+    def apply(body: SAST): Group        = Group(body.el)
+    def apply(): Group                  = Group(None)
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Def /////////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Def = ASTOf[Shape.Def]
+  object Def {
+    val any                                     = UnapplyByType[Def]
+    def apply(name: Cons): Def                  = Def(name, List())
+    def apply(name: Cons, args: List[AST]): Def = Def(name, args, None)
+    def apply(name: Cons, args: List[AST], body: Option[AST]): Def =
+      Shape.Def(name, args, body)
+    def unapply(t: AST): Option[(Cons, List[AST], Option[AST])] =
+      Unapply[Def].run(t => (t.name, t.args, t.body))(t)
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+  //// Foreign /////////////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
+
+  type Foreign = ASTOf[Shape.Foreign]
+  object Foreign {
+    def apply(indent: Int, lang: String, code: List[String]): Foreign =
+      Shape.Foreign(indent, lang, code): Shape.Foreign[AST]
+    def unapply(t: AST): Option[(Int, String, List[String])] =
+      Unapply[Foreign].run(t => (t.indent, t.lang, t.code))(t)
+    val any = UnapplyByType[Foreign]
+  }
+
 //  //// ASTClass ////
 //
 //  /** [[ASTClass]] implements set of AST operations based on a precise AST
