@@ -381,7 +381,7 @@ object Shape extends ShapeImplicit {
       extends SpacelessAST[T]
       with Phantom
   final case class Documented[T](doc: Doc, emptyLinesBetween: Int, ast: T)
-      extends Shape[T]
+      extends SpacelessAST[T]
   final case class Import[T](path: List1[AST.Cons]) extends SpacelessAST[T]
   final case class Mixfix[T](name: List1[AST.Ident], args: List1[T])
       extends SpacelessAST[T]
