@@ -1743,7 +1743,7 @@ systems allow us to validate our programs with respect to a fixed set of
 criteria, dependent types are much more flexible, they realize a continuum of
 precision from the basic assertions we are used to expect from types up to a
 complete specification of the program’s behaviour. It is the programmer’s choice
-to what degree to exploit the expressiveness of such a powerful type
+to what degree they want to exploit the expressiveness of such a powerful type
 discipline. While the price for formally certified software may be high, it is
 good to know that we can pay it in installments and that we are free to decide
 how far we want to go. Dependent types reduce certification to type checking,
@@ -1754,9 +1754,9 @@ carrying code.
 **If dependent types are so great, why they are not used widely?** Basically,
 there are two problems. First, there is a small set of languages allowing for
 dependent types, like Agda or Idris. Second, both writing as well as using
-dependently typed code is significantly harder than the code using conventional
-type system. The second problem is even bigger because it stands in a way to
-easily refactor the code base and keep it in a good shape.
+dependently typed code is significantly harder than for code using a conventional
+type system. The second problem is even bigger because it stands in the way of
+easily refactoring the code base and keeping it in good shape.
 
 **I've heard that dependent type system in Enso is different, how?** The Enso
 type system provides a novel approach to dependent types. It allows to just
@@ -1798,7 +1798,7 @@ Hello!
 ```
 
 The above program crashed in the middle of execution. Such mistakes (related to the
-possibility of the index to be out of bounds) are very hard to catch and most
+possibility of the index being out of bounds) are very hard to catch, and most
 programming languages do not provide a standard, easy mechanism to prevent them
 from happening. Let's improve the situation and use the power of dependent types
 to keep the information about the length of the list visible to the compiler:
