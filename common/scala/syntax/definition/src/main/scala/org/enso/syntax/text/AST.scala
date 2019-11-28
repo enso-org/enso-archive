@@ -1247,6 +1247,11 @@ object AST {
     def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
     def withNewID(): ASTOf[T]      = copy(id = Some(UUID.randomUUID()))
 
+//    def jsonWrapper(): Json = {
+//      import io.circe.syntax._
+//      this.asJson
+//    }
+
     /** Compares ignoring cached span value.
       *
       * Cached span values become invalid e.g. after macros are resolved.
@@ -2135,6 +2140,12 @@ object AST {
   /////////////////////////////////////////////////
   /////////////////////////////////////////////////
   /////////////////////////////////////////////////
+
+  def toJson(ast: AST): Json = {
+    import io.circe.syntax._
+    import conversions._
+    ast.asJson
+  }
 
   def main() {
     import io.circe.syntax._
