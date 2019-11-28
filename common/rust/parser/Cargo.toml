@@ -3,6 +3,7 @@ name    = "parser"
 version = "0.1.0"
 authors = ["Michal Wawrzyniec Urbanczyk <michal.urbanczyk@luna-lang.org>"]
 edition = "2018"
+build   = "build.rs"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -16,16 +17,8 @@ serde_json        = "1.0"
 shrinkwraprs      = "0.2.1"
 wasm-bindgen      = "0.2"
 wasm-bindgen-test = "0.2"
+js-sys            = "0.3"
 
-[dependencies.web-sys]
-version = "0.3.4"
-features = [
-  'Document',
-  'Element',
-  'HtmlElement',
-  'Node',
-  'Window',
-]
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 websocket = "0.23.0"

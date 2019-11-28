@@ -6,8 +6,8 @@ import cats.Foldable
 import cats.Functor
 import cats.derived._
 import cats.implicits._
-import io.circe.Encoder
-import io.circe.Json
+  import io.circe.Encoder
+  import io.circe.Json
 import io.circe.generic.AutoDerivation
 import io.circe.generic.auto._
 import org.enso.data.List1._

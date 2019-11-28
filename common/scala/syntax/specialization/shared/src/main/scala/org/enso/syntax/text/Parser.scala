@@ -1,6 +1,5 @@
 package org.enso.syntax.text
 
-import scala.scalajs.js.annotation._
 import org.enso.data.Index
 import org.enso.data.Span
 import org.enso.flexer
@@ -10,8 +9,6 @@ import org.enso.syntax.text.ast.opr.Prec
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
-
-import scala.math.Ordering.Implicits._
 
 ////////////////////////////////
 
@@ -150,9 +147,6 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  @JSExport
-  def run(input: String): AST.Module = run(new Reader(input))
-
   def run(input: Reader): AST.Module = run(input, Nil)
 
   def run(input: Reader, idMap: IDMap): AST.Module =
@@ -219,13 +213,12 @@ class Parser {
   }
 
 }
-@JSExportTopLevel("parser")
+
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 
-  @JSExport
   def apply(): Parser = new Parser()
 
   //// Exceptions ////

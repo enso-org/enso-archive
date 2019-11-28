@@ -4,6 +4,9 @@
   </head>
   <body>
     <!-- Note the usage of `type=module` here as this is an ES6 module -->
+    <script type="text/javascript">
+    var __ScalaJSEnv = { global: window };
+    </script>
     <script type="module">
       // Use ES module import syntax to import functionality from the module
       // that we have compiled.
@@ -31,7 +34,8 @@
         await init();
 
         // And afterwards we can use all the functionality defined in wasm.
-        console.log(parse());
+        console.log('parsing 1 + 1 ...\n');
+        console.log(parse('a -> a + 1'));
       }
 
       run();
