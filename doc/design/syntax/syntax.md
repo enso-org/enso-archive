@@ -228,9 +228,9 @@ window width set to 80.
 
 Enso uses indentation to determine the structure of the code.
 
-In general, every indented line constitutes a sub-structure of the nearest previous
-line with a smaller indentation. We refer to them as child line and parent line,
-respectively. There are a few additional layout rules:
+In general, every indented line constitutes a sub-structure of the nearest
+previous line with a smaller indentation. We refer to them as child line and
+parent line, respectively. There are a few additional layout rules:
 
 - **Operator at the end of a parent line**  
   If a line ends with an operator then all of its child lines form a code block.
@@ -281,8 +281,8 @@ respectively. There are a few additional layout rules:
 
 - **Debug line breaker `\\`**
 
-  There is also a special, debug line-break operator `\\` which, when placed at the
-  beginning of a child line, tells Enso to glue the line with the previous
+  There is also a special, debug line-break operator `\\` which, when placed at
+  the beginning of a child line, tells Enso to glue the line with the previous
   one. However, the line-break operator should not be used in production code,
   as it's always better to re-structure the code to separate method calls
   instead. In the following code, both `debugFunc` and `validFunc` work in the
@@ -669,11 +669,11 @@ a ^ n = a * a ^ (n-1)
 
 The `prec` decorator specifies the
 [precedence relation](https://en.wikipedia.org/wiki/Order_of_operations) to
-other operators. Here, we specified that the precedence is higher than the precedence of
-the multiplication operator. The precedences are inherited in Enso, so if the
-multiplication operator was defined with a higher
-precedence than addition, the new operator above would inherit this dependency as
-well. The `assoc` decorator defines the
+other operators. Here, we specified that the precedence is higher than the
+precedence of the multiplication operator. The precedences are inherited in
+Enso, so if the multiplication operator was defined with a higher precedence
+than addition, the new operator above would inherit this dependency as well. The
+`assoc` decorator defines the
 [operator associativity](https://en.wikipedia.org/wiki/Operator_associativity) –
 it is either left, right or none. If you do not provide the information, no
 precedence relations would be defined and the associativity will default to
@@ -687,10 +687,11 @@ expression. For example, multiplication operator is given higher
 precedence than addition, which means that multiplication will be
 performed before addition in a single expression like `2 + 5 * 10`.
 
-However, in contrast to most languages, the operator precedence depends on whether a particular operator is surrounded with spaces or not. **The
-precedence of any operator not surrounded with spaces is always higher than the
-precedence of any operator surrounded with spaces.** For example, the code
-`2+5 * 10` results in `70`, not `50`!
+However, in contrast to most languages, the operator precedence depends on
+whether a particular operator is surrounded with spaces or not. **The precedence
+of any operator not surrounded with spaces is always higher than the precedence
+of any operator surrounded with spaces.** For example, the code `2+5 * 10`
+results in `70`, not `50`!
 
 The space-based precedence allows for writing much cleaner code than any other
 functional language, including all languages from the ML family, like Haskell,
@@ -1052,12 +1053,12 @@ print (empty : Text)     -- Result: ''
 
 ### Type Applications
 
-All libraries that sometimes need passing of an explicit type from the user should be
-designed as the `read` utility, so you can optionally pass the type if you want
-to, while it defaults to the inference otherwise. However, sometimes it's handy
-to just ad-hoc refine a type of a particular function, often for debugging
-purposes. Luna allows to both apply values by name as well as refining types by
-name. The syntax is very similar, consider this simple function:
+All libraries that sometimes need passing of an explicit type from the user
+should be designed as the `read` utility, so you can optionally pass the type if
+you want to, while it defaults to the inference otherwise. However, sometimes
+it's handy to just ad-hoc refine a type of a particular function, often for
+debugging purposes. Luna allows to both apply values by name as well as refining
+types by name. The syntax is very similar, consider this simple function:
 
 ```haskell
 checkLength : this -> Bool
@@ -1754,9 +1755,9 @@ carrying code.
 **If dependent types are so great, why they are not used widely?** Basically,
 there are two problems. First, there is a small set of languages allowing for
 dependent types, like Agda or Idris. Second, both writing as well as using
-dependently typed code is significantly harder than for code using a conventional
-type system. The second problem is even bigger because it stands in the way of
-easy refactoring of the code base and keeping it in good shape.
+dependently typed code is significantly harder than for code using a
+conventional type system. The second problem is even bigger because it stands in
+the way of easy refactoring of the code base and keeping it in good shape.
 
 **I've heard that dependent type system in Enso is different, how?** The Enso
 type system provides a novel approach to dependent types. It allows to just
@@ -1797,11 +1798,12 @@ Hello!
 *** test.idr:18:23:unmatched case in Main.index ***
 ```
 
-The above program crashed in the middle of execution. Such mistakes (related to the
-possibility of the index being out of bounds) are very hard to catch, and most
-programming languages do not provide a standard, easy mechanism to prevent them
-from happening. Let's improve the situation and use the power of dependent types
-to keep the information about the length of the list visible to the compiler:
+The above program crashed in the middle of execution. Such mistakes (related to
+the possibility of the index being out of bounds) are very hard to catch, and
+most programming languages do not provide a standard, easy mechanism to prevent
+them from happening. Let's improve the situation and use the power of dependent
+types to keep the information about the length of the list visible to the
+compiler:
 
 ```haskell
 -----------------------
@@ -2197,10 +2199,10 @@ addAlias : Natural -> Text -> String
 ```
 
 We can also type the whole function using any broader type. In order to
-understand what a subtype of a function is, visualize its transformation as arrows
-between categories. The above function takes any value from a set `Natural` and
-set `Text` and transforms it to some value in set `String`. We can use any wider
-type instead:
+understand what a subtype of a function is, visualize its transformation as
+arrows between categories. The above function takes any value from a set
+`Natural` and set `Text` and transforms it to some value in set `String`. We can
+use any wider type instead:
 
 ```haskell
 addAlias : Natural -> Text -> Type
@@ -2234,7 +2236,8 @@ type Graph a
         inputs : List (Mutable (Graph a))
         value : a
 
--- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to mutable vars to create mutual refs and also pure vars to create new refs
+-- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to
+mutable vars to create mutual refs and also pure vars to create new refs
 n1 = Node [n2] 1
 n2 = Node [n1] 2
 ```
@@ -2433,9 +2436,9 @@ values of its fields.
 
 For example, the `True` constructor could be used to describe the set of all
 possible values of its fields. While it does not have any fields, the set
-contains only two values, the `True` constructor itself and an `undefined` value.
-Thus it is correct to write in Enso `True : True` and assume that the only
-possible values of a variable typed as `a : True` are either `True` or
+contains only two values, the `True` constructor itself and an `undefined`
+value. Thus it is correct to write in Enso `True : True` and assume that the
+only possible values of a variable typed as `a : True` are either `True` or
 `undefined`.
 
 On the other hand, The `Point` constructor does contain fields, thus it could be
@@ -2518,9 +2521,9 @@ main =
 ```
 
 The `point` function is the most basic form of polymorphic type definition in
-Enso. It defines all sets of points such that every point component belongs to the
-provided type. To better understand this relation, please consider the following
-valid expressions:
+Enso. It defines all sets of points such that every point component belongs to
+the provided type. To better understand this relation, please consider the
+following valid expressions:
 
 ```haskell
 p1 = Point 1 2 3 : Point 1 2 3
@@ -2730,10 +2733,10 @@ Both of these methods will support extension to automatic deriving strategies in
 future iterations of the Enso compiler.
 
 It should also be noted that it is not possible to implement orphan instances of
-interfaces in Enso, as it leads to code that is difficult to understand. This means that
-an interface must either be implemented in the same file as the interface
-definition, or in the same file as the definition of the type for which the
-interface is being implemented. (TODO: To be discussed)
+interfaces in Enso, as it leads to code that is difficult to understand. This
+means that an interface must either be implemented in the same file as the
+interface definition, or in the same file as the definition of the type for
+which the interface is being implemented. (TODO: To be discussed)
 
 Consider an interface `PrettyPrinter` as follows, which has a default
 implementation for its `prettyPrint` method.
