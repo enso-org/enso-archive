@@ -3,7 +3,7 @@ package org.enso.compiler.generate
 import org.enso.compiler.core
 import org.enso.compiler.core._
 import org.enso.compiler.exception.UnhandledEntity
-import org.enso.syntax.text.AST
+import org.enso.syntax.text.{AST, Debug}
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
@@ -119,10 +119,21 @@ object AstToAstExpression {
   def translateCallable(application: AST): AstExpression = {
     application match {
       case AstView.Application(name, args) =>
+        val validArguments = args.filter {
+          case AstView.SuspendDefaultsOperator(_) => false
+          case _                                  => true
+        }
+
+        val suspendPositions = args.view.zipWithIndex.collect {
+          case (AstView.SuspendDefaultsOperator(_), ix) => ix
+        }
+
+        val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
+
         AstApply(
           translateExpression(name),
-          args.map(translateCallArgument),
-          false
+          validArguments.map(translateCallArgument),
+          hasDefaultsSuspended
         )
       case AstView.Lambda(args, body) =>
         val realArgs = args.map(translateArgumentDefinition)

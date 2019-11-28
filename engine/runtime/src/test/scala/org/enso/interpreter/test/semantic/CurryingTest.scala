@@ -16,52 +16,33 @@ class CurryingTest extends InterpreterTest {
     eval(code) shouldEqual 11
   }
 
+  // TODO [AA] How do we call `fn3` here????
   "Functions" should "allow default arguments to be suspended" in {
-    val code =
-      """
-        |@{
-        |  fn = { |w, x, y = 10, z = 20| (w + x) + (y + z) };
-        |
-        |  fn1 = @fn ...;
-        |  fn2 = @fn1 [1, 2] ...;
-        |  fn3 = @fn2 [3] ...;
-        |
-        |  @fn3
-        |}
-        |""".stripMargin
-
-    evalOld(code) shouldEqual 26
-  }
-
-  "Functions" should "allow defaults to be suspended in application chains" in {
-    val code =
-      """
-        |@{
-        |  fn = { |w, x, y = 10, z = 20| (w + x) + (y + z) };
-        |
-        |  @(@fn [3, 6] ...) [3]
-        |}
-        |""".stripMargin
-
-    evalOld(code) shouldEqual 32
-  }
-
-  "Test" should "testy" in {
-    // TODO [AA] Do we handle lazy defaults properly?
-    val tmp =
-      """
-        |# Assume that `sideEffect2` observes something done by `sideEffect`
-        |fn a b (~c = sideEffect a) d (e = sideEffect2 c)
-        |
-        |(fn x y ...) (d = z)
-        |""".stripMargin
-
     pending
     val code =
       """
-        |fn a b ... a
+        |fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |
+        |fn1 = fn ...
+        |fn2 = fn1 1 2 ...
+        |fn3 = fn2 3 ...
+        |
+        |fn3
         |""".stripMargin
 
-    eval(code) shouldEqual 1
+    eval(code) shouldEqual 26
+  }
+
+  // TODO [AA] The elision of the `...` is wrong
+  "Functions" should "allow defaults to be suspended in application chains" in {
+    val code =
+      """
+        |fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |id = x -> x
+        |
+        |(fn 3 (id 6) ...) 3
+        |""".stripMargin
+
+    eval(code) shouldEqual 32
   }
 }

@@ -156,9 +156,18 @@ object AstView {
     }
   }
 
+  object SuspendDefaultsOperator {
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case AST.Ident.Opr("...") => Some(ast)
+        case _ => None
+      }
+    }
+  }
+
   object SpacedList {
 
-    /**
+    /** Also matches lists with a ... left section
       *
       * @param ast
       * @return the constructor, and a list of its arguments
@@ -176,7 +185,19 @@ object AstView {
             case Some(headItems) => Some(headItems :+ arg)
             case None            => Some(List(fn, arg))
           }
+        case MaybeParensed(
+            AST.App.Section.Left(ast, SuspendDefaultsOperator(suspend))
+            ) =>
+          ast match {
+            case ConsOrVar(_) => Some(List(ast, suspend))
+            case _ =>
+              val astRecurse = matchSpacedList(ast)
 
+              astRecurse match {
+                case Some(items) => Some(items :+ suspend)
+                case None => None
+              }
+          }
         case _ => None
       }
     }
@@ -284,7 +305,7 @@ object AstView {
                   val blockLines = firstLine.elem :: restLines.flatMap(_.elem)
 
                   val matchBranches = blockLines.collect {
-                    case b @ CaseBranch(_) => b
+                    case b @ CaseBranch(_, _, _) => b
                   }
 
                   if (matchBranches.length == blockLines.length) {
