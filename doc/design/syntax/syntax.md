@@ -1228,8 +1228,6 @@ main =
 
 Please note, that `lessThan -1 Natural` returns `True`, which is just more
 specific than `Bool` because it holds true for every natural number.
-<<<<<<< HEAD
-=======
 
 ## Interfaces
 
@@ -1318,7 +1316,6 @@ map4 f self =
             Just a  -> a
             Nothing -> error "impossible"
 ```
->>>>>>> syntax-docs
 
 # Refinement Types
 
