@@ -12,9 +12,16 @@ import org.scalatest._
 
 class ParserTest extends FlatSpec with Matchers {
 
+  def assertSpan(input: String, ast: AST): Assertion = {
+    val gotSpan      = ast.span
+    val expectedSpan = new Reader(input).toString().length
+    gotSpan shouldEqual expectedSpan
+  }
+
   def assertModule(input: String, result: AST): Assertion = {
-    val parser  = Parser()
-    val module  = parser.run(new Reader(input))
+    val parser = Parser()
+    val module = parser.run(new Reader(input))
+    assertSpan(input, module)
     val rmodule = parser.dropMacroMeta(module)
     assert(rmodule == result)
     assert(module.show() == new Reader(input).toString())
@@ -23,7 +30,7 @@ class ParserTest extends FlatSpec with Matchers {
   def assertExpr(input: String, result: AST): Assertion = {
     val parser = Parser()
     val module = parser.run(new Reader(input))
-    assert(new Reader(input).toString().length == module.span)
+    assertSpan(input, module)
     val rmodule = parser.dropMacroMeta(module)
     val tail    = module.lines.tail
     if (!tail.forall(_.elem.isEmpty)) fail("Multi-line block")
@@ -39,6 +46,7 @@ class ParserTest extends FlatSpec with Matchers {
 
   def assertIdentity(input: String): Assertion = {
     val module = Parser().run(new Reader(input))
+    assertSpan(input, module)
     assert(module.show() == new Reader(input).toString())
   }
 
