@@ -1137,6 +1137,10 @@ object AST {
   ) extends ShapeOf[T] {
     // FIXME: Compatibility mode
     def replaceType(ntyp: Block.Type): BlockOf[T] = copy(typ = ntyp)
+    def replaceFirstLine(line: Block.LineOf[T]): BlockOf[T] =
+      copy(firstLine = line)
+    def replaceLines(lines: List[Block.LineOf[Option[T]]]): BlockOf[T] =
+      copy(lines = lines)
   }
 
   object Block {
