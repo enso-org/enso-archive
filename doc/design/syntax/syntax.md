@@ -1756,7 +1756,7 @@ there are two problems. First, there is a small set of languages allowing for
 dependent types, like Agda or Idris. Second, both writing as well as using
 dependently typed code is significantly harder than for code using a conventional
 type system. The second problem is even bigger because it stands in the way of
-easily refactoring the code base and keeping it in good shape.
+easy refactoring of the code base and keeping it in good shape.
 
 **I've heard that dependent type system in Enso is different, how?** The Enso
 type system provides a novel approach to dependent types. It allows to just
@@ -2234,7 +2234,7 @@ type Graph a
         inputs : List (Mutable (Graph a))
         value : a
 
--- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to mutable vars to crete mutual refs and also pure vars to create new refs
+-- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to mutable vars to create mutual refs and also pure vars to create new refs
 n1 = Node [n2] 1
 n2 = Node [n1] 2
 ```
