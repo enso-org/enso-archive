@@ -57,8 +57,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
-  def run(input: String):        Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -129,11 +129,11 @@ object DocParserRunner {
   ): AST.Def = {
     val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
     val linesToTransform = firstLine :: b.lines
-    val transforemdLines = attachDocToSubsequentAST(linesToTransform)
-    val TLHeadElem       = transforemdLines.head.elem.get
-    val TLHeadOff        = transforemdLines.head.off
+    val transformedLines = attachDocToSubsequentAST(linesToTransform)
+    val TLHeadElem       = transformedLines.head.elem.get
+    val TLHeadOff        = transformedLines.head.off
     val head             = AST.Block.Line(TLHeadElem, TLHeadOff)
-    val lines            = transforemdLines.tail
+    val lines            = transformedLines.tail
     val body             = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
     AST.Def(name, args, Some(body))
   }
@@ -289,17 +289,18 @@ object DocParserHTMLGenerator {
     *
     * @param documented - documented made by Doc Parser Runner from AST and Doc
     * @param cssFileName - name of file containing stylesheets for the HTML code
-    * @return - tuple containing HTML code with file name
+    * @return - HTML code with file name
     */
   def onHTMLRendering(
     documented: AST.Documented,
     cssFileName: String
-  ): (TypedTag[String], String) = {
+  ): htmlFile = {
     val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines = documented.ast.show().split("\n")
     val fileName = astLines.head.replaceAll("/", "")
-    (htmlCode, fileName)
+    htmlFile(htmlCode, fileName)
   }
+  case class htmlFile(code: TypedTag[String], name: String)
 
   /**
     * Function invoked by [[onHTMLRendering]] to render HTML File
@@ -334,32 +335,50 @@ object DocParserHTMLGenerator {
     ast: AST,
     doc: Doc
   ): TypedTag[String] = {
-    val astCls   = HTML.`class` := "ASTData"
-    val astHtml  = Seq(HTML.div(astCls)(createHTMLFromAST(ast)))
-    val docClass = HTML.`class` := "Documentation"
-    HTML.div(docClass)(doc.html, astHtml)
+    val astHeadCls = HTML.`class` := "ASTHead"
+    val astBodyCls = HTML.`class` := "ASTData"
+    val astHTML    = createHTMLFromAST(ast)
+    val astName    = Seq(HTML.div(astHeadCls)(astHTML.header))
+    val astBody    = Seq(HTML.div(astBodyCls)(astHTML.body))
+    val docClass   = HTML.`class` := "Documentation"
+    HTML.div(docClass)(astName, doc.html, astBody)
+  }
+
+  /**
+    * This case class is used to hold HTML-rendered AST
+    *
+    * @param header - header of AST - name of module/method with parameters
+    * @param body - body of AST - All of AST's documented submodules/methods
+    */
+  case class astHtmlRepr(header: TypedTag[String], body: TypedTag[String])
+  object astHtmlRepr {
+    def apply(header: TypedTag[String]): astHtmlRepr =
+      new astHtmlRepr(header, HTML.div())
+    def apply(): astHtmlRepr =
+      new astHtmlRepr(HTML.div(), HTML.div())
   }
 
   /**
     * Function invoked by [[DocumentedToHtml]] to create HTML from AST in
-    * [[AST.Documented]]
+    * [[AST.Documented]] on every matching element
     *
     * @param ast - AST
     * @return - HTML Code
     */
-  def createHTMLFromAST(ast: AST): TypedTag[String] = {
+  def createHTMLFromAST(ast: AST): astHtmlRepr = {
     ast match {
       case AST.Def.any(d) =>
         d.body match {
           case Some(body) =>
             body match {
               case AST.Block.any(b) => createDefWithBody(d.name, d.args, b)
-              case _                => createDefWithoutBody(d.name, d.args)
+              case _ =>
+                astHtmlRepr(createDefWithoutBody(d.name, d.args))
             }
-          case None => createDefWithoutBody(d.name, d.args)
+          case None => astHtmlRepr(createDefWithoutBody(d.name, d.args))
         }
-      case AST.App.Infix.any(i) => createInfixHtmlRepr(i)
-      case _                    => HTML.div()
+      case AST.App.Infix.any(i) => astHtmlRepr(createInfixHtmlRepr(i))
+      case _                    => astHtmlRepr()
     }
   }
 
@@ -377,15 +396,16 @@ object DocParserHTMLGenerator {
     name: AST.Cons,
     args: List[AST],
     body: AST.Block
-  ): TypedTag[String] = {
+  ): astHtmlRepr = {
     val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val constructors  = HTML.h2(`class` := "constr")("Constructors")
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
     val head          = createDefTitle(name, args)
     val clsBody       = HTML.`class` := "DefBody"
-    val lines         = HTML.div(clsBody)(generatedCode)
+    val lines         = HTML.div(clsBody)(constructors, generatedCode)
     val cls           = HTML.`class` := "Def"
-    HTML.div(cls)(head, lines)
+    astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
   }
 
   /**
@@ -449,7 +469,8 @@ object DocParserHTMLGenerator {
           case Line(Some(d), _) =>
             val cls     = HTML.`class` := "DefNoDoc"
             val astHtml = createHTMLFromAST(d)
-            HTML.div(cls)(astHtml) :: renderHTMLOnLine(rest)
+            val div     = HTML.div(cls)(astHtml.header, astHtml.body)
+            div :: renderHTMLOnLine(rest)
           case _ => renderHTMLOnLine(rest)
         }
       case other =>

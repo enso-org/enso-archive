@@ -1,5 +1,7 @@
 package org.enso.syntax.text
 
+import java.util.UUID
+
 import org.enso.data.Index
 import org.enso.data.Span
 import org.enso.flexer
@@ -191,7 +193,7 @@ class Parser {
         Builtin.registry.get(resolvedAST.path) match {
           case None => throw MissingMacroDefinition
           case Some(spec) =>
-            val id       = resolvedAST.id.getOrElse(throw new Error(s"Missing ID"))
+            val id       = resolvedAST.id.getOrElse(UUID.randomUUID)
             val segments = resolvedAST.segs.toList().map(_.el)
             val ctx      = AST.Macro.Resolver.Context(resolvedAST.pfx, segments, id)
             resolvedAST.copy(shape = resolvedAST.shape.copy[AST](resolved = {
@@ -216,7 +218,6 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-
   private val newEngine = flexer.Parser.compile(ParserDef())
 
   def apply(): Parser = new Parser()
@@ -300,23 +301,24 @@ object Main extends App {
   val inC =
     """
       |## Optional values.
+      |
       |   Type `Option` represents an optional value: every `Option` is either `Some`
       |   and contains a value, or `None`, and does not. Option types are very common
       |   in Enso code, as they have a number of uses:
-      |     - Initial values.
-      |     - Return values for functions that are not defined over their entire input range (partial functions).
-      |     - Return value for otherwise reporting simple errors, where `None` is returned on error.
-      |     - Optional struct fields.
-      |     - Optional function arguments.
+      |      - Initial values.
+      |      - Return values for functions that are not defined over their entire input range (partial functions).
+      |      - Return value for otherwise reporting simple errors, where `None` is returned on error.
+      |      - Optional struct fields.
+      |      - Optional function arguments.
       |   `Option`s are commonly paired with pattern matching to query the presence of
       |   a value and take action, always accounting for the None case.
       |
       |type Option a
-      |    ## The `None` type indicates a presence of a value.
+      |    ## The `Some` type indicates a presence of a value.
       |    type Some a
       |
-      |    ##
-      |     The `None` type indicates a lack of a value.
+      |    ## The `None` type indicates a lack of a value.
+      |
       |     It is a very common type and is used by such types as `Maybe` or `List`.
       |     Also, `None` is the return value of functions which do not return an
       |     explicit value.
