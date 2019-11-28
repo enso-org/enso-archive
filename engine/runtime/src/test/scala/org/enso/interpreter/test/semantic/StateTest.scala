@@ -78,23 +78,26 @@ class StateTest extends InterpreterTest {
   "State" should "work with pattern matches" in {
     val code =
       """
-        |@{
-        |  matcher = { |x| match x <
-        |    Unit ~ { y = @get[State]; @put[State, y+5] };
-        |    Nil ~ { y = @get[State]; @put[State, y+10] };
-        |  >};
-        |  @put[State, 1];
-        |  @matcher[Nil];
-        |  @println[IO, @get[State]];
-        |  @matcher[Unit];
-        |  @println[IO, @get[State]];
-        |  0
-        |}
+        |matcher = x -> case x of
+        |  Unit ->
+        |    y = State.get
+        |    State.put (y + 5)
+        |  Nil ->
+        |    y = State.get
+        |    State.put (y + 10)
+        |
+        |State.put 1
+        |matcher Nil
+        |IO.println State.get
+        |matcher Unit
+        |IO.println State.get
+        |0
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("11", "16")
   }
 
+  // TODO [AA] Needs suspended blocks
   "Panics" should "undo state changes" in {
     val code =
       """
@@ -104,7 +107,6 @@ class StateTest extends InterpreterTest {
         |  @recover[Panic, @panicker];
         |  @get[State]
         |}
-        |
         |""".stripMargin
     evalOld(code) shouldEqual (-5)
   }

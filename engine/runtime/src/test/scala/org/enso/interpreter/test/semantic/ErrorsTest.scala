@@ -38,19 +38,17 @@ class ErrorsTest extends InterpreterTest {
   "Errors" should "propagate through pattern matches" in {
     val code =
       """
-        |type MyError;
+        |type MyError
         |
-        |@{
-        |  brokenVal = @throw [Error, MyError];
-        |  matched = match brokenVal <
-        |    Unit ~ { 1 };
-        |    {0};
-        |  >;
-        |  @println [IO, matched]
-        |}
+        |brokenVal = Error.throw MyError
+        |matched = case brokenVal of
+        |  Unit -> 1
+        |  _ -> 0
+        |
+        |IO.println matched
         |""".stripMargin
-    evalOld(code)
-    noException shouldBe thrownBy(evalOld(code))
+    eval(code)
+    noException shouldBe thrownBy(eval(code))
     consumeOut shouldEqual List("Error:MyError<>")
   }
 
@@ -78,20 +76,17 @@ class ErrorsTest extends InterpreterTest {
   "Catch function" should "accept a method handler" in {
     val code =
       """
-        |type MyRecovered x;
-        |type MyError x;
+        |type MyRecovered x
+        |type MyError x
         |
-        |MyError.recover = match this <
-        |  MyError ~ { |x| @MyRecovered [x] };
-        |>
+        |MyError.recover = case this of
+        |  MyError x -> MyRecovered x
         |
-        |@{
-        |   myErr = @throw [Error, @MyError [20]];
-        |   @println [IO, @catch [myErr, recover]]
-        |}
+        |myErr = Error.throw (MyError 20)
         |
+        |IO.println(myErr.catch recover)
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("MyRecovered<20>")
   }
 
