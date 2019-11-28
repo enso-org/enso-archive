@@ -42,7 +42,7 @@ trait HasSpan[T] {
   def span(t: T): Int
 }
 object HasSpan {
-  def apply[T: HasSpan] = implicitly[HasSpan[T]]
+  def apply[T: HasSpan]: HasSpan[T] = implicitly[HasSpan[T]]
 
   object implicits {
     implicit class ToHasSpanOps[T: HasSpan](t: T) {
@@ -58,21 +58,16 @@ object HasSpan {
   }
 
   implicit def fromOption[T: HasSpan]: HasSpan[Option[T]] = { opt =>
-    opt.map(_.span).getOrElse(0)
+    opt.map(_.span()).getOrElse(0)
   }
 
   implicit def fromShiftedList[T: HasSpan]: HasSpan[List[T]] = { list =>
-    list.map(_.span).sum
+    list.map(_.span()).sum
   }
 
   implicit def fromList[T: HasSpan]: HasSpan[Shifted.List1[T]] = { list =>
     list.head.span() + list.tail.span()
   }
-//
-//  implicit def fromStream[T: HasSpan]: HasSpan[AST.StreamOf[T]] = { stream =>
-//    val ev: HasSpan[Shifted[T]] = fromShifted
-//    stream.foldLeft(0)((acc, sast) => acc + ev.span(sast))
-//  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -328,8 +323,8 @@ object Shape extends ShapeImplicit {
   }
 
   // TODO shorten
-  type Escape = org.enso.syntax.text.ast.text.Escape
-  val Escape = org.enso.syntax.text.ast.text.Escape
+  type Escape = ast.text.Escape
+  val Escape = ast.text.Escape
 
   sealed trait Segment[T]
   sealed trait SegmentFmt[T]                        extends Segment[T]
@@ -426,7 +421,7 @@ object Shape extends ShapeImplicit {
       OffsetZip[Shape, T](ident).asInstanceOf
     }
     implicit def span[T: HasSpan]: HasSpan[Ident[T]] =
-      t => (t: Shape[T]).span // TODO doesn't this break span caching?
+      t => (t: Shape[T]).span()
   }
   object Blank {
     implicit def ftor: Functor[Blank]         = semi.functor
