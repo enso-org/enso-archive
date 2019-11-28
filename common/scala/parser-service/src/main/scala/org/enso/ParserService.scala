@@ -36,7 +36,7 @@ case class ParserService() extends Server with Protocol {
   import Protocol._
 
   def serializeAst(ast: AST.Module): String =
-    ast.asJson.noSpaces
+    ??? //ast.asJson.noSpaces
 
   def runParser(program: String): AST =
     new Parser().run(new Reader(program))
