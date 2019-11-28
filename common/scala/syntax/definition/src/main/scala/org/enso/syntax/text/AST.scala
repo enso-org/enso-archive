@@ -1275,8 +1275,13 @@ object AST {
       * intermediary cache used by some components that are aware of its
       * caveats.
       */
-    def ==[U[S] >: T[S]](rhs: ASTOf[U]): Boolean =
-      this.shape == rhs.shape && this.id == rhs.id
+    override def equals(rhs: Any): Boolean = {
+      rhs match {
+        case rhs: ASTOf[_] =>
+          this.shape == rhs.shape && this.id == rhs.id
+        case _ => false
+      }
+    }
   }
 
   object ASTOf extends AstImplicits {
