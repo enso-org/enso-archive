@@ -35,10 +35,7 @@ case class ParserService() extends Server with Protocol {
   import parserservice._
   import Protocol._
 
-  def serializeAst(ast: AST.Module): String =
-//    ast.jsonWrapper().noSpaces
-//    ast.asJson.noSpaces
-    AST.toJson(ast).noSpaces
+  def serializeAst(ast: AST.Module): String = ast.toJson().noSpaces
 
   def runParser(program: String): AST =
     new Parser().run(new Reader(program))

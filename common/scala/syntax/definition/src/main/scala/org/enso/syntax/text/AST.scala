@@ -8,7 +8,7 @@ import cats.derived._
 import cats.implicits._
 import io.circe.Encoder
 import io.circe.Json
-import io.circe.generic.AutoDerivation
+//import io.circe.generic.AutoDerivation
 import io.circe.generic.auto._
 import org.enso.data.List1._
 import org.enso.data.List1
@@ -19,9 +19,6 @@ import org.enso.data.Size
 import org.enso.data.Span
 import org.enso.data.Tree
 import org.enso.lint.Unused
-import org.enso.syntax.text.AST.ASTOf
-//import org.enso.syntax.text.AST
-//import org.enso.syntax.text.AST.OffsetZip
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
 import org.enso.syntax.text.HasSpan.implicits._
@@ -29,7 +26,7 @@ import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text.ast.meta.Pattern
-import org.enso.syntax.text.AST.Ident.Cons.pool
+//import org.enso.syntax.text.AST.Ident.Cons.pool
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
@@ -1032,8 +1029,6 @@ object Shape extends ShapeImplicit {
 //// AST /////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////
 
-import HasSpan.implicits._
-
 /** =AST=
   *
   * AST is encoded as a simple recursion scheme. See the following links to
@@ -1046,15 +1041,13 @@ import HasSpan.implicits._
   *
   * ==AST Shape==
   *
-  * Every AST node like [[Ident.Var]] or [[App.Prefix]] defines a shape of its
-  * subtree. Shapes extend [[Shape]], are parametrized with a child type,
-  * and follow a simple naming convention - their name is the same as the AST
-  * node name with an additional prefix "Of", like [[Ident.VarOf]], or
-  * [[App.PrefixOf]]. Shapes contain information about names of children and
-  * spacing between them, for example, the [[App.PrefixOf]] shape contains
-  * reference to function being its first child ([[App.PrefixOf.fn]]), spacing
-  * between the function and its argument ([[App.PrefixOf.off]]), and the
-  * argument itself ([[App.PrefixOf.arg]]).
+  * Every AST node like [[AST.Ident.Var]] or [[AST.App.Prefix]] defines a shape
+  * of its subtree. Shapes extend [[Shape]], are parametrized with a child type,
+  * and are defined within the [[Shape]] object. Shapes contain information
+  * about names of children and spacing between them, for example, the
+  * [[Shape.Prefix]] shape contains reference to function being its first child
+  * ([[Shape.Prefix.fn]]), spacing between the function and its argument
+  * ([[Shape.Prefix.off]]), and the argument itself ([[Shape.Prefix.arg]]).
   *
   * ==[[ASTOf]] as Catamorphism==
   *
@@ -1063,30 +1056,31 @@ import HasSpan.implicits._
   * implemented a simple recursion scheme in [[ASTOf]]. Every AST node uses it
   * as the wrapping layer. For example, the most generic AST type, [[AST]] is
   * defined just as an alias to [[(ASTOf[Shape])]]. Every AST node follows
-  * the same scheme, including [[Ident.Var]] being an alias to
-  * [[(ASTOf[Ident.VarOf])]], or [[App.Prefix]] being an alias to
-  * [[(ASTOf[App.PrefixOf])]].
+  * the same scheme, including [[AST.Ident.Var]] being an alias to
+  * [[(ASTOf[Shape.Var])]], or [[AST.App.Prefix]] being an alias to
+  * [[(ASTOf[Shape.Prefix])]].
   *
   * ==[[ASTOf]] as Cofree==
   *
   * [[ASTOf]] adds a layer of additional information to each AST node.
-  * Currently, the information is just an optional [[ID]], however, it may
-  * grow in the future. This design minimizes the necessary boilerplate in
-  * storing repeatable information across AST. Moreover, we can easily make
-  * [[ASTOf]] polymorphic and allow the Syntax Tree to be tagged with
-  * different information in different compilation stages if necessary.
+  *
+  * Currently the additional information include only an optional [[UUID]] and
+  * cached span value, however this set might grow in the future. This design
+  * minimizes the necessary boilerplate in storing repeatable information across
+  * AST. Moreover, we can easily make [[ASTOf]] polymorphic and allow the Syntax
+  * Tree to be tagged with different information in different compilation stages
+  * if necessary.
   *
   * ==[[ASTOf]] as Cache Layer==
   *
-  * When wrapping an element, [[ASTOf]] requires the element to implement
-  * several type classes, including:
+  * Shapes and AST nodes implement several type classes, including:
   * - [[Functor]]   - Defines mapping over every element in a shape.
   * - [[Repr]]      - Defines shape to code translation.
   * - [[OffsetZip]] - Zips every shape element with offset from the left side
   *                   of the shape.
   *
-  * [[ASTOf]] caches the [[Repr]], which contains information about the span.
-  * This way querying AST subtree for it span is always O(1).
+  * [[ASTOf]] caches the span value. This way querying AST subtree for it span
+  * is always O(1).
   *
   * ==[[ASTOf]] as Method Provider==
   *
@@ -1115,8 +1109,8 @@ import HasSpan.implicits._
   * crash at runtime. In order to pattern match on AST type, each AST node
   * provides a special "any" matcher, which results in a type narrowed version
   * of the AST node. For example, `case Var.any(v) => ...` will succeed if the
-  * match was performed on any [[Ident.Var]] and its result `v` will be of
-  * [[Ident.Var]] type. Of course, it is possible to use structural matching
+  * match was performed on any [[AST.Ident.Var]] and its result `v` will be of
+  * [[AST.Ident.Var]] type. Of course, it is possible to use structural matching
   * without any restrictions.
   **/
 object AST {
@@ -1297,7 +1291,7 @@ object AST {
     }
   }
 
-  // FIXME: refactor
+  // FIXME: refactor https://github.com/luna/enso/issues/297
   def addField(base: Json, name: String, value: Json): Json = {
     val obj  = base.asObject.get
     val obj2 = (name, value) +: obj
@@ -1306,8 +1300,9 @@ object AST {
 
   //// ASTOps ////
 
-  /** [[ASTOps]] implements handy AST operations. In contrast to [[ASTClass]],
-    * implementations in this class do not require any special knowledge of the
+  /** [[ASTOps]] implements handy AST operations.
+    *
+    * Implementations in this class do not require any special knowledge of the
     * underlying shape and thus are just a high-level AST addons.
     */
   implicit class AstOps[T[S] <: Shape[S]](t: ASTOf[T])(
@@ -1348,6 +1343,31 @@ object AST {
       }
       ids.reverse
     }
+
+    // Note: JSON serialization subtleties
+    def toJson(): Json = {
+      import io.circe.syntax._
+//      import conversions._
+      val ast: AST = t
+      ast.asJson
+    }
+    /* Note: [JSON Serialization]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
+   * of compile-time resource usage. It adds like 2-4 min to compile time.
+   * For that reason we should only have one place where it is used — and
+   * other places where AST needs to be serialized should use this wrapper.
+   *
+   * Also, it must be placed in this package — having it separate for some
+   * reason increases compile-time memory usage, causing CI builds to fail.
+   * Someone might want to reinvestigate this in future.
+   *
+   * Also, this function definition can't be just "anywhere" in the file, but
+   * near bottom to "properly" see other things.
+   *
+   * When working on this file, it is recommended to temporarily replace
+   * function body with ??? expression to radically improve compiler throughput.
+   */
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -2101,54 +2121,7 @@ object AST {
     val any = UnapplyByType[Foreign]
   }
 
-  //  //// ASTClass ////
-  //
-  //  /** [[ASTClass]] implements set of AST operations based on a precise AST
-  //    * shape. Because the [[T]] parameter in [[ASTOf]] is covariant, we may lose
-  //    * information about the shape after we construct the AST, thus this instance
-  //    * is used to cache all necessary operations during AST construction.
-  //    */
-  //  sealed trait ASTClass[T[_]] {
-  //    def repr(t: T[AST]): Repr.Builder
-  //    def map(t: T[AST])(f: AST => AST): T[AST]
-  //    def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST]
-  //    def zipWithOffset(t: T[AST]): T[(Index, AST)]
-  //    def encode(t: T[AST]): Json
-  //  }
-  //  object ASTClass {
-  //    def apply[T[_]](implicit cls: ASTClass[T]): ASTClass[T] = cls
-  //    implicit def instance[T[S] <: Shape[S]](
-  //                                               implicit
-  //                                               evRepr: Repr[T[AST]],
-  //                                               evFtor: Functor[T],
-  //                                               evOzip: OffsetZip[T, AST]
-  //                                             ): ASTClass[T] =
-  //      new ASTClass[T] {
-  //        def repr(t: T[AST]):               Repr.Builder    = evRepr.repr(t)
-  //        def map(t: T[AST])(f: AST => AST): T[AST]          = Functor[T].map(t)(f)
-  //        def zipWithOffset(t: T[AST]):      T[(Index, AST)] = OffsetZip(t)
-  //        def mapWithOff(t: T[AST])(f: (Index, AST) => AST): T[AST] =
-  //          Functor[T].map(zipWithOffset(t))(f.tupled)
-  //        def encode(t: T[AST]): Json = {
-  //          val shapeEncoder = implicitly[Encoder[Shape[AST]]]
-  //          shapeEncoder(t)
-  //        }
-  //      }
-  //  }
-
-  /////////////////////////////////////////////////
-  /////////////////////////////////////////////////
-  /////////////////////////////////////////////////
-  /////////////////////////////////////////////////
-
-  def toJson(ast: AST): Json = {
-    import io.circe.syntax._
-    import conversions._
-    ast.asJson
-  }
-
   def main() {
-    import io.circe.syntax._
     //    import AST.hhh._
 
     //    import conversions._
