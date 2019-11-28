@@ -1247,8 +1247,11 @@ object AST {
   //////////////////////////////////////////////////////////////////////////////
 
   type Module = ASTOf[ModuleOf]
+
   final case class ModuleOf[T](lines: List1[Block.OptLineOf[T]])
-      extends ShapeOf[T]
+    extends ShapeOf[T] {
+    def setLines(lines: List1[Block.OptLineOf[T]]) = copy(lines = lines)
+  }
 
   object Module {
     import Block._

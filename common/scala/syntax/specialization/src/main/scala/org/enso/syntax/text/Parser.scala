@@ -204,8 +204,7 @@ class Parser {
     currentOffset += ast.indent
     val fixedFirstLine: LineOf[AST] =
       ast.firstLine.map(attachAbsolutePositions(_, currentOffset))
-    currentOffset += fixedFirstLine.elem.span + fixedFirstLine.off +
-    newLineOffset
+    currentOffset += fixedFirstLine.elem.span + fixedFirstLine.off + newLineOffset
     val fixedLines = ast.lines.map { line =>
       if (line.elem.isDefined) {
         currentOffset += ast.indent
