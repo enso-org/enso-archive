@@ -21,7 +21,8 @@ object Repr {
   //// Smart Constructors ////
 
   def apply[T: Repr](t: T): Builder = implicitly[Repr[T]].repr(t)
-  val R                             = Repr.Builder.Empty()
+
+  val R = Repr.Builder.Empty()
 
   //// Operations ////
 

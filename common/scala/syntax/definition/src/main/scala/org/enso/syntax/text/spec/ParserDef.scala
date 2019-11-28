@@ -460,9 +460,8 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     def submitLine(): Unit = logger.trace {
       if (state.current == FMT_LINE || state.current == RAW_LINE || text.lineBuilder.nonEmpty) {
-        val line =
-          Shape.TextBlockLine(text.emptyLines.reverse, text.lineBuilder.reverse)
-        text.lines +:= line
+        val Line = Shape.TextBlockLine
+        text.lines +:= Line(text.emptyLines.reverse, text.lineBuilder.reverse)
         text.lineBuilder = Nil
         text.emptyLines  = Nil
       }

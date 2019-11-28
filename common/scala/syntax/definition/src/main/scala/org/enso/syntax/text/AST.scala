@@ -57,17 +57,14 @@ object HasSpan {
     shifted.off + ev.span(shifted.el)
   }
 
-  implicit def fromOption[T: HasSpan]: HasSpan[Option[T]] = { opt =>
-    opt.map(_.span()).getOrElse(0)
-  }
-
-  implicit def fromShiftedList[T: HasSpan]: HasSpan[List[T]] = { list =>
-    list.map(_.span()).sum
-  }
-
-  implicit def fromList[T: HasSpan]: HasSpan[Shifted.List1[T]] = { list =>
-    list.head.span() + list.tail.span()
-  }
+  implicit def fromOption[T: HasSpan]: HasSpan[Option[T]] =
+    opt => opt.map(_.span()).getOrElse(0)
+  implicit def fromList[T: HasSpan]: HasSpan[List[T]] =
+    list => list.map(_.span()).sum
+  implicit def fromList1[T: HasSpan]: HasSpan[List1[T]] =
+    list => list.toList.span()
+  implicit def fromShiftedList1[T: HasSpan]: HasSpan[Shifted.List1[T]] =
+    list => list.head.span() + list.tail.span()
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -838,7 +835,7 @@ object Shape extends ShapeImplicit {
     implicit def repr[T: Repr]: Repr[Module[T]] =
       t => R + t.lines.head + t.lines.tail.map(Block.newline + _)
     implicit def span[T: HasSpan]: HasSpan[Module[T]] =
-      t => t.lines.foldLeft(0)((acc, optline) => acc + optline.span)
+      t => t.lines.span() + (t.lines.size - 1) * Block.newline.span
   }
 
   object Macro extends IntermediateTrait[Macro] {
