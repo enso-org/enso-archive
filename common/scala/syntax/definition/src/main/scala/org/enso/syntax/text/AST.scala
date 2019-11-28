@@ -867,7 +867,7 @@ object Shape extends ShapeImplicit {
       R + pfxRepr + t.segs
     }
     implicit def span[T: HasSpan]: HasSpan[Match[T]] = { t =>
-      val pfxSpan  = t.span()
+      val pfxSpan  = t.pfx.span()
       val segsSpan = t.segs.span()
       pfxSpan + segsSpan
     }
