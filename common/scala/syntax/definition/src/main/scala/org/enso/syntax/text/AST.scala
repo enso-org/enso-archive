@@ -240,6 +240,10 @@ object AST {
     }
   }
 
+  //////////////////////////
+  //// AbsolutePosition ////
+  //////////////////////////
+
   /**
     * Represents an expression's absolute positioning in a source file.
     * @param start the inclusive, 0-indexed position of the beginning
