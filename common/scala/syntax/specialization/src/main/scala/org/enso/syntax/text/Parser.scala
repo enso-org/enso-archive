@@ -2,19 +2,19 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import org.enso.data.Index
-import org.enso.data.Span
+import cats.{Foldable, Monoid}
+import org.enso.data.{Index, List1, Shifted, Span}
 import org.enso.flexer
 import org.enso.flexer.Reader
+import org.enso.syntax.text.AST.Block.{Line, LineOf, OptLine}
+import org.enso.syntax.text.AST.{AbsolutePosition, App, Module}
 import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.ast.opr.Prec
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.spec.ParserDef
-
-import scala.math.Ordering.Implicits._
-import scala.annotation.tailrec
+import cats.implicits._
 
 ////////////////////////////////
 
@@ -154,13 +154,97 @@ class Parser {
 
   def run(input: Reader): AST.Module = run(input, Nil)
 
-  def run(input: Reader, idMap: IDMap): AST.Module =
-    engine.run(input).map(Macro.run) match {
+  def run(input: Reader, idMap: IDMap): AST.Module = {
+    val tokenStream = engine.run(input)
+    val spanned     = tokenStream.map(attachModuleAbsoluteSpans)
+    spanned.map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
         resolveMacros(mod2).asInstanceOf[AST.Module]
       case _ => throw ParsingFailed
     }
+  }
+
+  /**
+    * Processes an input [[AST.Module]], attaching absolute span information
+    * to it and all its children.
+    */
+  def attachModuleAbsoluteSpans(ast: AST.Module): AST.Module = {
+    val toplevelOffset = 0
+    var currentOffset  = toplevelOffset
+    val newLines: List1[OptLine] = ast.lines.map { line =>
+      val fixedElem      = line.elem.map(attachAbsoluteSpans(_, currentOffset))
+      val fixedLine      = Line(fixedElem, line.off)
+      val expressionSpan = line.elem.map(_.span).getOrElse(0)
+      val lineOffset     = line.off
+      val newLineOffset  = 1
+      currentOffset += expressionSpan + lineOffset + newLineOffset
+      fixedLine
+    }
+    val unspannedModule = Module(newLines)
+    unspannedModule.setPosition(AbsolutePosition(toplevelOffset, ast.span))
+  }
+
+  /**
+    * Processes an AST block, attaching absolute span information to it
+    * and all children.
+    *
+    * @param ast the AST block to mark with absolute positions
+    * @param startOffset the position in the file this AST is located at
+    * @return an AST properly marked with absolute span information
+    */
+  def attachBlockSpans(ast: AST.Block, startOffset: Int): AST.Block = {
+    val blockBeginOffset         = 1
+    val newLineOffset            = 1
+    val emptyLinesNewLinesOffset = ast.emptyLines.length
+    val emptyLinesSpacingOffset  = ast.emptyLines.sum
+    val firstLineOffset = startOffset + blockBeginOffset +
+      emptyLinesNewLinesOffset + emptyLinesSpacingOffset
+    var currentOffset = firstLineOffset
+    currentOffset += ast.indent
+    val fixedFirstLine: LineOf[AST] =
+      ast.firstLine.map(attachAbsoluteSpans(_, currentOffset))
+    currentOffset += fixedFirstLine.elem.span + fixedFirstLine.off +
+    newLineOffset
+    val fixedLines = ast.lines.map { line =>
+      if (line.elem.isDefined) {
+        currentOffset += ast.indent
+      }
+      val fixedLine = line.map(_.map(attachAbsoluteSpans(_, currentOffset)))
+      val elemSpan  = fixedLine.elem.map(_.span).getOrElse(0)
+      currentOffset += elemSpan + fixedLine.off + newLineOffset
+      fixedLine
+    }
+    val unspannedBlock =
+      AST.Block(ast.typ, ast.indent, ast.emptyLines, fixedFirstLine, fixedLines)
+    unspannedBlock.setPosition(
+      AbsolutePosition(startOffset, startOffset + ast.span)
+    )
+  }
+
+  /**
+    * Attaches absolute span information to arbitrary AST.
+    *
+    * [[App.Prefix]] nodes are treated specially, since at the stage this
+    * method is run, we expect a token-stream-like AST, where App nodes act as
+    * list conses.
+    *
+    * @param ast the AST to attach span information to
+    * @param startOffset the absolute offset this AST was encountered at
+    * @return a version of the input AST with the absolute positioning info
+    *         populated
+    */
+  def attachAbsoluteSpans(ast: AST, startOffset: Int): AST = ast match {
+    case App.Prefix.any(app) =>
+      val fixedFn = attachAbsoluteSpans(app.fn, startOffset)
+      val fixedArg =
+        attachAbsoluteSpans(app.arg, startOffset + fixedFn.span + app.off)
+      val fixedApp = App.Prefix(fixedFn, app.off, fixedArg)
+      fixedApp
+    case AST.Block.any(block) => attachBlockSpans(block, startOffset)
+    case _ =>
+      ast.setPosition(AbsolutePosition(startOffset, startOffset + ast.span))
+  }
 
   def annotateModule(
     idMap: IDMap,
@@ -207,12 +291,21 @@ class Parser {
     }
 
   /** Drops macros metadata keeping only resolved macros in the AST.
-    * WARNING: this transformation drops the information about AST spacing.
+    * WARNING: this transformation drops the relative information about AST
+    * spacing, while the absolute positioning is preserved.
     */
   def dropMacroMeta(ast: AST.Module): AST.Module = {
     def go: AST => AST = {
-      case AST.Macro.Match.any(t) => go(t.resolved)
-      case t                      => t.map(go)
+      case AST.Macro.Match.any(t) => {
+        val prefix           = t.pfx.toList.flatMap(_.toStream.map(_.el))
+        val segments         = t.segs.toList().flatMap(_.el.toStream.map(_.el))
+        val originalSegments = prefix ++ segments
+        val originalSpan =
+          Foldable[List].foldMap(originalSegments)(_.absolutePosition)
+        val resolved = t.resolved.setPosition(originalSpan)
+        go(resolved)
+      }
+      case t => t.map(go)
     }
     ast.map(go)
   }
@@ -241,7 +334,7 @@ object Parser {
 //// Main ////
 //////////////
 
-object Main extends App {
+object Main extends scala.App {
 
   println("--- START ---")
 
