@@ -271,6 +271,11 @@ object Pattern {
       s3
     }
 
+    import HasSpan.implicits._
+    implicit def span[T: HasSpan]: HasSpan[MatchOf[T]] = t => {
+      t.toStream.span()
+    }
+
     val M = Match
     // format: off
     def mapWithOff[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T): MatchOf[T] =

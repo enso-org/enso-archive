@@ -21,8 +21,9 @@ class ParserTest extends FlatSpec with Matchers {
   }
 
   def assertExpr(input: String, result: AST): Assertion = {
-    val parser  = Parser()
-    val module  = parser.run(new Reader(input))
+    val parser = Parser()
+    val module = parser.run(new Reader(input))
+    assert(new Reader(input).toString().length == module.span)
     val rmodule = parser.dropMacroMeta(module)
     val tail    = module.lines.tail
     if (!tail.forall(_.elem.isEmpty)) fail("Multi-line block")

@@ -57,11 +57,22 @@ object HasSpan {
     shifted.off + ev.span(shifted.el)
   }
 
-  // FIXME consider if this is any good, if `span` collides with List method
-  implicit def fromStream[T: HasSpan]: HasSpan[AST.StreamOf[T]] = { stream =>
-    val ev: HasSpan[Shifted[T]] = fromShifted
-    stream.foldLeft(0)((acc, sast) => acc + ev.span(sast))
+  implicit def fromOption[T: HasSpan]: HasSpan[Option[T]] = { opt =>
+    opt.map(_.span).getOrElse(0)
   }
+
+  implicit def fromShiftedList[T: HasSpan]: HasSpan[List[T]] = { list =>
+    list.map(_.span).sum
+  }
+
+  implicit def fromList[T: HasSpan]: HasSpan[Shifted.List1[T]] = { list =>
+    list.head.span() + list.tail.span()
+  }
+//
+//  implicit def fromStream[T: HasSpan]: HasSpan[AST.StreamOf[T]] = { stream =>
+//    val ev: HasSpan[Shifted[T]] = fromShifted
+//    stream.foldLeft(0)((acc, sast) => acc + ev.span(sast))
+//  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -405,7 +416,7 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T: HasSpan]: OffsetZip[Unexpected, T] =
       t => t.copy(stream = OffsetZip(t.stream))
     implicit def span[T: HasSpan]: HasSpan[Unexpected[T]] =
-      t => HasSpan.fromStream[T].span(t.stream)
+      t => t.stream.span()
   }
   object Ident {
     implicit def ftor: Functor[Ident]    = semi.functor
@@ -516,12 +527,15 @@ object Shape extends ShapeImplicit {
     implicit def ftor: Functor[TextUnclosed]  = semi.functor
     implicit def fold: Foldable[TextUnclosed] = semi.foldable
     implicit def repr[T: Repr]: Repr[TextUnclosed[T]] = {
-      case TextUnclosed(t: TextLineRaw[T]) => t.repr
-      case TextUnclosed(t: TextLineFmt[T]) => t.repr
+      case TextUnclosed(t: TextLineRaw[T]) => t.quote + t.text
+      case TextUnclosed(t: TextLineFmt[T]) => t.quote + t.text
     }
     implicit def ozip[T: HasSpan]: OffsetZip[TextUnclosed, T] =
       t => t.copy(line = OffsetZip(t.line))
-    implicit def span[T: HasSpan]: HasSpan[TextUnclosed[T]] = _.line.span
+    implicit def span[T: HasSpan]: HasSpan[TextUnclosed[T]] = {
+      case TextUnclosed(t: TextLineRaw[T]) => t.quote.span + t.text.span()
+      case TextUnclosed(t: TextLineFmt[T]) => t.quote.span + t.text.span()
+    }
   }
   object InvalidQuote {
     implicit def ftor: Functor[InvalidQuote]          = semi.functor
@@ -585,6 +599,10 @@ object Shape extends ShapeImplicit {
   object TextBlock {
     def line[T: Repr](off: Int, l: TextBlockLine[SegmentFmt[T]]): Builder =
       R + l.emptyLines.map(Block.newline + _) + Block.newline + off + l.text
+    def lineSpan[T: HasSpan](off: Int, l: TextBlockLine[SegmentFmt[T]]): Int = {
+      val emptyLinesSpan = l.emptyLines.map(Block.newline.span + _).sum
+      emptyLinesSpan + Block.newline.span + off + l.text.span()
+    }
 
     implicit def ftor: Functor[TextBlock]  = semi.functor
     implicit def fold: Foldable[TextBlock] = semi.foldable
@@ -610,7 +628,10 @@ object Shape extends ShapeImplicit {
     implicit def repr[T: Repr]: Repr[TextBlockRaw[T]] =
       t => t.quote + t.spaces + t.text.map(TextBlock.line(t.offset, _))
     implicit def ozip[T: HasSpan]: OffsetZip[TextBlockRaw, T] = t => t.coerce
-    implicit def span[T]: HasSpan[TextBlockRaw[T]]            = ??? //_.str.length
+    implicit def span[T: HasSpan]: HasSpan[TextBlockRaw[T]] = { t =>
+      val linesSpan = t.text.map(TextBlock.lineSpan(t.offset, _)).sum
+      t.quote.span + t.spaces + linesSpan
+    }
   }
 
   object TextBlockFmt {
@@ -626,14 +647,17 @@ object Shape extends ShapeImplicit {
           offset += Size(1 + body.offset)
           val text = for (elem <- line.text) yield {
             val offElem = elem.map(offset -> _)
-            offset += Size(elem.span)
+            offset += Size(elem.span())
             offElem
           }
           line.copy(text = text)
         }
       body.copy(text = text)
     }
-    implicit def span[T]: HasSpan[TextBlockFmt[T]] = ??? //_.str.length
+    implicit def span[T: HasSpan]: HasSpan[TextBlockFmt[T]] = { t =>
+      val linesSpan = t.text.map(TextBlock.lineSpan(t.offset, _)).sum
+      t.quote.span + t.spaces + linesSpan
+    }
   }
 
   object Segment {
@@ -647,7 +671,7 @@ object Shape extends ShapeImplicit {
       case t: SegmentRaw[T] => OffsetZip(t)
       case t: SegmentFmt[T] => OffsetZip(t)
     }
-    implicit def span[T]: HasSpan[Segment[T]] = ??? //_.str.length
+    implicit def span[T]: HasSpan[Segment[T]] = _ => 0 //_.str.length
   }
   object SegmentFmt {
     implicit def ftor[T]: Functor[SegmentFmt] = semi.functor
@@ -795,7 +819,18 @@ object Shape extends ShapeImplicit {
       }
       t.copy(firstLine = line, lines = lines)
     }
-    implicit def span[T: HasSpan]: HasSpan[Block[T]] = ??? // FIXME
+    implicit def span[T: HasSpan]: HasSpan[Block[T]] = t => {
+      val headSpan       = if (t.isOrphan) 0 else 1
+      val emptyLinesSpan = t.emptyLines.map(_ + 1).sum
+      val firstLineSpan  = t.indent + t.firstLine.span()
+      def lineSpan(line: Shape.Block.OptLine[T]): Int = {
+        val newlineSpan = 1
+        val indentSpan  = if (line.elem.isDefined) t.indent else 0
+        newlineSpan + indentSpan + line.span()
+      }
+      val linesSpan = t.lines.map(lineSpan).sum
+      headSpan + emptyLinesSpan + firstLineSpan + linesSpan
+    }
 
     /// Utils ///
     val newline = R + '\n'
@@ -841,7 +876,7 @@ object Shape extends ShapeImplicit {
       t.copy(segs = t.segs.map { seg =>
         OffsetZip(seg).map(_.map(_.map(s => {
           val loff = off
-          off = s._2.span
+          off = s._2.span()
           (s._1 + Size(loff), s._2)
         })))
       })
@@ -853,7 +888,11 @@ object Shape extends ShapeImplicit {
       //val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
       R + pfxRepr + t.segs
     }
-    implicit def span[T: HasSpan]: HasSpan[Match[T]] = ??? // FIXME
+    implicit def span[T: HasSpan]: HasSpan[Match[T]] = { t =>
+      t.pfx
+        .map(_.span())
+        .getOrElse(0) + t.segs.head.span() + t.segs.tail.span()
+    }
 
     /// Segment ///
     final case class Segment[T](
@@ -875,6 +914,8 @@ object Shape extends ShapeImplicit {
           case (i, s) => s.map((i + Size(t.head.span), _))
         })
       }
+      implicit def span[T: HasSpan]: HasSpan[Segment[T]] =
+        t => t.head.span + t.body.span
 
       def apply[T](head: AST.Ident): Shape.Match.Segment[T] =
         Shape.Match.Segment(head, Pattern.Match.Nothing())
@@ -886,7 +927,7 @@ object Shape extends ShapeImplicit {
     implicit def fold: Foldable[Ambiguous]               = semi.foldable
     implicit def repr[T]: Repr[Ambiguous[T]]             = t => R + t.segs.map(Repr(_))
     implicit def ozip[T]: OffsetZip[Ambiguous, T]        = _.map(Index.Start -> _)
-    implicit def span[T: HasSpan]: HasSpan[Ambiguous[T]] = ??? // FIXME
+    implicit def span[T: HasSpan]: HasSpan[Ambiguous[T]] = _ => 0 // FIXME
 
     final case class Segment(head: AST.AST, body: Option[AST.SAST])
     object Segment {
@@ -1226,6 +1267,16 @@ object AST {
   ) {
     def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
     def withNewID(): ASTOf[T]      = copy(id = Some(UUID.randomUUID()))
+
+    /** Compares ignoring cached span value.
+      *
+      * Cached span values become invalid e.g. after macros are resolved.
+      * Also, they are not really a part data information, they are more like
+      * intermediary cache used by some components that are aware of its
+      * caveats.
+      */
+    def ==[U[S] >: T[S]](rhs: ASTOf[U]): Boolean =
+      this.shape == rhs.shape && this.id == rhs.id
   }
 
   object ASTOf extends AstImplicits {
