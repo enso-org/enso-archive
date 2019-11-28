@@ -176,19 +176,17 @@ sealed trait ShapeImplicit {
     case s: InlineBlock[T]   => OffsetZip[InlineBlock, T].zipWithOffset(s)
     case s: TextLineRaw[T]   => OffsetZip[TextLineRaw, T].zipWithOffset(s)
     case s: TextLineFmt[T]   => OffsetZip[TextLineFmt, T].zipWithOffset(s)
-    case s: TextBlockRaw[T] =>
-      OffsetZip[TextBlockRaw, T].zipWithOffset(s) // TODO
-    case s: TextBlockFmt[T] =>
-      OffsetZip[TextBlockFmt, T].zipWithOffset(s) // TODO
-    case s: Prefix[T]       => OffsetZip[Prefix, T].zipWithOffset(s)
-    case s: Infix[T]        => OffsetZip[Infix, T].zipWithOffset(s)
-    case s: SectionLeft[T]  => OffsetZip[SectionLeft, T].zipWithOffset(s)
-    case s: SectionRight[T] => OffsetZip[SectionRight, T].zipWithOffset(s)
-    case s: SectionSides[T] => OffsetZip[SectionSides, T].zipWithOffset(s)
-    case s: Block[T]        => OffsetZip[Block, T].zipWithOffset(s)
-    case s: Module[T]       => OffsetZip[Module, T].zipWithOffset(s)
-    case s: Ambiguous[T]    => OffsetZip[Ambiguous, T].zipWithOffset(s)
-    case s: Match[T]        => OffsetZip[Match, T].zipWithOffset(s)
+    case s: TextBlockRaw[T]  => OffsetZip[TextBlockRaw, T].zipWithOffset(s)
+    case s: TextBlockFmt[T]  => OffsetZip[TextBlockFmt, T].zipWithOffset(s)
+    case s: Prefix[T]        => OffsetZip[Prefix, T].zipWithOffset(s)
+    case s: Infix[T]         => OffsetZip[Infix, T].zipWithOffset(s)
+    case s: SectionLeft[T]   => OffsetZip[SectionLeft, T].zipWithOffset(s)
+    case s: SectionRight[T]  => OffsetZip[SectionRight, T].zipWithOffset(s)
+    case s: SectionSides[T]  => OffsetZip[SectionSides, T].zipWithOffset(s)
+    case s: Block[T]         => OffsetZip[Block, T].zipWithOffset(s)
+    case s: Module[T]        => OffsetZip[Module, T].zipWithOffset(s)
+    case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
+    case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
     // spaceless
     case s: Comment[T]    => OffsetZip[Comment, T].zipWithOffset(s)
     case s: Documented[T] => OffsetZip[Documented, T].zipWithOffset(s)
@@ -200,40 +198,40 @@ sealed trait ShapeImplicit {
   }
 
   implicit def span[T: HasSpan]: HasSpan[Shape[T]] = {
-    case s: Unrecognized[T]  => s.span
-    case s: Unexpected[T]    => s.span
-    case s: Blank[T]         => s.span
-    case s: Var[T]           => s.span
-    case s: Cons[T]          => s.span
-    case s: Opr[T]           => s.span
-    case s: Mod[T]           => s.span
-    case s: InvalidSuffix[T] => s.span
-    case s: Number[T]        => s.span
-    case s: DanglingBase[T]  => s.span
-    case s: TextUnclosed[T]  => s.span
-    case s: InvalidQuote[T]  => s.span
-    case s: InlineBlock[T]   => s.span
-    case s: TextLineRaw[T]   => s.span
-    case s: TextLineFmt[T]   => s.span
-    case s: TextBlockRaw[T]  => s.span
-    case s: TextBlockFmt[T]  => s.span
-    case s: Prefix[T]        => s.span
-    case s: Infix[T]         => s.span
-    case s: SectionLeft[T]   => s.span
-    case s: SectionRight[T]  => s.span
-    case s: SectionSides[T]  => s.span
-    case s: Block[T]         => s.span
-    case s: Module[T]        => s.span
-    case s: Ambiguous[T]     => s.span
-    case s: Match[T]         => s.span
+    case s: Unrecognized[T]  => s.span()
+    case s: Unexpected[T]    => s.span()
+    case s: Blank[T]         => s.span()
+    case s: Var[T]           => s.span()
+    case s: Cons[T]          => s.span()
+    case s: Opr[T]           => s.span()
+    case s: Mod[T]           => s.span()
+    case s: InvalidSuffix[T] => s.span()
+    case s: Number[T]        => s.span()
+    case s: DanglingBase[T]  => s.span()
+    case s: TextUnclosed[T]  => s.span()
+    case s: InvalidQuote[T]  => s.span()
+    case s: InlineBlock[T]   => s.span()
+    case s: TextLineRaw[T]   => s.span()
+    case s: TextLineFmt[T]   => s.span()
+    case s: TextBlockRaw[T]  => s.span()
+    case s: TextBlockFmt[T]  => s.span()
+    case s: Prefix[T]        => s.span()
+    case s: Infix[T]         => s.span()
+    case s: SectionLeft[T]   => s.span()
+    case s: SectionRight[T]  => s.span()
+    case s: SectionSides[T]  => s.span()
+    case s: Block[T]         => s.span()
+    case s: Module[T]        => s.span()
+    case s: Ambiguous[T]     => s.span()
+    case s: Match[T]         => s.span()
     // spaceless
-    case s: Comment[T]    => s.span
-    case s: Documented[T] => s.span
-    case s: Import[T]     => s.span
-    case s: Mixfix[T]     => s.span
-    case s: Group[T]      => s.span
-    case s: Def[T]        => s.span
-    case s: Foreign[T]    => s.span
+    case s: Comment[T]    => s.span()
+    case s: Documented[T] => s.span()
+    case s: Import[T]     => s.span()
+    case s: Mixfix[T]     => s.span()
+    case s: Group[T]      => s.span()
+    case s: Def[T]        => s.span()
+    case s: Foreign[T]    => s.span()
   }
 }
 
@@ -627,11 +625,14 @@ object Shape extends ShapeImplicit {
       case t: SegmentRaw[T] => Repr(t)
       case t: SegmentFmt[T] => Repr(t)
     }
-    implicit def ozip[T]: OffsetZip[Segment, T] = {
+    implicit def ozip[T: HasSpan]: OffsetZip[Segment, T] = {
       case t: SegmentRaw[T] => OffsetZip(t)
       case t: SegmentFmt[T] => OffsetZip(t)
     }
-    implicit def span[T]: HasSpan[Segment[T]] = _ => 0 //_.str.length
+    implicit def span[T: HasSpan]: HasSpan[Segment[T]] = {
+      case t: SegmentRaw[T] => t.span()
+      case t: SegmentFmt[T] => t.span()
+    }
   }
   object SegmentFmt {
     implicit def ftor[T]: Functor[SegmentFmt] = semi.functor
@@ -863,13 +864,12 @@ object Shape extends ShapeImplicit {
       import AST.ASTOf._
       val pfxStream = t.pfx.map(_.toStream.reverse).getOrElse(List())
       val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
-      //val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
       R + pfxRepr + t.segs
     }
     implicit def span[T: HasSpan]: HasSpan[Match[T]] = { t =>
-      t.pfx
-        .map(_.span())
-        .getOrElse(0) + t.segs.head.span() + t.segs.tail.span()
+      val pfxSpan  = t.span()
+      val segsSpan = t.segs.span()
+      pfxSpan + segsSpan
     }
 
     /// Segment ///
@@ -905,12 +905,13 @@ object Shape extends ShapeImplicit {
     implicit def fold: Foldable[Ambiguous]               = semi.foldable
     implicit def repr[T]: Repr[Ambiguous[T]]             = t => R + t.segs.map(Repr(_))
     implicit def ozip[T]: OffsetZip[Ambiguous, T]        = _.map(Index.Start -> _)
-    implicit def span[T: HasSpan]: HasSpan[Ambiguous[T]] = _ => 0 // FIXME
+    implicit def span[T: HasSpan]: HasSpan[Ambiguous[T]] = t => t.segs.span()
 
     final case class Segment(head: AST.AST, body: Option[AST.SAST])
     object Segment {
-      def apply(head: AST.AST): Segment = Segment(head, None)
-      implicit def repr: Repr[Segment]  = t => R + t.head + t.body
+      def apply(head: AST.AST): Segment   = Segment(head, None)
+      implicit def repr: Repr[Segment]    = t => R + t.head + t.body
+      implicit def span: HasSpan[Segment] = t => t.head.span() + t.body.span()
     }
   }
 
