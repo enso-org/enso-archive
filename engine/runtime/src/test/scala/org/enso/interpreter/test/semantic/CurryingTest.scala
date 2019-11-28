@@ -47,6 +47,15 @@ class CurryingTest extends InterpreterTest {
   }
 
   "Test" should "testy" in {
+    // TODO [AA] Do we handle lazy defaults properly?
+    val tmp =
+      """
+        |# Assume that `sideEffect2` observes something done by `sideEffect`
+        |fn a b (~c = sideEffect a) d (e = sideEffect2 c)
+        |
+        |(fn x y ...) (d = z)
+        |""".stripMargin
+
     pending
     val code =
       """

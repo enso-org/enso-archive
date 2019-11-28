@@ -75,6 +75,17 @@ class LazyArgumentsTest extends InterpreterTest {
         |}
         |""".stripMargin
     evalOld(code)
-    consumeOut shouldEqual List("1","4")
+    consumeOut shouldEqual List("1", "4")
+  }
+
+  subject should "work properly with defaulted arguments" in {
+    val code =
+      """
+        |@{
+        |  { |a, $b = (@throw [Panic, "Panic"])| a }
+        |}
+        |""".stripMargin
+    evalOld(code).call(1) shouldEqual 1
+    noException should be thrownBy evalOld(code).call(1)
   }
 }

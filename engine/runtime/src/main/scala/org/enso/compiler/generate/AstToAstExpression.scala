@@ -9,12 +9,16 @@ import org.enso.syntax.text.AST
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
 //  but it was thought best to land in increments where possible.
 
+// TODO [AA} Things that will need to be done at later stages:
+//  - Retain information about groups for diagnostics and desugarings
+
 // TODO [Generic]
 //  - Laziness markers (~) as temporary marker
 //  - Groups
 //  - String literals
-//  - Do not execute defaults (..)
+//  - Do not execute defaults (...) only at the end of args
 //  - Remove evalOld / rewrite benchmarks to new syntax
+//  - Translate if-then-else to ifZero for now
 //  - Suspended blocks
 //  - Type signatures
 

@@ -9,7 +9,7 @@ import org.enso.interpreter.*;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
-import org.enso.interpreter.node.callable.ForceNodeGen;
+import org.enso.interpreter.node.callable.thunk.ForceNodeGen;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;

@@ -19,78 +19,70 @@ class ConstructorsTest extends InterpreterTest {
   "Recursion with pattern matching" should "terminate" in {
     val testCode =
       """
-        |@{
-        |  genList = { |i| @ifZero [i, Nil, @Cons [i, @genList [i-1]]] };
-        |  sumList = { |list| match list <
-        |    Cons ~ { |h, t| h + (@sumList [t]) };
-        |    Nil  ~ { 0 };
-        |  >};
-        |  res = @sumList [@genList [10]];
-        |  res
-        |}
+        |genList = i -> ifZero i Nil (Cons i (genList (i - 1)))
+        |sumList = list -> case list of
+        |  Cons h t -> h + sumList t
+        |  Nil -> 0
+        |
+        |sumList (genList 10)
       """.stripMargin
-    evalOld(testCode) shouldEqual 55
+    eval(testCode) shouldEqual 55
   }
 
   "Pattern match expression" should "behave correctly in non-tail positions" in {
     val testCode =
       """
-        |{
-        |  add = { |x, y| x + y };
-        |  testCons = @Cons [1,2];
-        |  result = match testCons <
-        |    Cons ~ { |x, y| @add [x,y] };
-        |  >;
-        |  result + 1
-        |}
+        |add = x y -> x + y
+        |testCons = Cons 1 2
+        |
+        |result = case testCons of
+        |  Cons x y -> add x y
+        |
+        |result + 1
       """.stripMargin
-    evalOld(testCode).execute() shouldEqual 4
+    eval(testCode) shouldEqual 4
   }
 
   "Pattern match expressions" should "accept a catch-all fallback clause" in {
+    // TODO [AA] Once we can desugar `_` ignores for pattern matches they should
+    //  be used here.
     val testCode =
       """
-        |{
-        |  nil = Nil;
-        |  match nil <
-        |    Cons ~ { 0 };
-        |    { 1 };
-        |  >
-        |}
+        |nil = Nil
+        |
+        |case nil of
+        |  Cons h t -> 0
+        |  _ -> 1
       """.stripMargin
-    evalOld(testCode).execute() shouldEqual 1
+    eval(testCode) shouldEqual 1
   }
 
   "Pattern match expressions" should "throw an exception when match fails" in {
     val testCode =
       """
-        |{
-        |  nil = Nil;
-        |  match nil <
-        |    Cons ~ { 0 };
-        |  >
-        |}
+        |nil = Nil
+        |case nil of
+        |  Cons h t -> 0
       """.stripMargin
-    the[InterpreterException] thrownBy evalOld(testCode)
+    the[InterpreterException] thrownBy eval(testCode)
       .call() should have message "Inexhaustive pattern match."
   }
 
   "Constructor definitions" should "be usable in code, with arbitrary definition order" in {
     val testCode =
       """
-        |type Cons2 a b;
+        |type Cons2 a b
         |
-        |Unit.genList = { |i| @ifZero [i, Nil2, @Cons2 [i, @genList [Unit, i-1]]] }
+        |Unit.genList = i -> ifZero i Nil2 (Cons2 i (genList Unit (i - 1)))
         |
-        |type Nil2;
+        |type Nil2
         |
-        |Unit.sumList = { |list| match list <
-        |  Cons2 ~ { |a, b| a + @sumList [Unit, b] };
-        |  Nil2 ~ { 0 };
-        |>}
+        |Unit.sumList = list -> case list of
+        |  Cons2 h t -> h + sumList Unit t
+        |  Nil2 -> 0
         |
-        |@sumList [Unit, @genList [Unit, 10]]
+        |sumList Unit (genList Unit 10)
       """.stripMargin
-    evalOld(testCode) shouldEqual 55
+    eval(testCode) shouldEqual 55
   }
 }
