@@ -3,7 +3,13 @@ package org.enso.compiler.generate
 import org.enso.compiler.core
 import org.enso.compiler.core._
 import org.enso.compiler.exception.UnhandledEntity
+import cats.Foldable
+import org.enso.compiler.core.IR
+import org.enso.compiler.exception.UnhandledEntity
+import org.enso.interpreter._
+import org.enso.syntax.text.AST.Location
 import org.enso.syntax.text.{AST, Debug}
+import cats.implicits._
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
@@ -64,7 +70,7 @@ object AstToAstExpression {
         val defExpression = translateExpression(definition)
         val defExpr: AstFunction = defExpression match {
           case fun: AstFunction => fun
-          case expr             => AstFunction(List(), expr)
+          case expr             => AstFunction(expr.location, List(), expr)
         }
         AstMethodDef(path, nameStr, defExpr)
       case _ =>
@@ -79,7 +85,7 @@ object AstToAstExpression {
           throw new RuntimeException("Only base 10 is currently supported")
         }
 
-        AstLong(number.toLong)
+        AstLong(literal.location, number.toLong)
       }
 //      case AST.Literal.Text.any(literal) =>
       case _ => throw new UnhandledEntity(literal, "processLiteral")
@@ -105,11 +111,13 @@ object AstToAstExpression {
   }
 
   def translateMethodCall(
+    location: Option[Location],
     target: AST,
     ident: AST.Ident,
     args: List[AST]
   ): AstExpression = {
     AstApply(
+      location,
       translateExpression(ident),
       (target :: args).map(translateCallArgument),
       false
@@ -131,6 +139,7 @@ object AstToAstExpression {
         val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
 
         AstApply(
+          application.location,
           translateExpression(name),
           validArguments.map(translateCallArgument),
           hasDefaultsSuspended
@@ -138,13 +147,14 @@ object AstToAstExpression {
       case AstView.Lambda(args, body) =>
         val realArgs = args.map(translateArgumentDefinition)
         val realBody = translateExpression(body)
-        AstFunction(realArgs, realBody)
+        AstFunction(application.location, realArgs, realBody)
       case AST.App.Infix(left, fn, right) =>
         // FIXME [AA] We should accept all ops when translating to core
         val validInfixOps = List("+", "/", "-", "*", "%")
 
         if (validInfixOps.contains(fn.name)) {
           AstArithOp(
+            application.location,
             fn.name,
             translateExpression(left),
             translateExpression(right)
@@ -164,8 +174,8 @@ object AstToAstExpression {
   def translateIdent(identifier: AST.Ident): AstExpression = {
     identifier match {
 //      case AST.Ident.Blank(_) => throw new UnhandledEntity("Blank") IR.Identifier.Blank()
-      case AST.Ident.Var(name)  => AstVariable(name)
-      case AST.Ident.Cons(name) => AstVariable(name)
+      case AST.Ident.Var(name)  => AstVariable(identifier.location, name)
+      case AST.Ident.Cons(name) => AstVariable(identifier.location, name)
 //      case AST.Ident.Opr.any(identifier) => processIdentOperator(identifier)
 //      case AST.Ident.Mod(name) => IR.Identifier.Module(name)
       case _ =>
@@ -173,9 +183,14 @@ object AstToAstExpression {
     }
   }
 
-  def translateAssignment(name: AST, expr: AST): AstAssignment = {
+  def translateAssignment(
+    location: Option[Location],
+    name: AST,
+    expr: AST
+  ): AstAssignment = {
     name match {
-      case AST.Ident.Var(name) => AstAssignment(name, translateExpression(expr))
+      case AST.Ident.Var(name) =>
+        AstAssignment(location, name, translateExpression(expr))
       case _ =>
         throw new UnhandledEntity(name, "translateAssignment")
     }
@@ -206,9 +221,10 @@ object AstToAstExpression {
 
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
-      case AstView.Assignment(name, expr) => translateAssignment(name, expr)
+      case AstView.Assignment(name, expr) =>
+        translateAssignment(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>
-        translateMethodCall(target, name, args)
+        translateMethodCall(inputAST.location, target, name, args)
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
         val nonFallbackBranches =
@@ -226,7 +242,11 @@ object AstToAstExpression {
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
-        AstBlock(lines.map(translateExpression), translateExpression(retLine))
+        AstBlock(
+          inputAST.location,
+          lines.map(translateExpression),
+          translateExpression(retLine)
+        )
       case _ =>
         throw new UnhandledEntity(inputAST, "translateExpression")
     }
@@ -283,7 +303,14 @@ object AstToAstExpression {
         val block = expressions match {
           case List()     => None
           case List(expr) => Some(expr)
-          case _          => Some(AstBlock(expressions.dropRight(1), expressions.last))
+          case _ =>
+            Some(
+              AstBlock(
+                Foldable[List].foldMap(expressions)(_.location),
+                expressions.dropRight(1),
+                expressions.last
+              )
+            )
         }
         core.AstModuleScope(imports, statements, block)
       }
