@@ -97,4 +97,20 @@ class GlobalScopeTest extends InterpreterTest {
     an[InterpreterException] should be thrownBy eval(code)
   }
 
+  "Suspended blocks" should "work properly in the global scope" in {
+    pending
+    val code =
+      """
+        |myFun =
+        |  IO.println 10
+        |  0
+        |
+        |IO.println 5
+        |myFun.call
+        |""".stripMargin
+
+    eval(code) shouldEqual 0
+    consumeOut shouldEqual List("5", "10")
+  }
+
 }

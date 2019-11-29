@@ -84,8 +84,9 @@ object AstView {
     def unapply(ast: AST): Option[AST] = {
       ast match {
         case MaybeParensed(
-          AST.App.Section.Right(AST.Ident.Opr("~"), ast)
-        ) => Some(ast)
+            AST.App.Section.Right(AST.Ident.Opr("~"), ast)
+            ) =>
+          Some(ast)
         case _ => None
       }
     }
@@ -103,11 +104,12 @@ object AstView {
 
   object FunctionParam {
     def unapply(ast: AST): Option[AST] = ast match {
-      case AssignedArgument(_, _) => Some(ast)
-      case DefinitionArgument(_)  => Some(ast)
-      case PatternMatch(_, _)     => Some(ast)
-      case LazyArgument(_)        => Some(ast)
-      case _                      => None
+      case LazyAssignedArgument(_, _) => Some(ast)
+      case AssignedArgument(_, _)     => Some(ast)
+      case DefinitionArgument(_)      => Some(ast)
+      case PatternMatch(_, _)         => Some(ast)
+      case LazyArgument(_)            => Some(ast)
+      case _                          => None
     }
   }
 
@@ -150,6 +152,21 @@ object AstView {
   object AssignedArgument {
     def unapply(ast: AST): Option[(AST.Ident.Var, AST)] =
       MaybeParensed.unapply(ast).flatMap(Assignment.unapply)
+  }
+
+  object LazyAssignedArgument {
+    def unapply(ast: AST): Option[(AST.Ident.Var, AST)] = {
+      ast match {
+        case MaybeParensed(
+            Binding(
+              AST.App.Section.Right(AST.Ident.Opr("~"), AST.Ident.Var.any(v)),
+              r
+            )
+            ) =>
+          Some((v, r))
+        case _ => None
+      }
+    }
   }
 
   object DefinitionArgument {

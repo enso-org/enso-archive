@@ -19,13 +19,11 @@ import cats.implicits._
 //  - Retain information about groups for diagnostics and desugarings
 
 // TODO [Generic]
-//  - Laziness markers (~) as temporary marker
+//  - Suspended blocks
 //  - Groups
 //  - String literals
-//  - Do not execute defaults (...) only at the end of args
 //  - Remove evalOld / rewrite benchmarks to new syntax
 //  - Translate if-then-else to ifZero for now
-//  - Suspended blocks
 //  - Type signatures
 //  - Import Tests
 
@@ -87,7 +85,10 @@ object AstToAstExpression {
 
         AstLong(literal.location, number.toLong)
       }
-//      case AST.Literal.Text.any(literal) =>
+      case AST.Literal.Text.any(literal) =>
+        println("===== TEXT =====")
+        println(Debug.pretty(literal.toString))
+        ???
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
   }
@@ -97,6 +98,14 @@ object AstToAstExpression {
     isSuspended: Boolean = false
   ): AstArgDefinition = {
     arg match {
+      case AstView.LazyAssignedArgument(name, value) =>
+        AstArgDefinition(
+          name.name,
+          Some(translateExpression(value)),
+          true
+        )
+      case AstView.LazyArgument(arg) =>
+        translateArgumentDefinition(arg, isSuspended = true)
       case AstView.DefinitionArgument(arg) =>
         AstArgDefinition(arg.name, None, isSuspended)
       case AstView.AssignedArgument(name, value) =>
@@ -105,10 +114,8 @@ object AstToAstExpression {
           Some(translateExpression(value)),
           isSuspended
         )
-      case AstView.LazyArgument(arg) =>
-        translateArgumentDefinition(arg, isSuspended = true)
       case _ =>
-        throw new UnhandledEntity(arg, "translateDefinitionArgument")
+        throw new UnhandledEntity(arg, "translateArgumentDefinition")
     }
   }
 
