@@ -80,7 +80,18 @@ object AstView {
     }
   }
 
-  object LazyArg {
+  object ForcedTerm {
+    def unapply(ast: AST): Option[AST] = {
+      ast match {
+        case MaybeParensed(
+          AST.App.Section.Right(AST.Ident.Opr("~"), ast)
+        ) => Some(ast)
+        case _ => None
+      }
+    }
+  }
+
+  object LazyArgument {
     def unapply(ast: AST): Option[AST] = ast match {
       case MaybeParensed(
           AST.App.Section.Right(AST.Ident.Opr("~"), FunctionParam(arg))
@@ -95,7 +106,7 @@ object AstView {
       case AssignedArgument(_, _) => Some(ast)
       case DefinitionArgument(_)  => Some(ast)
       case PatternMatch(_, _)     => Some(ast)
-      case LazyArg(_)             => Some(ast)
+      case LazyArgument(_)        => Some(ast)
       case _                      => None
     }
   }

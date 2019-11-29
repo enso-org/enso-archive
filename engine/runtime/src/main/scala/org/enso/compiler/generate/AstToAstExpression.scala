@@ -61,7 +61,7 @@ object AstToAstExpression {
         if (body.isDefined) {
           throw new RuntimeException("Cannot support complex type defs yet!!!!")
         } else {
-          AstTypeDef(consName.name, args.map(translateArgumentDefinition))
+          AstTypeDef(consName.name, args.map(translateArgumentDefinition(_)))
         }
       case AstView.MethodDefinition(targetPath, name, definition) =>
         val path =
@@ -92,13 +92,21 @@ object AstToAstExpression {
     }
   }
 
-  def translateArgumentDefinition(arg: AST): AstArgDefinition = {
-    // TODO [AA] Do this properly
+  def translateArgumentDefinition(
+    arg: AST,
+    isSuspended: Boolean = false
+  ): AstArgDefinition = {
     arg match {
       case AstView.DefinitionArgument(arg) =>
-        AstArgDefinition(arg.name, None, false)
+        AstArgDefinition(arg.name, None, isSuspended)
       case AstView.AssignedArgument(name, value) =>
-        AstArgDefinition(name.name, Some(translateExpression(value)), false)
+        AstArgDefinition(
+          name.name,
+          Some(translateExpression(value)),
+          isSuspended
+        )
+      case AstView.LazyArgument(arg) =>
+        translateArgumentDefinition(arg, isSuspended = true)
       case _ =>
         throw new UnhandledEntity(arg, "translateDefinitionArgument")
     }
@@ -126,6 +134,8 @@ object AstToAstExpression {
 
   def translateCallable(application: AST): AstExpression = {
     application match {
+      case AstView.ForcedTerm(term) =>
+        AstDesuspend(term.location, translateExpression(term))
       case AstView.Application(name, args) =>
         val validArguments = args.filter {
           case AstView.SuspendDefaultsOperator(_) => false
@@ -145,7 +155,7 @@ object AstToAstExpression {
           hasDefaultsSuspended
         )
       case AstView.Lambda(args, body) =>
-        val realArgs = args.map(translateArgumentDefinition)
+        val realArgs = args.map(translateArgumentDefinition(_))
         val realBody = translateExpression(body)
         AstFunction(application.location, realArgs, realBody)
       case AST.App.Infix(left, fn, right) =>
@@ -167,7 +177,7 @@ object AstToAstExpression {
       //      case AST.App.Prefix(fn, arg) =>
 //      case AST.App.Section.any(application) => // TODO [AA] left, sides, right
 //      case AST.Mixfix(application) => // TODO [AA] translate if
-      case _ => throw new UnhandledEntity(application, "translateApplication")
+      case _ => throw new UnhandledEntity(application, "translateCallable")
     }
   }
 
@@ -200,9 +210,11 @@ object AstToAstExpression {
     branch match {
       case AstView.ConsCaseBranch(cons, args, body) =>
         AstCase(
+          branch.location,
           translateExpression(cons),
           AstCaseFunction(
-            args.map(translateArgumentDefinition),
+            body.location,
+            args.map(translateArgumentDefinition(_)),
             translateExpression(body)
           )
         )
@@ -214,7 +226,7 @@ object AstToAstExpression {
   def translateFallbackBranch(branch: AST): AstCaseFunction = {
     branch match {
       case AstView.FallbackCaseBranch(body) =>
-        AstCaseFunction(List(), translateExpression(body))
+        AstCaseFunction(body.location, List(), translateExpression(body))
       case _ => throw new UnhandledEntity(branch, "translateFallbackBranch")
     }
   }
@@ -236,11 +248,16 @@ object AstToAstExpression {
             .drop(nonFallbackBranches.length)
             .headOption
             .map(translateFallbackBranch)
-        AstMatch(actualScrutinee, nonFallbackBranches, potentialFallback)
+        AstMatch(
+          inputAST.location,
+          actualScrutinee,
+          nonFallbackBranches,
+          potentialFallback
+        )
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
-      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AST.Ident.any(inputAST) => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
         AstBlock(
           inputAST.location,
