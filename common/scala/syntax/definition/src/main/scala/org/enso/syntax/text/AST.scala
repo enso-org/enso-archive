@@ -251,23 +251,23 @@ object AST {
     * @param end the exclusive, 0-indexed position of the end of
     *            the expression
     */
-  case class AbsolutePosition(start: Int, end: Int)
+  case class Location(start: Int, end: Int)
 
-  object AbsolutePosition {
-    implicit val optionSpanMonoid: Monoid[Option[AbsolutePosition]] =
-      new Monoid[Option[AbsolutePosition]] {
-        override def empty: Option[AbsolutePosition] = None
+  object Location {
+    implicit val optionSpanMonoid: Monoid[Option[Location]] =
+      new Monoid[Option[Location]] {
+        def empty: Option[Location] = None
 
-        override def combine(
-          x: Option[AbsolutePosition],
-          y: Option[AbsolutePosition]
-        ): Option[AbsolutePosition] = x match {
+        def combine(
+          x: Option[Location],
+          y: Option[Location]
+        ): Option[Location] = x match {
           case None => y
-          case Some(lSpan @ AbsolutePosition(lStart, _)) =>
+          case Some(lSpan @ Location(lStart, _)) =>
             y match {
               case None => Some(lSpan)
-              case Some(AbsolutePosition(_, rEnd)) =>
-                Some(AbsolutePosition(lStart, rEnd))
+              case Some(Location(_, rEnd)) =>
+                Some(Location(lStart, rEnd))
             }
         }
       }
@@ -294,12 +294,12 @@ object AST {
     */
   final case class ASTOf[+T[_]](
     shape: T[AST],
-    id: Option[ID]                             = None,
-    absolutePosition: Option[AbsolutePosition] = None
+    id: Option[ID]             = None,
+    location: Option[Location] = None
   )(
     implicit cls: ASTClass[T]
   ) {
-    override def toString = s"Node($id,$absolutePosition,$shape)"
+    override def toString = s"Node($id,$location,$shape)"
     override def equals(obj: Any): Boolean = obj match {
       case a: ASTOf[_] => shape == a.shape
       case _           => false
@@ -309,10 +309,10 @@ object AST {
     val repr: Repr.Builder = cls.repr(shape)
     val span: Int          = cls.repr(shape).span
     def show(): String     = repr.build()
-    def setPosition(newPosition: Option[AbsolutePosition]): ASTOf[T] =
-      copy(absolutePosition = newPosition)
-    def setPosition(newPosition: AbsolutePosition): ASTOf[T] =
-      setPosition(Some(newPosition))
+    def setLocation(newLocation: Option[Location]): ASTOf[T] =
+      copy(location = newLocation)
+    def setLocation(newLocation: Location): ASTOf[T] =
+      setLocation(Some(newLocation))
     def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
     def withNewID(): ASTOf[T]      = copy(id = Some(UUID.randomUUID()))
     def foldMap[A](f: AST => A)(implicit A: Monoid[A]): A =
@@ -330,8 +330,8 @@ object AST {
       implicit
       ev: ASTClass[T]
     ): ASTOf[T] = {
-      val absSpan = ev.foldMap(t)(_.absolutePosition)
-      ASTOf(t, absolutePosition = absSpan)
+      val absSpan = ev.foldMap(t)(_.location)
+      ASTOf(t, location = absSpan)
     }
 
     implicit def jsonEncoder[T[_]]: Encoder[ASTOf[T]] =
