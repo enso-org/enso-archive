@@ -8,8 +8,7 @@ import cats.derived._
 import cats.implicits._
 import io.circe.Encoder
 import io.circe.Json
-//import io.circe.generic.AutoDerivation
-import io.circe.generic.auto._
+import org.enso.syntax.text.ast.text.Escape
 import org.enso.data.List1._
 import org.enso.data.List1
 import org.enso.data.Index
@@ -25,10 +24,32 @@ import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text.ast.meta.Pattern
-//import org.enso.syntax.text.AST.Ident.Cons.pool
 
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
+
+/* Note: [JSON Serialization]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
+ * of compile-time resource usage. It adds like 2-4 min to compile time.
+ * For that reason we should only have one place where it is used ? and
+ * other places where AST needs to be serialized should use this wrapper.
+ *
+ * Also, it must be placed in this package ? having it separate for some
+ * reason increases compile-time memory usage, causing CI builds to fail.
+ * Someone might want to reinvestigate this in future.
+ *
+ * Also, this function definition can't be just "anywhere" in the file, but
+ * near bottom to "properly" see other things.
+ *
+ * When working on this file, it is recommended to temporarily replace
+ * function body with ??? expression to radically improve compiler throughput.
+ *
+ * Also note that JSON serialization is meant to be kept synchronized with Rust
+ * AST implementation. Any changes made to serialization here (that includes
+ * changes to case classes' names and field names) need to be kept in sync with
+ * the Rust side.
+ */
 
 //////////////////////////////////////////////////////////////////////////////
 //// HasSpan /////////////////////////////////////////////////////////////////
@@ -112,165 +133,18 @@ object Phantom {
 
 sealed trait Shape[T]
 
-/** Implicits for [[Shape]], will overwrite inherited ones from
-  * [[ShapeImplicit2]]
-  */
-// TODO [MWU] The repr, ozip and span are almost entirely boilerplate.
-//  Consider providing them using macros.
-sealed trait ShapeImplicit {
-  import Shape._
-
-  implicit def ftor: Functor[Shape]  = semi.functor
-  implicit def fold: Foldable[Shape] = semi.foldable
-  implicit def repr[T: Repr]: Repr[Shape[T]] = {
-    case s: Unrecognized[T]  => s.repr
-    case s: Unexpected[T]    => s.repr
-    case s: Blank[T]         => s.repr
-    case s: Var[T]           => s.repr
-    case s: Cons[T]          => s.repr
-    case s: Opr[T]           => s.repr
-    case s: Mod[T]           => s.repr
-    case s: InvalidSuffix[T] => s.repr
-    case s: Number[T]        => s.repr
-    case s: DanglingBase[T]  => s.repr
-    case s: TextUnclosed[T]  => s.repr
-    case s: InvalidQuote[T]  => s.repr
-    case s: InlineBlock[T]   => s.repr
-    case s: TextLineRaw[T]   => s.repr
-    case s: TextLineFmt[T]   => s.repr
-    case s: TextBlockRaw[T]  => s.repr
-    case s: TextBlockFmt[T]  => s.repr
-    case s: Prefix[T]        => s.repr
-    case s: Infix[T]         => s.repr
-    case s: SectionLeft[T]   => s.repr
-    case s: SectionRight[T]  => s.repr
-    case s: SectionSides[T]  => s.repr
-    case s: Block[T]         => s.repr
-    case s: Module[T]        => s.repr
-    case s: Ambiguous[T]     => s.repr
-    case s: Match[T]         => s.repr
-    // spaceless
-    case s: Comment[T]    => s.repr
-    case s: Documented[T] => s.repr
-    case s: Import[T]     => s.repr
-    case s: Mixfix[T]     => s.repr
-    case s: Group[T]      => s.repr
-    case s: Def[T]        => s.repr
-    case s: Foreign[T]    => s.repr
-  }
-  implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
-    case s: Unrecognized[T]  => OffsetZip[Unrecognized, T].zipWithOffset(s)
-    case s: Unexpected[T]    => OffsetZip[Unexpected, T].zipWithOffset(s)
-    case s: Blank[T]         => OffsetZip[Blank, T].zipWithOffset(s)
-    case s: Var[T]           => OffsetZip[Var, T].zipWithOffset(s)
-    case s: Cons[T]          => OffsetZip[Cons, T].zipWithOffset(s)
-    case s: Opr[T]           => OffsetZip[Opr, T].zipWithOffset(s)
-    case s: Mod[T]           => OffsetZip[Mod, T].zipWithOffset(s)
-    case s: InvalidSuffix[T] => OffsetZip[InvalidSuffix, T].zipWithOffset(s)
-    case s: Number[T]        => OffsetZip[Number, T].zipWithOffset(s)
-    case s: DanglingBase[T]  => OffsetZip[DanglingBase, T].zipWithOffset(s)
-    case s: TextUnclosed[T]  => OffsetZip[TextUnclosed, T].zipWithOffset(s)
-    case s: InvalidQuote[T]  => OffsetZip[InvalidQuote, T].zipWithOffset(s)
-    case s: InlineBlock[T]   => OffsetZip[InlineBlock, T].zipWithOffset(s)
-    case s: TextLineRaw[T]   => OffsetZip[TextLineRaw, T].zipWithOffset(s)
-    case s: TextLineFmt[T]   => OffsetZip[TextLineFmt, T].zipWithOffset(s)
-    case s: TextBlockRaw[T]  => OffsetZip[TextBlockRaw, T].zipWithOffset(s)
-    case s: TextBlockFmt[T]  => OffsetZip[TextBlockFmt, T].zipWithOffset(s)
-    case s: Prefix[T]        => OffsetZip[Prefix, T].zipWithOffset(s)
-    case s: Infix[T]         => OffsetZip[Infix, T].zipWithOffset(s)
-    case s: SectionLeft[T]   => OffsetZip[SectionLeft, T].zipWithOffset(s)
-    case s: SectionRight[T]  => OffsetZip[SectionRight, T].zipWithOffset(s)
-    case s: SectionSides[T]  => OffsetZip[SectionSides, T].zipWithOffset(s)
-    case s: Block[T]         => OffsetZip[Block, T].zipWithOffset(s)
-    case s: Module[T]        => OffsetZip[Module, T].zipWithOffset(s)
-    case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
-    case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
-    // spaceless
-    case s: Comment[T]    => OffsetZip[Comment, T].zipWithOffset(s)
-    case s: Documented[T] => OffsetZip[Documented, T].zipWithOffset(s)
-    case s: Import[T]     => OffsetZip[Import, T].zipWithOffset(s)
-    case s: Mixfix[T]     => OffsetZip[Mixfix, T].zipWithOffset(s)
-    case s: Group[T]      => OffsetZip[Group, T].zipWithOffset(s)
-    case s: Def[T]        => OffsetZip[Def, T].zipWithOffset(s)
-    case s: Foreign[T]    => OffsetZip[Foreign, T].zipWithOffset(s)
-  }
-
-  implicit def span[T: HasSpan]: HasSpan[Shape[T]] = {
-    case s: Unrecognized[T]  => s.span()
-    case s: Unexpected[T]    => s.span()
-    case s: Blank[T]         => s.span()
-    case s: Var[T]           => s.span()
-    case s: Cons[T]          => s.span()
-    case s: Opr[T]           => s.span()
-    case s: Mod[T]           => s.span()
-    case s: InvalidSuffix[T] => s.span()
-    case s: Number[T]        => s.span()
-    case s: DanglingBase[T]  => s.span()
-    case s: TextUnclosed[T]  => s.span()
-    case s: InvalidQuote[T]  => s.span()
-    case s: InlineBlock[T]   => s.span()
-    case s: TextLineRaw[T]   => s.span()
-    case s: TextLineFmt[T]   => s.span()
-    case s: TextBlockRaw[T]  => s.span()
-    case s: TextBlockFmt[T]  => s.span()
-    case s: Prefix[T]        => s.span()
-    case s: Infix[T]         => s.span()
-    case s: SectionLeft[T]   => s.span()
-    case s: SectionRight[T]  => s.span()
-    case s: SectionSides[T]  => s.span()
-    case s: Block[T]         => s.span()
-    case s: Module[T]        => s.span()
-    case s: Ambiguous[T]     => s.span()
-    case s: Match[T]         => s.span()
-    // spaceless
-    case s: Comment[T]    => s.span()
-    case s: Documented[T] => s.span()
-    case s: Import[T]     => s.span()
-    case s: Mixfix[T]     => s.span()
-    case s: Group[T]      => s.span()
-    case s: Def[T]        => s.span()
-    case s: Foreign[T]    => s.span()
-  }
-}
-
 object Shape extends ShapeImplicit {
   import HasSpan.implicits._
   import AST.StreamOf
 
-  //////////////////
-  //// Variants ////
-  //////////////////
+  /////////////////
+  //// Invalid ////
+  /////////////////
   sealed trait Invalid[T]                       extends Shape[T]
   final case class Unrecognized[T](str: String) extends Invalid[T] with Phantom
   final case class Unexpected[T](msg: String, stream: StreamOf[T])
       extends Invalid[T]
-
-  /// Identifiers ///
-  sealed trait Ident[T] extends Shape[T] with Phantom {
-    val name: String
-  }
-  final case class Blank[T]()            extends Ident[T] { val name = "_" }
-  final case class Var[T](name: String)  extends Ident[T]
-  final case class Cons[T](name: String) extends Ident[T]
-  final case class Mod[T](name: String)  extends Ident[T]
-  final case class Opr[T](name: String) extends Ident[T] {
-    val (prec, assoc) = opr.Info.of(name)
-  }
-  final case class InvalidSuffix[T](elem: AST.Ident, suffix: String) // TODO: why `elem` doesn't depend on `T`
-      extends Invalid[T]
-      with Phantom
-
-  /// Literals ///
-  sealed trait Literal[T] extends Shape[T]
-
-  final case class Number[T](base: Option[String], int: String)
-      extends Literal[T]
-      with Phantom
   final case class DanglingBase[T](base: String) extends Invalid[T] with Phantom
-
-  sealed trait Text[T] extends Shape[T] with Literal[T] {
-    def quote: Repr.Builder
-  }
   final case class TextUnclosed[T](line: TextLine[T])
       extends Text[T]
       with Invalid[T] {
@@ -279,26 +153,60 @@ object Shape extends ShapeImplicit {
   final case class InvalidQuote[T](quote: Builder)
       extends Invalid[T]
       with Phantom
-
   final case class InlineBlock[T](quote: Builder)
       extends Invalid[T]
       with Phantom
 
+  ///////////////////
+  /// Identifiers ///
+  ///////////////////
+  sealed trait Ident[T] extends Shape[T] with Phantom { val name: String }
+
+  final case class Blank[T]()            extends Ident[T] { val name = "_" }
+  final case class Var[T](name: String)  extends Ident[T]
+  final case class Cons[T](name: String) extends Ident[T]
+  final case class Mod[T](name: String)  extends Ident[T]
+  final case class Opr[T](name: String) extends Ident[T] {
+    val (prec, assoc) = opr.Info.of(name)
+  }
+  final case class InvalidSuffix[T](elem: AST.Ident, suffix: String)
+      extends Invalid[T]
+      with Phantom
+
+  ///////////////
+  /// Literal ///
+  ///////////////
+  sealed trait Literal[T] extends Shape[T]
+
+  //////////////
+  /// Number ///
+  //////////////
+  final case class Number[T](base: Option[String], int: String)
+      extends Literal[T]
+      with Phantom
+
+  ////////////
+  /// Text ///
+  ////////////
+  sealed trait Text[T] extends Shape[T] with Literal[T] {
+    def quote: Repr.Builder
+  }
+
+  /// Line ///
   sealed trait TextLine[T] extends Text[T]
   final case class TextLineRaw[T](text: List[SegmentRaw[T]])
       extends TextLine[T]
       with Phantom {
     val quote = '"'
   }
-  /* Note [Circe and naming] */
   final case class TextLineFmt[T](text: List[SegmentFmt[T]])
       extends TextLine[T] {
     val quote = '\''
   }
 
+  /// Block ///
   sealed trait TextBlock[T] extends Text[T]
   final case class TextBlockLine[+T](emptyLines: List[Int], text: List[T])
-
   final case class TextBlockRaw[T](
     text: List[TextBlockLine[SegmentRaw[T]]],
     spaces: Int,
@@ -315,24 +223,26 @@ object Shape extends ShapeImplicit {
     val quote = "'''"
   }
 
-  type Escape = ast.text.Escape
-  val Escape = ast.text.Escape
-
+  /// Segment ///
   sealed trait Segment[T]
-  sealed trait SegmentFmt[T]                        extends Segment[T]
-  sealed trait SegmentRaw[T]                        extends SegmentFmt[T] with Phantom
+  sealed trait SegmentFmt[T] extends Segment[T]
+  sealed trait SegmentRaw[T] extends SegmentFmt[T] with Phantom
+
   final case class SegmentPlain[T](value: String)   extends SegmentRaw[T]
   final case class SegmentExpr[T](value: Option[T]) extends SegmentFmt[T]
   final case class SegmentEscape[T](code: Escape)
       extends SegmentFmt[T]
       with Phantom
 
+  ///////////
+  /// App ///
+  ///////////
   sealed trait App[T]                                 extends Shape[T]
   final case class Prefix[T](fn: T, off: Int, arg: T) extends App[T]
   final case class Infix[T](
     larg: T,
     loff: Int,
-    opr: AST.Opr, // FIXME: likely should be a different type, same for other apps
+    opr: AST.Opr,
     roff: Int,
     rarg: T
   ) extends App[T]
@@ -355,8 +265,14 @@ object Shape extends ShapeImplicit {
     def replaceType(ntyp: Block.Type): Block[T] = copy(typ = ntyp)
   }
 
+  //////////////
+  /// Module ///
+  //////////////
   final case class Module[T](lines: List1[Block.OptLine[T]]) extends Shape[T]
 
+  /////////////
+  /// Macro ///
+  /////////////
   sealed trait Macro[T] extends Shape[T]
   final case class Match[T](
     pfx: Option[Pattern.Match],
@@ -370,6 +286,9 @@ object Shape extends ShapeImplicit {
     paths: Tree[AST.AST, Unit]
   ) extends Macro[T]
 
+  /////////////////////
+  /// Spaceless AST ///
+  /////////////////////
   sealed trait SpacelessAST[T] extends Shape[T]
   final case class Comment[T](lines: List[String])
       extends SpacelessAST[T]
@@ -385,15 +304,21 @@ object Shape extends ShapeImplicit {
   final case class Foreign[T](indent: Int, lang: String, code: List[String])
       extends SpacelessAST[T]
 
-  ////Companions ///
+  //////////////////////////////////////////////////////////////////////////////
+  // Companion objects /////////////////////////////////////////////////////////
+  //////////////////////////////////////////////////////////////////////////////
   // TODO: All companion objects can be generated with macros
 
+  /** Helper to gather common implementation for traits betwen [[Shape]] and
+    * leaf case classes. They are implemented by delegating to [[Shape]] trait
+    * implementation.
+    */
   trait IntermediateTrait[S[U] <: Shape[U]] {
     implicit def repr[T: Repr]: Repr[S[T]] = Shape.repr[T].repr(_)
-//    implicit def ozip[T: HasSpan]: OffsetZip[S, T] = { ident =>
-//      Shape.ozip[T].zipWithOffset(ident).asInstanceOf
-//    //OffsetZip[Shape, T](ident).asInstanceOf
-//    }
+    //    implicit def ozip[T: HasSpan]: OffsetZip[S, T] = { ident =>
+    //      Shape.ozip[T].zipWithOffset(ident).asInstanceOf
+    //    //OffsetZip[Shape, T](ident).asInstanceOf
+    //    }
     implicit def span[T: HasSpan]: HasSpan[S[T]] =
       t => (t: Shape[T]).span()
   }
@@ -899,10 +824,12 @@ object Shape extends ShapeImplicit {
   }
 
   object Ambiguous {
-    implicit def ftor: Functor[Ambiguous]                = semi.functor
-    implicit def fold: Foldable[Ambiguous]               = semi.foldable
-    implicit def repr[T]: Repr[Ambiguous[T]]             = t => R + t.segs.map(Repr(_))
-    implicit def ozip[T]: OffsetZip[Ambiguous, T]        = _.map(Index.Start -> _)
+    implicit def ftor: Functor[Ambiguous]  = semi.functor
+    implicit def fold: Foldable[Ambiguous] = semi.foldable
+    implicit def repr[T]: Repr[Ambiguous[T]] =
+      t => R + t.segs.map(Repr(_))
+    implicit def ozip[T]: OffsetZip[Ambiguous, T] =
+      _.map(Index.Start -> _)
     implicit def span[T: HasSpan]: HasSpan[Ambiguous[T]] = t => t.segs.span()
 
     final case class Segment(head: AST.AST, body: Option[AST.SAST])
@@ -928,8 +855,9 @@ object Shape extends ShapeImplicit {
     import Comment.symbol
     implicit def functor[T]: Functor[Documented] = semi.functor
     implicit def repr[T: Repr]: Repr[Documented[T]] = t => {
-      val symbolRepr        = R + symbol + symbol
-      val betweenDocAstRepr = R + Block.newline + Block.newline.build * t.emptyLinesBetween
+      val symbolRepr = R + symbol + symbol
+      val betweenDocAstRepr = R + Block.newline +
+        Block.newline.build * t.emptyLinesBetween
       R + symbolRepr + t.doc + betweenDocAstRepr + t.ast
     }
     implicit def offsetZip[T]: OffsetZip[Documented, T] =
@@ -1023,6 +951,127 @@ object Shape extends ShapeImplicit {
     ) {
       def show(): String = repr.repr(t).build()
     }
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//// Shape Boilerplate /////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+// TODO [MWU] The repr, ozip and span are almost entirely boilerplate.
+//  Consider providing them using macros.
+sealed trait ShapeImplicit {
+  import Shape._
+
+  implicit def ftor: Functor[Shape]  = semi.functor
+  implicit def fold: Foldable[Shape] = semi.foldable
+  implicit def repr[T: Repr]: Repr[Shape[T]] = {
+    case s: Unrecognized[T]  => s.repr
+    case s: Unexpected[T]    => s.repr
+    case s: Blank[T]         => s.repr
+    case s: Var[T]           => s.repr
+    case s: Cons[T]          => s.repr
+    case s: Opr[T]           => s.repr
+    case s: Mod[T]           => s.repr
+    case s: InvalidSuffix[T] => s.repr
+    case s: Number[T]        => s.repr
+    case s: DanglingBase[T]  => s.repr
+    case s: TextUnclosed[T]  => s.repr
+    case s: InvalidQuote[T]  => s.repr
+    case s: InlineBlock[T]   => s.repr
+    case s: TextLineRaw[T]   => s.repr
+    case s: TextLineFmt[T]   => s.repr
+    case s: TextBlockRaw[T]  => s.repr
+    case s: TextBlockFmt[T]  => s.repr
+    case s: Prefix[T]        => s.repr
+    case s: Infix[T]         => s.repr
+    case s: SectionLeft[T]   => s.repr
+    case s: SectionRight[T]  => s.repr
+    case s: SectionSides[T]  => s.repr
+    case s: Block[T]         => s.repr
+    case s: Module[T]        => s.repr
+    case s: Ambiguous[T]     => s.repr
+    case s: Match[T]         => s.repr
+    // spaceless
+    case s: Comment[T]    => s.repr
+    case s: Documented[T] => s.repr
+    case s: Import[T]     => s.repr
+    case s: Mixfix[T]     => s.repr
+    case s: Group[T]      => s.repr
+    case s: Def[T]        => s.repr
+    case s: Foreign[T]    => s.repr
+  }
+  implicit def ozip[T: HasSpan]: OffsetZip[Shape, T] = {
+    case s: Unrecognized[T]  => OffsetZip[Unrecognized, T].zipWithOffset(s)
+    case s: Unexpected[T]    => OffsetZip[Unexpected, T].zipWithOffset(s)
+    case s: Blank[T]         => OffsetZip[Blank, T].zipWithOffset(s)
+    case s: Var[T]           => OffsetZip[Var, T].zipWithOffset(s)
+    case s: Cons[T]          => OffsetZip[Cons, T].zipWithOffset(s)
+    case s: Opr[T]           => OffsetZip[Opr, T].zipWithOffset(s)
+    case s: Mod[T]           => OffsetZip[Mod, T].zipWithOffset(s)
+    case s: InvalidSuffix[T] => OffsetZip[InvalidSuffix, T].zipWithOffset(s)
+    case s: Number[T]        => OffsetZip[Number, T].zipWithOffset(s)
+    case s: DanglingBase[T]  => OffsetZip[DanglingBase, T].zipWithOffset(s)
+    case s: TextUnclosed[T]  => OffsetZip[TextUnclosed, T].zipWithOffset(s)
+    case s: InvalidQuote[T]  => OffsetZip[InvalidQuote, T].zipWithOffset(s)
+    case s: InlineBlock[T]   => OffsetZip[InlineBlock, T].zipWithOffset(s)
+    case s: TextLineRaw[T]   => OffsetZip[TextLineRaw, T].zipWithOffset(s)
+    case s: TextLineFmt[T]   => OffsetZip[TextLineFmt, T].zipWithOffset(s)
+    case s: TextBlockRaw[T]  => OffsetZip[TextBlockRaw, T].zipWithOffset(s)
+    case s: TextBlockFmt[T]  => OffsetZip[TextBlockFmt, T].zipWithOffset(s)
+    case s: Prefix[T]        => OffsetZip[Prefix, T].zipWithOffset(s)
+    case s: Infix[T]         => OffsetZip[Infix, T].zipWithOffset(s)
+    case s: SectionLeft[T]   => OffsetZip[SectionLeft, T].zipWithOffset(s)
+    case s: SectionRight[T]  => OffsetZip[SectionRight, T].zipWithOffset(s)
+    case s: SectionSides[T]  => OffsetZip[SectionSides, T].zipWithOffset(s)
+    case s: Block[T]         => OffsetZip[Block, T].zipWithOffset(s)
+    case s: Module[T]        => OffsetZip[Module, T].zipWithOffset(s)
+    case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
+    case s: Match[T]         => OffsetZip[Match, T].zipWithOffset(s)
+    // spaceless
+    case s: Comment[T]    => OffsetZip[Comment, T].zipWithOffset(s)
+    case s: Documented[T] => OffsetZip[Documented, T].zipWithOffset(s)
+    case s: Import[T]     => OffsetZip[Import, T].zipWithOffset(s)
+    case s: Mixfix[T]     => OffsetZip[Mixfix, T].zipWithOffset(s)
+    case s: Group[T]      => OffsetZip[Group, T].zipWithOffset(s)
+    case s: Def[T]        => OffsetZip[Def, T].zipWithOffset(s)
+    case s: Foreign[T]    => OffsetZip[Foreign, T].zipWithOffset(s)
+  }
+
+  implicit def span[T: HasSpan]: HasSpan[Shape[T]] = {
+    case s: Unrecognized[T]  => s.span()
+    case s: Unexpected[T]    => s.span()
+    case s: Blank[T]         => s.span()
+    case s: Var[T]           => s.span()
+    case s: Cons[T]          => s.span()
+    case s: Opr[T]           => s.span()
+    case s: Mod[T]           => s.span()
+    case s: InvalidSuffix[T] => s.span()
+    case s: Number[T]        => s.span()
+    case s: DanglingBase[T]  => s.span()
+    case s: TextUnclosed[T]  => s.span()
+    case s: InvalidQuote[T]  => s.span()
+    case s: InlineBlock[T]   => s.span()
+    case s: TextLineRaw[T]   => s.span()
+    case s: TextLineFmt[T]   => s.span()
+    case s: TextBlockRaw[T]  => s.span()
+    case s: TextBlockFmt[T]  => s.span()
+    case s: Prefix[T]        => s.span()
+    case s: Infix[T]         => s.span()
+    case s: SectionLeft[T]   => s.span()
+    case s: SectionRight[T]  => s.span()
+    case s: SectionSides[T]  => s.span()
+    case s: Block[T]         => s.span()
+    case s: Module[T]        => s.span()
+    case s: Ambiguous[T]     => s.span()
+    case s: Match[T]         => s.span()
+    // spaceless
+    case s: Comment[T]    => s.span()
+    case s: Documented[T] => s.span()
+    case s: Import[T]     => s.span()
+    case s: Mixfix[T]     => s.span()
+    case s: Group[T]      => s.span()
+    case s: Def[T]        => s.span()
+    case s: Foreign[T]    => s.span()
   }
 }
 
@@ -1242,11 +1291,6 @@ object AST {
     def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
     def withNewID(): ASTOf[T]      = copy(id = Some(UUID.randomUUID()))
 
-//    def jsonWrapper(): Json = {
-//      import io.circe.syntax._
-//      this.asJson
-//    }
-
     /** Compares ignoring cached span value.
       *
       * Cached span values become invalid e.g. after macros are resolved.
@@ -1294,7 +1338,12 @@ object AST {
 
   // FIXME: refactor https://github.com/luna/enso/issues/297
   def addField(base: Json, name: String, value: Json): Json = {
-    val obj  = base.asObject.get
+    final case class NotAnObject() extends Exception {
+      override def getMessage: String =
+        s"Cannot add field {name} to a non-object JSON!"
+    }
+
+    val obj  = base.asObject.getOrElse(throw NotAnObject())
     val obj2 = (name, value) +: obj
     Json.fromJsonObject(obj2)
   }
@@ -1345,30 +1394,13 @@ object AST {
       ids.reverse
     }
 
-    // Note: JSON serialization subtleties
+    // Note: [JSON Serialization] at the file top
     def toJson(): Json = {
       import io.circe.syntax._
-//      import conversions._
+      import io.circe.generic.auto._
       val ast: AST = t
       ast.asJson
     }
-    /* Note: [JSON Serialization]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
-   * of compile-time resource usage. It adds like 2-4 min to compile time.
-   * For that reason we should only have one place where it is used ? and
-   * other places where AST needs to be serialized should use this wrapper.
-   *
-   * Also, it must be placed in this package ? having it separate for some
-   * reason increases compile-time memory usage, causing CI builds to fail.
-   * Someone might want to reinvestigate this in future.
-   *
-   * Also, this function definition can't be just "anywhere" in the file, but
-   * near bottom to "properly" see other things.
-   *
-   * When working on this file, it is recommended to temporarily replace
-   * function body with ??? expression to radically improve compiler throughput.
-   */
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1948,11 +1980,13 @@ object AST {
 
         val unapplyValidChecker: Pattern.Match => Pattern.Match = {
           case Pattern.Match.Or(_, Left(tgt)) => tgt
-          case _                              => throw new Error("Internal error")
+          case _ =>
+            throw new Error("Internal error")
         }
         val unapplyFullChecker: Pattern.Match => Pattern.Match = {
           case Pattern.Match.Seq(_, (tgt, _)) => tgt
-          case _                              => throw new Error("Internal error")
+          case _ =>
+            throw new Error("Internal error")
         }
         val applySegInitCheckers: List[Segment] => List[Segment] =
           _.map(_.map(p => applyFullChecker(applyValidChecker(p))))
@@ -2017,9 +2051,6 @@ object AST {
 
   sealed trait SpacelessASTOf[T] extends Shape[T]
 
-  //  implicit def ftor:    Functor[SpacelessASTOf]      = semi.functor implicit def fold:    Foldable[SpacelessASTOf]     = semi.foldable
-  //  implicit def ozip[T]: OffsetZip[SpacelessASTOf, T] = _.map((0, _))
-
   //////////////////////////////////////////////////////////////////////////////
   /// Comment //////////////////////////////////////////////////////////////////
   //////////////////////////////////////////////////////////////////////////////
@@ -2082,12 +2113,12 @@ object AST {
 
   type Group = ASTOf[Shape.Group]
   object Group {
-    val any                             = UnapplyByType[Group]
-    def unapply(t: AST)                 = Unapply[Group].run(_.body)(t)
-    def apply(body: Option[AST]): Group = Shape.Group(body)
-    def apply(body: AST): Group         = Group(Some(body))
-    def apply(body: SAST): Group        = Group(body.el)
-    def apply(): Group                  = Group(None)
+    val any                                  = UnapplyByType[Group]
+    def unapply(t: AST): Option[Option[AST]] = Unapply[Group].run(_.body)(t)
+    def apply(body: Option[AST]): Group      = Shape.Group(body)
+    def apply(body: AST): Group              = Group(Some(body))
+    def apply(body: SAST): Group             = Group(body.el)
+    def apply(): Group                       = Group(None)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -2119,17 +2150,6 @@ object AST {
   }
 
   def main() {
-    //    import AST.hhh._
-
-    //    import conversions._
-    //
-    //    val fff1 = AST.Ident.BlankOf[AST](): Ident.BlankOf[AST]
-    //    val fff3 = ASTOf(fff1): Blank
-    //    val fff4 = fff3: AST
-    //
-    //    println(fff3)
-    //    println(fff4)
-    //
     val v1  = Ident.Var("foo")
     val v1_ = v1: AST
 
@@ -2145,43 +2165,5 @@ object AST {
     //    println(v2.asJson)
     //    println(v2_.asJson)
     println(OffsetZip(v2.shape))
-
-    //    v2_.mapWithOff { (ix, a) =>
-    //      {
-    //        println(ix)
-    //        println(a)
-    //        a
-    //      }
-    //    }
-
-    //
-    //    println(v1_)
-    //    println(v1.name)
-    //    println(opr1.assoc)
-    //
-    //    val str1 = "foo": AST
-    //    println(str1)
-    //
-    //    val vx = v2: AST
-    //    vx match {
-    //      case Ident.Blank.any(v) => println(s"blank: $v")
-    //      case Ident.Var.any(v)   => println(s"var: $v")
-    //      case App.Prefix.any(v)  => println(s"app.prefix: $v")
-    //    }
-    //
-    //    println(vx.repr)
-    //
-    //    val voff  = App.Infix(Var("x"), 1, Opr("+"), 2, Var("y"))
-    //    val voff2 = voff: AST
-    //    voff.traverseWithOff {
-    //      case (i, t) =>
-    //        println(s"> $i = $t")
-    //        t
-    //    }
-    //
-    //    println(voff2.zipWithOffset())
-    //
-    //    val v1_x = vx.as[Var]
-    //    println(v1_x)
   }
 }
