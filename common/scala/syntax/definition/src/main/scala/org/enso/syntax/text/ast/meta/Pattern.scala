@@ -109,7 +109,7 @@ object Pattern {
     def apply(spaced: Boolean): Block = Block(Some(spaced))
   }
 
-  def Any(spaced: Spaced = None): Pattern =
+  def Any(spaced: Spaced = None, allowBlocks: Boolean = true): Pattern =
     Blank(spaced) |
     Var(spaced) |
     Cons(spaced) |
@@ -117,15 +117,21 @@ object Pattern {
     Mod(spaced) |
     Num(spaced) |
     Text(spaced) |
-    Block(spaced) |
     Macro(spaced) |
-    Invalid(spaced)
-  def Any(spaced: Boolean): Pattern                = Any(Some(spaced))
-  def ErrTillEnd(msg: String)                      = Any().tillEnd.err(msg)
-  def ErrUnmatched(msg: String)                    = End() | ErrTillEnd(msg)
-  def Expr()                                       = Any().many1.build
-  def NonSpacedExpr()                              = Any(spaced = false).many1.build
-  def NonSpacedExpr_()                             = (Any().but(Block()) :: Any(spaced = false).many).build
+    Invalid(spaced) |
+    (if (allowBlocks) {
+       Block(spaced)
+     } else {
+       Nothing()
+     })
+  def Any(spaced: Boolean): Pattern      = Any(Some(spaced))
+  def ErrTillEnd(msg: String): Pattern   = Any().tillEnd.err(msg)
+  def ErrUnmatched(msg: String): Pattern = End() | ErrTillEnd(msg)
+  def Expr(allowBlocks: Boolean = true): Pattern =
+    Any(allowBlocks = allowBlocks).many1.build
+  def NonSpacedExpr(): Pattern = Any(spaced = false).many1.build
+  def NonSpacedExpr_(): Pattern =
+    (Any().but(Block()) :: Any(spaced = false).many).build
   def SepList(pat: Pattern, div: Pattern): Pattern = pat :: (div :: pat).many
   def SepList(pat: Pattern, div: Pattern, err: String): Pattern = {
     val seg = pat | Any().till(div).err(err)

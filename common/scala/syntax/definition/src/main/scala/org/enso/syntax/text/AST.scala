@@ -12,7 +12,6 @@ import io.circe.Json
 import io.circe.generic.auto._
 import org.enso.data.List1._
 import org.enso.data.List1
-import org.enso.data.Pool
 import org.enso.data.Index
 import org.enso.data.Shifted
 import org.enso.data.Size
@@ -1355,10 +1354,10 @@ object AST {
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
    * of compile-time resource usage. It adds like 2-4 min to compile time.
-   * For that reason we should only have one place where it is used — and
+   * For that reason we should only have one place where it is used ? and
    * other places where AST needs to be serialized should use this wrapper.
    *
-   * Also, it must be placed in this package — having it separate for some
+   * Also, it must be placed in this package ? having it separate for some
    * reason increases compile-time memory usage, causing CI builds to fail.
    * Someone might want to reinvestigate this in future.
    *
@@ -1465,29 +1464,25 @@ object AST {
       def apply(): Blank      = cachedBlank
     }
     object Var {
-      private val pool             = new Pool[Shape.Var[AST]]()
       val any                      = UnapplyByType[Var]
       def unapply(t: AST)          = Unapply[Var].run(_.name)(t)
-      def apply(name: String): Var = pool.get(Shape.Var[AST](name))
+      def apply(name: String): Var = Shape.Var[AST](name)
     }
     object Cons {
-      private val pool              = new Pool[Shape.Cons[AST]]()
       val any                       = UnapplyByType[Cons]
       def unapply(t: AST)           = Unapply[Cons].run(_.name)(t)
-      def apply(name: String): Cons = pool.get(Shape.Cons[AST](name))
+      def apply(name: String): Cons = Shape.Cons[AST](name)
     }
     object Mod {
-      private val pool             = new Pool[Shape.Mod[AST]]()
       val any                      = UnapplyByType[Mod]
       def unapply(t: AST)          = Unapply[Mod].run(_.name)(t)
-      def apply(name: String): Mod = pool.get(Shape.Mod[AST](name))
+      def apply(name: String): Mod = Shape.Mod[AST](name)
     }
     object Opr {
-      private val pool             = new Pool[Shape.Opr[AST]]()
       val app                      = Opr(" ")
       val any                      = UnapplyByType[Opr]
       def unapply(t: AST)          = Unapply[Opr].run(_.name)(t)
-      def apply(name: String): Opr = pool.get(Shape.Opr[AST](name))
+      def apply(name: String): Opr = Shape.Opr[AST](name)
     }
   }
 
