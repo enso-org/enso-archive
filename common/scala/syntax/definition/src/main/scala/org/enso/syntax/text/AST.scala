@@ -68,7 +68,7 @@ object HasSpan {
 //////////////////////////////////////////////////////////////////////////////
 
 /** Zips every child [[A]] with offset from the left side of the parent
-  * node. The offset is a number of UTF8 characters (code points).
+  * node. The offset is a number of UTF-8 code points.
   */
 trait OffsetZip[F[A], A] {
   def zipWithOffset(t: F[A]): F[(Index, A)]
