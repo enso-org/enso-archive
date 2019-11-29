@@ -288,6 +288,7 @@ object Pattern {
       mapWithOff_(self)(f,0)._1
 
     def mapWithOff_[T:HasSpan](self:MatchOf[T])(f: (Int,T) => T, off:Int): (MatchOf[T], Int) = self match {
+      // TODO: [MWU] code below could likely be cleaned up with macro usage
       case m: M.Build[T]   => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
       case m: M.Err[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)
       case m: M.Tok[T]     => (m.copy(elem = f(off,m.elem)), off + m.elem.span)

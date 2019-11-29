@@ -115,6 +115,8 @@ sealed trait Shape[T]
 /** Implicits for [[Shape]], will overwrite inherited ones from
   * [[ShapeImplicit2]]
   */
+// TODO [MWU] The repr, ozip and span are almost entirely boilerplate.
+//  Consider providing them using macros.
 sealed trait ShapeImplicit {
   import Shape._
 
