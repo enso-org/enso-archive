@@ -12,6 +12,7 @@ import org.enso.syntax.text.{AST, Debug}
   * return [[Some]] when more complex conditions are met.
   */
 object AstView {
+
   object Block {
     def unapply(ast: AST): Option[(List[AST], AST)] = ast match {
       case AST.Block(_, _, firstLine, lines) =>
@@ -79,11 +80,22 @@ object AstView {
     }
   }
 
+  object LazyArg {
+    def unapply(ast: AST): Option[AST] = ast match {
+      case MaybeParensed(
+          AST.App.Section.Right(AST.Ident.Opr("~"), FunctionParam(arg))
+          ) =>
+        Some(arg)
+      case _ => None
+    }
+  }
+
   object FunctionParam {
     def unapply(ast: AST): Option[AST] = ast match {
       case AssignedArgument(_, _) => Some(ast)
       case DefinitionArgument(_)  => Some(ast)
       case PatternMatch(_, _)     => Some(ast)
+      case LazyArg(_)             => Some(ast)
       case _                      => None
     }
   }
@@ -101,10 +113,16 @@ object AstView {
           } else {
             None
           }
-
-        // TODO [AA] This really isn't true........
-        case _ => Some(List(ast))
+        case FunctionParam(p) => Some(List(p))
+        case _                => None
       }
+    }
+  }
+
+  // TODO [AA] a matcher for type signatured definitions
+  object MaybeTyped {
+    def unapply(ast: AST): Option[(AST, AST)] = {
+      None
     }
   }
 
@@ -160,7 +178,7 @@ object AstView {
     def unapply(ast: AST): Option[AST] = {
       ast match {
         case AST.Ident.Opr("...") => Some(ast)
-        case _ => None
+        case _                    => None
       }
     }
   }
@@ -195,7 +213,7 @@ object AstView {
 
               astRecurse match {
                 case Some(items) => Some(items :+ suspend)
-                case None => None
+                case None        => None
               }
           }
         case _ => None
@@ -385,4 +403,5 @@ object AstView {
       case _                      => None
     }
   }
+
 }

@@ -5,6 +5,16 @@ import org.enso.interpreter.test.InterpreterTest
 class LazyArgumentsTest extends InterpreterTest {
   val subject = "Lazy arguments"
 
+  subject should "parse properly" in {
+    pending
+    val code =
+      """
+        |foo = ~x -> ~x
+        |""".stripMargin
+
+    eval (code) shouldEqual 0
+  }
+
   subject should "not get executed upfront" in {
     val code =
       """

@@ -16,9 +16,7 @@ class CurryingTest extends InterpreterTest {
     eval(code) shouldEqual 11
   }
 
-  // TODO [AA] How do we call `fn3` here????
   "Functions" should "allow default arguments to be suspended" in {
-    pending
     val code =
       """
         |fn = w x (y = 10) (z = 20) -> w + x + y + z
@@ -27,13 +25,23 @@ class CurryingTest extends InterpreterTest {
         |fn2 = fn1 1 2 ...
         |fn3 = fn2 3 ...
         |
-        |fn3
+        |fn3.call
         |""".stripMargin
 
     eval(code) shouldEqual 26
   }
 
-  // TODO [AA] The elision of the `...` is wrong
+  "Curried functions using `call`" should "be callable with arguments" in {
+    val code =
+      """
+        |fn = w x (y = 10) (z = 20) -> w + x + y + z
+        |
+        |fn.call 1 2 (z = 10)
+        |""".stripMargin
+
+    eval(code) shouldEqual 23
+  }
+
   "Functions" should "allow defaults to be suspended in application chains" in {
     val code =
       """
