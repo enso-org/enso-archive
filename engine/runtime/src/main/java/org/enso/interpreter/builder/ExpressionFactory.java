@@ -18,7 +18,7 @@ import org.enso.interpreter.node.controlflow.*;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
-import org.enso.interpreter.node.expression.literal.StringLiteralNode;
+import org.enso.interpreter.node.expression.literal.TextLiteralNode;
 import org.enso.interpreter.node.expression.operator.*;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
@@ -127,7 +127,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitStringLiteral(String string) {
-    return new StringLiteralNode(string);
+    return new TextLiteralNode(string);
   }
 
   /**

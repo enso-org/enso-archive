@@ -86,10 +86,34 @@ object AstToAstExpression {
         AstLong(literal.location, number.toLong)
       }
       case AST.Literal.Text.any(literal) =>
-        println("===== TEXT =====")
-        println(Debug.pretty(literal.toString))
+        literal.shape match {
+          case AST.Literal.Text.Line.Raw(segments) =>
+            val fullString = segments.collect {
+              case AST.Literal.Text.Segment._Plain(str) => str
+            }.mkString
 
-        AstStringLiteral(literal.location, ???)
+            AstStringLiteral(literal.location, fullString)
+          case AST.Literal.Text.Block.Raw(lines, _, _) =>
+            val fullString = lines.map(t => t.text.collect {
+              case AST.Literal.Text.Segment._Plain(str) => str
+            }.mkString).mkString("\n")
+
+            AstStringLiteral(literal.location, fullString)
+          case AST.Literal.Text.Block.Fmt(_, _, _) =>
+            throw new RuntimeException("Format strings not yet supported")
+          case AST.Literal.Text.Line.Fmt(_) =>
+            throw new RuntimeException("Format strings not yet supported")
+          // TODO [AA] Add support for format strings
+
+//            segments.head match {
+//              case AST.Literal.Text.Segment._Plain(str)  => ???
+//              case AST.Literal.Text.Segment._Expr(expr)  => ???
+//              case AST.Literal.Text.Segment._Escape(esc) => ???
+//              case _ => ???
+//            }
+          case _ =>
+            throw new UnhandledEntity(literal.shape, "translateLiteral")
+        }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
   }
@@ -265,7 +289,7 @@ object AstToAstExpression {
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
-      case AST.Ident.any(inputAST) => translateIdent(inputAST)
+      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
         AstBlock(
           inputAST.location,
