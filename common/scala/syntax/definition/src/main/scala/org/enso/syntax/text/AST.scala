@@ -1749,7 +1749,6 @@ object AST {
         Infix(larg, 1, opr, 1, rarg)
     }
 
-    //// Instances ////
     /////////////////
     //// Section ////
     /////////////////
