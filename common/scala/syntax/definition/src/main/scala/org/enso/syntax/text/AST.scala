@@ -31,12 +31,12 @@ import scala.reflect.ClassTag
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
  * of compile-time resource usage. It adds like 2-4 min to compile time.
- * For that reason we should only have one place where it is used ? and
- * other places where AST needs to be serialized should use this wrapper.
+ * For that reason we should only have one place where it is used and other
+ * places where AST needs to be serialized should use this wrapper.
  *
- * Also, it must be placed in this package ? having it separate for some
- * reason increases compile-time memory usage, causing CI builds to fail.
- * Someone might want to reinvestigate this in future.
+ * Also, it must be placed in this package having it separate for some reason
+ * increases compile-time memory usage, causing CI builds to fail. Someone might
+ * want to reinvestigate this in future.
  *
  * Also, this function definition can't be just "anywhere" in the file, but
  * near bottom to "properly" see other things.
@@ -1452,8 +1452,7 @@ object AST {
       import io.circe.syntax._
       import io.circe.generic.auto._
       val ast: AST = t
-//      ast.asJson
-      ???
+      ast.asJson
     }
   }
 
