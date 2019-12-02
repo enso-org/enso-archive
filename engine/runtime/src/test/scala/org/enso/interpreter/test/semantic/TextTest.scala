@@ -3,8 +3,6 @@ package org.enso.interpreter.test.semantic
 import org.enso.interpreter.test.InterpreterTest
 
 class TextTest extends InterpreterTest {
-  val rawTQ = "\"\"\""
-
   "Single line raw text literals" should "exist in the language" in {
     val code =
       """

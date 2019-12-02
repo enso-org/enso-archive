@@ -50,6 +50,9 @@ trait InterpreterRunner {
       .get(ReplDebuggerInstrument.INSTRUMENT_ID)
       .lookup(classOf[ReplDebuggerInstrument])
   }
+
+  // For Enso raw text blocks inside scala multiline strings
+  val rawTQ = "\"\"\""
 }
 
 trait InterpreterTest

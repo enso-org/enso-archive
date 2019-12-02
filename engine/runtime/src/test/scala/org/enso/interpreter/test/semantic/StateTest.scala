@@ -97,7 +97,7 @@ class StateTest extends InterpreterTest {
     consumeOut shouldEqual List("11", "16")
   }
 
-  // TODO [AA] Needs suspended blocks
+  // TODO [AA] Needs suspended blocks on 2nd line
   "Panics" should "undo state changes" in {
     val code =
       """

@@ -114,8 +114,6 @@ object AstView {
   }
 
   object LambdaParamList {
-    //TODO suspended arguments
-
     def unapply(ast: AST): Option[List[AST]] = {
       ast match {
         case SpacedList(args) =>
