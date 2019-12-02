@@ -76,7 +76,7 @@ object AstToAstExpression {
     }
   }
 
-  def translateLiteral(literal: AST.Literal): AstLong = {
+  def translateLiteral(literal: AST.Literal): AstExpression = {
     literal match {
       case AST.Literal.Number(base, number) => {
         if (base.isDefined && base.get != "10") {
@@ -88,7 +88,8 @@ object AstToAstExpression {
       case AST.Literal.Text.any(literal) =>
         println("===== TEXT =====")
         println(Debug.pretty(literal.toString))
-        ???
+
+        AstStringLiteral(literal.location, ???)
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
   }

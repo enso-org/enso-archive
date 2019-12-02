@@ -4,6 +4,7 @@ import org.enso.interpreter.test.InterpreterTest
 
 class StringTest extends InterpreterTest {
   "Strings" should "exist in the language and be printable" in {
+    pending
     val code =
       """
         |IO.println "hello world!"
