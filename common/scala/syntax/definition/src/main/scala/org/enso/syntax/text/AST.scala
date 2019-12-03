@@ -1354,7 +1354,9 @@ object AST {
     }
   }
 
-  object ASTOf extends AstImplicits {
+  object ASTOf extends AstImplicits
+
+  trait AstImplicits {
     implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
     implicit def repr[T[S] <: Shape[S]]: Repr[ASTOf[T]] =
       t => implicitly[Repr[Shape[AST]]].repr(t.shape)
@@ -1363,39 +1365,28 @@ object AST {
       t: T[AST]
     )(implicit ev: HasSpan[T[AST]]): ASTOf[T] = ASTOf(t, ev.span(t))
 
-  }
-
-  trait AstImplicits extends AstImplicits2 {
-    implicit def encoder_spec(
+    // Note: [JSON Schema]
+    implicit def encoder[T[S] <: Shape[S]](
       implicit ev: Encoder[Shape[AST]]
-    ): Encoder[AST] = encoder
-  }
+    ): Encoder[ASTOf[T]] = ast => {
+      import io.circe.syntax._
 
-  trait AstImplicits2 {
-    implicit def encoder[T[_]](
-      implicit ev: Encoder[T[AST]]
-    ): Encoder[ASTOf[T]] = (ast) => {
-      val obj1 = ev(ast.shape).asObject.get
-      val obj2 = obj1.mapValues(s => {
-        val s2 =
-          addField(s, "id", implicitly[Encoder[Option[ID]]].apply(ast.id))
-        addField(s2, "span", implicitly[Encoder[Int]].apply(ast.span))
-      })
-      Json.fromJsonObject(obj2)
+      val shape  = "shape" -> ev(ast.shape)
+      val id     = ast.id.map("id" -> _.asJson)
+      val span   = "span" -> ast.span.asJson
+      val fields = Seq(shape) ++ id.toSeq :+ span
+      Json.fromFields(fields)
     }
   }
-
-  // FIXME: refactor https://github.com/luna/enso/issues/297
-  def addField(base: Json, name: String, value: Json): Json = {
-    final case class NotAnObject() extends Exception {
-      override def getMessage: String =
-        s"Cannot add field {name} to a non-object JSON!"
-    }
-
-    val obj  = base.asObject.getOrElse(throw NotAnObject())
-    val obj2 = (name, value) +: obj
-    Json.fromJsonObject(obj2)
-  }
+  /* Note: [JSON Schema]
+   * ~~~~~~~~~~~~~~~~~~~
+   * Each AST node is serialized to a map with `shape`, `span` and,
+   * optionally, `id` keys. `shape` is always serialized as if base trait
+   * were encoded, even if the final case class type is known. This is
+   * required for consistency with Rust AST implementation, which uses a
+   * monomorphic AST type and has no means of expressing types like
+   * `AstOf[Shape.Var]`.
+   */
 
   //// ASTOps ////
 
