@@ -48,23 +48,26 @@ object AstToAstExpression {
           case t if t.elem.isDefined => t.elem.get
         }
 
-        val expressions = presentBlocks.filter {
-          case AST.Import.any(_) => false
-          case AST.Def.any(_) => false
-          case AstView.MethodDefinition(_, _, _) => false
-          case _ => true
-        }.map(translateExpression)
+        val expressions = presentBlocks
+          .filter {
+            case AST.Import.any(_)                 => false
+            case AST.Def.any(_)                    => false
+            case AstView.MethodDefinition(_, _, _) => false
+            case _                                 => true
+          }
+          .map(translateExpression)
 
         expressions match {
-          case List() => None
+          case List()     => None
           case List(expr) => Some(expr)
-          case _ => Some(
-            AstBlock(
-              Foldable[List].foldMap(expressions)(_.location),
-              expressions.dropRight(1),
-              expressions.last
+          case _ =>
+            Some(
+              AstBlock(
+                Foldable[List].foldMap(expressions)(_.location),
+                expressions.dropRight(1),
+                expressions.last
+              )
             )
-          )
         }
       case _ => None
     }
@@ -351,6 +354,17 @@ object AstToAstExpression {
 
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
+      case AstView.SuspendedBlock(name, block@AstView.Block(lines, lastLine)) =>
+        AstAssignment(
+          inputAST.location,
+          name.name,
+          AstBlock(
+            block.location,
+            lines.map(translateExpression),
+            translateExpression(lastLine),
+            suspended = true
+            )
+        )
       case AstView.Assignment(name, expr) =>
         translateAssignment(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>

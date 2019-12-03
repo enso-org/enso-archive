@@ -9,6 +9,7 @@ import org.enso.interpreter.*;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.ApplicationNode;
+import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
 import org.enso.interpreter.node.callable.thunk.ForceNodeGen;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode;
@@ -208,7 +209,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing the function body
    */
   public CreateFunctionNode processFunctionBody(
-          List<AstArgDefinition> arguments, AstExpression body) {
+      List<AstArgDefinition> arguments, AstExpression body) {
 
     ArgDefinitionFactory argFactory =
         new ArgDefinitionFactory(scope, language, scopeName, moduleScope);
@@ -311,7 +312,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitFunctionApplication(
-          AstExpression function, List<AstCallArg> arguments, boolean hasDefaultsSuspended) {
+      AstExpression function, List<AstCallArg> arguments, boolean hasDefaultsSuspended) {
     CallArgFactory argFactory = new CallArgFactory(scope, language, scopeName, moduleScope);
 
     List<CallArgument> callArgs = new ArrayList<>();
@@ -399,10 +400,26 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return AST fragment representing the block
    */
   @Override
-  public ExpressionNode visitBlock(List<AstExpression> statements, AstExpression retValue) {
-    ExpressionNode[] statementExprs =
-        statements.stream().map(expr -> expr.visit(this)).toArray(ExpressionNode[]::new);
-    ExpressionNode retExpr = retValue.visit(this);
-    return new BlockNode(statementExprs, retExpr);
+  public ExpressionNode visitBlock(
+      List<AstExpression> statements, AstExpression retValue, boolean suspended) {
+    if (suspended) {
+      ExpressionFactory childFactory = this.createChild("suspended-block");
+      LocalScope childScope = childFactory.scope;
+
+      ExpressionNode block = childFactory.visitBlock(statements, retValue, false);
+
+      RootNode defaultRootNode =
+          new ClosureRootNode(
+              language, childScope, moduleScope, block, null, "default::" + scopeName);
+      RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(defaultRootNode);
+
+      return new CreateThunkNode(callTarget);
+    } else {
+      ExpressionNode[] statementExprs =
+          statements.stream().map(expr -> expr.visit(this)).toArray(ExpressionNode[]::new);
+      ExpressionNode retExpr = retValue.visit(this);
+
+      return new BlockNode(statementExprs, retExpr);
+    }
   }
 }

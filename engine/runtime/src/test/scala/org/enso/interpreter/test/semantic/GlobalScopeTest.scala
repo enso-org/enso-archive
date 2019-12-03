@@ -98,7 +98,6 @@ class GlobalScopeTest extends InterpreterTest {
   }
 
   "Suspended blocks" should "work properly in the global scope" in {
-    pending
     val code =
       """
         |myFun =
@@ -106,11 +105,27 @@ class GlobalScopeTest extends InterpreterTest {
         |  0
         |
         |IO.println 5
-        |myFun.call
+        |~myFun
         |""".stripMargin
 
     eval(code) shouldEqual 0
     consumeOut shouldEqual List("5", "10")
   }
 
+  "Suspended blocks" should "be properly suspended" in {
+    val code =
+      """
+        |block =
+        |  State.put 0
+        |
+        |State.put 5
+        |IO.println State.get
+        |~block
+        |IO.println State.get
+        |
+        |""".stripMargin
+
+    eval(code)
+    consumeOut shouldEqual List("5", "0")
+  }
 }
