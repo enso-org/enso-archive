@@ -112,7 +112,4 @@ class RecursionFixtures extends InterpreterRunner {
       |  State.get
       |""".stripMargin
   val nestedThunkSum = eval(nestedThunkSumCode)
-
-  println(nestedThunkSum.call(10))
-  println(nestedThunkSum.call(100))
 }
