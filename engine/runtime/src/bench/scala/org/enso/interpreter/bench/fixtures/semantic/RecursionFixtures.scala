@@ -13,12 +13,12 @@ class RecursionFixtures extends InterpreterRunner {
   val mutuallyRecursiveSumTCOCode =
     """
     |summator = acc current ->
-    |  ifZero current acc (summator (acc + current) (current - 1)
+    |  ifZero current acc (summator (acc+current) (current - 1))
     |
     |sumTo ->
     |  res = summator 0 sumTo
     |  res
-    |"""
+    |""".stripMargin
   val mutuallyRecursiveSumTCO = eval(mutuallyRecursiveSumTCOCode)
 
   val sumTCOCode =
@@ -45,7 +45,7 @@ class RecursionFixtures extends InterpreterRunner {
   val sumRecursiveCode =
     """
       |sumTo ->
-      |  summator = i -> ifZero i 0 (i + summator (i - 1)
+      |  summator = i -> ifZero i 0 (i + summator (i - 1))
       |
       |  res = summator sumTo
       |  res
@@ -56,9 +56,9 @@ class RecursionFixtures extends InterpreterRunner {
     """
       |sumTo ->
       |  summator = acc i f ->
-      |    ifZero i acc (summator ((f acc i) (i - 1) f)
+      |    ifZero i acc (summator (f acc i) (i - 1) f)
       |  res = summator 0 sumTo (x -> y -> x + y)
-      |  res`
+      |  res
       |""".stripMargin
   val oversaturatedRecursiveCall = eval(oversaturatedRecursiveCallTCOCode)
 
