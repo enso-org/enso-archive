@@ -164,8 +164,10 @@ val silencerVersion = "1.4.4"
 ////////////////////////////
 
 val jsSettings = Seq(
-  testFrameworks := Nil,
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+  // FIXME workaround for scalajs bug:
+  //  https://github.com/scala-js/scala-js/issues/3673
+  testFrameworks := Nil
 )
 
 lazy val logger = crossProject(JVMPlatform, JSPlatform)
@@ -266,7 +268,8 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .jsSettings(
     scalaJSUseMainModuleInitializer := false,
     scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule)},
-    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework"))
+    testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
+    artifactPath in fullOptJS := file("common/rust/parser/pkg/scala-parser.js")
   )
 
 lazy val parser_service = (project in file("common/scala/parser-service"))

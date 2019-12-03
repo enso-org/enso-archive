@@ -86,7 +86,7 @@ class ParserTest extends FlatSpec with Matchers {
   ":"    ?= Sides(":")
   ","    ?= Sides(",")
   "."    ?= Sides(".")
-  "js/main" ?= Sides("js/main")
+  ".."   ?= Sides("..")
   "..."  ?= Sides("...")
   ">="   ?= Sides(">=")
   "<="   ?= Sides("<=")
