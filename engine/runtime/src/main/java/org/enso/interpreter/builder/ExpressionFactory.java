@@ -413,7 +413,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
               language, childScope, moduleScope, block, null, "default::" + scopeName);
       RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(defaultRootNode);
 
-      return new CreateThunkNode(callTarget);
+      return CreateThunkNode.build(callTarget);
     } else {
       ExpressionNode[] statementExprs =
           statements.stream().map(expr -> expr.visit(this)).toArray(ExpressionNode[]::new);

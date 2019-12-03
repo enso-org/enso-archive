@@ -1,5 +1,6 @@
 package org.enso.interpreter.builder;
 
+import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.compiler.core.AstCallArgVisitor;
 import org.enso.compiler.core.AstDesuspend;
@@ -7,6 +8,8 @@ import org.enso.compiler.core.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
+import org.enso.interpreter.node.callable.thunk.ForceNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -53,26 +56,27 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
    */
   @Override
   public CallArgument visitCallArg(Optional<String> name, AstExpression value, int position) {
-    LocalScope childScope = new LocalScope(scope);
-    ExpressionFactory factory = new ExpressionFactory(language, childScope, scopeName, moduleScope);
-    ExpressionNode expr = value.visit(factory);
-    expr.markTail();
+
     String displayName = "callArgument<" + name.orElse(String.valueOf(position)) + ">";
 
     ExpressionNode result;
 
     if (value instanceof AstDesuspend) {
-      result
+      ExpressionFactory factory = new ExpressionFactory(language, scope, scopeName, moduleScope);
+      result = ((AstDesuspend) value).target().visit(factory);
+    } else {
+      LocalScope childScope = new LocalScope(scope);
+      ExpressionFactory factory =
+          new ExpressionFactory(language, childScope, scopeName, moduleScope);
+      ExpressionNode expr = value.visit(factory);
+      expr.markTail();
+      RootCallTarget callTarget =
+          Truffle.getRuntime()
+              .createCallTarget(
+                  new ClosureRootNode(language, childScope, moduleScope, expr, null, displayName));
+      result = CreateThunkNode.build(callTarget);
     }
 
-    return new CallArgument(
-
-    )
-
-//    return new CallArgument(
-//        name.orElse(null),
-//        Truffle.getRuntime()
-//            .createCallTarget(
-//                new ClosureRootNode(language, childScope, moduleScope, expr, null, displayName)));
+    return new CallArgument(name.orElse(null), result);
   }
 }

@@ -45,16 +45,6 @@ public class RecursionBenchmarks {
 
   @Benchmark
   public void benchNestedThunkSum() {
-    recursionFixtures.nestedThunkSum().execute(100L);
-  }
-
-  @Benchmark
-  public void benchNestedThunkSum2() {
-    recursionFixtures.nestedThunkSum().execute(1000L);
-  }
-
-  @Benchmark
-  public void benchNestedThunkSum3() {
-    recursionFixtures.nestedThunkSum().execute(10000L);
+    recursionFixtures.nestedThunkSum().execute(recursionFixtures.hundredMillion());
   }
 }
