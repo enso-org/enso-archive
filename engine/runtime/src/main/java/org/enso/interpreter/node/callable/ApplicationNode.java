@@ -25,8 +25,7 @@ import java.util.Arrays;
 @NodeInfo(shortName = "@", description = "Executes function")
 public class ApplicationNode extends ExpressionNode {
 
-  @CompilationFinal(dimensions = 1)
-  private ExpressionNode[] argExpressions;
+  private @Children ExpressionNode[] argExpressions;
 
   @Child private InvokeCallableNode invokeCallableNode;
   @Child private ExpressionNode callable;
@@ -42,7 +41,7 @@ public class ApplicationNode extends ExpressionNode {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode) {
     this.argExpressions =
         Arrays.stream(callArguments)
-            .map(CallArgument::getExpression) // TODO [AA, MK]
+            .map(CallArgument::getExpression)
             .toArray(ExpressionNode[]::new);
 
     CallArgumentInfo[] argSchema =
@@ -74,10 +73,8 @@ public class ApplicationNode extends ExpressionNode {
   @ExplodeLoop
   public Object[] evaluateArguments(VirtualFrame frame) {
     Object[] computedArguments = new Object[this.argExpressions.length];
-//    MaterializedFrame scope = frame.materialize();
 
     for (int i = 0; i < this.argExpressions.length; ++i) {
-//      computedArguments[i] = new Thunk(this.argExpressions[i], scope);
       computedArguments[i] = this.argExpressions[i].executeGeneric(frame);
     }
     return computedArguments;
