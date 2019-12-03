@@ -2,6 +2,7 @@ package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.Truffle;
 import org.enso.compiler.core.AstCallArgVisitor;
+import org.enso.compiler.core.AstDesuspend;
 import org.enso.compiler.core.AstExpression;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
@@ -57,10 +58,21 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
     ExpressionNode expr = value.visit(factory);
     expr.markTail();
     String displayName = "callArgument<" + name.orElse(String.valueOf(position)) + ">";
+
+    ExpressionNode result;
+
+    if (value instanceof AstDesuspend) {
+      result
+    }
+
     return new CallArgument(
-        name.orElse(null),
-        Truffle.getRuntime()
-            .createCallTarget(
-                new ClosureRootNode(language, childScope, moduleScope, expr, null, displayName)));
+
+    )
+
+//    return new CallArgument(
+//        name.orElse(null),
+//        Truffle.getRuntime()
+//            .createCallTarget(
+//                new ClosureRootNode(language, childScope, moduleScope, expr, null, displayName)));
   }
 }

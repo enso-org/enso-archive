@@ -95,4 +95,24 @@ class RecursionFixtures extends InterpreterRunner {
       |}
       |""".stripMargin
   val sumTCOWithEval = evalOld(sumTCOWithEvalCode)
+
+  val nestedThunkSumCode =
+    """
+      |doNTimes = n ~block ->
+      |  ~block
+      |  ifZero n-1 Unit (doNTimes n-1 ~block)
+      |
+      |block =
+      |  x = State.get
+      |  State.put x+1
+      |
+      |n ->
+      |  State.put 0
+      |  doNTimes n ~block
+      |  State.get
+      |""".stripMargin
+  val nestedThunkSum = eval(nestedThunkSumCode)
+
+  println(nestedThunkSum.call(10))
+  println(nestedThunkSum.call(100))
 }
