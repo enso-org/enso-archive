@@ -1356,7 +1356,7 @@ object AST {
 
   object ASTOf extends AstImplicits
 
-  trait AstImplicits {
+  trait AstImplicits extends AstImplicits2 {
     implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
     implicit def repr[T[S] <: Shape[S]]: Repr[ASTOf[T]] =
       t => implicitly[Repr[Shape[AST]]].repr(t.shape)
@@ -1365,6 +1365,12 @@ object AST {
       t: T[AST]
     )(implicit ev: HasSpan[T[AST]]): ASTOf[T] = ASTOf(t, ev.span(t))
 
+    implicit def encoder_spec(
+      implicit ev: Encoder[Shape[AST]]
+    ): Encoder[AST] = encoder
+  }
+
+  trait AstImplicits2 {
     // Note: [JSON Schema]
     implicit def encoder[T[S] <: Shape[S]](
       implicit ev: Encoder[Shape[AST]]
@@ -1378,6 +1384,7 @@ object AST {
       Json.fromFields(fields)
     }
   }
+
   /* Note: [JSON Schema]
    * ~~~~~~~~~~~~~~~~~~~
    * Each AST node is serialized to a map with `shape`, `span` and,
