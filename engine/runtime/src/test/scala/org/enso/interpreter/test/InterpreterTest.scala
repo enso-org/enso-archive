@@ -42,9 +42,6 @@ trait InterpreterRunner {
     result.lines.toList
   }
 
-  def parse(code: String): Value =
-    InterpreterException.rethrowPolyglot(evalOld(code))
-
   def getReplInstrument: ReplDebuggerInstrument = {
     ctx.getEngine.getInstruments
       .get(ReplDebuggerInstrument.INSTRUMENT_ID)

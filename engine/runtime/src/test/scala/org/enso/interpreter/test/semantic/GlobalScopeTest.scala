@@ -128,4 +128,24 @@ class GlobalScopeTest extends InterpreterTest {
     eval(code)
     consumeOut shouldEqual List("5", "0")
   }
+
+  "Test" should "test test" in {
+    val code =
+      """
+        |n ->
+        |  doNTimes = n ~block ->
+        |    ~block
+        |    ifZero n-1 Unit (doNTimes n-1 ~block)
+        |
+        |  block =
+        |    x = State.get
+        |    State.put x+1
+        |
+        |  State.put 0
+        |  doNTimes n ~block
+        |  State.get
+        |""".stripMargin
+
+    eval(code).call(100) shouldEqual 100
+  }
 }

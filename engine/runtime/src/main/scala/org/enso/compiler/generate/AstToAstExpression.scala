@@ -19,9 +19,7 @@ import cats.implicits._
 //  - Retain information about groups for diagnostics and desugarings
 
 // TODO [Generic]
-//  - Suspended blocks: just wrap in a `CreateThunkNode`
 //  - Groups
-//  - String literals
 //  - Remove evalOld / rewrite benchmarks to new syntax
 //  - Translate if-then-else to ifZero for now
 //  - Type signatures

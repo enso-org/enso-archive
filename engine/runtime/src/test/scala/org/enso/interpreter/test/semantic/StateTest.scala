@@ -35,7 +35,6 @@ class StateTest extends InterpreterTest {
   }
 
   "State" should "be localized with State.run" in {
-    // TODO [AA, MK] Fix the tower of force -> thunk -> force -> thunk
     val code =
       """
         |State.put 20
