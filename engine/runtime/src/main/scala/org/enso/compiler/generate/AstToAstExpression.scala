@@ -16,8 +16,6 @@ import org.enso.syntax.text.{AST, Location}
 
 // TODO [Generic]
 //  - Groups
-//  - Translate if-then-else to a function and test it by definining
-//    `if_then_else` on the type
 //  - Type signatures
 
 /**
@@ -193,6 +191,7 @@ object AstToAstExpression {
     }
   }
 
+  @scala.annotation.tailrec
   def translateArgumentDefinition(
     arg: AST,
     isSuspended: Boolean = false
@@ -283,7 +282,24 @@ object AstToAstExpression {
         }
       //      case AST.App.Prefix(fn, arg) =>
 //      case AST.App.Section.any(application) => // TODO [AA] left, sides, right
-//      case AST.Mixfix(application) => // TODO [AA] translate if
+      case AST.Mixfix(nameSegments, args) =>
+        val realNameSegments = nameSegments.collect {
+          case AST.Ident.Var.any(v) => v
+        }
+
+        if (realNameSegments.length != nameSegments.length) {
+          throw new RuntimeException("Badly named mixfix function.")
+        }
+
+        val functionName =
+          AST.Ident.Var(realNameSegments.map(_.name).mkString("_"))
+
+        AstApply(
+          application.location,
+          translateExpression(functionName),
+          args.map(translateCallArgument).toList,
+          false
+        )
       case _ => throw new UnhandledEntity(application, "translateCallable")
     }
   }
@@ -374,6 +390,7 @@ object AstToAstExpression {
           potentialFallback
         )
       case AST.App.any(inputAST)     => translateCallable(inputAST)
+      case AST.Mixfix.any(inputAST)  => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST)   => translateGroup(inputAST)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
@@ -439,118 +456,6 @@ object AstToAstExpression {
   }
 
   /**
-    * Transforms identifiers from the parser AST.
-    *
-    * @param identifier the identifier
-    * @return a representation of `identifier` in the compiler's [[IR IR]]
-    */
-  def processIdent(identifier: AST.Ident): IR.Identifier = {
-    ???
-//    identifier match {
-//      case AST.Ident.Blank(_)             => IR.Identifier.Blank()
-//      case AST.Ident.Var(name)            => IR.Identifier.Variable(name)
-//      case AST.Ident.Cons.any(identifier) => processIdentConstructor(identifier)
-//      case AST.Ident.Opr.any(identifier)  => processIdentOperator(identifier)
-//      case AST.Ident.Mod(name)            => IR.Identifier.Module(name)
-//      case _ =>
-//        throw new RuntimeException(
-//          "Fatal: Unhandled entity in processIdent = " + identifier
-//        )
-//    }
-  }
-
-  /**
-    * Transforms an operator identifier from the parser AST.
-    *
-    * @param operator the operator to transform
-    * @return a representation of `operator` in the compiler's [[IR IR]]
-    */
-  def processIdentOperator(
-    operator: AST.Ident.Opr
-  ): IR.Identifier.Operator = {
-    ???
-//    IR.Identifier.Operator(operator.name)
-  }
-
-  /**
-    * Transforms a constructor identifier from the parser AST.
-    *
-    * @param constructor the constructor name to transform
-    * @return a representation of `constructor` in the compiler's [[IR IR]]
-    */
-  def processIdentConstructor(
-    constructor: AST.Ident.Cons
-  ): IR.Identifier.Constructor = {
-    ???
-//    IR.Identifier.Constructor(constructor.name)
-  }
-
-  /**
-    * Transforms a line of a text literal from the parser AST.
-    *
-    * @param line the literal line to transform
-    * @return a representation of `line` in the compiler's [[IR IR]]
-    */
-  def processLine(
-    line: List[AST.Literal.Text.Segment[AST]]
-  ): IR.Literal.Text.Line = {
-    ???
-//    IR.Literal.Text.Line(line.map(processTextSegment))
-  }
-
-  /**
-    * Transforms a segment of text from the parser AST.
-    *
-    * @param segment the text segment to transform
-    * @return a representation of `segment` in the compiler's [[IR IR]]
-    */
-  def processTextSegment(
-    segment: AST.Literal.Text.Segment[AST]
-  ): IR.Literal.Text.Segment = {
-    ???
-//    segment match {
-//      case AST.Literal.Text.Segment._Plain(str) =>
-//        IR.Literal.Text.Segment.Plain(str)
-//      case AST.Literal.Text.Segment._Expr(expr) =>
-//        IR.Literal.Text.Segment.Expression(expr.map(process))
-//      case AST.Literal.Text.Segment._Escape(code) =>
-//        IR.Literal.Text.Segment.EscapeCode(code)
-//      case _ => throw new UnhandledEntity(segment, "processTextSegment")
-//    }
-  }
-
-  /**
-    * Transforms a function application from the parser AST.
-    *
-    * @param application the function application to transform
-    * @return a representation of `application` in the compiler's [[IR IR]]
-    */
-  def processApplication(application: AST): IR.Application = {
-    ???
-//    application match {
-//      case AST.App.Prefix(fn, arg) =>
-//        IR.Application.Prefix(process(fn), process(arg))
-//      case AST.App.Infix(leftArg, fn, rightArg) =>
-//        IR.Application.Infix(
-//          process(leftArg),
-//          processIdentOperator(fn),
-//          process(rightArg)
-//        )
-//      case AST.App.Section.Left(arg, fn) =>
-//        IR.Application.Section.Left(process(arg), processIdentOperator(fn))
-//      case AST.App.Section.Right(fn, arg) =>
-//        IR.Application.Section.Right(processIdentOperator(fn), process(arg))
-//      case AST.App.Section.Sides(fn) =>
-//        IR.Application.Section.Sides(processIdentOperator(fn))
-//      case AST.Mixfix(fnSegments, args) =>
-//        IR.Application
-//          .Mixfix(fnSegments.toList.map(processIdent), args.toList.map(process))
-//      case _ =>
-//        throw new UnhandledEntity(application, "processApplication")
-//    }
-  }
-
-  /**
     * Transforms a source code block from the parser AST.
     *
     * This handles both blocks of Enso-native code, and blocks of foreign
@@ -570,23 +475,6 @@ object AstToAstExpression {
 //          )
 //      case AST.Foreign(_, language, code) => IR.Block.Foreign(language, code)
 //      case _                              => throw new UnhandledEntity(block, "processBlock")
-//    }
-  }
-
-  /**
-    * Transforms a module top-level from the parser AST.
-    *
-    * @param module the module to transform
-    * @return a representation of `module` in the compiler's [[IR IR]]
-    */
-  def processModule(module: AST.Module): IR.Module = {
-    ???
-//    module match {
-//      case AST.Module(lines) =>
-//        IR.Module(
-//          lines.filter(t => t.elem.isDefined).map(t => process(t.elem.get))
-//        )
-//      case _ => throw new UnhandledEntity(module, "processModule")
 //    }
   }
 
