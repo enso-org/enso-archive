@@ -197,14 +197,14 @@ class Parser {
   def attachBlockLocations(ast: AST.Block, startOffset: Int): AST.Block = {
     val blockBeginOffset         = 1
     val newLineOffset            = 1
-    val emptyLinesNewLinesOffset = ast.emptyLines.length
-    val emptyLinesSpacingOffset  = ast.emptyLines.sum
+    val emptyLinesNewLinesOffset = ast.empty_lines.length
+    val emptyLinesSpacingOffset  = ast.empty_lines.sum
     val firstLineOffset = startOffset + blockBeginOffset +
       emptyLinesNewLinesOffset + emptyLinesSpacingOffset
     var currentOffset = firstLineOffset
     currentOffset += ast.indent
     val locatedFirstLine: AST.Block.Line =
-      ast.firstLine.map(attachLocations(_, currentOffset))
+      ast.first_line.map(attachLocations(_, currentOffset))
     currentOffset += locatedFirstLine.elem.span + locatedFirstLine.off + newLineOffset
     val locatedLines = ast.lines.map { line =>
       if (line.elem.isDefined) {

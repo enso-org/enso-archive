@@ -282,23 +282,23 @@ object Shape extends ShapeImplicit {
   ) extends App[T]
 
   sealed trait Section[T] extends App[T]
-  final case class SectionLeft[T](arg: T, off: Int, opr: AST.Opr)
+  final case class SectLeft[T](arg: T, off: Int, opr: AST.Opr)
       extends Section[T]
-  final case class SectionRight[T](opr: AST.Opr, off: Int, arg: T)
+  final case class SectRight[T](opr: AST.Opr, off: Int, arg: T)
       extends Section[T]
-  final case class SectionSides[T](opr: AST.Opr) extends Section[T] with Phantom
+  final case class SectSides[T](opr: AST.Opr) extends Section[T] with Phantom
   final case class Block[T](
-    typ: Block.Type,
+    ty: Block.Type,
     indent: Int,
-    emptyLines: List[Int],
-    firstLine: Block.Line[T],
+    empty_lines: List[Int],
+    first_line: Block.Line[T],
     lines: List[Block.Line[Option[T]]],
-    protected val isOrphan: Boolean = false
+    is_orphan: Boolean = false
   ) extends Shape[T] {
     // FIXME: Compatibility mode
-    def replaceType(ntyp: Block.Type): Block[T] = copy(typ = ntyp)
+    def replaceType(ntyp: Block.Type): Block[T] = copy(ty = ntyp)
     def replaceFirstLine(line: Block.Line[T]): Block[T] =
-      copy(firstLine = line)
+      copy(first_line = line)
     def replaceLines(lines: List[Block.Line[Option[T]]]): Block[T] =
       copy(lines = lines)
   }
@@ -704,32 +704,32 @@ object Shape extends ShapeImplicit {
     implicit def ozip[T: HasSpan]: OffsetZip[Section, T] =
       t => OffsetZip[Shape, T](t).asInstanceOf
   }
-  object SectionLeft {
-    implicit def ftor: Functor[SectionLeft]  = semi.functor
-    implicit def fold: Foldable[SectionLeft] = semi.foldable
-    implicit def repr[T: Repr]: Repr[SectionLeft[T]] =
+  object SectLeft {
+    implicit def ftor: Functor[SectLeft]  = semi.functor
+    implicit def fold: Foldable[SectLeft] = semi.foldable
+    implicit def repr[T: Repr]: Repr[SectLeft[T]] =
       t => R + t.arg + t.off + t.opr
-    implicit def ozip[T]: OffsetZip[SectionLeft, T] =
+    implicit def ozip[T]: OffsetZip[SectLeft, T] =
       t => t.copy(arg = (Index.Start, t.arg))
-    implicit def span[T: HasSpan]: HasSpan[SectionLeft[T]] =
+    implicit def span[T: HasSpan]: HasSpan[SectLeft[T]] =
       t => t.arg.span + t.off + t.opr.span
   }
-  object SectionRight {
-    implicit def ftor: Functor[SectionRight]  = semi.functor
-    implicit def fold: Foldable[SectionRight] = semi.foldable
-    implicit def repr[T: Repr]: Repr[SectionRight[T]] =
+  object SectRight {
+    implicit def ftor: Functor[SectRight]  = semi.functor
+    implicit def fold: Foldable[SectRight] = semi.foldable
+    implicit def repr[T: Repr]: Repr[SectRight[T]] =
       t => R + t.opr + t.off + t.arg
-    implicit def ozip[T]: OffsetZip[SectionRight, T] =
+    implicit def ozip[T]: OffsetZip[SectRight, T] =
       t => t.copy(arg = (Index(t.opr.span + t.off), t.arg))
-    implicit def span[T: HasSpan]: HasSpan[SectionRight[T]] =
+    implicit def span[T: HasSpan]: HasSpan[SectRight[T]] =
       t => t.opr.span + t.off + t.arg.span
   }
-  object SectionSides {
-    implicit def ftor:          Functor[SectionSides]      = semi.functor
-    implicit def fold:          Foldable[SectionSides]     = semi.foldable
-    implicit def repr[T: Repr]: Repr[SectionSides[T]]      = t => R + t.opr
-    implicit def ozip[T]:       OffsetZip[SectionSides, T] = t => t.coerce
-    implicit def span[T: HasSpan]: HasSpan[SectionSides[T]] =
+  object SectSides {
+    implicit def ftor:          Functor[SectSides]      = semi.functor
+    implicit def fold:          Foldable[SectSides]     = semi.foldable
+    implicit def repr[T: Repr]: Repr[SectSides[T]]      = t => R + t.opr
+    implicit def ozip[T]:       OffsetZip[SectSides, T] = t => t.coerce
+    implicit def span[T: HasSpan]: HasSpan[SectSides[T]] =
       t => t.opr.span
   }
 
@@ -737,28 +737,28 @@ object Shape extends ShapeImplicit {
     implicit def ftorBlock: Functor[Block]  = semi.functor
     implicit def fold:      Foldable[Block] = semi.foldable
     implicit def reprBlock[T: Repr]: Repr[Block[T]] = t => {
-      val headRepr       = if (t.isOrphan) R else newline
-      val emptyLinesRepr = t.emptyLines.map(R + _ + newline)
-      val firstLineRepr  = R + t.indent + t.firstLine
+      val headRepr       = if (t.is_orphan) R else newline
+      val emptyLinesRepr = t.empty_lines.map(R + _ + newline)
+      val firstLineRepr  = R + t.indent + t.first_line
       val linesRepr = t.lines.map { line =>
         newline + line.elem.map(_ => t.indent) + line
       }
       headRepr + emptyLinesRepr + firstLineRepr + linesRepr
     }
     implicit def ozipBlock[T: HasSpan]: OffsetZip[Block, T] = t => {
-      val line   = t.firstLine.copy(elem = (Index.Start, t.firstLine.elem))
-      var offset = Index(t.firstLine.span)
+      val line   = t.first_line.copy(elem = (Index.Start, t.first_line.elem))
+      var offset = Index(t.first_line.span)
       val lines = for (line <- t.lines) yield {
         val elem = line.elem.map((offset, _))
         offset += Size(line.span)
         line.copy(elem = elem)
       }
-      t.copy(firstLine = line, lines = lines)
+      t.copy(first_line = line, lines = lines)
     }
     implicit def span[T: HasSpan]: HasSpan[Block[T]] = t => {
-      val headSpan       = if (t.isOrphan) 0 else 1
-      val emptyLinesSpan = t.emptyLines.map(_ + 1).sum
-      val firstLineSpan  = t.indent + t.firstLine.span()
+      val headSpan       = if (t.is_orphan) 0 else 1
+      val emptyLinesSpan = t.empty_lines.map(_ + 1).sum
+      val firstLineSpan  = t.indent + t.first_line.span()
       def lineSpan(line: Shape.Block.OptLine[T]): Int = {
         val indentSpan = if (line.elem.isDefined) t.indent else 0
         newline.span + indentSpan + line.span()
@@ -1023,9 +1023,9 @@ sealed trait ShapeImplicit {
     case s: TextBlockFmt[T]  => s.repr
     case s: Prefix[T]        => s.repr
     case s: Infix[T]         => s.repr
-    case s: SectionLeft[T]   => s.repr
-    case s: SectionRight[T]  => s.repr
-    case s: SectionSides[T]  => s.repr
+    case s: SectLeft[T]      => s.repr
+    case s: SectRight[T]     => s.repr
+    case s: SectSides[T]     => s.repr
     case s: Block[T]         => s.repr
     case s: Module[T]        => s.repr
     case s: Ambiguous[T]     => s.repr
@@ -1059,9 +1059,9 @@ sealed trait ShapeImplicit {
     case s: TextBlockFmt[T]  => OffsetZip[TextBlockFmt, T].zipWithOffset(s)
     case s: Prefix[T]        => OffsetZip[Prefix, T].zipWithOffset(s)
     case s: Infix[T]         => OffsetZip[Infix, T].zipWithOffset(s)
-    case s: SectionLeft[T]   => OffsetZip[SectionLeft, T].zipWithOffset(s)
-    case s: SectionRight[T]  => OffsetZip[SectionRight, T].zipWithOffset(s)
-    case s: SectionSides[T]  => OffsetZip[SectionSides, T].zipWithOffset(s)
+    case s: SectLeft[T]      => OffsetZip[SectLeft, T].zipWithOffset(s)
+    case s: SectRight[T]     => OffsetZip[SectRight, T].zipWithOffset(s)
+    case s: SectSides[T]     => OffsetZip[SectSides, T].zipWithOffset(s)
     case s: Block[T]         => OffsetZip[Block, T].zipWithOffset(s)
     case s: Module[T]        => OffsetZip[Module, T].zipWithOffset(s)
     case s: Ambiguous[T]     => OffsetZip[Ambiguous, T].zipWithOffset(s)
@@ -1096,9 +1096,9 @@ sealed trait ShapeImplicit {
     case s: TextBlockFmt[T]  => s.span()
     case s: Prefix[T]        => s.span()
     case s: Infix[T]         => s.span()
-    case s: SectionLeft[T]   => s.span()
-    case s: SectionRight[T]  => s.span()
-    case s: SectionSides[T]  => s.span()
+    case s: SectLeft[T]      => s.span()
+    case s: SectRight[T]     => s.span()
+    case s: SectSides[T]     => s.span()
     case s: Block[T]         => s.span()
     case s: Module[T]        => s.span()
     case s: Ambiguous[T]     => s.span()
@@ -1449,6 +1449,11 @@ object AST {
     def toJson(): Json = {
       import io.circe.syntax._
       import io.circe.generic.auto._
+
+      import Shape.Block._
+      implicit val e: Encoder[Continuous.type]     = _ => None.asJson
+      implicit val e2: Encoder[Discontinuous.type] = _ => None.asJson
+
       val ast: AST = t
       ast.asJson
     }
@@ -1770,9 +1775,9 @@ object AST {
 
       //// Constructors ////
 
-      type Left  = ASTOf[Shape.SectionLeft]
-      type Right = ASTOf[Shape.SectionRight]
-      type Sides = ASTOf[Shape.SectionSides]
+      type Left  = ASTOf[Shape.SectLeft]
+      type Right = ASTOf[Shape.SectRight]
+      type Sides = ASTOf[Shape.SectSides]
 
       //// Smart Constructors ////
 
@@ -1781,7 +1786,7 @@ object AST {
         def unapply(t: AST) = Unapply[Left].run(t => (t.arg, t.opr))(t)
 
         def apply(arg: AST, off: Int, opr: Opr): Left =
-          Shape.SectionLeft(arg, off, opr)
+          Shape.SectLeft(arg, off, opr)
         def apply(arg: AST, opr: Opr): Left = Left(arg, 1, opr)
       }
       object Right {
@@ -1789,13 +1794,13 @@ object AST {
         def unapply(t: AST) = Unapply[Right].run(t => (t.opr, t.arg))(t)
 
         def apply(opr: Opr, off: Int, arg: AST): Right =
-          Shape.SectionRight(opr, off, arg)
+          Shape.SectRight(opr, off, arg)
         def apply(opr: Opr, arg: AST): Right = Right(opr, 1, arg)
       }
       object Sides {
         val any             = UnapplyByType[Sides]
         def unapply(t: AST) = Unapply[Sides].run(_.opr)(t)
-        def apply(opr: Opr): Sides = Shape.SectionSides[AST](opr)
+        def apply(opr: Opr): Sides = Shape.SectSides[AST](opr)
       }
     }
   }
@@ -1848,7 +1853,7 @@ object AST {
 
     val any = UnapplyByType[Block]
     def unapply(t: AST) =
-      Unapply[Block].run(t => (t.typ, t.indent, t.firstLine, t.lines))(t)
+      Unapply[Block].run(t => (t.ty, t.indent, t.first_line, t.lines))(t)
 
     //// Line ////
 

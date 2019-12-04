@@ -58,8 +58,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
-  def run(input: String): Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
+  def run(input: String):        Result[Doc] = new DocParser().run(input)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -128,14 +128,14 @@ object DocParserRunner {
     args: List[AST],
     b: AST.Block
   ): AST.Def = {
-    val firstLine        = Line(Option(b.firstLine.elem), b.firstLine.off)
+    val firstLine        = Line(Option(b.first_line.elem), b.first_line.off)
     val linesToTransform = firstLine :: b.lines
     val transformedLines = attachDocToSubsequentAST(linesToTransform)
     val TLHeadElem       = transformedLines.head.elem.get
     val TLHeadOff        = transformedLines.head.off
     val head             = AST.Block.Line(TLHeadElem, TLHeadOff)
     val lines            = transformedLines.tail
-    val body             = AST.Block(b.typ, b.indent, b.emptyLines, head, lines)
+    val body             = AST.Block(b.ty, b.indent, b.empty_lines, head, lines)
     AST.Def(name, args, Some(body))
   }
 
@@ -442,7 +442,7 @@ object DocParserHTMLGenerator {
     args: List[AST],
     body: AST.Block
   ): astHtmlRepr = {
-    val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val firstLine     = Line(Option(body.first_line.elem), body.first_line.off)
     val constructors  = HTML.h2(`class` := "constr")("Constructors")
     val allLines      = firstLine :: body.lines
     val generatedCode = renderHTMLOnLine(allLines)
