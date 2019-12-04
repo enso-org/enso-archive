@@ -169,7 +169,7 @@ object AstToAstExpression {
         literal.shape match {
           case AST.Literal.Text.Line.Raw(segments) =>
             val fullString = segments.collect {
-              case AST.Literal.Text.Segment.Raw(str) => str
+              case AST.Literal.Text.Segment.Raw(str) => ???
             }.mkString
 
             AstStringLiteral(literal.location, fullString)
@@ -178,24 +178,17 @@ object AstToAstExpression {
               .map(
                 t =>
                   t.text.collect {
-                    case AST.Literal.Text.Segment.Raw(str) => str
+                    case AST.Literal.Text.Segment.Raw(str) => ???
                   }.mkString
               )
               .mkString("\n")
 
             AstStringLiteral(literal.location, fullString)
           case AST.Literal.Text.Block.Fmt(_, _, _) =>
+            // TODO [AA] Add support for format strings
             throw new RuntimeException("Format strings not yet supported")
           case AST.Literal.Text.Line.Fmt(_) =>
             throw new RuntimeException("Format strings not yet supported")
-          // TODO [AA] Add support for format strings
-
-//            segments.head match {
-//              case AST.Literal.Text.Segment._Plain(str)  => ???
-//              case AST.Literal.Text.Segment._Expr(expr)  => ???
-//              case AST.Literal.Text.Segment._Escape(esc) => ???
-//              case _ => ???
-//            }
           case _ =>
             throw new UnhandledEntity(literal.shape, "translateLiteral")
         }
