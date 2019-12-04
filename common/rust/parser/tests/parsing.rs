@@ -36,6 +36,7 @@ impl TestHelper {
         line.clone()
     }
 
+    // TODO: make generic, should work for all shape subtypes.
     fn parse_shape_var<F>(&mut self, program: &str, tester: F)
         where F: FnOnce(&ast::Var) -> () {
         let ast = self.parse_line(program);
@@ -43,41 +44,24 @@ impl TestHelper {
         tester(shape);
     }
 
-    // TODO: the function above should be generic for all TryFrom<Shape<Ast>>
-    //  types.
-//    fn parse_shape_T<'t, F, T>(&mut self, program: &str, tester: F)
-//        where F: FnOnce(&T) -> (),
-//            &'t Shape<Ast>: TryInto<&'t T>,
-//            T: 'static,
-////             <&'t Shape<Ast> as TryInto<&'t T>>::Error: Debug
-//    {
-//        let ast = self.parse_line(program);
-//        let shape = expect_shape(&ast);
-//        tester(shape);
-////        let shape = ast.shape();
-////        let shape_t = shape.try_into();
-//    }
-
     fn deserialize_blank(&mut self) {
-        let ast = self.parse_line("_");
+        let _ast = self.parse_line("_");
     }
 
     fn deserialize_cons(&mut self) {
-        let ast = self.parse_line("FooBar");
+        let _ast = self.parse_line("FooBar");
     }
 
     fn deserialize_mod(&mut self) {
-        let ast = self.parse_line("+=");
+        let _ast = self.parse_line("+=");
     }
 
     fn deserialize_prefix(&mut self) {
-        let ast = self.parse_line("foo bar");
-        println!("{:?}", ast);
+        let _ast = self.parse_line("foo bar");
     }
 
     fn deserialize_infix(&mut self) {
-        let ast = self.parse_line("foo + bar");
-        println!("{:?}", ast);
+        let _ast = self.parse_line("foo + bar");
     }
 
     fn deserialize_var(&mut self) {
