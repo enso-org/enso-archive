@@ -94,6 +94,18 @@ impl TestHelper {
 
     // Literals
 
+    fn deserialize_number(&mut self) {
+        self.test_shape("127", |shape:&ast::Number| {
+            assert_eq!(shape.base, None);
+            assert_eq!(shape.int, "127");
+        });
+
+        self.test_shape("16_ff", |shape:&ast::Number| {
+            assert_eq!(shape.base.as_ref().unwrap(), "16");
+            assert_eq!(shape.int, "ff");
+        });
+    }
+
     fn deserialize_prefix(&mut self) {
         self.test_shape("foo   bar", |shape:&ast::Prefix<Ast>| {
             assert_var("foo", &shape.func);
@@ -160,11 +172,13 @@ impl TestHelper {
         self.deserialize_var();
         self.deserialize_cons();
         self.deserialize_mod();
+        self.deserialize_number();
         self.deserialize_prefix();
         self.deserialize_infix();
         self.deserialize_left();
         self.deserialize_right();
         self.deserialize_sides();
+
         self.deserialize_block();
     }
 }
