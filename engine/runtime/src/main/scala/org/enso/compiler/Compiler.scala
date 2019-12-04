@@ -119,7 +119,7 @@ class Compiler(
       )
       .build()
     val parsed: AST = parse(source)
-    
+
     translateInline(parsed).flatMap { ast =>
       Some(
         new ExpressionFactory(
