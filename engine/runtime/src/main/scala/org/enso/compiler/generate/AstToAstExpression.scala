@@ -20,10 +20,9 @@ import cats.implicits._
 
 // TODO [Generic]
 //  - Groups
-//  - Remove evalOld / rewrite benchmarks to new syntax
-//  - Translate if-then-else to ifZero for now
+//  - Translate if-then-else to a function and test it by definining
+//    `if_then_else` on the type
 //  - Type signatures
-//  - Import Tests
 
 /**
   * This is a representation of the raw conversion from the Parser [[AST AST]]

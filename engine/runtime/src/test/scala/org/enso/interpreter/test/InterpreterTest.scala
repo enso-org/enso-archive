@@ -32,10 +32,6 @@ trait InterpreterRunner {
     evalGeneric(code, Constants.MIME_TYPE)
   }
 
-  def evalOld(code: String): Value = {
-    evalGeneric(code, Constants.Debug.MIME_TYPE)
-  }
-
   def consumeOut: List[String] = {
     val result = output.toString
     output.reset()
