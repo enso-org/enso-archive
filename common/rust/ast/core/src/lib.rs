@@ -114,7 +114,7 @@ impl Ast {
     }
 
     pub fn shape(&self) -> &Shape<Ast> {
-        &self.wrapped.wrapped.wrapped
+        self
     }
 
     /// Wraps given shape with an optional ID into Ast. Span will ba
@@ -151,6 +151,7 @@ From<T> for Ast {
 
 // Serialization & Deserialization //
 
+/// Literals used in `Ast` serialization and deserialization.
 pub mod ast_schema {
     pub const STRUCT_NAME: &str      = "Ast";
     pub const SHAPE:       &str      = "shape";
@@ -174,8 +175,10 @@ impl Serialize for Ast {
     }
 }
 
-struct AstDeVisitor;
-impl<'de> Visitor<'de> for AstDeVisitor {
+/// Type to provide serde::de::Visitor to deserialize data into `Ast`.
+struct AstDeserializationVisitor;
+
+impl<'de> Visitor<'de> for AstDeserializationVisitor {
     type Value = Ast;
 
     fn expecting
@@ -213,7 +216,8 @@ impl<'de> Deserialize<'de> for Ast {
     fn deserialize<D>(deserializer: D) -> Result<Ast, D::Error>
     where D: Deserializer<'de> {
         use ast_schema::FIELDS;
-        deserializer.deserialize_struct("AstOf", &FIELDS, AstDeVisitor)
+        let visitor = AstDeserializationVisitor;
+        deserializer.deserialize_struct("AstOf", &FIELDS, visitor)
     }
 }
 
