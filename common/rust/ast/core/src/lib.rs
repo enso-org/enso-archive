@@ -307,15 +307,15 @@ pub type TextBlock<T> = Vec<TextLine<T>>;
 
 #[ast] pub struct Block<T> {
     pub ty          : BlockType,
-    pub ident       : usize,
-    pub empty_lines : usize,
+    pub indent      : usize,
+    pub empty_lines : Vec<usize>,
     pub first_line  : BlockLine<T>,
     pub lines       : Vec<BlockLine<Option<T>>>,
     pub is_orphan   : bool,
 }
 
-#[ast] pub enum   BlockType     { Continuous, Discontinuous }
-#[ast] pub struct BlockLine <T> { pub elem: T, pub off: usize }
+#[ast_node] pub enum   BlockType     { Continuous, Discontinuous }
+#[ast]      pub struct BlockLine <T> { pub elem: T, pub off: usize }
 
 // ==============
 // === Module ===
