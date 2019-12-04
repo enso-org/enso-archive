@@ -197,7 +197,7 @@ fn gen_from_impls
                     #sum_label::#ident(elem) => Ok(elem),
                     _  => {
                         let error = WrongEnum {
-                            expected_con: #variant_name};
+                            expected_con: #variant_name.to_string() };
                         Err(error)
                     },
                 }
@@ -216,7 +216,7 @@ fn gen_from_impls
                     #sum_label::#ident(elem) => Ok(elem),
                     _  => {
                         let error = WrongEnum {
-                            expected_con: #variant_name};
+                            expected_con: #variant_name.to_string() };
                         Err(error)
                     },
                 }

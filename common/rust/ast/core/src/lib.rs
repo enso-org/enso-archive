@@ -19,7 +19,7 @@ pub type Stream<T> = Vec<T>;
 /// Exception raised by macro-generated TryFrom methods that try to "downcast"
 /// enum type to its variant subtype if different constructor was used.
 #[derive(Display, Debug, Fail)]
-pub struct WrongEnum { pub expected_con: &'static str }
+pub struct WrongEnum { pub expected_con: String }
 
 // ============
 // === Tree ===
@@ -201,7 +201,7 @@ impl<'de> Visitor<'de> for AstDeserializationVisitor {
                 SHAPE => shape = Some(map.next_value()?),
                 ID    => id    = Some(map.next_value()?),
                 SPAN  => span  = Some(map.next_value()?),
-                _       => {},
+                _     => {},
             }
         }
 
