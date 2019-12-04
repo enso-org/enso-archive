@@ -660,14 +660,16 @@ mod tests {
 
     #[test]
     fn deserialize_var() {
+        let var_name = "foo";
         let uuid_str = "51e74fb9-75a4-499d-9ea3-a90a2663b4a1";
-        let var_ast = r#"
-        {
-            "shape": { "Var":{"name":"foo"}},
-            "id":""#.to_string() + uuid_str + r#"",
-            "span":3
-        }"#;
-        let ast: Ast = serde_json::from_str(&var_ast).unwrap();
+
+        let sample_json = serde_json::json!({
+            "shape": { "Var":{"name": var_name}},
+            "id": uuid_str,
+            "span": var_name.len()
+        });
+        let sample_json_text = sample_json.to_string();
+        let ast: Ast         = serde_json::from_str(&sample_json_text).unwrap();
 
         let expected_uuid = Uuid::parse_str(uuid_str).ok();
         assert_eq!(ast.id, expected_uuid);
@@ -675,10 +677,8 @@ mod tests {
         let expected_span = 3;
         assert_eq!(ast.span, expected_span);
 
-        let expected_shape = Var { name: "foo".into() };
-        match ast.shape() {
-            Shape::Var(var) => assert_eq!(var, &expected_shape),
-            _               => panic!("expected Var"),
-        }
+        let expected_var   = Var { name: var_name.into() };
+        let expected_shape = Shape::from(expected_var);
+        assert_eq!(*ast.shape(), expected_shape);
     }
 }
