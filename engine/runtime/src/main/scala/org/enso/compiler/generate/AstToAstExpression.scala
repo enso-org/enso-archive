@@ -1,14 +1,11 @@
 package org.enso.compiler.generate
 
-import org.enso.compiler.core
-import org.enso.compiler.core._
-import org.enso.compiler.exception.UnhandledEntity
 import cats.Foldable
-import org.enso.compiler.core.IR
-import org.enso.compiler.exception.UnhandledEntity
-import org.enso.interpreter._
-import org.enso.syntax.text.{AST, Debug, Location}
 import cats.implicits._
+import org.enso.compiler.core
+import org.enso.compiler.core.{IR, _}
+import org.enso.compiler.exception.UnhandledEntity
+import org.enso.syntax.text.{AST, Location}
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
 //  and is hence quite ugly right now. It will be cleaned up as work progresses,
@@ -169,7 +166,7 @@ object AstToAstExpression {
         literal.shape match {
           case AST.Literal.Text.Line.Raw(segments) =>
             val fullString = segments.collect {
-              case AST.Literal.Text.Segment.Raw(str) => ???
+              case AST.Literal.Text.Segment.Plain(str) => str
             }.mkString
 
             AstStringLiteral(literal.location, fullString)
@@ -178,7 +175,7 @@ object AstToAstExpression {
               .map(
                 t =>
                   t.text.collect {
-                    case AST.Literal.Text.Segment.Raw(str) => ???
+                    case AST.Literal.Text.Segment.Plain(str) => str
                   }.mkString
               )
               .mkString("\n")
@@ -343,7 +340,8 @@ object AstToAstExpression {
 
   def translateExpression(inputAST: AST): AstExpression = {
     inputAST match {
-      case AstView.SuspendedBlock(name, block@AstView.Block(lines, lastLine)) =>
+      case AstView
+            .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         AstAssignment(
           inputAST.location,
           name.name,
@@ -352,7 +350,7 @@ object AstToAstExpression {
             lines.map(translateExpression),
             translateExpression(lastLine),
             suspended = true
-            )
+          )
         )
       case AstView.Assignment(name, expr) =>
         translateAssignment(inputAST.location, name, expr)

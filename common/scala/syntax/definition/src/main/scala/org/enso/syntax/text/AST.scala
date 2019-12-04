@@ -27,7 +27,7 @@ import org.enso.syntax.text.ast.meta.Pattern
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-/* Note: [JSON Serialization]
+/* Note [JSON Serialization]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
  * of compile-time resource usage. It adds like 2-4 min to compile time.
@@ -1447,7 +1447,7 @@ object AST {
       ids.reverse
     }
 
-    // Note: [JSON Serialization] at the file top
+    // Note [JSON Serialization]
     def toJson(): Json = {
       import io.circe.syntax._
       import io.circe.generic.auto._
@@ -1710,8 +1710,16 @@ object AST {
         val Raw = Shape.SegmentRaw
         type Raw = Shape.SegmentRaw[AST]
 
-        object Expr  { def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)  }
-        object Plain { def apply(s: String):      Raw = Shape.SegmentPlain(s) }
+        object Expr {
+          def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)
+          def unapply(shape: Shape.SegmentExpr[AST]): Option[Option[AST]] =
+            Shape.SegmentExpr.unapply(shape)
+        }
+        object Plain {
+          def apply(s: String): Raw = Shape.SegmentPlain(s)
+          def unapply(shape: Shape.SegmentPlain[AST]): Option[String] =
+            Shape.SegmentPlain.unapply(shape)
+        }
       }
     }
   }
