@@ -119,20 +119,17 @@ class Compiler(
       )
       .build()
     val parsed: AST = parse(source)
-    val translated  = translateInline(parsed)
-
-    translated match {
-      case Some(ast) =>
-        Some(
-          new ExpressionFactory(
-            language,
-            source,
-            localScope,
-            "<inline_source>",
-            moduleScope
-          ).run(ast)
-        )
-      case None => None
+    
+    translateInline(parsed).flatMap { ast =>
+      Some(
+        new ExpressionFactory(
+          language,
+          source,
+          localScope,
+          "<inline_source>",
+          moduleScope
+        ).run(ast)
+      )
     }
   }
 

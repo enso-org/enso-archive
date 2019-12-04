@@ -1,6 +1,5 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
-import org.enso.interpreter.Constants
 import org.enso.interpreter.test.InterpreterRunner
 
 class RecursionFixtures extends InterpreterRunner {
@@ -8,18 +7,6 @@ class RecursionFixtures extends InterpreterRunner {
   val million: Long        = 1000000
   val thousand: Long       = 1000
   val hundred: Long        = 100
-
-  // Currently unused as we know this is very slow.
-  val mutuallyRecursiveSumTCOCode =
-    """
-    |summator = acc current ->
-    |  ifZero current acc (summator (acc+current) (current - 1))
-    |
-    |sumTo ->
-    |  res = summator 0 sumTo
-    |  res
-    |""".stripMargin
-  val mutuallyRecursiveSumTCO = eval(mutuallyRecursiveSumTCOCode)
 
   val sumTCOCode =
     """

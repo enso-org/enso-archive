@@ -14,11 +14,6 @@ public class RecursionBenchmarks {
   private static RecursionFixtures recursionFixtures = new RecursionFixtures();
 
   @Benchmark
-  public void benchMutuallyRecursiveSumTCO() {
-    recursionFixtures.mutuallyRecursiveSumTCO().execute(recursionFixtures.million());
-  }
-
-  @Benchmark
   public void benchSumTCO() {
     recursionFixtures.sumTCO().execute(recursionFixtures.hundredMillion());
   }
