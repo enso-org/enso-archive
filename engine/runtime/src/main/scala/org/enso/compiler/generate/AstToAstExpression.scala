@@ -7,8 +7,7 @@ import cats.Foldable
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter._
-import org.enso.syntax.text.AST.Location
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.syntax.text.{AST, Debug, Location}
 import cats.implicits._
 
 // TODO [AA] Please note that this entire translation is _very_ work-in-progress
@@ -170,7 +169,7 @@ object AstToAstExpression {
         literal.shape match {
           case AST.Literal.Text.Line.Raw(segments) =>
             val fullString = segments.collect {
-              case AST.Literal.Text.Segment._Plain(str) => str
+              case AST.Literal.Text.Segment.Raw(str) => str
             }.mkString
 
             AstStringLiteral(literal.location, fullString)
@@ -179,7 +178,7 @@ object AstToAstExpression {
               .map(
                 t =>
                   t.text.collect {
-                    case AST.Literal.Text.Segment._Plain(str) => str
+                    case AST.Literal.Text.Segment.Raw(str) => str
                   }.mkString
               )
               .mkString("\n")
@@ -253,7 +252,7 @@ object AstToAstExpression {
   def translateCallable(application: AST): AstExpression = {
     application match {
       case AstView.ForcedTerm(term) =>
-        AstDesuspend(term.location, translateExpression(term))
+        AstForce(application.location, translateExpression(term))
       case AstView.Application(name, args) =>
         val validArguments = args.filter {
           case AstView.SuspendDefaultsOperator(_) => false

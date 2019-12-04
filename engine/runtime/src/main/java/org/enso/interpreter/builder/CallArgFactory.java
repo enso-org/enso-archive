@@ -3,13 +3,15 @@ package org.enso.interpreter.builder;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import org.enso.compiler.core.AstCallArgVisitor;
-import org.enso.compiler.core.AstDesuspend;
 import org.enso.compiler.core.AstExpression;
+import com.oracle.truffle.api.source.Source;
+
+import com.oracle.truffle.api.source.SourceSection;
+import org.enso.compiler.core.AstForce;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
-import org.enso.interpreter.node.callable.thunk.ForceNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -24,6 +26,7 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
 
   private final LocalScope scope;
   private final Language language;
+  private final Source source;
   private final String scopeName;
   private final ModuleScope moduleScope;
 
@@ -32,13 +35,19 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
    *
    * @param scope the language scope in which the arguments are called
    * @param language the name of the language for which the arguments are defined
+   * @param source the source this factory is used to parse
    * @param scopeName the name of the scope in which the arguments are called
    * @param moduleScope the current language global scope
    */
   public CallArgFactory(
-      LocalScope scope, Language language, String scopeName, ModuleScope moduleScope) {
+      LocalScope scope,
+      Language language,
+      Source source,
+      String scopeName,
+      ModuleScope moduleScope) {
     this.scope = scope;
     this.language = language;
+    this.source = source;
     this.scopeName = scopeName;
     this.moduleScope = moduleScope;
   }
@@ -56,24 +65,28 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
    */
   @Override
   public CallArgument visitCallArg(Optional<String> name, AstExpression value, int position) {
-
-    String displayName = "callArgument<" + name.orElse(String.valueOf(position)) + ">";
-
     ExpressionNode result;
 
-    if (value instanceof AstDesuspend) {
-      ExpressionFactory factory = new ExpressionFactory(language, scope, scopeName, moduleScope);
-      result = ((AstDesuspend) value).target().visit(factory);
+    if (value instanceof AstForce) {
+      ExpressionFactory factory = new ExpressionFactory(language, source, scope, scopeName, moduleScope);
+      result = ((AstForce) value).target().visit(factory);
     } else {
       LocalScope childScope = new LocalScope(scope);
       ExpressionFactory factory =
-          new ExpressionFactory(language, childScope, scopeName, moduleScope);
+          new ExpressionFactory(language, source, childScope, scopeName, moduleScope);
       ExpressionNode expr = value.visit(factory);
       expr.markTail();
+      String displayName = "callArgument<" + name.orElse(String.valueOf(position)) + ">";
+      SourceSection section =
+          value
+              .getLocation()
+              .map(loc -> source.createSection(loc.start(), loc.length()))
+              .orElse(null);
+
       RootCallTarget callTarget =
           Truffle.getRuntime()
               .createCallTarget(
-                  new ClosureRootNode(language, childScope, moduleScope, expr, null, displayName));
+                  new ClosureRootNode(language, childScope, moduleScope, expr, section, displayName));
       result = CreateThunkNode.build(callTarget);
     }
 

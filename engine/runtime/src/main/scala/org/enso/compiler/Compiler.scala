@@ -13,10 +13,10 @@ import org.enso.interpreter.builder.{
   ModuleScopeExpressionFactory
 }
 import org.enso.interpreter.node.ExpressionNode
-import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.{AST, Parser}
 
@@ -55,7 +55,7 @@ class Compiler(
       new EnsoParser().parseEnso(source.getCharacters.toString)
     }
 
-    new ModuleScopeExpressionFactory(language, scope).run(expr)
+    new ModuleScopeExpressionFactory(language, source, scope).run(expr)
   }
 
   /**
@@ -106,27 +106,27 @@ class Compiler(
     * @return an expression node representing the parsed and analyzed source
     */
   def runInline(
-    source: String,
+    srcString: String,
     language: Language,
     localScope: LocalScope,
     moduleScope: ModuleScope
   ): Option[ExpressionNode] = {
-    val parsed: AST = parse(
-      Source
-        .newBuilder(
-          Constants.LANGUAGE_ID,
-          new StringReader(source),
-          "<inline-code>"
-        )
-        .build()
-    )
-    val translated = translateInline(parsed)
+    val source = Source
+      .newBuilder(
+        Constants.LANGUAGE_ID,
+        new StringReader(srcString),
+        "<interactive_source>"
+      )
+      .build()
+    val parsed: AST = parse(source)
+    val translated  = translateInline(parsed)
 
     translated match {
       case Some(ast) =>
         Some(
           new ExpressionFactory(
             language,
+            source,
             localScope,
             "<inline_source>",
             moduleScope
