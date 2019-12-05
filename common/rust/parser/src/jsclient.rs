@@ -49,7 +49,7 @@ impl Client {
 }
 
 impl IsParser for Client {
-   fn parse(&mut self, _program: String) -> api::Result<api::AST> {
+   fn parse(&mut self, _program: String) -> api::Result<api::Ast> {
       match parse(_program) {
          Ok(json_ast) => Ok(json_ast),
          Err(message) => Err(InteropError(Box::new(ScalaException()))),

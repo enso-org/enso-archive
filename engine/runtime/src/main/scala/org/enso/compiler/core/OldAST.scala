@@ -1,53 +1,41 @@
-package org.enso.interpreter
+package org.enso.compiler.core
 
 import java.util.Optional
 
 import org.apache.commons.lang3.StringEscapeUtils
+import org.enso.syntax.text.Location
 
 import scala.collection.JavaConverters._
 import scala.language.postfixOps
 import scala.util.parsing.combinator._
 
 trait AstExpressionVisitor[+T] {
-  def visitLong(l: Long): T
+  def visitLong(l: AstLong): T
 
-  def visitArithOp(op: String, left: AstExpression, right: AstExpression): T
+  def visitArithOp(astArithOp: AstArithOp): T
 
   def visitForeign(lang: String, code: String): T
 
-  def visitVariable(name: String): T
+  def visitVariable(astVariable: AstVariable): T
 
-  def visitFunction(
-    arguments: java.util.List[AstArgDefinition],
-    body: AstExpression
-  ): T
+  def visitFunction(function: AstFunction): T
 
-  def visitCaseFunction(
-    arguments: java.util.List[AstArgDefinition],
-    body: AstExpression
-  ): T
+  def visitCaseFunction(function: AstCaseFunction): T
 
-  def visitFunctionApplication(
-    function: AstExpression,
-    arguments: java.util.List[AstCallArg],
-    defaultsSuspended: Boolean
-  ): T
+  def visitFunctionApplication(application: AstApply): T
 
-  def visitAssignment(varName: String, expr: AstExpression): T
+  def visitAssignment(assignment: AstAssignment): T
 
-  def visitMatch(
-    target: AstExpression,
-    branches: java.util.List[AstCase],
-    fallback: java.util.Optional[AstCaseFunction]
-  ): T
+  def visitMatch(astMatch: AstMatch): T
 
-  def visitDesuspend(target: AstExpression): T
+  def visitForce(target: AstForce): T
 
-  def visitStringLiteral(string: String): T
+  def visitStringLiteral(string: AstStringLiteral): T
 
   def visitBlock(
     statements: java.util.List[AstExpression],
-    retValue: AstExpression
+    retValue: AstExpression,
+    suspended: Boolean
   ): T
 }
 
@@ -99,6 +87,8 @@ case class AstModuleScope(
 }
 
 sealed trait AstExpression {
+  def location: Option[Location]
+  def getLocation: Optional[Location] = Optional.ofNullable(location.orNull)
   def visit[T](visitor: AstExpressionVisitor[T]): T
 }
 
@@ -151,89 +141,115 @@ case class AstUnnamedCallArg(value: AstExpression) extends AstCallArg {
     visitor.visitCallArg(Optional.empty(), value, position)
 }
 
-case class AstLong(l: Long) extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitLong(l)
-}
-
-case class AstStringLiteral(string: String) extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitStringLiteral(string)
-}
-
-case class AstArithOp(op: String, left: AstExpression, right: AstExpression)
+case class AstLong(location: Option[Location], value: Long)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitArithOp(op, left, right)
+    visitor.visitLong(this)
 }
 
-case class AstForeign(lang: String, code: String) extends AstExpression {
+case class AstStringLiteral(location: Option[Location], string: String)
+    extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitStringLiteral(this)
+}
+
+case class AstArithOp(
+  location: Option[Location],
+  op: String,
+  left: AstExpression,
+  right: AstExpression
+) extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitArithOp(this)
+}
+
+case class AstForeign(location: Option[Location], lang: String, code: String)
+    extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
     visitor.visitForeign(lang, code)
 }
 
-case class AstVariable(name: String) extends AstExpression {
+case class AstVariable(location: Option[Location], name: String)
+    extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitVariable(name)
+    visitor.visitVariable(this)
 }
 
 case class AstApply(
+  location: Option[Location],
   fun: AstExpression,
   args: List[AstCallArg],
   hasDefaultsSuspended: Boolean
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitFunctionApplication(fun, args.asJava, hasDefaultsSuspended)
+    visitor.visitFunctionApplication(this)
+  def getArgs: java.util.List[AstCallArg] = args.asJava
 }
 
 case class AstFunction(
+  location: Option[Location],
   arguments: List[AstArgDefinition],
   body: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitFunction(arguments.asJava, body)
+    visitor.visitFunction(this)
 
   def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
 
 case class AstCaseFunction(
+  location: Option[Location],
   arguments: List[AstArgDefinition],
   body: AstExpression
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitCaseFunction(arguments.asJava, body)
+    visitor.visitCaseFunction(this)
+
+  def getArguments: java.util.List[AstArgDefinition] = arguments.asJava
 }
 
-case class AstAssignment(name: String, body: AstExpression)
-    extends AstExpression {
+case class AstAssignment(
+  location: Option[Location],
+  name: String,
+  body: AstExpression
+) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitAssignment(name, body)
+    visitor.visitAssignment(this)
 }
 
-case class AstCase(cons: AstExpression, function: AstCaseFunction)
+case class AstCase(
+  location: Option[Location],
+  cons: AstExpression,
+  function: AstCaseFunction
+)
 
 case class AstMatch(
+  location: Option[Location],
   target: AstExpression,
   branches: Seq[AstCase],
   fallback: Option[AstCaseFunction]
 ) extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitMatch(
-      target,
-      branches.asJava,
-      Optional.ofNullable(fallback.orNull)
-    )
+    visitor.visitMatch(this)
+  def getBranches: java.util.List[AstCase] = branches.asJava
+  def getFallback: Optional[AstCaseFunction] =
+    Optional.ofNullable(fallback.orNull)
 }
 
-case class AstDesuspend(target: AstExpression) extends AstExpression {
-  override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitDesuspend(target)
-}
-
-case class AstBlock(statements: List[AstExpression], retVal: AstExpression)
+case class AstForce(location: Option[Location], target: AstExpression)
     extends AstExpression {
   override def visit[T](visitor: AstExpressionVisitor[T]): T =
-    visitor.visitBlock(statements.asJava, retVal)
+    visitor.visitForce(this)
+}
+
+case class AstBlock(
+  location: Option[Location],
+  statements: List[AstExpression],
+  retVal: AstExpression,
+  suspended: Boolean = false
+) extends AstExpression {
+  override def visit[T](visitor: AstExpressionVisitor[T]): T =
+    visitor.visitBlock(statements.asJava, retVal, suspended)
 }
 
 class EnsoParserInternal extends JavaTokenParsers {
@@ -249,12 +265,12 @@ class EnsoParserInternal extends JavaTokenParsers {
     }
 
   def long: Parser[AstLong] = wholeNumber ^^ { numStr =>
-    AstLong(numStr.toLong)
+    AstLong(None, numStr.toLong)
   }
 
   def foreign: Parser[AstForeign] =
     ("js" | "rb" | "py") ~ foreignLiteral ^^ {
-      case lang ~ code => AstForeign(lang, code)
+      case lang ~ code => AstForeign(None, lang, code)
     }
 
   def argList: Parser[List[AstCallArg]] =
@@ -282,18 +298,19 @@ class EnsoParserInternal extends JavaTokenParsers {
 
   def string: Parser[AstStringLiteral] = stringLiteral ^^ { lit =>
     AstStringLiteral(
+      None,
       StringEscapeUtils.unescapeJava(lit.substring(1, lit.length - 1))
     )
   }
 
-  def variable: Parser[AstVariable] = ident ^^ AstVariable
+  def variable: Parser[AstVariable] = ident ^^ (AstVariable(None, _))
 
   def operand: Parser[AstExpression] =
     long | foreign | variable | "(" ~> expression <~ ")" | functionCall
 
   def arith: Parser[AstExpression] =
     operand ~ ((("+" | "-" | "*" | "/" | "%") ~ operand) ?) ^^ {
-      case a ~ Some(op ~ b) => AstArithOp(op, a, b)
+      case a ~ Some(op ~ b) => AstArithOp(None, op, a, b)
       case a ~ None         => a
     }
 
@@ -303,41 +320,42 @@ class EnsoParserInternal extends JavaTokenParsers {
   def functionCall: Parser[AstApply] =
     "@" ~> expression ~ (argList ?) ~ defaultSuspend ^^ {
       case expr ~ args ~ hasDefaultsSuspended =>
-        AstApply(expr, args.getOrElse(Nil), hasDefaultsSuspended)
+        AstApply(None, expr, args.getOrElse(Nil), hasDefaultsSuspended)
     }
 
   def defaultSuspend: Parser[Boolean] =
-    ("..." ?) ^^ ({
+    ("..." ?) ^^ {
       case Some(_) => true
       case None    => false
-    })
+    }
 
-  def desuspend: Parser[AstDesuspend] = "$" ~> expression ^^ AstDesuspend
+  def desuspend: Parser[AstForce] =
+    "$" ~> expression ^^ (AstForce(None, _))
 
   def assignment: Parser[AstAssignment] = ident ~ ("=" ~> expression) ^^ {
-    case v ~ exp => AstAssignment(v, exp)
+    case v ~ exp => AstAssignment(None, v, exp)
   }
 
   def function: Parser[AstFunction] =
     ("{" ~> (inArgList ?) ~ ((statement <~ ";") *) ~ expression <~ "}") ^^ {
       case args ~ stmts ~ expr =>
-        AstFunction(args.getOrElse(Nil), AstBlock(stmts, expr))
+        AstFunction(None, args.getOrElse(Nil), AstBlock(None, stmts, expr))
     }
 
   def caseFunction: Parser[AstCaseFunction] = function ^^ {
-    case AstFunction(args, AstBlock(stmts, ret)) =>
-      AstCaseFunction(args, AstBlock(stmts, ret))
+    case AstFunction(None, args, AstBlock(None, stmts, ret, _)) =>
+      AstCaseFunction(None, args, AstBlock(None, stmts, ret))
   }
 
   def caseClause: Parser[AstCase] =
     (expression <~ "~") ~ (caseFunction <~ ";") ^^ {
       case cons ~ fun =>
-        AstCase(cons, AstCaseFunction(fun.arguments, fun.body))
+        AstCase(None, cons, AstCaseFunction(None, fun.arguments, fun.body))
     }
 
   def matchClause: Parser[AstMatch] =
     ("match" ~> expression <~ "<") ~ (caseClause *) ~ (((caseFunction <~ ";") ?) <~ ">") ^^ {
-      case expr ~ cases ~ fallback => AstMatch(expr, cases, fallback)
+      case expr ~ cases ~ fallback => AstMatch(None, expr, cases, fallback)
     }
 
   def statement: Parser[AstExpression] = assignment | expression
@@ -352,7 +370,7 @@ class EnsoParserInternal extends JavaTokenParsers {
       case typeName ~ methodName ~ body =>
         val fun = body match {
           case b: AstFunction => b
-          case _              => AstFunction(List(), body)
+          case _              => AstFunction(None, List(), body)
         }
         AstMethodDef(typeName, methodName, fun)
     }

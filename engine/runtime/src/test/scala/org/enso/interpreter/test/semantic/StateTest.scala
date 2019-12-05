@@ -34,23 +34,20 @@ class StateTest extends InterpreterTest {
     eval(code) shouldEqual 5
   }
 
-  // TODO [AA,MK]: New syntax must support suspended blocks like `myFun` here
   "State" should "be localized with State.run" in {
     val code =
       """
-        |@{
-        |  @put[@State, 20];
-        |  myFun = {
-        |    res = @get[@State];
-        |    @put[@State, 0];
-        |    res
-        |  };
-        |  res = @run[@State, 10, @myFun];
-        |  state = @get[@State];
-        |  res + state
-        |}
+        |State.put 20
+        |myBlock =
+        |  res = State.get
+        |  State.put 0
+        |  res
+        |
+        |res2 = State.run 10 ~myBlock
+        |state = State.get
+        |res2 + state
         |""".stripMargin
-    evalOld(code) shouldEqual 30
+    eval(code) shouldEqual 30
   }
 
   "State" should "work well with recursive code" in {
@@ -78,34 +75,36 @@ class StateTest extends InterpreterTest {
   "State" should "work with pattern matches" in {
     val code =
       """
-        |@{
-        |  matcher = { |x| match x <
-        |    Unit ~ { y = @get[@State]; @put[@State, y+5] };
-        |    Nil ~ { y = @get[@State]; @put[@State, y+10] };
-        |  >};
-        |  @put[@State, 1];
-        |  @matcher[@Nil];
-        |  @println[@IO, @get[@State]];
-        |  @matcher[@Unit];
-        |  @println[@IO, @get[@State]];
-        |  0
-        |}
+        |matcher = x -> case x of
+        |  Unit ->
+        |    y = State.get
+        |    State.put (y + 5)
+        |  Nil ->
+        |    y = State.get
+        |    State.put (y + 10)
+        |
+        |State.put 1
+        |matcher Nil
+        |IO.println State.get
+        |matcher Unit
+        |IO.println State.get
+        |0
         |""".stripMargin
-    evalOld(code)
+    eval(code)
     consumeOut shouldEqual List("11", "16")
   }
 
   "Panics" should "undo state changes" in {
     val code =
       """
-        |@{
-        |  panicker = { @put[@State, 400]; @throw[@Panic, @Unit] };
-        |  @put[@State,-5];
-        |  @recover[@Panic, @panicker];
-        |  @get[@State]
-        |}
+        |panicker =
+        |  State.put 400
+        |  Panic.throw Unit
         |
+        |State.put 5
+        |Panic.recover ~panicker
+        |State.get
         |""".stripMargin
-    evalOld(code) shouldEqual (-5)
+    eval(code) shouldEqual 5
   }
 }

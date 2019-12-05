@@ -9,7 +9,7 @@ import scalatags.Text.{all => HTML}
 import HTML._
 import flexer.Parser.{Result => res}
 import org.enso.data.List1
-import org.enso.syntax.text.AST.Block.{LineOf => Line}
+import org.enso.syntax.text.Shape.Block.Line
 
 ////////////////////////////////////////////////////////////////////////////////
 //// Doc Parser ////////////////////////////////////////////////////////////////
@@ -258,7 +258,7 @@ object DocParserRunner {
     emptyLines: Int,
     ast: AST,
     off: Int
-  ): AST.Block.LineOf[Some[AST.Documented]] = {
+  ): Line[Some[AST.Documented]] = {
     val doc        = createDocFromComment(comment)
     val documented = Some(AST.Documented(doc, emptyLines, ast))
     Line(documented, off)

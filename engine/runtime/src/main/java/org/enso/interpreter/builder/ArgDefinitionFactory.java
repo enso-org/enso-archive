@@ -1,9 +1,15 @@
 package org.enso.interpreter.builder;
 
-import org.enso.interpreter.AstArgDefinitionVisitor;
-import org.enso.interpreter.AstExpression;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.nodes.RootNode;
+import org.enso.compiler.core.AstArgDefinitionVisitor;
+import org.enso.compiler.core.AstExpression;
+import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -17,6 +23,7 @@ import java.util.Optional;
 public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDefinition> {
   private final LocalScope scope;
   private final Language language;
+  private final Source source;
   private final String scopeName;
   private final ModuleScope moduleScope;
 
@@ -25,13 +32,19 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
    *
    * @param scope the language scope into which the arguments are defined
    * @param language the name of the language for which the arguments are defined
+   * @param source the source this factory is used to parse
    * @param scopeName the name of the scope in which the arguments are defined
    * @param moduleScope the current language global scope
    */
   public ArgDefinitionFactory(
-      LocalScope scope, Language language, String scopeName, ModuleScope moduleScope) {
+      LocalScope scope,
+      Language language,
+      Source source,
+      String scopeName,
+      ModuleScope moduleScope) {
     this.scope = scope;
     this.language = language;
+    this.source = source;
     this.scopeName = scopeName;
     this.moduleScope = moduleScope;
   }
@@ -40,21 +53,24 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
    * Defaults the local scope to a newly created one.
    *
    * @param language the name of the language for which the arguments are defined
+   * @param source the source this factory is used to parse
    * @param scopeName the name of the scope in which the arguments are defined
    * @param moduleScope the current language global scope
    */
-  public ArgDefinitionFactory(Language language, String scopeName, ModuleScope moduleScope) {
-    this(new LocalScope(), language, scopeName, moduleScope);
+  public ArgDefinitionFactory(
+      Language language, Source source, String scopeName, ModuleScope moduleScope) {
+    this(new LocalScope(), language, source, scopeName, moduleScope);
   }
 
   /**
    * Default constructs the {@code LocalScope} and defaults the scope name to {@code <root>}.
    *
    * @param language the name of the language for which the arguments are defined
+   * @param source the source this factory is used to parse
    * @param moduleScope the current language global scope
    */
-  public ArgDefinitionFactory(Language language, ModuleScope moduleScope) {
-    this(language, "<root>", moduleScope);
+  public ArgDefinitionFactory(Language language, Source source, ModuleScope moduleScope) {
+    this(language, source, "<root>", moduleScope);
   }
 
   /**
@@ -69,20 +85,37 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
   @Override
   public ArgumentDefinition visitArg(
       String name, Optional<AstExpression> defaultValue, boolean suspended, int position) {
-    ExpressionNode defNode =
+    ExpressionNode defExpression =
         defaultValue
             .map(
                 def -> {
                   ExpressionFactory exprFactory =
-                      new ExpressionFactory(language, scope, scopeName, moduleScope);
+                      new ExpressionFactory(language, source, scope, scopeName, moduleScope);
                   return defaultValue.get().visit(exprFactory);
                 })
             .orElse(null);
+
+    ExpressionNode defaultedValue = defExpression;
+
+    if (suspended && defExpression != null) {
+      RootNode defaultRootNode =
+          new ClosureRootNode(
+              language,
+              scope,
+              moduleScope,
+              defExpression,
+              null,
+              "default::" + scopeName + "::" + name);
+
+      RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(defaultRootNode);
+
+      defaultedValue = CreateThunkNode.build(callTarget);
+    }
 
     ArgumentDefinition.ExecutionMode executionMode =
         suspended
             ? ArgumentDefinition.ExecutionMode.PASS_THUNK
             : ArgumentDefinition.ExecutionMode.EXECUTE;
-    return new ArgumentDefinition(position, name, defNode, executionMode);
+    return new ArgumentDefinition(position, name, defaultedValue, executionMode);
   }
 }

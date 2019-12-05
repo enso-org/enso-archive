@@ -1,12 +1,11 @@
 package org.enso.syntax.text.spec
 
-import org.enso.data.List1
 import org.enso.flexer
 import org.enso.flexer.Reader
 import org.enso.flexer.State
 import org.enso.flexer.automata.Pattern
 import org.enso.flexer.automata.Pattern._
-import org.enso.syntax.text.AST
+import org.enso.syntax.text.{AST, Shape}
 
 import scala.annotation.tailrec
 
@@ -343,16 +342,19 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       finish(t => AST.Text.Raw(t.head.text: _*), t => AST.Text(t.head.text: _*))
     }
 
-    def submitUnclosed(): Unit = logger.trace {
+    def submitMissingQuote(): Unit = logger.trace {
       rewind()
-      val Text = AST.Text.Unclosed
-      finish(t => Text.Raw(t.head.text: _*), t => Text(t.head.text: _*))
+      submitUnclosed()
     }
 
-    def submitDoubleQuote(): Unit = logger.trace {
+    def submitInvalidQuote(): Unit = logger.trace {
+      submitUnclosed()
+      onInvalidQuote()
+    }
+
+    def submitUnclosed(): Unit = logger.trace {
       val Text = AST.Text.Unclosed
       finish(t => Text.Raw(t.head.text: _*), t => Text(t.head.text: _*))
-      onInvalidQuote()
     }
 
     def onEndOfBlock(): Unit = logger.trace {
@@ -393,14 +395,18 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
     def submitPlainSegment(): Unit = logger.trace {
       text.lineBuilder = text.lineBuilder match {
-        case Segment._Plain(t) :: _ =>
+        case Shape.SegmentPlain(t) :: _ =>
           Segment.Plain(t + currentMatch) :: text.lineBuilder.tail
         case _ => Segment.Plain(currentMatch) :: text.lineBuilder
       }
     }
 
     def onEscape(code: Segment.Escape): Unit = logger.trace {
-      submit(Segment._Escape(code))
+      submit(Shape.SegmentEscape(code))
+    }
+
+    def onEscape(code: Segment.RawEscape): Unit = logger.trace {
+      submit(Shape.SegmentRawEscape(code))
     }
 
     def onEscapeU16(): Unit = logger.trace {
@@ -418,9 +424,13 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       onEscape(Segment.Escape.Number(int))
     }
 
-    def onInvalidEscape(): Unit = logger.trace {
-      val str = currentMatch.drop(1)
-      onEscape(Segment.Escape.Invalid(str))
+    def onEscapeInvalid(): Unit = logger.trace {
+      val chr = currentMatch.charAt(1)
+      onEscape(Segment.Escape.Invalid(chr))
+    }
+
+    def onEscapeUnfinished(): Unit = logger.trace {
+      onEscape(Segment.Escape.Unfinished)
     }
 
     def onEscapeSlash(): Unit = logger.trace {
@@ -453,13 +463,9 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
       }
     }
 
-    def onTextEOF(): Unit = logger.trace {
-      submitUnclosed()
-      rewind()
-    }
-
     def submitLine(): Unit = logger.trace {
       if (state.current == FMT_LINE || state.current == RAW_LINE || text.lineBuilder.nonEmpty) {
+        val Line = Shape.TextBlockLine
         text.lines +:= Line(text.emptyLines.reverse, text.lineBuilder.reverse)
         text.lineBuilder = Nil
         text.emptyLines  = Nil
@@ -503,7 +509,7 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     val escape_u16 = "\\u" >> repeat(fmtChar, 0, 4)
     val escape_u32 = "\\U" >> repeat(fmtChar, 0, 8)
     val fmtSeg     = fmtChar.many1
-    val rawSeg     = noneOf("\"\n").many1
+    val rawSeg     = noneOf("\"\n\\").many1
     val fmtBSeg    = noneOf("\n\\`").many1
     val rawBSeg    = noneOf("\n").many1
 
@@ -527,11 +533,10 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   ROOT            || "'"           || text.onBegin(text.FMT_LINE)
   text.FMT_LINE   || "'"           || text.submit()
-  text.FMT_LINE   || "''"          || text.submitDoubleQuote()
-  text.FMT_LINE   || "'".many1     || text.submitUnclosed()
+  text.FMT_LINE   || "'".many1     || text.submitInvalidQuote()
   text.FMT_LINE   || text.fmtSeg   || text.submitPlainSegment()
-  text.FMT_LINE   || eof           || text.onTextEOF()
-  text.FMT_LINE   || newline       || text.submitUnclosed()
+  text.FMT_LINE   || eof           || text.submitMissingQuote()
+  text.FMT_LINE   || newline       || text.submitMissingQuote()
   block.FIRSTCHAR || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
   ROOT            || text.fmtBlock || text.onBeginBlock(text.FMT_BLCK)
   ROOT            || "'''"         || text.onInlineBlock()
@@ -541,11 +546,10 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
 
   ROOT            || '"'           || text.onBegin(text.RAW_LINE)
   text.RAW_LINE   || '"'           || text.submit()
-  text.RAW_LINE   || "\"\""        || text.submitDoubleQuote()
-  text.RAW_LINE   || '"'.many1     || text.submitUnclosed()
+  text.RAW_LINE   || '"'.many1     || text.submitInvalidQuote()
   text.RAW_LINE   || text.rawSeg   || text.submitPlainSegment()
-  text.RAW_LINE   || eof           || text.onTextEOF()
-  text.RAW_LINE   || newline       || text.submitUnclosed()
+  text.RAW_LINE   || eof           || text.submitMissingQuote()
+  text.RAW_LINE   || newline       || text.submitMissingQuote()
   block.FIRSTCHAR || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
   ROOT            || text.rawBlock || text.onBeginBlock(text.RAW_BLCK)
   ROOT            || "\"\"\""      || text.onInlineBlock()
@@ -567,14 +571,19 @@ case class ParserDef() extends flexer.Parser[AST.Module] {
     text.FMT || s"\\$code" run s"text.onEscape($ctrl)"
   }
 
-  text.FMT || text.escape_u16        || text.onEscapeU16()
-  text.FMT || text.escape_u32        || text.onEscapeU32()
-  text.FMT || text.escape_int        || text.onEscapeInt()
-  text.FMT || "\\\\"                 || text.onEscapeSlash()
-  text.FMT || "\\'"                  || text.onEscapeQuote()
-  text.FMT || "\\\""                 || text.onEscapeRawQuote()
-  text.FMT || ("\\" >> text.fmtChar) || text.onInvalidEscape()
-  text.FMT || "\\"                   || text.submitPlainSegment()
+  text.FMT || text.escape_u16 || text.onEscapeU16()
+  text.FMT || text.escape_u32 || text.onEscapeU32()
+  text.FMT || text.escape_int || text.onEscapeInt()
+  text.FMT || "\\\\"          || text.onEscapeSlash()
+  text.FMT || "\\'"           || text.onEscapeQuote()
+  text.FMT || "\\" >> any     || text.onEscapeInvalid()
+  text.FMT || "\\"            || text.onEscapeUnfinished()
+
+
+  text.RAW_LINE || "\\\""      || text.onEscapeRawQuote()
+  text.RAW_LINE || "\\\\"      || text.onEscapeSlash()
+  text.RAW_LINE || "\\" >> any || text.onEscapeInvalid()
+  text.RAW_LINE || "\\"        || text.onEscapeUnfinished()
 
   //////////////
   /// Blocks ///
