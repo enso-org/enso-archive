@@ -5,7 +5,7 @@ import cats.implicits._
 import org.enso.compiler.core
 import org.enso.compiler.core.{IR, _}
 import org.enso.compiler.exception.UnhandledEntity
-import org.enso.syntax.text.{AST, Location}
+import org.enso.syntax.text.{AST, Location, Shape}
 
 // TODO [Generic]
 //  - Groups (can I use implicits?)
@@ -160,6 +160,7 @@ object AstToAstExpression {
           case AST.Literal.Text.Line.Raw(segments) =>
             val fullString = segments.collect {
               case AST.Literal.Text.Segment.Plain(str) => str
+              case AST.Literal.Text.Segment.RawEsc(code) => code.repr
             }.mkString
 
             AstStringLiteral(literal.location, fullString)
@@ -169,6 +170,7 @@ object AstToAstExpression {
                 t =>
                   t.text.collect {
                     case AST.Literal.Text.Segment.Plain(str) => str
+                    case AST.Literal.Text.Segment.RawEsc(code) => code.repr
                   }.mkString
               )
               .mkString("\n")

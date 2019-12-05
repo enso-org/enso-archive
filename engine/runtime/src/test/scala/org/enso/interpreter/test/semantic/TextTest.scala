@@ -27,4 +27,14 @@ class TextTest extends InterpreterTest {
     eval(code)
     consumeOut shouldEqual List("Foo", "Bar", "  Baz")
   }
+
+  "Raw text literals" should "support escape sequences" in {
+    val code =
+      """
+        |IO.println "\"Grzegorz Brzęczyszczykiewicz\""
+        |""".stripMargin
+
+    eval(code)
+    consumeOut shouldEqual List("\"Grzegorz Brzęczyszczykiewicz\"")
+  }
 }
