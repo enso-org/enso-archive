@@ -1,3 +1,45 @@
+# Notes on Enso's Syntax and Semantics
+As we get closer to the development of the more sophisticated features of the
+language, as well as have a more fully-featured interpreter, we really need to
+clarify exactly how certain syntactic and semantic elements of the language
+behave. 
+
+This document aims to clarify the behaviour of many language constructs, as
+well as expose any open questions that we have about them. It is not intended
+to be a design document directly itself, but the information contained here
+will be _used_ to later contribute to various, more-specialised design
+documents.
+
+<!-- Table of contents -->
+
+## Variable Naming
+One of the key features of Enso as a language is a total lack of separation
+between the value and type level syntaxes. This enables a staggering uniformity
+of programming in the language, allowing arbitrary computations in types as
+well as in values. This means that arbitrary names can refer to both types and
+values (as they are one and the same). 
+
+However, this means that naming becomes a bit of a concern. Without a syntactic
+disambiguator, it becomes much harder to keep a minimal syntax for things like
+pattern matches. To this end, Enso itself enforces naming conventions:
+
+- Everything is named in `camelCase`.
+- When you want to refer to a name in a pattern, you can instead use the same
+  name, but in `UpperCamelCase`. For example, `fooBar` becomes `FooBar`. This
+  allows us a uniformity and syntactic marker for disambiguation.
+
+For much of the history of the language's development, we have been happy with
+using `camelCase` and `UpperCamelCase` naming conventions to mark this
+distinction, but recently it has been raised that we might instead prefer to
+use `snake_case` to refer to variables. A few thoughts on this follow:
+
+- 
+
+Please note that this file sticks to the pre-determined naming convention for
+Enso, as no final decision has been made on whether or not it should be
+changed.
+
+
 ## =======================
 ## === Variable Naming ===
 ## =======================
