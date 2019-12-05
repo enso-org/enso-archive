@@ -231,15 +231,18 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast(flat)] pub enum Shape<T> {
 
     // === Identifiers ===
-    Blank     { },
-    Var       { name : String },
-    Cons      { name : String },
-    Opr       { name : String },
-    Mod       { name : String },
+    Blank         { },
+    Var           { name : String            },
+    Cons          { name : String            },
+    Opr           { name : String            },
+    Mod           { name : String            },
+    InvalidSuffix { elem : T, suffix: String },
 
     // === Literals ===
-    Number    { base: Option<String>, int: String },
-    Text      (Text<T>),
+    Number       { base: Option<String>, int: String },
+    DanglingBase { base: String                      },
+
+    Text         (Text<T>),
 
     // === Expressions ===
     Prefix    { func : T   , off  : usize , arg: T                          },
@@ -267,9 +270,7 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast] pub enum Invalid<T> {
     Unrecognized  { input : String },
     Unexpected    { msg   : String, stream: Stream<T> },
-    InvalidSuffex { elem  : T, suffix: String },
     // FIXME: missing constructors, https://github.com/luna/enso/issues/336
-    // DanglingBase
 }
 
 

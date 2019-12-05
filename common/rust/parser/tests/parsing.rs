@@ -23,13 +23,13 @@ where &'t Shape<Ast>: TryInto<&'t T> {
     }
 }
 
-fn assert_var<StringLike: Into<String>>(name: StringLike, ast: &Ast) {
+fn assert_var<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     let actual: &ast::Var = expect_shape(ast);
     let expected          = ast::Var{ name: name.into() };
     assert_eq!(*actual, expected);
 }
 
-fn assert_opr<StringLike: Into<String>>(name: StringLike, ast: &Ast) {
+fn assert_opr<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     let actual: &ast::Opr = expect_shape(ast);
     let expected          = ast::Opr{ name: name.into() };
     assert_eq!(*actual, expected);
@@ -90,6 +90,13 @@ impl TestHelper {
         });
     }
 
+    fn deserialize_invalid_suffix(&mut self) {
+        self.test_shape("foo'bar", |shape:&ast::InvalidSuffix<Ast>| {
+            assert_var(&shape.elem, "foo'");
+            assert_eq!(shape.suffix, "bar");
+        });
+    }
+
     // We can't test parsing Opr directly, but it is part of infix test.
 
     // Literals
@@ -106,40 +113,46 @@ impl TestHelper {
         });
     }
 
+    fn deserialize_dangling_base(&mut self) {
+        self.test_shape("16_", |shape:&ast::DanglingBase| {
+            assert_eq!(shape.base, "16");
+        });
+    }
+
     fn deserialize_prefix(&mut self) {
         self.test_shape("foo   bar", |shape:&ast::Prefix<Ast>| {
-            assert_var("foo", &shape.func);
+            assert_var(&shape.func, "foo");
             assert_eq!(shape.off, 3);
-            assert_var("bar", &shape.arg);
+            assert_var(&shape.arg, "bar");
         });
     }
 
     fn deserialize_infix(&mut self) {
         self.test_shape("foo +  bar", |shape:&ast::Infix<Ast>| {
-            assert_var("foo", &shape.larg);
+            assert_var(&shape.larg, "foo");
             assert_eq!(shape.loff, 1);
-            assert_opr("+", &shape.opr);
+            assert_opr(&shape.opr, "+");
             assert_eq!(shape.roff, 2);
-            assert_var("bar", &shape.rarg);
+            assert_var(&shape.rarg, "bar");
         });
     }
     fn deserialize_left(&mut self) {
         self.test_shape("foo +", |shape:&ast::SectLeft<Ast>| {
-            assert_var("foo", &shape.arg);
+            assert_var(&shape.arg, "foo");
             assert_eq!(shape.off, 1);
-            assert_opr("+", &shape.opr);
+            assert_opr(&shape.opr, "+");
         });
     }
     fn deserialize_right(&mut self) {
         self.test_shape("+ bar", |shape:&ast::SectRight<Ast>| {
-            assert_opr("+", &shape.opr);
+            assert_opr(&shape.opr, "+");
             assert_eq!(shape.off, 1);
-            assert_var("bar", &shape.arg);
+            assert_var(&shape.arg, "bar");
         });
     }
     fn deserialize_sides(&mut self) {
         self.test_shape("+", |shape:&ast::SectSides<Ast>| {
-            assert_opr("+", &shape.opr);
+            assert_opr(&shape.opr, "+");
         });
     }
 
@@ -151,13 +164,13 @@ impl TestHelper {
             assert_eq!(block.is_orphan, true);
 
             assert_eq!(block.first_line.off, 0);
-            assert_var("foo", &block.first_line.elem);
+            assert_var(&block.first_line.elem, "foo");
 
             assert_eq!(block.lines.len(), 1);
             let second_line = block.lines.iter().nth(0).unwrap();
 
             assert_eq!(second_line.off, 0);
-            assert_var("bar", second_line.elem.as_ref().unwrap());
+            assert_var(second_line.elem.as_ref().unwrap(), "bar");
         });
     }
 
@@ -172,7 +185,9 @@ impl TestHelper {
         self.deserialize_var();
         self.deserialize_cons();
         self.deserialize_mod();
+        self.deserialize_invalid_suffix();
         self.deserialize_number();
+        self.deserialize_dangling_base();
         self.deserialize_prefix();
         self.deserialize_infix();
         self.deserialize_left();
