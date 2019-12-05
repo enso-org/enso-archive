@@ -5,8 +5,11 @@ use prelude::*;
 mod jsclient;
 mod wsclient;
 
+
+use std::panic;
 use std::ops::DerefMut;
 use wasm_bindgen::prelude::*;
+extern crate console_error_panic_hook;
 use crate::api::IsParser;
 
 /// Handle to a parser implementation.
@@ -47,9 +50,4 @@ impl api::IsParser for Parser {
     fn parse(&mut self, program: String) -> api::Result<api::AST> {
         self.deref_mut().parse(program)
     }
-}
-
-#[wasm_bindgen]
-pub fn parse(s: String) -> String {
-    Parser::new_or_panic().parse(s).ok().expect("!!!")
 }

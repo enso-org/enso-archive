@@ -2,6 +2,8 @@ use crate::{api, api::IsParser};
 use prelude::*;
 use wasm_bindgen::prelude::*;
 use js_sys::JSON;
+use crate::jsclient::Error::ScalaException;
+use crate::api::Error::{ParsingError, InteropError};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -9,6 +11,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
    #[fail(display = "JSON (de)serialization failed: {:?}", _0)]
    JsonSerializationError(#[cause] serde_json::error::Error),
+
+   #[fail(display = "Scala parser threw an unexpected exception.")]
+   ScalaException(),
 }
 
 impl From<Error> for api::Error {
@@ -23,10 +28,11 @@ impl From<serde_json::error::Error> for Error {
    }
 }
 
-#[wasm_bindgen(module = "/pkg/syntax-opt.js")]
+#[wasm_bindgen(module = "/pkg/scala-parser-fix.js")]
 extern "C" {
 
-   fn parse(input: String) -> String;
+   #[wasm_bindgen(catch)]
+   fn parse(input: String) -> std::result::Result<String, JsValue>;
 
 }
 
@@ -44,6 +50,9 @@ impl Client {
 
 impl IsParser for Client {
    fn parse(&mut self, _program: String) -> api::Result<api::AST> {
-      Ok(parse(_program))
+      match parse(_program) {
+         Ok(json_ast) => Ok(json_ast),
+         Err(message) => Err(InteropError(Box::new(ScalaException()))),
+      }
    }
 }

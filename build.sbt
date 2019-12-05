@@ -269,7 +269,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     scalaJSUseMainModuleInitializer := false,
     scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule)},
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
-    artifactPath in fullOptJS := file("common/rust/parser/pkg/scala-parser.js")
+    Compile / fullOptJS / artifactPath := file("common/rust/parser/pkg/scala-parser.js")
   )
 
 lazy val parser_service = (project in file("common/scala/parser-service"))

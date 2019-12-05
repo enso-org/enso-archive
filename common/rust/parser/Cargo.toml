@@ -9,6 +9,7 @@ build   = "build.rs"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+console_error_panic_hook = "0.1.6"
 failure           = "0.1"
 matches           = "0.1"
 prelude           = { version = "0.1.0", path = "../prelude"     }
