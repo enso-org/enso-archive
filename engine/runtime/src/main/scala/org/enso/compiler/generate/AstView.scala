@@ -3,7 +3,9 @@ package org.enso.compiler.generate
 import org.enso.data
 import org.enso.syntax.text.{AST, Debug}
 
-// TODO [AA] Handle arbitrary parens
+// TODO [AA] Unify handling of arbitrary parens
+//  Unless it is key to the definition, it should be handled at the matcher USE
+//  site.
 
 /** This object contains view patterns that allow matching on the parser AST for
   * more sophisticated constructs.
@@ -180,8 +182,8 @@ object AstView {
 
   object DefinitionArgument {
     def unapply(ast: AST): Option[AST.Ident.Var] = ast match {
-      case AST.Ident.Var.any(ast) => Some(ast)
-      case _                      => None
+      case MaybeParensed(AST.Ident.Var.any(ast)) => Some(ast)
+      case _                                     => None
     }
   }
 
@@ -401,9 +403,10 @@ object AstView {
         case AST.App.Infix(left, AST.Ident.Opr("->"), right) =>
           left match {
             case PatternMatch(cons, args) => Some((Some(cons), args, right))
-            case AST.Ident.Blank.any(_)   => Some((None, List(), right))
-            case DefinitionArgument(v)    => Some((None, List(v), right))
-            case _                        => None
+            case MaybeParensed(AST.Ident.Blank.any(_)) =>
+              Some((None, List(), right))
+            case DefinitionArgument(v) => Some((None, List(v), right))
+            case _                     => None
           }
         case _ => None
       }
@@ -414,7 +417,7 @@ object AstView {
     // Cons, args
     def unapply(ast: AST): Option[(AST.Ident.Cons, List[AST])] = {
       ast match {
-        case SpacedList(AST.Ident.Cons.any(cons) :: xs) =>
+        case MaybeParensed(SpacedList(AST.Ident.Cons.any(cons) :: xs)) =>
           val realArgs: List[AST] = xs.collect { case a @ MatchParam(_) => a }
 
           if (realArgs.length == xs.length) {
