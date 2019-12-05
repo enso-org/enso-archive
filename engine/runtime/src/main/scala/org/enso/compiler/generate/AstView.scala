@@ -140,10 +140,11 @@ object AstView {
     }
   }
 
-  // TODO [AA] a matcher for type signatured definitions
   object MaybeTyped {
-    def unapply(ast: AST): Option[(AST, AST)] = {
-      None
+    def unapply(ast: AST): Option[(AST, AST)] = ast match {
+      case AST.App.Infix(entity, AST.Ident.Opr(":"), signature) =>
+        Some((entity, signature))
+      case _ => None
     }
   }
 
@@ -183,9 +184,6 @@ object AstView {
       case _                      => None
     }
   }
-
-  /** Used for arguments declared as lazy. */
-  object SuspendedArgument {}
 
   object Application {
     def unapply(ast: AST): Option[(AST, List[AST])] =
@@ -290,7 +288,6 @@ object AstView {
   }
 
   object Path {
-
     def unapply(ast: AST): Option[List[AST]] = {
       val path = matchPath(ast)
 

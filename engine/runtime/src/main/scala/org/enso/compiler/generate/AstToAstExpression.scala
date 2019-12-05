@@ -7,16 +7,11 @@ import org.enso.compiler.core.{IR, _}
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.syntax.text.{AST, Location}
 
-// TODO [AA] Please note that this entire translation is _very_ work-in-progress
-//  and is hence quite ugly right now. It will be cleaned up as work progresses,
-//  but it was thought best to land in increments where possible.
-
-// TODO [AA} Things that will need to be done at later stages:
-//  - Retain information about groups for diagnostics and desugarings
-
 // TODO [Generic]
-//  - Groups
-//  - Type signatures
+//  - Groups (can I use implicits?)
+
+// FIXME [AA] All places where we currently throw a `RuntimeException` should
+//  generate informative and useful nodes in core.
 
 /**
   * This is a representation of the raw conversion from the Parser [[AST AST]]
@@ -392,7 +387,7 @@ object AstToAstExpression {
       case AST.App.any(inputAST)     => translateCallable(inputAST)
       case AST.Mixfix.any(inputAST)  => translateCallable(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
-      case AST.Group.any(inputAST)   => translateGroup(inputAST)
+      case AST.Group.any(inputAST)   => translateGroup(inputAST, translateExpression)
       case AST.Ident.any(inputAST)   => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
         AstBlock(
@@ -416,11 +411,10 @@ object AstToAstExpression {
     //    }
   }
 
-  def translateGroup(group: AST.Group): AstExpression = {
+  def translateGroup[T](group: AST.Group, translator: AST => T): T = {
     group.body match {
-      case Some(ast) => translateExpression(ast)
+      case Some(ast) => translator(ast)
       case None => {
-        // FIXME [AA] This should generate an error node in core
         throw new RuntimeException("Empty group")
       }
     }
