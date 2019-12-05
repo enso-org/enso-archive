@@ -27,7 +27,7 @@ import org.enso.syntax.text.ast.meta.Pattern
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-/* Note: [JSON Serialization]
+/* Note [JSON Serialization]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
  * of compile-time resource usage. It adds like 2-4 min to compile time.
@@ -274,8 +274,8 @@ object Shape extends ShapeImplicit {
   ///////////
   /// App ///
   ///////////
-  sealed trait App[T]                                 extends Shape[T]
-  final case class Prefix[T](fn: T, off: Int, arg: T) extends App[T]
+  sealed trait App[T]                                   extends Shape[T]
+  final case class Prefix[T](func: T, off: Int, arg: T) extends App[T]
   final case class Infix[T](
     larg: T,
     loff: Int,
@@ -695,15 +695,15 @@ object Shape extends ShapeImplicit {
     implicit def ftor: Functor[Prefix]  = semi.functor
     implicit def fold: Foldable[Prefix] = semi.foldable
     implicit def repr[T: Repr]: Repr[Prefix[T]] =
-      t => R + t.fn + t.off + t.arg
+      t => R + t.func + t.off + t.arg
     implicit def ozip[T: HasSpan]: OffsetZip[Prefix, T] =
       t =>
         t.copy(
-          fn  = (Index.Start, t.fn),
-          arg = (Index(t.fn.span + t.off), t.arg)
+          func = (Index.Start, t.func),
+          arg  = (Index(t.func.span + t.off), t.arg)
         )
     implicit def span[T: HasSpan]: HasSpan[Prefix[T]] =
-      t => t.fn.span + t.off + t.arg.span
+      t => t.func.span + t.off + t.arg.span
 
   }
   object Infix {
@@ -1156,7 +1156,7 @@ sealed trait ShapeImplicit {
   * and are defined within the [[Shape]] object. Shapes contain information
   * about names of children and spacing between them, for example, the
   * [[Shape.Prefix]] shape contains reference to function being its first child
-  * ([[Shape.Prefix.fn]]), spacing between the function and its argument
+  * ([[Shape.Prefix.func]]), spacing between the function and its argument
   * ([[Shape.Prefix.off]]), and the argument itself ([[Shape.Prefix.arg]]).
   *
   * ==[[ASTOf]] as Catamorphism==
@@ -1257,7 +1257,7 @@ object AST {
   def tokenize(ast: AST): Shifted.List1[AST] = {
     @tailrec
     def go(ast: AST, out: AST.Stream): Shifted.List1[AST] = ast match {
-      case App.Prefix.any(t) => go(t.fn, Shifted(t.off, t.arg) :: out)
+      case App.Prefix.any(t) => go(t.func, Shifted(t.off, t.arg) :: out)
       case _                 => Shifted.List1(ast, out)
     }
     go(ast, List())
@@ -1375,7 +1375,9 @@ object AST {
     }
   }
 
-  object ASTOf extends AstImplicits {
+  object ASTOf extends AstImplicits
+
+  trait AstImplicits extends AstImplicits2 {
     implicit def unwrap[T[_]](t: ASTOf[T]): T[AST] = t.shape
     implicit def repr[T[S] <: Shape[S]]: Repr[ASTOf[T]] =
       t => implicitly[Repr[Shape[AST]]].repr(t.shape)
@@ -1384,39 +1386,35 @@ object AST {
       t: T[AST]
     )(implicit ev: HasSpan[T[AST]]): ASTOf[T] = ASTOf(t, ev.span(t))
 
-  }
-
-  trait AstImplicits extends AstImplicits2 {
     implicit def encoder_spec(
       implicit ev: Encoder[Shape[AST]]
     ): Encoder[AST] = encoder
   }
 
   trait AstImplicits2 {
-    implicit def encoder[T[_]](
-      implicit ev: Encoder[T[AST]]
-    ): Encoder[ASTOf[T]] = (ast) => {
-      val obj1 = ev(ast.shape).asObject.get
-      val obj2 = obj1.mapValues(s => {
-        val s2 =
-          addField(s, "id", implicitly[Encoder[Option[ID]]].apply(ast.id))
-        addField(s2, "span", implicitly[Encoder[Int]].apply(ast.span))
-      })
-      Json.fromJsonObject(obj2)
+    // Note: [JSON Schema]
+    implicit def encoder[T[S] <: Shape[S]](
+      implicit ev: Encoder[Shape[AST]]
+    ): Encoder[ASTOf[T]] = ast => {
+      import io.circe.syntax._
+
+      val shape  = "shape" -> ev(ast.shape)
+      val id     = ast.id.map("id" -> _.asJson)
+      val span   = "span" -> ast.span.asJson
+      val fields = Seq(shape) ++ id.toSeq :+ span
+      Json.fromFields(fields)
     }
   }
 
-  // FIXME: refactor https://github.com/luna/enso/issues/297
-  def addField(base: Json, name: String, value: Json): Json = {
-    final case class NotAnObject() extends Exception {
-      override def getMessage: String =
-        s"Cannot add field {name} to a non-object JSON!"
-    }
-
-    val obj  = base.asObject.getOrElse(throw NotAnObject())
-    val obj2 = (name, value) +: obj
-    Json.fromJsonObject(obj2)
-  }
+  /* Note: [JSON Schema]
+   * ~~~~~~~~~~~~~~~~~~~
+   * Each AST node is serialized to a map with `shape`, `span` and,
+   * optionally, `id` keys. `shape` is always serialized as if base trait
+   * were encoded, even if the final case class type is known. This is
+   * required for consistency with Rust AST implementation, which uses a
+   * monomorphic AST type and has no means of expressing types like
+   * `AstOf[Shape.Var]`.
+   */
 
   //// ASTOps ////
 
@@ -1468,7 +1466,7 @@ object AST {
       ids.reverse
     }
 
-    // Note: [JSON Serialization] at the file top
+    // Note [JSON Serialization]
     def toJson(): Json = {
       import io.circe.syntax._
       import io.circe.generic.auto._
@@ -1659,9 +1657,12 @@ object AST {
       }
 
       object Block {
+        val Line = Shape.TextBlockLine
         type Line[T] = Shape.TextBlockLine[T]
-        type Raw[T]  = Shape.TextBlockRaw[T]
-        type Fmt[T]  = Shape.TextBlockFmt[T]
+        val Raw = Shape.TextBlockRaw
+        type Raw[T] = Shape.TextBlockRaw[T]
+        val Fmt = Shape.TextBlockFmt
+        type Fmt[T] = Shape.TextBlockFmt[T]
       }
 
       ////// CONSTRUCTORS ///////
@@ -1724,11 +1725,21 @@ object AST {
 
         //// Definition ////
 
+        val Fmt = Shape.SegmentFmt
         type Fmt = Shape.SegmentFmt[AST]
+        val Raw = Shape.SegmentRaw
         type Raw = Shape.SegmentRaw[AST]
 
-        object Expr  { def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)  }
-        object Plain { def apply(s: String):      Raw = Shape.SegmentPlain(s) }
+        object Expr {
+          def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)
+          def unapply(shape: Shape.SegmentExpr[AST]): Option[Option[AST]] =
+            Shape.SegmentExpr.unapply(shape)
+        }
+        object Plain {
+          def apply(s: String): Raw = Shape.SegmentPlain(s)
+          def unapply(shape: Shape.SegmentPlain[AST]): Option[String] =
+            Shape.SegmentPlain.unapply(shape)
+        }
       }
     }
   }
@@ -1752,7 +1763,7 @@ object AST {
 
     object Prefix {
       val any             = UnapplyByType[Prefix]
-      def unapply(t: AST) = Unapply[Prefix].run(t => (t.fn, t.arg))(t)
+      def unapply(t: AST) = Unapply[Prefix].run(t => (t.func, t.arg))(t)
       def apply(fn: AST, off: Int, arg: AST): Prefix =
         Shape.Prefix(fn, off, arg)
       def apply(fn: AST, arg: AST): Prefix = Prefix(fn, 1, arg)
