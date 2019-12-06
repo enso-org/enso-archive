@@ -229,6 +229,7 @@ impl<'de> Deserialize<'de> for Ast {
 ///
 /// Shape describes names of children and spacing between them.
 #[ast(flat)] pub enum Shape<T> {
+    Unrecognized { str : String },
 
     // === Identifiers ===
     Blank         { },
@@ -238,20 +239,23 @@ impl<'de> Deserialize<'de> for Ast {
     Mod           { name : String            },
     InvalidSuffix { elem : T, suffix: String },
 
-    // === Literals ===
+    // === Number Literals ===
     Number       { base: Option<String>, int: String },
     DanglingBase { base: String                      },
 
-    TextLineRaw  { text: Vec<SegmentRaw> },
+    // === Text Literals ===
+    TextLineRaw  { text: Vec<SegmentRaw>    },
     TextLineFmt  { text: Vec<SegmentFmt<T>> },
+    TextUnclosed { line: TextLine<T>        },
 
-    // === Expressions ===
+    // === Applications ===
     Prefix    { func : T   , off  : usize , arg: T                          },
     Infix     { larg : T   , loff : usize , opr: T , roff: usize , rarg: T  },
     SectLeft  { arg  : T   , off  : usize , opr: T                          },
     SectRight { opr  : T   , off  : usize , arg: T                          },
     SectSides { opr  : T                                                    },
 
+    // === Spaceless AST ===
     Block     (Block<T>),
     Module    (Module<T>),
     Macro     (Macro<T>),
@@ -263,6 +267,10 @@ impl<'de> Deserialize<'de> for Ast {
     Foreign   (Foreign),
 }
 
+#[ast(flat)] pub enum TextLine<T> {
+    TextLineRaw(TextLineRaw),
+    TextLineFmt(TextLineFmt<T>),
+}
 
 #[ast(flat)] pub enum SegmentRaw {
     SegmentPlain    (SegmentPlain),
@@ -270,14 +278,17 @@ impl<'de> Deserialize<'de> for Ast {
 }
 
 #[ast(flat)] pub enum SegmentFmt<T> {
-    SegmentPlain    ( SegmentPlain),
+    SegmentPlain    ( SegmentPlain    ),
     SegmentRawEscape( SegmentRawEscape),
-    SegmentExpr     { value: Option<T> },
-    SegmentEscape   { code: Escape },
+    SegmentExpr     ( SegmentExpr<T>  ),
+    SegmentEscape   ( SegmentRawEscape),
 }
 
 #[ast_node] pub struct SegmentPlain     { pub value: String    }
 #[ast_node] pub struct SegmentRawEscape { pub code : RawEscape }
+#[ast_node] pub struct SegmentExpr<T>   { pub value: Option<T> }
+#[ast_node] pub struct SegmentEscape    { pub code : Escape    }
+
 #[ast(flat)] pub enum RawEscape {
     Unfinished {},
     Invalid { str: char },
@@ -359,45 +370,6 @@ impl<T> From<Escape> for SegmentFmt<T> {
         SegmentEscape{ code: value.into() }.into()
     }
 }
-
-
-// ===============
-// === Invalid ===
-// ===============
-//
-//#[ast] pub enum Invalid<T> {
-//    Unrecognized  { input : String },
-//    Unexpected    { msg   : String, stream: Stream<T> },
-//    // FIXME: missing constructors, https://github.com/luna/enso/issues/336
-//}
-//
-
-//// ============
-//// === Text ===
-//// ============
-//
-//#[ast] pub enum Text<T> {
-//    Raw { body: TextBody<TextRawSegment> },
-//    Fmt { body: TextBody<TextFmtSegment<T>> }
-//}
-//
-//#[ast] pub struct TextRawSegment {
-//    pub value: String
-//}
-//
-//#[ast] pub enum TextFmtSegment<T> {
-//    Plain  { value  : String },
-//    Expr   { value  : Option<T> },
-//    Escape { escape : TextEscape },
-//}
-//
-//pub type TextBlock<T> = Vec<TextLine<T>>;
-//#[ast] pub struct TextLine<T> { off: usize, elems: Vec<T> }
-//#[ast] pub struct TextBody<T> { quote: TextQuote, block: TextBlock<T> }
-//#[ast] pub enum   TextQuote   { Single, Triple }
-//
-//// FIXME: missing TextEscape contents, https://github.com/luna/enso/issues/336
-//#[ast] pub struct TextEscape {}
 
 
 // =============

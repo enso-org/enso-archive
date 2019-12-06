@@ -1,7 +1,7 @@
 use prelude::*;
 use parser::api::IsParser;
 
-use ast::{Ast, Shape, SegmentRaw};
+use ast::{Ast, Shape, SegmentRaw, TextLine};
 use ast::SegmentFmt::SegmentExpr;
 
 /// Takes Ast being a module with a single line and returns that line's AST.
@@ -66,6 +66,13 @@ impl TestHelper {
         let ast = self.parse_line(program);
         let shape = expect_shape(&ast);
         tester(shape);
+    }
+
+    fn deserialize_unrecognized(&mut self) {
+        let unfinished = r#"`"#;
+        self.test_shape(unfinished, |shape:&ast::Unrecognized| {
+            assert_eq!(shape.str, "`");
+        });
     }
 
     fn deserialize_blank(&mut self) {
@@ -208,19 +215,17 @@ impl TestHelper {
         });
     }
 
-//    fn deserialize_unfinished_text(&mut self) {
-//        let unfinished_raw = r#""foo\""#;
-//        self.test_shape(unfinished_raw, |shape:&ast::TextLineRaw| {
-//            assert_eq!(shape.text.len(), 3);
-//
-//            let mut segments = shape.text.iter();
-//            let mut next_segment = || segments.next().unwrap();
-//
-//            let expected = ast::SegmentPlain{value: "foo".to_string()};
-//            assert_eq!(*next_segment(), expected.into() );
-//            assert_eq!(*next_segment(), ast::Unfinished{}.into() );
-//        });
-//    }
+    fn deserialize_unfinished_text(&mut self) {
+        let unfinished = r#""\"#;
+        self.test_shape(unfinished, |shape:&ast::TextUnclosed<Ast>| {
+            let line                    = &shape.line;
+            let line: &ast::TextLineRaw = line.try_into().unwrap();
+
+            let segment  = line.text.iter().next().unwrap();
+            let expected = ast::Unfinished {};
+            assert_eq!(*segment, expected.into());
+        });
+    }
 
     fn deserialize_dangling_base(&mut self) {
         self.test_shape("16_", |shape:&ast::DanglingBase| {
@@ -289,6 +294,8 @@ impl TestHelper {
         /// * Module (covered by every single test, as parser wraps everything
         ///   into module)
         ///
+
+        self.deserialize_unrecognized();
 
         self.deserialize_blank();
         self.deserialize_var();
