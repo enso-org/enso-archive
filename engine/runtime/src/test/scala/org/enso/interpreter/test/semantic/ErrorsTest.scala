@@ -17,8 +17,8 @@ class ErrorsTest extends InterpreterTest {
 
     val exception = the[InterpreterException] thrownBy eval(code)
     exception.isGuestException shouldEqual true
-    exception.getGuestObject.toString shouldEqual "Bar<>"
-    consumeOut shouldEqual List("Foo<>")
+    exception.getGuestObject.toString shouldEqual "Bar"
+    consumeOut shouldEqual List("Foo")
   }
 
   "Panics" should "be recoverable and transformed into errors" in {
@@ -32,7 +32,7 @@ class ErrorsTest extends InterpreterTest {
         |""".stripMargin
 
     noException shouldBe thrownBy(eval(code))
-    consumeOut shouldEqual List("Error:MyError<>")
+    consumeOut shouldEqual List("Error:MyError")
   }
 
   "Errors" should "propagate through pattern matches" in {
@@ -48,7 +48,7 @@ class ErrorsTest extends InterpreterTest {
         |IO.println matched
         |""".stripMargin
     noException shouldBe thrownBy(eval(code))
-    consumeOut shouldEqual List("Error:MyError<>")
+    consumeOut shouldEqual List("Error:MyError")
   }
 
   "Errors" should "be catchable by a user-provided special handling function" in {
@@ -69,7 +69,7 @@ class ErrorsTest extends InterpreterTest {
         |IO.println (unitErr.catch MyCons)
         |""".stripMargin
     eval(code)
-    consumeOut shouldEqual List("MyCons<Unit<>>")
+    consumeOut shouldEqual List("MyCons Unit")
   }
 
   "Catch function" should "accept a method handler" in {
@@ -86,7 +86,7 @@ class ErrorsTest extends InterpreterTest {
         |IO.println(myErr.catch recover)
         |""".stripMargin
     eval(code)
-    consumeOut shouldEqual List("MyRecovered<20>")
+    consumeOut shouldEqual List("MyRecovered 20")
   }
 
   "Catch function" should "act as identity for non-error values" in {
