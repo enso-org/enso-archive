@@ -2,7 +2,7 @@
 As we get closer to the development of the more sophisticated features of the
 language, as well as have a more fully-featured interpreter, we really need to
 clarify exactly how certain syntactic and semantic elements of the language
-behave. 
+behave.
 
 This document aims to clarify the behaviour of many language constructs, as
 well as expose any open questions that we have about them. It is not intended
@@ -10,14 +10,44 @@ to be a design document directly itself, but the information contained here
 will be _used_ to later contribute to various, more-specialised design
 documents.
 
-<!-- Table of contents -->
+<!-- MarkdownTOC levels="2,3,4" autolink="true" -->
+
+- [Variable Naming](#variable-naming)
+- [Top-Level Evaluation](#top-level-evaluation)
+- [High-Level Syntax and Semantic Notes](#high-level-syntax-and-semantic-notes)
+- [Annotations](#annotations)
+- [Types](#types)
+    - [Atoms](#atoms)
+        - [Anonymous Atoms](#anonymous-atoms)
+    - [Typesets](#typesets)
+        - [The Type Hierarchy](#the-type-hierarchy)
+        - [Typesets and Smart Constructors](#typesets-and-smart-constructors)
+        - [Type and Interface Definitions](#type-and-interface-definitions)
+        - [Anonymous Typesets](#anonymous-typesets)
+        - [Typeset Projections \(Lenses\)](#typeset-projections-lenses)
+    - [Implementing Interfaces](#implementing-interfaces)
+        - [Special Interfaces](#special-interfaces)
+    - [Pattern Matching](#pattern-matching)
+- [Dynamic Dispatch](#dynamic-dispatch)
+    - [Multiple Dispatch](#multiple-dispatch)
+        - [Overlappable Functions](#overlappable-functions)
+    - [First-Class Modules](#first-class-modules)
+        - [Self-Initialisation and Qualified Access](#self-initialisation-and-qualified-access)
+- [Broken Values](#broken-values)
+- [Function Composition](#function-composition)
+- [Dynamic](#dynamic)
+    - [The Enso Boundary](#the-enso-boundary)
+    - [An Insufficient Design For Dynamic](#an-insufficient-design-for-dynamic)
+- [The Main Function](#the-main-function)
+
+<!-- /MarkdownTOC -->
 
 ## Variable Naming
 One of the key features of Enso as a language is a total lack of separation
 between the value and type level syntaxes. This enables a staggering uniformity
 of programming in the language, allowing arbitrary computations in types as
 well as in values. This means that arbitrary names can refer to both types and
-values (as they are one and the same). 
+values (as they are one and the same).
 
 However, this means that naming becomes a bit of a concern. Without a syntactic
 disambiguator, it becomes much harder to keep a minimal syntax for things like
@@ -52,7 +82,7 @@ changed.
 
 > No final decision has been made on this point yet, so the actionables are as
 > follows:
-> 
+>
 > - Wojciech wants to think about it more.
 > - The decision needs to be made by the next design meeting on 2019-12-10.
 > - Support in the parser is fairly simple, though some consideration is needed
@@ -90,13 +120,13 @@ The use-cases we have considered are as follows:
 - `[-,!]` Dynamic metaprogramming to let users mutate program state at runtime
   (e.g. changing atom shapes, function definitions), also known as 'monkey
   patching'. This is not something we want in the language, but we do perhaps
-  want the ability to do so on values of type `Dynamic`. 
+  want the ability to do so on values of type `Dynamic`.
 - `[M,H]` 'Remembering' things when compiling a file, such as remembering all
   structures marked by an `AST` annotation. An example use case for a mechanism
   like this is to generate pattern matches for all possible `AST` types. This
   can be done by letting macros write to a per-file peristent block of storage
   that could be serialised during precompilation.
-- `[M,H]` Grouping of macros (e.g. `deriveAll = derive Ord Debug Show). This
+- `[M,H]` Grouping of macros (e.g. `deriveAll = derive Ord Debug Show`). This
   can be easily handled by doing discovery on functions used as macros, and
   treating it as a macro as well.
 - `[?,M]` Method-missing magic, akin to ruby. This is likely able to be handled
@@ -109,12 +139,12 @@ while allowing for top-level evaluation would enable users to write a lot of
 overly-magical code, which will always be a code-smell.
 
 Syntactic macros, however, do not easily support a scripting workflow, but the
-solution to this problem is simple. We can just provide an `enso run <file>` 
+solution to this problem is simple. We can just provide an `enso run <file>`
 command which will search for and execute the `main` function in the provided
 file.
 
 > The actionables for this section are as follows:
-> 
+>
 > - Formalise and clarify the semantics of `main`.
 
 ## High-Level Syntax and Semantic Notes
@@ -142,13 +172,13 @@ This has a few major problems, including:
   ```ruby
   type HasName
     name : String
-    
+
   type HasName2
     def name : String
   ```
 
 Additionally, in the current syntax, a block assigned to a variable is one that
-has its execution implicitly suspended until it is forced. This has a few 
+has its execution implicitly suspended until it is forced. This has a few
 things that should be noted about it.
 
 - There is a big mismatch between the semantics of assigning inline to a
@@ -169,7 +199,7 @@ things that should be noted about it.
 
 As Enso types (other than atoms), are defined as sets of values (see the
 section on [set types](#set-types) for details), we need a way to include an
-atom inside another type that doesn't define it. 
+atom inside another type that doesn't define it.
 
 - It would be potentially possible to disambiguate this using syntactic markers
   but this is likely to be unclear to users.
@@ -177,11 +207,12 @@ atom inside another type that doesn't define it.
   inclusion of an atom inside a type definition.
 
 > The actionable items for this section are as follows:
-> 
+>
 > - Further discussion on the semantics of top-level blocks, with a decision
 >   made by 2019-12-10.
 > - Make a decision regarding a keyword for including other atoms in a type
 >   (e.g. `use`).
+> - Make a final decision on whether it is `this` or `self`.
 
 ## Annotations
 Much like annotations on the JVM, annotations in Enso are tags that perform a
@@ -198,7 +229,7 @@ implicitly nested inside each other:
 @make_magic
 type Maybe a
   use Nothing
-  type Just 
+  type Just
 ```
 
 The above example is logically translated to:
@@ -221,7 +252,7 @@ would be a function `debug` which prints detailed debugging information about
 the type (e.g. locations, source info, types, etc).
 
 > The actionables for this section are:
-> 
+>
 > - Decide if we want to reserve certain key bits of syntax for use only by
 >   the standard library (with a focus on `type`).
 
@@ -229,14 +260,14 @@ the type (e.g. locations, source info, types, etc).
 Atoms are the fundamental building blocks of types in Enso. Where broader types
 are sets of values, Atoms are 'atomic' and have unique identity. They are the
 nominally-typed subset of Enso's types, that can be built up into a broader
-notion of structural, set-based typing. All kinds of types in Enso can be 
+notion of structural, set-based typing. All kinds of types in Enso can be
 defined in arbitrary scopes, and need not be defined on the top-level.
 
 For more information on Enso's type-system, please take a look in the
 [`types.md`](type-system/types.md) document.
 
 ### Atoms
-In Enso, Atoms are product types with named fields, where each field has a 
+In Enso, Atoms are product types with named fields, where each field has a
 distinct and un-constrained type. Atoms are defined by the `type` keyword,
 which can be statically disambiguated from the standard usage of `type`.
 
@@ -256,7 +287,7 @@ with any other atom, even if they have the same fields with the same names. To
 put this another way, an atom is _purely_ nominally typed.
 
 #### Anonymous Atoms
-Using the same keyword used to define atoms it is possible to define an 
+Using the same keyword used to define atoms it is possible to define an
 anonymous atom. The key disambiguator is syntactic, using upper- or lower-case
 starts for names.
 
@@ -268,36 +299,48 @@ p1 = point 1 2 3 : Point Int Int Int
 There are no differences in functionality between anonymous and named atoms.
 
 > Actionables for this section:
-> 
+>
 > - What is the motivating use-case for an anonymous atom?
 
-### Set Types
-More complex types in Enso are known as typesets. All of these types are 
+### Typesets
+More complex types in Enso are known as typesets. All of these types are
 _structural_. This means that unification on these types takes place based upon
-the _structure_ of the type (otherwise known as its 'shape'). 
+the _structure_ of the type (otherwise known as its 'shape').
 
 Two typesets `A` and `B` can be defined to be equal as follows, where equality
 means that the sets represent the same type.
 
-1. `A` and `B` contain the same set of _labels._ A label is a _name_ given to
-   a type.
-2. For each label in `A` and `B`, the type of the label in `A` must be equal to
-   the type of the same label in `B`:
-   
-   1. Atoms are only equal to themselves, accounting for application.
-   2. Types are equal to themselves recursively by the above.
+1.  `A` and `B` contain the same set of _labels._ A label is a _name_ given to
+    a type.
+2.  For each label in `A` and `B`, the type of the label in `A` must be equal to
+    the type of the same label in `B`:
+
+    1.  Atoms are only equal to themselves, accounting for application.
+    2.  Types are equal to themselves recursively by the above.
 
 Two typesets `A` and `B` also have a _subsumption_ relationship `<:` defined
 between them. `A` is said to be subsumed by `B` (`A <: B`) if the following
 hold:
 
-1. `A` contains a subset of the labels in `B`.
-2. For each label in `A`, its type is a subset of the type of the same label in
-   `B` (or equal to it):
+1.  `A` contains a subset of the labels in `B`.
+2.  For each label in `A`, its type is a subset of the type of the same label in
+    `B` (or equal to it):
 
-   1. An atom may not subsume another atom.
-   2. A type is subsumed by another time recursively by the above, accounting
-      for defaults (e.g. `f : a -> b = x -> c` will unify with `f : a -> c`)
+    1.  An atom may not subsume another atom.
+    2.  A type is subsumed by another time recursively by the above, accounting
+        for defaults (e.g. `f : a -> b = x -> c` will unify with `f : a -> c`)
+    3.  The subsumption judgement correctly accounts for covariance and
+        contravariance with function terms.
+    4.  The subsumption judgement correctly accounts for constraints on types.
+
+As typesets are matched structurally, a typeset definition serves as both a type
+and an interface.
+
+> The actionables for this section are:
+>
+> - Determine if we want to support multiple dispatch in the future, as this has
+>   impacts on whether the underlying theory for typesets needs to support
+>   overidden labels (e.g. two definitions for `foo` with different types).
 
 #### The Type Hierarchy
 These typesets are organised into a _modular lattice_ of types, such that it is
@@ -307,7 +350,7 @@ things to note about this hierarchy:
 - The 'top' type, that contains all typesets and atoms is `Any`.
 - The 'bottom' type, that contains no typesets or atoms is `Nothing`.
 
-#### Set Types and Smart Constructors
+#### Typesets and Smart Constructors
 Enso defines the following operations on typesets that can be used to combine
 and manipulate them:
 
@@ -328,122 +371,225 @@ zV2 x y = V3 x y 0
 test = match _ of
   ZV2 x y  -> ...
   V3 x y z -> ...
-   
+
 ```
 
 #### Type and Interface Definitions
-Typesets are defined using
+Typesets are defined using a unified `type` keyword / macro that works as
+follows:
 
+1.  If you provide the keyword with only a name and fields, it generates an
+    atom:
 
+    ```ruby
+    type Just value
+    ```
 
-Interfaces as conformity to a shape.
+2.  If provided with a body containing atom definitions, it defines a smart
+    constructor that defines the atoms and related functions by returning a
+    typeset. For example:
 
-#### Anonymous Set Types
+    ```ruby
+    type Maybe a
+      use Nothing
+      type Just (value : a)
 
-
-## ============================
-## === Types and interfaces ===
-## ============================
-
-## There is a type macro / keyword which works this way:
-
-## 1. If provided with only name and fields, it creates an atom:
-
-type Just value
-## translates to 
-atom Just value
-
-
-## 2. If provided with a body and sub-atom definitions, defines a smart
-##    constructor and bunch of related functions:
-
-type Maybe a
-    Nothing
-    type Just value:a
-
-    is_just = match self of
+      isJust = case self of
         Nothing -> False
-        Just _  -> True
+        Just _ -> True
 
-## translates to:
+      nothing = not isJust
+    ```
 
-type Maybe a
-    Nothing
-    type Just value:a
+    Translates to:
 
-is_just: Maybe a -> _
-is_just self = match self of
-    Nothing -> False
-    Just _  -> True
+    ```ruby
+    maybe a =
+      atom Just value
+      { (Nothing | Just a)
+        & isJust: IsJust = isJust
+        & nothing : Nothing = nothing }
 
-## which conceptually (read the explanation below) translates to:
+    isJust : Maybe a -> Bool
+    isJust self = case self of
+      Nothing -> False
+      Just _ -> True
 
-maybe a = 
-    atom Just value
-    { (Nothing | Just a) & is_just: is_just & nothing: Nothing }
+    nothing : Maybe a -> Bool
+    nothing = not isJust
+    ```
 
-is_just: Maybe a -> _
-is_just self = match self of
-    Nothing -> False
-    Just _  -> True
+3.  Though all types are interfaces, interfaces that define specific atoms are
+    often not particularly useful. To this end, you can use the `type` keyword
+    _without_ defining any atoms in the body to create a more-useful interface
+    definition.
 
-## Formalise this as needed
-## Syntax + examples for anonymous record
+    ```ruby
+    type HasName
+      name: String
 
-## IMPORTANT NOTE
-##
-## The above example uses a pseudo syntax of anonymous record. If `type` would 
-## be a keyword, not a macro, we would NOT need to support this syntax ever,
-## because every use case we want to express could be then expressible by 
-## interfaces. I think this is a very good idea not to polute the syntax more,
-## so think about the above translation just as an visual explanation of how
-## it works under the hood.
-## 
-## Moreover, if we make `type` a keyword, we can also remove `atom` as keyword.
+    printName: t:HasName -> Nothing
+    printName t = t.name
 
-## 3. If provided with body but without new atom definitions, it is an 
-##    interface. This meaning is very clear if you think about our types from
-##    the categories perspective. Such type defines behavior, and shape 
-##    (for example, "this category needs to contain this shared element"), but 
-##    does not define any **own atoms**. This is then a natural interface!
+    type Human name
+    name (self: Int) = "IntegerName"
 
-type HasName
-    name: String
+    main =
+        printName (Human "Zenek")
+        printName 7
+    ```
 
-print_name: t:HasName -> Nothing
-print_name t = t.name
+4.  Explicit constraints can be put on the `self` type in a typeset, should it
+    exist. This uses standard type-ascription syntax.
 
-type Human name
-name (self: Int) = "IntegerName"
+    ```ruby
+    type Semigroup
+      <> : self -> self
 
-main = 
-    print_name (Human "Zenek")
-    print_name 7
+    type Monoid
+      self : Semigroup
+      use Nothing
+    ```
 
-## More complex example:
+Under the hood, typesets are based on GADT theory, and typing evidence is
+_always_ discharged through pattern matching. This feature will not, however,
+be available until we have a type-checker.
 
-type Semigroup
-    append: self -> self
+> The actionables for this section are as follows:
+>
+> - Determine what the nested `type Foo (a: t)` syntax actually means.
+> - How do you define functions on (or a constructor for) one of the sub type
+>   definitions.
+>
+>   ```ruby
+>   type Foo
+>     type Bar value
+>       fnOnBar : Bar -> Bool
+>   ```
+>
+> - Determine the exact details of how these definitions expand to typesets.
 
-type Monoid
-    self: Semigroup # If we type `a:Monoid`, we know that `a:Semigroup`.
-    Nothing
+#### Anonymous Typesets
+Given that typesets are unified structurally, it can often be very useful to
+define interfaces as typesets in an ad-hoc manner while defining a function. To
+this end we provide the `{}` syntax.
 
-<<-ARA
-Furthermore, and related, I think we want to be able to constrain types of 
-type variables (partial-data style). It's useful in practice, and relies only
-on existing GADT-style evidence discharge under the hood. This is not something
-for now (as it requires the type checker), but is fully backwards compatible.
-ARA
+This syntax declares the members of the typeset explicitly. Member definitions
+are of the form `name : type = default`, where the following rules apply:
 
-## ===============================
-## === Implementing interfaces ===
-## ===============================
+- If a default is explicitly requested it becomes part of the subsumption
+  judgement.
+- If the type of a name is omitted it is inferred from a default if present, and
+  is otherwise inferred to be `Any`.
+- If only the type is present, auto-generated labels are provided using the
+  index of the member in the typeset (e.g `{ Int & String }.1` has type `Int`).
 
-## Types do not need to explicitely implement interfaces (type-checked 
-## duck-typing). However, when defining a new type, we may explicitelly tell 
-## it defines an interface and include default method definitions:
+The reason that the version with only the type is useful is that it means that
+anonymous typesets subsume the uses for tuples.
 
+> The actionables for this section are as follows:
+>
+> - Create examples of why anonymous typeset syntax is useful.
+> - Decide if we want to support anonymous typesets.
+
+#### Typeset Projections (Lenses)
+In order to work efficiently with typesets, we need the ability to seamlessly
+access and modify (immutably) their properties. In the context of our type
+theory, this functionality is known as a _projection_, in that it projects a
+value from (or into) a typeset.
+
+Coming from Haskell, we are well-versed with the flexibility of lenses, and
+more generally _optics_. To that end, we base our projection operations on
+standard theories of optics. While we _do_ need to formalise this, for now we
+provide examples of the expected basic usage. This only covers lenses, while in
+the future we will likely want prisms and other more-advanced optics.
+
+```ruby
+type Engine
+  type Combustion
+    power:          Int
+    cylinder_count: Int
+
+  type Electric
+    power:   Int
+    is_blue: Bool
+
+
+type Vehicle
+  type Car
+    color:     String
+    max_speed: Int
+    engine:    Engine
+
+  type Bike
+    color: String
+
+
+type Person
+  type Cons
+    name:    String
+    vehicle: Vehicle
+
+
+main =
+  p1 = Person.Cons "Joe" (Vehicle.Car 'pink' 300 (Engine.Combustion 500 8))
+  print $ p1.name                   # -> Joe
+  print $ p1.vehicle.color          # -> pink
+  print $ p1.vehicle.max_speed      # -> Some 300
+  print $ p1.vehicle.engine.power   # -> Some 500
+  print $ p1.vehicle.engine.is_blue # -> None
+  p1.vehicle.color     = 'red'      # OK
+  p1.vehicle.max_speed = 310        # FAIL: security reasons. Allowing this
+                                    #       in Haskell was the worst decision
+                                    #       ever. After refactoring it
+                                    #       silently does nothing there.
+
+  p2 = p1.vehicle.max_speed    ?= 310 # OK
+  p3 = p1.vehicle.engine.power  = 510 # FAIL
+  p4 = p1.vehicle.engine.power ?= 510 # OK
+
+  lens_name      = .name
+  lens_color     = .vehicle.color
+  lens_max_speed = .vehicle.max_speed
+  lens_power     = .vehincle.engine.power
+
+  ## Function like usage:
+  print $ lens_name      p1
+  print $ lens_color     p1
+  print $ lens_max_speed p1
+  print $ lens_power     p1
+
+  p1 . at lens_name = ... # OK
+```
+
+> Actionables for this section:
+>
+> - Work out whether standard optics theory with custom types is sufficient for
+>   us. We may want to support side effects.
+> - Fix the example above. It isn't correct.
+> - Determine how much of the above we can support without a type-checker. There
+>   are likely to be a lot of edge-cases, so it's important that we make sure we
+>   know how to get as much of it working as possible.
+
+##### Special Fields
+We also define special projections from typesets:
+
+- `index`: The expression `t.n`, where `n` is of type `Number` is translated to
+  `t.index n`.
+- `field`: The expression `t.s` where `s` is of type `Text` is translated to
+  `t.fieldByName s`.
+
+### Implementing Interfaces
+As typesets are matched structurally, types need not _explicitly_ implement
+interfaces (a form of static duck-typing). However, when defining a new type, we
+may _want_ to explicitly say that it defines an interface. This has two main
+benefits:
+
+- We can include default implementations from the interface definition.
+- We can provide better diagnostics in the compiler as we can point to the
+  definition site instead of the use site.
+
+```ruby
 type HasName
     name: String
     name = "unnamed"
@@ -457,434 +603,309 @@ name (self:Int) = "IntName"
 
 greet (t:HasName) = print 'Hi, my name is `t.name`'
 
-main = 
+main =
     greet (V3 1 2 3)
     greet 8
+```
 
+> The actionables for this section are:
+>
+> - Work out what it means for an _atom_ to conform to an interface.
 
-<<-ARA
-Another reason why being able to explicitly declare them is important is that it
-lets us check that all portions of that interface _have_ been defined and hence
-potentially provide better diagnostics.
-ARA
+#### Special Interfaces
+In order to aid usability we include a few special interfaces in the standard
+library that have special support in the compiler.
 
-## ========================
-## === Pattern Matching ===
-## ========================
+##### Wrapper
+In a language where composition is queen and inheritance doesn't exist there
+needs to be an easy way for users to compose typesets without having to define
+wrappers for the contained types. This is a big usability bonus for Enso.
 
-type Vector a
-    V2 x:a y:a
-    V3 x:a y:a z:a
-
-main = 
-    v = Vector.V3 x y z
-
-    ## Position-based pattern matching
-    case v of
-        Vector.V3 x y z -> print x
-
-    ## Constructor-based pattern matching
-    case v of
-        Vector.V3 -> print v.x ## refined v to be V3 
-
-    ## Name-based pattern matching
-    ## Syntax to be refined
-    case v of
-        Vector.V3 {x,y} -> print x
-        {x}             -> print x
-
-    ## Anonymous case, renaming of fields?
-    case _ of
-        v : Vector.V3 -> v.foo
-        V3 x=a y=b    -> a + b # uniform with construction
-
-    ## TODO code examples of this usage being important
-
-
-## ================
-## === Wrappers ===
-## ================
-
-## It works similar to deref coercion in Rust. 
-## BUILT IN
-
+```ruby
 type Wrapper
-    wrapped   : lens self.unwrapped
+    wrapped   : (lens s t a b) self.unwrapped
     unwrapped : t
     unwrapped = t # Default implementation based on inferred type.
+```
 
-## Example use case:
+`Wrapper` is an interface implemented implicitly for all typesets, and boils
+down to delegating to the contained members if a given label is not found on
+the top typeset. This delegation only occurs on the self type.
 
+A usage example is as follows:
+
+```ruby
 type HasName a
     self:Wrapper # The field 'unwrapped' uses default implementation.
-    type Cons 
-        name    : String 
+    type Cons
+        name    : String
         wrapped : a
 
 test i:Int = i + 1
 
-main = 
+main =
     p1 = HasName.Cons "Zenek" 7
     p2 = p1 + 1     # OK, uses `wrapped` lens.
-    print $ p2.name # OK  
+    print $ p2.name # OK
     print $ test p1 # OK, uses `wrapped` lens.
+```
 
-<<-ARA
-Works only for self
+##### Convertible
+Also useful in a language for data science is the ability to have the compiler
+help you by automatically converting between types that have sensible coercions
+between them. This interface is known as `Convertible`, and defines a one-way
+conversion between a type `a` and a type `b`.
 
-- line 487 == over wrapped (+1)
-ARA
+```ruby
+Convertible t
+  to : t
+```
 
+There are a few key points of this design that must be considered carefully:
 
-## ========================
-## === Auto Conversions ===
-## ========================
+- This interface _only_ applies when implemented explicitly by the type. The
+  compiler will not automatically generate implementations for `Convertible t`.
+- It is very important for the conversions to be inserted automatically in the
+  correct place. If a conversion is required in the body of a block, the point
+  at which the conversion takes place should propagate outwards as far as
+  possible. This is very important for proper definition of controls in the GUI.
+- `Convertible t` can also be implemented by a function that accepts arguments
+  _iff_ all of the arguments have default values associated with them. In such
+  a case, the GUI should display conversion controls with a checkbox that, when
+  checked, can be converted to an explicit conversion call.
+- We will need some limited mechanism for doing this even without type inference
+  as it forms the backbone of good API design for the graphical interface. This
+  is because polymorphic functions are much harder to support with graphical
+  controls.
 
-## NOTE: This is a special interface. Types need to implement this interface 
-## explicitly to use this machanism.
+An example use-case is as follows:
 
-type Into t
-    into: t
-
-## Example use cases
-
+```ruby
 type Vector a
     type V3 x:a y:a z:a
 
-    self: Into String
-    into = 'V3 `self.x` `self.y` `self.z`'
+    self : Convertible String
+    to = 'V3 `self.x` `self.y` `self.z`'
 
-    self: Into (a: Semigroup)
-    into = self.x + self.y + self.z
+    self : Convertible (a: Semigroup)
+    to = self.x + self.y + self.z
 
 test: Int -> String
 test i = print 'I got the magic value `i`!'
 
-main = 
+main =
     test 7    # OK!
-    test 'hi' # FAIL: type mismatch, no definition `Into Int` for String.
+    test 'hi' # FAIL: type mismatch, no definition `Convertible Int` for String.
     test (Vector.V3 1 2 3) # OK, prints 'I got the magic value 6'.
-
-
-## === VERY IMPORTANT NOTE 1 ===
-## The types should be auto-converted in the right place, so if we do:
-test2 i = 
-    print 'Got: `i`'
-    test i
-
-## Then the type of `test2` should be infered to accept `Int` and when 
-## evaluating like `test2 (Vector.V3 1 2 3)`, it should print `Got: 6`. 
-## This is crazy important from the GUI perspective, as GUI should display
-## controls for conversions (read below).
-
-## === VERY IMPORTANT NOTE 2 === 
-## Please note that the `Into` interface can be implemented also by function 
-## accepting arguments IFF all the arguments are provided with default value. 
-## For example, the following code is correct:
-
-Int: Into (Vector Int)
-Int.into only_first=false = 
-    if only_first 
-        then Vector.V3 self 0 0 
-        else Vector.V3 self self self
-
-## GUI should display conversion controls in place where type gets converted 
-## with a checkbox "only-first". If the checkbox is clicked, the code will be
-## transformed to explicit conversion call. 
-
-## === VERY IMPORTANT NOTE 3 ===
-## We recognize that some features, like inference of conversion place are 
-## not possible till we've got type inferencer. Thus we need to discuss the 
-## limited scope of this functionality, however, it should exist (even only for
-## funcs with explicit type signatures), as it is the backbone for API design
-## techniques. As a reminder - we've been talking a long time about auto 
-## conversions vs functions with polymorphic input. The former can be supported
-## by GUI and provided with input widgets, while the later can not.
-
-
-## ===============================
-## === Broken values promotion ===
-## ===============================
-
-## Broken values which are not handled are automatically promoted to the 
-## parent scope. For example, assuming that:
-
-open: String -> String in IO ! IO.Exception 
-open = ...
-
-test = 
-    print 'Opening the gates!'
-    txt = open 'gates.txt'
-    print 'Gates were opened!'
-    7
-
-## Because we never handled the broken value, it was automatically populated
-## to parent scope and the type of test was inferred to be:
-
-test: Int in IO ! IO.Exception
-
-## This is similar to using `?` operator in Rust or TypeScript.
-
-## IMPORTANT NOTE
-## This functionality cannot be implemented without type inferencer, so for now,
-## we assume that we silently drop unhandled broken values. Ugly, but needed.
-
-<<-ARA
-Design the first version of the stdlib to make use of async exceptions for IO
-style operations. As the typechecker evolves, we can migrate (breakingly) the
-stdlib.
-ARA
-
-## ==============================
-## === Overlappable functions ===
-## ==============================
-
-## Applies the provided function to all fields of a structure and collects 
-## result in a list. The fields are traversed in reversed order.
-
-fold_fields: (f: field -> out) -> struct -> List out
-fold_fields f struct =
-
-    go: List out -> struct -> List out
-    go out (t a) = go (f a, out) t
-    go out _     = out
-
-    go Nothing struct
-
-
-## A more type-explicit implementation of the above.
-
-fold_fields: (f: field -> out) -> struct -> List out
-fold_fields f struct =
-
-    go: List out -> t (a: field) -> List out 
-    go out (t a) = go (f a, out) t
-
-    go: List out -> t -> List out 
-    go out _ = out
-
-    go Nothing struct
-
-## Please note that the function `f` was not typed as `f: Any -> Any` because 
-## then it would not work correctly. We are allowed to provide any valid
-## sub-type of a given type (in the set-type meaning) to a function. So if we 
-## have a function `foo: Natural -> String` we can pass there an argument of 
-## type `7`, but we cannot pass argument of type `Int` before pattern matching.
-## If we define function accepting `Any`, like `foo: Any -> String` we can pass
-## there just anything. Function sub-typing is trickier because of 
-## contravariance of args. Thus, if we have `foo: (Any -> Any) -> String` we 
-## are not allowed to pass the `Int -> String` as the first argument because
-## it is NOT true that `(Int -> String) : (Any -> Any)`. Basically, the truth is 
-## that if `a:sa` and `b:sb` then `(sa -> b) : (a -> sb). Thus, if we want to 
-## provide a function which traverses all arguments, we want the user to be able
-## to pass there a function `Int -> String` - it should force the type checker 
-## to check if every field is `Int` - we can do exactly the same thing in 
-## exactly the same way in overlappable instances in Haskell:
-## 
-##     class TraverseFields (ctx: Type -> Context) (t :: k)
-##     {-# OVERLAPPABLE #-} instance TraverseFields t
-##     instance (ctx a, TraverseFields t) => TraverseFields (t a) 
-##
-## Of course, this implementation lacks the body, as in order to pass 
-## argument of non `*` kind we would need to use generics or HLists, which would 
-## be a lot of typing here, but the implementation will stay exactly the same.
-
-## NOTE
-## Please note that if not using the `def` keyword, the following line may be
-## considered ambiguous: `t a = v`. Does it mean a function definition or 
-## structural pattern matching? Fortunatelly, structural pattern matching is 
-## not needed often, and if its needed, it's needed by really advanced users,
-## so this syntax always means defining a new function. If you want to use 
-## structural matching, use this instead `(t a) = v`. This problem do not 
-## appear when using `case of` or when defining function like above (which
-## just requires parens): `fold_fields out (t a) = ...`.
-
-<<-MK
-Alternative proposal: a builtin method that can take an atom and split it into
-its constructor and a list (or, better for performance, vector) of its fields?
-You can achieve all the same things except most of them will be easier to achieve
-_and_ there's no need for new, possibly ambiguous syntax.
-
-Structural pattern matching to come in the future on both records and atoms.
-MK
-
-## === Constraint-based resolution ===
-##
-## This would probably not be possible without type checker, but it's worth 
-## describing it here. While resolving functions in the future, constraints 
-## should be taken into consideration. For example:
-
-## This just comes down to defining the dispatch algorithm.
-
-type HasName
-    name: String
-
-greet: t -> Nothing in IO
-greet _ = print 'I have no name!'
-
-greet: (t:HasName) -> Nothin in IO
-greet t = print 'Hi, my name is `t.name`!'
-
-type Person
-    Cons name:String
-
-main = 
-    p1 = Person.Cons "Joe"
-    greet p1 # -> Hi, my name is Joe
-    greet 7  # -> I have no name!
-
-## It is possible to do this without a typechecker, but would be duplicated
-## effort that could not later be re-used by the typechecker.
-
-
-## ============================
-## === Function composition ===
-## ============================
-
-## It's worth noting that the composition operators we know from Haskell are 
-## hard to use and often useless. We need to define many helper operators, like
-## we did in the past: `.:`, `.:.`, `.::`, `.::.`, etc. It's worth noting that
-## in 99% of cases what you want to do is to curry after applying all agruments.
-## Thus, we should introduce a function composition operator which composes
-## functions after all arguments were applied. For example:
-
-compute_coeff = (+) >> (*5)
-
-## On the left side we've got function with 2 arguments, on the right side with 
-## one argument. The result consumes two arguments, applies to the first 
-## function, and then applies the result to the second one. There is also `<<`
-## operator which does the same thing but in another direction.
-
-## FUNNY NOTE
-## We may want to extend this behavior to more advanced use cases, consider:
-
-do_funny_thing = (+) >> (*) 
-
-## Which may consume 2 arguments, pass them to `+` function, and then pass the
-## result as the first result to `*`, so we can evaluate it like:
-## `do_funny_things 2 3 4`, which gets translated to `(2 + 3) * 4`.
-
-## TODO code examples for why the second case is useful before determining if it
-## should be kept.
-
-## ==============
-## === Lenses ===
-## ==============
-
-type Engine
-    type Combustion
-        power:          Int
-        cylinder_count: Int
-
-    type Electric
-        power:   Int
-        is_blue: Bool
-
-
-type Vehicle
-    type Car 
-        color:     String
-        max_speed: Int
-        engine:    Engine
-
-    type Bike
-        color: String
-
-
-type Person
-    type Cons
-        name:    String
-        vehicle: Vehicle
-
-
-main = 
-    p1 = Person.Cons "Joe" (Vehicle.Car 'pink' 300 (Engine.Combustion 500 8))
-    print $ p1.name                   # -> Joe
-    print $ p1.vehicle.color          # -> pink
-    print $ p1.vehicle.max_speed      # -> Some 300
-    print $ p1.vehicle.engine.power   # -> Some 500
-    print $ p1.vehicle.engine.is_blue # -> None
-    p1.vehicle.color     = 'red'      # OK
-    p1.vehicle.max_speed = 310        # FAIL: security reasons. Allowing this
-                                      #       in Haskell was the worst decision
-                                      #       ever. After refactoring it 
-                                      #       silently does nothing there.
-
-    p2 = p1.vehicle.max_speed    ?= 310 # OK
-    p3 = p1.vehicle.engine.power  = 510 # FAIL
-    p4 = p1.vehicle.engine.power ?= 510 # OK
-
-    lens_name      = .name
-    lens_color     = .vehicle.color
-    lens_max_speed = .vehicle.max_speed
-    lens_power     = .vehincle.engine.power
-
-    ## Function like usage:
-    print $ lens_name      p1 
-    print $ lens_color     p1 
-    print $ lens_max_speed p1 
-    print $ lens_power     p1 
-
-    p1 . at lens_name = ... # OK
-
-
-## IMPORTANT NOTE
-## We may want to get more utils from lenses in the future, but the above subset
-## Covers 90% of needed use cases (if not more).
-
-<<-MK
-Not sure if it's all doable without TC.
-Reason being, in a nested setter, like `p1.vehicle.engine.power` there's some
-magic that will have to go on to not treat `p1.vehicle` as just `Car`.
-While this is easily doable syntactically here, I foresee edge cases.
-MK
-
-<<-ARA
-I also foresee edge cases. I would also like to just clarify if you think we
-would be fine formalising this on top of the standard theory of optics (as
-embodied in `lens` or `optics` in Haskell).
-
-We _can_ base on optics theory for typing these, though not optics as embodied
-in `optics` or `lens`.
-ARA
-
-## ======================
-## === Special fields ===
-## ======================
-
-foo.0 ## translates to `foo.index 0`
-foo."ID" ## translates to foo.byName "ID"
-
-
-#################################################################
-## Imports, qualified access, modules, and self initialization ##
-#################################################################
-
+```
+
+> The actionables for this section are:
+>
+> - Work out how much of this interface can be supported without a type checker
+>   and type inference engine.
+
+### Pattern Matching
+Pattern matching in Enso works similarly to as you would expect in various other
+functional languages. Typing information is _always_ refined in the branches of
+a case expression, which interacts well with dependent typing and type-term
+unification. There are a few main ways you can pattern match:
+
+1.  **Positional Matching:** Matching on the scrutinee by structure. This works
+    both for atoms and typesets (for typesets it is a subsumption judgement).
+
+    ```ruby
+    type Vector a
+      V2 x:a y:a
+      V3 x:a y:a z:a
+
+    v = Vector.V3 x y z
+
+    case v of
+      Vector.V3 x y z -> print x
+    ```
+
+2.  **Type Matching:** Matching purely by the types involved, and not matching
+    on structure.
+
+    ```ruby
+    case v of
+      Vector.V3 -> print v.x
+    ```
+
+3.  **Name Matching on Labels:** Matching on the labels defined within a type
+    for both atoms and typesets.
+
+    ```ruby
+    case v of
+      Vector.V3 {x y} -> print x
+      {x}             -> print x
+    ```
+
+4.  **Naming Scrutinees in Branches:** Ascribing a name of a scrutinee is done
+    using the standard typing judgement. This works due to the type-term
+    unification present in Enso.
+
+    ```ruby
+    case _ of
+      v : Vector.V3 -> print v,x
+    ```
+
+> The actionables for this section :
+>
+> - Refine the syntax for the name-based case
+> - Provide code examples for why the renaming use-case is important.
+
+## Dynamic Dispatch
+Enso is a language that supports pervasive dynamic dispatch. This is a big boon
+for usability, as users can write very flexible code that still plays nicely
+with the GUI.
+
+The current implementation of Enso supports single dispatch (dispatch purely on
+the type of `self`), but there are broader visions afoot for the final
+implementation of dynamic dispatch in Enso.
+
+> The actionables for this section include:
+>
+> - Determining whether we want to support proper multiple dispatch in the
+>   future. This is important to know as it has implications for the type
+>   system, and the design of the dispatch algorithm.
+> - The definition of specificity for dispatch candidates (including how it
+>   interacts with the subsumption relationship on typesets and the ordering of
+>   arguments).
+> - Do we want to treat the module as an argument upon which dispatch can happen
+>   or is it something else?
+> - Work out the whole self-initialization thing as Wojciech needs to think
+>   about the problems with this system and uniformity / ambiguity.
+
+### Multiple Dispatch
+It is an open question as to whether we want to support proper multiple dispatch
+in Enso. Multiple dispatch refers to the dynamic dispatch target being
+determined based not only on the type of the `self` argument, but the types of
+the other arguments to the function.
+
+To do multiple dispatch properly, it is very important to get a rigorous
+specification of the specificity algorithm. It must account for:
+
+- The typeset subsumption relationship.
+- The ordering of arguments.
+- How to handle defaulted and lazy arguments.
+- Constraints in types. This means that for two candidates `f` and `g`, being
+  dispatched on a type `t` with constraint `c`, the more specific candidate is
+  the one that explicitly matches the constraints. An example follows:
+
+  ```ruby
+  type HasName
+    name : String
+
+  greet : t -> Nothing in IO
+  greet _ = print "I have no name!"
+
+  greet : (t : HasName) -> Nothing in IO
+  greet t = print 'Hi, my name is `t.name`!'
+
+  type Person
+    Pers (name : String)
+
+  main =
+    p1 = Person.Pers "Joe"
+    greet p1 # Hi, my name is Joe!
+    greet 7  # I have no name
+  ```
+
+  Here, because `Person` conforms to the `HasName` interface, the second `greet`
+  implementation is chosen because the constraints make it more specific.
+
+If we want to support equivalents to multi-parameter type-classes in Haskell,
+then we need to support multiple dispatch globally, as our method dispatch is
+not opt-in (unlike typeclasses in Haskell).
+
+#### Overlappable Functions
+Overlappable functions is a proposal for obtaining multiple-dispatch-style
+behaviour that dispatches functions based on a notion of specificity that is
+a little more specific than general multiple-dispatch. It considers only local
+bindings as candidates, and is hence not part of the global dispatch mechanism.
+
+Consider the following example:
+
+```ruby
+foldFields: (f: field -> out) -> struct -> List out
+foldFields f struct =
+  go: List out -> t (a: field) -> List out
+  go out (t a) = go (f a, out) t
+
+  go: List out -> t -> List out
+  go out _ = out
+
+  go Nothing struct
+```
+
+It defines a set of inner functions that have types that are both _explicit_ and
+_overlapping_. We then use a notion of specificity for these functions to
+determine which to dispatch to.
+
+Please note that the function `f` is not typed as `f : Any -> Any` because then
+this would not work correctly. We are allowed to provide any valid sub-type
+(see `<:` in the section on [typesets](#typesets) above) of a given type to a
+function (while accounting for covariance and contravariance). In this example,
+we want to provide a function that traverses all of the arguments and also want
+the user to be able to pass an `f : Int -> String`, the type system needs to
+verify that every field is of type `Int`.
+
+Please note that there is a potential syntactic ambiguity here: `t a = v`. This
+could either be interpreted as a function definition or structural pattern
+matching. Fortunately, the latter is not needed often, and will only be needed
+by advanced users. Instead, we require that structural pattern matching use
+parentheses around the match `(t a) = v`.
+
+> The actionables for this section are:
+>
+> - Do we really need this feature? Isn't it subsumed by the more useful notion
+>   of multiple dispatch?
+> - How does the above notion of structural pattern matching work in relation to
+>   structural pattern matching for typesets?
+
+### First-Class Modules
+It is important in Enso for modules to be first-class language entities that can
+be computed upon at runtime. However, we do not yet have a concrete design for
+how to handle this. There are two main ways to do this:
+
+- Unify the concept of modules with the concept of typesets, with some file
+  scope magic to make this usable.
+- Make modules their own first-class entity.
+
+#### Self-Initialisation and Qualified Access
+This is a proposal for how to handle qualified names and dispatching on the
+module as an entity at runtime. There are two proposed sets of rules that are
+intended to allow code like the example to work properly. They are both based on
+the following idea:
+
+```ruby
 Int.inc                   = self + 1 ## is just a sugar to:
 inc (self:Int)            = self + 1 ## which is a sugar to:
 inc (module:A) (self:Int) = self + 1 ## which is the final form.
+```
 
-## Rules:
-##   1. When referenced from the same file, `module` is applied automaticaly.
-##   2. When used implicitly, like `5.inc`, the `module` is applied as well.
-##   3. When imported, like `import A` and used explicitly, the `module` is
-##      just an argument: `x = A.inc 5` or `y = inc A 5`.
-##   4. You are not allowed to define in a single module a constant and 
-##      extension method with the same name. For example, defininig
-##      `foo = 7` and `foo (self:Int) = 8` is not allowed.
+The first set of rules is as follows:
 
-## Alternative rules:
-##   1. When `inc` is provided with `A` (explicitly, not variable of type A),
-##      then it is passed as argument.
-##   2. In other cases, `A` is passed automatically.
-##   3. The rule 4 above.
+1.  When referenced in the same file `module` is applied automatically.
+2.  When used implicitly (e.g. `5.inc`), `module` is also applied.
+3.  When imported, like `import A` and used explicitly, the module is just an
+    argument (e.g. `x = A.inc 5` or `x = inc A 5`).
+4.  You are not allowed to define in a name multiple times (this precludes true
+    dynamic dispatch).
 
-## IMPORTANT
-## This allows the following to work correctly. Please note that there may be
-## different modules in scope which define `Int.inc`. It is important to 
-## **be able to explicitely disambiguate** such cases. This solution solves it:
+The second set of rules is as follows:
 
-## A.enso ## 
+1.  When `inc` is provided with `A` explicitly, then it is passed as an
+    argument.
+2.  In other cases, `A` is passed automatically.
+3.  You are not allowed to define in a name multiple times (this precludes true
+    dynamic dispatch).
+
+The example code follows.
+
+```ruby
+## A.enso ##
 def inc (self:Int) = self + 1
 
 ## B.enso ##
@@ -893,41 +914,94 @@ print $ 5.inc
 print $ inc 5
 print $ A.inc 5
 print $ inc A 5
+```
 
-<<-MK
-I'm worried about the impact of this on performance without TC.
-This essentially means we have dispatch by two arguments instead of by just one,
-so twice the dispatch overhead.
+## Broken Values
+In Enso we have the notion of a 'broken' value: one which is in an invalid state
+but not an asynchronous error. While these may initially seem a touch useless,
+they are actually key for the display of errors in the GUI.
 
-My proposal would be to sacrifice uniform uniform syntax call for the module parameter,
-making the whole thing more similar to haskell's qualified imports.
+Broken values can be thought of like checked monadic exceptions in Haskell, but
+with an automatic propagation mechanism:
 
-This would disallow the `inc A 5` syntax for before we have a typechecker.
-The win here is that dynamic dispatch does not get more complicated, as the whole thing
-is now decidable statically, so we're not sacrificing performance for what seems to be
-an edge case.
-MK
+- Broken values that aren't handled explicitly are automatically promoted
+  through the parent scope. This is trivial inference as no evidence discharge
+  will have occurred on the value.
 
-<<-ARA
-I'll echo the above concerns.
-Modules as records/sets?
-ARA
+  ```ruby
+  open : String -> String in IO ! IO.Exception
+  open = ...
 
-## ===============
-## === DYNAMIC ===
-## ===============
+  test =
+    print 'Opening the gates!'
+    txt = open 'gates.txt'
+    print 'Gates were opened!'
+    7
+  ```
 
-<<-ARA
-PLEASE NOTE: This is very sketchy and probably has holes in it. It is a _vision_
-that I have not had the time to verify as sound, but I'm trying to give us a 
-more coherent way to talk about `Dynamic`.
+  In the above example, the type of test is inferred to
+  `test : Int in IO ! IO.Exception`, because no evidence discharge has taken
+  place as the potential broken value hasn't been handled.
+- This allows for very natural error handling in the GUI.
 
-Up to this point we've done a lot of hand-waving about the `Dynamic` type, so I
-would like to offer some more concrete proposals about how it behaves. This
-proposal assumes that all of our types are structural under the hood, and would
-need re-thinking if we decide not to pursue that direction.
+> The actionables for this section are:
+>
+> - Determine what kinds of APIs we want to use async exceptions for, and which
+>   broken values are more suited for.
+> - Ensure that we are okay with initially designing everything around async
+>   exceptions as broken values are very hard to support without a type checker.
 
-- `Dynamic a b` is a type where the `a` is used to provide a specification of 
+## Function Composition
+Enso introduces a function composition operator which composes functions after
+all arguments have been applied. This operator is `>>` (and its backwards cousin
+`<<`). It takes a function `f` with `n` arguments, and a function `g` with `m`
+arguments, and the result consumes `n` arguments, applies them to `f`, and then
+applies the result of that plus any additional arguments to `g`.
+
+```ruby
+computeCoeff = (+) >> (*5)
+
+doThing = (+) >> (*)
+```
+
+In addition, we have the standard function composition operator `.`, and its
+backwards chaining cousin `<|`.
+
+> The actionables from this section are:
+>
+> - Examples for the more advanced use-cases of `>>` to decide if the type
+>   complexity is worth it.
+
+## Dynamic
+As Enso can seamlessly interoperate with other programming languages, we need a
+principled way of handling dynamic types that we don't really know anything
+about. This mechanism needs:
+
+- A way to record what properties we _expect_ from the dynamic.
+- A way to turn a dynamic into a well-principled type-system member without
+  having the dynamics pollute the whole type system. This may involve a 'trust
+  me' function, and potentially dynamicness-polymorphic types.
+- A way to understand as much as possible about what a dynamic _does_ provide.
+- A way to try and refine information about dynamics where possible.
+
+> The actionables for this section are:
+>
+> - Work out how to do dynamic properly, keeping in mind that in a dynamic value
+>   could self-modify underneath us.
+
+### The Enso Boundary
+Fortunately, we can at least avoid foreign languages modifying memory owned by
+the Enso interpreter. As part of the interop library, Graal lets us mark memory
+as read-only. This means that the majority of data passed out (from a functional
+language like Enso) is not at risk. However, if we _do_ allow data to be worked
+with mutably,
+
+### An Insufficient Design For Dynamic
+The following text contains a design for dynamic that doesn't actually account
+for all the necessary use-cases in the real world. It is recorded here so that
+it may inform the eventual design.
+
+- `Dynamic a b` is a type where the `a` is used to provide a specification of
   the structure expected from the dynamic type, and the `b` is a specification
   of the _verified_ properties of the dynamic type.
 
@@ -936,19 +1010,19 @@ need re-thinking if we decide not to pursue that direction.
   ```
 
   This structure _need not be complete. Indeed, it will be fairly common to get
-  values of type `Dynamic` about which we know nothing: `Dynamic {} {}`. As 
+  values of type `Dynamic` about which we know nothing: `Dynamic {} {}`. As
   dynamic values are used, we can refine information about these values via
   pattern matching (moving properties from `a` into `b`), or adding properties
-  to both if they hold. 
+  to both if they hold.
 
 - `Dynamic` has a constraint on the types of `a` and `b` such that `b` <: `a`
   where `<:` is assumed to be a subsumption relationship.
 
-- The key recognition is that if a property is not contained in the `b` 
+- The key recognition is that if a property is not contained in the `b`
   structure of a dynamic, it will be a type error to use that property.
 
-- A value of type `Dynamic a b` can be converted to a value of type 
-  `Dynamic a a` by calling a method 
+- A value of type `Dynamic a b` can be converted to a value of type
+  `Dynamic a a` by calling a method
   `assertValid : Dynamic a b -> Maybe (Dynamic a a)` on it that verifies the
   expected properties of the dynamic.
 
@@ -956,8 +1030,8 @@ need re-thinking if we decide not to pursue that direction.
   calling `valid : Dynamic a b -> b`. This allows you to take the _verified_
   properties of your dynamic value and hoist it all into the type system safely.
 
-- Users should also be able to `unsafeAssertValid` or something equivalent, 
-  which is an unsafe operation that treats a value of type `Dynamic a b` as 
+- Users should also be able to `unsafeAssertValid` or something equivalent,
+  which is an unsafe operation that treats a value of type `Dynamic a b` as
   having type `Dynamic a a`. Unlike `assertValid` above, this method performs
   _no_ verification.
 
@@ -967,8 +1041,8 @@ this we have the following:
 - A method on all structural types `asDynamic`. For a structural type t, it
   produces a value of type `Dynamic t t`.
 
-- `Dynamic` provides a method that allows for defining functions and properties 
-  on dynamic values. This method is _safe_ such that for a `Dynamic a b` it 
+- `Dynamic` provides a method that allows for defining functions and properties
+  on dynamic values. This method is _safe_ such that for a `Dynamic a b` it
   extends the structural types `a` and `b` with the new properties:
 
   ```
@@ -983,60 +1057,8 @@ This doesn't work in the face of types that can self-modify, meaning that there
 is no performant way to work with dynamics short of unsafe assumptions about
 them.
 
-TBC
-ARA
-
-## ============
-## === MAIN ===
-## ============
-
-<<-ARA
-The entry point for the program is defined as a special top-level binding `main`
-in the file `main.enso`.
-
-`enso run foo.enso` looks for a main in the run file
-ARA
-
-## ===============
-## === SET TYPES ===
-## ===============
-
-<<-ARA
-In the past we've talked about all non-atom types being used in a structural
-manner (static duck typing), so I think we need to briefly discuss exactly how
-we want this to work:
-
-- From all of the above discussion the AEDT paper still serves our needs. 
-- Do we want to allow for overriding of labels -> Yes, in the case of multi
-  dispatch.
-- Does a `type` definition (that doesn't purely generate an atom) generate a
-  record? Yes.
-
-ARA
-
-## ============================
-## === FUNCTION COMPOSITION ===
-## ============================
-
-<<-ARA
-Function composition will take place using `|>` for `&` and `<|` for `$`. These
-operators might take more characters to type, but they are much clearer as to
-what is actually going on.
-
-To be revisited. 
-ARA
-
-
-## ========================
-## === DYNAMIC DISPATCH ===
-## ========================
-
-<<-ARA
-Need to clarify some specifics for dyndispatch
-
-- Multi/single dispatch as eventual?? Yes, potentially in the future.
-- Can we elide dispatch on the 'module' argument, and do we want to actually
-  dispatch on it?
-- Need a rigorous specification of how modules behave, because they are no
-  longer able to be represented purely as structural types. 
-AR
+## The Main Function
+The entry point for an Enso program is defined in a special top-level binding
+called `main` in the file `Main.enso`. However, we also provide for a scripting
+workflow in the form of `enso run`, which will look for a definition of `main`
+in the file it is provided.
