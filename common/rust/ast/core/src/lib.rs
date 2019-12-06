@@ -242,7 +242,8 @@ impl<'de> Deserialize<'de> for Ast {
     Number       { base: Option<String>, int: String },
     DanglingBase { base: String                      },
 
-    Text         (Text<T>),
+    TextLineRaw  { text: Vec<SegmentRaw> },
+    TextLineFmt  { text: Vec<SegmentFmt<T>> },
 
     // === Expressions ===
     Prefix    { func : T   , off  : usize , arg: T                          },
@@ -251,7 +252,6 @@ impl<'de> Deserialize<'de> for Ast {
     SectRight { opr  : T   , off  : usize , arg: T                          },
     SectSides { opr  : T                                                    },
 
-    Invalid   (Invalid<T>),
     Block     (Block<T>),
     Module    (Module<T>),
     Macro     (Macro<T>),
@@ -263,43 +263,141 @@ impl<'de> Deserialize<'de> for Ast {
     Foreign   (Foreign),
 }
 
+
+#[ast(flat)] pub enum SegmentRaw {
+    SegmentPlain    (SegmentPlain),
+    SegmentRawEscape(SegmentRawEscape),
+}
+
+#[ast(flat)] pub enum SegmentFmt<T> {
+    SegmentPlain    ( SegmentPlain),
+    SegmentRawEscape( SegmentRawEscape),
+    SegmentExpr     { value: Option<T> },
+    SegmentEscape   { code: Escape },
+}
+
+#[ast_node] pub struct SegmentPlain     { pub value: String    }
+#[ast_node] pub struct SegmentRawEscape { pub code : RawEscape }
+#[ast(flat)] pub enum RawEscape {
+    Unfinished {},
+    Invalid { str: char },
+    Slash {},
+    Quote {},
+    RawQuote {},
+}
+
+#[ast_node] pub enum Escape {
+    Character { c: char},
+    Control   { name  : String, code: u8 },
+    Number    { digits: String },
+    Unicode16 { digits: String },
+    Unicode21 { digits: String },
+    Unicode32 { digits: String },
+}
+
+
+// TODO  how to automatically obtain below conversion
+//   basically they are about conversion chain
+//   RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
+impl From<Unfinished> for SegmentRaw {
+    fn from(value: Unfinished) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Invalid> for SegmentRaw {
+    fn from(value: Invalid) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Slash> for SegmentRaw {
+    fn from(value: Slash) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Quote> for SegmentRaw {
+    fn from(value: Quote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<RawQuote> for SegmentRaw {
+    fn from(value: RawQuote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+
+// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt
+impl<T> From<Unfinished> for SegmentFmt<T> {
+    fn from(value: Unfinished) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Invalid> for SegmentFmt<T> {
+    fn from(value: Invalid) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Slash> for SegmentFmt<T> {
+    fn from(value: Slash) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Quote> for SegmentFmt<T> {
+    fn from(value: Quote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<RawQuote> for SegmentFmt<T> {
+    fn from(value: RawQuote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+
+////
+
+impl<T> From<Escape> for SegmentFmt<T> {
+    fn from(value: Escape) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
+
+
 // ===============
 // === Invalid ===
 // ===============
+//
+//#[ast] pub enum Invalid<T> {
+//    Unrecognized  { input : String },
+//    Unexpected    { msg   : String, stream: Stream<T> },
+//    // FIXME: missing constructors, https://github.com/luna/enso/issues/336
+//}
+//
 
-#[ast] pub enum Invalid<T> {
-    Unrecognized  { input : String },
-    Unexpected    { msg   : String, stream: Stream<T> },
-    // FIXME: missing constructors, https://github.com/luna/enso/issues/336
-}
-
-
-// ============
-// === Text ===
-// ============
-
-#[ast] pub enum Text<T> {
-    Raw { body: TextBody<TextRawSegment> },
-    Fmt { body: TextBody<TextFmtSegment<T>> }
-}
-
-#[ast] pub struct TextRawSegment {
-    pub value: String
-}
-
-#[ast] pub enum TextFmtSegment<T> {
-    Plain  { value  : String },
-    Expr   { value  : Option<T> },
-    Escape { escape : TextEscape },
-}
-
-pub type TextBlock<T> = Vec<TextLine<T>>;
-#[ast] pub struct TextLine<T> { off: usize, elems: Vec<T> }
-#[ast] pub struct TextBody<T> { quote: TextQuote, block: TextBlock<T> }
-#[ast] pub enum   TextQuote   { Single, Triple }
-
-// FIXME: missing TextEscape contents, https://github.com/luna/enso/issues/336
-#[ast] pub struct TextEscape {}
+//// ============
+//// === Text ===
+//// ============
+//
+//#[ast] pub enum Text<T> {
+//    Raw { body: TextBody<TextRawSegment> },
+//    Fmt { body: TextBody<TextFmtSegment<T>> }
+//}
+//
+//#[ast] pub struct TextRawSegment {
+//    pub value: String
+//}
+//
+//#[ast] pub enum TextFmtSegment<T> {
+//    Plain  { value  : String },
+//    Expr   { value  : Option<T> },
+//    Escape { escape : TextEscape },
+//}
+//
+//pub type TextBlock<T> = Vec<TextLine<T>>;
+//#[ast] pub struct TextLine<T> { off: usize, elems: Vec<T> }
+//#[ast] pub struct TextBody<T> { quote: TextQuote, block: TextBlock<T> }
+//#[ast] pub enum   TextQuote   { Single, Triple }
+//
+//// FIXME: missing TextEscape contents, https://github.com/luna/enso/issues/336
+//#[ast] pub struct TextEscape {}
 
 
 // =============

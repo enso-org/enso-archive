@@ -1,7 +1,8 @@
 use prelude::*;
 use parser::api::IsParser;
 
-use ast::{Ast, Shape};
+use ast::{Ast, Shape, SegmentRaw};
+use ast::SegmentFmt::SegmentExpr;
 
 /// Takes Ast being a module with a single line and returns that line's AST.
 fn expect_single_line(ast: &Ast) -> &Ast {
@@ -25,6 +26,7 @@ where &'t Shape<Ast>: TryInto<&'t T> {
 
 fn assert_var<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     let actual: &ast::Var = expect_shape(ast);
+
     let expected          = ast::Var{ name: name.into() };
     assert_eq!(*actual, expected);
 }
@@ -113,6 +115,113 @@ impl TestHelper {
         });
     }
 
+    fn deserialize_text_line_raw(&mut self) {
+        self.test_shape("\"foo\"", |shape:&ast::TextLineRaw| {
+            assert_eq!(shape.text.len(), 1);
+            let segment  = shape.text.iter().nth(0).unwrap();
+            let expected = ast::SegmentPlain{value: "foo".to_string()};
+            let expected = SegmentRaw::from(expected);
+            assert_eq!(*segment, expected);
+        });
+
+        let tricky_raw = r#""\\\"\n""#;
+        self.test_shape(tricky_raw, |shape:&ast::TextLineRaw| {
+            assert_eq!(shape.text.len(), 3);
+
+            let mut segments = shape.text.iter();
+            let mut next_segment = || segments.next().unwrap();
+
+            assert_eq!(*next_segment(), ast::Slash{}.into() );
+            assert_eq!(*next_segment(), ast::RawQuote{}.into() );
+            assert_eq!(*next_segment(), ast::Invalid{ str: 'n'}.into() );
+            // TODO can ast::Quote be used here?
+            //  if not, what is the point of having it?
+        });
+    }
+
+    fn deserialize_text_line_fmt(&mut self) {
+        // plain
+        self.test_shape("'foo'", |shape:&ast::TextLineFmt<Ast>| {
+            assert_eq!(shape.text.len(), 1);
+            let segment  = shape.text.iter().nth(0).unwrap();
+            let expected = ast::SegmentPlain{value: "foo".to_string()};
+            let expected = ast::SegmentFmt::from(expected);
+            assert_eq!(*segment, expected);
+        });
+
+        // raw escapes
+        let tricky_fmt = r#"'\\\'\"'"#;
+        self.test_shape(tricky_fmt, |shape:&ast::TextLineFmt<Ast>| {
+            assert_eq!(shape.text.len(), 3);
+
+            let mut segments = shape.text.iter();
+            let mut next_segment = || segments.next().unwrap();
+
+            assert_eq!(*next_segment(), ast::Slash{}.into() );
+            assert_eq!(*next_segment(), ast::Quote{}.into() );
+            // TODO: the behavior below is actually a bug in parser, however
+            //  we don't test the parser but the ability to read its results.
+            assert_eq!(*next_segment(), ast::Invalid{ str: '"'}.into() );
+        });
+
+        // expression empty
+        let expr_fmt = r#"'``'"#;
+        self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
+            assert_eq!(shape.text.len(), 1);
+            let segment = shape.text.iter().next().unwrap();
+            match segment {
+                SegmentExpr(expr) => assert_eq!(expr.value, None),
+                _                 => panic!("wrong segment type received"),
+            }
+        });
+
+        // expression non-empty
+        let expr_fmt = r#"'`foo`'"#;
+        self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
+            assert_eq!(shape.text.len(), 1);
+            let segment = shape.text.iter().next().unwrap();
+            match segment {
+                SegmentExpr(expr) => {
+                    assert_var(expr.value.as_ref().unwrap(), "foo");
+                },
+                _ => panic!("wrong segment type received"),
+            }
+        });
+
+        let expr_fmt = r#"'\n\u0394\U0001f34c'"#;
+        self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
+            assert_eq!(shape.text.len(), 3);
+            let mut segments = shape.text.iter();
+            let mut next_segment = || segments.next().unwrap();
+
+            let expected = ast::Escape::Character{c:'n'};
+            assert_eq!(*next_segment(), expected.into());
+
+            let expected = ast::Escape::Unicode16{digits: "0394".into()};
+            assert_eq!(*next_segment(), expected.into());
+
+            // TODO We don't test Unicode21 as it is not yet supported by
+            //      parser.
+
+            let expected = ast::Escape::Unicode32{digits: "0001f34c".into()};
+            assert_eq!(*next_segment(), expected.into());
+        });
+    }
+
+//    fn deserialize_unfinished_text(&mut self) {
+//        let unfinished_raw = r#""foo\""#;
+//        self.test_shape(unfinished_raw, |shape:&ast::TextLineRaw| {
+//            assert_eq!(shape.text.len(), 3);
+//
+//            let mut segments = shape.text.iter();
+//            let mut next_segment = || segments.next().unwrap();
+//
+//            let expected = ast::SegmentPlain{value: "foo".to_string()};
+//            assert_eq!(*next_segment(), expected.into() );
+//            assert_eq!(*next_segment(), ast::Unfinished{}.into() );
+//        });
+//    }
+
     fn deserialize_dangling_base(&mut self) {
         self.test_shape("16_", |shape:&ast::DanglingBase| {
             assert_eq!(shape.base, "16");
@@ -187,6 +296,9 @@ impl TestHelper {
         self.deserialize_mod();
         self.deserialize_invalid_suffix();
         self.deserialize_number();
+        self.deserialize_text_line_raw();
+        self.deserialize_text_line_fmt();
+        self.deserialize_unfinished_text();
         self.deserialize_dangling_base();
         self.deserialize_prefix();
         self.deserialize_infix();
