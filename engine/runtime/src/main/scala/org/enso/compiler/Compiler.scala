@@ -5,7 +5,7 @@ import java.util.Optional
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.{AstExpression, AstModuleScope, EnsoParser}
+import org.enso.compiler.core.{AstExpression, AstModuleScope}
 import org.enso.compiler.generate.AstToAstExpression
 import org.enso.flexer.Reader
 import org.enso.interpreter.builder.{
@@ -46,15 +46,10 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): Optional[Function] = {
-    val mimeType = source.getMimeType
-
-    val expr: AstModuleScope = if (mimeType == Constants.MIME_TYPE) {
+    val expr: AstModuleScope = {
       val parsedAST: AST = parse(source)
       translate(parsedAST)
-    } else {
-      new EnsoParser().parseEnso(source.getCharacters.toString)
     }
-
     new ModuleScopeExpressionFactory(language, source, scope).run(expr)
   }
 
@@ -119,7 +114,7 @@ class Compiler(
       )
       .build()
     val parsed: AST = parse(source)
-    
+
     translateInline(parsed).flatMap { ast =>
       Some(
         new ExpressionFactory(
@@ -169,12 +164,18 @@ class Compiler(
     * representation.
     *
     * @param sourceAST the parser AST input
-    * @return an IR representation with a 1:1 mapping to the parser AST
-    *         constructs
+    * @return an IR representation of the program represented by `sourceAST`
     */
   def translate(sourceAST: AST): AstModuleScope =
     AstToAstExpression.translate(sourceAST)
 
+  /**
+    * Lowers the input AST to the compiler's high-level intermediate
+    * representation.
+    *
+    * @param sourceAST the parser AST representing the program source
+    * @return an IR representation of the program represented by `sourceAST`
+    */
   def translateInline(sourceAST: AST): Option[AstExpression] =
     AstToAstExpression.translateInline(sourceAST)
 }
