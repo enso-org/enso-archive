@@ -122,17 +122,11 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
 
   /* Note [Handling Suspended Defaults]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * We had a bug where arguments with defaults that were also declared as lazy
-   * were not being handled correctly. This was down to the fact that the
-   * default was still being constructed as an eager `ExpressionNode` even if
-   * the argument was lazy.
-   *
-   * This means that argument order would differ between cases where it was
-   * explicitly applied or when the default was used.
-   *
-   * The fix for this is simple and is implemented above: if the argument is
-   * declared as lazy, the default value should be wrapped in a thunk such that
-   * it gets evaluated on demand, rather than up-front with the rest of the
-   * function's arguments.
+   * Suspended defaults need to be wrapped in a thunk to ensure that they behave properly with
+   * regards to the expected semantics of lazy arguments. 
+   * 
+   * Were they not wrapped in a thunk, they would be evaluated eagerly, and hence the point at
+   * which the default would be evaluated would differ from the point at which a passed-in argument
+   * would be evaluated. 
    */
 }
