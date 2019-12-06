@@ -1,4 +1,4 @@
-# Notes on Enso's Syntax and Semantics
+# Notes on Enso's Syntax and Semantices
 As we get closer to the development of the more sophisticated features of the
 language, as well as have a more fully-featured interpreter, we really need to
 clarify exactly how certain syntactic and semantic elements of the language
@@ -33,313 +33,313 @@ using `camelCase` and `UpperCamelCase` naming conventions to mark this
 distinction, but recently it has been raised that we might instead prefer to
 use `snake_case` to refer to variables. A few thoughts on this follow:
 
-- 
+- Snake case tends to be far more readable than camel case. This is primarily
+  down to the fact that the `_` is far more readily readable as a space.
+- However, with `snake_case`, we have to still have some syntactic identifier
+  for type names in patterns, which would be `SnakeCase`. Unlike the
+  distinction with camel case, this creates a much larger visual disparity
+  with snake case.
+- In all cases, mixed style (e.g. `foo_Bar`) would be disallowed to allow the
+  language source to be uniform.
+- If we go with `snake_case`, we should come up with another syntax for the
+  definition of mixfix functions, and we may want to do this anyway. The
+  current proposal for this is `if check _then ok _else fail`, which may be
+  something that we want to adopt regardless of the decision on this section.
 
 Please note that this file sticks to the pre-determined naming convention for
 Enso, as no final decision has been made on whether or not it should be
 changed.
 
+> No final decision has been made on this point yet, so the actionables are as
+> follows:
+> 
+> - Wojciech wants to think about it more.
+> - The decision needs to be made by the next design meeting on 2019-12-10.
+> - Support in the parser is fairly simple, though some consideration is needed
+>   for how to support the mixfix definition syntax as methods.
 
-## =======================
-## === Variable Naming ===
-## =======================
+## Top-Level Evaluation
+An ongoing discussion for the language design has been whether or not to allow
+for the top-level evaluation of statements in Enso. In order to help make a
+decision, we listed the following use-cases for top-level evaluation. These are
+annotated using the following key:
 
-## This file uses other naming convention than we used to use. It uses the 
-## snake_case naming for variables, which gets translated to `CamelCase` on
-## type level. **THIS IS NOT A SERIOUS PROPOSITION NOW**. However, I want to 
-## discuss it with you. For a long time I was very, very against snake case,
-## as it felt unnatural and strange. But this was an opinion based solely
-## on my lack of experience with such langs. After using Rust for a while
-## I'm deeply surprised how clear the code is to read and how my reading comfort
-## increased.
+- `[?,_]` - We don't know how to implement it, but it may be possible.
+- `[-,_]` - Not possible to implement using purely syntactic macros.
+- `[M,_]` - Possible to implement using purely syntactic macros.
+- `[_,H]` - High priority. This will be used often.
+- `[_,M]` - Medium priority. This will be used with a medium frequency.
+- `[_,L]` - Low priority. Nice to have, but we can likely live without it.
+- `[_,!]` - Something that we never want to have in the language.
 
-## If we came to a conclusion that we want it, the following rules would be 
-## needed:
-## - The var `foo_bar_baz` is the same as `FooBarBaz`.
-## - Using mixed style is disallowed, for example `foo_Bar`, or even `fooBar`.
-## - Definition of mixfix functions would need to use other syntax, like
-##   `if check _then ok _else fail = ...` instead of the current:
-##   `if_then_else check of fail`, which actually may be even nicer. 
-<<-MK
-Always been for snake_case, it rocks.
-Not sure how I feel about auto conversion to CamelCase, it should only exist for
-patterns.
-MK
+The use-cases we have considered are as follows:
 
-<<-ARA
-I find snake_case very readable but hate typing it. I'm mostly ambivalent toward
-this suggestion. I think snake_case is very good for readability, but the
-conversion from `foo_bar_baz` to `FooBarBaz` is far more jarring than if it were
-from `fooBarBaz`. 
+- `[-,L]` Creating top-level constructs in `IO`, such as `IORef`. This is, in
+  general, considered to be bad style, but can sometimes be useful.
+- `[-,L]` Using enso files like python is able to be for scripting work. The
+  ability to write constructs at the top-level and just evaluate them.
+- `[M,H]` The ability to generate structures and / types for a dataframe at
+  compilation time, or the automatic generation of an API for a library. A key
+  recognition is that dependent types and type-level execution replace much of
+  the need to be able to query the type-checker and runtime while writing a
+  syntactic macro.
+- `[M,H]` Static metaprogramming (transformations from `AST -> AST`) to let
+  users generate types and functions based on existing AST. There is the
+  potential to want to be able to evaluate actions in `IO` while doing this,
+  but it may not be necessary.
+- `[-,!]` Dynamic metaprogramming to let users mutate program state at runtime
+  (e.g. changing atom shapes, function definitions), also known as 'monkey
+  patching'. This is not something we want in the language, but we do perhaps
+  want the ability to do so on values of type `Dynamic`. 
+- `[M,H]` 'Remembering' things when compiling a file, such as remembering all
+  structures marked by an `AST` annotation. An example use case for a mechanism
+  like this is to generate pattern matches for all possible `AST` types. This
+  can be done by letting macros write to a per-file peristent block of storage
+  that could be serialised during precompilation.
+- `[M,H]` Grouping of macros (e.g. `deriveAll = derive Ord Debug Show). This
+  can be easily handled by doing discovery on functions used as macros, and
+  treating it as a macro as well.
+- `[?,M]` Method-missing magic, akin to ruby. This is likely able to be handled
+  using other, existing language mechanisms.
 
-Are there other places than patterns where there is a syntactic ambiguity? If
-not, then I agree with marcin that the only time `FooBarBaz` should be allowed
-is in patterns. I still find it jarring and lean towards a different signifier
-for patterns, but I realise that discussion was shelved a long time ago!
+In summary and when considering the above use-cases, it seems that there is
+little need for top-level expression evaluation in Enso. We can support all of
+the above-listed important use-cases using syntactic (`AST -> AST`) macros,
+while allowing for top-level evaluation would enable users to write a lot of
+overly-magical code, which will always be a code-smell.
 
-I like the `if check _then ok _else fail` proposal for mixfix definitions.
-ARA
+Syntactic macros, however, do not easily support a scripting workflow, but the
+solution to this problem is simple. We can just provide an `enso run <file>` 
+command which will search for and execute the `main` function in the provided
+file.
 
-<<-MEETING
-A point has been made that the conversion from snake_case to UpperCamelCase for
-pattern matching can be quite visually jarring:
+> The actionables for this section are as follows:
+> 
+> - Formalise and clarify the semantics of `main`.
 
-- Wojciech wants to think about it more.
-- We need to make a decision but it's arbitrarily supported by the parser so is
-  easy to change.
-MEETING
+## High-Level Syntax and Semantic Notes
+While the majority of syntactic design for the language has utilised top-level
+bindings in a syntax similar to that of Haskell or Idris, some consideration
+has been given to instead introducing function bindings using a `def` keyword.
 
-## =============================
-## === Top-level expressions ===
-## =============================
+This has a few major problems, including:
 
-## Below we present a list of use-cases for top-level expression evaluation. 
-## The items are marked by special symbols which mean:
-## - [?,_] - We do not know how to implement it, but maybe it's possible.
-## - [-,_] - Impossible when using only macros.
-## - [+,_] - Possible when using only macros.
-## - [_,H] - High priority, very frequent usages.
-## - [_,M] - Medium priority.
-## - [_,L] - Low priority, nice to have, but we can definitely live without it.
-## - [_,!] - Something we never want in the language.
-##
-## Use cases:
-## - [-,M] Creating top level things in IO, like a global `IORef`.
-## - [-,L] Nice scripting interface - just write code and eval.
+- The typing of variables becoming very ugly, with bad alignment.
 
-<<-ARA
-While we don't need top-level evaluation, I think you're underestimating the 
-utility of a scripting workflow for rapid prototyping. It's very useful in
-Python, for example.
+  ```ruby
+  foo : Int -> Int -> Int
+  def foo a b = a + b
+  ```
 
-I propose that we provide a `script` macro that implicitly wraps the top-level 
-of a file in a `main` function. This would allow for easily writing stand-alone
-scripts in Enso without _actually_ requiring top-level evaluation.
-ARA
+- The standard Haskell/Idris-style definition syntax would no longer be valid,
+  but would also not be used anywhere.
+- There would be duplicated syntax for doing the same thing (e.g. `val1 = 5`
+  and `def val1 = 5` would be equivalent).
+- The `=` operator would still need to be used for single-line function
+  definitions, making the syntax inconsistent.
+- Interface definitions become very confusing:
 
-<<-MEETING
-We just want a `runHaskell` style `enso run` that will start executing from the
-`main` function.
+  ```ruby
+  type HasName
+    name : String
+    
+  type HasName2
+    def name : String
+  ```
 
-_However_, this new evaluation style mucks with Jupyter bindings quite badly,
-but this can be handled by multiple cell types. 
-MEETING
+Additionally, in the current syntax, a block assigned to a variable is one that
+has its execution implicitly suspended until it is forced. This has a few 
+things that should be noted about it.
 
-## - [M,H] Generating data structs for a dataframe based on an input file or
-##         automatic generation of API for a library.
-## - [M,H] Static metaprogramming (AST -> AST) - generating structs and funcs 
-##         based on existing AST. Possibly evaluating IO actions (IO is needed 
-##         for cache flag).
-## - [-,!] Dynamic metaprogramming - changing the atom shapes at runtime, 
-##         changing func defs in runtime, heavy monkey patching. We don't want 
-##         it because every usage of it would be a big code smell and would 
-##         break any possible type inference engine.
-##         IMPORTANT NOTE: we want this ability when using Dynamic type. Then
-##         the ability to define new methods on such type are often useful,
-##         but in no way this requires top-level expressions.
-## - [M,H] "Registering / remembering" things when compiling a file. Fo example,
-##         remembering all structs marked by `ast` annotation. Example use case
-##         is to generate pattern matches for all possible AST types. This can 
-##         be done by allowing macros to read and write to some per-file 
-##         persistant storage (when pre-compiling the file, the storage should 
-##         be serialized as part of the file interface).
-## - [M,H] Grouping few macros together, like for example:
-##         >> derive_all = derive ord debug show
-##         >> @derive_all 
-##         >> type Maybe a
-##         >> Nothing
-##         >> type Just value:a  
-##         However, this can be done by discovering that the function is just
-##         used as a macro and treating it as a macro as well.
-## - [?,M] Ruby-like `method_missing` magic. I believe that the subset of use 
-##         cases of that we can simulate using other language elements, like
-##         Rust-like deref coercions. Then this is rather unnecessary.
-##
-##
-## To sum this up, after considering all the use cases, it seems there is 
-## completely no need to use top-level expressions in the language. We can 
-## support all the important use cases with simple syntactic (AST -> AST) 
-## macros, while allowing for real top-level / type-level code evaluation
-## we also allow for a deep-magic hackery, which we will always consider a big
-## code smell (like runtime changing a shape of a type).
+- There is a big mismatch between the semantics of assigning inline to a
+  variable versus assigning a block to a variable. The following are not
+  equivalent:
 
-## ======================
-## === Syntax changes ===
-## ======================
+  ```ruby
+  a = foo x y
 
-## After thinking for long time about the syntax, there are two possible 
-## solutions to ambiguities problems:
-##
-## 1. Rules:
-##    - Newline after `=` means a block which does not evaluate in-place.
-##    - Allowing to use a keyword alternatively, like `foo = lazy print 'hi'`.
-##
-## 2. Introducing the `def` keyword for function definitions.
-##
-##
-## After thinking more about it, there are several problems with the solution 2:
-## - If we can type variables, the following code should be valid (and ugly):
-##   >> foo: Int -> Int -> Int
-##   >> def foo a + b = a + b
-##
-## - The following syntax would not be valid anymore, and it would just not be 
-##   used for anything:
-##   >> add a b = a + b
-##
-## - We would have a strange double-syntax for the same things in many places:
-##   >> val1 = 5
-##   >> def val2 = 5
-##
-## - Even worse with interfaces (which is very confusing):
-##   >> type HasName
-##   >>     name: String
-##   >>
-##   >> type HasName2
-##   >>     def name: String 
-##
-## - We would still need to use `=` for single line defs, like:
-##   >> def add a b = a + b
-##
-## Conclusion: let's stay with our good old agreement on point 1. No syntax 
-## changes.
+  a =
+    foo x y
+  ```
 
-<<-ARA
-I still don't like blocks being lazy by default just because it's inconsistent
-with everything else assigned to a variable being eager.
+- We could have a `suspend` function provided in the standard library, as
+  laziness of argument evaluation is determined through type-signatures and is
+  done automatically in the compiler.
+- Such a function would likely not see heavy use.
 
-- Instead we should have a `suspend` function.
-- Further discussion on Tuesday.
-ARA
+As Enso types (other than atoms), are defined as sets of values (see the
+section on [set types](#set-types) for details), we need a way to include an
+atom inside another type that doesn't define it. 
 
-## ===================
-## === Annotations ===
-## ===================
+- It would be potentially possible to disambiguate this using syntactic markers
+  but this is likely to be unclear to users.
+- Instead we propose to use a keyword (e.g. `use` or `include`) to signify the
+  inclusion of an atom inside a type definition.
 
-## Requires: parser changes, user-defined macros support.
-## For now: it can just work for some hardcoded annotations.
+> The actionable items for this section are as follows:
+> 
+> - Further discussion on the semantics of top-level blocks, with a decision
+>   made by 2019-12-10.
+> - Make a decision regarding a keyword for including other atoms in a type
+>   (e.g. `use`).
 
-## Annotations are a purely syntactic transformation. They just behave like
-## the definition following them was nested, so for example, the following code:
+## Annotations
+Much like annotations on the JVM, annotations in Enso are tags that perform a
+purely syntactic transformation on the entity to which they are applied. The
+implementation of this requires both parser changes and support for
+user-defined macros, but for now it would be possible to work only with a set
+of hard-coded annotation macros.
 
-@derive eq debug
+Annotations can be arbitrarily nested, so a set of annotation macros become
+implicitly nested inside each other:
+
+```ruby
+@derive Eq Debug
 @make_magic
 type Maybe a
-    Nothing
-    type Just value:a
+  use Nothing
+  type Just 
+```
 
-## Would logically gets translated to:
+The above example is logically translated to:
 
-derive eq debug
-    make_magic
-        type Maybe a
-            Nothing
-            type Just value:a
+```ruby
+derive Eq Debug
+  make_magic
+    type Maybe a
+      use Nothing
+      type Just (value : a)
+```
 
+In the presence of annotations and macros, it becomes more and more important
+that we are able to reserve words such as `type` to ensure that users can
+always have a good sense of what the most common constructs in the language
+mean, rather than allowing them to be overridden outside of the stdlib.
 
-## Moreover, there should be a way to define auto-annotations, something which 
-## would be applied to for example every `type` definition. This is just a note,
-## because it is actually already possible with this design. You can implement
-## custom `type` macro which resolves to annotation + normal `type` resolution.
+This would allow types to automatically derive `Debug`, for example, which
+would be a function `debug` which prints detailed debugging information about
+the type (e.g. locations, source info, types, etc).
 
-## IMPORTANT NOTE: Let's assume that stdlib exports type macro which adds by 
-## default `deriving debug` to every type. The debug is like show but for 
-## printing the inner structure always, while show may show nicely formatted
-## things to the user:
-##
-## >> type Debug
-## >>     debug: String
-## >> 
-## >> type Show
-## >>     show: String
-## >>     
-## >>     # Default implementation redirecting to `debug`.
-## >>     show:
-## >>         self: Debug 
-## >>         String
-## >>     show = debug
+> The actionables for this section are:
+> 
+> - Decide if we want to reserve certain key bits of syntax for use only by
+>   the standard library (with a focus on `type`).
 
-<<-MK
-1. Need more spec on the diff between show and debug. -> debugShow
-2. Exposing always-on option for user-implemented annotations seems dangerous,
-   – a playground for possible abuse and breaking user code.
+## Types
+Atoms are the fundamental building blocks of types in Enso. Where broader types
+are sets of values, Atoms are 'atomic' and have unique identity. They are the
+nominally-typed subset of Enso's types, that can be built up into a broader
+notion of structural, set-based typing. All kinds of types in Enso can be 
+defined in arbitrary scopes, and need not be defined on the top-level.
 
-- Debug is purely for debugging purposes: should print locations, etc.
-MK
+For more information on Enso's type-system, please take a look in the
+[`types.md`](type-system/types.md) document.
 
-<<-ARA
-Agreed that macros that can override arbitrary built-in functionality (e.g.
-`type`) are incredibly ripe for abuse and have the propensity to lead to 
-codebases where things aren't what they seem.
+### Atoms
+In Enso, Atoms are product types with named fields, where each field has a 
+distinct and un-constrained type. Atoms are defined by the `type` keyword,
+which can be statically disambiguated from the standard usage of `type`.
 
-- Think if we should introduce `type` as a reserved name + keyword.
-- Atom should be an intrinsic + reserved name.
-ARA
+Some examples of atoms are as follows, with a usage example:
 
-## =============
-## === Atoms ===
-## =============
+```ruby
+type Nothing
+type Just value
+atom Vec3 x y z
+atom Vec2 x y
 
-## There is a keyword `atom` which defines atoms. It is used in stdlib but it 
-## is not exported to the user by default (explicit import needed).
-##
-## Atoms are product types which have named fields, while each field has a 
-## distinct type (not dependent on types of other fields). For example:
-##
-## >> atom Nothing
-## >> atom Just value
-## >> atom V3 x y z
-## >> atom V2 x y
-##
-## Used like:
-##
-## >> v = V3 1 2 3 : V3 1 2 3 : V3 Int Int Int : V3 Any Any Any : Any
+v = V3 1 2 3 : V3 1 2 3 : V3 Int Int Int : V3 Any Any Any : Any
+```
 
+The key notion of an atom is that it has _unique identity_. No atom can unify
+with any other atom, even if they have the same fields with the same names. To
+put this another way, an atom is _purely_ nominally typed.
 
-## === Anonymous atoms ===
-##
-## It is possible to define anonymous atoms. Think of it like just ordinary 
-## anonymous structs:
-##
-## >> point = atom x y z
-## >> p1 = point 1 2 3 : Point Int Int Int
-##
-## There are no other differences here. Anonymous atoms cannot be passed to 
-## functions accepting specific atom. The same way, functions accepting 
-## annonymous atoms, like `foo t:(Point _ _ _) = ...` are not accepting 
-## other types with similar structure. Use interfaces if you need this ability.
-##
-## Anonymous atoms have an identity (atom x y z != atom x y z).
-##
-## Atoms / types should be able to be defined in arbitrary scopes.
-##
-## IMPORTANT NOTE
-## Given these constraints, we can in reality support only this form of atoms,
-## because the named version is easily expressible as a macro.
+#### Anonymous Atoms
+Using the same keyword used to define atoms it is possible to define an 
+anonymous atom. The key disambiguator is syntactic, using upper- or lower-case
+starts for names.
 
+```ruby
+point = type x y z
+p1 = point 1 2 3 : Point Int Int Int
+```
 
-## ===================================
-## === ADTS and smart constructors ===
-## ===================================
+There are no differences in functionality between anonymous and named atoms.
 
-## There are following operators defined on type-sets:
-## - Union        : `maybe a = Nothing | Just a`.
-## - Intersection : `human = HasName & HasPhone`.
-## - Subtraction  : `negative = Int \ Nat \ 0`.
+> Actionables for this section:
+> 
+> - What is the motivating use-case for an anonymous atom?
 
-## We often label functions producing complex types as "smart constructors".
-## Some functions which are bijective can be used for pattern matching (in 
-## future). Of course, more complex examples may require some serious compiler 
-## support, so for now there would be support only for trivial functions, as the
-## `maybe a = ...` definition above. A more complex example (probably not 
-## supported now):
+### Set Types
+More complex types in Enso are known as typesets. All of these types are 
+_structural_. This means that unification on these types takes place based upon
+the _structure_ of the type (otherwise known as its 'shape'). 
 
+Two typesets `A` and `B` can be defined to be equal as follows, where equality
+means that the sets represent the same type.
+
+1. `A` and `B` contain the same set of _labels._ A label is a _name_ given to
+   a type.
+2. For each label in `A` and `B`, the type of the label in `A` must be equal to
+   the type of the same label in `B`:
+   
+   1. Atoms are only equal to themselves, accounting for application.
+   2. Types are equal to themselves recursively by the above.
+
+Two typesets `A` and `B` also have a _subsumption_ relationship `<:` defined
+between them. `A` is said to be subsumed by `B` (`A <: B`) if the following
+hold:
+
+1. `A` contains a subset of the labels in `B`.
+2. For each label in `A`, its type is a subset of the type of the same label in
+   `B` (or equal to it):
+
+   1. An atom may not subsume another atom.
+   2. A type is subsumed by another time recursively by the above, accounting
+      for defaults (e.g. `f : a -> b = x -> c` will unify with `f : a -> c`)
+
+#### The Type Hierarchy
+These typesets are organised into a _modular lattice_ of types, such that it is
+clear which typesets are subsumed by a given typeset. There are a few key
+things to note about this hierarchy:
+
+- The 'top' type, that contains all typesets and atoms is `Any`.
+- The 'bottom' type, that contains no typesets or atoms is `Nothing`.
+
+#### Set Types and Smart Constructors
+Enso defines the following operations on typesets that can be used to combine
+and manipulate them:
+
+- **Union:** `|` (e.g. `Maybe a = Nothing | Just a`)
+- **Intersection:** `&` (e.g. `Person = HasName & HasPhone`)
+- **Subtraction:** `\` (e.g. `NegativeNumber = Int \ Nat \ 0`)
+
+Bijective applications of these constructors are able to be used for pattern
+matching. Initially we only plan to support simple bijection detection, but
+this may expand in the future. An example that would not be supported initially
+follows:
+
+```ruby
 type V3 x y z
 
 zV2 x y = V3 x y 0
 
-test v = match v of
-    ZV2 x y   -> ...
-    V3  x y z -> ...
+test = match _ of
+  ZV2 x y  -> ...
+  V3 x y z -> ...
+   
+```
+
+#### Type and Interface Definitions
+Typesets are defined using
+
+
+
+Interfaces as conformity to a shape.
+
+#### Anonymous Set Types
+
 
 ## ============================
 ## === Types and interfaces ===
@@ -998,7 +998,7 @@ in the file `main.enso`.
 ARA
 
 ## ===============
-## === RECORDS ===
+## === SET TYPES ===
 ## ===============
 
 <<-ARA
@@ -1039,4 +1039,4 @@ Need to clarify some specifics for dyndispatch
   dispatch on it?
 - Need a rigorous specification of how modules behave, because they are no
   longer able to be represented purely as structural types. 
-ARA
+AR
