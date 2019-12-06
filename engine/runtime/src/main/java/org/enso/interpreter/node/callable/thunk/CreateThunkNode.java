@@ -5,7 +5,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 
-/** THis node is responsible for wrapping a call target in a {@link Thunk} at execution time. */
+/** This node is responsible for wrapping a call target in a {@link Thunk} at execution time. */
 public class CreateThunkNode extends ExpressionNode {
   private final RootCallTarget callTarget;
 
