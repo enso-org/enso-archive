@@ -12,6 +12,12 @@ import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
+/**
+ * This node implements the built-in functionality for the explicit {@code call} operator on
+ * functions.
+ *
+ * <p>It is a standard builtin node, and hence conforms to the interface for these.
+ */
 public class ExplicitCallFunctionNode extends BuiltinRootNode {
   private @Child InvokeCallableNode invokeCallableNode;
   private final ConditionProfile isFunctionProfile = ConditionProfile.createCountingProfile();
@@ -26,6 +32,12 @@ public class ExplicitCallFunctionNode extends BuiltinRootNode {
     this.invokeCallableNode.markTail();
   }
 
+  /**
+   * Forces execution of a function.
+   *
+   * @param frame current execution frame
+   * @return the value of executing the function.
+   */
   @Override
   public Stateful execute(VirtualFrame frame) {
     Object[] arguments = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
@@ -39,6 +51,15 @@ public class ExplicitCallFunctionNode extends BuiltinRootNode {
     }
   }
 
+  /**
+   * Creates a {@link Function} object that forces the execution of the object it is applied to.
+   *
+   * <p>This behaves in a curried manner, so for some function {@code f} you can call it with
+   * arguments where necessary (e.g. {@code f.call a b}.
+   *
+   * @param language the current {@link Language} instance
+   * @return a {@link Function} object wrapping the behavior of this node
+   */
   public static Function makeFunction(Language language) {
     return Function.fromBuiltinRootNode(
         new ExplicitCallFunctionNode(language),

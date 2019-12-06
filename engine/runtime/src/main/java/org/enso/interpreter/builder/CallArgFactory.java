@@ -68,6 +68,7 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
     ExpressionNode result;
 
     if (value instanceof AstForce) {
+      // Note [Ensuring Linear Evaluation Time]
       ExpressionFactory factory = new ExpressionFactory(language, source, scope, scopeName, moduleScope);
       result = ((AstForce) value).target().visit(factory);
     } else {
@@ -92,4 +93,19 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
 
     return new CallArgument(name.orElse(null), result);
   }
+
+  /* Note [Ensuring Linear Evaluation Time]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * Previously, this logic would unconditionally wrap arguments in new call
+   * targets. This, however, proved to be a problem with lazy arguments as they
+   * would be wrapped twice, creating a chain of force -> thunk -> force ->
+   * thunk. As a result, execution time for chained lazy arguments was
+   * quadratic in complexity, rather than linear, creating a large performance
+   * bottleneck in the interpreter.
+   *
+   * The fix is fairly simple on the face of it: only perform this wrapping
+   * conditionally. This, however, also required changes to ensure that
+   * functions stored their arguments as `ExpressionNode`s rather than as the
+   * `CallTarget`s used previously.
+   */
 }

@@ -97,6 +97,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
 
     ExpressionNode defaultedValue = defExpression;
 
+    // Note [Handling Suspended Defaults]
     if (suspended && defExpression != null) {
       RootNode defaultRootNode =
           new ClosureRootNode(
@@ -118,4 +119,20 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
             : ArgumentDefinition.ExecutionMode.EXECUTE;
     return new ArgumentDefinition(position, name, defaultedValue, executionMode);
   }
+
+  /* Note [Handling Suspended Defaults]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * We had a bug where arguments with defaults that were also declared as lazy
+   * were not being handled correctly. This was down to the fact that the
+   * default was still being constructed as an eager `ExpressionNode` even if
+   * the argument was lazy.
+   *
+   * This means that argument order would differ between cases where it was
+   * explicitly applied or when the default was used.
+   *
+   * The fix for this is simple and is implemented above: if the argument is
+   * declared as lazy, the default value should be wrapped in a thunk such that
+   * it gets evaluated on demand, rather than up-front with the rest of the
+   * function's arguments.
+   */
 }

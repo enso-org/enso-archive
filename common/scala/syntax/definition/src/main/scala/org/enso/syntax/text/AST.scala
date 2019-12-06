@@ -1467,12 +1467,12 @@ object AST {
     }
 
     // Note [JSON Serialization]
-//    def toJson(): Json = {
-//      import io.circe.syntax._
-//      import io.circe.generic.auto._
-//      val ast: AST = t
-//      ast.asJson
-//    }
+    def toJson(): Json = {
+      import io.circe.syntax._
+      import io.circe.generic.auto._
+      val ast: AST = t
+      ast.asJson
+    }
   }
 
   //////////////////////////////////////////////////////////////////////////////
