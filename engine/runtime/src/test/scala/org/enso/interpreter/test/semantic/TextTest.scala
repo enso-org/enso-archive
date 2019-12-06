@@ -31,10 +31,10 @@ class TextTest extends InterpreterTest {
   "Raw text literals" should "support escape sequences" in {
     val code =
       """
-        |IO.println "\"Grzegorz Brzęczyszczykiewicz\""
+        |IO.println "\"Grzegorz Brzeczyszczykiewicz\""
         |""".stripMargin
 
     eval(code)
-    consumeOut shouldEqual List("\"Grzegorz Brzęczyszczykiewicz\"")
+    consumeOut shouldEqual List("\"Grzegorz Brzeczyszczykiewicz\"")
   }
 }
