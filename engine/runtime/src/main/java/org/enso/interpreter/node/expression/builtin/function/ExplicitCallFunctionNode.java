@@ -1,6 +1,7 @@
 package org.enso.interpreter.node.expression.builtin.function;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import com.oracle.truffle.api.profiles.ConditionProfile;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
@@ -18,6 +19,7 @@ import org.enso.interpreter.runtime.type.TypesGen;
  *
  * <p>It is a standard builtin node, and hence conforms to the interface for these.
  */
+@NodeInfo(shortName = "Function.call", description = "Allows function calls to be made explicitly")
 public class ExplicitCallFunctionNode extends BuiltinRootNode {
   private @Child InvokeCallableNode invokeCallableNode;
   private final ConditionProfile isFunctionProfile = ConditionProfile.createCountingProfile();
@@ -65,5 +67,10 @@ public class ExplicitCallFunctionNode extends BuiltinRootNode {
         new ExplicitCallFunctionNode(language),
         FunctionSchema.CallStrategy.DIRECT_WHEN_TAIL,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE));
+  }
+
+  @Override
+  public String getName() {
+    return "Function.call";
   }
 }

@@ -199,8 +199,8 @@ object AstToAstExpression {
           nonFallbackBranches,
           potentialFallback
         )
-      case AST.App.any(inputAST)     => translateCallable(inputAST)
-      case AST.Mixfix.any(inputAST)  => translateCallable(inputAST)
+      case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
+      case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
       case AST.Literal.any(inputAST) => translateLiteral(inputAST)
       case AST.Group.any(inputAST) =>
         translateGroup(inputAST, translateExpression)
@@ -314,13 +314,13 @@ object AstToAstExpression {
     case _ => AstUnnamedCallArg(translateExpression(arg))
   }
 
-  /** Translates an arbitrary callable expression from its [[AST]]
-    * representation into [[Core]].
+  /** Translates an arbitrary expression that takes the form of a syntactic
+    * application from its [[AST]] representation into [[Core]].
     *
     * @param callable the callable to translate
     * @return the [[Core]] representation of `callable`
     */
-  def translateCallable(callable: AST): AstExpression = {
+  def translateApplicationLike(callable: AST): AstExpression = {
     callable match {
       case AstView.ForcedTerm(term) =>
         AstForce(callable.location, translateExpression(term))

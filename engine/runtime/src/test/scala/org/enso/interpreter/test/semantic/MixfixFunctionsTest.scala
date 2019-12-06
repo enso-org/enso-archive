@@ -13,7 +13,7 @@ class MixfixFunctionsTest extends InterpreterTest {
         |Foo.if_then = x -> case this of
         |  Foo a -> a + x
         |
-        |if (Foo 2) then 8
+        |if Foo 2 then 8
         |""".stripMargin
 
     eval(code) shouldEqual 10
