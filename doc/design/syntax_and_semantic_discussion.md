@@ -1,4 +1,4 @@
-# Notes on Enso's Syntax and Semantices
+# Notes on Enso's Syntax and Semantics
 As we get closer to the development of the more sophisticated features of the
 language, as well as have a more fully-featured interpreter, we really need to
 clarify exactly how certain syntactic and semantic elements of the language
