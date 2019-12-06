@@ -7,7 +7,7 @@ import cats.derived._
 import cats.implicits._
 import io.circe.Encoder
 import io.circe.Json
-import org.enso.syntax.text.ast.text.Escape
+import org.enso.syntax.text.ast.text.{Escape, RawEscape}
 import org.enso.data.List1._
 import org.enso.data.List1
 import org.enso.data.Index
@@ -27,7 +27,7 @@ import org.enso.syntax.text.ast.meta.Pattern
 import scala.annotation.tailrec
 import scala.reflect.ClassTag
 
-/* Note: [JSON Serialization]
+/* Note [JSON Serialization]
  * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
  * Using Circe's auto-derived `asJson` on AST is extremely costly in terms
  * of compile-time resource usage. It adds like 2-4 min to compile time.
@@ -266,6 +266,9 @@ object Shape extends ShapeImplicit {
   final case class SegmentExpr[T](value: Option[T]) extends SegmentFmt[T]
   final case class SegmentEscape[T](code: Escape)
       extends SegmentFmt[T]
+      with Phantom
+  final case class SegmentRawEscape[T](code: RawEscape)
+      extends SegmentRaw[T]
       with Phantom
 
   ///////////
@@ -601,32 +604,38 @@ object Shape extends ShapeImplicit {
     implicit def ftor[T]: Functor[SegmentFmt]  = semi.functor
     implicit def fold:    Foldable[SegmentFmt] = semi.foldable
     implicit def repr[T: Repr]: Repr[SegmentFmt[T]] = {
-      case t: SegmentPlain[T]  => Repr(t)
-      case t: SegmentExpr[T]   => Repr(t)
-      case t: SegmentEscape[T] => Repr(t)
+      case t: SegmentPlain[T]     => Repr(t)
+      case t: SegmentExpr[T]      => Repr(t)
+      case t: SegmentEscape[T]    => Repr(t)
+      case t: SegmentRawEscape[T] => Repr(t)
     }
     implicit def ozip[T]: OffsetZip[SegmentFmt, T] = {
-      case t: SegmentPlain[T]  => OffsetZip(t)
-      case t: SegmentExpr[T]   => OffsetZip(t)
-      case t: SegmentEscape[T] => OffsetZip(t)
+      case t: SegmentPlain[T]     => OffsetZip(t)
+      case t: SegmentExpr[T]      => OffsetZip(t)
+      case t: SegmentEscape[T]    => OffsetZip(t)
+      case t: SegmentRawEscape[T] => OffsetZip(t)
     }
     implicit def span[T: HasSpan]: HasSpan[SegmentFmt[T]] = {
-      case t: SegmentPlain[T]  => t.span()
-      case t: SegmentExpr[T]   => t.span()
-      case t: SegmentEscape[T] => t.span()
+      case t: SegmentPlain[T]     => t.span()
+      case t: SegmentExpr[T]      => t.span()
+      case t: SegmentEscape[T]    => t.span()
+      case t: SegmentRawEscape[T] => t.span()
     }
   }
   object SegmentRaw {
     implicit def ftor[T]: Functor[SegmentRaw]  = semi.functor
     implicit def fold:    Foldable[SegmentRaw] = semi.foldable
     implicit def repr[T]: Repr[SegmentRaw[T]] = {
-      case t: SegmentPlain[T] => Repr(t)
+      case t: SegmentPlain[T]     => Repr(t)
+      case t: SegmentRawEscape[T] => Repr(t)
     }
     implicit def ozip[T]: OffsetZip[SegmentRaw, T] = {
-      case t: SegmentPlain[T] => OffsetZip(t)
+      case t: SegmentPlain[T]     => OffsetZip(t)
+      case t: SegmentRawEscape[T] => OffsetZip(t)
     }
     implicit def span[T]: HasSpan[SegmentRaw[T]] = {
-      case t: SegmentPlain[T] => t.span()
+      case t: SegmentPlain[T]     => t.span()
+      case t: SegmentRawEscape[T] => t.span()
     }
   }
   object SegmentPlain {
@@ -657,11 +666,23 @@ object Shape extends ShapeImplicit {
 
     implicit def ftor: Functor[SegmentEscape]  = semi.functor
     implicit def fold: Foldable[SegmentEscape] = semi.foldable
-    implicit def repr[T: Repr]: Repr[SegmentEscape[T]] =
+    implicit def repr[T]: Repr[SegmentEscape[T]] =
       t => introducer + t.code.repr
     implicit def ozip[T]: OffsetZip[SegmentEscape, T] =
       t => t.coerce
     implicit def span[T: HasSpan]: HasSpan[SegmentEscape[T]] =
+      introducer.span + _.code.repr.length
+  }
+  object SegmentRawEscape {
+    val introducer: Repr.Builder = "\\"
+
+    implicit def ftor: Functor[SegmentRawEscape]  = semi.functor
+    implicit def fold: Foldable[SegmentRawEscape] = semi.foldable
+    implicit def repr[T]: Repr[SegmentRawEscape[T]] =
+      t => introducer + t.code.repr
+    implicit def ozip[T]: OffsetZip[SegmentRawEscape, T] =
+      t => t.coerce
+    implicit def span[T]: HasSpan[SegmentRawEscape[T]] =
       introducer.span + _.code.repr.length
   }
   object App extends IntermediateTrait[App] {
@@ -876,7 +897,7 @@ object Shape extends ShapeImplicit {
     object Segment {
       def apply(head: AST): Segment          = Segment(head, None)
       implicit def repr:    Repr[Segment]    = t => R + t.head + t.body
-      implicit def span:    HasSpan[Segment] = t => t.head.span() + t.body.span()
+      implicit def span:    HasSpan[Segment] = t => t.head.span + t.body.span()
     }
   }
 
@@ -1445,7 +1466,7 @@ object AST {
       ids.reverse
     }
 
-    // Note: [JSON Serialization] at the file top
+    // Note [JSON Serialization]
     def toJson(): Json = {
       import io.circe.syntax._
       import io.circe.generic.auto._
@@ -1453,6 +1474,22 @@ object AST {
       import Shape.Block._
       implicit val e: Encoder[Continuous.type]     = _ => None.asJson
       implicit val e2: Encoder[Discontinuous.type] = _ => None.asJson
+      implicit val escapeEncoder: Encoder[Escape] = {
+        case e: Escape.Character =>
+          Json.obj("Character" -> Json.obj("c" -> e.repr.asJson))
+        case e: Escape.Control =>
+          val fields =
+            Json.obj("name" -> e.repr.asJson, "code" -> e.code.asJson)
+          Json.obj("Control" -> fields)
+        case e: Escape.Number =>
+          Json.obj("Number" -> Json.obj("digits" -> e.repr.asJson))
+        case e: Escape.Unicode.U16 =>
+          Json.obj("Unicode16" -> Json.obj("digits" -> e.digits.asJson))
+        case e: Escape.Unicode.U21 =>
+          Json.obj("Unicode21" -> Json.obj("digits" -> e.digits.asJson))
+        case e: Escape.Unicode.U32 =>
+          Json.obj("Unicode32" -> Json.obj("digits" -> e.digits.asJson))
+      }
 
       val ast: AST = t
       ast.asJson
@@ -1641,9 +1678,12 @@ object AST {
       }
 
       object Block {
+        val Line = Shape.TextBlockLine
         type Line[T] = Shape.TextBlockLine[T]
-        type Raw[T]  = Shape.TextBlockRaw[T]
-        type Fmt[T]  = Shape.TextBlockFmt[T]
+        val Raw = Shape.TextBlockRaw
+        type Raw[T] = Shape.TextBlockRaw[T]
+        val Fmt = Shape.TextBlockFmt
+        type Fmt[T] = Shape.TextBlockFmt[T]
       }
 
       ////// CONSTRUCTORS ///////
@@ -1700,16 +1740,27 @@ object AST {
       type Segment[T] = Shape.Segment[T]
       object Segment {
 
-        type Escape = org.enso.syntax.text.ast.text.Escape
         val Escape = org.enso.syntax.text.ast.text.Escape
+        type Escape    = org.enso.syntax.text.ast.text.Escape
+        type RawEscape = org.enso.syntax.text.ast.text.RawEscape
 
         //// Definition ////
 
+        val Fmt = Shape.SegmentFmt
         type Fmt = Shape.SegmentFmt[AST]
+        val Raw = Shape.SegmentRaw
         type Raw = Shape.SegmentRaw[AST]
 
-        object Expr  { def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)  }
-        object Plain { def apply(s: String):      Raw = Shape.SegmentPlain(s) }
+        object Expr {
+          def apply(t: Option[AST]): Fmt = Shape.SegmentExpr(t)
+          def unapply(shape: Shape.SegmentExpr[AST]): Option[Option[AST]] =
+            Shape.SegmentExpr.unapply(shape)
+        }
+        object Plain {
+          def apply(s: String): Raw = Shape.SegmentPlain(s)
+          def unapply(shape: Shape.SegmentPlain[AST]): Option[String] =
+            Shape.SegmentPlain.unapply(shape)
+        }
       }
     }
   }
