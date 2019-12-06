@@ -268,8 +268,8 @@ object Shape extends ShapeImplicit {
       extends SegmentFmt[T]
       with Phantom
   final case class SegmentRawEscape[T](code: RawEscape)
-    extends SegmentRaw[T]
-    with Phantom
+      extends SegmentRaw[T]
+      with Phantom
 
   ///////////
   /// App ///
@@ -1474,6 +1474,22 @@ object AST {
       import Shape.Block._
       implicit val e: Encoder[Continuous.type]     = _ => None.asJson
       implicit val e2: Encoder[Discontinuous.type] = _ => None.asJson
+      implicit val escapeEncoder: Encoder[Escape] = {
+        case e: Escape.Character =>
+          Json.obj("Character" -> Json.obj("c" -> e.repr.asJson))
+        case e: Escape.Control =>
+          val fields =
+            Json.obj("name" -> e.repr.asJson, "code" -> e.code.asJson)
+          Json.obj("Control" -> fields)
+        case e: Escape.Number =>
+          Json.obj("Number" -> Json.obj("digits" -> e.repr.asJson))
+        case e: Escape.Unicode.U16 =>
+          Json.obj("Unicode16" -> Json.obj("digits" -> e.digits.asJson))
+        case e: Escape.Unicode.U21 =>
+          Json.obj("Unicode21" -> Json.obj("digits" -> e.digits.asJson))
+        case e: Escape.Unicode.U32 =>
+          Json.obj("Unicode32" -> Json.obj("digits" -> e.digits.asJson))
+      }
 
       val ast: AST = t
       ast.asJson
@@ -1725,7 +1741,7 @@ object AST {
       object Segment {
 
         val Escape = org.enso.syntax.text.ast.text.Escape
-        type Escape = org.enso.syntax.text.ast.text.Escape
+        type Escape    = org.enso.syntax.text.ast.text.Escape
         type RawEscape = org.enso.syntax.text.ast.text.RawEscape
 
         //// Definition ////
