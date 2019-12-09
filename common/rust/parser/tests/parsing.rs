@@ -9,7 +9,7 @@ use parser::api::IsParser;
 
 /// Takes Ast being a module with a single line and returns that line's AST.
 fn expect_single_line(ast: &Ast) -> &Ast {
-    let module: &ast::Module<Ast> = expect_shape(ast);
+    let module: &Module<Ast> = expect_shape(ast);
     let (line,) = (&module.lines).expect_tuple();
     line.elem.as_ref().unwrap()
 }
@@ -28,16 +28,16 @@ where &'t Shape<Ast>: TryInto<&'t T> {
 
 /// Asserts that given AST is a Var with given name.
 fn assert_var<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
-    let actual: &ast::Var = expect_shape(ast);
+    let actual: &Var = expect_shape(ast);
 
-    let expected          = ast::Var{ name: name.into() };
+    let expected          = Var{ name: name.into() };
     assert_eq!(*actual, expected);
 }
 
 /// Asserts that given AST is an Opr with given name.
 fn assert_opr<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
-    let actual: &ast::Opr = expect_shape(ast);
-    let expected          = ast::Opr{ name: name.into() };
+    let actual: &Opr = expect_shape(ast);
+    let expected          = Opr{ name: name.into() };
     assert_eq!(*actual, expected);
 }
 
@@ -136,88 +136,88 @@ impl Fixture {
     // === Test Methods ===
     fn deserialize_unrecognized(&mut self) {
         let unfinished = "`";
-        self.test_shape(unfinished, |shape:&ast::Unrecognized| {
+        self.test_shape(unfinished, |shape:&Unrecognized| {
             assert_eq!(shape.str, "`");
         });
     }
 
     fn deserialize_invalid_quote(&mut self) {
         let unfinished = "'a''";
-        self.test_shape(unfinished, |shape:&ast::Prefix<Ast>| {
+        self.test_shape(unfinished, |shape:&Prefix<Ast>| {
             // ignore shape.func, being TextUnclosed tested elsewhere
-            let arg : &ast::InvalidQuote      = expect_shape(&shape.arg);
-            let expected_quote                = ast::Text{ str: "''".into() };
+            let arg : &InvalidQuote      = expect_shape(&shape.arg);
+            let expected_quote                = Text{ str: "''".into() };
             assert_eq!(arg.quote, expected_quote.into());
         });
     }
 
     fn deserialize_inline_block(&mut self) {
         let unfinished = "'''a";
-        self.test_shape(unfinished, |shape:&ast::Prefix<Ast>| {
-            let func: &ast::InlineBlock = expect_shape(&shape.func);
-            let expected_quote          = ast::Text {str: "'''".into() };
+        self.test_shape(unfinished, |shape:&Prefix<Ast>| {
+            let func: &InlineBlock = expect_shape(&shape.func);
+            let expected_quote          = Text {str: "'''".into() };
             assert_eq!(func.quote, expected_quote.into());
             assert_var(&shape.arg, "a");
         });
     }
 
     fn deserialize_blank(&mut self) {
-        let _ast = self.test_shape("_", |_:&ast::Blank| {});
+        let _ast = self.test_shape("_", |_:&Blank| {});
     }
 
     fn deserialize_var(&mut self) {
-        self.test_shape("foo", |var: &ast::Var| {
-            let expected_var = ast::Var { name: "foo".into() };
+        self.test_shape("foo", |var: &Var| {
+            let expected_var = Var { name: "foo".into() };
             assert_eq!(var, &expected_var);
         });
     }
 
     fn deserialize_cons(&mut self) {
         let name = "FooBar";
-        self.test_shape(name, |shape:&ast::Cons| {
+        self.test_shape(name, |shape:&Cons| {
             assert_eq!(shape.name, name);
         });
     }
 
     fn deserialize_mod(&mut self) {
-        self.test_shape("+=", |shape:&ast::Mod| {
+        self.test_shape("+=", |shape:&Mod| {
             assert_eq!(shape.name, "+");
         });
     }
 
     fn deserialize_invalid_suffix(&mut self) {
-        self.test_shape("foo'bar", |shape:&ast::InvalidSuffix<Ast>| {
+        self.test_shape("foo'bar", |shape:&InvalidSuffix<Ast>| {
             assert_var(&shape.elem, "foo'");
             assert_eq!(shape.suffix, "bar");
         });
     }
 
     fn deserialize_number(&mut self) {
-        self.test_shape("127", |shape:&ast::Number| {
+        self.test_shape("127", |shape:&Number| {
             assert_eq!(shape.base, None);
             assert_eq!(shape.int, "127");
         });
 
-        self.test_shape("16_ff", |shape:&ast::Number| {
+        self.test_shape("16_ff", |shape:&Number| {
             assert_eq!(shape.base.as_ref().unwrap(), "16");
             assert_eq!(shape.int, "ff");
         });
     }
 
     fn deserialize_text_line_raw(&mut self) {
-        self.test_shape("\"foo\"", |shape:&ast::TextLineRaw| {
+        self.test_shape("\"foo\"", |shape:&TextLineRaw| {
             let (segment,)  = (&shape.text).expect_tuple();
-            let expected = ast::SegmentPlain{value: "foo".to_string()};
+            let expected = SegmentPlain{value: "foo".to_string()};
             assert_eq!(*segment, expected.into());
         });
 
         let tricky_raw = r#""\\\"\n""#;
-        self.test_shape(tricky_raw, |shape:&ast::TextLineRaw| {
+        self.test_shape(tricky_raw, |shape:&TextLineRaw| {
             let segments: (_,_,_) = (&shape.text).expect_tuple();
-            assert_eq!(*segments.0, ast::Slash{}.into() );
-            assert_eq!(*segments.1, ast::RawQuote{}.into() );
-            assert_eq!(*segments.2, ast::Invalid{ str: 'n'}.into() );
-            // TODO can ast::Quote be used here?
+            assert_eq!(*segments.0, Slash{}.into() );
+            assert_eq!(*segments.1, RawQuote{}.into() );
+            assert_eq!(*segments.2, Invalid{ str: 'n'}.into() );
+            // TODO can Quote be used here?
             //  if not, what is the point of having it?
         });
     }
@@ -226,24 +226,24 @@ impl Fixture {
         use SegmentFmt::SegmentExpr;
 
         // plain
-        self.test_shape("'foo'", |shape:&ast::TextLineFmt<Ast>| {
+        self.test_shape("'foo'", |shape:&TextLineFmt<Ast>| {
             let (segment,)  = (&shape.text).expect_tuple();
-            let expected = ast::SegmentPlain{value: "foo".into()};
+            let expected = SegmentPlain{value: "foo".into()};
             assert_eq!(*segment, expected.into());
         });
 
         // escapes
         let tricky_fmt = r#"'\\\'\"'"#;
-        self.test_shape(tricky_fmt, |shape:&ast::TextLineFmt<Ast>| {
+        self.test_shape(tricky_fmt, |shape:&TextLineFmt<Ast>| {
             let segments: (_, _, _) = (&shape.text).expect_tuple();
-            assert_eq!(*segments.0, ast::Slash{}.into() );
-            assert_eq!(*segments.1, ast::Quote{}.into() );
-            assert_eq!(*segments.2, ast::Invalid{ str: '"'}.into() );
+            assert_eq!(*segments.0, Slash{}.into() );
+            assert_eq!(*segments.1, Quote{}.into() );
+            assert_eq!(*segments.2, Invalid{ str: '"'}.into() );
         });
 
         // expression empty
         let expr_fmt = r#"'``'"#;
-        self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
+        self.test_shape(expr_fmt, |shape:&TextLineFmt<Ast>| {
             let (segment,)  = (&shape.text).expect_tuple();
             match segment {
                 SegmentExpr(expr) => assert_eq!(expr.value, None),
@@ -253,7 +253,7 @@ impl Fixture {
 
         // expression non-empty
         let expr_fmt = r#"'`foo`'"#;
-        self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
+        self.test_shape(expr_fmt, |shape:&TextLineFmt<Ast>| {
             let (segment,)  = (&shape.text).expect_tuple();
             match segment {
                 SegmentExpr(expr) => {
@@ -264,26 +264,26 @@ impl Fixture {
         });
 
         let expr_fmt = r#"'\n\u0394\U0001f34c'"#;
-        self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
+        self.test_shape(expr_fmt, |shape:&TextLineFmt<Ast>| {
             let segments: (_,_,_)  = (&shape.text).expect_tuple();
 
-            let expected = ast::Escape::Character{c:'n'};
+            let expected = Escape::Character{c:'n'};
             assert_eq!(*segments.0, expected.into());
 
-            let expected = ast::Escape::Unicode16{digits: "0394".into()};
+            let expected = Escape::Unicode16{digits: "0394".into()};
             assert_eq!(*segments.1, expected.into());
 
             // TODO We don't test Unicode21 as it is not yet supported by
             //      parser.
 
-            let expected = ast::Escape::Unicode32{digits: "0001f34c".into()};
+            let expected = Escape::Unicode32{digits: "0001f34c".into()};
             assert_eq!(*segments.2, expected.into());
         });
     }
 
     fn deserialize_text_block_raw(&mut self) {
         let program = "\"\"\" \n  \n   X";
-        self.test_shape(program, |shape:&ast::TextBlockRaw| {
+        self.test_shape(program, |shape:&TextBlockRaw| {
             assert_eq!(shape.spaces,1);
             assert_eq!(shape.offset, 0);
 
@@ -292,14 +292,14 @@ impl Fixture {
             assert_eq!(*empty_line, 2);
 
             let (segment,)       = (&line.text).expect_tuple();
-            let expected_segment = ast::SegmentPlain { value: "   X".into() };
+            let expected_segment = SegmentPlain { value: "   X".into() };
             assert_eq!(*segment, expected_segment.into());
         });
     }
 
     fn deserialize_text_block_fmt(&mut self) {
         let program = "'''  \n\n X\n Y";
-        self.test_shape(program, |shape:&ast::TextBlockFmt<Ast>| {
+        self.test_shape(program, |shape:&TextBlockFmt<Ast>| {
             assert_eq!(shape.spaces, 2);
             assert_eq!(shape.offset, 0);
             assert_eq!(shape.text.len(), 2);
@@ -308,12 +308,12 @@ impl Fixture {
             let (empty_line,)  = (&line1.empty_lines).expect_tuple();
             assert_eq!(*empty_line, 0);
             let (segment,)       = (&line1.text).expect_tuple();
-            let expected_segment = ast::SegmentPlain { value: " X".into() };
+            let expected_segment = SegmentPlain { value: " X".into() };
             assert_eq!(*segment, expected_segment.into());
 
             assert!(line2.empty_lines.is_empty());
             let (segment,)       = (&line2.text).expect_tuple();
-            let expected_segment = ast::SegmentPlain { value: " Y".into() };
+            let expected_segment = SegmentPlain { value: " Y".into() };
             assert_eq!(*segment, expected_segment.into());
         });
     }
@@ -321,24 +321,24 @@ impl Fixture {
 
     fn deserialize_unfinished_text(&mut self) {
         let unfinished = r#""\"#;
-        self.test_shape(unfinished, |shape:&ast::TextUnclosed<Ast>| {
+        self.test_shape(unfinished, |shape:&TextUnclosed<Ast>| {
             let line                    = &shape.line;
-            let line: &ast::TextLineRaw = line.try_into().unwrap();
+            let line: &TextLineRaw = line.try_into().unwrap();
 
             let (segment,) = (&line.text).expect_tuple();
-            let expected   = ast::Unfinished {};
+            let expected   = Unfinished {};
             assert_eq!(*segment, expected.into());
         });
     }
 
     fn deserialize_dangling_base(&mut self) {
-        self.test_shape("16_", |shape:&ast::DanglingBase| {
+        self.test_shape("16_", |shape:&DanglingBase| {
             assert_eq!(shape.base, "16");
         });
     }
 
     fn deserialize_prefix(&mut self) {
-        self.test_shape("foo   bar", |shape:&ast::Prefix<Ast>| {
+        self.test_shape("foo   bar", |shape:&Prefix<Ast>| {
             assert_var(&shape.func, "foo");
             assert_eq!(shape.off, 3);
             assert_var(&shape.arg, "bar");
@@ -346,7 +346,7 @@ impl Fixture {
     }
 
     fn deserialize_infix(&mut self) {
-        self.test_shape("foo +  bar", |shape:&ast::Infix<Ast>| {
+        self.test_shape("foo +  bar", |shape:&Infix<Ast>| {
             assert_var(&shape.larg, "foo");
             assert_eq!(shape.loff, 1);
             assert_opr(&shape.opr, "+");
@@ -355,28 +355,28 @@ impl Fixture {
         });
     }
     fn deserialize_left(&mut self) {
-        self.test_shape("foo +", |shape:&ast::SectLeft<Ast>| {
+        self.test_shape("foo +", |shape:&SectLeft<Ast>| {
             assert_var(&shape.arg, "foo");
             assert_eq!(shape.off, 1);
             assert_opr(&shape.opr, "+");
         });
     }
     fn deserialize_right(&mut self) {
-        self.test_shape("+ bar", |shape:&ast::SectRight<Ast>| {
+        self.test_shape("+ bar", |shape:&SectRight<Ast>| {
             assert_opr(&shape.opr, "+");
             assert_eq!(shape.off, 1);
             assert_var(&shape.arg, "bar");
         });
     }
     fn deserialize_sides(&mut self) {
-        self.test_shape("+", |shape:&ast::SectSides<Ast>| {
+        self.test_shape("+", |shape:&SectSides<Ast>| {
             assert_opr(&shape.opr, "+");
         });
     }
 
     fn deserialize_block(&mut self) {
-        self.test_shape(" foo\n bar", |block:&ast::Block<Ast>| {
-            assert_eq!(block.ty, ast::BlockType::Continuous);
+        self.test_shape(" foo\n bar", |block:&Block<Ast>| {
+            assert_eq!(block.ty, BlockType::Continuous);
             assert_eq!(block.indent, 1);
             assert_eq!(block.empty_lines.len(), 0);
             assert_eq!(block.is_orphan, true);
@@ -411,12 +411,12 @@ impl Fixture {
 
         for macro_usage in macro_usages.iter() {
             let ast = self.parse_line(macro_usage);
-            expect_shape::<ast::Match<Ast>>(&ast);
+            expect_shape::<Match<Ast>>(&ast);
         };
     }
 
     fn deserialize_macro_ambiguous(&mut self) {
-        self.test_shape("if  foo", |shape:&ast::Ambiguous| {
+        self.test_shape("if  foo", |shape:&Ambiguous| {
             let segment = &shape.segs.head;
             assert_var(&segment.head, "if");
 
@@ -459,7 +459,7 @@ impl Fixture {
 
 //#[test]
 //fn playground() {
-//    use ast::*;
+//    use *;
 //    let mut me = TestHelper::new();
 //    me.deserialize_inline_block();
 //}
