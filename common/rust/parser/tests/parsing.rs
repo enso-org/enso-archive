@@ -37,6 +37,35 @@ fn assert_opr<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     assert_eq!(*actual, expected);
 }
 
+/////
+
+trait ExpectTuple<T> {
+    fn expect_tuple(self) -> T;
+}
+
+impl<Collection: IntoIterator>
+ExpectTuple<(Collection::Item,)>
+for Collection {
+    fn expect_tuple(self) -> (Collection::Item,) {
+        let mut iter = self.into_iter();
+        let v1 = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1,)
+    }
+}
+
+impl<Collection: IntoIterator>
+ExpectTuple<(Collection::Item, Collection::Item)>
+for Collection {
+    fn expect_tuple(self) -> (Collection::Item, Collection::Item) {
+        let mut iter = self.into_iter();
+        let v1 = iter.next().unwrap();
+        let v2 = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1, v2)
+    }
+}
+
 /// Persists parser (which is expensive to construct, so we want to reuse it
 /// between tests. Additionally, hosts a number of helper methods.
 struct TestHelper(parser::Parser);
@@ -215,6 +244,44 @@ impl TestHelper {
         });
     }
 
+    fn deserialize_text_block_raw(&mut self) {
+        let program = " \"\"\" \n  \n   X";
+        self.test_shape(program, |shape:&ast::TextBlockRaw| {
+            assert_eq!(shape.spaces, 2);
+            assert_eq!(shape.offset, 1);
+            assert_eq!(shape.text.len(), 3);
+
+            let (line,) = (&shape.text).expect_tuple();
+            let (segment,) = (&line.text).expect_tuple();
+            let expected_segment = ast::SegmentPlain { value: "  X".into() };
+            assert_eq!(*segment, expected_segment.into());
+        });
+    }
+
+    fn deserialize_text_block_fmt(&mut self) {
+        let program = "'''  \n\n X\n Y";
+        self.test_shape(program, |shape:&ast::TextBlockFmt<Ast>| {
+            println!("{:?}", shape);
+            assert_eq!(shape.spaces, 2);
+            assert_eq!(shape.offset, 0);
+            assert_eq!(shape.text.len(), 2);
+
+            let (line1, line2) = (&shape.text).expect_tuple();
+
+            let (empty_line,)  = (&line1.empty_lines).expect_tuple();
+            assert_eq!(*empty_line, 0);
+            let (segment,) = (&line1.text).expect_tuple();
+            let expected_segment = ast::SegmentPlain { value: " X".into() };
+            assert_eq!(*segment, expected_segment.into());
+
+            assert!(line2.empty_lines.is_empty());
+            let (segment,) = (&line2.text).expect_tuple();
+            let expected_segment = ast::SegmentPlain { value: " Y".into() };
+            assert_eq!(*segment, expected_segment.into());
+        });
+    }
+
+
     fn deserialize_unfinished_text(&mut self) {
         let unfinished = r#""\"#;
         self.test_shape(unfinished, |shape:&ast::TextUnclosed<Ast>| {
@@ -337,6 +404,8 @@ impl TestHelper {
         self.deserialize_number();
         self.deserialize_text_line_raw();
         self.deserialize_text_line_fmt();
+        self.deserialize_text_block_raw();
+        self.deserialize_text_block_fmt();
         self.deserialize_unfinished_text();
         self.deserialize_dangling_base();
         self.deserialize_prefix();
@@ -356,21 +425,8 @@ impl TestHelper {
 #[test]
 fn playground() {
     use ast::*;
-    let unit1: Option<()> = Some(());
-    let unit2: Option<()> = None;
-    println!("Unit ():\t{}", serde_json::to_string(&unit1).unwrap());
-    println!("Unit ():\t{}", serde_json::to_string(&unit2).unwrap());
-
-    let sss = "null".to_string();
-    let unit3: Option<()> = serde_json::from_str(&sss).unwrap();
-    println!("Unit3 ():\t{:?}", unit3);
-
-    let pat = MacroPatternMatchRawBegin { pat:  MacroPatternRawBegin };
-//    let m = MacroPatternMatchRaw::<Ast>::Begin(pat);
-
-    let json_text = std::fs::read_to_string("Z:/tmp2.json").unwrap();
-    let pat = serde_json::from_str::<MacroPatternMatchRaw<Shifted<Ast>>>(&json_text).unwrap();
-//    println!("{}", serde_json::to_string(&m).unwrap());
+    let mut me = TestHelper::new();
+    me.deserialize_text_block_fmt();
 }
 
 /// A single entry point for all the tests here using external parser.

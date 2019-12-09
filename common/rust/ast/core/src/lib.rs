@@ -252,14 +252,20 @@ impl<'de> Deserialize<'de> for Ast {
     Mod           { name : String            },
     InvalidSuffix { elem : T, suffix: String },
 
-    // === Number Literals ===
-    Number       { base: Option<String>, int: String },
-    DanglingBase { base: String                      },
+    // === Number ===
+    Number        { base: Option<String>, int: String },
+    DanglingBase  { base: String                      },
 
-    // === Text Literals ===
-    TextLineRaw  { text: Vec<SegmentRaw>    },
-    TextLineFmt  { text: Vec<SegmentFmt<T>> },
-    TextUnclosed { line: TextLine<T>        },
+    // === Text ===
+    TextLineRaw   { text   : Vec<SegmentRaw>                  },
+    TextLineFmt   { text   : Vec<SegmentFmt<T>>               },
+    TextBlockRaw  { text   : Vec<TextBlockLine<SegmentRaw>>
+                  , spaces : usize
+                  , offset : usize                            },
+    TextBlockFmt  { text   : Vec<TextBlockLine<SegmentFmt<T>>>
+                  , spaces : usize
+                  , offset : usize                            },
+    TextUnclosed  { line   : TextLine<T>                      },
 
     // === Applications ===
     Prefix    { func : T   , off  : usize , arg: T                          },
@@ -281,6 +287,12 @@ impl<'de> Deserialize<'de> for Ast {
     Group     (Group<T>),
     Def       (Def<T>),
     Foreign   (Foreign),
+}
+
+#[ast] pub struct TextBlockLine<T> {
+    #[serde(rename = "emptyLines")]
+    pub empty_lines: Vec<usize>,
+    pub text       : Vec<T>
 }
 
 #[ast(flat)] pub enum TextLine<T> {
