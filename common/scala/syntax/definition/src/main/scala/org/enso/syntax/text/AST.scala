@@ -70,7 +70,7 @@ object HasSpan {
 
   implicit def fromShifted[T: HasSpan]: HasSpan[Shifted[T]] = { shifted =>
     val ev = implicitly[HasSpan[T]]
-    shifted.off + ev.span(shifted.el)
+    shifted.off + ev.span(shifted.wrapped)
   }
 
   implicit def fromOption[T: HasSpan]: HasSpan[Option[T]] =
@@ -105,7 +105,7 @@ object OffsetZip {
     stream.map { t =>
       off += Size(t.off)
       val out = t.map((off, _))
-      off += Size(ev.span(t.el))
+      off += Size(ev.span(t.wrapped))
       out
     }
   }
@@ -322,7 +322,7 @@ object Shape extends ShapeImplicit {
     segs: Shifted.List1[Match.Segment[T]],
     resolved: AST
   ) extends Macro[T] {
-    def path: List1[AST] = segs.toList1().map(_.el.head)
+    def path: List1[AST] = segs.toList1().map(_.wrapped.head)
   }
   final case class Ambiguous[T](
     segs: Shifted.List1[Ambiguous.Segment],
@@ -847,7 +847,7 @@ object Shape extends ShapeImplicit {
     implicit def repr[T: Repr]: Repr[Match[T]] = t => {
       import AST.ASTOf._
       val pfxStream = t.pfx.map(_.toStream.reverse).getOrElse(List())
-      val pfxRepr   = pfxStream.map(t => R + t.el + t.off)
+      val pfxRepr   = pfxStream.map(t => R + t.wrapped + t.off)
       R + pfxRepr + t.segs
     }
     implicit def span[T: HasSpan]: HasSpan[Match[T]] = { t =>
@@ -2241,7 +2241,7 @@ object AST {
     def unapply(t: AST):          Option[Option[AST]] = Unapply[Group].run(_.body)(t)
     def apply(body: Option[AST]): Group               = Shape.Group(body)
     def apply(body: AST):         Group               = Group(Some(body))
-    def apply(body: SAST):        Group               = Group(body.el)
+    def apply(body: SAST):        Group               = Group(body.wrapped)
     def apply():                  Group               = Group(None)
   }
 
