@@ -1490,6 +1490,10 @@ object AST {
         case e: Escape.Unicode.U32 =>
           Json.obj("Unicode32" -> Json.obj("digits" -> e.digits.asJson))
       }
+      implicit val patternBeginEnc: Encoder[Pattern.Begin] = _ => None.asJson
+      implicit val patternEndEnc: Encoder[Pattern.End]     = _ => None.asJson
+      implicit val patternNothingEnc: Encoder[Pattern.Nothing] = _ =>
+        None.asJson
 
       val ast: AST = t
       ast.asJson
