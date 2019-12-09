@@ -44,6 +44,7 @@ pub struct Tree<K,V> {
 #[shrinkwrap(mutable)]
 pub struct Shifted<T> {
     #[shrinkwrap(main_field)]
+    #[serde(rename = "el")]
     pub wrapped : T,
     pub off     : usize,
 }
@@ -84,6 +85,18 @@ pub struct Layered<T>(pub T);
 impl<T> Layer<T> for Layered<T> {
     fn layered(t: T) -> Self { Layered(t) }
 }
+
+// ============
+// === Unit ===
+// ============
+
+/// A unit type defined as an empty struct.
+///
+/// Because it is defined using {} syntax, serde_json will serialize it to
+/// an empty object rather than null node. This is to workaround issue with
+/// using units in `Option`, reported here:
+/// https://github.com/serde-rs/serde/issues/1690
+#[ast_node] pub struct Unit{}
 
 // ===========
 // === AST ===
@@ -255,10 +268,13 @@ impl<'de> Deserialize<'de> for Ast {
     SectRight { opr  : T   , off  : usize , arg: T                          },
     SectSides { opr  : T                                                    },
 
+    // === Macros ===
+    Match     (Match<T>),
+    Ambiguous (Ambiguous),
+
     // === Spaceless AST ===
     Block     (Block<T>),
     Module    (Module<T>),
-    Macro     (Macro<T>),
     Comment   (Comment),
     Import    (Import<T>),
     Mixfix    (Mixfix<T>),
@@ -398,20 +414,15 @@ impl<T> From<Escape> for SegmentFmt<T> {
 // === Macro ===
 // =============
 
-#[ast] pub enum Macro<T> {
-    Match     (Match<T>),
-    Ambiguous (Ambiguous),
-}
-
-#[ast] pub struct MacroMatch<T> {
-    pub pfx      : Option<MacroPatternMatch<Ast>>,
+#[ast] pub struct Match<T> {
+    pub pfx      : Option<MacroPatternMatch<Shifted<Ast>>>,
     pub segs     : ShiftedVec1<MacroMatchSegment<T>>,
     pub resolved : Ast
 }
 
-#[ast] pub struct MacroAmbiguous {
+#[ast] pub struct Ambiguous {
     pub segs  : ShiftedVec1<MacroAmbiguousSegment>,
-    pub paths : Tree<Ast, ()>,
+    pub paths : Tree<Ast, Unit>,
 }
 
 #[ast] pub struct MacroMatchSegment<T> {
@@ -462,11 +473,11 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
 pub type Spaced = Option<bool>;
 
 #[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-pub enum Either<L,R> { Left(L), Right(R) }
+pub enum Either<L,R> { Left{value: L}, Right{value: R} }
 pub type Switch<T> = Either<T,T>;
 
-pub type MacroPatternMatch<T> = Rc<FooRaw<T>>;
-#[ast] pub enum FooRaw<T> {
+pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
+#[ast] pub enum MacroPatternMatchRaw<T> {
 
     // === Boundary Matches ===
     Begin   { pat: MacroPatternRawBegin },
@@ -511,7 +522,7 @@ pub type MacroPatternMatch<T> = Rc<FooRaw<T>>;
 }
 
 #[ast] pub struct Import<T> {
-    pub lines: Vec<T>
+    pub path: Vec<T> // Cons inside
 }
 
 #[ast] pub struct Mixfix<T> {
@@ -524,7 +535,7 @@ pub type MacroPatternMatch<T> = Rc<FooRaw<T>>;
 }
 
 #[ast] pub struct Def<T> {
-    pub name: Cons,
+    pub name: T, // being with Cons
     pub args: Vec<T>,
     pub body: Option<T>
 }

@@ -288,6 +288,38 @@ impl TestHelper {
         });
     }
 
+    /// Tests parsing a number of sample macro usages.
+    ///
+    /// As macros geneerate usually really huge ASTs, this test only checks
+    /// that we are able to deserialize the response and that it is a macro
+    /// match node. Node contents is not covered.
+    fn deserialize_macro_matches(&mut self) {
+        let mut expect_match = |program| {
+            let ast = self.parse_line(program);
+            expect_shape::<ast::Match<Ast>>(&ast);
+        };
+        expect_match("foo -> bar");
+        expect_match("()");
+        expect_match("(foo -> bar)");
+        expect_match("type Maybe a\n    Just val:a");
+        expect_match("foreign Python3\n  bar");
+        expect_match("if foo > 8 then 10 else 9");
+        expect_match("skip bar");
+        expect_match("freeze bar");
+        expect_match("case foo of\n  bar");
+    }
+
+    fn deserialize_macro_ambiguous(&mut self) {
+        self.test_shape("if  foo", |shape:&ast::Ambiguous| {
+            let segment = &shape.segs.head;
+            assert_var(&segment.head, "if");
+
+            let segment_body = segment.body.as_ref().unwrap();
+            assert_eq!(segment_body.off, 2);
+            assert_var(&segment_body.wrapped, "foo");
+        });
+    }
+
     fn run(&mut self) {
         /// We are not testing:
         /// * Opr (doesn't parse on its own, covered by Infix and other)
@@ -314,7 +346,31 @@ impl TestHelper {
         self.deserialize_sides();
 
         self.deserialize_block();
+        self.deserialize_macro_matches();
+        self.deserialize_macro_ambiguous();
     }
+}
+
+//deserialize_option_unit
+
+#[test]
+fn playground() {
+    use ast::*;
+    let unit1: Option<()> = Some(());
+    let unit2: Option<()> = None;
+    println!("Unit ():\t{}", serde_json::to_string(&unit1).unwrap());
+    println!("Unit ():\t{}", serde_json::to_string(&unit2).unwrap());
+
+    let sss = "null".to_string();
+    let unit3: Option<()> = serde_json::from_str(&sss).unwrap();
+    println!("Unit3 ():\t{:?}", unit3);
+
+    let pat = MacroPatternMatchRawBegin { pat:  MacroPatternRawBegin };
+//    let m = MacroPatternMatchRaw::<Ast>::Begin(pat);
+
+    let json_text = std::fs::read_to_string("Z:/tmp2.json").unwrap();
+    let pat = serde_json::from_str::<MacroPatternMatchRaw<Shifted<Ast>>>(&json_text).unwrap();
+//    println!("{}", serde_json::to_string(&m).unwrap());
 }
 
 /// A single entry point for all the tests here using external parser.
