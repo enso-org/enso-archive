@@ -44,7 +44,6 @@ pub struct Tree<K,V> {
 #[shrinkwrap(mutable)]
 pub struct Shifted<T> {
     #[shrinkwrap(main_field)]
-    #[serde(rename = "el")]
     pub wrapped : T,
     pub off     : usize,
 }
