@@ -3,12 +3,12 @@
 
 use prelude::*;
 
+use ast_macros::*;
 use serde::{Serialize, Deserialize};
 use serde::ser::{Serializer, SerializeStruct};
 use serde::de::{Deserializer, Visitor};
-use uuid::Uuid;
-use ast_macros::*;
 use shapely::*;
+use uuid::Uuid;
 
 pub type Stream<T> = Vec<T>;
 
@@ -97,6 +97,7 @@ impl<T> Layer<T> for Layered<T> {
 /// using units in `Option`, reported here:
 /// https://github.com/serde-rs/serde/issues/1690
 #[ast_node] pub struct Unit{}
+
 
 // ===========
 // === AST ===
@@ -242,7 +243,9 @@ impl<'de> Deserialize<'de> for Ast {
 ///
 /// Shape describes names of children and spacing between them.
 #[ast(flat)] pub enum Shape<T> {
-    Unrecognized { str : String },
+    Unrecognized { str : String   },
+    InvalidQuote { quote: Builder },
+    InlineBlock  { quote: Builder },
 
     // === Identifiers ===
     Blank         { },
@@ -289,8 +292,22 @@ impl<'de> Deserialize<'de> for Ast {
     Foreign   (Foreign),
 }
 
+// ===============
+// === Builder ===
+// ===============
+
+#[ast(flat)]
+pub enum Builder {
+    Empty,
+    Letter { char: char                              },
+    Space  { span: usize                             },
+    Text   { str : String                            },
+    Seq    { first: Rc<Builder>, second: Rc<Builder> },
+}
+
+///
+
 #[ast] pub struct TextBlockLine<T> {
-    #[serde(rename = "emptyLines")]
     pub empty_lines: Vec<usize>,
     pub text       : Vec<T>
 }

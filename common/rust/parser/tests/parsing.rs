@@ -1,14 +1,16 @@
 use prelude::*;
+
+use ast::*;
 use parser::api::IsParser;
 
-use ast::{Ast, Shape, SegmentRaw, TextLine};
-use ast::SegmentFmt::SegmentExpr;
+// ===============
+// === Helpers ===
+// ===============
 
 /// Takes Ast being a module with a single line and returns that line's AST.
 fn expect_single_line(ast: &Ast) -> &Ast {
     let module: &ast::Module<Ast> = expect_shape(ast);
-    assert_eq!(module.lines.len(), 1, "module expected to have a single line");
-    let line = module.lines.iter().nth(0).unwrap();
+    let (line,) = (&module.lines).expect_tuple();
     line.elem.as_ref().unwrap()
 }
 
@@ -24,6 +26,7 @@ where &'t Shape<Ast>: TryInto<&'t T> {
     }
 }
 
+/// Asserts that given AST is a Var with given name.
 fn assert_var<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     let actual: &ast::Var = expect_shape(ast);
 
@@ -31,17 +34,29 @@ fn assert_var<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     assert_eq!(*actual, expected);
 }
 
+/// Asserts that given AST is an Opr with given name.
 fn assert_opr<StringLike: Into<String>>(ast: &Ast, name: StringLike) {
     let actual: &ast::Opr = expect_shape(ast);
     let expected          = ast::Opr{ name: name.into() };
     assert_eq!(*actual, expected);
 }
 
-/////
 
+// ===================
+// === ExpectTuple ===
+// ===================
+
+// === Trait ===
+/// Helper allowing converting between collections and tuples. Does heavy
+/// unwarapping, shouldn't be used outside test environment.
 trait ExpectTuple<T> {
+    /// Convert Self to tuple `T`. Panic if collection has different count of
+    /// elements.
     fn expect_tuple(self) -> T;
 }
+
+// === Implementations ===
+// TODO: boilerplate below should be generated with macro
 
 impl<Collection: IntoIterator>
 ExpectTuple<(Collection::Item,)>
@@ -65,22 +80,43 @@ for Collection {
         (v1, v2)
     }
 }
+impl<Collection: IntoIterator>
+ExpectTuple<(Collection::Item, Collection::Item, Collection::Item)>
+for Collection {
+    fn expect_tuple
+    (self) -> (Collection::Item, Collection::Item, Collection::Item) {
+        let mut iter = self.into_iter();
+        let v1 = iter.next().unwrap();
+        let v2 = iter.next().unwrap();
+        let v3 = iter.next().unwrap();
+        assert!(iter.next().is_none());
+        (v1, v2, v3)
+    }
+}
+
+// ===============
+// === Fixture ===
+// ===============
 
 /// Persists parser (which is expensive to construct, so we want to reuse it
 /// between tests. Additionally, hosts a number of helper methods.
-struct TestHelper(parser::Parser);
+struct Fixture(parser::Parser);
 
-impl TestHelper {
-    fn new() -> TestHelper {
-        TestHelper(parser::Parser::new_or_panic())
+impl Fixture {
+    // === Helper methods ===
+
+    /// Create a new fixture, obtaining a default parser.
+    fn new() -> Fixture {
+        Fixture(parser::Parser::new_or_panic())
     }
 
+    /// Runs parser on given input, panics on any error.
     fn parse(&mut self, program: &str) -> Ast {
         self.0.parse(program.into()).unwrap()
     }
 
     /// Program is expected to be single line module. The line's AST is
-    /// returned.
+    /// returned. Panics otherwise.
     fn parse_line(&mut self, program: &str) -> Ast {
         let ast = self.parse(program);
         let line = expect_single_line(&ast);
@@ -97,10 +133,31 @@ impl TestHelper {
         tester(shape);
     }
 
+    // === Test Methods ===
     fn deserialize_unrecognized(&mut self) {
-        let unfinished = r#"`"#;
+        let unfinished = "`";
         self.test_shape(unfinished, |shape:&ast::Unrecognized| {
             assert_eq!(shape.str, "`");
+        });
+    }
+
+    fn deserialize_invalid_quote(&mut self) {
+        let unfinished = "'a''";
+        self.test_shape(unfinished, |shape:&ast::Prefix<Ast>| {
+            // ignore shape.func, being TextUnclosed tested elsewhere
+            let arg : &ast::InvalidQuote      = expect_shape(&shape.arg);
+            let expected_quote                = ast::Text{ str: "''".into() };
+            assert_eq!(arg.quote, expected_quote.into());
+        });
+    }
+
+    fn deserialize_inline_block(&mut self) {
+        let unfinished = "'''a";
+        self.test_shape(unfinished, |shape:&ast::Prefix<Ast>| {
+            let func: &ast::InlineBlock = expect_shape(&shape.func);
+            let expected_quote          = ast::Text {str: "'''".into() };
+            assert_eq!(func.quote, expected_quote.into());
+            assert_var(&shape.arg, "a");
         });
     }
 
@@ -135,10 +192,6 @@ impl TestHelper {
         });
     }
 
-    // We can't test parsing Opr directly, but it is part of infix test.
-
-    // Literals
-
     fn deserialize_number(&mut self) {
         self.test_shape("127", |shape:&ast::Number| {
             assert_eq!(shape.base, None);
@@ -153,58 +206,45 @@ impl TestHelper {
 
     fn deserialize_text_line_raw(&mut self) {
         self.test_shape("\"foo\"", |shape:&ast::TextLineRaw| {
-            assert_eq!(shape.text.len(), 1);
-            let segment  = shape.text.iter().nth(0).unwrap();
+            let (segment,)  = (&shape.text).expect_tuple();
             let expected = ast::SegmentPlain{value: "foo".to_string()};
-            let expected = SegmentRaw::from(expected);
-            assert_eq!(*segment, expected);
+            assert_eq!(*segment, expected.into());
         });
 
         let tricky_raw = r#""\\\"\n""#;
         self.test_shape(tricky_raw, |shape:&ast::TextLineRaw| {
-            assert_eq!(shape.text.len(), 3);
-
-            let mut segments = shape.text.iter();
-            let mut next_segment = || segments.next().unwrap();
-
-            assert_eq!(*next_segment(), ast::Slash{}.into() );
-            assert_eq!(*next_segment(), ast::RawQuote{}.into() );
-            assert_eq!(*next_segment(), ast::Invalid{ str: 'n'}.into() );
+            let segments: (_,_,_) = (&shape.text).expect_tuple();
+            assert_eq!(*segments.0, ast::Slash{}.into() );
+            assert_eq!(*segments.1, ast::RawQuote{}.into() );
+            assert_eq!(*segments.2, ast::Invalid{ str: 'n'}.into() );
             // TODO can ast::Quote be used here?
             //  if not, what is the point of having it?
         });
     }
 
     fn deserialize_text_line_fmt(&mut self) {
+        use SegmentFmt::SegmentExpr;
+
         // plain
         self.test_shape("'foo'", |shape:&ast::TextLineFmt<Ast>| {
-            assert_eq!(shape.text.len(), 1);
-            let segment  = shape.text.iter().nth(0).unwrap();
-            let expected = ast::SegmentPlain{value: "foo".to_string()};
-            let expected = ast::SegmentFmt::from(expected);
-            assert_eq!(*segment, expected);
+            let (segment,)  = (&shape.text).expect_tuple();
+            let expected = ast::SegmentPlain{value: "foo".into()};
+            assert_eq!(*segment, expected.into());
         });
 
-        // raw escapes
+        // escapes
         let tricky_fmt = r#"'\\\'\"'"#;
         self.test_shape(tricky_fmt, |shape:&ast::TextLineFmt<Ast>| {
-            assert_eq!(shape.text.len(), 3);
-
-            let mut segments = shape.text.iter();
-            let mut next_segment = || segments.next().unwrap();
-
-            assert_eq!(*next_segment(), ast::Slash{}.into() );
-            assert_eq!(*next_segment(), ast::Quote{}.into() );
-            // TODO: the behavior below is actually a bug in parser, however
-            //  we don't test the parser but the ability to read its results.
-            assert_eq!(*next_segment(), ast::Invalid{ str: '"'}.into() );
+            let segments: (_, _, _) = (&shape.text).expect_tuple();
+            assert_eq!(*segments.0, ast::Slash{}.into() );
+            assert_eq!(*segments.1, ast::Quote{}.into() );
+            assert_eq!(*segments.2, ast::Invalid{ str: '"'}.into() );
         });
 
         // expression empty
         let expr_fmt = r#"'``'"#;
         self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
-            assert_eq!(shape.text.len(), 1);
-            let segment = shape.text.iter().next().unwrap();
+            let (segment,)  = (&shape.text).expect_tuple();
             match segment {
                 SegmentExpr(expr) => assert_eq!(expr.value, None),
                 _                 => panic!("wrong segment type received"),
@@ -214,8 +254,7 @@ impl TestHelper {
         // expression non-empty
         let expr_fmt = r#"'`foo`'"#;
         self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
-            assert_eq!(shape.text.len(), 1);
-            let segment = shape.text.iter().next().unwrap();
+            let (segment,)  = (&shape.text).expect_tuple();
             match segment {
                 SegmentExpr(expr) => {
                     assert_var(expr.value.as_ref().unwrap(), "foo");
@@ -226,34 +265,34 @@ impl TestHelper {
 
         let expr_fmt = r#"'\n\u0394\U0001f34c'"#;
         self.test_shape(expr_fmt, |shape:&ast::TextLineFmt<Ast>| {
-            assert_eq!(shape.text.len(), 3);
-            let mut segments = shape.text.iter();
-            let mut next_segment = || segments.next().unwrap();
+            let segments: (_,_,_)  = (&shape.text).expect_tuple();
 
             let expected = ast::Escape::Character{c:'n'};
-            assert_eq!(*next_segment(), expected.into());
+            assert_eq!(*segments.0, expected.into());
 
             let expected = ast::Escape::Unicode16{digits: "0394".into()};
-            assert_eq!(*next_segment(), expected.into());
+            assert_eq!(*segments.1, expected.into());
 
             // TODO We don't test Unicode21 as it is not yet supported by
             //      parser.
 
             let expected = ast::Escape::Unicode32{digits: "0001f34c".into()};
-            assert_eq!(*next_segment(), expected.into());
+            assert_eq!(*segments.2, expected.into());
         });
     }
 
     fn deserialize_text_block_raw(&mut self) {
-        let program = " \"\"\" \n  \n   X";
+        let program = "\"\"\" \n  \n   X";
         self.test_shape(program, |shape:&ast::TextBlockRaw| {
-            assert_eq!(shape.spaces, 2);
-            assert_eq!(shape.offset, 1);
-            assert_eq!(shape.text.len(), 3);
+            assert_eq!(shape.spaces,1);
+            assert_eq!(shape.offset, 0);
 
-            let (line,) = (&shape.text).expect_tuple();
-            let (segment,) = (&line.text).expect_tuple();
-            let expected_segment = ast::SegmentPlain { value: "  X".into() };
+            let (line,)        = (&shape.text).expect_tuple();
+            let (empty_line,)  = (&line.empty_lines).expect_tuple();
+            assert_eq!(*empty_line, 2);
+
+            let (segment,)       = (&line.text).expect_tuple();
+            let expected_segment = ast::SegmentPlain { value: "   X".into() };
             assert_eq!(*segment, expected_segment.into());
         });
     }
@@ -261,21 +300,19 @@ impl TestHelper {
     fn deserialize_text_block_fmt(&mut self) {
         let program = "'''  \n\n X\n Y";
         self.test_shape(program, |shape:&ast::TextBlockFmt<Ast>| {
-            println!("{:?}", shape);
             assert_eq!(shape.spaces, 2);
             assert_eq!(shape.offset, 0);
             assert_eq!(shape.text.len(), 2);
 
             let (line1, line2) = (&shape.text).expect_tuple();
-
             let (empty_line,)  = (&line1.empty_lines).expect_tuple();
             assert_eq!(*empty_line, 0);
-            let (segment,) = (&line1.text).expect_tuple();
+            let (segment,)       = (&line1.text).expect_tuple();
             let expected_segment = ast::SegmentPlain { value: " X".into() };
             assert_eq!(*segment, expected_segment.into());
 
             assert!(line2.empty_lines.is_empty());
-            let (segment,) = (&line2.text).expect_tuple();
+            let (segment,)       = (&line2.text).expect_tuple();
             let expected_segment = ast::SegmentPlain { value: " Y".into() };
             assert_eq!(*segment, expected_segment.into());
         });
@@ -288,8 +325,8 @@ impl TestHelper {
             let line                    = &shape.line;
             let line: &ast::TextLineRaw = line.try_into().unwrap();
 
-            let segment  = line.text.iter().next().unwrap();
-            let expected = ast::Unfinished {};
+            let (segment,) = (&line.text).expect_tuple();
+            let expected   = ast::Unfinished {};
             assert_eq!(*segment, expected.into());
         });
     }
@@ -344,12 +381,11 @@ impl TestHelper {
             assert_eq!(block.empty_lines.len(), 0);
             assert_eq!(block.is_orphan, true);
 
-            assert_eq!(block.first_line.off, 0);
-            assert_var(&block.first_line.elem, "foo");
+            let first_line = &block.first_line;
+            assert_eq!(first_line.off, 0);
+            assert_var(&first_line.elem, "foo");
 
-            assert_eq!(block.lines.len(), 1);
-            let second_line = block.lines.iter().nth(0).unwrap();
-
+            let (second_line,) = (&block.lines).expect_tuple();
             assert_eq!(second_line.off, 0);
             assert_var(second_line.elem.as_ref().unwrap(), "bar");
         });
@@ -361,19 +397,22 @@ impl TestHelper {
     /// that we are able to deserialize the response and that it is a macro
     /// match node. Node contents is not covered.
     fn deserialize_macro_matches(&mut self) {
-        let mut expect_match = |program| {
-            let ast = self.parse_line(program);
+        let macro_usages = vec!
+            [ "foo -> bar"
+            , "()"
+            , "(foo -> bar)"
+            , "type Maybe a\n    Just val:a"
+            , "foreign Python3\n  bar"
+            , "if foo > 8 then 10 else 9"
+            , "skip bar"
+            , "freeze bar"
+            , "case foo of\n  bar"
+            ];
+
+        for macro_usage in macro_usages.iter() {
+            let ast = self.parse_line(macro_usage);
             expect_shape::<ast::Match<Ast>>(&ast);
         };
-        expect_match("foo -> bar");
-        expect_match("()");
-        expect_match("(foo -> bar)");
-        expect_match("type Maybe a\n    Just val:a");
-        expect_match("foreign Python3\n  bar");
-        expect_match("if foo > 8 then 10 else 9");
-        expect_match("skip bar");
-        expect_match("freeze bar");
-        expect_match("case foo of\n  bar");
     }
 
     fn deserialize_macro_ambiguous(&mut self) {
@@ -388,14 +427,13 @@ impl TestHelper {
     }
 
     fn run(&mut self) {
-        /// We are not testing:
-        /// * Opr (doesn't parse on its own, covered by Infix and other)
-        /// * Module (covered by every single test, as parser wraps everything
-        ///   into module)
-        ///
-
+        // Shapes not covered by separate test:
+        // * Opr (doesn't parse on its own, covered by Infix and other)
+        // * Module (covered by every single test, as parser wraps everything
+        //   into module)
         self.deserialize_unrecognized();
-
+        self.deserialize_invalid_quote();
+        self.deserialize_inline_block();
         self.deserialize_blank();
         self.deserialize_var();
         self.deserialize_cons();
@@ -413,21 +451,18 @@ impl TestHelper {
         self.deserialize_left();
         self.deserialize_right();
         self.deserialize_sides();
-
         self.deserialize_block();
         self.deserialize_macro_matches();
         self.deserialize_macro_ambiguous();
     }
 }
 
-//deserialize_option_unit
-
-#[test]
-fn playground() {
-    use ast::*;
-    let mut me = TestHelper::new();
-    me.deserialize_text_block_fmt();
-}
+//#[test]
+//fn playground() {
+//    use ast::*;
+//    let mut me = TestHelper::new();
+//    me.deserialize_inline_block();
+//}
 
 /// A single entry point for all the tests here using external parser.
 ///
@@ -437,5 +472,5 @@ fn playground() {
 #[test]
 //#[ignore]
 fn parser_tests() {
-    TestHelper::new().run()
+    Fixture::new().run()
 }
