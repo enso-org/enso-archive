@@ -240,7 +240,7 @@ object Shape extends ShapeImplicit {
 
   /// Block ///
   sealed trait TextBlock[T] extends Text[T]
-  final case class TextBlockLine[+T](emptyLines: List[Int], text: List[T])
+  final case class TextBlockLine[+T](empty_lines: List[Int], text: List[T])
   final case class TextBlockRaw[T](
     text: List[TextBlockLine[SegmentRaw[T]]],
     spaces: Int,
@@ -532,9 +532,9 @@ object Shape extends ShapeImplicit {
 
   object TextBlock extends IntermediateTrait[TextBlock] {
     def lineRepr[T: Repr](off: Int, l: TextBlockLine[SegmentFmt[T]]): Builder =
-      R + l.emptyLines.map(Block.newline + _) + Block.newline + off + l.text
+      R + l.empty_lines.map(Block.newline + _) + Block.newline + off + l.text
     def lineSpan[T: HasSpan](off: Int, l: TextBlockLine[SegmentFmt[T]]): Int = {
-      val emptyLinesSpan = l.emptyLines.map(Block.newline.span + _).sum
+      val emptyLinesSpan = l.empty_lines.map(Block.newline.span + _).sum
       emptyLinesSpan + Block.newline.span + off + l.text.span()
     }
 
@@ -567,7 +567,7 @@ object Shape extends ShapeImplicit {
       var offset = Index(body.quote.span)
       val text =
         for (line <- body.text) yield {
-          offset += Size(line.emptyLines.length + line.emptyLines.sum)
+          offset += Size(line.empty_lines.length + line.empty_lines.sum)
           offset += Size(1 + body.offset)
           val text = for (elem <- line.text) yield {
             val offElem = elem.map(offset -> _)
