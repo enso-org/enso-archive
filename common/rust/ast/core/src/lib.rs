@@ -352,11 +352,11 @@ pub enum Builder {
 
 // === Text Segment Escapes ===
 #[ast(flat)] pub enum RawEscape {
-    Unfinished {},
-    Invalid { str: char },
-    Slash {},
-    Quote {},
-    RawQuote {},
+    Unfinished { },
+    Invalid    { str: char },
+    Slash      { },
+    Quote      { },
+    RawQuote   { },
 }
 
 #[ast_node] pub enum Escape {
@@ -373,7 +373,7 @@ pub enum Builder {
 // === Block ===
 // =============
 
-#[ast_node] pub enum   BlockType     { Continuous , Discontinuous  }
+#[ast_node] pub enum   BlockType     { Continuous { } , Discontinuous { } }
 #[ast]      pub struct BlockLine <T> { pub elem: T, pub off: usize }
 
 
@@ -395,11 +395,11 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
 #[ast] pub enum MacroPatternRaw {
 
     // === Boundary Patterns ===
-    Begin   ,
-    End     ,
+    Begin   { },
+    End     { },
 
     // === Structural Patterns ===
-    Nothing ,
+    Nothing { },
     Seq     { pat1 : MacroPattern , pat2    : MacroPattern                    },
     Or      { pat1 : MacroPattern , pat2    : MacroPattern                    },
     Many    { pat  : MacroPattern                                             },
