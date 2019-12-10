@@ -5,8 +5,8 @@ import java.util.UUID
 import cats.{Foldable, Functor, Monoid}
 import cats.derived._
 import cats.implicits._
-  import io.circe.Encoder
-  import io.circe.Json
+import io.circe.Encoder
+import io.circe.Json
 import org.enso.syntax.text.ast.text.{Escape, RawEscape}
 import org.enso.data.List1._
 import org.enso.data.List1

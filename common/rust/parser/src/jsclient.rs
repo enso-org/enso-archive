@@ -28,12 +28,11 @@ impl From<serde_json::error::Error> for Error {
    }
 }
 
+#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "/pkg/scala-parser-fix.js")]
 extern "C" {
-
    #[wasm_bindgen(catch)]
    fn parse(input: String) -> std::result::Result<String, JsValue>;
-
 }
 
 /// Wrapper over the JS-compiled parser.
@@ -42,12 +41,12 @@ extern "C" {
 pub struct Client {}
 
 impl Client {
-   #[allow(dead_code)]
    pub fn new() -> Result<Client> {
       Ok(Client {})
    }
 }
 
+#[cfg(target_arch = "wasm32")]
 impl IsParser for Client {
    fn parse(&mut self, _program: String) -> api::Result<api::Ast> {
       match parse(_program) {
