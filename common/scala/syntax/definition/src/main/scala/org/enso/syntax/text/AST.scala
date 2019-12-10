@@ -1466,13 +1466,12 @@ object AST {
       ids.reverse
     }
 
-    // Note [JSON Serialization]
+    // Note (file top) [JSON Serialization]
     def toJson(): Json = {
       import io.circe.syntax._
       import io.circe.generic.auto._
 
-      import Shape.Block._
-      implicit val e: Encoder[Continuous.type]     = _ => None.asJson
+      // Note (below) [JSON Format Customizations]
       implicit val e2: Encoder[Discontinuous.type] = _ => None.asJson
       implicit val escapeEncoder: Encoder[Escape] = {
         case e: Escape.Character =>
@@ -1490,11 +1489,6 @@ object AST {
         case e: Escape.Unicode.U32 =>
           Json.obj("Unicode32" -> Json.obj("digits" -> e.digits.asJson))
       }
-      implicit val patternBeginEnc: Encoder[Pattern.Begin] = _ => None.asJson
-      implicit val patternEndEnc: Encoder[Pattern.End]     = _ => None.asJson
-      implicit val patternNothingEnc: Encoder[Pattern.Nothing] = _ =>
-        None.asJson
-
       val ast: AST = t
       ast.asJson
     }
