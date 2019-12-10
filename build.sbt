@@ -342,8 +342,7 @@ val truffleRunOptions = Seq(
   "-Dgraal.TruffleIterativePartialEscape=true",
   "-XX:-UseJVMCIClassLoader",
   "-Dgraal.TruffleBackgroundCompilation=false",
-  "-Dgraalvm.locatorDisabled=true",
-  "-agentlib:jdwp=transport=dt_socket,server=n,address=ara.home:54321,suspend=y"
+  "-Dgraalvm.locatorDisabled=true"
 )
 
 val truffleRunOptionsSettings = Seq(
