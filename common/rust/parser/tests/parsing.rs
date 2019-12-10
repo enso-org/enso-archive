@@ -3,6 +3,7 @@ use prelude::*;
 use ast::*;
 use parser::api::IsParser;
 
+
 // ===============
 // === Helpers ===
 // ===============
@@ -144,8 +145,8 @@ impl Fixture {
         let unfinished = "'a''";
         self.test_shape(unfinished,|shape:&Prefix<Ast>| {
             // ignore shape.func, being TextUnclosed tested elsewhere
-            let arg           : &InvalidQuote = expect_shape(&shape.arg);
-            let expected_quote                = Text {str:"''".into()};
+            let arg:&InvalidQuote = expect_shape(&shape.arg);
+            let expected_quote    = Text {str:"''".into()};
             assert_eq!(arg.quote,expected_quote.into());
         });
     }
@@ -153,8 +154,8 @@ impl Fixture {
     fn deserialize_inline_block(&mut self) {
         let unfinished = "'''a";
         self.test_shape(unfinished,|shape:&Prefix<Ast>| {
-            let func: &InlineBlock = expect_shape(&shape.func);
-            let expected_quote     = Text {str: "'''".into()};
+            let func:&InlineBlock = expect_shape(&shape.func);
+            let expected_quote    = Text {str: "'''".into()};
             assert_eq!(func.quote,expected_quote.into());
             assert_var(&shape.arg,"a");
         });
@@ -217,15 +218,15 @@ impl Fixture {
             assert_eq!(*segments.0,Slash {}.into());
             assert_eq!(*segments.1,RawQuote {}.into());
             assert_eq!(*segments.2,Invalid {str: 'n'}.into());
-            // TODO can Quote be used here?
-            //  if not, what is the point of having it?
+            // Quote (fmt one) cannot be escaped in raw string. So no test for
+            // it, even though it belongs to the same enum.
         });
     }
 
     fn deserialize_text_line_fmt(&mut self) {
         use SegmentFmt::SegmentExpr;
 
-        // plain
+        // plain segment
         self.test_shape("'foo'",|shape:&TextLineFmt<Ast>| {
             let (segment,)  = (&shape.text).expect_tuple();
             let expected = SegmentPlain{value: "foo".into()};
@@ -256,9 +257,8 @@ impl Fixture {
         self.test_shape(expr_fmt,|shape:&TextLineFmt<Ast>| {
             let (segment,)  = (&shape.text).expect_tuple();
             match segment {
-                SegmentExpr(expr) => {
-                    assert_var(expr.value.as_ref().unwrap(),"foo");
-                },
+                SegmentExpr(expr) =>
+                    assert_var(expr.value.as_ref().unwrap(),"foo"),
                 _ => panic!("wrong segment type received"),
             }
         });
@@ -287,8 +287,8 @@ impl Fixture {
             assert_eq!(shape.spaces,1);
             assert_eq!(shape.offset,0);
 
-            let (line,)        = (&shape.text).expect_tuple();
-            let (empty_line,)  = (&line.empty_lines).expect_tuple();
+            let (line,)       = (&shape.text).expect_tuple();
+            let (empty_line,) = (&line.empty_lines).expect_tuple();
             assert_eq!(*empty_line,2);
 
             let (segment,)       = (&line.text).expect_tuple();
@@ -305,7 +305,7 @@ impl Fixture {
             assert_eq!(shape.text.len(),2);
 
             let (line1,line2) = (&shape.text).expect_tuple();
-            let (empty_line,)  = (&line1.empty_lines).expect_tuple();
+            let (empty_line,) = (&line1.empty_lines).expect_tuple();
             assert_eq!(*empty_line,0);
             let (segment,)       = (&line1.text).expect_tuple();
             let expected_segment = SegmentPlain { value: " X".into() };
@@ -322,8 +322,8 @@ impl Fixture {
     fn deserialize_unfinished_text(&mut self) {
         let unfinished = r#""\"#;
         self.test_shape(unfinished,|shape:&TextUnclosed<Ast>| {
-            let line                    = &shape.line;
-            let line: &TextLineRaw = line.try_into().unwrap();
+            let line              = &shape.line;
+            let line:&TextLineRaw = line.try_into().unwrap();
 
             let (segment,) = (&line.text).expect_tuple();
             let expected   = Unfinished {};
@@ -457,20 +457,13 @@ impl Fixture {
     }
 }
 
-//#[test]
-//fn playground() {
-//    use *;
-//    let mut me = TestHelper::new();
-//    me.deserialize_inline_block();
-//}
-
 /// A single entry point for all the tests here using external parser.
 ///
 /// Setting up the parser is costly, so we run all tests as a single batch.
 /// Until proper CI solution for calling external parser is devised, this
 /// test is marked with `#[ignore]`.
 #[test]
-//#[ignore]
+#[ignore]
 fn parser_tests() {
     Fixture::new().run()
 }

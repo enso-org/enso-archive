@@ -44,7 +44,6 @@ pub struct Tree<K,V> {
 #[shrinkwrap(mutable)]
 pub struct Shifted<T> {
     #[shrinkwrap(main_field)]
-    #[serde(rename = "el")]
     pub wrapped : T,
     pub off     : usize,
 }
@@ -235,6 +234,7 @@ impl<'de> Deserialize<'de> for Ast {
     }
 }
 
+
 // =============
 // === Shape ===
 // =============
@@ -277,13 +277,23 @@ impl<'de> Deserialize<'de> for Ast {
     SectRight { opr  : T   , off  : usize , arg: T                          },
     SectSides { opr  : T                                                    },
 
+    // === Module ===
+    Module    { lines       : Vec<BlockLine<Option<T>>>  },
+    Block     { ty          : BlockType
+              , indent      : usize
+              , empty_lines : Vec<usize>
+              , first_line  : BlockLine<T>
+              , lines       : Vec<BlockLine<Option<T>>>
+              , is_orphan   : bool                       },
+
     // === Macros ===
-    Match     (Match<T>),
-    Ambiguous (Ambiguous),
+    Match     { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
+              , segs     : ShiftedVec1<MacroMatchSegment<T>>
+              , resolved : Ast                                     },
+    Ambiguous { segs     : ShiftedVec1<MacroAmbiguousSegment>
+              , paths    : Tree<Ast, Unit>                         },
 
     // === Spaceless AST ===
-    Block     (Block<T>),
-    Module    (Module<T>),
     Comment   (Comment),
     Import    (Import<T>),
     Mixfix    (Mixfix<T>),
@@ -292,6 +302,7 @@ impl<'de> Deserialize<'de> for Ast {
     Foreign   (Foreign),
 }
 
+
 // ===============
 // === Builder ===
 // ===============
@@ -299,14 +310,18 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast(flat)]
 pub enum Builder {
     Empty,
-    Letter { char: char                              },
-    Space  { span: usize                             },
-    Text   { str : String                            },
-    Seq    { first: Rc<Builder>, second: Rc<Builder> },
+    Letter{char: char                             },
+    Space {span: usize                            },
+    Text  {str : String                           },
+    Seq   {first: Rc<Builder>, second: Rc<Builder>},
 }
 
-///
 
+// ============
+// === Text ===
+// ============
+
+// === Text Block Lines ===
 #[ast] pub struct TextBlockLine<T> {
     pub empty_lines: Vec<usize>,
     pub text       : Vec<T>
@@ -317,16 +332,17 @@ pub enum Builder {
     TextLineFmt(TextLineFmt<T>),
 }
 
+// === Text Segments ===
 #[ast(flat)] pub enum SegmentRaw {
     SegmentPlain    (SegmentPlain),
     SegmentRawEscape(SegmentRawEscape),
 }
 
 #[ast(flat)] pub enum SegmentFmt<T> {
-    SegmentPlain    ( SegmentPlain    ),
-    SegmentRawEscape( SegmentRawEscape),
-    SegmentExpr     ( SegmentExpr<T>  ),
-    SegmentEscape   ( SegmentRawEscape),
+    SegmentPlain    (SegmentPlain    ),
+    SegmentRawEscape(SegmentRawEscape),
+    SegmentExpr     (SegmentExpr<T>  ),
+    SegmentEscape   (SegmentRawEscape),
 }
 
 #[ast_node] pub struct SegmentPlain     { pub value: String    }
@@ -334,6 +350,7 @@ pub enum Builder {
 #[ast_node] pub struct SegmentExpr<T>   { pub value: Option<T> }
 #[ast_node] pub struct SegmentEscape    { pub code : Escape    }
 
+// === Text Segment Escapes ===
 #[ast(flat)] pub enum RawEscape {
     Unfinished {},
     Invalid { str: char },
@@ -343,77 +360,12 @@ pub enum Builder {
 }
 
 #[ast_node] pub enum Escape {
-    Character { c: char},
-    Control   { name  : String, code: u8 },
-    Number    { digits: String },
-    Unicode16 { digits: String },
-    Unicode21 { digits: String },
-    Unicode32 { digits: String },
-}
-
-
-// TODO  how to automatically obtain below conversion
-//   basically they are about conversion chain
-//   RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
-impl From<Unfinished> for SegmentRaw {
-    fn from(value: Unfinished) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl From<Invalid> for SegmentRaw {
-    fn from(value: Invalid) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl From<Slash> for SegmentRaw {
-    fn from(value: Slash) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl From<Quote> for SegmentRaw {
-    fn from(value: Quote) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl From<RawQuote> for SegmentRaw {
-    fn from(value: RawQuote) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-
-// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt
-impl<T> From<Unfinished> for SegmentFmt<T> {
-    fn from(value: Unfinished) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl<T> From<Invalid> for SegmentFmt<T> {
-    fn from(value: Invalid) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl<T> From<Slash> for SegmentFmt<T> {
-    fn from(value: Slash) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl<T> From<Quote> for SegmentFmt<T> {
-    fn from(value: Quote) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-impl<T> From<RawQuote> for SegmentFmt<T> {
-    fn from(value: RawQuote) -> Self {
-        SegmentRawEscape{ code: value.into() }.into()
-    }
-}
-
-////
-
-impl<T> From<Escape> for SegmentFmt<T> {
-    fn from(value: Escape) -> Self {
-        SegmentEscape{ code: value.into() }.into()
-    }
+    Character{c     :char            },
+    Control  {name  :String, code: u8},
+    Number   {digits:String          },
+    Unicode16{digits:String          },
+    Unicode21{digits:String          },
+    Unicode32{digits:String          },
 }
 
 
@@ -421,38 +373,13 @@ impl<T> From<Escape> for SegmentFmt<T> {
 // === Block ===
 // =============
 
-#[ast] pub struct Block<T> {
-    pub ty          : BlockType,
-    pub indent      : usize,
-    pub empty_lines : Vec<usize>,
-    pub first_line  : BlockLine<T>,
-    pub lines       : Vec<BlockLine<Option<T>>>,
-    pub is_orphan   : bool,
-}
-
-#[ast_node] pub enum   BlockType     { Continuous, Discontinuous }
+#[ast_node] pub enum   BlockType     { Continuous , Discontinuous  }
 #[ast]      pub struct BlockLine <T> { pub elem: T, pub off: usize }
 
-// ==============
-// === Module ===
-// ==============
-
-#[ast] pub struct Module<T> {  pub lines: Vec<BlockLine<Option<T>>> }
 
 // =============
 // === Macro ===
 // =============
-
-#[ast] pub struct Match<T> {
-    pub pfx      : Option<MacroPatternMatch<Shifted<Ast>>>,
-    pub segs     : ShiftedVec1<MacroMatchSegment<T>>,
-    pub resolved : Ast
-}
-
-#[ast] pub struct Ambiguous {
-    pub segs  : ShiftedVec1<MacroAmbiguousSegment>,
-    pub paths : Tree<Ast, Unit>,
-}
 
 #[ast] pub struct MacroMatchSegment<T> {
     pub head : Ast,
@@ -720,6 +647,69 @@ impl HasSpan for Var {
     }
 }
 
+
+// === Text Conversion Boilerplate ===
+// support for transitive conversions, like:
+// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
+
+impl From<Unfinished> for SegmentRaw {
+    fn from(value: Unfinished) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Invalid> for SegmentRaw {
+    fn from(value: Invalid) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Slash> for SegmentRaw {
+    fn from(value: Slash) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Quote> for SegmentRaw {
+    fn from(value: Quote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<RawQuote> for SegmentRaw {
+    fn from(value: RawQuote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+
+// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt
+impl<T> From<Unfinished> for SegmentFmt<T> {
+    fn from(value: Unfinished) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Invalid> for SegmentFmt<T> {
+    fn from(value: Invalid) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Slash> for SegmentFmt<T> {
+    fn from(value: Slash) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Quote> for SegmentFmt<T> {
+    fn from(value: Quote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<RawQuote> for SegmentFmt<T> {
+    fn from(value: RawQuote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+
+impl<T> From<Escape> for SegmentFmt<T> {
+    fn from(value: Escape) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
 
 // =============
 // === Tests ===
