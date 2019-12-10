@@ -13,32 +13,37 @@ documents.
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
 - [Variable Naming](#variable-naming)
+  - [Snake Case](#snake-case)
+  - [High-Level Syntax and Semantic Notes](#high-level-syntax-and-semantic-notes)
+  - [Annotations](#annotations)
+    - [Automatic Deriving](#automatic-deriving)
+    - [Reserved Names](#reserved-names)
 - [Top-Level Evaluation](#top-level-evaluation)
-- [High-Level Syntax and Semantic Notes](#high-level-syntax-and-semantic-notes)
-- [Annotations](#annotations)
 - [Types](#types)
-    - [Atoms](#atoms)
-        - [Anonymous Atoms](#anonymous-atoms)
-    - [Typesets](#typesets)
-        - [The Type Hierarchy](#the-type-hierarchy)
-        - [Typesets and Smart Constructors](#typesets-and-smart-constructors)
-        - [Type and Interface Definitions](#type-and-interface-definitions)
-        - [Anonymous Typesets](#anonymous-typesets)
-        - [Typeset Projections \(Lenses\)](#typeset-projections-lenses)
-    - [Implementing Interfaces](#implementing-interfaces)
-        - [Special Interfaces](#special-interfaces)
-    - [Pattern Matching](#pattern-matching)
+  - [Atoms](#atoms)
+    - [Unsafe Atom Field Mutation](#unsafe-atom-field-mutation)
+  - [Typesets](#typesets)
+    - [The Type Hierarchy](#the-type-hierarchy)
+    - [Typesets and Smart Constructors](#typesets-and-smart-constructors)
+    - [Type and Interface Definitions](#type-and-interface-definitions)
+    - [Anonymous Typesets](#anonymous-typesets)
+    - [Typeset Projections \(Lenses\)](#typeset-projections-lenses)
+  - [Implementing Interfaces](#implementing-interfaces)
+    - [Special Interfaces](#special-interfaces)
+  - [Pattern Matching](#pattern-matching)
+  - [Visibility and Access Modifiers](#visibility-and-access-modifiers)
 - [Dynamic Dispatch](#dynamic-dispatch)
-    - [Multiple Dispatch](#multiple-dispatch)
-        - [Overlappable Functions](#overlappable-functions)
-    - [First-Class Modules](#first-class-modules)
-        - [Self-Initialisation and Qualified Access](#self-initialisation-and-qualified-access)
+  - [Multiple Dispatch](#multiple-dispatch)
+    - [Overlappable Functions](#overlappable-functions)
+  - [First-Class Modules](#first-class-modules)
+    - [Self-Initialisation and Qualified Access](#self-initialisation-and-qualified-access)
 - [Broken Values](#broken-values)
 - [Function Composition](#function-composition)
 - [Dynamic](#dynamic)
-    - [The Enso Boundary](#the-enso-boundary)
-    - [An Insufficient Design For Dynamic](#an-insufficient-design-for-dynamic)
+  - [The Enso Boundary](#the-enso-boundary)
+  - [An Insufficient Design For Dynamic](#an-insufficient-design-for-dynamic)
 - [The Main Function](#the-main-function)
+- [General Open Questions](#general-open-questions)
 
 <!-- /MarkdownTOC -->
 
@@ -80,59 +85,26 @@ Please note that this file sticks to the pre-determined naming convention for
 Enso, as no final decision has been made on whether or not it should be
 changed.
 
-> No final decision has been made on this point yet, so the actionables are as
-> follows:
->
-> - Wojciech wants to think about it more.
-> - The decision needs to be made by the next design meeting on 2019-12-10.
-> - Support in the parser is fairly simple, though some consideration is needed
->   for how to support the mixfix definition syntax as methods.
-
-## Top-Level Evaluation
-An ongoing discussion for the language design has been whether or not to allow
-for the top-level evaluation of statements in Enso. In order to help make a
-decision, we listed the following use-cases for top-level evaluation. These are
-annotated using the following key:
-
-|  Label  | Meaning |
-| --------| ------- |
-| `[?,_]` | We don't know how to implement it, but it may be possible.
-| `[-,_]` | Not possible to implement using purely syntactic macros.
-| `[M,_]` | Possible to implement using purely syntactic macros.
-| `[_,H]` | High priority. This will be used often.
-| `[_,M]` | Medium priority. This will be used with a medium frequency.
-| `[_,L]` | Low priority. Nice to have, but we can likely live without it.
-| `[_,!]` | Something that we never want to have in the language.
-
-The use-cases we have considered are as follows:
-
-|  Label  | Description |
-| ------- | ----------- |
-| `[-,L]` | Creating top-level constructs in `IO`, such as `IORef`. This is, in general, considered to be bad style, but can sometimes be useful.
-| `[-,L]` | Using enso files like python is able to be for scripting work. The ability to write constructs at the top-level and just evaluate them.
-| `[M,H]` | The ability to generate structures and / types for a dataframe at compilation time, or the automatic generation of an API for a library. A key recognition is that dependent types and type-level execution replace much of the need to be able to query the type-checker and runtime while writing a syntactic macro.
-| `[M,H]` | Static metaprogramming (transformations from `AST -> AST`) to let users generate types and functions based on existing AST. There is the potential to want to be able to evaluate actions in `IO` while doing this, but it may not be necessary.
-| `[-,!]` | Dynamic metaprogramming to let users mutate program state at runtime (e.g. changing atom shapes, function definitions), also known as 'monkey patching'. This is not something we want in the language, but we do perhaps want the ability to do so on values of type `Dynamic`.
-| `[M,H]` | 'Remembering' things when compiling a file, such as remembering all structures marked by an `AST` annotation. An example use case for a mechanism like this is to generate pattern matches for all possible `AST` types. This can be done by letting macros write to a per-file peristent block of storage that could be serialised during precompilation.
-| `[M,H]` | Grouping of macros (e.g. `deriveAll = derive Ord Debug Show`). This can be easily handled by doing discovery on functions used as macros, and treating it as a macro as well.
-| `[?,M]` | Method-missing magic, akin to ruby. This is likely able to be handled using other, existing language mechanisms.
-
-In summary and when considering the above use-cases, it seems that there is
-little need for top-level expression evaluation in Enso. We can support all of
-the above-listed important use-cases using syntactic (`AST -> AST`) macros,
-while allowing for top-level evaluation would enable users to write a lot of
-overly-magical code, which will always be a code-smell.
-
-Syntactic macros, however, do not easily support a scripting workflow, but the
-solution to this problem is simple. We can just provide an `enso run <file>`
-command which will search for and execute the `main` function in the provided
-file.
-
 > The actionables for this section are as follows:
 >
-> - Formalise and clarify the semantics of `main`.
+> - In the future, we need to determine if we need `all` and `each` explicit
+>   keywords in the case of dependency. Explicit examples are required.
 
-## High-Level Syntax and Semantic Notes
+### Snake Case
+Given the readability benefits of snake case, we propose a new syntactic marker
+for type/in-scope usage:
+
+- `http_request_header` becomes `Http_Request_Header`.
+- In contexts where it is ambiguous as to whether a name is fresh or should bind
+  from context, the above distinction is used, with the second binding from
+  the open context.
+- Mixfix definitions use a 'separated' snake case (e.g. `if c _then a _else b`).
+
+> The actionables for this are as follows:
+>
+> - Revisit this tomorrow morning to confirm the decision.
+
+### High-Level Syntax and Semantic Notes
 While the majority of syntactic design for the language has utilised top-level
 bindings in a syntax similar to that of Haskell or Idris, some consideration
 has been given to instead introducing function bindings using a `def` keyword.
@@ -162,48 +134,42 @@ This has a few major problems, including:
     def name : String
   ```
 
-Additionally, in the current syntax, a block assigned to a variable is one that
-has its execution implicitly suspended until it is forced. This has a few
-things that should be noted about it.
+Top-level blocks in the language are evaluated immediately. This means that the
+layout of the code has no impact on semantics of the code:
 
-- There is a big mismatch between the semantics of assigning inline to a
-  variable versus assigning a block to a variable. The following are not
-  equivalent:
+- To suspend blocks, we provide a `suspend` function in the standard library.
+  This means that the following `a` and `b` are equivalent.
 
   ```ruby
   a = foo x y
 
-  a =
+  b =
     foo x y
   ```
+
+- This function takes any expression as an argument (including a block), and
+  suspends the execution of that expression such that it is not evaluated until
+  forced later.
+
+  ```ruby
+  susp = suspend
+    x = foo x y z
+    x.do_thing
+  ```
+
+Additionally, in the current syntax, a block assigned to a variable is one that
+has its execution implicitly suspended until it is forced. This has a few
+things that should be noted about it.
 
 - We could have a `suspend` function provided in the standard library, as
   laziness of argument evaluation is determined through type-signatures and is
   done automatically in the compiler.
 - Such a function would likely not see heavy use.
 
-As Enso types (other than atoms), are defined as sets of values (see the
-section on [set types](#set-types) for details), we need a way to include an
-atom inside another type that doesn't define it.
+Finally, we have chosen `this` to refer to the current type. This is almost
+always equivalent to `self`, but in the case of `this` and `that` is far better.
 
-- It would be potentially possible to disambiguate this using syntactic markers
-  but this is likely to be unclear to users.
-- Instead we propose to use a keyword (e.g. `use` or `include`) to signify the
-  inclusion of an atom inside a type definition.
-  
-However, please note that in case there is no top-level evaluation, there is no
-need for any additional keyword because the inclusion syntax is not ambiguous
-anymore.
-
-> The actionable items for this section are as follows:
->
-> - Further discussion on the semantics of top-level blocks, with a decision
->   made by 2019-12-10.
-> - Make a decision regarding a keyword for including other atoms in a type
->   (e.g. `use`).
-> - Make a final decision on whether it is `this` or `self`.
-
-## Annotations
+### Annotations
 Much like annotations on the JVM, annotations in Enso are tags that perform a
 purely syntactic transformation on the entity to which they are applied. The
 implementation of this requires both parser changes and support for
@@ -236,14 +202,75 @@ that we are able to reserve words such as `type` to ensure that users can
 always have a good sense of what the most common constructs in the language
 mean, rather than allowing them to be overridden outside of the stdlib.
 
-This would allow types to automatically derive `Debug`, for example, which
-would be a function `debug` which prints detailed debugging information about
-the type (e.g. locations, source info, types, etc).
+#### Automatic Deriving
+In order to make the language easier to debug, we have all types automatically
+derive an interface `DebugShow`. This interface provides a function that will
+print all the significant information about the value (e.g. locations, types,
+source information, etc).
 
-> The actionables for this section are:
->
-> - Decide if we want to reserve certain key bits of syntax for use only by
->   the standard library (with a focus on `type`).
+#### Reserved Names
+While we don't want to reserve names in the parser, as this would both 
+complicate the task of the GUI and parser, we want to reserve a few names at the
+interpreter level as giving users the ability to redefine them would 
+significantly hinder the readability and consistency of Enso code. They are as
+follows:
+
+- `type`: This reserved name is used to define new atoms and typesets.
+- `->`: This reserved name is the 'function' type, and represents a mapping from
+  the type of its first operand to the type of its second operand.
+- `:`: This reserved name is the type attribution operator. It ascribes the type
+  described by its right operand to its left operand.
+- `=`: This reserved name is the assignment operator, and assigns the value of
+  its right operand to the name on its left. Under the hood this desugars to the
+  relevant implementation of monadic bind.
+- `.`: This is the standard function composition operator.
+- `case ... of`: This reserved name is the case expression that is fundamental
+  to the operation of control flow in the language.
+- `this`:  This reserved name is the one used to refer to the enclosing type in
+  a method or type definition.
+
+Many of these reserved words are implemented as macros in the parser, but these
+macros should always be in scope and not be able to be overridden.
+
+## Top-Level Evaluation
+An ongoing discussion for the language design has been whether or not to allow
+for the top-level evaluation of statements in Enso. In order to help make a
+decision, we listed the following use-cases for top-level evaluation. These are
+annotated using the following key:
+
+|  Label  | Meaning |
+| --------| ------- |
+| `[?,_]` | We don't know how to implement it, but it may be possible.
+| `[-,_]` | Not possible to implement using purely syntactic macros.
+| `[M,_]` | Possible to implement using purely syntactic macros.
+| `[_,H]` | High priority. This will be used often.
+| `[_,M]` | Medium priority. This will be used with a medium frequency.
+| `[_,L]` | Low priority. Nice to have, but we can likely live without it.
+| `[_,!]` | Something that we never want to have in the language.
+
+The use-cases we have considered are as follows:
+
+|  Label  | Description |
+| ------- | ----------- |
+| `[-,L]` | Creating top-level constructs in `IO`, such as `IORef`. This is, in general, considered to be bad style, but can sometimes be useful. |
+| `[-,L]` | Using enso files like python is able to be for scripting work. The ability to write constructs at the top-level and just evaluate them. |
+| `[M,H]` | The ability to generate structures and / types for a dataframe at compilation time, or the automatic generation of an API for a library. A key recognition is that dependent types and type-level execution replace much of the need to be able to query the type-checker and runtime while writing a syntactic macro. |
+| `[M,H]` | Static metaprogramming (transformations from `AST -> AST`) to let users generate types and functions based on existing AST. There is the potential to want to be able to evaluate actions in `IO` while doing this, but it may not be necessary. |
+| `[-,!]` | Dynamic metaprogramming to let users mutate program state at runtime (e.g. changing atom shapes, function definitions), also known as 'monkey patching'. This is not something we want in the language, but we do perhaps want the ability to do so on values of type `Dynamic`. |
+| `[M,H]` | 'Remembering' things when compiling a file, such as remembering all structures marked by an `AST` annotation. An example use case for a mechanism like this is to generate pattern matches for all possible `AST` types. This can be done by letting macros write to a per-file peristent block of storage that could be serialised during precompilation. |
+| `[M,H]` | Grouping of macros (e.g. `deriveAll = derive Ord Debug Show`). This can be easily handled by doing discovery on functions used as macros, and treating it as a macro as well. |
+| `[?,M]` | Method-missing magic, akin to ruby. This is likely able to be handled using other, existing language mechanisms. | 
+
+In summary and when considering the above use-cases, it seems that there is
+little need for top-level expression evaluation in Enso. We can support all of
+the above-listed important use-cases using syntactic (`AST -> AST`) macros,
+while allowing for top-level evaluation would enable users to write a lot of
+overly-magical code, which will always be a code-smell.
+
+Syntactic macros, however, do not easily support a scripting workflow, but the
+solution to this problem is simple. We can just provide an `enso run <file>`
+command which will search for and execute the `main` function in the provided
+file.
 
 ## Types
 Atoms are the fundamental building blocks of types in Enso. Where broader types
@@ -275,21 +302,14 @@ The key notion of an atom is that it has _unique identity_. No atom can unify
 with any other atom, even if they have the same fields with the same names. To
 put this another way, an atom is _purely_ nominally typed.
 
-#### Anonymous Atoms
-Using the same keyword used to define atoms it is possible to define an
-anonymous atom. The key disambiguator is syntactic, using upper- or lower-case
-starts for names.
+#### Unsafe Atom Field Mutation
+Often for performance, we need the ability to mutate atom fields deep in the
+implementation:
 
-```ruby
-point = type x y z
-p1 = point 1 2 3 : Point Int Int Int
-```
-
-There are no differences in functionality between anonymous and named atoms.
-
-> Actionables for this section:
->
-> - What is the motivating use-case for an anonymous atom?
+- `unsafe` blocks?
+- `use unsafe`, `use private` (expression)
+- In-place field mutation: `setField : Name -> Any -> Nothing`
+- Affine/linear typing in the future to make these things not unsafe
 
 ### Typesets
 More complex types in Enso are known as typesets. All of these types are
@@ -311,8 +331,6 @@ Two typesets `A` and `B` also have a _subsumption_ relationship `<:` defined
 between them. `A` is said to be subsumed by `B` (`A <: B`) if the following
 hold:
 
-**[WD]** I don't think it holds for functions (contravariances).
-
 1.  `A` contains a subset of the labels in `B`.
 2.  For each label in `A`, its type is a subset of the type of the same label in
     `B` (or equal to it):
@@ -323,6 +341,8 @@ hold:
     3.  The subsumption judgement correctly accounts for covariance and
         contravariance with function terms.
     4.  The subsumption judgement correctly accounts for constraints on types.
+    5.  A typeset that defines only fields may be subsumed by an atom unless it 
+        names a specific atom.
 
 As typesets are matched structurally, a typeset definition serves as both a type
 and an interface.
@@ -340,6 +360,11 @@ things to note about this hierarchy:
 
 - The 'top' type, that contains all typesets and atoms is `Any`.
 - The 'bottom' type, that contains no typesets or atoms is `Nothing`.
+
+> The actionables for this section are:
+> 
+> - How do we fit atoms into this?
+> - How do we represent IORefs/MVars as types?
 
 #### Typesets and Smart Constructors
 Enso defines the following operations on typesets that can be used to combine
@@ -446,19 +471,7 @@ Under the hood, typesets are based on GADT theory, and typing evidence is
 _always_ discharged through pattern matching. This feature will not, however,
 be available until we have a type-checker.
 
-> The actionables for this section are as follows:
->
-> - Determine what the nested `type Foo (a: t)` syntax actually means.
-> - How do you define functions on (or a constructor for) one of the sub type
->   definitions.
->
->   ```ruby
->   type Foo
->     type Bar value
->       fnOnBar : Bar -> Bool
->   ```
->
-> - Determine the exact details of how these definitions expand to typesets.
+`type Foo (a : t)` is syntax only allowable inside a type definition.
 
 #### Anonymous Typesets
 Given that typesets are unified structurally, it can often be very useful to
@@ -477,11 +490,6 @@ are of the form `name : type = default`, where the following rules apply:
 
 The reason that the version with only the type is useful is that it means that
 anonymous typesets subsume the uses for tuples.
-
-> The actionables for this section are as follows:
->
-> - Create examples of why anonymous typeset syntax is useful.
-> - Decide if we want to support anonymous typesets.
 
 #### Typeset Projections (Lenses)
 In order to work efficiently with typesets, we need the ability to seamlessly
@@ -553,6 +561,8 @@ main =
   p1 . at lens_name = ... # OK
 ```
 
+Lenses are generated for both atom fields and records.
+
 > Actionables for this section:
 >
 > - Work out whether standard optics theory with custom types is sufficient for
@@ -561,6 +571,7 @@ main =
 > - Determine how much of the above we can support without a type-checker. There
 >   are likely to be a lot of edge-cases, so it's important that we make sure we
 >   know how to get as much of it working as possible.
+> - How (if at all) do lenses differ for atoms and typesets?
 
 ##### Special Fields
 We also define special projections from typesets:
@@ -571,6 +582,9 @@ We also define special projections from typesets:
   `t.fieldByName s`.
 
 ### Implementing Interfaces
+Interface implementation in Enso is structural. Any type that subsumes a given
+interface is considered to match the type. 
+
 As typesets are matched structurally, types need not _explicitly_ implement
 interfaces (a form of static duck-typing). However, when defining a new type, we
 may _want_ to explicitly say that it defines an interface. This has two main
@@ -598,10 +612,6 @@ main =
     greet (V3 1 2 3)
     greet 8
 ```
-
-> The actionables for this section are:
->
-> - Work out what it means for an _atom_ to conform to an interface.
 
 #### Special Interfaces
 In order to aid usability we include a few special interfaces in the standard
@@ -744,7 +754,30 @@ unification. There are a few main ways you can pattern match:
 > The actionables for this section :
 >
 > - Refine the syntax for the name-based case
-> - Provide code examples for why the renaming use-case is important.
+> - Provide code examples for why the renaming use-case is important (e.g.
+>   cases where there are clashing field names).
+
+### Visibility and Access Modifiers
+While we don't usually like making things private in a programming language, it 
+sometimes the case that it is necessary to indicate that certain fields should
+not be touched (as this might break invariants and such like). To this end, we
+propose an explicit mechanism for access modification that works as follows:
+
+- We provide explicit access modifiers that, at the definition site, start an
+  indented block. These are `private` and `unsafe`.
+- All members in the block have the access modifier attributed to them.
+- By default, accessing any member under an access modifier will be an error.
+- To use members under an access modifier, you use the syntax `use <mod>`, where 
+  `<mod>` is a modifier. This syntax 'takes' an expression, including blocks,
+  within which the user may access members qualified by the modifier `<mod>`. 
+
+While `private` works as you might expect, coming from other languages, the
+`unsafe` annotation has additional restrictions:
+
+- It must be explicitly imported from `Std.Unsafe`.
+- When you use `unsafe`, you must write a documentation comment on its usage
+  that contains a section `Safety` that describes why this usage of unsafe is
+  valid.
 
 ## Dynamic Dispatch
 Enso is a language that supports pervasive dynamic dispatch. This is a big boon
@@ -1053,3 +1086,8 @@ The entry point for an Enso program is defined in a special top-level binding
 called `main` in the file `Main.enso`. However, we also provide for a scripting
 workflow in the form of `enso run`, which will look for a definition of `main`
 in the file it is provided.
+
+## General Open Questions
+This section contains a list of general open questions that we need to answer:
+
+- Drop-style trait?
