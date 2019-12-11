@@ -29,7 +29,7 @@ impl From<serde_json::error::Error> for Error {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[wasm_bindgen(module = "/pkg/scala-parser-fix.js")]
+#[wasm_bindgen(module = "/pkg/scala-parser.js")]
 extern "C" {
    #[wasm_bindgen(catch)]
    fn parse(input: String) -> std::result::Result<String, JsValue>;

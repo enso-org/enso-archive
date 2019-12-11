@@ -3,7 +3,7 @@ use std::io::prelude::*;
 use std::io::BufReader;
 
 const PARSER_PATH: &str = "../../target/scala-parser.js";
-const PARSER_PATH_FIX: &str = "pkg/scala-parser-fix.js";
+const PARSER_PATH_FIX: &str = "pkg/scala-parser.js";
 
 fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
     let buffered = BufReader::new(input);
@@ -17,10 +17,10 @@ fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
 /* fixes a scalajs bug https://github.com/scala-js/scala-js/issues/3677/ */
 fn scalajs_fix() -> std::io::Result<()>   {
     let original = File::open(PARSER_PATH)
-          .expect(&format!("{} {}", "There should be file", PARSER_PATH));
+          .expect("Could not find file enso/common/target/scala-parser.js");
     create_dir_all("pkg/").expect("Could not create file /pkg/");
     let fixed = File::create(PARSER_PATH_FIX)
-          .expect(&format!("{} {}", "Could not create file ", PARSER_PATH_FIX));
+          .expect("Could not create file enso/common/rust/parser/pkg/scala-parser.js");
     prepend(original, fixed, "var __ScalaJSEnv = { global: window };")
 }
 fn main() -> std::io::Result<()>  {
