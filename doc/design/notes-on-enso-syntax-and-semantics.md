@@ -36,7 +36,8 @@ documents.
   - [Multiple Dispatch](#multiple-dispatch)
     - [Overlappable Functions](#overlappable-functions)
   - [First-Class Modules](#first-class-modules)
-    - [Self-Initialisation and Qualified Access](#self-initialisation-and-qualified-access)
+    - [Thinking About Modules](#thinking-about-modules)
+    - [Imports](#imports)
 - [Broken Values](#broken-values)
 - [Function Composition](#function-composition)
 - [Dynamic](#dynamic)
@@ -99,10 +100,6 @@ for type/in-scope usage:
   from context, the above distinction is used, with the second binding from
   the open context.
 - Mixfix definitions use a 'separated' snake case (e.g. `if c _then a _else b`).
-
-> The actionables for this are as follows:
->
-> - Revisit this tomorrow morning to confirm the decision.
 
 ### High-Level Syntax and Semantic Notes
 While the majority of syntactic design for the language has utilised top-level
@@ -513,7 +510,6 @@ type Engine
     power:   Int
     is_blue: Bool
 
-
 type Vehicle
   type Car
     color:     String
@@ -523,12 +519,10 @@ type Vehicle
   type Bike
     color: String
 
-
 type Person
   type Cons
     name:    String
     vehicle: Vehicle
-
 
 main =
   p1 = Person.Cons "Joe" (Vehicle.Car 'pink' 300 (Engine.Combustion 500 8))
@@ -659,7 +653,7 @@ conversion between a type `a` and a type `b`.
 
 ```ruby
 Convertible t
-  to : t
+  to : t -> t
 ```
 
 There are a few key points of this design that must be considered carefully:
@@ -700,10 +694,14 @@ main =
     test (Vector.V3 1 2 3) # OK, prints 'I got the magic value 6'.
 ```
 
-> The actionables for this section are:
->
-> - Work out how much of this interface can be supported without a type checker
->   and type inference engine.
+ WRITE THIS
+In order to implement some version of this now, we have two potential solutions
+before we have a typechecker:
+
+- Only inserting conversions on the `this` argument.
+- Need the ability to expose the conversion, so you can see the additional 
+  (defaulted) parameters in the GUI.
+- The conversion types.
 
 ### Pattern Matching
 Pattern matching in Enso works similarly to as you would expect in various other
@@ -734,7 +732,7 @@ unification. There are a few main ways you can pattern match:
     ```
 
 3.  **Name Matching on Labels:** Matching on the labels defined within a type
-    for both atoms and typesets.
+    for both atoms and typesets, with renaming.
 
     ```ruby
     case v of
@@ -753,9 +751,10 @@ unification. There are a few main ways you can pattern match:
 
 > The actionables for this section :
 >
-> - Refine the syntax for the name-based case
+> - Refine the syntax for the name-based case.
 > - Provide code examples for why the renaming use-case is important (e.g.
 >   cases where there are clashing field names).
+> - Function-resolution matching.
 
 ### Visibility and Access Modifiers
 While we don't usually like making things private in a programming language, it 
@@ -788,6 +787,8 @@ The current implementation of Enso supports single dispatch (dispatch purely on
 the type of `self`), but there are broader visions afoot for the final
 implementation of dynamic dispatch in Enso.
 
+- Account for dyndispatch, but no decision has been made.
+
 > The actionables for this section include:
 >
 > - Determining whether we want to support proper multiple dispatch in the
@@ -796,10 +797,6 @@ implementation of dynamic dispatch in Enso.
 > - The definition of specificity for dispatch candidates (including how it
 >   interacts with the subsumption relationship on typesets and the ordering of
 >   arguments).
-> - Do we want to treat the module as an argument upon which dispatch can happen
->   or is it something else?
-> - Work out the whole self-initialization thing as Wojciech needs to think
->   about the problems with this system and uniformity / ambiguity.
 
 ### Multiple Dispatch
 It is an open question as to whether we want to support proper multiple dispatch
@@ -842,6 +839,8 @@ specification of the specificity algorithm. It must account for:
 If we want to support equivalents to multi-parameter type-classes in Haskell,
 then we need to support multiple dispatch globally, as our method dispatch is
 not opt-in (unlike typeclasses in Haskell).
+
+Leave this for later.
 
 #### Overlappable Functions
 Overlappable functions is a proposal for obtaining multiple-dispatch-style
@@ -895,50 +894,65 @@ how to handle this. There are two main ways to do this:
 
 - Unify the concept of modules with the concept of typesets, with some file
   scope magic to make this usable.
-- Make modules their own first-class entity.
+- Make modules their own entity (non-first-class as it's not needed - I think).
 
-#### Self-Initialisation and Qualified Access
-This is a proposal for how to handle qualified names and dispatching on the
-module as an entity at runtime. There are two proposed sets of rules that are
-intended to allow code like the example to work properly. They are both based on
-the following idea:
+#### Thinking About Modules
 
 ```ruby
-Int.inc                   = self + 1 ## is just a sugar to:
-inc (self:Int)            = self + 1 ## which is a sugar to:
-inc (module:A) (self:Int) = self + 1 ## which is the final form.
+## X.enso
+Number.succ = x -> x + 1
+
+type Maybe a
+  type Just a
+  Nothing
+
+  is_just : Maybe a -> Bool
+
+## Main.enso
+
+main = 
+  t1 = X.maybe Int
+  t2 = Maybe Int
+
+  # t1 ~ t2
+
+  a = X.succ 5
+  b = succ X 5
+
+  # a == b
 ```
 
-The first set of rules is as follows:
+#### Imports
 
-1.  When referenced in the same file `module` is applied automatically.
-2.  When used implicitly (e.g. `5.inc`), `module` is also applied.
-3.  When imported, like `import A` and used explicitly, the module is just an
-    argument (e.g. `x = A.inc 5` or `x = inc A 5`).
-4.  You are not allowed to define in a name multiple times (this precludes true
-    dynamic dispatch).
-
-The second set of rules is as follows:
-
-1.  When `inc` is provided with `A` explicitly, then it is passed as an
-    argument.
-2.  In other cases, `A` is passed automatically.
-3.  You are not allowed to define in a name multiple times (this precludes true
-    dynamic dispatch).
-
-The example code follows.
+Import takes a module path
 
 ```ruby
-## A.enso ##
-def inc (self:Int) = self + 1
-
-## B.enso ##
-import A
-print $ 5.inc
-print $ inc 5
-print $ A.inc 5
-print $ inc A 5
+import Std.Maybe
+import Std.Maybe as M
+import Std.Maybe only is_just nothing
+import Std.Maybe hiding is_just nothing if_then_else # space sep list
 ```
+
+Re-exports and transitivity:
+
+- Transitive imports no longer exist.
+- So we need the ability to re-export things:
+
+export need not export something in scope
+
+```ruby
+export X # everything in X
+export X as Y
+export X only is_just nothing
+export X hiding is_just nothing if_then_else
+```
+
+- Exports paste in place.
+- Exports that create name clashes must be resolved.
+
+Should we treat atoms as methods in this model???
+
+- Atoms and methods obey the same qualification rules (capital vs lower).
 
 ## Broken Values
 In Enso we have the notion of a 'broken' value: one which is in an invalid state
@@ -974,6 +988,7 @@ with an automatic propagation mechanism:
 >   broken values are more suited for.
 > - Ensure that we are okay with initially designing everything around async
 >   exceptions as broken values are very hard to support without a type checker.
+> - Initially not supported for APIs.
 
 ## Function Composition
 Enso introduces a function composition operator which composes functions after
@@ -1090,4 +1105,5 @@ in the file it is provided.
 ## General Open Questions
 This section contains a list of general open questions that we need to answer:
 
-- Drop-style trait?
+- Drop-style trait? Yes please! Init on GC, later on lexical lifetimes. Explicit
+  resource handling too.
