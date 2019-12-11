@@ -1,8 +1,8 @@
+#![cfg(target_arch = "wasm32")]
+
 use crate::{api, api::IsParser};
 use prelude::*;
 use wasm_bindgen::prelude::*;
-use js_sys::JSON;
-use crate::jsclient::Error::ScalaException;
 use crate::api::Error::{ParsingError, InteropError};
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -50,8 +50,8 @@ impl Client {
 impl IsParser for Client {
    fn parse(&mut self, _program: String) -> api::Result<api::Ast> {
       match parse(_program) {
-         Ok(json_ast) => Ok(json_ast),
-         Err(message) => Err(InteropError(Box::new(ScalaException()))),
+         Ok(json_ast) => Err(ParsingError(json_ast)),
+         Err(message) => Err(InteropError(Box::new(Error::ScalaException()))),
       }
    }
 }

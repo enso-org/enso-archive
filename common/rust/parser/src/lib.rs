@@ -8,7 +8,6 @@ mod wsclient;
 
 use std::panic;
 use std::ops::DerefMut;
-use wasm_bindgen::prelude::*;
 extern crate console_error_panic_hook;
 use crate::api::IsParser;
 

@@ -9,7 +9,7 @@ object Parse {
     @JSExportTopLevel("parse")
     def parse(input: String): String = {
       try {
-        new Parser().run(new Reader(input)).encodeShape().noSpacesSortKeys
+        new Parser().run(new Reader(input)).toJson().noSpacesSortKeys
       } catch {
         // FIXME We wrap the error message in JavaScriptException, so that javascript
         //  can display it. This is no longer needed in scalajs 1.0
