@@ -355,21 +355,21 @@ impl Fixture {
         });
     }
     fn deserialize_left(&mut self) {
-        self.test_shape("foo +",|shape:&SectLeft<Ast>| {
+        self.test_shape("foo +",|shape:&SectionLeft<Ast>| {
             assert_var(&shape.arg,"foo");
             assert_eq!(shape.off,1);
             assert_opr(&shape.opr,"+");
         });
     }
     fn deserialize_right(&mut self) {
-        self.test_shape("+ bar",|shape:&SectRight<Ast>| {
+        self.test_shape("+ bar",|shape:&SectionRight<Ast>| {
             assert_opr(&shape.opr,"+");
             assert_eq!(shape.off,1);
             assert_var(&shape.arg,"bar");
         });
     }
     fn deserialize_sides(&mut self) {
-        self.test_shape("+",|shape:&SectSides<Ast>| {
+        self.test_shape("+",|shape:&SectionSides<Ast>| {
             assert_opr(&shape.opr,"+");
         });
     }

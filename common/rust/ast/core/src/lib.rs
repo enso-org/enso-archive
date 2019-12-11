@@ -271,11 +271,11 @@ impl<'de> Deserialize<'de> for Ast {
     TextUnclosed  { line   : TextLine<T>                      },
 
     // === Applications ===
-    Prefix    { func : T   , off  : usize , arg: T                          },
-    Infix     { larg : T   , loff : usize , opr: T , roff: usize , rarg: T  },
-    SectLeft  { arg  : T   , off  : usize , opr: T                          },
-    SectRight { opr  : T   , off  : usize , arg: T                          },
-    SectSides { opr  : T                                                    },
+    Prefix       { func : T,  off : usize, arg : T                         },
+    Infix        { larg : T, loff : usize, opr : T, roff : usize, rarg : T },
+    SectionLeft  {  arg : T,  off : usize, opr : T                         },
+    SectionRight {                         opr : T,  off : usize,  arg : T },
+    SectionSides {                         opr : T                         },
 
     // === Module ===
     Module    { lines       : Vec<BlockLine<Option<T>>>  },
