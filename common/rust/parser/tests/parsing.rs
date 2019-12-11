@@ -56,7 +56,7 @@ trait ExpectTuple<T> {
 }
 
 // === Implementations ===
-// TODO: boilerplate below should be generated with macro
+// TODO [MWU] boilerplate below should be generated with macro
 
 impl<Collection:IntoIterator>
 ExpectTuple<(Collection::Item,)> for Collection {
