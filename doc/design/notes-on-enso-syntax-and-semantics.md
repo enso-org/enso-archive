@@ -44,7 +44,6 @@ documents.
   - [The Enso Boundary](#the-enso-boundary)
   - [An Insufficient Design For Dynamic](#an-insufficient-design-for-dynamic)
 - [The Main Function](#the-main-function)
-- [General Open Questions](#general-open-questions)
 
 <!-- /MarkdownTOC -->
 
@@ -703,6 +702,44 @@ before we have a typechecker:
   (defaulted) parameters in the GUI.
 - The conversion types.
 
+##### Destruct
+While it is a common idiom in functional languages to implement the `bracket`
+pattern for acquiring and releasing resources, but this isn't such a good fit
+for a language where many users aren't going to be used to thinking about 
+resources. 
+
+Instead, we have the final of our special traits, called `Destruct`, defined as
+follows:
+
+```ruby
+type Destruct
+  destroy : This -> Nothing
+```
+
+For those coming from Rust, C++, or another language which uses the RAII
+principle, this should be a familiar sight. It works as follows:
+
+1.  All types automatically provide a trivial implementation for `destroy`. This
+    will recursively call the destructors of the type's members.
+2.  A type definition may provide a non-default implementation for `destroy`,
+    such that it implements more complex behaviour.
+3.  When a type goes out of scope, its `destroy` method is called, allowing it
+    to clean up any resources that it owns.
+
+Initially, going out of scope will be defined as the point at which the
+instance is garbage collected, while later, once we are able to perform more
+sophisticated analysis, it will instead be defined as the point at which the
+instance's lexical lifetime ends.
+
+It should be noted, however, that a type that implements an explicit `destroy` 
+method should still implement explicit methods for resource handling as lexical
+lifetimes are not always sufficient (e.g. a socket that you may want to close
+and re-open in the same block).
+
+> The actionables for this section are:
+> 
+> - Determine how this interacts with copying and moving.
+
 ### Pattern Matching
 Pattern matching in Enso works similarly to as you would expect in various other
 functional languages. Typing information is _always_ refined in the branches of
@@ -922,6 +959,8 @@ main =
   # a == b
 ```
 
+- `here` as an alias for the current module
+
 #### Imports
 
 Import takes a module path
@@ -938,7 +977,7 @@ Re-exports and transitivity:
 - Transitive imports no longer exist.
 - So we need the ability to re-export things:
 
-export need not export something in scope
+export may introduce the module it exports into scope
 
 ```ruby
 export X # everything in X
@@ -953,6 +992,15 @@ export X hiding is_just nothing if_then_else
 Should we treat atoms as methods in this model???
 
 - Atoms and methods obey the same qualification rules (capital vs lower).
+
+Module/member naming conflicts:
+
+- Calling a function with an uppercase letter instantiates all of its arguments
+  to free type variables.
+- Modules are not first class.
+- Where the module name clashes with a member contained in the module, the 
+  module is preferred. If you need the module you must import it qualified under
+  another name.
 
 ## Broken Values
 In Enso we have the notion of a 'broken' value: one which is in an invalid state
@@ -1101,9 +1149,3 @@ The entry point for an Enso program is defined in a special top-level binding
 called `main` in the file `Main.enso`. However, we also provide for a scripting
 workflow in the form of `enso run`, which will look for a definition of `main`
 in the file it is provided.
-
-## General Open Questions
-This section contains a list of general open questions that we need to answer:
-
-- Drop-style trait? Yes please! Init on GC, later on lexical lifetimes. Explicit
-  resource handling too.
