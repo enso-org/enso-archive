@@ -1,7 +1,6 @@
 use parser::Parser;
 use wasm_bindgen_test::{wasm_bindgen_test_configure, wasm_bindgen_test};
-use wasm_bindgen::prelude::*;
-use parser::api::Error::{ParsingError, InteropError};
+use parser::api::Error::ParsingError;
 
 wasm_bindgen_test_configure!(run_in_browser);
 

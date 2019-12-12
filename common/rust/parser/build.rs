@@ -1,7 +1,6 @@
-use std::fs::{File, create_dir_all};
+use std::fs::{File, create_dir_all, canonicalize};
 use std::io::prelude::*;
 use std::io::BufReader;
-use path_dsl::path;
 
 
 fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
@@ -15,10 +14,10 @@ fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
 
 /* fixes a scalajs bug https://github.com/scala-js/scala-js/issues/3677/ */
 fn scalajs_fix() -> std::io::Result<()> {
-    let root = path!(".." | ".." | "..");
-    let parser_path = path!( &root  | "target" | "scala-parser.js");
-    let pkg_path = path!(&root | "common" | "rust" | "parser" | "pkg");
-    let parser_path_fix = path!(&pkg_path | "scala-parser.js");
+    let root = canonicalize("../../..").expect("Couldn't get root of workspace.");
+    let parser_path = &root.join("target").join("scala-parser.js");
+    let pkg_path = &root.join("common").join("rust").join("parser").join("pkg");
+    let parser_path_fix = &pkg_path.join("scala-parser.js");
     
     let original = File::open(&parser_path)
           .expect(&format!("{} {}", "Could not find file ", parser_path.to_str().unwrap()));
