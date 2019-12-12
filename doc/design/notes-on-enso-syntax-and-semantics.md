@@ -205,9 +205,9 @@ print all the significant information about the value (e.g. locations, types,
 source information, etc).
 
 #### Reserved Names
-While we don't want to reserve names in the parser, as this would both 
+While we don't want to reserve names in the parser, as this would both
 complicate the task of the GUI and parser, we want to reserve a few names at the
-interpreter level as giving users the ability to redefine them would 
+interpreter level as giving users the ability to redefine them would
 significantly hinder the readability and consistency of Enso code. They are as
 follows:
 
@@ -255,7 +255,7 @@ The use-cases we have considered are as follows:
 | `[-,!]` | Dynamic metaprogramming to let users mutate program state at runtime (e.g. changing atom shapes, function definitions), also known as 'monkey patching'. This is not something we want in the language, but we do perhaps want the ability to do so on values of type `Dynamic`. |
 | `[M,H]` | 'Remembering' things when compiling a file, such as remembering all structures marked by an `AST` annotation. An example use case for a mechanism like this is to generate pattern matches for all possible `AST` types. This can be done by letting macros write to a per-file peristent block of storage that could be serialised during precompilation. |
 | `[M,H]` | Grouping of macros (e.g. `deriveAll = derive Ord Debug Show`). This can be easily handled by doing discovery on functions used as macros, and treating it as a macro as well. |
-| `[?,M]` | Method-missing magic, akin to ruby. This is likely able to be handled using other, existing language mechanisms. | 
+| `[?,M]` | Method-missing magic, akin to ruby. This is likely able to be handled using other, existing language mechanisms. |
 
 In summary and when considering the above use-cases, it seems that there is
 little need for top-level expression evaluation in Enso. We can support all of
@@ -337,7 +337,7 @@ hold:
     3.  The subsumption judgement correctly accounts for covariance and
         contravariance with function terms.
     4.  The subsumption judgement correctly accounts for constraints on types.
-    5.  A typeset that defines only fields may be subsumed by an atom unless it 
+    5.  A typeset that defines only fields may be subsumed by an atom unless it
         names a specific atom.
 
 As typesets are matched structurally, a typeset definition serves as both a type
@@ -358,7 +358,7 @@ things to note about this hierarchy:
 - The 'bottom' type, that contains no typesets or atoms is `Nothing`.
 
 > The actionables for this section are:
-> 
+>
 > - How do we fit atoms into this?
 > - How do we represent IORefs/MVars as types?
 
@@ -576,7 +576,7 @@ We also define special projections from typesets:
 
 ### Implementing Interfaces
 Interface implementation in Enso is structural. Any type that subsumes a given
-interface is considered to match the type. 
+interface is considered to match the type.
 
 As typesets are matched structurally, types need not _explicitly_ implement
 interfaces (a form of static duck-typing). However, when defining a new type, we
@@ -698,15 +698,15 @@ In order to implement some version of this now, we have two potential solutions
 before we have a typechecker:
 
 - Only inserting conversions on the `this` argument.
-- Need the ability to expose the conversion, so you can see the additional 
+- Need the ability to expose the conversion, so you can see the additional
   (defaulted) parameters in the GUI.
 - The conversion types.
 
 ##### Destruct
 While it is a common idiom in functional languages to implement the `bracket`
 pattern for acquiring and releasing resources, but this isn't such a good fit
-for a language where many users aren't going to be used to thinking about 
-resources. 
+for a language where many users aren't going to be used to thinking about
+resources.
 
 Instead, we have the final of our special traits, called `Destruct`, defined as
 follows:
@@ -731,13 +731,13 @@ instance is garbage collected, while later, once we are able to perform more
 sophisticated analysis, it will instead be defined as the point at which the
 instance's lexical lifetime ends.
 
-It should be noted, however, that a type that implements an explicit `destroy` 
+It should be noted, however, that a type that implements an explicit `destroy`
 method should still implement explicit methods for resource handling as lexical
 lifetimes are not always sufficient (e.g. a socket that you may want to close
 and re-open in the same block).
 
 > The actionables for this section are:
-> 
+>
 > - Determine how this interacts with copying and moving.
 
 ### Pattern Matching
@@ -794,7 +794,7 @@ unification. There are a few main ways you can pattern match:
 > - Function-resolution matching.
 
 ### Visibility and Access Modifiers
-While we don't usually like making things private in a programming language, it 
+While we don't usually like making things private in a programming language, it
 sometimes the case that it is necessary to indicate that certain fields should
 not be touched (as this might break invariants and such like). To this end, we
 propose an explicit mechanism for access modification that works as follows:
@@ -803,9 +803,9 @@ propose an explicit mechanism for access modification that works as follows:
   indented block. These are `private` and `unsafe`.
 - All members in the block have the access modifier attributed to them.
 - By default, accessing any member under an access modifier will be an error.
-- To use members under an access modifier, you use the syntax `use <mod>`, where 
+- To use members under an access modifier, you use the syntax `use <mod>`, where
   `<mod>` is a modifier. This syntax 'takes' an expression, including blocks,
-  within which the user may access members qualified by the modifier `<mod>`. 
+  within which the user may access members qualified by the modifier `<mod>`.
 
 While `private` works as you might expect, coming from other languages, the
 `unsafe` annotation has additional restrictions:
@@ -947,7 +947,7 @@ type Maybe a
 
 ## Main.enso
 
-main = 
+main =
   t1 = X.maybe Int
   t2 = Maybe Int
 
@@ -998,7 +998,7 @@ Module/member naming conflicts:
 - Calling a function with an uppercase letter instantiates all of its arguments
   to free type variables.
 - Modules are not first class.
-- Where the module name clashes with a member contained in the module, the 
+- Where the module name clashes with a member contained in the module, the
   module is preferred. If you need the module you must import it qualified under
   another name.
 

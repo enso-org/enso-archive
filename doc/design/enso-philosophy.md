@@ -1,4 +1,4 @@
-# Enso's Philosophy
+# Enso: Simplicity and Correctness
 Enso is a programming language unlike any that have come before it, a seamless
 blend of code and visual communication that can span organisations.
 
@@ -62,13 +62,13 @@ the file for both reading _and_ writing.
 This is the sensible, default, but it is made properly explicit by inclusion as
 a defaulted keyword argument to the function:
 
-```
+```ruby
 type File.Mode :
-    Read
-    Write
-    RW
-    Append
-    RWA
+    type Read
+    type Write
+    type RW
+    type Append
+    type RWA
 
 openHandle : File.Path -> File.Mode -> File.Handle
 openHandle path -> fileMode = RW -> ...
@@ -95,6 +95,6 @@ ensure that it doesn't balloon beyond control. As a result, every new feature
 that we contemplate adding to the language should advance these core tenets, and
 thereby ensure that it matches with the overall vision for Enso.
 
-We stick to the above principles when we're _building_ the compiler as well, 
-with code being liberally commented with need-to-know information, as well as 
-for clean and clear design documents to accompany it. 
+We stick to the above principles when we're _building_ the compiler as well,
+with code being liberally commented with need-to-know information, as well as
+for clean and clear design documents to accompany it.

@@ -118,14 +118,14 @@ both express thoughts and understand the existing logic, the faster and less
 error prone the whole software creation process is. Enso bases on a set of
 principles designed to keep the required cognitive effort low:
 
-1. **The textual and visual representations must play well with each other.**  
+1. **The textual and visual representations must play well with each other.**
    Both visual and textual representations are equivalently important, as the
    user is allowed to switch between them on demand. Moreover, the textual
    representation is an integral part of the visual one, in the form of
    expressions above nodes. Any functionality which does not fit both worlds at
    the same time will be rejected.
 2. **Simplicity and expressiveness are more important than design
-   minimalism.**  
+   minimalism.**
    Enso targets a broad range of domain experts, not necessarily professional
    developers. Thus it should be expressive, easy to understand, and reason
    about, yet it should never stand in a way of power users.
@@ -136,7 +136,7 @@ principles designed to keep the required cognitive effort low:
    more libraries with different, often incompatible approaches will appear. In
    the ideal world, a language would provide one and only one way to express
    intention and format source.
-4. **Type level syntax = value level syntax.**  
+4. **Type level syntax = value level syntax.**
    Enso type system is designed to be as expressive and as natural to use as
    rest of the code. We believe that the only true solution for next generation
    programming languages is a well designed dependent type system which will
@@ -148,13 +148,13 @@ principles designed to keep the required cognitive effort low:
    having special mechanisms to promote values between the namespaces, like
    prefixing value level data with apostrophe to bring it to type level and
    prevent name clash (see `-XDataKinds` in Haskell).
-5. **Small number of rules is better than large.**  
+5. **Small number of rules is better than large.**
    Any special case or syntactic rule has to be remembered by the user and
    consumes important cognitive power. On the other hand, the syntax can easily
    be oversimplified, which usually leads to complex, hard to understand errors.
    Usually it is preferred to choose a solution which does not introduce any new
    special cases.
-6. **Predictable performance and behavior.**  
+6. **Predictable performance and behavior.**
    Predictable performance and behavior is one of the most important principles
    which separates well designed languages from the bad designed ones. A
    language provides a predictable behavior when its user can write code which
@@ -166,7 +166,7 @@ principles designed to keep the required cognitive effort low:
    `func2 a = func1 a` to `func2 = func1`
    [can affect performance](https://gitlab.haskell.org/ghc/ghc/issues/8099)
    which makes Haskell programs very hard to reason about.
-7. **Guidance is better than on-boarding.**  
+7. **Guidance is better than on-boarding.**
    In particular, it should provide guidance regarding possible next steps and
    human readable error messages.
 
@@ -232,7 +232,7 @@ In general, every indented line constitutes a sub-structure of the nearest
 previous line with a smaller indentation. We refer to them as child line and
 parent line, respectively. There are a few additional layout rules:
 
-- **Operator at the end of a parent line**  
+- **Operator at the end of a parent line**
   If a line ends with an operator then all of its child lines form a code block.
   Code blocks in Enso are a syntactic sugar for monadic bindings, you will
   learn about them in later chapters. The most common usage is a function
@@ -244,7 +244,7 @@ parent line, respectively. There are a few additional layout rules:
       print 'The sum is `sum`'
   ```
 
-* **Operator at the beginning of a child line**  
+* **Operator at the beginning of a child line**
   If all the children lines start with operators, they form a single expression,
   while the operators behave left associative with the lowest precedence level.
   In other words, every line forms a separate expression and the final
@@ -265,7 +265,7 @@ parent line, respectively. There are a few additional layout rules:
        * 1 + 2
   ```
 
-* **Otherwise**  
+* **Otherwise**
   In all other cases, every child line is considered to form a separate
   expression passed as an argument to the parent expression. The most common
   usage is to split long expressions to multiple lines. The following example
@@ -1147,17 +1147,17 @@ Enso allows you to define new types by combining existing ones into so called
 [algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). There
 are several algebraic operations on types available:
 
-- **Intersection**  
+- **Intersection**
   A type intersection combines multiple types into one type that has all the
   features combined. For example, `Serializable & Showable` describes values
   that provide mechanisms for both serialization and printing.
 
-- **Difference**  
+- **Difference**
   A type difference combines multiple types into one type that has all the
   features of the first type but not the features of the second one. For
   example, `Int \ Negative` describes all positive integer values or zero.
 
-- **Union**  
+- **Union**
   A type union combines multiple types into one type that describes a value
   being of one of the types. For example, `Int | String` describes values that
   are either `Int` or `String`.
@@ -1446,13 +1446,13 @@ what type to infer by looking only at the variable definitions. The expression
 `fib 10` could be typed as `55`, `Int` or `Any`, `Int`, to mention a few. The
 way we type it depends on two factors:
 
-- **The optimizations we want to perform**  
+- **The optimizations we want to perform**
   The performance implications are obvious. By computing the value during
   compilation, we do not have to compute it during runtime anymore. On the other
   side, compile time function evaluation is often costly, so such optimization
   opportunities should always be chosen carefully.
 
-- **The information we need to prove correctness of the program**  
+- **The information we need to prove correctness of the program**
   In a case we drop the results, like `print $ const 10 (fib 10)`, it's
   completely OK to stop the type checking process on assuming that the type of
   `fib 10` is just any type, or to be more precise, a `fib 10` itself. Its value
@@ -1467,12 +1467,12 @@ Enso was designed in a way to minimize the need for explicit type signatures.
 However, you are always free to provide one to check your assumptions regarding
 the types. There are two major ways explicit type signatures are used in Enso:
 
-- **Explicit type constraints**  
+- **Explicit type constraints**
   Explicit type signatures in type and function definitions constrain the
   possible value set. For example, you will not be allowed to pass a text to a
   function provided with an explicit type `fn : Int -> Int`.
 
-- **Explicit type checks**  
+- **Explicit type checks**
   Explicit type signatures in other places in the code are used as type checks.
   If you type your variable as `Number`, it does not mean that Enso will forget
   the other information inferred so far. It will always check if the signature
@@ -2612,7 +2612,7 @@ test check =
     print px.length
 ```
 
-**Bonus question**  
+**Bonus question**
 What is the most concrete type of the `px` variable above if we do not have any
 information about the value of `check`? The answer is of course
 `px : (Point 1 2 3 | Point 4 5 6)`, which is a sub type of the type
@@ -2626,10 +2626,10 @@ programming languages, their module system provides a mechanism for code-reuse
 through grouping and namespacing. Indeed, Enso's types provide both of these
 functionalities:
 
-- **Grouping of Code**  
+- **Grouping of Code**
   A `type` declaration acts as a container for code, with functions able to be
   declared in its scope.
-- **Namespacing**  
+- **Namespacing**
   Unless otherwise declared (through a direct import statement), a `type` in
   Enso also provides a namespace to constructs declared inside its scope.
 
@@ -2717,14 +2717,14 @@ to do so. (TODO: Explain why. What bad would happen otherwise?)
 You can explicitly implement an interface in two ways. Examples of both can be
 found at the end of the section.
 
-1. **Implementation on the Type**  
+1. **Implementation on the Type**
    Interfaces can be directly implemented as part of the type's definition. In
    this case the type header is annotated with `: InterfaceName` (and filled
    type parameters as appropriate). The interface can then be used (if it has a
    default implementation), or the implementation can be provided in the type
    body.
 
-2. **Standalone Implementation:**  
+2. **Standalone Implementation:**
    Interfaces can be implemented for types in a standalone implementation block.
    These take the form of `instance Interface for Type`, with any type
    parameters filled appropriately.
