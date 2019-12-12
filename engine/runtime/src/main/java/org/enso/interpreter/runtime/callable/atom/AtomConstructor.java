@@ -68,7 +68,7 @@ public class AtomConstructor implements TruffleObject {
         new ClosureRootNode(
             null,
             new LocalScope(),
-            new ModuleScope(),
+            definitionScope,
             instantiateNode,
             null,
             "<constructor>:" + name);

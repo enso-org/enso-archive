@@ -1,14 +1,20 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.interop.InteropLibrary;
+import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.library.ExportLibrary;
+import com.oracle.truffle.api.library.ExportMessage;
+import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 import java.util.*;
 
 /** A representation of Enso's per-file top-level scope. */
-public class ModuleScope {
-
+@ExportLibrary(InteropLibrary.class)
+public class ModuleScope implements TruffleObject {
+  private final AtomConstructor associatedType;
   private final Map<String, AtomConstructor> constructors = new HashMap<>();
   private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private final Map<String, Function> anyMethods = new HashMap<>();
@@ -16,6 +22,10 @@ public class ModuleScope {
   private final Map<String, Function> functionMethods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
   private final Set<ModuleScope> transitiveImports = new HashSet<>();
+
+  public ModuleScope(String name) {
+    associatedType = new AtomConstructor(name, this).initializeFields();
+  }
 
   /**
    * Adds an Atom constructor definition to the module scope.
@@ -33,11 +43,15 @@ public class ModuleScope {
    * @return the Atom constructor associated with {@code name}, or {@link Optional#empty()}
    */
   public Optional<AtomConstructor> getConstructor(String name) {
+    if (associatedType.getName().equals(name)) {
+      return Optional.of(associatedType);
+    }
     Optional<AtomConstructor> locallyDefined = Optional.ofNullable(this.constructors.get(name));
     if (locallyDefined.isPresent()) return locallyDefined;
     return imports.stream()
-        .map(scope -> scope.constructors.get(name))
-        .filter(Objects::nonNull)
+        .map(scope -> scope.getConstructor(name))
+        .filter(Optional::isPresent)
+        .map(Optional::get)
         .findFirst();
   }
 
@@ -234,5 +248,45 @@ public class ModuleScope {
     imports.add(scope);
     transitiveImports.add(scope);
     transitiveImports.addAll(scope.getTransitiveImports());
+  }
+
+  private static final String ASSOCIATED_CONSTRUCTOR_KEY = "associated_constructor";
+  private static final String METHODS_KEY = "get_method";
+
+  @ExportMessage
+  public Object invokeMember(String member, Object... arguments) {
+    if (member.equals(METHODS_KEY)) {
+      AtomConstructor c = (AtomConstructor) arguments[0];
+      String name = (String) arguments[1];
+      return methods.get(c).get(name);
+    } else return null;
+  }
+
+  @ExportMessage
+  public Object readMember(String member) {
+    if (member.equals(ASSOCIATED_CONSTRUCTOR_KEY)) {
+      return associatedType;
+    }
+    return null;
+  }
+
+  @ExportMessage
+  public boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  public boolean isMemberInvocable(String member) {
+    return member.equals(METHODS_KEY);
+  }
+
+  @ExportMessage
+  public Object getMembers(boolean includeInternal) {
+    return new TopScope.ModuleNamesArray(new String[] {METHODS_KEY, ASSOCIATED_CONSTRUCTOR_KEY});
+  }
+
+  @ExportMessage
+  public boolean isMemberReadable(String member) {
+    return member.equals(ASSOCIATED_CONSTRUCTOR_KEY);
   }
 }

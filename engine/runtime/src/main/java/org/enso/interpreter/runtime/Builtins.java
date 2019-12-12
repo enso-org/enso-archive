@@ -28,7 +28,7 @@ public class Builtins {
    * @param language the current {@link Language} instance
    */
   public Builtins(Language language) {
-    scope = new ModuleScope();
+    scope = new ModuleScope("Builtins");
     unit = new AtomConstructor("Unit", scope).initializeFields();
 
     AtomConstructor nil = new AtomConstructor("Nil", scope).initializeFields();

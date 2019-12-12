@@ -6,6 +6,7 @@ import org.enso.compiler.Compiler;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.interpreter.runtime.scope.TopScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
 import org.enso.pkg.SourceFile;
@@ -42,7 +43,6 @@ public class Context {
     this.builtins = new Builtins(language);
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
-    // TODO [MK] Replace getTruffleFile with getInternalTruffleFile when Graal 19.3.0 comes out.
     Map<String, Module> knownFiles =
         packagePaths.stream()
             .map(Package::fromDirectory)
@@ -52,13 +52,15 @@ public class Context {
             .flatMap(p -> ScalaConversions.asJava(p.listSources()).stream())
             .collect(
                 Collectors.toMap(
-                    SourceFile::qualifiedName,
+                    srcFile -> srcFile.qualifiedName().toString(),
                     srcFile ->
                         new Module(
+                            srcFile.qualifiedName(),
                             getEnvironment()
                                 .getInternalTruffleFile(srcFile.file().getAbsolutePath()))));
+    TopScope topScope = new TopScope(knownFiles);
 
-    this.compiler = new Compiler(this.language, knownFiles, this);
+    this.compiler = new Compiler(this.language, topScope, this);
   }
 
   /**
@@ -108,8 +110,8 @@ public class Context {
    *
    * @return a new module scope with automatic builtins dependency.
    */
-  public ModuleScope createScope() {
-    ModuleScope moduleScope = new ModuleScope();
+  public ModuleScope createScope(String name) {
+    ModuleScope moduleScope = new ModuleScope(name);
     moduleScope.addImport(getBuiltins().getScope());
     return moduleScope;
   }
