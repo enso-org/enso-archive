@@ -1,9 +1,8 @@
 use std::fs::{File, create_dir_all};
 use std::io::prelude::*;
 use std::io::BufReader;
+use path_dsl::path;
 
-const PARSER_PATH: &str = "../../target/scala-parser.js";
-const PARSER_PATH_FIX: &str = "pkg/scala-parser.js";
 
 fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
     let buffered = BufReader::new(input);
@@ -15,14 +14,22 @@ fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
 }
 
 /* fixes a scalajs bug https://github.com/scala-js/scala-js/issues/3677/ */
-fn scalajs_fix() -> std::io::Result<()>   {
-    let original = File::open(PARSER_PATH)
-          .expect("Could not find file enso/common/target/scala-parser.js");
-    create_dir_all("pkg/").expect("Could not create file /pkg/");
-    let fixed = File::create(PARSER_PATH_FIX)
-          .expect("Could not create file enso/common/rust/parser/pkg/scala-parser.js");
+fn scalajs_fix() -> std::io::Result<()> {
+    let root = path!(".." | ".." | "..");
+    let parser_path = path!( &root  | "target" | "scala-parser.js");
+    let pkg_path = path!(&root | "common" | "rust" | "parser" | "pkg");
+    let parser_path_fix = path!(&pkg_path | "scala-parser.js");
+    
+    let original = File::open(&parser_path)
+          .expect(&format!("{} {}", "Could not find file ", parser_path.to_str().unwrap()));
+    create_dir_all(&pkg_path)
+          .expect(&format!("{} {}", "Could not create file ", pkg_path.to_str().unwrap()));
+    let fixed = File::create(&parser_path_fix)
+          .expect(&format!("{} {}", "Could not create file ", parser_path_fix.to_str().unwrap()));
+    
     prepend(original, fixed, "var __ScalaJSEnv = { global: window };")
 }
+
 fn main() -> std::io::Result<()>  {
     scalajs_fix()?;
     Ok(())

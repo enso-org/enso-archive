@@ -33,6 +33,10 @@ impl From<serde_json::error::Error> for Error {
 extern "C" {
    #[wasm_bindgen(catch)]
    fn parse(input: String) -> std::result::Result<String, JsValue>;
+   #[wasm_bindgen(catch)]
+   #[wasm_bindgen(js_name = parseWithIDs)]
+   fn parse_with_IDs(input: String, ids: String)
+      -> std::result::Result<String, JsValue>;
 }
 
 /// Wrapper over the JS-compiled parser.

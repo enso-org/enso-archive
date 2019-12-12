@@ -16,4 +16,16 @@ object Parse {
         case e : Throwable => throw js.JavaScriptException(e.getMessage)
       }
     }
+
+    @JSExportTopLevel("parseWithIDs")
+    def parse(input: String, idsJSON: String): String = {
+      try {
+        val ids: Parser.IDMap = ??? // TODO [Josef] decode from JSON
+        new Parser().run(new Reader(input), ids).toJson().noSpacesSortKeys
+      } catch {
+        // FIXME We wrap the error message in JavaScriptException, so that javascript
+        //  can display it. This is no longer needed in scalajs 1.0
+        case e : Throwable => throw js.JavaScriptException(e.getMessage)
+      }
+    }
 }
