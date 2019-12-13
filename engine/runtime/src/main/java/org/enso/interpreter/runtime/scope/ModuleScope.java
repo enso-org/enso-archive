@@ -36,6 +36,10 @@ public class ModuleScope implements TruffleObject {
     constructors.put(constructor.getName(), constructor);
   }
 
+  public AtomConstructor getAssociatedType() {
+    return associatedType;
+  }
+
   /**
    * Looks up a constructor in the module scope.
    *

@@ -43,7 +43,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, scope: ModuleScope): Optional[Function] = {
+  def run(source: Source, scope: ModuleScope): Unit = {
     val expr: AstModuleScope = {
       val parsedAST: AST = parse(source)
       translate(parsedAST)
@@ -60,7 +60,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, scope: ModuleScope): Optional[Function] = {
+  def run(file: TruffleFile, scope: ModuleScope): Unit = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, scope)
   }
 
@@ -72,7 +72,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, moduleName: String): Optional[Function] = {
+  def run(source: Source, moduleName: String): Unit = {
     run(source, context.createScope(moduleName))
   }
 
@@ -84,7 +84,7 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, moduleName: String): Optional[Function] = {
+  def run(file: TruffleFile, moduleName: String): Unit = {
     run(Source.newBuilder(Constants.LANGUAGE_ID, file).build, moduleName)
   }
 

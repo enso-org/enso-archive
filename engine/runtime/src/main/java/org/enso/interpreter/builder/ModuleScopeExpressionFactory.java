@@ -52,8 +52,8 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    * @param expr the expression to execute on
    * @return a runtime node representing the top-level expression
    */
-  public Optional<Function> run(AstModuleScope expr) {
-    return expr.visit(this);
+  public void run(AstModuleScope expr) {
+    expr.visit(this);
   }
 
   /**
@@ -62,15 +62,13 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    * @param imports any imports requested by this module
    * @param typeDefs any type definitions defined in the global scope
    * @param bindings any bindings made in the global scope
-   * @param executableExpression the executable expression for the program
    * @return a runtime node representing the whole top-level program scope
    */
   @Override
-  public Optional<Function> visitModuleScope(
+  public void visitModuleScope(
       List<AstImport> imports,
       List<AstTypeDef> typeDefs,
-      List<AstMethodDef> bindings,
-      Optional<AstExpression> executableExpression) {
+      List<AstMethodDef> bindings) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
@@ -134,22 +132,5 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
         moduleScope.registerMethod(constructor, method.methodName(), function);
       }
     }
-
-    return executableExpression.map(this::wrapExecutableExpression);
-  }
-
-  private Function wrapExecutableExpression(AstExpression expr) {
-    LocalScope scope = new LocalScope();
-    String name = "executable_expression";
-    ExpressionFactory expressionFactory =
-        new ExpressionFactory(this.language, source, scope, name, moduleScope);
-    ExpressionNode expression = expressionFactory.run(expr);
-    SourceSection section =
-        expr.getLocation().map(loc -> source.createSection(loc.start(), loc.length())).orElse(null);
-    ClosureRootNode rootNode =
-        new ClosureRootNode(language, scope, moduleScope, expression, section, name);
-    RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(rootNode);
-    return new Function(
-        callTarget, null, new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP));
   }
 }

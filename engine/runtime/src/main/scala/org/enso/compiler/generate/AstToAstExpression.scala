@@ -98,29 +98,8 @@ object AstToAstExpression {
           case _                 => true
         }
 
-        val definitions = nonImportBlocks.takeWhile {
-          case AST.Def(_, _, _)                  => true
-          case AstView.MethodDefinition(_, _, _) => true
-          case _                                 => false
-        }
-
-        val executableExpressions = nonImportBlocks.drop(definitions.length)
-
-        val statements  = definitions.map(translateModuleSymbol)
-        val expressions = executableExpressions.map(translateExpression)
-        val block = expressions match {
-          case List()     => None
-          case List(expr) => Some(expr)
-          case _ =>
-            Some(
-              AstBlock(
-                Foldable[List].foldMap(expressions)(_.location),
-                expressions.dropRight(1),
-                expressions.last
-              )
-            )
-        }
-        core.AstModuleScope(imports, statements, block)
+        val statements = nonImportBlocks.map(translateModuleSymbol)
+        core.AstModuleScope(imports, statements)
       }
     }
   }

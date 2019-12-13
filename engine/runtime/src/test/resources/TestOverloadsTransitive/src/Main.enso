@@ -1,4 +1,4 @@
 import TestOverloadsTransitive.AtomDef
 import TestOverloadsTransitive.DummyModule
 
-X.method 1
+Main.main = X.method 1
