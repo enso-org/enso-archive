@@ -515,6 +515,13 @@ pub trait HasSpan {
 }
 
 /// Counts codepoints.
+impl HasSpan for char {
+    fn span(&self) -> usize {
+        1
+    }
+}
+
+/// Counts codepoints.
 impl HasSpan for String {
     fn span(&self) -> usize {
         self.as_str().span()
@@ -525,6 +532,25 @@ impl HasSpan for String {
 impl HasSpan for &str {
     fn span(&self) -> usize {
         self.chars().count()
+    }
+}
+
+impl<T: HasSpan> HasSpan for Option<T> {
+    fn span(&self) -> usize {
+        self.as_ref().map_or(0, |wrapped| wrapped.span())
+    }
+}
+
+impl<T: HasSpan> HasSpan for Vec<T> {
+    fn span(&self) -> usize {
+        let spans = self.iter().map(|elem| elem.span());
+        spans.sum()
+    }
+}
+
+impl<T: HasSpan> HasSpan for Rc<T> {
+    fn span(&self) -> usize {
+        self.deref().span()
     }
 }
 
@@ -581,9 +607,9 @@ pub struct WithSpan<T> {
     pub span: usize
 }
 
-impl<T> HasSpan for WithSpan<T> {
-    fn span(&self) -> usize { self.span }
-}
+//impl<T> HasSpan for WithSpan<T> {
+//    fn span(&self) -> usize { self.span }
+//}
 
 impl<T, S> Layer<T> for WithSpan<S>
 where T: HasSpan + Into<S> {
@@ -627,26 +653,6 @@ impl<T> Shape<T> {
         unimplemented!()
     }
 }
-
-impl<T> HasSpan for Shape<T> {
-    // TODO: sum spans of all members
-    //  as part of https://github.com/luna/enso/issues/338
-    fn span(&self) -> usize {
-        match self {
-            Shape::Var(var) => var.span(),
-            _               => 0,
-        }
-    }
-}
-
-// === Var ===
-
-impl HasSpan for Var {
-    fn span(&self) -> usize {
-        self.name.span()
-    }
-}
-
 
 // === Text Conversion Boilerplate ===
 // support for transitive conversions, like:
@@ -785,5 +791,405 @@ mod tests {
         let expected_var   = Var { name: var_name.into() };
         let expected_shape = Shape::from(expected_var);
         assert_eq!(*ast.shape(), expected_shape);
+    }
+}
+
+///////////////////////////////////
+
+impl Blank {
+    const REPR:char = '_';
+}
+impl Number {
+    const BASE_SEPARATOR:char = '_';
+}
+
+/// Symbol enclosing raw Text line.
+const RAW_QUOTE:char = '\'';
+
+/// Symbol enclosing formatted Text line.
+const FMT_QUOTE:char = '"';
+
+/// Symbol used to break lines in Text block.
+const NEWLINE  :char = '\n';
+
+impl TextBlockRaw {
+    const QUOTE:&'static str = "\"\"\"";
+}
+impl<T> TextBlockFmt<T> {
+    const QUOTE:&'static str = "'''";
+}
+
+///////////////////////////////////
+
+/// Not an instance of `HasSpan`, as it needs to know parent block's offset.
+impl<T: HasSpan> TextBlockLine<T> {
+    fn span(&self, block_offset: usize) -> usize {
+        let line_count              = self.empty_lines.len() + 1;
+        let empty_lines_space:usize = self.empty_lines.iter().sum();
+        let line_breaks             = line_count * NEWLINE.span();
+        empty_lines_space + line_breaks + block_offset + self.text.span()
+    }
+}
+///////////////////////////////////
+
+impl<T: HasSpan> HasSpan for TextLine<T> {
+    fn span(&self) -> usize {
+        match self {
+            TextLine::TextLineRaw(val) => val.span(),
+            TextLine::TextLineFmt(val) => val.span(),
+        }
+    }
+}
+
+////
+
+impl HasSpan for Empty {
+    fn span(&self) -> usize {
+        0
+    }
+}
+impl HasSpan for Letter {
+    fn span(&self) -> usize {
+        self.char.span()
+    }
+}
+impl HasSpan for Space {
+    fn span(&self) -> usize {
+        self.span
+    }
+}
+impl HasSpan for Text {
+    fn span(&self) -> usize {
+        self.str.span()
+    }
+}
+impl HasSpan for Seq {
+    fn span(&self) -> usize {
+        self.first.span() + self.second.span()
+    }
+}
+// just dispatch
+impl HasSpan for Builder {
+    fn span(&self) -> usize {
+        match self {
+            Builder::Empty (val) => val.span(),
+            Builder::Letter(val) => val.span(),
+            Builder::Space (val) => val.span(),
+            Builder::Text  (val) => val.span(),
+            Builder::Seq   (val) => val.span(),
+        }
+    }
+}
+
+///////////////////////////////////////
+
+
+// === RawEscape ===
+impl HasSpan for Unfinished {
+    fn span(&self) -> usize {
+        0
+    }
+}
+impl HasSpan for Invalid {
+    fn span(&self) -> usize {
+        self.str.span()
+    }
+}
+impl HasSpan for Slash {
+    fn span(&self) -> usize {
+        1
+    }
+}
+impl HasSpan for Quote {
+        fn span(&self) -> usize {
+        1
+    }
+}
+impl HasSpan for RawQuote {
+    fn span(&self) -> usize {
+        1
+    }
+}
+
+impl HasSpan for RawEscape {
+    fn span(&self) -> usize {
+        match self {
+            RawEscape::Unfinished(val) => val.span(),
+            RawEscape::Invalid   (val) => val.span(),
+            RawEscape::Slash     (val) => val.span(),
+            RawEscape::Quote     (val) => val.span(),
+            RawEscape::RawQuote  (val) => val.span(),
+        }
+    }
+}
+
+///////////////////////////
+
+impl HasSpan for SegmentPlain {
+    fn span(&self) -> usize {
+        self.value.span()
+    }
+}
+impl HasSpan for SegmentRawEscape {
+    fn span(&self) -> usize {
+        self.code.span() + 1 // FIXME
+    }
+}
+impl HasSpan for SegmentRaw {
+    fn span(&self) -> usize {
+        match self {
+            SegmentRaw::SegmentPlain    (val) => val.span(),
+            SegmentRaw::SegmentRawEscape(val) => val.span(),
+        }
+    }
+}
+
+////////////////////////////////////
+
+impl<T: HasSpan> HasSpan for BlockLine<T> {
+    fn span(&self) -> usize {
+        self.elem.span() + self.off
+    }
+}
+
+////////////////////////////////////
+
+impl<T: HasSpan> HasSpan for SegmentExpr<T> {
+    fn span(&self) -> usize {
+        self.value.span() + 2 // FIXME
+    }
+}
+impl HasSpan for SegmentEscape {
+    fn span(&self) -> usize {
+        self.code.span() + 1 // FIXME
+    }
+}
+impl<T: HasSpan> HasSpan for SegmentFmt<T> {
+    fn span(&self) -> usize {
+        match self {
+            SegmentFmt::SegmentPlain    (val) => val.span(),
+            SegmentFmt::SegmentRawEscape(val) => val.span(),
+            SegmentFmt::SegmentExpr     (val) => val.span(),
+            SegmentFmt::SegmentEscape   (val) => val.span(),
+        }
+    }
+}
+
+///////////////////////////////////
+// escape
+
+impl HasSpan for Escape {
+    fn span(&self) -> usize {
+        match self {
+            Escape::Character{c           } => 1 + c.span(), // FIXME
+            Escape::Control  {name  , code} => 1 + name.span(), // FIXME
+            Escape::Number   {digits      } => 1 + digits.span(), // FIXME
+            Escape::Unicode16{digits      } => 1 + digits.span(), // FIXME
+            Escape::Unicode21{digits      } => 1 + digits.span(), // FIXME
+            Escape::Unicode32{digits      } => 1 + digits.span(), // FIXME
+        }
+    }
+}
+
+////////////////////////
+
+impl HasSpan for Unrecognized {
+    fn span(&self) -> usize {
+        self.str.span()
+    }
+}
+//impl<T> HasSpan for Unexpected<T> {
+//    fn span(&self) -> usize {
+//        self.str.len()
+//    }
+//}
+
+impl HasSpan for InvalidQuote {
+    fn span(&self) -> usize {
+        self.quote.span()
+    }
+}
+impl HasSpan for InlineBlock {
+    fn span(&self) -> usize {
+        self.quote.span()
+    }
+}
+impl HasSpan for Blank {
+    fn span(&self) -> usize {
+        Blank::REPR.span()
+    }
+}
+impl HasSpan for Var {
+    fn span(&self) -> usize {
+        self.name.span()
+    }
+}
+impl HasSpan for Cons {
+    fn span(&self) -> usize {
+        self.name.span()
+    }
+}
+impl HasSpan for Opr {
+    fn span(&self) -> usize {
+        self.name.span()
+    }
+}
+impl HasSpan for Mod {
+    fn span(&self) -> usize {
+        self.name.span() + 1 // FIXME
+    }
+}
+impl<T: HasSpan> HasSpan for InvalidSuffix<T> {
+    fn span(&self) -> usize {
+        self.elem.span() + self.suffix.span()
+    }
+}
+impl HasSpan for Number {
+    fn span(&self) -> usize {
+        let base_span = match &self.base {
+            Some(base) => base.span() + Number::BASE_SEPARATOR.span(),
+            None       => 0,
+        };
+        base_span + self.int.span()
+    }
+}
+impl HasSpan for TextLineRaw {
+    fn span(&self) -> usize {
+        2 * RAW_QUOTE.span() + self.text.span()
+    }
+}
+impl<T: HasSpan> HasSpan for TextLineFmt<T> {
+    fn span(&self) -> usize {
+        2 * RAW_QUOTE.span() + self.text.span()
+    }
+}
+impl HasSpan for TextBlockRaw {
+    fn span(&self) -> usize {
+        let lines            =  self.text.iter();
+        let line_spans       = lines.map(|line| line.span(self.offset));
+        let lines_span:usize = line_spans.sum();
+        TextBlockRaw::QUOTE.span() + self.spaces
+    }
+}
+impl<T: HasSpan> HasSpan for TextBlockFmt<T> {
+    fn span(&self) -> usize {
+        let lines            =  self.text.iter();
+        let line_spans       = lines.map(|line| line.span(self.offset));
+        let lines_span:usize = line_spans.sum();
+        TextBlockFmt::<T>::QUOTE.span() + self.spaces
+    }
+}
+impl<T: HasSpan> HasSpan for TextUnclosed<T> {
+    fn span(&self) -> usize {
+        self.line.span() - 1 // FIXME
+    }
+}
+impl<T: HasSpan> HasSpan for Prefix<T> {
+    fn span(&self) -> usize {
+        let func = self.func.span();
+        let arg  = self.arg.span();
+        func + self.off + arg
+    }
+}
+impl<T: HasSpan> HasSpan for Infix<T> {
+    fn span(&self) -> usize {
+        self.larg.span() + self.loff + self.opr.span() + self.roff +
+            self.rarg.span()
+    }
+}
+impl<T: HasSpan> HasSpan for SectionLeft<T> {
+    fn span(&self) -> usize {
+        self.arg.span() + self.off + self.opr.span()
+    }
+}
+impl<T: HasSpan> HasSpan for SectionRight<T> {
+    fn span(&self) -> usize {
+        self.opr.span() + self.off + self.arg.span()
+    }
+}
+impl<T: HasSpan> HasSpan for SectionSides<T> {
+    fn span(&self) -> usize {
+        self.opr.span()
+    }
+}
+impl<T: HasSpan> HasSpan for Module<T> {
+    fn span(&self) -> usize {
+        assert!(self.lines.len() > 0);
+        let break_count = self.lines.len() - 1;
+        let breaks_span = break_count * NEWLINE.span();
+        let lines_span = self.lines.span();
+        lines_span + breaks_span
+    }
+}
+impl<T: HasSpan> HasSpan for Block<T> {
+    fn span(&self) -> usize {
+        let line_span = |line:&BlockLine<Option<T>>| {
+            let indent = line.elem.as_ref().map_or(0, |_| self.indent);
+            NEWLINE.span() + indent + line.span()
+        };
+
+        let head_span         = if self.is_orphan { 0 } else { 1 };
+        let empty_lines       = self.empty_lines.iter();
+        let empty_lines:usize = empty_lines.map(|line| line + 1).sum();
+        let first_line        = self.indent + self.first_line.span();
+        let lines      :usize = self.lines.iter().map(line_span).sum();
+        head_span + empty_lines + first_line + lines
+    }
+}
+//impl<T: HasSpan> HasSpan for Match<T> {
+//    fn span(&self) -> usize {
+//        self.pfx.span() + self.sets.span()
+//    }
+//}
+
+impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
+    fn span(&self) -> usize {
+        0
+        //self.pfx.span() + self.sets.span()
+    }
+}
+
+
+impl<T: HasSpan> HasSpan for Shape<T> {
+    fn span(&self) -> usize {
+        match self {
+            // TODO: ? Shape::Unexpected
+            Shape::Unrecognized (val) => val.span(),
+            Shape::InvalidQuote (val) => val.span(),
+            Shape::InlineBlock  (val) => val.span(),
+            Shape::Blank        (val) => val.span(),
+            Shape::Var          (val) => val.span(),
+            Shape::Cons         (val) => val.span(),
+            Shape::Opr          (val) => val.span(),
+            Shape::Mod          (val) => val.span(),
+            Shape::InvalidSuffix(val) => val.span(),
+            Shape::Number       (val) => val.span(),
+            Shape::TextLineRaw  (val) => val.span(),
+            Shape::TextLineFmt  (val) => val.span(),
+            Shape::TextBlockRaw (val) => val.span(),
+            Shape::TextBlockFmt (val) => val.span(),
+            Shape::TextUnclosed (val) => val.span(),
+            Shape::Prefix       (val) => val.span(),
+            Shape::Infix        (val) => val.span(),
+            Shape::SectionLeft  (val) => val.span(),
+            Shape::SectionRight (val) => val.span(),
+            Shape::SectionSides (val) => val.span(),
+            Shape::Module       (val) => val.span(),
+            Shape::Block        (val) => val.span(),
+            _ => 0,
+        }
+//        Match     { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
+//            , segs     : ShiftedVec1<MacroMatchSegment<T>>
+//            , resolved : Ast                                     },
+//        Ambiguous { segs     : ShiftedVec1<MacroAmbiguousSegment>
+//            , paths    : Tree<Ast, Unit>                         },
+//
+//        // === Spaceless AST ===
+//        Comment   (Comment),
+//        Import    (Import<T>),
+//        Mixfix    (Mixfix<T>),
+//        Group     (Group<T>),
+//        Def       (Def<T>),
+//        Foreign   (Foreign),
     }
 }

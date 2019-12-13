@@ -112,7 +112,14 @@ impl Fixture {
 
     /// Runs parser on given input, panics on any error.
     fn parse(&mut self, program:&str) -> Ast {
-        self.0.parse(program.into()).unwrap()
+        let ast = self.0.parse(program.into()).unwrap();
+        println!("{:?}", ast);
+        let shape: &Shape<Ast> = &ast.wrapped.wrapped.wrapped;
+        let span = shape.span();
+        assert_eq!(shape.span(), ast.span(), "{}", program);
+        assert_eq!(shape.span(), program.len(), "{}", program);
+        println!("{}", program);
+        ast
     }
 
     /// Program is expected to be single line module. The line's AST is
@@ -455,6 +462,11 @@ impl Fixture {
         self.deserialize_macro_matches();
         self.deserialize_macro_ambiguous();
     }
+}
+
+#[test]
+fn ffff() {
+    let ast = Fixture::new().parse("'a''");
 }
 
 /// A single entry point for all the tests here using external parser.
