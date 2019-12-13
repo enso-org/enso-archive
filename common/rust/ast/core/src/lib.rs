@@ -342,7 +342,7 @@ pub enum Builder {
     SegmentPlain    (SegmentPlain    ),
     SegmentRawEscape(SegmentRawEscape),
     SegmentExpr     (SegmentExpr<T>  ),
-    SegmentEscape   (SegmentEscape),
+    SegmentEscape   (SegmentEscape   ),
 }
 
 #[ast_node] pub struct SegmentPlain     { pub value: String    }
