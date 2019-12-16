@@ -1,6 +1,12 @@
 # Enso: The Syntax
 When working with a programming language, the syntax is the first thing that a
-developer encounters, 
+user encounters. This makes it _utterly integral_ to how users experience the 
+language, and, in the case of Enso, the tool as a whole.
+
+Enso is a truly novel programming language in that it doesn't have _one_ syntax,
+but instead has two. These syntaxes are dual: visual and textual. Both are 
+first-class, and are truly equivalent ways to represent and manipulate the
+program.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
