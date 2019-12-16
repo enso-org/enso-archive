@@ -817,12 +817,11 @@ mod tests {
         let to_string = |ast:&Ast| { match ast.shape() {
             Shape::Var(var)   => var.name   .clone(),
             Shape::Opr(opr)   => opr.name   .clone(),
-            Shape::Infix(_)   => "«infix»"  .to_string(),
             _                 => "«invalid»".to_string(),
         }};
 
         let infix   = Ast::infix("foo", "+", "bar");
-        let strings = infix.iter_recursive().map(to_string);
+        let strings = infix.iter().map(to_string);
         let strings = strings.collect::<Vec<_>>();
 
         let assert_contains = |searched:&str| {
@@ -831,6 +830,6 @@ mod tests {
         assert_contains("foo");
         assert_contains("bar");
         assert_contains("+");
-        assert_contains("«infix»");
+        assert_eq!(strings.len(), 3);
     }
 }
