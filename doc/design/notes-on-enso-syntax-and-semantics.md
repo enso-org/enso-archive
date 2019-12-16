@@ -224,6 +224,7 @@ follows:
   to the operation of control flow in the language.
 - `this`:  This reserved name is the one used to refer to the enclosing type in
   a method or type definition.
+- `here`: This reserved name is the one used to refer to the enclosing module.
 
 Many of these reserved words are implemented as macros in the parser, but these
 macros should always be in scope and not be able to be overridden.

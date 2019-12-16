@@ -1,13 +1,4 @@
-___
-- **Feature Name:** Type System
-- **Start Date:** 2018-06-26
-- **Change Type:** Breaking
-- **RFC Dependencies:** Syntax Overhaul
-- **RFC PR:**
-- **Enso Issue:**
-- **Implemented:**
-
-# Summary
+# Enso: The Type System
 On the spectrum of programming type systems ranging from dynamically typed to
 statically typed, one likes to think that there is a happy medium between the
 two. A language that _feels_ dynamic, with high levels of type inference, but
@@ -995,6 +986,7 @@ Enso a dependently typed language, as arbitrary values can appear in types.
   automating the proof steps (c.f. f-star), or interactive theorem proving.
 - While this allows people to express safety guarantees in the type system, it
   is a natural consequence of Enso's design.
+- The ability to run arbitrary code at the type level.
 
 # Steps
 

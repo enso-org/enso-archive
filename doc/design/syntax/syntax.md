@@ -1,174 +1,76 @@
-# Enso: Simplicity and Correctness
+# Enso: The Syntax
+When working with a programming language, the syntax is the first thing that a
+developer encounters, 
 
-Enso is an award winning, general purpose, purely functional programming
-language with a double visual and textual representations and a very expressive,
-dependent type system. Enso was designed to be easy to use and reason about. It
-was equipped with a novel type system which automatically limits the possible
-human errors significantly and thus drastically improves the quality of the
-final solution. Enso is intended to be a production language, not a research
-one, and so, the design avoids including new and untested features in its main
-development branch.
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-From the technical point of view, Enso incorporates many recent innovations in
-programming language design. It provides higher-order functions, strict and
-non-strict semantics, first-class algebraic data types, and a novel type system,
-which merges the worlds of dependent types and refinement types under a single
-umbrella. Enso is both the culmination and solidification of many years of
-research on functional languages and proof assistants, such as Haskell, Idris,
-Agda, or Liquid Haskell.
+- [Encoding](#encoding)
+- [Layout rules](#layout-rules)
+  - [Maximum Line Length](#maximum-line-length)
+  - [Indentation Blocks](#indentation-blocks)
+- [Naming Rules](#naming-rules)
+- [Type Signatures](#type-signatures)
+- [Bringing Variables to Scope](#bringing-variables-to-scope)
+- [To Be Described](#to-be-described)
+- [Creating and Using Functions](#creating-and-using-functions)
+- [Function Type](#function-type)
+- [Code Blocks](#code-blocks)
+- [Uniform Calling Syntax \(UCS\)](#uniform-calling-syntax-ucs)
+- [Operators](#operators)
+  - [Precedence](#precedence)
+  - [Sections](#sections)
+- [Mixfix Functions](#mixfix-functions)
+- [Arguments](#arguments)
+  - [Named Arguments](#named-arguments)
+  - [Default Arguments](#default-arguments)
+  - [Positional Arguments](#positional-arguments)
+  - [Optional Arguments](#optional-arguments)
+  - [Splats Arguments](#splats-arguments)
+- [Variable Scoping](#variable-scoping)
+  - [Type Applications](#type-applications)
+  - [Open Questions](#open-questions)
+- [](#)
+- [Constructor Types](#constructor-types)
+- [Algebraic Data Types](#algebraic-data-types)
+  - [Syntax sugar](#syntax-sugar)
+  - [To Be Described](#to-be-described-1)
+- [Data Types as Values](#data-types-as-values)
+- [Interfaces](#interfaces)
+- [Field Modifiers](#field-modifiers)
+- [Prisms](#prisms)
+  - [Ordered Lists](#ordered-lists)
+- [Explicit type signatures](#explicit-type-signatures)
+  - [Simplified Type Signatures](#simplified-type-signatures)
+- [Record Types](#record-types)
+- [Dynamic access](#dynamic-access)
+- [Power and Simplicity](#power-and-simplicity)
+- [Another Example](#another-example)
+- [Type Resolution](#type-resolution)
+  - [Bigger Example \(to be finished\)](#bigger-example-to-be-finished)
+- [Autolifting functions to types](#autolifting-functions-to-types)
+  - [](#-1)
+- [Types. Unified Classes, Modules and Interfaces](#types-unified-classes-modules-and-interfaces)
+- [Type Signatures](#type-signatures-1)
+- [Types as Classes](#types-as-classes)
+  - [Constructors](#constructors)
+  - [Methods](#methods)
+  - [Constructors as types](#constructors-as-types)
+  - [Type combinators](#type-combinators)
+  - [Pattern matching](#pattern-matching)
+  - [Polymorphism](#polymorphism)
+  - [Generalized type definitions](#generalized-type-definitions)
+- [Types as Modules](#types-as-modules)
+  - [Files and modules](#files-and-modules)
+  - [Module Examples](#module-examples)
+- [Types as Interfaces](#types-as-interfaces)
+  - [Implementing Interfaces](#implementing-interfaces)
+- [Imports](#imports)
+  - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
+- [Anonymous Types](#anonymous-types)
+  - [Anonymous Types as Types](#anonymous-types-as-types)
+  - [Anonymous Types as Values](#anonymous-types-as-values)
 
-**Note [To be included somewhere]**: Enso is dependently typed because we can
-run arbitrary code on type-level.
-
-## Why a New Programming Language?
-
-Since the 1980s, the way programmers work and the tools they use have changed
-remarkably little. There is a small but growing chorus that worries the status
-quo is unsustainable. The problem is that programmers are having a hard time
-keeping up with their own creations. “Even very good programmers are struggling
-to make sense of the systems that they are working with,” says Chris Granger, a
-software developer who worked as a lead at Microsoft on Visual Studio.
-
-We believe that without a drastic change to how a software is created, the
-humanity is not able to progress to the next level. However, in contrast to many
-approaches to find the next generation human-computer interaction interface, we
-believe that the textual code should not be replaced, it should be enhanced
-instead. The same way as writing co-exists with speaking, there are use cases
-where the code is just more convenient than any other approach. To learn more
-about why we have created Enso, please refer to our
-[blog post about it](https://medium.com/@luna_language/luna-the-visual-way-to-create-software-c4db520d6d1e).
-
-## Software Correctness Matters
-
-In September 2007, Jean Bookout was driving on the highway with her best friend
-in a Toyota Camry when the accelerator seemed to get stuck. When she took her
-foot off the pedal, the car didn't slow down. She tried the brakes but they
-seemed to have lost their power. As she swerved toward an off-ramp going 50
-miles per hour, she pulled the emergency brake. The car left a skid mark 150
-feet long before running into an embankment by the side of the road. The
-passenger was killed. Bookout woke up in a hospital a month later.
-
-The incident was one of many in a nearly decade-long investigation into claims
-of so-called unintended acceleration in Toyota cars. Toyota blamed the incidents
-on poorly designed floor mats, “sticky” pedals, and driver error, but outsiders
-suspected that faulty software might be responsible. The National Highway
-Traffic Safety Administration enlisted software experts from NASA to perform an
-intensive review of Toyota’s code. After nearly 10 months, the NASA team hadn't
-found evidence that software was the cause—but said they couldn't prove it
-wasn't.
-
-It was during litigation of the Bookout accident that someone finally found a
-convincing connection. Michael Barr, an expert witness for the plaintiff, had a
-team of software experts spend 18 months with the Toyota code, picking up where
-NASA left off. Using the same model as the Camry involved in the accident,
-Barr’s team demonstrated that there were more than 10 million ways for key tasks
-on the on-board computer to fail, potentially leading to unintended
-acceleration. They showed that as little as a single bit flip could make a car
-run out of control.
-
-The above text is part of an amazing article
-[The Coming Software Apocalypse](https://www.theatlantic.com/technology/archive/2017/09/saving-the-world-from-code/540393/)
-by James Somers, we strongly encourage you to read it all in order to understand
-many of Enso design principles.
-
-We believe that everyone should be able to process data and create software.
-Thus, we strongly disagree with the assumption that developers should learn how
-to formally prove properties about their programs, as it requires a very rare
-theoretical background. We believe that it's the responsibility of the language
-and its tooling to prove the correctness of the users' creation. _“Human
-intuition is poor at estimating the true probability of supposedly ‘extremely
-rare’ combinations of events in systems operating at a scale of millions of
-requests per second. That human fallibility means that some of the more subtle,
-dangerous bugs turn out to be errors in design; the code faithfully implements
-the intended design, but the design fails to correctly handle a particular
-‘rare’ scenario.”_, wrote Chris Newcombe, who was a leader on Amazon Web
-Services team and one of Steam creators. Enso was designed to prove the
-correctness and provide as much valuable information to the user as possible in
-a completely automatic and interactive fashion.
-
-## Immediate Connection To Data
-
-Software creation is a very creative process. However, while using conventional
-languages, programmers are like chess players trying to play with a blindfold on
-– so much of their mental energy is spent just trying to picture where the
-pieces are that there’s hardly any left over to think about the game itself.
-
-Enso was designed around the idea that _people need an immediate connection to
-what they are making_, which was introduced by Brett Victor in his amazing talk
-[Inventing on Principle](https://vimeo.com/36579366). Any violation of this
-principle alienates users from the actual problems they are trying to solve,
-which consequently decreases the understanding and increases the number of
-mistakes.
-
-Enso visual representation targets domains where data processing is the primary
-focus, including data science, machine learning, IoT, bioinformatics, predictive
-maintenance, computer vision, computer graphics, sound processing or
-architecture. Each such domain requires a highly tailored data processing
-toolbox and Enso provides both an unified foundation for building such toolboxes
-as well as growing library of existing ones. At its core, Enso delivers a
-powerful data flow modeling environment and an extensive data visualization and
-manipulation framework.
-
-## Simplicity. The Ultimate Sophistication
-
-The language design can drastically affect the required
-[cognitive load](https://en.wikipedia.org/wiki/Cognitive_load), the total amount
-of mental effort being used in the brains' working memory. The easier it is to
-both express thoughts and understand the existing logic, the faster and less
-error prone the whole software creation process is. Enso bases on a set of
-principles designed to keep the required cognitive effort low:
-
-1. **The textual and visual representations must play well with each other.**
-   Both visual and textual representations are equivalently important, as the
-   user is allowed to switch between them on demand. Moreover, the textual
-   representation is an integral part of the visual one, in the form of
-   expressions above nodes. Any functionality which does not fit both worlds at
-   the same time will be rejected.
-2. **Simplicity and expressiveness are more important than design
-   minimalism.**
-   Enso targets a broad range of domain experts, not necessarily professional
-   developers. Thus it should be expressive, easy to understand, and reason
-   about, yet it should never stand in a way of power users.
-3. **There should be one (and preferably only one) way to achieve a goal.** One
-   of the greatest power of a good syntax is that it is easy to understand by a
-   wide range of users in the sense of both skill set as well as background
-   (different organizations). The more layout styles or design patterns, the
-   more libraries with different, often incompatible approaches will appear. In
-   the ideal world, a language would provide one and only one way to express
-   intention and format source.
-4. **Type level syntax = value level syntax.**
-   Enso type system is designed to be as expressive and as natural to use as
-   rest of the code. We believe that the only true solution for next generation
-   programming languages is a well designed dependent type system which will
-   blend type level and value level computations into a single scope. Creating a
-   future proof dependent type system is still an open research field and we can
-   observe many different approaches among modern programming languages and
-   learn from their mistakes. One of such biggest mistake is using different
-   syntax forms or namespaces for type and value level expressions. It leads to
-   having special mechanisms to promote values between the namespaces, like
-   prefixing value level data with apostrophe to bring it to type level and
-   prevent name clash (see `-XDataKinds` in Haskell).
-5. **Small number of rules is better than large.**
-   Any special case or syntactic rule has to be remembered by the user and
-   consumes important cognitive power. On the other hand, the syntax can easily
-   be oversimplified, which usually leads to complex, hard to understand errors.
-   Usually it is preferred to choose a solution which does not introduce any new
-   special cases.
-6. **Predictable performance and behavior.**
-   Predictable performance and behavior is one of the most important principles
-   which separates well designed languages from the bad designed ones. A
-   language provides a predictable behavior when its user can write code which
-   will not break because of some external conditions, like not-dependent code
-   change. A good examples of breaking this rule are standard extension methods
-   mechanism (monkey patching in Ruby, Python, JavaScript) or orphan overlapping
-   instances in Haskell. Moreover, simple refactoring of the code should never
-   affect the performance. Again, consider Haskell here. Changing
-   `func2 a = func1 a` to `func2 = func1`
-   [can affect performance](https://gitlab.haskell.org/ghc/ghc/issues/8099)
-   which makes Haskell programs very hard to reason about.
-7. **Guidance is better than on-boarding.**
-   In particular, it should provide guidance regarding possible next steps and
-   human readable error messages.
+<!-- /MarkdownTOC -->
 
 # Textual Representation
 
