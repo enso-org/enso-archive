@@ -470,6 +470,11 @@ impl Fixture {
     }
 }
 
+#[test]
+fn ffff() {
+    Fixture::new().parse_line("import Con");
+}
+
 /// A single entry point for all the tests here using external parser.
 ///
 /// Setting up the parser is costly, so we run all tests as a single batch.

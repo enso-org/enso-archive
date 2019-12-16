@@ -569,6 +569,12 @@ impl<T: HasSpan> HasSpan for Rc<T> {
     }
 }
 
+impl<T: HasSpan, U: HasSpan> HasSpan for (T,U) {
+    fn span(&self) -> usize {
+        self.0.span() + self.1.span()
+    }
+}
+
 // === WithID ===
 
 pub type ID = Uuid;
@@ -1061,6 +1067,30 @@ impl HasSpan for Escape {
         }
     }
 }
+/////////////// Either
+
+impl<T: HasSpan, U: HasSpan> HasSpan for Either<T, U> {
+    fn span(&self) -> usize {
+        match self {
+            Either::Left { value } => value.span(),
+            Either::Right{ value } => value.span(),
+        }
+    }
+}
+
+////////////////////// Shifted
+
+impl<T: HasSpan> HasSpan for ShiftedVec1<T> {
+    fn span(&self) -> usize {
+        self.head.span() + self.tail.span()
+    }
+}
+
+impl<T: HasSpan> HasSpan for Shifted<T> {
+    fn span(&self) -> usize {
+        self.off + self.wrapped.span()
+    }
+}
 
 ////////////////////////
 
@@ -1212,16 +1242,59 @@ impl<T: HasSpan> HasSpan for Block<T> {
         head_span + empty_lines + first_line + lines
     }
 }
-//impl<T: HasSpan> HasSpan for Match<T> {
-//    fn span(&self) -> usize {
-//        self.pfx.span() + self.sets.span()
-//    }
-//}
+
+impl<T: HasSpan> HasSpan for Match<T> {
+    fn span(&self) -> usize {
+        let pfx = self.pfx.span();
+        let segs = self.segs.span();
+        pfx + segs
+    }
+}
+
+impl HasSpan for Ambiguous {
+    fn span(&self) -> usize {
+        self.segs.span()
+    }
+}
+
+impl<T: HasSpan> HasSpan for MacroMatchSegment<T> {
+    fn span(&self) -> usize {
+        self.head.span() + self.body.span()
+    }
+}
 
 impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
     fn span(&self) -> usize {
-        0
-        //self.pfx.span() + self.sets.span()
+        match self {
+            MacroPatternMatchRaw::Begin  (_)    => 0,
+            MacroPatternMatchRaw::End    (_)    => 0,
+            MacroPatternMatchRaw::Nothing(_)    => 0,
+            MacroPatternMatchRaw::Seq    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Or     (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Many   (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Except (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Build  (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Err    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Tag    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Cls    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Tok    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Blank  (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Var    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Cons   (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Opr    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Mod    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Num    (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Text   (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Block  (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Macro  (elem) => elem.elem.span(),
+            MacroPatternMatchRaw::Invalid(elem) => elem.elem.span(),
+        }
+    }
+}
+
+impl HasSpan for MacroAmbiguousSegment {
+    fn span(&self) -> usize {
+        self.head.span() + self.body.span()
     }
 }
 
@@ -1253,14 +1326,10 @@ impl<T: HasSpan> HasSpan for Shape<T> {
             Shape::SectionSides (val) => val.span(),
             Shape::Module       (val) => val.span(),
             Shape::Block        (val) => val.span(),
+            Shape::Match        (val) => val.span(),
+            Shape::Ambiguous    (val) => val.span(),
             _ => panic!("not implemented {}"),
         }
-//        Match     { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
-//            , segs     : ShiftedVec1<MacroMatchSegment<T>>
-//            , resolved : Ast                                     },
-//        Ambiguous { segs     : ShiftedVec1<MacroAmbiguousSegment>
-//            , paths    : Tree<Ast, Unit>                         },
-//
 //        // === Spaceless AST ===
 //        Comment   (Comment),
 //        Import    (Import<T>),
