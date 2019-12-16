@@ -78,78 +78,50 @@ fn two_params() {
 #[derive(Iterator, Eq, PartialEq, Debug)]
 pub struct Monomorphic(i32);
 
-#[derive(Iterator)]
-pub struct Unrecognized{ vvv : String }
-//
-//impl IntoIterator for Unrecognized {
-//    type Item = i32;
-//    type IntoIter = ::std::vec::IntoIter<Self::Item>;
-//
-//    fn into_iter(self) -> Self::IntoIter {
-//        self.0.into_iter()
-//    }
-//}
-
-
-#[derive(Iterator)]
-pub enum FooA<T> {
-    Con1(PairUV<T, T>),
-    Con2(PairTT<T>),
-    Con3(Unrecognized)
-}
-
-pub enum Foo<T> {
-    Con1(PairUV<T, T>),
-    Con2(PairTT<T>),
-    Con3(Unrecognized),
-}
-
-type FooIterator<'t, U> = Box<dyn Iterator<Item=&'t U> + 't>;
-type FooIteratorMut<'t, U> = Box<dyn Iterator<Item=&'t mut U> + 't>;
-
-pub fn foo_iterator<'t, U>
-(t: &'t Foo<U>) -> FooIterator<'t, U> {
-    match t {
-        Foo::Con1(elem) => Box::new(elem.into_iter()),
-        Foo::Con2(elem) => Box::new(elem.into_iter()),
-        Foo::Con3(elem) => Box::new(shapely::EmptyIterator::new()),
-    }
-}
-
-impl<'t, U> IntoIterator for &'t Foo<U>
-{
-    type Item = &'t U;
-    type IntoIter = FooIterator<'t, U>;
-    fn into_iter(self) -> FooIterator<'t, U>
-    { foo_iterator(self) }
-}
-
-
-pub fn foo_iterator_mut<'t, U>
-(t: &'t mut Foo<U>) -> FooIteratorMut<'t, U> {
-    match t {
-        Foo::Con1(elem) => Box::new(elem.into_iter()),
-        Foo::Con2(elem) => Box::new(elem.into_iter()),
-        Foo::Con3(elem) => Box::new(shapely::EmptyIterator::new()),
-    }
-}
-
-
-impl<U> Foo<U>
-{
-    pub fn iter(&self) -> FooIterator<'_, U>
-    { foo_iterator(self) }
-}
-
-
-#[test]
-fn enum_iter() {
-    let v = Foo::Con1(PairUV(4, 50));
-
-}
-
 #[test]
 fn no_params() {
     // `derive(Iterator)` is no-op for structures with no type parameters.
     // We just make sure that it does not cause compilation error.
+}
+
+// ========================
+// === Enumeration Type ===
+// ========================
+
+#[derive(Iterator)]
+#[warn(dead_code)] // value is never read and shouldn't be
+pub struct Unrecognized{ pub value : String }
+
+#[derive(Iterator)]
+pub enum Foo<U, T> {
+    Con1(PairUV<U, T>),
+    Con2(PairTT<T>),
+    Con3(Unrecognized)
+}
+
+#[test]
+fn enum_is_into_iterator() {
+    is_into_iterator::<&Foo<i32, i32>>();
+}
+
+#[test]
+fn enum_iter1() {
+    let v          = Foo::Con1(PairUV(4, 50));
+    let mut v_iter = v.into_iter();
+    assert_eq!(*v_iter.next().unwrap(),50);
+    assert!(v_iter.next().is_none());
+}
+#[test]
+fn enum_iter2() {
+    let v: Foo<i32, i32> = Foo::Con2(PairTT(6,60));
+    let mut v_iter       = v.into_iter();
+    assert_eq!(*v_iter.next().unwrap(),6);
+    assert_eq!(*v_iter.next().unwrap(),60);
+    assert!(v_iter.next().is_none());
+}
+#[test]
+fn enum_iter3() {
+    let v: Foo<i32, i32> = Foo::Con3(Unrecognized{value:"foo".into()});
+    let mut v_iter       = v.into_iter();
+    assert!(v_iter.next().is_none());
 }

@@ -5,9 +5,8 @@ use prelude::*;
 use proc_macro2::{TokenStream, Ident, Span};
 use quote::quote;
 use syn;
-use syn::visit::{self, Visit};
 
-use macro_utils::repr;
+use macro_utils::{gather_all_type_reprs, repr};
 
 // ==============
 // === Macros ===
@@ -63,8 +62,6 @@ pub fn ast
     output.into()
 }
 
-
-
 // ==============
 // === Macros ===
 // ==============
@@ -80,32 +77,6 @@ pub fn ast
 //     App(App<T>),
 // }
 
-/// Visitor that accumulates all visited `syn::TypePath` node representations.
-struct TypeGatherer {
-    pub types: Vec<String>
-}
-
-impl TypeGatherer {
-    pub fn new() -> Self {
-        let types = default();
-        Self { types }
-    }
-}
-
-impl<'ast> Visit<'ast> for TypeGatherer {
-    fn visit_type_path(&mut self, node: &'ast syn::TypePath) {
-        self.types.push(repr(node));
-        visit::visit_type_path(self, node);
-    }
-}
-
-/// Text representation of all `TypePath`s in the given's `Type` subtree.
-fn gather_all_types(node: &syn::Type) -> Vec<String> {
-    let mut type_gather = TypeGatherer::new();
-    type_gather.visit_type(node);
-    type_gather.types
-}
-
 /// Produces declaration of the structure for given source enum variant.
 fn mk_product_type
 ( is_flat : bool
@@ -114,7 +85,8 @@ fn mk_product_type
 ) -> syn::ItemStruct {
     use syn::ItemStruct;
     let fields       = &variant.fields;
-    let types        = fields.iter().flat_map(|f| {gather_all_types(&f.ty) });
+    let fields       = fields.iter();
+    let types        = fields.flat_map(|f| {gather_all_type_reprs(&f.ty) });
     let types        = types.collect::<HashSet<_>>();
     let ty_vars      = decl.generics.params.iter().cloned();
     let params       = ty_vars.filter(|v| types.contains(&repr(&v))).collect();
@@ -271,8 +243,6 @@ pub fn to_variant_types
     });
 
     let decl_attrs = &decl.attrs;
-//    println!("{:?}", decl_attrs.iter().map(|a| repr(&a)).collect::<Vec<_>>());
-
     let output = quote! {
         #(#decl_attrs)*
         pub enum #ident <#ty_vars> {

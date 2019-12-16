@@ -7,10 +7,10 @@ extern crate proc_macro;
 use prelude::*;
 
 use inflector::Inflector;
-use proc_macro2::{TokenStream, Ident, Span};
+use proc_macro2::{TokenStream,Ident,Span};
 use quote::quote;
 use syn;
-use macro_utils::{fields_list, repr};
+use macro_utils::{fields_list,type_matches,type_depends_on};
 
 
 /// For `struct Foo<T>` or `enum Foo<T>` provides:
@@ -67,29 +67,6 @@ fn matching_fields
     ret
 }
 
-fn type_matches(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
-    repr(ty) == repr(target_param)
-}
-
-fn type_depends_on(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
-    let target_param = repr(target_param);
-    match ty {
-        syn::Type::Path(typath) => typath.path.segments.iter().any(|segment| {
-            let just_matches = repr(&segment.ident) == target_param;
-            let param_matches = match segment.arguments {
-                syn::PathArguments::AngleBracketed(ref args) =>
-                    args.args.iter().any(|arg| repr(&arg) == target_param),
-                _ => false,
-            };
-            just_matches || param_matches
-        }),
-        _ => panic!("not supported type: {}", repr(&ty)),
-    }
-//    println!("{:?}", ty);
-//    println!("{} ??? {}", repr(&ty), repr(&target_param));
-//    repr(ty) == repr(target_param)
-}
-
 fn variant_depends_on
 (var:&syn::Variant, target_param:&syn::GenericParam) -> bool {
     var.fields.iter().any(|field| type_depends_on(&field.ty, target_param))
@@ -103,8 +80,7 @@ fn derive_iterator_for
 //    println!("==============================================================");
     let data           = &decl.data;
     let params         = &decl.generics.params.iter().collect::<Vec<_>>();
-    let ident           = &decl.ident;
-//    println!("{}", repr(&decl));
+    let ident          = &decl.ident;
     let t_iterator     = format!("{}Iterator"    , ident);
     let t_iterator_mut = format!("{}IteratorMut" , ident);
     let iterator       = t_iterator.to_snake_case();
@@ -114,14 +90,21 @@ fn derive_iterator_for
     let iterator       = Ident::new(&iterator       , Span::call_site());
     let iterator_mut   = Ident::new(&iterator_mut   , Span::call_site());
 
-    // Introduces iterators type names.
+    let iterator_params = match data {
+        syn::Data::Struct(_) => params.clone(),
+        syn::Data::Enum  (_) => vec!(target_param),
+        _                    =>
+            panic!("Only Structs and Enums can derive(Iterator)!"),
+    };
+
+    // Introduces iterator type definitions.
     let iterator_tydefs = match data {
         syn::Data::Struct(_) => quote!(
             // type FooIterator<'t, T>    = impl Iterator<Item = &'t T>;
             // type FooIteratorMut<'t, T> = impl Iterator<Item = &'t mut T>;
-            type #t_iterator<'t, #(#params),*> =
+            type #t_iterator<'t, #(#iterator_params),*> =
                 impl Iterator<Item = &'t #target_param>;
-            type #t_iterator_mut<'t, #(#params),*> =
+            type #t_iterator_mut<'t, #(#iterator_params),*> =
                 impl Iterator<Item = &'t mut #target_param>;
         ),
         syn::Data::Enum(_) => quote!(
@@ -129,14 +112,15 @@ fn derive_iterator_for
             //     Box<dyn Iterator<Item=&'t U> + 't>;
             // type FooIteratorMut<'t, U> =
             //     Box<dyn Iterator<Item=&'t mut U> + 't>;
-            type #t_iterator<'t, #(#params),*>  =
+            type #t_iterator<'t, #(#iterator_params),*>  =
                 Box<dyn Iterator<Item=&'t #target_param> + 't>;
-            type #t_iterator_mut<'t, #(#params),*> =
+            type #t_iterator_mut<'t, #(#iterator_params),*> =
                 Box<dyn Iterator<Item=&'t mut #target_param> + 't>;
         ),
         _ => panic!("Only Structs and Enums can derive(Iterator)!"),
     } ;
 
+    // Introduces bodies of function generating iterators.
     let (iter_body, iter_body_mut) = match data {
         syn::Data::Struct(ref data) => {
             let matched_fields = matching_fields(data, target_param);
@@ -194,7 +178,8 @@ fn derive_iterator_for
         }
         _ => panic!("Only Structs and Enums can derive(Iterator)!"),
     };
-    let expanded        = quote! {
+
+    let output = quote! {
         #iterator_tydefs
 
         // pub fn foo_iterator<'t, T>
@@ -204,7 +189,7 @@ fn derive_iterator_for
         //    })
         // }
         pub fn #iterator<'t, #(#params),*>
-        (t: &'t #ident<#(#params),*>) -> #t_iterator<'t, #(#params),*> {
+        (t: &'t #ident<#(#params),*>) -> #t_iterator<'t, #(#iterator_params),*> {
             #iter_body
         }
 
@@ -215,7 +200,7 @@ fn derive_iterator_for
         //    })
         // }
         pub fn #iterator_mut<'t, #(#params),*>
-        (t: &'t mut #ident<#(#params),*>) -> #t_iterator_mut<'t, #(#params),*> {
+        (t: &'t mut #ident<#(#params),*>) -> #t_iterator_mut<'t, #(#iterator_params),*> {
             #iter_body_mut
         }
 
@@ -228,8 +213,8 @@ fn derive_iterator_for
         // }
         impl<'t, #(#params),*> IntoIterator for &'t #ident<#(#params),*> {
             type Item     = &'t #target_param;
-            type IntoIter = #t_iterator<'t, #(#params),*>;
-            fn into_iter(self) -> #t_iterator<'t, #(#params),*> {
+            type IntoIter = #t_iterator<'t, #(#iterator_params),*>;
+            fn into_iter(self) -> #t_iterator<'t, #(#iterator_params),*> {
                 #iterator(self)
             }
         }
@@ -243,8 +228,8 @@ fn derive_iterator_for
         // }
         impl<'t, #(#params),*> IntoIterator for &'t mut #ident<#(#params),*> {
             type Item     = &'t mut #target_param;
-            type IntoIter = #t_iterator_mut<'t, #(#params),*>;
-            fn into_iter(self) -> #t_iterator_mut<'t, #(#params),*> {
+            type IntoIter = #t_iterator_mut<'t, #(#iterator_params),*>;
+            fn into_iter(self) -> #t_iterator_mut<'t, #(#iterator_params),*> {
                 #iterator_mut(self)
             }
         }
@@ -258,17 +243,18 @@ fn derive_iterator_for
         //     }
         // }
         impl<#(#params),*> #ident<#(#params),*> {
-            pub fn iter(&self) -> #t_iterator<'_, #(#params),*> {
+            pub fn iter(&self) -> #t_iterator<'_, #(#iterator_params),*> {
                 #iterator(self)
             }
-            pub fn iter_mut(&mut self) -> #t_iterator_mut<'_, #(#params),*> {
+            pub fn iter_mut(&mut self) -> #t_iterator_mut<'_, #(#iterator_params),*> {
                 #iterator_mut(self)
             }
         }
     };
-//    println!("\n{}\n", repr(&expanded));
-    proc_macro::TokenStream::from(expanded)
+
+    proc_macro::TokenStream::from(output)
 }
+
 
 // Note [Expansion Example]
 // ~~~~~~~~~~~~~~~~~~~~~~~~

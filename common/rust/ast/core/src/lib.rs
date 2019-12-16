@@ -1,6 +1,8 @@
 #![feature(type_alias_impl_trait)]
 #![feature(generators, generator_trait)]
 
+mod internal;
+
 use prelude::*;
 
 use ast_macros::*;
@@ -120,27 +122,10 @@ impl Clone for Ast {
     }
 }
 
-/// Iterates over all child nodes (including self).
-pub fn iterate_subtree<T>(ast:T) -> impl Iterator<Item=T::Item>
-where T: IntoIterator<Item=T> + Copy {
-    let mut generator = move || {
-        let mut nodes:Vec<T> = vec![ast];
-        while !nodes.is_empty() {
-            let ast = nodes.pop().unwrap();
-            for child in ast.into_iter() {
-                nodes.push(child)
-            }
-            yield ast;
-        }
-    };
-
-    shapely::GeneratingIterator(generator)
-}
-
+/// IntoIterator for &Ast that just delegates to &Shape IntoIterator.
 impl<'t> IntoIterator for &'t Ast {
-    type Item = &'t Ast;
-    type IntoIter = impl Iterator<Item=&'t Ast>;
-
+    type Item = <&'t Shape<Ast> as IntoIterator>::Item;
+    type IntoIter = <&'t Shape<Ast> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
         self.shape().into_iter()
     }
@@ -167,24 +152,9 @@ impl Ast {
         Ast { wrapped: Rc::new(with_id) }
     }
 
-    /// Iterates over all child nodes (including self).
-    pub fn traverse(&self) -> impl Iterator<Item=&Ast> {
-        fn is_ii<T: IntoIterator>() {}
-        is_ii::<&Ast>();
-
-        iterate_subtree(self)
-//        let mut generator = move || {
-//            let mut nodes:Vec<&Ast> = vec![self];
-//            while !nodes.is_empty() {
-//                let ast = nodes.pop().unwrap();
-//                for child in ast.into_iter() {
-//                    nodes.push(child)
-//                }
-//                yield ast;
-//            }
-//        };
-//
-//        shapely::GeneratingIterator(generator)
+    /// Iterates over all transitive child nodes (including self).
+    pub fn iter_recursive(&self) -> impl Iterator<Item=&Ast> {
+        internal::iterate_subtree(self)
     }
 }
 
@@ -683,13 +653,31 @@ impl<T> HasID for WithSpan<T>
 impl Ast {
     // TODO smart constructors for other cases
     //  as part of https://github.com/luna/enso/issues/338
-    pub fn var(name: String) -> Ast {
-        let var = Var{ name };
+
+    pub fn var<Str: ToString>(name:Str) -> Ast {
+        let var = Var{ name: name.to_string() };
         Ast::from(var)
+    }
+
+    pub fn opr<Str: ToString>(name:Str) -> Ast {
+        let opr = Opr{ name: name.to_string() };
+        Ast::from(opr)
+    }
+
+    pub fn infix<Str0, Str1, Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
+    where Str0: ToString
+        , Str1: ToString
+        , Str2: ToString {
+        let larg  = Ast::var(larg);
+        let loff  = 1;
+        let opr   = Ast::opr(opr);
+        let roff  = 1;
+        let rarg  = Ast::var(rarg);
+        let infix = Infix { larg, loff, opr, roff, rarg };
+        Ast::from(infix)
     }
 }
 
-// === Shape ===
 
 // === Text Conversion Boilerplate ===
 // support for transitive conversions, like:
@@ -828,6 +816,30 @@ mod tests {
         let expected_var   = Var { name: var_name.into() };
         let expected_shape = Shape::from(expected_var);
         assert_eq!(*ast.shape(), expected_shape);
+    }
+
+    #[test]
+    /// Check if Ast can be iterated.
+    fn iterating() {
+        // TODO [mwu] When Repr is implemented, the below lambda sohuld be
+        //            removed in favor of it.
+        let to_string = |ast:&Ast| { match ast.shape() {
+            Shape::Var(var)   => var.name   .clone(),
+            Shape::Opr(opr)   => opr.name   .clone(),
+            _                 => "«invalid»".to_string(),
+        }};
+
+        let infix   = Ast::infix("foo", "+", "bar");
+        let strings = infix.iter().map(to_string);
+        let strings = strings.collect::<Vec<_>>();
+
+        let assert_contains = |searched:&str| {
+           assert!(strings.iter().any(|elem| elem == searched))
+        };
+        assert_contains("foo");
+        assert_contains("bar");
+        assert_contains("+");
+        assert_eq!(strings.len(), 3);
     }
 }
 

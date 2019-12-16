@@ -470,14 +470,6 @@ impl Fixture {
     }
 }
 
-#[test]
-fn ffff() {
-    let ast = Fixture::new().parse_line("foo + bar * 3");
-    for node in ast.traverse() {
-        println!("Got item: {:?}", node);
-    }
-}
-
 /// A single entry point for all the tests here using external parser.
 ///
 /// Setting up the parser is costly, so we run all tests as a single batch.
