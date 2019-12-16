@@ -310,9 +310,9 @@ impl<'de> Deserialize<'de> for Ast {
 #[ast(flat)]
 pub enum Builder {
     Empty,
-    Letter{char: char                             },
-    Space {span: usize                            },
-    Text  {str : String                           },
+    Letter{char: char},
+    Space {span: usize},
+    Text  {str : String},
     Seq   {first: Rc<Builder>, second: Rc<Builder>},
 }
 
