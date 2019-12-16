@@ -243,9 +243,9 @@ impl<'de> Deserialize<'de> for Ast {
 ///
 /// Shape describes names of children and spacing between them.
 #[ast(flat)] pub enum Shape<T> {
-    Unrecognized { str : String   },
-    InvalidQuote { quote: Builder },
-    InlineBlock  { quote: Builder },
+    Unrecognized  { str : String   },
+    InvalidQuote  { quote: Builder },
+    InlineBlock   { quote: Builder },
 
     // === Identifiers ===
     Blank         { },
@@ -271,35 +271,35 @@ impl<'de> Deserialize<'de> for Ast {
     TextUnclosed  { line   : TextLine<T>                      },
 
     // === Applications ===
-    Prefix       { func : T,  off : usize, arg : T                         },
-    Infix        { larg : T, loff : usize, opr : T, roff : usize, rarg : T },
-    SectionLeft  {  arg : T,  off : usize, opr : T                         },
-    SectionRight {                         opr : T,  off : usize,  arg : T },
-    SectionSides {                         opr : T                         },
+    Prefix        { func : T,  off : usize, arg : T                         },
+    Infix         { larg : T, loff : usize, opr : T, roff : usize, rarg : T },
+    SectionLeft   {  arg : T,  off : usize, opr : T                         },
+    SectionRight  {                         opr : T,  off : usize,  arg : T },
+    SectionSides  {                         opr : T                         },
 
     // === Module ===
-    Module    { lines       : Vec<BlockLine<Option<T>>>  },
-    Block     { ty          : BlockType
-              , indent      : usize
-              , empty_lines : Vec<usize>
-              , first_line  : BlockLine<T>
-              , lines       : Vec<BlockLine<Option<T>>>
-              , is_orphan   : bool                       },
+    Module        { lines       : Vec<BlockLine<Option<T>>>  },
+    Block         { ty          : BlockType
+                  , indent      : usize
+                  , empty_lines : Vec<usize>
+                  , first_line  : BlockLine<T>
+                  , lines       : Vec<BlockLine<Option<T>>>
+                  , is_orphan   : bool                       },
 
     // === Macros ===
-    Match     { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
-              , segs     : ShiftedVec1<MacroMatchSegment<T>>
-              , resolved : Ast                                     },
-    Ambiguous { segs     : ShiftedVec1<MacroAmbiguousSegment>
-              , paths    : Tree<Ast, Unit>                         },
+    Match         { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
+                  , segs     : ShiftedVec1<MacroMatchSegment<T>>
+                  , resolved : Ast                                     },
+    Ambiguous     { segs     : ShiftedVec1<MacroAmbiguousSegment>
+                  , paths    : Tree<Ast, Unit>                         },
 
     // === Spaceless AST ===
-    Comment   (Comment),
-    Import    (Import<T>),
-    Mixfix    (Mixfix<T>),
-    Group     (Group<T>),
-    Def       (Def<T>),
-    Foreign   (Foreign),
+    Comment       (Comment),
+    Import        (Import<T>),
+    Mixfix        (Mixfix<T>),
+    Group         (Group<T>),
+    Def           (Def<T>),
+    Foreign       (Foreign),
 }
 
 
