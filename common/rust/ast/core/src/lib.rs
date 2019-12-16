@@ -120,12 +120,33 @@ impl Clone for Ast {
     }
 }
 
-impl Ast {
-    pub fn iter(&self) -> Rc<dyn Iterator<Item = &'_ Shape<Ast>> + '_> {
-        // TODO https://github.com/luna/enso/issues/338
-        unimplemented!();
-    }
+/// Iterates over all child nodes (including self).
+pub fn iterate_subtree<T>(ast:T) -> impl Iterator<Item=T::Item>
+where T: IntoIterator<Item=T> + Copy {
+    let mut generator = move || {
+        let mut nodes:Vec<T> = vec![ast];
+        while !nodes.is_empty() {
+            let ast = nodes.pop().unwrap();
+            for child in ast.into_iter() {
+                nodes.push(child)
+            }
+            yield ast;
+        }
+    };
 
+    shapely::GeneratingIterator(generator)
+}
+
+impl<'t> IntoIterator for &'t Ast {
+    type Item = &'t Ast;
+    type IntoIter = impl Iterator<Item=&'t Ast>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.shape().into_iter()
+    }
+}
+
+impl Ast {
     pub fn shape(&self) -> &Shape<Ast> {
         self
     }
@@ -144,6 +165,26 @@ impl Ast {
         let with_span = WithSpan { wrapped: shape,     span };
         let with_id   = WithID   { wrapped: with_span, id   };
         Ast { wrapped: Rc::new(with_id) }
+    }
+
+    /// Iterates over all child nodes (including self).
+    pub fn traverse(&self) -> impl Iterator<Item=&Ast> {
+        fn is_ii<T: IntoIterator>() {}
+        is_ii::<&Ast>();
+
+        iterate_subtree(self)
+//        let mut generator = move || {
+//            let mut nodes:Vec<&Ast> = vec![self];
+//            while !nodes.is_empty() {
+//                let ast = nodes.pop().unwrap();
+//                for child in ast.into_iter() {
+//                    nodes.push(child)
+//                }
+//                yield ast;
+//            }
+//        };
+//
+//        shapely::GeneratingIterator(generator)
     }
 }
 
@@ -233,6 +274,8 @@ impl<'de> Deserialize<'de> for Ast {
         deserializer.deserialize_struct("AstOf", &FIELDS, visitor)
     }
 }
+
+
 
 
 // =============
@@ -327,7 +370,9 @@ pub enum Builder {
     pub text       : Vec<T>
 }
 
-#[ast(flat)] pub enum TextLine<T> {
+#[ast(flat)]
+#[derive(HasSpan)]
+pub enum TextLine<T> {
     TextLineRaw(TextLineRaw),
     TextLineFmt(TextLineFmt<T>),
 }
@@ -646,14 +691,6 @@ impl Ast {
 
 // === Shape ===
 
-impl<T> Shape<T> {
-    pub fn iter(&self) -> Box<dyn Iterator<Item = &'_ T> + '_> {
-        // TODO: use child's derived iterator
-        //  as part of https://github.com/luna/enso/issues/338
-        unimplemented!()
-    }
-}
-
 // === Text Conversion Boilerplate ===
 // support for transitive conversions, like:
 // RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
@@ -810,7 +847,25 @@ const RAW_QUOTE:char = '\'';
 const FMT_QUOTE:char = '"';
 
 /// Symbol used to break lines in Text block.
-const NEWLINE  :char = '\n';
+const NEWLINE:char = '\n';
+
+/// Symbol introducing escape segment in the Text.
+const BACKSLASH:char = '\\';
+
+/// Symbol enclosing expression segment in the formatted Text.
+const EXPR_QUOTE:char = '`';
+
+/// Symbol that introduces UTF-16 code in the formatted Text segment.
+const UNICODE16_INTRODUCER:char = 'u';
+
+/// String that opens "UTF-21" code in the formatted Text segment.
+const UNICODE21_OPENER:&str = "u{";
+
+/// String that closese "UTF-21" code in the formatted Text segment.
+const UNICODE21_CLOSER:&str = "}";
+
+/// Symbol that introduces UTF-16 code in the formatted Text segment.
+const UNICODE32_INTRODUCER:char = 'U';
 
 impl TextBlockRaw {
     const QUOTE:&'static str = "\"\"\"";
@@ -932,7 +987,7 @@ impl HasSpan for SegmentPlain {
 }
 impl HasSpan for SegmentRawEscape {
     fn span(&self) -> usize {
-        self.code.span() + 1 // FIXME
+        self.code.span() + BACKSLASH.span()
     }
 }
 impl HasSpan for SegmentRaw {
@@ -956,12 +1011,12 @@ impl<T: HasSpan> HasSpan for BlockLine<T> {
 
 impl<T: HasSpan> HasSpan for SegmentExpr<T> {
     fn span(&self) -> usize {
-        self.value.span() + 2 // FIXME
+        self.value.span() + 2 * EXPR_QUOTE.span()
     }
 }
 impl HasSpan for SegmentEscape {
     fn span(&self) -> usize {
-        self.code.span() + 1 // FIXME
+        BACKSLASH.span() + self.code.span()
     }
 }
 impl<T: HasSpan> HasSpan for SegmentFmt<T> {
@@ -981,12 +1036,16 @@ impl<T: HasSpan> HasSpan for SegmentFmt<T> {
 impl HasSpan for Escape {
     fn span(&self) -> usize {
         match self {
-            Escape::Character{c           } => 1 + c.span(), // FIXME
-            Escape::Control  {name  , code} => 1 + name.span(), // FIXME
-            Escape::Number   {digits      } => 1 + digits.span(), // FIXME
-            Escape::Unicode16{digits      } => 1 + digits.span(), // FIXME
-            Escape::Unicode21{digits      } => 1 + digits.span(), // FIXME
-            Escape::Unicode32{digits      } => 1 + digits.span(), // FIXME
+            Escape::Character{c              } => c.span(),
+            Escape::Control  {name  , code: _} => name.span(),
+            Escape::Number   {digits         } => digits.span(),
+            Escape::Unicode16{digits         } =>
+                UNICODE16_INTRODUCER.span() + digits.span(),
+            Escape::Unicode21{digits} =>
+                UNICODE21_OPENER.span() + digits.span()
+                    + UNICODE21_CLOSER.span(),
+            Escape::Unicode32{digits} =>
+                UNICODE32_INTRODUCER.span() + digits.span(),
         }
     }
 }
@@ -1053,6 +1112,11 @@ impl HasSpan for Number {
         base_span + self.int.span()
     }
 }
+impl HasSpan for DanglingBase {
+    fn span(&self) -> usize {
+        self.base.span() + Number::BASE_SEPARATOR.span()
+    }
+}
 impl HasSpan for TextLineRaw {
     fn span(&self) -> usize {
         2 * RAW_QUOTE.span() + self.text.span()
@@ -1060,7 +1124,7 @@ impl HasSpan for TextLineRaw {
 }
 impl<T: HasSpan> HasSpan for TextLineFmt<T> {
     fn span(&self) -> usize {
-        2 * RAW_QUOTE.span() + self.text.span()
+        2 * FMT_QUOTE.span() + self.text.span()
     }
 }
 impl HasSpan for TextBlockRaw {
@@ -1068,7 +1132,7 @@ impl HasSpan for TextBlockRaw {
         let lines            =  self.text.iter();
         let line_spans       = lines.map(|line| line.span(self.offset));
         let lines_span:usize = line_spans.sum();
-        TextBlockRaw::QUOTE.span() + self.spaces
+        TextBlockRaw::QUOTE.span() + self.spaces + lines_span
     }
 }
 impl<T: HasSpan> HasSpan for TextBlockFmt<T> {
@@ -1076,7 +1140,7 @@ impl<T: HasSpan> HasSpan for TextBlockFmt<T> {
         let lines            =  self.text.iter();
         let line_spans       = lines.map(|line| line.span(self.offset));
         let lines_span:usize = line_spans.sum();
-        TextBlockFmt::<T>::QUOTE.span() + self.spaces
+        TextBlockFmt::<T>::QUOTE.span() + self.spaces + lines_span
     }
 }
 impl<T: HasSpan> HasSpan for TextUnclosed<T> {
@@ -1164,6 +1228,7 @@ impl<T: HasSpan> HasSpan for Shape<T> {
             Shape::Mod          (val) => val.span(),
             Shape::InvalidSuffix(val) => val.span(),
             Shape::Number       (val) => val.span(),
+            Shape::DanglingBase (val) => val.span(),
             Shape::TextLineRaw  (val) => val.span(),
             Shape::TextLineFmt  (val) => val.span(),
             Shape::TextBlockRaw (val) => val.span(),
@@ -1176,7 +1241,7 @@ impl<T: HasSpan> HasSpan for Shape<T> {
             Shape::SectionSides (val) => val.span(),
             Shape::Module       (val) => val.span(),
             Shape::Block        (val) => val.span(),
-            _ => 0,
+            _ => panic!("not implemented {}"),
         }
 //        Match     { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
 //            , segs     : ShiftedVec1<MacroMatchSegment<T>>

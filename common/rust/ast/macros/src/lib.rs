@@ -31,6 +31,11 @@ pub fn ast_node
         #[derive(Serialize, Deserialize)]
         #input
     };
+//    if decl.ident == "TextLine" {
+//        println!("{:?}", decl.attrs);
+//        println!("{:?}", repr(&decl.attrs.iter().nth(0)));
+//        println!("{}", repr(&output));
+//    }
     output.into()
 }
 
@@ -54,6 +59,7 @@ pub fn ast
             #decl
         }
     };
+//    println!("{}", repr(&output));
     output.into()
 }
 
@@ -264,15 +270,52 @@ pub fn to_variant_types
         _                       => true
     });
 
+    let decl_attrs = &decl.attrs;
+//    println!("{:?}", decl_attrs.iter().map(|a| repr(&a)).collect::<Vec<_>>());
+
     let output = quote! {
-        #[derive(Eq, PartialEq, Debug)]
-        #[derive(Serialize, Deserialize)]
+        #(#decl_attrs)*
         pub enum #ident <#ty_vars> {
             #(#variant_decls),*
         }
         #(#structs)*
         #(#variant_froms)*
     };
-
+//    println!("{}", repr(&output));
     output.into()
 }
+
+
+/// Creates a HasSpan instance for given enum type.
+///
+/// Given type may only consist of single-elem typle-like constructors.
+/// The implementation uses underlying HasSpan implementation for each stored
+/// value.
+fn derive_has_span_for_enum
+(data_name:syn::Ident, data:syn::DataEnum) -> proc_macro2::TokenStream  {
+    quote! {
+        impl HasSpan for #data_name {
+
+        }
+    }
+}
+
+#[proc_macro_derive(HasSpan)]
+pub fn derive_has_span
+(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
+    let ret = match decl.data {
+        syn::Data::Enum(e) => derive_has_span_for_enum(decl.ident,e),
+        _       => quote! {},
+    };
+    println!("================================================================");
+    println!("{}", repr(&ret));
+    proc_macro::TokenStream::from(quote! {})
+//    let params = &decl.generics.params.iter().collect::<Vec<_>>();
+//    match params.last() {
+//        Some(last_param) => proc_macro::TokenStream::from(quote! {}),
+//        None             => proc_macro::TokenStream::from(quote! {}),
+//    }
+
+}
+

@@ -1,3 +1,5 @@
+#![feature(generators, generator_trait)]
+
 use prelude::*;
 
 use ast::*;
@@ -230,6 +232,14 @@ impl Fixture {
         });
     }
 
+    fn test_text_fmt_segment<F>(&mut self, program:&str, tester:F)
+    where F: FnOnce(&SegmentFmt<Ast>) -> () {
+        self.test_shape(program,|shape:&TextLineFmt<Ast>| {
+            let (segment,)  = (&shape.text).expect_tuple();
+            tester(segment)
+        });
+    }
+
     fn deserialize_text_line_fmt(&mut self) {
         use SegmentFmt::SegmentExpr;
 
@@ -251,8 +261,7 @@ impl Fixture {
 
         // expression empty
         let expr_fmt = r#"'``'"#;
-        self.test_shape(expr_fmt,|shape:&TextLineFmt<Ast>| {
-            let (segment,)  = (&shape.text).expect_tuple();
+        self.test_text_fmt_segment(expr_fmt,|segment| {
             match segment {
                 SegmentExpr(expr) => assert_eq!(expr.value,None),
                 _                 => panic!("wrong segment type received"),
@@ -261,8 +270,7 @@ impl Fixture {
 
         // expression non-empty
         let expr_fmt = r#"'`foo`'"#;
-        self.test_shape(expr_fmt,|shape:&TextLineFmt<Ast>| {
-            let (segment,)  = (&shape.text).expect_tuple();
+        self.test_text_fmt_segment(expr_fmt,|segment| {
             match segment {
                 SegmentExpr(expr) =>
                     assert_var(expr.value.as_ref().unwrap(),"foo"),
@@ -270,21 +278,19 @@ impl Fixture {
             }
         });
 
-        let expr_fmt = r#"'\n\u0394\U0001f34c'"#;
-        self.test_shape(expr_fmt,|shape:&TextLineFmt<Ast>| {
-            let segments: (_,_,_)  = (&shape.text).expect_tuple();
-
+        self.test_text_fmt_segment(r#"'\n'"#,|segment| {
             let expected = Escape::Character{c:'n'};
-            assert_eq!(*segments.0,expected.into());
-
+            assert_eq!(*segment,expected.into());
+        });
+        self.test_text_fmt_segment(r#"'\u0394'"#,|segment| {
             let expected = Escape::Unicode16{digits: "0394".into()};
-            assert_eq!(*segments.1,expected.into());
-
-            // TODO We don't test Unicode21 as it is not yet supported by
-            //      parser.
-
+            assert_eq!(*segment,expected.into());
+        });
+        // TODO [MWU] We don't test Unicode21 as it is not yet supported by the
+        //            parser.
+        self.test_text_fmt_segment(r#"'\U0001f34c'"#,|segment| {
             let expected = Escape::Unicode32{digits: "0001f34c".into()};
-            assert_eq!(*segments.2,expected.into());
+            assert_eq!(*segment,expected.into());
         });
     }
 
@@ -466,7 +472,10 @@ impl Fixture {
 
 #[test]
 fn ffff() {
-    let ast = Fixture::new().parse("'a''");
+    let ast = Fixture::new().parse_line("foo + bar * 3");
+    for node in ast.traverse() {
+        println!("Got item: {:?}", node);
+    }
 }
 
 /// A single entry point for all the tests here using external parser.
