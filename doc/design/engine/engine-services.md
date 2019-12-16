@@ -24,6 +24,13 @@ services components, as well as any open questions that may remain.
   - [The Protocol Transport](#the-protocol-transport)
   - [The Protocol Format](#the-protocol-format)
 - [Protocol Functionality](#protocol-functionality)
+  - [Project State Management](#project-state-management)
+  - [File Management and Storage](#file-management-and-storage)
+  - [Textual Diff Management](#textual-diff-management)
+  - [Execution Management](#execution-management)
+  - [Completion](#completion)
+  - [Visualisation Support](#visualisation-support)
+  - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
 - [Protocol Message Specification](#protocol-message-specification)
 
@@ -49,7 +56,7 @@ It can be summarised with three main ideas:
    processes correctly if they fail.
 
 > The actionables for this section are:
-> 
+>
 > - Determine any feasible alternatives for this architecture.
 > - Make a final decision on how to architect the set of back-end services.
 
@@ -80,19 +87,23 @@ this is necessary for 2.0:
 ### File Manager
 The file manager service is responsible for actually handling the physical files
 on disk. While there are some arguments for including this in the language
-server, it makes far more sense as a separate component. 
+server, it makes far more sense as a separate component.
 
 This component is responsible for the following:
 
-- **Code File Management:** Handling the loading and saving of code files on 
+- **Code File Management:** Handling the loading and saving of code files on
   disk in response to commands from the GUI.
 - **Data File Management:** Handling the upload and download of data files that
   the users want to work with. These files should be accessible by the language
   server, but it doesn't need to know about how they got there or how they get
   edited.
-- **Version Control:** In the future, this component will also become 
+- **Version Control:** In the future, this component will also become
   responsible for interacting with the underlying version control system that
   stores the project data, and creating a coherent file history view for users.
+
+> The actionables for this section are:
+>
+> - Determine if whose responsibility the file-management component should be.
 
 ### Multi-Client Coordinator
 This coordinator process is responsible for accepting connections from multiple
@@ -127,14 +138,53 @@ responsibilities can be summarised as follows:
 ## The Protocol Itself
 The protocol refers to the communication format that all of the above services
 speak between each other and to the GUI. This protocol is not specialised only
-to language server operations, as instead it needs to work for all of the 
+to language server operations, as instead it needs to work for all of the
 various services in this set.
+
+> The actionables for this section are:
+>
+> - Do we want to remain compatible (where possible) with the Microsoft LSP
+>   [specification](https://microsoft.github.io/language-server-protocol/specifications/specification-3-14/)?
+> - What is the agreed-upon design for the protocol itself?
 
 ### Protocol Communication Patterns
 Whatever protocol we decide on will need to have support for a couple of main
-communication patterns
+communication patterns:
+
+- **Pub/Sub:** A standard publisher/subscriber model, the server will need to be
+  able to support this kind of connection to deal with events that do not occur
+  strictly in response to client actions (e.g. updates to observed values).
+- **Req/Res:** A standard request/response model, the server will need to be
+  able to support this kind of connection to deal with one-off requests from
+  the client, and potentially to make requests to the client (e.g. list modules
+  in the current project, please refresh your file state).
+
+There are also certain messages that follow the request/response model but where
+the responses are trivial acknowledgements. For simplicity's sake these are
+currently subsumed by the generic request-response model.
+
+> The actionables for this section are as follows:
+>
+> - Determine if there are any other communication patterns that we need to be
+>   able to support.
+> - Do we want to support the request/ack pattern as a separate style (e.g.
+>   "run code")?
 
 ### The Protocol Transport
+The transport of the protocol refers to the underlying layer over which its
+messages (discussed in [the protocol format](#the-protocol-format) below) are
+sent. It is unclear at this point as to the exact transport we want to use, but
+the communication patterns listed above seem to point in the direction of either
+WebSocket on its own, or a mixture of WebSockets and HTTP.
+
+> The actionables for this section are:
+>
+> - Do we want to stay compatible with LSP? If so, we're forced into using pure
+>   WS for transport.
+> - What does the GUI prefer in this regard? Why?
+> - Do we need true serialized request-response? If so, then a full WS solution
+>   would need a concept of message IDs.
+> - Marcin: Does JSON RPC satisfy our needs?
 
 ### The Protocol Format
 This section describes the format of a protocol message. This format should be
@@ -142,15 +192,239 @@ adhered to by all messages and should obey the following tenets:
 
 - It should permit easy debugging, remaining human readable where possible.
 - It should have good support across multiple languages.
+- It needs to have good performance for all use-cases, _including_ potentially
+  large visualisation data.
+
+The exact format of the protocol is up in the air, but given the above
+requirements it makes the most sense for it to be a hybrid protocol that
+combines both textual and binary representations. This comes down to the
+following set of tradeoffs:
+
+- We want the majority of messages to be human readable to permit easy debugging
+  and allow for better multi-language support.
+- Textual formats have _low_ overhead for most data.
+- _However_, such formats have significant overhead for large chunks of binary
+  data, even if they can support them (such as via Base64 encoding).
+- We need large chunks of binary data to be _fast_.
+
+> The actionables for this section are as follows:
+>
+> - Determine if we should settle for a full-binary, or hybrid protocol format.
+> - Determine how we can support a hybrid protocol. There is potential for
+>   maintaining a separate WS connection for visualisation data only (e.g. audio,
+>   video, images, etc).
+> - Do we ever want to send raw binary data in circumstances _not_ tied to the
+>   visualisations.
 
 ## Protocol Functionality
-This entire section deals 
+This entire section deals with the _functional_ requirements placed upon the
+protocol used by the engine services. These requirements are overwhelmingly
+imposed by the IDE, but also include additional functionality for the future
+evolution of the language.
+
+All of the following pieces of functionality that are explained in detail are
+those _expected_ for the 2.0 release. Any additional functionality beyond this
+milestone is described in a [dedicated section](#functionality-post-20).
+
+> The actionables for this section are as follows:
+>
+> - Determine if the ere is any missing or extraneous functionality for the 2.0
+>   release of Enso.
+> - Once we have a set of requirements, these should be prioritised in order to
+>   assist the IDE team in getting things working as quickly as possible.
+
+### Project State Management
+One of the most important functionalities for this service set is the ability to
+manage the state of a project in general. The project state refers to the whole
+set of the project files and metadata and needs to support the following
+functionalities:
+
+- Get project metadata (name, maintainer, version, dependencies, and so on)
+- List modules
+- Delete module
+- Create module
+
+> The actionables for this section are as follows:
+>
+> - Are there any other functionalities needed from this component?
+
+### File Management and Storage
+The file management component needs to deal with both the files storing the
+textual program source and any data files uploaded by the user for their program
+to use. It should be noted that this does _not_ refer to any sophisticated IO
+management that may be done by the runtime in the future.
+
+It needs to support the following functionality:
+
+- CRUD operations on Enso source files.
+- CRUD operations on user data files.
+
+> The actionables for this section are:
+>
+> - Should this component support git and provide a historical view over files?
+> - If so, should this happen for 2.0?
+> - Are there any other operations needed from the IDE that would fall under
+>   this component?
+
+### Textual Diff Management
+The engine services need to support robust handling of textual diffs. This is
+simply because it is the primary form of communication for synchronising source
+code between the IDE and the engine. It will need to support the following
+operations:
+
+- Synchronisation requests to ensure that the engine and IDE have the same view
+  of the files in the project.
+- Diff update requests, that send a textual diff between client and server (or
+  vice versa).
+- It will need to handle ensuring that the node metadata is correctly kept in
+  sync.
+
+In order to support these properly, it needs to account for the following things
+in the design:
+
+- Diffs should be kept as mimimal as possible. Even so, diffs will likely
+  requires some rich minimisation on the server. This will involve AST-based
+  diffing and various other compiler-internal functionality to ensure that we
+  recompute the minimal possible subset.
+- The library for recomputing ID locations needs to be written in scala (for use
+  by the server), or those recomputed IDs must be sent on every diff (but this
+  would muck with the potential for alternative front-ends).
+- The component responsible for handling multiple connections must be able to
+  send a file update notification to other clients.
+
+> The actionables for this section are:
+>
+> - Determine if there are other types of operations needed to be supported on
+>   diffs.
+> - Determine if there are missing portions of the design.
+> - What guarantees can we get about the diffs? What can we realistically
+>   expect?
+> - Which team is responsible for writing the library for recomputing the ID
+>   locations?
+> - What kind of multi-client editing do we want to support at first? FCFS, or
+>   a 'write-lock' style solution?
+
+### Execution Management
+The language server process will need to be able to respond to requests for
+various kinds of execution of Enso code. Furthermore, it needs to be able to
+respond to requests to 'listen' to the execution of various portions of code.
+This implies that the following functionalities are needed:
+
+- Execute a method/function with arguments.
+- Execute a method/function with arguments _from_ a selected application (i.e.
+  enter a node from its call-site).
+- Attach an execution listener to an arbitrary code span. These listeners should
+  trigger an update (by ID) every time a node at that position is executed or
+  its type changes. It is very important to be able to get type information as
+  this is used to colour connections on the graph.
+- Detach an execution listener.
+
+> The actionables for this section are:
+>
+> - What else do we need to support for 2.0?
+> - Since listeners are per-GUI (for performance), what requirements do we need
+>   to place on GUI communication (e.g. does the multi-user coordinator need to
+>   have heartbeat messages for keepalive)?
+> - What, exactly, should the value listener updates contain? Should they have
+>   the whole update, or just a short rep and type with a pointer to where a
+>   request can be made to get the full value (maybe better for performance)
+
+### Completion
+The IDE needs the ability to request completions for some target point (cursor
+position) in the source code. In essence, this boils down to _some_ kind of
+smart completion. The completion should provide the following:
+
+- Sensible suggestions at the cursor position, ranked by relevance.
+- Suggestions for symbols that would make sense (e.g. by type) but are not
+  imported. To support this, selection of such a symbol will trigger the
+  automatic addition of the relevant import on the language server.
+- Searching in tags and documentation. This metadata-based search functionality
+  should be used to refine suggestions and help suggest functionality relevant
+  to user tasks.
+- Browsing the symbol hierarchy. The user should be able to click through
+  modules to browse the various symbols contained within.
+- Import Completion for when a user has typed `import` and hits `<tab>`. This
+  feature should suggest libraries that are available, along with provide their
+  top-level documentation to give users an idea of what they can be used for.
+
+It should be noted that the exact set of criteria for determining the
+'relevance' of a suggestion have not yet been determined.
+
+> The actionables for this section are:
+>
+> - Determine what should form the candidate set in a given completion location,
+>   and how these candidates should be ranked (type information, scope
+>   information, documentation, tags, other scoring metadata).
+> - Determine how best to transport these candidates back to the GUI in order to
+>   provide the best performance and responsiveness possible.
+
+### Visualisation Support
+A major part of Enso Studio's functionality is the rich embedded visualisations
+that it supports. This means that the following functionality is necessary:
+
+- Execution of an arbitrary Enso expression on a cached value designated by a
+  source location.
+- This code should be executed in its own isolated scope, with only the required
+  input values being available.
+
+> The actionables for this section are:
+>
+> - What else do we need to support visualisations for 2.0?
+
+### Analysis Operations
+We also want to be able to support a useful set of semantic analysis operations
+to help users navigate their code. As these rely on knowledge of the language
+semantics, they must be explicitly supported by the language server:
+
+- List functions/methods in scope
+- Find usages of symbol
+- Jump to definition of symbol
+- Search for symbol
+- Import file for symbol
+
+> The actionables for this section are:
+>
+> - Are there any other analyses we need to support for 2.0?
 
 ### Functionality Post 2.0
 In addition to the functionality discussed in detail above, there are further
 augmentations that could sensibly be made to the Engine services to support a
 much better editing and user-experience for Enso. These are listed briefly below
 and will be expanded upon as necessary in the future.
+
+- **Refactoring Operations:** As all of these operations rely on a semantic
+  analysis of the source program, they must be performed by the language server.
+  These should include (but may not be limited to) the renaming, moving,
+  extraction and inlining of entities. In future this could be expanded to
+  include refactoring hints a la IntelliJ.
+- **Arbitrary Visualisation Code:** Visualisations should be able to be defined
+  using Enso code, and hence there needs to be the ability to execute arbitrary
+  code on values visible in the current scope.
+- **IO Manager:** The ability to do sophisticated IO monitoring, such as
+  watching for file changes, in order to support minimal re-execution of
+  analysis pipelines.
+- **Enhanced Type-Manipulation:** Get fits for holes, case splitting, insert
+  type, refine type, solve type, and so on. Inspiration for these operations can
+  be taken from programs that provide for interactive type-driven development.
+- **REPL:** Protocol messages to support a REPL-style of interactive
+  development. This should include, at a minimum, the ability to execute
+  arbitrary code statements in a REPL, but could be enhanced by the ability to
+  execute code from the editor in the REPL, and send changes back from the REPL
+  to the file.
+- **Debugging:**: The user should be able to place break-points, and easily
+  inspect values during execution of a program. This debugging functionality
+  should allow for hot-reloading of code, changing of values within a live
+  program, and various other debugger functionality (step over, step in, step
+  out, continue, etc).
+- **Profiling Information:** Profiling information for the executing code, able
+  to be displayed visually in Enso Studio.
+- **Code Formatting:** Automatic formatting of Enso code using the One True
+  Style ™.
+
+> The actionables for this section are:
+>
+> - Are there any other things we know now that we want to support in the
+>   future?
 
 ## Protocol Message Specification
 This section exists to contain a specification of each of the messages the
@@ -159,100 +433,6 @@ to serve as an agreed-upon definition for the protocol between the IDE team and
 the Engine team.
 
 > The actionables for this section are:
-> 
+>
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
-
-
-
-
-
-
-
-
-#### Protocol Selection
-1. There are a couple of different communication patterns, that are used with the GUI communication:
-    a. Pub/sub, for "value just computed" or "another client just modified the code"
-    b. Req/res, for "list modules in the current project", "list functions in module",
-      "run X code on the value of node Y".
-    c. Req/ack, for "modify code", "run code".
-
-    This seems to point in the direction of WebSockets or a mixed socket / HTTP approach.
-
-    Q: Does it matter at all to the engine team? (it matters to Ara)
-    Q: Which is preferred by the GUI?
-    Q: Do we need true req/res? If we go with full WS, should the request carry some ID?
-
-    Ara: Maintain LSP == use WS.
-    MK: Learn WTH JSON RPC is.
-
-2. Text  vs. binary.
-   Text (e.g. json) is easier to test and use (makes for a more open protocol, easily
-   accessible for other plugin / frontend authors). It also has no significant overhead for
-   most payloads. There is significant overhead for large chunks of binary data (e.g. graphics),
-   which is a show stopper given the intended use of Enso.
-
-   Q: Should we settle for full-binary, or only use binary for visualizations data (possibly on a separate <web>socket)?
-
-   Ara: Def not full binary, because obviously not. Use a separate socket for visualizations.
-
-   Q: Do we ever want to send raw binary data? Like stream a video back to GUI, e.g. flowbox?
-
-#### Functionality
-1. Project state management:
-  -a. Get project metadata (name, maintainer, version, deps...)
-  a. List modules
-  b. Remove module
-  c. Create module
-  d. Git?? Ara: yes, probably not 2.0
-1.25. File storage:
-  CRUD operations.
-  Ara: Does it make sense for the language server to know about storage? Should it be a different service?
-    Possibly a whole-new service, working side by side the LS, handling storage.
-1.5. "Data" File management:
-  CRUD operations.
-  NOTE: This is not really the language server! But it's needed. Offload to cloud?
-2. Module contents management:
-  a. List methods
-  b. Apply diff
-    Diffs must be minimal, for optimal cache handling.
-
-    A "diff was applied" notification needs to be sent to other clients.
-
-    ALSO: conflict resolution algorithm. (first-come first-serve
-     OR write-lock for a single GUI in the first version)
-
-    Q: What guarantees do we want from the GUI diffs? What can we realistically expect?
-
-    Ara: "It's complicated". Possibly AST-based diff minimization will be required server-side.
-
-    Also, nodes have their unique IDs for use with the visualizations engine and cache.
-    The IDs are stored at the bottom of a file, identified by absolute code locations.
-
-    Q: Who (which team, and why is it GUI?) is implementing the algorithm to recompute
-    these locations on code diffs?
-
-    It must be done in Scala, since it will be used by the backend.
-    OR: every diff coming from the GUI contains the new ID map. But that screws potential
-    for other frontends up.
-
-3. Execution management
-  a. Execute method (with arguments)
-  b. Execute function with arguments from a selected application (i.e. enter a node through its call site)
-  c. Attach value listener (arbitrary code span)
-    The value listeners trigger updates (by id) everytime a node at that position is executed (or, later,
-    typechecked).
-    These need to be stored per a running-GUI.
-
-    Q: Since listeners are per-GUI, what constraints do we place on GUI comms? Do the GUIs need
-    to "introduce themselves"? Do we require a heartbeat (for cache flushes)?
-
-    Q: What do these updates contain? Is it empty, or is the short representation and type of the value
-    attached?
-  d. Detach execution listener.
-4. Visualizations
-  a. Send the result of running the requested Enso expression on the cached value.
-5. Misc
-  a. Searcher hints.
-    Q: API style? global + updates (diff) feed?
-    ???????
