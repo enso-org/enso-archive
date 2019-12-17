@@ -40,11 +40,11 @@ jobs:
         displayName: Install Firefox
       - script: |
           curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-          echo "##vso[task.setvariable variable=PATH;]~/.cargo/bin:$PATH"
+          echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin
+          rustup update
         displayName: Install Rust
       - script: |
-          rustup update
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -y
+          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
         displayName: Install Wasm-Pack
       - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
