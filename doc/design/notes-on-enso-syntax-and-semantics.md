@@ -12,12 +12,9 @@ documents.
 
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
-- [Variable Naming](#variable-naming)
-  - [Snake Case](#snake-case)
-  - [High-Level Syntax and Semantic Notes](#high-level-syntax-and-semantic-notes)
+- [High-Level Syntax and Semantic Notes](#high-level-syntax-and-semantic-notes)
   - [Annotations](#annotations)
     - [Automatic Deriving](#automatic-deriving)
-    - [Reserved Names](#reserved-names)
 - [Top-Level Evaluation](#top-level-evaluation)
 - [Types](#types)
   - [Atoms](#atoms)
@@ -47,60 +44,7 @@ documents.
 
 <!-- /MarkdownTOC -->
 
-## Variable Naming
-One of the key features of Enso as a language is a total lack of separation
-between the value and type level syntaxes. This enables a staggering uniformity
-of programming in the language, allowing arbitrary computations in types as
-well as in values. This means that arbitrary names can refer to both types and
-values (as they are one and the same).
-
-However, this means that naming becomes a bit of a concern. Without a syntactic
-disambiguator, it becomes much harder to keep a minimal syntax for things like
-pattern matches. To this end, Enso itself enforces naming conventions:
-
-- Everything is named in `camelCase`.
-- When you want to refer to a name in a pattern, you can instead use the same
-  name, but in `UpperCamelCase`. For example, `fooBar` becomes `FooBar`. This
-  allows us a uniformity and syntactic marker for disambiguation.
-
-For much of the history of the language's development, we have been happy with
-using `camelCase` and `UpperCamelCase` naming conventions to mark this
-distinction, but recently it has been raised that we might instead prefer to
-use `snake_case` to refer to variables. A few thoughts on this follow:
-
-- Snake case tends to be far more readable than camel case. This is primarily
-  down to the fact that the `_` is far more readily readable as a space.
-- However, with `snake_case`, we have to still have some syntactic identifier
-  for type names in patterns, which would be `SnakeCase`. Unlike the
-  distinction with camel case, this creates a much larger visual disparity
-  with snake case.
-- In all cases, mixed style (e.g. `foo_Bar`) would be disallowed to allow the
-  language source to be uniform.
-- If we go with `snake_case`, we should come up with another syntax for the
-  definition of mixfix functions, and we may want to do this anyway. The
-  current proposal for this is `if check _then ok _else fail`, which may be
-  something that we want to adopt regardless of the decision on this section.
-
-Please note that this file sticks to the pre-determined naming convention for
-Enso, as no final decision has been made on whether or not it should be
-changed.
-
-> The actionables for this section are as follows:
->
-> - In the future, we need to determine if we need `all` and `each` explicit
->   keywords in the case of dependency. Explicit examples are required.
-
-### Snake Case
-Given the readability benefits of snake case, we propose a new syntactic marker
-for type/in-scope usage:
-
-- `http_request_header` becomes `Http_Request_Header`.
-- In contexts where it is ambiguous as to whether a name is fresh or should bind
-  from context, the above distinction is used, with the second binding from
-  the open context.
-- Mixfix definitions use a 'separated' snake case (e.g. `if c _then a _else b`).
-
-### High-Level Syntax and Semantic Notes
+## High-Level Syntax and Semantic Notes
 While the majority of syntactic design for the language has utilised top-level
 bindings in a syntax similar to that of Haskell or Idris, some consideration
 has been given to instead introducing function bindings using a `def` keyword.
@@ -203,31 +147,6 @@ In order to make the language easier to debug, we have all types automatically
 derive an interface `DebugShow`. This interface provides a function that will
 print all the significant information about the value (e.g. locations, types,
 source information, etc).
-
-#### Reserved Names
-While we don't want to reserve names in the parser, as this would both
-complicate the task of the GUI and parser, we want to reserve a few names at the
-interpreter level as giving users the ability to redefine them would
-significantly hinder the readability and consistency of Enso code. They are as
-follows:
-
-- `type`: This reserved name is used to define new atoms and typesets.
-- `->`: This reserved name is the 'function' type, and represents a mapping from
-  the type of its first operand to the type of its second operand.
-- `:`: This reserved name is the type attribution operator. It ascribes the type
-  described by its right operand to its left operand.
-- `=`: This reserved name is the assignment operator, and assigns the value of
-  its right operand to the name on its left. Under the hood this desugars to the
-  relevant implementation of monadic bind.
-- `.`: This is the standard function composition operator.
-- `case ... of`: This reserved name is the case expression that is fundamental
-  to the operation of control flow in the language.
-- `this`:  This reserved name is the one used to refer to the enclosing type in
-  a method or type definition.
-- `here`: This reserved name is the one used to refer to the enclosing module.
-
-Many of these reserved words are implemented as macros in the parser, but these
-macros should always be in scope and not be able to be overridden.
 
 ## Top-Level Evaluation
 An ongoing discussion for the language design has been whether or not to allow

@@ -1,77 +1,187 @@
 # Enso: The Syntax
 When working with a programming language, the syntax is the first thing that a
-user encounters. This makes it _utterly integral_ to how users experience the 
+user encounters. This makes it _utterly integral_ to how users experience the
 language, and, in the case of Enso, the tool as a whole.
 
 Enso is a truly novel programming language in that it doesn't have _one_ syntax,
-but instead has two. These syntaxes are dual: visual and textual. Both are 
+but instead has two. These syntaxes are dual: visual and textual. Both are
 first-class, and are truly equivalent ways to represent and manipulate the
-program. To that end, the design of the language's syntax requires careful 
+program. To that end, the design of the language's syntax requires careful
 consideration, and this document attempts to explain both the _what_, of Enso's
 syntax, but also the _why_.
 
+Furthermore, Enso is novel in the fact that it does not enforce any artificial
+restriction between the syntaxes of its type and value levels: they are one and
+the same. This enables a staggering level of uniformity when programming in the
+language, allowing arbitrary computations on types, because in a
+dependently-typed world, they are just values.
+
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [](#)
-- [Algebraic Data Types](#algebraic-data-types)
-- [Record Types](#record-types)
-  - [](#-1)
+- [Encoding](#encoding)
+- [Naming](#naming)
+  - [Localised Naming](#localised-naming)
+  - [Operator Naming](#operator-naming)
+  - [Reserved Names](#reserved-names)
+- [Layout Rules](#layout-rules)
+  - [Maximum Line Length](#maximum-line-length)
+  - [Indented Blocks](#indented-blocks)
+- [Text Literals](#text-literals)
+  - [Inline Text Literals](#inline-text-literals)
+  - [Text Block Literals](#text-block-literals)
 
 <!-- /MarkdownTOC -->
 
-#### Textual Representation
+## Encoding
+While many modern programming languages are moving in a direction of being
+liberal with the input they accept, we find that this often leads to the
+resultant code being more difficult to use.
 
-#### Encoding
+- **Source Encoding:** All input source code to Enso is UTF-8 encoded.
+- **Indentation:** Indentation is four spaces, and all tabs are converted to 4
+  spaces. This is not configurable on purpose
 
-Enso accepts UTF8 encoded source code. Tabs are disallowed and every tab is
-always automatically converted to four spaces. There is no configuration option
-provided on purpose. All variables and operators identifiers are restricted to
-ASCII characters. Enso libraries should be widely accessible and users cannot
-struggle with typing the function names. However, we understand that there are
-situations when using Unicode characters is desirable, for example to design a
-high level visual library targeting a narrow domain in a particular country.
-That's why Enso allows users to specify optional localized names as part of
-function documentation and provides a special support for searching them in Enso
-Studio.
+> The actionables for this section are:
+>
+> - Should the indentation rules be enforced by the parser / a later error
+>   detection pass?
 
-We do not plan to support the usage of Unicode characters for operators.
-Paraphrasing the
-[Idris wiki](https://github.com/idris-lang/Idris-dev/wiki/Unofficial-FAQ#will-there-be-support-for-unicode-characters-for-operators),
-which we highly agree with:
+## Naming
+Names in Enso are restricted to using ASCII characters. This arises from the
+simple fact that all names should be easy to type without less common input
+methods. Furthermore, we enforce a rigid style for naming. This is in aid of
+giving Enso code a uniform identity.
 
-- Unicode operators are hard to type. This is important, as it often disables
-  the possibility of using someone else's code. Various code editors provide
-  their users with their own input methods, but we haven't experienced an
-  efficient UX yet.
-- Not every piece of software easily supports it. Unicode does not render
-  properly on some phone browsers, email clients, or IRC clients to name a few.
-  All of these can be fixed by the end user, for example by using a different
-  software. However, it sets a higher barrier to entry to using a programming
-  language.
-- Many Unicode characters look very similar. We had enough trouble with
-  confusion between 0 and O without worrying about all the different kinds of
-  colons and brackets.
+Given that Enso is dependently-typed, with no artificial separation between the
+type and value-level syntaxes, an arbitrary name can refer to both types and
+values. This means that naming itself can become a bit of a concern. At first
+glance, there is no meaningful syntax-based disambiguation in certain contexts
+(such as patterns and type signatures) between introducing a fresh variable, or
+an occurrence of one already in scope.
 
-Surely, Unicode operators can make the code look pretty, however, proper font
-with a well-designed ligatures is able to provide the same, or very similar
-results. We are very open to revisit this topic in a few years from now,
-however, for now Unicode characters are disallowed in Enso operators. If you
-want to help us design an Enso Font, don't hesitate to tell us about it!
+As we still want to have a minimal syntax for such use-cases, Enso enforces the
+following rules around naming:
 
-#### Layout rules
+- All identifiers are named using `snake_case`.
+- This can also be written `Snake_Case`
+- In contexts where it is _ambiguous_ as to whether a name is fresh or should
+  bind an identifier in scope, the second format refers to binding a name in
+  scope, while the first refers to a fresh variable.
+- This behaviour _only_ occurs in ambiguous contexts. In all other contexts,
+  both conventions refer to that name already in scope
+- No mixed-format names are allowed.
 
-The layout rules were designed to be both flexible yet enforce good practices.
+While, through much of the language's history, we have used `camelCase` (with
+its disambiguating cousin `CamelCase`), this has been decided against for one
+primary reason:
 
-#### Maximum Line Length
+- Names using snake case are far easier to read, and optimising code for
+  readability is _overwhelmingly_ important in a context where novice users are
+  involved.
 
-The maximum line length is 80 characters. If your code exceeds that, the
-compiler will emit warning message about it. There is no way to change this
-setting on purpose. Limiting the required editor window width makes it possible
-to have several files open side-by-side, and works well when using code review
-tools that present the two versions in adjacent columns. The default wrapping in
-most tools disrupts the visual structure of the code, making it more difficult
-to understand. The limits are chosen to avoid wrapping in editors with the
-window width set to 80.
+### Localised Naming
+We do, however, recognise that there is sometimes a need for unicode characters
+in names (e.g. designing a high-level visual library that targets a narrow
+domain in a specific country). To that end, Enso allows users to specify
+optional localised names as part of a function's documentation.
+
+Special support is provided for providing completions based on these localised
+names in the language server, and in Enso Studio.
+
+### Operator Naming
+While some languages allow use of unicode characters for naming operators, we
+will not. The reasoning behind this is simple, and is best explained by
+paraphrasing the [Idris wiki](https://github.com/idris-lang/Idris-dev/wiki/Unofficial-FAQ#will-there-be-support-for-unicode-characters-for-operators).
+
+- Unicode operators are hard to type, making it far more difficult to use other
+  peoples' code. Even if some editors provide input methods for such symbols,
+  they do not provide a good UX.
+- Not every piece of software has good support for Unicode. Even though this is
+  changing, it is not there yet, thus raising barriers to entry.
+- Many Unicode characters are hard to distinguish.
+
+In essence, while the use of Unicode operators can make code look pretty, a font
+with well-defined ligatures can do the same.
+
+### Reserved Names
+Even though we do not intend to reserve any names at the level of the lexer or
+parser, there are a number of constructs so core to the operation of Enso as a
+language that we do not want to let them be overridden or redefined by users.
+These constructs are known as reserved names, and these restrictions are
+enforced in the compiler.
+
+We reserve these names because allowing their redefinition would severely hinder
+the readability and consistency of Enso code. They are as follows:
+
+- `type`: This reserved name is used to define new atoms and typesets.
+- `->`: This reserved name is the 'function' type, and represents a mapping from
+  the type of its first operand to the type of its second operand.
+- `:`: This reserved name is the type attribution operator. It ascribes the type
+  described by its right operand to its left operand.
+- `=`: This reserved name is the assignment operator, and assigns the value of
+  its right operand to the name on its left. Under the hood this desugars to the
+  relevant implementation of monadic bind.
+- `.`: This is the standard function composition operator.
+- `case ... of`: This reserved name is the case expression that is fundamental
+  to the operation of control flow in the language.
+- `this`:  This reserved name is the one used to refer to the enclosing type in
+  a method or type definition.
+- `here`: This reserved name is the one used to refer to the enclosing module.
+
+Many of these reserved words are implemented as macros in the parser, but these
+macros are always in scope and cannot be overridden, hidden, or redefined.
+
+> The actionables for this section are as follows:
+>
+> - In the future, we need to determine if we need `all` and `each` explicit
+>   keywords in the case of dependency. Explicit examples are required.
+
+## Layout Rules
+Enso is a layout-aware programming language, in that layout rules are used to
+determine code structure.
+
+### Maximum Line Length
+The maximum length of a line in an Enso source file is restricted to 80
+characters outside of text blocks. If your code exceeds this limit, the compiler
+will emit a warning message.
+
+There is no option to change this limit in order to enforce visual consistency
+in user code. The reasoning behind this is as follows:
+
+- The default soft-wrapping of long lines in editors is highly disruptive to the
+  visual structure of code, making it harder to understand.
+- Code should still be understandable on smaller screens or with multiple-column
+  views.
+
+### Indented Blocks
+
+## Text Literals
+Enso provides rich support for textual literals in the language, supporting both
+raw and interpolated strings natively.
+
+- **Raw Strings:** Raw strings are delimited using the standard double-quote
+  character (`"`). Raw strings have support for escape sequences.
+
+  ```ruby
+  raw_string = "Hello, world!"
+  ```
+
+- **Interpolated Strings:** Interpolated strings support the splicing of
+  executable Enso expressions into the string. Such strings are delimited using
+  the single-quote (`'`) character, and splices are delimited using the backtick
+  (`\``) character. Splices are run, and then the result is converted to a
+  string using `show`. These strings also have support for escape sequences.
+
+  ```ruby
+  fmt_string = 'Hello, my name is `time.now.year - 1990`'
+  ```
+
+### Inline Text Literals
+In Enso, inline text literals are opened and closed using the corresponding
+quote type for the literal.
+
+### Text Block Literals
+
 
 #### Indentation Blocks
 
@@ -610,6 +720,7 @@ sortedSpheres = spheres . sortBy .position.x
 
 #### Mixfix Functions
 
+- Mixfix definitions use a 'separated' snake case (e.g. `if c _then a _else b`).
 Mixfix functions are just functions containing multiple sections, like
 `if ... then ... else ...`. In Enso, every identifier containing underscores
 indicates a mixfix operator. between each section there is always a single
@@ -963,8 +1074,6 @@ checkListLength = checkLength
       d = 5
   ```
 
-##
-
 #### Data Types
 
 #### Constructor Types
@@ -990,7 +1099,7 @@ test v = v.x + v.y + v.z
 test pt1 -- Compile time error. Expected Vec3, got Point3.
 ```
 
-## Algebraic Data Types
+#### Algebraic Data Types
 
 Enso allows you to define new types by combining existing ones into so called
 [algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). There
@@ -1395,7 +1504,7 @@ openReadAndCompare path =
     convertedNum < currentNumber
 ```
 
-## Record Types
+#### Record Types
 
 ```haskell
 
@@ -1411,7 +1520,7 @@ type Point
 Pattern matching works in a structural manner. The same applies to `|`,
 `&`,etc.
 
-#### ==== TO BE DESCRIBED NICER ====
+#### TO BE DESCRIBED NICER
 
 #### Monadic arguments
 
@@ -2130,8 +2239,6 @@ n2 = Node [n1] 2
 
 - implementing custom contexts (monads). Including example on how to implement a
   "check monad" which has lines checking dataframes for errors.
-
-###
 
 #### ==== DEPRECATED (Useful parts) ====
 
