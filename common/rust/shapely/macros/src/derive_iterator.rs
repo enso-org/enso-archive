@@ -20,7 +20,7 @@ pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
 /// If the struct is tuple-like, returns index pseudo-identifiers.
 pub fn matching_fields
 ( data:&syn::DataStruct
-  , target_param:&syn::GenericParam
+, target_param:&syn::GenericParam
 ) -> Vec<TokenStream> {
     let fields           = fields_list(&data.fields);
     let indexed_fields   = fields.iter().enumerate();
