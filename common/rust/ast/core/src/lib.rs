@@ -1257,6 +1257,43 @@ impl HasSpan for Ambiguous {
     }
 }
 
+impl HasSpan for Comment {
+    fn span(&self) -> usize {
+        panic!("HasSpan is not supported for Spaceless AST!")
+    }
+}
+
+impl<T> HasSpan for Import<T> {
+    fn span(&self) -> usize {
+        panic!("HasSpan is not supported for Spaceless AST!")
+    }
+}
+
+impl<T> HasSpan for Mixfix<T> {
+    fn span(&self) -> usize {
+        panic!("HasSpan is not supported for Spaceless AST!")
+    }
+}
+
+impl<T> HasSpan for Group<T> {
+    fn span(&self) -> usize {
+        panic!("HasSpan is not supported for Spaceless AST!")
+    }
+}
+
+
+impl<T> HasSpan for Def<T> {
+    fn span(&self) -> usize {
+        panic!("HasSpan is not supported for Spaceless AST!")
+    }
+}
+
+impl HasSpan for Foreign {
+    fn span(&self) -> usize {
+        panic!("HasSpan is not supported for Spaceless AST!")
+    }
+}
+
 impl<T: HasSpan> HasSpan for MacroMatchSegment<T> {
     fn span(&self) -> usize {
         self.head.span() + self.body.span()
@@ -1302,7 +1339,6 @@ impl HasSpan for MacroAmbiguousSegment {
 impl<T: HasSpan> HasSpan for Shape<T> {
     fn span(&self) -> usize {
         match self {
-            // TODO: ? Shape::Unexpected
             Shape::Unrecognized (val) => val.span(),
             Shape::InvalidQuote (val) => val.span(),
             Shape::InlineBlock  (val) => val.span(),
@@ -1328,14 +1364,12 @@ impl<T: HasSpan> HasSpan for Shape<T> {
             Shape::Block        (val) => val.span(),
             Shape::Match        (val) => val.span(),
             Shape::Ambiguous    (val) => val.span(),
-            _ => panic!("not implemented {}"),
+            Shape::Comment      (val) => val.span(),
+            Shape::Import       (val) => val.span(),
+            Shape::Mixfix       (val) => val.span(),
+            Shape::Group        (val) => val.span(),
+            Shape::Def          (val) => val.span(),
+            Shape::Foreign      (val) => val.span(),
         }
-//        // === Spaceless AST ===
-//        Comment   (Comment),
-//        Import    (Import<T>),
-//        Mixfix    (Mixfix<T>),
-//        Group     (Group<T>),
-//        Def       (Def<T>),
-//        Foreign   (Foreign),
     }
 }

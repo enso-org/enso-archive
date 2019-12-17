@@ -43,6 +43,13 @@ fn assert_opr<StringLike:Into<String>>(ast:&Ast, name:StringLike) {
     assert_eq!(*actual,expected);
 }
 
+/// Checks if all nodes in subtree have declared spans equal to
+/// spans we calculate.
+fn validate_spans(ast:&Ast) {
+    for node in ast.iter_recursive() {
+        assert_eq!(node.shape().span(), ast.wrapped.wrapped.span);
+    }
+}
 
 // ===================
 // === ExpectTuple ===
@@ -115,12 +122,8 @@ impl Fixture {
     /// Runs parser on given input, panics on any error.
     fn parse(&mut self, program:&str) -> Ast {
         let ast = self.0.parse(program.into()).unwrap();
-        println!("{:?}", ast);
-        let shape: &Shape<Ast> = &ast.wrapped.wrapped.wrapped;
-        let span = shape.span();
-        assert_eq!(shape.span(), ast.span(), "{}", program);
-        assert_eq!(shape.span(), program.len(), "{}", program);
-        println!("{}", program);
+        validate_spans(&ast);
+        assert_eq!(ast.span(), program.len());
         ast
     }
 
@@ -130,8 +133,8 @@ impl Fixture {
         let ast  = self.parse(program);
         let line = expect_single_line(&ast);
         line.clone()
-
     }
+
     /// Program is expected to be single line module. The line's Shape subtype
     /// is obtained and passed to `tester`.
     fn test_shape<T,F>(&mut self, program:&str, tester:F)
