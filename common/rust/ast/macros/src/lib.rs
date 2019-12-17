@@ -255,19 +255,33 @@ pub fn to_variant_types
     output.into()
 }
 
-
 /// Creates a HasSpan instance for given enum type.
 ///
 /// Given type may only consist of single-elem typle-like constructors.
 /// The implementation uses underlying HasSpan implementation for each stored
 /// value.
 fn derive_has_span_for_enum
-(data_name:syn::Ident, data:syn::DataEnum) -> proc_macro2::TokenStream  {
-    quote! {
-        impl HasSpan for #data_name {
+(decl:&syn::DeriveInput, data:&syn::DataEnum)
+-> TokenStream  {
+    let ident = &decl.ident;
+    let params = decl.generics.params.iter().collect::<Vec<_>>();
 
+    let arms = data.variants.iter().map(|v| {
+        let con_ident = &v.ident;
+        quote!( #ident::#con_ident (elem) => elem.span() )
+    });
+
+    let ret = quote! {
+        impl<#(#params: HasSpan),*> HasSpan for #ident<#(#params),*> {
+            fn span(&self) -> usize {
+                match self {
+                    #(#arms),*
+                }
+            }
         }
-    }
+    };
+//    println
+    ret
 }
 
 #[proc_macro_derive(HasSpan)]
@@ -275,12 +289,13 @@ pub fn derive_has_span
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
     let ret = match decl.data {
-        syn::Data::Enum(e) => derive_has_span_for_enum(decl.ident,e),
+        syn::Data::Enum(ref e) => derive_has_span_for_enum(&decl,&e),
         _       => quote! {},
     };
-    println!("================================================================");
+//    println!("================================================================");
     println!("{}", repr(&ret));
-    proc_macro::TokenStream::from(quote! {})
+    proc_macro::TokenStream::from(ret)
+//    proc_macro::TokenStream::from(quote! {})
 //    let params = &decl.generics.params.iter().collect::<Vec<_>>();
 //    match params.last() {
 //        Some(last_param) => proc_macro::TokenStream::from(quote! {}),

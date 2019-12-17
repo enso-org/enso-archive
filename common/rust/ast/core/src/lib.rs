@@ -255,7 +255,9 @@ impl<'de> Deserialize<'de> for Ast {
 /// Defines shape of the subtree. Parametrized by the child node type `T`.
 ///
 /// Shape describes names of children and spacing between them.
-#[ast(flat)] pub enum Shape<T> {
+#[ast(flat)]
+#[derive(HasSpan)]
+pub enum Shape<T> {
     Unrecognized  { str : String   },
     InvalidQuote  { quote: Builder },
     InlineBlock   { quote: Builder },
@@ -321,6 +323,7 @@ impl<'de> Deserialize<'de> for Ast {
 // ===============
 
 #[ast(flat)]
+#[derive(HasSpan)]
 pub enum Builder {
     Empty,
     Letter{char: char},
@@ -348,12 +351,16 @@ pub enum TextLine<T> {
 }
 
 // === Text Segments ===
-#[ast(flat)] pub enum SegmentRaw {
+#[ast(flat)]
+#[derive(HasSpan)]
+pub enum SegmentRaw {
     SegmentPlain    (SegmentPlain),
     SegmentRawEscape(SegmentRawEscape),
 }
 
-#[ast(flat)] pub enum SegmentFmt<T> {
+#[ast(flat)]
+#[derive(HasSpan)]
+pub enum SegmentFmt<T> {
     SegmentPlain    (SegmentPlain    ),
     SegmentRawEscape(SegmentRawEscape),
     SegmentExpr     (SegmentExpr<T>  ),
@@ -366,7 +373,9 @@ pub enum TextLine<T> {
 #[ast_node] pub struct SegmentEscape    { pub code : Escape    }
 
 // === Text Segment Escapes ===
-#[ast(flat)] pub enum RawEscape {
+#[ast(flat)]
+#[derive(HasSpan)]
+pub enum RawEscape {
     Unfinished { },
     Invalid    { str: char },
     Slash      { },
@@ -905,17 +914,6 @@ impl<T: HasSpan> TextBlockLine<T> {
 }
 ///////////////////////////////////
 
-impl<T: HasSpan> HasSpan for TextLine<T> {
-    fn span(&self) -> usize {
-        match self {
-            TextLine::TextLineRaw(val) => val.span(),
-            TextLine::TextLineFmt(val) => val.span(),
-        }
-    }
-}
-
-////
-
 impl HasSpan for Empty {
     fn span(&self) -> usize {
         0
@@ -941,21 +939,6 @@ impl HasSpan for Seq {
         self.first.span() + self.second.span()
     }
 }
-// just dispatch
-impl HasSpan for Builder {
-    fn span(&self) -> usize {
-        match self {
-            Builder::Empty (val) => val.span(),
-            Builder::Letter(val) => val.span(),
-            Builder::Space (val) => val.span(),
-            Builder::Text  (val) => val.span(),
-            Builder::Seq   (val) => val.span(),
-        }
-    }
-}
-
-///////////////////////////////////////
-
 
 // === RawEscape ===
 impl HasSpan for Unfinished {
@@ -984,20 +967,9 @@ impl HasSpan for RawQuote {
     }
 }
 
-impl HasSpan for RawEscape {
-    fn span(&self) -> usize {
-        match self {
-            RawEscape::Unfinished(val) => val.span(),
-            RawEscape::Invalid   (val) => val.span(),
-            RawEscape::Slash     (val) => val.span(),
-            RawEscape::Quote     (val) => val.span(),
-            RawEscape::RawQuote  (val) => val.span(),
-        }
-    }
-}
-
 ///////////////////////////
 
+// === SegmentRaw ===
 impl HasSpan for SegmentPlain {
     fn span(&self) -> usize {
         self.value.span()
@@ -1006,14 +978,6 @@ impl HasSpan for SegmentPlain {
 impl HasSpan for SegmentRawEscape {
     fn span(&self) -> usize {
         self.code.span() + BACKSLASH.span()
-    }
-}
-impl HasSpan for SegmentRaw {
-    fn span(&self) -> usize {
-        match self {
-            SegmentRaw::SegmentPlain    (val) => val.span(),
-            SegmentRaw::SegmentRawEscape(val) => val.span(),
-        }
     }
 }
 
@@ -1027,6 +991,8 @@ impl<T: HasSpan> HasSpan for BlockLine<T> {
 
 ////////////////////////////////////
 
+// === SegmentFmt ===
+// (apart from ones already defined for SegmentRaw)
 impl<T: HasSpan> HasSpan for SegmentExpr<T> {
     fn span(&self) -> usize {
         self.value.span() + 2 * EXPR_QUOTE.span()
@@ -1037,19 +1003,13 @@ impl HasSpan for SegmentEscape {
         BACKSLASH.span() + self.code.span()
     }
 }
-impl<T: HasSpan> HasSpan for SegmentFmt<T> {
-    fn span(&self) -> usize {
-        match self {
-            SegmentFmt::SegmentPlain    (val) => val.span(),
-            SegmentFmt::SegmentRawEscape(val) => val.span(),
-            SegmentFmt::SegmentExpr     (val) => val.span(),
-            SegmentFmt::SegmentEscape   (val) => val.span(),
-        }
-    }
-}
 
-///////////////////////////////////
-// escape
+// === Escape ===
+//impl HasSpan for SegmentEscape {
+//    fn span(&self) -> usize {
+//        BACKSLASH.span() + self.code.span()
+//    }
+//}
 
 impl HasSpan for Escape {
     fn span(&self) -> usize {
@@ -1332,44 +1292,5 @@ impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
 impl HasSpan for MacroAmbiguousSegment {
     fn span(&self) -> usize {
         self.head.span() + self.body.span()
-    }
-}
-
-
-impl<T: HasSpan> HasSpan for Shape<T> {
-    fn span(&self) -> usize {
-        match self {
-            Shape::Unrecognized (val) => val.span(),
-            Shape::InvalidQuote (val) => val.span(),
-            Shape::InlineBlock  (val) => val.span(),
-            Shape::Blank        (val) => val.span(),
-            Shape::Var          (val) => val.span(),
-            Shape::Cons         (val) => val.span(),
-            Shape::Opr          (val) => val.span(),
-            Shape::Mod          (val) => val.span(),
-            Shape::InvalidSuffix(val) => val.span(),
-            Shape::Number       (val) => val.span(),
-            Shape::DanglingBase (val) => val.span(),
-            Shape::TextLineRaw  (val) => val.span(),
-            Shape::TextLineFmt  (val) => val.span(),
-            Shape::TextBlockRaw (val) => val.span(),
-            Shape::TextBlockFmt (val) => val.span(),
-            Shape::TextUnclosed (val) => val.span(),
-            Shape::Prefix       (val) => val.span(),
-            Shape::Infix        (val) => val.span(),
-            Shape::SectionLeft  (val) => val.span(),
-            Shape::SectionRight (val) => val.span(),
-            Shape::SectionSides (val) => val.span(),
-            Shape::Module       (val) => val.span(),
-            Shape::Block        (val) => val.span(),
-            Shape::Match        (val) => val.span(),
-            Shape::Ambiguous    (val) => val.span(),
-            Shape::Comment      (val) => val.span(),
-            Shape::Import       (val) => val.span(),
-            Shape::Mixfix       (val) => val.span(),
-            Shape::Group        (val) => val.span(),
-            Shape::Def          (val) => val.span(),
-            Shape::Foreign      (val) => val.span(),
-        }
     }
 }
