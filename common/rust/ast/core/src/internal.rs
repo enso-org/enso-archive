@@ -5,9 +5,7 @@ pub fn iterate_subtree<T>(ast:T) -> impl Iterator<Item=T::Item>
         let mut nodes:Vec<T> = vec![ast];
         while !nodes.is_empty() {
             let ast = nodes.pop().unwrap();
-            for child in ast.into_iter() {
-                nodes.push(child)
-            }
+            nodes.extend(ast.into_iter());
             yield ast;
         }
     };

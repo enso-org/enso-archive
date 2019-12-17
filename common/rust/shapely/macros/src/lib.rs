@@ -42,6 +42,16 @@ pub fn derive_iterator
     }
 }
 
+/// Returns token that refers to the field.
+///
+/// It is the field name for named field and field index for unnamed fields.
+fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
+    match &field.ident {
+        Some(ident) => quote!(#ident),
+        None        => quote!(#index),
+    }
+}
+
 /// Returns identifiers of fields with type matching `target_param`.
 ///
 /// If the struct is tuple-like, returns index pseudo-identifiers.
@@ -50,20 +60,11 @@ fn matching_fields
 , target_param:&syn::GenericParam
 ) -> Vec<TokenStream> {
     let fields           = fields_list(&data.fields);
-    let fields           = fields.iter().enumerate();
-    let ret              = fields.filter_map(|(i, f)| {
+    let indexed_fields   = fields.iter().enumerate();
+    let ret              = indexed_fields.filter_map(|(i,f)| {
         let type_matched = type_matches(&f.ty, target_param);
-        type_matched.as_some_from(|| {
-            match &f.ident {
-                Some(ident) => quote!(#ident),
-                None => {
-                    let ix = syn::Index::from(i);
-                    quote!(#ix)
-                }
-            }
-        })
+        type_matched.as_some_from(|| field_ident_token(&f, i.into()))
     }).collect::<Vec<_>>();
-//    println!("{:?}", ret.iter().map(|a| repr(&a)).collect::<Vec<_>>());
     ret
 }
 
@@ -77,7 +78,6 @@ fn derive_iterator_for
 ( decl         : &syn::DeriveInput
 , target_param : &syn::GenericParam
 ) -> proc_macro::TokenStream {
-//    println!("==============================================================");
     let data           = &decl.data;
     let params         = &decl.generics.params.iter().collect::<Vec<_>>();
     let ident          = &decl.ident;

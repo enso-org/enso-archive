@@ -122,9 +122,9 @@ impl Clone for Ast {
     }
 }
 
-/// IntoIterator for &Ast that just delegates to &Shape IntoIterator.
+/// `IntoIterator` for `&Ast` that just delegates to `&Shape`'s `IntoIterator`.
 impl<'t> IntoIterator for &'t Ast {
-    type Item = <&'t Shape<Ast> as IntoIterator>::Item;
+    type Item     = <&'t Shape<Ast> as IntoIterator>::Item;
     type IntoIter = <&'t Shape<Ast> as IntoIterator>::IntoIter;
     fn into_iter(self) -> Self::IntoIter {
         self.shape().into_iter()
