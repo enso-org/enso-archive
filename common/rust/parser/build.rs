@@ -1,6 +1,7 @@
 use std::fs::{File, create_dir_all, canonicalize};
 use std::io::prelude::*;
 use std::io::BufReader;
+use std::env;
 
 
 fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
@@ -12,8 +13,7 @@ fn prepend(input: File, mut output: File, text: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-/* fixes a scalajs bug https://github.com/scala-js/scala-js/issues/3677/ */
-fn scalajs_fix() -> std::io::Result<()> {
+fn move_js_artifacts() -> std::io::Result<()> {
     let root = canonicalize("../../..")
         .expect("Couldn't get root of workspace.");
     let pkg_path = &root
@@ -33,10 +33,16 @@ fn scalajs_fix() -> std::io::Result<()> {
     let fixed = File::create(&parser_path_fix).expect(&format!(
         "Could not create file {}", parser_path_fix.to_str().unwrap()
     ));
-    
+
+    // fix for a bug in scalajs https://github.com/scala-js/scala-js/issues/3677/
     prepend(original, fixed, "var __ScalaJSEnv = { global: window };")
 }
 
 fn main() -> std::io::Result<()>  {
-    scalajs_fix()
+    let target = env::var("TARGET").unwrap();
+    if target.contains("wasm32") {
+        move_js_artifacts()?;
+    }
+    Ok(())
+
 }

@@ -1,3 +1,5 @@
+#![cfg(target_arch = "wasm32")]
+
 use crate::{api, api::IsParser};
 use prelude::*;
 use wasm_bindgen::prelude::*;
@@ -26,7 +28,6 @@ impl From<serde_json::error::Error> for Error {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "/pkg/scala-parser.js")]
 extern "C" {
     #[wasm_bindgen(catch)]
@@ -48,7 +49,6 @@ impl Client {
     }
 }
 
-#[cfg(target_arch = "wasm32")]
 impl IsParser for Client {
     fn parse(&mut self, _program: String) -> api::Result<api::Ast> {
         match parse(_program) {
