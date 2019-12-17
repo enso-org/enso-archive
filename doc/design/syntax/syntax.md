@@ -173,7 +173,7 @@ raw and interpolated strings natively.
   string using `show`. These strings also have support for escape sequences.
 
   ```ruby
-  fmt_string = 'Hello, my name is `time.now.year - 1990`'
+  fmt_string = 'Hello, my age is `time.now.year - person.birthday.year`'
   ```
 
 ### Inline Text Literals
