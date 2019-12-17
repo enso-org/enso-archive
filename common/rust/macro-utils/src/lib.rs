@@ -106,6 +106,7 @@ mod tests {
             type_depends_on(&ty, &param)
         };
 
+        // sample types that depend on `T`
         let dependents = vec!{
             "T",
             "Option<T>",
@@ -115,6 +116,7 @@ mod tests {
             "&T",
             "&'t mut T",
         };
+        // sample types that do not depend on `T`
         let independents = vec!{
             "Tt",
             "Option<Tt>",
