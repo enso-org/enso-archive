@@ -1,6 +1,6 @@
 use std::fs::{File, create_dir_all, canonicalize};
-use std::io::prelude::*;
 use std::io::BufReader;
+use std::io::prelude::*;
 use std::env;
 
 
