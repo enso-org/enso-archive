@@ -1,5 +1,3 @@
-#![cfg(target_arch = "wasm32")]
-
 use crate::{api, api::IsParser};
 use prelude::*;
 use wasm_bindgen::prelude::*;
@@ -9,34 +7,34 @@ pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, Fail)]
 pub enum Error {
-   #[fail(display = "JSON (de)serialization failed: {:?}", _0)]
-   JsonSerializationError(#[cause] serde_json::error::Error),
+    #[fail(display = "JSON (de)serialization failed: {:?}", _0)]
+    JsonSerializationError(#[cause] serde_json::error::Error),
 
-   #[fail(display = "Scala parser threw an unexpected exception.")]
-   ScalaException(),
+    #[fail(display = "Scala parser threw an unexpected exception.")]
+    ScalaException(),
 }
 
 impl From<Error> for api::Error {
-   fn from(e: Error) -> Self {
-      api::interop_error(e)
-   }
+    fn from(e: Error) -> Self {
+        api::interop_error(e)
+    }
 }
 
 impl From<serde_json::error::Error> for Error {
-   fn from(error: serde_json::error::Error) -> Self {
-      Error::JsonSerializationError(error)
-   }
+    fn from(error: serde_json::error::Error) -> Self {
+        Error::JsonSerializationError(error)
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
 #[wasm_bindgen(module = "/pkg/scala-parser.js")]
 extern "C" {
-   #[wasm_bindgen(catch)]
-   fn parse(input: String) -> std::result::Result<String, JsValue>;
-   #[wasm_bindgen(catch)]
-   #[wasm_bindgen(js_name = parseWithIDs)]
-   fn parse_with_IDs(input: String, ids: String)
-      -> std::result::Result<String, JsValue>;
+    #[wasm_bindgen(catch)]
+    fn parse(input: String) -> std::result::Result<String, JsValue>;
+    #[wasm_bindgen(catch)]
+    #[wasm_bindgen(js_name = parseWithIDs)]
+    fn parse_with_IDs
+    (input: String, ids: String) -> std::result::Result<String, JsValue>;
 }
 
 /// Wrapper over the JS-compiled parser.
@@ -45,17 +43,17 @@ extern "C" {
 pub struct Client {}
 
 impl Client {
-   pub fn new() -> Result<Client> {
-      Ok(Client {})
-   }
+    pub fn new() -> Result<Client> {
+        Ok(Client {})
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
 impl IsParser for Client {
-   fn parse(&mut self, _program: String) -> api::Result<api::Ast> {
-      match parse(_program) {
-         Ok(json_ast) => Err(ParsingError(json_ast)),
-         Err(_) => Err(InteropError(Box::new(Error::ScalaException()))),
-      }
-   }
+    fn parse(&mut self, _program: String) -> api::Result<api::Ast> {
+        match parse(_program) {
+            Ok(json_ast) => Err(ParsingError(json_ast)),
+            Err(_) => api::interop_error(Error::ScalaException()),
+        }
+    }
 }
