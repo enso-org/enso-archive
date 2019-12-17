@@ -146,6 +146,11 @@ various services in this set.
 > - Do we want to remain compatible (where possible) with the Microsoft LSP
 >   [specification](https://microsoft.github.io/language-server-protocol/specifications/specification-3-14/)?
 > - What is the agreed-upon design for the protocol itself?
+> - How does this interact with synchronising node metadata?
+> - Is there a way to hide metadata in the LSP?
+
+- We want to go with LSP.
+- Not used for results / visualisations / etc.
 
 ### Protocol Communication Patterns
 Whatever protocol we decide on will need to have support for a couple of main
@@ -170,6 +175,14 @@ currently subsumed by the generic request-response model.
 > - Do we want to support the request/ack pattern as a separate style (e.g.
 >   "run code")?
 
+- We used no other patterns in Luna 1.0.
+- Request with multiple responses / response with multiple requests.
+- Think about the use case of sliders (need debouncing).
+- We need _protocol level_ acks (this is part of LSP).
+- LSP notifications as a binding point.
+- Responses are keyed on requests.
+- Notifications for async responses.
+
 ### The Protocol Transport
 The transport of the protocol refers to the underlying layer over which its
 messages (discussed in [the protocol format](#the-protocol-format) below) are
@@ -181,10 +194,8 @@ WebSocket on its own, or a mixture of WebSockets and HTTP.
 >
 > - Do we want to stay compatible with LSP? If so, we're forced into using pure
 >   WS for transport.
-> - What does the GUI prefer in this regard? Why?
-> - Do we need true serialized request-response? If so, then a full WS solution
->   would need a concept of message IDs.
-> - Marcin: Does JSON RPC satisfy our needs?
+
+- Yes WebSockets because LSP. Message IDs exist.
 
 ### The Protocol Format
 This section describes the format of a protocol message. This format should be
@@ -216,6 +227,9 @@ following set of tradeoffs:
 > - Do we ever want to send raw binary data in circumstances _not_ tied to the
 >   visualisations.
 
+- One pipe is LSP
+- One pipe is binary.
+
 ## Protocol Functionality
 This entire section deals with the _functional_ requirements placed upon the
 protocol used by the engine services. These requirements are overwhelmingly
@@ -240,6 +254,7 @@ set of the project files and metadata and needs to support the following
 functionalities:
 
 - Get project metadata (name, maintainer, version, dependencies, and so on)
+- Change requests for the above
 - List modules
 - Delete module
 - Create module
@@ -247,6 +262,8 @@ functionalities:
 > The actionables for this section are as follows:
 >
 > - Are there any other functionalities needed from this component?
+
+- Language server is created _for_ a given project.
 
 ### File Management and Storage
 The file management component needs to deal with both the files storing the
@@ -267,6 +284,14 @@ It needs to support the following functionality:
 >   this component?
 > - Should this component be the engine team's responsibility? It is only needed
     in the cloud setting and has more to do with Cloud than the Language.
+
+- Restricted to access within a project directory? Yikes...
+- This is really its own separate thing.
+- Does this need to sit behind the multiplexer?
+- OverlayFS for doing cloud / distributed files.
+- Engine team has no bandwidth for this, so it should be the cloud team's
+  problem.
+- What are the requirements of this? GUI's problem.
 
 ### Textual Diff Management
 The engine services need to support robust handling of textual diffs. This is
@@ -301,12 +326,17 @@ in the design:
 > - Determine if there are other types of operations needed to be supported on
 >   diffs.
 > - Determine if there are missing portions of the design.
-> - What guarantees can we get about the diffs? What can we realistically
->   expect?
 > - Which team is responsible for writing the library for recomputing the ID
 >   locations?
 > - What kind of multi-client editing do we want to support at first? FCFS, or
 >   a 'write-lock' style solution?
+
+- LSP provides: synchronisation
+- If LS crashes, it needs to send `init` and re-initialize for the GUI.
+- GUI can provide minimal diffs for any given update.
+- The incremental compiler pipeline.
+- Recomputation of ID locations is the responsibility of the IDE team.
+- Initial multi-client solutions work on a write lock.
 
 ### Execution Management
 The language server process will need to be able to respond to requests for
@@ -334,6 +364,25 @@ This implies that the following functionalities are needed:
 >   request can be made to get the full value (better for performance), or
     just the full value pointer (best performance, clunky usage)?
 
+- Persistent subscriptions based on root nodes containing nodes.
+- "Give me cached IDs"
+- Change "foo" used by "bar", must recompute "bar".
+- A subscription that re-evaluates all subscribed IDs.
+- What exactly matters for the cache (invalid, valid but evicted, valid but
+  present).
+- Sub to a node gets you changes in exec state, profiling info, types, values,
+  etc, but with a list of scopes.
+- Sub to updates should be call-stack aware (a position in a call stack).
+- Need heartbeat messages and keepalive.
+- Caching strategies for 1.0/2.0?
+- Need to know:
+  + Which nodes are being computed
+  + Memory usage (2nd version)
+  + Last recompute time
+  + Recursive function step through
+  + Value
+  + Type
+
 ### Completion
 The IDE needs the ability to request completions for some target point (cursor
 position) in the source code. In essence, this boils down to _some_ kind of
@@ -356,17 +405,20 @@ It should be noted that the exact set of criteria for determining the
 'relevance' of a suggestion have not yet been determined.
 
 Another possible solution is for the engine to send _all_ globally defined
-symbols to the IDE upfront and for the suggestions algorithm to be implement
+symbols to the IDE upfront and for the suggestions algorithm to be implemented
 client side. This has the potential upsides of:
 
-  - Better performance & more fluid experience (no need to ping the server
-    every time a user is about to type).
-  - Lower cloud resources usage (the often-triggered bit of computing
-    hints is offloaded to the client's browser).
-  - In phase 1 of the project (before TC), it is the only way to take types
-    into account – IDE is the only component that reliably stores the type 
-    information.
+- Better performance & more fluid experience (no need to ping the server every
+  time a user is about to type).
+- Lower cloud resources usage (the often-triggered bit of computing hints is
+  offloaded to the client's browser).
+- In phase 1 of the project (before TC), it is the only way to take types into
+  account - the IDE is the only component that reliably stores the type
+  information.
 
+This solution, is, however, a large departure from how a traditional LSP server
+works with regards to completions, where completions are provided for a
+candidate point in the file.
 
 > The actionables for this section are:
 > - Determine whether the algorithmic details are a part of the language server
@@ -390,6 +442,12 @@ that it supports. This means that the following functionality is necessary:
 > The actionables for this section are:
 >
 > - What else do we need to support visualisations for 2.0?
+
+- Visualisations should work on a pub/sub model on the existing code to minimise
+  latency (as long as the visualisation _function_ doesn't update).
+- If the visualisation function updates, the old subscription must be ended and
+  a new one started for the same code position (or we implement an 'update'
+  request for said subscriptions).
 
 ### Analysis Operations
 We also want to be able to support a useful set of semantic analysis operations
@@ -419,8 +477,7 @@ and will be expanded upon as necessary in the future.
   extraction and inlining of entities. In future this could be expanded to
   include refactoring hints a la IntelliJ.
 - **Arbitrary Visualisation Code:** Visualisations should be able to be defined
-  using Enso code, and hence there needs to be the ability to execute arbitrary
-  code on values visible in the current scope.
+  using Enso code and will require additional support.
 - **IO Manager:** The ability to do sophisticated IO monitoring, such as
   watching for file changes, in order to support minimal re-execution of
   analysis pipelines.
