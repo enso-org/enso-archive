@@ -42,7 +42,6 @@ impl Parser {
         Parser::new()
             .unwrap_or_else(|e| panic!("Failed to create a parser: {:?}", e))
     }
-
 }
 
 impl api::IsParser for Parser {

@@ -44,5 +44,4 @@ fn main() -> std::io::Result<()>  {
         move_js_artifacts()?;
     }
     Ok(())
-
 }
