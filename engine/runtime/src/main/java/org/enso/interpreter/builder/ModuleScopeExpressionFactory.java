@@ -66,9 +66,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    */
   @Override
   public void visitModuleScope(
-      List<AstImport> imports,
-      List<AstTypeDef> typeDefs,
-      List<AstMethodDef> bindings) {
+      List<AstImport> imports, List<AstTypeDef> typeDefs, List<AstMethodDef> bindings) {
     Context context = language.getCurrentContext();
 
     for (AstImport imp : imports) {
@@ -102,11 +100,16 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
       AstArgDefinition thisArgument =
           new AstArgDefinition(Constants.THIS_ARGUMENT_NAME, scalaNone, false);
 
+      String typeName = method.typeName();
+      if (typeName.equals(Constants.CURRENT_MODULE_VARIABLE_NAME)) {
+        typeName = moduleScope.getAssociatedType().getName();
+      }
+
       ExpressionFactory expressionFactory =
           new ExpressionFactory(
               language,
               source,
-              method.typeName() + Constants.SCOPE_SEPARATOR + method.methodName(),
+              typeName + Constants.SCOPE_SEPARATOR + method.methodName(),
               moduleScope);
 
       List<AstArgDefinition> realArgs = new ArrayList<>(method.fun().getArguments());
@@ -122,12 +125,12 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               null,
               new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, funNode.getArgs()));
 
-      if (method.typeName().equals(Constants.ANY_TYPE_NAME)) {
+      if (typeName.equals(Constants.ANY_TYPE_NAME)) {
         moduleScope.registerMethodForAny(method.methodName(), function);
       } else {
         AtomConstructor constructor =
             moduleScope
-                .getConstructor(method.typeName())
+                .getConstructor(typeName)
                 .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
         moduleScope.registerMethod(constructor, method.methodName(), function);
       }

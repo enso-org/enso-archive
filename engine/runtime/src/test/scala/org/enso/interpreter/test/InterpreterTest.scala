@@ -55,15 +55,18 @@ trait InterpreterRunner {
     output.reset()
 
     val source = Source
-      .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), "test")
+      .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), null)
       .mimeType(mimeType)
       .build()
 
-    InterpreterException.rethrowPolyglot(ctx.eval(source))
+    val module    = ctx.eval(source)
+    val assocCons = module.getMember("associated_constructor")
+    val mainFun   = module.invokeMember("get_method", assocCons, "main")
+    InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))
   }
 
   def eval(code: String): Value = {
-    evalGeneric(code, Constants.MIME_TYPE)
+    evalGeneric(code, Constants.ANONYMOUS_MIME_TYPE)
   }
 
   def consumeOut: List[String] = {

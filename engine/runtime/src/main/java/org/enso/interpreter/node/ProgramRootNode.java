@@ -15,6 +15,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
+import java.io.File;
 import java.util.Optional;
 
 /**
@@ -49,9 +50,11 @@ public class ProgramRootNode extends RootNode {
   @Override
   public Object execute(VirtualFrame frame) {
     Context context = lookupContextReference(Language.class).get();
+
+    ModuleScope moduleScope = context.createScope(sourceCode.getName());
     // Note [Static Passes]
-    context.compiler().run(this.sourceCode, "Interactive");
-    return context.getUnit().newInstance();
+    context.compiler().run(this.sourceCode, moduleScope);
+    return moduleScope;
   }
 
   /* Note [Static Passes]

@@ -44,10 +44,8 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): Unit = {
-    val expr: AstModuleScope = {
-      val parsedAST: AST = parse(source)
-      translate(parsedAST)
-    }
+    val parsedAST = parse(source)
+    val expr      = translate(parsedAST)
     new ModuleScopeExpressionFactory(language, source, scope).run(expr)
   }
 
