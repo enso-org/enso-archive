@@ -34,9 +34,14 @@ jobs:
       - script: /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y sudo"
         displayName: Setup Sudo
       - script: |
+          curl https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64 > ~/firefox.tar.bz2
+          tar xjf ~/firefox.tar.bz2
+          echo "##vso[task.setvariable variable=PATH;]~/firefox:$PATH"
+        displayName: Install Firefox
+      - script: |
           curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
           echo "##vso[task.setvariable variable=PATH;]~/.cargo/bin:$PATH"
-        displayName: Install rust
+        displayName: Install Rust
       - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
           tar -x -z -C ~ -f sbt.tgz
@@ -46,42 +51,44 @@ jobs:
           sbt -no-colors syntaxJS/fullOptJS
         displayName: Check Compilation to JS
         continueOnError: true
-      - script: |
-          sbt -no-colors test
-        displayName: Test All
-        continueOnError: true
-      - script: |
-          sbt -no-colors syntax/bench
-        displayName: Benchmark the Parser
-        continueOnError: true
-      - script: |
-          sbt -no-colors runtime/Benchmark/compile
-        displayName: Check Runtime Benchmarks Compile
-        continueOnError: true
-      - task: PublishTestResults@2
-        inputs:
-          testResultsFormat: 'JUnit'
-          testResultsFiles: '**/TEST-*.xml'
       - script: cargo build --all
         displayName: Cargo Build
       - script: cargo test --all
         displayName: Cargo Test
-      - script: |
-          sbt language_server/assembly
-        displayName: Build the Uberjar
-        continueOnError: true
-      - task: CopyFiles@2
-        inputs:
-          contents: "enso.jar"
-          TargetFolder: "$(Build.ArtifactStagingDirectory)"
-      - task: PublishBuildArtifacts@1
-        inputs:
-          pathtoPublish: "$(Build.ArtifactStagingDirectory)"
-          artifactName: enso-cli
-      - script: |
-          echo "##vso[task.complete result=Failed;]DONE"
-        condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
-        displayName: Fail on Issues
+      - script: wasm-pack test common/rust/parser --headless --firefox
+        displayName: Wasm-Pack Test Parser
+#      - script: |
+#          sbt -no-colors test
+#        displayName: Test All
+#        continueOnError: true
+#      - script: |
+#          sbt -no-colors syntax/bench
+#        displayName: Benchmark the Parser
+#        continueOnError: true
+#      - script: |
+#          sbt -no-colors runtime/Benchmark/compile
+#        displayName: Check Runtime Benchmarks Compile
+#        continueOnError: true
+#      - task: PublishTestResults@2
+#        inputs:
+#          testResultsFormat: 'JUnit'
+#          testResultsFiles: '**/TEST-*.xml'
+#      - script: |
+#          sbt language_server/assembly
+#        displayName: Build the Uberjar
+#        continueOnError: true
+#      - task: CopyFiles@2
+#        inputs:
+#          contents: "enso.jar"
+#          TargetFolder: "$(Build.ArtifactStagingDirectory)"
+#      - task: PublishBuildArtifacts@1
+#        inputs:
+#          pathtoPublish: "$(Build.ArtifactStagingDirectory)"
+#          artifactName: enso-cli
+#      - script: |
+#          echo "##vso[task.complete result=Failed;]DONE"
+#        condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+#        displayName: Fail on Issues
 #  - job: macOS
 #    timeoutInMinutes: 90
 #    pool:
