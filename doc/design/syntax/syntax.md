@@ -169,7 +169,7 @@ raw and interpolated strings natively.
 - **Interpolated Strings:** Interpolated strings support the splicing of
   executable Enso expressions into the string. Such strings are delimited using
   the single-quote (`'`) character, and splices are delimited using the backtick
-  (`\``) character. Splices are run, and then the result is converted to a
+  (`` ` ``) character. Splices are run, and then the result is converted to a
   string using `show`. These strings also have support for escape sequences.
 
   ```ruby
