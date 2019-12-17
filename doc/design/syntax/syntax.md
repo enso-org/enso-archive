@@ -6,81 +6,22 @@ language, and, in the case of Enso, the tool as a whole.
 Enso is a truly novel programming language in that it doesn't have _one_ syntax,
 but instead has two. These syntaxes are dual: visual and textual. Both are 
 first-class, and are truly equivalent ways to represent and manipulate the
-program.
+program. To that end, the design of the language's syntax requires careful 
+consideration, and this document attempts to explain both the _what_, of Enso's
+syntax, but also the _why_.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
-- [Encoding](#encoding)
-- [Layout rules](#layout-rules)
-  - [Maximum Line Length](#maximum-line-length)
-  - [Indentation Blocks](#indentation-blocks)
-- [Naming Rules](#naming-rules)
-- [Type Signatures](#type-signatures)
-- [Bringing Variables to Scope](#bringing-variables-to-scope)
-- [To Be Described](#to-be-described)
-- [Creating and Using Functions](#creating-and-using-functions)
-- [Function Type](#function-type)
-- [Code Blocks](#code-blocks)
-- [Uniform Calling Syntax \(UCS\)](#uniform-calling-syntax-ucs)
-- [Operators](#operators)
-  - [Precedence](#precedence)
-  - [Sections](#sections)
-- [Mixfix Functions](#mixfix-functions)
-- [Arguments](#arguments)
-  - [Named Arguments](#named-arguments)
-  - [Default Arguments](#default-arguments)
-  - [Positional Arguments](#positional-arguments)
-  - [Optional Arguments](#optional-arguments)
-  - [Splats Arguments](#splats-arguments)
-- [Variable Scoping](#variable-scoping)
-  - [Type Applications](#type-applications)
-  - [Open Questions](#open-questions)
 - [](#)
-- [Constructor Types](#constructor-types)
 - [Algebraic Data Types](#algebraic-data-types)
-  - [Syntax sugar](#syntax-sugar)
-  - [To Be Described](#to-be-described-1)
-- [Data Types as Values](#data-types-as-values)
-- [Interfaces](#interfaces)
-- [Field Modifiers](#field-modifiers)
-- [Prisms](#prisms)
-  - [Ordered Lists](#ordered-lists)
-- [Explicit type signatures](#explicit-type-signatures)
-  - [Simplified Type Signatures](#simplified-type-signatures)
 - [Record Types](#record-types)
-- [Dynamic access](#dynamic-access)
-- [Power and Simplicity](#power-and-simplicity)
-- [Another Example](#another-example)
-- [Type Resolution](#type-resolution)
-  - [Bigger Example \(to be finished\)](#bigger-example-to-be-finished)
-- [Autolifting functions to types](#autolifting-functions-to-types)
   - [](#-1)
-- [Types. Unified Classes, Modules and Interfaces](#types-unified-classes-modules-and-interfaces)
-- [Type Signatures](#type-signatures-1)
-- [Types as Classes](#types-as-classes)
-  - [Constructors](#constructors)
-  - [Methods](#methods)
-  - [Constructors as types](#constructors-as-types)
-  - [Type combinators](#type-combinators)
-  - [Pattern matching](#pattern-matching)
-  - [Polymorphism](#polymorphism)
-  - [Generalized type definitions](#generalized-type-definitions)
-- [Types as Modules](#types-as-modules)
-  - [Files and modules](#files-and-modules)
-  - [Module Examples](#module-examples)
-- [Types as Interfaces](#types-as-interfaces)
-  - [Implementing Interfaces](#implementing-interfaces)
-- [Imports](#imports)
-  - [Scoping Rules and Code Modularity](#scoping-rules-and-code-modularity)
-- [Anonymous Types](#anonymous-types)
-  - [Anonymous Types as Types](#anonymous-types-as-types)
-  - [Anonymous Types as Values](#anonymous-types-as-values)
 
 <!-- /MarkdownTOC -->
 
-# Textual Representation
+#### Textual Representation
 
-## Encoding
+#### Encoding
 
 Enso accepts UTF8 encoded source code. Tabs are disallowed and every tab is
 always automatically converted to four spaces. There is no configuration option
@@ -117,11 +58,11 @@ results. We are very open to revisit this topic in a few years from now,
 however, for now Unicode characters are disallowed in Enso operators. If you
 want to help us design an Enso Font, don't hesitate to tell us about it!
 
-## Layout rules
+#### Layout rules
 
 The layout rules were designed to be both flexible yet enforce good practices.
 
-### Maximum Line Length
+#### Maximum Line Length
 
 The maximum line length is 80 characters. If your code exceeds that, the
 compiler will emit warning message about it. There is no way to change this
@@ -132,7 +73,7 @@ most tools disrupts the visual structure of the code, making it more difficult
 to understand. The limits are chosen to avoid wrapping in editors with the
 window width set to 80.
 
-### Indentation Blocks
+#### Indentation Blocks
 
 Enso uses indentation to determine the structure of the code.
 
@@ -207,7 +148,7 @@ parent line, respectively. There are a few additional layout rules:
     print v'
   ```
 
-## Naming Rules
+#### Naming Rules
 
 Naming convention unifies how code is written by different developers, increases
 the immediate understanding and allows to provide compiler with useful
@@ -232,7 +173,7 @@ is going on in a piece of code. Moreover, while using this convention,
 construction and pattern matching is as simple as writing the right name and
 does not require any magic from the compiler or usage of special symbols.
 
-# Type System
+#### Type System
 
 Enso is a statically typed language. It means that every variable is tagged with
 an information about its possible values. Enso's type system bases on the idea
@@ -260,7 +201,7 @@ relation could be expressed as follow:
 7 : 7 : Natural : Integer : Number : Any : Any : ...
 ```
 
-## Type Signatures
+#### Type Signatures
 
 Enso allows providing explicit type information by using the colon operator. The
 compiler considers type signatures as hints and is free to discard them if they
@@ -308,9 +249,9 @@ constraining possible values.
 It's worth to note that the type operator is just a regular operator with a very
 low precedence and it is defined in the standard library.
 
-# Variables
+#### Variables
 
-## Bringing Variables to Scope
+#### Bringing Variables to Scope
 
 The only way to bring new variables into scope is by using pattern matching.
 There are two places in the code where pattern matching occurs – on the left
@@ -321,12 +262,12 @@ side of assignment operator and on the left side of lambda operator.
 <pattern> -> ...
 ```
 
-## To Be Described
+#### To Be Described
 
 - explicit typing
 - immutable memory
 
-# Functions
+#### Functions
 
 Enso is a purely functional programming language. It supports
 [first-class and higher-order functions](https://en.wikipedia.org/wiki/Functional_programming#First-class_and_higher-order_functions),
@@ -334,7 +275,7 @@ which means that you can pass functions as arguments to other functions, return
 them as functions results, assign them to variables, and store them in data
 structures.
 
-## Creating and Using Functions
+#### Creating and Using Functions
 
 Functions are defined in a similar way to variables. The only difference is that
 the function name is followed by parameters separated by spaces. For example,
@@ -386,7 +327,7 @@ headOfList = head 10 randomList
 result     = sort headOfList
 ```
 
-## Function Type
+#### Function Type
 
 As the function definition translates under the hood to an ordinary variable
 assignment, you can use the type expression to provide the compiler with an
@@ -423,7 +364,7 @@ fn : Bool -> Bool -> Bool -> Bool
     False -> id
 ```
 
-## Code Blocks
+#### Code Blocks
 
 You can think of code blocks like about functions without arguments. Code blocks
 do not accept arguments, however they can invoke actions when used. Let's just
@@ -478,7 +419,7 @@ greeter =
 Without the `do` keyword the code block would not be executed and `name` would
 refer to the code block itself, not its final value.
 
-## Uniform Calling Syntax (UCS)
+#### Uniform Calling Syntax (UCS)
 
 Enso uses Uniform Calling Syntax which generalizes two function call notations
 `lst.map +1` and `map +1 lst`. The generalization assumes flipped argument order
@@ -498,7 +439,7 @@ The following rules apply:
 - Two notations, one semantics. Both notations are equivalent and always resolve
   to the same behavior.
 
-- The expression `base.fn` is a syntactic sugar for `fn (this=base)`. In most
+- The expression `base.fn` is a syntactic sugar for `fn (this=base)`. In most
   cases, the `this` argument is the last argument to a function, however,
   sometimes the argument name could be omitted. Consider the following example
   including sample implementation of the concatenation operator:
@@ -547,7 +488,7 @@ test = s -> [a,b] ->
 [1,2].test 1
 ```
 
-## Operators
+#### Operators
 
 Operators are functions with non alphanumeric names, like `+`, `-` or `*`.
 Operators are always provided with two arguments, one on the left, one one the
@@ -587,7 +528,7 @@ it is either left, right or none. If you do not provide the information, no
 precedence relations would be defined and the associativity will default to
 left.
 
-### Precedence
+#### Precedence
 
 Operator precedence is a collection of rules that reflect conventions about
 which procedures to perform first in order to evaluate a given mathematical
@@ -636,7 +577,7 @@ space operator has higher precedence than any operator surrounded with spaces:
 result = 1..100 . each random . head 10 . sort
 ```
 
-### Sections
+#### Sections
 
 Operator section is just a handy way to apply the left or the right argument to
 an operator and return a curried function. For example, the expression `(+1)` is
@@ -667,7 +608,7 @@ spheres       = 1..100 . each i -> sphere (position = point i.random 0 0)
 sortedSpheres = spheres . sortBy .position.x
 ```
 
-## Mixfix Functions
+#### Mixfix Functions
 
 Mixfix functions are just functions containing multiple sections, like
 `if ... then ... else ...`. In Enso, every identifier containing underscores
@@ -710,9 +651,9 @@ main =
                 answerLoop
 ```
 
-## Arguments
+#### Arguments
 
-### Named Arguments
+#### Named Arguments
 
 Unlike the majority of purely functional programming languages, Enso supports
 calling functions by providing arguments by name. Consider a function that
@@ -751,7 +692,7 @@ s1 = sphere
     creator  = geometry.NURBS
 ```
 
-### Default Arguments
+#### Default Arguments
 
 Consider the sphere example above again. Providing always all the arguments
 manually is both cumbersome and error prone:
@@ -788,7 +729,7 @@ centeredSphere = sphere
     ...
 ```
 
-### Positional Arguments
+#### Positional Arguments
 
 Enso supports so called positional arguments call syntax. Consider the sphere
 example above. How can you define a new function which accepts radius, color and
@@ -823,7 +764,7 @@ argument.
 squareFirstAndAddSecond = _ ^2 + _
 ```
 
-### Optional Arguments
+#### Optional Arguments
 
 Optional arguments are not a new feature, they are modeled using the default
 arguments mechanism. Consider the following implementation of a `read` function,
@@ -876,7 +817,7 @@ read : Text -> t? -> t
 read text this? = t.fromText text
 ```
 
-### Splats Arguments
+#### Splats Arguments
 
 Enso provides both args and kwargs splats arguments. You can easily construct
 functions accepting variable number of both positional as well as keyword
@@ -901,7 +842,7 @@ a = 3
 4
 ```
 
-## Variable Scoping
+#### Variable Scoping
 
 Type variables, function variables, and lambda variables live in the same space
 in Enso. Moreover, as there is no distinction between types and values, you can
@@ -959,7 +900,7 @@ print (empty : List Int) -- Result: []
 print (empty : Text)     -- Result: ''
 ```
 
-### Type Applications
+#### Type Applications
 
 All libraries that sometimes need passing of an explicit type from the user
 should be designed as the `read` utility, so you can optionally pass the type if
@@ -995,7 +936,7 @@ checkListLength : List a -> Bool
 checkListLength = checkLength
 ```
 
-### Open Questions
+#### Open Questions
 
 - Do we want to support explicit signatures for the following use case? The
   function `f` is applied with two named arguments, but we do not know their
@@ -1024,9 +965,9 @@ checkListLength = checkLength
 
 ##
 
-# Data Types
+#### Data Types
 
-## Constructor Types
+#### Constructor Types
 
 Constructors define the most primitive way to construct a type, it's where the
 name comes from. Formally, they are
@@ -1081,7 +1022,7 @@ map f = case of
     Nothing -> Nothing
 ```
 
-### Syntax sugar
+#### Syntax sugar
 
 Enso provides syntactic sugar for easy definition of algebraic data types and
 related methods. You are always required to provide explicit name for all the
@@ -1104,7 +1045,7 @@ defined as constructor fields are considered to be record fields. They can be
 provided with a default implementation and their definition can be changed at
 runtime.
 
-### To Be Described
+#### To Be Described
 
 ```haskell
 -- Difference between method and a function component
@@ -1117,7 +1058,7 @@ type Foo
     method = implementation
 ```
 
-## Data Types as Values
+#### Data Types as Values
 
 ```haskell
 sum : a -> b -> a + b
@@ -1138,11 +1079,11 @@ main =
 Please note, that `lessThan -1 Natural` returns `True`, which is just more
 specific than `Bool` because it holds true for every natural number.
 
-## Interfaces
+#### Interfaces
 
 - **TO BE DONE [WD - research]**
 
-## Field Modifiers
+#### Field Modifiers
 
 You can add the equal sign `=` as an operator suffix to transform it into a
 modifier. Modifiers allow updating nested structures fields.
@@ -1186,7 +1127,7 @@ s2 = s1.position = p2
 s2 = s1.position.x $= +1
 ```
 
-## Prisms
+#### Prisms
 
 Alternative map implementations:
 
@@ -1226,9 +1167,9 @@ map4 f self =
             Nothing -> error "impossible"
 ```
 
-# Refinement Types
+#### Refinement Types
 
-### Ordered Lists
+#### Ordered Lists
 
 Sometimes, it's desired to prove some structure behaviors, like the fact that a
 list contains sorted values. Enso allows expressing such constraints in a simple
@@ -1347,7 +1288,7 @@ lst1 = [1,2,3] : Ordered (List Int) -- OK
 lst1 = [3,2,1] : Ordered (List Int) -- ERROR
 ```
 
-# Type Inference
+#### Type Inference
 
 Because every value belongs to infinite number of types, it's not always obvious
 what type to infer by looking only at the variable definitions. The expression
@@ -1369,7 +1310,7 @@ way we type it depends on two factors:
   function accepting only numbers smaller than `100`, the value would have to be
   computed during compilation time.
 
-## Explicit type signatures
+#### Explicit type signatures
 
 Enso was designed in a way to minimize the need for explicit type signatures.
 However, you are always free to provide one to check your assumptions regarding
@@ -1431,7 +1372,7 @@ main =
     fn3 val -- OK
 ```
 
-### Simplified Type Signatures
+#### Simplified Type Signatures
 
 Types in Enso can be expressed in a very detailed form. Consider an `open`
 function, which reads a file from disc. It's type could be expressed as:
@@ -1468,11 +1409,11 @@ type Point
 ```
 
 Pattern matching works in a structural manner. The same applies to `|`,
-`&`, etc.
+`&`,etc.
 
-# ==== TO BE DESCRIBED NICER ====
+#### ==== TO BE DESCRIBED NICER ====
 
-# Monadic arguments
+#### Monadic arguments
 
 Before evaluating a function, monads of all arguments are applied to host
 function, so arguments are passed as `in Pure`. Why? Consider:
@@ -1513,7 +1454,7 @@ if cond _then (ok in m) _else (fail in n) =
 If you don't provide the explicit `in m` and `in n`, the args are considered to
 be `in Pure`
 
-# How `=` works
+#### How `=` works
 
 Consider:
 
@@ -1542,7 +1483,7 @@ Basically `=` transforms right side to left side like
 `(right : R in RM2 in RM1) -> (left : R in RM2 in Pure)`, and it merges `RM1`
 with host monad.
 
-# The Dynamic Type
+#### The Dynamic Type
 
 When calling a foreign python we get the result typed as `Dynamic`. Basically,
 values typed as `Dynamic` work just like in Python. You can access their fields
@@ -1583,7 +1524,7 @@ obj.__model__ =
     }
 ```
 
-## Dynamic access
+#### Dynamic access
 
 Even typed data in Enso behaves like if it was fully dynamic. You can access the
 field dictionary of each object and alter it. It's amazing for type level
@@ -1621,7 +1562,7 @@ name : Text
 field1 = p1.fields.get name -- field1 : Dynamic
 ```
 
-# Lists
+#### Lists
 
 Lists in Luna are defined as follows:
 
@@ -1640,7 +1581,7 @@ lst1 = List.Cons 1 (List.Cons "foo" List.End)
 lst2 = [1,"foo"] : [1,"foo"] : List (Int | String)
 ```
 
-# Proving Software Correctness
+#### Proving Software Correctness
 
 **Note [To be included somewhere]**: Enso is dependently typed because we can
 run arbitrary code on type-level.
@@ -1672,7 +1613,7 @@ type system provides a novel approach to dependent types. It allows to just
 write simple code and in many cases provides the dependent type system benefits
 for free!
 
-## Power and Simplicity
+#### Power and Simplicity
 
 Consider the following code snippets in Idris. This is a simple, but not very
 robust implementation of List. If you try to get the head element of an empty
@@ -1782,7 +1723,7 @@ the same robustness as the secure Idris implementation. Moreover, the user
 facing interface is kept simple, without information provided explicitly for the
 compiler.
 
-## Another Example
+#### Another Example
 
 ```haskell
 -----------------------
@@ -1837,7 +1778,7 @@ main =
         else print mail
 ```
 
-## Type Resolution
+#### Type Resolution
 
 The natural next question is, how was it possible to get such a drastic quality
 improvement? As already mentioned, dependent types are types expressed in terms
@@ -1903,7 +1844,7 @@ index : Natural -> Cons t1 (List t2) -> t1
 A similar, but a little more complex case applies if we try to access a nested
 element. We leave this exercise to the reader.
 
-### Bigger Example (to be finished)
+#### Bigger Example (to be finished)
 
 ```haskell
 type List a
@@ -1926,7 +1867,7 @@ init = case
 index :: Natural.range lst.length -> lst
 ```
 
-## Autolifting functions to types
+#### Autolifting functions to types
 
 ```haskell
 -- Consider
@@ -1944,7 +1885,7 @@ fn 1 2 : fn Int Int : Int
 fn Int Int -- returns Int
 ```
 
-# Function composition
+#### Function composition
 
 ```haskell
 sumIncremented1 = map +1 >> fold (+)
@@ -1957,7 +1898,7 @@ However, the following is preferred:
 sumIncremented1 = . map +1 . fold (+)
 ```
 
-# Lazy / Strict
+#### Lazy / Strict
 
 ```haskell
 if_then_else :: Bool -> Lazy a in n -> Lazy a in m -> a in n | m
@@ -1974,7 +1915,7 @@ test cond ok fail = if_then_else cond ok fail -- The arguments are strict and do
 Alternatively we can think of `Lazy a` as a part of the `a` parameter, which
 should not be dropped. WD feels it needs to be re-considered.
 
-# Context Defaults
+#### Context Defaults
 
 - Function arguments default to `in Pure` if not provided with an explicit type.
 - Function results and variables default to `in m` if not provided with an
@@ -2013,16 +1954,16 @@ test2 (print 1) (print 2)
 ```
 
 Will pass both arguments as "actions" and their evaluation depends on the
-`test2` body definition.
+`test2` body definition.
 
-# Type Based Implementations
+#### Type Based Implementations
 
 ```haskell
 default : a
 default = a . default
 ```
 
-# Explicit Types And Subtyping
+#### Explicit Types And Subtyping
 
 When explicit type is provided, the value is checked to be the subtype of the
 provided type, so all the following lines are correct:
@@ -2122,12 +2063,12 @@ However, please note that the following will be not accepted:
 addAlias : Int -> Type -> Type -- WRONG!
 ```
 
-# Underscore in Pattern Matching
+#### Underscore in Pattern Matching
 
 `const a _ = a` behaves differently than underscore in expressions (implicit
 lambda).
 
-# Type Holes
+#### Type Holes
 
 ```haskell
 a :: ??
@@ -2136,7 +2077,7 @@ a :: ??
 Creates a type hole, which will be reported by the compiler. Describe the
 programming with type holes model. A good reference: http://hazel.org
 
-# Mutable Fields (FIXME)
+#### Mutable Fields (FIXME)
 
 ```haskell
 type Graph a
@@ -2150,7 +2091,7 @@ n1 = Node [n2] 1
 n2 = Node [n1] 2
 ```
 
-# Other Things To Be Described
+#### Other Things To Be Described
 
 - Implicit conversions
 
@@ -2192,11 +2133,11 @@ n2 = Node [n1] 2
 
 ###
 
-# ==== DEPRECATED (Useful parts) ====
+#### ==== DEPRECATED (Useful parts) ====
 
-# Types
+#### Types
 
-## Types. Unified Classes, Modules and Interfaces
+#### Types. Unified Classes, Modules and Interfaces
 
 Enso unifies the abstraction of classes, modules and interfaces under a single
 first-class umbrella. All of the following functionalities are provided by the
@@ -2211,7 +2152,7 @@ of a (usually named) category of values described by the data and behavior it
 possesses. These are first-class values in Enso, and can be created and
 manipulated at runtime.
 
-## Type Signatures
+#### Type Signatures
 
 Enso allows providing explicit type information by using the colon operator. The
 compiler considers type signatures as hints and is free to discard them if they
@@ -2254,7 +2195,7 @@ hint, the final inferred type would be
 It's worth to note that the type operator is just a regular operator with a very
 low precedence and it is defined in the standard library.
 
-## Types as Classes
+#### Types as Classes
 
 The following chapter describes the replacement for the currently used concept
 of _classes_. We have been always dreaming about true dependently typed language
@@ -2270,7 +2211,7 @@ differ significantly. Enso types have much more power, yet much simpler design,
 disallowing concepts like inheritance in favour of composition and algebraic
 data types.
 
-### Constructors
+#### Constructors
 
 While types in Enso describe categories of values, the constructors are the
 values themselves. Constructors are used for defining new data structures
@@ -2315,7 +2256,7 @@ type Point
     z = 0
 ```
 
-### Methods
+#### Methods
 
 A method is a function associated with a given constructor. The primitive method
 definition syntax is very similar to function definition, however it also
@@ -2332,7 +2273,7 @@ Most often methods are defined in the same module as the appropriate
 constructors. Please refer to sections about interfaces and extension methods to
 learn more about other possibilities.
 
-### Constructors as types
+#### Constructors as types
 
 As Enso is a dependently-typed language with no distinction between value- and
 type-level syntax, we are allowed to write _very_ specific type for a given
@@ -2354,7 +2295,7 @@ used for example to describe all possible points, whose first coordinate is an
 integral number, while the second and third coordinates are equal to zero:
 `a : Point int 0 0`.
 
-### Type combinators
+#### Type combinators
 
 The careful reader will notice here, that `int` is a category of all possible
 integral numbers, while the numbers are considered constructors themselves. Enso
@@ -2367,7 +2308,7 @@ type are we really dealing with or will allow to use only methods which have
 common interface among all constructors described by the type. It will for
 example allow us to print such value to the screen.
 
-### Pattern matching
+#### Pattern matching
 
 The proposed syntax changes allow us to improve pattern matching rules and make
 them much more understandable, especially for new users. As we have described
@@ -2412,7 +2353,7 @@ main =
 
 ```
 
-### Polymorphism
+#### Polymorphism
 
 Formally polymorphism is the provision of a single interface to entities of
 different types. Enso does not provide any special construction to support
@@ -2454,7 +2395,7 @@ main =
     print $ taxiDistance p1
 ```
 
-### Generalized type definitions
+#### Generalized type definitions
 
 While we can define constructors, methods and compose them to create more
 powerful types using the described methods, such definitions require significant
@@ -2526,7 +2467,7 @@ information about the value of `check`? The answer is of course
 `px : (Point 1 2 3 | Point 4 5 6)`, which is a sub type of the type
 `Point (1|4) (2|5) (3|6)`.
 
-## Types as Modules
+#### Types as Modules
 
 The same notion of a type can be used to provide the functionality that is
 traditionally expected of a _module_ (in the common, not ML sense). In most
@@ -2541,7 +2482,7 @@ functionalities:
   Unless otherwise declared (through a direct import statement), a `type` in
   Enso also provides a namespace to constructs declared inside its scope.
 
-### Files and modules
+#### Files and modules
 
 Files in Enso should contain at least one `type` definition, with one type named
 the same as the file. This `type` is known as the 'primary' type, and it is this
@@ -2551,7 +2492,7 @@ visible outside the file are the primary type and things defined or imported
 into its scope. Inside the file, however, everything can be seen, with no need
 to forward-declare.
 
-### Module Examples
+#### Module Examples
 
 The concepts are best illustrated by example. Consider the following type. If it
 is imported simply as `import math` (see [Importing Types](#importing-types)),
@@ -2579,7 +2520,7 @@ type main
     main = print math.pi
 ```
 
-## Types as Interfaces
+#### Types as Interfaces
 
 A type in Enso can also act as a 'contract', a specification of the behavior
 expected of a type. The use of types as interfaces in Enso is, as you might
@@ -2612,7 +2553,7 @@ type Interface3 a = { foo : a -> a }
 For more information on the last example, please read the section on
 [anonymous types](#anonymous-types).
 
-### Implementing Interfaces
+#### Implementing Interfaces
 
 TODO: This section needs discussion. It is a very draft proposal for now.
 
@@ -2713,7 +2654,7 @@ loggerFn msg item = msg <> prettyPrint(Text) item
 As you can see, the syntax for specifying the instance in the ambiguous case
 uses parentheses to apply the type to the `prettyPrint` function.  -->
 
-## Imports
+#### Imports
 
 To go along with the new system proposed in this RFC around code modularity, the
 syntax for dealing with imports has been tweaked slightly. The following import
@@ -2748,7 +2689,7 @@ visible outside the file are the primary type and things defined in its scope.
 Inside the file, however, everything can be seen, with no need to
 forward-declare. -->
 
-### Scoping Rules and Code Modularity
+#### Scoping Rules and Code Modularity
 
 Imports in Enso can be performed in _any_ scope, and are accessible from the
 scope into which they are imported. This gives rise to a particularly intuitive
@@ -2773,7 +2714,7 @@ type Test a : PrettyPrint Text (Test a) =
     prettyPrint self = ...
 ```
 
-## Anonymous Types
+#### Anonymous Types
 
 In addition to the syntax proposed above in [Declaring Types](#declaring-types),
 this RFC also proposes a mechanism for quickly declaring anonymous types. These
@@ -2785,7 +2726,7 @@ providing an explicit name, this is highly impractical for most places where an
 anonymous type becomes useful. This shorthand provides a way to get the same
 benefit without the syntactic issues of the former.
 
-### Anonymous Types as Types
+#### Anonymous Types as Types
 
 When used in a type context, an anonymous type acts as a specification for an
 interface that must be filled. This specification can contain anything from
@@ -2809,7 +2750,7 @@ Consider the following examples:
 `Self` is a piece of reserved syntax that allows anonymous types to refer to
 their own type without knowing its name.
 
-### Anonymous Types as Values
+#### Anonymous Types as Values
 
 Anonymous types can also be constructed as values using similar syntax. You can
 provide values directly, which will work in a context where names are not
