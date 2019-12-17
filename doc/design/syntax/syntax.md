@@ -138,7 +138,8 @@ macros are always in scope and cannot be overridden, hidden, or redefined.
 
 ## Layout Rules
 Enso is a layout-aware programming language, in that layout rules are used to
-determine code structure.
+determine code structure. The layout rules in Enso are intended to provide for
+an intuitive way to format code.
 
 ### Maximum Line Length
 The maximum length of a line in an Enso source file is restricted to 80
@@ -154,6 +155,83 @@ in user code. The reasoning behind this is as follows:
   views.
 
 ### Indented Blocks
+Indentation in Enso is used to start a block. Every indented line is considered
+to be a sub-structure of the nearest previous line with lower indentation. We
+refer to these as the 'child' and the 'parent' lines respectively. This means
+that any region at the same indentation is considered to be part of the same
+block, and blocks may contain blocks.
+
+```ruby
+block =
+    x = 2 . replicate 7 . map show . intercalate ","
+    IO.println x
+```
+
+In addition, we have a set of custom layout rules that impact exactly how blocks
+are defined. These are described in the following subsections.
+
+#### Trailing Operator on the Parent Line
+If a line ends with an operator then all of its child lines form a
+[_code_ block](#code-blocks). The most common usage of this kind of indented
+block is a function definition body (following the `=` or `->`).
+
+```ruby
+test = a -> b ->
+    sum = a + b
+```
+
+#### Leading Operator on All Child Lines
+If all the child lines in a block begin with an operator, the lines in the block
+are considered to form a single expression.
+
+This expression is built as follows:
+
+1. Every line in the block is built as a standard inline expression, ignoring
+   the leading operator.
+2. The final expression is built top to bottom, treating the leading operators
+   as left-associative with the lowest possible precedence level.
+
+Please note that the operator at the _beginning_ of each child line is used
+_after_ the line expression is formed.
+
+```ruby
+nums = 1..100
+    . each random
+    . sort
+    . take 100
+```
+
+#### No Leading or Trailing Operators
+In the case where neither the parent line ends with a trailing operator, or the
+child lines begin with an operator, every child line is considered to form a
+separate expression passed as an argument to the parent expression. The most
+common usage of this is to split long expressions across multiple lines.
+
+```ruby
+geo1 = sphere (radius = 15) (position = vector 10 0 10) (color = rgb 0 1 0)
+geo2 = sphere
+    radius   = 15
+    position = vector 10 0 10
+    color    = rgb 0 1 0
+```
+
+#### Debug Line Breaks
+In certain cases it may be useful to debug line breaks in code. To this end, we
+provide a debug line-break operator `\\` which, when placed at the beginning of
+a child line tells Enso to glue that line to the end of the previous one.
+
+This should be avoided in production code and its use will issue a warning.
+
+```ruby
+debugFunc = v -> v2 ->
+    print (v2.normalize * ((v.x * v.x) + (v.y * v.y)
+      \\ + (v.z * v.z)).sqrt)
+
+validFunc = v -> v2 ->
+    len = ((v.x * v.x) + (v.y * v.y) + (v.z * v.z)).sqrt
+    v2  = v2.normalize * len
+    print v2
+```
 
 ## Text Literals
 Enso provides rich support for textual literals in the language, supporting both
@@ -181,82 +259,6 @@ In Enso, inline text literals are opened and closed using the corresponding
 quote type for the literal.
 
 ### Text Block Literals
-
-
-#### Indentation Blocks
-
-Enso uses indentation to determine the structure of the code.
-
-In general, every indented line constitutes a sub-structure of the nearest
-previous line with a smaller indentation. We refer to them as child line and
-parent line, respectively. There are a few additional layout rules:
-
-- **Operator at the end of a parent line**
-  If a line ends with an operator then all of its child lines form a code block.
-  Code blocks in Enso are a syntactic sugar for monadic bindings, you will
-  learn about them in later chapters. The most common usage is a function
-  definition body after the last arrow operator:
-
-  ```haskell
-  test = a -> b ->
-      sum = a + b
-      print 'The sum is `sum`'
-  ```
-
-* **Operator at the beginning of a child line**
-  If all the children lines start with operators, they form a single expression,
-  while the operators behave left associative with the lowest precedence level.
-  In other words, every line forms a separate expression and the final
-  expression is built line-by-line, top to bottom. The most common usage is to
-  use the dot operator to create chained method calls. Please note that the
-  operator at the beginning of a child line is used after the line expression is
-  formed, so in the following code both `tst1` and `tst2` have exactly the same
-  value.
-
-  ```haskell
-  nums = 1..100
-       . each random
-       . sort
-       . take 100
-
-  tst1 = 12 * (1 + 2)
-  tst2 = 12
-       * 1 + 2
-  ```
-
-* **Otherwise**
-  In all other cases, every child line is considered to form a separate
-  expression passed as an argument to the parent expression. The most common
-  usage is to split long expressions to multiple lines. The following example
-  uses the named argument mechanism.
-
-  ```haskell
-  geo1 = sphere (radius = 15) (position = vector 10 0 10) (color = rgb 0 1 0)
-  geo2 = sphere
-      radius   = 15
-      position = vector 10 0 10
-      color    = rgb 0 1 0
-  ```
-
-- **Debug line breaker `\\`**
-
-  There is also a special, debug line-break operator `\\` which, when placed at
-  the beginning of a child line, tells Enso to glue the line with the previous
-  one. However, the line-break operator should not be used in production code,
-  as it's always better to re-structure the code to separate method calls
-  instead. In the following code, both `debugFunc` and `validFunc` work in the
-  same way, but the definition of `validFunc` is formatted properly.
-
-  ```haskell
-  debugFunc = v -> v2 ->
-    print (v2.normalize * ((v.x * v.x) + (v.y * v.y)
-      \\ + (v.z * v.z)).sqrt)
-
-  validFunc = v -> v2 ->
-    len = ((v.x * v.x) + (v.y * v.y) + (v.z * v.z)).sqrt
-    v'  = v2.normalize * len
-    print v'
-  ```
 
 #### Naming Rules
 
@@ -459,6 +461,8 @@ only:
 sum : Number -> Number -> Number
 sum = x -> y -> x + y
 ```
+
+> Is this still true? To do with type signatures
 
 Each function is assigned with an _arity_. Although you will not often use this
 term when writing the code, it's a useful concept used later in this document.

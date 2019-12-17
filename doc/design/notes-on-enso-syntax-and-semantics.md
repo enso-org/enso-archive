@@ -109,6 +109,8 @@ things that should be noted about it.
 Finally, we have chosen `this` to refer to the current type. This is almost
 always equivalent to `self`, but in the case of `this` and `that` is far better.
 
+> Space-based operator parsing rules. `a.b` vs. `a . b`.
+
 ### Annotations
 Much like annotations on the JVM, annotations in Enso are tags that perform a
 purely syntactic transformation on the entity to which they are applied. The
