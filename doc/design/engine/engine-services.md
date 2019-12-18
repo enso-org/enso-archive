@@ -33,6 +33,9 @@ services components, as well as any open questions that may remain.
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
 - [Protocol Message Specification](#protocol-message-specification)
+- [Misc Notes](#misc-notes)
+- [Implementation order](#implementation-order)
+- [New Architecture](#new-architecture)
 
 <!-- /MarkdownTOC -->
 
@@ -255,9 +258,9 @@ functionalities:
 
 - Get project metadata (name, maintainer, version, dependencies, and so on)
 - Change requests for the above
-- List modules
-- Delete module
-- Create module
+
+All file-based operations in the project can be handled by the editor directly,
+or the language server (when doing refactoring operations).
 
 > The actionables for this section are as follows:
 >
@@ -383,6 +386,8 @@ This implies that the following functionalities are needed:
     for 2.0 this can be implemented as invalidating all occurences of a dynamic
     symbol by name, ignoring the type it was defined on. In the future, the TC
     may help by constraining the set of invalidated call sites.
+  + More sophisticated strategies: value and type dependencies, non-obvious data
+    dependencies.
 - Need to know:
   + Which nodes are being computed
   + Memory usage (2nd version)
@@ -488,15 +493,7 @@ to help users navigate their code. As these rely on knowledge of the language
 semantics, they must be explicitly supported by the language server:
 
 - List functions/methods in scope
-- Find usages of symbol (impossible without a typechecker)
-- Jump to definition of symbol (only possible without a typechecker by runtime
-  profiling)
-- Search for symbol
 - Import file for symbol
-
-> The actionables for this section are:
->
-> - Are there any other analyses we need to support for 2.0?
 
 ### Functionality Post 2.0
 In addition to the functionality discussed in detail above, there are further
@@ -526,11 +523,17 @@ and will be expanded upon as necessary in the future.
   inspect values during execution of a program. This debugging functionality
   should allow for hot-reloading of code, changing of values within a live
   program, and various other debugger functionality (step over, step in, step
-  out, continue, etc).
+  out, continue, etc). Future debugger functionality should be based on the
+  standard [debug adapter protocol](https://microsoft.github.io/debug-adapter-protocol/specification).
 - **Profiling Information:** Profiling information for the executing code, able
   to be displayed visually in Enso Studio.
 - **Code Formatting:** Automatic formatting of Enso code using the One True
   Style ™.
+- **Server-Side Metadata Management:**
+- **True Multi-Client Support:** CRDTs / conflict resolution with live editing. Use a combination of `didChange` and `applyEdit` messages to reconcile all clients' views of the files. This is why `willSaveWaitUntil` is important, as it can ensure that no client saves until it has the authority (all changes reconciled) to do so.
+- **Enhanced Semantic Analysis:** find usages, jump to definition, find symbol
+
+Check the LSP spec for any more that we want in future and clarify these.
 
 > The actionables for this section are:
 >
@@ -547,11 +550,33 @@ the Engine team.
 >
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
+> - This should always be done, but may reference LSP.
+
+## Misc Notes
+
+- Subscriptions should be able to query for runtime type and typechecked type.
+- Need to specify what should happen on a crash of the language server, and how
+  the supervisor process should be involved in this restart.
+- It should be possible to limit the update rate of subscriptions for nodes.
+- Caching mechanisms for speeding up completion responses.
 
 ## Implementation order
 For the GUI team, the most important items are:
-1. File server, to support a bare-bones text editor.
+
+1. File server, to support a bare-bones text editor (probably not us)
 2. Moduule management, diff management, to maintain a common state between
    GUI and backend.
 3. Execution & visualizations
 4. Autocompletion.
+
+## New Architecture
+
+- The multiplexer is responsible for synchronising new clients (via LSP's support for 'your current view').
+- Does LSP's transport allow multiple connections? We could roll the multiplexing stuff into the language server.
+  + GUI needs to ask 'are there conflicts outstanding' before saving to disk (later, write lock sufficient for now).
+  + First GUI goes through standard route, second gets diverted to a custom protocol.
+  + Keep it separate (based on akka), but run within one process (separate actors).
+- Need gateway-side write-lock negotiation.
+- Language server _wraps_ the runtime.
+- Language server should only depend on `org.graalvm.polyglot`, and never directly on `org.enso.runtime`.
+- Need to figure out instrumentation access.
