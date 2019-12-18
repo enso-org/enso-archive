@@ -352,6 +352,10 @@ This implies that the following functionalities are needed:
   its type changes. It is very important to be able to get type information as
   this is used to colour connections on the graph.
 - Detach an execution listener.
+- Force cache invalidation (all or selected nodes).
+- Attach automatic execution request – re-execute a scope on each change.
+- Detach automatic execution request.
+
 
 > The actionables for this section are:
 >
@@ -375,6 +379,10 @@ This implies that the following functionalities are needed:
 - Sub to updates should be call-stack aware (a position in a call stack).
 - Need heartbeat messages and keepalive.
 - Caching strategies for 1.0/2.0?
+  + Whenever a method is changed, all its call sites should get invalidated.
+    for 2.0 this can be implemented as invalidating all occurences of a dynamic
+    symbol by name, ignoring the type it was defined on. In the future, the TC
+    may help by constraining the set of invalidated call sites.
 - Need to know:
   + Which nodes are being computed
   + Memory usage (2nd version)
@@ -382,6 +390,15 @@ This implies that the following functionalities are needed:
   + Recursive function step through
   + Value
   + Type
+- Redirect stdout to the IDE.
+- Logging / progress bar mechanism (future idea). For long running computations
+  it is desirable they provide real time progress information (e.g. when
+  training a neural network, it's good to know which epoch is running).
+  This could be achieved by a special kind of monad, similar to writer, but
+  mutable-buffer based, so that the function does not have to return for the
+  logged values to become available. The same mechanism could be reused for
+  progress bars and random logs. The IDE may choose to visualize the logs
+  based on their type.
 
 ### Completion
 The IDE needs the ability to request completions for some target point (cursor
@@ -428,6 +445,22 @@ candidate point in the file.
 >   information, documentation, tags, other scoring metadata).
 > - Determine how best to transport these candidates back to the GUI in order to
 >   provide the best performance and responsiveness possible.
+
+- The request from the IDE contains the code location for hints, as well as the
+  type of the node hints are being searched for. This is the best solution,
+  given dynamics do exist and IDE is the only component that cares about their
+  (runtime) types. The request does not contain the query string, text matching
+  is handled by the IDE.
+- Hints sent should be scored on type match – e.g. if we have a type `5`,
+  `foo : 5 -> String` scores higher than `bar : Nat -> Dynamic`, scores higher
+  than `baz : Any -> Any`.
+- Both imported and not-imported hints should get scored, such that the IDE
+  knows it could potentially import something useful.
+- Performance concern: the result set is going to be very large, particularly
+  given that tons of metadata, including HTML documentation needs to be sent.
+  Therefore some smarter scheme needs to be devised. One solution would be to
+  assign unique IDs to all possible hints, send all possible hints to the IDE
+  at the beginning of the session and then only refer to them by ID.
 
 ### Visualisation Support
 A major part of Enso Studio's functionality is the rich embedded visualisations
@@ -514,3 +547,11 @@ the Engine team.
 >
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
+
+## Implementation order
+For the GUI team, the most important items are:
+1. File server, to support a bare-bones text editor.
+2. Moduule management, diff management, to maintain a common state between
+   GUI and backend.
+3. Execution & visualizations
+4. Autocompletion.
