@@ -1,7 +1,10 @@
+//#![feature(associated_type_bounds)]
+//#![feature(specialization)]
 #![feature(type_alias_impl_trait)]
 #![feature(generators, generator_trait)]
 
 mod internal;
+mod repr;
 
 use prelude::*;
 
@@ -161,6 +164,11 @@ impl Ast {
 impl HasSpan for Ast {
     fn span(&self) -> usize {
         self.wrapped.span()
+    }
+}
+impl HasRepr for Ast {
+    fn repr(&self) -> String {
+        self.wrapped.repr()
     }
 }
 
@@ -383,7 +391,9 @@ pub enum RawEscape {
     RawQuote   { },
 }
 
-#[ast_node] pub enum Escape {
+#[ast]
+#[derive(HasSpan)]
+pub enum Escape {
     Character{c     :char            },
     Control  {name  :String, code: u8},
     Number   {digits:String          },
@@ -396,7 +406,6 @@ pub enum RawEscape {
 // =============
 // === Block ===
 // =============
-
 #[ast_node] pub enum   BlockType     { Continuous { } , Discontinuous { } }
 #[ast]      pub struct BlockLine <T> { pub elem: T, pub off: usize }
 
@@ -455,6 +464,15 @@ pub type Spaced = Option<bool>;
 #[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
 pub enum Either<L,R> { Left{value: L}, Right{value: R} }
 pub type Switch<T> = Either<T,T>;
+
+impl<T> Switch<T> {
+    fn get(&self) -> &T {
+        match self {
+            Either::Left{value} => value,
+            Either::Right{value} => value,
+        }
+    }
+}
 
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 #[ast] pub enum MacroPatternMatchRaw<T> {
@@ -532,7 +550,6 @@ pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 // ===========
 
 // === HasSpan ===
-
 /// Things that can be asked about their span.
 pub trait HasSpan {
     fn span(&self) -> usize;
@@ -583,6 +600,88 @@ impl<T: HasSpan, U: HasSpan> HasSpan for (T,U) {
         self.0.span() + self.1.span()
     }
 }
+impl HasSpan for usize {
+    fn span(&self) -> usize {
+        *self
+    }
+}
+impl<T: HasSpan> HasSpan for &T {
+    fn span(&self) -> usize {
+        self.deref().span()
+    }
+}
+//impl<T: Deref<Target:HasSpan>> HasSpan for T {
+//    default fn span(&self) -> usize {
+//        self.deref().span()
+//    }
+//}
+
+// === HasRepr ===
+/// Things that can be asked about their textual representation.
+pub trait HasRepr {
+    fn repr(&self) -> String;
+}
+
+impl HasRepr for char {
+    fn repr(&self) -> String {
+        self.to_string()
+    }
+}
+
+/// Counts codepoints.
+impl HasRepr for String {
+    fn repr(&self) -> String {
+        self.clone()
+    }
+}
+
+/// Counts codepoints.
+impl HasRepr for &str {
+    fn repr(&self) -> String {
+        self.to_string()
+    }
+}
+
+impl<T: HasRepr> HasRepr for Option<T> {
+    fn repr(&self) -> String {
+        self.as_ref().map_or(String::new(), |wrapped| wrapped.repr())
+    }
+}
+
+impl<T: HasRepr> HasRepr for Vec<T> {
+    fn repr(&self) -> String {
+        let reprs: Vec<String> = self.iter().map(|el| el.repr()).collect_vec();
+        reprs.concat()
+    }
+}
+impl<T: HasRepr> HasRepr for Rc<T> {
+    fn repr(&self) -> String {
+        self.deref().repr()
+    }
+}
+
+impl<T: HasRepr, U: HasRepr> HasRepr for (T,U) {
+    fn repr(&self) -> String {
+        self.0.repr() + &self.1.repr()
+    }
+}
+
+impl HasRepr for usize {
+    fn repr(&self) -> String {
+        " ".repeat(*self)
+    }
+}
+impl<T: HasRepr> HasRepr for &T {
+    fn repr(&self) -> String {
+        self.deref().repr()
+    }
+}
+//impl<T: Deref<Target:HasRepr>> HasRepr for T {
+//    fn repr(&self) -> String {
+//        self.deref().repr()
+//    }
+//}
+
 
 // === WithID ===
 
@@ -757,6 +856,40 @@ impl<T> From<Escape> for SegmentFmt<T> {
     }
 }
 
+// EscapeSth -> Escape -> SegmentEscape -> SegmentFmt
+impl<T> From<EscapeCharacter> for SegmentFmt<T> {
+    fn from(value: EscapeCharacter) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<EscapeControl> for SegmentFmt<T> {
+    fn from(value: EscapeControl) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<EscapeNumber> for SegmentFmt<T> {
+    fn from(value: EscapeNumber) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<EscapeUnicode16> for SegmentFmt<T> {
+    fn from(value: EscapeUnicode16) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<EscapeUnicode21> for SegmentFmt<T> {
+    fn from(value: EscapeUnicode21) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
+    fn from(value: EscapeUnicode32) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
+
+
+
 // =============
 // === Tests ===
 // =============
@@ -855,442 +988,5 @@ mod tests {
         assert_contains("bar");
         assert_contains("+");
         assert_eq!(strings.len(), 3);
-    }
-}
-
-///////////////////////////////////
-
-impl Blank {
-    const REPR:char = '_';
-}
-impl Number {
-    const BASE_SEPARATOR:char = '_';
-}
-
-/// Symbol enclosing raw Text line.
-const RAW_QUOTE:char = '\'';
-
-/// Symbol enclosing formatted Text line.
-const FMT_QUOTE:char = '"';
-
-/// Symbol used to break lines in Text block.
-const NEWLINE:char = '\n';
-
-/// Symbol introducing escape segment in the Text.
-const BACKSLASH:char = '\\';
-
-/// Symbol enclosing expression segment in the formatted Text.
-const EXPR_QUOTE:char = '`';
-
-/// Symbol that introduces UTF-16 code in the formatted Text segment.
-const UNICODE16_INTRODUCER:char = 'u';
-
-/// String that opens "UTF-21" code in the formatted Text segment.
-const UNICODE21_OPENER:&str = "u{";
-
-/// String that closese "UTF-21" code in the formatted Text segment.
-const UNICODE21_CLOSER:&str = "}";
-
-/// Symbol that introduces UTF-16 code in the formatted Text segment.
-const UNICODE32_INTRODUCER:char = 'U';
-
-impl TextBlockRaw {
-    const QUOTE:&'static str = "\"\"\"";
-}
-impl<T> TextBlockFmt<T> {
-    const QUOTE:&'static str = "'''";
-}
-
-///////////////////////////////////
-
-/// Not an instance of `HasSpan`, as it needs to know parent block's offset.
-impl<T: HasSpan> TextBlockLine<T> {
-    fn span(&self, block_offset: usize) -> usize {
-        let line_count              = self.empty_lines.len() + 1;
-        let empty_lines_space:usize = self.empty_lines.iter().sum();
-        let line_breaks             = line_count * NEWLINE.span();
-        empty_lines_space + line_breaks + block_offset + self.text.span()
-    }
-}
-///////////////////////////////////
-
-impl HasSpan for Empty {
-    fn span(&self) -> usize {
-        0
-    }
-}
-impl HasSpan for Letter {
-    fn span(&self) -> usize {
-        self.char.span()
-    }
-}
-impl HasSpan for Space {
-    fn span(&self) -> usize {
-        self.span
-    }
-}
-impl HasSpan for Text {
-    fn span(&self) -> usize {
-        self.str.span()
-    }
-}
-impl HasSpan for Seq {
-    fn span(&self) -> usize {
-        self.first.span() + self.second.span()
-    }
-}
-
-// === RawEscape ===
-impl HasSpan for Unfinished {
-    fn span(&self) -> usize {
-        0
-    }
-}
-impl HasSpan for Invalid {
-    fn span(&self) -> usize {
-        self.str.span()
-    }
-}
-impl HasSpan for Slash {
-    fn span(&self) -> usize {
-        1
-    }
-}
-impl HasSpan for Quote {
-        fn span(&self) -> usize {
-        1
-    }
-}
-impl HasSpan for RawQuote {
-    fn span(&self) -> usize {
-        1
-    }
-}
-
-///////////////////////////
-
-// === SegmentRaw ===
-impl HasSpan for SegmentPlain {
-    fn span(&self) -> usize {
-        self.value.span()
-    }
-}
-impl HasSpan for SegmentRawEscape {
-    fn span(&self) -> usize {
-        self.code.span() + BACKSLASH.span()
-    }
-}
-
-////////////////////////////////////
-
-impl<T: HasSpan> HasSpan for BlockLine<T> {
-    fn span(&self) -> usize {
-        self.elem.span() + self.off
-    }
-}
-
-////////////////////////////////////
-
-// === SegmentFmt ===
-// (apart from ones already defined for SegmentRaw)
-impl<T: HasSpan> HasSpan for SegmentExpr<T> {
-    fn span(&self) -> usize {
-        self.value.span() + 2 * EXPR_QUOTE.span()
-    }
-}
-impl HasSpan for SegmentEscape {
-    fn span(&self) -> usize {
-        BACKSLASH.span() + self.code.span()
-    }
-}
-
-// === Escape ===
-//impl HasSpan for SegmentEscape {
-//    fn span(&self) -> usize {
-//        BACKSLASH.span() + self.code.span()
-//    }
-//}
-
-impl HasSpan for Escape {
-    fn span(&self) -> usize {
-        match self {
-            Escape::Character{c              } => c.span(),
-            Escape::Control  {name  , code: _} => name.span(),
-            Escape::Number   {digits         } => digits.span(),
-            Escape::Unicode16{digits         } =>
-                UNICODE16_INTRODUCER.span() + digits.span(),
-            Escape::Unicode21{digits} =>
-                UNICODE21_OPENER.span() + digits.span()
-                    + UNICODE21_CLOSER.span(),
-            Escape::Unicode32{digits} =>
-                UNICODE32_INTRODUCER.span() + digits.span(),
-        }
-    }
-}
-/////////////// Either
-
-impl<T: HasSpan, U: HasSpan> HasSpan for Either<T, U> {
-    fn span(&self) -> usize {
-        match self {
-            Either::Left { value } => value.span(),
-            Either::Right{ value } => value.span(),
-        }
-    }
-}
-
-////////////////////// Shifted
-
-impl<T: HasSpan> HasSpan for ShiftedVec1<T> {
-    fn span(&self) -> usize {
-        self.head.span() + self.tail.span()
-    }
-}
-
-impl<T: HasSpan> HasSpan for Shifted<T> {
-    fn span(&self) -> usize {
-        self.off + self.wrapped.span()
-    }
-}
-
-////////////////////////
-
-impl HasSpan for Unrecognized {
-    fn span(&self) -> usize {
-        self.str.span()
-    }
-}
-//impl<T> HasSpan for Unexpected<T> {
-//    fn span(&self) -> usize {
-//        self.str.len()
-//    }
-//}
-
-impl HasSpan for InvalidQuote {
-    fn span(&self) -> usize {
-        self.quote.span()
-    }
-}
-impl HasSpan for InlineBlock {
-    fn span(&self) -> usize {
-        self.quote.span()
-    }
-}
-impl HasSpan for Blank {
-    fn span(&self) -> usize {
-        Blank::REPR.span()
-    }
-}
-impl HasSpan for Var {
-    fn span(&self) -> usize {
-        self.name.span()
-    }
-}
-impl HasSpan for Cons {
-    fn span(&self) -> usize {
-        self.name.span()
-    }
-}
-impl HasSpan for Opr {
-    fn span(&self) -> usize {
-        self.name.span()
-    }
-}
-impl HasSpan for Mod {
-    fn span(&self) -> usize {
-        self.name.span() + 1 // FIXME
-    }
-}
-impl<T: HasSpan> HasSpan for InvalidSuffix<T> {
-    fn span(&self) -> usize {
-        self.elem.span() + self.suffix.span()
-    }
-}
-impl HasSpan for Number {
-    fn span(&self) -> usize {
-        let base_span = match &self.base {
-            Some(base) => base.span() + Number::BASE_SEPARATOR.span(),
-            None       => 0,
-        };
-        base_span + self.int.span()
-    }
-}
-impl HasSpan for DanglingBase {
-    fn span(&self) -> usize {
-        self.base.span() + Number::BASE_SEPARATOR.span()
-    }
-}
-impl HasSpan for TextLineRaw {
-    fn span(&self) -> usize {
-        2 * RAW_QUOTE.span() + self.text.span()
-    }
-}
-impl<T: HasSpan> HasSpan for TextLineFmt<T> {
-    fn span(&self) -> usize {
-        2 * FMT_QUOTE.span() + self.text.span()
-    }
-}
-impl HasSpan for TextBlockRaw {
-    fn span(&self) -> usize {
-        let lines            =  self.text.iter();
-        let line_spans       = lines.map(|line| line.span(self.offset));
-        let lines_span:usize = line_spans.sum();
-        TextBlockRaw::QUOTE.span() + self.spaces + lines_span
-    }
-}
-impl<T: HasSpan> HasSpan for TextBlockFmt<T> {
-    fn span(&self) -> usize {
-        let lines            =  self.text.iter();
-        let line_spans       = lines.map(|line| line.span(self.offset));
-        let lines_span:usize = line_spans.sum();
-        TextBlockFmt::<T>::QUOTE.span() + self.spaces + lines_span
-    }
-}
-impl<T: HasSpan> HasSpan for TextUnclosed<T> {
-    fn span(&self) -> usize {
-        self.line.span() - 1 // FIXME
-    }
-}
-impl<T: HasSpan> HasSpan for Prefix<T> {
-    fn span(&self) -> usize {
-        let func = self.func.span();
-        let arg  = self.arg.span();
-        func + self.off + arg
-    }
-}
-impl<T: HasSpan> HasSpan for Infix<T> {
-    fn span(&self) -> usize {
-        self.larg.span() + self.loff + self.opr.span() + self.roff +
-            self.rarg.span()
-    }
-}
-impl<T: HasSpan> HasSpan for SectionLeft<T> {
-    fn span(&self) -> usize {
-        self.arg.span() + self.off + self.opr.span()
-    }
-}
-impl<T: HasSpan> HasSpan for SectionRight<T> {
-    fn span(&self) -> usize {
-        self.opr.span() + self.off + self.arg.span()
-    }
-}
-impl<T: HasSpan> HasSpan for SectionSides<T> {
-    fn span(&self) -> usize {
-        self.opr.span()
-    }
-}
-impl<T: HasSpan> HasSpan for Module<T> {
-    fn span(&self) -> usize {
-        assert!(self.lines.len() > 0);
-        let break_count = self.lines.len() - 1;
-        let breaks_span = break_count * NEWLINE.span();
-        let lines_span = self.lines.span();
-        lines_span + breaks_span
-    }
-}
-impl<T: HasSpan> HasSpan for Block<T> {
-    fn span(&self) -> usize {
-        let line_span = |line:&BlockLine<Option<T>>| {
-            let indent = line.elem.as_ref().map_or(0, |_| self.indent);
-            NEWLINE.span() + indent + line.span()
-        };
-
-        let head_span         = if self.is_orphan { 0 } else { 1 };
-        let empty_lines       = self.empty_lines.iter();
-        let empty_lines:usize = empty_lines.map(|line| line + 1).sum();
-        let first_line        = self.indent + self.first_line.span();
-        let lines      :usize = self.lines.iter().map(line_span).sum();
-        head_span + empty_lines + first_line + lines
-    }
-}
-
-impl<T: HasSpan> HasSpan for Match<T> {
-    fn span(&self) -> usize {
-        let pfx = self.pfx.span();
-        let segs = self.segs.span();
-        pfx + segs
-    }
-}
-
-impl HasSpan for Ambiguous {
-    fn span(&self) -> usize {
-        self.segs.span()
-    }
-}
-
-impl HasSpan for Comment {
-    fn span(&self) -> usize {
-        panic!("HasSpan is not supported for Spaceless AST!")
-    }
-}
-
-impl<T> HasSpan for Import<T> {
-    fn span(&self) -> usize {
-        panic!("HasSpan is not supported for Spaceless AST!")
-    }
-}
-
-impl<T> HasSpan for Mixfix<T> {
-    fn span(&self) -> usize {
-        panic!("HasSpan is not supported for Spaceless AST!")
-    }
-}
-
-impl<T> HasSpan for Group<T> {
-    fn span(&self) -> usize {
-        panic!("HasSpan is not supported for Spaceless AST!")
-    }
-}
-
-
-impl<T> HasSpan for Def<T> {
-    fn span(&self) -> usize {
-        panic!("HasSpan is not supported for Spaceless AST!")
-    }
-}
-
-impl HasSpan for Foreign {
-    fn span(&self) -> usize {
-        panic!("HasSpan is not supported for Spaceless AST!")
-    }
-}
-
-impl<T: HasSpan> HasSpan for MacroMatchSegment<T> {
-    fn span(&self) -> usize {
-        self.head.span() + self.body.span()
-    }
-}
-
-impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
-    fn span(&self) -> usize {
-        match self {
-            MacroPatternMatchRaw::Begin  (_)    => 0,
-            MacroPatternMatchRaw::End    (_)    => 0,
-            MacroPatternMatchRaw::Nothing(_)    => 0,
-            MacroPatternMatchRaw::Seq    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Or     (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Many   (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Except (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Build  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Err    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Tag    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Cls    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Tok    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Blank  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Var    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Cons   (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Opr    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Mod    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Num    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Text   (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Block  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Macro  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Invalid(elem) => elem.elem.span(),
-        }
-    }
-}
-
-impl HasSpan for MacroAmbiguousSegment {
-    fn span(&self) -> usize {
-        self.head.span() + self.body.span()
     }
 }

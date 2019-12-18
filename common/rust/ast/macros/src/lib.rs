@@ -6,6 +6,10 @@ use proc_macro2::{TokenStream, Ident, Span};
 use quote::quote;
 use syn;
 
+use syn::punctuated::Punctuated;
+use syn::Expr;
+use syn::Token;
+
 use macro_utils::{gather_all_type_reprs, repr};
 
 // ==============
@@ -266,16 +270,27 @@ fn derive_has_span_for_enum
     let ident = &decl.ident;
     let params = decl.generics.params.iter().collect::<Vec<_>>();
 
-    let arms = data.variants.iter().map(|v| {
+    let span_arms = data.variants.iter().map(|v| {
         let con_ident = &v.ident;
         quote!( #ident::#con_ident (elem) => elem.span() )
+    });
+    let repr_arms = data.variants.iter().map(|v| {
+        let con_ident = &v.ident;
+        quote!( #ident::#con_ident (elem) => elem.repr() )
     });
 
     let ret = quote! {
         impl<#(#params: HasSpan),*> HasSpan for #ident<#(#params),*> {
             fn span(&self) -> usize {
                 match self {
-                    #(#arms),*
+                    #(#span_arms),*
+                }
+            }
+        }
+        impl<#(#params: HasRepr),*> HasRepr for #ident<#(#params),*> {
+            fn repr(&self) -> String {
+                match self {
+                    #(#repr_arms),*
                 }
             }
         }
@@ -293,7 +308,7 @@ pub fn derive_has_span
         _       => quote! {},
     };
 //    println!("================================================================");
-    println!("{}", repr(&ret));
+//    println!("{}", repr(&ret));
     proc_macro::TokenStream::from(ret)
 //    proc_macro::TokenStream::from(quote! {})
 //    let params = &decl.generics.params.iter().collect::<Vec<_>>();
@@ -304,3 +319,97 @@ pub fn derive_has_span
 
 }
 
+fn get_type_args(ty:&syn::PathSegment) -> Vec<syn::GenericArgument> {
+    match ty.arguments {
+        syn::PathArguments::AngleBracketed(ref args) =>
+            args.args.iter().cloned().collect(),
+        _ =>
+            Vec::new(),
+    }
+}
+
+struct ReprDescription {
+    ty:syn::PathSegment,
+    exprs:Vec<syn::Expr>,
+    ty_args:Vec<syn::GenericArgument>,
+}
+
+
+impl syn::parse::Parse for ReprDescription {
+    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        let ty:syn::PathSegment = input.parse()?;
+        input.parse::<Option<syn::token::Comma>>()?;
+        let exprs = Punctuated::<Expr, Token![,]>::parse_terminated(input)?;
+        let exprs = exprs.iter().cloned().collect::<Vec<_>>();
+        let ty_args = get_type_args(&ty);
+        Ok(ReprDescription {ty,exprs,ty_args})
+    }
+}
+
+fn make_repr2(input: TokenStream) -> TokenStream {
+    let tokens = input.clone();
+    let rr : ReprDescription = syn::parse2(tokens).unwrap();
+    let ty = rr.ty;
+    let ty_args = rr.ty_args;
+    let exprs = rr.exprs;
+    println!("{:?}", &exprs);
+    let output = quote!{
+        impl<#(#ty_args : HasSpan),*> HasSpan for #ty {
+            fn span(&self) -> usize {
+                0 #(+ #exprs.span())*
+            }
+        }
+
+        impl<#(#ty_args : HasRepr),*> HasRepr for #ty {
+            fn repr(&self) -> String {
+                "".to_string() #(+ &#exprs.repr())*
+            }
+        }
+    };
+
+
+
+    println!("Got: {}\n=========", repr(&input));
+    println!("{}", repr(&output));
+    output
+//    quote!()
+}
+
+
+#[proc_macro]
+pub fn make_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ret = make_repr2(input.into());
+    println!("{}", repr(&ret));
+    ret.into()
+}
+
+// Sample expansion for: Import<T>
+//
+// impl<T> HasSpan for Import<T> {
+//     fn span(&self) -> usize {
+//         panic!("HasSpan is not supported for Spaceless AST!")
+//     }
+// }
+// impl<T> HasRepr for Import<T> {
+//     fn repr(&self) -> String {
+//         panic!("HasRepr not supported for Spaceless AST!")
+//     }
+// }
+#[proc_macro]
+pub fn not_supported_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let target = syn::parse::<syn::PathSegment>(input).unwrap();
+    let ty_args = get_type_args(&target);
+    let ret = quote!{
+        impl<#(#ty_args),*> HasSpan for #target {
+            fn span(&self) -> usize {
+                panic!("HasSpan not supported for Spaceless AST!")
+            }
+        }
+        impl<#(#ty_args),*> HasRepr for #target {
+            fn repr(&self) -> String {
+                panic!("HasRepr not supported for Spaceless AST!")
+            }
+        }
+    };
+    ret.into()
+}
