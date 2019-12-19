@@ -20,7 +20,12 @@ class ReplTest extends InterpreterTest {
       executor.exit()
     }
     eval(code)
-    scopeResult shouldEqual Map("x" -> 10, "y" -> 20, "z" -> 30)
+    scopeResult.mapValues(_.toString) shouldEqual Map(
+      "this" -> "Test",
+      "x"    -> "10",
+      "y"    -> "20",
+      "z"    -> "30"
+    )
   }
 
   "Repl" should "be able to execute arbitrary code in the caller scope" in {

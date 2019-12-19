@@ -59,7 +59,7 @@ trait InterpreterRunner {
     output.reset()
 
     val source = Source
-      .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), null)
+      .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), "Test")
       .mimeType(mimeType)
       .build()
 

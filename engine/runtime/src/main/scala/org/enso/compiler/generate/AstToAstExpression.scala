@@ -53,14 +53,7 @@ object AstToAstExpression {
           case t if t.elem.isDefined => t.elem.get
         }
 
-        val expressions = presentBlocks
-          .filter {
-            case AST.Import.any(_)                 => false
-            case AST.Def.any(_)                    => false
-            case AstView.MethodDefinition(_, _, _) => false
-            case _                                 => true
-          }
-          .map(translateExpression)
+        val expressions = presentBlocks.map(translateExpression)
 
         expressions match {
           case List()     => None
