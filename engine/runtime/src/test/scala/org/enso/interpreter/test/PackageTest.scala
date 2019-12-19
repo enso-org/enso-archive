@@ -26,7 +26,7 @@ trait PackageTest extends FlatSpec with Matchers with ValueEquality {
       .build()
     context.initialize(Constants.LANGUAGE_ID)
     val bindings        = context.getBindings(Constants.LANGUAGE_ID)
-    val mainModuleScope = bindings.getMember(mainModule.toString)
+    val mainModuleScope = bindings.invokeMember("get_module", mainModule.toString)
     val assocCons       = mainModuleScope.getMember("associated_constructor")
     val mainFun         = mainModuleScope.invokeMember("get_method", assocCons, "main")
     InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))

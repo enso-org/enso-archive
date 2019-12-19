@@ -1,11 +1,18 @@
 package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
+import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.dsl.CachedContext;
+import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
+import com.oracle.truffle.api.source.Source;
+import org.enso.interpreter.Constants;
+import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Vector;
@@ -258,18 +265,39 @@ public class ModuleScope implements TruffleObject {
   private static final String ASSOCIATED_CONSTRUCTOR_KEY = "associated_constructor";
   private static final String METHODS_KEY = "get_method";
   private static final String CONSTRUCTORS_KEY = "get_constructor";
+  private static final String PATCH_KEY = "patch";
 
   @ExportMessage
-  Object invokeMember(String member, Object... arguments) throws UnknownIdentifierException {
-    if (member.equals(METHODS_KEY)) {
-      AtomConstructor c = (AtomConstructor) arguments[0];
-      String name = (String) arguments[1];
-      return methods.get(c).get(name);
-    } else if (member.equals(CONSTRUCTORS_KEY)) {
-      String name = (String) arguments[0];
-      return constructors.get(name);
-    } else {
-      throw UnknownIdentifierException.create(member);
+  abstract static class InvokeMember {
+    @Specialization
+    static Object doInvoke(
+        ModuleScope scope,
+        String member,
+        Object[] arguments,
+        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
+        throws UnknownIdentifierException {
+      switch (member) {
+        case METHODS_KEY:
+          {
+            AtomConstructor c = (AtomConstructor) arguments[0];
+            String name = (String) arguments[1];
+            return scope.methods.get(c).get(name);
+          }
+        case CONSTRUCTORS_KEY:
+          {
+            String name = (String) arguments[0];
+            return scope.constructors.get(name);
+          }
+        case PATCH_KEY:
+          String sourceString = (String) arguments[0];
+          Source source =
+              Source.newBuilder(Constants.LANGUAGE_ID, sourceString, scope.associatedType.getName())
+                  .build();
+          contextRef.get().compiler().run(source, scope);
+          return scope;
+        default:
+          throw UnknownIdentifierException.create(member);
+      }
     }
   }
 
@@ -288,12 +316,15 @@ public class ModuleScope implements TruffleObject {
 
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(METHODS_KEY) || member.equals(CONSTRUCTORS_KEY);
+    return member.equals(METHODS_KEY)
+        || member.equals(CONSTRUCTORS_KEY)
+        || member.equals(PATCH_KEY);
   }
 
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Vector(new Object[] {METHODS_KEY, CONSTRUCTORS_KEY, ASSOCIATED_CONSTRUCTOR_KEY});
+    return new Vector(
+        new Object[] {METHODS_KEY, CONSTRUCTORS_KEY, PATCH_KEY, ASSOCIATED_CONSTRUCTOR_KEY});
   }
 
   @ExportMessage

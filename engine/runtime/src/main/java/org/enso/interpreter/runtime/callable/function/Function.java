@@ -8,8 +8,10 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -25,6 +27,7 @@ import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
+import org.enso.interpreter.runtime.data.Vector;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -236,6 +239,35 @@ public final class Function implements TruffleObject {
       return callCached(
           function, arguments, context, arguments.length, buildSorter(arguments.length));
     }
+  }
+
+  private static final String EQUALITY_KEY = "equals";
+
+  @ExportMessage
+  Object invokeMember(String member, Object... args)
+      throws ArityException, UnknownIdentifierException {
+    if (member.equals(EQUALITY_KEY)) {
+      if (args.length != 1) {
+        throw ArityException.create(1, args.length);
+      }
+      return this == args[0];
+    }
+    throw UnknownIdentifierException.create(member);
+  }
+
+  @ExportMessage
+  boolean isMemberInvocable(String member) {
+    return member.equals(EQUALITY_KEY);
+  }
+
+  @ExportMessage
+  boolean hasMembers() {
+    return true;
+  }
+
+  @ExportMessage
+  Object getMembers(boolean includeInternal) {
+    return new Vector(new Object[] {EQUALITY_KEY});
   }
 
   /**

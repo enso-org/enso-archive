@@ -10,7 +10,7 @@ import com.oracle.truffle.api.library.ExportMessage;
 public class Vector implements TruffleObject {
   private final Object[] items;
 
-  public Vector(Object[] items) {
+  public Vector(Object... items) {
     this.items = items;
   }
 

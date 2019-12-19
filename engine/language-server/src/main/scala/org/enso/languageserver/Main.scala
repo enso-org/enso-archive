@@ -126,7 +126,7 @@ object Main {
 
   private def runPackage(context: Context, mainModuleName: String): Unit = {
     val bindings   = context.getBindings(Constants.LANGUAGE_ID)
-    val mainModule = bindings.getMember(mainModuleName)
+    val mainModule = bindings.invokeMember("get_module", mainModuleName)
     runMain(mainModule)
   }
 
@@ -139,6 +139,8 @@ object Main {
   private def runMain(mainModule: Value): Value = {
     val mainCons = mainModule.getMember("associated_constructor")
     val mainFun  = mainModule.invokeMember("get_method", mainCons, "main")
+    val mainFun2 = mainModule.invokeMember("get_method", mainCons, "main")
+    println(mainFun.invokeMember("equals", mainFun2))
     mainFun.execute(mainCons)
   }
 

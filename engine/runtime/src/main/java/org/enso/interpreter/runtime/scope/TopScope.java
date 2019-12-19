@@ -46,6 +46,9 @@ public class TopScope implements TruffleObject {
     return builtins;
   }
 
+  private static final String GET_MODULE_KEY = "get_module";
+  private static final String CREATE_MODULE_KEY = "create_module";
+
   @ExportMessage
   public boolean hasMembers() {
     return true;
@@ -53,41 +56,46 @@ public class TopScope implements TruffleObject {
 
   @ExportMessage
   public Vector getMembers(boolean includeInternal) {
+
     Set<String> keys = modules.keySet();
     keys.add(Builtins.MODULE_NAME);
-    return new Vector(keys.toArray(new Object[0]));
+    return new Vector(GET_MODULE_KEY, CREATE_MODULE_KEY);
   }
 
   @ExportMessage
-  public abstract static class ReadMember {
+  public abstract static class InvokeMember {
     @Specialization
-    public static ModuleScope doRead(
+    public static ModuleScope doInvoke(
         TopScope scope,
         String member,
+        Object[] arguments,
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
         throws UnknownIdentifierException {
-      if (member.equals(Builtins.MODULE_NAME)) {
-        return scope.builtins.getScope();
-      }
-      Module module = scope.modules.get(member);
-      if (module == null) {
-        throw UnknownIdentifierException.create(member);
-      }
-      if (module.hasComputedScope()) {
-        return module.getScope();
-      } else {
-        return module.requestParse(contextRef.get());
+      String moduleName = (String) arguments[0];
+      switch (member) {
+        case GET_MODULE_KEY:
+          if (moduleName.equals(Builtins.MODULE_NAME)) {
+            return scope.builtins.getScope();
+          }
+          Module module = scope.modules.get(moduleName);
+          if (module == null) {
+            throw UnknownIdentifierException.create(moduleName);
+          }
+          if (module.hasComputedScope()) {
+            return module.getScope();
+          } else {
+            return module.requestParse(contextRef.get());
+          }
+        case CREATE_MODULE_KEY:
+          return contextRef.get().createScope(moduleName);
+        default:
+          throw UnknownIdentifierException.create(member);
       }
     }
   }
 
   @ExportMessage
-  public boolean hasMemberReadSideEffects(String member) {
-    return !member.equals(Builtins.MODULE_NAME) && !getModules().get(member).hasComputedScope();
-  }
-
-  @ExportMessage
-  public boolean isMemberReadable(String member) {
-    return member.equals(Builtins.MODULE_NAME) || getModules().containsKey(member);
+  public boolean isMemberInvocable(String member) {
+    return member.equals(GET_MODULE_KEY) || member.equals(CREATE_MODULE_KEY);
   }
 }

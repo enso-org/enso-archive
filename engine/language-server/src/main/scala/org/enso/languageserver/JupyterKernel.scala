@@ -11,7 +11,7 @@ import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties
 import io.github.spencerpark.jupyter.kernel.LanguageInfo
 import io.github.spencerpark.jupyter.kernel.display.DisplayData
 import org.enso.interpreter.Constants
-import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.{Context, Value}
 
 /**
   * A wrapper for Enso interpreter for use by Jupyter
@@ -24,6 +24,14 @@ class JupyterKernel extends BaseKernel {
       getIO.out,
       Repl(SimpleReplIO(getIO.in, getIO.out))
     )
+  private val jupyterModule: Value = context
+    .getBindings(Constants.LANGUAGE_ID)
+    .invokeMember("create_module", "Jupyter")
+    .invokeMember("patch", "main = Unit")
+  private val moduleCons: Value =
+    jupyterModule.getMember("associated_constructor")
+  private var lastMain: Value =
+    jupyterModule.invokeMember("get_method", moduleCons, "main")
 
   /**
     * Evaluates Enso code in the context of Jupyter request
@@ -31,8 +39,16 @@ class JupyterKernel extends BaseKernel {
     * @param expr the expression to execute
     * @return the Jupyter-friendly representation of the result of executing `expr`
     */
-  override def eval(expr: String) =
-    new DisplayData(context.eval(Constants.LANGUAGE_ID, expr).toString)
+  override def eval(expr: String): DisplayData = {
+    jupyterModule.invokeMember("patch", expr)
+    val newMain = jupyterModule.invokeMember("get_method", moduleCons, "main")
+    if (!newMain.invokeMember("equals", lastMain).asBoolean()) {
+      lastMain = newMain
+      new DisplayData(newMain.execute(moduleCons).toString)
+    } else {
+      new DisplayData()
+    }
+  }
 
   /**
     * Basic language information to display in Jupyter
