@@ -39,7 +39,7 @@ import java.util.List;
     implementationName = Constants.IMPL_NAME,
     version = Constants.LANGUAGE_VERSION,
     defaultMimeType = Constants.MIME_TYPE,
-    characterMimeTypes = {Constants.MIME_TYPE, Constants.ANONYMOUS_MIME_TYPE},
+    characterMimeTypes = {Constants.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     fileTypeDetectors = FileDetector.class)
 @ProvidedTags({
