@@ -23,7 +23,7 @@ variables:
   sbtVersion: 1.3.3    # Please ensure this is in sync with project/build.properties
   wasmpackVersion: 0.8.1
   rustToolchain: nightly-2019-12-13
-  firefoxVersion: 71.0
+  firefoxVersion: 66.0
   firefoxURL: https://ftp.mozilla.org/pub/firefox/releases
 
 jobs:
@@ -115,7 +115,7 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home/bin:$PATH"
         displayName: Install GraalVM
       - script: |
-          curl -fSL -o firefox.dmg "$(firefoxURL)/$(firefoxVersion)/mac/en-US/Firefox%20$(firefoxVersion).dmg"
+          curl -fSL -o firefox.dmg "$(firefoxURL)/$(firefoxVersion)/mac/en-US/Firefox $(firefoxVersion).dmg"
           hdiutil attach firefox.dmg
           cp -R /Volumes/Firefox/Firefox.app /Applications/Firefox.app
         displayName: Install Firefox
@@ -177,7 +177,7 @@ jobs:
           7z x -y -oC:\ graal.zip
         displayName: Install GraalVM
       - script: |
-          echo "$(firefoxURL)/$(firefoxVersion)/mac/en-US/Firefox%20Setup%20$(firefoxVersion).exe"
+          echo "$(firefoxURL)/$(firefoxVersion)/mac/en-US/Firefox Setup $(firefoxVersion).exe"
           curl -fSL -o firefox.exe "$(firefoxURL)/$(firefoxVersion)/mac/en-US/Firefox%20Setup%20$(firefoxVersion).exe"
           firefox.exe /S
         displayName: Install Firefox
