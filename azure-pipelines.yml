@@ -189,7 +189,7 @@ jobs:
           echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
         displayName: Install Rust
       - script: |
-          curl -sSf -o wasm-pack-init.exe "https://github.com/rustwasm/wasm-pack/releases/download/v0.8.1/wasm-pack-init.exe"
+          curl -sSLf -o wasm-pack-init.exe "https://github.com/rustwasm/wasm-pack/releases/download/v0.8.1/wasm-pack-init.exe"
           wasm-pack-init.exe -y
         displayName: Install Wasm-Pack
       - script: |
