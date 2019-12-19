@@ -103,51 +103,51 @@ jobs:
 #          echo "##vso[task.complete result=Failed;]DONE"
 #        condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
 #        displayName: Fail on Issues
-  - job: macOS
-    timeoutInMinutes: 90
-    pool:
-      vmImage: macOS-10.13
-
-    steps:
-      - script: |
-          curl -fSL -o graal.tar.gz $(graalReleasesUrl)/vm-$(graalVersion)/$(graalDistributionName)-darwin-amd64-$(graalVersion).tar.gz
-          tar -x -z -C ~ -f graal.tar.gz
-          ls ~/$(graalDistributionName)-$(graalVersion)
-          sudo mv ~/$(graalDistributionName)-$(graalVersion) /Library/Java/JavaVirtualMachines
-          echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home"
-          echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home/bin:$PATH"
-        displayName: Install GraalVM
-      - script: |
-          curl -fSL -o firefox.dmg "https://download.mozilla.org/?product=firefox-latest-ssl&os=osx"
-          hdiutil attach firefox.dmg
-          cp -R /Volumes/Firefox/Firefox.app /Applications/Firefox.app
-#          echo "##vso[task.setvariable variable=PATH;]$PATH:~/firefox"
-        displayName: Install Firefox
-      - script: |
-          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-          rustup update nightly
-          rustup override set nightly
-          echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
-        displayName: Install Rust
-      - script: |
-          curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh -s -- -f
-        displayName: Install Wasm-Pack
-      - script: |
-          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
-          tar -x -z -C ~ -f sbt.tgz
-          echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
-        displayName: Install SBT
-      - script: |
-          sbt -no-colors syntaxJS/fullOptJS
-        displayName: Generate target/scala-parser.js
-        continueOnError: true
-      - script: cargo build --all
-        displayName: Cargo Build
-      - script: cargo test --all
-        displayName: Cargo Test
-      - script: |
-          wasm-pack test common/rust/parser --headless --firefox
-        displayName: Wasm-Pack Test Parser
+#  - job: macOS
+#    timeoutInMinutes: 90
+#    pool:
+#      vmImage: macOS-10.13
+#
+#    steps:
+#      - script: |
+#          curl -fSL -o graal.tar.gz $(graalReleasesUrl)/vm-$(graalVersion)/$(graalDistributionName)-darwin-amd64-$(graalVersion).tar.gz
+#          tar -x -z -C ~ -f graal.tar.gz
+#          ls ~/$(graalDistributionName)-$(graalVersion)
+#          sudo mv ~/$(graalDistributionName)-$(graalVersion) /Library/Java/JavaVirtualMachines
+#          echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home"
+#          echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home/bin:$PATH"
+#        displayName: Install GraalVM
+#      - script: |
+#          curl -fSL -o firefox.dmg "https://download.mozilla.org/?product=firefox-latest-ssl&os=osx"
+#          hdiutil attach firefox.dmg
+#          cp -R /Volumes/Firefox/Firefox.app /Applications/Firefox.app
+##          echo "##vso[task.setvariable variable=PATH;]$PATH:~/firefox"
+#        displayName: Install Firefox
+#      - script: |
+#          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
+#          rustup update nightly
+#          rustup override set nightly
+#          echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
+#        displayName: Install Rust
+#      - script: |
+#          curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh -s -- -f
+#        displayName: Install Wasm-Pack
+#      - script: |
+#          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+#          tar -x -z -C ~ -f sbt.tgz
+#          echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
+#        displayName: Install SBT
+#      - script: |
+#          sbt -no-colors syntaxJS/fullOptJS
+#        displayName: Generate target/scala-parser.js
+#        continueOnError: true
+#      - script: cargo build --all
+#        displayName: Cargo Build
+#      - script: cargo test --all
+#        displayName: Cargo Test
+#      - script: |
+#          wasm-pack test common/rust/parser --headless --firefox
+#        displayName: Wasm-Pack Test Parser
 #      - script: |
 #          sbt -no-colors test
 #        displayName: Test All
@@ -168,37 +168,51 @@ jobs:
 #          echo "##vso[task.complete result=Failed;]DONE"
 #        condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
 #        displayName: Fail on Issues
-#  - job: Windows
-#    timeoutInMinutes: 90
-#    pool:
-#      vmImage: windows-2019
-#    steps:
-#      - script: |
-#          curl -fSL -o graal.zip $(graalReleasesUrl)/vm-$(graalVersion)/$(graalDistributionName)-windows-amd64-$(graalVersion).zip
-#          7z x -y -oC:\ graal.zip
-#        displayName: Install GraalVM
-#      - script: |
-#          curl https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64 > ~/firefox.tar.bz2
-#          tar xjf ~/firefox.tar.bz2
-#          echo "##vso[task.setvariable variable=PATH;]~/firefox:$PATH"
-#        displayName: Install Firefox
-#      - script: |
-#          curl -sSf -o rustup-init.exe https://win.rustup.rs/
-#          rustup-init.exe -y --default-toolchain nightly
-#          echo "##vso[task.setvariable variable=PATH;]~/.cargo/bin:$PATH"
-#          curl -sSf -o wasm-pack-init.exe https://github.com/rustwasm/wasm-pack/releases/download/v0.8.1/wasm-pack-init.exe
-#          wasm-pack-init.exe -y
-#        displayName: Install Rust
-#      - script: |
-#          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
-#          tar -x -z -C %USERPROFILE% -f sbt.tgz
-#        displayName: Install SBT
-#      - script: |
-#          call refreshenv
-#          echo ##vso[task.setvariable variable=JAVA_HOME]C:\$(graalDistributionName)-$(graalVersion)
-#          echo ##vso[task.setvariable variable=PATH]C:\$(graalDistributionName)-$(graalVersion)\bin;%PATH%
-#          echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
-#        displayName: Adjust Environment Variables
+  - job: Windows
+    timeoutInMinutes: 90
+    pool:
+      vmImage: windows-2019
+    steps:
+      - script: |
+          curl -fSL -o graal.zip $(graalReleasesUrl)/vm-$(graalVersion)/$(graalDistributionName)-windows-amd64-$(graalVersion).zip
+          7z x -y -oC:\ graal.zip
+        displayName: Install GraalVM
+      - script: |
+          curl -fSL -o firefox.exe "https://download.mozilla.org/?product=firefox-latest-ssl&os=win"
+          firefox.exe /S
+        displayName: Install Firefox
+      - script: |
+          curl -sSf -o rustup-init.exe https://win.rustup.rs
+          rustup-init.exe -y --default-toolchain nightly
+          rustup update nightly
+          rustup override set nightly
+          echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
+        displayName: Install Rust
+      - script: |
+          curl -sSf -o wasm-pack-init.exe https://github.com/rustwasm/wasm-pack/releases/download/v0.8.1/wasm-pack-init.exe
+          wasm-pack-init.exe -y
+        displayName: Install Wasm-Pack
+      - script: |
+          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+          tar -x -z -C %USERPROFILE% -f sbt.tgz
+        displayName: Install SBT
+      - script: |
+          call refreshenv
+          echo ##vso[task.setvariable variable=JAVA_HOME]C:\$(graalDistributionName)-$(graalVersion)
+          echo ##vso[task.setvariable variable=PATH]C:\$(graalDistributionName)-$(graalVersion)\bin;%PATH%
+          echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
+        displayName: Adjust Environment Variables
+      - script: |
+          sbt -no-colors syntaxJS/fullOptJS
+        displayName: Generate target/scala-parser.js
+        continueOnError: true
+      - script: cargo build --all
+        displayName: Cargo Build
+      - script: cargo test --all
+        displayName: Cargo Test
+      - script: |
+          wasm-pack test common/rust/parser --headless --firefox
+        displayName: Wasm-Pack Test Parser
 #      - script: |
 #          sbt test
 #        continueOnError: true
