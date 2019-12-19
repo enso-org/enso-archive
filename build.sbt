@@ -102,7 +102,9 @@ lazy val enso = (project in file("."))
     runtime,
     parser_service,
     file_manager,
-    project_manager
+    runner,
+    gateway,
+    language_server
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -418,7 +420,7 @@ lazy val runtime = (project in file("engine/runtime"))
 lazy val runner = project
   .in(file("engine/runner"))
   .settings(
-    mainClass in (Compile, run) := Some("org.enso.languageserver.Main"),
+    mainClass in (Compile, run) := Some("org.enso.runner.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
     assemblyJarName in assembly := "enso.jar",
     test in assembly := {},
