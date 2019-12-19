@@ -1,6 +1,7 @@
 package org.enso.interpreter.bench.fixtures.semantic
 
 import org.enso.interpreter.Constants
+import org.enso.interpreter.runtime.Builtins
 import org.enso.interpreter.runtime.scope.TopScope
 import org.enso.interpreter.test.{InterpreterException, InterpreterRunner}
 import org.graalvm.polyglot.{PolyglotException, Value}
@@ -12,7 +13,7 @@ class AtomFixtures extends InterpreterRunner {
 
   def buildInputList(length: Long): Value = {
     val builtins =
-      ctx.getBindings(Constants.LANGUAGE_ID).getMember(TopScope.BUILTINS_KEY)
+      ctx.getBindings(Constants.LANGUAGE_ID).getMember(Builtins.MODULE_NAME)
     val nil  = builtins.invokeMember("get_constructor", "Nil")
     val cons = builtins.invokeMember("get_constructor", "Cons")
     1L.to(length).foldLeft(nil.newInstance()) {

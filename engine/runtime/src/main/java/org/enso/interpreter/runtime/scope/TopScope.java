@@ -6,21 +6,21 @@ import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
+import org.enso.interpreter.runtime.data.Vector;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 @ExportLibrary(InteropLibrary.class)
 public class TopScope implements TruffleObject {
-  public static final String BUILTINS_KEY = "Builtins";
   private final Builtins builtins;
   private final Map<String, Module> modules;
   private final Scope scope = Scope.newBuilder("top_scope", this).build();
@@ -52,10 +52,10 @@ public class TopScope implements TruffleObject {
   }
 
   @ExportMessage
-  public ModuleNamesArray getMembers(boolean includeInternal) {
+  public Vector getMembers(boolean includeInternal) {
     Set<String> keys = modules.keySet();
-    keys.add(BUILTINS_KEY);
-    return new ModuleNamesArray(keys.toArray(new String[0]));
+    keys.add(Builtins.MODULE_NAME);
+    return new Vector(keys.toArray(new Object[0]));
   }
 
   @ExportMessage
@@ -64,11 +64,15 @@ public class TopScope implements TruffleObject {
     public static ModuleScope doRead(
         TopScope scope,
         String member,
-        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef) {
-      if (member.equals(BUILTINS_KEY)) {
+        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
+        throws UnknownIdentifierException {
+      if (member.equals(Builtins.MODULE_NAME)) {
         return scope.builtins.getScope();
       }
       Module module = scope.modules.get(member);
+      if (module == null) {
+        throw UnknownIdentifierException.create(member);
+      }
       if (module.hasComputedScope()) {
         return module.getScope();
       } else {
@@ -79,40 +83,11 @@ public class TopScope implements TruffleObject {
 
   @ExportMessage
   public boolean hasMemberReadSideEffects(String member) {
-    return !member.equals(BUILTINS_KEY) && !getModules().get(member).hasComputedScope();
+    return !member.equals(Builtins.MODULE_NAME) && !getModules().get(member).hasComputedScope();
   }
 
   @ExportMessage
   public boolean isMemberReadable(String member) {
-    return getModules().containsKey(member);
-  }
-
-  @ExportLibrary(InteropLibrary.class)
-  public static class ModuleNamesArray implements TruffleObject {
-    private final String[] names;
-
-    public ModuleNamesArray(String[] names) {
-      this.names = names;
-    }
-
-    @ExportMessage
-    public boolean hasArrayElements() {
-      return true;
-    }
-
-    @ExportMessage
-    public String readArrayElement(long index) {
-      return names[(int) index];
-    }
-
-    @ExportMessage
-    public long getArraySize() {
-      return names.length;
-    }
-
-    @ExportMessage
-    public boolean isArrayElementReadable(long index) {
-      return index < getArraySize();
-    }
+    return member.equals(Builtins.MODULE_NAME) || getModules().containsKey(member);
   }
 }

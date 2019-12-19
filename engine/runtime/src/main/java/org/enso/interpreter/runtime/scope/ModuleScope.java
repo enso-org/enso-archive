@@ -3,11 +3,12 @@ package org.enso.interpreter.runtime.scope;
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import org.enso.interpreter.runtime.callable.atom.Atom;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
+import org.enso.interpreter.runtime.data.Vector;
 
 import java.util.*;
 
@@ -259,7 +260,7 @@ public class ModuleScope implements TruffleObject {
   private static final String CONSTRUCTORS_KEY = "get_constructor";
 
   @ExportMessage
-  public Object invokeMember(String member, Object... arguments) {
+  public Object invokeMember(String member, Object... arguments) throws UnknownIdentifierException {
     if (member.equals(METHODS_KEY)) {
       AtomConstructor c = (AtomConstructor) arguments[0];
       String name = (String) arguments[1];
@@ -268,16 +269,16 @@ public class ModuleScope implements TruffleObject {
       String name = (String) arguments[0];
       return constructors.get(name);
     } else {
-      return null;
+      throw UnknownIdentifierException.create(member);
     }
   }
 
   @ExportMessage
-  public Object readMember(String member) {
+  public Object readMember(String member) throws UnknownIdentifierException {
     if (member.equals(ASSOCIATED_CONSTRUCTOR_KEY)) {
       return associatedType;
     }
-    return null;
+    throw UnknownIdentifierException.create(member);
   }
 
   @ExportMessage
@@ -287,12 +288,12 @@ public class ModuleScope implements TruffleObject {
 
   @ExportMessage
   public boolean isMemberInvocable(String member) {
-    return member.equals(METHODS_KEY);
+    return member.equals(METHODS_KEY) || member.equals(CONSTRUCTORS_KEY);
   }
 
   @ExportMessage
   public Object getMembers(boolean includeInternal) {
-    return new TopScope.ModuleNamesArray(new String[] {METHODS_KEY, ASSOCIATED_CONSTRUCTOR_KEY});
+    return new Vector(new Object[] {METHODS_KEY, CONSTRUCTORS_KEY, ASSOCIATED_CONSTRUCTOR_KEY});
   }
 
   @ExportMessage
