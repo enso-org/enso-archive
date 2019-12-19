@@ -280,68 +280,12 @@ standard theories of optics. While we _do_ need to formalise this, for now we
 provide examples of the expected basic usage. This only covers lenses, while in
 the future we will likely want prisms and other more-advanced optics.
 
-```ruby
-type Engine
-  type Combustion
-    power:          Int
-    cylinder_count: Int
-
-  type Electric
-    power:   Int
-    is_blue: Bool
-
-type Vehicle
-  type Car
-    color:     String
-    max_speed: Int
-    engine:    Engine
-
-  type Bike
-    color: String
-
-type Person
-  type Cons
-    name:    String
-    vehicle: Vehicle
-
-main =
-  p1 = Person.Cons "Joe" (Vehicle.Car 'pink' 300 (Engine.Combustion 500 8))
-  print $ p1.name                   # -> Joe
-  print $ p1.vehicle.color          # -> pink
-  print $ p1.vehicle.max_speed      # -> Some 300
-  print $ p1.vehicle.engine.power   # -> Some 500
-  print $ p1.vehicle.engine.is_blue # -> None
-  p1.vehicle.color     = 'red'      # OK
-  p1.vehicle.max_speed = 310        # FAIL: security reasons. Allowing this
-                                    #       in Haskell was the worst decision
-                                    #       ever. After refactoring it
-                                    #       silently does nothing there.
-
-  p2 = p1.vehicle.max_speed    ?= 310 # OK
-  p3 = p1.vehicle.engine.power  = 510 # FAIL
-  p4 = p1.vehicle.engine.power ?= 510 # OK
-
-  lens_name      = .name
-  lens_color     = .vehicle.color
-  lens_max_speed = .vehicle.max_speed
-  lens_power     = .vehincle.engine.power
-
-  ## Function like usage:
-  print $ lens_name      p1
-  print $ lens_color     p1
-  print $ lens_max_speed p1
-  print $ lens_power     p1
-
-  p1 . at lens_name = ... # OK
-```
-
 Lenses are generated for both atom fields and records.
 
 > Actionables for this section:
 >
 > - Work out whether standard optics theory with custom types is sufficient for
 >   us. We may want to support side effects.
-> - Fix the example above. It isn't correct.
 > - Determine how much of the above we can support without a type-checker. There
 >   are likely to be a lot of edge-cases, so it's important that we make sure we
 >   know how to get as much of it working as possible.
@@ -569,10 +513,7 @@ unification. There are a few main ways you can pattern match:
 
 > The actionables for this section :
 >
-> - Refine the syntax for the name-based case.
-> - Provide code examples for why the renaming use-case is important (e.g.
->   cases where there are clashing field names).
-> - Function-resolution matching.
+> - How do we type pattern matching?
 
 ### Visibility and Access Modifiers
 While we don't usually like making things private in a programming language, it
@@ -595,6 +536,10 @@ While `private` works as you might expect, coming from other languages, the
 - When you use `unsafe`, you must write a documentation comment on its usage
   that contains a section `Safety` that describes why this usage of unsafe is
   valid.
+
+> The actionables for this section are:
+> 
+> - How do we type this?
 
 ## Dynamic Dispatch
 Enso is a language that supports pervasive dynamic dispatch. This is a big boon

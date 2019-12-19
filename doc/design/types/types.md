@@ -1035,7 +1035,11 @@ is as below.
 - [Levity Polymorphism](https://cs.brynmawr.edu/~rae/papers/2017/levity/levity-extended.pdf)
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
 
-<!-- ====================================================================== --> 
+<!-- ====================================================================== -->
+
+Eager evaluation semantics.
+
+<!-- ====================================================================== -->
 
 Enso is a statically typed language. It means that every variable is tagged with
 an information about its possible values. Enso's type system bases on the idea
@@ -2336,5 +2340,37 @@ On the other hand, The `Point` constructor does contain fields, thus it could be
 used for example to describe all possible points, whose first coordinate is an
 integral number, while the second and third coordinates are equal to zero:
 `a : Point int 0 0`.
+
+<!-- ====================================================================== -->
+
+Function resolution:
+
+- Always prefer a member function for both `x.f y` and `f y x` notations.
+- Only member functions, current module's functions, and imported functions are
+  considered to be in scope. Local variable `f` could not be used in the `x.f y`
+  syntax.
+- Selecting the matching function:
+  1. Look up the member function. If it exists, select it.
+  2. If not, find all functions with the matching name in the current module and
+     all directly imported modules. These functions are the _candidates_.
+  3. Eliminate any candidate `X` for which there is another candidate `Y` whose
+     `this` argument type is strictly more specific. That is, `Y` self type is a
+     substitution of `X` self type but not vice versa.
+  4. If not all of the remaining candidates have the same self type, the search
+     fails.
+  5. Eliminate any candidate `X` for which there is another candidate `Y` which
+     type signature is strictly more specific. That is, `Y` type signature is a
+     substitution of `X` type signature.
+  6. If exactly one candidate remains, select it. Otherwise, the search fails.
+
+<!-- ====================================================================== -->
+
+Inference of optional arguments (see syntax doc). Type applications too.
+
+<!-- ====================================================================== -->
+
+Typechecking scoping rules.
+
+<!-- ====================================================================== -->
 
 <!-- ====================================================================== -->

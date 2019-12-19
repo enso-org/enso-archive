@@ -41,22 +41,23 @@ dependently-typed world, they are just values.
 - [Functions](#functions)
   - [Lambdas](#lambdas)
   - [Defining Functions](#defining-functions)
-  - [Calling Functions](#calling-functions)
   - [Methods](#methods)
-  - [Blocks](#blocks)
+  - [Calling Functions and UCS](#calling-functions-and-ucs)
+  - [Code Blocks](#code-blocks)
+  - [Operators](#operators)
+  - [Mixfix Functions](#mixfix-functions)
 - [Function Arguments](#function-arguments)
+  - [Positional Arguments](#positional-arguments)
   - [Named Arguments](#named-arguments)
   - [Defaulted Arguments](#defaulted-arguments)
-  - [Positional Arguments](#positional-arguments)
   - [Optional Arguments](#optional-arguments)
   - [Splats Arguments](#splats-arguments)
   - [Type Applications](#type-applications)
+  - [Underscore Arguments](#underscore-arguments)
 - [Scoping Rules](#scoping-rules)
-  - [Variable Scoping](#variable-scoping)
-  - [Name Visibility](#name-visibility)
 - [Field Access](#field-access)
   - [Pattern Matching](#pattern-matching)
-  - [Lenses](#lenses)
+  - [Projections / Lenses](#projections--lenses)
 
 <!-- /MarkdownTOC -->
 
@@ -362,8 +363,8 @@ specific information in the type inference and checking engines about the type
 of a variable. This means that:
 
 - Enso will infer constraints on types that you haven't necessarily written.
-- Type signatures can act as a sanity check in that you can encode your 
-  intention as a type 
+- Type signatures can act as a sanity check in that you can encode your
+  intention as a type
 
 ### Operations on Types
 Enso also provides a set of rich operations on its underlying type-system notion
@@ -425,6 +426,28 @@ type Monoid
     self : Semigroup
     use Nothing
 ```
+
+#### Visibility and Access Modifiers
+While we don't usually like making things private in a programming language, it
+sometimes the case that it is necessary to indicate that certain fields should
+not be touched (as this might break invariants and such like). To this end, we
+propose an explicit mechanism for access modification that works as follows:
+
+- We provide explicit access modifiers that, at the definition site, start an
+  indented block. These are `private` and `unsafe`.
+- All members in the block have the access modifier attributed to them.
+- By default, accessing any member under an access modifier will be an error.
+- To use members under an access modifier, you use the syntax `use <mod>`, where
+  `<mod>` is a modifier. This syntax 'takes' an expression, including blocks,
+  within which the user may access members qualified by the modifier `<mod>`.
+
+While `private` works as you might expect, coming from other languages, the
+`unsafe` annotation has additional restrictions:
+
+- It must be explicitly imported from `Std.Unsafe`.
+- When you use `unsafe`, you must write a documentation comment on its usage
+  that contains a section `Safety` that describes why this usage of unsafe is
+  valid.
 
 ## Macros
 Enso provides a macro system that allows users to perform AST to AST
@@ -552,7 +575,9 @@ meaning that you can pass functions as arguments to other functions, return
 functions from functions, assign them to variables, store them in data
 structures and so on.
 
-Functions in Enso are curried by default.
+Functions in Enso are curried by default, meaning that all functions are
+actually functions in one argument, but may return functions accepting further
+arguments.
 
 ### Lambdas
 The most primitive non-atom construct in Enso is the lambda. This is an
@@ -561,25 +586,46 @@ where the left hand side is an argument, and the right hand side is the body of
 the function (containing arbitrary code).
 
 Some functional languages such as Haskell allow for the definition of a lambda
-with multiple arguments, but in Enso the type signature use of `-> `and the 
+with multiple arguments, but in Enso the type signature use of `-> `and the
 lambda use of `->` are one and the same. We do not want to have to put the
 components of a type signature in parentheses, so we only allow one argument
 before each arrow.
 
 - Lambdas can close over variables in their surrounding scope.
-- If you want to define a multi-argument lambda, you can do it by having a 
+- If you want to define a multi-argument lambda, you can do it by having a
   lambda return another lambda (e.g. `a -> b -> a + b`).
 
 > The actionables for this section are:
-> 
+>
 > - Clarify whether we _really_ want to disallow the `a b -> a + b` multi-arg
 >   lambda syntax.
 
 ### Defining Functions
 A function definition is just syntactic sugar for the definition of a lambda,
-and hence has all the properties that a lambda does.
+and hence has all the properties that a lambda does. Syntactically, functions
+are defined in a similar way to variables. The only difference is that the
+function name is followed by one or more parameters.
 
-### Calling Functions
+```ruby
+sum x y = x + y
+```
+
+Under the hood, functions are desugared to a lambda assigned to a variable that
+binds the function name. This means that:
+
+- Like any variable, you can use the `:` type ascription operator to provide a
+  user-defined type for the function.
+
+  ```ruby
+  sum : (a: Monoid) -> a -> a
+  sum : x -> y -> x + y
+  sum x y = x + y
+  ```
+
+- Functions have an _arity_. Unlike a single lambda which always has an arity of
+  one, function arity refers to the number of arguments in the function
+  definition, which may not always be deduced from the type signature, but may
+  still be inferred.
 
 ### Methods
 Enso makes a distinction between functions and methods. In Enso, a method is a
@@ -618,12 +664,35 @@ be the name of the 'current type' rather than `self`. This is a purely aesthetic
 decision, and the final clincher was the ability to write `this` and `that`, as
 opposed to `self` and `that`.
 
-### Blocks
+### Calling Functions and UCS
+Calling a function or method is, in general, as simple as applying it to some
+arguments. However, as Enso supports both methods and functions, it is very
+important that users do not have to think about which of the two they are using
+when calling it. To that end, Enso supports what is known as Uniform Call Syntax
+(UCS).
+
+- Where the syntax for calling methods differs from the syntax for calling
+  functions, there are needless constraints on writing generic code.
+- This is a needless constraint as both notations have their advantages.
+- Enso has two notations, but one unified semantics.
+
+The rules for the uniform syntax call translation in Enso are as follows.
+
+1. For an expression `t.fn`, this is equivalent to `fn (this = t)`.
+2. The `this` argument may occur at any position in the function.
+
+> The actionables for this section are:
+>
+> - Clarify exactly how this should work, and which argument should be
+>   translated.
+> - We do not _currently_ implement the above-listed transformation, so we need
+>   to solidify these rules.
+
+### Code Blocks
 Top-level blocks in the language are evaluated immediately. This means that the
 layout of the code has no impact on semantics of the code:
 
-- To suspend blocks, we provide a `suspend` function in the standard library.
-  This means that the following `a` and `b` are equivalent.
+- This means that the following `a` and `b` are equivalent.
 
   ```ruby
   a = foo x y
@@ -632,6 +701,7 @@ layout of the code has no impact on semantics of the code:
     foo x y
   ```
 
+- To suspend blocks, we provide a `suspend` function in the standard library.
 - This function takes any expression as an argument (including a block), and
   suspends the execution of that expression such that it is not evaluated until
   forced later.
@@ -642,547 +712,152 @@ layout of the code has no impact on semantics of the code:
     x.do_thing
   ```
 
-Additionally, in the current syntax, a block assigned to a variable is one that
-has its execution implicitly suspended until it is forced. This has a few
-things that should be noted about it.
-
-- We could have a `suspend` function provided in the standard library, as
-  laziness of argument evaluation is determined through type-signatures and is
-  done automatically in the compiler.
-- Such a function would likely not see heavy use.
-
-## Function Arguments
-
-### Named Arguments
-
-### Defaulted Arguments
-
-### Positional Arguments
-
-### Optional Arguments
-
-### Splats Arguments
-
-### Type Applications
-
-## Scoping Rules
-
-### Variable Scoping
-
-### Name Visibility
-
-## Field Access
-
-### Pattern Matching
-
-#### The Underscore in Pattern Matching
-`const a _ = a` behaves differently than underscore in expressions (implicit
-lambda).
-
-### Lenses
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### Creating and Using Functions
-
-Functions are defined in a similar way to variables. The only difference is that
-the function name is followed by parameters separated by spaces. For example,
-the following code defines a function taking two values and returning their sum.
-
-```haskell
-sum x y = x + y
-```
-
-Putting a space between two things in expressions is simply _function
-application_. For example, to sum two numbers by using the function defined
-above, simply write `sum 1 2`.
-
-Under the hood, the function definition is translated to a much more primitive
-construct, a variable assigned with an expression of nested, unnamed functions,
-often referred to as lambdas. In contrast to the function definition, lambda
-definition accepts a single argument only:
-
-Functions allow expressing complex logic easily by encapsulating and reusing
-common behaviors. The following code defines a sequence of one hundred numbers,
-uses each of them to get a new random number, discards everything but the first
-10 numbers, and then sorts them. Please note the usage of the `each` function,
-which takes an action and a list as arguments, and applies the action to every
-element of the list. The `random` returns a pseudo-random number if applied with
-a seed value (it always returns the same value for the same seed argument).
-
-```haskell
-list       = 1 .. 100
-randomList = each random list
-headOfList = head 10 randomList
-result     = sort headOfList
-```
-
-#### Function Type
-
-As the function definition translates under the hood to an ordinary variable
-assignment, you can use the type expression to provide the compiler with an
-additional information about arguments and the result type. In the same fashion
-to variables, if no explicit type is provided, the type is assigned with the
-value itself:
-
-```haskell
-sum : x -> y -> x + y
-sum = x -> y -> x + y
-```
-
-By using an explicit type, you can narrow the scope of possible values accepted
-by the function. For example, the above definition accepts any type which can be
-concatenated, like numbers or texts, while the following one accepts numbers
-only:
-
-```haskell
-sum : Number -> Number -> Number
-sum = x -> y -> x + y
-```
-
-> Is this still true? To do with type signatures
-
-Each function is assigned with an _arity_. Although you will not often use this
-term when writing the code, it's a useful concept used later in this document.
-Arity is the number of arguments and lambdas statically used in the function
-definition. Note that arity is not deducible from the type. For example, the
-function `fn` has the arity of `2` even though its type suggests it takes `3`
-arguments:
-
-```haskell
-fn : Bool -> Bool -> Bool -> Bool
-  fn a = b -> case a && b of
-    True  -> not
-    False -> id
-```
-
-#### Code Blocks
-
-You can think of code blocks like about functions without arguments. Code blocks
-do not accept arguments, however they can invoke actions when used. Let's just
-see how to define and use a code block. The definition is just like a variable
-definition, however, there is a new line immediately after the `=` sign.
-Consider the following code. It just ask the user about name and stores the
-answer in the `name` variable:
-
-```haskell
-print "What is your name?"
-name = Console.get
-```
-
-We can now define a main function, or to be more precise, the main code block:
-
-```haskell
-getName =
-    print "What is your name?"
-    Console.get
-```
-
-In contrast to expression, code blocks are not evaluated immediately. In order
-to evaluate the code block, simply refer to it in your code:
-
-```haskell
-greeter =
-    name = getName
-    print "It's nice to meet you, #{name}!"
-```
-
-You may now wonder, what the type of a code block is. The code block `getName`
-returns a `Text`, so your first guess may be that it's type is simply
-`getName : Text`. Although the compiler is very permissive and will accept this
-type signature, the more detailed one is `getName : Text in IO`, or to be really
-precise `getName : Text in IO.Read ! IO.ReadError`. A detailed description of
-how code blocks work and what this type means will be provided in the chapter
-about contexts later in this book.
-
-There are rare situations when you want to evaluate the code block in place. You
-can use the `do` keyword for exactly this purpose. The do function just accepts
-a code block, evaluates it and returns its result. An example usage is shown
-below:
-
-```haskell
-greeter =
-    name = do
-        print "What is your name?"
-        Console.get
-    print "It's nice to meet you, #{name}"
-```
-
-Without the `do` keyword the code block would not be executed and `name` would
-refer to the code block itself, not its final value.
-
-#### Uniform Calling Syntax (UCS)
-
-Enso uses Uniform Calling Syntax which generalizes two function call notations
-`lst.map +1` and `map +1 lst`. The generalization assumes flipped argument order
-for operators, so `a + b` is equal to `a.+ b`. Paraphrasing Bjarne Stroustrup
-and Herb Sutter, having two call syntaxes makes it hard to write generic code.
-Libraries authors will either have to support both syntaxes (verbose,
-potentially doubling the size of the implementation) or make assumptions about
-how objects of certain types are to be invoked (and we may be wrong close to 50%
-of the time).
-
-Each of these notations has advantages but to a user the need to know which
-syntax is provided by a library is a bother. Thus implementation concerns can
-determine the user interface. We consider that needlessly constraining.
-
-The following rules apply:
-
-- Two notations, one semantics. Both notations are equivalent and always resolve
-  to the same behavior.
-
-- The expression `base.fn` is a syntactic sugar for `fn (this=base)`. In most
-  cases, the `this` argument is the last argument to a function, however,
-  sometimes the argument name could be omitted. Consider the following example
-  including sample implementation of the concatenation operator:
-
-  ```haskell
-  >> : (a -> b) -> (b -> c) -> a -> c
-  >> f g this = g $ f this
-
-  vecLength = map (^2) >> sum >> sqrt
-  print $ [3,4].vecLength -- Result: 5
-  ```
-
-Function resolution:
-
-- Always prefer a member function for both `x.f y` and `f y x` notations.
-- Only member functions, current module's functions, and imported functions are
-  considered to be in scope. Local variable `f` could not be used in the `x.f y`
-  syntax.
-- Selecting the matching function:
-  1. Look up the member function. If it exists, select it.
-  2. If not, find all functions with the matching name in the current module and
-     all directly imported modules. These functions are the _candidates_.
-  3. Eliminate any candidate `X` for which there is another candidate `Y` whose
-     `this` argument type is strictly more specific. That is, `Y` self type is a
-     substitution of `X` self type but not vice versa.
-  4. If not all of the remaining candidates have the same self type, the search
-     fails.
-  5. Eliminate any candidate `X` for which there is another candidate `Y` which
-     type signature is strictly more specific. That is, `Y` type signature is a
-     substitution of `X` type signature.
-  6. If exactly one candidate remains, select it. Otherwise, the search fails.
-
-For example, the following code results in a compile time error. The self type
-`[Int, Int]` is strictly more specific than the type `[a,b]` and thus this
-candidate was selected in the step 3 of the algorithm. However, it is impossible
-to unify `1` and `Text`.
-
-```haskell
-test = n -> [a,b] ->
-    [a+n, b+n]
-
-test : Text -> [Int, Int] -> [Text, Text]
-test = s -> [a,b] ->
-    [s + a.show , s + b.show]
-
-[1,2].test 1
-```
-
-#### Operators
-
-
-
-> Space-based operator parsing rules. `a.b` vs. `a . b`.
-
-Operators are functions with non alphanumeric names, like `+`, `-` or `*`.
-Operators are always provided with two arguments, one on the left, one one the
-right side, for example, in order to add two numbers together you can simply
-write `1 + 2`. It could be a surprise, but we've been using a lot of operators
-so far – a space is a special operator which applies arguments to functions!
-Space has a relatively high precedence, higher than any operator, so the code
-`max 0 10 + max 0 -10` is equivalent to `(max 0 10) + (max 0 -10)`. Another
-interesting operator is the field accessor operator, often referred to as the
-dot operator. It is used to access fields of structures. For example, to print
-the first coordinate of a point `pt` you can simply write `print pt.x`. However,
-please note that the way the accessor function behaves differs from probably
-every language you've learned so far. You'll learn more about it in the
-following sections.
-
-Enso gives a lot of flexibility to developers to define custom operators.
-Formally, any sequence of the following characters forms an operator
-`.!$%&*+-/<>?^~\`. The operator definition is almost the same as function
-definition, with an optional precedence relation declaration. Consider the
-following definition from the standard library:
-
-```haskell
+### Operators
+In Enso, an operator is a function with a non-alphanumeric name (e.g. `+`). We
+only support binary operators, with left and right arguments.
+
+Enso provides a significant amount of flexibility for developers who want to
+define custom operators. Formally, any sequence of the following characters
+forms an operators `.!$%&*+-/<>?^~\`. Operator definitions have three main
+parts:
+
+- **Definition:** This defines a function that is called on the arguments
+  provided to the operator.
+- **Precedence:** This is an optional block that defines the
+  [precedence relation](https://en.wikipedia.org/wiki/Order_of_operations) for
+  the operator. Precedence in Enso is specified _in relation_ to existing
+  operators. If you do not provide this information, no precedence relations
+  will be defined.
+- **Associativity:** This is an optional block that defines the
+  [operator associativity](https://en.wikipedia.org/wiki/Operator_associativity)
+  to be either `left`, `right`, or `none`. If you do not provide this, the
+  operator's associativity will default to `left`.
+
+```ruby
 @prec  [> *, < $]
 @assoc left
 a ^ n = a * a ^ (n-1)
 ```
 
-The `prec` decorator specifies the
-[precedence relation](https://en.wikipedia.org/wiki/Order_of_operations) to
-other operators. Here, we specified that the precedence is higher than the
-precedence of the multiplication operator. The precedences are inherited in
-Enso, so if the multiplication operator was defined with a higher precedence
-than addition, the new operator above would inherit this dependency as well. The
-`assoc` decorator defines the
-[operator associativity](https://en.wikipedia.org/wiki/Operator_associativity) –
-it is either left, right or none. If you do not provide the information, no
-precedence relations would be defined and the associativity will default to
-left.
-
 #### Precedence
+Operator precedence in Enso is a collection of rules that reflect conventions
+about which operations to perform first in order to evaluate a given expression
+that contains operators. However, operator precedence in Enso differs from
+many other programming languages.
 
-Operator precedence is a collection of rules that reflect conventions about
-which procedures to perform first in order to evaluate a given mathematical
-expression. For example, multiplication operator is given higher
-precedence than addition, which means that multiplication will be
-performed before addition in a single expression like `2 + 5 * 10`.
+- Precedence is not set at fixed levels, but is instead defined in relation to
+  the precedence of other operators.
+- Precedence of an operator in Enso depends on whether a particular operator is
+  surrounded by spaces or not. This means that the precedence of _any_ operator
+  not surrounded by spaces is always higher than the precedence of any operator
+  surrounded by spaces.
 
-However, in contrast to most languages, the operator precedence depends on
-whether a particular operator is surrounded with spaces or not. **The precedence
-of any operator not surrounded with spaces is always higher than the precedence
-of any operator surrounded with spaces.** For example, the code `2+5 * 10`
-results in `70`, not `50`!
+This space-based precedence may seem strange coming from other languages, but
+it allows for writing _far_ cleaner code than other functional languages. This
+is best demonstrated by example. Consider the following code:
 
-The space-based precedence allows for writing much cleaner code than any other
-functional language, including all languages from the ML family, like Haskell,
-Agda or Idris. Let's consider the previous example:
-
-```haskell
+```ruby
 list       = 1 .. 100
 randomList = each random list
 headOfList = head 10 randomList
 result     = sort headOfList
 ```
 
-It could be easily refactored to a long one-liner:
+This could easily be refactored to the following one-liner, and then transformed
+using UCS to an expression that reads left to right:
 
-```haskell
+```ruby
 result = sort (head 10 (each random (1 .. 100)))
-```
 
-Such expression is arguably much less readable than the original code, as it
-does not allow to read in a top-bottom, left-right fashion. However, by using
-the Uniform Calling Syntax, we can further transform the code:
-
-```haskell
 result = (((1 .. 100).each random).head 10).sort
 ```
 
-Much better. We can now read the expression from left to right. The result is
-still a little bit verbose, as we need to use many nested parentheses. The
-space-based precedence combined with the fact that the accessor is just a
-regular operator in Enso allow us to throw them away! The rule is simple – the
-space operator has higher precedence than any operator surrounded with spaces:
+This is still quite noisy, however, so using the whitespace-sensitive operator
+precedence rules, combined with the fact that the operator `.` is a regular
+operator, we get the following.
 
-```haskell
+```ruby
 result = 1..100 . each random . head 10 . sort
 ```
 
 #### Sections
+An operator section is a nice shorthand for partially applying an operator. It
+works as follows.
 
-Operator section is just a handy way to apply the left or the right argument to
-an operator and return a curried function. For example, the expression `(+1)` is
-a function accepting a single argument and returning an incremented value.
-Incrementing every value in a list is a pure joy when using sections:
+- Where an argument is not applied to an operator, the missing argument is
+  replaced by an implicit `_`.
+- The application is then translated based upon the rules for
+  [underscore arguments](#underscore-arguments) described later.
+- The whitespace-based precedence rules discussed above also apply to operator
+  sections.
 
-```haskell
-list  = 1 .. 100
-list2 = list.each (+1)
+### Mixfix Functions
+A mixfix function is a function that is made up of multiple sections. They are
+defined using a special syntax, and operate as follows:
+
+- They are defined using a 'split snake case'. The first section is written as
+  normal, but subsequent sections are prefixed by an underscore (`if c _then a`,
+  for example).
+- The layout rules applied to mixfix functions operate as if each section was a
+  separate operator, allowing you to write an indented block of code after each
+  section.
+
+Probably the best-known example of a mixfix function is `if-then-else`, which
+is indeed defined in the Enso standard library.
+
+```ruby
+if foo == bar then frob else
+    thing1
+    thing2
 ```
 
-Because the space-based precedence applies to sections as well, the above code
-may be further simplified to:
+## Function Arguments
+One of the biggest usability innovations of Enso is the set of argument types
+that it supports. The combination of named and defaulted arguments with a
+curried language creates a tool in which it is very clear to express even
+complex APIs.
 
-```haskell
-list  = 1 .. 100
-list2 = list.each +1
-```
+### Positional Arguments
+Much like most programming languages, functions in Enso can be called with their
+arguments provided positionally. This is the simple case that everybody is
+familiar with.
 
-Another interesting example is using the accessor operator with the section
-syntax. The following code creates a list of one hundred spheres with random
-positions sorts them based on the first position coordinate. The `.position.x`
-is just a section which defines a function taking a parameter and returning its
-nested field value.
+### Named Arguments
+All arguments in Enso are defined with a name. Like all programming languages,
+this is necessary for that argument to be used. However, what Enso allows is for
+users to then _call_ those arguments by name.
 
-```haskell
-spheres       = 1..100 . each i -> sphere (position = point i.random 0 0)
-sortedSpheres = spheres . sortBy .position.x
-```
+- An argument is called by name using the syntax `(name = value)` (or one may
+  also take advantage of the operator precedence to write `name=value`).
+- Named arguments are applied in the order they are given. This means that if
+  you positionally apply to an argument `foo` and then try to later apply to it
+  by name, this will fail due to currying of functions.
 
-#### Mixfix Functions
+This is a great usability boon as in complex APIs it can often be difficult to
+remember the order or arguments.
 
-- Mixfix definitions use a 'separated' snake case (e.g. `if c _then a _else b`).
-Mixfix functions are just functions containing multiple sections, like
-`if ... then ... else ...`. In Enso, every identifier containing underscores
-indicates a mixfix operator. between each section there is always a single
-argument and there is a special syntactic sugar for defining mixfix operators.
-Consider the implementation of the `if_then_else` function from the standard
-library:
+### Defaulted Arguments
+Enso also allows users to define their functions with _defaults_ for the
+function's arguments. This is very useful for complex APIs as it allows users to
+experiment and iterate quickly by only providing the arguments that they want to
+customise.
 
-```haskell
-if cond _then (ok in m) _else (fail in n) =
-    case cond of
-        True  -> ok
-        False -> fail
-```
+- An argument is defined with a default using the syntax `(name = default_val)`,
+  which, as above, accounts for precedence rules.
+- Argument defaults are applied to the function if no argument value is provided
+  by position or name for that argument.
+- Argument defaults are evaluated lazily if the function is lazy in that
+  argument.
+- We provide a `...` operator which suspends application of the default
+  arguments for the purposes of currying.
 
-For now, please ignore the `in m` and `in n` parts, you will learn about them in
-the following chapters. When using mixfix functions, all the layout rules apply
-like if every section was a separate operator, so you can write an indented
-block of code after each section. Consider the following example, which asks the
-user to guess a random number:
+### Optional Arguments
+There are certain cases where the type information for an argument may be able
+to be inferred by the compiler. This is best explained by example. Consider the
+implementation of a `read` function that reads text and outputs a value of a
+particular type.
 
-```haskell
-main =
-    print 'Guess the number (1-10)!'
-    guess  = Console.get
-    target = System.random 1 10
-
-    if guess == target then print 'You won!' else
-        print 'The correct answer was #{target}'
-        answerLoop
-
-    answerLoop =
-        print 'Do you want to try again? [yes / no]'
-        answer = Console.get
-        case answer of
-            'yes' -> main
-            'no'  -> nothing
-            _     ->
-                print "I don't understand."
-                answerLoop
-```
-
-#### Arguments
-
-#### Named Arguments
-
-Unlike the majority of purely functional programming languages, Enso supports
-calling functions by providing arguments by name. Consider a function that
-creates a sphere based on the provided radius, position, color and geometry type
-(like polygons or
-[NURBS](https://en.wikipedia.org/wiki/Non-uniform_rational_B-spline)). All the
-arguments are named and can be used explicitly when evaluating the function.
-
-```haskell
-sphere : Number -> Point -> Color -> Geometry.Type
-sphere radius position color type = undefined
-```
-
-Remembering the order of the arguments is cumbersome. Such code is also often
-hard to understand and reason about:
-
-```haskell
-s1 = sphere 10 (point 0 0 0) (color.rgb 0.5 0.5 0.5) geometry.NURBS
-```
-
-By using named arguments, we can transform the code to:
-
-```haskell
-s1 = sphere (radius = 10) (position = point 0 0 0) (color = color.rgb 0.5 0.5 0.5)
-            (creator = geometry.NURBS)
-```
-
-By applying the layout rules described above, we can transform the code to a
-much more readable form:
-
-```haskell
-s1 = sphere
-    radius   = 10
-    position = point 0 0 0
-    color    = color.rgb 0.5 0.5 0.5
-    creator  = geometry.NURBS
-```
-
-#### Default Arguments
-
-Consider the sphere example above again. Providing always all the arguments
-manually is both cumbersome and error prone:
-
-```haskell
-s1 = sphere 10 (point 0 0 0) (color.rgb 0.5 0.5 0.5) geometry.NURBS
-```
-
-Function definition allows providing a default value to some of the arguments.
-The value will be automatically applied if not provided explicitly. For example,
-the above code is equivalent to:
-
-```haskell
-s1 = sphere 10
-```
-
-Informally, when you call a function, Enso will traverse all not provided
-arguments in order and will apply the default values unless it finds the first
-argument without a default value defined. To disable this behavior, you can use
-the special `...` operator. The following code creates a curried function which
-accepts radius, color and geometry type and creates a sphere with radius of
-placed in the center of the coordinate system:
-
-```haskell
-centeredSphere radius = sphere radius (point 0 0 0) ...
-```
-
-By using the `...` operator in combination with named arguments, we can make the
-code much more readable:
-
-```haskell
-centeredSphere = sphere
-    position = point 0 0 0
-    ...
-```
-
-#### Positional Arguments
-
-Enso supports so called positional arguments call syntax. Consider the sphere
-example above. How can you define a new function which accepts radius, color and
-geometry type and returns a sphere always placed in the center of the coordinate
-system? There are few ways. First, you can create the function explicitly (you
-will learn more about function definition in the following chapters):
-
-```haskell
-originSphere radius color creator = sphere radius (point 0 0 0) color creator
-```
-
-Alternatively, you can use the positional arguments call syntax:
-
-```haskell
-originSphere = sphere _ (point 0 0 0) _ _
-```
-
-Of course, you can combine it with the operator canceling default argument
-application:
-
-```haskell
-originSphere = sphere _ (point 0 0 0) ...
-```
-
-There is an important rule to remember. Enso gathers all positional arguments
-inside a particular function body or expression enclosed in parentheses in order
-to create a new function, so the following code creates a function accepting two
-arguments. It will result the sum of the first argument squared and the second
-argument.
-
-```haskell
-squareFirstAndAddSecond = _ ^2 + _
-```
-
-#### Optional Arguments
-
-Optional arguments are not a new feature, they are modeled using the default
-arguments mechanism. Consider the following implementation of a `read` function,
-which reads a text and outputs a value of a particular type:
-
-```haskell
+```ruby
 read : Text -> t -> t
 read text this = t.fromText text
 ```
@@ -1190,307 +865,207 @@ read text this = t.fromText text
 You can use this function by explicitly providing the type information in either
 of the following ways:
 
-```haskell
+```ruby
 val1 = read '5' Int
 val2 = Int.read '5'
 ```
 
-However, the need to provide the type information manually could be tedious,
-especially in context when such information could be inferred, like when passing
-`val1` to a function accepting argument of the `Int` type. Let's re-write the
-function providing the default value for `this` argument to be ... itself!
+This, however, is often tedious, especially in contexts where this information
+could be inferred by the compiler. We can re-write `read` as follows:
 
-```haskell
+```ruby
 read : Text -> (t=t) -> t
 read text (this=this) = t.fromText text
 ```
 
-The way it works is really simple. You can provide the argument explicitly,
-however, if you don't provide it, it's just assigned to itself, so no new
-information is provided to the compiler. If the compiler would not be able to
-infer it then, an error would be raised. Now, we are able to use it in all the
-following ways:
-
-```haskell
-fn : Int -> Int
-fn = id
-
-val1 = read '5' Int
-val2 = Int.read '5'
-val3 = read '5'
-fn val3
-```
+This allows users both to provide the argument explicitly or leave it out. In
+the case where it is not provided, the compiler will attempt to infer it from
+usage. If this is impossible, an error would be raised.
 
 Enso provides a syntactic sugar for the `t=t` syntax. The above code can be
-written in a much nicer way as:
+written instead using `?`.
 
-```haskell
+```ruby
 read : Text -> t? -> t
 read text this? = t.fromText text
 ```
 
-#### Splats Arguments
+### Splats Arguments
+Enso provides users with the ability to define variadic functions, or _splats_
+functions in our terminology. These are very useful for defining expressive APIs
+and flexible code.
 
-Enso provides both args and kwargs splats arguments. You can easily construct
-functions accepting variable number of both positional as well as keyword
-arguments. Splats arguments are an amazing utility mostly for creating very
-expressive EDSLs. Consider the following function which just prints arguments,
-each in a separate line:
+- These work for both positional and keyword arguments.
+- They are defined using the syntax `name...`, where `name` is an arbitrary
+  argument name.
 
-```haskell
-multiPrint : args... -> Nothing in IO
-multiPrint = args... -> args.each case
-    Simple      val -> print val
-    Keyword key val -> print '#{key} = #{val}'
+### Type Applications
+There are sometimes cases where the user wants to explicitly refine the type of
+an argument at the _call_ site of a function. This can be useful for debugging,
+and for writing ad-hoc code. Much like the named-arguments in applications
+above, Enso also provides a syntax for refining types at the application site.
 
-multiPrint 1 2 (a=3) 4
-```
+- To refine an argument type by name at the application site, use the `:=`
+  operator (e.g. `arg_name := T`).
+- This _will_ be type-checked by the compiler, and so `T` must be a valid
+  subtype for the type inferred for (or defined for) the function being called.
 
-```haskell
---- Results ---
-1
-2
-a = 3
-4
-```
+### Underscore Arguments
+Enso provides the `_` argument as a quick way to create a lambda from a function
+call. It obeys the following rules.
 
-#### Variable Scoping
+- Replacing any function argument with `_` will create a lambda that accepts an
+  argument and passes it in the place of the underscore. All other function
+  arguments are applied as normal.
+- This works both by name and positionally.
+- When a function is provided multiple `_` arguments, they are desugared left to
+  right as the arguments would be applied to the function definition, creating
+  nested lambdas.
 
-Type variables, function variables, and lambda variables live in the same space
-in Enso. Moreover, as there is no distinction between types and values, you can
-use the same names both on type level as well as on value level because they
-refer to the same information in the end:
+## Scoping Rules
+Enso's scoping rules should be fairly familiar to most other programming
+languages, as it uses standard lexical scoping with shadowing. However, there
+are a few unique points to keep in mind:
 
-```haskell
-mergeAndMap : f -> lst1 -> lst2 -> out
-mergeAndMap = f -> lst1 -> lst2 -> (lst1 + lst2) . map f
-```
+- There is no separation between the type and term levels. This means that, for
+  a given lexical scope, type, function and lambda variables exist in the same
+  name space.
+- This means that if different names are used on the type and value level to
+  refer to the same entity, both names are valid.
+- Name clashes between different entities are not allowed.
+- Shadowing between different lexical scopes occurs as standard.
+- Shadowing in the same lexical scope may only occur in a chain of lambdas, and
+  in such a case the shadowed variables must unify.
+- Variables from the body are accessible in the type signature.
+- Variables from the type signature are accessible in the body.
 
-If different names are used on type level and on a value level to refer a
-variable, it's natural to think that this variable could be pointed just by two
-separate names. The following code is valid as well:
+## Field Access
+Enso provides multiple ways for users to access data from their types. It has
+the old functional stalwart of pattern matching, but it also has an inbuilt
+notion of accessors based on lenses.
 
-```haskell
-mergeAndMap = (f : a -> b) -> (lst1 : List a) -> (lst2 : List a) -> (lst1 + lst2) . map f
-```
+### Pattern Matching
+Pattern matching in Enso works similarly to as you would expect in various other
+functional languages. Typing information is _always_ refined in the branches of
+a case expression, which interacts well with dependent typing and type-term
+unification. There are a few main ways you can pattern match:
 
-Which, could also be distributed across separate lines as:
+1.  **Positional Matching:** Matching on the scrutinee by structure. This works
+    both for atoms and typesets (for typesets it is a subsumption judgement).
 
-```haskell
-mergeAndMap : (a -> b) -> List a -> List a -> List b
-mergeAndMap f lst1 lst2 = (lst1 + lst2) . map f
-```
+    ```ruby
+    type Vector a
+      V2 x:a y:a
+      V3 x:a y:a z:a
 
-An interesting pattern can be observed in the code above. Taking in
-consideration that every value and type level expressions have always the same
-syntax, the lambda `(a -> b) -> List a -> List a -> List b` could not have much
-sense at the first glance, as there are three pattern matches shadowing the
-variable `a`. So how does it work? There is an important shadowing rule. **If in
-a chain of lambdas the same name was used in several pattern matches, the names
-are unified and have to be provided with the same value.** The chain of lambdas
-could be broken with any expression or code block.
+    v = Vector.V3 x y z
 
-This rule could not make a lot of sense on the value level, as if you define
-function `add a a = a + a` you will be allowed to evaluate it as `add 2 2`, but
-not as `add 2 3`, however, you should not try to use the same names when
-defining functions on value level nevertheless.
+    case v of
+      Vector.V3 x y z -> print x
+    ```
 
-By applying this rule, the type of the above example makes much more sense now.
-Especially, when evaluated as `mergeAndMap show [1,2] ['a','b']`, the variables
-will be consequently instantiated as `a = Number | Text`, and `b = Text`, or to
-be very precise, `a = 1|2|'a'|'b'`, and `b = '1'|'2'|'a'|'b'`.
+2.  **Type Matching:** Matching purely by the types involved, and not matching
+    on structure.
 
-Because type variables are accessible in the scope of a function, it's
-straightforward to define a polymorphic variable, whose value will be an empty
-value for the expected type:
+    ```ruby
+    case v of
+      Vector.V3 -> print v.x
+    ```
 
-```haskell
-empty : t
-empty = t.empty
+3.  **Name Matching on Labels:** Matching on the labels defined within a type
+    for both atoms and typesets, with renaming.
 
-print (empty : List Int) -- Result: []
-print (empty : Text)     -- Result: ''
-```
+    ```ruby
+    case v of
+      Vector.V3 {x y} -> print x
+      {x}             -> print x
+    ```
 
-#### Type Applications
+4.  **Naming Scrutinees in Branches:** Ascribing a name of a scrutinee is done
+    using the standard typing judgement. This works due to the type-term
+    unification present in Enso.
 
-All libraries that sometimes need passing of an explicit type from the user
-should be designed as the `read` utility, so you can optionally pass the type if
-you want to, while it defaults to the inference otherwise. However, sometimes
-it's handy to just ad-hoc refine a type of a particular function, often for
-debugging purposes. Luna allows to both apply values by name as well as refining
-types by name. The syntax is very similar, consider this simple function:
+    ```ruby
+    case _ of
+      v : Vector.V3 -> print v,x
+    ```
 
-```haskell
-checkLength : this -> Bool
-checkLength this =
-    isZero = this.length == 0
-    if isZero
-        then print "Oh, no!"
-        else print "It's OK!"
-    isZero
-```
+> The actionables for this section :
+>
+> - Refine the syntax for the name-based case.
+> - Provide code examples for why the renaming use-case is important (e.g.
+>   cases where there are clashing field names).
+> - Function-resolution matching.
 
-This function works on any type which has a method `length` returning a number.
-We can easily create a function with exactly the same functionality but its
-input type restricted to accept lists only:
+#### The Underscore in Pattern Matching
+An underscore `_` passed as an argument to a syntactic pattern does not behave
+like the function argument shorthand. Instead it acts as a positional match that
+is given no name.
 
-```haskell
-checkListLength = checkLength (this := List a)
-```
+### Projections / Lenses
+Unlike the simple accessors defined by most programming language, Enso's
+accessors are far more powerful. This is because they are based on lenses.
 
-As stated earlier, in most cases there is a nicer way of expressing such logic.
-In this case, it would be just to create a function with an explicit type. The
-following code is equivalent to the previous one:
+- Field accessors are standard lenses. As such, they can be used for both the
+  getting and setting of properties.
+- As a lens (e.g. `.field`) is a first-class function, they can be curried and
+  passed around like any other function.
 
-```haskell
-checkListLength : List a -> Bool
-checkListLength = checkLength
-```
+```ruby
+type Engine
+    type Combustion
+        power:          Int
+        cylinder_count: Int
 
-#### Field Modifiers (lenses)
+    type Electric
+        power:   Int
+        is_blue: Bool
 
-You can add the equal sign `=` as an operator suffix to transform it into a
-modifier. Modifiers allow updating nested structures fields.
+type Vehicle
+    type Car
+        color:     String
+        max_speed: Int
+        engine:    Engine
 
-In general, the following expressions are equivalent. The `+` is used as an
-example and can be freely replaced with any other operator:
+    type Bike
+        color: String
 
-```haskell
-foo' = foo.bar += t
--- <=>
-bar'  = foo.bar
-bar'' = t + bar'
-foo'  = foo.bar = bar''
-```
-
-Please note the inversed order in the `t + bar` application. In most cases it
-does not change anything, however, it simplifies the usage of such modifiers as
-`foo.bar $= f` in order to modify a nested field with an `f` function.
-
-Examples:
-
-```haskell
-type Vector
-    V3 x:Number y:Number z:Number
-
-type Sphere
-    MkSphere
-        radius   : Number
-        position : Vector
-
--- Position modification
-s1 = MkSphere 10 (V3 0 0 0)
-s2 = s1.position.x += 1
-
--- Which could be also expressed as
-p1 = s1.position
-p2 = p1.x += 1
-s2 = s1.position = p2
-
--- Or as a curried modification
-s2 = s1.position.x $= +1
-```
-
-#### Prisms
-
-Alternative map implementations:
-
-```haskell
-type Shape a
-    Circle
-        radius:a
-    Rectangle
-        width:a
-        height:a
-
-map1 : (a -> b) -> Shape a -> Shape b
-map1 f self = case self of
-    Circle    r   -> Circle    (f r)
-    Rectangle w h -> Rectangle (f w) (f h)
-
-map2 : (a -> b) -> Shape a -> Shape b
-map2 f self = self
-    ? radius $= f
-    ? width  $= f
-    ? height $= f
-
-map3 : (a -> b) -> Shape a -> Shape b
-map3 f self = if self.is Circle
-    then self . radius $= f
-    else self . width  $= f
-              . height $= f
-
-map4 : (a -> b) -> Shape a -> Shape b
-map4 f self =
-    maybeNewCircle    = self.circle.radius $= f
-    maybeNewRectangle = self.rectangle.[width,height] $= f
-    case maybeNewCircle of
-        Just a  -> a
-        Nothing -> case maybeNewRectangle of
-            Just a  -> a
-            Nothing -> error "impossible"
-```
-
-
-#### Explicit type signatures
-
-Enso was designed in a way to minimize the need for explicit type signatures.
-However, you are always free to provide one to check your assumptions regarding
-the types. There are two major ways explicit type signatures are used in Enso:
-
-- **Explicit type constraints**
-  Explicit type signatures in type and function definitions constrain the
-  possible value set. For example, you will not be allowed to pass a text to a
-  function provided with an explicit type `fn : Int -> Int`.
-
-- **Explicit type checks**
-  Explicit type signatures in other places in the code are used as type checks.
-  If you type your variable as `Number`, it does not mean that Enso will forget
-  the other information inferred so far. It will always check if the signature
-  is correct and report an error in case it's not. For example, the following
-  code will type check correctly.
-
-  ```haskell
-  dayNumber = 1 | ... | 7
-  printDay : DayNumber -> Nothing
-  printDay = print
-
-  myDay = 1 : Number
-  printDay myDay
-  ```
-
-**Example 1**
-
-```haskell
-square : (Text -> Text) | (Number -> Number)
-square val = case val of
-    Text   -> 'squared #{val}'
-    Number -> val * val
-
-action f a b = print 'The results are #{f a} and #{f b}'
-
-main = action square "10" 10
-```
-
-**Example 2**
-
-```haskell
-foo : Number -> Text | Integer
-foo = if x < 10 then "test" else 16
-
-fn1 : Text | Number -> Number
-fn1 = ...
-
-fn2 : Text | Vector Number -> Number
-fn2 = ...
-
-fn3 : 16 -> 17
-fn3 = +1
+type Person
+    type Cons
+        name:    String
+        vehicle: Vehicle
 
 main =
-    val = foo 12
-    fn1 val -- OK
-    fn2 val -- ERROR
-    fn3 val -- OK
+  p1 = Person.Cons "Joe" (Vehicle.Car 'pink' 300 (Engine.Combustion 500 8))
+  print $ p1.name                   # -> Joe
+  print $ p1.vehicle.color          # -> pink
+  print $ p1.vehicle.max_speed      # -> Some 300
+  print $ p1.vehicle.engine.power   # -> Some 500
+  print $ p1.vehicle.engine.is_blue # -> None
+  p1.vehicle.color     = 'red'      # OK
+  p1.vehicle.max_speed = 310        # FAIL: security reasons. Allowing this
+                                    #       in Haskell was the worst decision
+                                    #       ever. After refactoring it
+                                    #       silently does nothing there.
+
+  p2 = p1.vehicle.max_speed    ?= 310 # OK
+  p3 = p1.vehicle.engine.power  = 510 # FAIL
+  p4 = p1.vehicle.engine.power ?= 510 # OK
+
+  lens_name      = .name
+  lens_color     = .vehicle.color
+  lens_max_speed = .vehicle.max_speed
+  lens_power     = .vehincle.engine.power
+
+  ## Function like usage:
+  print $ lens_name      p1
+  print $ lens_color     p1
+  print $ lens_max_speed p1
+  print $ lens_power     p1
+
+  p1 . at lens_name = ... # OK
 ```
+
+> The actionables for this section are:
+>
+> - Fix the example above. It isn't correct.
