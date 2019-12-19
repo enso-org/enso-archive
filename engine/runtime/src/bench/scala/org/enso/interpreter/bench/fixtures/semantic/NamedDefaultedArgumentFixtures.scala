@@ -8,23 +8,23 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
   val sumTCOWithNamedArgumentsCode =
     """
       |main = sumTo ->
-      |  summator = acc current ->
-      |    ifZero current acc (summator (current = current - 1) (acc = acc + current))
+      |    summator = acc current ->
+      |        ifZero current acc (summator (current = current - 1) (acc = acc + current))
       |
-      |  res = summator current=sumTo acc=0
-      |  res
+      |    res = summator current=sumTo acc=0
+      |    res
     """.stripMargin
-  val sumTCOWithNamedArguments = eval(sumTCOWithNamedArgumentsCode)
+  val sumTCOWithNamedArguments = getMain(sumTCOWithNamedArgumentsCode)
 
   val sumTCOWithDefaultedArgumentsCode =
     """
       |main = sumTo ->
-      |  summator = (acc = 0) current ->
-      |    ifZero current acc (summator (current = current - 1) (acc = acc + current))
+      |    summator = (acc = 0) current ->
+      |        ifZero current acc (summator (current = current - 1) (acc = acc + current))
       |
-      |  res = summator (current = sumTo)
-      |  res
+      |    res = summator (current = sumTo)
+      |    res
     """.stripMargin
-  val sumTCOWithDefaultedArguments = eval(sumTCOWithDefaultedArgumentsCode)
+  val sumTCOWithDefaultedArguments = getMain(sumTCOWithDefaultedArgumentsCode)
 
 }

@@ -256,6 +256,7 @@ public class ModuleScope implements TruffleObject {
 
   private static final String ASSOCIATED_CONSTRUCTOR_KEY = "associated_constructor";
   private static final String METHODS_KEY = "get_method";
+  private static final String CONSTRUCTORS_KEY = "get_constructor";
 
   @ExportMessage
   public Object invokeMember(String member, Object... arguments) {
@@ -263,7 +264,12 @@ public class ModuleScope implements TruffleObject {
       AtomConstructor c = (AtomConstructor) arguments[0];
       String name = (String) arguments[1];
       return methods.get(c).get(name);
-    } else return null;
+    } else if (member.equals(CONSTRUCTORS_KEY)) {
+      String name = (String) arguments[0];
+      return constructors.get(name);
+    } else {
+      return null;
+    }
   }
 
   @ExportMessage

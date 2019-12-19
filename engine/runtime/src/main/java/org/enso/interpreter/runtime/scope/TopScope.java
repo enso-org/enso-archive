@@ -54,7 +54,7 @@ public class TopScope implements TruffleObject {
   @ExportMessage
   public ModuleNamesArray getMembers(boolean includeInternal) {
     Set<String> keys = modules.keySet();
-    keys.add("Builtins");
+    keys.add(BUILTINS_KEY);
     return new ModuleNamesArray(keys.toArray(new String[0]));
   }
 

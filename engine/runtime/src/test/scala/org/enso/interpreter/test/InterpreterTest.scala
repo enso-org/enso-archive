@@ -51,31 +51,27 @@ trait InterpreterRunner {
     instrumenter.close()
   }
 
-  def evalGeneric(
-    code: String,
-    mimeType: String,
-    doCall: Boolean = true
-  ): Value = {
-    output.reset()
+  case class MainMethod(mainConstructor: Value, mainFunction: Value)
 
+  def getMain(code: String): MainMethod = {
+    output.reset()
     val source = Source
-      .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), "Test")
-      .mimeType(mimeType)
+      .newBuilder(Constants.LANGUAGE_ID, code, "Test")
       .build()
 
-    val module    = InterpreterException.rethrowPolyglot(ctx.eval(source))
-    val assocCons = module.getMember("associated_constructor")
-    val mainFun   = module.invokeMember("get_method", assocCons, "main")
-//    mainFun
-    if (doCall) {
-      InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))
-    } else {
-      mainFun
-    }
+    val module       = InterpreterException.rethrowPolyglot(ctx.eval(source))
+    val assocCons    = module.getMember("associated_constructor")
+    val mainFunction = module.invokeMember("get_method", assocCons, "main")
+    MainMethod(assocCons, mainFunction)
   }
 
-  def eval(code: String, doCall: Boolean = true): Value = {
-    evalGeneric(code, Constants.ANONYMOUS_MIME_TYPE, doCall)
+  def eval(
+    code: String
+  ): Value = {
+    val main = getMain(code)
+    InterpreterException.rethrowPolyglot(
+      main.mainFunction.execute(main.mainConstructor)
+    )
   }
 
   def consumeOut: List[String] = {
