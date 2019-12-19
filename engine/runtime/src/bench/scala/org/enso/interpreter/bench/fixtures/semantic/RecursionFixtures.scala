@@ -10,7 +10,7 @@ class RecursionFixtures extends InterpreterRunner {
 
   val sumTCOCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  summator = acc current ->
       |    ifZero current acc (summator acc+current current-1)
       |
@@ -21,7 +21,7 @@ class RecursionFixtures extends InterpreterRunner {
 
   val sumTCOFoldLikeCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  summator = acc i f ->
       |    ifZero i acc (summator (f acc i) (i - 1) f)
       |  res = summator 0 sumTo (x y -> x + y)
@@ -31,7 +31,7 @@ class RecursionFixtures extends InterpreterRunner {
 
   val sumRecursiveCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  summator = i -> ifZero i 0 (i + summator (i - 1))
       |
       |  res = summator sumTo
@@ -41,7 +41,7 @@ class RecursionFixtures extends InterpreterRunner {
 
   val oversaturatedRecursiveCallTCOCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  summator = acc i f ->
       |    ifZero i acc (summator (f acc i) (i - 1) f)
       |  res = summator 0 sumTo (x -> y -> x + y)
@@ -51,7 +51,7 @@ class RecursionFixtures extends InterpreterRunner {
 
   val sumStateTCOCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  stateSum = n ->
       |    acc = State.get
       |    State.put (acc + n)
@@ -64,7 +64,7 @@ class RecursionFixtures extends InterpreterRunner {
 
   val sumTCOWithEvalCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  summator = acc current ->
       |    ifZero current acc (Debug.eval "summator (acc + current) (current - 1)")
       |
@@ -75,7 +75,7 @@ class RecursionFixtures extends InterpreterRunner {
 
   val nestedThunkSumCode =
     """
-      |n ->
+      |main = n ->
       |  doNTimes = n ~block ->
       |    ~block
       |    ifZero n-1 Unit (doNTimes n-1 ~block)

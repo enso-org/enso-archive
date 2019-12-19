@@ -7,7 +7,7 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
 
   val sumTCOWithNamedArgumentsCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  summator = acc current ->
       |    ifZero current acc (summator (current = current - 1) (acc = acc + current))
       |
@@ -18,7 +18,7 @@ class NamedDefaultedArgumentFixtures extends InterpreterRunner {
 
   val sumTCOWithDefaultedArgumentsCode =
     """
-      |sumTo ->
+      |main = sumTo ->
       |  summator = (acc = 0) current ->
       |    ifZero current acc (summator (current = current - 1) (acc = acc + current))
       |

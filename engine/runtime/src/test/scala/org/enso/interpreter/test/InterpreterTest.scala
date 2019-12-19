@@ -51,7 +51,11 @@ trait InterpreterRunner {
     instrumenter.close()
   }
 
-  def evalGeneric(code: String, mimeType: String): Value = {
+  def evalGeneric(
+    code: String,
+    mimeType: String,
+    doCall: Boolean = true
+  ): Value = {
     output.reset()
 
     val source = Source
@@ -62,11 +66,16 @@ trait InterpreterRunner {
     val module    = InterpreterException.rethrowPolyglot(ctx.eval(source))
     val assocCons = module.getMember("associated_constructor")
     val mainFun   = module.invokeMember("get_method", assocCons, "main")
-    InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))
+//    mainFun
+    if (doCall) {
+      InterpreterException.rethrowPolyglot(mainFun.execute(assocCons))
+    } else {
+      mainFun
+    }
   }
 
-  def eval(code: String): Value = {
-    evalGeneric(code, Constants.ANONYMOUS_MIME_TYPE)
+  def eval(code: String, doCall: Boolean = true): Value = {
+    evalGeneric(code, Constants.ANONYMOUS_MIME_TYPE, doCall)
   }
 
   def consumeOut: List[String] = {

@@ -10,6 +10,8 @@ case class InterpreterException(
   override def getStackTrace: Array[StackTraceElement] =
     polyglotException.getStackTrace
   override def fillInStackTrace(): Throwable = this
+  override def toString: String = polyglotException.getPolyglotStackTrace.toString
+
 }
 
 object InterpreterException {

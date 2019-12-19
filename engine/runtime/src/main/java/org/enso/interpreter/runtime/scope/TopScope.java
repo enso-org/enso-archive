@@ -9,19 +9,24 @@ import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @ExportLibrary(InteropLibrary.class)
 public class TopScope implements TruffleObject {
-  private Map<String, Module> modules;
+  public static final String BUILTINS_KEY = "Builtins";
+  private final Builtins builtins;
+  private final Map<String, Module> modules;
   private final Scope scope = Scope.newBuilder("top_scope", this).build();
 
-  public TopScope(Map<String, Module> modules) {
+  public TopScope(Builtins builtins, Map<String, Module> modules) {
+    this.builtins = builtins;
     this.modules = modules;
   }
 
@@ -37,6 +42,10 @@ public class TopScope implements TruffleObject {
     return Optional.ofNullable(getModules().get(name));
   }
 
+  public Builtins getBuiltins() {
+    return builtins;
+  }
+
   @ExportMessage
   public boolean hasMembers() {
     return true;
@@ -44,7 +53,9 @@ public class TopScope implements TruffleObject {
 
   @ExportMessage
   public ModuleNamesArray getMembers(boolean includeInternal) {
-    return new ModuleNamesArray(getModules().keySet().toArray(new String[0]));
+    Set<String> keys = modules.keySet();
+    keys.add("Builtins");
+    return new ModuleNamesArray(keys.toArray(new String[0]));
   }
 
   @ExportMessage
@@ -54,6 +65,9 @@ public class TopScope implements TruffleObject {
         TopScope scope,
         String member,
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef) {
+      if (member.equals(BUILTINS_KEY)) {
+        return scope.builtins.getScope();
+      }
       Module module = scope.modules.get(member);
       if (module.hasComputedScope()) {
         return module.getScope();
@@ -65,7 +79,7 @@ public class TopScope implements TruffleObject {
 
   @ExportMessage
   public boolean hasMemberReadSideEffects(String member) {
-    return !getModules().get(member).hasComputedScope();
+    return !member.equals(BUILTINS_KEY) && !getModules().get(member).hasComputedScope();
   }
 
   @ExportMessage

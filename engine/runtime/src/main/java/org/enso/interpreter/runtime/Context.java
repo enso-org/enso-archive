@@ -28,7 +28,6 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
-  private final Builtins builtins;
 
   /**
    * Creates a new Enso context.
@@ -40,7 +39,6 @@ public class Context {
     this.language = language;
     this.environment = environment;
     this.out = new PrintStream(environment.out());
-    this.builtins = new Builtins(language);
 
     List<File> packagePaths = RuntimeOptions.getPackagesPaths(environment);
     Map<String, Module> knownFiles =
@@ -58,7 +56,7 @@ public class Context {
                             srcFile.qualifiedName(),
                             getEnvironment()
                                 .getInternalTruffleFile(srcFile.file().getAbsolutePath()))));
-    TopScope topScope = new TopScope(knownFiles);
+    TopScope topScope = new TopScope(new Builtins(language), knownFiles);
 
     this.compiler = new Compiler(this.language, topScope, this);
   }
@@ -122,7 +120,7 @@ public class Context {
    * @return an object containing the builtin functions
    */
   Builtins getBuiltins() {
-    return this.builtins;
+    return this.compiler.topScope().getBuiltins();
   }
 
   /**

@@ -1,6 +1,7 @@
 package org.enso.interpreter.bench.benchmarks.semantic;
 
 import org.enso.interpreter.bench.fixtures.semantic.AtomFixtures;
+import org.graalvm.polyglot.PolyglotException;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.concurrent.TimeUnit;
@@ -12,49 +13,49 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 public class AtomBenchmarks {
   private static AtomFixtures fixtures = new AtomFixtures();
+//
+//  @Benchmark
+//  public void benchGenerateList() {
+//    fixtures.generateList().execute(fixtures.million());
+//  }
 
-  @Benchmark
-  public void benchGenerateList() {
-    fixtures.generateList().execute(fixtures.million());
-  }
-
-  @Benchmark
-  public void benchReverseList() {
-    fixtures.reverseList().execute(fixtures.millionElementList());
-  }
+//  @Benchmark
+//  public void benchReverseListX() {
+//    fixtures.reverseList().execute(fixtures.millionElementList());
+//  }
 
   @Benchmark
   public void benchReverseListMethods() {
-    fixtures.reverseListMethods().execute(fixtures.millionElementList());
+    fixtures.reverseListMethods().execute(null, fixtures.millionElementList());
   }
 
-  @Benchmark
-  public void benchSumList() {
-    fixtures.sumList().execute(fixtures.millionElementList());
-  }
-
-  @Benchmark
-  public void sumListLeftFold() {
-    fixtures.sumListLeftFold().execute(fixtures.millionElementList());
-  }
-
-  @Benchmark
-  public void benchSumListFallback() {
-    fixtures.sumListFallback().execute(fixtures.millionElementList());
-  }
-
-  @Benchmark
-  public void benchSumListMethods() {
-    fixtures.sumListMethods().execute(fixtures.millionElementList());
-  }
-
-  @Benchmark
-  public void benchMapReverseList() {
-    fixtures.mapReverseList().execute(fixtures.millionElementList());
-  }
-
-  @Benchmark
-  public void benchMapReverseCurryList() {
-    fixtures.mapReverseListCurry().execute(fixtures.millionElementList());
-  }
+//  @Benchmark
+//  public void benchSumList() {
+//    fixtures.sumList().execute(fixtures.millionElementList());
+//  }
+//
+//  @Benchmark
+//  public void sumListLeftFold() {
+//    fixtures.sumListLeftFold().execute(fixtures.millionElementList());
+//  }
+//
+//  @Benchmark
+//  public void benchSumListFallback() {
+//    fixtures.sumListFallback().execute(fixtures.millionElementList());
+//  }
+//
+//  @Benchmark
+//  public void benchSumListMethods() {
+//    fixtures.sumListMethods().execute(fixtures.millionElementList());
+//  }
+//
+//  @Benchmark
+//  public void benchMapReverseList() {
+//    fixtures.mapReverseList().execute(fixtures.millionElementList());
+//  }
+//
+//  @Benchmark
+//  public void benchMapReverseCurryList() {
+//    fixtures.mapReverseListCurry().execute(0, fixtures.millionElementList());
+//  }
 }
