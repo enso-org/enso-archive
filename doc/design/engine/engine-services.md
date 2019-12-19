@@ -28,8 +28,8 @@ services components, as well as any open questions that may remain.
   - [Project State Management](#project-state-management)
   - [File Management and Storage](#file-management-and-storage)
   - [Execution Management](#execution-management)
-  - [Completion](#completion)
   - [Visualisation Support](#visualisation-support)
+  - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
 - [Protocol Message Specification](#protocol-message-specification)
@@ -384,6 +384,26 @@ with visualisations. As a result that should be reserved for reporting progress
 of long-running operations within the _language server_ rather than in user
 code.
 
+### Visualisation Support
+A major part of Enso Studio's functionality is the rich embedded visualisations
+that it supports. This means that the following functionality is necessary:
+
+- Execution of an arbitrary Enso expression on a cached value designated by
+  a source location.
+- The ability to create and destroy visualisation subscriptions with an
+  arbitrary piece of Enso code as the preprocessing function.
+- The ability to update _existing_ subscriptions with a new preprocessing
+  function.
+
+From the implementation perspective:
+
+- This will need to be an entirely separate set of protocol messages that should
+  be specified in detail in this document.
+- Visualisations should work on a pub/sub model, where an update is sent every
+  time the underlying data is recomputed.
+- Protocol responses must contain a pointer into the binary pipe carrying the
+  visualisation data to identify an update.
+
 ### Completion
 The IDE needs the ability to request completions for some target point (cursor
 position) in the source code. In essence, this boils down to _some_ kind of
@@ -432,33 +452,15 @@ From an implementation perspective, the following notes apply:
   It is probably worth waiting to see if this is necessary before implementing
   any optimisations here.
 
-### Visualisation Support
-A major part of Enso Studio's functionality is the rich embedded visualisations
-that it supports. This means that the following functionality is necessary:
-
-- Execution of an arbitrary Enso expression on a cached value designated by
-  a source location.
-- This code should be executed in its own isolated scope (having certains
-  modules imported, per the visualization's request), with only the required
-  input values being available.
-
-> The actionables for this section are:
->
-> - What else do we need to support visualisations for 2.0?
-
-- Visualisations should work on a pub/sub model on the existing code to minimise
-  latency (as long as the visualisation _function_ doesn't update).
-- If the visualisation function updates, the old subscription must be ended and
-  a new one started for the same code position (or we implement an 'update'
-  request for said subscriptions).
-
 ### Analysis Operations
 We also want to be able to support a useful set of semantic analysis operations
 to help users navigate their code. As these rely on knowledge of the language
 semantics, they must be explicitly supported by the language server:
 
-- List functions/methods in scope
-- Import file for symbol
+- **List Symbols in Scope:** The scope should be specified by a code span.
+- **Insert Import for Symbol:** This should use an `applyEdit` message to ask
+  the IDE to insert an import for the symbol specified in the request. If the
+  file is closed, then the edit should be made directly, as the LSP specifies.
 
 ### Functionality Post 2.0
 In addition to the functionality discussed in detail above, there are further
@@ -494,16 +496,23 @@ and will be expanded upon as necessary in the future.
   to be displayed visually in Enso Studio.
 - **Code Formatting:** Automatic formatting of Enso code using the One True
   Style ™.
-- **Server-Side Metadata Management:**
-- **True Multi-Client Support:** CRDTs / conflict resolution with live editing. Use a combination of `didChange` and `applyEdit` messages to reconcile all clients' views of the files. This is why `willSaveWaitUntil` is important, as it can ensure that no client saves until it has the authority (all changes reconciled) to do so.
-- **Enhanced Semantic Analysis:** find usages, jump to definition, find symbol
-
-Check the LSP spec for any more that we want in future and clarify these.
-
-> The actionables for this section are:
->
-> - Are there any other things we know now that we want to support in the
->   future?
+- **Server-Side Metadata Management:** The lack of node metadata management in
+  the language server currently means that any language client other than Enso
+  Studio is guaranteed to corrupt the node metadata when editing Enso code. This
+  will reset the node layout and can be quite annoying.
+- **True Multi-Client Support:** The initial release will only support multiple
+  connected clients through the use of a write lock. This is not a great user
+  experience, and in future we should instead use proper conflict resolution for
+  true collaborative editing. This will use a combination of `didChange` and
+  `applyEdit` messages to reconcile all clients' views of the files. This is
+  also why `willSaveWaitUntil` is important, as it can ensure that no client
+  editor saves until it has the authority to do so (all changes are reconciled).
+- **Enhanced Semantic Analysis:** Enhanced semantic analysis operations that
+  rely on compiler analysis and typechecking. This includes things like "find
+  usages", "jump to definition" and "find symbol", as these can greatly enhance
+  a user's development experience.
+- **LSP Spec Completeness:** We should also support all LSP messages that are
+  relevant to our language. Currently we only support a small subset thereof.
 
 ## Protocol Message Specification
 This section exists to contain a specification of each of the messages the
