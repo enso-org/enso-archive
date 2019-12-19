@@ -260,7 +260,7 @@ public class ModuleScope implements TruffleObject {
   private static final String CONSTRUCTORS_KEY = "get_constructor";
 
   @ExportMessage
-  public Object invokeMember(String member, Object... arguments) throws UnknownIdentifierException {
+  Object invokeMember(String member, Object... arguments) throws UnknownIdentifierException {
     if (member.equals(METHODS_KEY)) {
       AtomConstructor c = (AtomConstructor) arguments[0];
       String name = (String) arguments[1];
@@ -274,7 +274,7 @@ public class ModuleScope implements TruffleObject {
   }
 
   @ExportMessage
-  public Object readMember(String member) throws UnknownIdentifierException {
+  Object readMember(String member) throws UnknownIdentifierException {
     if (member.equals(ASSOCIATED_CONSTRUCTOR_KEY)) {
       return associatedType;
     }
@@ -282,22 +282,22 @@ public class ModuleScope implements TruffleObject {
   }
 
   @ExportMessage
-  public boolean hasMembers() {
+  boolean hasMembers() {
     return true;
   }
 
   @ExportMessage
-  public boolean isMemberInvocable(String member) {
+  boolean isMemberInvocable(String member) {
     return member.equals(METHODS_KEY) || member.equals(CONSTRUCTORS_KEY);
   }
 
   @ExportMessage
-  public Object getMembers(boolean includeInternal) {
+  Object getMembers(boolean includeInternal) {
     return new Vector(new Object[] {METHODS_KEY, CONSTRUCTORS_KEY, ASSOCIATED_CONSTRUCTOR_KEY});
   }
 
   @ExportMessage
-  public boolean isMemberReadable(String member) {
+  boolean isMemberReadable(String member) {
     return member.equals(ASSOCIATED_CONSTRUCTOR_KEY);
   }
 }
