@@ -7,8 +7,7 @@ extern crate proc_macro;
 mod derive_iterator;
 
 use prelude::*;
-
-use proc_macro2::TokenStream;
+use crate::derive_iterator::IsMut;
 
 /// For `struct Foo<T>` or `enum Foo<T>` provides:
 /// * `IntoIterator` implementations for `&'t Foo<T>` and `&mut 't Foo<T>`;
@@ -31,17 +30,13 @@ use proc_macro2::TokenStream;
 #[proc_macro_derive(Iterator)]
 pub fn derive_iterator
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
-    let params = &decl.generics.params.iter().collect::<Vec<_>>();
-    let output = match params.last() {
-        Some(last_param) => derive_iterator::derive(&decl, &last_param),
-        None             => TokenStream::new(),
-    };
-//    println!("{}", macro_utils::repr(&output));
+    let output = derive_iterator::derive(input,IsMut::Immutable);
+    output
+}
 
-    if macro_utils::repr(&decl.ident) == "DependentTest" {
-        println!("{} ", macro_utils::repr(&output));
-    }
-
-    proc_macro::TokenStream::from(output)
+#[proc_macro_derive(IteratorMut)]
+pub fn derive_iterator_mut
+(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let output = derive_iterator::derive(input,IsMut::Mutable);
+    output
 }

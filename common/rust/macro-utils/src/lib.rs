@@ -5,10 +5,18 @@ use syn;
 use syn::visit::{self, Visit};
 use proc_macro2::TokenStream;
 
+// ============
+// === Repr ===
+// ============
+
 /// Obtains text representation of given `ToTokens`-compatible input.
 pub fn repr<T: quote::ToTokens>(t:&T) -> String {
     quote!(#t).to_string()
 }
+
+// ===================
+// === Field Utils ===
+// ===================
 
 /// Collects all fields, named or not.
 pub fn fields_list(fields:&syn::Fields) -> Vec<&syn::Field> {
@@ -28,6 +36,10 @@ pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
         None        => quote!(#index),
     }
 }
+
+// =======================
+// === Type Path Utils ===
+// =======================
 
 /// Obtain list of generic arguments on the path's segment.
 pub fn path_segment_generic_args
@@ -99,7 +111,10 @@ pub fn gather_all_type_reprs(node:&syn::Type) -> Vec<String> {
     gather_all_types(node).iter().map(|t| repr(t)).collect()
 }
 
+
+// =======================
 // === Type Dependency ===
+// =======================
 
 pub fn type_depends_on(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
     let target_param = repr(target_param);
@@ -113,6 +128,11 @@ pub fn type_matches(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
     repr(ty) == repr(target_param)
 }
 
+/// Does enum variant depend on given type.
+pub fn variant_depends_on
+(var:&syn::Variant, target_param:&syn::GenericParam) -> bool {
+    var.fields.iter().any(|field| type_depends_on(&field.ty, target_param))
+}
 
 
 
