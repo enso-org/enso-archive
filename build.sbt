@@ -415,8 +415,8 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)
 
-lazy val language_server = project
-  .in(file("engine/language-server"))
+lazy val runner = project
+  .in(file("engine/runner"))
   .settings(
     mainClass in (Compile, run) := Some("org.enso.languageserver.Main"),
     mainClass in assembly := (Compile / run / mainClass).value,
@@ -456,3 +456,9 @@ lazy val language_server = project
   )
   .dependsOn(runtime)
   .dependsOn(pkg)
+  .dependsOn(language_server)
+  .dependsOn(gateway)
+
+lazy val gateway = (project in file("engine/gateway"))
+
+lazy val language_server = (project in file("engine/language-server"))

@@ -1,4 +1,4 @@
-package org.enso.languageserver
+package org.enso.runner
 
 import org.apache.commons.cli._
 import org.enso.interpreter.Constants
