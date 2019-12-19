@@ -1035,7 +1035,1306 @@ is as below.
 - [Levity Polymorphism](https://cs.brynmawr.edu/~rae/papers/2017/levity/levity-extended.pdf)
 - [Partial Type-Constructors](https://cs.brynmawr.edu/~rae/papers/2019/partialdata/partialdata.pdf)
 
-<!--
-Welcome to the Ensotic's Asylym, where we thought it would be a good idea to try
-and bring dependent types to the masses.
--->
+<!-- ====================================================================== --> 
+
+Enso is a statically typed language. It means that every variable is tagged with
+an information about its possible values. Enso's type system bases on the idea
+that each type is denoted by a set of values, called `constructors`. Formally,
+this makes the type system a
+[Modular Lattice](https://en.wikipedia.org/wiki/Modular_lattice). For an
+example, the type `Nat` contains constructors `1, 2, 3, ...`, and is hence
+denotable by a set of the possible values.
+
+As a result, type checking doesn't work via _unification_ as one might expect if
+they are familiar with other functional programming languages, but instead
+checks if a given set of values is a valid substitution for another. There is,
+of course, the empty set `Void`, and a set of all possible values `Any`.
+
+Each value forms a set with a single member, the value itself. This notion is
+supported by an enforced equivalence between value-level and type-level syntax,
+as the compiler makes no distinction between the two. This means that it is
+perfectly valid to type `7 : 7`. Because we can describe infinite number of sets
+containing a particular value, every value in Enso has infinite number of types.
+Taking in consideration the lucky number `7`, it is a `Natural` number,
+`Integer` number, a `Number`, and also `Any` value at the same time! This
+relation could be expressed as follow:
+
+```haskell
+7 : 7 : Natural : Integer : Number : Any : Any : ...
+```
+
+<!-- ====================================================================== -->
+
+Enso allows providing explicit type information by using the colon operator. The
+compiler considers type signatures as hints and is free to discard them if they
+do not provide any new information. However, if the provided hint is incorrect,
+an error is reported.
+
+For example, the following code contains an explicit type signature for the `a`
+variable. Although the provided type tells that `a` is either an integer number
+or a text, the compiler knows its exact value and is free to use it instead of
+the more general type. Thus, no error is reported when the value is incremented
+in the next line.
+
+```haskell
+a = 17 : Int | Text
+b = a + 1
+print b
+```
+
+However, if the provided type contains more information than the currently
+inferred one, both are merged together. Consider the following example for
+reference.
+
+```haskell
+test : Int -> Int -> Int
+test = a -> b ->
+    c = a + b
+    print c
+    c
+```
+
+Without the explicit type signature, the inferred type would be very generic,
+allowing the arguments to be of any type as long as it allows for adding the
+values and printing them to the screen. The provided type is more specific, so
+Enso would allow to provide this function only with integer numbers now.
+However, the provided type does not mention the context of the computations. The
+compiler knows that `print` uses the `IO` context, so considering the provided
+hint, the final inferred type would be
+`Int in c1 -> Int in c2 -> Int in IO | c1 | c2`.
+
+TODO: The above information about contexts could be removed from here as it is
+pretty advanced. We should just mention that explicit type signatures are hints
+everywhere BUT function definitions and new type definitions, where they are
+constraining possible values.
+
+It's worth to note that the type operator is just a regular operator with a very
+low precedence and it is defined in the standard library.
+
+<!-- ====================================================================== -->
+
+#### Data Types
+
+#### Constructor Types
+
+Constructors define the most primitive way to construct a type, it's where the
+name comes from. Formally, they are
+[product types](https://en.wikipedia.org/wiki/Product_type). Their fields are
+always named and fully polymorphic (each field has a distinct polymorphic type).
+Constructors are distinguishable. You are not allowed to pass a constructor to
+a function accepting other constructor, even if their fields are named the same
+way.
+
+```haskell
+type Vec3   x y z
+type Point3 x y z
+
+vec1 = Vec3   1 2 3 : Vec3   1 2 3 : Vec3   Int Int Int
+pt1  = Point3 1 2 3 : Point3 1 2 3 : Point3 Int Int Int
+
+test : Vec3 Int Int Int -> Int
+test v = v.x + v.y + v.z
+
+test pt1 -- Compile time error. Expected Vec3, got Point3.
+```
+
+#### Algebraic Data Types
+
+Enso allows you to define new types by combining existing ones into so called
+[algebraic data types](https://en.wikipedia.org/wiki/Algebraic_data_type). There
+are several algebraic operations on types available:
+
+- **Intersection**
+  A type intersection combines multiple types into one type that has all the
+  features combined. For example, `Serializable & Showable` describes values
+  that provide mechanisms for both serialization and printing.
+
+- **Difference**
+  A type difference combines multiple types into one type that has all the
+  features of the first type but not the features of the second one. For
+  example, `Int \ Negative` describes all positive integer values or zero.
+
+- **Union**
+  A type union combines multiple types into one type that describes a value
+  being of one of the types. For example, `Int | String` describes values that
+  are either `Int` or `String`.
+
+```haskell
+type Just value
+type Nothing
+maybe a = just a | nothing
+
+map : (a -> b) -> Maybe a -> Maybe b
+map f = case of
+    Just a  -> Just (f a)
+    Nothing -> Nothing
+```
+
+#### Syntax sugar
+
+Enso provides syntactic sugar for easy definition of algebraic data types and
+related methods. You are always required to provide explicit name for all the
+constructors and all its fields.
+
+```haskell
+type Maybe a
+    Just value:a
+    Nothing
+
+    map : (a -> b) -> Maybe b
+    map f = case this
+        Just a  -> Just (f a)
+        Nothing -> Nothing
+```
+
+Please note, that all functions defined in the type definition scope are
+desugared to global functions operating on that type. However, all functions
+defined as constructor fields are considered to be record fields. They can be
+provided with a default implementation and their definition can be changed at
+runtime.
+
+#### To Be Described
+
+```haskell
+-- Difference between method and a function component
+type Foo
+    MkFoo
+        function : Int -> self
+        function = default implementation
+
+    method : Int -> self
+    method = implementation
+```
+
+#### Data Types as Values
+
+```haskell
+sum : a -> b -> a + b
+sum = a -> b -> a + b
+
+lessThan : a -> b -> a < b
+lessThan = a -> b -> a < b
+
+main =
+    print $ sum 1 2             -- 3
+    print $ sum Int Int         -- Int
+    print $ lessThan 1 2        -- True
+    print $ lessThan Int Int    -- Bool
+    print $ lessThan 0 Int      -- Bool
+    print $ lessThan -1 Natural -- True
+```
+
+Please note, that `lessThan -1 Natural` returns `True`, which is just more
+specific than `Bool` because it holds true for every natural number.
+
+#### Interfaces
+
+- **TO BE DONE [WD - research]**
+
+<!-- ====================================================================== -->
+
+#### Refinement Types
+
+#### Ordered Lists
+
+Sometimes, it's desired to prove some structure behaviors, like the fact that a
+list contains sorted values. Enso allows expressing such constraints in a simple
+way. They are often called behavioral types, as they describe the behavior to be
+checked. First, let's consider a simple List implementation and see how we can
+create a refined type using the high level interface:
+
+```haskell
+type List elems
+    Empty
+    Cons
+        head : elems
+        tail : List elems
+
+ordered = refined lst ->
+    if lst is empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+```
+
+That's it! Now we can use it like this:
+
+```haskell
+lst1 = []      : Ordered List Int -- OK
+lst1 = [1,2,3] : Ordered List Int -- OK
+lst1 = [3,2,1] : Ordered List Int -- ERROR
+```
+
+#### Under the Hood
+
+Let's understand how the above example works. First, let's implement it in an
+inextendible way, just as a data type which cannot be used for other purpose:
+
+```haskell
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (elems & Refinement (> this.head))
+```
+
+The implementation is almost the same, however, the type of the `tail` is much
+more interesting. It's an intersection of `elems` and a `Refinement` type. A
+refinement type defines a set of values matching the provided requirement. Here,
+values in `tail` have to be a subtype of `elems` and also have to be bigger than
+the `head` element. Alternatively, you could express the type as:
+
+```haskell
+data OrderedList elems
+    Empty
+    Cons
+        head : elems
+        tail : OrderedList (t:elems & if t > this.head then t else Void)
+```
+
+In both cases, we are using functions applied with type sets. For example,
+`this.head` may resolve to a specific negative number while `t` may resolve to
+any natural one.
+
+Let's extract the `isOrdered` function from the original example. The function
+takes a list as an argument and checks if all of its elements are in an
+ascending order. It's worth noting that Enso allows accessing the named type
+variable parameters like `lst.tail.elems`. Moreover, let's define a helper
+function `refine`:
+
+```haskell
+isOrdered : List elems -> Bool
+isOrdered lst =
+    if lst is Empty
+        then true
+        else lst.head < lst.tail.elems
+          && isOrdered lst.tail
+
+refine f = $ Refinement f
+```
+
+Having this function, we could now use it like:
+
+```haskell
+lst1 = []      : Refine IsOrdered (List Int) -- OK
+lst1 = [1,2,3] : Refine IsOrdered (List Int) -- OK
+lst1 = [3,2,1] : Refine IsOrdered (List Int) -- ERROR
+```
+
+We can now define an alias `ordered = refine isOrdered`, however it would have
+to be used like `Ordered (List Int)`, but in the first example we've been using
+it like `Ordered List Int`. It was possible because there is a very special
+function defined in the standard library:
+
+```haskell
+applyToResult f tgt = case tgt of
+    (_ -> _) -> applyToResult << tgt
+    _        -> f tgt
+
+refined  = applyToResult << refine
+```
+
+The `applyToResult` function is very simple, although, from the first sight it
+may look strange. It just takes a function `f` and an argument and if the
+argument was not a function, then it applies `f` to it. If the argument was a
+function, it just skips it and does the same to the result of the function. Now,
+we can define the `refined` function which we used in the beginning as:
+
+```haskell
+refined = applyToResult << refine
+```
+
+It can be used either as shown in the original example or on the result of the
+type expression directly:
+
+```haskell
+ordered = refined isOrdered
+lst1 = []      : Ordered (List Int) -- OK
+lst1 = [1,2,3] : Ordered (List Int) -- OK
+lst1 = [3,2,1] : Ordered (List Int) -- ERROR
+```
+
+#### Type Inference
+
+Because every value belongs to infinite number of types, it's not always obvious
+what type to infer by looking only at the variable definitions. The expression
+`fib 10` could be typed as `55`, `Int` or `Any`, `Int`, to mention a few. The
+way we type it depends on two factors:
+
+- **The optimizations we want to perform**
+  The performance implications are obvious. By computing the value during
+  compilation, we do not have to compute it during runtime anymore. On the other
+  side, compile time function evaluation is often costly, so such optimization
+  opportunities should always be chosen carefully.
+
+- **The information we need to prove correctness of the program**
+  In a case we drop the results, like `print $ const 10 (fib 10)`, it's
+  completely OK to stop the type checking process on assuming that the type of
+  `fib 10` is just any type, or to be more precise, a `fib 10` itself. Its value
+  is always discarded and we do not need any more information to prove that the
+  type flow is correct. However, if the result of `fib 10` would be passed to a
+  function accepting only numbers smaller than `100`, the value would have to be
+  computed during compilation time.
+
+<!-- ====================================================================== -->
+
+#### Monadic Inference
+
+Before evaluating a function, monads of all arguments are applied to host
+function, so arguments are passed as `in Pure`. Why? Consider:
+
+```haskell
+foo a =
+   if a == "hi" then print "hello"
+   if a == "no" then print "why?"
+
+main =
+    foo $ read "test.txt"
+```
+
+We've got here `read : Text -> Text in IO ! IO.Error`, but when evaluating
+`foo`, the `a` argument is assigned with `Text in Pure`, because `IO` was merged
+into main before passing the argument. Otherwise, the file would be read twice
+(!) in the body of foo.
+
+Very rarely it is desirable to postpone the monad merging and just pass the
+arguments in monads "as is". Example:
+
+```haskell
+main =
+    a = ...
+    if a then read "a.txt" else read "b.txt"
+```
+
+You don't want to read both files, that's why these monads sohuld not be
+unpacked with `if_then_else`. Thats why its definition is
+
+```haskell
+if cond _then (ok in m) _else (fail in n) =
+    case cond of
+        True  -> ok
+        False -> fail
+```
+
+If you don't provide the explicit `in m` and `in n`, the args are considered to
+be `in Pure`
+
+#### How `=` works
+
+Consider:
+
+```haskell
+test =
+    body
+    a = f
+    out
+```
+
+Assume:
+
+```haskell
+f : F in FM2 in FM1
+```
+
+Then:
+
+```haskell
+a    : F in FM2 in Pure
+body : _ in BM
+test : out in FM1 & BM
+```
+
+Basically `=` transforms right side to left side like
+`(right : R in RM2 in RM1) -> (left : R in RM2 in Pure)`, and it merges `RM1`
+with host monad.
+
+<!-- ====================================================================== -->
+
+
+
+#### The Dynamic Type
+
+When calling a foreign python we get the result typed as `Dynamic`. Basically,
+values typed as `Dynamic` work just like in Python. You can access their fields
+/ methods by string, you can add or remove fields, and you always get the
+`Dynamic` as result. Every operation on `Dynamic` results in `a ! DynamicError`.
+
+Everything that is possible to express on the `Dynamic` type should be possible
+to be expressed using normal data types (see the "Dynamic access" chapter
+above).
+
+There is an important change to how UCS works with dynamic types, namely, the
+dot syntax always means the field access.
+
+```haskell
+num  = untypedNumberFromPythonCode
+num2 = num + 1 -- : Dynamic ! DynamicError
+num3 = num2 catch case
+    DynamicError -> 0
+-- num3 : Dynamic
+num4 = num3 - 1 -- : Dynamic ! DynamicError
+
+```
+
+```haskell
+obj.__model__ =
+    { atom  : Text
+    , dict  : Map Text Any
+    , info  :
+        { doc  : Text
+        , name : Text
+        , code : Text
+        , loc  : Location
+        }
+    , arg  : -- used only when calling like a function
+        { doc     : Text
+        , default : Maybe Any
+        }
+    }
+```
+
+#### Dynamic access
+
+Even typed data in Enso behaves like if it was fully dynamic. You can access the
+field dictionary of each object and alter it. It's amazing for type level
+programming, as you could be able to generate types by defining their
+dictionaries during "module compilation time". To be described – how to do it –
+type is just a named record, which is like a dictionary.
+
+Basically, every property of an object (let them behave like classes, modules or
+interfaces) should be accessible and extensible in such way.
+
+```haskell
+class Point a
+    P3 x:a y:a z:a
+        fnfield : this
+        fnfield = P3 this.x this.x this.x
+
+    length : a
+    length = this.x^2 + this.y^2 + this.z^2 . sqrt
+
+p1 = P3 1 2 3
+print $ p1.fields            -- <Map Text Field>
+f1 = p1.fields.get "fnfield" -- V3 a b c -> V3 a a a
+print $ f1 p1                -- V3 1 1 1
+p2 = p1.fields.set "fnfield" $ p -> V3 p.y 0 p.y
+print $ p2.fnfield           -- V3 2 0 2
+
+p3 = p1.fields.set "tupleFields" $ p -> [p.x, p.y, p.z]
+print $ typeOf p3            -- P3 1 2 3 & {tupleFields: [this.x, this.y, this.z]}
+print p3.tupleFields         -- [1,2,3]
+p4 = p3.tupleFields = [7,8,9]
+print p4                     -- P3 7 8 9
+
+-- What if the name is not known at compilation time?
+name : Text
+field1 = p1.fields.get name -- field1 : Dynamic
+```
+
+<!-- ====================================================================== -->
+
+#### Proving Software Correctness
+
+**Note [To be included somewhere]**: Enso is dependently typed because we can
+run arbitrary code on type-level.
+
+**So, what are dependent types?** Dependent types are types expressed in terms
+of data, explicitly relating their inhabitants to that data. As such, they
+enable you to express more of what matters about data. While conventional type
+systems allow us to validate our programs with respect to a fixed set of
+criteria, dependent types are much more flexible, they realize a continuum of
+precision from the basic assertions we are used to expect from types up to a
+complete specification of the program’s behaviour. It is the programmer’s choice
+to what degree they want to exploit the expressiveness of such a powerful type
+discipline. While the price for formally certified software may be high, it is
+good to know that we can pay it in installments and that we are free to decide
+how far we want to go. Dependent types reduce certification to type checking,
+hence they provide a means to convince others that the assertions we make about
+our programs are correct. Dependently typed programs are, by their nature, proof
+carrying code.
+
+**If dependent types are so great, why they are not used widely?** Basically,
+there are two problems. First, there is a small set of languages allowing for
+dependent types, like Agda or Idris. Second, both writing as well as using
+dependently typed code is significantly harder than for code using a
+conventional type system. The second problem is even bigger because it stands in
+the way of easy refactoring of the code base and keeping it in good shape.
+
+**I've heard that dependent type system in Enso is different, how?** The Enso
+type system provides a novel approach to dependent types. It allows to just
+write simple code and in many cases provides the dependent type system benefits
+for free!
+
+#### Power and Simplicity
+
+Consider the following code snippets in Idris. This is a simple, but not very
+robust implementation of List. If you try to get the head element of an empty
+list, you'll get the runtime error and there is no way to prevent the developer
+from using it by mistake:
+
+```Haskell
+-----------------------
+--- LANGUAGE: IDRIS ---
+-----------------------
+
+data List elem
+    = Cons elem (List elem)
+    | Empty
+
+index : Int -> List a -> a
+index 0 (Cons x xs) = x
+index i (Cons x xs) = index (i-1) xs
+
+main : IO ()
+main = do
+    let lst1 : List String = (Cons "Hello!" Nil)
+    let lst2 : List String = Nil
+    print $ index 0 lst1
+    print $ index 0 lst2
+```
+
+```haskell
+--- Runtime Output ---
+Hello!
+*** test.idr:18:23:unmatched case in Main.index ***
+```
+
+The above program crashed in the middle of execution. Such mistakes (related to
+the possibility of the index being out of bounds) are very hard to catch, and
+most programming languages do not provide a standard, easy mechanism to prevent
+them from happening. Let's improve the situation and use the power of dependent
+types to keep the information about the length of the list visible to the
+compiler:
+
+```haskell
+-----------------------
+--- LANGUAGE: IDRIS ---
+-----------------------
+
+data List : (len : Nat) -> (elem : Type) -> Type where
+    Cons  : (x : elem) -> (xs : List len elem) -> List (S len) elem
+    Empty : List Z elem
+
+index : Fin len -> Vect len elem -> elem
+index FZ     (Cons x xs) = x
+index (FS k) (Cons x xs) = index k xs
+
+main : IO ()
+main = do
+    let lst1 : List 1 String = Cons "hello" Empty
+    let lst2 : List 0 String = Empty
+    print $ index 0 lst1
+    print $ index 0 lst2
+```
+
+```haskell
+--- Compilation Error ---
+test.idr:18:21:
+When elaborating right hand side of main:
+When elaborating argument prf to function Data.Fin.fromInteger:
+        When using 0 as a literal for a Fin 0
+                0 is not strictly less than 0
+```
+
+This time the error was caught by the compiler, however, both the
+implementation as well as the library interface are much more complex now.
+
+Let's now write the same implementation in Luna:
+
+```haskell
+----------------------
+--- LANGUAGE: ENSO ---
+----------------------
+
+type List a
+    Cons value:a tail:a
+    Empty
+
+index : Natural -> List a -> a
+index = case
+    0 -> value
+    i -> tail >> index (i-1)
+
+main =
+    lst1 = Cons "hello" Empty
+    lst2 = Empty
+    print $ index 0 lst1
+    print $ index 0 lst2
+```
+
+```haskell
+--- Compilation Error ---
+Error in test.enso at line 18:
+    The field Empty.tail is not defined.
+    Arising from ...
+```
+
+Although the Enso implementation is over 15% shorter than the insecure Idris
+implementation and over 50% shorter than the secure implementation, it provides
+the same robustness as the secure Idris implementation. Moreover, the user
+facing interface is kept simple, without information provided explicitly for the
+compiler.
+
+#### Another Example
+
+```haskell
+-----------------------
+--- LANGUAGE: IDRIS ---
+-----------------------
+
+import Data.So
+
+countOcc : Eq a => a -> List a -> Nat
+countOcc x xs = length (findIndices ((==) x) xs)
+
+validate : String -> Bool
+validate x = let
+        containsOneAt = (countOcc '@' (unpack x)) == 1
+        atNotAtStart  = not (isPrefixOf "@" x)
+        atNotAtEnd    = not (isSuffixOf "@" x)
+    in containsOneAt && atNotAtStart && atNotAtEnd
+
+data Email : Type where
+    MkEmail : (s : String) -> {auto p : So (validate s)} -> Email
+
+implicit emailString : (e : Email) -> String
+emailString (MkEmail s) = s
+
+main : IO ()
+main = do
+    maybeEmail <- getLine
+
+    case choose (validate maybeEmail) of
+        Left _  => putStrLn ("Your email: " ++ (MkEmail maybeEmail))
+        Right _ => putStrLn "No email."
+```
+
+```haskell
+----------------------
+--- LANGUAGE: ENSO ---
+----------------------
+
+isValid : String -> Bool
+isValid address
+     = address.count '@' == 1
+    && not $ address.startWith '@'
+    && not $ address.endsWith  '@'
+
+type Email
+    Data address : Refine IsValid Text
+
+main =
+    mail = Email.Data Console.get
+    if mail.error
+        then 'Not a valid address.'
+        else print mail
+```
+
+#### Type Resolution
+
+The natural next question is, how was it possible to get such a drastic quality
+improvement? As already mentioned, dependent types are types expressed in terms
+of data, explicitly relating their inhabitants to that data. Enso atom types
+make it possible to expose all data structures to the compiler automatically, so
+they can be statically analyzed. There is no need to explicitly provide any
+selected data to the compiler, as it has access to every structural information
+by design.
+
+Let's describe where the compiler gets the required information from. Please
+note, that the following description is shown for illustration purposes only and
+does not represent the real compilation algorithm. First, let's focus on the
+definition of the `index` function:
+
+```haskell
+index : Natural -> List a -> a
+index = case
+    0 -> value
+    i -> tail >> index (i-1)
+```
+
+Without using currying and after applying the Uniform Syntax Call, we can write
+it's more explicit form:
+
+```haskell
+index : Natural -> List a -> a
+index i lst = case i of
+    0 -> lst.value
+    i -> index (i-1) lst.tail
+```
+
+Let's break the function apart:
+
+```haskell
+index_1 : 0 -> List a -> a
+index_1 0 lst = lst.value
+
+index_2 : ((j:Natural) + 1) -> List a -> a
+index_2 i lst = index (i-1) lst.tail
+
+index : Natural -> List a -> a
+index i = case i of
+    0 -> index_1 i
+    i -> index_2 i
+```
+
+Based on the provided information, including the fact that the `value` and
+`tail` fields are defined only for the `Cons` atom, we can further refine the
+types of `index_1` and `index_2`:
+
+```haskell
+index_1 : 0                 -> Cons t1 (List t2) -> t1
+index_2 : ((j:Natural) + 1) -> Cons t1 (List t2) -> t1
+```
+
+Please note that the type `a` was refined to `t1 | t2`. We can now infer a much
+more precise type of `index`, which makes it obvious why the code was incorrect.
+
+```haskell
+index : Natural -> Cons t1 (List t2) -> t1
+```
+
+A similar, but a little more complex case applies if we try to access a nested
+element. We leave this exercise to the reader.
+
+#### Bigger Example (to be finished)
+
+```haskell
+type List a
+    Cons value:a tail:(List a)
+    End
+
+head : Cons a (List b) -> a
+head = value
+
+last : Cons a (List a) -> a
+last = case
+    Cons a End  -> a
+    Cons a tail -> last tail
+
+init : Cons a (List a) -> List a
+init = case
+    Cons a End           -> End
+    Cons a (Cons b tail) -> Cons a $ init (Cons b tail)
+
+index :: Natural.range lst.length -> lst
+```
+
+#### Autolifting functions to types
+
+```haskell
+-- Consider
+fn : Int -> Int -> Int
+fn = a -> b -> a + b
+
+-- If we provide it with 1 and 2 then
+fn 1 2 : fn 1 2 : 3
+
+-- Howevere this is true as well
+fn 1 2 : fn Int Int : Int
+
+-- Please note that 1:Int AND Int:Int
+-- It means that functions can always be provided with type-sets and return type sets, so
+fn Int Int -- returns Int
+```
+
+#### Function composition
+
+```haskell
+sumIncremented1 = map +1 >> fold (+)
+sumIncremented2 = fold (+) << map +1
+```
+
+However, the following is preferred:
+
+```haskell
+sumIncremented1 = . map +1 . fold (+)
+```
+
+#### Lazy / Strict
+
+```haskell
+if_then_else :: Bool -> Lazy a in n -> Lazy a in m -> a in n | m
+if cond _then ok _else fail =
+    case cond of
+        True  -> ok
+        False -> fail
+
+test cond = if_then_else cond -- The arguments are still lazy and accept monads
+test cond ok fail = if_then_else cond ok fail -- The arguments are strict and does not accept monads
+```
+
+**TODO:** ARA + WD - check with bigger examples if this really holds.
+Alternatively we can think of `Lazy a` as a part of the `a` parameter, which
+should not be dropped. WD feels it needs to be re-considered.
+
+#### Context Defaults
+
+- Function arguments default to `in Pure` if not provided with an explicit type.
+- Function results and variables default to `in m` if not provided with an
+  explicit type.
+
+For example:
+
+```haskell
+test a b = ...
+```
+
+Has the inferred type of
+
+```haskell
+test : a in Pure -> b in Pure -> out in m
+```
+
+Thus if used like
+
+```haskell
+test (print 1) (print 2)
+```
+
+The prints will be evaluated before their results are passed to `test`. However,
+when provided with explicit signature:
+
+```haskell
+test2 : a in m -> b in n -> out in o
+test2 a b = ...
+```
+
+Then the evaluation
+
+```haskell
+test2 (print 1) (print 2)
+```
+
+Will pass both arguments as "actions" and their evaluation depends on the
+`test2` body definition.
+
+#### Type Based Implementations
+
+```haskell
+default : a
+default = a . default
+```
+
+#### Explicit Types And Subtyping
+
+When explicit type is provided, the value is checked to be the subtype of the
+provided type, so all the following lines are correct:
+
+```haskell
+a = 1
+a : 1
+a : Natural
+a : Integer
+a : Number
+a : Type
+```
+
+The same applies to functions – the inferred signature needs to be a subtype of
+the provided one. However, the intuiting of what a subtype of a function is
+could not be obvious, so lets describe it better. Consider a function `foo`:
+
+```haskell
+foo : (Natural -> Int) -> String
+```
+
+From definition, we can provide it with any value, whose type is the subtype of
+`Natural -> Int`. This argument needs to handle all possible values of `Natural`
+as an input. Moreover, we know that `foo` assumes that the result of the
+argument is any value from the set `Int`, so we cannot provide a function with a
+broader result, cause it may make `foo` ill-working (for example if it pattern
+matches on the result inside). So the following holds:
+
+```haskell
+(Natural -> Natural) : (Natural -> Int)
+```
+
+Please note, that we can provide a function accepting broader set of arguments,
+so this holds as well:
+
+```haskell
+(Int -> Natural) : (Natural -> Natural)
+```
+
+So, this holds as well:
+
+```haskell
+(Int -> Natural) : (Natural -> Int)
+```
+
+(todo: describe variants and contravariants better here).
+
+Consider the following, more complex example:
+
+```haskell
+add a name =
+    b = open name . to Int
+    result = (a + b).show
+    print result
+    result
+```
+
+This function works on any type which implements the `+` method, like `String`,
+however, we can narrow it down by providing explicit type signature:
+
+```haskell
+add : Natural in Pure -> Text in Pure -> String in IO ! IO.ReadError
+add = ...
+
+addAlias = add
+```
+
+Now we can create an alias to this function and provide explicit type signature
+as well. As long as the `add` signature will be the subtype of `addAlias`
+signature, it will be accepted. First, we can skip the explicit error mention:
+
+```haskell
+addAlias : Natural in Pure -> Text in Pure -> String in IO
+```
+
+Next, we can skip the explicit contexts, because the contexts of arguments
+default to `Pure` while the context of the result does not have any restrictions
+by default so will be correctly inferred:
+
+```haskell
+addAlias : Natural -> Text -> String
+```
+
+We can also type the whole function using any broader type. In order to
+understand what a subtype of a function is, visualize its transformation as
+arrows between categories. The above function takes any value from a set
+`Natural` and set `Text` and transforms it to some value in set `String`. We can
+use any wider type instead:
+
+```haskell
+addAlias : Natural -> Text -> Type
+```
+
+However, please note that the following will be not accepted:
+
+```haskell
+addAlias : Int -> Type -> Type -- WRONG!
+```
+
+<!-- ====================================================================== -->
+
+#### Mutable Fields (FIXME)
+
+```haskell
+type Graph a
+    Node
+        inputs : List (Mutable (Graph a))
+        value : a
+
+-- THIS MAY BE WRONG, we need to have semantics how to assign mutable vars to
+mutable vars to create mutual refs and also pure vars to create new refs
+n1 = Node [n2] 1
+n2 = Node [n1] 2
+```
+
+<!-- ====================================================================== -->
+
+#### Other Things To Be Described
+
+- Implicit conversions
+
+- modules and imports (from the deprecated section)
+
+- Using and creating Monads, example State implementation (Monad = always
+  transformer, at the bottom Pure or IO)
+
+- IO should be more precise, like `IO.Read` or `IO.Write`, while `IO.Read : IO`
+
+- Constrained types (like all numbers bigger that `10`)
+
+- Errors and the catch construct like
+
+  ```haskell
+  num3 = num2 catch case
+      DynamicError -> 0
+  ```
+
+- Catching Errors when not caught explicitly – important for correctness
+
+- Type-level / meta programming – like taking an interface and returning
+  interface with more generic types (move a lot of examples from TypeScript
+  docs)
+
+- Question – should it be accessed like `End` or like `List.End` ? The later is
+  rather better! If so, we need to make changes across the whole doc!
+
+  ```haskell
+  type List a
+      Cons a (List a)
+      End
+  ```
+
+- monadfix
+
+- implementing custom contexts (monads). Including example on how to implement a
+  "check monad" which has lines checking dataframes for errors.
+
+<!-- ====================================================================== -->
+
+#### Type Holes
+
+```haskell
+a :: ??
+```
+
+Creates a type hole, which will be reported by the compiler. Describe the
+programming with type holes model. A good reference: http://hazel.org
+
+<!-- ====================================================================== -->
+
+#### Scoping Rules and Code Modularity
+
+Imports in Enso can be performed in _any_ scope, and are accessible from the
+scope into which they are imported. This gives rise to a particularly intuitive
+way of handling re-exports.
+
+Consider the following file `Test.luna`. In this file, the imports of `Thing`
+and `PrettyPrint` are not visible when `Test.luna` is imported. However,
+`PrettyPrint` and `printer` are made visible from within the scope of `Test`.
+This means that a user can write `import Test: printer` and have it work.
+
+```
+import Experiment.Thing
+import Utils.PrettyPrint
+
+type Test a : PrettyPrint Text (Test a) =
+    import Utils.PrettyPrint: printer
+
+    runTest : a -> Text
+    runTest test = ...
+
+    prettyPrint : Test a -> Text
+    prettyPrint self = ...
+```
+
+<!-- ====================================================================== -->
+
+#### Anonymous Types
+
+In addition to the syntax proposed above in [Declaring Types](#declaring-types),
+this RFC also proposes a mechanism for quickly declaring anonymous types. These
+types are anonymous in that they provide a category of values without applying a
+name to their category, and can be created both as types and as values.
+
+While it is possible to use the primary type declaration syntax without
+providing an explicit name, this is highly impractical for most places where an
+anonymous type becomes useful. This shorthand provides a way to get the same
+benefit without the syntactic issues of the former.
+
+#### Anonymous Types as Types
+
+When used in a type context, an anonymous type acts as a specification for an
+interface that must be filled. This specification can contain anything from
+types to names, and features its own syntax for inline declarations.
+
+Consider the following examples:
+
+- `{Int, Int, Int}`: This type declares a set of values where each value
+  contains three integers.
+- `{Int, foo : Self -> Int}`: This type declares a set of values with an integer
+  and a function from `Self` to an Integer with name `foo`.
+- `{Self -> Text -> Text}`: This defines an unnamed function. This may seem
+  useless at first, but the input argument can be pattern-matched on as in the
+  following example:
+
+  ```
+  foo : { Int, Int, Self -> Int } -> Int
+  foo rec@{x, y, fn} = fn rec
+  ```
+
+`Self` is a piece of reserved syntax that allows anonymous types to refer to
+their own type without knowing its name.
+
+#### Anonymous Types as Values
+
+Anonymous types can also be constructed as values using similar syntax. You can
+provide values directly, which will work in a context where names are not
+required, or you can provide named values as in the following examples:
+
+- `{0, 0}`: This anonymous value will work anywhere a type with two numbers and
+  no other behaviour is expected.
+- `{x = 0, y = 0, z = 0}`: This one provides explicit names for its values, and
+  will work where names are required.
+- `{x = 0, fn = someFunction}`: This will also work, defining the value for `fn`
+  by use of a function visible in the scope.
+- `{x = 0, fn = (f -> pure f)}`: Lambda functions can also be used.
+
+<!-- ====================================================================== -->
+
+<!-- #### On the Semantics of Standalone Implementations
+Standalone implementations allow for limited extension methods on types. The
+interface methods implemented for a type in the standalone definition can be
+used like any other method on an Enso type.
+
+#### Overlapping Interface Implementations
+Sometimes it is beneficial to allow interfaces to overlap in one or more of
+their type parameters. This does not mean Enso allows _duplicate_ instances (
+where all of the type parameters are identical). These can be implemented by
+either of the methods above, but the user may often run into issues when
+attempting to make use of these interfaces.
+
+Enso thus provides a mechanism for the programmer to manually specify which
+instance of an interface should be selected in the cases where resolution is
+ambiguous. Consider the following example, using the `PrettyPrinter` interface
+defined above.
+
+```
+type Point2D : PrettyPrinter Text | PrettyPrinter ByteArray =
+    x : Double
+    y : Double
+
+    prettyPrint : Point2D -> Text
+    prettyPrint self = ...
+
+    prettyPrint : Point2D -> ByteArray
+    prettyPrint self = ...
+
+loggerFn (a : PrettyPrinter b) -> Text -> a -> Text
+loggerFn msg item = msg <> prettyPrint(Text) item
+```
+
+As you can see, the syntax for specifying the instance in the ambiguous case
+uses parentheses to apply the type to the `prettyPrint` function.  -->
+
+<!-- ====================================================================== -->
+
+#### Implementing Interfaces
+
+TODO: This section needs discussion. It is a very draft proposal for now.
+
+The nature of Enso's type system means that any type that _satisfies_ an
+interface, even without explicitly implementing it, will be able to be used in
+places where that interface is expected. However, in the cases of named
+interfaces (not [anonymous types](#anonymous-types)), it is a compiler warning
+to do so. (TODO: Explain why. What bad would happen otherwise?)
+
+You can explicitly implement an interface in two ways. Examples of both can be
+found at the end of the section.
+
+1. **Implementation on the Type**
+   Interfaces can be directly implemented as part of the type's definition. In
+   this case the type header is annotated with `: InterfaceName` (and filled
+   type parameters as appropriate). The interface can then be used (if it has a
+   default implementation), or the implementation can be provided in the type
+   body.
+
+2. **Standalone Implementation:**
+   Interfaces can be implemented for types in a standalone implementation block.
+   These take the form of `instance Interface for Type`, with any type
+   parameters filled appropriately.
+
+Both of these methods will support extension to automatic deriving strategies in
+future iterations of the Enso compiler.
+
+It should also be noted that it is not possible to implement orphan instances of
+interfaces in Enso, as it leads to code that is difficult to understand. This
+means that an interface must either be implemented in the same file as the
+interface definition, or in the same file as the definition of the type for
+which the interface is being implemented. (TODO: To be discussed)
+
+Consider an interface `PrettyPrinter` as follows, which has a default
+implementation for its `prettyPrint` method.
+
+```haskell
+type (t : Textual) => PrettyPrinter t =
+    prettyPrint : t
+    prettyPrint = self.show
+```
+
+For types we own, we can implement this interface directly on the type. Consider
+this example `Point` type.
+
+```haskell
+type Point : PrettyPrinter Text
+    x : Double
+    y : Double
+    z : Double
+
+    prettyPrint : Text
+    prettyPrint = ...
+```
+
+If we have a type defined in external library that we want to pretty print, we
+can define a standalone instance instead. Consider a type `External`.
+
+```haskell
+instance PrettyPrint Text for External =
+    prettyPrint = ...
+```
+
+<!-- ====================================================================== -->
+
+#### Constructors
+
+While types in Enso describe categories of values, the constructors are the
+values themselves. Constructors are used for defining new data structures
+containing zero or more values, so called fields. Formally, constructors are
+product types, a primitive building block of algebraic data types.
+
+A constructor definition starts with the `type` keyword followed by the
+constructor name and lists its fields by name with possible default values. It
+is possible to create unnamed fields by using wildcard symbol instead of the
+name. Constructors cannot be parametrized and their fields cannot be provided
+with explicit type annotations. The formal syntax description is presented
+below.
+
+```
+consDef   = "type" consName [{consField}]
+fieldName = varName | wildcard
+consField = fieldName ["=" value]
+```
+
+Below we present code snippets with constructors definitions. Constructors with
+the same name are just alternative syntactic forms used to describe the same
+entity. We will refer to these definitions in later sections of this chapter.
+
+```haskell
+-- Boolean values
+type True
+type False
+
+-- Structure containing two unnamed fields
+type Tuple _ _
+
+-- Alternative Point definitions:
+type Point x y z
+
+type Point (x = 0) (y = 0) (z = 0)
+
+type Point x=0 y=0 z=0
+
+type Point
+    x = 0
+    y = 0
+    z = 0
+```
+
+<!-- ====================================================================== -->
+
+#### Constructors as types
+
+As Enso is a dependently-typed language with no distinction between value- and
+type-level syntax, we are allowed to write _very_ specific type for a given
+value. As described earlier, constructors are the values belonging to categories
+defined by Enso types. However, they are not only members of categories, they
+are also useful to describe very specific categories per se. Formally, a
+constructor is capable of describing any subset of the set of all possible
+values of its fields.
+
+For example, the `True` constructor could be used to describe the set of all
+possible values of its fields. While it does not have any fields, the set
+contains only two values, the `True` constructor itself and an `undefined`
+value. Thus it is correct to write in Enso `True : True` and assume that the
+only possible values of a variable typed as `a : True` are either `True` or
+`undefined`.
+
+On the other hand, The `Point` constructor does contain fields, thus it could be
+used for example to describe all possible points, whose first coordinate is an
+integral number, while the second and third coordinates are equal to zero:
+`a : Point int 0 0`.
+
+<!-- ====================================================================== -->

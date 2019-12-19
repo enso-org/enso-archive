@@ -12,10 +12,6 @@ documents.
 
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
-- [High-Level Syntax and Semantic Notes](#high-level-syntax-and-semantic-notes)
-  - [Annotations](#annotations)
-    - [Automatic Deriving](#automatic-deriving)
-- [Top-Level Evaluation](#top-level-evaluation)
 - [Types](#types)
   - [Atoms](#atoms)
     - [Unsafe Atom Field Mutation](#unsafe-atom-field-mutation)
@@ -40,155 +36,8 @@ documents.
 - [Dynamic](#dynamic)
   - [The Enso Boundary](#the-enso-boundary)
   - [An Insufficient Design For Dynamic](#an-insufficient-design-for-dynamic)
-- [The Main Function](#the-main-function)
 
 <!-- /MarkdownTOC -->
-
-## High-Level Syntax and Semantic Notes
-While the majority of syntactic design for the language has utilised top-level
-bindings in a syntax similar to that of Haskell or Idris, some consideration
-has been given to instead introducing function bindings using a `def` keyword.
-
-This has a few major problems, including:
-
-- The typing of variables becoming very ugly, with bad alignment.
-
-  ```ruby
-  foo : Int -> Int -> Int
-  def foo a b = a + b
-  ```
-
-- The standard Haskell/Idris-style definition syntax would no longer be valid,
-  but would also not be used anywhere.
-- There would be duplicated syntax for doing the same thing (e.g. `val1 = 5`
-  and `def val1 = 5` would be equivalent).
-- The `=` operator would still need to be used for single-line function
-  definitions, making the syntax inconsistent.
-- Interface definitions become very confusing:
-
-  ```ruby
-  type HasName
-    name : String
-
-  type HasName2
-    def name : String
-  ```
-
-Top-level blocks in the language are evaluated immediately. This means that the
-layout of the code has no impact on semantics of the code:
-
-- To suspend blocks, we provide a `suspend` function in the standard library.
-  This means that the following `a` and `b` are equivalent.
-
-  ```ruby
-  a = foo x y
-
-  b =
-    foo x y
-  ```
-
-- This function takes any expression as an argument (including a block), and
-  suspends the execution of that expression such that it is not evaluated until
-  forced later.
-
-  ```ruby
-  susp = suspend
-    x = foo x y z
-    x.do_thing
-  ```
-
-Additionally, in the current syntax, a block assigned to a variable is one that
-has its execution implicitly suspended until it is forced. This has a few
-things that should be noted about it.
-
-- We could have a `suspend` function provided in the standard library, as
-  laziness of argument evaluation is determined through type-signatures and is
-  done automatically in the compiler.
-- Such a function would likely not see heavy use.
-
-Finally, we have chosen `this` to refer to the current type. This is almost
-always equivalent to `self`, but in the case of `this` and `that` is far better.
-
-> Space-based operator parsing rules. `a.b` vs. `a . b`.
-
-### Annotations
-Much like annotations on the JVM, annotations in Enso are tags that perform a
-purely syntactic transformation on the entity to which they are applied. The
-implementation of this requires both parser changes and support for
-user-defined macros, but for now it would be possible to work only with a set
-of hard-coded annotation macros.
-
-Annotations can be arbitrarily nested, so a set of annotation macros become
-implicitly nested inside each other:
-
-```ruby
-@derive Eq Debug
-@make_magic
-type Maybe a
-  use Nothing
-  type Just
-```
-
-The above example is logically translated to:
-
-```ruby
-derive Eq Debug
-  make_magic
-    type Maybe a
-      use Nothing
-      type Just (value : a)
-```
-
-In the presence of annotations and macros, it becomes more and more important
-that we are able to reserve words such as `type` to ensure that users can
-always have a good sense of what the most common constructs in the language
-mean, rather than allowing them to be overridden outside of the stdlib.
-
-#### Automatic Deriving
-In order to make the language easier to debug, we have all types automatically
-derive an interface `DebugShow`. This interface provides a function that will
-print all the significant information about the value (e.g. locations, types,
-source information, etc).
-
-## Top-Level Evaluation
-An ongoing discussion for the language design has been whether or not to allow
-for the top-level evaluation of statements in Enso. In order to help make a
-decision, we listed the following use-cases for top-level evaluation. These are
-annotated using the following key:
-
-|  Label  | Meaning |
-| --------| ------- |
-| `[?,_]` | We don't know how to implement it, but it may be possible.
-| `[-,_]` | Not possible to implement using purely syntactic macros.
-| `[M,_]` | Possible to implement using purely syntactic macros.
-| `[_,H]` | High priority. This will be used often.
-| `[_,M]` | Medium priority. This will be used with a medium frequency.
-| `[_,L]` | Low priority. Nice to have, but we can likely live without it.
-| `[_,!]` | Something that we never want to have in the language.
-
-The use-cases we have considered are as follows:
-
-|  Label  | Description |
-| ------- | ----------- |
-| `[-,L]` | Creating top-level constructs in `IO`, such as `IORef`. This is, in general, considered to be bad style, but can sometimes be useful. |
-| `[-,L]` | Using enso files like python is able to be for scripting work. The ability to write constructs at the top-level and just evaluate them. |
-| `[M,H]` | The ability to generate structures and / types for a dataframe at compilation time, or the automatic generation of an API for a library. A key recognition is that dependent types and type-level execution replace much of the need to be able to query the type-checker and runtime while writing a syntactic macro. |
-| `[M,H]` | Static metaprogramming (transformations from `AST -> AST`) to let users generate types and functions based on existing AST. There is the potential to want to be able to evaluate actions in `IO` while doing this, but it may not be necessary. |
-| `[-,!]` | Dynamic metaprogramming to let users mutate program state at runtime (e.g. changing atom shapes, function definitions), also known as 'monkey patching'. This is not something we want in the language, but we do perhaps want the ability to do so on values of type `Dynamic`. |
-| `[M,H]` | 'Remembering' things when compiling a file, such as remembering all structures marked by an `AST` annotation. An example use case for a mechanism like this is to generate pattern matches for all possible `AST` types. This can be done by letting macros write to a per-file peristent block of storage that could be serialised during precompilation. |
-| `[M,H]` | Grouping of macros (e.g. `deriveAll = derive Ord Debug Show`). This can be easily handled by doing discovery on functions used as macros, and treating it as a macro as well. |
-| `[?,M]` | Method-missing magic, akin to ruby. This is likely able to be handled using other, existing language mechanisms. |
-
-In summary and when considering the above use-cases, it seems that there is
-little need for top-level expression evaluation in Enso. We can support all of
-the above-listed important use-cases using syntactic (`AST -> AST`) macros,
-while allowing for top-level evaluation would enable users to write a lot of
-overly-magical code, which will always be a code-smell.
-
-Syntactic macros, however, do not easily support a scripting workflow, but the
-solution to this problem is simple. We can just provide an `enso run <file>`
-command which will search for and execute the `main` function in the provided
-file.
 
 ## Types
 Atoms are the fundamental building blocks of types in Enso. Where broader types
@@ -291,6 +140,7 @@ and manipulate them:
 - **Union:** `|` (e.g. `Maybe a = Nothing | Just a`)
 - **Intersection:** `&` (e.g. `Person = HasName & HasPhone`)
 - **Subtraction:** `\` (e.g. `NegativeNumber = Int \ Nat \ 0`)
+- **Concatenation:** `,` This creates sum types.
 
 Bijective applications of these constructors are able to be used for pattern
 matching. Initially we only plan to support simple bijection detection, but
@@ -307,6 +157,15 @@ test = match _ of
   V3 x y z -> ...
 
 ```
+
+> The actionables for this section are as follows:
+> 
+> - Work out how these combine with standard record theories, what do these mean
+>   when dealing with a record with n fields?
+> - How do we _really_ work with atoms given you need the concept of an
+>   'anonymous atom'.
+
+How does this combine with the potential need for a `,` record concat operator?
 
 #### Type and Interface Definitions
 Typesets are defined using a unified `type` keyword / macro that works as
@@ -746,7 +605,8 @@ The current implementation of Enso supports single dispatch (dispatch purely on
 the type of `self`), but there are broader visions afoot for the final
 implementation of dynamic dispatch in Enso.
 
-- Account for dyndispatch, but no decision has been made.
+- Account for multidispatch, but no decision has been made.
+- No transitive import of dispatch candidates.
 
 > The actionables for this section include:
 >
@@ -1065,9 +925,3 @@ system to track what the dynamic _does_ provide at any given moment.
 This doesn't work in the face of types that can self-modify, meaning that there
 is no performant way to work with dynamics short of unsafe assumptions about
 them.
-
-## The Main Function
-The entry point for an Enso program is defined in a special top-level binding
-called `main` in the file `Main.enso`. However, we also provide for a scripting
-workflow in the form of `enso run`, which will look for a definition of `main`
-in the file it is provided.
