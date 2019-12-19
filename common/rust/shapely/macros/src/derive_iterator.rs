@@ -2,33 +2,144 @@ use prelude::*;
 
 use quote::quote;
 use proc_macro2::{TokenStream,Ident,Span};
-use macro_utils::{fields_list,type_matches,type_depends_on};
+use macro_utils::{fields_list, type_matches, repr, type_depends_on, ty_path_type_args, field_ident_token};
 use inflector::Inflector;
+use syn::Field;
 
-/// Returns token that refers to the field.
-///
-/// It is the field name for named field and field index for unnamed fields.
-pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
-    match &field.ident {
-        Some(ident) => quote!(#ident),
-        None        => quote!(#index),
-    }
+pub struct DependentValue<'t> {
+    pub ty          : &'t syn::Type,
+    pub value       : TokenStream,
+    pub target_param: &'t syn::GenericParam,
+    pub through_ref : bool
 }
 
-/// Returns identifiers of fields with type matching `target_param`.
-///
-/// If the struct is tuple-like, returns index pseudo-identifiers.
-pub fn matching_fields
-( data:&syn::DataStruct
-, target_param:&syn::GenericParam
-) -> Vec<TokenStream> {
-    let fields           = fields_list(&data.fields);
-    let indexed_fields   = fields.iter().enumerate();
-    let ret              = indexed_fields.filter_map(|(i,f)| {
-        let type_matched = type_matches(&f.ty, target_param);
-        type_matched.as_some_from(|| field_ident_token(&f, i.into()))
-    }).collect::<Vec<_>>();
-    ret
+impl<'t> DependentValue<'t> {
+    /// Returns Some when type is dependent and None otherwise.
+    pub fn try_new
+    (ty: &'t syn::Type, value:TokenStream, target_param:&'t syn::GenericParam)
+     -> Option<DependentValue<'t>> {
+        if type_depends_on(ty, target_param) {
+            Some(DependentValue{ty,value,target_param,through_ref:false})
+        } else {
+            None
+        }
+    }
+
+    /// Describe sub-values of the tuple
+    pub fn collect_tuple
+    (tuple:&'t syn::TypeTuple, target_param:&'t syn::GenericParam)
+     -> Vec<DependentValue<'t>> {
+        tuple.elems.iter().enumerate().filter_map(|(ix,ty)| {
+            let ix    = syn::Index::from(ix);
+            let ident = quote!(t.#ix);
+            DependentValue::try_new(ty,ident,target_param)
+        }).collect()
+    }
+
+    pub fn yield_value(&self, is_mut: bool) -> TokenStream {
+        match self.ty {
+            syn::Type::Tuple(tuple) => self.yield_tuple_value(tuple, is_mut),
+            syn::Type::Path(path)   => {
+                if type_matches(&self.ty, &self.target_param) {
+                    self.yield_direct_value(is_mut)
+                } else {
+                    self.yield_dependent_ty_path_value(path, is_mut)
+                }
+            }
+            _ =>
+                panic!("Don't know how to yield value from type {}", repr(&self.ty)),
+        }
+    }
+
+    // e.g. value:T
+    // yield &mut value;
+    pub fn yield_direct_value
+    (&self, is_mut: bool) -> TokenStream {
+        let value = &self.value;
+        let opt_mut = is_mut.as_some(quote!( mut ));
+        let opt_ref = (!self.through_ref).as_some(quote!( & #opt_mut ));
+        quote!(  yield #opt_ref #value; )
+    }
+
+    // e.g. for t:(T,U,T)
+    // yield &mut t.0;
+    // yield &mut t.2;
+    pub fn yield_tuple_value
+    (&self, ty:&syn::TypeTuple, is_mut: bool)
+     -> TokenStream {
+        let value     = &self.value;
+        let mut_kwd   = is_mut.as_some(quote!( mut ));
+        let top_ident = &self.value;
+        let subfields = DependentValue::collect_tuple(ty, self.target_param);
+        let yield_sub = subfields.iter().map(|f| f.yield_value(is_mut)).collect_vec();
+        quote!( {
+            let t = & #mut_kwd #value;
+            #(#yield_sub)*
+        })
+    }
+
+    /// Obtain the type of iterator-yielded value.
+    pub fn type_path_elem_type(&self, ty_path:&'t syn::TypePath) -> &syn::Type {
+        let mut type_args = ty_path_type_args(ty_path);
+        let     last_arg  = match type_args.pop() {
+            Some(arg) => arg,
+            None      => panic!("Type {} has no segments!", repr(&ty_path))
+        };
+
+        // Last and only last type argument is dependent.
+        for non_last_segment in type_args {
+            assert!(!type_depends_on(non_last_segment, self.target_param)
+                    , "Type {} has non-last argument {} that depends on {}"
+                    , repr(ty_path)
+                    , repr(non_last_segment)
+                    , repr(self.target_param)
+            );
+        }
+        assert!(type_depends_on(last_arg, self.target_param));
+        last_arg
+    }
+
+    /// Yields values of the dependent type.
+    pub fn yield_dependent_ty_path_value
+    (&self, ty_path:&'t syn::TypePath, is_mut: bool)
+     -> TokenStream {
+        let opt_mut   = is_mut.as_some(quote!( mut ));
+        let elem_ty = self.type_path_elem_type(ty_path);
+        let elem    = quote!(t);
+
+        let elem_info = DependentValue{
+            value        : elem.clone(),
+            target_param : self.target_param,
+            ty           : elem_ty,
+            through_ref  : true,
+        };
+        let yield_elem = elem_info.yield_value(is_mut);
+        let value      = &self.value;
+        let iter       = if is_mut {
+            quote!(iter_mut)
+        } else {
+            quote!(iter)
+        };
+
+        quote! {
+            for #opt_mut #elem in #value.#iter() {
+                #yield_elem
+            }
+        }
+    }
+
+    /// Describe relevant fields of the struct definition.
+    pub fn collect_struct
+    (data:&'t syn::DataStruct, target_param:&'t syn::GenericParam)
+    -> Vec<DependentValue<'t>> {
+        let fields    = fields_list(&data.fields);
+        let dep_field = fields.iter().enumerate().filter_map(|(i,f)| {
+            let ident = field_ident_token(f,i.into());
+            let value = quote!(t.#ident);
+            DependentValue::try_new(&f.ty,value,target_param)
+        });
+        dep_field.collect()
+    }
 }
 
 /// Does enum variant depend on given type.
@@ -139,7 +250,13 @@ impl DerivingIterator<'_> {
             type #t_iterator_mut<'t, #(#iterator_params),*> =
                 impl Iterator<Item = &'t mut #target_param>;
         );
-        let matched_fields = matching_fields(data, target_param);
+        let matched_fields = DependentValue::collect_struct(data, target_param);
+        let yield_fields = matched_fields.iter().map(|field| {
+            field.yield_value(false)
+        }).collect_vec();
+        let yield_mut_fields = matched_fields.iter().map(|field| {
+            field.yield_value(true)
+        }).collect_vec();
 
         // shapely::EmptyIterator::new()
         let empty_body = quote! { shapely::EmptyIterator::new() };
@@ -149,7 +266,7 @@ impl DerivingIterator<'_> {
         // })
         let body = quote! {
             shapely::GeneratingIterator
-            (move || { #(yield &t.#matched_fields;)* })
+            (move || { #(#yield_fields)* })
         };
 
         // shapely::GeneratingIterator(move || {
@@ -157,7 +274,7 @@ impl DerivingIterator<'_> {
         // })
         let body_mut = quote! {
             shapely::GeneratingIterator
-            (move || { #(yield &mut t.#matched_fields;)* })
+            (move || { #(#yield_mut_fields)* })
         };
 
         let (iter_body, iter_body_mut) = match matched_fields.is_empty() {

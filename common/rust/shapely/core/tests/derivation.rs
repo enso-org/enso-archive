@@ -2,6 +2,7 @@
 #![feature(type_alias_impl_trait)]
 
 use shapely::*;
+use std::thread::yield_now;
 
 // =============
 // === Utils ===
@@ -124,4 +125,101 @@ fn enum_iter3() {
     let v: Foo<i32, i32> = Foo::Con3(Unrecognized{value:"foo".into()});
     let mut v_iter       = v.into_iter();
     assert!(v_iter.next().is_none());
+}
+
+//
+
+#[derive(Iterator)]
+pub struct DependentTest<U, T> {
+    a:T,
+    b:(T,U,T),
+//    c:PairUV<U, T>,
+    d:PairUV<U, Option<T>>,
+}
+
+//#[derive(Iterator)]
+pub struct DependentField<T> {
+    a:T,
+    b:Option<PairUV<i32,T>>,
+}
+
+
+type DependentFieldIterator<'t, T> = impl Iterator<Item=&'t T>;
+type DependentFieldIteratorMut<'t, T> = impl Iterator<Item=&'t mut T>;
+
+pub fn dependent_field_iterator<'t, T>(t: &'t DependentField<T>) ->
+DependentFieldIterator<'t, T>
+{
+    shapely::GeneratingIterator(move || {
+        yield &t.a;
+        for t in t.b.iter() {
+            for t in t {
+                yield &t;
+            }
+        }
+    })
+}
+
+pub fn dependent_field_iterator_mut<'t, T>(t: &'t mut DependentField<T>) ->
+DependentFieldIteratorMut<'t, T>
+{ shapely::GeneratingIterator(move || { yield &mut t.a; }) }
+
+impl<'t, T> IntoIterator for &'t DependentField<T>
+{
+    type Item = &'t T;
+    type IntoIter = DependentFieldIterator<'t, T>;
+    fn
+    into_iter(self) -> DependentFieldIterator<'t, T>
+    { dependent_field_iterator(self)  }
+}
+
+impl<'t, T> IntoIterator for &'t mut DependentField<T>
+{
+    type Item = &'t mut T;
+    type IntoIter = DependentFieldIteratorMut<'t, T
+    >;
+    fn into_iter(self) -> DependentFieldIteratorMut<'t, T>
+    { dependent_field_iterator_mut(self) }
+}
+
+impl<T> DependentField<T>
+{
+    pub fn iter(&self) -> DependentFieldIterator<'_, T>
+    { dependent_field_iterator(self) }
+    pub fn iter_mut(&mut self) ->
+    DependentFieldIteratorMut<'_, T>
+    { dependent_field_iterator_mut(self) }
+}
+
+
+#[test]
+fn dependent_field_iter() {
+    let val = DependentField{a:5, b:Some(PairUV(4,6))};
+    let mut v_iter = val.into_iter();
+    assert_eq!(*v_iter.next().unwrap(), 5);
+    assert_eq!(*v_iter.next().unwrap(), 6);
+    assert!(v_iter.next().is_none());
+}
+
+////
+
+struct DeeplyDependent<T> {
+    a: T,
+    member: Vec<Option<PairUV<i32,T>>>
+}
+
+impl<T> DeeplyDependent<T> {
+    fn iter(t: &DeeplyDependent<T>) {
+        shapely::GeneratingIterator(move || {
+            yield &t.a;
+
+            for vec_mem in t.member.iter() {
+                for opt_mem in vec_mem.iter() {
+                    for pair_mem in opt_mem.iter() {
+                        yield &pair_mem;
+                    }
+                }
+            }
+        });
+    }
 }

@@ -37,5 +37,11 @@ pub fn derive_iterator
         Some(last_param) => derive_iterator::derive(&decl, &last_param),
         None             => TokenStream::new(),
     };
+//    println!("{}", macro_utils::repr(&output));
+
+    if macro_utils::repr(&decl.ident) == "DependentTest" {
+        println!("{} ", macro_utils::repr(&output));
+    }
+
     proc_macro::TokenStream::from(output)
 }

@@ -3,6 +3,7 @@ use prelude::*;
 use quote::quote;
 use syn;
 use syn::visit::{self, Visit};
+use proc_macro2::TokenStream;
 
 /// Obtains text representation of given `ToTokens`-compatible input.
 pub fn repr<T: quote::ToTokens>(t:&T) -> String {
@@ -16,6 +17,51 @@ pub fn fields_list(fields:&syn::Fields) -> Vec<&syn::Field> {
         syn::Fields::Unnamed(ref f) => f.unnamed.iter().collect(),
         syn::Fields::Unit           => default(),
     }
+}
+
+/// Returns token that refers to the field.
+///
+/// It is the field name for named field and field index for unnamed fields.
+pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
+    match &field.ident {
+        Some(ident) => quote!(#ident),
+        None        => quote!(#index),
+    }
+}
+
+/// Obtain list of generic arguments on the path's segment.
+pub fn path_segment_generic_args
+(segment:&syn::PathSegment) -> Vec<&syn::GenericArgument> {
+    match segment.arguments {
+        syn::PathArguments::AngleBracketed(ref args) =>
+            args.args.iter().collect(),
+        _ =>
+            Vec::new(),
+    }
+}
+
+/// Obtain list of generic arguments on the path's last segment.
+///
+/// Empty, if path contains no segments.
+pub fn ty_path_generic_args
+(ty_path:&syn::TypePath) -> Vec<&syn::GenericArgument> {
+    ty_path.path.segments.last().map_or(Vec::new(), path_segment_generic_args)
+}
+
+/// Obtain list of type arguments on the path's last segment.
+pub fn ty_path_type_args
+(ty_path:&syn::TypePath) -> Vec<&syn::Type> {
+    ty_path_generic_args(ty_path).iter().filter_map( |generic_arg| {
+        match generic_arg {
+            syn::GenericArgument::Type(t) => Some(t),
+            _                             => None,
+        }
+    }).collect()
+}
+
+/// Last type argument of the last segment on the type path.
+pub fn last_type_arg(ty_path:&syn::TypePath) -> Option<&syn::GenericArgument> {
+    ty_path_generic_args(ty_path).last().copied()
 }
 
 // =====================
@@ -57,12 +103,17 @@ pub fn gather_all_type_reprs(node:&syn::Type) -> Vec<String> {
 
 pub fn type_depends_on(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
     let target_param = repr(target_param);
-    gather_all_types(ty).iter().any(|ty| repr(ty) == target_param)
+    let relevant_types = gather_all_types(ty);
+    let depends = relevant_types.iter().any(|ty| repr(ty) == target_param);
+//    println!("Does {} depend on {}? {}", repr(ty), target_param, depends);
+    depends
 }
 
 pub fn type_matches(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
     repr(ty) == repr(target_param)
 }
+
+
 
 
 #[cfg(test)]

@@ -42,7 +42,7 @@ pub struct Tree<K,V> {
 // ===============
 
 /// A value of type `T` annotated with offset value `off`.
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Shrinkwrap)]
+#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Shrinkwrap, Iterator)]
 #[shrinkwrap(mutable)]
 pub struct Shifted<T> {
     #[shrinkwrap(main_field)]
@@ -51,7 +51,7 @@ pub struct Shifted<T> {
 }
 
 /// A non-empty sequence of `T`s interspersed by offsets.
-#[derive(Eq, PartialEq, Debug, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Debug, Serialize, Deserialize, Iterator)]
 pub struct ShiftedVec1<T> {
     pub head: T,
     pub tail: Vec<Shifted<T>>
@@ -439,9 +439,12 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
 #[ast] pub enum PatternClass { Normal, Pattern }
 pub type Spaced = Option<bool>;
 
-#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-pub enum Either<L,R> { Left{value: L}, Right{value: R} }
-pub type Switch<T> = Either<T,T>;
+//#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
+//pub enum Either<L,R> { Left{value: L}, Right{value: R} }
+//pub type Switch<T> = Either<T,T>;
+
+#[ast(flat)]
+pub enum Switch<T> { Left{value: T}, Right{value: T} }
 
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 #[ast] pub enum MacroPatternMatchRaw<T> {
