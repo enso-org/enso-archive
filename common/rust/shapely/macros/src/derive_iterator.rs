@@ -2,8 +2,13 @@ use prelude::*;
 
 use quote::quote;
 use proc_macro2::{TokenStream,Ident,Span};
-use macro_utils::{fields_list, type_matches, repr, type_depends_on
-                 , ty_path_type_args, field_ident_token};
+use macro_utils::fields_list;
+use macro_utils::field_ident_token;
+use macro_utils::repr;
+use macro_utils::type_depends_on;
+use macro_utils::type_matches;
+use macro_utils::ty_path_type_args;
+use macro_utils::variant_depends_on;
 use inflector::Inflector;
 use syn::Field;
 
