@@ -124,11 +124,14 @@ jobs:
 #          echo "##vso[task.setvariable variable=PATH;]$PATH:~/firefox"
         displayName: Install Firefox
       - script: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
           rustup update nightly
           rustup override set nightly
           echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
         displayName: Install Rust
+      - script: |
+          curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh -s -- -f
+        displayName: Install Wasm-Pack
       - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
           tar -x -z -C ~ -f sbt.tgz
@@ -143,8 +146,6 @@ jobs:
       - script: cargo test --all
         displayName: Cargo Test
       - script: |
-          mkdir target
-          touch target/scala-parser.js
           wasm-pack test common/rust/parser --headless --firefox
         displayName: Wasm-Pack Test Parser
 #      - script: |
