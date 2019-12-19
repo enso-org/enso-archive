@@ -36,6 +36,7 @@ jobs:
       - script: |
           curl -L -o ~/firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64"
           tar xjf ~/firefox.tar.bz2
+          ls ~
           ls ~/firefox
           echo "_________"
           ls ~/firefox/firefox
