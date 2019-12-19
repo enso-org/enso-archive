@@ -35,15 +35,15 @@ jobs:
         displayName: Setup Sudo
       - script: |
           /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y firefox"
-          curl -L -o firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64"
-          pwd
-          ls .
-          ls ~
-          tar xjf firefox.tar.bz2
-          ls firefox
-          echo "_________"
-          ls firefox/firefox
-          echo "##vso[task.setvariable variable=PATH;]$PATH:~/firefox"
+#          curl -L -o firefox.tar.bz2 "https://download.mozilla.org/?product=firefox-latest-ssl&os=linux64"
+#          pwd
+#          ls .
+#          ls ~
+#          tar xjf firefox.tar.bz2
+#          ls firefox
+#          echo "_________"
+#          ls firefox/firefox
+#          echo "##vso[task.setvariable variable=PATH;]$PATH:~/firefox"
         displayName: Install Firefox
       - script: |
           curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
@@ -54,15 +54,15 @@ jobs:
       - script: |
           curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
         displayName: Install Wasm-Pack
-#      - script: |
-#          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
-#          tar -x -z -C ~ -f sbt.tgz
-#          echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
-#        displayName: Install SBT
-#      - script: |
-#          sbt -no-colors syntaxJS/fullOptJS
-#        displayName: Check Compilation to JS
-#        continueOnError: true
+      - script: |
+          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+          tar -x -z -C ~ -f sbt.tgz
+          echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
+        displayName: Install SBT
+      - script: |
+          sbt -no-colors syntaxJS/fullOptJS
+        displayName: Check Compilation to JS
+        continueOnError: true
       - script: cargo build --all
         displayName: Cargo Build
       - script: cargo test --all
