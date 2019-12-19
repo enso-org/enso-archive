@@ -120,8 +120,7 @@ jobs:
       - script: |
           curl -fSL -o firefox.dmg "https://download.mozilla.org/?product=firefox-latest-ssl&os=osx"
           hdiutil attach firefox.dmg
-          cd /Volumes/Firefox
-          cp Firefox.app /Applications/Firefox.app
+          cp -R /Volumes/Firefox/Firefox.app /Applications/Firefox.app
 #          echo "##vso[task.setvariable variable=PATH;]$PATH:~/firefox"
         displayName: Install Firefox
       - script: |
