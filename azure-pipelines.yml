@@ -58,12 +58,15 @@ jobs:
       - script: |
           cargo build --all
         displayName: Cargo Build
+        continueOnError: true
       - script: |
           cargo test --all
         displayName: Cargo Test
+        continueOnError: true
       - script: |
           wasm-pack test common/rust/parser --headless --firefox
         displayName: Wasm-Pack Test Parser
+        continueOnError: true
       - script: |
           sbt -no-colors test
         displayName: Test All
@@ -135,12 +138,15 @@ jobs:
       - script: |
           cargo build --all
         displayName: Cargo Build
+        continueOnError: true
       - script: |
           cargo test --all
         displayName: Cargo Test
+        continueOnError: true
       - script: |
           wasm-pack test common/rust/parser --headless --firefox
         displayName: Wasm-Pack Test Parser
+        continueOnError: true
       - script: |
           sbt -no-colors test
         displayName: Test All
@@ -202,16 +208,19 @@ jobs:
       - script: |
           cargo build --all
         displayName: Cargo Build
+        continueOnError: true
       - script: |
           cargo test --all
+        continueOnError: true
         displayName: Cargo Test
       - script: |
           wasm-pack test common/rust/parser --headless --firefox
         displayName: Wasm-Pack Test Parser
+        continueOnError: true
       - script: |
           sbt test
-        continueOnError: true
         displayName: Test All
+        continueOnError: true
       - script: |
           sbt syntax/bench
         displayName: Benchmark the Parser
