@@ -21,6 +21,8 @@ variables:
   graalReleasesUrl: https://github.com/graalvm/graalvm-ce-builds/releases/download
   graalDistributionName: graalvm-ce-java8
   sbtVersion: 1.3.3    # Please ensure this is in sync with project/build.properties
+  wasmpackVersion: 0.8.1
+  rustToolchain: nightly-2019-12-13
 
 jobs:
   - job: Linux
@@ -38,13 +40,11 @@ jobs:
           /tmp/docker exec -t -u 0 ci-container sh -c "yum install -y firefox"
         displayName: Install Firefox
       - script: |
-          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain nightly
-          rustup update nightly
-          rustup override set nightly
+          curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $(rustToolchain)
           echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
         displayName: Install Rust
       - script: |
-          curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh -s -- -f
+          cargo install wasm-pack --version $(wasmpackVersion)
         displayName: Install Wasm-Pack
       - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
@@ -118,13 +118,11 @@ jobs:
           cp -R /Volumes/Firefox/Firefox.app /Applications/Firefox.app
         displayName: Install Firefox
       - script: |
-          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
-          rustup update nightly
-          rustup override set nightly
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain $(rustToolchain)
           echo "##vso[task.setvariable variable=PATH;]$PATH:$HOME/.cargo/bin"
         displayName: Install Rust
       - script: |
-          curl -sSf https://rustwasm.github.io/wasm-pack/installer/init.sh | sh -s -- -f
+          cargo install wasm-pack --version $(wasmpackVersion)
         displayName: Install Wasm-Pack
       - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
@@ -182,14 +180,11 @@ jobs:
         displayName: Install Firefox
       - script: |
           curl -sSf -o rustup-init.exe "https://win.rustup.rs"
-          rustup-init.exe -y --default-toolchain nightly
-          rustup update nightly
-          rustup override set nightly
+          rustup-init.exe -y --default-toolchain $(rustToolchain)
           echo "##vso[task.setvariable variable=PATH;]%PATH%;%USERPROFILE%\.cargo\bin"
         displayName: Install Rust
       - script: |
-          curl -sSLf -o wasm-pack-init.exe "https://github.com/rustwasm/wasm-pack/releases/download/v0.8.1/wasm-pack-init.exe"
-          wasm-pack-init.exe -y
+          cargo install wasm-pack --version $(wasmpackVersion)
         displayName: Install Wasm-Pack
       - script: |
           curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
