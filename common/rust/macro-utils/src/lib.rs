@@ -3,7 +3,38 @@ use prelude::*;
 use quote::quote;
 use syn;
 use syn::visit::{self, Visit};
-use proc_macro2::TokenStream;
+use proc_macro2::{TokenStream,TokenTree};
+
+
+// =========================
+// === Token Stream Utils ===
+// =========================
+
+/// Maps all the tokens in the stream using a given function.
+pub fn map_tokens<F:Fn(TokenTree) -> TokenTree>
+(input:TokenStream, f:F) -> TokenStream {
+    let ret_iter = input.into_iter().map(f);
+    TokenStream::from_iter(ret_iter)
+}
+
+/// Replaces all identifiers matching `from` string with a new `to` Ident.
+pub fn replace_ident_tokens
+(tokens:TokenStream, from:&str, into:&str) -> TokenStream {
+    map_tokens(tokens, |token| replace_ident(token, from, into))
+}
+
+
+// ===================
+// === Token Utils ===
+// ===================
+pub fn replace_ident(token:TokenTree, from:&str, into:&str) -> TokenTree {
+    match token {
+        TokenTree::Ident(ident) if ident.to_string() == from =>
+            TokenTree::from(proc_macro2::Ident::new(into, ident.span())),
+        _ => token,
+    }
+}
+
 
 // ============
 // === Repr ===

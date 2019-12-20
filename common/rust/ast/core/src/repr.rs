@@ -255,7 +255,12 @@ make_repr!(SectionLeft<T>, self.arg, self.off, self.opr);
 make_repr!(SectionRight<T>, self.opr, self.off, self.arg);
 make_repr!(SectionSides<T>, self.opr);
 
-make_custom_repr!(Infix<T>, self.larg._PLACEHOLDER_(target));
+make_custom_repr!(Infix<T>
+, self.larg._PLACEHOLDER_(target)
+, self.loff._PLACEHOLDER_(target)
+, self.opr._PLACEHOLDER_(target)
+, self.roff._PLACEHOLDER_(target)
+, self.rarg._PLACEHOLDER_(target));
 
 impl<T: HasSpan> HasSpan for Module<T> {
     fn span(&self) -> usize {
@@ -266,7 +271,6 @@ impl<T: HasSpan> HasSpan for Module<T> {
         lines_span + breaks_span
     }
 }
-
 impl<T: HasRepr> HasRepr for Module<T> {
     fn write_repr(&self, target:&mut String) {
         let mut iter = self.lines.iter();

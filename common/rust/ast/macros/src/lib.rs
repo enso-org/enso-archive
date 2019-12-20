@@ -1,5 +1,7 @@
 extern crate proc_macro;
 
+mod reprspan;
+
 use prelude::*;
 
 use proc_macro2::{TokenStream, Ident, Span};
@@ -7,8 +9,6 @@ use quote::quote;
 use syn;
 
 use macro_utils::{gather_all_type_reprs, repr};
-use syn::punctuated::Punctuated;use syn::Expr;
-use syn::Token;
 
 // ==============
 // === Macros ===
@@ -252,184 +252,33 @@ pub fn to_variant_types
     output.into()
 }
 
-/// Creates a HasSpan instance for given enum type.
-///
-/// Given type may only consist of single-elem typle-like constructors.
-/// The implementation uses underlying HasSpan implementation for each stored
-/// value.
-fn derive_has_span_for_enum
-(decl:&syn::DeriveInput, data:&syn::DataEnum)
--> TokenStream  {
-    let ident = &decl.ident;
-    let params = decl.generics.params.iter().collect::<Vec<_>>();
-
-    let span_arms = data.variants.iter().map(|v| {
-        let con_ident = &v.ident;
-        quote!( #ident::#con_ident (elem) => elem.span() )
-    });
-    let repr_arms = data.variants.iter().map(|v| {
-        let con_ident = &v.ident;
-        quote!( #ident::#con_ident (elem) => elem.write_repr(target) )
-    });
-
-    let ret = quote! {
-        impl<#(#params: HasSpan),*> HasSpan for #ident<#(#params),*> {
-            fn span(&self) -> usize {
-                match self {
-                    #(#span_arms),*
-                }
-            }
-        }
-        impl<#(#params: HasRepr),*> HasRepr for #ident<#(#params),*> {
-            fn write_repr(&self, target:&mut String) {
-                match self {
-                    #(#repr_arms),*
-                }
-            }
-        }
-    };
-    ret
-}
-
 #[proc_macro_derive(HasSpan)]
 pub fn derive_has_span
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
     let ret = match decl.data {
-        syn::Data::Enum(ref e) => derive_has_span_for_enum(&decl,&e),
+        syn::Data::Enum(ref e) => reprspan::derive_for_enum(&decl,&e),
         _       => quote! {},
     };
     proc_macro::TokenStream::from(ret)
 }
 
-fn get_type_args(ty:&syn::PathSegment) -> Vec<syn::GenericArgument> {
-    match ty.arguments {
-        syn::PathArguments::AngleBracketed(ref args) =>
-            args.args.iter().cloned().collect(),
-        _ =>
-            Vec::new(),
-    }
-}
-
-struct ReprDescription {
-    ty:syn::PathSegment,
-    exprs:Vec<syn::Expr>,
-    ty_args:Vec<syn::GenericArgument>,
-}
-
-impl syn::parse::Parse for ReprDescription {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let ty:syn::PathSegment = input.parse()?;
-        input.parse::<Option<syn::token::Comma>>()?;
-        let exprs = Punctuated::<Expr, Token![,]>::parse_terminated(input)?;
-        let exprs = exprs.iter().cloned().collect::<Vec<_>>();
-        let ty_args = get_type_args(&ty);
-        Ok(ReprDescription {ty,exprs,ty_args})
-    }
-}
-
-fn make_repr2(input: TokenStream) -> TokenStream {
-    let tokens = input.clone();
-    let rr : ReprDescription = syn::parse2(tokens).unwrap();
-    let ty = rr.ty;
-    let ty_args = rr.ty_args;
-    let exprs = rr.exprs;
-    let output = quote!{
-        impl<#(#ty_args : HasSpan),*> HasSpan for #ty {
-            fn span(&self) -> usize {
-                0 #(+ #exprs.span())*
-            }
-        }
-
-        impl<#(#ty_args : HasRepr),*> HasRepr for #ty {
-            fn write_repr(&self, target:&mut String) {
-                #(#exprs.write_repr(target);)*
-            }
-        }
-    };
-    output
-}
-
-fn replace_ident(input:TokenStream, from:&str, into:&str) -> TokenStream {
-    let ret_iter = input.into_iter().map(|token| {
-        use proc_macro2::{Ident, TokenTree};
-        match token {
-            TokenTree::Ident(ident) if ident.to_string() == from =>
-                TokenTree::from(Ident::new(into, ident.span())),
-            _ => token,
-        }
-    });
-    TokenStream::from_iter(ret_iter)
-}
-
-fn make_repr3(input: TokenStream) -> TokenStream {
-    let tokens = replace_ident(input, "_PLACEHOLDER_", "write_repr");
-    let rr : ReprDescription = syn::parse2(TokenStream::from_iter(tokens)).unwrap();
-    let ty = rr.ty;
-    let ty_args = rr.ty_args;
-    let exprs = rr.exprs;
-//    println!("{:?}", &exprs);
-    let output = quote!{
-        impl<#(#ty_args : HasSpan),*> HasSpan for #ty {
-            fn span(&self) -> usize {
-                let mut acc = 0;
-                acc += self.larg.span();
-                acc
-            }
-        }
-
-        impl<#(#ty_args : HasRepr),*> HasRepr for #ty {
-            fn write_repr(&self, target:&mut String) {
-                #(#exprs;)*
-            }
-        }
-    };
-    output
-//    quote!()
-}
-
-
 #[proc_macro]
 pub fn make_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ret = make_repr2(input.into());
+    let ret = reprspan::make_repr2(input.into());
 //    println!("{}", repr(&ret));
     ret.into()
 }
 
 #[proc_macro]
 pub fn make_custom_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ret = make_repr3(input.into());
+    let ret = reprspan::make_repr3(input.into());
     println!("{}", repr(&ret));
     ret.into()
 }
 
-// Sample expansion for: Import<T>
-//
-// impl<T> HasSpan for Import<T> {
-//     fn span(&self) -> usize {
-//         panic!("HasSpan is not supported for Spaceless AST!")
-//     }
-// }
-// impl<T> HasRepr for Import<T> {
-//     fn write_repr(&self, target:&mut String) {
-//         panic!("HasRepr not supported for Spaceless AST!")
-//     }
-// }
+/// Generates `HasRepr` and `HasSpan` implementations that panic when used.
 #[proc_macro]
 pub fn not_supported_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let target = syn::parse::<syn::PathSegment>(input).unwrap();
-    let ty_args = get_type_args(&target);
-    let ret = quote!{
-        impl<#(#ty_args),*> HasSpan for #target {
-            fn span(&self) -> usize {
-                panic!("HasSpan not supported for Spaceless AST!")
-            }
-        }
-        impl<#(#ty_args),*> HasRepr for #target {
-            fn write_repr(&self, target:&mut String) {
-                panic!("HasRepr not supported for Spaceless AST!")
-            }
-        }
-    };
-    ret.into()
+    crate::reprspan::not_supported(input)
 }

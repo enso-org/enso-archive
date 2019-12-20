@@ -563,6 +563,12 @@ pub enum MacroPatternMatchRaw<T> {
 /// Things that can be asked about their span.
 pub trait HasSpan {
     fn span(&self) -> usize;
+
+    /// Helper used in some generic contexts for regularity with HasRepr's
+    /// write_repr.
+    fn sum_span(&self, acc:usize) -> usize {
+        self.span() + acc
+    }
 }
 
 /// Counts codepoints.
