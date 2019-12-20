@@ -6,11 +6,9 @@ use proc_macro2::{TokenStream, Ident, Span};
 use quote::quote;
 use syn;
 
-use syn::punctuated::Punctuated;
-use syn::Expr;
-use syn::Token;
-
 use macro_utils::{gather_all_type_reprs, repr};
+use syn::punctuated::Punctuated;use syn::Expr;
+use syn::Token;
 
 // ==============
 // === Macros ===

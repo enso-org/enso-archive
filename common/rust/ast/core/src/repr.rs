@@ -8,9 +8,8 @@ impl Number {
     const BASE_SEPARATOR:char = '_';
 }
 impl Mod {
-    const MARKER:char = '=';
+    const SUFFIX:char = '=';
 }
-
 /// Symbol enclosing raw Text line.
 const FMT_QUOTE:char = '\'';
 
@@ -108,7 +107,6 @@ make_repr!(EscapeUnicode32, UNICODE32_INTRODUCER, self.digits);
 make_repr!(BlockLine<T>, self.elem, self.off);
 
 // === Macro ===
-
 make_repr!(MacroMatchSegment<T>, self.head, self.body);
 make_repr!(MacroAmbiguousSegment, self.head, self.body);
 
@@ -152,63 +150,101 @@ impl<T> MacroPatternMatchRaw<T> {
     }
 }
 
-
-impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
-    fn span(&self) -> usize {
-        match self {
-            MacroPatternMatchRaw::Begin  (_)    => 0,
-            MacroPatternMatchRaw::End    (_)    => 0,
-            MacroPatternMatchRaw::Nothing(_)    => 0,
-            MacroPatternMatchRaw::Seq    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Or     (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Many   (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Except (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Build  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Err    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Tag    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Cls    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Tok    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Blank  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Var    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Cons   (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Opr    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Mod    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Num    (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Text   (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Block  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Macro  (elem) => elem.elem.span(),
-            MacroPatternMatchRaw::Invalid(elem) => elem.elem.span(),
-        }
-    }
-}
+//
 //impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
 //    fn span(&self) -> usize {
-//        self.get_elems().iter().map(|el| el.span()).sum()
+//        match self {
+//            MacroPatternMatchRaw::Begin  (_)    => 0,
+//            MacroPatternMatchRaw::End    (_)    => 0,
+//            MacroPatternMatchRaw::Nothing(_)    => 0,
+//            MacroPatternMatchRaw::Seq    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Or     (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Many   (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Except (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Build  (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Err    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Tag    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Cls    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Tok    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Blank  (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Var    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Cons   (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Opr    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Mod    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Num    (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Text   (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Block  (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Macro  (elem) => elem.elem.span(),
+//            MacroPatternMatchRaw::Invalid(elem) => elem.elem.span(),
+//        }
 //    }
 //}
-impl<T: HasRepr> HasRepr for MacroPatternMatchRaw<T> {
+//impl<T: HasRepr> HasRepr for MacroPatternMatchRaw<T> {
+//    fn repr(&self) -> String {
+//        match self {
+//            MacroPatternMatchRaw::Begin  (_)    => String::new(),
+//            MacroPatternMatchRaw::End    (_)    => String::new(),
+//            MacroPatternMatchRaw::Nothing(_)    => String::new(),
+//            MacroPatternMatchRaw::Seq    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Or     (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Many   (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Except (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Build  (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Err    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Tag    (elem) => {
+//                let m = &elem.elem;
+//                println!("{}: `{}` vs `{}`", elem.pat.tag, elem.elem.repr(), self.repr_elem());
+//                self.repr_elem()
+//            },
+//            MacroPatternMatchRaw::Cls    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Tok    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Blank  (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Var    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Cons   (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Opr    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Mod    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Num    (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Text   (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Block  (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Macro  (elem) => elem.elem.repr(),
+//            MacroPatternMatchRaw::Invalid(elem) => elem.elem.repr(),
+//        }
+//    }
+//}
+impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
+    fn span(&self) -> usize {
+        self.get_elems().iter().map(|el| el.span()).sum()
+    }
+}
+
+impl<T: HasRepr> HasRepr for  MacroPatternMatchRaw<T> {
     fn repr(&self) -> String {
         self.get_elems().iter().map(|el| el.repr()).join("")
     }
 }
+impl<T: HasRepr>  MacroPatternMatchRaw<T> {
+    fn repr_elem(&self) -> String {
+        self.get_elems().iter().map(|el| el.repr()).join("")
+    }
+}
 
-// === Either ===
-impl<T: HasSpan, U: HasSpan> HasSpan for Either<T, U> {
-    fn span(&self) -> usize {
-        match self {
-            Either::Left { value } => value.span(),
-            Either::Right{ value } => value.span(),
-        }
-    }
-}
-impl<T: HasRepr, U: HasRepr> HasRepr for Either<T, U> {
-    fn repr(&self) -> String {
-        match self {
-            Either::Left { value } => value.repr(),
-            Either::Right{ value } => value.repr(),
-        }
-    }
-}
+//// === Either ===
+//impl<T: HasSpan, U: HasSpan> HasSpan for Either<T, U> {
+//    fn span(&self) -> usize {
+//        match self {
+//            Either::Left { value } => value.span(),
+//            Either::Right{ value } => value.span(),
+//        }
+//    }
+//}
+//impl<T: HasRepr, U: HasRepr> HasRepr for Either<T, U> {
+//    fn repr(&self) -> String {
+//        match self {
+//            Either::Left { value } => value.repr(),
+//            Either::Right{ value } => value.repr(),
+//        }
+//    }
+//}
 
 // === Shifted ===
 
@@ -240,7 +276,7 @@ make_repr!(Blank, Blank::REPR);
 make_repr!(Var, self.name);
 make_repr!(Cons, self.name);
 make_repr!(Opr, self.name);
-make_repr!(Mod, self.name, Mod::MARKER);
+make_repr!(Mod, self.name, Mod::SUFFIX);
 make_repr!(InvalidSuffix<T>, self.elem, self.suffix);
 make_repr!(Number, self.base.as_ref().map(|b| NumberBase(b)), self.int);
 make_repr!(DanglingBase, self.base, Number::BASE_SEPARATOR);
@@ -362,16 +398,8 @@ impl<T: HasRepr> HasRepr for Match<T> {
         return pfx_reprs.repr() + & self.segs.repr()
     }
 }
-impl HasSpan for Ambiguous {
-    fn span(&self) -> usize {
-        self.segs.span()
-    }
-}
-impl HasRepr for Ambiguous {
-    fn repr(&self) -> String {
-        "macro is broken".into() // FIXME
-    }
-}
+
+make_repr!(Ambiguous, self.segs);
 
 not_supported_repr!(Comment);
 not_supported_repr!(Import<T>);

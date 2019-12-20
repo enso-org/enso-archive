@@ -48,11 +48,9 @@ fn assert_opr<StringLike:Into<String>>(ast:&Ast, name:StringLike) {
 fn validate_spans(ast:&Ast) {
     for node in ast.iter_recursive() {
         let calculated = node.shape().span();
-        let declared   = ast.wrapped.wrapped.span;
-        if calculated != declared {
-            println!("{} != {} for {}", calculated, declared, ast.repr());
-        }
-//        assert_eq!(calculated, declared, "{}", ast.repr());
+        let declared   = node.wrapped.wrapped.span;
+        assert_eq!(calculated, declared
+                  , "`{}` part of `{}`", node.repr(), ast.repr());
     }
 }
 
@@ -126,9 +124,10 @@ impl Fixture {
 
     /// Runs parser on given input, panics on any error.
     fn parse(&mut self, program:&str) -> Ast {
+        println!("parsing {}", program);
         let ast = self.0.parse(program.into()).unwrap();
+        assert_eq!(ast.shape().span(), program.len());
         validate_spans(&ast);
-//        assert_eq!(ast.span(), program.len());
         assert_eq!(ast.repr(), program, "{:?}", ast);
         ast
     }
@@ -162,6 +161,8 @@ impl Fixture {
     fn deserialize_invalid_quote(&mut self) {
         let unfinished = "'a''";
         self.test_shape(unfinished,|shape:&Prefix<Ast>| {
+            let func: &TextUnclosed<Ast> = expect_shape(&shape.func);
+
             // ignore shape.func, being TextUnclosed tested elsewhere
             let arg:&InvalidQuote = expect_shape(&shape.arg);
             let expected_quote    = Text {str:"''".into()};
@@ -423,6 +424,7 @@ impl Fixture {
             [ "foo -> bar"
             , "()"
             , "(foo -> bar)"
+            , "a b c -> bar"
             , "type Maybe a\n    Just val:a"
             , "foreign Python3\n  bar"
             , "if foo > 8 then 10 else 9"
