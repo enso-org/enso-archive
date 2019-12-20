@@ -7,8 +7,9 @@ This is that document, and it contains descriptions of key semantic portions of
 Enso.
 
 > The actionables for this section are:
-> 
-> - As we make more semantic determination of 
+>
+> - As we make more semantic determinations about the language these should be
+>   written down here.
 
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
@@ -23,16 +24,24 @@ example of a lazily evaluated language, Enso is not lazy. Instead, Enso is a
 language that is strict.
 
 - Statements in Enso are evaluated as soon as they are bound to a name.
-- This means that arguments to a function are always evaluated before the 
+- This means that arguments to a function are always evaluated before the
   function is applied.
 - Statements are _only_ evaluated when they contain fully-applied function
   applications. Otherwise they return curried functions.
 
+> The actionables for this section are:
+>
+> - Make this far better specified.
+
 ### Optional Suspension
 Laziness, however, can often be quite useful for defining certain kinds of API.
-To that end, Enso provides support for optional laziness, more specifically 
+To that end, Enso provides support for optional laziness, more specifically
 optional _suspension_, through the built-in `Suspended` type.
 
 - When a type `a` is wrapped in a `Suspended`, it is turned into a thunk.
-- A value of type `Suspended a` may be forced to execute the suspended 
+- A value of type `Suspended a` may be forced to execute the suspended
   computation and thereby obtain an `a`.
+
+> The actionables for this section are:
+>
+> - Make this far better specified.
