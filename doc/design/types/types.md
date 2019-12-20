@@ -1,29 +1,6 @@
-# Enso: The Type System
-On the spectrum of programming type systems ranging from dynamically typed to
-statically typed, one likes to think that there is a happy medium between the
-two. A language that _feels_ dynamic, with high levels of type inference, but
-lets the users add more type information as they want more safety and
-compile-time checking.
-
-Enso aims to be that language, providing a statically-typed language with a type
-system that makes it feel dynamic. It will infer sensible types in many cases,
-but as users move from exploratory pipelines to production systems, they are
-able to add more and more type information to their programs, proving more and
-more properties using the type system. This is based on a novel type-inference
-engine, and a fusion of nominal and structural typing, combined with dependent
-types.
-
-All in all, the type system should stay out of the users' ways unless they make
-a mistake, but give more experienced users the tools to build the programs that
-they require.
-
 <!-- MarkdownTOC levels="1,2" autolink="true" -->
 
 - [Motivation](#motivation)
-- [Goals for the Type System](#goals-for-the-type-system)
-- [Type Conversions](#type-conversions)
-  - [Convertible](#convertible)
-  - [Coercible](#coercible)
 - [Principles for Enso's Type System](#principles-for-ensos-type-system)
 - [Structural Type Shorthand](#structural-type-shorthand)
 - [Interfaces](#interfaces)
@@ -59,133 +36,6 @@ behind Enso's type system.
 In the end, Enso's current module system is insufficient for serious development
 in the language, and needs to be replaced. In doing so, this RFC proposes to
 take the time to bring a vast simplification to the language in the same swoop.
-
-# Goals for the Type System
-In our design for Enso, we firmly believe that the type system should be able to
-aid the user in writing correct programs, far and above anything else. However,
-with so much of our targeted user-base being significantly non-technical, it
-needs to be as unobtrusive as possible.
-
-- Inference should have maximal power. We want users to be _forced_ to write
-  type annotations in as few situations as possible. This means that, ideally,
-  we are able to infer higher-rank types and make impredicative instantiations
-  without annotations.
-- Error messages must be informative. This is usually down to the details of the
-  implementation, but we'd rather not employ an algorithm that discards
-  contextual information that would be useful for crafting useful errors.
-- Dependent types are a big boon for safety in programming languages, allowing
-  the users that _want to_ to express additional properties of their programs
-  in their types. We would like to introduce dependent types in future, but
-  would welcome insight on whether it is perhaps easier to do so from the get
-  go. If doing so, we would prefer to go with `Type : Type`.
-- Our aim is to create a powerful type system to support development, rather
-  than turn Enso into a research language. We want users to be able to add
-  safety gradually.
-
-# Type Conversions
-Like in any programming language, Enso requires the ability to convert between
-types. Sometimes these conversions have to happen at runtime, incurring a
-computational cost, but sometimes these conversions can be 'free', in cases
-where the compiler can prove that the types have the same representation at
-runtime. Enter the `Coercible` and `Convertible` mechanisms.
-
-## Convertible
-There is a tension in Enso's design around conversions between types. In many
-cases, our users performing data analysis will just 'want it to do the right
-thing', whereas users writing production software will likely want control.
-
-The resolution for this tension comes in the form of `Convertible`, one of the
-wired-in interfaces in the compiler. This type is defined as follows, and
-represents the category of runtime conversions between types. As these
-conversions must take place at runtime, they are able to perform computations.
-
-```
-type Convertible a b:
-    convert : a -> b
-
-convertVia : <what goes here> => (t : [Type]) -> a -> b
-```
-
-The fact that `Convertible` is wired in lets the compiler treat it in a special
-fashion. When it encounters a type mismatch between types `A` and `B`, the
-compiler is able to look up all instances of `Convertible` to see if there is a
-matching conversion. If there is, it will be automatically (invisibly) inserted.
-
-Now this initially sounds like a recipe for a lack of control, but there are a
-few elements of this design to keep in mind:
-
-- Due to the nature of Enso's type system and how default arguments count
-  towards the saturation of a function, an instance of convert can actually be
-  defined to be configurable. Consider the following example, which defines an
-  instance with an alternative signature.
-
-  ```
-  instance Convertible Text File.Path for Text:
-      convert : (a : Text) -> Bool -> (b : File.Path)
-      convert in -> expandEnvVars = True -> ...
-  ```
-
-  Under such a circumstance, the implicit call uses the default, but if a user
-  wants to configure or control elements of the conversion behaviour, then they
-  can be explicit `convert (expandVars = True)`. In cases where the types need
-  to be made explicit to ensure instance resolution, they too can be applied
-  (`convert (a = Text) (b = File.Path) foo`).
-- This mechanism is unobtrusive in exploratory code, and contributes to the idea
-  that things 'just work'.
-- It is accompanied by an optional warning `-Wimplicit-conversions` that warns
-  when a conversion is made without an explicit call to `convert`. This ensures
-  that users can opt in to having more feedback as their codebase evolves from
-  exploration to development. This warning will be accompanied by an IDE
-  protocol quick-fix that allows local (or global) insertion of explicit
-  conversions.
-- The `Convertible` type is represented as an interface because users may need
-  to constrain the types of their functions based upon the ability to convert
-  between two types `a` and `b`. When used in this case, there is of course no
-  access to any defaulted arguments without extending the interface (see the
-  discussion on row extension above).
-- A call to `convert` will only be implicitly inserted when the two types to be
-  converted between are explicitly known by the type-checker. It will _not_
-  insert speculative calls.
-- Conversion takes place at runtime at the last possible moment. This means that
-  if `a : Foo` is convertible to `Bar`, with some function `f : Bar -> ...`, the
-  call `f a` is implicitly rewritten `f (convert a)`.
-- A call to `convert` is only inserted implicitly when the type mismatch can be
-  resolved
-- The function `convertVia` lets you give a hint to the compiler as to the type
-  to convert through. This has a default implementation in every instance of
-  the interface. It is _never_ inserted by the compiler.
-
-Finally, you may be wondering about the quality of error messages that this can
-produce in the case where there is a type mismatch and not enough information to
-resolve the type variables. To this end, there has been some discussion about
-making `convert` a reserved name, but this is not certain yet.
-
-It is an open question as to _where_ we infer convertible.
-
-## Coercible
-It is often necessary, particularly when working with structs over the C-FFI or
-in the case of embedded syntaxes, to need to be able to convert between types
-with zero runtime cost. The `Coercible` mechanism provides a way to do this that
-is safe and checked by the compiler.
-
-This is a wired-in type in the compiler, and unlike for `Convertible` above, it
-cannot be defined by users. Instead, the compiler will automatically generate
-pairs of coercions between _types that have identical runtime representations_.
-
-```
-type Coercible a b:
-    coerce : a -> b
-```
-
-Unlike calls to `convert`, calls to `coerce` are never inserted by the compiler.
-This is due to the fact that, while two types may have the same runtime
-representation, the semantics of these types can differ wildly.
-
-Much like above, there are some elements of this design that bear stating
-explicitly:
-
-- `Coercible` is represented as an interface to allow users to parametrise their
-  functions on the availability of a coercion between two types.
 
 # Principles for Enso's Type System
 
@@ -2372,5 +2222,8 @@ Inference of optional arguments (see syntax doc). Type applications too.
 Typechecking scoping rules.
 
 <!-- ====================================================================== -->
+
+Analysis of laziness,
+analysis of parallelism
 
 <!-- ====================================================================== -->

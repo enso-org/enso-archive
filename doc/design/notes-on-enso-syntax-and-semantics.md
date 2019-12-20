@@ -1,55 +1,81 @@
-# Notes on Enso's Syntax and Semantics
-As we get closer to the development of the more sophisticated features of the
-language, as well as have a more fully-featured interpreter, we really need to
-clarify exactly how certain syntactic and semantic elements of the language
-behave.
+# Enso: The Type System
+On the spectrum of programming type systems ranging from dynamically typed to
+statically typed, one likes to think that there is a happy medium between the
+two. A language that _feels_ dynamic, with high levels of type inference, but
+lets the users add more type information as they want more safety and
+compile-time checking.
 
-This document aims to clarify the behaviour of many language constructs, as
-well as expose any open questions that we have about them. It is not intended
-to be a design document directly itself, but the information contained here
-will be _used_ to later contribute to various, more-specialised design
-documents.
+Enso aims to be that language, providing a statically-typed language with a type
+system that makes it feel dynamic. It will infer sensible types in many cases,
+but as users move from exploratory pipelines to production systems, they are
+able to add more and more type information to their programs, proving more and
+more properties using the type system. This is based on a novel type-inference
+engine, and a fusion of nominal and structural typing, combined with dependent
+types.
 
-<!-- MarkdownTOC levels="2,3,4" autolink="true" -->
+All in all, the type system should stay out of the users' ways unless they make
+a mistake, but give more experienced users the tools to build the programs that
+they require.
 
-- [Types](#types)
-  - [Atoms](#atoms)
-    - [Unsafe Atom Field Mutation](#unsafe-atom-field-mutation)
-  - [Typesets](#typesets)
-    - [The Type Hierarchy](#the-type-hierarchy)
-    - [Typesets and Smart Constructors](#typesets-and-smart-constructors)
-    - [Type and Interface Definitions](#type-and-interface-definitions)
-    - [Anonymous Typesets](#anonymous-typesets)
-    - [Typeset Projections \(Lenses\)](#typeset-projections-lenses)
-  - [Implementing Interfaces](#implementing-interfaces)
-    - [Special Interfaces](#special-interfaces)
-  - [Pattern Matching](#pattern-matching)
-  - [Visibility and Access Modifiers](#visibility-and-access-modifiers)
-- [Dynamic Dispatch](#dynamic-dispatch)
-  - [Multiple Dispatch](#multiple-dispatch)
-    - [Overlappable Functions](#overlappable-functions)
-  - [First-Class Modules](#first-class-modules)
-    - [Thinking About Modules](#thinking-about-modules)
-    - [Imports](#imports)
-- [Broken Values](#broken-values)
-- [Function Composition](#function-composition)
+This document contains discussion and designs for the type-system's behaviour,
+as well as formal specifications where necessary. It discusses the impact of
+many syntactic language features upon inference and type checking, and is
+instrumental for ensuring that we build the right language.
+
+<!-- MarkdownTOC levels="2,3" autolink="true" -->
+
+- [Goals for the Type System](#goals-for-the-type-system)
+- [Atoms](#atoms)
+  - [Unsafe Atom Field Mutation](#unsafe-atom-field-mutation)
+- [Typesets](#typesets)
+  - [The Type Hierarchy](#the-type-hierarchy)
+  - [Typesets and Smart Constructors](#typesets-and-smart-constructors)
+  - [Type and Interface Definitions](#type-and-interface-definitions)
+  - [Anonymous Typesets](#anonymous-typesets)
+  - [Typeset Projections \(Lenses\)](#typeset-projections-lenses)
+- [Interfaces](#interfaces)
+  - [Special Interfaces](#special-interfaces)
+- [Pattern Matching](#pattern-matching)
+- [Visibility and Access Modifiers](#visibility-and-access-modifiers)
+- [Multiple Dispatch](#multiple-dispatch)
+  - [Overlappable Functions](#overlappable-functions)
+- [Modules](#modules)
+  - [Thinking About Modules](#thinking-about-modules)
+  - [Imports](#imports)
 - [Dynamic](#dynamic)
   - [The Enso Boundary](#the-enso-boundary)
   - [An Insufficient Design For Dynamic](#an-insufficient-design-for-dynamic)
 
 <!-- /MarkdownTOC -->
 
-## Types
+## Goals for the Type System
+In our design for Enso, we firmly believe that the type system should be able to
+aid the user in writing correct programs, far and above anything else. However,
+with so much of our targeted user-base being significantly non-technical, it
+needs to be as unobtrusive as possible.
+
+- Inference should have maximal power. We want users to be _forced_ to write
+  type annotations in as few situations as possible. This means that, ideally,
+  we are able to infer higher-rank types and make impredicative instantiations
+  without annotations.
+- Error messages must be informative. This is usually down to the details of the
+  implementation, but we'd rather not employ an algorithm that discards
+  contextual information that would be useful for crafting useful errors.
+- Dependent types are a big boon for safety in programming languages, allowing
+  the users that _want to_ to express additional properties of their programs
+  in their types. We would like to introduce dependent types in future, but
+  would welcome insight on whether it is perhaps easier to do so from the get
+  go. If doing so, we would prefer to go with `Type : Type`.
+- Our aim is to create a powerful type system to support development, rather
+  than turn Enso into a research language. We want users to be able to add
+  safety gradually.
+
+## Atoms
 Atoms are the fundamental building blocks of types in Enso. Where broader types
 are sets of values, Atoms are 'atomic' and have unique identity. They are the
 nominally-typed subset of Enso's types, that can be built up into a broader
 notion of structural, set-based typing. All kinds of types in Enso can be
 defined in arbitrary scopes, and need not be defined on the top-level.
-
-For more information on Enso's type-system, please take a look in the
-[`types.md`](type-system/types.md) document.
-
-### Atoms
 In Enso, Atoms are product types with named fields, where each field has a
 distinct and un-constrained type. Atoms are defined by the `type` keyword,
 which can be statically disambiguated from the standard usage of `type`.
@@ -69,7 +95,7 @@ The key notion of an atom is that it has _unique identity_. No atom can unify
 with any other atom, even if they have the same fields with the same names. To
 put this another way, an atom is _purely_ nominally typed.
 
-#### Unsafe Atom Field Mutation
+### Unsafe Atom Field Mutation
 Often for performance, we need the ability to mutate atom fields deep in the
 implementation:
 
@@ -78,7 +104,7 @@ implementation:
 - In-place field mutation: `setField : Name -> Any -> Nothing`
 - Affine/linear typing in the future to make these things not unsafe
 
-### Typesets
+## Typesets
 More complex types in Enso are known as typesets. All of these types are
 _structural_. This means that unification on these types takes place based upon
 the _structure_ of the type (otherwise known as its 'shape').
@@ -120,7 +146,7 @@ and an interface.
 >   impacts on whether the underlying theory for typesets needs to support
 >   overidden labels (e.g. two definitions for `foo` with different types).
 
-#### The Type Hierarchy
+### The Type Hierarchy
 These typesets are organised into a _modular lattice_ of types, such that it is
 clear which typesets are subsumed by a given typeset. There are a few key
 things to note about this hierarchy:
@@ -133,7 +159,7 @@ things to note about this hierarchy:
 > - How do we fit atoms into this?
 > - How do we represent IORefs/MVars as types?
 
-#### Typesets and Smart Constructors
+### Typesets and Smart Constructors
 Enso defines the following operations on typesets that can be used to combine
 and manipulate them:
 
@@ -167,7 +193,7 @@ test = match _ of
 
 How does this combine with the potential need for a `,` record concat operator?
 
-#### Type and Interface Definitions
+### Type and Interface Definitions
 Typesets are defined using a unified `type` keyword / macro that works as
 follows:
 
@@ -250,7 +276,7 @@ be available until we have a type-checker.
 
 `type Foo (a : t)` is syntax only allowable inside a type definition.
 
-#### Anonymous Typesets
+### Anonymous Typesets
 Given that typesets are unified structurally, it can often be very useful to
 define interfaces as typesets in an ad-hoc manner while defining a function. To
 this end we provide the `{}` syntax.
@@ -268,7 +294,7 @@ are of the form `name : type = default`, where the following rules apply:
 The reason that the version with only the type is useful is that it means that
 anonymous typesets subsume the uses for tuples.
 
-#### Typeset Projections (Lenses)
+### Typeset Projections (Lenses)
 In order to work efficiently with typesets, we need the ability to seamlessly
 access and modify (immutably) their properties. In the context of our type
 theory, this functionality is known as a _projection_, in that it projects a
@@ -291,7 +317,7 @@ Lenses are generated for both atom fields and records.
 >   know how to get as much of it working as possible.
 > - How (if at all) do lenses differ for atoms and typesets?
 
-##### Special Fields
+#### Special Fields
 We also define special projections from typesets:
 
 - `index`: The expression `t.n`, where `n` is of type `Number` is translated to
@@ -299,7 +325,7 @@ We also define special projections from typesets:
 - `field`: The expression `t.s` where `s` is of type `Text` is translated to
   `t.fieldByName s`.
 
-### Implementing Interfaces
+## Interfaces
 Interface implementation in Enso is structural. Any type that subsumes a given
 interface is considered to match the type.
 
@@ -331,11 +357,11 @@ main =
     greet 8
 ```
 
-#### Special Interfaces
+### Special Interfaces
 In order to aid usability we include a few special interfaces in the standard
 library that have special support in the compiler.
 
-##### Wrapper
+#### Wrapper
 In a language where composition is queen and inheritance doesn't exist there
 needs to be an easy way for users to compose typesets without having to define
 wrappers for the contained types. This is a big usability bonus for Enso.
@@ -369,7 +395,7 @@ main =
     print $ test p1 # OK, uses `wrapped` lens.
 ```
 
-##### Convertible
+#### Convertible
 Also useful in a language for data science is the ability to have the compiler
 help you by automatically converting between types that have sensible coercions
 between them. This interface is known as `Convertible`, and defines a one-way
@@ -427,7 +453,7 @@ before we have a typechecker:
   (defaulted) parameters in the GUI.
 - The conversion types.
 
-##### Destruct
+#### Destruct
 While it is a common idiom in functional languages to implement the `bracket`
 pattern for acquiring and releasing resources, but this isn't such a good fit
 for a language where many users aren't going to be used to thinking about
@@ -465,7 +491,7 @@ and re-open in the same block).
 >
 > - Determine how this interacts with copying and moving.
 
-### Pattern Matching
+## Pattern Matching
 Pattern matching in Enso works similarly to as you would expect in various other
 functional languages. Typing information is _always_ refined in the branches of
 a case expression, which interacts well with dependent typing and type-term
@@ -515,7 +541,7 @@ unification. There are a few main ways you can pattern match:
 >
 > - How do we type pattern matching?
 
-### Visibility and Access Modifiers
+## Visibility and Access Modifiers
 While we don't usually like making things private in a programming language, it
 sometimes the case that it is necessary to indicate that certain fields should
 not be touched (as this might break invariants and such like). To this end, we
@@ -541,7 +567,7 @@ While `private` works as you might expect, coming from other languages, the
 > 
 > - How do we type this?
 
-## Dynamic Dispatch
+# Dynamic Dispatch
 Enso is a language that supports pervasive dynamic dispatch. This is a big boon
 for usability, as users can write very flexible code that still plays nicely
 with the GUI.
@@ -562,7 +588,7 @@ implementation of dynamic dispatch in Enso.
 >   interacts with the subsumption relationship on typesets and the ordering of
 >   arguments).
 
-### Multiple Dispatch
+## Multiple Dispatch
 It is an open question as to whether we want to support proper multiple dispatch
 in Enso. Multiple dispatch refers to the dynamic dispatch target being
 determined based not only on the type of the `self` argument, but the types of
@@ -606,7 +632,7 @@ not opt-in (unlike typeclasses in Haskell).
 
 Leave this for later.
 
-#### Overlappable Functions
+### Overlappable Functions
 Overlappable functions is a proposal for obtaining multiple-dispatch-style
 behaviour that dispatches functions based on a notion of specificity that is
 a little more specific than general multiple-dispatch. It considers only local
@@ -651,7 +677,7 @@ parentheses around the match `(t a) = v`.
 > - How does the above notion of structural pattern matching work in relation to
 >   structural pattern matching for typesets?
 
-### First-Class Modules
+## Modules
 It is important in Enso for modules to be first-class language entities that can
 be computed upon at runtime. However, we do not yet have a concrete design for
 how to handle this. There are two main ways to do this:
@@ -660,7 +686,7 @@ how to handle this. There are two main ways to do this:
   scope magic to make this usable.
 - Make modules their own entity (non-first-class as it's not needed - I think).
 
-#### Thinking About Modules
+### Thinking About Modules
 
 ```ruby
 ## X.enso
@@ -688,7 +714,7 @@ main =
 
 - `here` as an alias for the current module
 
-#### Imports
+### Imports
 
 Import takes a module path
 
@@ -729,7 +755,7 @@ Module/member naming conflicts:
   module is preferred. If you need the module you must import it qualified under
   another name.
 
-## Broken Values
+# Broken Values
 In Enso we have the notion of a 'broken' value: one which is in an invalid state
 but not an asynchronous error. While these may initially seem a touch useless,
 they are actually key for the display of errors in the GUI.
@@ -765,7 +791,7 @@ with an automatic propagation mechanism:
 >   exceptions as broken values are very hard to support without a type checker.
 > - Initially not supported for APIs.
 
-## Function Composition
+# Function Composition
 Enso introduces a function composition operator which composes functions after
 all arguments have been applied. This operator is `>>` (and its backwards cousin
 `<<`). It takes a function `f` with `n` arguments, and a function `g` with `m`
