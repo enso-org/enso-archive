@@ -6,10 +6,9 @@ import org.enso.compiler.Compiler;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-import org.enso.interpreter.runtime.scope.TopScope;
+import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
-import org.enso.pkg.SourceFile;
 
 import java.io.File;
 import java.io.PrintStream;
@@ -56,9 +55,9 @@ public class Context {
                             srcFile.qualifiedName(),
                             getEnvironment()
                                 .getInternalTruffleFile(srcFile.file().getAbsolutePath()))));
-    TopScope topScope = new TopScope(new Builtins(language), knownFiles);
+    TopLevelScope topLevelScope = new TopLevelScope(new Builtins(language), knownFiles);
 
-    this.compiler = new Compiler(this.language, topScope, this);
+    this.compiler = new Compiler(this.language, topLevelScope, this);
   }
 
   /**

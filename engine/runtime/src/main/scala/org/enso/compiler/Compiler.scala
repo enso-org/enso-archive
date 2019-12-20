@@ -15,7 +15,7 @@ import org.enso.interpreter.builder.{
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.function.Function
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopScope}
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
 import org.enso.interpreter.runtime.{Context, Module}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.{AST, Parser}
@@ -30,7 +30,7 @@ import scala.collection.mutable
   */
 class Compiler(
   val language: Language,
-  val topScope: TopScope,
+  val topScope: TopLevelScope,
   val context: Context
 ) {
 

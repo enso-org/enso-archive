@@ -1,13 +1,8 @@
 package org.enso.interpreter.builder;
 
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
 import org.enso.compiler.core.*;
 import com.oracle.truffle.api.source.Source;
-import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.*;
-import org.enso.interpreter.node.ClosureRootNode;
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
@@ -15,12 +10,10 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException;
-import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -50,7 +43,6 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    * Executes the factory on a global expression.
    *
    * @param expr the expression to execute on
-   * @return a runtime node representing the top-level expression
    */
   public void run(AstModuleScope expr) {
     expr.visit(this);
@@ -62,7 +54,6 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
    * @param imports any imports requested by this module
    * @param typeDefs any type definitions defined in the global scope
    * @param bindings any bindings made in the global scope
-   * @return a runtime node representing the whole top-level program scope
    */
   @Override
   public void visitModuleScope(
@@ -98,10 +89,10 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
     for (AstMethodDef method : bindings) {
       scala.Option<AstExpression> scalaNone = scala.Option.apply(null);
       AstArgDefinition thisArgument =
-          new AstArgDefinition(Constants.THIS_ARGUMENT_NAME, scalaNone, false);
+          new AstArgDefinition(Constants.Names.THIS_ARGUMENT_NAME, scalaNone, false);
 
       String typeName = method.typeName();
-      if (typeName.equals(Constants.CURRENT_MODULE_VARIABLE_NAME)) {
+      if (typeName.equals(Constants.Names.CURRENT_MODULE_VARIABLE_NAME)) {
         typeName = moduleScope.getAssociatedType().getName();
       }
 
@@ -125,7 +116,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               null,
               new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, funNode.getArgs()));
 
-      if (typeName.equals(Constants.ANY_TYPE_NAME)) {
+      if (typeName.equals(Constants.Names.ANY_TYPE_NAME)) {
         moduleScope.registerMethodForAny(method.methodName(), function);
       } else {
         AtomConstructor constructor =

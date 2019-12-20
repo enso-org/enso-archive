@@ -2,7 +2,7 @@ package org.enso.interpreter.bench.fixtures.semantic
 
 import org.enso.interpreter.Constants
 import org.enso.interpreter.runtime.Builtins
-import org.enso.interpreter.runtime.scope.TopScope
+import org.enso.interpreter.runtime.scope.TopLevelScope
 import org.enso.interpreter.test.{InterpreterException, InterpreterRunner}
 import org.graalvm.polyglot.{PolyglotException, Value}
 

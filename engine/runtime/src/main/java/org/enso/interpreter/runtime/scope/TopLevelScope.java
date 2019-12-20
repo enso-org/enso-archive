@@ -15,11 +15,10 @@ import org.enso.interpreter.runtime.data.Vector;
 
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 /** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
-public class TopScope implements TruffleObject {
+public class TopLevelScope implements TruffleObject {
   private final Builtins builtins;
   private final Map<String, Module> modules;
   private final Scope scope = Scope.newBuilder("top_scope", this).build();
@@ -30,7 +29,7 @@ public class TopScope implements TruffleObject {
    * @param builtins the automatically-imported builtin module.
    * @param modules the initial modules this scope contains.
    */
-  public TopScope(Builtins builtins, Map<String, Module> modules) {
+  public TopLevelScope(Builtins builtins, Map<String, Module> modules) {
     this.builtins = builtins;
     this.modules = modules;
   }
@@ -63,8 +62,10 @@ public class TopScope implements TruffleObject {
     return builtins;
   }
 
-  private static final String GET_MODULE_KEY = "get_module";
-  private static final String CREATE_MODULE_KEY = "create_module";
+  private static class PolyglotKeys {
+    private static final String GET_MODULE = "get_module";
+    private static final String CREATE_MODULE = "create_module";
+  }
 
   /**
    * Marks this object as having members accessible through the polyglot API.
@@ -86,14 +87,14 @@ public class TopScope implements TruffleObject {
    */
   @ExportMessage
   Vector getMembers(boolean includeInternal) {
-    return new Vector(GET_MODULE_KEY, CREATE_MODULE_KEY);
+    return new Vector(PolyglotKeys.GET_MODULE, PolyglotKeys.CREATE_MODULE);
   }
 
   /** Handles member invocation through the polyglot API. */
   @ExportMessage
   abstract static class InvokeMember {
     private static ModuleScope getModule(
-        TopScope scope,
+        TopLevelScope scope,
         Object[] arguments,
         TruffleLanguage.ContextReference<Context> contextReference)
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
@@ -119,7 +120,8 @@ public class TopScope implements TruffleObject {
       }
     }
 
-    private static ModuleScope createModule(TopScope scope, Object[] arguments, Context context)
+    private static ModuleScope createModule(
+        TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       if (arguments.length != 1) {
         throw ArityException.create(1, arguments.length);
@@ -133,15 +135,15 @@ public class TopScope implements TruffleObject {
 
     @Specialization
     static ModuleScope doInvoke(
-        TopScope scope,
+        TopLevelScope scope,
         String member,
         Object[] arguments,
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
-        case GET_MODULE_KEY:
+        case PolyglotKeys.GET_MODULE:
           return getModule(scope, arguments, contextRef);
-        case CREATE_MODULE_KEY:
+        case PolyglotKeys.CREATE_MODULE:
           return createModule(scope, arguments, contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
@@ -157,6 +159,7 @@ public class TopScope implements TruffleObject {
    */
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(GET_MODULE_KEY) || member.equals(CREATE_MODULE_KEY);
+    return member.equals(PolyglotKeys.GET_MODULE)
+        || member.equals(PolyglotKeys.CREATE_MODULE);
   }
 }

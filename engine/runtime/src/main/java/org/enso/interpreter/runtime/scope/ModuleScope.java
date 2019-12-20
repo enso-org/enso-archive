@@ -11,7 +11,6 @@ import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Vector;
@@ -252,10 +251,12 @@ public class ModuleScope implements TruffleObject {
     imports.add(scope);
   }
 
-  private static final String ASSOCIATED_CONSTRUCTOR_KEY = "get_associated_constructor";
-  private static final String METHODS_KEY = "get_method";
-  private static final String CONSTRUCTORS_KEY = "get_constructor";
-  private static final String PATCH_KEY = "patch";
+  private static class PolyglotKeys {
+    private static final String ASSOCIATED_CONSTRUCTOR = "get_associated_constructor";
+    private static final String METHODS = "get_method";
+    private static final String CONSTRUCTORS = "get_constructor";
+    private static final String PATCH = "patch";
+  }
 
   /**
    * Handles member invocations through the polyglot API.
@@ -268,6 +269,8 @@ public class ModuleScope implements TruffleObject {
    */
   @ExportMessage
   abstract static class InvokeMember {
+    // TODO[MK]: These functions are 90% typechecks. We should consider refactoring options,
+    // possibly code generation.
     private static Function getMethod(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException {
       if (args.length != 2) {
@@ -329,13 +332,13 @@ public class ModuleScope implements TruffleObject {
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
-        case METHODS_KEY:
+        case PolyglotKeys.METHODS:
           return getMethod(scope, arguments);
-        case CONSTRUCTORS_KEY:
+        case PolyglotKeys.CONSTRUCTORS:
           return getConstructor(scope, arguments);
-        case PATCH_KEY:
+        case PolyglotKeys.PATCH:
           return patch(scope, arguments, contextRef.get());
-        case ASSOCIATED_CONSTRUCTOR_KEY:
+        case PolyglotKeys.ASSOCIATED_CONSTRUCTOR:
           return getAssociatedConstructor(scope, arguments);
         default:
           throw UnknownIdentifierException.create(member);
@@ -361,10 +364,10 @@ public class ModuleScope implements TruffleObject {
    */
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(METHODS_KEY)
-        || member.equals(CONSTRUCTORS_KEY)
-        || member.equals(PATCH_KEY)
-        || member.equals(ASSOCIATED_CONSTRUCTOR_KEY);
+    return member.equals(PolyglotKeys.METHODS)
+        || member.equals(PolyglotKeys.CONSTRUCTORS)
+        || member.equals(PolyglotKeys.PATCH)
+        || member.equals(PolyglotKeys.ASSOCIATED_CONSTRUCTOR);
   }
 
   /**
@@ -375,6 +378,10 @@ public class ModuleScope implements TruffleObject {
    */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Vector(METHODS_KEY, CONSTRUCTORS_KEY, PATCH_KEY, ASSOCIATED_CONSTRUCTOR_KEY);
+    return new Vector(
+        PolyglotKeys.METHODS,
+        PolyglotKeys.CONSTRUCTORS,
+        PolyglotKeys.PATCH,
+        PolyglotKeys.ASSOCIATED_CONSTRUCTOR);
   }
 }

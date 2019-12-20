@@ -6,6 +6,7 @@ import org.enso.compiler.core
 import org.enso.compiler.core._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
+import org.enso.interpreter.Constants.Names
 import org.enso.syntax.text.{AST, Location}
 
 // FIXME [AA] All places where we currently throw a `RuntimeException` should
@@ -116,7 +117,7 @@ object AstToAstExpression {
         val path = if (targetPath.nonEmpty) {
           targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
         } else {
-          Constants.CURRENT_MODULE_VARIABLE_NAME
+          Constants.Names.CURRENT_MODULE_VARIABLE_NAME
         }
         val nameStr       = name match { case AST.Ident.Var(name) => name }
         val defExpression = translateExpression(definition)
