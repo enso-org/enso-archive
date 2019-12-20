@@ -61,7 +61,7 @@ make_repr!(Seq   , self.first, self.second);
 // =====================
 /// Not an instance of `HasSpan`, as it needs to know parent block's offset.
 impl<T: HasSpan> TextBlockLine<T> {
-    fn span(&self, block_offset: usize) -> usize {
+    fn span(&self, block_offset:usize) -> usize {
         let line_count              = self.empty_lines.len() + 1;
         let empty_lines_space:usize = self.empty_lines.iter().sum();
         let line_breaks             = line_count * NEWLINE.span();
@@ -69,12 +69,11 @@ impl<T: HasSpan> TextBlockLine<T> {
     }
 }
 impl<T: HasRepr> TextBlockLine<T> {
-    fn repr(&self, block_offset: usize) -> String {
-        let empty_lines = self.empty_lines.iter().map(|line| {
-            NEWLINE.to_string() + &line.repr()
-        }).collect_vec();
-        let line_pfx = NEWLINE.to_string() + &block_offset.repr();
-        empty_lines.repr() + &line_pfx.repr() + &self.text.repr()
+    fn write_repr(&self, target:&mut String, block_offset:usize) {
+        for empty_line_spaces in &self.empty_lines {
+            (NEWLINE,empty_line_spaces).write_repr(target);
+        }
+        (NEWLINE,block_offset,&self.text).write_repr(target);
     }
 }
 
@@ -124,14 +123,14 @@ impl<T: HasSpan> HasSpan for Match<T> {
 }
 
 impl<T: HasRepr> HasRepr for Match<T> {
-    fn repr(&self) -> String {
+    fn write_repr(&self, target:&mut String) {
         let pfx_items = self.pfx.as_ref().map(|pfx| pfx.iter().collect_vec());
         let pfx_items = pfx_items.unwrap_or(Vec::new());
-        let pfx_reprs = pfx_items.iter().map(|sast| {
-            sast.wrapped.repr() + &sast.off.repr()
-        }).collect_vec();
-
-        return pfx_reprs.repr() + &self.segs.repr()
+        for sast in &pfx_items {
+            // reverse the order for prefix: ast before spacing
+            (&sast.wrapped,&sast.off).write_repr(target);
+        }
+        self.segs.write_repr(target);
     }
 }
 
@@ -213,11 +212,12 @@ impl HasSpan for TextBlockRaw {
     }
 }
 impl HasRepr for TextBlockRaw {
-    fn repr(&self) -> String {
-        let lines      = self.text.iter();
-        let line_reprs = lines.map(|line| line.repr(self.offset));
-        let line_reprs = line_reprs.collect_vec();
-        TextBlockRaw::QUOTE.repr() + &self.spaces.repr() + &line_reprs.repr()
+    fn write_repr(&self, target:&mut String) {
+        TextBlockRaw::QUOTE.write_repr(target);
+        self.spaces.write_repr(target);
+        for line in self.text.iter() {
+            line.write_repr(target,self.offset);
+        }
     }
 }
 impl<T: HasSpan> HasSpan for TextBlockFmt<T> {
@@ -229,11 +229,11 @@ impl<T: HasSpan> HasSpan for TextBlockFmt<T> {
     }
 }
 impl<T: HasRepr> HasRepr for TextBlockFmt<T> {
-    fn repr(&self) -> String {
-        let lines            = self.text.iter();
-        let line_reprs       = lines.map(|line| line.repr(self.offset));
-        let line_reprs       = line_reprs.collect_vec();
-        TextBlockFmt::<T>::QUOTE.repr() + &self.spaces.repr() + &line_reprs.repr()
+    fn write_repr(&self, target:&mut String) {
+        (Self::QUOTE,self.spaces).write_repr(target);
+        for line in self.text.iter() {
+            line.write_repr(target,self.offset);
+        };
     }
 }
 
@@ -243,18 +243,19 @@ impl<T: HasSpan> HasSpan for TextUnclosed<T> {
     }
 }
 impl<T: HasRepr> HasRepr for TextUnclosed<T> {
-    fn repr(&self) -> String {
-        let mut ret = self.line.repr(); // remove missing quote
-        ret.pop();
-        ret
+    fn write_repr(&self, target:&mut String) {
+        self.line.write_repr(target);
+        target.pop();  // remove missing quote
     }
 }
 
 make_repr!(Prefix<T>, self.func, self.off, self.arg);
-make_repr!(Infix<T>, self.larg, self.loff, self.opr, self.roff, self.rarg);
+//make_repr!(Infix<T>, self.larg, self.loff, self.opr, self.roff, self.rarg);
 make_repr!(SectionLeft<T>, self.arg, self.off, self.opr);
 make_repr!(SectionRight<T>, self.opr, self.off, self.arg);
 make_repr!(SectionSides<T>, self.opr);
+
+make_custom_repr!(Infix<T>, self.larg._PLACEHOLDER_(target));
 
 impl<T: HasSpan> HasSpan for Module<T> {
     fn span(&self) -> usize {
@@ -267,10 +268,14 @@ impl<T: HasSpan> HasSpan for Module<T> {
 }
 
 impl<T: HasRepr> HasRepr for Module<T> {
-    fn repr(&self) -> String {
-        let lines_iter = self.lines.iter();
-        let mut line_reprs = lines_iter.map(|line| line.repr());
-        line_reprs.join(&NEWLINE.to_string())
+    fn write_repr(&self, target:&mut String) {
+        let mut iter = self.lines.iter();
+        if let Some(first_line) = iter.next() {
+            first_line.write_repr(target)
+        }
+        for line in iter {
+            (NEWLINE,line).write_repr(target)
+        }
     }
 }
 
@@ -290,7 +295,7 @@ impl<T: HasSpan> HasSpan for Block<T> {
 }
 
 impl<T: HasRepr> HasRepr for Block<T> {
-    fn repr(&self) -> String {
+    fn write_repr(&self, target:&mut String) {
         let head_repr         = (!self.is_orphan).as_some(NEWLINE).repr();
         let empty_lines       = self.empty_lines.iter().map(|line| {
             line.repr() + &NEWLINE.repr()
@@ -299,7 +304,8 @@ impl<T: HasRepr> HasRepr for Block<T> {
         let tail_lines = self.lines.iter().map(|line| {
             NEWLINE.repr() + &self.indented(line).repr()
         }).collect_vec();
-        head_repr + &empty_lines.repr() + &first_line.repr() + &tail_lines.repr()
+        let ret = head_repr + &empty_lines.repr() + &first_line.repr() + &tail_lines.repr();
+        ret.write_repr(target);
     }
 }
 

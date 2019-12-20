@@ -167,8 +167,8 @@ impl HasSpan for Ast {
     }
 }
 impl HasRepr for Ast {
-    fn repr(&self) -> String {
-        self.wrapped.repr()
+    fn write_repr(&self, target:&mut String) {
+        self.wrapped.write_repr(target);
     }
 }
 
@@ -610,6 +610,11 @@ impl<T: HasSpan, U: HasSpan> HasSpan for (T,U) {
         self.0.span() + self.1.span()
     }
 }
+impl<T: HasSpan, U: HasSpan, V: HasSpan> HasSpan for (T,U,V) {
+    fn span(&self) -> usize {
+        self.0.span() + self.1.span() + self.2.span()
+    }
+}
 impl HasSpan for usize {
     fn span(&self) -> usize {
         *self
@@ -629,61 +634,79 @@ impl<T: HasSpan> HasSpan for &T {
 // === HasRepr ===
 /// Things that can be asked about their textual representation.
 pub trait HasRepr {
-    fn repr(&self) -> String;
+    fn repr(&self) -> String {
+        let mut acc = String::new();
+        self.write_repr(&mut acc);
+        acc
+    }
+
+    fn write_repr(&self, target:&mut String);
 }
 
 impl HasRepr for char {
-    fn repr(&self) -> String {
-        self.to_string()
+    fn write_repr(&self, target:&mut String) {
+        target.push(*self);
     }
 }
 
 /// Counts codepoints.
 impl HasRepr for String {
-    fn repr(&self) -> String {
-        self.clone()
+    fn write_repr(&self, target:&mut String) {
+        target.push_str(self);
     }
 }
 
 /// Counts codepoints.
 impl HasRepr for &str {
-    fn repr(&self) -> String {
-        self.to_string()
+    fn write_repr(&self, target:&mut String) {
+        target.push_str(self);
     }
 }
 
 impl<T: HasRepr> HasRepr for Option<T> {
-    fn repr(&self) -> String {
-        self.as_ref().map_or(String::new(), |wrapped| wrapped.repr())
+    fn write_repr(&self, target:&mut String) {
+        for el in self.iter() {
+            el.write_repr(target)
+        }
     }
 }
 
 impl<T: HasRepr> HasRepr for Vec<T> {
-    fn repr(&self) -> String {
-        let reprs: Vec<String> = self.iter().map(|el| el.repr()).collect_vec();
-        reprs.concat()
+    fn write_repr(&self, target:&mut String) {
+        for el in self.iter() {
+            el.write_repr(target)
+        }
     }
 }
 impl<T: HasRepr> HasRepr for Rc<T> {
-    fn repr(&self) -> String {
-        self.deref().repr()
+    fn write_repr(&self, target:&mut String) {
+        self.deref().write_repr(target)
     }
 }
 
 impl<T: HasRepr, U: HasRepr> HasRepr for (T,U) {
-    fn repr(&self) -> String {
-        self.0.repr() + &self.1.repr()
+    fn write_repr(&self, target:&mut String) {
+        self.0.write_repr(target);
+        self.1.write_repr(target);
+    }
+}
+
+impl<T: HasRepr, U: HasRepr, V: HasRepr> HasRepr for (T,U,V) {
+    fn write_repr(&self, target:&mut String) {
+        self.0.write_repr(target);
+        self.1.write_repr(target);
+        self.2.write_repr(target);
     }
 }
 
 impl HasRepr for usize {
-    fn repr(&self) -> String {
-        " ".repeat(*self)
+    fn write_repr(&self, target:&mut String) {
+        target.push_str(&" ".repeat(*self));
     }
 }
 impl<T: HasRepr> HasRepr for &T {
-    fn repr(&self) -> String {
-        self.deref().repr()
+    fn write_repr(&self, target:&mut String) {
+        self.deref().write_repr(target)
     }
 }
 //impl<T: Deref<Target:HasRepr>> HasRepr for T {
