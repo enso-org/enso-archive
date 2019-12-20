@@ -457,14 +457,6 @@ impl Fixture {
     }
 }
 
-#[test]
-#[ignore]
-fn parser_tests2() {
-    let ast = Fixture::new().parse_line("a b c");
-    assert_eq!((&ast).iter().count(), 2); // for App's two children
-    assert_eq!(ast.iter_recursive().count(), 5); // for 2 Apps and 3 Vars
-}
-
 /// A single entry point for all the tests here using external parser.
 ///
 /// Setting up the parser is costly, so we run all tests as a single batch.

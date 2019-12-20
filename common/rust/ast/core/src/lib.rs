@@ -642,6 +642,12 @@ impl Ast {
         Ast::from(opr)
     }
 
+    pub fn prefix<Func:Into<Ast>, Arg:Into<Ast>>(func:Func, arg:Arg) -> Ast {
+        let off = 1;
+        let opr = Prefix{ func:func.into(), off, arg:arg.into() };
+        Ast::from(opr)
+    }
+
     pub fn infix<Str0, Str1, Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
     where Str0: ToString
         , Str1: ToString
@@ -839,5 +845,18 @@ mod tests {
         assert_contains("bar");
         assert_contains("+");
         assert_eq!(strings.len(), 3);
+    }
+
+
+    #[test]
+    fn iterate_nested() {
+        let a = Ast::var("a");
+        let b = Ast::var("b");
+        let c = Ast::var("c");
+        let ab = Ast::prefix(a,b);
+        let abc = Ast::prefix(ab, c); // repr is `a b c`
+
+        assert_eq!((&abc).iter().count(), 2); // for App's two children
+        assert_eq!(abc.iter_recursive().count(), 5); // for 2 Apps and 3 Vars
     }
 }

@@ -10,8 +10,6 @@ use macro_utils::type_matches;
 use macro_utils::ty_path_type_args;
 use macro_utils::variant_depends_on;
 use inflector::Inflector;
-use syn::Field;
-
 
 // =============
 // === IsMut ===
@@ -312,7 +310,7 @@ impl DerivingIterator<'_> {
             (move || { #(#yield_fields)* })
         };
 
-        let (iter_body) = match matched_fields.is_empty() {
+        let iter_body = match matched_fields.is_empty() {
             true => (empty_body),
             false => (body)
         };
@@ -421,7 +419,6 @@ pub fn derive
         None =>
             TokenStream::new(),
     };
-    println!("{}", repr(&output));
     output.into()
 }
 

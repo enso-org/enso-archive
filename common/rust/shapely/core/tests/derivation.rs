@@ -2,7 +2,6 @@
 #![feature(type_alias_impl_trait)]
 
 use shapely::*;
-use std::thread::yield_now;
 
 // =============
 // === Utils ===
