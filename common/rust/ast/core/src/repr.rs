@@ -45,25 +45,20 @@ impl<T> TextBlockFmt<T> {
 }
 ///////////////////////////////////////
 
+
+// ===============
 // === Builder ===
+// ===============
 make_repr!(Empty);
 make_repr!(Letter, self.char);
-//make_repr!(Space, self);
+make_repr!(Space , self);
 make_repr!(Text  , self.str);
 make_repr!(Seq   , self.first, self.second);
 
-impl HasSpan for Space {
-    fn span(&self) -> usize {
-        self.span
-    }
-}
-impl HasRepr for Space {
-    fn repr(&self) -> String {
-        " ".repeat(self.span)
-    }
-}
 
+// =====================
 // === TextBlockLine ===
+// =====================
 /// Not an instance of `HasSpan`, as it needs to know parent block's offset.
 impl<T: HasSpan> TextBlockLine<T> {
     fn span(&self, block_offset: usize) -> usize {
@@ -82,20 +77,27 @@ impl<T: HasRepr> TextBlockLine<T> {
         empty_lines.repr() + &line_pfx.repr() + &self.text.repr()
     }
 }
-// === Segments ===
+
+// =====================
+// === Text Segments ===
+// =====================
 make_repr!(SegmentPlain, self.value);
 make_repr!(SegmentRawEscape, BACKSLASH, self.code);
 make_repr!(SegmentExpr<T>, EXPR_QUOTE, self.value, EXPR_QUOTE);
 make_repr!(SegmentEscape, BACKSLASH, self.code);
 
+// =================
 // === RawEscape ===
+// =================
 make_repr!(Unfinished);
 make_repr!(Invalid, self.str);
 make_repr!(Slash, BACKSLASH);
 make_repr!(Quote, FMT_QUOTE);
 make_repr!(RawQuote, RAW_QUOTE);
 
+// ==============
 // === Escape ===
+// ==============
 make_repr!(EscapeCharacter, self.c     );
 make_repr!(EscapeControl  , self.name  );
 make_repr!(EscapeNumber   , self.digits);
@@ -103,69 +105,67 @@ make_repr!(EscapeUnicode16, UNICODE16_INTRODUCER, self.digits);
 make_repr!(EscapeUnicode21, UNICODE21_OPENER    , self.digits, UNICODE21_CLOSER);
 make_repr!(EscapeUnicode32, UNICODE32_INTRODUCER, self.digits);
 
+// =============
 // === Block ===
+// =============
 make_repr!(BlockLine<T>, self.elem, self.off);
 
+// =============
 // === Macro ===
-make_repr!(MacroMatchSegment<T>, self.head, self.body);
+// =============
+
+// === Match ==
+impl<T: HasSpan> HasSpan for Match<T> {
+    fn span(&self) -> usize {
+        let pfx = self.pfx.span();
+        let segs = self.segs.span();
+        pfx + segs
+    }
+}
+
+impl<T: HasRepr> HasRepr for Match<T> {
+    fn repr(&self) -> String {
+        let pfx_items = self.pfx.as_ref().map(|pfx| pfx.iter().collect_vec());
+        let pfx_items = pfx_items.unwrap_or(Vec::new());
+        let pfx_reprs = pfx_items.iter().map(|sast| {
+            sast.wrapped.repr() + &sast.off.repr()
+        }).collect_vec();
+
+        return pfx_reprs.repr() + &self.segs.repr()
+    }
+}
+
+// === Ambiguous ==
+make_repr!(Ambiguous, self.segs);
+
+
+// === Macro Segments ==
+make_repr!(MacroMatchSegment<T> , self.head, self.body);
 make_repr!(MacroAmbiguousSegment, self.head, self.body);
 
-impl<T> MacroPatternMatchRaw<T> {
-    fn get_elems(&self) -> Vec<&T> {
-        match self {
-            MacroPatternMatchRaw::Begin  (_)    => Vec::new(),
-            MacroPatternMatchRaw::End    (_)    => Vec::new(),
-            MacroPatternMatchRaw::Nothing(_)    => Vec::new(),
-            MacroPatternMatchRaw::Seq    (elem) => {
-                let mut v1 = elem.elem.0.get_elems();
-                let v2 = elem.elem.1.get_elems();
-                v1.extend(v2.iter());
-                v1
-            }
-            MacroPatternMatchRaw::Or     (elem) => elem.elem.get().get_elems(),
-            MacroPatternMatchRaw::Many   (elem) => {
-                let mut v = Vec::new();
-                for inner in elem.elem.iter() {
-                    v.extend(inner.iter())
-                }
-                v
-            },
-            MacroPatternMatchRaw::Except (elem) => elem.elem.get_elems(),
-            MacroPatternMatchRaw::Build  (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Err    (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Tag    (elem) => elem.elem.get_elems(),
-            MacroPatternMatchRaw::Cls    (elem) => elem.elem.get_elems(),
-            MacroPatternMatchRaw::Tok    (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Blank  (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Var    (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Cons   (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Opr    (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Mod    (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Num    (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Text   (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Block  (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Macro  (elem) => vec!(&elem.elem),
-            MacroPatternMatchRaw::Invalid(elem) => vec!(&elem.elem),
-        }
-    }
-}
-
-impl<T: HasSpan> HasSpan for MacroPatternMatchRaw<T> {
-    fn span(&self) -> usize {
-        self.get_elems().iter().map(|el| el.span()).sum()
-    }
-}
-
-impl<T: HasRepr> HasRepr for  MacroPatternMatchRaw<T> {
-    fn repr(&self) -> String {
-        self.get_elems().iter().map(|el| el.repr()).join("")
-    }
-}
-impl<T: HasRepr>  MacroPatternMatchRaw<T> {
-    fn repr_elem(&self) -> String {
-        self.get_elems().iter().map(|el| el.repr()).join("")
-    }
-}
+// === MacroPatternMatch subtypes ===
+make_repr!(MacroPatternMatchRawBegin  );
+make_repr!(MacroPatternMatchRawEnd    );
+make_repr!(MacroPatternMatchRawNothing);
+make_repr!(MacroPatternMatchRawSeq    <T>, self.elem);
+make_repr!(MacroPatternMatchRawOr     <T>, self.elem);
+make_repr!(MacroPatternMatchRawMany   <T>, self.elem);
+make_repr!(MacroPatternMatchRawExcept <T>, self.elem);
+make_repr!(MacroPatternMatchRawBuild  <T>, self.elem);
+make_repr!(MacroPatternMatchRawErr    <T>, self.elem);
+make_repr!(MacroPatternMatchRawTag    <T>, self.elem);
+make_repr!(MacroPatternMatchRawCls    <T>, self.elem);
+make_repr!(MacroPatternMatchRawTok    <T>, self.elem);
+make_repr!(MacroPatternMatchRawBlank  <T>, self.elem);
+make_repr!(MacroPatternMatchRawVar    <T>, self.elem);
+make_repr!(MacroPatternMatchRawCons   <T>, self.elem);
+make_repr!(MacroPatternMatchRawOpr    <T>, self.elem);
+make_repr!(MacroPatternMatchRawMod    <T>, self.elem);
+make_repr!(MacroPatternMatchRawNum    <T>, self.elem);
+make_repr!(MacroPatternMatchRawText   <T>, self.elem);
+make_repr!(MacroPatternMatchRawBlock  <T>, self.elem);
+make_repr!(MacroPatternMatchRawMacro  <T>, self.elem);
+make_repr!(MacroPatternMatchRawInvalid<T>, self.elem);
 
 // === Shifted ===
 make_repr!(Shifted<T>, self.off, self.wrapped);
@@ -176,7 +176,7 @@ make_repr!(ShiftedVec1<T>, self.head, self.tail);
 // === Shape ===
 // =============
 
-/// Helper to represent that optional base has additional character.
+/// Helper to represent that optional number base has additional character.
 struct NumberBase<T>(T);
 make_repr!(NumberBase<T>, self.0, Number::BASE_SEPARATOR);
 
@@ -189,33 +189,34 @@ impl<T> Block<T> {
     }
 }
 
-make_repr!(Unrecognized, self.str);
-make_repr!(InvalidQuote, self.quote);
-make_repr!(InlineBlock , self.quote);
-make_repr!(Blank, Blank::REPR);
-make_repr!(Var, self.name);
-make_repr!(Cons, self.name);
-make_repr!(Opr, self.name);
-make_repr!(Mod, self.name, Mod::SUFFIX);
+make_repr!(Unrecognized    , self.str);
+make_repr!(InvalidQuote    , self.quote);
+make_repr!(InlineBlock     , self.quote);
+make_repr!(Blank           , Blank::REPR);
+make_repr!(Var             , self.name);
+make_repr!(Cons            , self.name);
+make_repr!(Opr             , self.name);
+make_repr!(Mod             , self.name, Mod::SUFFIX);
 make_repr!(InvalidSuffix<T>, self.elem, self.suffix);
-make_repr!(Number, self.base.as_ref().map(|b| NumberBase(b)), self.int);
-make_repr!(DanglingBase, self.base, Number::BASE_SEPARATOR);
-make_repr!(TextLineRaw, RAW_QUOTE, self.text, RAW_QUOTE);
-make_repr!(TextLineFmt<T>, FMT_QUOTE, self.text, FMT_QUOTE);
+make_repr!(Number          , self.base.as_ref().map(|b| NumberBase(b))
+                           , self.int);
+make_repr!(DanglingBase    , self.base, Number::BASE_SEPARATOR);
+make_repr!(TextLineRaw     , RAW_QUOTE, self.text, RAW_QUOTE);
+make_repr!(TextLineFmt<T>  , FMT_QUOTE, self.text, FMT_QUOTE);
 
 impl HasSpan for TextBlockRaw {
     fn span(&self) -> usize {
-        let lines            = self.text.iter();
-        let line_spans       = lines.map(|line| line.span(self.offset));
-        let lines_span:usize = line_spans.sum();
+        let lines      = self.text.iter();
+        let line_spans = lines.map(|line| line.span(self.offset));
+        let lines_span = line_spans.sum::<usize>();
         TextBlockRaw::QUOTE.span() + self.spaces + lines_span
     }
 }
 impl HasRepr for TextBlockRaw {
     fn repr(&self) -> String {
-        let lines            = self.text.iter();
-        let line_reprs       = lines.map(|line| line.repr(self.offset));
-        let line_reprs       = line_reprs.collect_vec();
+        let lines      = self.text.iter();
+        let line_reprs = lines.map(|line| line.repr(self.offset));
+        let line_reprs = line_reprs.collect_vec();
         TextBlockRaw::QUOTE.repr() + &self.spaces.repr() + &line_reprs.repr()
     }
 }
@@ -264,6 +265,7 @@ impl<T: HasSpan> HasSpan for Module<T> {
         lines_span + breaks_span
     }
 }
+
 impl<T: HasRepr> HasRepr for Module<T> {
     fn repr(&self) -> String {
         let lines_iter = self.lines.iter();
@@ -271,6 +273,7 @@ impl<T: HasRepr> HasRepr for Module<T> {
         line_reprs.join(&NEWLINE.to_string())
     }
 }
+
 impl<T: HasSpan> HasSpan for Block<T> {
     fn span(&self) -> usize {
         let line_span = |line:&BlockLine<Option<T>>| {
@@ -278,14 +281,14 @@ impl<T: HasSpan> HasSpan for Block<T> {
             NEWLINE.span() + indent + line.span()
         };
 
-        let head_span         = if self.is_orphan { 0 } else { 1 };
-        let empty_lines       = self.empty_lines.iter();
-        let empty_lines:usize = empty_lines.map(|line| line + 1).sum();
-        let first_line        = self.indent + self.first_line.span();
-        let lines      :usize = self.lines.iter().map(line_span).sum();
+        let head_span   = if self.is_orphan { 0 } else { 1 };
+        let empty_lines = self.empty_lines.span() + self.empty_lines.len();
+        let first_line  = self.indent + self.first_line.span();
+        let lines       = self.lines.iter().map(line_span).sum::<usize>();
         head_span + empty_lines + first_line + lines
     }
 }
+
 impl<T: HasRepr> HasRepr for Block<T> {
     fn repr(&self) -> String {
         let head_repr         = (!self.is_orphan).as_some(NEWLINE).repr();
@@ -299,27 +302,6 @@ impl<T: HasRepr> HasRepr for Block<T> {
         head_repr + &empty_lines.repr() + &first_line.repr() + &tail_lines.repr()
     }
 }
-
-impl<T: HasSpan> HasSpan for Match<T> {
-    fn span(&self) -> usize {
-        let pfx = self.pfx.span();
-        let segs = self.segs.span();
-        pfx + segs
-    }
-}
-impl<T: HasRepr> HasRepr for Match<T> {
-    fn repr(&self) -> String {
-        let pfx_items = self.pfx.as_ref().map(|pfx| pfx.get_elems());
-        let pfx_items = pfx_items.unwrap_or(Vec::new());
-        let pfx_reprs = pfx_items.iter().map(|sast| {
-            sast.wrapped.repr() + &sast.off.repr()
-        }).collect_vec();
-
-        return pfx_reprs.repr() + & self.segs.repr()
-    }
-}
-
-make_repr!(Ambiguous, self.segs);
 
 not_supported_repr!(Comment);
 not_supported_repr!(Import<T>);

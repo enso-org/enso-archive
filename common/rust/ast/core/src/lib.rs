@@ -485,7 +485,9 @@ impl<T> Switch<T> {
 make_repr!(Switch<T>, self.get());
 
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
-#[ast] pub enum MacroPatternMatchRaw<T> {
+#[ast]
+#[derive(HasSpan)]
+pub enum MacroPatternMatchRaw<T> {
 
     // === Boundary Matches ===
     Begin   { pat: MacroPatternRawBegin },
@@ -517,9 +519,7 @@ pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
     Block   { pat: MacroPatternRawBlock   , elem: T                           },
     Macro   { pat: MacroPatternRawMacro   , elem: T                           },
     Invalid { pat: MacroPatternRawInvalid , elem: T                           },
-
 }
-
 
 // =============================================================================
 // === Spaceless AST ===========================================================
