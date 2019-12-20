@@ -6,6 +6,8 @@ import org.enso.pkg.Package
 import org.graalvm.polyglot.{Context, Source, Value}
 import java.io.File
 
+import org.enso.languageserver.PolyglotHelpers.Module
+
 import scala.util.Try
 
 /** The main CLI entry point class. */
@@ -125,22 +127,20 @@ object Main {
   }
 
   private def runPackage(context: Context, mainModuleName: String): Unit = {
-    val bindings   = context.getBindings(Constants.LANGUAGE_ID)
-    val mainModule = bindings.invokeMember("get_module", mainModuleName)
+    val topScope   = PolyglotHelpers.getTopScope(context)
+    val mainModule = topScope.getModule(mainModuleName)
     runMain(mainModule)
   }
 
   private def runSingleFile(context: Context, file: File): Unit = {
     val source     = Source.newBuilder(Constants.LANGUAGE_ID, file).build()
     val mainModule = context.eval(source)
-    runMain(mainModule)
+    runMain(new Module(mainModule))
   }
 
-  private def runMain(mainModule: Value): Value = {
-    val mainCons = mainModule.getMember("associated_constructor")
-    val mainFun  = mainModule.invokeMember("get_method", mainCons, "main")
-    val mainFun2 = mainModule.invokeMember("get_method", mainCons, "main")
-    println(mainFun.invokeMember("equals", mainFun2))
+  private def runMain(mainModule: Module): Value = {
+    val mainCons = mainModule.getAssociatedConstructor
+    val mainFun  = mainModule.getMethod(mainCons, "main")
     mainFun.execute(mainCons)
   }
 
@@ -153,7 +153,7 @@ object Main {
       new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
     val mainModule =
       context.eval(Constants.LANGUAGE_ID, dummySourceToTriggerRepl)
-    runMain(mainModule)
+    runMain(new Module(mainModule))
     exitSuccess()
   }
 

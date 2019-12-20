@@ -137,6 +137,13 @@ case class Package(root: File, config: Config) {
     */
   def name: String = config.name
 
+  /**
+    * Parses a file path into a qualified module name belonging to this
+    * package.
+    *
+    * @param file the source file path to translate into a qualified name.
+    * @return a qualified name of the input source path.
+    */
   def moduleNameForFile(file: File): QualifiedName = {
     val path        = file.toPath
     val sourcesPath = sourceDir.toPath
@@ -176,14 +183,29 @@ object Package {
   val thumbFileName          = "thumb.png"
   val qualifiedNameSeparator = "."
 
+  /**
+    * Represents a qualified name of a source module.
+    *
+    * @param path the names of the package and directories the module is
+    *             contained in
+    * @param module the name of the module
+    */
   case class QualifiedName(path: List[String], module: String) {
     override def toString: String =
       (path :+ module).mkString(qualifiedNameSeparator)
   }
 
   object QualifiedName {
-    def fromString(s: String): Option[QualifiedName] = {
-      val segments = s.split(qualifiedNameSeparator).toList
+
+    /**
+      * Parses a dot-separated string representation of a qualified name into
+      * a [[QualifiedName]] object.
+      *
+      * @param qualName the string representation of a qualified name.
+      * @return the corresponding [[QualifiedName]] object.
+      */
+    def fromString(qualName: String): Option[QualifiedName] = {
+      val segments = qualName.split(qualifiedNameSeparator).toList
       if (segments.nonEmpty) {
         Some(QualifiedName(segments.dropRight(1), segments.last))
       } else {
