@@ -779,11 +779,11 @@ mod tests {
     #[test]
     fn ast_wrapping() {
         // We can convert `Var` into AST without worrying about span nor id.
-        let sample_name = "foo".to_string();
-        let v = Var{ name: sample_name.clone() };
-        let ast = Ast::from(v);
+        let ident = "foo".to_string();
+        let v     = Var{ name: ident.clone() };
+        let ast   = Ast::from(v);
         assert_eq!(ast.wrapped.id, None);
-        assert_eq!(ast.wrapped.wrapped.span, sample_name.span());
+        assert_eq!(ast.wrapped.wrapped.span, ident.span());
     }
 
     #[test]
@@ -850,10 +850,10 @@ mod tests {
 
     #[test]
     fn iterate_nested() {
-        let a = Ast::var("a");
-        let b = Ast::var("b");
-        let c = Ast::var("c");
-        let ab = Ast::prefix(a,b);
+        let a   = Ast::var("a");
+        let b   = Ast::var("b");
+        let c   = Ast::var("c");
+        let ab  = Ast::prefix(a,b);
         let abc = Ast::prefix(ab, c); // repr is `a b c`
 
         assert_eq!((&abc).iter().count(), 2); // for App's two children

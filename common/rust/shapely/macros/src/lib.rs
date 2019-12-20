@@ -11,8 +11,8 @@ use prelude::*;
 use crate::derive_iterator::IsMut;
 
 /// For `struct Foo<T>` or `enum Foo<T>` provides:
-/// * `IntoIterator` implementations for `&'t Foo<T>` and `&mut 't Foo<T>`;
-/// * `iter` and `into_iter` methods.
+/// * `IntoIterator` implementations for `&'t Foo<T>`, `iter` and `into_iter`
+/// methods.
 ///
 /// The iterators will:
 /// * for structs: go over each field that declared type is same as the
@@ -21,6 +21,11 @@ use crate::derive_iterator::IsMut;
 ///
 /// Enums are required to use only a single element tuple-like variant. This
 /// limitation should be lifted in the future.
+///
+/// Any dependent type stored in struct, tuple or wrapped in enum should have
+/// dependency only in its last type parameter. All dependent types that are not
+/// tuples nor directly the yielded type, are required to provide `iter` method
+/// that returns a compatible iterator (possible also derived).
 ///
 /// Caller must have the following features enabled:
 /// ```
@@ -37,6 +42,10 @@ pub fn derive_iterator
     output
 }
 
+/// Same as `derive(Iterator)` but generates mutable iterator.
+///
+/// It is separate, as some types allow deriving immutable iterator but ont the
+/// mutable one.
 #[proc_macro_derive(IteratorMut)]
 pub fn derive_iterator_mut
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
