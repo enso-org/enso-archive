@@ -13,7 +13,6 @@ import org.enso.syntax.text.ast.meta.Builtin
 import org.enso.syntax.text.ast.opr.Prec
 import org.enso.syntax.text.prec.Distance
 import org.enso.syntax.text.prec.Macro
-import org.enso.syntax.text.prec.Operator
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
 
@@ -149,6 +148,7 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
+
 class Parser {
   import Parser._
   private val engine = newEngine()
@@ -281,7 +281,7 @@ class Parser {
           case None => throw MissingMacroDefinition
           case Some(spec) =>
             val id       = resolvedAST.id.getOrElse(UUID.randomUUID)
-            val segments = resolvedAST.segs.toList().map(_.el)
+            val segments = resolvedAST.segs.toList().map(_.wrapped)
             val ctx      = AST.Macro.Resolver.Context(resolvedAST.pfx, segments, id)
             resolvedAST.copy(shape = resolvedAST.shape.copy[AST](resolved = {
               resolveMacros(spec.resolver(ctx))
@@ -328,8 +328,9 @@ class Parser {
   def dropMacroMeta(ast: AST.Module): AST.Module = {
     def go: AST => AST = {
       case AST.Macro.Match.any(t) => {
-        val prefix           = t.pfx.toList.flatMap(_.toStream.map(_.el))
-        val segments         = t.segs.toList().flatMap(_.el.toStream.map(_.el))
+        val prefix = t.pfx.toList.flatMap(_.toStream.map(_.wrapped))
+        val segments =
+          t.segs.toList().flatMap(_.wrapped.toStream.map(_.wrapped))
         val originalSegments = (prefix ++ segments).map(deriveLocations)
         val originalSpan =
           Foldable[List].foldMap(originalSegments)(_.location)
@@ -345,8 +346,9 @@ class Parser {
 
 object Parser {
   type IDMap = Seq[(Span, AST.ID)]
-  def apply(): Parser = new Parser()
   private val newEngine = flexer.Parser.compile(ParserDef())
+
+  def apply(): Parser = new Parser()
 
   //// Exceptions ////
 
@@ -444,7 +446,7 @@ object Main extends scala.App {
       |    type Some a
       |
       |    ## The `None` type indicates a lack of a value.
-      |     
+      |
       |     It is a very common type and is used by such types as `Maybe` or `List`.
       |     Also, `None` is the return value of functions which do not return an
       |     explicit value.
@@ -477,11 +479,7 @@ object Main extends scala.App {
   val documentation = DocParserRunner.createDocs(droppedMeta)
   val htmlPath      = "target/"
   val cssFileName   = "style.css"
-  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
-    documentation,
-    htmlPath,
-    cssFileName
-  )
+
   println(Debug.pretty(documentation.toString))
   println("------")
   println(documentation.show())

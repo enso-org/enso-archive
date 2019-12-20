@@ -1,14 +1,16 @@
 #![feature(type_alias_impl_trait)]
 #![feature(generators, generator_trait)]
 
+mod internal;
+
 use prelude::*;
 
+use ast_macros::*;
 use serde::{Serialize, Deserialize};
 use serde::ser::{Serializer, SerializeStruct};
 use serde::de::{Deserializer, Visitor};
-use uuid::Uuid;
-use ast_macros::*;
 use shapely::*;
+use uuid::Uuid;
 
 pub type Stream<T> = Vec<T>;
 
@@ -85,6 +87,19 @@ impl<T> Layer<T> for Layered<T> {
     fn layered(t: T) -> Self { Layered(t) }
 }
 
+// ============
+// === Unit ===
+// ============
+
+/// A unit type defined as an empty struct.
+///
+/// Because it is defined using {} syntax, serde_json will serialize it to
+/// an empty object rather than null node. This is to workaround issue with
+/// using units in `Option`, reported here:
+/// https://github.com/serde-rs/serde/issues/1690
+#[ast_node] pub struct Unit{}
+
+
 // ===========
 // === AST ===
 // ===========
@@ -107,12 +122,16 @@ impl Clone for Ast {
     }
 }
 
-impl Ast {
-    pub fn iter(&self) -> Rc<dyn Iterator<Item = &'_ Shape<Ast>> + '_> {
-        // TODO https://github.com/luna/enso/issues/338
-        unimplemented!();
+/// `IntoIterator` for `&Ast` that just delegates to `&Shape`'s `IntoIterator`.
+impl<'t> IntoIterator for &'t Ast {
+    type Item     = <&'t Shape<Ast> as IntoIterator>::Item;
+    type IntoIter = <&'t Shape<Ast> as IntoIterator>::IntoIter;
+    fn into_iter(self) -> Self::IntoIter {
+        self.shape().into_iter()
     }
+}
 
+impl Ast {
     pub fn shape(&self) -> &Shape<Ast> {
         self
     }
@@ -131,6 +150,11 @@ impl Ast {
         let with_span = WithSpan { wrapped: shape,     span };
         let with_id   = WithID   { wrapped: with_span, id   };
         Ast { wrapped: Rc::new(with_id) }
+    }
+
+    /// Iterates over all transitive child nodes (including self).
+    pub fn iter_recursive(&self) -> impl Iterator<Item=&Ast> {
+        internal::iterate_subtree(self)
     }
 }
 
@@ -221,6 +245,7 @@ impl<'de> Deserialize<'de> for Ast {
     }
 }
 
+
 // =============
 // === Shape ===
 // =============
@@ -229,47 +254,77 @@ impl<'de> Deserialize<'de> for Ast {
 ///
 /// Shape describes names of children and spacing between them.
 #[ast(flat)] pub enum Shape<T> {
+    Unrecognized  { str : String   },
+    InvalidQuote  { quote: Builder },
+    InlineBlock   { quote: Builder },
 
     // === Identifiers ===
-    Blank     { },
-    Var       { name : String },
-    Cons      { name : String },
-    Opr       { name : String },
-    Mod       { name : String },
+    Blank         { },
+    Var           { name : String            },
+    Cons          { name : String            },
+    Opr           { name : String            },
+    Mod           { name : String            },
+    InvalidSuffix { elem : T, suffix: String },
 
-    // === Literals ===
-    Number    { base: Option<String>, int: String },
-    Text      (Text<T>),
+    // === Number ===
+    Number        { base: Option<String>, int: String },
+    DanglingBase  { base: String                      },
 
-    // === Expressions ===
-    Prefix    { func : T   , off  : usize , arg: T                          },
-    Infix     { larg : T   , loff : usize , opr: T , roff: usize , rarg: T  },
-    SectLeft  { arg  : T   , off  : usize , opr: T                          },
-    SectRight { opr  : T   , off  : usize , arg: T                          },
-    SectSides { opr  : T                                                    },
+    // === Text ===
+    TextLineRaw   { text   : Vec<SegmentRaw>                  },
+    TextLineFmt   { text   : Vec<SegmentFmt<T>>               },
+    TextBlockRaw  { text   : Vec<TextBlockLine<SegmentRaw>>
+                  , spaces : usize
+                  , offset : usize                            },
+    TextBlockFmt  { text   : Vec<TextBlockLine<SegmentFmt<T>>>
+                  , spaces : usize
+                  , offset : usize                            },
+    TextUnclosed  { line   : TextLine<T>                      },
 
-    Invalid   (Invalid<T>),
-    Block     (Block<T>),
-    Module    (Module<T>),
-    Macro     (Macro<T>),
-    Comment   (Comment),
-    Import    (Import<T>),
-    Mixfix    (Mixfix<T>),
-    Group     (Group<T>),
-    Def       (Def<T>),
-    Foreign   (Foreign),
+    // === Applications ===
+    Prefix        { func : T,  off : usize, arg : T                         },
+    Infix         { larg : T, loff : usize, opr : T, roff : usize, rarg : T },
+    SectionLeft   {  arg : T,  off : usize, opr : T                         },
+    SectionRight  {                         opr : T,  off : usize,  arg : T },
+    SectionSides  {                         opr : T                         },
+
+    // === Module ===
+    Module        { lines       : Vec<BlockLine<Option<T>>>  },
+    Block         { ty          : BlockType
+                  , indent      : usize
+                  , empty_lines : Vec<usize>
+                  , first_line  : BlockLine<T>
+                  , lines       : Vec<BlockLine<Option<T>>>
+                  , is_orphan   : bool                       },
+
+    // === Macros ===
+    Match         { pfx      : Option<MacroPatternMatch<Shifted<Ast>>>
+                  , segs     : ShiftedVec1<MacroMatchSegment<T>>
+                  , resolved : Ast                                     },
+    Ambiguous     { segs     : ShiftedVec1<MacroAmbiguousSegment>
+                  , paths    : Tree<Ast, Unit>                         },
+
+    // === Spaceless AST ===
+    Comment       (Comment),
+    Import        (Import<T>),
+    Mixfix        (Mixfix<T>),
+    Group         (Group<T>),
+    Def           (Def<T>),
+    Foreign       (Foreign),
 }
 
+
 // ===============
-// === Invalid ===
+// === Builder ===
 // ===============
 
-#[ast] pub enum Invalid<T> {
-    Unrecognized  { input : String },
-    Unexpected    { msg   : String, stream: Stream<T> },
-    InvalidSuffex { elem  : T, suffix: String },
-    // FIXME: missing constructors, https://github.com/luna/enso/issues/336
-    // DanglingBase
+#[ast(flat)]
+pub enum Builder {
+    Empty,
+    Letter{char: char},
+    Space {span: usize},
+    Text  {str : String},
+    Seq   {first: Rc<Builder>, second: Rc<Builder>},
 }
 
 
@@ -277,71 +332,65 @@ impl<'de> Deserialize<'de> for Ast {
 // === Text ===
 // ============
 
-#[ast] pub enum Text<T> {
-    Raw { body: TextBody<TextRawSegment> },
-    Fmt { body: TextBody<TextFmtSegment<T>> }
+// === Text Block Lines ===
+#[ast] pub struct TextBlockLine<T> {
+    pub empty_lines: Vec<usize>,
+    pub text       : Vec<T>
 }
 
-#[ast] pub struct TextRawSegment {
-    pub value: String
+#[ast(flat)] pub enum TextLine<T> {
+    TextLineRaw(TextLineRaw),
+    TextLineFmt(TextLineFmt<T>),
 }
 
-#[ast] pub enum TextFmtSegment<T> {
-    Plain  { value  : String },
-    Expr   { value  : Option<T> },
-    Escape { escape : TextEscape },
+// === Text Segments ===
+#[ast(flat)] pub enum SegmentRaw {
+    SegmentPlain    (SegmentPlain),
+    SegmentRawEscape(SegmentRawEscape),
 }
 
-pub type TextBlock<T> = Vec<TextLine<T>>;
-#[ast] pub struct TextLine<T> { off: usize, elems: Vec<T> }
-#[ast] pub struct TextBody<T> { quote: TextQuote, block: TextBlock<T> }
-#[ast] pub enum   TextQuote   { Single, Triple }
+#[ast(flat)] pub enum SegmentFmt<T> {
+    SegmentPlain    (SegmentPlain    ),
+    SegmentRawEscape(SegmentRawEscape),
+    SegmentExpr     (SegmentExpr<T>  ),
+    SegmentEscape   (SegmentEscape   ),
+}
 
-// FIXME: missing TextEscape contents, https://github.com/luna/enso/issues/336
-#[ast] pub struct TextEscape {}
+#[ast_node] pub struct SegmentPlain     { pub value: String    }
+#[ast_node] pub struct SegmentRawEscape { pub code : RawEscape }
+#[ast_node] pub struct SegmentExpr<T>   { pub value: Option<T> }
+#[ast_node] pub struct SegmentEscape    { pub code : Escape    }
+
+// === Text Segment Escapes ===
+#[ast(flat)] pub enum RawEscape {
+    Unfinished { },
+    Invalid    { str: char },
+    Slash      { },
+    Quote      { },
+    RawQuote   { },
+}
+
+#[ast_node] pub enum Escape {
+    Character{c     :char            },
+    Control  {name  :String, code: u8},
+    Number   {digits:String          },
+    Unicode16{digits:String          },
+    Unicode21{digits:String          },
+    Unicode32{digits:String          },
+}
 
 
 // =============
 // === Block ===
 // =============
 
-#[ast] pub struct Block<T> {
-    pub ty          : BlockType,
-    pub ident       : usize,
-    pub empty_lines : usize,
-    pub first_line  : BlockLine<T>,
-    pub lines       : Vec<BlockLine<Option<T>>>,
-    pub is_orphan   : bool,
-}
+#[ast_node] pub enum   BlockType     { Continuous { } , Discontinuous { } }
+#[ast]      pub struct BlockLine <T> { pub elem: T, pub off: usize }
 
-#[ast] pub enum   BlockType     { Continuous, Discontinuous }
-#[ast] pub struct BlockLine <T> { pub elem: T, pub off: usize }
-
-// ==============
-// === Module ===
-// ==============
-
-#[ast] pub struct Module<T> {  pub lines: Vec<BlockLine<Option<T>>> }
 
 // =============
 // === Macro ===
 // =============
-
-#[ast] pub enum Macro<T> {
-    Match     (Match<T>),
-    Ambiguous (Ambiguous),
-}
-
-#[ast] pub struct MacroMatch<T> {
-    pub pfx      : Option<MacroPatternMatch<Ast>>,
-    pub segs     : ShiftedVec1<MacroMatchSegment<T>>,
-    pub resolved : Ast
-}
-
-#[ast] pub struct MacroAmbiguous {
-    pub segs  : ShiftedVec1<MacroAmbiguousSegment>,
-    pub paths : Tree<Ast, ()>,
-}
 
 #[ast] pub struct MacroMatchSegment<T> {
     pub head : Ast,
@@ -357,11 +406,11 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
 #[ast] pub enum MacroPatternRaw {
 
     // === Boundary Patterns ===
-    Begin   ,
-    End     ,
+    Begin   { },
+    End     { },
 
     // === Structural Patterns ===
-    Nothing ,
+    Nothing { },
     Seq     { pat1 : MacroPattern , pat2    : MacroPattern                    },
     Or      { pat1 : MacroPattern , pat2    : MacroPattern                    },
     Many    { pat  : MacroPattern                                             },
@@ -391,11 +440,11 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
 pub type Spaced = Option<bool>;
 
 #[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-pub enum Either<L,R> { Left(L), Right(R) }
+pub enum Either<L,R> { Left{value: L}, Right{value: R} }
 pub type Switch<T> = Either<T,T>;
 
-pub type MacroPatternMatch<T> = Rc<FooRaw<T>>;
-#[ast] pub enum FooRaw<T> {
+pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
+#[ast] pub enum MacroPatternMatchRaw<T> {
 
     // === Boundary Matches ===
     Begin   { pat: MacroPatternRawBegin },
@@ -440,7 +489,7 @@ pub type MacroPatternMatch<T> = Rc<FooRaw<T>>;
 }
 
 #[ast] pub struct Import<T> {
-    pub lines: Vec<T>
+    pub path: Vec<T> // Cons inside
 }
 
 #[ast] pub struct Mixfix<T> {
@@ -453,7 +502,7 @@ pub type MacroPatternMatch<T> = Rc<FooRaw<T>>;
 }
 
 #[ast] pub struct Def<T> {
-    pub name: Cons,
+    pub name: T, // being with Cons
     pub args: Vec<T>,
     pub body: Option<T>
 }
@@ -574,21 +623,32 @@ impl<T> HasID for WithSpan<T>
 impl Ast {
     // TODO smart constructors for other cases
     //  as part of https://github.com/luna/enso/issues/338
-    pub fn var(name: String) -> Ast {
-        let var = Var{ name };
+
+    pub fn var<Str: ToString>(name:Str) -> Ast {
+        let var = Var{ name: name.to_string() };
         Ast::from(var)
+    }
+
+    pub fn opr<Str: ToString>(name:Str) -> Ast {
+        let opr = Opr{ name: name.to_string() };
+        Ast::from(opr)
+    }
+
+    pub fn infix<Str0, Str1, Str2>(larg:Str0, opr:Str1, rarg:Str2) -> Ast
+    where Str0: ToString
+        , Str1: ToString
+        , Str2: ToString {
+        let larg  = Ast::var(larg);
+        let loff  = 1;
+        let opr   = Ast::opr(opr);
+        let roff  = 1;
+        let rarg  = Ast::var(rarg);
+        let infix = Infix { larg, loff, opr, roff, rarg };
+        Ast::from(infix)
     }
 }
 
 // === Shape ===
-
-impl<T> Shape<T> {
-    pub fn iter(&self) -> Box<dyn Iterator<Item = &'_ T> + '_> {
-        // TODO: use child's derived iterator
-        //  as part of https://github.com/luna/enso/issues/338
-        unimplemented!()
-    }
-}
 
 impl<T> HasSpan for Shape<T> {
     // TODO: sum spans of all members
@@ -609,6 +669,69 @@ impl HasSpan for Var {
     }
 }
 
+
+// === Text Conversion Boilerplate ===
+// support for transitive conversions, like:
+// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
+
+impl From<Unfinished> for SegmentRaw {
+    fn from(value: Unfinished) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Invalid> for SegmentRaw {
+    fn from(value: Invalid) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Slash> for SegmentRaw {
+    fn from(value: Slash) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<Quote> for SegmentRaw {
+    fn from(value: Quote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl From<RawQuote> for SegmentRaw {
+    fn from(value: RawQuote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+
+// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt
+impl<T> From<Unfinished> for SegmentFmt<T> {
+    fn from(value: Unfinished) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Invalid> for SegmentFmt<T> {
+    fn from(value: Invalid) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Slash> for SegmentFmt<T> {
+    fn from(value: Slash) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<Quote> for SegmentFmt<T> {
+    fn from(value: Quote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+impl<T> From<RawQuote> for SegmentFmt<T> {
+    fn from(value: RawQuote) -> Self {
+        SegmentRawEscape{ code: value.into() }.into()
+    }
+}
+
+impl<T> From<Escape> for SegmentFmt<T> {
+    fn from(value: Escape) -> Self {
+        SegmentEscape{ code: value.into() }.into()
+    }
+}
 
 // =============
 // === Tests ===
@@ -684,5 +807,29 @@ mod tests {
         let expected_var   = Var { name: var_name.into() };
         let expected_shape = Shape::from(expected_var);
         assert_eq!(*ast.shape(), expected_shape);
+    }
+
+    #[test]
+    /// Check if Ast can be iterated.
+    fn iterating() {
+        // TODO [mwu] When Repr is implemented, the below lambda sohuld be
+        //            removed in favor of it.
+        let to_string = |ast:&Ast| { match ast.shape() {
+            Shape::Var(var)   => var.name   .clone(),
+            Shape::Opr(opr)   => opr.name   .clone(),
+            _                 => "«invalid»".to_string(),
+        }};
+
+        let infix   = Ast::infix("foo", "+", "bar");
+        let strings = infix.iter().map(to_string);
+        let strings = strings.collect::<Vec<_>>();
+
+        let assert_contains = |searched:&str| {
+           assert!(strings.iter().any(|elem| elem == searched))
+        };
+        assert_contains("foo");
+        assert_contains("bar");
+        assert_contains("+");
+        assert_eq!(strings.len(), 3);
     }
 }
