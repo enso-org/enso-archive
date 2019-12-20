@@ -439,12 +439,17 @@ pub type MacroPattern = Rc<MacroPatternRaw>;
 #[ast] pub enum PatternClass { Normal, Pattern }
 pub type Spaced = Option<bool>;
 
-//#[derive(Eq, PartialEq, Hash, Debug, Serialize, Deserialize)]
-//pub enum Either<L,R> { Left{value: L}, Right{value: R} }
-//pub type Switch<T> = Either<T,T>;
-
+// Note: Switch Implementation
 #[ast(flat)]
 pub enum Switch<T> { Left{value: T}, Right{value: T} }
+
+// Note: Switch Implementation
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Switch is not defined as Either<T,T> because an iterator generated for such
+// type would only iterate over right element, while we require both.
+//
+// Switch however does not need to be #[ast], when derive(Iterator) supports
+// enum with struct variants, this attribute should be possible to remove.
 
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 #[ast] pub enum MacroPatternMatchRaw<T> {

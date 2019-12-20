@@ -433,6 +433,9 @@ pub fn derive
 // #[derive(Iterator)]
 // pub struct Foo<S, T> { foo: T }
 //
+// When different output is generated for mutable and immutable content, both
+// expansions are presented.
+//
 // For examples that are enum-specific rather than struct-specific, the
 // following definition is assumed:
 //

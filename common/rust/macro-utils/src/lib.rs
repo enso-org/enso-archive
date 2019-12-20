@@ -116,19 +116,25 @@ pub fn gather_all_type_reprs(node:&syn::Type) -> Vec<String> {
 // === Type Dependency ===
 // =======================
 
+/// Naive type equality test by comparing its representation with a string.
+pub fn type_matches_repr(ty:&syn::Type, target_repr:&str) -> bool {
+    repr(ty) == target_repr
+}
+
+/// Naive type equality test by comparing their text representations.
+pub fn type_matches(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
+    type_matches_repr(ty, &repr(target_param))
+}
+
+/// Does type depends on the given type parameter.
 pub fn type_depends_on(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
     let target_param = repr(target_param);
     let relevant_types = gather_all_types(ty);
     let depends = relevant_types.iter().any(|ty| repr(ty) == target_param);
-//    println!("Does {} depend on {}? {}", repr(ty), target_param, depends);
     depends
 }
 
-pub fn type_matches(ty:&syn::Type, target_param:&syn::GenericParam) -> bool {
-    repr(ty) == repr(target_param)
-}
-
-/// Does enum variant depend on given type.
+/// Does enum variant depend on the given type parameter.
 pub fn variant_depends_on
 (var:&syn::Variant, target_param:&syn::GenericParam) -> bool {
     var.fields.iter().any(|field| type_depends_on(&field.ty, target_param))

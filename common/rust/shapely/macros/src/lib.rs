@@ -7,6 +7,7 @@ extern crate proc_macro;
 mod derive_iterator;
 
 use prelude::*;
+
 use crate::derive_iterator::IsMut;
 
 /// For `struct Foo<T>` or `enum Foo<T>` provides:
@@ -16,8 +17,10 @@ use crate::derive_iterator::IsMut;
 /// The iterators will:
 /// * for structs: go over each field that declared type is same as the
 ///   struct's last type parameter.
-/// * enums: delegate to current constructor's nested value if it is takes `T`
-///   type argument; or return empty iterator otherwise.
+/// * enums: delegate to current constructor's nested value's iterator.
+///
+/// Enums are required to use only a single element tuple-like variant. This
+/// limitation should be lifted in the future.
 ///
 /// Caller must have the following features enabled:
 /// ```
