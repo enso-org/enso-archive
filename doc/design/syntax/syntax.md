@@ -58,6 +58,7 @@ dependently-typed world, they are just values.
 - [Field Access](#field-access)
   - [Pattern Matching](#pattern-matching)
   - [Projections / Lenses](#projections--lenses)
+- [Comments](#comments)
 
 <!-- /MarkdownTOC -->
 
@@ -377,6 +378,11 @@ of typesets. Their syntax is as follows:
 - **Subtraction - `\`:** The resultant typeset may contain values that are in
   the first argument's set but not in the second.
 
+> The actionables for this section are:
+> 
+> - Unify this with the types document at some point. The types document
+>   supersedes this section while this actionable exists.
+
 ### Type Definitions
 Types in Enso are defined by using the `type` reserved name. This works in a
 context-dependent manner that is discussed properly in the
@@ -405,6 +411,10 @@ below.
 
       nothing = not isJust
   ```
+
+  Please note that the `type Foo (a : t)` is syntax only allowable inside a type
+  definition. It defines an atom `Foo`, but constrains the type variable of the
+  atom _in this usage_.
 
 - **Body Without Atom Definitions:** If you provide a body and do not define any
   atoms within it, this creates an interface that asserts no atoms as part of
@@ -1069,3 +1079,13 @@ main =
 > The actionables for this section are:
 >
 > - Fix the example above. It isn't correct.
+
+## Comments
+Enso supports a variety of types of comments:
+
+- **Disable Comments:** TODO
+- **Documentation Comments:** TODO
+
+> The actionables for this section are:
+> 
+> - Solidify exactly how each kind of comment behaves.
