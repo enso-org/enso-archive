@@ -270,7 +270,6 @@ pub enum Shape<T> {
     InvalidQuote  { quote: Builder },
     InlineBlock   { quote: Builder },
 
-    // === Identifiers ===
     Blank         { },
     Var           { name : String            },
     Cons          { name : String            },
@@ -482,7 +481,7 @@ impl<T> Switch<T> {
     }
 }
 
-make_repr!(Switch<T>, self.get());
+make_repr_span!(Switch<T>, self.get());
 
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 #[ast]
@@ -563,12 +562,6 @@ pub enum MacroPatternMatchRaw<T> {
 /// Things that can be asked about their span.
 pub trait HasSpan {
     fn span(&self) -> usize;
-
-    /// Helper used in some generic contexts for regularity with HasRepr's
-    /// write_repr.
-    fn sum_span(&self, acc:usize) -> usize {
-        self.span() + acc
-    }
 }
 
 /// Counts codepoints.

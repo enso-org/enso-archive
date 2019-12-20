@@ -1,10 +1,11 @@
 use prelude::*;
 
-use macro_utils::path_segment_generic_args;
+use macro_utils::{path_segment_generic_args, rewrite_stream, matching_ident};
 use quote::quote;
 use proc_macro2::TokenStream;
 use syn::punctuated::Punctuated;use syn::Expr;
 use syn::Token;
+use proc_macro::TokenTree;
 
 pub fn not_supported
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -74,25 +75,10 @@ pub fn derive_for_enum
     ret
 }
 
-
 pub struct ReprDescription {
     pub ty     :syn::PathSegment,
     pub exprs  :Vec<syn::Expr>,
     pub ty_args:Vec<syn::GenericArgument>,
-}
-
-impl ReprDescription {
-    fn new
-    (mut input:TokenStream,new_name:Option<&str>)
-    -> syn::Result<ReprDescription> {
-        if let Some(new_name) = new_name {
-            use macro_utils::replace_ident_tokens;
-            let from = "_PLACEHOLDER_";
-            input = replace_ident_tokens(input.clone(), from, new_name);
-        }
-        syn::parse2(TokenStream::from_iter(input))
-
-    }
 }
 
 impl syn::parse::Parse for ReprDescription {
@@ -107,51 +93,42 @@ impl syn::parse::Parse for ReprDescription {
     }
 }
 
-pub fn make_repr2(input: TokenStream) -> TokenStream {
-    let rr : ReprDescription = syn::parse2(input).unwrap();
-    let ty = rr.ty;
-    let ty_args = rr.ty_args;
-    let exprs = rr.exprs;
-    let output = quote!{
-        impl<#(#ty_args : HasSpan),*> HasSpan for #ty {
-            fn span(&self) -> usize {
-                0 #(+ #exprs.span())*
+impl ReprDescription {
+    pub fn make_impl
+    (&self, trait_name:&str, methods:&TokenStream) -> TokenStream {
+        let trait_name = syn::parse_str::<syn::TypePath>(trait_name).unwrap();
+        let ty      = &self.ty;
+        let ty_args = &self.ty_args;
+        let exprs   = &self.exprs;
+        quote! {
+            impl<#(#ty_args : #trait_name),*> #trait_name for #ty {
+                #methods
             }
         }
+    }
 
-        impl<#(#ty_args : HasRepr),*> HasRepr for #ty {
+    pub fn make_repr(&self) -> TokenStream {
+        let exprs = &self.exprs;
+        self.make_impl("HasRepr", &quote!{
             fn write_repr(&self, target:&mut String) {
                 #(#exprs.write_repr(target);)*
             }
-        }
-    };
-    output
-}
+        })
+    }
 
-pub fn make_repr3(input: TokenStream) -> TokenStream {
-    let info_repr = ReprDescription::new(input.clone(), Some("write_repr")).unwrap();
-    let info_span = ReprDescription::new(input.clone(), Some("sum_span"  )).unwrap();
-    let ty        = info_repr.ty;
-    let ty_args   = info_repr.ty_args;
-
-    let repr_exprs = info_repr.exprs;
-    let span_exprs = info_span.exprs;
-
-    let output = quote!{
-        impl<#(#ty_args : HasSpan),*> HasSpan for #ty {
+    pub fn make_span(&self) -> TokenStream {
+        let exprs = &self.exprs;
+        self.make_impl("HasSpan", &quote!{
             fn span(&self) -> usize {
-                let mut target = 0;
-                #(target = #span_exprs;)*
-                target
+                0 #(+ #exprs.span())*
             }
-        }
+        })
+    }
 
-        impl<#(#ty_args : HasRepr),*> HasRepr for #ty {
-            fn write_repr(&self, target:&mut String) {
-                #(#repr_exprs;)*
-            }
-        }
-    };
-    output
-//    quote!()
+    pub fn make_repr_span(&self) -> TokenStream {
+        let mut ret = self.make_repr();
+        ret.extend(self.make_span());
+        ret
+    }
 }
+

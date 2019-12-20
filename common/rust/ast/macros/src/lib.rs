@@ -9,6 +9,7 @@ use quote::quote;
 use syn;
 
 use macro_utils::{gather_all_type_reprs, repr};
+use crate::reprspan::ReprDescription;
 
 // ==============
 // === Macros ===
@@ -207,8 +208,6 @@ fn gen_from_impls
 /// the parent scope. The created type name will be {EnumName}{ConstructorName}.
 /// To name generated types with only their constructor name, use `flat`
 /// attribute: `#[ast(flat)]`.
-///
-/// The target enum will
 #[proc_macro_attribute]
 pub fn to_variant_types
 ( attrs: proc_macro::TokenStream
@@ -248,7 +247,6 @@ pub fn to_variant_types
         #(#structs)*
         #(#variant_froms)*
     };
-//    println!("{}", repr(&output));
     output.into()
 }
 
@@ -263,18 +261,47 @@ pub fn derive_has_span
     proc_macro::TokenStream::from(ret)
 }
 
+/// Same as `make_repr_span` but provides only `HasSpan` implementation.
 #[proc_macro]
-pub fn make_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ret = reprspan::make_repr2(input.into());
-//    println!("{}", repr(&ret));
-    ret.into()
+pub fn make_span(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let maker = syn::parse::<ReprDescription>(input).unwrap();
+    maker.make_span().into()
 }
 
+/// Generates `HasRepr` and `HasSpan` instances that are just sum of their
+/// parts.
+///
+/// Takes 1+ parameters:
+/// * first goes the typename for which implementations are generated (can take
+///   type parameters, as long as they implement `HasRepr` and `HasSpan`)
+/// * then arbitrary number (0 or more) of expressions, that shall yield values
+///   implementing `HasRepr` and `HasSpan`. The `self` can be used in th
+///   expressions.
+///
+/// For example, for invocation:
+/// ```
+/// make_repr_span!(SegmentExpr<T>, EXPR_QUOTE, self.value, EXPR_QUOTE);
+/// ```
+/// the following output is produced:
+///    ```
+///    impl<T: HasRepr> HasRepr for SegmentExpr<T> {
+///        fn write_repr(&self, target: &mut String) {
+///            EXPR_QUOTE.write_repr(target);
+///            self.value.write_repr(target);
+///            EXPR_QUOTE.write_repr(target);
+///        }
+///    }
+///
+///    impl<T: HasSpan> HasSpan for SegmentExpr<T> {
+///        fn span(&self) -> usize {
+///            0 + EXPR_QUOTE.span() + self.value.span() + EXPR_QUOTE.span()
+///        }
+///    }
+///    ```
 #[proc_macro]
-pub fn make_custom_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let ret = reprspan::make_repr3(input.into());
-    println!("{}", repr(&ret));
-    ret.into()
+pub fn make_repr_span(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let maker = syn::parse::<ReprDescription>(input).unwrap();
+    maker.make_repr_span().into()
 }
 
 /// Generates `HasRepr` and `HasSpan` implementations that panic when used.

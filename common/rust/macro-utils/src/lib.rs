@@ -17,21 +17,37 @@ pub fn map_tokens<F:Fn(TokenTree) -> TokenTree>
     TokenStream::from_iter(ret_iter)
 }
 
-/// Replaces all identifiers matching `from` string with a new `to` Ident.
-pub fn replace_ident_tokens
-(tokens:TokenStream, from:&str, into:&str) -> TokenStream {
-    map_tokens(tokens, |token| replace_ident(token, from, into))
+/// Rewrites stream replacing each token with a sequence of tokens returned by
+/// the given function.
+pub fn rewrite_stream
+<F:Fn(TokenTree) -> TokenStream + Copy>
+(input:TokenStream, f:F) -> TokenStream {
+    let mut ret = TokenStream::new();
+    for token in input.into_iter() {
+        match token {
+            proc_macro2::TokenTree::Group(group) => {
+                let delim  = group.delimiter();
+                let span   = group.span();
+                let rewritten = rewrite_stream(group.stream(), f);
+                let mut new_group = proc_macro2::Group::new(delim,rewritten);
+                new_group.set_span(span);
+                let new_group = vec![TokenTree::from(new_group)];
+                ret.extend(new_group.into_iter())
+            }
+            _ => ret.extend(f(token)),
+        }
+    }
+    ret
 }
 
 
 // ===================
 // === Token Utils ===
 // ===================
-pub fn replace_ident(token:TokenTree, from:&str, into:&str) -> TokenTree {
+pub fn matching_ident(token:&TokenTree, name:&str) -> bool {
     match token {
-        TokenTree::Ident(ident) if ident.to_string() == from =>
-            TokenTree::from(proc_macro2::Ident::new(into, ident.span())),
-        _ => token,
+        TokenTree::Ident(ident) => ident.to_string() == name,
+        _                       => false,
     }
 }
 
