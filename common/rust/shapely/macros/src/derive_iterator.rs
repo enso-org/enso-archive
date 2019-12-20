@@ -407,6 +407,8 @@ impl DerivingIterator<'_> {
     }
 }
 
+/// Common implementation for deriving iterator through `derive(Iterator)` and
+/// `derive(IteratorMut)`.
 pub fn derive
 (input:proc_macro::TokenStream, is_mut:IsMut) -> proc_macro::TokenStream {
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
