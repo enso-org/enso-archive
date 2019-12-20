@@ -85,7 +85,7 @@ object PolyglotHelpers {
       * @param args the execution arguments
       * @return the result of execution
       */
-    def execute(args: Object*): Value = value.execute(args)
+    def execute(args: Object*): Value = value.execute(args: _*)
 
     /**
       * Checks function equality by checking the identity of the underlying

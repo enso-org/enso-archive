@@ -141,7 +141,7 @@ object Main {
   private def runMain(mainModule: Module): Value = {
     val mainCons = mainModule.getAssociatedConstructor
     val mainFun  = mainModule.getMethod(mainCons, "main")
-    mainFun.execute(mainCons)
+    mainFun.execute(mainCons.newInstance())
   }
 
   /**
