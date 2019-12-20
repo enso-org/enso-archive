@@ -16,6 +16,7 @@ public class Module {
   /**
    * Creates a new module.
    *
+   * @param name the qualified name of this module
    * @param file file in which this module sources are located
    */
   public Module(Package.QualifiedName name, TruffleFile file) {
@@ -39,10 +40,16 @@ public class Module {
     return scope;
   }
 
+  /** @return the scope of this module */
   public ModuleScope getScope() {
     return scope;
   }
 
+  /**
+   * Checks whether this module has already been parsed and compiled.
+   *
+   * @return {@code true} if the module is already compiled, {@code false} otherwise.
+   */
   public boolean hasComputedScope() {
     return getScope() != null;
   }

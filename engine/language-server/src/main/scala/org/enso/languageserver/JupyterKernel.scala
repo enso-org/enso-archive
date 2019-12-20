@@ -37,7 +37,7 @@ class JupyterKernel extends BaseKernel {
     * Evaluates Enso code in the context of Jupyter request
     *
     * @param expr the expression to execute
-    * @return the Jupyter-friendly representation of the result of executing `expr`
+    * @return the Jupyter-friendly representation of the result of executing expr`
     */
   override def eval(expr: String): DisplayData = {
     jupyterModule.patch(expr)

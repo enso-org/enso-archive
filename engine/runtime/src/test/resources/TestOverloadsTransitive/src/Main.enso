@@ -1,4 +1,0 @@
-import TestOverloadsTransitive.AtomDef
-import TestOverloadsTransitive.DummyModule
-
-Main.main = X.method 1

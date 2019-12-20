@@ -71,23 +71,29 @@ public class TopScope implements TruffleObject {
         Object[] arguments,
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
         throws UnknownIdentifierException {
-      String moduleName = (String) arguments[0];
       switch (member) {
         case GET_MODULE_KEY:
-          if (moduleName.equals(Builtins.MODULE_NAME)) {
-            return scope.builtins.getScope();
-          }
-          Module module = scope.modules.get(moduleName);
-          if (module == null) {
-            throw UnknownIdentifierException.create(moduleName);
-          }
-          if (module.hasComputedScope()) {
-            return module.getScope();
-          } else {
-            return module.requestParse(contextRef.get());
+          {
+            String moduleName = (String) arguments[0];
+
+            if (moduleName.equals(Builtins.MODULE_NAME)) {
+              return scope.builtins.getScope();
+            }
+            Module module = scope.modules.get(moduleName);
+            if (module == null) {
+              throw UnknownIdentifierException.create(moduleName);
+            }
+            if (module.hasComputedScope()) {
+              return module.getScope();
+            } else {
+              return module.requestParse(contextRef.get());
+            }
           }
         case CREATE_MODULE_KEY:
-          return contextRef.get().createScope(moduleName);
+          {
+            String moduleName = (String) arguments[0];
+            return contextRef.get().createScope(moduleName);
+          }
         default:
           throw UnknownIdentifierException.create(member);
       }

@@ -106,6 +106,8 @@ public class Context {
   /**
    * Creates a new module scope that automatically imports all the builtin types and methods.
    *
+   * @param name the name of the newly created scope.
+   *
    * @return a new module scope with automatic builtins dependency.
    */
   public ModuleScope createScope(String name) {

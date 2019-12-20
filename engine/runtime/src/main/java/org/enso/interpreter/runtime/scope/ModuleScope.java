@@ -29,7 +29,6 @@ public class ModuleScope implements TruffleObject {
   private final Map<String, Function> numberMethods = new HashMap<>();
   private final Map<String, Function> functionMethods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
-  private final Set<ModuleScope> transitiveImports = new HashSet<>();
 
   public ModuleScope(String name) {
     associatedType = new AtomConstructor(name, this).initializeFields();
@@ -123,10 +122,10 @@ public class ModuleScope implements TruffleObject {
    *
    * <p>The resolution algorithm is first looking for methods defined at the constructor definition
    * site (i.e. non-overloads), then looks for methods defined in this scope and finally tries to
-   * resolve the method in all transitive dependencies of this module.
+   * resolve the method in all dependencies of this module.
    *
    * <p>If the specific search fails, methods defined for any type are searched, first looking at
-   * locally defined methods and then all the transitive imports.
+   * locally defined methods and then all the imports.
    *
    * @param atom type to lookup the method for.
    * @param name the method name.
@@ -141,8 +140,7 @@ public class ModuleScope implements TruffleObject {
   /**
    * Looks up a method definition by-name, for methods defined on the type Any.
    *
-   * <p>The resolution algorithm prefers methods defined locally over any other method. The
-   * definitions are imported into scope transitively.
+   * <p>The resolution algorithm prefers methods defined locally over any other method.
    *
    * @param name the name of the method to look up
    * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
@@ -163,7 +161,7 @@ public class ModuleScope implements TruffleObject {
     if (definedHere != null) {
       return Optional.of(definedHere);
     }
-    return transitiveImports.stream()
+    return imports.stream()
         .map(scope -> scope.getMethodMapFor(atom).get(name))
         .filter(Objects::nonNull)
         .findFirst();
@@ -180,11 +178,10 @@ public class ModuleScope implements TruffleObject {
   /**
    * Looks up a method definition by-name, for methods defined on the type Number.
    *
-   * <p>The resolution algorithm prefers methods defined locally over any other method. The
-   * definitions are imported into scope transitively.
+   * <p>The resolution algorithm prefers methods defined locally over any other method.
    *
    * <p>If the specific search fails, methods defined for any type are searched, first looking at *
-   * locally defined methods and then all the transitive imports.
+   * locally defined methods and then all the imports.
    *
    * @param name the name of the method to look up
    * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
@@ -200,11 +197,10 @@ public class ModuleScope implements TruffleObject {
   /**
    * Looks up a method definition by-name, for methods defined on the type {@link Function}.
    *
-   * <p>The resolution algorithm prefers methods defined locally over any other method. The
-   * definitions are imported into scope transitively.
+   * <p>The resolution algorithm prefers methods defined locally over any other method.
    *
    * <p>If the specific search fails, methods defined for any type are searched, first looking at *
-   * locally defined methods and then all the transitive imports.
+   * locally defined methods and then all the imports.
    *
    * @param name the name of the method to look up
    * @return {@code Optional.of(resultMethod)} if the method existed, {@code Optional.empty()}
@@ -224,19 +220,10 @@ public class ModuleScope implements TruffleObject {
     if (definedHere != null) {
       return Optional.of(definedHere);
     }
-    return transitiveImports.stream()
+    return imports.stream()
         .map(scope -> mapGetter.apply(scope).get(methodName))
         .filter(Objects::nonNull)
         .findFirst();
-  }
-
-  /**
-   * Returns all the transitive dependencies of this module.
-   *
-   * @return a set of all the transitive dependencies of this module
-   */
-  private Set<ModuleScope> getTransitiveImports() {
-    return transitiveImports;
   }
 
   private Map<String, Function> getMethodsOfAny() {
@@ -258,8 +245,6 @@ public class ModuleScope implements TruffleObject {
    */
   public void addImport(ModuleScope scope) {
     imports.add(scope);
-    transitiveImports.add(scope);
-    transitiveImports.addAll(scope.getTransitiveImports());
   }
 
   private static final String ASSOCIATED_CONSTRUCTOR_KEY = "associated_constructor";
@@ -289,12 +274,15 @@ public class ModuleScope implements TruffleObject {
             return scope.constructors.get(name);
           }
         case PATCH_KEY:
-          String sourceString = (String) arguments[0];
-          Source source =
-              Source.newBuilder(Constants.LANGUAGE_ID, sourceString, scope.associatedType.getName())
-                  .build();
-          contextRef.get().compiler().run(source, scope);
-          return scope;
+          {
+            String sourceString = (String) arguments[0];
+            Source source =
+                Source.newBuilder(
+                        Constants.LANGUAGE_ID, sourceString, scope.associatedType.getName())
+                    .build();
+            contextRef.get().compiler().run(source, scope);
+            return scope;
+          }
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -323,8 +311,7 @@ public class ModuleScope implements TruffleObject {
 
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Vector(
-        new Object[] {METHODS_KEY, CONSTRUCTORS_KEY, PATCH_KEY, ASSOCIATED_CONSTRUCTOR_KEY});
+    return new Vector(METHODS_KEY, CONSTRUCTORS_KEY, PATCH_KEY, ASSOCIATED_CONSTRUCTOR_KEY);
   }
 
   @ExportMessage

@@ -29,6 +29,7 @@ import java.util.Optional;
 @NodeInfo(shortName = "ProgramRoot", description = "The root of an Enso program's execution")
 public class ProgramRootNode extends RootNode {
   private final Source sourceCode;
+  private @CompilerDirectives.CompilationFinal ModuleScope moduleScope;
 
   /**
    * Constructs the root node.
@@ -49,11 +50,13 @@ public class ProgramRootNode extends RootNode {
    */
   @Override
   public Object execute(VirtualFrame frame) {
-    Context context = lookupContextReference(Language.class).get();
-
-    ModuleScope moduleScope = context.createScope(sourceCode.getName());
+    if (moduleScope == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      Context context = lookupContextReference(Language.class).get();
+      moduleScope = context.createScope(sourceCode.getName());
+      context.compiler().run(this.sourceCode, moduleScope);
+    }
     // Note [Static Passes]
-    context.compiler().run(this.sourceCode, moduleScope);
     return moduleScope;
   }
 
