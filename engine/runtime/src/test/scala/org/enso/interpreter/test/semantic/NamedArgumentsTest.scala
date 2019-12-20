@@ -180,8 +180,8 @@ class NamedArgumentsTest extends InterpreterTest {
         |    genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
         |
         |    sum = list -> case list of
-        |      Cons2 h t -> h + t.sum
-        |      Nil2 -> 0
+        |        Cons2 h t -> h + t.sum
+        |        Nil2 -> 0
         |
         |    10.genList.sum
         """.stripMargin
@@ -199,8 +199,8 @@ class NamedArgumentsTest extends InterpreterTest {
         |    genList = i -> ifZero i Nil2 (Cons2 (rest = genList i-1) head=i)
         |
         |    sum = list -> case list of
-        |      Cons2 h t -> h + t.sum
-        |      Nil2 -> 0
+        |        Cons2 h t -> h + t.sum
+        |        Nil2 -> 0
         |
         |    5.genList.sum
         """.stripMargin

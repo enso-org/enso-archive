@@ -99,7 +99,7 @@ class FunctionArgumentsTest extends InterpreterTest {
       """
         |main =
         |    summator = current ->
-        |      ifZero current 0 ((x -> summator (current - 1)) 0)
+        |        ifZero current 0 ((x -> summator (current - 1)) 0)
         |    res = summator 0
         |    res
         |""".stripMargin

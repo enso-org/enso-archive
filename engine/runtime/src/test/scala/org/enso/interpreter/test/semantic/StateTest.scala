@@ -42,9 +42,9 @@ class StateTest extends InterpreterTest {
         |main =
         |    State.put 20
         |    myBlock =
-        |      res = State.get
-        |      State.put 0
-        |      res
+        |        res = State.get
+        |        State.put 0
+        |        res
         |
         |    res2 = State.run 10 ~myBlock
         |    state = State.get

@@ -46,7 +46,7 @@ class JupyterKernel extends BaseKernel {
       lastMain = newMain
       new DisplayData(newMain.execute(moduleCons).toString)
     } else {
-      new DisplayData()
+      DisplayData.EMPTY
     }
   }
 

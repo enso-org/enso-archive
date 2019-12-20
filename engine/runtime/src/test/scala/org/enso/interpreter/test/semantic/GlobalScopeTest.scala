@@ -103,8 +103,8 @@ class GlobalScopeTest extends InterpreterTest {
       """
         |main =
         |    myFun =
-        |      IO.println 10
-        |      0
+        |        IO.println 10
+        |        0
         |
         |    IO.println 5
         |    ~myFun
@@ -119,7 +119,7 @@ class GlobalScopeTest extends InterpreterTest {
       """
         |main =
         |    block =
-        |      State.put 0
+        |        State.put 0
         |
         |    State.put 5
         |    IO.println State.get
