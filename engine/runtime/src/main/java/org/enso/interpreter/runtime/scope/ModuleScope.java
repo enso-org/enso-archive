@@ -4,15 +4,14 @@ import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Vector;
@@ -30,6 +29,11 @@ public class ModuleScope implements TruffleObject {
   private final Map<String, Function> functionMethods = new HashMap<>();
   private final Set<ModuleScope> imports = new HashSet<>();
 
+  /**
+   * Creates a new object of this class.
+   *
+   * @param name the name of the newly created module.
+   */
   public ModuleScope(String name) {
     associatedType = new AtomConstructor(name, this).initializeFields();
   }
@@ -43,6 +47,7 @@ public class ModuleScope implements TruffleObject {
     constructors.put(constructor.getName(), constructor);
   }
 
+  /** @return the associated type of this module. */
   public AtomConstructor getAssociatedType() {
     return associatedType;
   }
@@ -247,75 +252,129 @@ public class ModuleScope implements TruffleObject {
     imports.add(scope);
   }
 
-  private static final String ASSOCIATED_CONSTRUCTOR_KEY = "associated_constructor";
+  private static final String ASSOCIATED_CONSTRUCTOR_KEY = "get_associated_constructor";
   private static final String METHODS_KEY = "get_method";
   private static final String CONSTRUCTORS_KEY = "get_constructor";
   private static final String PATCH_KEY = "patch";
 
+  /**
+   * Handles member invocations through the polyglot API.
+   *
+   * <p>The exposed members are:
+   * <li>{@code get_method(AtomConstructor, String)}
+   * <li>{@code get_constructor(String)}
+   * <li>{@code patch(String)}
+   * <li>{@code get_associated_constructor()}
+   */
   @ExportMessage
   abstract static class InvokeMember {
+    private static Function getMethod(ModuleScope scope, Object[] args)
+        throws ArityException, UnsupportedTypeException {
+      if (args.length != 2) {
+        throw ArityException.create(2, args.length);
+      }
+      if (!(args[0] instanceof AtomConstructor)) {
+        throw UnsupportedTypeException.create(
+            args, "The first argument must be an atom constructor.");
+      }
+      AtomConstructor cons = (AtomConstructor) args[0];
+      if (!(args[1] instanceof String)) {
+        throw UnsupportedTypeException.create(args, "The second argument must be a String.");
+      }
+      String name = (String) args[1];
+      return scope.methods.get(cons).get(name);
+    }
+
+    private static AtomConstructor getConstructor(ModuleScope scope, Object[] args)
+        throws ArityException, UnsupportedTypeException {
+      if (args.length != 1) {
+        throw ArityException.create(1, args.length);
+      }
+      if (!(args[0] instanceof String)) {
+        throw UnsupportedTypeException.create(args, "The argument must be a String.");
+      }
+      String name = (String) args[0];
+      return scope.constructors.get(name);
+    }
+
+    private static ModuleScope patch(ModuleScope scope, Object[] args, Context context)
+        throws ArityException, UnsupportedTypeException {
+      if (args.length != 1) {
+        throw ArityException.create(1, args.length);
+      }
+      if (!(args[0] instanceof String)) {
+        throw UnsupportedTypeException.create(args, "The argument must be a String.");
+      }
+      String sourceString = (String) args[0];
+      Source source =
+          Source.newBuilder(Constants.LANGUAGE_ID, sourceString, scope.associatedType.getName())
+              .build();
+      context.compiler().run(source, scope);
+      return scope;
+    }
+
+    private static AtomConstructor getAssociatedConstructor(ModuleScope scope, Object[] args)
+        throws ArityException {
+      if (args != null && args.length != 0) {
+        throw ArityException.create(0, args.length);
+      }
+      return scope.associatedType;
+    }
+
     @Specialization
     static Object doInvoke(
         ModuleScope scope,
         String member,
         Object[] arguments,
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
-        throws UnknownIdentifierException {
+        throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
         case METHODS_KEY:
-          {
-            AtomConstructor c = (AtomConstructor) arguments[0];
-            String name = (String) arguments[1];
-            return scope.methods.get(c).get(name);
-          }
+          return getMethod(scope, arguments);
         case CONSTRUCTORS_KEY:
-          {
-            String name = (String) arguments[0];
-            return scope.constructors.get(name);
-          }
+          return getConstructor(scope, arguments);
         case PATCH_KEY:
-          {
-            String sourceString = (String) arguments[0];
-            Source source =
-                Source.newBuilder(
-                        Constants.LANGUAGE_ID, sourceString, scope.associatedType.getName())
-                    .build();
-            contextRef.get().compiler().run(source, scope);
-            return scope;
-          }
+          return patch(scope, arguments, contextRef.get());
+        case ASSOCIATED_CONSTRUCTOR_KEY:
+          return getAssociatedConstructor(scope, arguments);
         default:
           throw UnknownIdentifierException.create(member);
       }
     }
   }
 
-  @ExportMessage
-  Object readMember(String member) throws UnknownIdentifierException {
-    if (member.equals(ASSOCIATED_CONSTRUCTOR_KEY)) {
-      return associatedType;
-    }
-    throw UnknownIdentifierException.create(member);
-  }
-
+  /**
+   * Marks the object as having members for the purposes of the polyglot API.
+   *
+   * @return {@code true}
+   */
   @ExportMessage
   boolean hasMembers() {
     return true;
   }
 
+  /**
+   * Exposes a member method validity check for the polyglot API.
+   *
+   * @param member the member to check
+   * @return {@code true} if the member is supported, {@code false} otherwise.
+   */
   @ExportMessage
   boolean isMemberInvocable(String member) {
     return member.equals(METHODS_KEY)
         || member.equals(CONSTRUCTORS_KEY)
-        || member.equals(PATCH_KEY);
+        || member.equals(PATCH_KEY)
+        || member.equals(ASSOCIATED_CONSTRUCTOR_KEY);
   }
 
+  /**
+   * Returns a collection of all the supported members in this scope for the polyglot API.
+   *
+   * @param includeInternal ignored.
+   * @return a collection of all the member names.
+   */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
     return new Vector(METHODS_KEY, CONSTRUCTORS_KEY, PATCH_KEY, ASSOCIATED_CONSTRUCTOR_KEY);
-  }
-
-  @ExportMessage
-  boolean isMemberReadable(String member) {
-    return member.equals(ASSOCIATED_CONSTRUCTOR_KEY);
   }
 }

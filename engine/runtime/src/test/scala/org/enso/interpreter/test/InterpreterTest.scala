@@ -60,7 +60,7 @@ trait InterpreterRunner {
       .build()
 
     val module       = InterpreterException.rethrowPolyglot(ctx.eval(source))
-    val assocCons    = module.getMember("associated_constructor")
+    val assocCons    = module.invokeMember("get_associated_constructor")
     val mainFunction = module.invokeMember("get_method", assocCons, "main")
     MainMethod(assocCons, mainFunction)
   }

@@ -139,13 +139,25 @@ public class AtomConstructor implements TruffleObject {
     return constructorFunction;
   }
 
+  /**
+   * Marks this object as instantiable through the polyglot APIs.
+   *
+   * @return {@code true}
+   */
   @ExportMessage
-  public boolean isInstantiable() {
+  boolean isInstantiable() {
     return true;
   }
 
+  /**
+   * Handles instantiation through the polyglot APIs.
+   *
+   * @param arguments the field values for the new instance.
+   * @return an instance of this constructor with expected fields.
+   * @throws ArityException when the provided field count does match this constructor's field count.
+   */
   @ExportMessage
-  public Atom instantiate(Object... arguments) throws ArityException {
+  Atom instantiate(Object... arguments) throws ArityException {
     if (arguments.length != getArity()) {
       throw ArityException.create(getArity(), arguments.length);
     }

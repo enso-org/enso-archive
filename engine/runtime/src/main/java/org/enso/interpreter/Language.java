@@ -116,6 +116,12 @@ public final class Language extends TruffleLanguage<Context> {
     return RuntimeOptions.OPTION_DESCRIPTORS;
   }
 
+  /**
+   * Returns the top scope of the requested context.
+   *
+   * @param context the context holding the top scope.
+   * @return a singleton collection containing the context's top scope.
+   */
   @Override
   protected Iterable<Scope> findTopScopes(Context context) {
     return Collections.singleton(context.compiler().topScope().getScope());

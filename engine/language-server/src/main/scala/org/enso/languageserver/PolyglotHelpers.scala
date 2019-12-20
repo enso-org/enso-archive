@@ -49,7 +49,7 @@ object PolyglotHelpers {
       * @return the associated type of this module
       */
     def getAssociatedConstructor: Value =
-      value.getMember("associated_constructor")
+      value.invokeMember("get_associated_constructor")
 
     /**
       * Gets a method by the type it's defined on and name.
