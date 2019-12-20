@@ -243,6 +243,17 @@ public final class Function implements TruffleObject {
 
   private static final String EQUALITY_KEY = "equals";
 
+  /**
+   * Handles member invocation through the polyglot API.
+   *
+   * <p>The only supported member is {@code equals} checking for object identity.
+   *
+   * @param member the member name.
+   * @param args arguments to pass to the execution.
+   * @return the result of invoking the member.
+   * @throws ArityException when an invalid number of arguments is passed to the member.
+   * @throws UnknownIdentifierException when an invalid member is requested.
+   */
   @ExportMessage
   Object invokeMember(String member, Object... args)
       throws ArityException, UnknownIdentifierException {
@@ -255,19 +266,38 @@ public final class Function implements TruffleObject {
     throw UnknownIdentifierException.create(member);
   }
 
+  /**
+   * Verifies whether a member can be invoked through the polyglot API.
+   *
+   * @param member the member name.
+   * @return {@code true} if the member can be invoked, {@code false} otherwise.
+   */
   @ExportMessage
   boolean isMemberInvocable(String member) {
     return member.equals(EQUALITY_KEY);
   }
 
+  /**
+   * Marks the object as having members available for the polyglot API.
+   *
+   * @return {@code true}
+   */
   @ExportMessage
   boolean hasMembers() {
     return true;
   }
 
+  /**
+   * Returns a collection of all members this object exposes through the polyglot API.
+   *
+   * <p>The only supported member is {@code equals}.
+   *
+   * @param includeInternal ignored
+   * @return a collection of all supported member names.
+   */
   @ExportMessage
   Object getMembers(boolean includeInternal) {
-    return new Vector(new Object[] {EQUALITY_KEY});
+    return new Vector(EQUALITY_KEY);
   }
 
   /**

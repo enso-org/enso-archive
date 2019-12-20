@@ -4,9 +4,7 @@ import com.oracle.truffle.api.Scope;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import org.enso.interpreter.Language;
@@ -19,29 +17,48 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/** Represents the top scope of Enso execution, containing all the importable modules. */
 @ExportLibrary(InteropLibrary.class)
 public class TopScope implements TruffleObject {
   private final Builtins builtins;
   private final Map<String, Module> modules;
   private final Scope scope = Scope.newBuilder("top_scope", this).build();
 
+  /**
+   * Creates a new instance of top scope.
+   *
+   * @param builtins the automatically-imported builtin module.
+   * @param modules the initial modules this scope contains.
+   */
   public TopScope(Builtins builtins, Map<String, Module> modules) {
     this.builtins = builtins;
     this.modules = modules;
   }
 
-  public Map<String, Module> getModules() {
-    return modules;
-  }
-
+  /**
+   * Returns a polyglot representation of this scope.
+   *
+   * @return a polyglot Scope object.
+   */
   public Scope getScope() {
     return scope;
   }
 
+  /**
+   * Looks up a module by name.
+   *
+   * @param name the name of the module to look up.
+   * @return empty result if the module does not exist or the requested module.
+   */
   public Optional<Module> getModule(String name) {
-    return Optional.ofNullable(getModules().get(name));
+    return Optional.ofNullable(modules.get(name));
   }
 
+  /**
+   * Returns the builtins module.
+   *
+   * @return the builtins module.
+   */
   public Builtins getBuiltins() {
     return builtins;
   }
@@ -49,59 +66,97 @@ public class TopScope implements TruffleObject {
   private static final String GET_MODULE_KEY = "get_module";
   private static final String CREATE_MODULE_KEY = "create_module";
 
+  /**
+   * Marks this object as having members accessible through the polyglot API.
+   *
+   * @return {@code true}
+   */
   @ExportMessage
-  public boolean hasMembers() {
+  boolean hasMembers() {
     return true;
   }
 
+  /**
+   * Returns a collection of all the members of this scope.
+   *
+   * <p>The exported members are the {@code get_module} and {@code create_module} methods.
+   *
+   * @param includeInternal ignored.
+   * @return a collection of all the exported members.
+   */
   @ExportMessage
-  public Vector getMembers(boolean includeInternal) {
-
-    Set<String> keys = modules.keySet();
-    keys.add(Builtins.MODULE_NAME);
+  Vector getMembers(boolean includeInternal) {
     return new Vector(GET_MODULE_KEY, CREATE_MODULE_KEY);
   }
 
+  /** Handles member invocation through the polyglot API. */
   @ExportMessage
-  public abstract static class InvokeMember {
+  abstract static class InvokeMember {
+    private static ModuleScope getModule(
+        TopScope scope,
+        Object[] arguments,
+        TruffleLanguage.ContextReference<Context> contextReference)
+        throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
+      if (arguments.length != 1) {
+        throw ArityException.create(1, arguments.length);
+      }
+      if (!(arguments[0] instanceof String)) {
+        throw UnsupportedTypeException.create(arguments, "Argument must be a String");
+      }
+      String moduleName = (String) arguments[0];
+
+      if (moduleName.equals(Builtins.MODULE_NAME)) {
+        return scope.builtins.getScope();
+      }
+      Module module = scope.modules.get(moduleName);
+      if (module == null) {
+        throw UnknownIdentifierException.create(moduleName);
+      }
+      if (module.hasComputedScope()) {
+        return module.getScope();
+      } else {
+        return module.requestParse(contextReference.get());
+      }
+    }
+
+    private static ModuleScope createModule(TopScope scope, Object[] arguments, Context context)
+        throws ArityException, UnsupportedTypeException {
+      if (arguments.length != 1) {
+        throw ArityException.create(1, arguments.length);
+      }
+      if (!(arguments[0] instanceof String)) {
+        throw UnsupportedTypeException.create(arguments, "Argument must be a String");
+      }
+      String moduleName = (String) arguments[0];
+      return context.createScope(moduleName);
+    }
+
     @Specialization
-    public static ModuleScope doInvoke(
+    static ModuleScope doInvoke(
         TopScope scope,
         String member,
         Object[] arguments,
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
-        throws UnknownIdentifierException {
+        throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
         case GET_MODULE_KEY:
-          {
-            String moduleName = (String) arguments[0];
-
-            if (moduleName.equals(Builtins.MODULE_NAME)) {
-              return scope.builtins.getScope();
-            }
-            Module module = scope.modules.get(moduleName);
-            if (module == null) {
-              throw UnknownIdentifierException.create(moduleName);
-            }
-            if (module.hasComputedScope()) {
-              return module.getScope();
-            } else {
-              return module.requestParse(contextRef.get());
-            }
-          }
+          return getModule(scope, arguments, contextRef);
         case CREATE_MODULE_KEY:
-          {
-            String moduleName = (String) arguments[0];
-            return contextRef.get().createScope(moduleName);
-          }
+          return createModule(scope, arguments, contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
       }
     }
   }
 
+  /**
+   * Checks if a member can be invoked through the polyglot API.
+   *
+   * @param member the member name.
+   * @return {@code true} if the member is invocable, {@code false} otherwise.
+   */
   @ExportMessage
-  public boolean isMemberInvocable(String member) {
+  boolean isMemberInvocable(String member) {
     return member.equals(GET_MODULE_KEY) || member.equals(CREATE_MODULE_KEY);
   }
 }
