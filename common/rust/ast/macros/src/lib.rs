@@ -278,11 +278,11 @@ pub fn make_span(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 ///   expressions.
 ///
 /// For example, for invocation:
-/// ```
+/// ```ignore
 /// make_repr_span!(SegmentExpr<T>, EXPR_QUOTE, self.value, EXPR_QUOTE);
 /// ```
 /// the following output is produced:
-///    ```
+///    ```ignore
 ///    impl<T: HasRepr> HasRepr for SegmentExpr<T> {
 ///        fn write_repr(&self, target: &mut String) {
 ///            EXPR_QUOTE.write_repr(target);
