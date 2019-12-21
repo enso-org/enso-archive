@@ -252,8 +252,6 @@ impl<'de> Deserialize<'de> for Ast {
 }
 
 
-
-
 // =============
 // === Shape ===
 // =============
@@ -620,11 +618,6 @@ impl<T: HasSpan> HasSpan for &T {
         self.deref().span()
     }
 }
-//impl<T: Deref<Target:HasSpan>> HasSpan for T {
-//    default fn span(&self) -> usize {
-//        self.deref().span()
-//    }
-//}
 
 // === HasRepr ===
 /// Things that can be asked about their textual representation.
@@ -758,9 +751,9 @@ pub struct WithSpan<T> {
     pub span: usize
 }
 
-//impl<T> HasSpan for WithSpan<T> {
-//    fn span(&self) -> usize { self.span }
-//}
+impl<T> HasSpan for WithSpan<T> {
+    fn span(&self) -> usize { self.span }
+}
 
 impl<T, S> Layer<T> for WithSpan<S>
 where T: HasSpan + Into<S> {
@@ -819,9 +812,6 @@ impl Ast {
         Ast::from(infix)
     }
 }
-
-// === Shape ===
-
 
 
 // === Text Conversion Boilerplate ===
@@ -918,7 +908,6 @@ impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
         SegmentEscape{ code: value.into() }.into()
     }
 }
-
 
 
 // =============
