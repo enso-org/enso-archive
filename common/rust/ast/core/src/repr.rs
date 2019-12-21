@@ -1,49 +1,51 @@
 
 use crate::*;
 
-impl Blank {
-    const REPR:char = '_';
-}
-impl Number {
-    const BASE_SEPARATOR:char = '_';
-}
-impl Mod {
-    const SUFFIX:char = '=';
-}
+// ======================
+// === Token Literals ===
+// =====================
+
+/// Token representing blank.
+pub const BLANK_REPR:char = '_';
+
+/// Symbol appearing after base of the number literal.
+pub const NUMBER_BASE_SEPARATOR:char = '_';
+
+/// Suffix to made a modifier from an operator
+pub const MOD_SUFFIX:char = '=';
+
 /// Symbol enclosing raw Text line.
-const FMT_QUOTE:char = '\'';
+pub const FMT_QUOTE:char = '\'';
 
 /// Symbol enclosing formatted Text line.
-const RAW_QUOTE:char = '"';
+pub const RAW_QUOTE:char = '"';
 
 /// Symbol used to break lines in Text block.
-const NEWLINE:char = '\n';
+pub const NEWLINE:char = '\n';
 
 /// Symbol introducing escape segment in the Text.
-const BACKSLASH:char = '\\';
+pub const BACKSLASH:char = '\\';
 
 /// Symbol enclosing expression segment in the formatted Text.
-const EXPR_QUOTE:char = '`';
+pub const EXPR_QUOTE:char = '`';
 
 /// Symbol that introduces UTF-16 code in the formatted Text segment.
-const UNICODE16_INTRODUCER:char = 'u';
+pub const UNICODE16_INTRODUCER:char = 'u';
 
 /// String that opens "UTF-21" code in the formatted Text segment.
-const UNICODE21_OPENER:&str = "u{";
+pub const UNICODE21_OPENER:&str = "u{";
 
 /// String that closese "UTF-21" code in the formatted Text segment.
-const UNICODE21_CLOSER:&str = "}";
+pub const UNICODE21_CLOSER:&str = "}";
 
 /// Symbol that introduces UTF-16 code in the formatted Text segment.
-const UNICODE32_INTRODUCER:char = 'U';
+pub const UNICODE32_INTRODUCER:char = 'U';
 
-impl TextBlockRaw {
-    const QUOTE:&'static str = "\"\"\"";
-}
-impl<T> TextBlockFmt<T> {
-    const QUOTE:&'static str = "'''";
-}
-///////////////////////////////////////
+/// Quotes opening block of the raw text.
+pub const RAW_BLOCK_QUOTES:&'static str = "\"\"\"";
+
+/// Quotes opening block of the formatted text.
+pub const FMT_BLOCK_QUOTES:&'static str = "'''";
 
 
 // ===============
