@@ -190,7 +190,6 @@ pub fn variant_depends_on
 }
 
 
-
 #[cfg(test)]
 mod tests {
     use super::*;

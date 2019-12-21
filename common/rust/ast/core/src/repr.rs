@@ -143,6 +143,9 @@ make_repr_span!(MacroPatternMatchRawBlock  <T>, self.elem);
 make_repr_span!(MacroPatternMatchRawMacro  <T>, self.elem);
 make_repr_span!(MacroPatternMatchRawInvalid<T>, self.elem);
 
+// === Switch ===
+make_repr_span!(Switch<T>, self.get());
+
 // === Shifted ===
 make_repr_span!(Shifted<T>, self.off, self.wrapped);
 make_repr_span!(ShiftedVec1<T>, self.head, self.tail);
@@ -168,7 +171,7 @@ make_repr_span!(Blank           , BLANK_TOKEN);
 make_repr_span!(Var             , self.name  );
 make_repr_span!(Cons            , self.name  );
 make_repr_span!(Opr             , self.name  );
-make_repr_span!(Mod             , self.name, Mod::SUFFIX);
+make_repr_span!(Mod             , self.name, MOD_SUFFIX );
 make_repr_span!(InvalidSuffix<T>, self.elem, self.suffix);
 
 
@@ -177,10 +180,10 @@ make_repr_span!(InvalidSuffix<T>, self.elem, self.suffix);
 // ==============
 /// Helper to represent that optional number base has additional character.
 struct NumberBase<T>(T);
-make_repr_span!(NumberBase<T>, self.0, Number::BASE_SEPARATOR);
+make_repr_span!(NumberBase<T>, self.0, NUMBER_BASE_SEPARATOR);
 make_repr_span!(Number       , self.base.as_ref().map(|b| NumberBase(b))
                              , self.int);
-make_repr_span!(DanglingBase , self.base, Number::BASE_SEPARATOR);
+make_repr_span!(DanglingBase , self.base, NUMBER_BASE_SEPARATOR);
 
 
 // ============
@@ -204,7 +207,7 @@ make_repr_span!(TextLineFmt<T>  , FMT_QUOTE, self.text, FMT_QUOTE);
 // === TextBlockRaw ==
 impl HasSpan for TextBlockRaw {
     fn span(&self) -> usize {
-        let mut acc = (Self::QUOTE,self.spaces).span();
+        let mut acc = (RAW_BLOCK_QUOTES,self.spaces).span();
         for line in self.text.iter() {
             acc += line.span(self.offset);
         }
@@ -213,7 +216,7 @@ impl HasSpan for TextBlockRaw {
 }
 impl HasRepr for TextBlockRaw {
     fn write_repr(&self, target:&mut String) {
-        (Self::QUOTE, self.spaces).write_repr(target);
+        (RAW_BLOCK_QUOTES, self.spaces).write_repr(target);
         for line in self.text.iter() {
             line.write_repr(target, self.offset);
         }
@@ -226,12 +229,12 @@ impl<T: HasSpan> HasSpan for TextBlockFmt<T> {
         let lines            = self.text.iter();
         let line_spans       = lines.map(|line| line.span(self.offset));
         let lines_span:usize = line_spans.sum();
-        TextBlockFmt::<T>::QUOTE.span() + self.spaces + lines_span
+        FMT_BLOCK_QUOTES.span() + self.spaces + lines_span
     }
 }
 impl<T: HasRepr> HasRepr for TextBlockFmt<T> {
     fn write_repr(&self, target:&mut String) {
-        (Self::QUOTE,self.spaces).write_repr(target);
+        (FMT_BLOCK_QUOTES,self.spaces).write_repr(target);
         for line in self.text.iter() {
             line.write_repr(target,self.offset);
         };

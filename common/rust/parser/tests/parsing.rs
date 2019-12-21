@@ -161,8 +161,6 @@ impl Fixture {
     fn deserialize_invalid_quote(&mut self) {
         let unfinished = "'a''";
         self.test_shape(unfinished,|shape:&Prefix<Ast>| {
-            let func: &TextUnclosed<Ast> = expect_shape(&shape.func);
-
             // ignore shape.func, being TextUnclosed tested elsewhere
             let arg:&InvalidQuote = expect_shape(&shape.arg);
             let expected_quote    = Text {str:"''".into()};
@@ -481,10 +479,6 @@ impl Fixture {
     }
 }
 
-#[test]
-fn ffff() {
-    Fixture::new().parse_line("import Con");
-}
 
 /// A single entry point for all the tests here using external parser.
 ///
@@ -494,6 +488,5 @@ fn ffff() {
 #[test]
 #[ignore]
 fn parser_tests() {
-    println!("{:?}", std::env::current_dir());
     Fixture::new().run()
 }

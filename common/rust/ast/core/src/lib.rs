@@ -1,5 +1,3 @@
-//#![feature(associated_type_bounds)]
-//#![feature(specialization)]
 #![feature(type_alias_impl_trait)]
 #![feature(generators, generator_trait)]
 
@@ -481,8 +479,6 @@ impl<T> Switch<T> {
     }
 }
 
-make_repr_span!(Switch<T>, self.get());
-
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
 #[ast]
 #[derive(HasSpan)]
@@ -708,12 +704,6 @@ impl<T: HasRepr> HasRepr for &T {
         self.deref().write_repr(target)
     }
 }
-//impl<T: Deref<Target:HasRepr>> HasRepr for T {
-//    fn repr(&self) -> String {
-//        self.deref().repr()
-//    }
-//}
-
 
 // === WithID ===
 
