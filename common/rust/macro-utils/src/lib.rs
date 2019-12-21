@@ -5,6 +5,7 @@ use syn;
 use syn::visit::{self, Visit};
 use proc_macro2::TokenStream;
 
+
 // ============
 // === Repr ===
 // ============
@@ -13,6 +14,7 @@ use proc_macro2::TokenStream;
 pub fn repr<T: quote::ToTokens>(t:&T) -> String {
     quote!(#t).to_string()
 }
+
 
 // ===================
 // === Field Utils ===
@@ -36,6 +38,7 @@ pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
         None        => quote!(#index),
     }
 }
+
 
 // =======================
 // === Type Path Utils ===
@@ -75,6 +78,7 @@ pub fn ty_path_type_args
 pub fn last_type_arg(ty_path:&syn::TypePath) -> Option<&syn::GenericArgument> {
     ty_path_generic_args(ty_path).last().copied()
 }
+
 
 // =====================
 // === Collect Types ===
@@ -141,19 +145,25 @@ pub fn variant_depends_on
 }
 
 
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use proc_macro2::TokenStream;
-    use syn::*;
+
+    fn parse<T:syn::parse::Parse>(code:&str) -> T {
+        syn::parse_str(code).unwrap()
+    }
 
     #[test]
     fn repr_round_trips() {
         let program = "pub fn repr<T: quote::ToTokens>(t: &T) -> String {}";
-        let tokens = parse_str::<TokenStream>(program).unwrap();
+        let tokens = parse::<TokenStream>(program);
         let quoted_program = repr(&tokens);
-        let tokens2 = parse_str::<TokenStream>(&quoted_program).unwrap();
+        let tokens2 = parse::<TokenStream>(&quoted_program);
         // check only second round-trip, first is allowed to break whitespace
         assert_eq!(repr(&tokens), repr(&tokens2));
     }
@@ -165,7 +175,7 @@ mod tests {
         let expected_types = vec!["i32", "String", "T"];
 
         fn assert_field_types(program:&str, expected_types:&[&str]) {
-            let tokens = parse_str::<syn::ItemStruct>(program).unwrap();
+            let tokens = parse::<syn::ItemStruct>(program);
             let fields = fields_list(&tokens.fields);
             let types  = fields.iter().map(|f| repr(&f.ty));
             assert_eq!(Vec::from_iter(types), expected_types);
@@ -177,9 +187,9 @@ mod tests {
 
     #[test]
     fn type_dependency() {
-        let param:syn::GenericParam = syn::parse_str("T").unwrap();
+        let param:syn::GenericParam = parse("T");
         let depends                 = |code| {
-            let ty:syn::Type = syn::parse_str(code).unwrap();
+            let ty:syn::Type = parse(code);
             type_depends_on(&ty, &param)
         };
 
@@ -211,5 +221,23 @@ mod tests {
             assert!(!depends(independent), "{} must not depend on {}"
                     , repr(&independent), repr(&param));
         }
+    }
+
+    #[test]
+    fn collecting_type_path_args() {
+        fn check(expected_type_args:Vec<&str>, ty_path:&str) {
+            let ty_path = parse(ty_path);
+            let args    = super::ty_path_type_args(&ty_path);
+            assert_eq!(expected_type_args.len(), args.len());
+            let zipped  = expected_type_args.iter().zip(args.iter());
+            for (expected,got) in zipped {
+                assert_eq!(expected, &repr(got));
+            }
+        }
+        check(vec!["T"]     , "std::Option<T>");
+        check(vec!["U"]     , "std::Option<U>");
+        check(vec!["A", "B"], "Either<A,B>");
+        assert_eq!(super::last_type_arg(&parse("i32")), None);
+        assert_eq!(repr(&super::last_type_arg(&parse("Foo<C>"))), "C");
     }
 }

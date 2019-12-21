@@ -135,6 +135,7 @@ fn enum_iter3() {
 pub struct DependentTest<U, T> {
     a:T,
     b:(T,U,PairUV<U, T>),
+    #[allow(dead_code)]
     c:PairTT<U>,
     d:(i32, Option<Vec<T>>),
 }
