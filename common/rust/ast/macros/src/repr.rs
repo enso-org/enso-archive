@@ -1,12 +1,12 @@
 use prelude::*;
 
-use macro_utils::{path_segment_generic_args, rewrite_stream, matching_ident};
-use quote::quote;
+use macro_utils::{path_segment_generic_args};
 use proc_macro2::TokenStream;
+use quote::quote;
 use syn::punctuated::Punctuated;use syn::Expr;
 use syn::Token;
-use proc_macro::TokenTree;
 
+/// Generates `HasRepr` and `HasSpan` that just panic when called.
 pub fn not_supported
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let target = syn::parse::<syn::PathSegment>(input).unwrap();
@@ -57,14 +57,14 @@ pub fn derive_for_enum
         quote!( #ident::#con_ident (elem) => elem.write_repr(target) )
     });
     let ret = quote! {
-        impl<#(#params: HasSpan),*> HasSpan for #ident<#(#params),*> {
+        impl<#(#params:HasSpan),*> HasSpan for #ident<#(#params),*> {
             fn span(&self) -> usize {
                 match self {
                     #(#span_arms),*
                 }
             }
         }
-        impl<#(#params: HasRepr),*> HasRepr for #ident<#(#params),*> {
+        impl<#(#params:HasRepr),*> HasRepr for #ident<#(#params),*> {
             fn write_repr(&self, target:&mut String) {
                 match self {
                     #(#repr_arms),*
@@ -75,13 +75,23 @@ pub fn derive_for_enum
     ret
 }
 
+/// Structure representing input to macros like `make_repr_span!`.
+///
+/// Basically it consists of a typename (with optional generic arguments) and
+/// sequence of expressions that yield values we use to obtain sub-repr or
+/// sub-spans.
 pub struct ReprDescription {
     pub ty     :syn::PathSegment,
-    pub exprs  :Vec<syn::Expr>,
     pub ty_args:Vec<syn::GenericArgument>,
+    pub exprs  :Vec<syn::Expr>,
 }
 
 impl syn::parse::Parse for ReprDescription {
+    /// Parser user-provided input to macro into out structure.
+    ///
+    /// First should go a type for which implementation is to be provided,
+    /// then arbitrary sequence of expressions.
+    /// Panics on invalid input, which is actually fair for a macro code.
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let ty:syn::PathSegment = input.parse()?;
         input.parse::<Option<syn::token::Comma>>()?;
@@ -89,24 +99,25 @@ impl syn::parse::Parse for ReprDescription {
         let exprs   = exprs.iter().cloned().collect::<Vec<_>>();
         let ty_args = path_segment_generic_args(&ty);
         let ty_args = ty_args.into_iter().cloned().collect(); // get rid of &
-        Ok(ReprDescription {ty,exprs,ty_args})
+        Ok(ReprDescription {ty,ty_args,exprs})
     }
 }
 
 impl ReprDescription {
+    /// Fills a trait implementation template with given methods.
     pub fn make_impl
     (&self, trait_name:&str, methods:&TokenStream) -> TokenStream {
         let trait_name = syn::parse_str::<syn::TypePath>(trait_name).unwrap();
-        let ty      = &self.ty;
-        let ty_args = &self.ty_args;
-        let exprs   = &self.exprs;
+        let ty         = &self.ty;
+        let ty_args    = &self.ty_args;
         quote! {
-            impl<#(#ty_args : #trait_name),*> #trait_name for #ty {
+            impl<#(#ty_args:#trait_name),*> #trait_name for #ty {
                 #methods
             }
         }
     }
 
+    /// Generates `HasRepr` instances using user-provided input.
     pub fn make_repr(&self) -> TokenStream {
         let exprs = &self.exprs;
         self.make_impl("HasRepr", &quote!{
@@ -116,6 +127,7 @@ impl ReprDescription {
         })
     }
 
+    /// Generates `HasSpan` instances using user-provided input.
     pub fn make_span(&self) -> TokenStream {
         let exprs = &self.exprs;
         self.make_impl("HasSpan", &quote!{
@@ -125,6 +137,7 @@ impl ReprDescription {
         })
     }
 
+    /// Generates `HasRepr` and `HasSpan` instances using user-provided input.
     pub fn make_repr_span(&self) -> TokenStream {
         let mut ret = self.make_repr();
         ret.extend(self.make_span());

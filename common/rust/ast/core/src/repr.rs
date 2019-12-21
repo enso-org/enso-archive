@@ -1,4 +1,3 @@
-
 use crate::*;
 
 // ======================
@@ -6,7 +5,7 @@ use crate::*;
 // =====================
 
 /// Token representing blank.
-pub const BLANK_REPR:char = '_';
+pub const BLANK_TOKEN:char = '_';
 
 /// Symbol appearing after base of the number literal.
 pub const NUMBER_BASE_SEPARATOR:char = '_';
@@ -165,7 +164,7 @@ make_repr_span!(InlineBlock , self.quote);
 // ===================
 // === Identifiers ===
 // ===================
-make_repr_span!(Blank           , Blank::REPR);
+make_repr_span!(Blank           , BLANK_TOKEN);
 make_repr_span!(Var             , self.name  );
 make_repr_span!(Cons            , self.name  );
 make_repr_span!(Opr             , self.name  );

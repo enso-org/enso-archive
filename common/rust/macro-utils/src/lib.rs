@@ -18,7 +18,8 @@ pub fn map_tokens<F:Fn(TokenTree) -> TokenTree>
 }
 
 /// Rewrites stream replacing each token with a sequence of tokens returned by
-/// the given function.
+/// the given function. The groups (e.g. token tree within braces) are unpacked,
+/// rewritten and repacked into groups -- the function is applied recursively.
 pub fn rewrite_stream
 <F:Fn(TokenTree) -> TokenStream + Copy>
 (input:TokenStream, f:F) -> TokenStream {
@@ -44,6 +45,7 @@ pub fn rewrite_stream
 // ===================
 // === Token Utils ===
 // ===================
+/// Is the given token an identifier matching to a given string?
 pub fn matching_ident(token:&TokenTree, name:&str) -> bool {
     match token {
         TokenTree::Ident(ident) => ident.to_string() == name,

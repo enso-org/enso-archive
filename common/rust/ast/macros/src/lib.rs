@@ -1,6 +1,6 @@
 extern crate proc_macro;
 
-mod reprspan;
+mod repr;
 
 use prelude::*;
 
@@ -9,7 +9,7 @@ use quote::quote;
 use syn;
 
 use macro_utils::{gather_all_type_reprs, repr};
-use crate::reprspan::ReprDescription;
+use crate::repr::ReprDescription;
 
 // ==============
 // === Macros ===
@@ -255,7 +255,7 @@ pub fn derive_has_span
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);
     let ret = match decl.data {
-        syn::Data::Enum(ref e) => reprspan::derive_for_enum(&decl,&e),
+        syn::Data::Enum(ref e) => repr::derive_for_enum(&decl, &e),
         _       => quote! {},
     };
     proc_macro::TokenStream::from(ret)
@@ -307,5 +307,5 @@ pub fn make_repr_span(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 /// Generates `HasRepr` and `HasSpan` implementations that panic when used.
 #[proc_macro]
 pub fn not_supported_repr(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    crate::reprspan::not_supported(input)
+    crate::repr::not_supported(input)
 }
