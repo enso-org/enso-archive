@@ -5,6 +5,11 @@ import org.enso.interpreter.Constants
 import org.enso.pkg.Package
 import org.graalvm.polyglot.Source
 import java.io.File
+
+import org.enso.gateway
+import org.enso.{Gateway, LanguageServer}
+
+import scala.io.StdIn
 import scala.util.Try
 
 /** The main CLI entry point class. */
@@ -143,6 +148,17 @@ object Main {
     * Handles the `--lsp` CLI option
     */
   private def talkLSP(): Unit = {
+    val context = new ContextFactory().create(
+      "",
+      System.in,
+      System.out,
+      Repl(TerminalIO())
+    )
+    val languageServer = new LanguageServer(context)
+    languageServer.run(/*LanguageServer.Config("http", "localhost", 8080)*/)
+    Gateway(languageServer).run(gateway.Server.Config("ws", "localhost", 30000))
+    println("Press ENTER to shut down")
+    StdIn.readLine()
     exitSuccess()
   }
 

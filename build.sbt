@@ -440,7 +440,8 @@ lazy val runner = project
       "commons-cli"           % "commons-cli"            % "1.4",
       "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
       "org.jline"             % "jline"                  % "3.1.3"
-    )
+    ),
+    connectInput in run := true
   )
   .settings(
     buildNativeImage := Def
@@ -462,5 +463,14 @@ lazy val runner = project
   .dependsOn(gateway)
 
 lazy val gateway = (project in file("engine/gateway"))
+  .dependsOn(language_server)
+  .settings(
+    libraryDependencies ++= akka ++ circe
+  )
 
 lazy val language_server = (project in file("engine/language-server"))
+  .settings(
+    libraryDependencies ++= akka ++ Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided
+    ),
+  )
