@@ -117,7 +117,7 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, funNode.getArgs()));
 
       if (typeName.equals(Constants.Names.ANY_TYPE_NAME)) {
-        moduleScope.registerMethodForAny(method.methodName(), function);
+        moduleScope.registerMethod(context.getBuiltins().any(), method.methodName(), function);
       } else {
         AtomConstructor constructor =
             moduleScope
