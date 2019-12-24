@@ -73,7 +73,7 @@ public abstract class ThunkExecutorNode extends Node {
   }
 
   LoopingCallOptimiserNode createLoopingOptimizerIfNeeded() {
-    return getIsTail() ? null : new LoopingCallOptimiserNode();
+    return getIsTail() ? null : LoopingCallOptimiserNode.build();
   }
 
   /**

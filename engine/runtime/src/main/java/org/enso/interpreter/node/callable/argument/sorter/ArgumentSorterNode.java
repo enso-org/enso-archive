@@ -24,7 +24,6 @@ public abstract class ArgumentSorterNode extends BaseNode {
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
-  private @Child CachedArgumentSorterNode uncachedSorter;
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
@@ -87,15 +86,13 @@ public abstract class ArgumentSorterNode extends BaseNode {
   @Specialization(replaces = "invokeCached")
   public Stateful invokeUncached(
       Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
-    CompilerDirectives.transferToInterpreterAndInvalidate();
-    uncachedSorter =
-        insert(
-            CachedArgumentSorterNode.build(
-                function,
-                getSchema(),
-                getDefaultsExecutionMode(),
-                getArgumentsExecutionMode(),
-                isTail()));
+    CachedArgumentSorterNode uncachedSorter =
+        CachedArgumentSorterNode.build(
+            function,
+            getSchema(),
+            getDefaultsExecutionMode(),
+            getArgumentsExecutionMode(),
+            isTail());
     return invokeCached(function, callerFrame, state, arguments, uncachedSorter);
   }
 
