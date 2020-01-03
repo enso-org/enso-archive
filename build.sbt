@@ -135,7 +135,7 @@ val scala_compiler = Seq(
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
 
-val circe = Seq("circe-core", "circe-generic", "circe-parser")
+val circe = Seq("circe-core", "circe-generic", "circe-parser", "circe-shapes")
   .map("io.circe" %% _ % circeVersion)
 
 def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion

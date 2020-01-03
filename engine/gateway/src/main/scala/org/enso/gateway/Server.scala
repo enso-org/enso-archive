@@ -3,14 +3,11 @@ package org.enso.gateway
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.HttpMethods.GET
-import akka.http.scaladsl.model.HttpRequest
-import akka.http.scaladsl.model.HttpResponse
-import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.model.ws.BinaryMessage
 import akka.http.scaladsl.model.ws.Message
 import akka.http.scaladsl.model.ws.TextMessage
-import akka.http.scaladsl.model.ws.UpgradeToWebSocket
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
@@ -22,8 +19,8 @@ import scala.util.Success
 object Server {
 
   /** Describes endpoint to which [[Server]] can bind. */
-  final case class Config(protocol: String, interface: String, port: Int) {
-    def addressString(): String = s"$protocol://$interface:$port"
+  final case class Config(interface: String, port: Int) {
+    def addressString(): String = s"ws://$interface:$port"
   }
 }
 
@@ -67,22 +64,28 @@ trait Server {
     *
     * The request's URI is not checked.
     */
-  val handleRequest: HttpRequest => HttpResponse = {
-    case req @ HttpRequest(GET, _, _, _, _) =>
-      req.header[UpgradeToWebSocket] match {
-        case Some(upgrade) =>
-          println("Establishing a new connection")
-          upgrade.handleMessages(handlerFlow)
-        case None =>
-          HttpResponse(
-            StatusCodes.BadRequest,
-            entity = "Not a valid websocket request!"
-          )
+//  val handleRequest: HttpRequest => HttpResponse = {
+//    case req @ HttpRequest(GET, _, _, _, _) =>
+//      req.header[UpgradeToWebSocket] match {
+//        case Some(upgrade) =>
+//          println("Establishing a new connection")
+//          upgrade.handleMessages(handlerFlow)
+//        case None =>
+//          HttpResponse(
+//            StatusCodes.BadRequest,
+//            entity = "Not a valid websocket request!"
+//          )
+//      }
+//    case r: HttpRequest =>
+//      r.discardEntityBytes()
+//      HttpResponse(StatusCodes.MethodNotAllowed)
+//  }
+  val route: Route =
+    path("") {
+      get {
+        handleWebSocketMessages(handlerFlow)
       }
-    case r: HttpRequest =>
-      r.discardEntityBytes()
-      HttpResponse(StatusCodes.MethodNotAllowed)
-  }
+    }
 
   /** Starts a HTTP server listening at the given endpoint.
     *
@@ -91,8 +94,8 @@ trait Server {
     */
   def run(config: Server.Config): Unit = {
     val bindingFuture =
-      Http().bindAndHandleSync(
-        handleRequest,
+      Http().bindAndHandle /*bindAndHandleSync*/(
+        route /*handleRequest*/,
         interface = config.interface,
         port      = config.port
       )
