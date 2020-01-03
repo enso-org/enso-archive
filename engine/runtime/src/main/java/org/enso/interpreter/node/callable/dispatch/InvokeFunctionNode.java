@@ -1,6 +1,5 @@
-package org.enso.interpreter.node.callable.argument.sorter;
+package org.enso.interpreter.node.callable.dispatch;
 
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.CompilerDirectives.CompilationFinal;
 import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.Specialization;
@@ -9,9 +8,10 @@ import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
+import org.enso.interpreter.node.callable.argument.ArgumentSorterNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
-import org.enso.interpreter.runtime.error.PanicException;
+import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /**
@@ -19,7 +19,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  * positional order expected by the definition of the {@link Function}.
  */
 @NodeInfo(shortName = "ArgumentSorter")
-public abstract class ArgumentSorterNode extends BaseNode {
+public abstract class InvokeFunctionNode extends BaseNode {
 
   private @CompilationFinal(dimensions = 1) CallArgumentInfo[] schema;
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
@@ -32,7 +32,7 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @param defaultsExecutionMode the defaults execution mode for this function invocation
    * @param argumentsExecutionMode the arguments execution mode for this function invocation
    */
-  public ArgumentSorterNode(
+  public InvokeFunctionNode(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
@@ -60,17 +60,33 @@ public abstract class ArgumentSorterNode extends BaseNode {
    * @return the result of applying the function with remapped arguments
    */
   @Specialization(
-      guards = "mappingNode.isCompatible(function)",
+      guards = "function.getSchema() == cachedSchema",
       limit = Constants.CacheSizes.ARGUMENT_SORTER_NODE)
   public Stateful invokeCached(
       Function function,
       VirtualFrame callerFrame,
       Object state,
       Object[] arguments,
+      @Cached("function.getSchema()") FunctionSchema cachedSchema,
+      @Cached("generate(cachedSchema, getSchema())")
+          CallArgumentInfo.ArgumentMappingBuilder argumentMappingBuilder,
+      @Cached("argumentMappingBuilder.getPostApplicationSchema()")
+          FunctionSchema postApplicationSchema,
       @Cached(
-              "build(function, getSchema(), getDefaultsExecutionMode(), getArgumentsExecutionMode(), isTail())")
-          CachedArgumentSorterNode mappingNode) {
-    return mappingNode.execute(function, callerFrame, state, arguments);
+              "build(cachedSchema, postApplicationSchema,"
+                  + "argumentMappingBuilder.getAppliedMapping(), getArgumentsExecutionMode())")
+          ArgumentSorterNode mappingNode,
+      @Cached(
+              "build(cachedSchema, postApplicationSchema, getDefaultsExecutionMode(),"
+                  + " getArgumentsExecutionMode(), isTail())")
+          CurryNode curryNode) {
+    ArgumentSorterNode.Result result = mappingNode.execute(function, state, arguments);
+    return curryNode.execute(
+        callerFrame,
+        function,
+        result.getState(),
+        result.getSortedArguments(),
+        result.getOversaturatedArguments());
   }
 
   /**
@@ -86,18 +102,36 @@ public abstract class ArgumentSorterNode extends BaseNode {
   @Specialization(replaces = "invokeCached")
   public Stateful invokeUncached(
       Function function, VirtualFrame callerFrame, Object state, Object[] arguments) {
-    CachedArgumentSorterNode uncachedSorter =
-        CachedArgumentSorterNode.build(
-            function,
-            getSchema(),
+    CallArgumentInfo.ArgumentMappingBuilder argumentMappingBuilder =
+        CallArgumentInfo.ArgumentMappingBuilder.generate(function.getSchema(), getSchema());
+    FunctionSchema postApplicationSchema = argumentMappingBuilder.getPostApplicationSchema();
+    ArgumentSorterNode mappingNode =
+        ArgumentSorterNode.build(
+            function.getSchema(),
+            postApplicationSchema,
+            argumentMappingBuilder.getAppliedMapping(),
+            getArgumentsExecutionMode());
+    CurryNode curryNode =
+        CurryNode.build(
+            function.getSchema(),
+            postApplicationSchema,
             getDefaultsExecutionMode(),
             getArgumentsExecutionMode(),
             isTail());
-    return invokeCached(function, callerFrame, state, arguments, uncachedSorter);
+    return invokeCached(
+        function,
+        callerFrame,
+        state,
+        arguments,
+        function.getSchema(),
+        argumentMappingBuilder,
+        postApplicationSchema,
+        mappingNode,
+        curryNode);
   }
 
   /**
-   * Executes the {@link ArgumentSorterNode} to reorder the arguments.
+   * Executes the {@link InvokeFunctionNode} to reorder the arguments.
    *
    * @param callable the function to sort arguments for
    * @param callerFrame the caller frame to pass to the function
@@ -118,5 +152,12 @@ public abstract class ArgumentSorterNode extends BaseNode {
 
   InvokeCallableNode.ArgumentsExecutionMode getArgumentsExecutionMode() {
     return argumentsExecutionMode;
+  }
+
+  public static InvokeFunctionNode build(
+      CallArgumentInfo[] schema,
+      InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
+      InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
+    return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 }

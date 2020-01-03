@@ -35,9 +35,13 @@ public class UnresolvedSymbol implements TruffleObject {
   }
 
   /**
-   * Resolves the symbol for a given constructor.
+   * Resolves the symbol for a given hierarchy of constructors.
    *
-   * @param cons the constructor for which this symbol should be resolved
+   * <p>The constructors are checked in the first to last order, and the first match for this symbol
+   * is returned. This is useful for certain subtyping relations, such as "any constructor is a
+   * subtype of Any" or "Nat is a subtype of Int, is a subtype of Number".
+   *
+   * @param constructors the constructors hierarchy for which this symbol should be resolved
    * @return the resolved function definition, or null if not found
    */
   public Function resolveFor(AtomConstructor... constructors) {
