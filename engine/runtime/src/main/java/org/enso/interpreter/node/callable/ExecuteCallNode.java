@@ -95,6 +95,11 @@ public abstract class ExecuteCallNode extends Node {
     return ExecuteCallNodeGen.create();
   }
 
+  /**
+   * Returns the uncached version of this node, for slow-path operations.
+   *
+   * @return the uncached instance of this node.
+   */
   public static ExecuteCallNode buildUncached() {
     return ExecuteCallNodeGen.getUncached();
   }

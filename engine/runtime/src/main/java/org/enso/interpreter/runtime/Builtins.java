@@ -94,18 +94,38 @@ public class Builtins {
     return unit;
   }
 
+  /**
+   * Returns the {@code Text} atom constructor.
+   *
+   * @return the {@code Text} atom constructor
+   */
   public AtomConstructor text() {
     return text;
   }
 
+  /**
+   * Returns the {@code Function} atom constructor.
+   *
+   * @return the {@code Function} atom constructor
+   */
   public AtomConstructor function() {
     return function;
   }
 
+  /**
+   * Returns the {@code Number} atom constructor.
+   *
+   * @return the {@code Number} atom constructor
+   */
   public AtomConstructor number() {
     return number;
   }
 
+  /**
+   * Returns the {@code Any} atom constructor.
+   *
+   * @return the {@code Any} atom constructor
+   */
   public AtomConstructor any() {
     return any;
   }

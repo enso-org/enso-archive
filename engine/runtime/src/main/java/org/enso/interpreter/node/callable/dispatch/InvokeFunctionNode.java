@@ -59,7 +59,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
       @Cached(
               "build(cachedSchema, argumentMapping, getDefaultsExecutionMode(), getArgumentsExecutionMode(), isTail())")
           CurryNode curryNode) {
-    ArgumentSorterNode.MappedArguments mappedArguments = mappingNode.execute(function, state, arguments);
+    ArgumentSorterNode.MappedArguments mappedArguments =
+        mappingNode.execute(function, state, arguments);
     return curryNode.execute(
         callerFrame,
         function,
@@ -128,6 +129,14 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return argumentsExecutionMode;
   }
 
+  /**
+   * Creates an instance of this node.
+   *
+   * @param schema the call-site arguments schema.
+   * @param defaultsExecutionMode the default arguments handling mode for this call-site.
+   * @param argumentsExecutionMode the lazy arguments handling mode for this call-site.
+   * @return an instance of this node.
+   */
   public static InvokeFunctionNode build(
       CallArgumentInfo[] schema,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,

@@ -116,15 +116,11 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
               null,
               new FunctionSchema(FunctionSchema.CallStrategy.CALL_LOOP, funNode.getArgs()));
 
-      if (typeName.equals(Constants.Names.ANY_TYPE_NAME)) {
-        moduleScope.registerMethod(context.getBuiltins().any(), method.methodName(), function);
-      } else {
-        AtomConstructor constructor =
-            moduleScope
-                .getConstructor(typeName)
-                .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
-        moduleScope.registerMethod(constructor, method.methodName(), function);
-      }
+      AtomConstructor constructor =
+          moduleScope
+              .getConstructor(typeName)
+              .orElseThrow(() -> new VariableDoesNotExistException(method.typeName()));
+      moduleScope.registerMethod(constructor, method.methodName(), function);
     }
   }
 }

@@ -33,6 +33,11 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
     return Truffle.getRuntime().createLoopNode(new RepeatedCallNode());
   }
 
+  /**
+   * Creates a new instance of this node.
+   *
+   * @return a new instance of this node.
+   */
   public static LoopingCallOptimiserNode build() {
     return LoopingCallOptimiserNodeGen.create();
   }
@@ -44,6 +49,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
    * @param callerInfo the caller info to pass to the function
    * @param state the state to pass to the function
    * @param arguments the arguments to {@code function}
+   * @param loopNode a cached instance of the loop node used by this node
    * @return the result of executing {@code function} using {@code arguments}
    */
   @Specialization
@@ -86,7 +92,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
       dispatchNode = ExecuteCallNodeGen.create();
     }
 
-    public VirtualFrame createFrame() {
+    private VirtualFrame createFrame() {
       return Truffle.getRuntime().createVirtualFrame(null, descriptor);
     }
 
@@ -99,7 +105,7 @@ public abstract class LoopingCallOptimiserNode extends CallOptimiserNode {
      * @param state the state to pass to the function
      * @param arguments the arguments to execute {@code function} with
      */
-    public void setNextCall(
+    private void setNextCall(
         VirtualFrame frame,
         Object function,
         CallerInfo callerInfo,
