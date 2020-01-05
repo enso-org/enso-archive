@@ -16,7 +16,7 @@ import org.enso.interpreter.runtime.state.Stateful;
  * This class handles the case where a mapping for reordering arguments to a given callable has
  * already been computed.
  */
-@NodeInfo(shortName = "CachedArgumentSorter")
+@NodeInfo(description = "Reorders the arguments and executes them, according to a provided mapping")
 public class ArgumentSorterNode extends BaseNode {
   private final FunctionSchema preApplicationSchema;
   private final FunctionSchema postApplicationSchema;
@@ -24,14 +24,7 @@ public class ArgumentSorterNode extends BaseNode {
   private @Children ThunkExecutorNode[] executors;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
 
-  /**
-   * Creates a node that generates and then caches the argument mapping.
-   *
-   * @param function the function to sort arguments for
-   * @param schema information on the calling argument
-   * @param argumentsExecutionMode the arguments execution mode for this function invocation
-   */
-  public ArgumentSorterNode(
+  private ArgumentSorterNode(
       FunctionSchema preApplicationSchema,
       FunctionSchema postApplicationSchema,
       ArgumentMapping mapping,
@@ -43,23 +36,20 @@ public class ArgumentSorterNode extends BaseNode {
   }
 
   /**
-   * Creates a node that generates and then caches the argument mapping.
+   * Creates an instance of this node.
    *
-   * @param function the function to sort arguments for
-   * @param schema information on the calling arguments
-   * @param defaultsExecutionMode the defaulted arguments execution mode for this function
-   *     invocation
-   * @param argumentsExecutionMode the arguments execution mode for this function invocation
-   * @param isTail whether or not this node is a tail call
-   * @return a sorter node for the arguments in {@code schema} being passed to {@code callable}
+   * @param preApplicationSchema the schema of all functions this node is used for.
+   * @param mapping the argument mapping generated for current application site.
+   * @param argumentsExecutionMode lazy arguments handling mode for this node.
+   * @return a sorter node for the arguments in {@code schema} being passed to a function with the
+   *     {@code preApplicationSchema}.
    */
   public static ArgumentSorterNode build(
       FunctionSchema preApplicationSchema,
-      FunctionSchema postApplicationSchema,
       ArgumentMapping mapping,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     return new ArgumentSorterNode(
-        preApplicationSchema, postApplicationSchema, mapping, argumentsExecutionMode);
+        preApplicationSchema, mapping.getPostApplicationSchema(), mapping, argumentsExecutionMode);
   }
 
   private void initArgumentExecutors(Object[] arguments) {
@@ -95,7 +85,7 @@ public class ArgumentSorterNode extends BaseNode {
    * @param arguments the arguments to reorder
    * @return the provided {@code arguments} in the order expected by the cached {@link Function}
    */
-  public Result execute(Function function, Object state, Object[] arguments) {
+  public MappedArguments execute(Function function, Object state, Object[] arguments) {
     if (argumentsExecutionMode.shouldExecute()) {
       state = executeArguments(arguments, state);
     }
@@ -104,29 +94,45 @@ public class ArgumentSorterNode extends BaseNode {
     if (postApplicationSchema.hasOversaturatedArgs()) {
       oversaturatedArguments = generateOversaturatedArguments(function, arguments);
     }
-    return new Result(state, mappedAppliedArguments, oversaturatedArguments);
+    return new MappedArguments(state, mappedAppliedArguments, oversaturatedArguments);
   }
 
-  public static class Result {
+  public static class MappedArguments {
     private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] sortedArguments;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[]
         oversaturatedArguments;
 
-    public Result(Object state, Object[] sortedArguments, Object[] oversaturatedArguments) {
+    private MappedArguments(
+        Object state, Object[] sortedArguments, Object[] oversaturatedArguments) {
       this.state = state;
       this.sortedArguments = sortedArguments;
       this.oversaturatedArguments = oversaturatedArguments;
     }
 
+    /**
+     * Gets the monadic state resulting from computing the arguments.
+     *
+     * @return the current monadic state.
+     */
     public Object getState() {
       return state;
     }
 
+    /**
+     * Gets the reordered and pre-executed arguments, ready to pass to a function.
+     *
+     * @return the sorted and executed arguments.
+     */
     public Object[] getSortedArguments() {
       return sortedArguments;
     }
 
+    /**
+     * Gets the left over (not expected by the current function) arguments.
+     *
+     * @return a collection of left over arguments.
+     */
     public Object[] getOversaturatedArguments() {
       return oversaturatedArguments;
     }

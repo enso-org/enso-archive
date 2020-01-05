@@ -1,20 +1,21 @@
 package org.enso.interpreter.node.callable.dispatch;
 
-import cats.data.Func;
-import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.ExecuteCallNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
 import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
 import org.enso.interpreter.runtime.callable.CallerInfo;
+import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.control.TailCallException;
 import org.enso.interpreter.runtime.state.Stateful;
 
 /** Handles runtime function currying and oversaturated (eta-expanded) calls. */
+@NodeInfo(description = "Handles runtime currying and eta-expansion")
 public class CurryNode extends BaseNode {
   private final FunctionSchema preApplicationSchema;
   private final FunctionSchema postApplicationSchema;
@@ -63,20 +64,43 @@ public class CurryNode extends BaseNode {
     }
   }
 
+  /**
+   * Creates a new instance of this node.
+   *
+   * @param preApplicationSchema the schema of all functions being used in the {@link
+   *     #execute(VirtualFrame, Function, Object, Object[], Object[])} method.
+   * @param argumentMapping the argument mapping for moving from the original schema to the argument
+   *     schema expected by the function.
+   * @param defaultsExecutionMode the mode of handling defaulted arguments for this call.
+   * @param argumentsExecutionMode the mode of executing lazy arguments for this call.
+   * @param isTail is this a tail call position?
+   * @return an instance of this node.
+   */
   public static CurryNode build(
       FunctionSchema preApplicationSchema,
-      FunctionSchema postApplicationSchema,
+      CallArgumentInfo.ArgumentMapping argumentMapping,
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode,
       boolean isTail) {
     return new CurryNode(
         preApplicationSchema,
-        postApplicationSchema,
+        argumentMapping.getPostApplicationSchema(),
         defaultsExecutionMode,
         argumentsExecutionMode,
         isTail);
   }
 
+  /**
+   * Execute the function call, taking into account currying and eta-expansion.
+   *
+   * @param frame current execution frame, used as a caller frame if the function requires it.
+   * @param function the function to execute.
+   * @param state current monadic state.
+   * @param arguments the properly ordered arguments to pass to the function.
+   * @param oversaturatedArguments any arguments that should be treated as candidates for an
+   *     eta-expanded call.
+   * @return the result of executing the {@code function}.
+   */
   public Stateful execute(
       VirtualFrame frame,
       Function function,

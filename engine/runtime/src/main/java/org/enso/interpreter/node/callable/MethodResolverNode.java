@@ -6,6 +6,7 @@ import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.atom.Atom;
@@ -40,8 +41,7 @@ public abstract class MethodResolverNode extends Node {
       Atom atom,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("atom.getConstructor()") AtomConstructor cachedConstructor,
-      @CachedContext(Language.class) Context context,
-      @Cached("resolveMethodOnAtom(cachedConstructor, cachedSymbol, context)") Function function) {
+      @Cached("resolveMethodOnAtom(cachedConstructor, cachedSymbol)") Function function) {
     return function;
   }
 
@@ -51,8 +51,7 @@ public abstract class MethodResolverNode extends Node {
       AtomConstructor atomConstructor,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
       @Cached("atomConstructor") AtomConstructor cachedConstructor,
-      @CachedContext(Language.class) Context context,
-      @Cached("resolveMethodOnAtom(cachedConstructor, cachedSymbol, context)") Function function) {
+      @Cached("resolveMethodOnAtom(cachedConstructor, cachedSymbol)") Function function) {
     return function;
   }
 
@@ -61,8 +60,7 @@ public abstract class MethodResolverNode extends Node {
       UnresolvedSymbol symbol,
       long self,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @CachedContext(Language.class) Context context,
-      @Cached("resolveMethodOnNumber(cachedSymbol, context)") Function function) {
+      @Cached("resolveMethodOnNumber(cachedSymbol)") Function function) {
     return function;
   }
 
@@ -71,8 +69,7 @@ public abstract class MethodResolverNode extends Node {
       UnresolvedSymbol symbol,
       Function self,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @CachedContext(Language.class) Context context,
-      @Cached("resolveMethodOnFunction(cachedSymbol, context)") Function function) {
+      @Cached("resolveMethodOnFunction(cachedSymbol)") Function function) {
     return function;
   }
 
@@ -81,8 +78,7 @@ public abstract class MethodResolverNode extends Node {
       UnresolvedSymbol symbol,
       RuntimeError self,
       @Cached("symbol") UnresolvedSymbol cachedSymbol,
-      @CachedContext(Language.class) Context context,
-      @Cached("resolveMethodOnError(cachedSymbol, context)") Function function) {
+      @Cached("resolveMethodOnError(cachedSymbol)") Function function) {
     return function;
   }
 
@@ -93,26 +89,26 @@ public abstract class MethodResolverNode extends Node {
     return function;
   }
 
-  Function resolveMethodOnAtom(AtomConstructor cons, UnresolvedSymbol symbol, Context context) {
-    return throwIfNull(symbol.resolveFor(cons, context.getBuiltins().any()), cons, symbol);
+  Function resolveMethodOnAtom(AtomConstructor cons, UnresolvedSymbol symbol) {
+    return throwIfNull(symbol.resolveFor(cons, getBuiltins().any()), cons, symbol);
   }
 
-  Function resolveMethodOnNumber(UnresolvedSymbol symbol, Context context) {
+  Function resolveMethodOnNumber(UnresolvedSymbol symbol) {
     return throwIfNull(
-        symbol.resolveFor(context.getBuiltins().number(), context.getBuiltins().any()),
+        symbol.resolveFor(getBuiltins().number(), getBuiltins().any()),
         "Number",
         symbol);
   }
 
-  Function resolveMethodOnFunction(UnresolvedSymbol symbol, Context context) {
+  Function resolveMethodOnFunction(UnresolvedSymbol symbol) {
     return throwIfNull(
-        symbol.resolveFor(context.getBuiltins().function(), context.getBuiltins().any()),
+        symbol.resolveFor(getBuiltins().function(), getBuiltins().any()),
         "Function",
         symbol);
   }
 
-  Function resolveMethodOnError(UnresolvedSymbol symbol, Context context) {
-    return throwIfNull(symbol.resolveFor(context.getBuiltins().any()), "Error", symbol);
+  Function resolveMethodOnError(UnresolvedSymbol symbol) {
+    return throwIfNull(symbol.resolveFor(getBuiltins().any()), "Error", symbol);
   }
 
   boolean isValidAtomCache(
@@ -121,5 +117,9 @@ public abstract class MethodResolverNode extends Node {
       Atom atom,
       AtomConstructor cachedConstructor) {
     return (symbol == cachedSymbol) && (atom.getConstructor() == cachedConstructor);
+  }
+
+  private Builtins getBuiltins() {
+    return lookupContextReference(Language.class).get().getBuiltins();
   }
 }
