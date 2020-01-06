@@ -5,5 +5,6 @@ import org.enso.compiler.test.CompilerTest
 import org.enso.graph.{Graph => PrimGraph}
 
 class GraphTest extends CompilerTest {
-//  implicit val graph: PrimGraph.GraphData[Core.CoreGraph] = PrimGraph[Core.CoreGraph]()
+  import Core._
+  implicit val graph: PrimGraph.GraphData[Core.CoreGraph] = PrimGraph[Core.CoreGraph]()
 }

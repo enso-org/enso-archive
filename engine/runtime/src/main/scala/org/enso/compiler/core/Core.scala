@@ -45,17 +45,16 @@ object Core {
     }
   }
 
-  implicit def components: PrimGraph.Component.List[CoreGraph] =
-    new PrimGraph.Component.List[CoreGraph] {
-      type Out = HNil // TODO [AA] Actually add the proper components
-    }
+  implicit def components = new PrimGraph.Component.List[CoreGraph] {
+    type Out = HNil // TODO [AA] Actually add the proper components
+  }
 
-  implicit def nodeFields: PrimGraph.Component.Field.List[CoreGraph, Nodes] =
+  implicit def nodeFields =
     new PrimGraph.Component.Field.List[CoreGraph, Nodes] {
       type Out = HNil // TODO [AA] Actually add the proper components
     }
 
-  implicit def linkFields: PrimGraph.Component.Field.List[CoreGraph, Links] =
+  implicit def linkFields =
     new PrimGraph.Component.Field.List[CoreGraph, Links] {
       type Out = HNil // TODO [AA] Actually add the proper components
     }

@@ -69,9 +69,10 @@ object Macro {
     *
     * {{{
     *   @field object VariantType {
+    *     type G = Graph
     *     case class V1()
-    *     case class V2[T](field1: T)
-    *     case class V3[T, Q](field1: T, field2: Q)
+    *     case class V2(field1: T)
+    *     case class V3(field1: T, field2: Q)
     *     // ...
     *   }
     * }}}
@@ -81,14 +82,16 @@ object Macro {
     * the variant cases. Each case is supplied with subfield accessors, as well
     * ]as custom unapply methods, where necessary. The fields are nested in the
     * scope of the variant, so above you would have `VariantType.V1`, for
-    * access.
+    * access. Furthermore, the body must define a `type G` that binds the name
+    * of the primtive graph implementation in scope.
     *
     * The following is a simple definition of a variant component:
     *
     * {{{
     *   @field object Shape {
+   *      type G = Graph
     *     case class Null()
-    *     case class App[G <: Graph](fn: Edge[G], argTest: Edge[G])
+    *     case class App(fn: Edge[G], argTest: Edge[G])
     *   }
     * }}}
     *
@@ -101,7 +104,7 @@ object Macro {
     *
     *     sealed case class Null() extends Shape
     *     object Null {
-    *       val any            = Component.VariantMatcher[Shape, Null](0)
+    *       val any            = Graph.Component.VariantMatcher[Shape, Null](0)
     *       implicit def sized = new Sized[Null] { type Out = _0 }
     *     }
     *
@@ -109,62 +112,67 @@ object Macro {
     *     object App {
     *       implicit def sized = new Sized[App] { type Out = _1 }
     *
-    *       val any = Component.VariantMatcher[Shape, App](1)
+    *       val any = Graph.Component.VariantMatcher[Shape, App](1)
     *
-    *       def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
+    *       def unapply[G <: Graph, C <: Graph.Component]
+   *          (arg: Graph.Component.Ref[G, C])(
     *         implicit
-    *         graph: GraphData[G],
-    *         ev: HasComponentField[G, C, Shape]
+    *         graph: Graph.GraphData[G],
+    *         ev: Graph.HasComponentField[G, C, Shape]
     *       ): Option[(Edge[G], Edge[G])] =
     *         any.unapply(arg).map(t => (t.fn, t.arg))
     *
-    *       implicit class AppInstance[G <: Graph, C <: Component](
-    *         node: Component.Refined[Shape, App, Component.Ref[G, C]]
+    *       implicit class AppInstance[G <: Graph, C <: Graph.Component](
+    *         node: Graph.Component.Refined[
+   *            Shape,
+   *            App,
+   *            Graph.Component.Ref[G, C]
+   *          ]
     *       ) {
     *
     *         def fn(
-    *           implicit graph: GraphData[G],
-    *           ev: HasComponentField[G, C, Shape]
+    *           implicit graph: Graph.GraphData[G],
+    *           ev: Graph.HasComponentField[G, C, Shape]
     *         ): Edge[G] = {
-    *           Component.Ref(
+    *           Graph.Component.Ref(
     *             graph
     *               .unsafeReadField[C, Shape](
-    *                 Component.Refined.unwrap(node).ix,
+    *                 Graph.Component.Refined.unwrap(node).ix,
     *                 1
     *               )
     *           )
     *         }
     *
     *         def fn_=(value: Edge[G])(
-    *           implicit graph: GraphData[G],
-    *           ev: HasComponentField[G, C, Shape]
+    *           implicit graph: Graph.GraphData[G],
+    *           ev: Graph.HasComponentField[G, C, Shape]
     *         ): Unit = {
     *           graph.unsafeWriteField[C, Shape](
-    *             Component.Refined.unwrap(node).ix,
+    *             Graph.Component.Refined.unwrap(node).ix,
     *             1,
     *             value.ix
     *           )
     *         }
     *
     *         def arg(
-    *           implicit graph: GraphData[G],
-    *           ev: HasComponentField[G, C, Shape]
+    *           implicit graph: Graph.GraphData[G],
+    *           ev: Graph.HasComponentField[G, C, Shape]
     *         ): Edge[G] = {
-    *           Component.Ref(
+    *           Graph.Component.Ref(
     *             graph
     *               .unsafeReadField[C, Shape](
-    *                 Component.Refined.unwrap(node).ix,
+    *                 Graph.Component.Refined.unwrap(node).ix,
     *                 2
     *               )
     *           )
     *         }
     *
     *         def arg_=(value: Edge[G])(
-    *           implicit graph: GraphData[G],
-    *           ev: HasComponentField[G, C, Shape]
+    *           implicit graph: Graph.GraphData[G],
+    *           ev: Graph.HasComponentField[G, C, Shape]
     *         ): Unit = {
     *           graph.unsafeWriteField[C, Shape](
-    *             Component.Refined.unwrap(node).ix,
+    *             Graph.Component.Refined.unwrap(node).ix,
     *             2,
     *             value.ix
     *           )
@@ -179,6 +187,7 @@ object Macro {
     def macroTransform(annottees: Any*): Any = macro FieldMacro.impl
   }
   object FieldMacro {
+
     def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
       import c.universe._
       val members = annottees.map(_.tree).toList
@@ -190,12 +199,9 @@ object Macro {
         )
       }
 
-      val imports: Block = Block(
+      val baseBlock: Block = Block(
         List(
-          q"""import shapeless.nat._""",
-          q"""import org.enso.graph.Graph.Component""",
-          q"""import org.enso.graph.Graph.GraphData""",
-          q"""import org.enso.graph.Graph.HasComponentField"""
+          q"""import shapeless.nat._"""
         ),
         EmptyTree
       )
@@ -274,17 +280,19 @@ object Macro {
       def genSimpleSubfieldGetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
-        index: Int
+        index: Int,
+        graphTypeName: TypeName
       ): Tree = {
-        val paramName: TermName = paramDef.name
-        val paramType: Tree     = paramDef.tpt
+        val paramName: TermName     = paramDef.name
+        val paramType: Tree         = paramDef.tpt
+        val graphTermName: TermName = graphTypeName.toTermName
 
         q"""
           def $paramName(
-            implicit graph: GraphData[G],
-            ev: HasComponentField[G, C, $enclosingTypeName]
+            implicit graph: $graphTermName.GraphData[G],
+            ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
           ): $paramType = {
-            Component.Ref(
+            $graphTermName.Component.Ref(
               graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
             )
           }
@@ -301,15 +309,17 @@ object Macro {
       def genSimpleSubfieldSetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
-        index: Int
+        index: Int,
+        graphTypeName: TypeName
       ): Tree = {
-        val accessorName: TermName = TermName(paramDef.name.toString + "_$eq")
-        val paramType: Tree        = paramDef.tpt
+        val accessorName: TermName  = TermName(paramDef.name.toString + "_$eq")
+        val paramType: Tree         = paramDef.tpt
+        val graphTermName: TermName = graphTypeName.toTermName
 
         q"""
           def $accessorName(value: $paramType)(
-            implicit graph: GraphData[G],
-            ev: HasComponentField[G, C, $enclosingTypeName]
+            implicit graph: $graphTermName.GraphData[G],
+            ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
           ): Unit = {
             graph.unsafeWriteField[C, $enclosingTypeName](
               node.ix, $index, value.ix
@@ -328,7 +338,8 @@ object Macro {
         */
       def genSimpleSubfieldAccessors(
         subfields: List[ValDef],
-        enclosingName: TypeName
+        enclosingName: TypeName,
+        graphTypeName: TypeName
       ): List[Tree] = {
         var accessorDefs: List[Tree] = List()
 
@@ -336,12 +347,14 @@ object Macro {
           accessorDefs = accessorDefs :+ genSimpleSubfieldGetter(
               subfield,
               enclosingName,
-              ix
+              ix,
+              graphTypeName
             )
           accessorDefs = accessorDefs :+ genSimpleSubfieldSetter(
               subfield,
               enclosingName,
-              ix
+              ix,
+              graphTypeName
             )
         }
 
@@ -357,18 +370,20 @@ object Macro {
         */
       def genTransInstance(
         enclosingName: TermName,
-        implicitClassName: TypeName
+        implicitClassName: TypeName,
+        graphTypeName: TypeName
       ): Tree = {
-        val defName = TermName(enclosingName.toString + "_transInstance")
+        val defName       = TermName(enclosingName.toString + "_transInstance")
+        val graphTermName = graphTypeName.toTermName
 
         q"""
           implicit def $defName[
-            F <: Component.Field,
+            F <: $graphTermName.Component.Field,
             R,
-            G <: Graph,
-            C <: Component
+            G <: $graphTypeName,
+            C <: $graphTermName.Component
           ](
-            t: Component.Refined[F, R, Component.Ref[G, C]]
+            t: $graphTermName.Component.Refined[F, R, $graphTermName.Component.Ref[G, C]]
           ): $implicitClassName[G, C] = t.wrapped
          """
       }
@@ -424,6 +439,43 @@ object Macro {
       def mkImplicitClassName(typeName: TypeName): TypeName =
         TypeName(typeName.toString + "Instance")
 
+      def extractSingleGraphTypeName(
+        tParams: List[c.universe.TypeDef]
+      ): TypeName = {
+        val errorTName = TypeName("ERROR")
+
+        if (tParams.length == 0) {
+          c.error(
+            c.enclosingPosition,
+            "Your case class must have at least one type parameter"
+          )
+          errorTName
+        } else {
+          val firstTParam     = tParams.head
+          val firstTParamName = firstTParam.name
+
+          if (firstTParamName != TypeName("G")) {
+            c.error(
+              c.enclosingPosition,
+              "Your first type bound must be named \"G\""
+            )
+            errorTName
+          } else {
+            val boundsNames = firstTParam.children
+              .collect {
+                case tree: TypeBoundsTree => tree
+              }
+              .map(_.hi)
+              .collect {
+                case Ident(name) => name.toTypeName
+              }
+
+            boundsNames.head
+          }
+
+        }
+      }
+
       /** Generates a set of definitions that correspond to defining a
         * non-variant field for a graph component.
         *
@@ -436,18 +488,22 @@ object Macro {
         val subfields: List[ValDef]     = extractConstructorArguments(classDef)
         val natSubfields: TypeName      = mkNatConstantTypeName(subfields.length)
         val implicitClassName: TypeName = mkImplicitClassName(fieldTypeName)
+        val graphTypeName: TypeName = extractSingleGraphTypeName(
+          classDef.tparams
+        )
+        val graphTermName: TermName = graphTypeName.toTermName
 
         val baseClass: Tree =
-          q"sealed case class $fieldTypeName() extends Graph.Component.Field"
+          q"sealed case class $fieldTypeName() extends $graphTermName.Component.Field"
 
         val accessorClassStub: ClassDef = q"""
-            implicit class $implicitClassName[G <: Graph, C <: Component](
-              node: Component.Ref[G, C]
+            implicit class $implicitClassName[G <: $graphTypeName, C <: $graphTermName.Component](
+              node: $graphTermName.Component.Ref[G, C]
             )
            """.asInstanceOf[ClassDef]
         val accessorClass: ClassDef = appendToClass(
           accessorClassStub,
-          genSimpleSubfieldAccessors(subfields, fieldTypeName)
+          genSimpleSubfieldAccessors(subfields, fieldTypeName, graphTypeName)
         )
 
         val companionModuleStub: ModuleDef =
@@ -464,12 +520,12 @@ object Macro {
             companionModuleStub,
             List(
               accessorClass,
-              genTransInstance(fieldTermName, implicitClassName)
+              genTransInstance(fieldTermName, implicitClassName, graphTypeName)
             )
           )
 
         val resultBlock =
-          appendToBlock(imports, baseClass, companionModule).stats
+          appendToBlock(baseBlock, baseClass, companionModule).stats
 
         val result = q"..$resultBlock"
 
@@ -486,19 +542,21 @@ object Macro {
       def genVariantSubfieldGetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
-        index: Int
+        index: Int,
+        graphName: TypeName
       ): Tree = {
         val paramName: TermName = paramDef.name
         val paramType: Tree     = paramDef.tpt
+        val graphTermName       = graphName.toTermName
 
         q"""
           def $paramName(
-            implicit graph: GraphData[G],
-            ev: HasComponentField[G, C, $enclosingTypeName]
+            implicit graph: $graphTermName.GraphData[G],
+            ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
           ): $paramType = {
-            Component.Ref(
+            $graphTermName.Component.Ref(
               graph.unsafeReadField[C, $enclosingTypeName](
-                Component.Refined.unwrap(node).ix,
+                $graphTermName.Component.Refined.unwrap(node).ix,
                 $index
               )
             )
@@ -516,18 +574,20 @@ object Macro {
       def genVariantSubfieldSetter(
         paramDef: ValDef,
         enclosingTypeName: TypeName,
-        index: Int
+        index: Int,
+        graphName: TypeName
       ): Tree = {
         val accessorName: TermName = TermName(paramDef.name.toString + "_$eq")
         val paramType: Tree        = paramDef.tpt
+        val graphTermName          = graphName.toTermName
 
         q"""
           def $accessorName(value: $paramType)(
-            implicit graph: GraphData[G],
-            ev: HasComponentField[G, C, $enclosingTypeName]
+            implicit graph: $graphTermName.GraphData[G],
+            ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
           ): Unit = {
             graph.unsafeWriteField[C, $enclosingTypeName](
-              Component.Refined.unwrap(node).ix,
+              $graphTermName.Component.Refined.unwrap(node).ix,
               $index,
               value.ix
             )
@@ -545,7 +605,8 @@ object Macro {
         */
       def genVariantSubfieldAccessors(
         subfields: List[ValDef],
-        enclosingName: TypeName
+        enclosingName: TypeName,
+        graphTypeName: TypeName
       ): List[Tree] = {
         var accessorDefs: List[Tree] = List()
 
@@ -553,12 +614,14 @@ object Macro {
           accessorDefs = accessorDefs :+ genVariantSubfieldGetter(
               subfield,
               enclosingName,
-              ix
+              ix,
+              graphTypeName
             )
           accessorDefs = accessorDefs :+ genVariantSubfieldSetter(
               subfield,
               enclosingName,
-              ix
+              ix,
+              graphTypeName
             )
         }
 
@@ -585,7 +648,8 @@ object Macro {
       def generateVariantCaseDef(
         classDef: ClassDef,
         parentName: TypeName,
-        index: Int
+        index: Int,
+        graphTypeName: TypeName
       ): (Block, Int) = {
         val typeName          = classDef.name
         val termName          = typeName.toTermName
@@ -593,6 +657,7 @@ object Macro {
         val natSubfields      = mkNatConstantTypeName(subfields.length)
         val implicitClassName = mkImplicitClassName(typeName)
         val subfieldTypes     = subfields.map(f => f.tpt)
+        val graphTermName     = graphTypeName.toTermName
 
         val variantClass: ClassDef =
           q"""
@@ -602,7 +667,10 @@ object Macro {
         val variantModuleStub: ModuleDef =
           q"""
             object $termName {
-              val any = Component.VariantMatcher[$parentName, $typeName]($index)
+              val any = $graphTermName.Component.VariantMatcher[
+                  $parentName,
+                  $typeName
+                ]($index)
               implicit def sized = new Sized[$typeName] {
                 type Out = $natSubfields
               }
@@ -611,10 +679,12 @@ object Macro {
 
         val unapplyDef: DefDef =
           q"""
-            def unapply[G <: Graph, C <: Component](arg: Component.Ref[G, C])(
+            def unapply[G <: $graphTypeName, C <: $graphTermName.Component] (
+              arg: $graphTermName.Component.Ref[G, C])(
+            )(
               implicit
-              graph: GraphData[G],
-              ev: HasComponentField[G, C, $parentName]
+              graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $parentName]
             ): Option[(..$subfieldTypes)] = {
               any.unapply(arg).map(
                 t => (..${subfields.map(f => q"t.${f.name}")})
@@ -623,17 +693,20 @@ object Macro {
            """.asInstanceOf[DefDef]
 
         val accessorClassStub: ClassDef = q"""
-            implicit class $implicitClassName[G <: Graph, C <: Component](
-              node: Component.Refined[
+            implicit class $implicitClassName[
+              G <: $graphTypeName,
+              C <: $graphTermName.Component
+            ](
+              node: $graphTermName.Component.Refined[
                 $parentName,
                 $typeName,
-                Component.Ref[G, C]
+                $graphTermName.Component.Ref[G, C]
               ]
             )
            """.asInstanceOf[ClassDef]
         val accessorClass: ClassDef = appendToClass(
           accessorClassStub,
-          genVariantSubfieldAccessors(subfields, parentName)
+          genVariantSubfieldAccessors(subfields, parentName, graphTypeName)
         )
 
         val result = if (subfields.nonEmpty) {
@@ -648,6 +721,52 @@ object Macro {
         )
       }
 
+      /** Extracts the name for the primitive graph type from the variant body.
+        *
+        * @param template the variant body to extract the name from
+        * @return the name by which the primitive graph type is in scope
+        */
+      def extractVariantGraphTypeName(template: Template): TypeName = {
+        val typeDefs  = template.body.collect { case tDef: TypeDef => tDef }
+        val gName     = TypeName("G")
+        val errorName = TypeName("Error")
+
+        if (typeDefs.length < 1) {
+          c.error(
+            c.enclosingPosition,
+            "You must define a type named `G` in your variant that " +
+              "defines the graph type name"
+          )
+          errorName
+        } else {
+          val gNames = typeDefs.filter(d => d.name == gName)
+
+          if (gNames.isEmpty) {
+            c.error(
+              c.enclosingPosition,
+              "You must define a type named `G` in your variant that " +
+                "defines the graph type name"
+            )
+            errorName
+          } else {
+            val firstGName = gNames.head
+            val idents = firstGName.children.collect {
+              case Ident(name) => name.toTypeName
+            }
+
+            if (idents.length != 1) {
+              c.error(
+                c.enclosingPosition,
+                "You must assign the name of the primitive graph to `G`"
+              )
+              errorName
+            } else {
+              idents.head
+            }
+          }
+        }
+      }
+
       /** Generates the whole set of definitions necessary for a variant
         * component field from the provided description.
         *
@@ -657,10 +776,13 @@ object Macro {
       def processVariantField(moduleDef: ModuleDef): c.Expr[Any] = {
         val variantTermName: TermName = moduleDef.name
         val variantTypeName: TypeName = variantTermName.toTypeName
+        val graphTypeName: TypeName =
+          extractVariantGraphTypeName(moduleDef.impl)
+        val graphTermName: TermName = graphTypeName.toTermName
 
         val baseTrait: ClassDef =
           q"""
-            sealed trait $variantTypeName extends Graph.Component.Field
+            sealed trait $variantTypeName extends $graphTermName.Component.Field
            """.asInstanceOf[ClassDef]
 
         val variantDefs = extractVariantDefs(moduleDef.impl)
@@ -674,7 +796,12 @@ object Macro {
 
         val variantResults =
           for ((cls, ix) <- variantDefs.view.zipWithIndex)
-            yield generateVariantCaseDef(cls, variantTypeName, ix)
+            yield generateVariantCaseDef(
+              cls,
+              variantTypeName,
+              ix,
+              graphTypeName
+            )
 
         // We want to flatten the block structure for correct codegen
         val variantDefinitions =
@@ -698,7 +825,7 @@ object Macro {
           appendToModule(baseModuleStub, variantDefinitions.toList)
 
         val result =
-          q"..${appendToBlock(imports, baseTrait, traitCompanionModule).stats}"
+          q"..${appendToBlock(baseBlock, baseTrait, traitCompanionModule).stats}"
 
         c.Expr(result)
       }
@@ -878,7 +1005,8 @@ object Macro {
 
         val caseClass: ClassDef =
           q"""
-            sealed case class $componentTypeName() extends $graphTermName.Component
+            sealed case class $componentTypeName() extends
+              $graphTermName.Component
            """.asInstanceOf[ClassDef]
 
         val typeDef: TypeDef =
