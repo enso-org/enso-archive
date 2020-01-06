@@ -5,7 +5,7 @@ import java.io.File
 import org.enso.interpreter.Constants
 import org.enso.interpreter.runtime.RuntimeOptions
 import org.enso.pkg.Package
-import org.graalvm.polyglot.{Context, Source, Value}
+import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
 trait PackageTest extends FlatSpec with Matchers with ValueEquality {

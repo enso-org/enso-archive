@@ -12,12 +12,13 @@ object Macro {
     * For a single field, you provide it a definition as follows:
     *
     * {{{
-    *   @field case class MyName[TParams..](args...)
+    *   @field case class MyName[G <: Graph, TParams..](args...)
     * }}}
     *
     * It will then generate the required boilerplate for this field definition,
     * including field setters and getters for each of the constructor arguments
-    * in the template definition.
+    * in the template definition. It must include a type parameter `G` with its
+    * bound set to the imported name of the primitive graph in its definition.
     *
     * As an example, consider the following:
     *
@@ -757,7 +758,8 @@ object Macro {
     * The macro will generate the required boilerplate for the component
     * definition. It will generate a parent class named `Types`, and the a
     * contained type with name taken from the first type definition in the body.
-    * That type must take one type parameter that is a subtype of Graph.
+    * That type must take one type parameter that is a subtype of Graph. The
+    * name `Graph` must be whatever the primitive graph is named in scope.
     *
     * By way of example, consider the following macro invocation:
     *
@@ -768,10 +770,10 @@ object Macro {
     * This will generate the following code (along with required imports):
     *
     * {{{
-    *   sealed case class Nodes() extends Component
-    *   type Node[G <: Graph] = Component.Ref[G, Nodes]
-    *   implicit class GraphWithNodes[G <: Graph](graph: GraphData[G]) {
-    *     def addNode()(implicit ev: HasComponent[G, Nodes]): Node[G] = {
+    *   sealed case class Nodes() extends Graph.Component
+    *   type Node[G <: Graph] = Graph.Component.Ref[G, Nodes]
+    *   implicit class GraphWithNodes[G <: Graph](graph: Graph.GraphData[G]) {
+    *     def addNode()(implicit ev: Graph.HasComponent[G, Nodes]): Node[G] = {
     *       graph.addComponent[Nodes]()
     *     }
     *   }
@@ -794,15 +796,7 @@ object Macro {
         )
       }
 
-      val imports: Block = Block(
-        List(
-          q"""import org.enso.graph.Graph""",
-          q"""import org.enso.graph.Graph.Component""",
-          q"""import org.enso.graph.Graph.GraphData""",
-          q"""import org.enso.graph.Graph.HasComponent"""
-        ),
-        EmptyTree
-      )
+      val baseBlock: Block = Block(List(), EmptyTree)
 
       /**
         * Appends a statement to a block with no return value.
@@ -816,25 +810,26 @@ object Macro {
         EmptyTree
       )
 
-      /**
-        * Extracts the name of the child type in the definition. This name is
-        * used to define the type contained in a given component.
+      /** Extracts the name of the child type in the definition, as well as the
+        * name of its bound. These names are used to define the type contained
+        * within a given component.
         *
         * If multiple `type T` definitions are found, the first will be used.
         *
         * @param template the body of the class the macro is applied to
-        * @return the name of the type declared in the body of `template`
+        * @return a tuple of the name of the type declared in the body of
+        *         `template` and the name representing the graph type
         */
-      def extractItemName(template: Template): TypeName = {
-        val typeDefs  = template.body.collect { case tDef: TypeDef => tDef }
-        val boundName = TypeName("Graph")
+      def extractItemNameAndBound(template: Template): (TypeName, TypeName) = {
+        val typeDefs   = template.body.collect { case tDef: TypeDef => tDef }
+        val errorTName = TypeName("ERROR")
 
         if (typeDefs.isEmpty) {
           c.error(
             c.enclosingPosition,
             "You must provide a name for the contained type, none found"
           )
-          TypeName("ERROR")
+          (errorTName, errorTName)
         } else {
           val tDef = typeDefs.head
           val typeParams = tDef.children.collect {
@@ -851,21 +846,13 @@ object Macro {
                 case Ident(name) => name.toTypeName
               }
 
-            if (boundNames.contains(boundName)) {
-              tDef.name
-            } else {
-              c.error(
-                c.enclosingPosition,
-                "The contained type's parameter must be a subtype of Graph"
-              )
-              tDef.name
-            }
+            (tDef.name, boundNames.head)
           } else {
             c.error(
               c.enclosingPosition,
               "Your contained type must only have one type parameter"
             )
-            tDef.name
+            (errorTName, errorTName)
           }
         }
       }
@@ -884,33 +871,37 @@ object Macro {
         }
 
         val componentTypeName = classDef.name
-        val componentItemName = extractItemName(classDef.impl)
+        val (componentItemName, graphTypeName) = extractItemNameAndBound(
+          classDef.impl
+        )
+        val graphTermName = graphTypeName.toTermName
 
         val caseClass: ClassDef =
           q"""
-            sealed case class $componentTypeName() extends Component
+            sealed case class $componentTypeName() extends $graphTermName.Component
            """.asInstanceOf[ClassDef]
 
         val typeDef: TypeDef =
           q"""
-            type $componentItemName[G <: Graph] =
-              Component.Ref[G, $componentTypeName]
+            type $componentItemName[G <: $graphTypeName] =
+              $graphTermName.Component.Ref[G, $componentTypeName]
            """.asInstanceOf[TypeDef]
 
         val implClassName = TypeName("GraphWith" + componentTypeName.toString)
         val addName       = TermName("add" + componentItemName.toString)
         val implicitClass: ClassDef =
           q"""
-            implicit class $implClassName[G <: Graph](graph: GraphData[G]) {
+            implicit class $implClassName[G <: $graphTypeName]
+              (graph: $graphTermName.GraphData[G]) {
               def $addName()(
-                implicit ev: HasComponent[G, $componentTypeName]
+                implicit ev: $graphTermName.HasComponent[G, $componentTypeName]
               ): $componentItemName[G] = {
                 graph.addComponent[$componentTypeName]()
               }
             }
            """.asInstanceOf[ClassDef]
 
-        val block  = appendToBlock(imports, caseClass, typeDef, implicitClass)
+        val block  = appendToBlock(baseBlock, caseClass, typeDef, implicitClass)
         val result = q"..${block.stats}"
 
         c.Expr(result)

@@ -267,7 +267,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(
     scalaJSUseMainModuleInitializer := false,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule)},
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
@@ -390,6 +390,9 @@ lazy val runtime = (project in file("engine/runtime"))
     (Compile / javacOptions) ++= Seq(
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath
+    ),
+    addCompilerPlugin(
+      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
     )
   )
   .settings(
@@ -414,6 +417,7 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)
+  .dependsOn(graph)
 
 lazy val language_server = project
   .in(file("engine/language-server"))
