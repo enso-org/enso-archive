@@ -10,7 +10,7 @@ case class Gateway(languageServer: ActorRef)(implicit
 ) extends Server with Protocol with Actor {
   import Protocol._
 
-  def handleRequestOrNotification(requestOrNotification: RequestOrNotification): Option[Response] = {
+  override def handleRequestOrNotification(requestOrNotification: RequestOrNotification): Option[Response] = {
     requestOrNotification match {
       case initialize(jsonrpc, id, method, params) =>
         println(s"jsonrpc=$jsonrpc, id=$id, method=$method, params=$params")

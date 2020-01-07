@@ -467,8 +467,10 @@ lazy val gateway = (project in file("engine/gateway"))
   .dependsOn(language_server)
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "io.circe" %% "circe-shapes"         % circeVersion,
-      "io.circe" %% "circe-generic-extras" % previousCirceVersion
+      "io.circe"       %% "circe-shapes"         % circeVersion,
+      "io.circe"       %% "circe-generic-extras" % previousCirceVersion,
+      "org.scalatest"  %% "scalatest"            % "3.2.0-SNAP10" % Test,
+      "org.scalacheck" %% "scalacheck"           % "1.14.0"       % Test
     )
   )
 
