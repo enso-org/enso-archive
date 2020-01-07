@@ -9,6 +9,14 @@ The following is an overview of the logic, outlining the most important
 features supported by this system and a diagram of how they fit into the
 Truffle framework.
 
+- [Function call logic in the Enso interpreter](#function-call-logic-in-the-enso-interpreter)
+  * [Tail Call Optimization](#tail-call-optimization)
+  * [Named application arguments](#named-application-arguments)
+  * [Definition-site arguments laziness](#definition-site-arguments-laziness)
+  * [Currying and eta-expansion](#currying-and-eta-expansion)
+  * [Dynamic dispatch](#dynamic-dispatch)
+  * [Flow diagram](#flow-diagram)
+
 ## Tail Call Optimization
 
 It is very important for Enso to perform TCO well, since there are no intrinsic
@@ -46,7 +54,7 @@ while true
 ```
 This logic is encapsulated in the subclasses of `CallOptimiserNode`.
 
-## Named application arguments
+## Named Application Arguments
 
 Enso allows applying function arguments by name, e.g.
 ```
@@ -73,7 +81,7 @@ structures.
 
 This logic is encapsulated in the `ArgumentSorterNode`.
 
-## Definition-site arguments laziness
+## Definition-Site Arguments Laziness
 
 Enso allows functions to define certain arguments as lazy, so that when these
 are passed to a function, the corresponding expressions are not evaluated at
@@ -85,7 +93,7 @@ evaluated at call-site when needed, based on the function signature.
 
 Argument execution is happening inside the `ArgumentSorterNode`.
 
-## Currying and eta-expansion
+## Currying and Eta-Expansion
 
 Functions can also be applied partially (i.e. with less arguments than required
 by the signature, in which case the result is a function with certain arguments
@@ -95,7 +103,7 @@ expression).
 
 This logic is handled inside the `CurryNode`.
 
-## Dynamic dispatch
+## Dynamic Dispatch
 
 Functions can be dispatched dynamically, meaning a name can denote different
 functions, based on the (runtime) type of the first argument.
@@ -103,7 +111,7 @@ functions, based on the (runtime) type of the first argument.
 This logic is fairly straightforward. It is triggered from `InvokeCallableNode`
 and performed (with caching) in the `MethodResolverNode`.
 
-## Flow diagram
+## Flow Diagram
 
 The following diagram summarizes all the nodes participating in a function
 call. The entry points to this system are `ApplicationNode` (for in-language
