@@ -9,10 +9,10 @@ import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 /**
- * A debug instrument used to test code locations.
+ * An instrument used to extract node values from currently executed functions.
  *
- * <p>Allows to listen for a node with a given type at a given position, and later verify if such a
- * node was indeed encountered in the course of execution.
+ * <p>Allows to listen for a node at a given position, and trigger a callback when the node is
+ * executed for the first time, passing the node's return value to the callback.
  */
 @TruffleInstrument.Registration(
     id = ValueExtractorInstrument.INSTRUMENT_ID,
@@ -34,7 +34,7 @@ public class ValueExtractorInstrument extends TruffleInstrument {
 
   /**
    * An event listener implementing the behavior of verifying whether the currently executed node is
-   * the one expected by the user.
+   * the one expected by the user and passing the computed value to the callback.
    */
   public static class ValueEventListener implements ExecutionEventListener {
     private EventBinding<ValueEventListener> binding;
@@ -80,15 +80,17 @@ public class ValueExtractorInstrument extends TruffleInstrument {
       return binding.isDisposed();
     }
 
-    /**
-     * Checks if the node to be executed is the node this listener was created to observe.
-     *
-     * @param context current execution context
-     * @param frame current execution frame
-     */
     @Override
     public void onEnter(EventContext context, VirtualFrame frame) {}
 
+    /**
+     * Checks if the node to be executed is the node this listener was created to observe and
+     * triggers the callback if the correct node just finished executing.
+     *
+     * @param context current execution context
+     * @param frame current execution frame
+     * @param result the return value of the currently executed node
+     */
     @Override
     public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
       Node node = context.getInstrumentedNode();
