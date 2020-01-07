@@ -6,7 +6,8 @@ import org.enso.pkg.Package
 import org.graalvm.polyglot.Source
 import java.io.File
 
-import org.enso.gateway
+import akka.actor.{ActorRef, ActorSystem}
+import akka.stream.ActorMaterializer
 import org.enso.{Gateway, LanguageServer}
 
 import scala.io.StdIn
@@ -154,11 +155,19 @@ object Main {
       System.out,
       Repl(TerminalIO())
     )
-    val languageServer = new LanguageServer(context)
-    languageServer.run()
-    Gateway(languageServer).run(gateway.Server.Config("localhost", 30000))
+
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val materializer: ActorMaterializer = ActorMaterializer.create(system)
+
+    val languageServer: ActorRef = system.actorOf(LanguageServer.props(context), "languageServer")
+    val gateway: ActorRef = system.actorOf(Gateway.props(languageServer), "gateway")
+
+    gateway ! Gateway.Start("localhost", 30000)
+
     println("Press ENTER to shut down")
     StdIn.readLine()
+
+    system.terminate()
     exitSuccess()
   }
 

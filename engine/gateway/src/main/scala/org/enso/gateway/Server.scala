@@ -19,8 +19,8 @@ import scala.util.Success
 object Server {
 
   /** Describes endpoint to which [[Server]] can bind. */
-  final case class Config(interface: String, port: Int) {
-    def addressString(): String = s"ws://$interface:$port"
+  case class Config(host: String, port: Int) {
+    def addressString(): String = s"ws://$host:$port"
   }
 }
 
@@ -34,16 +34,16 @@ object Server {
   * another Text Message.
   */
 trait Server {
-  implicit val system: ActorSystem             = ActorSystem()
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val system: ActorSystem
+  implicit val materializer: ActorMaterializer
   import system.dispatcher
 
   /** Generate text reply for given request text message. */
-  def handleMessage(input: String): String
+  def handleInput(input: String): Option[String]
 
   /** Akka stream defining server behavior.
     *
-    * Incoming [[TextMessage]]s are replied to (see [[handleMessage]]).
+    * Incoming [[TextMessage]]s are replied to (see [[handleInput()]]).
     * Incoming binary messages are ignored.
     */
   val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
@@ -51,7 +51,12 @@ trait Server {
       .flatMapConcat {
         case tm: TextMessage =>
           val strict = tm.textStream.fold("")(_ + _)
-          strict.map(input => TextMessage(handleMessage(input)))
+          strict.flatMapConcat(input =>
+            handleInput(input) match {
+              case Some(output) => Source.single(TextMessage(output))
+              case None         => Source.empty
+            }
+          )
         case bm: BinaryMessage =>
           bm.dataStream.runWith(Sink.ignore)
           Source.empty
@@ -64,22 +69,6 @@ trait Server {
     *
     * The request's URI is not checked.
     */
-//  val handleRequest: HttpRequest => HttpResponse = {
-//    case req @ HttpRequest(GET, _, _, _, _) =>
-//      req.header[UpgradeToWebSocket] match {
-//        case Some(upgrade) =>
-//          println("Establishing a new connection")
-//          upgrade.handleMessages(handlerFlow)
-//        case None =>
-//          HttpResponse(
-//            StatusCodes.BadRequest,
-//            entity = "Not a valid websocket request!"
-//          )
-//      }
-//    case r: HttpRequest =>
-//      r.discardEntityBytes()
-//      HttpResponse(StatusCodes.MethodNotAllowed)
-//  }
   val route: Route =
     path("") {
       get {
@@ -94,9 +83,9 @@ trait Server {
     */
   def run(config: Server.Config): Unit = {
     val bindingFuture =
-      Http().bindAndHandle /*bindAndHandleSync*/(
-        route /*handleRequest*/,
-        interface = config.interface,
+      Http().bindAndHandle(
+        route,
+        interface = config.host,
         port      = config.port
       )
 
