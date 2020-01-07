@@ -1,4 +1,4 @@
-# Function call logic in the Enso interpreter
+# Function Call Logic in the Enso Interpreter
 
 With Enso being a functional language, it is crucial for function calls to be
 efficient and easily inlined.
@@ -25,7 +25,8 @@ The idea behind Enso's TCO is simple, even if the implementation is confusing.
 Whenever we call a possibly-tail-recursive function in a tail position, a tail
 call exception containing the function and its arguments is thrown.
 This exception is then caught in a loop, effectively translating recursion into
-a loop.
+a loop. With the use of Truffle's `ControlFlowException`, this code is
+optimized like a builtin language loop construct.
 In pseudocode, a tail recursive function, like:
 ```
 foo x = if x == 0 then print "foo" else foo (x - 1)
@@ -77,7 +78,10 @@ function has 3 parameters, named [baz, foo, bar]"), a mapping ("move the first
 argument to the second position, the second becomes third and the third becomes
 the first") is computed, that is then memoized and used to efficiently reorder
 arguments on each execution, without the need to employ any more involved data
-structures.
+structures. A standard Truffle Polymorphic Inline Cache is used to store these
+mappings, therefore it may be subject to the standard problems – storing rarely
+accessed paths in the cache, as well as cache misses for highly polymorphic
+call sites.
 
 This logic is encapsulated in the `ArgumentSorterNode`.
 
@@ -89,7 +93,7 @@ call site, but rather passed to the function as closures and evaluated at the
 function's discretion.
 
 Therefore, all application arguments are actually treated as thunks and only
-evaluated at call-site when needed, based on the function signature.
+evaluated at call-site when the function signature defines them as eager.
 
 Argument execution is happening inside the `ArgumentSorterNode`.
 

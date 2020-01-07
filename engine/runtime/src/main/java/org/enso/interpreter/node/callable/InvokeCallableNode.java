@@ -80,7 +80,7 @@ public abstract class InvokeCallableNode extends BaseNode {
       CallArgumentInfo arg = schema[idx];
 
       boolean isNamedThis =
-          arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT_NAME);
+          arg.isNamed() && arg.getName().equals(Constants.Names.THIS_ARGUMENT);
       if (arg.isPositional() || isNamedThis) {
         appliesThis = true;
         break;

@@ -89,10 +89,10 @@ public class ModuleScopeExpressionFactory implements AstModuleScopeVisitor<Funct
     for (AstMethodDef method : bindings) {
       scala.Option<AstExpression> scalaNone = scala.Option.apply(null);
       AstArgDefinition thisArgument =
-          new AstArgDefinition(Constants.Names.THIS_ARGUMENT_NAME, scalaNone, false);
+          new AstArgDefinition(Constants.Names.THIS_ARGUMENT, scalaNone, false);
 
       String typeName = method.typeName();
-      if (typeName.equals(Constants.Names.CURRENT_MODULE_VARIABLE_NAME)) {
+      if (typeName.equals(Constants.Names.CURRENT_MODULE)) {
         typeName = moduleScope.getAssociatedType().getName();
       }
 

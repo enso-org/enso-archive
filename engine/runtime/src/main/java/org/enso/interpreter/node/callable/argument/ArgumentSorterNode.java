@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
 /**
  * This class handles the case where a mapping for reordering arguments to a given callable has
@@ -38,7 +39,8 @@ public class ArgumentSorterNode extends BaseNode {
   /**
    * Creates an instance of this node.
    *
-   * @param preApplicationSchema the schema of all functions this node is used for.
+   * @param preApplicationSchema the schema of all functions passed to the {@link #execute(Function,
+   *     Object, Object[])} method of this node.
    * @param mapping the argument mapping generated for current application site.
    * @param argumentsExecutionMode lazy arguments handling mode for this node.
    * @return a sorter node for the arguments in {@code schema} being passed to a function with the
@@ -56,7 +58,7 @@ public class ArgumentSorterNode extends BaseNode {
     CompilerDirectives.transferToInterpreterAndInvalidate();
     executors = new ThunkExecutorNode[mapping.getArgumentShouldExecute().length];
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
-      if (mapping.getArgumentShouldExecute()[i] && arguments[i] instanceof Thunk) {
+      if (mapping.getArgumentShouldExecute()[i] && TypesGen.isThunk(arguments[i])) {
         executors[i] = insert(ThunkExecutorNode.build(false));
       }
     }
@@ -69,7 +71,7 @@ public class ArgumentSorterNode extends BaseNode {
     }
     for (int i = 0; i < mapping.getArgumentShouldExecute().length; i++) {
       if (executors[i] != null) {
-        Stateful result = executors[i].executeThunk((Thunk) arguments[i], state);
+        Stateful result = executors[i].executeThunk(TypesGen.asThunk(arguments[i]), state);
         arguments[i] = result.getValue();
         state = result.getState();
       }
