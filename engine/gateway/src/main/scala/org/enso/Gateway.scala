@@ -1,30 +1,37 @@
 package org.enso
 
-import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
 import akka.stream.ActorMaterializer
+import com.typesafe.config.ConfigFactory
 import org.enso.gateway.{Protocol, Server}
 
 case class Gateway(languageServer: ActorRef)(implicit
                                              val system: ActorSystem,
                                              val materializer: ActorMaterializer
-) extends Server with Protocol with Actor {
+) extends Server with Protocol with Actor with ActorLogging {
   import Protocol._
+
+  private def loadServerInfo(): ServerInfo = {
+    val config           = ConfigFactory.load.getConfig("gateway")
+    val serverInfoConfig = config.getConfig("serverInfo")
+    val name             = serverInfoConfig.getString("lspName")
+    val version          = serverInfoConfig.getString("lspVersion")
+    ServerInfo(name, Some(version))
+  }
 
   override def handleRequestOrNotification(requestOrNotification: RequestOrNotification): Option[Response] = {
     requestOrNotification match {
-      case initialize(jsonrpc, id, method, params) =>
-        println(s"jsonrpc=$jsonrpc, id=$id, method=$method, params=$params")
+      case initialize(_, id, _, _) =>
         languageServer ! LanguageServer.Initialize()
+
         Some(Response.result(
-          id = Some(id),
+          id     = Some(id),
           result = InitializeResult(
             capabilities = ServerCapabilities(),
-            serverInfo = Some(ServerInfo(name = "Enso Language Server", version = Some("1.0")))
-          )
+            serverInfo   = Some(loadServerInfo()))
         ))
 
-      case initialized(jsonrpc, method, params) =>
-        println(s"jsonrpc=$jsonrpc, method=$method, params=$params")
+      case initialized(_, _, _) =>
         languageServer ! LanguageServer.Initialized()
         None
 
@@ -34,14 +41,14 @@ case class Gateway(languageServer: ActorRef)(implicit
   }
 
   override def receive: Receive = {
-    case Gateway.Start(host, port) => run(Server.Config(host, port))
-    case s@"Initialize received" => println(s)
-    case s@"Initialized received" => println(s)
+    case Gateway.Start()                    => run()
+    case LanguageServer.InitializeReceived  => log.info("InitializeReceived")
+    case LanguageServer.InitializedReceived => log.info("InitializedReceived")
   }
 }
 
 object Gateway {
-  case class Start(host: String, port: Int)
+  case class Start()
 
   def props(languageServer: ActorRef)(implicit
                                       system: ActorSystem,

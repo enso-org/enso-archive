@@ -12,7 +12,6 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 val scalacVersion = "2.12.10"
 val graalVersion  = "19.3.0"
 val circeVersion  = "0.12.3"
-val previousCirceVersion = "0.12.2" // 0.12.3 isn't published yet
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -468,7 +467,7 @@ lazy val gateway = (project in file("engine/gateway"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
       "io.circe"       %% "circe-shapes"         % circeVersion,
-      "io.circe"       %% "circe-generic-extras" % previousCirceVersion,
+      "io.circe"       %% "circe-generic-extras" % "0.12.2",
       "org.scalatest"  %% "scalatest"            % "3.2.0-SNAP10" % Test,
       "org.scalacheck" %% "scalacheck"           % "1.14.0"       % Test
     )
@@ -478,5 +477,5 @@ lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ Seq(
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided
-    ),
+    )
   )

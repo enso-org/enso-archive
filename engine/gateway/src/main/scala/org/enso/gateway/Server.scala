@@ -12,6 +12,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
+import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.util.Failure
 import scala.util.Success
@@ -19,8 +20,13 @@ import scala.util.Success
 object Server {
 
   /** Describes endpoint to which [[Server]] can bind. */
-  case class Config(host: String, port: Int) {
-    def addressString(): String = s"ws://$host:$port"
+  object Config {
+    private val config      : Config = ConfigFactory.load.getConfig("gateway")
+    private val serverConfig: Config = config.getConfig("server")
+    val host: String  = serverConfig.getString("host")
+    val port: Int     = serverConfig.getInt("port")
+    val route: String = serverConfig.getString("route")
+    val addressString: String = s"ws://$host:$port"
   }
 }
 
@@ -70,7 +76,7 @@ trait Server {
     * The request's URI is not checked.
     */
   val route: Route =
-    path("") {
+    path(Server.Config.route) {
       get {
         handleWebSocketMessages(handlerFlow)
       }
@@ -81,21 +87,22 @@ trait Server {
     * Function is asynchronous, will return immediately. If the server fails to
     * start, function will exit the process with a non-zero code.
     */
-  def run(config: Server.Config): Unit = {
+  def run(): Unit = {
     val bindingFuture =
       Http().bindAndHandle(
         route,
-        interface = config.host,
-        port      = config.port
+        interface = Server.Config.host,
+        port      = Server.Config.port
       )
 
-    bindingFuture.onComplete({
-      case Success(_) =>
-        println(s"Server online at ${config.addressString()}")
-      case Failure(exception) =>
-        println(s"Failed to start server: $exception")
-        system.terminate()
-        System.exit(1)
-    })
+    bindingFuture
+      .onComplete {
+        case Success(_) =>
+          println(s"Server online at ${Server.Config.addressString}")
+        case Failure(exception) =>
+          println(s"Failed to start server: $exception")
+          system.terminate()
+          System.exit(1)
+      }
   }
 }

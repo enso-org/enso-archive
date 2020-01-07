@@ -10,15 +10,18 @@ import org.graalvm.polyglot.Context
 class LanguageServer(context: Context) extends Actor {
   override def receive: Receive = {
     case LanguageServer.Initialize() =>
-      sender() ! "Initialize received"
+      sender() ! LanguageServer.InitializeReceived()
     case LanguageServer.Initialized() =>
-      sender() ! "Initialized received"
+      sender() ! LanguageServer.InitializedReceived()
   }
 }
 
 object LanguageServer {
   case class Initialize()
   case class Initialized()
+
+  case class InitializeReceived()
+  case class InitializedReceived()
 
   def props(context: Context): Props = Props(new LanguageServer(context))
 }

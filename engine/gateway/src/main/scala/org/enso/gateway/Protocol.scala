@@ -42,14 +42,12 @@ object Protocol {
   }
 
   sealed trait Request extends RequestOrNotification {
-    def jsonrpc: String
     def id: Id
     def method: String
     def params: Option[Params]
   }
 
   sealed trait Notification extends RequestOrNotification {
-    def jsonrpc: String
     def method: String
     def params: Option[Params]
   }

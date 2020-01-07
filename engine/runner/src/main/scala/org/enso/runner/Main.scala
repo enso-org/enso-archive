@@ -156,13 +156,13 @@ object Main {
       Repl(TerminalIO())
     )
 
-    implicit val system: ActorSystem = ActorSystem()
+    implicit val system      : ActorSystem       = ActorSystem()
     implicit val materializer: ActorMaterializer = ActorMaterializer.create(system)
 
     val languageServer: ActorRef = system.actorOf(LanguageServer.props(context), "languageServer")
-    val gateway: ActorRef = system.actorOf(Gateway.props(languageServer), "gateway")
+    val gateway       : ActorRef = system.actorOf(Gateway.props(languageServer), "gateway")
 
-    gateway ! Gateway.Start("localhost", 30000)
+    gateway ! Gateway.Start()
 
     println("Press ENTER to shut down")
     StdIn.readLine()
