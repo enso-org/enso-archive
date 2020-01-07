@@ -97,6 +97,7 @@ public class ValueExtractorInstrument extends TruffleInstrument {
         return;
       }
       if (section.getCharIndex() == start && section.getCharLength() == length) {
+        binding.dispose();
         callback.accept(result);
       }
     }
@@ -120,7 +121,8 @@ public class ValueExtractorInstrument extends TruffleInstrument {
 
     EventBinding<ValueEventListener> binding =
         env.getInstrumenter()
-            .attachExecutionEventListener(SourceSectionFilter.newBuilder().build(), listener);
+            .attachExecutionEventListener(
+                SourceSectionFilter.newBuilder().indexIn(sourceStart, length).build(), listener);
     listener.setBinding(binding);
     return binding;
   }

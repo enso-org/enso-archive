@@ -54,7 +54,10 @@ trait InterpreterRunner {
     instrumenter.close()
   }
 
-  case class MainMethod(mainConstructor: Value, mainFunction: Value)
+  case class MainMethod(mainConstructor: Value, mainFunction: Value) {
+    def execute(args: AnyRef*): Value =
+      mainFunction.execute(mainConstructor +: args: _*)
+  }
 
   def getMain(code: String): MainMethod = {
     output.reset()

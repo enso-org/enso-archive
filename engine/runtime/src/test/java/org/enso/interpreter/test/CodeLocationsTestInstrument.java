@@ -125,7 +125,7 @@ public class CodeLocationsTestInstrument extends TruffleInstrument {
   public EventBinding<LocationsEventListener> bindTo(int sourceStart, int length, Class<?> type) {
     return env.getInstrumenter()
         .attachExecutionEventListener(
-            SourceSectionFilter.newBuilder().build(),
+            SourceSectionFilter.newBuilder().indexIn(sourceStart, length).build(),
             new LocationsEventListener(sourceStart, length, type));
   }
 }
