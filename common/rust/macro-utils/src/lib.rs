@@ -1,10 +1,15 @@
+#![warn(missing_docs)]
+
+//! A number of helper functions meant to be used in the procedural macros
+//! definitions.
+
 use prelude::*;
 
 use quote::quote;
 use syn;
-use syn::visit::{self, Visit};
-use proc_macro2::{TokenStream,TokenTree};
-
+use syn::visit::Visit;
+use proc_macro2::TokenStream;
+use proc_macro2::TokenTree;
 
 // =========================
 // === Token Stream Utils ===
@@ -42,9 +47,11 @@ pub fn rewrite_stream
 }
 
 
+
 // ===================
 // === Token Utils ===
 // ===================
+
 /// Is the given token an identifier matching to a given string?
 pub fn matching_ident(token:&TokenTree, name:&str) -> bool {
     match token {
@@ -52,6 +59,7 @@ pub fn matching_ident(token:&TokenTree, name:&str) -> bool {
         _                       => false,
     }
 }
+
 
 
 // ============
@@ -62,6 +70,7 @@ pub fn matching_ident(token:&TokenTree, name:&str) -> bool {
 pub fn repr<T: quote::ToTokens>(t:&T) -> String {
     quote!(#t).to_string()
 }
+
 
 
 // ===================
@@ -86,6 +95,8 @@ pub fn field_ident_token(field:&syn::Field, index:syn::Index) -> TokenStream {
         None        => quote!(#index),
     }
 }
+
+
 
 // =======================
 // === Type Path Utils ===
@@ -126,16 +137,20 @@ pub fn last_type_arg(ty_path:&syn::TypePath) -> Option<&syn::GenericArgument> {
     ty_path_generic_args(ty_path).last().copied()
 }
 
+
+
 // =====================
 // === Collect Types ===
 // =====================
 
 /// Visitor that accumulates all visited `syn::TypePath`.
 pub struct TypeGatherer<'ast> {
+    /// Observed types accumulator.
     pub types: Vec<&'ast syn::TypePath>
 }
 
 impl TypeGatherer<'_> {
+    /// Create a new visitor value.
     pub fn new() -> Self {
         let types = default();
         Self { types }
@@ -145,7 +160,7 @@ impl TypeGatherer<'_> {
 impl<'ast> Visit<'ast> for TypeGatherer<'ast> {
     fn visit_type_path(&mut self, node:&'ast syn::TypePath) {
         self.types.push(node);
-        visit::visit_type_path(self, node);
+        syn::visit::visit_type_path(self, node);
     }
 }
 
@@ -160,6 +175,7 @@ pub fn gather_all_types(node:&syn::Type) -> Vec<&syn::TypePath> {
 pub fn gather_all_type_reprs(node:&syn::Type) -> Vec<String> {
     gather_all_types(node).iter().map(|t| repr(t)).collect()
 }
+
 
 
 // =======================
@@ -189,6 +205,7 @@ pub fn variant_depends_on
 (var:&syn::Variant, target_param:&syn::GenericParam) -> bool {
     var.fields.iter().any(|field| type_depends_on(&field.ty, target_param))
 }
+
 
 
 // =============

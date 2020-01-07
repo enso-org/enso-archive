@@ -1,3 +1,7 @@
+#![warn(missing_docs)]
+
+//! Helper macros used when defining AST structures.
+
 extern crate proc_macro;
 
 mod repr;
@@ -200,7 +204,6 @@ fn gen_from_impls
     }
 }
 
-
 /// Rewrites enum definition by creating a new type for each constructor.
 ///
 /// Each nested constructor will be converted to a new `struct` and placed in
@@ -249,7 +252,12 @@ pub fn to_variant_types
     output.into()
 }
 
-#[proc_macro_derive(HasSpan)]
+/// Creates a HasRepr and HasSpan implementations for a given enum type.
+///
+/// Given type may only consist of single-elem tuple-like variants.
+/// The implementation uses underlying HasRepr and HasSpan implementations for
+/// stored values.
+#[proc_macro_derive(HasRepr)]
 pub fn derive_has_span
 (input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let decl   = syn::parse_macro_input!(input as syn::DeriveInput);

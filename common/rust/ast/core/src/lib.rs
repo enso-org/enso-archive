@@ -7,13 +7,19 @@ mod repr;
 use prelude::*;
 
 use ast_macros::*;
-use serde::{Serialize, Deserialize};
-use serde::ser::{Serializer, SerializeStruct};
-use serde::de::{Deserializer, Visitor};
+use serde::de::Deserializer;
+use serde::de::Visitor;
+use serde::Deserialize;
+use serde::ser::Serializer;
+use serde::ser::SerializeStruct;
+use serde::Serialize;
 use shapely::*;
 use uuid::Uuid;
 
+/// A sequence of AST nodes, typically the "token soup".
 pub type Stream<T> = Vec<T>;
+
+
 
 // ==============
 // === Errors ===
@@ -23,6 +29,8 @@ pub type Stream<T> = Vec<T>;
 /// enum type to its variant subtype if different constructor was used.
 #[derive(Display, Debug, Fail)]
 pub struct WrongEnum { pub expected_con: String }
+
+
 
 // ============
 // === Tree ===
@@ -37,6 +45,8 @@ pub struct Tree<K,V> {
     pub value    : Option<V>,
     pub branches : Vec<(K, Tree<K,V>)>,
 }
+
+
 
 // ===============
 // === Shifted ===
@@ -59,6 +69,7 @@ pub struct ShiftedVec1<T> {
 }
 
 
+
 // =============
 // === Layer ===
 // =============
@@ -76,6 +87,7 @@ impl<T> From<T> for Layered<T> {
     fn from(t: T) -> Self {  Layered::layered(t) }
 }
 
+
 // === Layered ===
 
 /// A trivial `Layer` type that is just a strongly typed wrapper over `T`.
@@ -88,6 +100,8 @@ impl<T> Layer<T> for Layered<T> {
     fn layered(t: T) -> Self { Layered(t) }
 }
 
+
+
 // ============
 // === Unit ===
 // ============
@@ -99,6 +113,7 @@ impl<T> Layer<T> for Layered<T> {
 /// using units in `Option`, reported here:
 /// https://github.com/serde-rs/serde/issues/1690
 #[ast_node] pub struct Unit{}
+
 
 
 // ===========
@@ -145,6 +160,7 @@ impl Ast {
         Ast::new_with_span(shape, id, span)
     }
 
+    /// As `new` but sets given declared span for the shape.
     pub fn new_with_span<S: Into<Shape<Ast>>>
     (shape: S, id: Option<ID>, span: usize) -> Ast {
         let shape     = shape.into();
@@ -164,6 +180,7 @@ impl HasSpan for Ast {
         self.wrapped.span()
     }
 }
+
 impl HasRepr for Ast {
     fn write_repr(&self, target:&mut String) {
         self.wrapped.write_repr(target);
@@ -179,7 +196,8 @@ From<T> for Ast {
     }
 }
 
-// Serialization & Deserialization //
+
+// === Serialization & Deserialization === //
 
 /// Literals used in `Ast` serialization and deserialization.
 pub mod ast_schema {
@@ -252,6 +270,7 @@ impl<'de> Deserialize<'de> for Ast {
 }
 
 
+
 // =============
 // === Shape ===
 // =============
@@ -260,12 +279,13 @@ impl<'de> Deserialize<'de> for Ast {
 ///
 /// Shape describes names of children and spacing between them.
 #[ast(flat)]
-#[derive(HasSpan)]
+#[derive(HasRepr)]
 pub enum Shape<T> {
     Unrecognized  { str : String   },
     InvalidQuote  { quote: Builder },
     InlineBlock   { quote: Builder },
 
+    // === Identifiers ===
     Blank         { },
     Var           { name : String            },
     Cons          { name : String            },
@@ -321,12 +341,13 @@ pub enum Shape<T> {
 }
 
 
+
 // ===============
 // === Builder ===
 // ===============
 
 #[ast(flat)]
-#[derive(HasSpan)]
+#[derive(HasRepr)]
 pub enum Builder {
     Empty,
     Letter{char: char},
@@ -336,33 +357,36 @@ pub enum Builder {
 }
 
 
+
 // ============
 // === Text ===
 // ============
 
 // === Text Block Lines ===
+
 #[ast] pub struct TextBlockLine<T> {
     pub empty_lines: Vec<usize>,
     pub text       : Vec<T>
 }
 
 #[ast(flat)]
-#[derive(HasSpan)]
+#[derive(HasRepr)]
 pub enum TextLine<T> {
     TextLineRaw(TextLineRaw),
     TextLineFmt(TextLineFmt<T>),
 }
 
+
 // === Text Segments ===
 #[ast(flat)]
-#[derive(HasSpan)]
+#[derive(HasRepr)]
 pub enum SegmentRaw {
     SegmentPlain    (SegmentPlain),
     SegmentRawEscape(SegmentRawEscape),
 }
 
 #[ast(flat)]
-#[derive(HasSpan)]
+#[derive(HasRepr)]
 pub enum SegmentFmt<T> {
     SegmentPlain    (SegmentPlain    ),
     SegmentRawEscape(SegmentRawEscape),
@@ -375,9 +399,11 @@ pub enum SegmentFmt<T> {
 #[ast_node] pub struct SegmentExpr<T>   { pub value: Option<T> }
 #[ast_node] pub struct SegmentEscape    { pub code : Escape    }
 
+
 // === Text Segment Escapes ===
+
 #[ast(flat)]
-#[derive(HasSpan)]
+#[derive(HasRepr)]
 pub enum RawEscape {
     Unfinished { },
     Invalid    { str: char },
@@ -387,7 +413,7 @@ pub enum RawEscape {
 }
 
 #[ast]
-#[derive(HasSpan)]
+#[derive(HasRepr)]
 pub enum Escape {
     Character{c     :char            },
     Control  {name  :String, code: u8},
@@ -398,11 +424,14 @@ pub enum Escape {
 }
 
 
+
 // =============
 // === Block ===
 // =============
+
 #[ast_node] pub enum   BlockType     { Continuous { } , Discontinuous { } }
 #[ast]      pub struct BlockLine <T> { pub elem: T, pub off: usize }
+
 
 
 // =============
@@ -421,7 +450,6 @@ pub enum Escape {
 
 pub type MacroPattern = Rc<MacroPatternRaw>;
 #[ast] pub enum MacroPatternRaw {
-
     // === Boundary Patterns ===
     Begin   { },
     End     { },
@@ -478,10 +506,10 @@ impl<T> Switch<T> {
 }
 
 pub type MacroPatternMatch<T> = Rc<MacroPatternMatchRaw<T>>;
-#[ast]
-#[derive(HasSpan)]
-pub enum MacroPatternMatchRaw<T> {
 
+#[ast]
+#[derive(HasRepr)]
+pub enum MacroPatternMatchRaw<T> {
     // === Boundary Matches ===
     Begin   { pat: MacroPatternRawBegin },
     End     { pat: MacroPatternRawEnd   },
@@ -548,13 +576,19 @@ pub enum MacroPatternMatchRaw<T> {
 }
 
 
+
 // ===========
 // === AST ===
 // ===========
 
 // === HasSpan ===
+
 /// Things that can be asked about their span.
 pub trait HasSpan {
+    /// Length of the textual representation of This type in Unicode codepoints.
+    ///
+    /// Usually implemented together with `HasSpan`.For any `T:HasSpan+HasRepr`
+    /// for `t:T` the following must hold: `t.span() == t.repr().len()`.
     fn span(&self) -> usize;
 }
 
@@ -619,9 +653,14 @@ impl<T: HasSpan> HasSpan for &T {
     }
 }
 
+
 // === HasRepr ===
+
 /// Things that can be asked about their textual representation.
+///
+/// See also `HasSpan`.
 pub trait HasRepr {
+    /// Obtain the text representation for the This type.
     fn repr(&self) -> String {
         let mut acc = String::new();
         self.write_repr(&mut acc);
@@ -637,14 +676,12 @@ impl HasRepr for char {
     }
 }
 
-/// Counts codepoints.
 impl HasRepr for String {
     fn write_repr(&self, target:&mut String) {
         target.push_str(self);
     }
 }
 
-/// Counts codepoints.
 impl HasRepr for &str {
     fn write_repr(&self, target:&mut String) {
         target.push_str(self);
@@ -692,11 +729,13 @@ impl HasRepr for usize {
         target.push_str(&" ".repeat(*self));
     }
 }
+
 impl<T: HasRepr> HasRepr for &T {
     fn write_repr(&self, target:&mut String) {
         self.deref().write_repr(target)
     }
 }
+
 
 // === WithID ===
 
@@ -735,6 +774,7 @@ where T: HasSpan {
         self.deref().span()
     }
 }
+
 
 // === WithSpan ===
 
@@ -777,11 +817,17 @@ impl<T> HasID for WithSpan<T>
 // TODO: the definitions below should be removed and instead generated using
 //  macros, as part of https://github.com/luna/enso/issues/338
 
+
 // === AST ===
 
 impl Ast {
     // TODO smart constructors for other cases
     //  as part of https://github.com/luna/enso/issues/338
+
+    pub fn cons<Str: ToString>(name:Str) -> Ast {
+        let cons = Cons{ name: name.to_string() };
+        Ast::from(cons)
+    }
 
     pub fn var<Str: ToString>(name:Str) -> Ast {
         let var = Var{ name: name.to_string() };
@@ -815,6 +861,7 @@ impl Ast {
 
 
 // === Text Conversion Boilerplate ===
+
 // support for transitive conversions, like:
 // RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentRaw
 
@@ -844,7 +891,9 @@ impl From<RawQuote> for SegmentRaw {
     }
 }
 
-// RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt
+
+// === RawEscapeSth -> RawEscape -> SegmentRawEscape -> SegmentFmt ===
+
 impl<T> From<Unfinished> for SegmentFmt<T> {
     fn from(value: Unfinished) -> Self {
         SegmentRawEscape{ code: value.into() }.into()
@@ -877,37 +926,45 @@ impl<T> From<Escape> for SegmentFmt<T> {
     }
 }
 
-// EscapeSth -> Escape -> SegmentEscape -> SegmentFmt
+
+// === EscapeSth -> Escape -> SegmentEscape -> SegmentFmt ===
+
 impl<T> From<EscapeCharacter> for SegmentFmt<T> {
     fn from(value: EscapeCharacter) -> Self {
         SegmentEscape{ code: value.into() }.into()
     }
 }
+
 impl<T> From<EscapeControl> for SegmentFmt<T> {
     fn from(value: EscapeControl) -> Self {
         SegmentEscape{ code: value.into() }.into()
     }
 }
+
 impl<T> From<EscapeNumber> for SegmentFmt<T> {
     fn from(value: EscapeNumber) -> Self {
         SegmentEscape{ code: value.into() }.into()
     }
 }
+
 impl<T> From<EscapeUnicode16> for SegmentFmt<T> {
     fn from(value: EscapeUnicode16) -> Self {
         SegmentEscape{ code: value.into() }.into()
     }
 }
+
 impl<T> From<EscapeUnicode21> for SegmentFmt<T> {
     fn from(value: EscapeUnicode21) -> Self {
         SegmentEscape{ code: value.into() }.into()
     }
 }
+
 impl<T> From<EscapeUnicode32> for SegmentFmt<T> {
     fn from(value: EscapeUnicode32) -> Self {
         SegmentEscape{ code: value.into() }.into()
     }
 }
+
 
 
 // =============
@@ -1009,7 +1066,6 @@ mod tests {
         assert_contains("+");
         assert_eq!(strings.len(), 3);
     }
-
 
     #[test]
     fn iterate_nested() {

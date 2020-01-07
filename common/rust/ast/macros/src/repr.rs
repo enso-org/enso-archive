@@ -38,11 +38,7 @@ pub fn not_supported
     ret.into()
 }
 
-/// Creates a HasRepr and HasSpan implementations for a given enum type.
-///
-/// Given type may only consist of single-elem typle-like constructors.
-/// The implementation uses underlying HasSpan implementation for each stored
-/// value.
+/// Inner logic for `derive_has_span`.
 pub fn derive_for_enum
 (decl:&syn::DeriveInput, data:&syn::DataEnum)
  -> TokenStream  {
