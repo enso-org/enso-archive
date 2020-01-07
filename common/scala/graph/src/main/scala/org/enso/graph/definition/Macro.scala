@@ -29,33 +29,33 @@ object Macro {
     * {{{
     *   sealed case class ParentLink() extends Graph.Component.Field
     *   object ParentLink {
-    *     implicit def sized = new Sized[ParentLink] { type Out = _1 }
+    *     implicit def sized = new Graph.Sized[ParentLink] { type Out = _1 }
     *
-    *     implicit class ParentLinkInstance[G <: Graph, C <: Component](
-    *       node: Component.Ref[G, C]
+    *     implicit class ParentLinkInstance[G <: Graph, C <: Graph.Component](
+    *       node: Graph.Component.Ref[G, C]
     *     ) {
     *       def parent(
-    *         implicit graph: GraphData[G],
-    *         ev: HasComponentField[G, C, ParentLink]
+    *         implicit graph: Graph.GraphData[G],
+    *         ev: Graph.HasComponentField[G, C, ParentLink]
     *       ): Edge[G] = {
-    *         Component.Ref(graph.unsafeReadField[C, ParentLink](node.ix, 0))
+    *         Graph.Component.Ref(graph.unsafeReadField[C, ParentLink](node.ix, 0))
     *       }
     *
     *       def parent_=(value: Edge[G])(
-    *         implicit graph: GraphData[G],
-    *         ev: HasComponentField[G, C, ParentLink]
+    *         implicit graph: Graph.GraphData[G],
+    *         ev: Graph.HasComponentField[G, C, ParentLink]
     *       ): Unit = {
     *         graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
     *       }
     *     }
     *
     *     implicit def ParentLink_transInstance[
-    *       F <: Component.Field,
+    *       F <: Graph.Component.Field,
     *       R,
     *       G <: Graph,
-    *       C <: Component
+    *       C <: Graph.Component
     *     ](
-    *       t: Component.Refined[F, R, Component.Ref[G, C]]
+    *       t: Graph.Component.Refined[F, R, Graph.Component.Ref[G, C]]
     *     ): ParentLinkInstance[G, C] =
     *       t.wrapped
     *   }
@@ -89,7 +89,7 @@ object Macro {
     *
     * {{{
     *   @field object Shape {
-   *      type G = Graph
+    *      type G = Graph
     *     case class Null()
     *     case class App(fn: Edge[G], argTest: Edge[G])
     *   }
@@ -110,12 +110,12 @@ object Macro {
     *
     *     sealed case class App() extends Shape
     *     object App {
-    *       implicit def sized = new Sized[App] { type Out = _1 }
+    *       implicit def sized = new Sized[App] { type Out = _2 }
     *
     *       val any = Graph.Component.VariantMatcher[Shape, App](1)
     *
     *       def unapply[G <: Graph, C <: Graph.Component]
-   *          (arg: Graph.Component.Ref[G, C])(
+    *          (arg: Graph.Component.Ref[G, C])(
     *         implicit
     *         graph: Graph.GraphData[G],
     *         ev: Graph.HasComponentField[G, C, Shape]
@@ -124,10 +124,10 @@ object Macro {
     *
     *       implicit class AppInstance[G <: Graph, C <: Graph.Component](
     *         node: Graph.Component.Refined[
-   *            Shape,
-   *            App,
-   *            Graph.Component.Ref[G, C]
-   *          ]
+    *            Shape,
+    *            App,
+    *            Graph.Component.Ref[G, C]
+    *          ]
     *       ) {
     *
     *         def fn(
@@ -735,7 +735,7 @@ object Macro {
           c.error(
             c.enclosingPosition,
             "You must define a type named `G` in your variant that " +
-              "defines the graph type name"
+            "defines the graph type name"
           )
           errorName
         } else {
@@ -745,7 +745,7 @@ object Macro {
             c.error(
               c.enclosingPosition,
               "You must define a type named `G` in your variant that " +
-                "defines the graph type name"
+              "defines the graph type name"
             )
             errorName
           } else {
