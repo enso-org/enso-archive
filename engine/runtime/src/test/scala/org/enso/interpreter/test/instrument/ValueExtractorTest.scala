@@ -58,4 +58,23 @@ class ValueExtractorTest extends InterpreterTest {
     getMain(code).execute(5L.asInstanceOf[AnyRef])
     results shouldEqual List(4)
   }
+
+  subject should "work for function arguments" in {
+    val code =
+      """
+        |main = arg ->
+        |    x = here.foo (arg + 1)
+        |    x + 1
+        |
+        |foo = x -> x + 1
+        |
+        |""".stripMargin
+
+    var result: Option[Any] = None
+    getValueExtractorInstrument.bindTo(33, 7, { x =>
+      result = Some(x)
+    })
+    getMain(code).execute(5L.asInstanceOf[AnyRef])
+    result shouldEqual Some(6)
+  }
 }

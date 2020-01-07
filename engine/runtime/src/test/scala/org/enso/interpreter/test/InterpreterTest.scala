@@ -56,7 +56,9 @@ trait InterpreterRunner {
 
   case class MainMethod(mainConstructor: Value, mainFunction: Value) {
     def execute(args: AnyRef*): Value =
-      mainFunction.execute(mainConstructor +: args: _*)
+      InterpreterException.rethrowPolyglot(
+        mainFunction.execute(mainConstructor +: args: _*)
+      )
   }
 
   def getMain(code: String): MainMethod = {
