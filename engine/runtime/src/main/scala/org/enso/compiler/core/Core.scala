@@ -6,7 +6,9 @@ import shapeless.HNil
 
 // TODO [AA] Can we include the primitive/sugar distinction on the type level?
 // TODO [AA] We may need to _re-export_ things instead
+
 // TODO [AA] How do we store concrete types like `Location` in nodes?
+// TODO [AA] Can I do a deeply-nested hierarchy without breaking things?
 
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
@@ -26,28 +28,29 @@ object Core {
   /** This the underlying graph representation for the core language. */
   case class CoreGraph() extends PrimGraph
 
-//  @component case class Nodes() { type Node[G <: PrimGraph] }
-//  @component case class Links() { type Link[G <: PrimGraph] }
+  @component case class Nodes() { type Node[G <: PrimGraph] }
+  @component case class Links() { type Link[G <: PrimGraph] }
 
-  sealed case class Nodes() extends PrimGraph.Component
-  type Node[G <: PrimGraph] = PrimGraph.Component.Ref[G, Nodes]
-  implicit class GraphWithNodes[G <: PrimGraph](graph: PrimGraph.GraphData[G]) {
-    def addNode()(implicit ev: PrimGraph.HasComponent[G, Nodes]): Node[G] = {
-      graph.addComponent[Nodes]()
+//  sealed case class Nodes() extends PrimGraph.Component
+//  type Node[G <: PrimGraph] = PrimGraph.Component.Ref[G, Nodes]
+//  implicit class GraphWithNodes[G <: PrimGraph](graph: PrimGraph.GraphData[G]) {
+//    def addNode()(implicit ev: PrimGraph.HasComponent[G, Nodes]): Node[G] = {
+//      graph.addComponent[Nodes]()
+//    }
+//  }
+
+//  sealed case class Links() extends PrimGraph.Component
+//  type Link[G <: PrimGraph] = PrimGraph.Component.Ref[G, Links]
+//  implicit class GraphWithLinks[G <: PrimGraph](graph: PrimGraph.GraphData[G]) {
+//    def addLink()(implicit ev: PrimGraph.HasComponent[G, Links]): Link[G] = {
+//      graph.addComponent[Links]()
+//    }
+//  }
+
+  implicit def components =
+    new PrimGraph.Component.List[CoreGraph] {
+      type Out = HNil // TODO [AA] Actually add the proper components
     }
-  }
-
-  sealed case class Links() extends PrimGraph.Component
-  type Link[G <: PrimGraph] = PrimGraph.Component.Ref[G, Links]
-  implicit class GraphWithLinks[G <: PrimGraph](graph: PrimGraph.GraphData[G]) {
-    def addLink()(implicit ev: PrimGraph.HasComponent[G, Links]): Link[G] = {
-      graph.addComponent[Links]()
-    }
-  }
-
-  implicit def components = new PrimGraph.Component.List[CoreGraph] {
-    type Out = HNil // TODO [AA] Actually add the proper components
-  }
 
   implicit def nodeFields =
     new PrimGraph.Component.Field.List[CoreGraph, Nodes] {
@@ -64,7 +67,13 @@ object Core {
   // ==========================================================================
 
   /** Defines the fields of a node. */
-  object Node {}
+  object Node {
+    object Shape {
+      object Primitive {}
+
+      object Sugar {}
+    }
+  }
 
   // ==========================================================================
   // === Link =================================================================
