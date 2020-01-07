@@ -1,15 +1,14 @@
 package org.enso.compiler.core
 
 import org.enso.graph.{Sized, Graph => PrimGraph}
+import org.enso.syntax.text.Location
 import shapeless.nat._
 import shapeless.{::, HNil}
 
-// TODO [AA] Can we include the primitive/sugar distinction on the type level?
 // TODO [AA] We may need to _re-export_ things instead
 
 // TODO [AA] How do we store concrete types like `Location` in nodes?
 // TODO [AA] Can I do a deeply-nested hierarchy without breaking things?
-// TODO [AA] How to store lists of things?
 
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
@@ -29,7 +28,6 @@ object Core {
   /** This the underlying graph representation for the core language. */
   case class CoreGraph() extends PrimGraph
 
-//  @component case class Nodes() { type Node[G <: PrimGraph] }
   sealed case class Nodes() extends PrimGraph.Component
   type Node[G <: PrimGraph] = PrimGraph.Component.Ref[G, Nodes]
   implicit class GraphWithNodes[G <: PrimGraph](graph: PrimGraph.GraphData[G]) {
@@ -38,7 +36,6 @@ object Core {
     }
   }
 
-//  @component case class Links() { type Link[G <: PrimGraph] }
   sealed case class Links() extends PrimGraph.Component
   type Link[G <: PrimGraph] = PrimGraph.Component.Ref[G, Links]
   implicit class GraphWithLinks[G <: PrimGraph](graph: PrimGraph.GraphData[G]) {
@@ -54,12 +51,13 @@ object Core {
 
   implicit def nodeFields =
     new PrimGraph.Component.Field.List[CoreGraph, Nodes] {
-      type Out = Node.ParentLink :: HNil // TODO [AA] Actually add the proper components
+      type Out = Node.Shape :: Node.ParentLink :: HNil // TODO [AA] Actually add the proper components
     }
+  // ^ Should not compile -> traversal only on use
 
   implicit def linkFields =
     new PrimGraph.Component.Field.List[CoreGraph, Links] {
-      type Out = HNil // TODO [AA] Actually add the proper components
+      type Out = Link.Shape :: HNil // TODO [AA] Actually add the proper components
     }
 
   // ==========================================================================
@@ -70,6 +68,7 @@ object Core {
   object Node {
     sealed trait Shape extends PrimGraph.Component.Field
     object Shape {
+
       implicit def sized = new Sized[Shape] { type Out = _3 }
 
       sealed case class Null() extends Shape
@@ -126,7 +125,6 @@ object Core {
             )
           }
 
-          // TODO [AA] What if I want this to be a _list_ of arguments?
           def arg(
             implicit graph: PrimGraph.GraphData[G],
             ev: PrimGraph.HasComponentField[G, C, Shape]
@@ -151,9 +149,6 @@ object Core {
           }
         }
       }
-
-      object Primitive {}
-      object Sugar     {}
     }
 
     sealed case class ParentLink() extends PrimGraph.Component.Field
@@ -182,6 +177,15 @@ object Core {
           graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
         }
       }
+
+      implicit def ParentLink_transInstance[
+        F <: PrimGraph.Component.Field,
+        R,
+        G <: PrimGraph,
+        C <: PrimGraph.Component
+      ](
+        t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
+      ): ParentLinkInstance[G, C] = t.wrapped
     }
   }
 
@@ -190,7 +194,58 @@ object Core {
   // ==========================================================================
 
   /** Defines the fields of a link. */
-  object Link {}
+  object Link {
+    sealed case class Shape() extends PrimGraph.Component.Field
+    object Shape {
+      implicit def sized = new Sized[Shape] { type Out = _2 }
+
+      implicit class ShapeInstance[
+        G <: PrimGraph,
+        C <: PrimGraph.Component
+      ](node: PrimGraph.Component.Ref[G, C]) {
+        def source(
+          implicit graph: PrimGraph.GraphData[G],
+          ev: PrimGraph.HasComponentField[G, C, Shape]
+        ): Link[G] = {
+          PrimGraph.Component.Ref(
+            graph.unsafeReadField[C, Shape](node.ix, 0)
+          )
+        }
+
+        def source_=(value: Link[G])(
+          implicit graph: PrimGraph.GraphData[G],
+          ev: PrimGraph.HasComponentField[G, C, Shape]
+        ): Unit = {
+          graph.unsafeWriteField[C, Shape](node.ix, 0, value.ix)
+        }
+
+        def sink(
+          implicit graph: PrimGraph.GraphData[G],
+          ev: PrimGraph.HasComponentField[G, C, Shape]
+        ): Link[G] = {
+          PrimGraph.Component.Ref(
+            graph.unsafeReadField[C, Shape](node.ix, 1)
+          )
+        }
+
+        def sink_=(value: Link[G])(
+          implicit graph: PrimGraph.GraphData[G],
+          ev: PrimGraph.HasComponentField[G, C, Shape]
+        ): Unit = {
+          graph.unsafeWriteField[C, Shape](node.ix, 1, value.ix)
+        }
+      }
+
+      implicit def Shape_transInstance[
+        F <: PrimGraph.Component.Field,
+        R,
+        G <: PrimGraph,
+        C <: PrimGraph.Component
+      ](
+        t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
+      ): ShapeInstance[G, C] = t.wrapped
+    }
+  }
 
   // ==========================================================================
   // === Components ===========================================================

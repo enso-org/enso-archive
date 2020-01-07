@@ -45,6 +45,8 @@ class GraphTest extends FlatSpec with Matchers {
     // === Example Graph Implementation =======================================
     // ========================================================================
 
+    case class Location (start: Int, end: Int)
+
     case class Graph() extends PrimGraph
 
     implicit def components = new PrimGraph.Component.List[Graph] {
