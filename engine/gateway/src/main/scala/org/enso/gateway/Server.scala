@@ -35,16 +35,15 @@ object Server {
   * Server when run binds to endpoint and accepts establishing web socket
   * connection for any number of peers.
   *
-  * Server replies to each incoming text message with a single text message.
-  * Server accepts a single Text Message from a peer and responds with
-  * another Text Message.
+  * Server replies to each incoming text request with a single text response, no response for notifications.
+  * Server accepts a single Text Message from a peer and responds with another Text Message.
   */
 trait Server {
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
   import system.dispatcher
 
-  /** Generate text reply for given request text message. */
+  /** Generate text reply for given request text message, no reply for notification. */
   def handleInput(input: String): Option[String]
 
   /** Akka stream defining server behavior.
@@ -91,7 +90,7 @@ trait Server {
   def run(): Unit = {
     val bindingFuture =
       Http().bindAndHandle(
-        route,
+        handler   = route,
         interface = Server.Config.host,
         port      = Server.Config.port
       )

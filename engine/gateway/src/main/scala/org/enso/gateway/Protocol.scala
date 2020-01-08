@@ -17,7 +17,7 @@ import cats.syntax.functor._
 
 /** Types implementing language server protocol.
   *
-  * The protocol always is single request -> single or no response.
+  * The protocol always is single request -> single response, notification -> no response.
   */
 object Protocol {
   val jsonRPCVersion = "2.0"
@@ -28,7 +28,6 @@ object Protocol {
   }
 
   object ShapesDerivation {
-
     import shapeless.{Coproduct, Generic}
 
     implicit def sealedTraitEncoder[A, Repr <: Coproduct](
@@ -46,7 +45,6 @@ object Protocol {
     require(jsonrpc == jsonRPCVersion, s"jsonrpc must be $jsonRPCVersion")
   }
   object RequestOrNotification {
-
     import DerivationConfig._
 
     implicit val requestOrNotificationDecoder: Decoder[RequestOrNotification] =
@@ -57,15 +55,12 @@ object Protocol {
 
   sealed trait Request extends RequestOrNotification {
     def id: Id
-
     def method: String
-
     def params: Option[Params]
   }
 
   sealed trait Notification extends RequestOrNotification {
     def method: String
-
     def params: Option[Params]
   }
 
@@ -110,7 +105,7 @@ object Protocol {
   sealed trait Params
   object Params {
     implicit val paramsDecoder: Decoder[Params] = List[Decoder[Params]](
-//      Decoder[Array].widen,
+      //      Decoder[Array].widen, // TODO [Dmytro]
       Decoder[InitializeParams].widen,
       Decoder[InitializedParams].widen
     ).reduceLeft(_ or _)
@@ -120,8 +115,6 @@ object Protocol {
 //      implicit val paramsArrayEncoder: Encoder[Array] = deriveUnwrappedEncoder
 //      implicit val paramsArrayDecoder: Decoder[Array] = deriveUnwrappedDecoder
     }
-
-    //object
   }
 
   sealed trait Param
@@ -130,7 +123,7 @@ object Protocol {
       Decoder.apply[Number].widen,
       Decoder[Boolean].widen,
       Decoder[String].widen,
-//      Decoder[Array].widen,
+      //      Decoder[Array].widen, // TODO [Dmytro]
       Decoder[ClientInfo].widen,
       Decoder[ClientCapabilities].widen,
       Decoder[InitializationOptions].widen,
@@ -163,8 +156,6 @@ object Protocol {
 //      implicit val paramArrayEncoder: Encoder[Array] = deriveUnwrappedEncoder
 //      implicit val paramArrayDecoder: Decoder[Array] = deriveUnwrappedDecoder
     }
-
-    //object
   }
 
   sealed trait Result
@@ -195,8 +186,6 @@ object Protocol {
       implicit val resultBooleanDecoder: Decoder[Boolean] =
         deriveUnwrappedDecoder
     }
-
-    //object
   }
 
   sealed trait Error {
@@ -243,8 +232,6 @@ object Protocol {
       implicit val dataArrayEncoder: Encoder[Array] = deriveUnwrappedEncoder
       implicit val dataArrayDecoder: Decoder[Array] = deriveUnwrappedDecoder
     }
-
-    //object
   }
 
   case class initialize(
@@ -254,7 +241,6 @@ object Protocol {
     params: Option[InitializeParams] = None
   ) extends Request
   object initialize {
-
     import DerivationConfig._
 
     implicit val initializeDecoder: Decoder[initialize] =
@@ -326,7 +312,6 @@ object Protocol {
     params: Option[InitializedParams] = None
   ) extends Notification
   object initialized {
-
     import DerivationConfig._
 
     implicit val initializedDecoder: Decoder[initialized] =
@@ -419,11 +404,12 @@ object Protocol {
     implicit val traceOffEncoder: Encoder[Trace] = deriveEnumerationEncoder
     implicit val traceOffDecoder: Decoder[Trace] = deriveEnumerationDecoder
 
-    case object Off extends Trace
+    case object off extends Trace
 
-    case object Messages extends Trace
+    case object messages extends Trace
 
-    case object Verbose extends Trace
+    case object verbose extends Trace
+
   }
 
   sealed trait WorkspaceFolder extends Param
@@ -433,7 +419,7 @@ object Protocol {
         Decoder[WorkspaceFolderImpl].widen
       ).reduceLeft(_ or _)
 
-    //???
+    // TODO [Dmytro]
     case class WorkspaceFolderImpl() extends WorkspaceFolder
 
     object WorkspaceFolderImpl {
@@ -442,7 +428,6 @@ object Protocol {
       implicit val workspaceFolderImplDecoder: Decoder[WorkspaceFolderImpl] =
         deriveDecoder
     }
-
   }
 
   case class ClientCapabilities(
@@ -533,16 +518,15 @@ object Protocol {
 
 /** Helper for implementing protocol over text-based transport.
   *
-  * Requests and responses are marshaled as text using JSON
-  * (and default circe serialzation schema).
+  * Requests and responses are marshaled as text using JSON-RPC.
   */
 trait Protocol {
   import Protocol._
 
-  /** Generate [[Response]] for a given [[RequestOrNotification]].
+  /** Generate [[Response]] for a given [[Request]], no [[Response]] for a [[Notification]].
     *
     * Any [[Throwable]] thrown out of implementation will be translated into
-    * [[Response]] message.
+    * error [[Response]].
     */
   def handleRequestOrNotification(
     requestOrNotification: RequestOrNotification
@@ -561,7 +545,7 @@ trait Protocol {
           )
       }
     } catch {
-      case e: Throwable => throw e // TODO
+      case e: Throwable => throw e // TODO [Dmytro]
     }
   }
 }
