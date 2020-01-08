@@ -5,7 +5,10 @@ import java.io.{ByteArrayOutputStream, StringReader}
 import com.oracle.truffle.api.instrumentation.EventBinding
 import org.enso.interpreter.Constants
 import org.graalvm.polyglot.{Context, Source, Value}
-import org.enso.interpreter.instrument.ReplDebuggerInstrument
+import org.enso.interpreter.instrument.{
+  ReplDebuggerInstrument,
+  ValueExtractorInstrument
+}
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
 import org.scalatest.{Assertions, FlatSpec, Matchers}
 
@@ -51,19 +54,32 @@ trait InterpreterRunner {
     instrumenter.close()
   }
 
-  def evalGeneric(code: String, mimeType: String): Value = {
-    output.reset()
-
-    val source = Source
-      .newBuilder(Constants.LANGUAGE_ID, new StringReader(code), "test")
-      .mimeType(mimeType)
-      .build()
-
-    InterpreterException.rethrowPolyglot(ctx.eval(source))
+  case class MainMethod(mainConstructor: Value, mainFunction: Value) {
+    def execute(args: AnyRef*): Value =
+      InterpreterException.rethrowPolyglot(
+        mainFunction.execute(mainConstructor +: args: _*)
+      )
   }
 
-  def eval(code: String): Value = {
-    evalGeneric(code, Constants.MIME_TYPE)
+  def getMain(code: String): MainMethod = {
+    output.reset()
+    val source = Source
+      .newBuilder(Constants.LANGUAGE_ID, code, "Test")
+      .build()
+
+    val module       = InterpreterException.rethrowPolyglot(ctx.eval(source))
+    val assocCons    = module.invokeMember("get_associated_constructor")
+    val mainFunction = module.invokeMember("get_method", assocCons, "main")
+    MainMethod(assocCons, mainFunction)
+  }
+
+  def eval(
+    code: String
+  ): Value = {
+    val main = getMain(code)
+    InterpreterException.rethrowPolyglot(
+      main.mainFunction.execute(main.mainConstructor)
+    )
   }
 
   def consumeOut: List[String] = {
@@ -76,6 +92,12 @@ trait InterpreterRunner {
     ctx.getEngine.getInstruments
       .get(ReplDebuggerInstrument.INSTRUMENT_ID)
       .lookup(classOf[ReplDebuggerInstrument])
+  }
+
+  def getValueExtractorInstrument: ValueExtractorInstrument = {
+    ctx.getEngine.getInstruments
+      .get(ValueExtractorInstrument.INSTRUMENT_ID)
+      .lookup(classOf[ValueExtractorInstrument])
   }
 
   // For Enso raw text blocks inside scala multiline strings

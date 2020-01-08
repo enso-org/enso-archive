@@ -8,8 +8,10 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
+import com.oracle.truffle.api.interop.ArityException;
 import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
+import com.oracle.truffle.api.interop.UnknownIdentifierException;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -17,14 +19,14 @@ import com.oracle.truffle.api.nodes.RootNode;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode;
-import org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNodeGen;
+import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
 import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
+import org.enso.interpreter.runtime.data.Vector;
 
 /** A runtime representation of a function object in Enso. */
 @ExportLibrary(InteropLibrary.class)
@@ -187,12 +189,12 @@ public final class Function implements TruffleObject {
      * @return an argument sorter node ready to apply {@code length} arguments.
      */
     @ExplodeLoop
-    protected static ArgumentSorterNode buildSorter(int length) {
+    protected static InvokeFunctionNode buildSorter(int length) {
       CallArgumentInfo[] args = new CallArgumentInfo[length];
       for (int i = 0; i < length; i++) {
         args[i] = new CallArgumentInfo();
       }
-      return ArgumentSorterNodeGen.create(
+      return InvokeFunctionNode.build(
           args,
           InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
           InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
@@ -216,7 +218,7 @@ public final class Function implements TruffleObject {
         Object[] arguments,
         @CachedContext(Language.class) Context context,
         @Cached(value = "arguments.length") int cachedArgsLength,
-        @Cached(value = "buildSorter(cachedArgsLength)") ArgumentSorterNode sorterNode) {
+        @Cached(value = "buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode) {
       return sorterNode
           .execute(function, null, context.getUnit().newInstance(), arguments)
           .getValue();
@@ -238,6 +240,65 @@ public final class Function implements TruffleObject {
     }
   }
 
+  private static final String EQUALITY_KEY = "equals";
+
+  /**
+   * Handles member invocation through the polyglot API.
+   *
+   * <p>The only supported member is {@code equals} checking for object identity.
+   *
+   * @param member the member name.
+   * @param args arguments to pass to the execution.
+   * @return the result of invoking the member.
+   * @throws ArityException when an invalid number of arguments is passed to the member.
+   * @throws UnknownIdentifierException when an invalid member is requested.
+   */
+  @ExportMessage
+  Object invokeMember(String member, Object... args)
+      throws ArityException, UnknownIdentifierException {
+    if (member.equals(EQUALITY_KEY)) {
+      if (args.length != 1) {
+        throw ArityException.create(1, args.length);
+      }
+      return this == args[0];
+    }
+    throw UnknownIdentifierException.create(member);
+  }
+
+  /**
+   * Verifies whether a member can be invoked through the polyglot API.
+   *
+   * @param member the member name.
+   * @return {@code true} if the member can be invoked, {@code false} otherwise.
+   */
+  @ExportMessage
+  boolean isMemberInvocable(String member) {
+    return member.equals(EQUALITY_KEY);
+  }
+
+  /**
+   * Marks the object as having members available for the polyglot API.
+   *
+   * @return {@code true}
+   */
+  @ExportMessage
+  boolean hasMembers() {
+    return true;
+  }
+
+  /**
+   * Returns a collection of all members this object exposes through the polyglot API.
+   *
+   * <p>The only supported member is {@code equals}.
+   *
+   * @param includeInternal ignored
+   * @return a collection of all supported member names.
+   */
+  @ExportMessage
+  Object getMembers(boolean includeInternal) {
+    return new Vector(EQUALITY_KEY);
+  }
+
   /**
    * Defines a simple schema for accessing arguments from call targets.
    *
@@ -250,8 +311,7 @@ public final class Function implements TruffleObject {
      * Generates an array of arguments using the schema to be passed to a call target.
      *
      * <p>The arguments passed to this function must be in positional order. For more information on
-     * how to do this, see {@link
-     * org.enso.interpreter.node.callable.argument.sorter.ArgumentSorterNode}.
+     * how to do this, see {@link InvokeFunctionNode}.
      *
      * @param function the function to be called
      * @param state the state to execute the function with
