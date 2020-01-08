@@ -5,6 +5,10 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import org.enso.gateway.{Protocol, Server}
 
+/**
+  * The gateway component talks directly to clients using protocol messages,
+  * and then handles these messages by talking to the language server.
+  */
 case class Gateway(languageServer: ActorRef)(
   implicit
   val system: ActorSystem,
