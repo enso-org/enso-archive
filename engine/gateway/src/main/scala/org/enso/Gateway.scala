@@ -41,9 +41,9 @@ case class Gateway(languageServer: ActorRef)(implicit
   }
 
   override def receive: Receive = {
-    case Gateway.Start()                    => run()
-    case LanguageServer.InitializeReceived  => log.info("InitializeReceived")
-    case LanguageServer.InitializedReceived => log.info("InitializedReceived")
+    case Gateway.Start()                      => run()
+    case LanguageServer.InitializeReceived()  => log.info("Initialize received")
+    case LanguageServer.InitializedReceived() => log.info("Initialized received")
   }
 }
 

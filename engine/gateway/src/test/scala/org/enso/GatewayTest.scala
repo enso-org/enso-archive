@@ -10,6 +10,7 @@ import org.enso.gateway.Server.Config
 import org.scalatest.FunSuite
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
+import scala.language.postfixOps
 
 class GatewayTest extends FunSuite {
   test("gateway should respond properly") {
@@ -28,7 +29,6 @@ class GatewayTest extends FunSuite {
 
     implicit val system       = ActorSystem()
     implicit val materializer = ActorMaterializer.create(system)
-    import system.dispatcher
 
     val languageServer: ActorRef = system.actorOf(LanguageServer.props(null), "languageServer")
     val gateway       : ActorRef = system.actorOf(Gateway.props(languageServer), "gateway")
@@ -48,7 +48,7 @@ class GatewayTest extends FunSuite {
 
     val (_, doneFuture) = Http().singleWebSocketRequest(WebSocketRequest(Config.addressString), flow)
 
-    Await.result(doneFuture, 1 second)
+    Await.result(doneFuture, 10 seconds)
 
     assert(text.getOrElse("") == expectedResponseJson)
 
