@@ -1,4 +1,7 @@
+import java.io.File
+
 import sbt.Keys.scalacOptions
+
 import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
@@ -267,7 +270,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(
     scalaJSUseMainModuleInitializer := false,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule)},
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
@@ -414,6 +417,8 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)
+  .dependsOn(polyglot_api % "compile->compile")
+lazy val runtime_ref = LocalProject("runtime")
 
 lazy val language_server = project
   .in(file("engine/language-server"))
@@ -456,3 +461,15 @@ lazy val language_server = project
   )
   .dependsOn(runtime)
   .dependsOn(pkg)
+
+lazy val polyglot_api = project
+  .in(file("engine/polyglot-api"))
+  .settings(
+    Test / fork := true,
+    Test / javaOptions ++= Seq(
+      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value.map(_.data).mkString(":")}"
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % "provided"
+    )
+  )
