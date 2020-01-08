@@ -49,7 +49,7 @@ this function (in this case `c` and `d`), as well as the inputs to the function
 (in this case `a`, and `b`).
 
 All intermediate results and inputs are considered as candidates, though as the
-cache design involves, the _selected_ candidates may be refined. Once the values
+cache design evolves, the _selected_ candidates may be refined. Once the values
 for each candidate are stored, changes to the code will re-use these cached
 values as much as possible.
 
