@@ -46,7 +46,7 @@ object Core {
 
   implicit def components =
     new PrimGraph.Component.List[CoreGraph] {
-      type Out = HNil // TODO [AA] Actually add the proper components
+      type Out = Nodes :: Links :: HNil // TODO [AA] Actually add the proper components
     }
 
   implicit def nodeFields =

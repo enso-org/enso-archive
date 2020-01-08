@@ -1,51 +1,16 @@
 package org.enso.graph
 
 import org.enso.graph.{Graph => PrimGraph}
-import org.enso.graph.definition.Macro.{component, field}
 import org.scalatest.{FlatSpec, Matchers}
+import shapeless.nat._
 import shapeless.{::, HNil}
 
 class GraphTest extends FlatSpec with Matchers {
   object GraphImpl {
 
     // ========================================================================
-    // === Component Definitions ==============================================
-    // ========================================================================
-
-    // === Node ===
-    @component case class Nodes() { type Node[G <: PrimGraph] }
-
-    // === Edge ===
-    @component case class Edges() { type Edge[G <: PrimGraph] }
-
-    // ========================================================================
-    // === Component Field Definitions ========================================
-    // ========================================================================
-
-    object Node {
-
-      // === Node Shape ===
-      @field object Shape {
-        type G = PrimGraph
-        case class Null()
-        case class App(fn: Edge[G], argTest: Edge[G])
-      }
-
-      // === ParentLink ===
-      @field case class ParentLink[G <: PrimGraph](parent: Edge[G])
-    }
-
-    object Edge {
-
-      // === Edge Shape ===
-      @field case class Shape[G <: PrimGraph](source: Node[G], target: Node[G])
-    }
-
-    // ========================================================================
     // === Example Graph Implementation =======================================
     // ========================================================================
-
-    case class Location (start: Int, end: Int)
 
     case class Graph() extends PrimGraph
 
@@ -62,16 +27,218 @@ class GraphTest extends FlatSpec with Matchers {
       new PrimGraph.Component.Field.List[Graph, Edges] {
         type Out = Edge.Shape :: HNil
       }
+
+    // ========================================================================
+    // === Component Definitions ==============================================
+    // ========================================================================
+
+    // === Node ===
+//    @component case class Nodes() { type Node[G <: PrimGraph] }
+    sealed case class Nodes() extends PrimGraph.Component
+    type Node[G <: PrimGraph] = PrimGraph.Component.Ref[G, Nodes]
+    implicit class GraphWithNodes[G <: PrimGraph](
+      graph: PrimGraph.GraphData[G]
+    ) {
+      def addNode()(implicit ev: PrimGraph.HasComponent[G, Nodes]): Node[G] = {
+        graph.addComponent[Nodes]()
+      }
+    }
+
+    // === Edge ===
+//    @component case class Edges() { type Edge[G <: PrimGraph] }
+    sealed case class Edges() extends PrimGraph.Component
+    type Edge[G <: PrimGraph] = PrimGraph.Component.Ref[G, Edges]
+    implicit class GraphWithEdges[G <: PrimGraph](
+      graph: PrimGraph.GraphData[G]
+    ) {
+      def addEdge()(implicit ev: PrimGraph.HasComponent[G, Edges]): Edge[G] = {
+        graph.addComponent[Edges]()
+      }
+    }
+
+    // ========================================================================
+    // === Component Field Definitions ========================================
+    // ========================================================================
+
+    object Node {
+
+      // === Node Shape ===
+//      @field object Shape {
+//        type G = PrimGraph
+//        case class Null()
+//        case class App(fn: Edge[G], argTest: Edge[G])
+//      }
+
+      sealed trait Shape extends PrimGraph.Component.Field
+      object Shape {
+        implicit def sized = new Sized[Shape] { type Out = _3 }
+
+        sealed case class Null() extends Shape;
+        object Null {
+          val any = PrimGraph.Component.VariantMatcher[Shape, Null](0)
+
+          implicit def sized = new Sized[Null] { type Out = _0 }
+        }
+
+        sealed case class App() extends Shape
+        object App {
+          val any            = PrimGraph.Component.VariantMatcher[Shape, App](1)
+          implicit def sized = new Sized[App] { type Out = _2 }
+
+          def unapply[G <: PrimGraph, C <: PrimGraph.Component](
+            arg: PrimGraph.Component.Ref[G, C]
+          )(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape]
+          ): Option[(Edge[G], Edge[G])] =
+            any.unapply(arg).map(((t) => scala.Tuple2(t.fn, t.arg)))
+
+          implicit class AppInstance[G <: PrimGraph, C <: PrimGraph.Component](
+            node: PrimGraph.Component.Refined[
+              Shape,
+              App,
+              PrimGraph.Component.Ref[G, C]
+            ]
+          ) {
+            def fn(
+              implicit graph: PrimGraph.GraphData[G],
+              ev: PrimGraph.HasComponentField[G, C, Shape]
+            ): Edge[G] =
+              PrimGraph.Component.Ref(
+                graph.unsafeReadField[C, Shape](
+                  PrimGraph.Component.Refined.unwrap(node).ix,
+                  0
+                )
+              )
+
+            def fn_=(value: Edge[G])(
+              implicit graph: PrimGraph.GraphData[G],
+              ev: PrimGraph.HasComponentField[G, C, Shape]
+            ): Unit =
+              graph.unsafeWriteField[C, Shape](
+                PrimGraph.Component.Refined.unwrap(node).ix,
+                0,
+                value.ix
+              )
+
+            def arg(
+              implicit graph: PrimGraph.GraphData[G],
+              ev: PrimGraph.HasComponentField[G, C, Shape]
+            ): Edge[G] =
+              PrimGraph.Component.Ref(
+                graph.unsafeReadField[C, Shape](
+                  PrimGraph.Component.Refined.unwrap(node).ix,
+                  1
+                )
+              )
+
+            def arg_=(value: Edge[G])(
+              implicit graph: PrimGraph.GraphData[G],
+              ev: PrimGraph.HasComponentField[G, C, Shape]
+            ): Unit =
+              graph.unsafeWriteField[C, Shape](
+                PrimGraph.Component.Refined.unwrap(node).ix,
+                1,
+                value.ix
+              )
+          }
+        }
+      }
+
+      sealed case class ParentLink() extends PrimGraph.Component.Field
+      object ParentLink {
+        implicit def sized = new Sized[ParentLink] { type Out = _1 }
+
+        implicit class ParentLinkInstance[
+          G <: PrimGraph,
+          C <: PrimGraph.Component
+        ](
+          node: PrimGraph.Component.Ref[G, C]
+        ) {
+          def parent(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, ParentLink]
+          ): Edge[G] = {
+            PrimGraph.Component.Ref(
+              graph.unsafeReadField[C, ParentLink](node.ix, 0)
+            )
+          }
+
+          def parent_=(value: Edge[G])(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, ParentLink]
+          ): Unit = {
+            graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
+          }
+        }
+
+        implicit def ParentLink_transInstance[
+          F <: PrimGraph.Component.Field,
+          R,
+          G <: PrimGraph,
+          C <: PrimGraph.Component
+        ](
+          t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
+        ): ParentLinkInstance[G, C] = t.wrapped
+      }
+    }
+
+    object Edge {
+
+      sealed case class Shape() extends PrimGraph.Component.Field;
+      object Shape {
+        implicit def sized = new Sized[Shape] { type Out = _2 }
+
+        implicit class ShapeInstance[G <: PrimGraph, C <: PrimGraph.Component](
+          node: PrimGraph.Component.Ref[G, C]
+        ) {
+          def source(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape]
+          ): Node[G] =
+            PrimGraph.Component.Ref(
+              graph.unsafeReadField[C, Shape](node.ix, 0)
+            )
+
+          def source_=(value: Node[G])(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape]
+          ): Unit = graph.unsafeWriteField[C, Shape](node.ix, 0, value.ix)
+
+          def target(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape]
+          ): Node[G] =
+            PrimGraph.Component.Ref(
+              graph.unsafeReadField[C, Shape](node.ix, 1)
+            )
+
+          def target_=(value: Node[G])(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape]
+          ): Unit = graph.unsafeWriteField[C, Shape](node.ix, 1, value.ix)
+        }
+
+        implicit def Shape_transInstance[
+          F <: PrimGraph.Component.Field,
+          R,
+          G <: PrimGraph,
+          C <: PrimGraph.Component
+        ](
+          t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
+        ): ShapeInstance[G, C] = t.wrapped
+      };
+    }
   }
 
   // ==========================================================================
   // === Example Graph Usage ==================================================
   // ==========================================================================
 
-  import GraphImpl.Edge.Shape._
-  import GraphImpl.Node.ParentLink._
-  import GraphImpl.Node.Shape.App._
   import GraphImpl._
+  import GraphImpl.Node.Shape._
+  import GraphImpl.Node.ParentLink._
+  import GraphImpl.Edge.Shape._
 
   implicit val graph: PrimGraph.GraphData[GraphImpl.Graph] =
     PrimGraph[GraphImpl.Graph]();

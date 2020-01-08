@@ -1,7 +1,7 @@
 package org.enso.graph
 
 import shapeless.ops.{hlist, nat}
-import shapeless.{::, HList, HNil, Nat}
+import shapeless.{::, HList, HNil, IsDistinctConstraint, KeyConstraint, Nat}
 
 // Don't use AnyType here, as it gets boxed sometimes.
 import io.estatico.newtype.macros.newtype
@@ -245,6 +245,29 @@ object SizeUntil {
       type Out = PriorFieldsSize
       val asInt = sizeAsInt()
     }
+}
+
+/** Produces a [[HList]] of pairs of `(Type, Vector[Type])` from a [[HList]] of
+  * types.
+  *
+  * @tparam List the list to start from
+  */
+trait VectorsOf[List <: HList] {
+  type Out <: HList
+}
+object VectorsOf {
+  type Aux[List <: HList, X] = VectorsOf[List] { type Out = X }
+
+  def apply[List <: HList](implicit ev: VectorsOf[List]): Aux[List, ev.Out] = ev
+
+  implicit def onNil: VectorsOf.Aux[HNil, HNil] =
+    new VectorsOf[HNil] { type Out = HNil }
+
+  implicit def onCons[Head, Tail <: HList](
+    implicit ev: VectorsOf[Tail],
+    distinct: IsDistinctConstraint[Head :: Tail]
+  ): VectorsOf.Aux[Head :: Tail, (Head, Vector[Head]) :: ev.Out] =
+    new VectorsOf[Head :: Tail] { type Out = (Head, Vector[Head]) :: ev.Out }
 }
 
 // ============================================================================
