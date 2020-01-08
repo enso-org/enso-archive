@@ -418,7 +418,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)
   .dependsOn(polyglot_api % "compile->compile")
-lazy val runtime_ref = LocalProject("runtime")
 
 lazy val language_server = project
   .in(file("engine/language-server"))
@@ -461,6 +460,7 @@ lazy val language_server = project
   )
   .dependsOn(runtime)
   .dependsOn(pkg)
+  .dependsOn(polyglot_api)
 
 lazy val polyglot_api = project
   .in(file("engine/polyglot-api"))

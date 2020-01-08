@@ -14,6 +14,7 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.polyglot.LanguageInfo;
 
 import java.util.*;
 
@@ -192,7 +193,7 @@ public class ModuleScope implements TruffleObject {
       }
       String sourceString = (String) args[0];
       Source source =
-          Source.newBuilder(Constants.LANGUAGE_ID, sourceString, scope.associatedType.getName())
+          Source.newBuilder(LanguageInfo.ID, sourceString, scope.associatedType.getName())
               .build();
       context.compiler().run(source, scope);
       return scope;

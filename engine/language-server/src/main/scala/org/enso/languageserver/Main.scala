@@ -5,8 +5,7 @@ import org.enso.interpreter.Constants
 import org.enso.pkg.Package
 import org.graalvm.polyglot.{Context, Source, Value}
 import java.io.File
-
-import org.enso.languageserver.PolyglotHelpers.Module
+import org.enso.polyglot.{LanguageInfo, Module, TopScope}
 
 import scala.util.Try
 
@@ -71,7 +70,7 @@ object Main {
     * @param options object representing the CLI syntax
     */
   private def printHelp(options: Options): Unit =
-    new HelpFormatter().printHelp(Constants.LANGUAGE_ID, options)
+    new HelpFormatter().printHelp(LanguageInfo.ID, options)
 
   /** Terminates the process with a failure exit code. */
   private def exitFail(): Unit = System.exit(1)
@@ -127,13 +126,13 @@ object Main {
   }
 
   private def runPackage(context: Context, mainModuleName: String): Unit = {
-    val topScope   = PolyglotHelpers.getTopScope(context)
+    val topScope   = TopScope.get(context)
     val mainModule = topScope.getModule(mainModuleName)
     runMain(mainModule)
   }
 
   private def runSingleFile(context: Context, file: File): Unit = {
-    val source     = Source.newBuilder(Constants.LANGUAGE_ID, file).build()
+    val source     = Source.newBuilder(LanguageInfo.ID, file).build()
     val mainModule = context.eval(source)
     runMain(new Module(mainModule))
   }
@@ -152,7 +151,7 @@ object Main {
     val context =
       new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
     val mainModule =
-      context.eval(Constants.LANGUAGE_ID, dummySourceToTriggerRepl)
+      context.eval(LanguageInfo.ID, dummySourceToTriggerRepl)
     runMain(new Module(mainModule))
     exitSuccess()
   }

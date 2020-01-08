@@ -6,6 +6,7 @@ import java.io.OutputStream
 import org.enso.interpreter.Constants
 import org.enso.interpreter.instrument.ReplDebuggerInstrument
 import org.enso.interpreter.runtime.RuntimeOptions
+import org.enso.polyglot.LanguageInfo
 import org.graalvm.polyglot.Context
 
 /**
@@ -29,7 +30,7 @@ class ContextFactory {
     repl: Repl
   ): Context = {
     val context = Context
-      .newBuilder(Constants.LANGUAGE_ID)
+      .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .option(RuntimeOptions.getPackagesPathOption, packagesPath)

@@ -8,10 +8,10 @@ import io.github.spencerpark.jupyter.channels.JupyterConnection
 import io.github.spencerpark.jupyter.channels.JupyterSocket
 import io.github.spencerpark.jupyter.kernel.BaseKernel
 import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties
-import io.github.spencerpark.jupyter.kernel.LanguageInfo
+import io.github.spencerpark.jupyter.kernel
 import io.github.spencerpark.jupyter.kernel.display.DisplayData
-import org.enso.interpreter.Constants
-import org.enso.languageserver.PolyglotHelpers.Module
+import org.enso.polyglot
+import org.enso.polyglot.{LanguageInfo, Module, TopScope}
 import org.graalvm.polyglot.{Context, Value}
 
 /**
@@ -25,19 +25,19 @@ class JupyterKernel extends BaseKernel {
       getIO.out,
       Repl(SimpleReplIO(getIO.in, getIO.out))
     )
-  private val jupyterModule: Module = PolyglotHelpers
-    .getTopScope(context)
+  private val jupyterModule: Module = TopScope
+    .get(context)
     .createModule("Jupyter")
   jupyterModule.patch("main = Unit")
   private val moduleCons: Value = jupyterModule.getAssociatedConstructor
-  private var lastMain: PolyglotHelpers.Function =
+  private var lastMain: polyglot.Function =
     jupyterModule.getMethod(moduleCons, "main")
 
   /**
     * Evaluates Enso code in the context of Jupyter request
     *
     * @param expr the expression to execute
-    * @return the Jupyter-friendly representation of the result of executing expr`
+    * @return the Jupyter-friendly representation of the result of executing expr
     */
   override def eval(expr: String): DisplayData = {
     jupyterModule.patch(expr)
@@ -54,9 +54,9 @@ class JupyterKernel extends BaseKernel {
     * Basic language information to display in Jupyter
     * @return the basic language information object
     */
-  override def getLanguageInfo: LanguageInfo =
-    new LanguageInfo.Builder(Constants.LANGUAGE_ID)
-      .version(Constants.LANGUAGE_VERSION)
+  override def getLanguageInfo: kernel.LanguageInfo =
+    new kernel.LanguageInfo.Builder(LanguageInfo.ID)
+      .version(LanguageInfo.VERSION)
       .build
 
   /**
