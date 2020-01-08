@@ -1,4 +1,5 @@
-package org.enso.languageserver
+package org.enso.runner
+
 import org.enso.interpreter.Constants
 import org.graalvm.polyglot.{Context, Value}
 
