@@ -70,7 +70,8 @@ presence of caching and partial-evaluation.
 ### Side Effects in the Initial Version
 Many of the mechanisms required to deal with this kind of issue properly are
 complex and require deep type-level support in the compiler. To that end, the
-initial version of the interpreter is going to almost _avoid_ the problem.
+initial version of the interpreter is going to pretend that the problem doesn't
+really exist.
 
 - All intermediate values will be cached.
 - Cached values will be recomputed as necessary as described in the section on
