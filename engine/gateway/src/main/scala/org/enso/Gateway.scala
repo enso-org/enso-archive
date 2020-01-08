@@ -5,10 +5,15 @@ import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import org.enso.gateway.{Protocol, Server}
 
-case class Gateway(languageServer: ActorRef)(implicit
-                                             val system: ActorSystem,
-                                             val materializer: ActorMaterializer
-) extends Server with Protocol with Actor with ActorLogging {
+case class Gateway(languageServer: ActorRef)(
+  implicit
+  val system: ActorSystem,
+  val materializer: ActorMaterializer
+) extends Server
+    with Protocol
+    with Actor
+    with ActorLogging {
+
   import Protocol._
 
   private def loadServerInfo(): ServerInfo = {
@@ -19,39 +24,49 @@ case class Gateway(languageServer: ActorRef)(implicit
     ServerInfo(name, Some(version))
   }
 
-  override def handleRequestOrNotification(requestOrNotification: RequestOrNotification): Option[Response] = {
+  override def handleRequestOrNotification(
+    requestOrNotification: RequestOrNotification
+  ): Option[Response] = {
     requestOrNotification match {
       case initialize(_, id, _, _) =>
         languageServer ! LanguageServer.Initialize()
 
-        Some(Response.result(
-          id     = Some(id),
-          result = InitializeResult(
-            capabilities = ServerCapabilities(),
-            serverInfo   = Some(loadServerInfo()))
-        ))
+        Some(
+          Response.result(
+            id = Some(id),
+            result = InitializeResult(
+              capabilities = ServerCapabilities(),
+              serverInfo   = Some(loadServerInfo())
+            )
+          )
+        )
 
       case initialized(_, _, _) =>
         languageServer ! LanguageServer.Initialized()
         None
 
       case _ =>
-        throw new Exception(s"unimplemented request or notification: $requestOrNotification")
+        throw new Exception(
+          s"unimplemented request or notification: $requestOrNotification"
+        )
     }
   }
 
   override def receive: Receive = {
-    case Gateway.Start()                      => run()
-    case LanguageServer.InitializeReceived()  => log.info("Initialize received")
-    case LanguageServer.InitializedReceived() => log.info("Initialized received")
+    case Gateway.Start()                     => run()
+    case LanguageServer.InitializeReceived() => log.info("Initialize received")
+    case LanguageServer.InitializedReceived() =>
+      log.info("Initialized received")
   }
 }
 
 object Gateway {
+
   case class Start()
 
-  def props(languageServer: ActorRef)(implicit
-                                      system: ActorSystem,
-                                      materializer: ActorMaterializer
+  def props(languageServer: ActorRef)(
+    implicit
+    system: ActorSystem,
+    materializer: ActorMaterializer
   ): Props = Props(new Gateway(languageServer))
 }

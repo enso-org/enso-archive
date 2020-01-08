@@ -30,8 +30,10 @@ class GatewayTest extends FunSuite {
     implicit val system       = ActorSystem()
     implicit val materializer = ActorMaterializer.create(system)
 
-    val languageServer: ActorRef = system.actorOf(LanguageServer.props(null), "languageServer")
-    val gateway       : ActorRef = system.actorOf(Gateway.props(languageServer), "gateway")
+    val languageServer: ActorRef =
+      system.actorOf(LanguageServer.props(null), "languageServer")
+    val gateway: ActorRef =
+      system.actorOf(Gateway.props(languageServer), "gateway")
     gateway ! Gateway.Start()
 
     var text: Option[String] = None
@@ -42,11 +44,14 @@ class GatewayTest extends FunSuite {
       case _ =>
     }
 
-    val source: Source[Message, NotUsed] = Source.single(TextMessage(requestJson))
+    val source: Source[Message, NotUsed] =
+      Source.single(TextMessage(requestJson))
 
-    val flow: Flow[Message, Message, Future[Done]] = Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
+    val flow: Flow[Message, Message, Future[Done]] =
+      Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
 
-    val (_, doneFuture) = Http().singleWebSocketRequest(WebSocketRequest(Config.addressString), flow)
+    val (_, doneFuture) = Http()
+      .singleWebSocketRequest(WebSocketRequest(Config.addressString), flow)
 
     Await.result(doneFuture, 10 seconds)
 

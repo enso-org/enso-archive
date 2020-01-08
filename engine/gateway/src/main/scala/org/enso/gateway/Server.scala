@@ -21,12 +21,12 @@ object Server {
 
   /** Describes endpoint to which [[Server]] can bind. */
   object Config {
-    private val config      : Config = ConfigFactory.load.getConfig("gateway")
+    private val config: Config       = ConfigFactory.load.getConfig("gateway")
     private val serverConfig: Config = config.getConfig("server")
-    val host: String  = serverConfig.getString("host")
-    val port: Int     = serverConfig.getInt("port")
-    val route: String = serverConfig.getString("route")
-    val addressString: String = s"ws://$host:$port"
+    val host: String                 = serverConfig.getString("host")
+    val port: Int                    = serverConfig.getInt("port")
+    val route: String                = serverConfig.getString("route")
+    val addressString: String        = s"ws://$host:$port"
   }
 }
 
@@ -57,11 +57,12 @@ trait Server {
       .flatMapConcat {
         case tm: TextMessage =>
           val strict = tm.textStream.fold("")(_ + _)
-          strict.flatMapConcat(input =>
-            handleInput(input) match {
-              case Some(output) => Source.single(TextMessage(output))
-              case None         => Source.empty
-            }
+          strict.flatMapConcat(
+            input =>
+              handleInput(input) match {
+                case Some(output) => Source.single(TextMessage(output))
+                case None         => Source.empty
+              }
           )
         case bm: BinaryMessage =>
           bm.dataStream.runWith(Sink.ignore)
