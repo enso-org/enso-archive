@@ -5,11 +5,9 @@ import java.io.{ByteArrayOutputStream, StringReader}
 import com.oracle.truffle.api.instrumentation.EventBinding
 import org.enso.interpreter.Constants
 import org.graalvm.polyglot.{Context, Source, Value}
-import org.enso.interpreter.instrument.{
-  ReplDebuggerInstrument,
-  ValueExtractorInstrument
-}
+import org.enso.interpreter.instrument.{ReplDebuggerInstrument, ValueExtractorInstrument}
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
+import org.enso.polyglot.LanguageInfo
 import org.scalatest.{Assertions, FlatSpec, Matchers}
 
 trait InterpreterRunner {
@@ -42,7 +40,7 @@ trait InterpreterRunner {
       )
   }
   val output = new ByteArrayOutputStream()
-  val ctx    = Context.newBuilder(Constants.LANGUAGE_ID).out(output).build()
+  val ctx    = Context.newBuilder(LanguageInfo.ID).out(output).build()
 
   def withLocationsInstrumenter(test: LocationsInstrumenter => Unit): Unit = {
     val instrument = ctx.getEngine.getInstruments
@@ -64,7 +62,7 @@ trait InterpreterRunner {
   def getMain(code: String): MainMethod = {
     output.reset()
     val source = Source
-      .newBuilder(Constants.LANGUAGE_ID, code, "Test")
+      .newBuilder(LanguageInfo.ID, code, "Test")
       .build()
 
     val module       = InterpreterException.rethrowPolyglot(ctx.eval(source))

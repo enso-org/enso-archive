@@ -1,4 +1,3 @@
-import PolyglotHelpers.Module
 import org.enso.polyglot.Module
 import org.graalvm.polyglot.{Context, Source, Value}
 

@@ -30,7 +30,6 @@ class TopScope(private val value: Value) {
 }
 
 object TopScope {
-
   /**
     * @param context the current language context
     * @return the top scope of Enso execution context
