@@ -68,7 +68,7 @@ object Param {
   }
 
   /**
-    * A param of the request [[org.enso.gateway.protocol.initialize]]
+    * A param of the request [[org.enso.gateway.protocol.Initialize]]
     * See [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
   case class ClientInfo(
@@ -82,7 +82,7 @@ object Param {
   }
 
   /**
-    * A param of the request [[org.enso.gateway.protocol.initialize]]
+    * A param of the request [[org.enso.gateway.protocol.Initialize]]
     * See [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     * The initial trace setting
     */
@@ -110,7 +110,7 @@ object Param {
   }
 
   /**
-    * A param of the request [[org.enso.gateway.protocol.initialize]]
+    * A param of the request [[org.enso.gateway.protocol.Initialize]]
     * See [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
   sealed trait WorkspaceFolder extends Param
@@ -133,7 +133,7 @@ object Param {
   }
 
   /**
-    * A param of the request [[org.enso.gateway.protocol.initialize]]
+    * A param of the request [[org.enso.gateway.protocol.Initialize]]
     * See [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     * The capabilities provided by the client (editor or tool).
     * Define capabilities for dynamic registration, workspace and text document features the client supports

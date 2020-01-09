@@ -53,7 +53,7 @@ object Data {
   }
 
   /**
-    * [[org.enso.gateway.protocol.initialize]] data
+    * [[org.enso.gateway.protocol.Initialize]] data
     */
   case class InitializeData(
     retry: Boolean

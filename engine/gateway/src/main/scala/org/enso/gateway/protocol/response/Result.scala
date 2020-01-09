@@ -53,7 +53,7 @@ object Result {
   }
 
   /**
-    * [[org.enso.gateway.protocol.initialize]] result
+    * [[org.enso.gateway.protocol.Initialize]] result
     */
   case class InitializeResult(
     capabilities: ServerCapabilities,
