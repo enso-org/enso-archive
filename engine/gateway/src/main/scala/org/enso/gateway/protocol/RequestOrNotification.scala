@@ -14,6 +14,7 @@ import org.enso.gateway.protocol.request.Params.{
 import org.enso.gateway.Protocol.DerivationConfig._
 import io.circe.shapes._
 import org.enso.gateway.Protocol.ShapesDerivation._
+import org.enso.gateway.protocol.response.Result
 
 /**
   * Parent trait for [[Request]] and [[Notification]]
@@ -42,6 +43,8 @@ sealed trait Request extends RequestOrNotification {
   def method: String
 
   def params: Option[Params]
+
+  def response(result: Result): Response = Response.result(Some(id), result)
 }
 
 /**

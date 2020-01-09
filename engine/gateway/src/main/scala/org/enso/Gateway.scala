@@ -43,20 +43,19 @@ case class Gateway(languageServer: ActorRef)(
     requestOrNotification: RequestOrNotification
   ): Option[Response] = {
     requestOrNotification match {
-      case initialize(_, id, _, _) =>
+      case req: initialize =>
         languageServer ! LanguageServer.Initialize()
 
         Some(
-          Response.result(
-            id = Some(id),
-            result = InitializeResult(
+          req.response(
+            InitializeResult(
               capabilities = ServerCapabilities(),
               serverInfo   = Some(loadServerInfo())
             )
           )
         )
 
-      case initialized(_, _, _) =>
+      case _: initialized =>
         languageServer ! LanguageServer.Initialized()
         None
 
