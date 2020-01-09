@@ -17,10 +17,25 @@ class LanguageServer(context: Context) extends Actor {
 }
 
 object LanguageServer {
+
+  /**
+    * Akka message sent by Gateway received LSP request `initialize`
+    */
   case class Initialize()
+
+  /**
+    * Akka message sent by Gateway received LSP notification `initialized`
+    */
   case class Initialized()
 
+  /**
+    * Language server response to [[Initialize]]
+    */
   case class InitializeReceived()
+
+  /**
+    * Language server response to [[Initialized]]
+    */
   case class InitializedReceived()
 
   def props(context: Context): Props = Props(new LanguageServer(context))

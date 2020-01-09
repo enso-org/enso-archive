@@ -25,27 +25,42 @@ class GatewayTest extends FunSuite {
          |}""".stripMargin
 
     val expectedResponseJson =
-      "{\"jsonrpc\":\"2.0\",\"id\":10,\"result\":{\"capabilities\":{},\"serverInfo\":{\"name\":\"Enso Language Server\",\"version\":\"1.0\"}}}"
+      """|{
+         |  "jsonrpc": "2.0",
+         |  "id": 10,
+         |  "result": {
+         |    "capabilities": {},
+         |    "serverInfo": {
+         |      "name": "Enso_Language_Server",
+         |      "version": "1.0"
+         |    }
+         |  }
+         |}""".stripMargin
+        .filterNot(_.isWhitespace)
+        .replace("_", " ")
 
-    implicit val system       = ActorSystem()
-    implicit val materializer = ActorMaterializer.create(system)
+    implicit val system: ActorSystem = ActorSystem()
+    implicit val materializer: ActorMaterializer =
+      ActorMaterializer.create(system)
 
+    val languageServerActorName = "languageServer"
+    val gatewayActorName        = "gateway"
     val languageServer: ActorRef =
-      system.actorOf(LanguageServer.props(null), "languageServer")
+      system.actorOf(LanguageServer.props(null), languageServerActorName)
     val gateway: ActorRef =
-      system.actorOf(Gateway.props(languageServer), "gateway")
+      system.actorOf(Gateway.props(languageServer), gatewayActorName)
     gateway ! Gateway.Start()
-
-    var text: Option[String] = None
-
-    val sink: Sink[Message, Future[Done]] = Sink.foreach {
-      case message: TextMessage.Strict =>
-        text = Some(message.text)
-      case _ =>
-    }
 
     val source: Source[Message, NotUsed] =
       Source.single(TextMessage(requestJson))
+
+    var actualResponseJson: Option[String] = None
+
+    val sink: Sink[Message, Future[Done]] = Sink.foreach {
+      case message: TextMessage.Strict =>
+        actualResponseJson = Some(message.text)
+      case _ =>
+    }
 
     val flow: Flow[Message, Message, Future[Done]] =
       Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
@@ -53,9 +68,11 @@ class GatewayTest extends FunSuite {
     val (_, doneFuture) = Http()
       .singleWebSocketRequest(WebSocketRequest(Config.addressString), flow)
 
-    Await.result(doneFuture, 10 seconds)
+    val timeout: Duration = 10 seconds
 
-    assert(text.getOrElse("") == expectedResponseJson)
+    Await.result(doneFuture, timeout)
+
+    assert(actualResponseJson === Some(expectedResponseJson))
 
     system.terminate()
   }

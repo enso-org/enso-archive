@@ -1,7 +1,7 @@
 package org.enso.gateway
 
 import akka.NotUsed
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorLogging, ActorSystem}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.BinaryMessage
 import akka.http.scaladsl.model.ws.Message
@@ -38,17 +38,18 @@ object Server {
   * Server replies to each incoming text request with a single text response, no response for notifications.
   * Server accepts a single Text Message from a peer and responds with another Text Message.
   */
-trait Server {
+trait Server extends Actor with ActorLogging {
   implicit val system: ActorSystem
   implicit val materializer: ActorMaterializer
+
   import system.dispatcher
 
   /** Generate text reply for given request text message, no reply for notification. */
-  def handleInput(input: String): Option[String]
+  def getTextOutput(input: String): Option[String]
 
   /** Akka stream defining server behavior.
     *
-    * Incoming [[TextMessage]]s are replied to (see [[handleInput()]]).
+    * Incoming [[TextMessage]]s are replied to (see [[getTextOutput]]).
     * Incoming binary messages are ignored.
     */
   val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
@@ -58,7 +59,7 @@ trait Server {
           val strict = tm.textStream.fold("")(_ + _)
           strict.flatMapConcat(
             input =>
-              handleInput(input) match {
+              getTextOutput(input) match {
                 case Some(output) => Source.single(TextMessage(output))
                 case None         => Source.empty
               }
@@ -98,9 +99,11 @@ trait Server {
     bindingFuture
       .onComplete {
         case Success(_) =>
-          println(s"Server online at ${Server.Config.addressString}")
+          val msg = s"Server online at ${Server.Config.addressString}"
+          log.info(msg)
         case Failure(exception) =>
-          println(s"Failed to start server: $exception")
+          val msg = s"Failed to start server: $exception"
+          log.error(msg)
           system.terminate()
           System.exit(1)
       }

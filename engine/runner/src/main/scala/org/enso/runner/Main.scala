@@ -189,7 +189,8 @@ object Main {
 
     gateway ! Gateway.Start()
 
-    println("Press ENTER to shut down")
+    val consoleMessage = "Press ENTER to shut down"
+    println(consoleMessage)
     StdIn.readLine()
 
     system.terminate()

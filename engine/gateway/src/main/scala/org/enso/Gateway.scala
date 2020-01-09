@@ -1,8 +1,19 @@
 package org.enso
 
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
+import org.enso.gateway.protocol.response.Result.InitializeResult
+import org.enso.gateway.protocol.{
+  initialize,
+  initialized,
+  RequestOrNotification,
+  Response
+}
+import org.enso.gateway.protocol.response.result.{
+  ServerCapabilities,
+  ServerInfo
+}
 import org.enso.gateway.{Protocol, Server}
 
 /**
@@ -14,21 +25,21 @@ case class Gateway(languageServer: ActorRef)(
   val system: ActorSystem,
   val materializer: ActorMaterializer
 ) extends Server
-    with Protocol
-    with Actor
-    with ActorLogging {
-
-  import Protocol._
+    with Protocol {
 
   private def loadServerInfo(): ServerInfo = {
-    val config           = ConfigFactory.load.getConfig("gateway")
-    val serverInfoConfig = config.getConfig("serverInfo")
-    val name             = serverInfoConfig.getString("lspName")
-    val version          = serverInfoConfig.getString("lspVersion")
+    val gatewayPath      = "gateway"
+    val serverInfoPath   = "serverInfo"
+    val lspNamePath      = "lspName"
+    val lspVersionPath   = "lspVersion"
+    val gatewayConfig    = ConfigFactory.load.getConfig(gatewayPath)
+    val serverInfoConfig = gatewayConfig.getConfig(serverInfoPath)
+    val name             = serverInfoConfig.getString(lspNamePath)
+    val version          = serverInfoConfig.getString(lspVersionPath)
     ServerInfo(name, Some(version))
   }
 
-  override def handleRequestOrNotification(
+  override def reply(
     requestOrNotification: RequestOrNotification
   ): Option[Response] = {
     requestOrNotification match {
@@ -50,22 +61,26 @@ case class Gateway(languageServer: ActorRef)(
         None
 
       case _ =>
-        throw new Exception(
+        val msg =
           s"unimplemented request or notification: $requestOrNotification"
-        )
+        throw new Exception(msg)
     }
   }
 
   override def receive: Receive = {
-    case Gateway.Start()                     => run()
-    case LanguageServer.InitializeReceived() => log.info("Initialize received")
-    case LanguageServer.InitializedReceived() =>
-      log.info("Initialized received")
+    case Gateway.Start() => run()
+    case received @ LanguageServer.InitializeReceived() =>
+      log.info(received.toString)
+    case received @ LanguageServer.InitializedReceived() =>
+      log.info(received.toString)
   }
 }
 
 object Gateway {
 
+  /**
+    * Message starting Gateway Akka service
+    */
   case class Start()
 
   def props(languageServer: ActorRef)(
