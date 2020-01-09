@@ -28,12 +28,11 @@ trait Protocol {
     decode[RequestOrNotification](input) match {
       case Left(err) => throw err
       case Right(requestOrNotification: RequestOrNotification) =>
-        for {
-          response <- reply(requestOrNotification)
-        } yield {
-          val jsonPrinter = Printer.noSpaces.copy(dropNullValues = true)
-          response.asJson.printWith(jsonPrinter)
-        }
+        reply(requestOrNotification).map(
+          _.asJson.printWith(
+            Printer.noSpaces.copy(dropNullValues = true)
+          )
+        )
     }
   }
 }
