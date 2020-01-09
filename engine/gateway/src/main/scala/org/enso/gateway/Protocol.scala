@@ -51,15 +51,6 @@ object Protocol {
   type DocumentUri = String
 
   /**
-    * Circe configuration for deriving codecs of [[RequestOrNotification]]
-    */
-  object DerivationConfig {
-    private val discriminator = "method"
-    implicit val configuration: Configuration =
-      Configuration.default.withDiscriminator(discriminator)
-  }
-
-  /**
     * Circe Encoders for sealed traits
     */
   object ShapesDerivation {
