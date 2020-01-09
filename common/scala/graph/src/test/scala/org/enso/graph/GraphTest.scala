@@ -5,6 +5,8 @@ import org.scalatest.{FlatSpec, Matchers}
 import shapeless.nat._
 import shapeless.{::, HNil}
 
+import scala.collection.mutable
+
 class GraphTest extends FlatSpec with Matchers {
   object GraphImpl {
 
@@ -20,7 +22,7 @@ class GraphTest extends FlatSpec with Matchers {
 
     implicit def nodeFields =
       new PrimGraph.Component.Field.List[Graph, Nodes] {
-        type Out = Node.Shape :: Node.ParentLink :: HNil
+        type Out = Node.Shape :: Node.ParentLink :: Node.Location :: HNil
       }
 
     implicit def edgeFields =
@@ -181,6 +183,100 @@ class GraphTest extends FlatSpec with Matchers {
           t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
         ): ParentLinkInstance[G, C] = t.wrapped
       }
+
+      sealed case class Location(line: Int, column: Int)
+          extends PrimGraph.Component.Field;
+      object Location {
+        implicit def sized = new Sized[Location] { type Out = _2 }
+
+        implicit class LocationInstance[
+          G <: PrimGraph,
+          C <: PrimGraph.Component
+        ](
+          node: PrimGraph.Component.Ref[G, C]
+        ) {
+          def line(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Location]
+          ): Int =
+            graph.unsafeReadField[C, Location](node.ix, 0)
+
+          def line_=(value: Int)(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Location]
+          ): Unit = graph.unsafeWriteField[C, Location](node.ix, 0, value)
+
+          def column(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Location]
+          ): Int =
+            graph.unsafeReadField[C, Location](node.ix, 1)
+
+          def column_=(value: Int)(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Location]
+          ): Unit = graph.unsafeWriteField[C, Location](node.ix, 1, value)
+
+          def location(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Location]
+          ): Location =
+            Location(this.line, this.column)
+
+          def location_=(value: Location)(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Location]
+          ): Unit = {
+            this.line   = value.line
+            this.column = value.column
+          }
+        }
+
+        implicit def Location_transInstance[
+          F <: PrimGraph.Component.Field,
+          R,
+          G <: PrimGraph,
+          C <: PrimGraph.Component
+        ](
+          t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
+        ): LocationInstance[G, C] = t.wrapped
+      };
+
+      sealed case class NameMap(str: mutable.Map[Int, String])
+      sealed case class Name(str: String) extends PrimGraph.Component.Field;
+      object Name {
+        implicit def sized = new Sized[Name] { type Out = _0 }
+
+        implicit class NameInstance[
+          G <: PrimGraph,
+          C <: PrimGraph.Component
+        ](
+          node: PrimGraph.Component.Ref[G, C]
+        ) {
+          def name(
+            implicit graph: PrimGraph.GraphData[G],
+            map: NameMap,
+            ev: PrimGraph.HasComponentField[G, C, Name]
+          ): String =
+            map.str(node.ix)
+
+          def name_=(value: String)(
+            implicit graph: PrimGraph.GraphData[G],
+            map: NameMap,
+            ev: PrimGraph.HasComponentField[G, C, Name]
+          ): Unit =
+            map.str(node.ix) = value
+        }
+
+        implicit def Name_transInstance[
+          F <: PrimGraph.Component.Field,
+          R,
+          G <: PrimGraph,
+          C <: PrimGraph.Component
+        ](
+          t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
+        ): NameInstance[G, C] = t.wrapped
+      };
     }
 
     object Edge {
@@ -238,10 +334,14 @@ class GraphTest extends FlatSpec with Matchers {
   import GraphImpl._
   import GraphImpl.Node.Shape._
   import GraphImpl.Node.ParentLink._
+  import GraphImpl.Node.Location._
+  import GraphImpl.Node.Name._
   import GraphImpl.Edge.Shape._
 
   implicit val graph: PrimGraph.GraphData[GraphImpl.Graph] =
     PrimGraph[GraphImpl.Graph]();
+
+  implicit val nameMap: Node.NameMap = Node.NameMap(mutable.Map())
 
   val n1: Node[Graph] = graph.addNode()
   val n2: Node[Graph] = graph.addNode()
@@ -254,6 +354,19 @@ class GraphTest extends FlatSpec with Matchers {
   n1.parent = PrimGraph.Component.Ref(1)
   n2.parent = PrimGraph.Component.Ref(2)
   n3.parent = PrimGraph.Component.Ref(3)
+
+  n1.line   = 10
+  n1.column = 5
+
+  println(n1.location)
+
+  n1.location = Node.Location(1, 2);
+
+  println(n1.location)
+
+  n1.name = "foo"
+
+  println(n1.name)
 
   // This is just dirty and very unsafe way of changing `n1` to be App!
   graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](n1.ix, 0, 1)
