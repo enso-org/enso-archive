@@ -8,13 +8,13 @@ import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
-import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.polyglot.LanguageInfo;
+import org.enso.polyglot.MethodNames;
 
 import java.util.*;
 
@@ -134,13 +134,6 @@ public class ModuleScope implements TruffleObject {
     imports.add(scope);
   }
 
-  private static class PolyglotKeys {
-    private static final String ASSOCIATED_CONSTRUCTOR = "get_associated_constructor";
-    private static final String METHODS = "get_method";
-    private static final String CONSTRUCTORS = "get_constructor";
-    private static final String PATCH = "patch";
-  }
-
   /**
    * Handles member invocations through the polyglot API.
    *
@@ -215,13 +208,13 @@ public class ModuleScope implements TruffleObject {
         @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
-        case PolyglotKeys.METHODS:
+        case MethodNames.Module.GET_METHOD:
           return getMethod(scope, arguments);
-        case PolyglotKeys.CONSTRUCTORS:
+        case MethodNames.Module.GET_CONSTRUCTOR:
           return getConstructor(scope, arguments);
-        case PolyglotKeys.PATCH:
+        case MethodNames.Module.PATCH:
           return patch(scope, arguments, contextRef.get());
-        case PolyglotKeys.ASSOCIATED_CONSTRUCTOR:
+        case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
           return getAssociatedConstructor(scope, arguments);
         default:
           throw UnknownIdentifierException.create(member);
@@ -247,10 +240,10 @@ public class ModuleScope implements TruffleObject {
    */
   @ExportMessage
   boolean isMemberInvocable(String member) {
-    return member.equals(PolyglotKeys.METHODS)
-        || member.equals(PolyglotKeys.CONSTRUCTORS)
-        || member.equals(PolyglotKeys.PATCH)
-        || member.equals(PolyglotKeys.ASSOCIATED_CONSTRUCTOR);
+    return member.equals(MethodNames.Module.GET_METHOD)
+        || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
+        || member.equals(MethodNames.Module.PATCH)
+        || member.equals(MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR);
   }
 
   /**
@@ -262,9 +255,9 @@ public class ModuleScope implements TruffleObject {
   @ExportMessage
   Object getMembers(boolean includeInternal) {
     return new Vector(
-        PolyglotKeys.METHODS,
-        PolyglotKeys.CONSTRUCTORS,
-        PolyglotKeys.PATCH,
-        PolyglotKeys.ASSOCIATED_CONSTRUCTOR);
+        MethodNames.Module.GET_METHOD,
+        MethodNames.Module.GET_CONSTRUCTOR,
+        MethodNames.Module.PATCH,
+        MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR);
   }
 }

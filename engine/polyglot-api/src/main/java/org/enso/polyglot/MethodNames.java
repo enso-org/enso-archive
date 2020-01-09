@@ -1,0 +1,20 @@
+package org.enso.polyglot;
+
+/** Container for polyglot method names */
+public class MethodNames {
+  public static class TopScope {
+    public static final String GET_MODULE = "get_module";
+    public static final String CREATE_MODULE = "create_module";
+  }
+
+  public static class Module {
+    public static final String GET_ASSOCIATED_CONSTRUCTOR = "get_associated_constructor";
+    public static final String GET_METHOD = "get_method";
+    public static final String GET_CONSTRUCTOR = "get_constructor";
+    public static final String PATCH = "patch";
+  }
+
+  public static class Function {
+    public static final String EQUALS = "equals";
+  }
+}

@@ -5,7 +5,7 @@ import java.io.File
 import org.enso.interpreter.Constants
 import org.enso.interpreter.runtime.RuntimeOptions
 import org.enso.pkg.Package
-import org.enso.polyglot.{LanguageInfo, TopScope}
+import org.enso.polyglot.{ExecutionContext, LanguageInfo, TopScope}
 import org.graalvm.polyglot.{Context, Source, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
@@ -26,7 +26,8 @@ trait PackageTest extends FlatSpec with Matchers with ValueEquality {
       .in(System.in)
       .build()
     context.initialize(LanguageInfo.ID)
-    val topScope = TopScope.get(context)
+    val executionContext = new ExecutionContext(context)
+    val topScope = executionContext.getTopScope
     val mainModuleScope = topScope.getModule(mainModule.toString)
     val assocCons = mainModuleScope.getAssociatedConstructor
     val mainFun = mainModuleScope.getMethod(assocCons, "main")

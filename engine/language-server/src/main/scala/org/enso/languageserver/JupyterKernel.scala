@@ -11,23 +11,22 @@ import io.github.spencerpark.jupyter.kernel.KernelConnectionProperties
 import io.github.spencerpark.jupyter.kernel
 import io.github.spencerpark.jupyter.kernel.display.DisplayData
 import org.enso.polyglot
-import org.enso.polyglot.{LanguageInfo, Module, TopScope}
+import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module, TopScope}
 import org.graalvm.polyglot.{Context, Value}
 
 /**
   * A wrapper for Enso interpreter for use by Jupyter
   */
 class JupyterKernel extends BaseKernel {
-  private val context: Context =
+  private val context: ExecutionContext =
     new ContextFactory().create(
       "",
       getIO.in,
       getIO.out,
       Repl(SimpleReplIO(getIO.in, getIO.out))
     )
-  private val jupyterModule: Module = TopScope
-    .get(context)
-    .createModule("Jupyter")
+  private val jupyterModule: Module =
+    context.getTopScope.createModule("Jupyter")
   jupyterModule.patch("main = Unit")
   private val moduleCons: Value = jupyterModule.getAssociatedConstructor
   private var lastMain: polyglot.Function =

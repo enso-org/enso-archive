@@ -8,6 +8,7 @@ import org.graalvm.polyglot.{Context, Value}
   * @param value the polyglot value of this scope
   */
 class TopScope(private val value: Value) {
+  import MethodNames.TopScope._
 
   /** Gets a module by name.
     *
@@ -15,7 +16,7 @@ class TopScope(private val value: Value) {
     * @return the representation of the module
     */
   def getModule(name: String): Module =
-    new Module(value.invokeMember("get_module", name))
+    new Module(value.invokeMember(GET_MODULE, name))
 
   /**
     * Creates a new, unregistered module.
@@ -26,14 +27,5 @@ class TopScope(private val value: Value) {
     * @return a new module
     */
   def createModule(name: String): Module =
-    new Module(value.invokeMember("create_module", name))
-}
-
-object TopScope {
-  /**
-    * @param context the current language context
-    * @return the top scope of Enso execution context
-    */
-  def get(context: Context): TopScope =
-    new TopScope(context.getBindings(LanguageInfo.ID))
+    new Module(value.invokeMember(CREATE_MODULE, name))
 }

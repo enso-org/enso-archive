@@ -14,7 +14,7 @@ class Function(private val value: Value) {
     * @param args the execution arguments
     * @return the result of execution
     */
-  def execute(args: Object*): Value = value.execute(args: _*)
+  def execute(args: AnyRef*): Value = value.execute(args: _*)
 
   /**
     * Checks function equality by checking the identity of the underlying
@@ -25,7 +25,8 @@ class Function(private val value: Value) {
     *        `false` otherwise.
     */
   override def equals(obj: Any): Boolean = obj match {
-    case fun: Function => value.invokeMember("equals", fun.value).asBoolean()
-    case _             => false
+    case fun: Function =>
+      value.invokeMember(MethodNames.Function.EQUALS, fun.value).asBoolean()
+    case _ => false
   }
 }

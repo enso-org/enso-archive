@@ -6,7 +6,7 @@ import java.io.OutputStream
 import org.enso.interpreter.Constants
 import org.enso.interpreter.instrument.ReplDebuggerInstrument
 import org.enso.interpreter.runtime.RuntimeOptions
-import org.enso.polyglot.LanguageInfo
+import org.enso.polyglot.{ExecutionContext, LanguageInfo}
 import org.graalvm.polyglot.Context
 
 /**
@@ -28,7 +28,7 @@ class ContextFactory {
     in: InputStream,
     out: OutputStream,
     repl: Repl
-  ): Context = {
+  ): ExecutionContext = {
     val context = Context
       .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
@@ -41,6 +41,6 @@ class ContextFactory {
       .get(ReplDebuggerInstrument.INSTRUMENT_ID)
       .lookup(classOf[ReplDebuggerInstrument])
     instrument.setSessionManager(repl)
-    context
+    new ExecutionContext(context)
   }
 }
