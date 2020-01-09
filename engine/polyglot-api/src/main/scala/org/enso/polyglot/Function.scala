@@ -7,7 +7,7 @@ import org.graalvm.polyglot.Value
   *
   * @param value the polyglot value of this function
   */
-class Function(private val value: Value) {
+class Function(val value: Value) {
 
   /**
     * Executes the function with given parameters.

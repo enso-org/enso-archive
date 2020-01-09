@@ -17,6 +17,14 @@ class Module(private val value: Value) {
     value.invokeMember(GET_ASSOCIATED_CONSTRUCTOR)
 
   /**
+    * Gets a constructor definition by name
+    * @param name the constructor name
+    * @return the polyglot representation of the constructor.
+    */
+  def getConstructor(name: String): Value =
+    value.invokeMember(GET_CONSTRUCTOR, name)
+
+  /**
     * Gets a method by the type it's defined on and name.
     *
     * @param constructor the constructor the method is defined on
