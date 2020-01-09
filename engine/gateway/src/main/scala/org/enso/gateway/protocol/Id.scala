@@ -6,6 +6,8 @@ import io.circe.generic.extras.semiauto.{
   deriveUnwrappedEncoder
 }
 import cats.syntax.functor._
+import io.circe.shapes._
+import org.enso.gateway.Protocol.ShapesDerivation._
 
 /**
   * Id of [[RequestOrNotification]] or [[Response]]

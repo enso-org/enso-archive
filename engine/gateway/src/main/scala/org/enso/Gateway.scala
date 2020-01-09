@@ -4,17 +4,13 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.ActorMaterializer
 import com.typesafe.config.ConfigFactory
 import org.enso.gateway.protocol.response.Result.InitializeResult
-import org.enso.gateway.protocol.{
-  initialize,
-  initialized,
-  RequestOrNotification,
-  Response
-}
+import org.enso.gateway.protocol.{RequestOrNotification, Response}
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
   ServerInfo
 }
 import org.enso.gateway.{Protocol, Server}
+import org.enso.gateway.protocol.{Initialize, Initialized}
 
 /**
   * The gateway component talks directly to clients using protocol messages,
@@ -43,19 +39,16 @@ case class Gateway(languageServer: ActorRef)(
     requestOrNotification: RequestOrNotification
   ): Option[Response] = {
     requestOrNotification match {
-      case req: initialize =>
+      case req @ Initialize(_, _) =>
         languageServer ! LanguageServer.Initialize()
 
         Some(
           req.response(
-            InitializeResult(
-              capabilities = ServerCapabilities(),
-              serverInfo   = Some(loadServerInfo())
-            )
+            InitializeResult(ServerCapabilities(), Some(loadServerInfo()))
           )
         )
 
-      case _: initialized =>
+      case Initialized(_) =>
         languageServer ! LanguageServer.Initialized()
         None
 

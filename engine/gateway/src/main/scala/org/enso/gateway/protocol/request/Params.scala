@@ -2,27 +2,32 @@ package org.enso.gateway.protocol.request
 
 import io.circe.generic.semiauto._
 import io.circe.{Decoder, Encoder}
-import org.enso.gateway.protocol.request.Param._
 import cats.syntax.functor._
 import org.enso.gateway.Protocol.DocumentUri
 import io.circe.shapes._
 import org.enso.gateway.Protocol.ShapesDerivation._
+import org.enso.gateway.protocol.request.Param.{
+  ClientCapabilities,
+  ClientInfo,
+  InitializationOptions,
+  Trace,
+  WorkspaceFolder
+}
 
 /**
   * [[org.enso.gateway.protocol.RequestOrNotification]] params
   */
 sealed trait Params
 
+// TODO [Dmytro] Add Params.Array. Currently removed because Circe codec is not found
 object Params {
   implicit val paramsDecoder: Decoder[Params] = List[Decoder[Params]](
     Decoder[InitializeParams].widen,
     Decoder[InitializedParams].widen
   ).reduceLeft(_ or _)
 
-  case class Array(value: Seq[Option[Param]]) extends Params
-
   /**
-    * Params of the request [[org.enso.gateway.protocol.initialize]]
+    * Params of the request [[org.enso.gateway.protocol.Initialize]]
     */
   case class InitializeParams(
     processId: Option[Int]                               = None,
@@ -43,7 +48,7 @@ object Params {
   }
 
   /**
-    * Params of the notification [[org.enso.gateway.protocol.initialized]]
+    * Params of the notification [[org.enso.gateway.protocol.Initialized]]
     */
   case class InitializedParams() extends Params
 
@@ -53,5 +58,4 @@ object Params {
     implicit val initializedParamsDecoder: Decoder[InitializedParams] =
       deriveDecoder
   }
-
 }
