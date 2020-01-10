@@ -17,6 +17,7 @@ object Param {
   implicit val paramDecoder: Decoder[Param] = List[Decoder[Param]](
     Decoder[Number].widen,
     Decoder[Boolean].widen,
+    Decoder[Array].widen,
     Decoder[String].widen,
     Decoder[ClientInfo].widen,
     Decoder[ClientCapabilities].widen,
@@ -44,7 +45,12 @@ object Param {
       deriveUnwrappedDecoder
   }
 
-  case class Array(value: Seq[Param]) extends Param
+  case class Array(value: Seq[Option[Param]]) extends Param
+
+  object Array {
+    implicit val paramArrayDecoder: Decoder[Array] =
+      deriveUnwrappedDecoder
+  }
 
   /**
     * A param of the request [[org.enso.gateway.protocol.Requests.Initialize]]
