@@ -150,10 +150,11 @@ object Main {
     */
   private def runRepl(): Unit = {
     val dummySourceToTriggerRepl = "main = Debug.breakpoint"
+    val replModuleName           = "Repl"
     val context =
       new ContextFactory().create("", System.in, System.out, Repl(TerminalIO()))
     val mainModule =
-      context.evalModule(dummySourceToTriggerRepl, "Repl")
+      context.evalModule(dummySourceToTriggerRepl, replModuleName)
     runMain(mainModule)
     exitSuccess()
   }
