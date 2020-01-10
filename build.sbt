@@ -473,7 +473,7 @@ lazy val polyglot_api = project
       // standard classpath. This is the recommended way of handling this and
       // we should strive to use such structure everywhere. See
       // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
-      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value.map(_.data).mkString(":")}"
+      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value.map(_.data).mkString(File.pathSeparator)}"
     ),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
