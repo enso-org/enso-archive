@@ -24,6 +24,9 @@ object Id {
     Decoder[String].widen
   ).reduceLeft(_ or _)
 
+  /**
+    * A number id
+    */
   case class Number(value: Int) extends Id
 
   object Number {
@@ -31,10 +34,14 @@ object Id {
     implicit val idNumberDecoder: Decoder[Number] = deriveUnwrappedDecoder
   }
 
+  /**
+    * A string id
+    */
   case class String(value: Predef.String) extends Id
 
   object String {
     implicit val idStringEncoder: Encoder[String] = deriveUnwrappedEncoder
     implicit val idStringDecoder: Decoder[String] = deriveUnwrappedDecoder
   }
+
 }

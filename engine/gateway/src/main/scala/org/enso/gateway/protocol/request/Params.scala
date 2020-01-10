@@ -4,7 +4,6 @@ import io.circe.generic.semiauto._
 import io.circe.Decoder
 import cats.syntax.functor._
 import io.circe.generic.extras.semiauto.deriveUnwrappedDecoder
-import org.enso.gateway.Protocol.DocumentUri
 import org.enso.gateway.protocol.request.Param.{
   ClientCapabilities,
   ClientInfo,
@@ -24,6 +23,8 @@ object Params {
     Decoder[InitializedParams].widen,
     Decoder[Array].widen
   ).reduceLeft(_ or _)
+
+  type DocumentUri = String
 
   /**
     * Params of the request [[org.enso.gateway.protocol.Requests.Initialize]]

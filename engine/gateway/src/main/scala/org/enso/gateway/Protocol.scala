@@ -41,9 +41,4 @@ object Protocol {
     * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#contentPart
     */
   val jsonRpcVersion = "2.0"
-
-  /**
-    * Used in [[org.enso.gateway.protocol.request.Params.InitializeParams]]
-    */
-  type DocumentUri = String
 }

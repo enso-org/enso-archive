@@ -17,24 +17,36 @@ object Datum {
     case array: Array     => array.asJson
   }
 
+  /**
+    * A string element
+    */
   case class String(value: Predef.String) extends Datum
 
   object String {
     implicit val datumStringEncoder: Encoder[String] = deriveUnwrappedEncoder
   }
 
+  /**
+    * A number element
+    */
   case class Number(value: Int) extends Datum
 
   object Number {
     implicit val datumNumberEncoder: Encoder[Number] = deriveUnwrappedEncoder
   }
 
+  /**
+    * A boolean element
+    */
   case class Boolean(value: scala.Boolean) extends Datum
 
   object Boolean {
     implicit val datumBooleanEncoder: Encoder[Boolean] = deriveUnwrappedEncoder
   }
 
+  /**
+    * An array element
+    */
   case class Array(value: Seq[Option[Datum]]) extends Datum
 
   object Array {

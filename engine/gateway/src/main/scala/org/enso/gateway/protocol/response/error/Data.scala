@@ -19,24 +19,36 @@ object Data {
     case initializeData: InitializeData => initializeData.asJson
   }
 
+  /**
+    * A string data
+    */
   case class String(value: Predef.String) extends Data
 
   object String {
     implicit val dataStringEncoder: Encoder[String] = deriveUnwrappedEncoder
   }
 
+  /**
+    * A number data
+    */
   case class Number(value: Int) extends Data
 
   object Number {
     implicit val dataNumberEncoder: Encoder[Number] = deriveUnwrappedEncoder
   }
 
+  /**
+    * A boolean data
+    */
   case class Boolean(value: scala.Boolean) extends Data
 
   object Boolean {
     implicit val dataBooleanEncoder: Encoder[Boolean] = deriveUnwrappedEncoder
   }
 
+  /**
+    * An array data
+    */
   case class Array(value: Seq[Option[Datum]]) extends Data
 
   object Array {

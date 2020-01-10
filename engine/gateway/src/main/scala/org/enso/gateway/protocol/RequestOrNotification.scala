@@ -8,37 +8,56 @@ import org.enso.gateway.protocol.request.Params.{
   InitializedParams
 }
 import org.enso.gateway.protocol.response.Result
+import RequestOrNotification.{failure, jsonrpcError, unknownMethodError}
 
 /**
   * Parent trait for [[Request]] and [[Notification]]
   */
 sealed trait RequestOrNotification {
+
+  /**
+    * See [[org.enso.gateway.Protocol.jsonRpcVersion]]
+    */
   def jsonrpc: String
 
+  /**
+    * Name of JSON-RPC method
+    */
   def method: String
-
-  require(jsonrpc == jsonRpcVersion, RequestOrNotification.jsonrpcError)
 }
 
 object RequestOrNotification {
+
+  /**
+    * Error message about wrong JSON-RPC version
+    */
   val jsonrpcError = s"jsonrpc must be $jsonRpcVersion"
 
-  def methodError[A](method: String): Decoder.Result[A] = {
-    val err = s"Unknown method: $method"
-    Left(DecodingFailure(err, List()))
-  }
+  /**
+    * Error message about unknown method
+    */
+  def unknownMethodError(method: String) = s"Unknown method: $method"
+
+  /**
+    * Failure decoding result
+    */
+  def failure(message: String) = Left(DecodingFailure(message, List()))
 
   implicit val requestOrNotificationDecoder: Decoder[RequestOrNotification] =
     c => {
       c.downField(Notification.methodField)
         .as[String]
         .flatMap {
+          // All requests
           case Requests.Initialize.method =>
             Decoder[Request[InitializeParams]].apply(c)
+
+          // All notifications
           case Notifications.Initialized.method =>
             Decoder[Notification[InitializedParams]].apply(c)
+
           case method =>
-            methodError(method)
+            failure(unknownMethodError(method))
         }
     }
 }
@@ -83,26 +102,38 @@ case class Notification[T <: Params](
 ) extends RequestOrNotification
 
 object Notification {
-  private val jsonrpcField = "jsonrpc"
-  val methodField          = "method"
-  private val paramsField  = "params"
 
+  /**
+    * Field `method`, which is discriminator
+    */
+  val methodField = "method"
+
+  private val paramsField  = "params"
+  private val jsonrpcField = "jsonrpc"
+
+  // Circe decoder for notifications and notification fields of requests
   implicit def notificationDecoder[T <: Params]: Decoder[Notification[T]] =
     cursor => {
-      val jsonrpcResult =
-        cursor.downField(jsonrpcField).as[String]
+      // Field `jsonrpc` must be correct
+      val jsonrpcResult = cursor.downField(jsonrpcField).as[String].flatMap {
+        case v @ `jsonRpcVersion` => Right(v)
+        case _                    => failure(jsonrpcError)
+      }
       val methodResult = cursor.downField(methodField).as[String]
-      val paramsCursor =
-        cursor
-          .downField(paramsField)
+      val paramsCursor = cursor.downField(paramsField)
+      // Discriminator is field `method`
       val paramsResult = methodResult
         .flatMap {
+          // All requests
           case Requests.Initialize.method =>
             Decoder[Option[InitializeParams]].tryDecode(paramsCursor)
+
+          // All notifications
           case Notifications.Initialized.method =>
             Decoder[Option[InitializedParams]].tryDecode(paramsCursor)
+
           case method =>
-            RequestOrNotification.methodError(method)
+            failure(unknownMethodError(method))
         }
         .asInstanceOf[Decoder.Result[Option[T]]]
       for {
@@ -111,52 +142,4 @@ object Notification {
         params  <- paramsResult
       } yield Notification[T](jsonrpc, method, params)
     }
-}
-
-trait Requests {
-  val method: String
-
-  def unapply[T <: Params](
-    request: Request[T]
-  ): Option[(Id, Option[T])] =
-    request.method match {
-      case `method` =>
-        Some((request.id, request.params))
-      case _ => None
-    }
-}
-
-object Requests {
-
-  /**
-    * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialize
-    */
-  object Initialize extends Requests {
-    override val method = "initialize"
-  }
-
-}
-
-trait Notifications {
-  val method: String
-
-  def unapply[T <: Params](
-    request: Notification[T]
-  ): Option[Option[T]] =
-    request.method match {
-      case `method` =>
-        Some(request.params)
-      case _ => None
-    }
-}
-
-object Notifications {
-
-  /**
-    * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialized
-    */
-  object Initialized extends Notifications {
-    override val method = "initialized"
-  }
-
 }

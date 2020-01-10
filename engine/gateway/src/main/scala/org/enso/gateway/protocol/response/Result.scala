@@ -24,18 +24,27 @@ object Result {
     case initializeResult: InitializeResult => initializeResult.asJson
   }
 
+  /**
+    * A string result
+    */
   case class String(value: Predef.String) extends Result
 
   object String {
     implicit val resultStringEncoder: Encoder[String] = deriveUnwrappedEncoder
   }
 
+  /**
+    * A number result
+    */
   case class Number(value: Int) extends Result
 
   object Number {
     implicit val resultNumberEncoder: Encoder[Number] = deriveUnwrappedEncoder
   }
 
+  /**
+    * A boolean result
+    */
   case class Boolean(value: scala.Boolean) extends Result
 
   object Boolean {
