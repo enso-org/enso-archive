@@ -1,4 +1,7 @@
+import java.io.File
+
 import sbt.Keys.scalacOptions
+
 import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
@@ -100,6 +103,7 @@ lazy val enso = (project in file("."))
     pkg,
     project_manager,
     runtime,
+    polyglot_api,
     parser_service,
     file_manager,
     runner,
@@ -269,7 +273,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(
     scalaJSUseMainModuleInitializer := false,
-    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule)},
+    scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
     testFrameworks := List(new TestFramework("org.scalatest.tools.Framework")),
     Compile / fullOptJS / artifactPath := file("target/scala-parser.js")
   )
@@ -416,6 +420,7 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)
+  .dependsOn(polyglot_api)
 
 lazy val runner = project
   .in(file("engine/runner"))
@@ -461,6 +466,7 @@ lazy val runner = project
   .dependsOn(pkg)
   .dependsOn(language_server)
   .dependsOn(gateway)
+  .dependsOn(polyglot_api)
 
 lazy val gateway = (project in file("engine/gateway"))
   .dependsOn(language_server)
@@ -476,5 +482,25 @@ lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ Seq(
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided
+    )
+  )
+
+lazy val polyglot_api = project
+  .in(file("engine/polyglot-api"))
+  .settings(
+    Test / fork := true,
+    Test / javaOptions ++= Seq(
+      // Puts the language runtime on the truffle classpath, rather than the
+      // standard classpath. This is the recommended way of handling this and
+      // we should strive to use such structure everywhere. See
+      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
+      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value
+        .map(_.data)
+        .mkString(File.pathSeparator)}"
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
+      "org.scalatest"   %% "scalatest"   % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"  %% "scalacheck"  % "1.14.0"       % Test
     )
   )
