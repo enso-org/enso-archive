@@ -23,6 +23,12 @@ class ExecutionContext(val context: Context) {
     new Module(context.eval(source))
   }
 
+  /**
+    * Evaluates provided code file as a new module.
+    *
+    * @param codeFile the code to evaluate.
+    * @return the module representing evaluated code.
+    */
   def evalModule(codeFile: File): Module = {
     val source = Source.newBuilder(LanguageInfo.ID, codeFile).build
     new Module(context.eval(source))

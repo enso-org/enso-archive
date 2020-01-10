@@ -12,6 +12,7 @@ import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.MethodNames;
 
 import java.util.Map;
@@ -94,13 +95,7 @@ public class TopLevelScope implements TruffleObject {
         Object[] arguments,
         TruffleLanguage.ContextReference<Context> contextReference)
         throws ArityException, UnsupportedTypeException, UnknownIdentifierException {
-      if (arguments.length != 1) {
-        throw ArityException.create(1, arguments.length);
-      }
-      if (!(arguments[0] instanceof String)) {
-        throw UnsupportedTypeException.create(arguments, "Argument must be a String");
-      }
-      String moduleName = (String) arguments[0];
+      String moduleName = Types.extractArguments(arguments, String.class);
 
       if (moduleName.equals(Builtins.MODULE_NAME)) {
         return scope.builtins.getScope();
@@ -119,13 +114,7 @@ public class TopLevelScope implements TruffleObject {
     private static ModuleScope createModule(
         TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
-      if (arguments.length != 1) {
-        throw ArityException.create(1, arguments.length);
-      }
-      if (!(arguments[0] instanceof String)) {
-        throw UnsupportedTypeException.create(arguments, "Argument must be a String");
-      }
-      String moduleName = (String) arguments[0];
+      String moduleName = Types.extractArguments(arguments, String.class);
       return context.createScope(moduleName);
     }
 

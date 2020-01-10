@@ -46,4 +46,33 @@ class ApiTest extends FlatSpec with Matchers {
     val testVectorNorm = squareNorm.execute(testVector)
     testVectorNorm.asLong shouldEqual 14
   }
+
+  "Creating a module and adding code to it" should "be possible" in {
+    val code1 =
+      """
+        |bar = x -> here.foo x + 1
+        |""".stripMargin
+    val code2 =
+      """
+        |foo = x -> x + 2
+        |""".stripMargin
+    val topScope = executionContext.getTopScope
+    val module   = topScope.createModule("Test")
+    module.patch(code1)
+    module.patch(code2)
+    val assocCons = module.getAssociatedConstructor
+    val bar       = module.getMethod(assocCons, "bar")
+    val result    = bar.execute(assocCons.newInstance(), 5L.asInstanceOf[AnyRef])
+    result.asLong shouldEqual 8
+  }
+
+  "Evaluating an expression in a context of a given module" should "be possible" in {
+    val code =
+      """
+        |foo = x -> x + 2
+        |""".stripMargin
+    val module = executionContext.evalModule(code, "Test")
+    val result = module.evalExpression("here.foo 10")
+    result.asLong shouldEqual 12
+  }
 }

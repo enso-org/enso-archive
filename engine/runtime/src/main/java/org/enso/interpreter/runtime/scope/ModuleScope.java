@@ -2,6 +2,7 @@ package org.enso.interpreter.runtime.scope;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.TruffleLanguage;
+import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.interop.*;
@@ -9,10 +10,15 @@ import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Language;
+import org.enso.interpreter.node.callable.ExecuteCallNode;
+import org.enso.interpreter.node.callable.dispatch.CallOptimiserNode;
+import org.enso.interpreter.runtime.Builtins;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 
@@ -139,65 +145,58 @@ public class ModuleScope implements TruffleObject {
    *
    * <p>The exposed members are:
    * <li>{@code get_method(AtomConstructor, String)}
-   * <li>{@code get_constructor(String)}
+   * <li>{@code get_constructor(String)}s
    * <li>{@code patch(String)}
    * <li>{@code get_associated_constructor()}
+   * <li>{@code eval_expression(String)}
    */
   @ExportMessage
   abstract static class InvokeMember {
-    // TODO[MK]: These functions are 90% typechecks. We should consider refactoring options,
-    // possibly code generation.
     private static Function getMethod(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException {
-      if (args.length != 2) {
-        throw ArityException.create(2, args.length);
-      }
-      if (!(args[0] instanceof AtomConstructor)) {
-        throw UnsupportedTypeException.create(
-            args, "The first argument must be an atom constructor.");
-      }
-      AtomConstructor cons = (AtomConstructor) args[0];
-      if (!(args[1] instanceof String)) {
-        throw UnsupportedTypeException.create(args, "The second argument must be a String.");
-      }
-      String name = (String) args[1];
+      Types.Pair<AtomConstructor, String> arguments =
+          Types.extractArguments(args, AtomConstructor.class, String.class);
+      AtomConstructor cons = arguments.getFirst();
+      String name = arguments.getSecond();
       return scope.methods.get(cons).get(name);
     }
 
     private static AtomConstructor getConstructor(ModuleScope scope, Object[] args)
         throws ArityException, UnsupportedTypeException {
-      if (args.length != 1) {
-        throw ArityException.create(1, args.length);
-      }
-      if (!(args[0] instanceof String)) {
-        throw UnsupportedTypeException.create(args, "The argument must be a String.");
-      }
-      String name = (String) args[0];
+      String name = Types.extractArguments(args, String.class);
       return scope.constructors.get(name);
     }
 
     private static ModuleScope patch(ModuleScope scope, Object[] args, Context context)
         throws ArityException, UnsupportedTypeException {
-      if (args.length != 1) {
-        throw ArityException.create(1, args.length);
-      }
-      if (!(args[0] instanceof String)) {
-        throw UnsupportedTypeException.create(args, "The argument must be a String.");
-      }
-      String sourceString = (String) args[0];
+      String sourceString = Types.extractArguments(args, String.class);
       Source source =
-          Source.newBuilder(LanguageInfo.ID, sourceString, scope.associatedType.getName())
-              .build();
+          Source.newBuilder(LanguageInfo.ID, sourceString, scope.associatedType.getName()).build();
       context.compiler().run(source, scope);
       return scope;
     }
 
     private static AtomConstructor getAssociatedConstructor(ModuleScope scope, Object[] args)
         throws ArityException {
-      if (args != null && args.length != 0) {
-        throw ArityException.create(0, args.length);
-      }
+      Types.extractArguments(args);
       return scope.associatedType;
+    }
+
+    private static Object evalExpression(
+        ModuleScope scope, Object[] args, Context context, CallOptimiserNode callOptimiserNode)
+        throws ArityException, UnsupportedTypeException {
+      String expr = Types.extractArguments(args, String.class);
+      AtomConstructor debug = context.getBuiltins().debug();
+      Function eval =
+          context
+              .getBuiltins()
+              .getScope()
+              .lookupMethodDefinition(debug, Builtins.MethodNames.Debug.EVAL);
+      CallerInfo callerInfo = new CallerInfo(null, new LocalScope(), scope);
+      Object state = context.getBuiltins().unit().newInstance();
+      return callOptimiserNode
+          .executeDispatch(eval, callerInfo, state, new Object[] {debug, expr})
+          .getValue();
     }
 
     @Specialization
@@ -205,7 +204,8 @@ public class ModuleScope implements TruffleObject {
         ModuleScope scope,
         String member,
         Object[] arguments,
-        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef)
+        @CachedContext(Language.class) TruffleLanguage.ContextReference<Context> contextRef,
+        @Cached(value = "build()", allowUncached = true) CallOptimiserNode callOptimiserNode)
         throws UnknownIdentifierException, ArityException, UnsupportedTypeException {
       switch (member) {
         case MethodNames.Module.GET_METHOD:
@@ -216,6 +216,8 @@ public class ModuleScope implements TruffleObject {
           return patch(scope, arguments, contextRef.get());
         case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
           return getAssociatedConstructor(scope, arguments);
+        case MethodNames.Module.EVAL_EXPRESSION:
+          return evalExpression(scope, arguments, contextRef.get(), callOptimiserNode);
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -243,7 +245,8 @@ public class ModuleScope implements TruffleObject {
     return member.equals(MethodNames.Module.GET_METHOD)
         || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
         || member.equals(MethodNames.Module.PATCH)
-        || member.equals(MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR);
+        || member.equals(MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR)
+        || member.equals(MethodNames.Module.EVAL_EXPRESSION);
   }
 
   /**
@@ -258,6 +261,7 @@ public class ModuleScope implements TruffleObject {
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.GET_CONSTRUCTOR,
         MethodNames.Module.PATCH,
-        MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR);
+        MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR,
+        MethodNames.Module.EVAL_EXPRESSION);
   }
 }

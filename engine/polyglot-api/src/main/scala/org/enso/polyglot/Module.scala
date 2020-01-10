@@ -44,4 +44,13 @@ class Module(private val value: Value) {
     */
   def patch(additionalSource: String): Unit =
     value.invokeMember(PATCH, additionalSource)
+
+  /**
+    * Evaluates an arbitrary expression as if it were placed in a function
+    * body inside this module.
+    * @param code the expression to evaluate
+    * @return the return value of the expression
+    */
+  def evalExpression(code: String): Value =
+    value.invokeMember(EVAL_EXPRESSION, code)
 }

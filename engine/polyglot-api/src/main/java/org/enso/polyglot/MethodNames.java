@@ -12,6 +12,7 @@ public class MethodNames {
     public static final String GET_METHOD = "get_method";
     public static final String GET_CONSTRUCTOR = "get_constructor";
     public static final String PATCH = "patch";
+    public static final String EVAL_EXPRESSION = "eval_expression";
   }
 
   public static class Function {

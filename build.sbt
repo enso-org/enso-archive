@@ -470,6 +470,8 @@ lazy val polyglot_api = project
       s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value.map(_.data).mkString(":")}"
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % "provided"
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
+      "org.scalatest"   %% "scalatest"   % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"  %% "scalacheck"  % "1.14.0"       % Test
     )
   )
