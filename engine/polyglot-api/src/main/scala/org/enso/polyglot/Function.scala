@@ -11,6 +11,7 @@ class Function(val value: Value) {
 
   /**
     * Executes the function with given parameters.
+    *
     * @param args the execution arguments
     * @return the result of execution
     */

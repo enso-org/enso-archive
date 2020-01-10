@@ -145,7 +145,7 @@ public class ModuleScope implements TruffleObject {
    *
    * <p>The exposed members are:
    * <li>{@code get_method(AtomConstructor, String)}
-   * <li>{@code get_constructor(String)}s
+   * <li>{@code get_constructor(String)}
    * <li>{@code patch(String)}
    * <li>{@code get_associated_constructor()}
    * <li>{@code eval_expression(String)}

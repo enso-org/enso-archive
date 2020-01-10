@@ -1,5 +1,6 @@
 package org.enso.polyglot;
 
+/** Constainer for language-level constants */
 public class LanguageInfo {
   public static final String ID = "enso";
   public static final String NAME = "Enso";

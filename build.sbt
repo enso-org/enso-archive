@@ -103,6 +103,7 @@ lazy val enso = (project in file("."))
     pkg,
     project_manager,
     runtime,
+    polyglot_api,
     parser_service,
     file_manager,
     project_manager
@@ -417,7 +418,7 @@ lazy val runtime = (project in file("engine/runtime"))
   )
   .dependsOn(pkg)
   .dependsOn(syntax.jvm)
-  .dependsOn(polyglot_api % "compile->compile")
+  .dependsOn(polyglot_api)
 
 lazy val language_server = project
   .in(file("engine/language-server"))
