@@ -6,8 +6,7 @@ import io.circe.generic.extras.semiauto.{
   deriveUnwrappedEncoder
 }
 import cats.syntax.functor._
-import io.circe.shapes._
-import org.enso.gateway.Protocol.ShapesDerivation._
+import io.circe.syntax._
 
 /**
   * Id of [[RequestOrNotification]] or [[Response]]
@@ -15,6 +14,11 @@ import org.enso.gateway.Protocol.ShapesDerivation._
 sealed trait Id
 
 object Id {
+  implicit val idEncoder: Encoder[Id] = Encoder.instance {
+    case number: Number => number.asJson
+    case string: String => string.asJson
+  }
+
   implicit val idDecoder: Decoder[Id] = List[Decoder[Id]](
     Decoder[Number].widen,
     Decoder[String].widen
@@ -33,5 +37,4 @@ object Id {
     implicit val idStringEncoder: Encoder[String] = deriveUnwrappedEncoder
     implicit val idStringDecoder: Decoder[String] = deriveUnwrappedDecoder
   }
-
 }

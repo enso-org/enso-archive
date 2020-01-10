@@ -1,10 +1,8 @@
 package org.enso.gateway.protocol.response.error
 
-import io.circe.{Decoder, Encoder}
+import io.circe.Encoder
 import io.circe.generic.extras.semiauto._
-import cats.syntax.functor._
-import io.circe.shapes._
-import org.enso.gateway.Protocol.ShapesDerivation._
+import io.circe.syntax._
 
 /**
   * An element of [[Data.Array]]
@@ -12,39 +10,35 @@ import org.enso.gateway.Protocol.ShapesDerivation._
 sealed trait Datum
 
 object Datum {
-  implicit val datumDecoder: Decoder[Datum] = List[Decoder[Datum]](
-    Decoder[Number].widen,
-    Decoder[Boolean].widen,
-    Decoder[Array].widen,
-    Decoder[String].widen
-  ).reduceLeft(_ or _)
+  implicit val datumEncoder: Encoder[Datum] = Encoder.instance {
+    case string: String   => string.asJson
+    case number: Number   => number.asJson
+    case boolean: Boolean => boolean.asJson
+    case array: Array     => array.asJson
+  }
 
   case class String(value: Predef.String) extends Datum
 
   object String {
     implicit val datumStringEncoder: Encoder[String] = deriveUnwrappedEncoder
-    implicit val datumStringDecoder: Decoder[String] = deriveUnwrappedDecoder
   }
 
   case class Number(value: Int) extends Datum
 
   object Number {
     implicit val datumNumberEncoder: Encoder[Number] = deriveUnwrappedEncoder
-    implicit val datumNumberDecoder: Decoder[Number] = deriveUnwrappedDecoder
   }
 
   case class Boolean(value: scala.Boolean) extends Datum
 
   object Boolean {
     implicit val datumBooleanEncoder: Encoder[Boolean] = deriveUnwrappedEncoder
-    implicit val datumBooleanDecoder: Decoder[Boolean] = deriveUnwrappedDecoder
   }
 
   case class Array(value: Seq[Option[Datum]]) extends Datum
 
   object Array {
     implicit val datumArrayEncoder: Encoder[Array] = deriveUnwrappedEncoder
-    implicit val datumArrayDecoder: Decoder[Array] = deriveUnwrappedDecoder
   }
 
 }

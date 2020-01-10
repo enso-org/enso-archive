@@ -1,18 +1,13 @@
 package org.enso.gateway.protocol.response
 
-import io.circe.{Decoder, Encoder}
-import io.circe.generic.extras.semiauto.{
-  deriveUnwrappedDecoder,
-  deriveUnwrappedEncoder
-}
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.Encoder
+import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
+import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
   ServerInfo
 }
-import cats.syntax.functor._
-import io.circe.shapes._
-import org.enso.gateway.Protocol.ShapesDerivation._
+import io.circe.syntax._
 
 /** LSP Spec:
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
@@ -22,25 +17,23 @@ import org.enso.gateway.Protocol.ShapesDerivation._
 sealed trait Result
 
 object Result {
-  implicit val resultDecoder: Decoder[Result] = List[Decoder[Result]](
-    Decoder[Number].widen,
-    Decoder[Boolean].widen,
-    Decoder[String].widen,
-    Decoder[InitializeResult].widen
-  ).reduceLeft(_ or _)
+  implicit val resultEncoder: Encoder[Result] = Encoder.instance {
+    case string: String                     => string.asJson
+    case number: Number                     => number.asJson
+    case boolean: Boolean                   => boolean.asJson
+    case initializeResult: InitializeResult => initializeResult.asJson
+  }
 
   case class String(value: Predef.String) extends Result
 
   object String {
     implicit val resultStringEncoder: Encoder[String] = deriveUnwrappedEncoder
-    implicit val resultStringDecoder: Decoder[String] = deriveUnwrappedDecoder
   }
 
   case class Number(value: Int) extends Result
 
   object Number {
     implicit val resultNumberEncoder: Encoder[Number] = deriveUnwrappedEncoder
-    implicit val resultNumberDecoder: Decoder[Number] = deriveUnwrappedDecoder
   }
 
   case class Boolean(value: scala.Boolean) extends Result
@@ -48,12 +41,10 @@ object Result {
   object Boolean {
     implicit val resultBooleanEncoder: Encoder[Boolean] =
       deriveUnwrappedEncoder
-    implicit val resultBooleanDecoder: Decoder[Boolean] =
-      deriveUnwrappedDecoder
   }
 
   /**
-    * [[org.enso.gateway.protocol.Initialize]] result
+    * [[org.enso.gateway.protocol.Requests.Initialize]] result
     */
   case class InitializeResult(
     capabilities: ServerCapabilities,
@@ -63,8 +54,5 @@ object Result {
   object InitializeResult {
     implicit val initializeResultEncoder: Encoder[InitializeResult] =
       deriveEncoder
-    implicit val initializeResultDecoder: Decoder[InitializeResult] =
-      deriveDecoder
   }
-
 }

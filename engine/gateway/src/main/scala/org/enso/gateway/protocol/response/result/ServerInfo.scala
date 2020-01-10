@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.response.result
 
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.deriveEncoder
+import io.circe.Encoder
 
 /**
   * [[org.enso.gateway.protocol.response.Result.InitializeResult]] server info
@@ -16,5 +16,4 @@ case class ServerInfo(
 
 object ServerInfo {
   implicit val serverInfoEncoder: Encoder[ServerInfo] = deriveEncoder
-  implicit val serverInfoDecoder: Decoder[ServerInfo] = deriveDecoder
 }

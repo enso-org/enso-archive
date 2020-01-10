@@ -1,12 +1,10 @@
 package org.enso.gateway.protocol.response
 
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
-import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.deriveEncoder
+import io.circe.Encoder
 import org.enso.gateway.protocol.response.error.Data
 import org.enso.gateway.protocol.response.error.Data.InitializeData
-import cats.syntax.functor._
-import io.circe.shapes._
-import org.enso.gateway.Protocol.ShapesDerivation._
+import io.circe.syntax._
 
 /**
   * `ResponseError` in LSP Spec:
@@ -23,12 +21,12 @@ sealed trait Error {
 }
 
 object Error {
-  implicit val errorDecoder: Decoder[Error] = List[Decoder[Error]](
-    Decoder[InitializeError].widen
-  ).reduceLeft(_ or _)
+  implicit val errorEncoder: Encoder[Error] = Encoder.instance {
+    case initializeError: InitializeError => initializeError.asJson
+  }
 
   /**
-    * [[org.enso.gateway.protocol.initialize]] error
+    * [[org.enso.gateway.protocol.Requests.Initialize]] error
     */
   case class InitializeError(
     code: Int, // ErrorCodes.unknownProtocolVersion
@@ -39,8 +37,5 @@ object Error {
   object InitializeError {
     implicit val initializeErrorEncoder: Encoder[InitializeError] =
       deriveEncoder
-    implicit val initializeErrorDecoder: Decoder[InitializeError] =
-      deriveDecoder
   }
-
 }

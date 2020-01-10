@@ -102,8 +102,8 @@ trait Server extends Actor with ActorLogging {
           val msg = s"Server online at ${Server.Config.addressString}"
           log.info(msg)
         case Failure(exception) =>
-          val msg = s"Failed to start server: $exception"
-          log.error(msg)
+          val err = s"Failed to start server: $exception"
+          log.error(err)
           system.terminate()
           System.exit(1)
       }

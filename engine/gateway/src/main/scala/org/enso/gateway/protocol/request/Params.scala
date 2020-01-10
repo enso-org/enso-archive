@@ -1,11 +1,9 @@
 package org.enso.gateway.protocol.request
 
 import io.circe.generic.semiauto._
-import io.circe.{Decoder, Encoder}
+import io.circe.Decoder
 import cats.syntax.functor._
 import org.enso.gateway.Protocol.DocumentUri
-import io.circe.shapes._
-import org.enso.gateway.Protocol.ShapesDerivation._
 import org.enso.gateway.protocol.request.Param.{
   ClientCapabilities,
   ClientInfo,
@@ -27,7 +25,7 @@ object Params {
   ).reduceLeft(_ or _)
 
   /**
-    * Params of the request [[org.enso.gateway.protocol.Initialize]]
+    * Params of the request [[org.enso.gateway.protocol.Requests.Initialize]]
     */
   case class InitializeParams(
     processId: Option[Int]                               = None,
@@ -41,20 +39,16 @@ object Params {
   ) extends Params
 
   object InitializeParams {
-    implicit val initializeParamsEncoder: Encoder[InitializeParams] =
-      deriveEncoder
     implicit val initializeParamsDecoder: Decoder[InitializeParams] =
       deriveDecoder
   }
 
   /**
-    * Params of the notification [[org.enso.gateway.protocol.Initialized]]
+    * Params of the notification [[org.enso.gateway.protocol.Notifications.Initialized]]
     */
   case class InitializedParams() extends Params
 
   object InitializedParams {
-    implicit val initializedParamsEncoder: Encoder[InitializedParams] =
-      deriveEncoder
     implicit val initializedParamsDecoder: Decoder[InitializedParams] =
       deriveDecoder
   }

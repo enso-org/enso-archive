@@ -1,11 +1,9 @@
 package org.enso.gateway.protocol
 
-import io.circe.{Decoder, Encoder}
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.Encoder
+import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.Protocol.jsonRpcVersion
 import org.enso.gateway.protocol.response.Result
-import io.circe.shapes._
-import org.enso.gateway.Protocol.ShapesDerivation._
 
 /**
   * `ResponseMessage` in LSP Spec:
@@ -38,5 +36,4 @@ object Response {
     Response(jsonRpcVersion, id, None, Some(error))
 
   implicit val responseEncoder: Encoder[Response] = deriveEncoder
-  implicit val responseDecoder: Decoder[Response] = deriveDecoder
 }

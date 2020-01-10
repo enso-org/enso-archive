@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities
 
-import io.circe.{Decoder, Encoder}
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.Decoder
+import io.circe.generic.semiauto.deriveDecoder
 
 /**
   * Define capabilities for text document features the client supports
@@ -9,8 +9,6 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 case class TextDocument()
 
 object TextDocument {
-  implicit val clientCapabilitiesTextDocumentEncoder: Encoder[TextDocument] =
-    deriveEncoder
   implicit val clientCapabilitiesTextDocumentDecoder: Decoder[TextDocument] =
     deriveDecoder
 }

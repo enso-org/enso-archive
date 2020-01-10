@@ -10,7 +10,7 @@ import org.enso.gateway.protocol.response.result.{
   ServerInfo
 }
 import org.enso.gateway.{Protocol, Server}
-import org.enso.gateway.protocol.{Initialize, Initialized}
+import org.enso.gateway.protocol.{Notifications, Requests}
 
 /**
   * The gateway component talks directly to clients using protocol messages,
@@ -39,7 +39,7 @@ case class Gateway(languageServer: ActorRef)(
     requestOrNotification: RequestOrNotification
   ): Option[Response] = {
     requestOrNotification match {
-      case req @ Initialize(_, _) =>
+      case req @ Requests.Initialize(_, _) =>
         languageServer ! LanguageServer.Initialize()
 
         Some(
@@ -48,14 +48,14 @@ case class Gateway(languageServer: ActorRef)(
           )
         )
 
-      case Initialized(_) =>
+      case Notifications.Initialized(_) =>
         languageServer ! LanguageServer.Initialized()
         None
 
       case _ =>
-        val msg =
+        val err =
           s"unimplemented request or notification: $requestOrNotification"
-        throw new Exception(msg)
+        throw new Exception(err)
     }
   }
 

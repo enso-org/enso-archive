@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities
 
-import io.circe.{Decoder, Encoder}
-import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.Decoder
+import io.circe.generic.semiauto.deriveDecoder
 
 /**
   * Define capabilities for workspace features the client supports
@@ -11,8 +11,6 @@ case class Workspace(
 )
 
 object Workspace {
-  implicit val clientCapabilitiesWorkspaceEncoder: Encoder[Workspace] =
-    deriveEncoder
   implicit val clientCapabilitiesWorkspaceDecoder: Decoder[Workspace] =
     deriveDecoder
 }

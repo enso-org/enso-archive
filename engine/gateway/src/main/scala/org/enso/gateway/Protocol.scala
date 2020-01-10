@@ -1,11 +1,9 @@
 package org.enso.gateway
 
-import io.circe.{Encoder, Printer}
+import io.circe.Printer
 import io.circe.parser._
-import io.circe.generic.extras.Configuration
 import io.circe.syntax._
 import org.enso.gateway.protocol._
-import org.enso.gateway.Protocol.ShapesDerivation
 
 /**
   * Helper for implementing protocol over text-based transport.
@@ -24,7 +22,6 @@ trait Protocol {
     * See [[Server.getTextOutput]]
     */
   def getTextOutput(input: String): Option[String] = {
-    import ShapesDerivation._
     decode[RequestOrNotification](input) match {
       case Left(err) => throw err
       case Right(requestOrNotification: RequestOrNotification) =>
@@ -49,19 +46,4 @@ object Protocol {
     * Used in [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
   type DocumentUri = String
-
-  /**
-    * Circe Encoders for sealed traits
-    */
-  object ShapesDerivation {
-
-    import shapeless.{Coproduct, Generic}
-
-    implicit def sealedTraitEncoder[A, Repr <: Coproduct](
-      implicit
-      generic: Generic.Aux[A, Repr],
-      coproductEncoder: Encoder[Repr]
-    ): Encoder[A] = coproductEncoder.contramap(generic.to)
-  }
-
 }
