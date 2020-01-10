@@ -26,18 +26,27 @@ object Param {
     Decoder[WorkspaceFolder].widen
   ).reduceLeft(_ or _)
 
+  /**
+    * A string element
+    */
   case class String(value: Predef.String) extends Param
 
   object String {
     implicit val paramStringDecoder: Decoder[String] = deriveUnwrappedDecoder
   }
 
+  /**
+    * A number element
+    */
   case class Number(value: Int) extends Param
 
   object Number {
     implicit val paramNumberDecoder: Decoder[Number] = deriveUnwrappedDecoder
   }
 
+  /**
+    * A boolean element
+    */
   case class Boolean(value: scala.Boolean) extends Param
 
   object Boolean {
@@ -45,6 +54,9 @@ object Param {
       deriveUnwrappedDecoder
   }
 
+  /**
+    * An array element
+    */
   case class Array(value: Seq[Option[Param]]) extends Param
 
   object Array {

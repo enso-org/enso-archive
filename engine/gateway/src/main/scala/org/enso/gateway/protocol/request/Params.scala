@@ -14,6 +14,7 @@ import org.enso.gateway.protocol.request.Param.{
 
 /**
   * [[org.enso.gateway.protocol.RequestOrNotification]] params
+  * Can be array or JSON object
   */
 sealed trait Params
 
@@ -55,6 +56,9 @@ object Params {
       deriveDecoder
   }
 
+  /**
+    * Array params
+    */
   case class Array(value: Seq[Option[Param]]) extends Params
 
   object Array {
