@@ -86,7 +86,6 @@ object Notification {
   private val jsonrpcField = "jsonrpc"
   val methodField          = "method"
   private val paramsField  = "params"
-  private val paramsError  = s"no field $paramsField"
 
   implicit def notificationDecoder[T <: Params]: Decoder[Notification[T]] =
     cursor => {
@@ -96,14 +95,12 @@ object Notification {
       val paramsCursor =
         cursor
           .downField(paramsField)
-          .success
-          .getOrElse(sys.error(paramsError))
       val paramsResult = methodResult
         .flatMap {
           case Requests.Initialize.method =>
-            Decoder[Option[InitializeParams]].apply(paramsCursor)
+            Decoder[Option[InitializeParams]].tryDecode(paramsCursor)
           case Notifications.Initialized.method =>
-            Decoder[Option[InitializedParams]].apply(paramsCursor)
+            Decoder[Option[InitializedParams]].tryDecode(paramsCursor)
           case method =>
             RequestOrNotification.methodError(method)
         }
