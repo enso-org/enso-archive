@@ -7,6 +7,7 @@ import shapeless.{::, HNil}
 
 import scala.collection.mutable
 
+// TODO [AA] Can I macro this into a separate file like AST does?
 class GraphTest extends FlatSpec with Matchers {
   object GraphImpl {
 
@@ -20,6 +21,7 @@ class GraphTest extends FlatSpec with Matchers {
       type Out = Nodes :: Edges :: HNil
     }
 
+    // TODO [AA] Use a type level map/filter to make this more robust
     implicit def nodeFields =
       new PrimGraph.Component.Field.List[Graph, Nodes] {
         type Out = Node.Shape :: Node.ParentLink :: Node.Location :: HNil
@@ -147,6 +149,8 @@ class GraphTest extends FlatSpec with Matchers {
         }
       }
 
+      // TODO [AA] Can do this with fields
+      // TODO [AA] Can generate named accessors
       sealed case class ParentLink() extends PrimGraph.Component.Field
       object ParentLink {
         implicit def sized = new Sized[ParentLink] { type Out = _1 }
@@ -242,6 +246,7 @@ class GraphTest extends FlatSpec with Matchers {
         ): LocationInstance[G, C] = t.wrapped
       };
 
+      // TODO [AA] Want to store this at the graphdata level nicely
       sealed case class NameMap(str: mutable.Map[Int, String])
       sealed case class Name(str: String) extends PrimGraph.Component.Field;
       object Name {
