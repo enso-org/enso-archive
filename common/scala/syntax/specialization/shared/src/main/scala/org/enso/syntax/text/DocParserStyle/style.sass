@@ -4,7 +4,6 @@
 
 body
   -webkit-font-smoothing: antialiased
-  font-style: normal
   word-wrap: break-word
   font-size: 17px
   line-height: 1.52947
@@ -197,7 +196,7 @@ li
 
 
 .Body .Raw
-  padding: 0.75em 0
+  // padding: 0.75em 0
   margin-bottom: 0.6rem
   font-size: 17px
   line-height: 1.52947
@@ -206,11 +205,6 @@ li
   font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
   color: #333333
   font-style: normal
-
-
-.Synopsis .Raw
-  margin-bottom: 2rem
-
 
 .Important,
 .Info,
@@ -258,20 +252,35 @@ li
 
 .Def
   margin: auto
-  padding: 10px 15px
+  padding: 0 15px
 
   .Synopsis,
   .Body,
   .Tags,
   .ASTData
-    padding-left: 0px
+    padding-left: 0
+
+  .Synopsis
+    padding: 0
+    margin-bottom: 15px
+    font-size: 17px
+    font-weight: 400
+    color: #333333
+    font-style: normal
 
   .constr
-    margin-bottom: 40px
+    margin-bottom: 30px
+    padding-top: 15px
 
   .DefDoc
     .Body
       display: none
+
+    .documentation
+      display: inline-flex
+
+      .ASTHead
+        width: 30%
 
 
 .DefTitle
@@ -301,16 +310,16 @@ li
 .Body
   margin: 0 auto
   padding: 5px
-  margin-bottom: 20px
   text-align: left
 
 
 .Synopsis
+  margin-top: 15px
   font-size: 20px
-  line-height: 1.5
-  font-weight: 300
-  letter-spacing: 0.017em
-  border-bottom: 1px solid #d6d6d6
+// line-height: 1.5
+// font-weight: 300
+// letter-spacing: 0.017em
+// border-bottom: 1px solid #d6d6d6
 
 
 .Documentation
@@ -326,7 +335,8 @@ li
     width: 100%
 
   .ASTHead
-    margin: 20px auto
+    margin: 5px auto
+    margin-top: 20px
     background-color: #ffffff
     .DefTitle
       font-size: 42px
@@ -354,6 +364,9 @@ li
   .DefNoBody,
   .DefBody
     max-width: 400px
+
+  .Def
+    padding: 5px
 
 @media (min-width: 500px)
   .Synopsis,
