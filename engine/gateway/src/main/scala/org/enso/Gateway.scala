@@ -23,18 +23,10 @@ case class Gateway(languageServer: ActorRef)(
 ) extends Server
     with Protocol {
 
-  private val serverInfo: ServerInfo = {
-    val gatewayPath      = "gateway"
-    val serverInfoPath   = "serverInfo"
-    val lspNamePath      = "lspName"
-    val lspVersionPath   = "lspVersion"
-    val gatewayConfig    = ConfigFactory.load.getConfig(gatewayPath)
-    val serverInfoConfig = gatewayConfig.getConfig(serverInfoPath)
-    val name             = serverInfoConfig.getString(lspNamePath)
-    val version          = serverInfoConfig.getString(lspVersionPath)
-    ServerInfo(name, Some(version))
-  }
-
+  /**
+    * @param requestOrNotification A request or notification
+    * @return A response for requests, no response for notification
+    */
   override def reply(
     requestOrNotification: RequestOrNotification
   ): Option[Response] = {
@@ -65,6 +57,18 @@ case class Gateway(languageServer: ActorRef)(
       log.info(received.toString)
     case received @ LanguageServer.InitializedReceived() =>
       log.info(received.toString)
+  }
+
+  private val serverInfo: ServerInfo = {
+    val gatewayPath      = "gateway"
+    val serverInfoPath   = "serverInfo"
+    val lspNamePath      = "lspName"
+    val lspVersionPath   = "lspVersion"
+    val gatewayConfig    = ConfigFactory.load.getConfig(gatewayPath)
+    val serverInfoConfig = gatewayConfig.getConfig(serverInfoPath)
+    val name             = serverInfoConfig.getString(lspNamePath)
+    val version          = serverInfoConfig.getString(lspVersionPath)
+    ServerInfo(name, Some(version))
   }
 }
 
