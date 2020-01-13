@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax._
 
 /**
-  * [[org.enso.gateway.protocol.response.Error]] data
+  * Data of [[org.enso.gateway.protocol.response.Error]]
   */
 sealed trait Data
 
@@ -56,7 +56,7 @@ object Data {
   }
 
   /**
-    * [[org.enso.gateway.protocol.Requests.Initialize]] data
+    * Data of [[org.enso.gateway.protocol.Requests.Initialize]]
     */
   case class InitializeData(
     retry: Boolean

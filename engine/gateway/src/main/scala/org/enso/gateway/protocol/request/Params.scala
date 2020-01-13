@@ -13,7 +13,7 @@ import org.enso.gateway.protocol.request.Param.{
 }
 
 /**
-  * [[org.enso.gateway.protocol.RequestOrNotification]] params
+  * Params of [[org.enso.gateway.protocol.RequestOrNotification]]
   * Can be array or JSON object
   */
 sealed trait Params

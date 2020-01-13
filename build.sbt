@@ -484,6 +484,7 @@ lazy val language_server = (project in file("engine/language-server"))
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided
     )
   )
+  .dependsOn(polyglot_api)
 
 lazy val polyglot_api = project
   .in(file("engine/polyglot-api"))

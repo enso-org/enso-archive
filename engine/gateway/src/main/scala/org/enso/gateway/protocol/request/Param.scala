@@ -66,7 +66,8 @@ object Param {
 
   /**
     * A param of the request [[org.enso.gateway.protocol.Requests.Initialize]]
-    * See [[org.enso.gateway.protocol.request.Params.InitializeParams]]
+    *
+    * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
   case class InitializationOptions(value: String) extends Param
 
@@ -77,7 +78,8 @@ object Param {
 
   /**
     * A param of the request [[org.enso.gateway.protocol.Requests.Initialize]]
-    * See [[org.enso.gateway.protocol.request.Params.InitializeParams]]
+    *
+    * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
   case class ClientInfo(
     name: String,
@@ -117,7 +119,8 @@ object Param {
 
   /**
     * A param of the request [[org.enso.gateway.protocol.Requests.Initialize]]
-    * See [[org.enso.gateway.protocol.request.Params.InitializeParams]]
+    *
+    * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
   sealed trait WorkspaceFolder extends Param
 
@@ -152,5 +155,4 @@ object Param {
     implicit val clientCapabilitiesDecoder: Decoder[ClientCapabilities] =
       deriveDecoder
   }
-
 }

@@ -1,13 +1,13 @@
 package org.enso
 
 import akka.actor.{Actor, Props}
-import org.graalvm.polyglot.Context
+import org.enso.polyglot.ExecutionContext
 
 /**
   * The language server component wraps the runtime itself,
   * and uses the APIs provided by the interpreter and the compiler to service the requests sent to the Enso Engine.
   */
-class LanguageServer(context: Context) extends Actor {
+class LanguageServer(context: ExecutionContext) extends Actor {
   override def receive: Receive = {
     case LanguageServer.Initialize() =>
       sender() ! LanguageServer.InitializeReceived()
@@ -38,5 +38,6 @@ object LanguageServer {
     */
   case class InitializedReceived()
 
-  def props(context: Context): Props = Props(new LanguageServer(context))
+  def props(context: ExecutionContext): Props =
+    Props(new LanguageServer(context))
 }

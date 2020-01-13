@@ -23,7 +23,7 @@ case class Gateway(languageServer: ActorRef)(
 ) extends Server
     with Protocol {
 
-  private def loadServerInfo(): ServerInfo = {
+  private val serverInfo: ServerInfo = {
     val gatewayPath      = "gateway"
     val serverInfoPath   = "serverInfo"
     val lspNamePath      = "lspName"
@@ -44,7 +44,7 @@ case class Gateway(languageServer: ActorRef)(
 
         Some(
           req.response(
-            InitializeResult(ServerCapabilities(), Some(loadServerInfo()))
+            InitializeResult(ServerCapabilities(), Some(serverInfo))
           )
         )
 

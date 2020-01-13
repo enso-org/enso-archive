@@ -37,8 +37,10 @@ trait Protocol {
 object Protocol {
 
   /**
-    * JSON-RPC Version must be 2.0.
-    * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#contentPart
+    * A string specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
+    *
+    * @see LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#contentPart
+    * @see JSON-RPC Spec: https://www.jsonrpc.org/specification#request_object
     */
   val jsonRpcVersion = "2.0"
 }
