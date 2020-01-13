@@ -148,7 +148,6 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
-
 class Parser {
   import Parser._
   private val engine = newEngine()
@@ -484,7 +483,11 @@ object Main extends scala.App {
   println("------")
   println(documentation.show())
   println("=========================")
-
+  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
+    documentation,
+    htmlPath,
+    cssFileName
+  )
   println()
 
   AST.main()

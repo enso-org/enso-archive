@@ -476,7 +476,7 @@ object Doc {
         R + newLn + _
       )
     val html: HTML = Seq(
-      HTML.div(htmlCls())(HTML.h2("Overview"))(elems.toList.map(_.html))
+      HTML.div(htmlCls())(elems.toList.map(_.html))
     )
   }
 

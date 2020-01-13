@@ -57,8 +57,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
-  def run(input: String): Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
+  def run(input: String):        Result[Doc] = new DocParser().run(input)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -278,6 +278,28 @@ object DocParserRunner {
   */
 object DocParserHTMLGenerator {
 
+  /**
+    * This method is used for generation of HTML files from parsed and
+    * reformatted [[AST.Documented]]
+    *
+    * @param ast - parsed AST.Module and reformatted using Doc Parser
+    * @param path - path to save file
+    * @param cssFileName - name of file containing stylesheets for the HTML code
+    */
+  def generateHTMLForEveryDocumented(
+    ast: AST,
+    path: String,
+    cssFileName: String
+  ): Unit = {
+    ast.map { elem =>
+      elem match {
+        case AST.Documented.any(d) =>
+          val file = onHTMLRendering(d, cssFileName)
+          print(file)
+      }
+      elem
+    }
+  }
 
   //////////////////////////////////////////////////////////////////////////////
   //// HTML Rendering of Documentation /////////////////////////////////////////
@@ -336,6 +358,7 @@ object DocParserHTMLGenerator {
     doc: Doc
   ): TypedTag[String] = {
     val astHeadCls = HTML.`class` := "ASTHead"
+    // FIXME [MM] - Don't add body when in Constructors/Methods
     val astBodyCls = HTML.`class` := "ASTData"
     val astHTML    = createHTMLFromAST(ast)
     val astName    = Seq(HTML.div(astHeadCls)(astHTML.header))
