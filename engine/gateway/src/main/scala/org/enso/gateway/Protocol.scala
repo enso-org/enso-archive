@@ -12,7 +12,8 @@ import org.enso.gateway.protocol._
 trait Protocol {
 
   /**
-    * Generate a [[Response]] for a given [[Request]], no [[Response]] for a [[Notification]].
+    * @param requestOrNotification A [[Request]] or [[Notification]]
+    * @return A response for requests, no response for notification
     */
   def reply(
     requestOrNotification: RequestOrNotification

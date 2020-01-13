@@ -23,10 +23,6 @@ case class Gateway(languageServer: ActorRef)(
 ) extends Server
     with Protocol {
 
-  /**
-    * @param requestOrNotification A request or notification
-    * @return A response for requests, no response for notification
-    */
   override def reply(
     requestOrNotification: RequestOrNotification
   ): Option[Response] = {
