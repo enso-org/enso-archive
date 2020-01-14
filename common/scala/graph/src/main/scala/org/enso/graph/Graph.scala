@@ -3,6 +3,8 @@ package org.enso.graph
 import shapeless.ops.{hlist, nat}
 import shapeless.{::, HList, HNil, IsDistinctConstraint, KeyConstraint, Nat}
 
+import scala.collection.mutable
+
 // Don't use AnyType here, as it gets boxed sometimes.
 import io.estatico.newtype.macros.newtype
 
@@ -247,27 +249,36 @@ object SizeUntil {
     }
 }
 
-/** Produces a [[HList]] of pairs of `(Type, Vector[Type])` from a [[HList]] of
+/** Produces a [[HList]] of pairs of `(Type, Map[Type])` from a [[HList]] of
   * types.
+  *
+  * The map it produces is a scala [[mutable.Map]]. Additionally, it has a
+  * constraint that no type may appear twice in the input list.
   *
   * @tparam List the list to start from
   */
-trait VectorsOf[List <: HList] {
+trait MapsOf[List <: HList] {
   type Out <: HList
 }
-object VectorsOf {
-  type Aux[List <: HList, X] = VectorsOf[List] { type Out = X }
+object MapsOf {
+  type Aux[List <: HList, X] = MapsOf[List] { type Out = X }
 
-  def apply[List <: HList](implicit ev: VectorsOf[List]): Aux[List, ev.Out] = ev
+  def apply[List <: HList](implicit ev: MapsOf[List]): Aux[List, ev.Out] = ev
 
-  implicit def onNil: VectorsOf.Aux[HNil, HNil] =
-    new VectorsOf[HNil] { type Out = HNil }
+  implicit def onNil: MapsOf.Aux[HNil, HNil] =
+    new MapsOf[HNil] { type Out = HNil }
 
   implicit def onCons[Head, Tail <: HList](
-    implicit ev: VectorsOf[Tail],
+    implicit ev: MapsOf[Tail],
     distinct: IsDistinctConstraint[Head :: Tail]
-  ): VectorsOf.Aux[Head :: Tail, (Head, Vector[Head]) :: ev.Out] =
-    new VectorsOf[Head :: Tail] { type Out = (Head, Vector[Head]) :: ev.Out }
+  ): MapsOf.Aux[Head :: Tail, (Head, mutable.Map[Int, Head]) :: ev.Out] =
+    new MapsOf[Head :: Tail] {
+      type Out = (Head, mutable.Map[Int, Head]) :: ev.Out
+    }
+}
+
+trait OpaqueDataFor[T, List <: HList] {
+  type Out <: mutable.Map[Int, T]
 }
 
 // ============================================================================

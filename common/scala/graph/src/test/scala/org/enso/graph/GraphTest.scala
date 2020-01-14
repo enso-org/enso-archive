@@ -3,11 +3,12 @@ package org.enso.graph
 import org.enso.graph.{Graph => PrimGraph}
 import org.scalatest.{FlatSpec, Matchers}
 import shapeless.nat._
-import shapeless.{::, HNil}
+import shapeless.{::, HList, HNil, Poly1}
 
 import scala.collection.mutable
 
 // TODO [AA] Can I macro this into a separate file like AST does?
+// TODO [AA] Have a test with macros and a test without macros
 class GraphTest extends FlatSpec with Matchers {
   object GraphImpl {
 
@@ -150,7 +151,7 @@ class GraphTest extends FlatSpec with Matchers {
       }
 
       // TODO [AA] Can do this with fields
-      // TODO [AA] Can generate named accessors
+      // TODO [AA] Can generate named accessor for the base type
       sealed case class ParentLink() extends PrimGraph.Component.Field
       object ParentLink {
         implicit def sized = new Sized[ParentLink] { type Out = _1 }
@@ -246,7 +247,9 @@ class GraphTest extends FlatSpec with Matchers {
         ): LocationInstance[G, C] = t.wrapped
       };
 
+      // TODO [AA] Variants should be able to support nested types.
       // TODO [AA] Want to store this at the graphdata level nicely
+      // TODO [AA] How to macro this -> Opaque[T]
       sealed case class NameMap(str: mutable.Map[Int, String])
       sealed case class Name(str: String) extends PrimGraph.Component.Field;
       object Name {
@@ -413,5 +416,21 @@ class GraphTest extends FlatSpec with Matchers {
     e2.source = n3
 
     e2.source shouldEqual n3
+  }
+
+  trait InstantiateHList[List <: HList] {
+    type Out <: HList
+    val instance: List
+  }
+  object InstantiateHList{
+    type Aux[List <: HList, X] = InstantiateHList[List] { type Out = X }
+
+    // TODO [AA] Make the thingy work
+  }
+
+  "Testing a thing" should "work" in {
+    type MyList = String :: Double :: HNil
+    type MyMapList = MapsOf[MyList]
+
   }
 }

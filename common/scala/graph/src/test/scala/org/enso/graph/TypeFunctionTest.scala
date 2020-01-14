@@ -3,6 +3,8 @@ package org.enso.graph
 import shapeless.{::, HNil}
 import shapeless.Nat._
 
+import scala.collection.mutable
+
 object TypeFunctionTest {
 
   object HListSumTest {
@@ -49,16 +51,19 @@ object TypeFunctionTest {
     implicitly[SizeUntil.Aux[C, A :: B :: C :: HNil, _4]]
   }
 
-  object VectorsOfTest {
+  object MapsOfTest {
     case class A()
     case class B()
     case class C()
 
-    implicitly[VectorsOf.Aux[HNil, HNil]]
-    implicitly[VectorsOf.Aux[Double :: HNil, (Double, Vector[Double]) :: HNil]]
-    implicitly[VectorsOf.Aux[
+    implicitly[MapsOf.Aux[HNil, HNil]]
+    implicitly[
+      MapsOf.Aux[Double :: HNil, (Double, mutable.Map[Int, Double]) :: HNil]
+    ]
+    implicitly[MapsOf.Aux[
       String :: Double :: HNil,
-      (String, Vector[String]) :: (Double, Vector[Double]) :: HNil
+      (String, mutable.Map[Int, String])
+      :: (Double, mutable.Map[Int, Double]) :: HNil
     ]]
   }
 }
