@@ -3,10 +3,7 @@ package org.enso.interpreter.node.callable.dispatch;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.BaseNode;
-import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
-import org.enso.interpreter.node.callable.ExecuteCallNode;
-import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.InvokeCallableNodeGen;
+import org.enso.interpreter.node.callable.*;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
@@ -24,6 +21,7 @@ public class CurryNode extends BaseNode {
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
   private @Child CaptureCallerInfoNode captureCallerInfoNode;
+  private @Child SpyOnMeBabyNode spyOnMeBabyNode = new SpyOnMeBabyNode();
 
   private CurryNode(
       FunctionSchema originalSchema,
@@ -134,6 +132,7 @@ public class CurryNode extends BaseNode {
 
   private Stateful doCall(
       Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
+    spyOnMeBabyNode.execute(null, function, callerInfo, state, arguments);
     if (preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
       return directCall.executeCall(function, callerInfo, state, arguments);
     } else if (isTail()) {

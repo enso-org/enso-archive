@@ -5,7 +5,6 @@ import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 
-import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 /**
@@ -15,10 +14,10 @@ import java.util.function.Consumer;
  * executed for the first time, passing the node's return value to the callback.
  */
 @TruffleInstrument.Registration(
-    id = ValueExtractorInstrument.INSTRUMENT_ID,
-    services = ValueExtractorInstrument.class)
-public class ValueExtractorInstrument extends TruffleInstrument {
-  public static final String INSTRUMENT_ID = "value-extractor";
+    id = FunctionCallExtractorInstrument.INSTRUMENT_ID,
+    services = FunctionCallExtractorInstrument.class)
+public class FunctionCallExtractorInstrument extends TruffleInstrument {
+  public static final String INSTRUMENT_ID = "function-call-extractor";
   private Env env;
 
   /**
@@ -39,12 +38,12 @@ public class ValueExtractorInstrument extends TruffleInstrument {
   public static class ValueEventListener implements ExecutionEventListener {
     private EventBinding<ValueEventListener> binding;
     private final Consumer<Object> callback;
-    private final int start;
-    private final int length;
+    //    private final int start;
+    //    private final int length;
 
-    private ValueEventListener(int start, int length, Consumer<Object> callback) {
-      this.start = start;
-      this.length = length;
+    private ValueEventListener(/*int start, int length, */ Consumer<Object> callback) {
+      //      this.start = start;
+      //      this.length = length;
       this.callback = callback;
     }
 
@@ -57,18 +56,18 @@ public class ValueExtractorInstrument extends TruffleInstrument {
      *
      * @return the start location for this listener
      */
-    public int getStart() {
-      return start;
-    }
+    //    public int getStart() {
+    //      return start;
+    //    }
 
     /**
      * Get the source length of the nodes expected by this listener.
      *
      * @return the source length for this listener
      */
-    public int getLength() {
-      return length;
-    }
+    //    public int getLength() {
+    //      return length;
+    //    }
 
     /**
      * Was a node with parameters specified for this listener encountered in the course of
@@ -81,7 +80,7 @@ public class ValueExtractorInstrument extends TruffleInstrument {
     }
 
     @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {}
+    public void onEnter(EventContext context, VirtualFrame frame) {System.out.println("ENT");}
 
     /**
      * Checks if the node to be executed is the node this listener was created to observe and
@@ -93,15 +92,16 @@ public class ValueExtractorInstrument extends TruffleInstrument {
      */
     @Override
     public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-      Node node = context.getInstrumentedNode();
-      SourceSection section = node.getSourceSection();
-      if (section == null || !section.hasCharIndex()) {
-        return;
-      }
-      if (section.getCharIndex() == start && section.getCharLength() == length) {
-        binding.dispose();
-        callback.accept(result);
-      }
+      System.out.println("LEAVE");
+//      Node node = context.getInstrumentedNode();
+//      SourceSection section = node.getSourceSection();
+//      if (section == null || !section.hasCharIndex()) {
+//        return;
+//      }
+      //      if (section.getCharIndex() == start && section.getCharLength() == length) {
+      //        binding.dispose();
+      callback.accept(result);
+      //      }
     }
 
     @Override
@@ -118,15 +118,18 @@ public class ValueExtractorInstrument extends TruffleInstrument {
    * @return a reference to attached event listener
    */
   public EventBinding<ValueEventListener> bindTo(
-      int sourceStart, int length, Consumer<Object> callback) {
-    ValueEventListener listener = new ValueEventListener(sourceStart, length, callback);
+      /*int sourceStart, int length, */ Consumer<Object> callback) {
+    ValueEventListener listener = new ValueEventListener(/*sourceStart, length,*/ callback);
 
     EventBinding<ValueEventListener> binding =
         env.getInstrumenter()
             .attachExecutionEventListener(
-                SourceSectionFilter.newBuilder() /*.indexIn(sourceStart, length)*/.build(),
+                SourceSectionFilter.newBuilder()
+                    .tagIs(StandardTags.CallTag.class) /*indexIn(sourceStart, length)*/
+                    .build(),
                 listener);
     listener.setBinding(binding);
+    System.out.println("SET");
     return binding;
   }
 }
