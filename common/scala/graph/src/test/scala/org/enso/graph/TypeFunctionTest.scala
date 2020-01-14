@@ -58,12 +58,11 @@ object TypeFunctionTest {
 
     implicitly[MapsOf.Aux[HNil, HNil]]
     implicitly[
-      MapsOf.Aux[Double :: HNil, (Double, mutable.Map[Int, Double]) :: HNil]
+      MapsOf.Aux[Double :: HNil, mutable.Map[Int, Double] :: HNil]
     ]
     implicitly[MapsOf.Aux[
       String :: Double :: HNil,
-      (String, mutable.Map[Int, String])
-      :: (Double, mutable.Map[Int, Double]) :: HNil
+      mutable.Map[Int, String] :: mutable.Map[Int, Double] :: HNil
     ]]
   }
 }

@@ -366,15 +366,8 @@ class GraphTest extends FlatSpec with Matchers {
   n1.line   = 10
   n1.column = 5
 
-  println(n1.location)
-
   n1.location = Node.Location(1, 2);
-
-  println(n1.location)
-
   n1.name = "foo"
-
-  println(n1.name)
 
   // This is just dirty and very unsafe way of changing `n1` to be App!
   graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](n1.ix, 0, 1)
@@ -418,19 +411,16 @@ class GraphTest extends FlatSpec with Matchers {
     e2.source shouldEqual n3
   }
 
-  trait InstantiateHList[List <: HList] {
-    type Out <: HList
-    val instance: List
-  }
-  object InstantiateHList{
-    type Aux[List <: HList, X] = InstantiateHList[List] { type Out = X }
-
-    // TODO [AA] Make the thingy work
-  }
-
   "Testing a thing" should "work" in {
     type MyList = String :: Double :: HNil
     type MyMapList = MapsOf[MyList]
 
+    type TestType = mutable.Map[Int, String] :: mutable.Map[Int, Double] :: HNil
+
+    implicitly[MapsOf.Aux[MyList, TestType]]
+
+    val testy = MkHListOfMaps[TestType].instance
+
+    println(testy)
   }
 }

@@ -1,7 +1,7 @@
 package org.enso.graph
 
 import shapeless.ops.{hlist, nat}
-import shapeless.{::, HList, HNil, IsDistinctConstraint, KeyConstraint, Nat}
+import shapeless.{::, HList, HNil, IsDistinctConstraint, Nat}
 
 import scala.collection.mutable
 
@@ -263,7 +263,9 @@ trait MapsOf[List <: HList] {
 object MapsOf {
   type Aux[List <: HList, X] = MapsOf[List] { type Out = X }
 
-  def apply[List <: HList](implicit ev: MapsOf[List]): Aux[List, ev.Out] = ev
+  def apply[List <: HList](
+    implicit ev: MapsOf[List]
+  ): MapsOf.Aux[List, ev.Out] = ev
 
   implicit def onNil: MapsOf.Aux[HNil, HNil] =
     new MapsOf[HNil] { type Out = HNil }
@@ -271,14 +273,49 @@ object MapsOf {
   implicit def onCons[Head, Tail <: HList](
     implicit ev: MapsOf[Tail],
     distinct: IsDistinctConstraint[Head :: Tail]
-  ): MapsOf.Aux[Head :: Tail, (Head, mutable.Map[Int, Head]) :: ev.Out] =
+  ): MapsOf.Aux[Head :: Tail, mutable.Map[Int, Head] :: ev.Out] =
     new MapsOf[Head :: Tail] {
-      type Out = (Head, mutable.Map[Int, Head]) :: ev.Out
+      type Out = mutable.Map[Int, Head] :: ev.Out
     }
 }
 
-trait OpaqueDataFor[T, List <: HList] {
-  type Out <: mutable.Map[Int, T]
+trait MkHListOfMaps[List <: HList] {
+  type Out <: HList
+  val instance: HList
+}
+object MkHListOfMaps {
+  type Aux[List <: HList, X] = MkHListOfMaps[List] { type Out = X }
+
+  def apply[List <: HList](
+    implicit ev: MkHListOfMaps[List]
+  ): MkHListOfMaps.Aux[List, ev.Out] = ev
+
+  implicit def onNil: MkHListOfMaps.Aux[HNil, HNil] =
+    new MkHListOfMaps[HNil] {
+      type Out = HNil
+      val instance = HNil
+    }
+
+  implicit def onCons[T, Tail <: HList](
+    implicit ev: MkHListOfMaps[Tail]
+  ): MkHListOfMaps.Aux[mutable.Map[Int, T] :: Tail, mutable.Map[Int, T] :: ev.Out] = {
+    new MkHListOfMaps[mutable.Map[Int, T] :: Tail] {
+      type Out = mutable.Map[Int, T] :: ev.Out
+      val instance = mutable.Map[Int, T]() :: ev.instance
+    }
+  }
+}
+
+object tests {
+  type MyList    = String :: Double :: HNil
+
+  val x = MapsOf[MyList]
+  type MyMapList = x.Out
+  type TestType = mutable.Map[Int, String] :: mutable.Map[Int, Double] :: HNil
+
+  implicitly[MapsOf.Aux[MyList, TestType]]
+
+  val test = MkHListOfMaps[MyMapList].instance
 }
 
 // ============================================================================
