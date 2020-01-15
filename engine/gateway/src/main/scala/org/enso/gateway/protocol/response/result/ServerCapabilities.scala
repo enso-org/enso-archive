@@ -30,6 +30,31 @@ import org.enso.gateway.protocol.response.result.servercapabilities.{
 
 /**
   * [[org.enso.gateway.protocol.response.Result.InitializeResult]] server capabilities
+  *
+  * @param textDocumentSync                 @see [[TextDocumentSync]]
+  * @param completionProvider               @see [[CompletionOptions]]
+  * @param hoverProvider                    @see [[HoverProvider]]
+  * @param signatureHelpProvider            @see [[SignatureHelpOptions]]
+  * @param declarationProvider              @see [[DeclarationProvider]]
+  * @param definitionProvider               @see [[DefinitionProvider]]
+  * @param typeDefinitionProvider           @see [[TypeDefinitionProvider]]
+  * @param implementationProvider           @see [[ImplementationProvider]]
+  * @param referencesProvider               @see [[ReferencesProvider]]
+  * @param documentHighlightProvider        @see [[DocumentHighlightProvider]]
+  * @param documentSymbolProvider           @see [[DocumentSymbolProvider]]
+  * @param codeActionProvider               @see [[CodeActionProvider]]
+  * @param codeLensProvider                 @see [[CodeLensProvider]]
+  * @param documentLinkProvider             @see [[DocumentLinkProvider]]
+  * @param colorProvider                    @see [[ColorProvider]]
+  * @param documentFormattingProvider       @see [[DocumentFormattingProvider]]
+  * @param documentRangeFormattingProvider  @see [[DocumentRangeFormattingProvider]]
+  * @param documentOnTypeFormattingProvider @see [[DocumentOnTypeFormattingProvider]]
+  * @param renameProvider                   @see [[RenameProvider]]
+  * @param foldingRangeProvider             @see [[FoldingRangeProvider]]
+  * @param executeCommandProvider           @see [[ExecuteCommandOptions]]
+  * @param workspaceSymbolProvider          The server provides workspace symbol support
+  * @param workspace                        @see [[Workspace]]
+  * @param experimental                     @see [[Experimental]]
   */
 case class ServerCapabilities(
   textDocumentSync: Option[TextDocumentSync]                     = None,

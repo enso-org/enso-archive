@@ -12,6 +12,14 @@ import org.enso.gateway.protocol.request.clientcapabilities.workspace.{
 
 /**
   * Define capabilities for workspace features the client supports
+  *
+  * @param applyEdit              The client supports applying batch edits to the workspace
+  *                               by supporting the request 'workspace/applyEdit'
+  * @param workspaceEdit          @see [[Edit]]
+  * @param didChangeConfiguration @see [[DidChangeConfiguration]]
+  * @param didChangeWatchedFiles  @see [[DidChangeWatchedFiles]]
+  * @param symbol                 @see [[WorkspaceSymbol]]
+  * @param executeCommand         @see [[ExecuteCommand]]
   */
 case class Workspace(
   applyEdit: Option[Boolean]                             = None,
