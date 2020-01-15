@@ -1,6 +1,7 @@
 package org.enso.interpreter;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.Scope;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.TruffleLanguage;
 import com.oracle.truffle.api.debug.DebuggerTags;
@@ -11,9 +12,10 @@ import org.enso.interpreter.builder.FileDetector;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.RuntimeOptions;
-import org.enso.interpreter.runtime.scope.LocalScope;
-import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.polyglot.LanguageInfo;
 import org.graalvm.options.OptionDescriptors;
+
+import java.util.Collections;
 
 /**
  * The root of the Enso implementation.
@@ -25,12 +27,12 @@ import org.graalvm.options.OptionDescriptors;
  * <p>See {@link TruffleLanguage} for more information on the lifecycle of a language.
  */
 @TruffleLanguage.Registration(
-    id = Constants.LANGUAGE_ID,
-    name = Constants.LANGUAGE_NAME,
-    implementationName = Constants.IMPL_NAME,
-    version = Constants.LANGUAGE_VERSION,
-    defaultMimeType = Constants.MIME_TYPE,
-    characterMimeTypes = {Constants.MIME_TYPE},
+    id = LanguageInfo.ID,
+    name = LanguageInfo.NAME,
+    implementationName = LanguageInfo.IMPLEMENTATION,
+    version = LanguageInfo.VERSION,
+    defaultMimeType = LanguageInfo.MIME_TYPE,
+    characterMimeTypes = {LanguageInfo.MIME_TYPE},
     contextPolicy = TruffleLanguage.ContextPolicy.SHARED,
     fileTypeDetectors = FileDetector.class)
 @ProvidedTags({
@@ -41,7 +43,6 @@ import org.graalvm.options.OptionDescriptors;
   StandardTags.TryBlockTag.class
 })
 public final class Language extends TruffleLanguage<Context> {
-
   /**
    * Creates a new Enso context.
    *
@@ -84,15 +85,7 @@ public final class Language extends TruffleLanguage<Context> {
    */
   @Override
   protected CallTarget parse(ParsingRequest request) {
-    RootNode root =
-        new ProgramRootNode(
-            this,
-            new LocalScope(),
-            new ModuleScope(),
-            "root",
-            request.getSource().createUnavailableSection(),
-            request.getSource());
-
+    RootNode root = new ProgramRootNode(this, request.getSource());
     return Truffle.getRuntime().createCallTarget(root);
   }
 
@@ -106,12 +99,23 @@ public final class Language extends TruffleLanguage<Context> {
   }
 
   /**
-   * Returns the supported options descriptors, for use by Graal's engine.
+   * Returns the supported options descriptors, for use by Graal's engine. `
    *
    * @return The supported options descriptors
    */
   @Override
   protected OptionDescriptors getOptionDescriptors() {
     return RuntimeOptions.OPTION_DESCRIPTORS;
+  }
+
+  /**
+   * Returns the top scope of the requested context.
+   *
+   * @param context the context holding the top scope.
+   * @return a singleton collection containing the context's top scope.
+   */
+  @Override
+  protected Iterable<Scope> findTopScopes(Context context) {
+    return Collections.singleton(context.compiler().topScope().getScope());
   }
 }
