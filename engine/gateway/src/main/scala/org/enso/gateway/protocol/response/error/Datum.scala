@@ -11,19 +11,19 @@ sealed trait Datum
 
 object Datum {
   implicit val datumEncoder: Encoder[Datum] = Encoder.instance {
-    case string: String   => string.asJson
-    case number: Number   => number.asJson
-    case boolean: Boolean => boolean.asJson
-    case array: Array     => array.asJson
+    case text: Text     => text.asJson
+    case number: Number => number.asJson
+    case boolean: Bool  => boolean.asJson
+    case array: Array   => array.asJson
   }
 
   /**
     * A string element
     */
-  case class String(value: Predef.String) extends Datum
+  case class Text(value: String) extends Datum
 
-  object String {
-    implicit val datumStringEncoder: Encoder[String] = deriveUnwrappedEncoder
+  object Text {
+    implicit val datumStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
   }
 
   /**
@@ -38,10 +38,10 @@ object Datum {
   /**
     * A boolean element
     */
-  case class Boolean(value: scala.Boolean) extends Datum
+  case class Bool(value: Boolean) extends Datum
 
-  object Boolean {
-    implicit val datumBooleanEncoder: Encoder[Boolean] = deriveUnwrappedEncoder
+  object Bool {
+    implicit val datumBooleanEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
 
   /**

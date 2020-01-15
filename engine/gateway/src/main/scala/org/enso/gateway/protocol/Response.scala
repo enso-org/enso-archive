@@ -3,7 +3,7 @@ package org.enso.gateway.protocol
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.Protocol.jsonRpcVersion
-import org.enso.gateway.protocol.response.Result
+import org.enso.gateway.protocol.response.{ResponseError, Result}
 
 /**
   * `ResponseMessage` in LSP Spec:
@@ -18,7 +18,7 @@ case class Response private (
   jsonrpc: String,
   id: Option[Id],
   result: Option[Result],
-  error: Option[response.Error]
+  error: Option[ResponseError]
 )
 
 object Response {
@@ -26,14 +26,20 @@ object Response {
   /**
     * Create response with a result
     */
-  def result(id: Option[Id] = None, result: Result): Response =
+  def result(
+    id: Option[Id] = None,
+    result: Result
+  ): Response =
     Response(jsonRpcVersion, id, Some(result), None)
 
   /**
     * Create response with an error
     */
-  def error(id: Option[Id] = None, error: response.Error): Response =
+  def error(
+    id: Option[Id] = None,
+    error: ResponseError
+  ): Response =
     Response(jsonRpcVersion, id, None, Some(error))
 
-  implicit val responseEncoder: Encoder[Response] = deriveEncoder
+  implicit def responseEncoder: Encoder[Response] = deriveEncoder
 }

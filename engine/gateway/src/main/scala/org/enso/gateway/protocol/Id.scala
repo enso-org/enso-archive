@@ -16,12 +16,12 @@ sealed trait Id
 object Id {
   implicit val idEncoder: Encoder[Id] = Encoder.instance {
     case number: Number => number.asJson
-    case string: String => string.asJson
+    case string: Text   => string.asJson
   }
 
   implicit val idDecoder: Decoder[Id] = List[Decoder[Id]](
     Decoder[Number].widen,
-    Decoder[String].widen
+    Decoder[Text].widen
   ).reduceLeft(_ or _)
 
   /**
@@ -37,11 +37,11 @@ object Id {
   /**
     * A string id
     */
-  case class String(value: Predef.String) extends Id
+  case class Text(value: String) extends Id
 
-  object String {
-    implicit val idStringEncoder: Encoder[String] = deriveUnwrappedEncoder
-    implicit val idStringDecoder: Decoder[String] = deriveUnwrappedDecoder
+  object Text {
+    implicit val idStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
+    implicit val idStringDecoder: Decoder[Text] = deriveUnwrappedDecoder
   }
 
 }

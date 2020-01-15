@@ -1,6 +1,6 @@
-package org.enso.gateway.protocol
+package org.enso.gateway.protocol.response.error
 
-object ErrorCodes {
+object ErrorCode {
   // Defined by JSON RPC
   val parseError: Int           = -32700
   val invalidRequest: Int       = -32600

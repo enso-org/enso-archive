@@ -6,26 +6,27 @@ import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax._
 
 /**
-  * Data of [[org.enso.gateway.protocol.response.Error]]
+  * Data of [[org.enso.gateway.protocol.response.ResponseError]]
   */
 sealed trait Data
 
 object Data {
   implicit val dataEncoder: Encoder[Data] = Encoder.instance {
-    case string: String                 => string.asJson
+    case text: Text                     => text.asJson
     case number: Number                 => number.asJson
-    case boolean: Boolean               => boolean.asJson
+    case boolean: Bool                  => boolean.asJson
     case array: Array                   => array.asJson
+    case parseData: ParseData           => parseData.asJson
     case initializeData: InitializeData => initializeData.asJson
   }
 
   /**
     * A string data
     */
-  case class String(value: Predef.String) extends Data
+  case class Text(value: String) extends Data
 
-  object String {
-    implicit val dataStringEncoder: Encoder[String] = deriveUnwrappedEncoder
+  object Text {
+    implicit val dataStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
   }
 
   /**
@@ -40,10 +41,10 @@ object Data {
   /**
     * A boolean data
     */
-  case class Boolean(value: scala.Boolean) extends Data
+  case class Bool(value: Boolean) extends Data
 
-  object Boolean {
-    implicit val dataBooleanEncoder: Encoder[Boolean] = deriveUnwrappedEncoder
+  object Bool {
+    implicit val dataBooleanEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
 
   /**
@@ -53,6 +54,15 @@ object Data {
 
   object Array {
     implicit val dataArrayEncoder: Encoder[Array] = deriveUnwrappedEncoder
+  }
+
+  case class ParseData(
+    json: String,
+    circeMessage: String
+  ) extends Data
+
+  object ParseData {
+    implicit val parseDataEncoder: Encoder[ParseData] = deriveEncoder
   }
 
   /**

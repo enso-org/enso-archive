@@ -1,7 +1,8 @@
 package org.enso.gateway
 
 import akka.NotUsed
-import akka.actor.{Actor, ActorLogging, ActorSystem}
+import akka.actor.ActorSystem
+import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.BinaryMessage
 import akka.http.scaladsl.model.ws.Message
@@ -12,8 +13,10 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
+import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 
+import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
 
@@ -21,12 +24,22 @@ object Server {
 
   /** Describes endpoint to which [[Server]] can bind. */
   object Config {
-    private val config: Config       = ConfigFactory.load.getConfig("gateway")
-    private val serverConfig: Config = config.getConfig("server")
-    val host: String                 = serverConfig.getString("host")
-    val port: Int                    = serverConfig.getInt("port")
-    val route: String                = serverConfig.getString("route")
-    val addressString: String        = s"ws://$host:$port"
+    private val gatewayPath = "gateway"
+    private val serverPath  = "server"
+    private val hostPath    = "host"
+    private val portPath    = "port"
+    private val routePath   = "route"
+    private val timeoutPath = "timeout"
+    private val gatewayConfig: Config =
+      ConfigFactory.load.getConfig(gatewayPath)
+    private val serverConfig: Config = gatewayConfig.getConfig(serverPath)
+    val host: String                 = serverConfig.getString(hostPath)
+    val port: Int                    = serverConfig.getInt(portPath)
+    val route: String                = serverConfig.getString(routePath)
+    implicit val timeout: Timeout = Timeout(
+      serverConfig.getLong(timeoutPath).seconds
+    )
+    val addressString: String = s"ws://$host:$port"
   }
 }
 
@@ -38,14 +51,19 @@ object Server {
   * Server replies to each incoming text request with a single text response, no response for notifications.
   * Server accepts a single Text Message from a peer and responds with another Text Message.
   */
-trait Server extends Actor with ActorLogging {
-  implicit val system: ActorSystem
-  implicit val materializer: ActorMaterializer
+class Server(protocol: Protocol)(
+  implicit
+  system: ActorSystem,
+  materializer: ActorMaterializer
+) {
 
   import system.dispatcher
+  import Server.Config.timeout
 
-  /** Generate text reply for given request text message, no reply for notification. */
-  def getTextOutput(input: String): Option[String]
+  val log: LoggingAdapter = Logging.getLogger(system, this)
+
+  //  /** Generate text reply for given request text message, no reply for notification. */
+  //  def getTextOutput(input: String): Option[String]
 
   /** Akka stream defining server behavior.
     *
@@ -57,13 +75,18 @@ trait Server extends Actor with ActorLogging {
       .flatMapConcat {
         case tm: TextMessage =>
           val strict = tm.textStream.fold("")(_ + _)
-          strict.flatMapConcat(
-            input =>
-              getTextOutput(input) match {
-                case Some(output) => Source.single(TextMessage(output))
-                case None         => Source.empty
-              }
-          )
+          strict
+            .flatMapConcat(
+              input =>
+                Source
+                  .fromFuture(
+                    protocol.getTextOutput(input)
+                  )
+            )
+            .flatMapConcat {
+              case Some(input) => Source.single(TextMessage(input))
+              case None        => Source.empty
+            }
         case bm: BinaryMessage =>
           bm.dataStream.runWith(Sink.ignore)
           Source.empty
@@ -99,8 +122,13 @@ trait Server extends Actor with ActorLogging {
     bindingFuture
       .onComplete {
         case Success(_) =>
-          val msg = s"Server online at ${Server.Config.addressString}"
-          log.info(msg)
+          val serverOnlineMessage =
+            s"Server online at ${Server.Config.addressString}"
+          val shutDownMessage = "Press ENTER to shut down"
+          Seq(
+            serverOnlineMessage,
+            shutDownMessage
+          ).foreach(log.info)
         case Failure(exception) =>
           val err = s"Failed to start server: $exception"
           log.error(err)

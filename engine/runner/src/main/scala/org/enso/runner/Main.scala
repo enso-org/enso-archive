@@ -9,6 +9,7 @@ import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.ActorMaterializer
+import org.enso.gateway.Protocol
 
 import scala.io.StdIn
 import scala.util.Try
@@ -184,17 +185,18 @@ object Main {
     implicit val materializer: ActorMaterializer =
       ActorMaterializer.create(system)
 
+    val languageServerActorName = "languageServer"
+    val gatewayActorName        = "gateway"
     val languageServer: ActorRef =
-      system.actorOf(LanguageServer.props(context), "languageServer")
+      system.actorOf(LanguageServer.props(context), languageServerActorName)
     val gateway: ActorRef =
-      system.actorOf(Gateway.props(languageServer), "gateway")
+      system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
-    gateway ! Gateway.Start()
+    val protocol = new Protocol(gateway)
+    val server   = new org.enso.gateway.Server(protocol)
+    server.run()
 
-    val consoleMessage = "Press ENTER to shut down"
-    println(consoleMessage)
     StdIn.readLine()
-
     system.terminate()
     exitSuccess()
   }

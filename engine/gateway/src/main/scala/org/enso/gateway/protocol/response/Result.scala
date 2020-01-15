@@ -18,19 +18,19 @@ sealed trait Result
 
 object Result {
   implicit val resultEncoder: Encoder[Result] = Encoder.instance {
-    case string: String                     => string.asJson
+    case text: Text                         => text.asJson
     case number: Number                     => number.asJson
-    case boolean: Boolean                   => boolean.asJson
+    case boolean: Bool                      => boolean.asJson
     case initializeResult: InitializeResult => initializeResult.asJson
   }
 
   /**
     * A string result
     */
-  case class String(value: Predef.String) extends Result
+  case class Text(value: String) extends Result
 
-  object String {
-    implicit val resultStringEncoder: Encoder[String] = deriveUnwrappedEncoder
+  object Text {
+    implicit val resultStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
   }
 
   /**
@@ -45,10 +45,10 @@ object Result {
   /**
     * A boolean result
     */
-  case class Boolean(value: scala.Boolean) extends Result
+  case class Bool(value: scala.Boolean) extends Result
 
-  object Boolean {
-    implicit val resultBooleanEncoder: Encoder[Boolean] =
+  object Bool {
+    implicit val resultBooleanEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
   }
 

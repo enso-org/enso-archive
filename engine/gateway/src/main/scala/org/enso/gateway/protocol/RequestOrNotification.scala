@@ -7,8 +7,8 @@ import org.enso.gateway.protocol.request.Params.{
   InitializeParams,
   InitializedParams
 }
-import org.enso.gateway.protocol.response.Result
-import RequestOrNotification.{failure, jsonrpcError, selectParamsDecoder}
+import RequestOrNotification.selectParamsDecoder
+import io.circe.CursorOp.DownField
 
 /**
   * Parent trait for [[Request]] and [[Notification]]
@@ -31,25 +31,6 @@ sealed trait RequestOrNotification {
 object RequestOrNotification {
 
   /**
-    * Error message about wrong JSON-RPC version
-    */
-  val jsonrpcError: String = s"jsonrpc must be $jsonRpcVersion"
-
-  /**
-    * @param method Name of method
-    * @return Error message about unknown method
-    */
-  def unknownMethodError(method: String): String = s"Unknown method: $method"
-
-  /**
-    * @param message A message of failure
-    * @tparam A The type of successful decoding result
-    * @return Failure decoding result
-    */
-  def failure[A](message: String): Decoder.Result[A] =
-    Left(DecodingFailure(message, List()))
-
-  /**
     * @param method Name of method, which is discriminator
     * @return Circe decoder for requests or notifications
     */
@@ -66,16 +47,18 @@ object RequestOrNotification {
         Decoder[Notification[InitializedParams]]
 
       case m =>
-        Decoder.failedWithMessage(unknownMethodError(m))
+        Decoder.failed(
+          unknownMethodFailure(m)
+        )
     }
 
   /**
-    * @param method Name of method, which is discriminator
+    * @param method Name of method. It is the discriminator
     * @return Circe decoder for method params
     */
-  def selectParamsDecoder[T <: Params](
+  def selectParamsDecoder[P <: Params](
     method: String
-  ): Decoder[Option[T]] =
+  ): Decoder[Option[P]] =
     (method match {
       // All requests
       case Requests.Initialize.method =>
@@ -86,8 +69,10 @@ object RequestOrNotification {
         Decoder[Option[InitializedParams]]
 
       case m =>
-        Decoder.failedWithMessage(unknownMethodError(m))
-    }).asInstanceOf[Decoder[Option[T]]]
+        Decoder.failed(
+          unknownMethodFailure(m)
+        )
+    }).asInstanceOf[Decoder[Option[P]]]
 
   implicit val requestOrNotificationDecoder: Decoder[RequestOrNotification] =
     cursor => {
@@ -96,6 +81,16 @@ object RequestOrNotification {
         .tryDecode(methodCursor)
         .flatMap(selectRequestOrNotificationDecoder(_).apply(cursor))
     }
+
+  private class UnknownMethodError(method: String)
+      extends RuntimeException(s"Unknown method $method")
+
+  private def unknownMethodFailure(method: String): DecodingFailure =
+    DecodingFailure
+      .fromThrowable(
+        new UnknownMethodError(method),
+        List(DownField(Notification.methodField))
+      )
 }
 
 /**
@@ -107,16 +102,14 @@ object RequestOrNotification {
   * @param method  The JSON-RPC method to be invoked
   * @param params  The method's params. A Structured value that holds the parameter values
   *                to be used during the invocation of the method
-  * @tparam T Subtype of [[Params]] for a request with specific method
+  * @tparam P Subtype of [[Params]] for a request with specific method
   */
-case class Request[T <: Params](
+case class Request[P <: Params](
   jsonrpc: String,
   id: Id,
   method: String,
-  params: Option[T]
-) extends RequestOrNotification {
-  def response(result: Result): Response = Response.result(Some(id), result)
-}
+  params: Option[P]
+) extends RequestOrNotification
 
 object Request {
   private val idField = "id"
@@ -142,14 +135,14 @@ object Request {
   *
   * @param jsonrpc JSON-RPC Version
   * @param method  The JSON-RPC method to be invoked
-  * @param params  The method's params. A Structured value that holds the parameter values
+  * @param params  The method's params. A structured value that holds the parameter values
   *                to be used during the invocation of the method
-  * @tparam T Subtype of [[Params]] for a notification with specific method
+  * @tparam P Subtype of [[Params]] for a notification with specific method
   */
-case class Notification[T <: Params](
+case class Notification[P <: Params](
   jsonrpc: String,
   method: String,
-  params: Option[T]
+  params: Option[P]
 ) extends RequestOrNotification
 
 object Notification {
@@ -159,11 +152,12 @@ object Notification {
     */
   val methodField = "method"
 
-  private val paramsField  = "params"
-  private val jsonrpcField = "jsonrpc"
+  val jsonrpcField = "jsonrpc"
+
+  private val paramsField = "params"
 
   // Circe decoder for notifications and notification fields of requests
-  implicit def notificationDecoder[T <: Params]: Decoder[Notification[T]] =
+  implicit def notificationDecoder[P <: Params]: Decoder[Notification[P]] =
     cursor => {
       val jsonrpcCursor = cursor.downField(jsonrpcField)
       val methodCursor  = cursor.downField(methodField)
@@ -178,15 +172,34 @@ object Notification {
         jsonrpc <- jsonrpcResult
         method  <- methodResult
         params  <- paramsResult
-      } yield Notification[T](jsonrpc, method, params)
+      } yield Notification[P](jsonrpc, method, params)
     }
 
-  private def validateJsonrpc[T <: Params](
+  private def wrongJsonRpcVersionFailure(
+    version: String,
+    jsonrpcCursor: ACursor
+  ): DecodingFailure =
+    DecodingFailure
+      .fromThrowable(
+        new WrongJsonRpcVersion(version),
+        jsonrpcCursor.history
+      )
+
+  private def validateJsonrpc[P <: Params](
     jsonrpcCursor: ACursor
   ): Decoder.Result[String] = {
     Decoder[String].tryDecode(jsonrpcCursor).flatMap {
-      case v @ `jsonRpcVersion` => Right(v)
-      case _                    => failure(jsonrpcError)
+      case version @ `jsonRpcVersion` => Right(version)
+      case version =>
+        Left(
+          wrongJsonRpcVersionFailure(version, jsonrpcCursor)
+        )
     }
   }
+
+  private class WrongJsonRpcVersion(version: String)
+      extends RuntimeException(
+        s"jsonrpc must be $jsonRpcVersion but found $version"
+      )
+
 }

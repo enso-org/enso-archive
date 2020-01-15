@@ -16,9 +16,9 @@ sealed trait Param
 object Param {
   implicit val paramDecoder: Decoder[Param] = List[Decoder[Param]](
     Decoder[Number].widen,
-    Decoder[Boolean].widen,
+    Decoder[Bool].widen,
     Decoder[Array].widen,
-    Decoder[String].widen,
+    Decoder[Text].widen,
     Decoder[ClientInfo].widen,
     Decoder[ClientCapabilities].widen,
     Decoder[InitializationOptions].widen,
@@ -29,10 +29,10 @@ object Param {
   /**
     * A string element
     */
-  case class String(value: Predef.String) extends Param
+  case class Text(value: String) extends Param
 
-  object String {
-    implicit val paramStringDecoder: Decoder[String] = deriveUnwrappedDecoder
+  object Text {
+    implicit val paramStringDecoder: Decoder[Text] = deriveUnwrappedDecoder
   }
 
   /**
@@ -47,10 +47,10 @@ object Param {
   /**
     * A boolean element
     */
-  case class Boolean(value: scala.Boolean) extends Param
+  case class Bool(value: Boolean) extends Param
 
-  object Boolean {
-    implicit val paramBooleanDecoder: Decoder[Boolean] =
+  object Bool {
+    implicit val paramBooleanDecoder: Decoder[Bool] =
       deriveUnwrappedDecoder
   }
 
@@ -69,7 +69,7 @@ object Param {
     *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
-  case class InitializationOptions(value: String) extends Param
+  case class InitializationOptions(value: Text) extends Param
 
   object InitializationOptions {
     implicit val initializationOptionsDecoder: Decoder[InitializationOptions] =
@@ -82,8 +82,8 @@ object Param {
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]]
     */
   case class ClientInfo(
-    name: String,
-    version: Option[String]
+    name: Text,
+    version: Option[Text]
   ) extends Param
 
   object ClientInfo {
