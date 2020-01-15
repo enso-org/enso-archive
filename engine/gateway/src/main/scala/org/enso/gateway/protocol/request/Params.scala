@@ -8,6 +8,7 @@ import org.enso.gateway.protocol.request.Param.{
   ClientCapabilities,
   ClientInfo,
   InitializationOptions,
+  TextDocumentItem,
   Trace,
   WorkspaceFolder
 }
@@ -21,7 +22,7 @@ sealed trait Params
 object Params {
   implicit val paramsDecoder: Decoder[Params] = List[Decoder[Params]](
     Decoder[InitializeParams].widen,
-    Decoder[InitializedParams].widen,
+    Decoder[VoidParams].widen,
     Decoder[Array].widen
   ).reduceLeft(_ or _)
 
@@ -47,12 +48,79 @@ object Params {
   }
 
   /**
-    * Params of the notification [[org.enso.gateway.protocol.Notifications.Initialized]]
+    *
     */
-  case class InitializedParams() extends Params
+  case class DidOpenTextDocumentParams(textDocument: TextDocumentItem)
+      extends Params
 
-  object InitializedParams {
-    implicit val initializedParamsDecoder: Decoder[InitializedParams] =
+  object DidOpenTextDocumentParams {
+    implicit val didOpenTextDocumentParamsDecoder
+      : Decoder[DidOpenTextDocumentParams] =
+      deriveDecoder
+  }
+
+  /**
+    *
+    */
+  case class ApplyWorkspaceEditParams() extends Params
+
+  object ApplyWorkspaceEditParams {
+    implicit val applyWorkspaceEditParamsDecoder
+      : Decoder[ApplyWorkspaceEditParams] =
+      deriveDecoder
+  }
+
+  /**
+    *
+    */
+  case class WillSaveTextDocumentWaitUntilParams() extends Params
+
+  object WillSaveTextDocumentWaitUntilParams {
+    implicit val willSaveTextDocumentWaitUntilParamsDecoder
+      : Decoder[WillSaveTextDocumentWaitUntilParams] =
+      deriveDecoder
+  }
+
+  /**
+    *
+    */
+  case class DidChangeTextDocumentParams() extends Params
+
+  object DidChangeTextDocumentParams {
+    implicit val didChangeTextDocumentParamsDecoder
+      : Decoder[DidChangeTextDocumentParams] =
+      deriveDecoder
+  }
+
+  /**
+    *
+    */
+  case class DidSaveTextDocumentParams() extends Params
+
+  object DidSaveTextDocumentParams {
+    implicit val didSaveTextDocumentParamsDecoder
+      : Decoder[DidSaveTextDocumentParams] =
+      deriveDecoder
+  }
+
+  /**
+    *
+    */
+  case class DidCloseTextDocumentParams() extends Params
+
+  object DidCloseTextDocumentParams {
+    implicit val didCloseTextDocumentParamsDecoder
+      : Decoder[DidCloseTextDocumentParams] =
+      deriveDecoder
+  }
+
+  /**
+    * Void params
+    */
+  case class VoidParams() extends Params
+
+  object VoidParams {
+    implicit val voidParamsDecoder: Decoder[VoidParams] =
       deriveDecoder
   }
 

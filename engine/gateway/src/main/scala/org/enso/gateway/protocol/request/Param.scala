@@ -7,6 +7,7 @@ import io.circe.generic.extras.semiauto.{
 }
 import io.circe.generic.semiauto.deriveDecoder
 import cats.syntax.functor._
+import org.enso.gateway.protocol.request.Params.DocumentUri
 
 /**
   * An element of [[Params.Array]]
@@ -155,4 +156,20 @@ object Param {
     implicit val clientCapabilitiesDecoder: Decoder[ClientCapabilities] =
       deriveDecoder
   }
+
+  /**
+    *
+    */
+  case class TextDocumentItem(
+    uri: DocumentUri,
+    languageId: String,
+    version: Int,
+    text: String
+  ) extends Param
+
+  object TextDocumentItem {
+    implicit val textDocumentItemDecoder: Decoder[TextDocumentItem] =
+      deriveDecoder
+  }
+
 }
