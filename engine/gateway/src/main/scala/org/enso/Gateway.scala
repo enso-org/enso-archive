@@ -12,6 +12,8 @@ import org.enso.gateway.protocol.response.result.{
 /**
   * The gateway component talks directly to clients using protocol messages,
   * and then handles these messages by talking to the language server.
+  *
+  * @param languageServer `ActorRef` of [[LanguageServer]] actor
   */
 class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {

@@ -152,6 +152,9 @@ object Notification {
     */
   val methodField = "method"
 
+  /**
+    * Field `jsonrpc` to be validated
+    */
   val jsonrpcField = "jsonrpc"
 
   private val paramsField = "params"

@@ -22,8 +22,18 @@ import scala.util.Success
 
 object Server {
 
-  /** Describes endpoint to which [[Server]] can bind. */
+  /**
+    * Describes endpoint to which [[Server]] can bind (host, port, route) and timeout for waiting response
+    */
   object Config {
+    val host: String  = serverConfig.getString(hostPath)
+    val port: Int     = serverConfig.getInt(portPath)
+    val route: String = serverConfig.getString(routePath)
+    implicit val timeout: Timeout = Timeout(
+      serverConfig.getLong(timeoutPath).seconds
+    )
+    val addressString: String = s"ws://$host:$port"
+
     private val gatewayPath = "gateway"
     private val serverPath  = "server"
     private val hostPath    = "host"
@@ -33,13 +43,6 @@ object Server {
     private val gatewayConfig: Config =
       ConfigFactory.load.getConfig(gatewayPath)
     private val serverConfig: Config = gatewayConfig.getConfig(serverPath)
-    val host: String                 = serverConfig.getString(hostPath)
-    val port: Int                    = serverConfig.getInt(portPath)
-    val route: String                = serverConfig.getString(routePath)
-    implicit val timeout: Timeout = Timeout(
-      serverConfig.getLong(timeoutPath).seconds
-    )
-    val addressString: String = s"ws://$host:$port"
   }
 }
 
@@ -50,6 +53,8 @@ object Server {
   *
   * Server replies to each incoming text request with a single text response, no response for notifications.
   * Server accepts a single Text Message from a peer and responds with another Text Message.
+  *
+  * @param protocol Encapsulates encoding JSONs
   */
 class Server(protocol: Protocol)(
   implicit

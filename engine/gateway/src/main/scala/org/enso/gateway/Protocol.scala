@@ -34,6 +34,8 @@ object Protocol {
 /**
   * Helper for implementing protocol over text-based transport.
   * Requests and responses are marshaled as text using JSON-RPC.
+  *
+  * @param gateway `ActorRef` of Gateway actor
   */
 class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
 
