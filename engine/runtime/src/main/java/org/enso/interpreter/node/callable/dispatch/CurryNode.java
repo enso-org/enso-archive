@@ -20,8 +20,6 @@ public class CurryNode extends BaseNode {
   private @Child InvokeCallableNode oversaturatedCallableNode;
   private @Child ExecuteCallNode directCall;
   private @Child CallOptimiserNode loopingCall;
-  private @Child CaptureCallerInfoNode captureCallerInfoNode;
-  private @Child SpyOnMeBabyNode spyOnMeBabyNode = new SpyOnMeBabyNode();
 
   private CurryNode(
       FunctionSchema originalSchema,
@@ -33,9 +31,6 @@ public class CurryNode extends BaseNode {
     this.preApplicationSchema = originalSchema;
     this.postApplicationSchema = postApplicationSchema;
     appliesFully = isFunctionFullyApplied(defaultsExecutionMode);
-    if (preApplicationSchema.getCallerFrameAccess().shouldFrameBePassed()) {
-      this.captureCallerInfoNode = CaptureCallerInfoNode.build();
-    }
     initializeCallNodes();
     initializeOversaturatedCallNode(defaultsExecutionMode, argumentsExecutionMode);
   }
@@ -66,7 +61,7 @@ public class CurryNode extends BaseNode {
    * Creates a new instance of this node.
    *
    * @param preApplicationSchema the schema of all functions being used in the {@link
-   *     #execute(VirtualFrame, Function, Object, Object[], Object[])} method.
+   *     #execute(VirtualFrame, Function, CallerInfo, Object, Object[], Object[])} method.
    * @param argumentMapping the argument mapping for moving from the original schema to the argument
    *     schema expected by the function.
    * @param defaultsExecutionMode the mode of handling defaulted arguments for this call.
@@ -102,13 +97,10 @@ public class CurryNode extends BaseNode {
   public Stateful execute(
       VirtualFrame frame,
       Function function,
+      CallerInfo callerInfo,
       Object state,
       Object[] arguments,
       Object[] oversaturatedArguments) {
-    CallerInfo callerInfo = null;
-    if (captureCallerInfoNode != null) {
-      callerInfo = captureCallerInfoNode.execute(frame);
-    }
     if (appliesFully) {
       if (!postApplicationSchema.hasOversaturatedArgs()) {
         return doCall(function, callerInfo, state, arguments);
@@ -132,7 +124,6 @@ public class CurryNode extends BaseNode {
 
   private Stateful doCall(
       Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
-    spyOnMeBabyNode.execute(null, function, callerInfo, state, arguments);
     if (preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
       return directCall.executeCall(function, callerInfo, state, arguments);
     } else if (isTail()) {

@@ -1,9 +1,15 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.frame.FrameInstance;
+import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.node.callable.SpyOnMeBabyNode;
 
 import java.util.function.Consumer;
 
@@ -31,20 +37,49 @@ public class FunctionCallExtractorInstrument extends TruffleInstrument {
     this.env = env;
   }
 
+  private static boolean isTopFrame(String rootName) {
+    Boolean result =
+        Truffle.getRuntime()
+            .iterateFrames(
+                new FrameInstanceVisitor<Boolean>() {
+                  boolean seenFirst = false;
+
+                  @Override
+                  public Boolean visitFrame(FrameInstance frameInstance) {
+                    CallTarget ct = frameInstance.getCallTarget();
+                    if (ct instanceof RootCallTarget
+                        && !rootName.equals(((RootCallTarget) ct).getRootNode().getName())) {
+                      return null;
+                    }
+                    if (seenFirst) {
+                      return false;
+                    } else {
+                      seenFirst = true;
+                      return null;
+                    }
+                  }
+                });
+    return result == null;
+  }
+
   /**
    * An event listener implementing the behavior of verifying whether the currently executed node is
    * the one expected by the user and passing the computed value to the callback.
    */
   public static class ValueEventListener implements ExecutionEventListener {
     private EventBinding<ValueEventListener> binding;
-    private final Consumer<Object> callback;
+    private final Consumer<SpyOnMeBabyNode.Data> callback;
+    private final String rootName;
     //    private final int start;
     //    private final int length;
 
-    private ValueEventListener(/*int start, int length, */ Consumer<Object> callback) {
+    private ValueEventListener(
+        /*int start, int length, */ String rootName, Consumer<SpyOnMeBabyNode.Data> callback) {
       //      this.start = start;
       //      this.length = length;
+
       this.callback = callback;
+      this.rootName = rootName;
     }
 
     private void setBinding(EventBinding<ValueEventListener> binding) {
@@ -80,7 +115,7 @@ public class FunctionCallExtractorInstrument extends TruffleInstrument {
     }
 
     @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {System.out.println("ENT");}
+    public void onEnter(EventContext context, VirtualFrame frame) {}
 
     /**
      * Checks if the node to be executed is the node this listener was created to observe and
@@ -92,15 +127,18 @@ public class FunctionCallExtractorInstrument extends TruffleInstrument {
      */
     @Override
     public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-      System.out.println("LEAVE");
-//      Node node = context.getInstrumentedNode();
-//      SourceSection section = node.getSourceSection();
-//      if (section == null || !section.hasCharIndex()) {
-//        return;
-//      }
+      //      Node node = context.getInstrumentedNode();
+      //      SourceSection section = node.getSourceSection();
+      //      if (section == null || !section.hasCharIndex()) {
+      //        return;
+      //      }
       //      if (section.getCharIndex() == start && section.getCharLength() == length) {
       //        binding.dispose();
-      callback.accept(result);
+      if (isTopFrame(rootName)) {
+        if (result instanceof SpyOnMeBabyNode.Data) {
+          callback.accept((SpyOnMeBabyNode.Data) result);
+        }
+      }
       //      }
     }
 
@@ -118,18 +156,19 @@ public class FunctionCallExtractorInstrument extends TruffleInstrument {
    * @return a reference to attached event listener
    */
   public EventBinding<ValueEventListener> bindTo(
-      /*int sourceStart, int length, */ Consumer<Object> callback) {
-    ValueEventListener listener = new ValueEventListener(/*sourceStart, length,*/ callback);
+      /*int sourceStart, int length, */ String rootName, Consumer<SpyOnMeBabyNode.Data> callback) {
+    ValueEventListener listener =
+        new ValueEventListener(/*sourceStart, length,*/ rootName, callback);
 
     EventBinding<ValueEventListener> binding =
         env.getInstrumenter()
             .attachExecutionEventListener(
                 SourceSectionFilter.newBuilder()
-                    .tagIs(StandardTags.CallTag.class) /*indexIn(sourceStart, length)*/
+                    .tagIs(StandardTags.CallTag.class)
+                    .rootNameIs(rootName::equals) /*indexIn(sourceStart, length)*/
                     .build(),
                 listener);
     listener.setBinding(binding);
-    System.out.println("SET");
     return binding;
   }
 }

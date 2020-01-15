@@ -11,7 +11,6 @@ import org.enso.interpreter.runtime.callable.function.Function;
 public class SpyOnMeBabyNode extends Node implements InstrumentableNode {
   @Override
   public boolean isInstrumentable() {
-    System.out.println("IS INS?");
     return true;
   }
 
@@ -51,9 +50,6 @@ public class SpyOnMeBabyNode extends Node implements InstrumentableNode {
       CallerInfo callerInfo,
       Object state,
       Object[] arguments) {
-    System.out.println("Je suis enteree");
-    System.out.println(getParent());
-    System.out.println(getRootNode());
     return new Data(function, callerInfo, state, arguments);
   }
 
@@ -64,7 +60,6 @@ public class SpyOnMeBabyNode extends Node implements InstrumentableNode {
 
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
-    System.out.println("DOES IT HAS TAG?");
     return tag == StandardTags.CallTag.class;
   }
 }
