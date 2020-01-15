@@ -12,7 +12,7 @@ object ErrorCode {
   val serverNotInitialized: Int = -32002
   val unknownErrorCode: Int     = -32001
 
-  // Defined by the protocol
+  // Defined by LSP
   val requestCancelled: Int = -32800
   val contentModified: Int  = -32801
 

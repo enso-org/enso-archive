@@ -62,9 +62,6 @@ class Server(protocol: Protocol)(
 
   val log: LoggingAdapter = Logging.getLogger(system, this)
 
-  //  /** Generate text reply for given request text message, no reply for notification. */
-  //  def getTextOutput(input: String): Option[String]
-
   /** Akka stream defining server behavior.
     *
     * Incoming [[TextMessage]]s are replied to (see [[getTextOutput]]).

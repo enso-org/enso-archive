@@ -5,6 +5,7 @@ import org.enso.pkg.Package
 import org.graalvm.polyglot.Value
 import java.io.File
 
+import org.enso
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
@@ -193,7 +194,7 @@ object Main {
       system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
     val protocol = new Protocol(gateway)
-    val server   = new org.enso.gateway.Server(protocol)
+    val server   = new enso.gateway.Server(protocol)
     server.run()
 
     StdIn.readLine()

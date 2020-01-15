@@ -25,6 +25,7 @@ object ResponseError {
     case parseError: ParseError                   => parseError.asJson
     case methodNotFoundError: MethodNotFoundError => methodNotFoundError.asJson
     case initializeError: InitializeError         => initializeError.asJson
+    case unexpectedError: UnexpectedError         => unexpectedError.asJson
   }
 
   case class ParseError private (

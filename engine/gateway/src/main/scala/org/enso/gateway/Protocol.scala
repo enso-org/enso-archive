@@ -40,55 +40,58 @@ class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
   import system.dispatcher
 
   /**
-    *
+    * Generate text reply for given request text message, no reply for notification.
     */
   def getTextOutput(
     input: String
   )(implicit timeout: Timeout): Future[Option[String]] = {
-    // necessary for Left cases
+    // necessary for Left case
     val id = decode[IdHolder](input).map(_.id).toOption
 
     decode[RequestOrNotification](input) match {
+      // no response
       case Right(notification: Notification[_]) =>
         gateway ! notification
         Future.successful(None)
 
+      // gateway and language server responsible for id of response being equal to id of request
       case Right(request: Request[_]) =>
         val responseFuture =
           (gateway ? request).mapTo[Response]
         responseFuture.map(
-          response => encodeToJson(response)
+          response => Some(encodeToJson(response))
         )
 
-      case Left(err: ParsingFailure) =>
-        Future.successful(
-          encodeToJson(mkParseErrorResponse(id, input, err))
-        )
-
-      case Left(
-          DecodingFailure(_, List(DownField(Notification.jsonrpcField)))
-          ) =>
-        Future.successful(
-          encodeToJson(mkInitializeErrorResponse(id))
-        )
-
-      case Left(
-          DecodingFailure(_, List(DownField(Notification.methodField)))
-          ) =>
-        Future.successful(
-          encodeToJson(mkMethodNotFoundResponse(id))
-        )
-
+      // setting id manually
       case Left(err) =>
         Future.successful(
-          encodeToJson(mkUnexpectedErrorResponse(id, err))
+          Some(encodeToJson(mkErrorResponse(input, err).copy(id = id)))
         )
     }
   }
 
-  private def mkUnexpectedErrorResponse(id: Option[Id], err: circe.Error) = {
+  private def mkErrorResponse(
+    input: String,
+    err: circe.Error
+  ): Response =
+    err match {
+      case err: ParsingFailure =>
+        mkParseErrorResponse(input, err)
+
+      case DecodingFailure(_, List(DownField(Notification.jsonrpcField))) =>
+        mkInitializeErrorResponse
+
+      case DecodingFailure(_, List(DownField(Notification.methodField))) =>
+        mkMethodNotFoundResponse
+
+      case e =>
+        mkUnexpectedErrorResponse(e)
+    }
+
+  private def mkUnexpectedErrorResponse(
+    err: circe.Error
+  ): Response = {
     Response.error(
-      id = id,
       error = UnexpectedError(
         data = Some(
           Data.Text(err.toString)
@@ -97,21 +100,20 @@ class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
     )
   }
 
-  private def mkMethodNotFoundResponse(id: Option[Id]) = {
+  private val mkMethodNotFoundResponse: Response = {
     Response.error(
-      id    = id,
       error = MethodNotFoundError()
     )
   }
 
-  private def mkInitializeErrorResponse(id: Option[Id]) = {
+  private val mkInitializeErrorResponse: Response = {
+    val defaultRetry = false
     Response.error(
-      id = id,
       error = InitializeError(
         data = Some(
           Data
             .InitializeData(
-              retry = false
+              retry = defaultRetry
             )
         )
       )
@@ -119,12 +121,10 @@ class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
   }
 
   private def mkParseErrorResponse(
-    id: Option[Id],
     input: String,
     err: ParsingFailure
-  ) = {
+  ): Response = {
     Response.error(
-      id = id,
       error = ParseError(
         ErrorMessage.invalidJson,
         Some(
@@ -140,11 +140,9 @@ class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
 
   private def encodeToJson(
     response: Response
-  ): Option[String] = {
-    Some(
-      response.asJson.printWith(
-        Printer.noSpaces.copy(dropNullValues = true)
-      )
+  ): String = {
+    response.asJson.printWith(
+      Printer.noSpaces.copy(dropNullValues = true)
     )
   }
 }
