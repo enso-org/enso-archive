@@ -28,6 +28,9 @@ object ResponseError {
     case unexpectedError: UnexpectedError         => unexpectedError.asJson
   }
 
+  /**
+    * Invalid JSON
+    */
   case class ParseError private (
     code: Int,
     message: String,
@@ -45,6 +48,9 @@ object ResponseError {
       deriveEncoder
   }
 
+  /**
+    * Unknown JSON-RPC method according to LSP Spec
+    */
   case class MethodNotFoundError private (
     code: Int,
     message: String,
@@ -64,6 +70,7 @@ object ResponseError {
 
   /**
     * [[org.enso.gateway.protocol.Requests.Initialize]] error
+    * Wrong JSON-RPC version
     */
   case class InitializeError private (
     code: Int,
@@ -82,6 +89,9 @@ object ResponseError {
       deriveEncoder
   }
 
+  /**
+    * Default type of errors
+    */
   case class UnexpectedError private (
     code: Int,
     message: String,

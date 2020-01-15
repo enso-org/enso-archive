@@ -56,6 +56,9 @@ object Data {
     implicit val dataArrayEncoder: Encoder[Array] = deriveUnwrappedEncoder
   }
 
+  /**
+    * Data of [[org.enso.gateway.protocol.response.ResponseError.ParseError]]
+    */
   case class ParseData(
     json: String,
     circeMessage: String
