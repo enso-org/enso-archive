@@ -56,7 +56,7 @@ object Server {
   * Server replies to each incoming text request with a single text response, no response for notifications.
   * Server accepts a single Text Message from a peer and responds with another Text Message.
   *
-  * @param protocol Encapsulates encoding JSONs
+  * @param protocol Encapsulates encoding JSONs and talking to [[org.enso.Gateway]]
   */
 class Server(protocol: Protocol)(
   implicit
