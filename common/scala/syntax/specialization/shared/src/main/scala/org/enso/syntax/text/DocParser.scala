@@ -294,8 +294,13 @@ object DocParserHTMLGenerator {
     ast.map { elem =>
       elem match {
         case AST.Documented.any(d) =>
+          generateHTMLForEveryDocumented(d, path, cssFileName)
           val file = onHTMLRendering(d, cssFileName)
-          print(file)
+          println("\nFINISHED FILE: " + file.name)
+          println(file.code)
+          println()
+        case _ =>
+          generateHTMLForEveryDocumented(elem, path, cssFileName)
       }
       elem
     }
@@ -467,7 +472,11 @@ object DocParserHTMLGenerator {
   def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
     val clsTitle = HTML.`class` := "DefTitle"
     val clsArgs  = HTML.`class` := "DefArgs"
-    HTML.div(clsTitle)(name.show(), HTML.div(clsArgs)(args.map(_.show())))
+    val nameStr  = name.show()
+    val argsStr  = args.map(_.show())
+    val pageHref = HTML.`href` := nameStr + argsStr
+    val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
+    HTML.a(pageHref)(innerDiv)
   }
 
   /**
