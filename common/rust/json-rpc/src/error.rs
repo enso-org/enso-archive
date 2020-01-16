@@ -59,4 +59,9 @@ pub enum HandlingError {
     #[fail(display = "server generated response with no matching request: \
     id={:?}", _0)]
     UnexpectedResponse(Response<serde_json::Value>),
+
+    /// Server send a message that is notification but client wasn't able to
+    /// decode it.
+    #[fail(display = "failed to decode notification: {}", _0)]
+    InvalidNotification(#[cause] serde_json::Error),
 }

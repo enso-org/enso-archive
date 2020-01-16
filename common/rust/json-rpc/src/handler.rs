@@ -304,4 +304,20 @@ impl Handler {
             self.ongoing_calls.clear();
         };
     }
+
+    /// Decode expected notification type from JSON.
+    ///
+    /// Returns Some on success and None on failure. Addittionaly, a handling
+    /// error is raised in case of failure.
+    pub fn decode_notification<N:DeserializeOwned>
+    (&mut self, json:serde_json::Value) -> Option<N> {
+        match serde_json::from_value(json) {
+            Ok(ret) => ret,
+            Err(e) => {
+                let err = HandlingError::InvalidNotification(e);
+                self.error_occurred(err);
+                None
+            }
+        }
+    }
 }

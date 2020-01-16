@@ -33,6 +33,9 @@ pub type RequestMessage<In> = Message<Request<MethodCall<In>>>;
 /// A response message.
 pub type ResponseMessage<Ret> = Message<Response<Ret>>;
 
+/// A response message.
+pub type NotificationMessage<Ret> = Message<Notification<MethodCall<Ret>>>;
+
 // === `new` Functions ===
 
 impl<T> Message<T> {
@@ -66,6 +69,14 @@ impl<T> Message<T> {
         let result = Result::Error(Error{code,message,data});
         let response = Response {id,result};
         Message::new(response)
+    }
+
+    /// Construct a request message.
+    pub fn new_notification
+    (method:&'static str, input:T) -> NotificationMessage<T> {
+        let call = MethodCall {method: method.into(),input};
+        let notification = Notification(call);
+        Message::new(notification)
     }
 }
 
@@ -127,7 +138,7 @@ impl<M> Request<M> {
 /// `Call` must be a type, that upon JSON serialization provides `method` and
 /// `params` fields, like `MethodCall`.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Notification<Call>(Call);
+pub struct Notification<Call>(pub Call);
 
 /// A response to a `Request`. Depending on `result` value it might be
 /// successful or not.
