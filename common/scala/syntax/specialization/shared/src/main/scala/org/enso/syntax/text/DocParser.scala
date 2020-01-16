@@ -357,14 +357,18 @@ object DocParserHTMLGenerator {
     ast: AST,
     doc: Doc
   ): TypedTag[String] = {
+    val docClass   = HTML.`class` := "Documentation"
     val astHeadCls = HTML.`class` := "ASTHead"
-    // FIXME [MM] - Don't add body when in Constructors/Methods
-    val astBodyCls = HTML.`class` := "ASTData"
     val astHTML    = createHTMLFromAST(ast)
     val astName    = Seq(HTML.div(astHeadCls)(astHTML.header))
-    val astBody    = Seq(HTML.div(astBodyCls)(astHTML.body))
-    val docClass   = HTML.`class` := "Documentation"
-    HTML.div(docClass)(astName, doc.html, astBody)
+    astHTML.body match {
+      case Some(b) =>
+        val astBodyCls = HTML.`class` := "ASTData"
+        val astBody    = Seq(HTML.div(astBodyCls)(b))
+        HTML.div(docClass)(astName, doc.html, astBody)
+      case None =>
+        HTML.div(docClass)(astName, doc.html)
+    }
   }
 
   /**
@@ -373,12 +377,17 @@ object DocParserHTMLGenerator {
     * @param header - header of AST - name of module/method with parameters
     * @param body - body of AST - All of AST's documented submodules/methods
     */
-  case class astHtmlRepr(header: TypedTag[String], body: TypedTag[String])
+  case class astHtmlRepr(
+    header: TypedTag[String],
+    body: Option[TypedTag[String]]
+  )
   object astHtmlRepr {
+    def apply(header: TypedTag[String], body: TypedTag[String]): astHtmlRepr =
+      new astHtmlRepr(header, Some(body))
     def apply(header: TypedTag[String]): astHtmlRepr =
-      new astHtmlRepr(header, HTML.div())
+      new astHtmlRepr(header, None)
     def apply(): astHtmlRepr =
-      new astHtmlRepr(HTML.div(), HTML.div())
+      new astHtmlRepr(HTML.div(), None)
   }
 
   /**
