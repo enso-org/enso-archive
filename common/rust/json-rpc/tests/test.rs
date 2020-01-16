@@ -90,17 +90,20 @@ impl MockTransport {
             sent_msgs:Vec::new(),
         }
     }
-    pub fn mock_peer_message_text(&self, message:String) {
+
+    pub fn mock_peer_message_text(&mut self, message:String) {
         println!("Server sends: {}", message);
         if let Some(ref cb) = self.cb {
             cb.borrow_mut().on_text_message(message);
         }
     }
-    pub fn mock_peer_message<T:Serialize>(&self, message:T) {
+
+    pub fn mock_peer_message<T:Serialize>(&mut self, message:T) {
         let text = serde_json::to_string(&message).expect("failed to serialize");
         self.mock_peer_message_text(text)
     }
-    pub fn mock_connection_closed(&self) {
+
+    pub fn mock_connection_closed(&mut self) {
         println!("Mock: Server closed the connection");
         if let Some(ref cb) = self.cb {
             cb.borrow_mut().on_close();
@@ -110,6 +113,7 @@ impl MockTransport {
     pub fn expect_message_text(&mut self) -> String {
         self.sent_msgs.pop().expect("client should have sent request")
     }
+
     pub fn expect_message<T:DeserializeOwned>(&mut self) -> T {
         let text = self.expect_message_text();
         let res  = serde_json::from_str(&text);
@@ -186,7 +190,7 @@ fn setup() -> (Rc<RefCell<MockTransport>>, Client) {
 
 #[test]
 fn test_success_call() {
-    let (mut ws, mut fm) = setup();
+    let (ws, mut fm) = setup();
     let call_input = 8;
     let mut fut = Box::pin(fm.pow(8));
     let expected_first_request_id = Id(0);
@@ -220,7 +224,7 @@ fn test_success_call() {
 
 #[test]
 fn test_error_call() {
-    let (mut ws, mut fm) = setup();
+    let (ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
     assert!(lumpen_executor(&mut fut).is_none()); // no reply
 
@@ -253,7 +257,7 @@ fn test_error_call() {
 
 #[test]
 fn test_garbage_reply_error() {
-    let (mut ws, mut fm) = setup();
+    let (ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
     assert!(lumpen_executor(&mut fut).is_none()); // no reply
     ws.borrow_mut().mock_peer_message_text("hello, nice to meet you".into());
@@ -269,7 +273,7 @@ fn test_garbage_reply_error() {
 
 #[test]
 fn test_disconnect_error() {
-    let (mut ws, mut fm) = setup();
+    let (ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
     assert!(lumpen_executor(&mut fut).is_none()); // no reply
     ws.borrow_mut().mock_connection_closed();

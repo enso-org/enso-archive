@@ -2,6 +2,8 @@
 //! serialization and deserialization using serde_json shall is compatible with
 //! JSON-RPC complaint peers.
 
+use prelude::*;
+
 use serde::Serialize;
 use serde::Deserialize;
 use shrinkwraprs::Shrinkwrap;
