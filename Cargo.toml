@@ -2,7 +2,6 @@
 
 members = [
     "common/rust/ast/core",
-    "common/rust/file-manager-client",
     "common/rust/json-rpc",
     "common/rust/ast/macros",
     "common/rust/macro-utils",
