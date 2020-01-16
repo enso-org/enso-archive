@@ -450,6 +450,9 @@ object Main extends scala.App {
       |     Also, `None` is the return value of functions which do not return an
       |     explicit value.
       |    type None
+      |    
+      |    ## The pow function calculates power of integers.
+      |    pow x y = x ** y
       |""".stripMargin
 
   println("--- PARSING ---")

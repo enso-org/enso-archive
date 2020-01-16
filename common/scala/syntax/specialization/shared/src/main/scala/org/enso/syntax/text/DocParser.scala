@@ -324,7 +324,7 @@ object DocParserHTMLGenerator {
   ): htmlFile = {
     val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines = documented.ast.show().split("\n")
-    val fileName = astLines.head.replaceAll("/", "")
+    val fileName = astLines.head.replaceAll("/", "").split("=").head
     htmlFile(htmlCode, fileName)
   }
   case class htmlFile(code: TypedTag[String], name: String)
@@ -343,7 +343,7 @@ object DocParserHTMLGenerator {
     doc: Doc,
     cssLink: String = "style.css"
   ): TypedTag[String] = {
-    val title         = ast.show().split("\n").head
+    val title         = ast.show().split("\n").head.split("=").head
     val documentation = DocumentedToHtml(ast, doc)
     HTML.html(createHTMLHead(title, cssLink), HTML.body(documentation))
   }
@@ -434,14 +434,34 @@ object DocParserHTMLGenerator {
     args: List[AST],
     body: AST.Block
   ): astHtmlRepr = {
-    val firstLine     = Line(Option(body.firstLine.elem), body.firstLine.off)
-    val constructors  = HTML.h2(`class` := "constr")("Constructors")
-    val allLines      = firstLine :: body.lines
-    val generatedCode = renderHTMLOnLine(allLines)
-    val head          = createDefTitle(name, args)
-    val clsBody       = HTML.`class` := "DefBody"
-    val lines         = HTML.div(clsBody)(constructors, generatedCode)
-    val cls           = HTML.`class` := "Def"
+    val firstLine          = Line(Option(body.firstLine.elem), body.firstLine.off)
+    val constructorsHeader = HTML.h2(`class` := "constr")("Constructors")
+    val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
+    val allLines           = firstLine :: body.lines
+    val generatedCode      = renderHTMLOnLine(allLines)
+    val typesList =
+      generatedCode.map(
+        el =>
+          if (el.toString().contains("DefTitle")) {
+            el
+          } else {
+            HTML.div()
+          }
+      )
+    val infixList =
+      generatedCode.map(
+        el =>
+          if (el.toString().contains("Infix")) {
+            el
+          } else {
+            HTML.div()
+          }
+      )
+    val head    = createDefTitle(name, args)
+    val clsBody = HTML.`class` := "DefBody"
+    val lines =
+      HTML.div(clsBody)(constructorsHeader, typesList, methodsHeader, infixList)
+    val cls = HTML.`class` := "Def"
     astHtmlRepr(HTML.div(cls)(head), HTML.div(cls)(lines))
   }
 
