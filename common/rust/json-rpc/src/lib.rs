@@ -1,103 +1,25 @@
 #![feature(trait_alias)]
+#![warn(missing_docs)]
+
+//! This is a library aimed to facilitate implementing JSON-RPC protocol
+//! clients. The main type is `Handler` that a client should build upon.
 
 pub mod messages;
 pub mod api;
 pub mod handler;
 pub mod transport;
 
+#[allow(unused_imports)]
 use prelude::*;
 
 pub use crate::transport::Transport;
 pub use crate::transport::TransportCallbacks;
 pub use handler::Handler;
 
-use std::future::Future;
-use serde::Serialize;
-use serde::Deserialize;
-use serde::de::DeserializeOwned;
-use serde_json::json;
-
-use futures::channel::oneshot;
-use futures::future::FutureExt;
-use std::thread;
-use futures::channel::oneshot::Sender;
-use std::collections::BTreeMap;
-use std::cell::Cell;
-use std::fmt::Debug;
-use prelude::RefCell;
-use std::rc::Rc;
-use wasm_bindgen::JsValue;
-use wasm_bindgen::__rt::std::sync::mpsc::Receiver;
-use failure::Error;
-use failure::Fail;
+use crate::handler::RpcError;
 
 
-pub type Result<T> = std::result::Result<T, Error>;
-
-mod tests {
-    use super::*;
-    use crate::messages::*;
-
-
-//    #[test]
-//    fn request_serialization() {
-//        let method  = ExistsInput{path:"./temp.txt".into()};
-//        let payload = Request { id : Id(1), method };
-//        let message = Message { jsonrpc: Version::V2, payload: payload};
-//
-//        let text = serde_json::to_string(&message).unwrap();
-//        println!("{}", text)
-//    }
-
-
-
-//    #[test]
-//    fn deserialize_response() {
-//        let response_text = r#"{"jsonrpc": "2.0", "result": 19, "id": 1}"#;
-//        type IncMsg = Message<IncomingMessage<NoMethods>>;
-//        let message = serde_json::from_str::<IncMsg>(response_text).unwrap();
-//        if let IncomingMessage::Response(ref resp) = message {
-//            assert_eq!(resp.id, 1);
-//            assert_eq!(resp.res, Result::Success(Success { result: 19.into() }));
-//        } else {
-//            panic!("expected to parse to a response message")
-//        }
-//
-//
-//        println!("{:?}", message)
-//    }
-
-//    #[test]
-//    fn message_serialization() {
-//        let sample_request_text = r#"{
-//            "jsonrpc" : "2.0",
-//            "method"  : "touch",
-//            "params"  : {"path" : "./temp.txt"},
-//            "id"      : 1
-//        }";
-//
-//        type RequestMessage = Message<Request<ExistsInput>>;
-//        let msg = serde_json::from_str::<Message>(sample_request_text).unwrap();
-//
-//
-//        println!("{:?}", msg);
-//    }
-
-    fn check_serialization(json_text:&str, value:Version) {
-        let got_json_text = serde_json::to_string(&value).unwrap();
-        assert_eq!(got_json_text, json_text);
-
-        let got_value = serde_json::from_str::<Version>(json_text).unwrap();
-        assert_eq!(got_value, value);
-    }
-
-    #[test]
-    fn version_serialization() {
-        check_serialization("\"2.0\"", Version::V2);
-        check_serialization("\"1.0\"", Version::V1);
-    }
-}
-
+pub type Result<T> = std::result::Result<T, RpcError>;
 
 //
 //#[derive(Debug)]

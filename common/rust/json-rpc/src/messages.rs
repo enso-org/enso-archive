@@ -10,7 +10,8 @@ use shrinkwraprs::Shrinkwrap;
 /// 
 /// Each request made by client should get a unique id (unique in a context of
 /// the current session). Auto-incrementing integer is a common choice.
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord)]
+#[derive(Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[derive(Shrinkwrap)]
 pub struct Id(pub i64);
 
@@ -56,53 +57,81 @@ impl<T> Message<T> {
 }
 
 /// A non-notification request.
+///
+/// `Call` must be a type, that upon JSON serialization provides `method` and
+/// `params` fields, like `MethodCall`.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Request<In> {
-    pub id     : Id,
+#[derive(Shrinkwrap)]
+pub struct Request<Call> {
+    /// An identifier for this request that will allow matching the response.
+    pub id   : Id,
     #[serde(flatten)]
-    pub method : In,
+    #[shrinkwrap(main_field)]
+    /// method and its params
+    pub call : Call,
+}
+
+impl<M> Request<M> {
+    /// Create a new request.
+    pub fn new(id:Id, call:M) -> Request<M> {
+        Request {id,call}
+    }
 }
 
 /// A notification request.
+///
+/// `Call` must be a type, that upon JSON serialization provides `method` and
+/// `params` fields, like `MethodCall`.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Notification<M> {
-    #[serde(flatten)]
-    pub method : M,
-}
+pub struct Notification<Call>(Call);
 
+/// A response to a `Request`. Depending on `result` value it might be
+/// successful or not.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Response<Res> {
+    /// Identifier, matching the value given in `Request` when call was made.
     pub id : Id,
+    /// Call result.
     #[serde(flatten)]
-    pub res: Result<Res>
+    pub result: Result<Res>
 }
 
-/// Result of the remote call.
+/// Result of the remote call — either a returned value or en error.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Result<Res> {
+    /// Returned value of a successfull call.
     Success(Success<Res>),
+    /// Error value from a called that failed on the remote side.
     Error(Error),
 }
 
 /// Value yield by a successful remote call.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct Success<Res> {
-    pub result : Res,
+pub struct Success<Ret> {
+    /// A value returned from a successful remote call.
+    pub result : Ret,
 }
 
 /// Error raised on a failed remote call.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Error {
+    /// A number indicating what type of error occurred.
     pub code    : i64,
+    /// A short description of the error.
     pub message : String,
+    /// Optional value with additional information about the error.
     pub data    : Option<serde_json::Value>
 }
 
+/// A message that can come from Server to Client — either a response or
+/// notification.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum IncomingMessage {
-    Response(Response<serde_json::Value>),
+    /// A response to a call made by client.
+    Response    (Response    <serde_json::Value>),
+    /// A notification call (initiated by the server).
     Notification(Notification<serde_json::Value>),
 }
 
@@ -111,7 +140,138 @@ pub enum IncomingMessage {
 /// `In` is any serializable (or already serialized) representation of the 
 /// method arguments passed in this call. 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Shrinkwrap)]
 pub struct MethodCall<In> {
-    pub method : &'static str,
+    /// Name of the method that is being called.
+    pub method : String,
+    /// Method arguments.
+    #[shrinkwrap(main_field)]
     pub input  : In
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+/// A request message.
+pub type RequestMessage<In> = Message<Request<MethodCall<In>>>;
+
+/// A response message.
+pub type ResponseMessage<Ret> = Message<Response<Ret>>;
+
+/// Construct a request message.
+pub fn make_request_message<In>
+(id:Id, method:&'static str, input:In) -> RequestMessage<In> {
+    let call = MethodCall { method : method.into(), input };
+    let request = Request::new(id, call);
+    Message::new(request)
+}
+
+/// Construct a successful response message.
+pub fn make_success_message<Ret>
+(id:Id, result:Ret) -> ResponseMessage<Ret> {
+    let result = Result::Success(Success { result });
+    let response = Response { id, result };
+    Message::new(response)
+}
+
+/// Construct a successful response message.
+pub fn make_error_message<Ret>
+(id:Id, code:i64, message:String, data:Option<serde_json::Value>)
+ -> ResponseMessage<Ret> {
+    let result = Result::Error(Error{code,message,data});
+    let response = Response { id, result };
+    Message::new(response)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::Map;
+    use serde_json::Value;
+
+    #[derive(Serialize, Deserialize, Debug, PartialEq)]
+    struct MockRequest {
+        number:i64
+    }
+    impl MockRequest {
+        const FIELD_COUNT:usize        = 1;
+        const FIELD_NAME :&'static str = "number";
+    }
+
+    mod protocol {
+        pub const JSONRPC: &str = "jsonrpc";
+        pub const METHOD: &str = "method";
+        pub const INPUT: &str = "input";
+        pub const ID: &str = "id";
+
+        pub const VERSION2_STRING: &str = "2.0";
+    }
+
+    fn expect_field<'a,Obj:'a>
+    (obj:&'a Map<String, Value>, field_name:&str) -> &'a Value
+    where &'a Obj:Into<&'a Value> {
+        let missing_msg = format!("missing field {}", field_name);
+        obj.get(field_name).expect(&missing_msg)
+    }
+
+    #[test]
+    fn test_request_serialization() {
+        let id = Id(50);
+        let method  = "mockMethod";
+        let number  = 124;
+        let input   = MockRequest {number};
+        let call    = MethodCall {method:method.into(),input};
+        let request = Request::new(id,call);
+        let message = Message::new(request);
+
+        let field_count_in_request_message = 4;
+        
+        let json = serde_json::to_value(message).expect("serialization error");
+        let json = json.as_object().expect("expected an object");
+        assert_eq!(json.len(), field_count_in_request_message);
+        assert_eq!(expect_field(json, protocol::JSONRPC), protocol::VERSION2_STRING);
+        assert_eq!(expect_field(json, protocol::ID), id.0);
+        assert_eq!(expect_field(json, protocol::METHOD), method);
+        let input_json = expect_field(json, protocol::INPUT);
+        let input_json = input_json.as_object().expect("input must be object");
+        assert_eq!(input_json.len(), MockRequest::FIELD_COUNT);
+        assert_eq!(expect_field(input_json, MockRequest::FIELD_NAME), number);
+    }
+
+    #[derive(Debug, Deserialize)]
+    struct MockResponse { exists: bool }
+
+    #[test]
+    fn test_response_deserialization() {
+        let response = r#"{"jsonrpc":"2.0","id":0,"result":{"exists":true}}"#;
+        let msg = serde_json::from_str(&response).unwrap();
+        if let IncomingMessage::Response(resp) = msg {
+            assert_eq!(resp.id, Id(0));
+            if let Result::Success(ret) = resp.result {
+                let obj = ret.result.as_object().expect("expected object ret");
+                assert_eq!(obj.len(), 1);
+                let exists = obj.get("exists").unwrap().as_bool().unwrap();
+                assert_eq!(exists, true)
+            }
+            else {
+                panic!("Expected a success result")
+            }
+        } else {
+            panic!("Expected a response!");
+        }
+    }
+
+    #[test]
+    fn version_serialization() {
+        let check_serialization = |json_text:&str, value:Version| {
+            let got_json_text = serde_json::to_string(&value).unwrap();
+            assert_eq!(got_json_text, json_text);
+
+            let got_value = serde_json::from_str::<Version>(json_text).unwrap();
+            assert_eq!(got_value, value);
+        };
+
+        check_serialization("\"2.0\"", Version::V2);
+        check_serialization("\"1.0\"", Version::V1);
+    }
 }
