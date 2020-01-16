@@ -50,7 +50,7 @@ use std::pin::Pin;
 
 pub async fn setup_file_manager(url:&str) -> FmClient {
     let ws = crate::web_transport::MyWebSocket::new(url).await;
-    FmClient::new(Box::new(ws))
+    FmClient::new(ws)
 }
 
 trait Tickable {

@@ -1,26 +1,57 @@
-
-
-
 use prelude::*;
 
 use json_rpc::*;
-use futures::executor::LocalPool;
-use futures::task::{LocalSpawnExt, Context};
+use json_rpc::api::RemoteMethodCall;
+use json_rpc::api::Result;
+use json_rpc::error::RpcError;
+use json_rpc::error::HandlingError;
+use json_rpc::messages::Id;
+use json_rpc::messages::Message;
+use json_rpc::messages::Version;
+
+use futures::FutureExt;
+use futures::task::Context;
+use serde::de::DeserializeOwned;
+use serde::Serialize;
+use serde::Deserialize;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::Poll;
 
+// =====================
+// === Mock Protocol ===
+// =====================
 
-use serde::Serialize;
-use serde::Deserialize;
-use futures::FutureExt;
-use json_rpc::messages::{make_success_message, Id, Version, Message, make_error_message};
-use serde::de::DeserializeOwned;
-use json_rpc::handler::RpcError::RemoteError;
-use json_rpc::handler::{RpcError, HandlingError};
+// === Remote Method ===
+
+fn pow_impl(msg:MockRequestMessage) -> MockResponseMessage {
+    let ret = MockResponse { result : msg.i * msg.i };
+    Message::new_success(msg.id,ret)
+}
+
+// === Protocol Data ===
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct MockRequest { i:i64 }
+
+impl RemoteMethodCall for MockRequest {
+    const NAME:&'static str = "pow";
+    type Returned           = MockResponse;
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+struct MockResponse { result:i64 }
+
+// === Helper Aliases ===
 
 type MockRequestMessage = messages::RequestMessage<MockRequest>;
+
 type MockResponseMessage = messages::ResponseMessage<MockResponse>;
+
+
+// ======================
+// === Mock Transport ===
+// ======================
 
 #[derive(Debug)]
 struct MockTransport {
@@ -73,6 +104,11 @@ impl MockTransport {
     }
 }
 
+
+// ================
+// === Executor ===
+// ================
+
 fn lumpen_executor<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
     let mut ctx = Context::from_waker(futures::task::noop_waker_ref());
     match f.as_mut().poll(&mut ctx) {
@@ -81,44 +117,10 @@ fn lumpen_executor<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
     }
 }
 
-struct LumpenExecutor {
-    futures : Vec<Pin<Box<dyn Future<Output = ()>>>>,
-}
-impl LumpenExecutor {
-    pub fn run(&mut self) {
-        let mut ctx = Context::from_waker(futures::task::noop_waker_ref());
-        for mut f in self.futures.iter_mut() {
-            match f.as_mut().poll(&mut ctx) {
-                Poll::Ready(result) => Ok(result),
-                Poll::Pending       => Err(f),
-            };
-        }
-    }
-}
 
-fn lumpen_executor2<F : Future>(f:F) -> std::result::Result<F::Output, impl Future> {
-    let mut f = Box::pin(f);
-    let mut ctx = Context::from_waker(futures::task::noop_waker_ref());
-    match f.as_mut().poll(&mut ctx) {
-        Poll::Ready(result) => Ok(result),
-        Poll::Pending       => Err(f),
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct MockRequest {
-    i:i64,
-}
-impl api::RemoteMethodCall for MockRequest {
-    const NAME:&'static str = "pow";
-    type Returned           = MockResponse;
-
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct MockResponse {
-    result:i64,
-}
+// ===================
+// === Mock Client ===
+// ===================
 
 #[derive(Debug)]
 pub struct Client {
@@ -127,7 +129,7 @@ pub struct Client {
 }
 
 impl Client {
-    pub fn new(transport:Box<dyn Transport>) -> Client {
+    pub fn new(transport:impl Transport + 'static) -> Client {
         let mut handler = Handler::new(transport);
         let errors = Rc::new(RefCell::new(Vec::new()));
 
@@ -150,25 +152,29 @@ impl Client {
     }
 }
 
-fn pow_impl(msg:MockRequestMessage) -> MockResponseMessage {
-    let ret = MockResponse { result : msg.i * msg.i };
-    make_success_message(msg.id, ret)
-}
+
+// ============
+// === Test ===
+// ============
 
 #[test]
 fn test() {
     let ws = Rc::new(RefCell::new(MockTransport::new()));
-    let mut fm = Client::new(Box::new(ws.clone()));
+    let mut fm = Client::new(ws.clone());
+
+    let call_input = 8;
+    let mut call_rpc = || Box::pin(fm.pow(call_input));
 
     // test successful call
     {
-        let mut fut = Box::pin(fm.pow(8));
+        let mut fut = call_rpc();
+        let expected_first_request_id = Id(0);
 
         // validate request sent
         let req_msg = ws.borrow_mut().expect_message::<MockRequestMessage>();
-        assert_eq!(req_msg.id, Id(0));
-        assert_eq!(req_msg.method, "pow");
-        assert_eq!(req_msg.i, 8);
+        assert_eq!(req_msg.id, expected_first_request_id);
+        assert_eq!(req_msg.method, MockRequest::NAME);
+        assert_eq!(req_msg.i, call_input);
         assert_eq!(req_msg.jsonrpc, Version::V2);
 
         assert!(lumpen_executor(&mut fut).is_none()); // no reply
@@ -201,7 +207,7 @@ fn test() {
         let error_code = 5;
         let error_description = "wrong!";
         let error_data = None;
-        let error_msg: MockResponseMessage = make_error_message(
+        let error_msg: MockResponseMessage = Message::new_error(
             req_msg.id,
             error_code,
             error_description.into(),
@@ -209,11 +215,12 @@ fn test() {
         );
         ws.borrow_mut().mock_peer_message(error_msg);
 
+        // receive error
         fm.tick();
         let result = lumpen_executor(&mut fut);
         let result = result.expect("result should be present");
         let result = result.expect_err("result should be a failure");
-        if let RemoteError(e) = result {
+        if let RpcError::RemoteError(e) = result {
             assert_eq!(e.code, error_code);
             assert_eq!(e.data, error_data);
             assert_eq!(e.message, error_description);
@@ -231,7 +238,7 @@ fn test() {
         assert!(lumpen_executor(&mut fut).is_none()); // no valid reply
         let internal_error = fm.errors.borrow_mut().pop();
         let internal_error = internal_error.expect("there should be an error");
-        if let HandlingError::InvalidMessage(e) = internal_error {
+        if let HandlingError::InvalidMessage(_) = internal_error {
         } else {
             panic!("Expected an error to be InvalidMessage");
         }

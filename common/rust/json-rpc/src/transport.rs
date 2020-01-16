@@ -21,6 +21,7 @@ pub trait Transport : Debug {
     /// Set a callback that gets notified on transport events.
     fn set_callback(&mut self, cb:Rc<RefCell<dyn TransportCallbacks>>);
 }
+
 impl<T: Transport> Transport for Rc<RefCell<T>> {
     fn send_text(&mut self, message:String) {
         self.borrow_mut().send_text(message)

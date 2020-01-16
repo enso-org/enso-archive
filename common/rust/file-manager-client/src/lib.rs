@@ -3,6 +3,7 @@ use prelude::*;
 use serde::Serialize;
 use serde::Deserialize;
 use json_rpc::*;
+use json_rpc::api::Result;
 use std::future::Future;
 use futures::FutureExt;
 
@@ -20,7 +21,7 @@ pub struct FmClient {
 }
 
 impl FmClient {
-    pub fn new(transport:Box<dyn Transport>) -> FmClient {
+    pub fn new(transport:impl Transport + 'static) -> FmClient {
         let mut handler = Handler::new(transport);
         handler.on_error.set(|e| {
             log!("Encountered handling error: {:?}", e);
@@ -44,7 +45,7 @@ impl FmClient {
     pub fn touch(&mut self, path:Path) -> impl Future<Output = Result<()>> {
         println!("exists?");
         let input = ExistsInput { path };
-        self.handler.open_request(input).map(|result| result.map(|r| ()))
+        self.handler.open_request(input).map(|result| result.map(|_| ()))
     }
 
     pub fn tick(&mut self) {

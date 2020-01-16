@@ -3,70 +3,17 @@
 use prelude::*;
 
 use crate::api;
-use crate::transport::Transport;
-use crate::transport::TransportCallbacks;
+use crate::api::Result;
+use crate::error::HandlingError;
+use crate::error::RpcError;
 use crate::messages;
 use crate::messages::Id;
-use crate::Result;
+use crate::transport::Transport;
+use crate::transport::TransportCallbacks;
 
 use futures::channel::oneshot;
-use failure::Fail;
 use serde::de::DeserializeOwned;
 use std::future::Future;
-
-
-// ================
-// === RpcError ===
-// ================
-
-/// Errors that can cause a remote call to fail.
-#[derive(Debug, Fail)]
-pub enum RpcError {
-    /// Error returned by the remote server.
-    #[fail(display = "peer has replied with an error: {:?}", _0)]
-    RemoteError(messages::Error),
-
-    /// Lost connection while waiting for response.
-    #[fail(display = "lost connection before receiving reply")]
-    LostConnection,
-
-    /// Failed to deserialize message from server.
-    #[fail(display = "failed to deserialize from JSON: {}", _0)]
-    DeserializationFailed(serde_json::Error),
-}
-
-impl From<oneshot::Canceled> for RpcError {
-    fn from(_:oneshot::Canceled) -> Self {
-        RpcError::LostConnection
-    }
-}
-
-impl From<serde_json::Error> for RpcError {
-    fn from(e:serde_json::Error) -> Self {
-        RpcError::DeserializationFailed(e)
-    }
-}
-
-
-// =====================
-// === HandlingError ===
-// =====================
-
-/// Errors specific to the Handler itself, not any specific request.
-///
-/// Caused either internal errors in the handler or bugs in the server.
-#[derive(Debug, Fail)]
-pub enum HandlingError {
-    /// When incoming text message can't be decoded.
-    #[fail(display = "failed to decode incoming text message: {}", _0)]
-    InvalidMessage(#[cause] serde_json::Error),
-
-    /// Server responded to an identifier that does not match to any known
-    /// ongoing request.
-    #[fail(display = "server generated response with no matching request: \
-    id={:?}", _0)]
-    UnexpectedResponse(messages::Response<serde_json::Value>),
-}
 
 
 // ====================
@@ -250,12 +197,15 @@ pub struct Handler {
 }
 
 impl Handler {
-    pub fn new(transport:Box<dyn Transport>) -> Handler {
+    /// Creates a new handler working on a given `Transport`.
+    ///
+    /// `Transport` must be functional (e.g. not in the process of opening).
+    pub fn new(transport:impl Transport + 'static) -> Handler {
         let mut ret = Handler {
             ongoing_calls   : OngoingCalls::new(),
             id_generator    : IdGenerator::new(),
-            transport,
-            buffer          :  Rc::new(RefCell::new(SharedBuffer::new())),
+            transport       : Box::new(transport),
+            buffer          : Rc::new(RefCell::new(SharedBuffer::new())),
             on_error        : Callback::new(),
             on_notification : Callback::new(),
         };
@@ -263,7 +213,9 @@ impl Handler {
         ret
     }
 
-    pub fn open_request<In : api::RemoteMethodCall>
+    /// Sends a request to the peer and returns a `Future` that shall yield a
+    /// reply message. It is automatically decoded into the expected type.
+    pub fn open_request<In:api::RemoteMethodCall>
     (&mut self, input:In) -> impl Future<Output = Result<In::Returned>> {
         println!("Setting the request future channel");
         use futures::FutureExt;
@@ -283,21 +235,35 @@ impl Handler {
         ret
     }
 
+    /// Deal with `Response` message from the peer.
+    ///
+    /// It shall be either matched with an open request or yield an error.
     pub fn process_response
     (&mut self, message:messages::Response<serde_json::Value>) {
         println!("Got response to request {}", message.id);
         if let Some(sender) = self.ongoing_calls.remove(&message.id) {
+            // Disregard any error. We do not care if RPC caller already
+            // dropped the future.
             let _ = sender.send(message.result);
         } else {
             self.error_occurred(HandlingError::UnexpectedResponse(message));
         }
     }
+
+    /// Deal with `Notification` message from the peer.
+    ///
+    /// It shall be announced using `on_notification` callback, allowing a
+    /// specific API client to properly deal with message details.
     pub fn process_notification
     (&mut self, message:messages::Notification<serde_json::Value>) {
         println!("Got notification: {:?}", message);
         self.on_notification.try_call(message);
     }
 
+    /// Deal with incoming text message from the peer.
+    ///
+    /// The message must conform either to the `Response` or to the
+    /// `Notification` JSON-serialized format. Otherwise, an error is raised.
     pub fn process_incoming_message(&mut self, message:String) {
         println!("Process {}", message);
         match serde_json::from_str(&message) {
@@ -310,11 +276,18 @@ impl Handler {
         }
     }
 
+    /// With with a handling error. Uses `on_error` callback to notify the
+    /// owner.
     pub fn error_occurred(&mut self, error: HandlingError) {
         println!("Internal error occurred: {}", error);
         self.on_error.try_call(error);
     }
 
+    /// Handle the events incoming from the Socket.
+    ///
+    /// This will decode the incoming messages, providing input to the futures
+    /// returned from RPC calls.
+    /// Also this cancels any ongoing calls if the connection was lost.
     pub fn tick(&mut self) {
         let buffer = match self.buffer.try_borrow_mut() {
             Ok(mut buffer) => buffer.take(),

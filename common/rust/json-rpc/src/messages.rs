@@ -6,31 +6,10 @@ use serde::Serialize;
 use serde::Deserialize;
 use shrinkwraprs::Shrinkwrap;
 
-/// An id identifying the call request.
-/// 
-/// Each request made by client should get a unique id (unique in a context of
-/// the current session). Auto-incrementing integer is a common choice.
-#[derive(Serialize, Deserialize)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
-#[derive(Shrinkwrap)]
-pub struct Id(pub i64);
 
-impl std::fmt::Display for Id {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-/// JSON-RPC protocol version. Only 2.0 is supported.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub enum Version {
-    /// Old JSON-RPC 1.0 specification. Not supported.
-    #[serde(rename = "1.0")]
-    V1,
-    /// JSON-RPC 2.0 specification. The supported version.
-    #[serde(rename = "2.0")]
-    V2,
-}
+// ===============
+// === Message ===
+// ===============
 
 /// All JSON-RPC messages bear `jsonrpc` version number.
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
@@ -46,6 +25,16 @@ pub struct Message<T> {
     pub payload : T
 }
 
+// === Common Message Subtypes ===
+
+/// A request message.
+pub type RequestMessage<In> = Message<Request<MethodCall<In>>>;
+
+/// A response message.
+pub type ResponseMessage<Ret> = Message<Response<Ret>>;
+
+// === `new` Functions ===
+
 impl<T> Message<T> {
     /// Wraps given payload into a JSON-RPC 2.0 message.
     pub fn new(t:T) -> Message<T> {
@@ -54,6 +43,61 @@ impl<T> Message<T> {
             payload: t,
         }
     }
+
+    /// Construct a request message.
+    pub fn new_request
+    (id:Id, method:&'static str, input:T) -> RequestMessage<T> {
+        let call = MethodCall {method: method.into(),input};
+        let request = Request::new(id,call);
+        Message::new(request)
+    }
+
+    /// Construct a successful response message.
+    pub fn new_success(id:Id, result:T) -> ResponseMessage<T> {
+        let result = Result::Success(Success {result});
+        let response = Response {id,result};
+        Message::new(response)
+    }
+
+    /// Construct a successful response message.
+    pub fn new_error
+    (id:Id, code:i64, message:String, data:Option<serde_json::Value>)
+     -> ResponseMessage<T> {
+        let result = Result::Error(Error{code,message,data});
+        let response = Response {id,result};
+        Message::new(response)
+    }
+}
+
+
+// ========================
+// === Message Subparts ===
+// ========================
+
+/// An id identifying the call request.
+/// 
+/// Each request made by client should get a unique id (unique in a context of
+/// the current session). Auto-incrementing integer is a common choice.
+#[derive(Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Shrinkwrap)]
+pub struct Id(pub i64);
+
+impl std::fmt::Display for Id {
+    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f,"{}",self.0)
+    }
+}
+
+/// JSON-RPC protocol version. Only 2.0 is supported.
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+pub enum Version {
+    /// Old JSON-RPC 1.0 specification. Not supported.
+    #[serde(rename = "1.0")]
+    V1,
+    /// JSON-RPC 2.0 specification. The supported version.
+    #[serde(rename = "2.0")]
+    V2,
 }
 
 /// A non-notification request.
@@ -149,39 +193,10 @@ pub struct MethodCall<In> {
     pub input  : In
 }
 
-////////////////////////////////////////////////////////////////////////////////
 
-/// A request message.
-pub type RequestMessage<In> = Message<Request<MethodCall<In>>>;
-
-/// A response message.
-pub type ResponseMessage<Ret> = Message<Response<Ret>>;
-
-/// Construct a request message.
-pub fn make_request_message<In>
-(id:Id, method:&'static str, input:In) -> RequestMessage<In> {
-    let call = MethodCall { method : method.into(), input };
-    let request = Request::new(id, call);
-    Message::new(request)
-}
-
-/// Construct a successful response message.
-pub fn make_success_message<Ret>
-(id:Id, result:Ret) -> ResponseMessage<Ret> {
-    let result = Result::Success(Success { result });
-    let response = Response { id, result };
-    Message::new(response)
-}
-
-/// Construct a successful response message.
-pub fn make_error_message<Ret>
-(id:Id, code:i64, message:String, data:Option<serde_json::Value>)
- -> ResponseMessage<Ret> {
-    let result = Result::Error(Error{code,message,data});
-    let response = Response { id, result };
-    Message::new(response)
-}
-
+// =============
+// === Tests ===
+// =============
 
 #[cfg(test)]
 mod tests {
@@ -199,18 +214,24 @@ mod tests {
     }
 
     mod protocol {
-        pub const JSONRPC: &str = "jsonrpc";
-        pub const METHOD: &str = "method";
-        pub const INPUT: &str = "input";
-        pub const ID: &str = "id";
+        // === Field Names ===
+        pub const JSONRPC:&str = "jsonrpc";
+        pub const METHOD :&str = "method";
+        pub const INPUT  :&str = "input";
+        pub const ID     :&str = "id";
 
-        pub const VERSION2_STRING: &str = "2.0";
+        // === Version strings ===
+        pub const VERSION1_STRING:&str = "1.0";
+        pub const VERSION2_STRING:&str = "2.0";
+
+        // === Other ===
+        pub const FIELD_COUNT_IN_REQUEST:usize = 4;
     }
 
     fn expect_field<'a,Obj:'a>
     (obj:&'a Map<String, Value>, field_name:&str) -> &'a Value
     where &'a Obj:Into<&'a Value> {
-        let missing_msg = format!("missing field {}", field_name);
+        let missing_msg = format!("missing field {}",field_name);
         obj.get(field_name).expect(&missing_msg)
     }
 
@@ -223,13 +244,12 @@ mod tests {
         let call    = MethodCall {method:method.into(),input};
         let request = Request::new(id,call);
         let message = Message::new(request);
-
-        let field_count_in_request_message = 4;
         
         let json = serde_json::to_value(message).expect("serialization error");
         let json = json.as_object().expect("expected an object");
-        assert_eq!(json.len(), field_count_in_request_message);
-        assert_eq!(expect_field(json, protocol::JSONRPC), protocol::VERSION2_STRING);
+        assert_eq!(json.len(), protocol::FIELD_COUNT_IN_REQUEST);
+        let jsonrpc_field = expect_field(json, protocol::JSONRPC);
+        assert_eq!(jsonrpc_field, protocol::VERSION2_STRING);
         assert_eq!(expect_field(json, protocol::ID), id.0);
         assert_eq!(expect_field(json, protocol::METHOD), method);
         let input_json = expect_field(json, protocol::INPUT);
@@ -238,11 +258,12 @@ mod tests {
         assert_eq!(expect_field(input_json, MockRequest::FIELD_NAME), number);
     }
 
-    #[derive(Debug, Deserialize)]
-    struct MockResponse { exists: bool }
 
     #[test]
     fn test_response_deserialization() {
+        #[derive(Debug, Deserialize)]
+        struct MockResponse { exists: bool }
+
         let response = r#"{"jsonrpc":"2.0","id":0,"result":{"exists":true}}"#;
         let msg = serde_json::from_str(&response).unwrap();
         if let IncomingMessage::Response(resp) = msg {
@@ -262,7 +283,7 @@ mod tests {
     }
 
     #[test]
-    fn version_serialization() {
+    fn version_serialization_and_deserialization() {
         let check_serialization = |json_text:&str, value:Version| {
             let got_json_text = serde_json::to_string(&value).unwrap();
             assert_eq!(got_json_text, json_text);
@@ -271,7 +292,7 @@ mod tests {
             assert_eq!(got_value, value);
         };
 
-        check_serialization("\"2.0\"", Version::V2);
-        check_serialization("\"1.0\"", Version::V1);
+        check_serialization(protocol::VERSION1_STRING, Version::V1);
+        check_serialization(protocol::VERSION2_STRING, Version::V2);
     }
 }

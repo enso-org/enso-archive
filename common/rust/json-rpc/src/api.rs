@@ -2,14 +2,27 @@
 
 use prelude::*;
 
+use crate::error::RpcError;
 use crate::messages::Id;
-use crate::messages::make_request_message;
+use crate::messages::Message;
 use crate::messages::RequestMessage;
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-/// Structure describing a call values to a remote method.
+// ==============
+// === Result ===
+// ==============
+
+/// A result of an RPC-call.
+pub type Result<T> = std::result::Result<T, RpcError>;
+
+
+// ========================
+// === RemoteMethodCall ===
+// ========================
+
+/// Structure describing a call to a remote method.
 ///
 /// A serialized value of this trait represents the method's input arguments.
 pub trait RemoteMethodCall : Serialize + Debug {
@@ -23,5 +36,5 @@ pub trait RemoteMethodCall : Serialize + Debug {
 /// Make a request message from given RemoteMethodInput value.
 pub fn into_request_message<In:RemoteMethodCall>
 (input:In, id:Id) -> RequestMessage<In> {
-    make_request_message(id,In::NAME,input)
+    Message::new_request(id,In::NAME,input)
 }
