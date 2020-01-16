@@ -12,7 +12,7 @@ use serde::de::DeserializeOwned;
 /// Structure describing a call values to a remote method.
 ///
 /// A serialized value of this trait represents the method's input arguments.
-pub trait RemoteMethodCall: Serialize + Debug {
+pub trait RemoteMethodCall : Serialize + Debug {
     /// Name of the remote method.
     const NAME:&'static str;
 
@@ -21,7 +21,7 @@ pub trait RemoteMethodCall: Serialize + Debug {
 }
 
 /// Make a request message from given RemoteMethodInput value.
-pub fn into_request_message<In: RemoteMethodCall>
+pub fn into_request_message<In:RemoteMethodCall>
 (input:In, id:Id) -> RequestMessage<In> {
     make_request_message(id,In::NAME,input)
 }

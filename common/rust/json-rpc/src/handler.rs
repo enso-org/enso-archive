@@ -14,6 +14,11 @@ use failure::Fail;
 use serde::de::DeserializeOwned;
 use std::future::Future;
 
+
+// ================
+// === RpcError ===
+// ================
+
 /// Errors that can cause a remote call to fail.
 #[derive(Debug, Fail)]
 pub enum RpcError {
@@ -31,16 +36,21 @@ pub enum RpcError {
 }
 
 impl From<oneshot::Canceled> for RpcError {
-    fn from(_: oneshot::Canceled) -> Self {
+    fn from(_:oneshot::Canceled) -> Self {
         RpcError::LostConnection
     }
 }
 
 impl From<serde_json::Error> for RpcError {
-    fn from(e: serde_json::Error) -> Self {
+    fn from(e:serde_json::Error) -> Self {
         RpcError::DeserializationFailed(e)
     }
 }
+
+
+// =====================
+// === HandlingError ===
+// =====================
 
 /// Errors specific to the Handler itself, not any specific request.
 ///
@@ -58,6 +68,11 @@ pub enum HandlingError {
     UnexpectedResponse(messages::Response<serde_json::Value>),
 }
 
+
+// ====================
+// === ReplyMessage ===
+// ====================
+
 /// Partially decoded reply message.
 ///
 /// Known if `Error` or `Success` but returned value remains in JSON form.
@@ -74,6 +89,11 @@ pub fn decode_result<Ret:DeserializeOwned>
     }
 }
 
+
+// ===================
+// === IdGenerator ===
+// ===================
+
 /// Simple counter-based struct used to generate unique Id's.
 ///
 /// The generated Ids are sequence 0, 1, 2, …
@@ -82,6 +102,7 @@ pub struct IdGenerator {
     /// Next Id value to be returned.
     pub counter:i64,
 }
+
 impl IdGenerator {
     /// Obtain the new Id.
     pub fn next(&mut self) -> Id {
@@ -101,6 +122,11 @@ impl IdGenerator {
     }
 }
 
+
+// ====================
+// === SharedBuffer ===
+// ====================
+
 /// The buffer shared between `Handler` and `Transport`.
 ///
 /// The `Transport` callbacks store any input there. Then, `Handler` consumes it
@@ -114,6 +140,7 @@ pub struct SharedBuffer {
     /// cannot be used anymore.
     pub closed : bool,
 }
+
 impl SharedBuffer {
     /// Create a new empty buffer.
     pub fn new() -> SharedBuffer {
@@ -133,19 +160,27 @@ impl SharedBuffer {
         SharedBuffer { incoming, closed }
     }
 }
+
 impl TransportCallbacks for SharedBuffer {
     fn on_text_message(&mut self, message:String) {
         self.incoming.push(message);
     }
+
     fn on_close(&mut self) {
         self.closed = true;
     }
 }
 
 
+// ================
+// === Callback ===
+// ================
+
+/// An optional callback procedure taking `T`.
 pub struct Callback<T> {
     cb : Option<Box<dyn Fn(T) -> ()>>
 }
+
 impl<T> Debug for Callback<T> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "{}", match self.cb {
@@ -156,22 +191,23 @@ impl<T> Debug for Callback<T> {
 }
 
 impl<T> Callback<T> {
+    /// Create a new, empty callaback.
     pub fn new() -> Callback<T> {
         Callback { cb : None }
     }
 
-//    pub fn set(&mut self, cb:Box<dyn Fn(T) ->()>) {
-//        self.cb = Some(cb);
-//    }
-
+    /// Sets callback to the given callable.
     pub fn set<F : Fn(T) -> () + 'static>(&mut self, cb:F) {
         self.cb = Some(Box::new(cb));
     }
 
+    /// Clears the previously set callback (if any).
     pub fn unset(&mut self) {
         self.cb = None;
     }
 
+    /// Calls the provided callback with `t`. Does nothing, if no callback was
+    /// provided.
     pub fn try_call(&mut self, t:T) {
         if let Some(cb) = &self.cb {
             cb(t);
@@ -179,6 +215,14 @@ impl<T> Callback<T> {
     }
 }
 
+
+// ===============
+// === Handler ===
+// ===============
+
+/// Container that stores Sender's for ongoing calls. Each call identified by
+/// id has its own sender. After reply is received, the call is removed
+/// from this container.
 pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
 
 /// Handler is a main provider of RPC protocol. Given with a transport capable
