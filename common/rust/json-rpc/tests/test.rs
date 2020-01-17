@@ -121,7 +121,7 @@ impl MockTransport {
 
 /// Polls the future, performing any available work. If future is complete,
 /// returns result. Otherwise, returns control when stalled.
-fn mock_executor<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
+fn poll_for_output<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
     let mut ctx = Context::from_waker(futures::task::noop_waker_ref());
     match f.as_mut().poll(&mut ctx) {
         Poll::Ready(result) => Some(result),
@@ -213,7 +213,7 @@ fn test_success_call() {
     assert_eq!(req_msg.i, call_input);
     assert_eq!(req_msg.jsonrpc, Version::V2);
 
-    assert!(mock_executor(&mut fut).is_none()); // no reply
+    assert!(poll_for_output(&mut fut).is_none()); // no reply
 
     // let's reply
     let reply = pow_impl(req_msg);
@@ -222,12 +222,12 @@ fn test_success_call() {
     // before tick message should be in buffer and callbacks should not
     // complete
     assert_eq!(fm.handler.buffer.borrow_mut().incoming.len(), 1);
-    assert!(mock_executor(&mut fut).is_none()); // not ticked
+    assert!(poll_for_output(&mut fut).is_none()); // not ticked
 
     // now tick
     fm.process_events();
     assert_eq!(fm.handler.buffer.borrow_mut().incoming.len(), 0);
-    let result = mock_executor(&mut fut);
+    let result = poll_for_output(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect("result should be a success");
     assert_eq!(result, 8*8);
@@ -237,7 +237,7 @@ fn test_success_call() {
 fn test_error_call() {
     let (ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
-    assert!(mock_executor(&mut fut).is_none()); // no reply
+    assert!(poll_for_output(&mut fut).is_none()); // no reply
 
     // reply with error
     let req_msg = ws.borrow_mut().expect_message::<MockRequestMessage>();
@@ -254,7 +254,7 @@ fn test_error_call() {
 
     // receive error
     fm.process_events();
-    let result = mock_executor(&mut fut);
+    let result = poll_for_output(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect_err("result should be a failure");
     if let RpcError::RemoteError(e) = result {
@@ -270,10 +270,10 @@ fn test_error_call() {
 fn test_garbage_reply_error() {
     let (ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
-    assert!(mock_executor(&mut fut).is_none()); // no reply
+    assert!(poll_for_output(&mut fut).is_none()); // no reply
     ws.borrow_mut().mock_peer_message_text("hello, nice to meet you");
     fm.process_events();
-    assert!(mock_executor(&mut fut).is_none()); // no valid reply
+    assert!(poll_for_output(&mut fut).is_none()); // no valid reply
     let internal_error = fm.expect_handling_error();
     if let HandlingError::InvalidMessage(_) = internal_error {
     } else {
@@ -285,11 +285,11 @@ fn test_garbage_reply_error() {
 fn test_disconnect_error() {
     let (ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
-    assert!(mock_executor(&mut fut).is_none()); // no reply
+    assert!(poll_for_output(&mut fut).is_none()); // no reply
     ws.borrow_mut().mock_connection_closed();
-    assert!(mock_executor(&mut fut).is_none()); // no reply
+    assert!(poll_for_output(&mut fut).is_none()); // no reply
     fm.process_events();
-    let result = mock_executor(&mut fut);
+    let result = poll_for_output(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect_err("result should be a failure");
     if let RpcError::LostConnection = result {} else {
