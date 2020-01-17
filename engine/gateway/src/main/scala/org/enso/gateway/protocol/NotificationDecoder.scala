@@ -9,13 +9,13 @@ import org.enso.gateway.protocol.request.Params.{
 }
 
 /**
-  * Helper object for decoding [[Notification]]
+  * Helper object for decoding [[Notification]].
   */
 object NotificationDecoder {
 
   /**
-    * @tparam P
-    * @return Circe decoder for notifications and notification fields of requests
+    * @tparam P Subtype of [[Params]] for a notification with specific method.
+    * @return Circe decoder for notifications and notification fields of requests.
     */
   def instance[P <: Params]: Decoder[Notification[P]] =
     cursor => {

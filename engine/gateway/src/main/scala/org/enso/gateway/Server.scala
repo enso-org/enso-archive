@@ -24,6 +24,7 @@ object Server {
 
   /**
     * Describes endpoint to which [[Server]] can bind (host, port, route) and timeout for waiting response.
+    * Gets parameters from typesafe config.
     */
   object Config {
     private val gatewayPath = "gateway"
@@ -36,14 +37,31 @@ object Server {
       ConfigFactory.load.getConfig(gatewayPath)
     private val serverConfig: Config = gatewayConfig.getConfig(serverPath)
 
-    val host: String  = serverConfig.getString(hostPath)
-    val port: Int     = serverConfig.getInt(portPath)
+    /**
+      * Host of endpoint.
+      */
+    val host: String = serverConfig.getString(hostPath)
+
+    /**
+      * Port of endpoint.
+      */
+    val port: Int = serverConfig.getInt(portPath)
+
+    /**
+      * Route of endpoint.
+      */
     val route: String = serverConfig.getString(routePath)
 
+    /**
+      * Timeout for waiting response after request.
+      */
     implicit val timeout: Timeout = Timeout(
       serverConfig.getLong(timeoutPath).seconds
     )
 
+    /**
+      * Creates address string.
+      */
     val addressString: String = s"ws://$host:$port"
   }
 }
@@ -67,7 +85,7 @@ class Server(jsonRpcController: JsonRpcController)(
   import system.dispatcher
   import Server.Config.timeout
 
-  val log: LoggingAdapter = Logging.getLogger(system, this)
+  private val log: LoggingAdapter = Logging.getLogger(system, this)
 
   /** Akka stream defining server behavior.
     *

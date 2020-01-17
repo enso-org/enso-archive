@@ -4,13 +4,13 @@ import io.circe.Decoder
 import org.enso.gateway.protocol.request.Params
 
 /**
-  * Helper object for decoding [[Request]]
+  * Helper object for decoding [[Request]].
   */
 object RequestDecoder {
 
   /**
-    * @tparam P
-    * @return Circe decoder for requests
+    * @tparam P Subtype of [[Params]] for a request with specific method.
+    * @return Circe decoder for requests.
     */
   def instance[P <: Params]: Decoder[Request[P]] = cursor => {
     val idCursor = cursor.downField(Request.idField)

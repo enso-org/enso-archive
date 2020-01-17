@@ -4,6 +4,9 @@ import io.circe.Encoder
 
 sealed abstract class ErrorCode(val code: Int)
 
+/**
+  * Codes of [[org.enso.gateway.protocol.response.ResponseError]]
+  */
 object ErrorCode {
 
   // Defined by JSON RPC
