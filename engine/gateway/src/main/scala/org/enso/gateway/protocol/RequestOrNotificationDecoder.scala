@@ -3,8 +3,14 @@ package org.enso.gateway.protocol
 import io.circe.CursorOp.DownField
 import io.circe.{Decoder, DecodingFailure}
 import org.enso.gateway.protocol.request.Params.{
+  ApplyWorkspaceEditParams,
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
+  DidSaveTextDocumentParams,
   InitializeParams,
-  InitializedParams
+  VoidParams,
+  WillSaveTextDocumentWaitUntilParams
 }
 
 /**
@@ -34,6 +40,10 @@ object RequestOrNotificationDecoder {
       List(DownField(Notification.methodField))
     )
 
+  /**
+    * @param method Name of method, which is discriminator
+    * @return Circe decoder for requests or notifications
+    */
   private def selectRequestOrNotificationDecoder(
     method: String
   ): Decoder[_ <: RequestOrNotification] =
@@ -41,10 +51,24 @@ object RequestOrNotificationDecoder {
       // All requests
       case Requests.Initialize.method =>
         Decoder[Request[InitializeParams]]
+      case Requests.Shutdown.method =>
+        Decoder[Request[VoidParams]]
+      case Requests.ApplyWorkspaceEdit.method =>
+        Decoder[Request[ApplyWorkspaceEditParams]]
+      case Requests.WillSaveTextDocumentWaitUntil.method =>
+        Decoder[Request[WillSaveTextDocumentWaitUntilParams]]
 
       // All notifications
-      case Notifications.Initialized.method =>
-        Decoder[Notification[InitializedParams]]
+      case Notifications.Initialized.method | Notifications.Exit.method =>
+        Decoder[Notification[VoidParams]]
+      case Notifications.DidOpenTextDocument.method =>
+        Decoder[Notification[DidOpenTextDocumentParams]]
+      case Notifications.DidChangeTextDocument.method =>
+        Decoder[Notification[DidChangeTextDocumentParams]]
+      case Notifications.DidSaveTextDocument.method =>
+        Decoder[Notification[DidSaveTextDocumentParams]]
+      case Notifications.DidCloseTextDocument.method =>
+        Decoder[Notification[DidCloseTextDocumentParams]]
 
       case m =>
         Decoder.failed(

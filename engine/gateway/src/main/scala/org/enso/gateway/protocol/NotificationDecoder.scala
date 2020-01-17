@@ -4,8 +4,14 @@ import io.circe.{ACursor, Decoder, DecodingFailure}
 import org.enso.gateway.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Params
 import org.enso.gateway.protocol.request.Params.{
+  ApplyWorkspaceEditParams,
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
+  DidSaveTextDocumentParams,
   InitializeParams,
-  InitializedParams
+  VoidParams,
+  WillSaveTextDocumentWaitUntilParams
 }
 
 /**
@@ -35,6 +41,10 @@ object NotificationDecoder {
       } yield Notification[P](jsonrpc, method, params)
     }
 
+  /**
+    * @param method Name of method. It is the discriminator
+    * @return Circe decoder for method params
+    */
   private def selectParamsDecoder[P <: Params](
     method: String
   ): Decoder[Option[P]] =
@@ -42,10 +52,24 @@ object NotificationDecoder {
       // All requests
       case Requests.Initialize.method =>
         Decoder[Option[InitializeParams]]
+      case Requests.Shutdown.method =>
+        Decoder[Option[VoidParams]]
+      case Requests.ApplyWorkspaceEdit.method =>
+        Decoder[Option[ApplyWorkspaceEditParams]]
+      case Requests.WillSaveTextDocumentWaitUntil.method =>
+        Decoder[Option[WillSaveTextDocumentWaitUntilParams]]
 
       // All notifications
-      case Notifications.Initialized.method =>
-        Decoder[Option[InitializedParams]]
+      case Notifications.Initialized.method | Notifications.Exit.method =>
+        Decoder[Option[VoidParams]]
+      case Notifications.DidOpenTextDocument.method =>
+        Decoder[Option[DidOpenTextDocumentParams]]
+      case Notifications.DidChangeTextDocument.method =>
+        Decoder[Option[DidChangeTextDocumentParams]]
+      case Notifications.DidSaveTextDocument.method =>
+        Decoder[Option[DidSaveTextDocumentParams]]
+      case Notifications.DidCloseTextDocument.method =>
+        Decoder[Option[DidCloseTextDocumentParams]]
 
       case m =>
         Decoder.failed(

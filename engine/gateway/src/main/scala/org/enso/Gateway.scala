@@ -2,7 +2,10 @@ package org.enso
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.typesafe.config.ConfigFactory
-import org.enso.gateway.protocol.response.Result.InitializeResult
+import org.enso.gateway.protocol.response.Result.{
+  InitializeResult,
+  ShutdownResult
+}
 import org.enso.gateway.protocol.{Id, Notifications, Requests, Response}
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
@@ -29,6 +32,41 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
         id     = Some(Id.Number(id)),
         result = InitializeResult(ServerCapabilities(), Some(serverInfo))
       )
+
+    case Requests.Shutdown(Id.Number(id), _) =>
+      val msg = "Gateway: Shutdown received"
+      log.info(msg)
+      languageServer ! LanguageServer.Shutdown(id)
+
+    case LanguageServer.ShutdownReceived(id, replyTo) =>
+      val msg = "Gateway: InitializeReceived received"
+      log.info(msg)
+      replyTo ! Response.result(
+        id     = Some(Id.Number(id)),
+        result = ShutdownResult()
+      )
+
+    case Requests.ApplyWorkspaceEdit(Id.Number(id), _) =>
+      val msg = "Gateway: Shutdown received"
+      log.info(msg)
+      languageServer ! LanguageServer.ApplyWorkspaceEdit(id)
+
+    case LanguageServer.ApplyWorkspaceEditReceived(id, replyTo) =>
+      val msg = "Gateway: InitializeReceived received"
+      log.info(msg)
+      replyTo ! Response.result(
+        id     = Some(Id.Number(id)),
+        result = ShutdownResult()
+      )
+
+    case Requests.WillSaveTextDocumentWaitUntil(_, _) =>
+      val msg = "Gateway: Initialized received"
+      log.info(msg)
+      languageServer ! LanguageServer.Initialized
+
+    case LanguageServer.WillSaveTextDocumentWaitUntilReceived =>
+      val msg = "Gateway: InitializedReceived received"
+      log.info(msg)
 
     case Notifications.Initialized(_) =>
       val msg = "Gateway: Initialized received"

@@ -64,4 +64,16 @@ object Result {
     implicit val initializeResultEncoder: Encoder[InitializeResult] =
       deriveEncoder
   }
+
+  /**
+    * [[org.enso.gateway.protocol.Requests.Shutdown]] result
+    */
+  case class ShutdownResult(
+    ) extends Result
+
+  object ShutdownResult {
+    implicit val shutdownResultEncoder: Encoder[ShutdownResult] =
+      deriveEncoder
+  }
+
 }

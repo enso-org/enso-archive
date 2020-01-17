@@ -2,18 +2,6 @@ package org.enso.gateway.protocol
 
 import io.circe.Decoder
 import org.enso.gateway.protocol.request.Params
-import org.enso.gateway.protocol.request.Params.{
-  ApplyWorkspaceEditParams,
-  DidChangeTextDocumentParams,
-  DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams,
-  DidSaveTextDocumentParams,
-  InitializeParams,
-  VoidParams,
-  WillSaveTextDocumentWaitUntilParams
-}
-import RequestOrNotification.selectParamsDecoder
-import io.circe.CursorOp.DownField
 
 /**
   * Parent trait for [[Request]] and [[Notification]]

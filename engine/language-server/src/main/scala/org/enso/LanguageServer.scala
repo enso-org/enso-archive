@@ -41,6 +41,36 @@ object LanguageServer {
   case class InitializeReceived(id: Int, replyTo: ActorRef)
 
   /**
+    * Language server response to [[]]
+    */
+  case class Shutdown(id: Int)
+
+  /**
+    *
+    */
+  case class ShutdownReceived(id: Int, replyTo: ActorRef)
+
+  /**
+    * Language server response to [[]]
+    */
+  case class ApplyWorkspaceEdit(id: Int)
+
+  /**
+    *
+    */
+  case class ApplyWorkspaceEditReceived(id: Int, replyTo: ActorRef)
+
+  /**
+    * Language server response to [[]]
+    */
+  case class WillSaveTextDocumentWaitUntilEdit(id: Int)
+
+  /**
+    *
+    */
+  case class WillSaveTextDocumentWaitUntilReceived(id: Int, replyTo: ActorRef)
+
+  /**
     * Language server response to [[Initialized]]
     */
   case object InitializedReceived
