@@ -8,8 +8,7 @@ import shapeless.{::, HList, HNil, Poly1}
 import scala.collection.mutable
 
 // TODO [AA] Can I macro this into a separate file like AST does?
-// TODO [AA] Have a test with macros and a test without macros
-class GraphTest extends FlatSpec with Matchers {
+class GraphTestRaw extends FlatSpec with Matchers {
   object GraphImpl {
 
     // ========================================================================
@@ -17,6 +16,10 @@ class GraphTest extends FlatSpec with Matchers {
     // ========================================================================
 
     case class Graph() extends PrimGraph
+
+    implicit def opaqueData = new PrimGraph.OpaqueData.List[Graph] {
+      type Out = String :: HNil
+    }
 
     implicit def components = new PrimGraph.Component.List[Graph] {
       type Out = Nodes :: Edges :: HNil
@@ -38,7 +41,6 @@ class GraphTest extends FlatSpec with Matchers {
     // ========================================================================
 
     // === Node ===
-//    @component case class Nodes() { type Node[G <: PrimGraph] }
     sealed case class Nodes() extends PrimGraph.Component
     type Node[G <: PrimGraph] = PrimGraph.Component.Ref[G, Nodes]
     implicit class GraphWithNodes[G <: PrimGraph](
@@ -50,7 +52,6 @@ class GraphTest extends FlatSpec with Matchers {
     }
 
     // === Edge ===
-//    @component case class Edges() { type Edge[G <: PrimGraph] }
     sealed case class Edges() extends PrimGraph.Component
     type Edge[G <: PrimGraph] = PrimGraph.Component.Ref[G, Edges]
     implicit class GraphWithEdges[G <: PrimGraph](
@@ -66,13 +67,6 @@ class GraphTest extends FlatSpec with Matchers {
     // ========================================================================
 
     object Node {
-
-      // === Node Shape ===
-//      @field object Shape {
-//        type G = PrimGraph
-//        case class Null()
-//        case class App(fn: Edge[G], argTest: Edge[G])
-//      }
 
       sealed trait Shape extends PrimGraph.Component.Field
       object Shape {
@@ -248,7 +242,6 @@ class GraphTest extends FlatSpec with Matchers {
       };
 
       // TODO [AA] Variants should be able to support nested types.
-      // TODO [AA] Want to store this at the graphdata level nicely
       // TODO [AA] How to macro this -> Opaque[T]
       sealed case class NameMap(str: mutable.Map[Int, String])
       sealed case class Name(str: String) extends PrimGraph.Component.Field;
@@ -367,7 +360,7 @@ class GraphTest extends FlatSpec with Matchers {
   n1.column = 5
 
   n1.location = Node.Location(1, 2);
-  n1.name = "foo"
+  n1.name     = "foo"
 
   // This is just dirty and very unsafe way of changing `n1` to be App!
   graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](n1.ix, 0, 1)
@@ -409,18 +402,5 @@ class GraphTest extends FlatSpec with Matchers {
     e2.source = n3
 
     e2.source shouldEqual n3
-  }
-
-  "Testing a thing" should "work" in {
-    type MyList = String :: Double :: HNil
-    type MyMapList = MapsOf[MyList]
-
-    type TestType = mutable.Map[Int, String] :: mutable.Map[Int, Double] :: HNil
-
-    implicitly[MapsOf.Aux[MyList, TestType]]
-
-    val testy = MkHListOfMaps[TestType].instance
-
-    println(testy)
   }
 }

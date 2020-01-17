@@ -106,7 +106,8 @@ lazy val enso = (project in file("."))
     polyglot_api,
     parser_service,
     file_manager,
-    project_manager
+    project_manager,
+    graph
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
@@ -308,6 +309,13 @@ lazy val graph = (project in file("common/scala/graph/"))
     ),
     addCompilerPlugin(
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
 

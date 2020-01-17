@@ -1,11 +1,12 @@
 package org.enso.graph
 
+import org.scalatest.{FlatSpec, Matchers}
 import shapeless.{::, HNil}
 import shapeless.Nat._
 
 import scala.collection.mutable
 
-object TypeFunctionTest {
+class TypeFunctionTest extends FlatSpec with Matchers {
 
   object HListSumTest {
     implicitly[HListSum.Aux[HNil, _0]]
@@ -64,5 +65,39 @@ object TypeFunctionTest {
       String :: Double :: HNil,
       mutable.Map[Int, String] :: mutable.Map[Int, Double] :: HNil
     ]]
+  }
+
+  "Generating a HList of Maps" should "work for opaque data" in {
+    type MyList = String :: Double :: HNil
+    val test = MapsOf[MyList].instance
+
+    test.select[mutable.Map[Int, String]] shouldEqual mutable.Map[Int, String]()
+  }
+
+  "A HList of Maps" should "allow selection by Value type" in {
+    val mapsOf = MapsOf[String :: Long :: HNil]
+    type MapsOfT = mapsOf.Out
+    val test = MapsOf[String :: Long :: HNil].instance
+
+    MapsOf.getOpaqueData[Long, mapsOf.Out](test) shouldEqual mutable
+      .Map[Int, Long]()
+  }
+
+  "The opaque data maps" should "allow insertion and deletion" in {
+    val maps = MapsOf[String :: HNil]
+
+    val stringMap =
+      MapsOf.getOpaqueData[String, maps.Out](maps.instance)
+    val testMap: mutable.Map[Int, String] = mutable.Map()
+
+    stringMap(0) = "TestString"
+    testMap(0)   = "TestString"
+
+    MapsOf.getOpaqueData[String, maps.Out](maps.instance) shouldEqual testMap
+
+    stringMap - 0
+    testMap - 0
+
+    MapsOf.getOpaqueData[String, maps.Out](maps.instance) shouldEqual testMap
   }
 }

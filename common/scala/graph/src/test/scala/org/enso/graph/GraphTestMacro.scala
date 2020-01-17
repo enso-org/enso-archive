@@ -1,5 +1,5 @@
 package org.enso.graph
 
-class GraphMacroTest {
+class GraphTestMacro {
 
 }

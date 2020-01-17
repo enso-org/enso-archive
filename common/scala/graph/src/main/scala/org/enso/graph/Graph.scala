@@ -1,7 +1,8 @@
 package org.enso.graph
 
+import shapeless.ops.hlist._
 import shapeless.ops.{hlist, nat}
-import shapeless.{::, HList, HNil, IsDistinctConstraint, Nat}
+import shapeless.{::, HList, HNil, IsDistinctConstraint, Nat, Select}
 
 import scala.collection.mutable
 
@@ -259,6 +260,7 @@ object SizeUntil {
   */
 trait MapsOf[List <: HList] {
   type Out <: HList
+  val instance: Out
 }
 object MapsOf {
   type Aux[List <: HList, X] = MapsOf[List] { type Out = X }
@@ -268,7 +270,10 @@ object MapsOf {
   ): MapsOf.Aux[List, ev.Out] = ev
 
   implicit def onNil: MapsOf.Aux[HNil, HNil] =
-    new MapsOf[HNil] { type Out = HNil }
+    new MapsOf[HNil] {
+      type Out = HNil
+      val instance = HNil
+    }
 
   implicit def onCons[Head, Tail <: HList](
     implicit ev: MapsOf[Tail],
@@ -276,46 +281,16 @@ object MapsOf {
   ): MapsOf.Aux[Head :: Tail, mutable.Map[Int, Head] :: ev.Out] =
     new MapsOf[Head :: Tail] {
       type Out = mutable.Map[Int, Head] :: ev.Out
-    }
-}
-
-trait MkHListOfMaps[List <: HList] {
-  type Out <: HList
-  val instance: HList
-}
-object MkHListOfMaps {
-  type Aux[List <: HList, X] = MkHListOfMaps[List] { type Out = X }
-
-  def apply[List <: HList](
-    implicit ev: MkHListOfMaps[List]
-  ): MkHListOfMaps.Aux[List, ev.Out] = ev
-
-  implicit def onNil: MkHListOfMaps.Aux[HNil, HNil] =
-    new MkHListOfMaps[HNil] {
-      type Out = HNil
-      val instance = HNil
+      val instance = mutable.Map[Int, Head]() :: ev.instance
     }
 
-  implicit def onCons[T, Tail <: HList](
-    implicit ev: MkHListOfMaps[Tail]
-  ): MkHListOfMaps.Aux[mutable.Map[Int, T] :: Tail, mutable.Map[Int, T] :: ev.Out] = {
-    new MkHListOfMaps[mutable.Map[Int, T] :: Tail] {
-      type Out = mutable.Map[Int, T] :: ev.Out
-      val instance = mutable.Map[Int, T]() :: ev.instance
-    }
+  def getOpaqueData[T, Opaques <: HList](
+    list: Opaques
+  )(
+    implicit ev: Selector[Opaques, mutable.Map[Int, T]]
+  ): mutable.Map[Int, T] = {
+    list.select[mutable.Map[Int, T]]
   }
-}
-
-object tests {
-  type MyList    = String :: Double :: HNil
-
-  val x = MapsOf[MyList]
-  type MyMapList = x.Out
-  type TestType = mutable.Map[Int, String] :: mutable.Map[Int, Double] :: HNil
-
-  implicitly[MapsOf.Aux[MyList, TestType]]
-
-  val test = MkHListOfMaps[MyMapList].instance
 }
 
 // ============================================================================
@@ -327,6 +302,8 @@ object tests {
   * The type [[Graph]] should not be used directly by programs that use this
   * library. Instead, it should be used to implement custom graph instances by
   * extending the [[Graph]] trait.
+  *
+  * Clients of the library must specify the
   */
 trait Graph
 object Graph {
@@ -336,6 +313,21 @@ object Graph {
   // ==========================
 
   def apply[G <: Graph: GraphInfo](): GraphData[G] = new GraphData[G]()
+
+
+  // ==================
+  // === OpaqueData ===
+  // ==================
+
+  trait OpaqueData
+  object OpaqueData {
+    trait List[G <: Graph] {
+      type Out <: HList
+    }
+    object List {
+      type Aux[G <: Graph, X <: HList] = List[G] { type Out = X }
+    }
+  }
 
   // =================
   // === Component ===
@@ -551,22 +543,26 @@ object Graph {
   trait GraphInfo[G <: Graph] {
     val componentCount: Int
     val componentSizes: Vector[Int]
+    type OpaqueDataTypes <: HList
   }
   object GraphInfo {
     implicit def instance[
       G <: Graph,
       ComponentList <: HList,
       ComponentSizeList >: HList,
-      ComponentListLength <: Nat
+      ComponentListLength <: Nat,
+      OpaqueDataList <: HList
     ](
       implicit
       ev1: Component.List.Aux[G, ComponentList],
       ev2: hlist.Length.Aux[ComponentList, ComponentListLength],
       componentSizesEv: ComponentListToSizes[G, ComponentList],
-      len: nat.ToInt[ComponentListLength]
+      len: nat.ToInt[ComponentListLength],
+      ev3: OpaqueData.List.Aux[G, OpaqueDataList]
     ): GraphInfo[G] = new GraphInfo[G] {
       val componentCount = len()
       val componentSizes = componentSizesEv.sizes
+      override type OpaqueDataTypes = OpaqueDataList
     }
   }
 
