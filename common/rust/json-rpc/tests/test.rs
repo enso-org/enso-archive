@@ -73,7 +73,6 @@ impl Transport for MockTransport {
     }
 
     fn send_text(&mut self, text:String) {
-        println!("Client sends: {}", text);
         self.sent_msgs.push(text.clone());
     }
 }
@@ -88,7 +87,6 @@ impl MockTransport {
 
     pub fn mock_peer_message_text<S:Into<String>>(&mut self, message:S) {
         let message = message.into();
-        println!("Server sends: {}", message);
         if let Some(ref cb) = self.cb {
             cb.borrow_mut().on_text_message(message);
         }
@@ -100,7 +98,6 @@ impl MockTransport {
     }
 
     pub fn mock_connection_closed(&mut self) {
-        println!("Mock: Server closed the connection");
         if let Some(ref cb) = self.cb {
             cb.borrow_mut().on_close();
         }
@@ -172,8 +169,8 @@ impl Client {
         self.handler.open_request(input).map(|result| result.map(|r| r.result))
     }
 
-    pub fn tick(&mut self) {
-        self.handler.tick()
+    pub fn process_events(&mut self) {
+        self.handler.process_events()
     }
 
     pub fn try_get_notification(&mut self) -> Option<MockNotification> {
@@ -228,7 +225,7 @@ fn test_success_call() {
     assert!(mock_executor(&mut fut).is_none()); // not ticked
 
     // now tick
-    fm.tick();
+    fm.process_events();
     assert_eq!(fm.handler.buffer.borrow_mut().incoming.len(), 0);
     let result = mock_executor(&mut fut);
     let result = result.expect("result should be present");
@@ -256,7 +253,7 @@ fn test_error_call() {
     ws.borrow_mut().mock_peer_message(error_msg);
 
     // receive error
-    fm.tick();
+    fm.process_events();
     let result = mock_executor(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect_err("result should be a failure");
@@ -275,7 +272,7 @@ fn test_garbage_reply_error() {
     let mut fut = Box::pin(fm.pow(8));
     assert!(mock_executor(&mut fut).is_none()); // no reply
     ws.borrow_mut().mock_peer_message_text("hello, nice to meet you");
-    fm.tick();
+    fm.process_events();
     assert!(mock_executor(&mut fut).is_none()); // no valid reply
     let internal_error = fm.expect_handling_error();
     if let HandlingError::InvalidMessage(_) = internal_error {
@@ -291,7 +288,7 @@ fn test_disconnect_error() {
     assert!(mock_executor(&mut fut).is_none()); // no reply
     ws.borrow_mut().mock_connection_closed();
     assert!(mock_executor(&mut fut).is_none()); // no reply
-    fm.tick();
+    fm.process_events();
     let result = mock_executor(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect_err("result should be a failure");
@@ -306,7 +303,7 @@ fn test_notification(mock_notif:MockNotification) {
     assert!(fm.notifications.borrow().is_empty());
     ws.borrow_mut().mock_peer_message(message.clone());
     assert!(fm.notifications.borrow().is_empty());
-    fm.tick();
+    fm.process_events();
     assert_eq!(fm.notifications.borrow().is_empty(), false);
     let notif = fm.expect_notification();
     assert_eq!(notif, mock_notif);
@@ -333,7 +330,7 @@ fn test_handling_invalid_notification() {
     assert!(fm.notifications.borrow().is_empty());
     ws.borrow_mut().mock_peer_message_text(other_notification);
     assert!(fm.notifications.borrow().is_empty());
-    fm.tick();
+    fm.process_events();
     assert_eq!(fm.notifications.borrow().is_empty(), false);
     assert_eq!(fm.try_get_notification(), None);
     let internal_error = fm.expect_handling_error();

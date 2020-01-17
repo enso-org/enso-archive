@@ -297,7 +297,7 @@ impl Handler {
     /// This will decode the incoming messages, providing input to the futures
     /// returned from RPC calls.
     /// Also this cancels any ongoing calls if the connection was lost.
-    pub fn tick(&mut self) {
+    pub fn process_events(&mut self) {
         let buffer = match self.buffer.try_borrow_mut() {
             Ok(mut buffer) => buffer.take(),
             Err(_)         => return,
