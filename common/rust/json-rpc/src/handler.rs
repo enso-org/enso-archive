@@ -47,7 +47,7 @@ pub fn decode_result<Ret:DeserializeOwned>
 /// Simple counter-based struct used to generate unique Id's.
 ///
 /// The generated Ids are sequence 0, 1, 2, …
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct IdGenerator {
     /// Next Id value to be returned.
     pub counter:i64,

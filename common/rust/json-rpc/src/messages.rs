@@ -96,14 +96,14 @@ impl<T> Message<T> {
 #[derive(Shrinkwrap)]
 pub struct Id(pub i64);
 
-impl std::fmt::Display for Id {
+impl Display for Id {
     fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f,"{}",self.0)
     }
 }
 
 /// JSON-RPC protocol version. Only 2.0 is supported.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum Version {
     /// Old JSON-RPC 1.0 specification. Not supported.
     #[serde(rename = "1.0")]
