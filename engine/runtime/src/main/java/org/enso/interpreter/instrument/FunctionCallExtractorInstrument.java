@@ -1,15 +1,7 @@
 package org.enso.interpreter.instrument;
 
-import com.oracle.truffle.api.CallTarget;
-import com.oracle.truffle.api.RootCallTarget;
-import com.oracle.truffle.api.Truffle;
-import com.oracle.truffle.api.frame.FrameInstance;
-import com.oracle.truffle.api.frame.FrameInstanceVisitor;
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
-import com.oracle.truffle.api.nodes.Node;
-import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.node.callable.SpyOnMeBabyNode;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 
 import java.util.function.Consumer;
 
@@ -22,153 +14,28 @@ import java.util.function.Consumer;
 @TruffleInstrument.Registration(
     id = FunctionCallExtractorInstrument.INSTRUMENT_ID,
     services = FunctionCallExtractorInstrument.class)
-public class FunctionCallExtractorInstrument extends TruffleInstrument {
+public class FunctionCallExtractorInstrument extends ExactPositionInstrument<FunctionCallInstrumentationNode.Data> {
   public static final String INSTRUMENT_ID = "function-call-extractor";
-  private Env env;
 
-  /**
-   * Initializes the instrument. Substitute for a constructor, called by the Truffle framework.
-   *
-   * @param env the instrumentation environment
-   */
   @Override
-  protected void onCreate(Env env) {
-    env.registerService(this);
-    this.env = env;
-  }
-
-  private static boolean isTopFrame(String rootName) {
-    Boolean result =
-        Truffle.getRuntime()
-            .iterateFrames(
-                new FrameInstanceVisitor<Boolean>() {
-                  boolean seenFirst = false;
-
-                  @Override
-                  public Boolean visitFrame(FrameInstance frameInstance) {
-                    CallTarget ct = frameInstance.getCallTarget();
-                    if (ct instanceof RootCallTarget
-                        && !rootName.equals(((RootCallTarget) ct).getRootNode().getName())) {
-                      return null;
-                    }
-                    if (seenFirst) {
-                      return false;
-                    } else {
-                      seenFirst = true;
-                      return null;
-                    }
-                  }
-                });
-    return result == null;
-  }
-
-  /**
-   * An event listener implementing the behavior of verifying whether the currently executed node is
-   * the one expected by the user and passing the computed value to the callback.
-   */
-  public static class ValueEventListener implements ExecutionEventListener {
-    private EventBinding<ValueEventListener> binding;
-    private final Consumer<SpyOnMeBabyNode.Data> callback;
-    private final String rootName;
-    //    private final int start;
-    //    private final int length;
-
-    private ValueEventListener(
-        /*int start, int length, */ String rootName, Consumer<SpyOnMeBabyNode.Data> callback) {
-      //      this.start = start;
-      //      this.length = length;
-
-      this.callback = callback;
-      this.rootName = rootName;
-    }
-
-    private void setBinding(EventBinding<ValueEventListener> binding) {
-      this.binding = binding;
-    }
-
-    /**
-     * Get the start location of the nodes expected by this listener.
-     *
-     * @return the start location for this listener
-     */
-    //    public int getStart() {
-    //      return start;
-    //    }
-
-    /**
-     * Get the source length of the nodes expected by this listener.
-     *
-     * @return the source length for this listener
-     */
-    //    public int getLength() {
-    //      return length;
-    //    }
-
-    /**
-     * Was a node with parameters specified for this listener encountered in the course of
-     * execution?
-     *
-     * @return {@code true} if the requested node was observed, {@code false} otherwise
-     */
-    public boolean isSuccessful() {
-      return binding.isDisposed();
-    }
-
-    @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {}
-
-    /**
-     * Checks if the node to be executed is the node this listener was created to observe and
-     * triggers the callback if the correct node just finished executing.
-     *
-     * @param context current execution context
-     * @param frame current execution frame
-     * @param result the return value of the currently executed node
-     */
-    @Override
-    public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-      //      Node node = context.getInstrumentedNode();
-      //      SourceSection section = node.getSourceSection();
-      //      if (section == null || !section.hasCharIndex()) {
-      //        return;
-      //      }
-      //      if (section.getCharIndex() == start && section.getCharLength() == length) {
-      //        binding.dispose();
-      if (isTopFrame(rootName)) {
-        if (result instanceof SpyOnMeBabyNode.Data) {
-          callback.accept((SpyOnMeBabyNode.Data) result);
+  public ExactPositionListener createListener(
+      String funName, int sourceStart, int length, Consumer<FunctionCallInstrumentationNode.Data> callback) {
+    return new ExactPositionListener(funName, sourceStart, length) {
+      @Override
+      public void handleReturnValue(Object result) {
+        if (result instanceof FunctionCallInstrumentationNode.Data) {
+          callback.accept((FunctionCallInstrumentationNode.Data) result);
         }
       }
-      //      }
-    }
-
-    @Override
-    public void onReturnExceptional(
-        EventContext context, VirtualFrame frame, Throwable exception) {}
+    };
   }
 
-  /**
-   * Attach a new listener to observe nodes with given parameters.
-   *
-   * @param sourceStart the source start location of the expected node
-   * @param length the source length of the expected node
-   * @param callback the consumer of the node value
-   * @return a reference to attached event listener
-   */
-  public EventBinding<ValueEventListener> bindTo(
-      /*int sourceStart, int length, */ String rootName, Consumer<SpyOnMeBabyNode.Data> callback) {
-    ValueEventListener listener =
-        new ValueEventListener(/*sourceStart, length,*/ rootName, callback);
-
-    EventBinding<ValueEventListener> binding =
-        env.getInstrumenter()
-            .attachExecutionEventListener(
-                SourceSectionFilter.newBuilder()
-                    .tagIs(StandardTags.CallTag.class)
-                    .rootNameIs(rootName::equals) /*indexIn(sourceStart, length)*/
-                    .build(),
-                listener);
-    listener.setBinding(binding);
-    return binding;
+  @Override
+  public SourceSectionFilter createSourceSectionFilter(
+      String funName, int sourceStart, int length) {
+    return SourceSectionFilter.newBuilder()
+        .tagIs(StandardTags.CallTag.class)
+        .indexIn(sourceStart, length)
+        .build();
   }
 }

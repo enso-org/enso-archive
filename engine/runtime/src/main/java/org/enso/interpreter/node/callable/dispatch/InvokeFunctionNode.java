@@ -5,12 +5,14 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.ImportStatic;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
+import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.node.BaseNode;
 import org.enso.interpreter.node.callable.CaptureCallerInfoNode;
 import org.enso.interpreter.node.callable.InvokeCallableNode;
-import org.enso.interpreter.node.callable.SpyOnMeBabyNode;
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.node.callable.argument.ArgumentSorterNode;
 import org.enso.interpreter.runtime.callable.CallerInfo;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
@@ -30,7 +32,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child CaptureCallerInfoNode captureCallerInfoNode = CaptureCallerInfoNode.build();
-  private @Child SpyOnMeBabyNode spyOnMeBabyNode = new SpyOnMeBabyNode();
+  private @Child
+  FunctionCallInstrumentationNode functionCallInstrumentationNode = new FunctionCallInstrumentationNode();
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
@@ -70,7 +73,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
     if (cachedSchema.getCallerFrameAccess().shouldFrameBePassed()) {
       callerInfo = captureCallerInfoNode.execute(callerFrame);
     }
-    spyOnMeBabyNode.execute(
+    functionCallInstrumentationNode.execute(
         callerFrame,
         function,
         callerInfo,
@@ -158,5 +161,11 @@ public abstract class InvokeFunctionNode extends BaseNode {
       InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode,
       InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode) {
     return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
+  }
+
+  @Override
+  public SourceSection getSourceSection() {
+    Node parent = getParent();
+    return parent == null ? null : parent.getSourceSection();
   }
 }

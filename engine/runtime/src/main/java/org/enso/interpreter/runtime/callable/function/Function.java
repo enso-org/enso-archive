@@ -8,10 +8,7 @@ import com.oracle.truffle.api.dsl.Cached;
 import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.MaterializedFrame;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.TruffleObject;
-import com.oracle.truffle.api.interop.UnknownIdentifierException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
@@ -27,6 +24,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.data.Vector;
+import org.enso.interpreter.runtime.type.Types;
 import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
@@ -254,11 +252,9 @@ public final class Function implements TruffleObject {
    */
   @ExportMessage
   Object invokeMember(String member, Object... args)
-      throws ArityException, UnknownIdentifierException {
+      throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
     if (member.equals(MethodNames.Function.EQUALS)) {
-      if (args.length != 1) {
-        throw ArityException.create(1, args.length);
-      }
+      Object that = Types.extractArguments(args, Object.class);
       return this == args[0];
     }
     throw UnknownIdentifierException.create(member);

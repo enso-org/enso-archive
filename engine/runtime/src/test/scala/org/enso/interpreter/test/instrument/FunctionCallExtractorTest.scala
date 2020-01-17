@@ -1,9 +1,12 @@
 package org.enso.interpreter.test.instrument
-import org.enso.interpreter.node.callable.SpyOnMeBabyNode
+import java.util.function.Consumer
+
+import org.enso.interpreter.node.callable.{FunctionCallInstrumentationNode}
 import org.enso.interpreter.test.InterpreterTest
 
 class FunctionCallExtractorTest extends InterpreterTest {
-  "it" should "work" in {
+  val subject = "function call extractor instrument"
+  subject should "trigger on function calls and provide function and arguments objects" in {
     val code =
       """
         |foo = x ->
@@ -23,20 +26,48 @@ class FunctionCallExtractorTest extends InterpreterTest {
         |    IO.println z
         |    0
         |""".stripMargin
-    getFunctionCallExtractorInstrument.bindTo(
-      "Test.main", { x =>
-        println(
-          s"""Call:
-             |  fun: ${x.getFunction.getCallTarget}
-             |  args: ${x.getArguments.toList}
-             |  state: ${x.getState}
-             |  canEnter: ${Option(
-               x.getFunction.getCallTarget.getRootNode.getSourceSection
-             )}
-             |  """.stripMargin
+    var result: List[(String, List[String])] = List()
+
+    val instrument = getFunctionCallExtractorInstrument
+    val listener: Consumer[FunctionCallInstrumentationNode.Data] = { x =>
+      result :+= (
+        (
+          x.getFunction.getCallTarget.getRootNode.getName,
+          x.getArguments.toList.map(_.toString)
         )
-      }
-    )
+      )
+    }
+    instrument.bindTo("Test.main", 127, 13, listener)
+    instrument.bindTo("Test.main", 149, 10, listener)
+    instrument.bindTo("Test.main", 164, 12, listener)
     eval(code)
+    result shouldEqual List(
+      ("Test.foo", List("Test", "1234")),
+      ("Test.bar", List("Test", "6205")),
+      ("IO.println", List("IO", "31050"))
+    )
   }
+
+  subject should "work for recursive calls" in {
+    val code =
+      """
+        |main = arg ->
+        |    x = arg - 1
+        |    y = x.ifZero 0 (here.main x)
+        |    z = y + arg
+        |    z
+        |""".stripMargin
+    var yVal: Option[(String, List[String])] = None
+    getFunctionCallExtractorInstrument.bindTo("Test.main", 51, 11, { y =>
+      yVal = Some(
+        (
+          y.getFunction.getCallTarget.getRootNode.getName,
+          y.getArguments.toList.map(_.toString)
+        )
+      )
+    })
+    getMain(code).execute(5L.asInstanceOf[AnyRef])
+    yVal shouldEqual Some(("Test.main", List("Test", "4")))
+  }
+
 }
