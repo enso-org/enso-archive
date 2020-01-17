@@ -7,14 +7,10 @@ import org.enso.gateway.protocol.request.Params.{
   InitializedParams
 }
 
-/**
-  * Helper object for decoding [[RequestOrNotification]].
-  */
+/** Helper object for decoding [[RequestOrNotification]]. */
 object RequestOrNotificationDecoder {
 
-  /**
-    * Circe decoder for requests and notifications.
-    */
+  /** Circe decoder for requests and notifications. */
   val instance: Decoder[RequestOrNotification] =
     cursor => {
       val methodCursor = cursor.downField(Notification.methodField)
@@ -23,10 +19,10 @@ object RequestOrNotificationDecoder {
         .flatMap(selectRequestOrNotificationDecoder(_).apply(cursor))
     }
 
-  /**
+  /** Make Circe failure if method is unknown.
     *
     * @param method Name of method.
-    * @return Circe failure if method is unknown.
+    * @return The failure.
     */
   def unknownMethodFailure(method: String): DecodingFailure =
     DecodingFailure(

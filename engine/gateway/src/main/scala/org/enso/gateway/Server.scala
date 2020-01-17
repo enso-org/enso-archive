@@ -22,8 +22,8 @@ import scala.util.Success
 
 object Server {
 
-  /**
-    * Describes endpoint to which [[Server]] can bind (host, port, route) and timeout for waiting response.
+  /** Describes endpoint to which [[Server]] can bind (host, port, route) and
+    * timeout for waiting response.
     * Gets parameters from typesafe config.
     */
   object Config {
@@ -71,10 +71,13 @@ object Server {
   * Server when run binds to endpoint and accepts establishing web socket
   * connection for any number of peers.
   *
-  * Server replies to each incoming text request with a single text response, no response for notifications.
-  * Server accepts a single Text Message from a peer and responds with another Text Message.
+  * Server replies to each incoming text request with a single text response,
+  * no response for notifications.
+  * Server accepts a single Text Message from a peer and responds with another
+  * Text Message.
   *
-  * @param jsonRpcController Encapsulates encoding JSONs and talking to [[org.enso.Gateway]]
+  * @param jsonRpcController Encapsulates encoding JSONs and talking to
+  *                          [[org.enso.Gateway]].
   */
 class Server(jsonRpcController: JsonRpcController)(
   implicit
@@ -89,8 +92,10 @@ class Server(jsonRpcController: JsonRpcController)(
 
   /** Akka stream defining server behavior.
     *
-    * Incoming [[TextMessage]]s are replied to (see [[JsonRpcController.getTextOutput]]).
-    * Incoming binary messages are ignored.
+    * Incoming [[TextMessage]]s are replied to.
+    *
+    * @see [[JsonRpcController.getTextOutput]].
+    *      Incoming binary messages are ignored.
     */
   val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
     Flow[Message]

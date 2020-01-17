@@ -2,14 +2,10 @@ package org.enso.gateway.protocol
 
 import org.enso.gateway.protocol.request.Params
 
-/**
-  * Parent trait for notifications extractor objects
-  */
+/** Parent trait for notifications extractor objects. */
 sealed trait Notifications {
 
-  /**
-    * Name of JSON-RPC method
-    */
+  /** Name of JSON-RPC method. */
   val method: String
 
   def unapply[T <: Params](
@@ -22,13 +18,11 @@ sealed trait Notifications {
     }
 }
 
-/**
-  * All notifications
-  */
+/** All notifications. */
 object Notifications {
 
-  /**
-    * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialized
+  /** LSP Spec:
+    * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialized
     */
   object Initialized extends Notifications {
     override val method = "initialized"

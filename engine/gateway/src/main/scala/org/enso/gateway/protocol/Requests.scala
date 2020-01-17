@@ -2,14 +2,10 @@ package org.enso.gateway.protocol
 
 import org.enso.gateway.protocol.request.Params
 
-/**
-  * Parent trait for requests extractor objects
-  */
+/** Parent trait for requests extractor objects. */
 sealed trait Requests {
 
-  /**
-    * Name of JSON-RPC method
-    */
+  /** Name of JSON-RPC method. */
   val method: String
 
   def unapply[T <: Params](
@@ -22,13 +18,11 @@ sealed trait Requests {
     }
 }
 
-/**
-  * All requests
-  */
+/** All requests. */
 object Requests {
 
-  /**
-    * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialize
+  /** LSP Spec:
+    * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialize
     */
   object Initialize extends Requests {
     override val method = "initialize"

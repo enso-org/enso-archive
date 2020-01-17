@@ -22,50 +22,47 @@ import scala.concurrent.Future
 
 object JsonRpcController {
 
-  /**
-    * A string specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
+  /** A string specifying the version of the JSON-RPC protocol.
+    * Must be exactly "2.0".
     *
-    * @see LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#contentPart
+    * @see LSP Spec:
+    *      https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#contentPart
     * @see JSON-RPC Spec: https://www.jsonrpc.org/specification#request_object
     */
   val jsonRpcVersion = "2.0"
 }
 
-/**
-  * Helper for implementing protocol over text-based transport.
+/** Helper for implementing protocol over text-based transport.
   * Requests and responses are marshaled as text using JSON-RPC.
-  * It handles and decodes all JSON-RPC messages and dispatch them to the Gateway.
+  * It handles and decodes all JSON-RPC messages and dispatch them to the
+  * Gateway.
   *
-  * @param gateway `ActorRef` of Gateway actor
+  * @param gateway [[ActorRef]] of Gateway actor
   */
 class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
 
   import system.dispatcher
 
-  /**
-    * Generate text reply for given request text message, no reply for notification.
+  /** Generate text reply for given request text message, no reply for
+    * notification.
     */
   def getTextOutput(
     input: String
   )(implicit timeout: Timeout): Future[Option[String]] = {
-    // necessary for Left case
     val id = decode[IdHolder](input).map(_.id).toOption
 
     decode[RequestOrNotification](input) match {
-      // no response
       case Right(notification: Notification[_]) =>
         gateway ! notification
         Future.successful(None)
 
-      // gateway and language server responsible for id of response being equal to id of request
-      case Right(request: Request[_]) =>
+      case Right(request: Request[_]) => // Note [Response Id]
         val responseFuture =
           (gateway ? request).mapTo[Response]
         responseFuture.map(
           response => Some(encodeToJson(response))
         )
 
-      // setting id manually
       case Left(err) =>
         Future.successful(
           Some(encodeToJson(mkErrorResponse(input, err).copy(id = id)))
@@ -73,6 +70,11 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
     }
   }
 
+  /** Note [Response Id]
+    * ~~~~~~~~~~~~~~~~~~
+    * Gateway and language server are responsible for id of response being equal
+    * to id of request
+    */
   private def mkErrorResponse(
     input: String,
     err: circe.Error

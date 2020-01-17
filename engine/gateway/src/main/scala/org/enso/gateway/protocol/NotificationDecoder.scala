@@ -8,14 +8,13 @@ import org.enso.gateway.protocol.request.Params.{
   InitializedParams
 }
 
-/**
-  * Helper object for decoding [[Notification]].
-  */
+/** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {
 
   /**
     * @tparam P Subtype of [[Params]] for a notification with specific method.
-    * @return Circe decoder for notifications and notification fields of requests.
+    * @return Circe decoder for notifications and notification fields of
+    *         requests.
     */
   def instance[P <: Params]: Decoder[Notification[P]] =
     cursor => {
@@ -39,11 +38,9 @@ object NotificationDecoder {
     method: String
   ): Decoder[Option[P]] =
     (method match {
-      // All requests
       case Requests.Initialize.method =>
         Decoder[Option[InitializeParams]]
 
-      // All notifications
       case Notifications.Initialized.method =>
         Decoder[Option[InitializedParams]]
 
@@ -76,5 +73,4 @@ object NotificationDecoder {
 
   private def wrongJsonRpcVersionMessage(version: String) =
     s"jsonrpc must be $jsonRpcVersion but found $version"
-
 }

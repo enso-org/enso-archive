@@ -12,12 +12,10 @@ import org.enso.gateway.protocol.request.Param.{
   WorkspaceFolder
 }
 
-/**
-  * Params of [[org.enso.gateway.protocol.RequestOrNotification]]
-  * Can be array or JSON object
+/** Params of [[org.enso.gateway.protocol.RequestOrNotification]].
+  * Can be array or JSON object.
   */
 sealed trait Params
-
 object Params {
   implicit val paramsDecoder: Decoder[Params] = List[Decoder[Params]](
     Decoder[InitializeParams].widen,
@@ -27,13 +25,14 @@ object Params {
 
   type DocumentUri = String
 
-  /**
-    * Params of the request [[org.enso.gateway.protocol.Requests.Initialize]]
+  /** Params of the request
+    * [[org.enso.gateway.protocol.Requests.Initialize]].
     */
   case class InitializeParams(
-    processId: Option[Int]                               = None,
-    clientInfo: Option[ClientInfo]                       = None,
-    rootPath: Option[String]                             = None, //deprecated: use rootUri, LSP Spec
+    processId: Option[Int]         = None,
+    clientInfo: Option[ClientInfo] = None,
+    // Note [rootPath deprecated]
+    rootPath: Option[String]                             = None,
     rootUri: Option[DocumentUri]                         = None,
     initializationOptions: Option[InitializationOptions] = None,
     capabilities: ClientCapabilities,
@@ -46,8 +45,12 @@ object Params {
       deriveDecoder
   }
 
-  /**
-    * Params of the notification [[org.enso.gateway.protocol.Notifications.Initialized]]
+  /** Note [rootPath deprecated]
+    * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+    * `rootUri` is deprecated: use `rootUri`, LSP Spec.
+    */
+  /** Params of the notification
+    * [[org.enso.gateway.protocol.Notifications.Initialized]].
     */
   case class InitializedParams() extends Params
 
@@ -56,14 +59,11 @@ object Params {
       deriveDecoder
   }
 
-  /**
-    * Array params
-    */
+  /** Array params. */
   case class Array(value: Seq[Option[Param]]) extends Params
 
   object Array {
     implicit val paramsArrayDecoder: Decoder[Array] =
       deriveUnwrappedDecoder
   }
-
 }

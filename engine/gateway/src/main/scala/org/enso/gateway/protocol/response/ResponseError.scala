@@ -4,18 +4,16 @@ import io.circe.Encoder
 import org.enso.gateway.protocol.response.error.{Data, ErrorCode, ErrorMessage}
 import org.enso.gateway.protocol.response.error.Data.{InitializeData, ParseData}
 
-/**
+/** [[org.enso.gateway.protocol.Response]] error.
+  *
   * `ResponseError` in LSP Spec:
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
-  *
-  * [[org.enso.gateway.protocol.Response]] error
   */
 sealed abstract class ResponseError(
   val code: ErrorCode,
   val message: String,
   val data: Option[Data]
 )
-
 object ResponseError {
   implicit val responseErrorEncoder: Encoder[ResponseError] = {
     val codeField    = "code"
@@ -26,9 +24,7 @@ object ResponseError {
     )
   }
 
-  /**
-    * Invalid JSON
-    */
+  /** Invalid JSON. */
   case class ParseError(
     override val data: Option[ParseData] = None
   ) extends ResponseError(
@@ -37,9 +33,7 @@ object ResponseError {
         data
       )
 
-  /**
-    * Unknown JSON-RPC method according to LSP Spec
-    */
+  /** Unknown JSON-RPC method. */
   case class MethodNotFoundError(
     override val data: Option[Data] = None
   ) extends ResponseError(
@@ -48,9 +42,8 @@ object ResponseError {
         data
       )
 
-  /**
-    * [[org.enso.gateway.protocol.Requests.Initialize]] error
-    * Wrong JSON-RPC version
+  /** [[org.enso.gateway.protocol.Requests.Initialize]] error.
+    * Wrong JSON-RPC version.
     */
   case class InitializeError(
     override val data: Option[InitializeData] = None
@@ -60,9 +53,7 @@ object ResponseError {
         data
       )
 
-  /**
-    * Default type of errors
-    */
+  /** Default type of errors. */
   case class UnexpectedError(
     override val data: Option[Data.Text] = None
   ) extends ResponseError(
