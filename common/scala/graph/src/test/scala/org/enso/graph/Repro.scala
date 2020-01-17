@@ -5,28 +5,28 @@ import shapeless.ops.hlist._
 
 import scala.collection.mutable
 
-trait MapsOf[List <: HList] {
+trait MapsOfRepro[List <: HList] {
   type Out <: HList
   val instance: Out
 }
-object MapsOf {
-  type Aux[List <: HList, X] = MapsOf[List] { type Out = X }
+object MapsOfRepro {
+  type Aux[List <: HList, X] = MapsOfRepro[List] { type Out = X }
 
   def apply[List <: HList](
-    implicit ev: MapsOf[List]
-  ): MapsOf.Aux[List, ev.Out] = ev
+    implicit ev: MapsOfRepro[List]
+  ): MapsOfRepro.Aux[List, ev.Out] = ev
 
-  implicit def onNil: MapsOf.Aux[HNil, HNil] =
-    new MapsOf[HNil] {
+  implicit def onNil: MapsOfRepro.Aux[HNil, HNil] =
+    new MapsOfRepro[HNil] {
       type Out = HNil
       val instance = HNil
     }
 
   implicit def onCons[Head, Tail <: HList](
-    implicit ev: MapsOf[Tail],
+    implicit ev: MapsOfRepro[Tail],
     distinct: IsDistinctConstraint[Head :: Tail]
-  ): MapsOf.Aux[Head :: Tail, mutable.Map[Int, Head] :: ev.Out] =
-    new MapsOf[Head :: Tail] {
+  ): MapsOfRepro.Aux[Head :: Tail, mutable.Map[Int, Head] :: ev.Out] =
+    new MapsOfRepro[Head :: Tail] {
       type Out = mutable.Map[Int, Head] :: ev.Out
       val instance = mutable.Map[Int, Head]() :: ev.instance
     }
@@ -40,11 +40,11 @@ object MapsOf {
   }
 }
 
-trait Graph
-object Graph {
+trait GraphRepro
+object GraphRepro {
 
-  trait OpaqueData
-  object OpaqueData {
+  trait OpaqueDataRepro
+  object OpaqueDataRepro {
     trait List[G <: Graph] {
       type Out <: HList
     }
@@ -53,22 +53,22 @@ object Graph {
     }
   }
 
-  final class GraphData[G <: Graph]()(implicit val info: GraphInfo[G]) {
+  final class GraphDataRepro[G <: Graph]()(implicit val info: GraphInfoRepro[G]) {
     type OpaqueTypes = info.OpaqueDataTypes
 
-//    val opaqueData = MapsOf[OpaqueTypes]()
+    //    val opaqueData = MapsOf[OpaqueTypes]()
   }
 
-  trait GraphInfo[G] {
+  trait GraphInfoRepro[G] {
     type OpaqueDataTypes <: HList
   }
-  object GraphInfo {
+  object GraphInfoRepro {
     implicit def instance[
       G <: Graph,
       OpaqueDataList <: HList
     ](
-      implicit ev: OpaqueData.List.Aux[G, OpaqueDataList]
-    ): GraphInfo[G] = new GraphInfo[G] {
+      implicit ev: OpaqueDataRepro.List.Aux[G, OpaqueDataList]
+    ): GraphInfoRepro[G] = new GraphInfoRepro[G] {
       override type OpaqueDataTypes = OpaqueDataList
     }
   }
