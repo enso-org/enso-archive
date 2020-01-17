@@ -37,7 +37,7 @@ object JsonRpcController {
   * It handles and decodes all JSON-RPC messages and dispatch them to the
   * Gateway.
   *
-  * @param gateway [[ActorRef]] of Gateway actor
+  * @param gateway [[ActorRef]] of Gateway actor.
   */
 class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
 
@@ -70,11 +70,11 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
     }
   }
 
-  /** Note [Response Id]
-    * ~~~~~~~~~~~~~~~~~~
-    * Gateway and language server are responsible for id of response being equal
-    * to id of request
-    */
+  /* Note [Response Id]
+   * ~~~~~~~~~~~~~~~~~~
+   * Gateway and language server are responsible for id of response being equal
+   * to id of request.
+   */
   private def mkErrorResponse(
     input: String,
     err: circe.Error

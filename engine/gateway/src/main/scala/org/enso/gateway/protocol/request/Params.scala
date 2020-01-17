@@ -45,10 +45,11 @@ object Params {
       deriveDecoder
   }
 
-  /** Note [rootPath deprecated]
-    * ~~~~~~~~~~~~~~~~~~~~~~~~~~
-    * `rootUri` is deprecated: use `rootUri`, LSP Spec.
-    */
+  /* Note [rootPath deprecated]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * `rootUri` is deprecated: use `rootUri`, LSP Spec.
+   */
+
   /** Params of the notification
     * [[org.enso.gateway.protocol.Notifications.Initialized]].
     */

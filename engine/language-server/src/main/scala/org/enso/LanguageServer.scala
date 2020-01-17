@@ -3,8 +3,7 @@ package org.enso
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.polyglot.ExecutionContext
 
-/**
-  * The language server component wraps the runtime itself, and uses the APIs
+/** The language server component wraps the runtime itself, and uses the APIs
   * provided by the interpreter and the compiler to service the requests sent
   * to the Enso Engine.
   */
