@@ -27,5 +27,4 @@ object Notifications {
   object Initialized extends Notifications {
     override val method = "initialized"
   }
-
 }

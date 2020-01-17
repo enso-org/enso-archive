@@ -56,7 +56,6 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     ServerInfo(name, Some(version))
   }
 }
-
 object Gateway {
   def props(languageServer: ActorRef): Props =
     Props(new Gateway(languageServer))
