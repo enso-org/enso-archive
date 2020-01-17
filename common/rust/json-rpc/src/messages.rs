@@ -105,9 +105,6 @@ impl Display for Id {
 /// JSON-RPC protocol version. Only 2.0 is supported.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub enum Version {
-    /// Old JSON-RPC 1.0 specification. Not supported.
-    #[serde(rename = "1.0")]
-    V1,
     /// JSON-RPC 2.0 specification. The supported version.
     #[serde(rename = "2.0")]
     V2,
@@ -234,7 +231,6 @@ mod tests {
         pub const ID     :&str = "id";
 
         // === Version strings ===
-        pub const VERSION1_STRING:&str = "1.0";
         pub const VERSION2_STRING:&str = "2.0";
 
         // === Other ===
@@ -322,18 +318,14 @@ mod tests {
     #[test]
     fn version_serialization_and_deserialization() {
         use serde_json::from_str;
-        let check_serialization = |version_string:&str, value:Version| {
-            let expected_json      = Value::String(version_string.into());
-            let expected_json_text = serde_json::to_string(&expected_json);
-            let expected_json_text = expected_json_text.unwrap();
-            let got_json_text      = serde_json::to_string(&value).unwrap();
-            assert_eq!(got_json_text, expected_json_text);
+        use protocol::VERSION2_STRING;
+        let expected_json      = Value::String(VERSION2_STRING.into());
+        let expected_json_text = serde_json::to_string(&expected_json);
+        let expected_json_text = expected_json_text.unwrap();
+        let got_json_text      = serde_json::to_string(&Version::V2).unwrap();
+        assert_eq!(got_json_text, expected_json_text);
 
-            let got_value = from_str::<Version>(&expected_json_text).unwrap();
-            assert_eq!(got_value, value);
-        };
-
-        check_serialization(protocol::VERSION1_STRING, Version::V1);
-        check_serialization(protocol::VERSION2_STRING, Version::V2);
+        let got_value = from_str::<Version>(&expected_json_text).unwrap();
+        assert_eq!(got_value, Version::V2);
     }
 }
