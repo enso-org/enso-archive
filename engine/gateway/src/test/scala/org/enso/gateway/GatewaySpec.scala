@@ -40,13 +40,14 @@ class GatewaySpec
     val gateway: ActorRef =
       system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
-    val protocol = new Protocol(gateway)
-    val server   = new Server(protocol)
+    val jsonRpcController = new JsonRpcController(gateway)
+    val server            = new Server(jsonRpcController)
     server.run()
   }
 
   override def afterAll: Unit = {
     system.terminate()
+    ()
   }
 
   "Gateway" should "reply with a proper response to request with initialize method" in {

@@ -23,7 +23,7 @@ import scala.util.Success
 object Server {
 
   /**
-    * Describes endpoint to which [[Server]] can bind (host, port, route) and timeout for waiting response
+    * Describes endpoint to which [[Server]] can bind (host, port, route) and timeout for waiting response.
     */
   object Config {
     private val gatewayPath = "gateway"
@@ -56,9 +56,9 @@ object Server {
   * Server replies to each incoming text request with a single text response, no response for notifications.
   * Server accepts a single Text Message from a peer and responds with another Text Message.
   *
-  * @param protocol Encapsulates encoding JSONs and talking to [[org.enso.Gateway]]
+  * @param jsonRpcController Encapsulates encoding JSONs and talking to [[org.enso.Gateway]]
   */
-class Server(protocol: Protocol)(
+class Server(jsonRpcController: JsonRpcController)(
   implicit
   system: ActorSystem,
   materializer: ActorMaterializer
@@ -71,7 +71,7 @@ class Server(protocol: Protocol)(
 
   /** Akka stream defining server behavior.
     *
-    * Incoming [[TextMessage]]s are replied to (see [[getTextOutput]]).
+    * Incoming [[TextMessage]]s are replied to (see [[JsonRpcController.getTextOutput]]).
     * Incoming binary messages are ignored.
     */
   val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
@@ -84,7 +84,7 @@ class Server(protocol: Protocol)(
               input =>
                 Source
                   .fromFuture(
-                    protocol.getTextOutput(input)
+                    jsonRpcController.getTextOutput(input)
                   )
             )
             .flatMapConcat {

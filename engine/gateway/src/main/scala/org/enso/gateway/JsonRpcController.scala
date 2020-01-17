@@ -20,7 +20,7 @@ import org.enso.gateway.protocol.response.error.Data
 
 import scala.concurrent.Future
 
-object Protocol {
+object JsonRpcController {
 
   /**
     * A string specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
@@ -34,10 +34,11 @@ object Protocol {
 /**
   * Helper for implementing protocol over text-based transport.
   * Requests and responses are marshaled as text using JSON-RPC.
+  * It handles and decodes all JSON-RPC messages and dispatch them to the Gateway.
   *
   * @param gateway `ActorRef` of Gateway actor
   */
-class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
+class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
 
   import system.dispatcher
 

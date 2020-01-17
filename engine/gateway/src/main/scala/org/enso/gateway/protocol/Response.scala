@@ -2,7 +2,7 @@ package org.enso.gateway.protocol
 
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
-import org.enso.gateway.Protocol.jsonRpcVersion
+import org.enso.gateway.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.response.{ResponseError, Result}
 
 /**

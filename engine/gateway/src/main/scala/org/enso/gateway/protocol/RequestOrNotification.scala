@@ -11,7 +11,7 @@ sealed trait RequestOrNotification {
   /**
     * JSON-RPC Version
     *
-    * @see [[org.enso.gateway.Protocol.jsonRpcVersion]]
+    * @see [[org.enso.gateway.JsonRpcController.jsonRpcVersion]]
     */
   def jsonrpc: String
 

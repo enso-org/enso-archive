@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol
 
 import io.circe.{ACursor, Decoder, DecodingFailure}
-import org.enso.gateway.Protocol.jsonRpcVersion
+import org.enso.gateway.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Params
 import org.enso.gateway.protocol.request.Params.{
   InitializeParams,
