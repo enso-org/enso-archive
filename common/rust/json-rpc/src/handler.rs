@@ -50,7 +50,7 @@ pub fn decode_result<Ret:DeserializeOwned>
 #[derive(Clone, Copy, Debug)]
 pub struct IdGenerator {
     /// Next Id value to be returned.
-    pub counter:i64,
+    pub counter: i64,
 }
 
 impl IdGenerator {
@@ -84,11 +84,11 @@ impl IdGenerator {
 #[derive(Debug)]
 pub struct SharedBuffer {
     /// Incoming text messages.
-    pub incoming : Vec<String>,
+    pub incoming: Vec<String>,
 
     /// Whether the transport was closed. This means that the current transport
     /// cannot be used anymore.
-    pub closed : bool,
+    pub closed: bool,
 }
 
 impl SharedBuffer {
@@ -128,7 +128,7 @@ impl TransportCallbacks for SharedBuffer {
 
 /// An optional callback procedure taking `T`.
 pub struct Callback<T> {
-    cb : Option<Box<dyn Fn(T) -> ()>>
+    cb: Option<Box<dyn Fn(T) -> ()>>
 }
 
 impl<T> Debug for Callback<T> {
@@ -143,7 +143,7 @@ impl<T> Debug for Callback<T> {
 impl<T> Callback<T> {
     /// Create a new, empty callaback.
     pub fn new() -> Callback<T> {
-        Callback { cb : None }
+        Callback { cb:None }
     }
 
     /// Sets callback to the given callable.
@@ -267,7 +267,7 @@ impl Handler {
         use serde_json::Value;
         use serde_json::from_str;
         use serde_json::from_value;
-        let message  = from_str::<Message<Value>>(&message)?;
+        let message = from_str::<Message<Value>>(&message)?;
         from_value::<IncomingMessage>(message.payload)
     }
 

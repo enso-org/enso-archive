@@ -18,13 +18,13 @@ use shrinkwraprs::Shrinkwrap;
 #[derive(Shrinkwrap)]
 pub struct Message<T> {
     /// JSON-RPC Procol version
-    pub jsonrpc : Version,
+    pub jsonrpc: Version,
 
     /// Payload, either a Request or Response or Notification in direct
     /// or serialized form.
     #[serde(flatten)]
     #[shrinkwrap(main_field)]
-    pub payload : T
+    pub payload: T
 }
 
 // === Common Message Subtypes ===
@@ -51,7 +51,7 @@ impl<T> Message<T> {
 
     /// Construct a request message.
     pub fn new_request
-    (id:Id, method:&'static str, input:T) -> RequestMessage<T> {
+    (id:Id, method:&str, input:T) -> RequestMessage<T> {
         let call = MethodCall {method: method.into(),input};
         let request = Request::new(id,call);
         Message::new(request)
@@ -59,7 +59,7 @@ impl<T> Message<T> {
 
     /// Construct a successful response message.
     pub fn new_success(id:Id, result:T) -> ResponseMessage<T> {
-        let result = Result::Success(Success {result});
+        let result   = Result::Success(Success {result});
         let response = Response {id,result};
         Message::new(response)
     }
