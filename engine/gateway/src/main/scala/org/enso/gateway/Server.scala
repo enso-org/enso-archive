@@ -23,7 +23,8 @@ import scala.util.Success
 object Server {
 
   /**
-    * Describes endpoint to which [[Server]] can bind (host, port, route) and timeout for waiting response
+    * Describes endpoint to which [[Server]] can bind (host, port, route) and timeout for waiting response.
+    * Gets parameters from typesafe config.
     */
   object Config {
     private val gatewayPath = "gateway"
@@ -36,14 +37,31 @@ object Server {
       ConfigFactory.load.getConfig(gatewayPath)
     private val serverConfig: Config = gatewayConfig.getConfig(serverPath)
 
-    val host: String  = serverConfig.getString(hostPath)
-    val port: Int     = serverConfig.getInt(portPath)
+    /**
+      * Host of endpoint.
+      */
+    val host: String = serverConfig.getString(hostPath)
+
+    /**
+      * Port of endpoint.
+      */
+    val port: Int = serverConfig.getInt(portPath)
+
+    /**
+      * Route of endpoint.
+      */
     val route: String = serverConfig.getString(routePath)
 
+    /**
+      * Timeout for waiting response after request.
+      */
     implicit val timeout: Timeout = Timeout(
       serverConfig.getLong(timeoutPath).seconds
     )
 
+    /**
+      * Creates address string.
+      */
     val addressString: String = s"ws://$host:$port"
   }
 }
@@ -56,9 +74,9 @@ object Server {
   * Server replies to each incoming text request with a single text response, no response for notifications.
   * Server accepts a single Text Message from a peer and responds with another Text Message.
   *
-  * @param protocol Encapsulates encoding JSONs and talking to [[org.enso.Gateway]]
+  * @param jsonRpcController Encapsulates encoding JSONs and talking to [[org.enso.Gateway]]
   */
-class Server(protocol: Protocol)(
+class Server(jsonRpcController: JsonRpcController)(
   implicit
   system: ActorSystem,
   materializer: ActorMaterializer
@@ -67,11 +85,11 @@ class Server(protocol: Protocol)(
   import system.dispatcher
   import Server.Config.timeout
 
-  val log: LoggingAdapter = Logging.getLogger(system, this)
+  private val log: LoggingAdapter = Logging.getLogger(system, this)
 
   /** Akka stream defining server behavior.
     *
-    * Incoming [[TextMessage]]s are replied to (see [[getTextOutput]]).
+    * Incoming [[TextMessage]]s are replied to (see [[JsonRpcController.getTextOutput]]).
     * Incoming binary messages are ignored.
     */
   val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
@@ -84,7 +102,7 @@ class Server(protocol: Protocol)(
               input =>
                 Source
                   .fromFuture(
-                    protocol.getTextOutput(input)
+                    jsonRpcController.getTextOutput(input)
                   )
             )
             .flatMapConcat {

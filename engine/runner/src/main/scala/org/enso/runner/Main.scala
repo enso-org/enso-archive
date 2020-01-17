@@ -10,7 +10,7 @@ import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.ActorMaterializer
-import org.enso.gateway.Protocol
+import org.enso.gateway.JsonRpcController
 
 import scala.io.StdIn
 import scala.util.Try
@@ -193,8 +193,8 @@ object Main {
     val gateway: ActorRef =
       system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
-    val protocol = new Protocol(gateway)
-    val server   = new enso.gateway.Server(protocol)
+    val jsonRpcController = new JsonRpcController(gateway)
+    val server            = new enso.gateway.Server(jsonRpcController)
     server.run()
 
     StdIn.readLine()

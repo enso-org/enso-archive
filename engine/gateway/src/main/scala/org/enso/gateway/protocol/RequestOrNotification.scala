@@ -1,7 +1,6 @@
 package org.enso.gateway.protocol
 
-import io.circe.{ACursor, Decoder, DecodingFailure}
-import org.enso.gateway.Protocol.jsonRpcVersion
+import io.circe.Decoder
 import org.enso.gateway.protocol.request.Params
 import org.enso.gateway.protocol.request.Params.{
   ApplyWorkspaceEditParams,
@@ -24,7 +23,7 @@ sealed trait RequestOrNotification {
   /**
     * JSON-RPC Version
     *
-    * @see [[org.enso.gateway.Protocol.jsonRpcVersion]]
+    * @see [[org.enso.gateway.JsonRpcController.jsonRpcVersion]]
     */
   def jsonrpc: String
 
@@ -35,96 +34,8 @@ sealed trait RequestOrNotification {
 }
 
 object RequestOrNotification {
-
-  /**
-    * @param method Name of method, which is discriminator
-    * @return Circe decoder for requests or notifications
-    */
-  def selectRequestOrNotificationDecoder(
-    method: String
-  ): Decoder[_ <: RequestOrNotification] =
-    method match {
-      // All requests
-      case Requests.Initialize.method =>
-        Decoder[Request[InitializeParams]]
-      case Requests.Shutdown.method =>
-        Decoder[Request[VoidParams]]
-      case Requests.ApplyWorkspaceEdit.method =>
-        Decoder[Request[ApplyWorkspaceEditParams]]
-      case Requests.WillSaveTextDocumentWaitUntil.method =>
-        Decoder[Request[WillSaveTextDocumentWaitUntilParams]]
-
-      // All notifications
-      case Notifications.Initialized.method | Notifications.Exit.method =>
-        Decoder[Notification[VoidParams]]
-      case Notifications.DidOpenTextDocument.method =>
-        Decoder[Notification[DidOpenTextDocumentParams]]
-      case Notifications.DidChangeTextDocument.method =>
-        Decoder[Notification[DidChangeTextDocumentParams]]
-      case Notifications.DidSaveTextDocument.method =>
-        Decoder[Notification[DidSaveTextDocumentParams]]
-      case Notifications.DidCloseTextDocument.method =>
-        Decoder[Notification[DidCloseTextDocumentParams]]
-
-      case m =>
-        Decoder.failed(
-          unknownMethodFailure(m)
-        )
-    }
-
-  /**
-    * @param method Name of method. It is the discriminator
-    * @return Circe decoder for method params
-    */
-  def selectParamsDecoder[P <: Params](
-    method: String
-  ): Decoder[Option[P]] =
-    (method match {
-      // All requests
-      case Requests.Initialize.method =>
-        Decoder[Option[InitializeParams]]
-      case Requests.Shutdown.method =>
-        Decoder[Option[VoidParams]]
-      case Requests.ApplyWorkspaceEdit.method =>
-        Decoder[Option[ApplyWorkspaceEditParams]]
-      case Requests.WillSaveTextDocumentWaitUntil.method =>
-        Decoder[Option[WillSaveTextDocumentWaitUntilParams]]
-
-      // All notifications
-      case Notifications.Initialized.method | Notifications.Exit.method =>
-        Decoder[Option[VoidParams]]
-      case Notifications.DidOpenTextDocument.method =>
-        Decoder[Option[DidOpenTextDocumentParams]]
-      case Notifications.DidChangeTextDocument.method =>
-        Decoder[Option[DidChangeTextDocumentParams]]
-      case Notifications.DidSaveTextDocument.method =>
-        Decoder[Option[DidSaveTextDocumentParams]]
-      case Notifications.DidCloseTextDocument.method =>
-        Decoder[Option[DidCloseTextDocumentParams]]
-
-      case m =>
-        Decoder.failed(
-          unknownMethodFailure(m)
-        )
-    }).asInstanceOf[Decoder[Option[P]]]
-
   implicit val requestOrNotificationDecoder: Decoder[RequestOrNotification] =
-    cursor => {
-      val methodCursor = cursor.downField(Notification.methodField)
-      Decoder[String]
-        .tryDecode(methodCursor)
-        .flatMap(selectRequestOrNotificationDecoder(_).apply(cursor))
-    }
-
-  private class UnknownMethodError(method: String)
-      extends RuntimeException(s"Unknown method $method")
-
-  private def unknownMethodFailure(method: String): DecodingFailure =
-    DecodingFailure
-      .fromThrowable(
-        new UnknownMethodError(method),
-        List(DownField(Notification.methodField))
-      )
+    RequestOrNotificationDecoder.instance
 }
 
 /**
@@ -146,20 +57,14 @@ case class Request[P <: Params](
 ) extends RequestOrNotification
 
 object Request {
-  private val idField = "id"
 
-  implicit def requestDecoder[T <: Params]: Decoder[Request[T]] = cursor => {
-    val idCursor = cursor.downField(idField)
-    for {
-      id                 <- Decoder[Id].tryDecode(idCursor)
-      notificationFields <- Decoder[Notification[T]].apply(cursor)
-    } yield Request[T](
-      notificationFields.jsonrpc,
-      id,
-      notificationFields.method,
-      notificationFields.params
-    )
-  }
+  /**
+    * Field `id`
+    */
+  val idField = "id"
+
+  implicit def requestDecoder[T <: Params]: Decoder[Request[T]] =
+    RequestDecoder.instance
 }
 
 /**
@@ -182,61 +87,20 @@ case class Notification[P <: Params](
 object Notification {
 
   /**
+    * Field `jsonrpc` to be validated
+    */
+  val jsonrpcField = "jsonrpc"
+
+  /**
     * Field `method`, which is discriminator
     */
   val methodField = "method"
 
   /**
-    * Field `jsonrpc` to be validated
+    * Field `params`
     */
-  val jsonrpcField = "jsonrpc"
+  val paramsField = "params"
 
-  private val paramsField = "params"
-
-  // Circe decoder for notifications and notification fields of requests
   implicit def notificationDecoder[P <: Params]: Decoder[Notification[P]] =
-    cursor => {
-      val jsonrpcCursor = cursor.downField(jsonrpcField)
-      val methodCursor  = cursor.downField(methodField)
-      val paramsCursor  = cursor.downField(paramsField)
-      // Field `jsonrpc` must be correct
-      val jsonrpcResult = validateJsonrpc(jsonrpcCursor)
-      val methodResult  = Decoder[String].tryDecode(methodCursor)
-      // Discriminator is field `method`
-      val paramsResult = methodResult
-        .flatMap(selectParamsDecoder(_).tryDecode(paramsCursor))
-      for {
-        jsonrpc <- jsonrpcResult
-        method  <- methodResult
-        params  <- paramsResult
-      } yield Notification[P](jsonrpc, method, params)
-    }
-
-  private def wrongJsonRpcVersionFailure(
-    version: String,
-    jsonrpcCursor: ACursor
-  ): DecodingFailure =
-    DecodingFailure
-      .fromThrowable(
-        new WrongJsonRpcVersion(version),
-        jsonrpcCursor.history
-      )
-
-  private def validateJsonrpc[P <: Params](
-    jsonrpcCursor: ACursor
-  ): Decoder.Result[String] = {
-    Decoder[String].tryDecode(jsonrpcCursor).flatMap {
-      case version @ `jsonRpcVersion` => Right(version)
-      case version =>
-        Left(
-          wrongJsonRpcVersionFailure(version, jsonrpcCursor)
-        )
-    }
-  }
-
-  private class WrongJsonRpcVersion(version: String)
-      extends RuntimeException(
-        s"jsonrpc must be $jsonRpcVersion but found $version"
-      )
-
+    NotificationDecoder.instance
 }

@@ -6,7 +6,7 @@ import akka.util.Timeout
 import io.circe
 import io.circe.CursorOp.DownField
 import io.circe.{DecodingFailure, ParsingFailure, Printer}
-import io.circe.parser._
+import io.circe.parser.decode
 import io.circe.syntax._
 import org.enso.gateway.protocol._
 import org.enso.gateway.protocol.request.IdHolder
@@ -16,11 +16,11 @@ import org.enso.gateway.protocol.response.ResponseError.{
   ParseError,
   UnexpectedError
 }
-import org.enso.gateway.protocol.response.error.{Data, ErrorMessage}
+import org.enso.gateway.protocol.response.error.Data
 
 import scala.concurrent.Future
 
-object Protocol {
+object JsonRpcController {
 
   /**
     * A string specifying the version of the JSON-RPC protocol. MUST be exactly "2.0".
@@ -34,10 +34,11 @@ object Protocol {
 /**
   * Helper for implementing protocol over text-based transport.
   * Requests and responses are marshaled as text using JSON-RPC.
+  * It handles and decodes all JSON-RPC messages and dispatch them to the Gateway.
   *
   * @param gateway `ActorRef` of Gateway actor
   */
-class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
+class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
 
   import system.dispatcher
 
@@ -81,10 +82,10 @@ class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
         mkParseErrorResponse(input, err)
 
       case DecodingFailure(_, List(DownField(Notification.jsonrpcField))) =>
-        mkInitializeErrorResponse
+        initializeErrorResponse
 
       case DecodingFailure(_, List(DownField(Notification.methodField))) =>
-        mkMethodNotFoundResponse
+        methodNotFoundResponse
 
       case e =>
         mkUnexpectedErrorResponse(e)
@@ -102,13 +103,13 @@ class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
     )
   }
 
-  private val mkMethodNotFoundResponse: Response = {
+  private val methodNotFoundResponse: Response = {
     Response.error(
       error = MethodNotFoundError()
     )
   }
 
-  private val mkInitializeErrorResponse: Response = {
+  private val initializeErrorResponse: Response = {
     val defaultRetry = false
     Response.error(
       error = InitializeError(
@@ -128,7 +129,6 @@ class Protocol(gateway: ActorRef)(implicit system: ActorSystem) {
   ): Response = {
     Response.error(
       error = ParseError(
-        ErrorMessage.invalidJson,
         Some(
           Data
             .ParseData(

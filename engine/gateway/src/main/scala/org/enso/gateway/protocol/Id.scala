@@ -16,7 +16,7 @@ sealed trait Id
 object Id {
   implicit val idEncoder: Encoder[Id] = Encoder.instance {
     case number: Number => number.asJson
-    case string: Text   => string.asJson
+    case text: Text     => text.asJson
   }
 
   implicit val idDecoder: Decoder[Id] = List[Decoder[Id]](
