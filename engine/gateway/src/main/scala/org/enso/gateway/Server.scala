@@ -24,6 +24,7 @@ object Server {
 
   /** Describes endpoint to which [[Server]] can bind (host, port, route) and
     * timeout for waiting response.
+    *
     * Gets parameters from typesafe config.
     */
   object Config {
@@ -37,31 +38,21 @@ object Server {
       ConfigFactory.load.getConfig(gatewayPath)
     private val serverConfig: Config = gatewayConfig.getConfig(serverPath)
 
-    /**
-      * Host of endpoint.
-      */
+    /** Host of endpoint. */
     val host: String = serverConfig.getString(hostPath)
 
-    /**
-      * Port of endpoint.
-      */
+    /** Port of endpoint. */
     val port: Int = serverConfig.getInt(portPath)
 
-    /**
-      * Route of endpoint.
-      */
+    /** Route of endpoint. */
     val route: String = serverConfig.getString(routePath)
 
-    /**
-      * Timeout for waiting response after request.
-      */
+    /** Timeout for waiting response after request. */
     implicit val timeout: Timeout = Timeout(
       serverConfig.getLong(timeoutPath).seconds
     )
 
-    /**
-      * Creates address string.
-      */
+    /** Creates address string. */
     val addressString: String = s"ws://$host:$port"
   }
 }

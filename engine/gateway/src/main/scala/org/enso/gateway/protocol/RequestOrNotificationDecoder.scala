@@ -34,11 +34,9 @@ object RequestOrNotificationDecoder {
     method: String
   ): Decoder[_ <: RequestOrNotification] =
     method match {
-      // All requests
       case Requests.Initialize.method =>
         Decoder[Request[InitializeParams]]
 
-      // All notifications
       case Notifications.Initialized.method =>
         Decoder[Notification[InitializedParams]]
 

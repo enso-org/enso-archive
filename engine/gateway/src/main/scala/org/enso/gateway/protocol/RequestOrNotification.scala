@@ -50,13 +50,15 @@ object Request {
 
 /** `NotificationMessage` in LSP Spec:
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#notificationMessage
-  * A processed notification message must not send a response back (they work like events). Therefore no `id`
+  * A processed notification message must not send a response back (they work
+  * like events). Therefore no `id`.
   *
-  * @param jsonrpc JSON-RPC Version
-  * @param method  The JSON-RPC method to be invoked
-  * @param params  The method's params. A structured value that holds the parameter values
-  *                to be used during the invocation of the method
-  * @tparam P Subtype of [[Params]] for a notification with specific method
+  * @param jsonrpc JSON-RPC Version.
+  * @param method  The JSON-RPC method to be invoked.
+  * @param params  The method's params. A structured value that holds the
+  *                parameter values to be used during the invocation of the
+  *                method.
+  * @tparam P Subtype of [[Params]] for a notification with specific method.
   */
 case class Notification[P <: Params](
   jsonrpc: String,

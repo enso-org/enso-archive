@@ -75,6 +75,7 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
    * Gateway and language server are responsible for id of response being equal
    * to id of request.
    */
+
   private def mkErrorResponse(
     input: String,
     err: circe.Error

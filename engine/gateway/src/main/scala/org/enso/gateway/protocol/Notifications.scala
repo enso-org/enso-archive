@@ -4,8 +4,6 @@ import org.enso.gateway.protocol.request.Params
 
 /** Parent trait for notifications extractor objects. */
 sealed trait Notifications {
-
-  /** Name of JSON-RPC method. */
   val method: String
 
   def unapply[T <: Params](

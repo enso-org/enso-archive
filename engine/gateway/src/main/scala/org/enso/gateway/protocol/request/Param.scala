@@ -80,13 +80,10 @@ object Param {
   object Trace {
     implicit val traceOffDecoder: Decoder[Trace] = deriveEnumerationDecoder
 
-    /** Trace is disabled. */
     case object off extends Trace
 
-    /** Trace is messages only (i.e. requests, notifications, and responses). */
     case object messages extends Trace
 
-    /** Trace is verbose. */
     case object verbose extends Trace
   }
 

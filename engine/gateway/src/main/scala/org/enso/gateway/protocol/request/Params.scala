@@ -47,7 +47,7 @@ object Params {
 
   /* Note [rootPath deprecated]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * `rootUri` is deprecated: use `rootUri`, LSP Spec.
+   * `rootPath` is deprecated: use `rootUri`, LSP Spec.
    */
 
   /** Params of the notification

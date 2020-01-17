@@ -11,20 +11,18 @@ import org.enso.gateway.protocol.request.Params.{
 /** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {
 
-  /**
+  /** Make Circe decoder for notifications and notification fields of requests.
+    *
     * @tparam P Subtype of [[Params]] for a notification with specific method.
-    * @return Circe decoder for notifications and notification fields of
-    *         requests.
+    * @return the Circe decoder.
     */
   def instance[P <: Params]: Decoder[Notification[P]] =
     cursor => {
       val jsonrpcCursor = cursor.downField(Notification.jsonrpcField)
       val methodCursor  = cursor.downField(Notification.methodField)
       val paramsCursor  = cursor.downField(Notification.paramsField)
-      // Field `jsonrpc` must be correct
       val jsonrpcResult = validateJsonrpc(jsonrpcCursor)
       val methodResult  = Decoder[String].tryDecode(methodCursor)
-      // Discriminator is field `method`
       val paramsResult = methodResult
         .flatMap(selectParamsDecoder(_).tryDecode(paramsCursor))
       for {
