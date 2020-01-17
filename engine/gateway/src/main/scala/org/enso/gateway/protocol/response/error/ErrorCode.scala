@@ -2,9 +2,7 @@ package org.enso.gateway.protocol.response.error
 
 import io.circe.Encoder
 
-/**
-  * Code of [[org.enso.gateway.protocol.response.ResponseError]].
-  */
+/** Code of [[org.enso.gateway.protocol.response.ResponseError]]. */
 sealed abstract class ErrorCode(val code: Int)
 object ErrorCode {
 

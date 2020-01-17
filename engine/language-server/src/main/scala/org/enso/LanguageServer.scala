@@ -22,27 +22,18 @@ class LanguageServer(context: ExecutionContext)
       sender() ! LanguageServer.InitializedReceived
   }
 }
-
 object LanguageServer {
 
-  /**
-    * Akka message sent by Gateway received LSP request `initialize`
-    */
+  /** Akka message sent by Gateway received LSP request `initialize`. */
   case class Initialize(id: Int, replyTo: ActorRef)
 
-  /**
-    * Akka message sent by Gateway received LSP notification `initialized`
-    */
+  /** Akka message sent by Gateway received LSP notification `initialized`. */
   case object Initialized
 
-  /**
-    * Language server response to [[Initialize]]
-    */
+  /** Language server response to [[Initialize]]. */
   case class InitializeReceived(id: Int, replyTo: ActorRef)
 
-  /**
-    * Language server response to [[Initialized]]
-    */
+  /** Language server response to [[Initialized]]. */
   case object InitializedReceived
 
   def props(context: ExecutionContext): Props =

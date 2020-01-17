@@ -44,7 +44,6 @@ object Param {
 
   /** An array element. */
   case class Array(value: Seq[Option[Param]]) extends Param
-
   object Array {
     implicit val paramArrayDecoder: Decoder[Array] =
       deriveUnwrappedDecoder
@@ -55,7 +54,6 @@ object Param {
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
   case class InitializationOptions(value: Text) extends Param
-
   object InitializationOptions {
     implicit val initializationOptionsDecoder: Decoder[InitializationOptions] =
       deriveUnwrappedDecoder
@@ -69,7 +67,6 @@ object Param {
     name: Text,
     version: Option[Text]
   ) extends Param
-
   object ClientInfo {
     implicit val clientInfoDecoder: Decoder[ClientInfo] = deriveDecoder
   }
@@ -80,7 +77,6 @@ object Param {
     *      The initial trace setting.
     */
   sealed trait Trace extends Param
-
   object Trace {
     implicit val traceOffDecoder: Decoder[Trace] = deriveEnumerationDecoder
 
@@ -92,7 +88,6 @@ object Param {
 
     /** Trace is verbose. */
     case object verbose extends Trace
-
   }
 
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
@@ -100,7 +95,6 @@ object Param {
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
   sealed trait WorkspaceFolder extends Param
-
   object WorkspaceFolder {
     implicit val workspaceFolderDecoder: Decoder[WorkspaceFolder] =
       List[Decoder[WorkspaceFolder]](
@@ -108,12 +102,10 @@ object Param {
       ).reduceLeft(_ or _)
 
     case class WorkspaceFolderImpl() extends WorkspaceFolder
-
     object WorkspaceFolderImpl {
       implicit val workspaceFolderImplDecoder: Decoder[WorkspaceFolderImpl] =
         deriveDecoder
     }
-
   }
 
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
@@ -128,7 +120,6 @@ object Param {
     textDocument: Option[clientcapabilities.TextDocument] = None,
     experimental: Option[clientcapabilities.Experimental] = None
   ) extends Param
-
   object ClientCapabilities {
     implicit val clientCapabilitiesDecoder: Decoder[ClientCapabilities] =
       deriveDecoder
