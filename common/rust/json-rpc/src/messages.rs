@@ -323,10 +323,10 @@ mod tests {
     fn version_serialization_and_deserialization() {
         use serde_json::from_str;
         let check_serialization = |version_string:&str, value:Version| {
-            let expected_json = Value::String(version_string.into());
+            let expected_json      = Value::String(version_string.into());
             let expected_json_text = serde_json::to_string(&expected_json);
             let expected_json_text = expected_json_text.unwrap();
-            let got_json_text = serde_json::to_string(&value).unwrap();
+            let got_json_text      = serde_json::to_string(&value).unwrap();
             assert_eq!(got_json_text, expected_json_text);
 
             let got_value = from_str::<Version>(&expected_json_text).unwrap();

@@ -13,6 +13,7 @@ use crate::messages::Message;
 use crate::transport::Transport;
 use crate::transport::TransportCallbacks;
 
+use futures::FutureExt;
 use futures::channel::oneshot;
 use serde::de::DeserializeOwned;
 use std::future::Future;
@@ -219,16 +220,13 @@ impl Handler {
     /// reply message. It is automatically decoded into the expected type.
     pub fn open_request<In:api::RemoteMethodCall>
     (&mut self, input:In) -> impl Future<Output = Result<In::Returned>> {
-        println!("Setting the request future channel");
-        use futures::FutureExt;
         let (sender, receiver) = oneshot::channel::<ReplyMessage>();
-        let ret = receiver.map(|result_or_cancel| -> Result<In::Returned> {
+        let ret                = receiver.map(|result_or_cancel| {
             let result = result_or_cancel?;
             decode_result(result)
         });
 
-        let id = self.id_generator.next();
-        println!("Opening request {:?}", id);
+        let id      = self.id_generator.next();
         let message = api::into_request_message(input,id);
         self.ongoing_calls.insert(message.payload.id, sender);
 
@@ -242,7 +240,6 @@ impl Handler {
     /// It shall be either matched with an open request or yield an error.
     pub fn process_response
     (&mut self, message:messages::Response<serde_json::Value>) {
-        println!("Got response to request {}", message.id);
         if let Some(sender) = self.ongoing_calls.remove(&message.id) {
             // Disregard any error. We do not care if RPC caller already
             // dropped the future.
@@ -258,7 +255,6 @@ impl Handler {
     /// specific API client to properly deal with message details.
     pub fn process_notification
     (&mut self, message:messages::Notification<serde_json::Value>) {
-        println!("Got notification: {:?}", message);
         self.on_notification.try_call(message);
     }
 
@@ -280,7 +276,6 @@ impl Handler {
     /// The message must conform either to the `Response` or to the
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
     pub fn process_incoming_message(&mut self, message:String) {
-        println!("Process {}", message);
         match self.decode_incoming_message(message) {
             Ok(messages::IncomingMessage::Response(response)) =>
                 self.process_response(response),
@@ -294,7 +289,6 @@ impl Handler {
     /// With with a handling error. Uses `on_error` callback to notify the
     /// owner.
     pub fn error_occurred(&mut self, error: HandlingError) {
-        println!("Internal error occurred: {}", error);
         self.on_error.try_call(error);
     }
 
