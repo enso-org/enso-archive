@@ -1,38 +1,36 @@
 package org.enso.gateway
 
+import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws._
+import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl._
-import akka.testkit.TestKit
-import akka.{Done, NotUsed}
-import org.enso.gateway.TestJsons.{Initialize, WrongJsonrpc, WrongMethod}
+import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
+import io.circe.Json
 import org.enso.gateway.Server.Config
+import org.enso.gateway.TestJson.{Initialize, WrongJsonrpc, WrongMethod}
 import org.enso.{Gateway, LanguageServer}
 import org.scalatest.{
   Assertion,
+  AsyncFlatSpec,
   BeforeAndAfterAll,
   GivenWhenThen,
-  Matchers,
-  WordSpecLike
+  Matchers
 }
+import io.circe.parser.parse
 
-import scala.concurrent.duration._
-import scala.concurrent.{Await, Future}
-import scala.language.postfixOps
+import scala.concurrent.Future
 
-class GatewaySpec(_system: ActorSystem)
-    extends TestKit(_system)
+class GatewaySpec
+    extends AsyncFlatSpec
     with Matchers
-    with WordSpecLike
     with BeforeAndAfterAll
     with GivenWhenThen {
-
-  def this() = this(ActorSystem("GatewaySpec"))
-
+  implicit private val system: ActorSystem = ActorSystem()
   implicit private val materializer: ActorMaterializer =
     ActorMaterializer.create(system)
+
+  import system.dispatcher
 
   override def beforeAll: Unit = {
     val languageServerActorName = "languageServer"
@@ -48,53 +46,52 @@ class GatewaySpec(_system: ActorSystem)
   }
 
   override def afterAll: Unit = {
-    shutdown(system)
+    system.terminate()
   }
 
-  "Gateway" should {
-    "reply with a proper response to request with initialize method" in {
-      checkRequestResponse(Initialize)
-    }
-
-    "reply with a proper error to request with wrong jsonrpc" in {
-      checkRequestResponse(WrongJsonrpc)
-    }
-
-    "reply with a proper error to request with wrong method" in {
-      checkRequestResponse(WrongMethod)
-    }
+  "Gateway" should "reply with a proper response to request with initialize method" in {
+    checkRequestResponse(Initialize)
   }
 
-  private def checkRequestResponse(testJsons: TestJsons): Assertion = {
+  "Gateway" should "reply with a proper error to request with wrong jsonrpc" in {
+    checkRequestResponse(WrongJsonrpc)
+  }
+
+  "Gateway" should "reply with a proper error to request with wrong method" in {
+    checkRequestResponse(WrongMethod)
+  }
+
+  private def checkRequestResponse(
+    testJsons: TestJson
+  ): Future[Assertion] = {
     Given("server replies with responses to requests")
-    val source: Source[Message, NotUsed] =
-      Source.single(TextMessage(testJsons.request))
-    var actualResponseJson: Option[String] = None
-    val sink: Sink[Message, Future[Done]] = Sink.foreach {
+    val messageToMessageFlow: Flow[Message, Message, Future[Message]] =
+      createFlow(
+        TextMessage(testJsons.request.toString)
+      )
+
+    When("server receives request")
+    val (_, messageFuture) = Http()
+      .singleWebSocketRequest(
+        WebSocketRequest(Config.addressString),
+        messageToMessageFlow
+      )
+
+    Then("actual response server sent should correspond to expected")
+    messageFuture.map {
       case message: TextMessage.Strict =>
-        actualResponseJson = Some(message.text)
-      case _ =>
+        val actualResponse = parse(message.text).getOrElse(Json.Null)
+        assert(actualResponse === testJsons.expectedResponse)
+      case _ => assert(false, "binary or streamed text message")
     }
-
-    When("server receives response")
-    waitResponse(source, sink)
-
-    Then("actual response should correspond to expected")
-    assert(actualResponseJson === Some(testJsons.expectedResponse))
   }
 
-  private def waitResponse(
-    source: Source[Message, NotUsed],
-    sink: Sink[Message, Future[Done]]
-  ): Done = {
-    val flow: Flow[Message, Message, Future[Done]] =
-      Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
-
-    val (_, doneFuture) = Http()
-      .singleWebSocketRequest(WebSocketRequest(Config.addressString), flow)
-
-    val timeout: FiniteDuration = 10 seconds
-
-    Await.result(doneFuture, timeout)
+  private def createFlow(
+    textMessage: TextMessage.Strict
+  ): Flow[Message, Message, Future[Message]] = {
+    val source: Source[Message, NotUsed] =
+      Source.single(textMessage)
+    val sink = Sink.last[Message]
+    Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
   }
 }
