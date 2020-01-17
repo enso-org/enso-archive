@@ -14,7 +14,7 @@ use shrinkwraprs::Shrinkwrap;
 // ===============
 
 /// All JSON-RPC messages bear `jsonrpc` version number.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[derive(Shrinkwrap)]
 pub struct Message<T> {
     /// JSON-RPC Procol version
@@ -103,7 +103,7 @@ impl std::fmt::Display for Id {
 }
 
 /// JSON-RPC protocol version. Only 2.0 is supported.
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum Version {
     /// Old JSON-RPC 1.0 specification. Not supported.
     #[serde(rename = "1.0")]
@@ -238,7 +238,8 @@ mod tests {
         pub const VERSION2_STRING:&str = "2.0";
 
         // === Other ===
-        pub const FIELD_COUNT_IN_REQUEST:usize = 4;
+        pub const FIELD_COUNT_IN_REQUEST     :usize = 4;
+        pub const FIELD_COUNT_IN_NOTIFICATION:usize = 3;
     }
 
     fn expect_field<'a,Obj:'a>
@@ -264,6 +265,29 @@ mod tests {
         let jsonrpc_field = expect_field(json, protocol::JSONRPC);
         assert_eq!(jsonrpc_field, protocol::VERSION2_STRING);
         assert_eq!(expect_field(json, protocol::ID), id.0);
+        assert_eq!(expect_field(json, protocol::METHOD), method);
+        let input_json = expect_field(json, protocol::INPUT);
+        let input_json = input_json.as_object().expect("input must be object");
+        assert_eq!(input_json.len(), MockRequest::FIELD_COUNT);
+        assert_eq!(expect_field(input_json, MockRequest::FIELD_NAME), number);
+    }
+
+    #[test]
+    fn test_notification_serialization() {
+        let method       = "mockNotification";
+        let number       = 125;
+        let input        = MockRequest {number};
+        let call         = MethodCall {method:method.into(),input};
+        let notification = Notification(call);
+        let message      = Message::new(notification);
+
+        println!("{}", serde_json::to_string(&message).unwrap());
+
+        let json = serde_json::to_value(message).expect("serialization error");
+        let json = json.as_object().expect("expected an object");
+        assert_eq!(json.len(), protocol::FIELD_COUNT_IN_NOTIFICATION);
+        let jsonrpc_field = expect_field(json, protocol::JSONRPC);
+        assert_eq!(jsonrpc_field, protocol::VERSION2_STRING);
         assert_eq!(expect_field(json, protocol::METHOD), method);
         let input_json = expect_field(json, protocol::INPUT);
         let input_json = input_json.as_object().expect("input must be object");

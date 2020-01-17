@@ -8,6 +8,8 @@ use crate::error::HandlingError;
 use crate::error::RpcError;
 use crate::messages;
 use crate::messages::Id;
+use crate::messages::IncomingMessage;
+use crate::messages::Message;
 use crate::transport::Transport;
 use crate::transport::TransportCallbacks;
 
@@ -260,13 +262,26 @@ impl Handler {
         self.on_notification.try_call(message);
     }
 
+    /// Partially decodes incoming message.
+    ///
+    /// This checks if has `jsonrpc` version string, and whetehr it is a
+    /// response or a notification.
+    pub fn decode_incoming_message(&mut self, message:String)
+    -> serde_json::Result<IncomingMessage> {
+        use serde_json::Value;
+        use serde_json::from_str;
+        use serde_json::from_value;
+        let message  = from_str::<Message<Value>>(&message)?;
+        from_value::<IncomingMessage>(message.payload)
+    }
+
     /// Deal with incoming text message from the peer.
     ///
     /// The message must conform either to the `Response` or to the
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
     pub fn process_incoming_message(&mut self, message:String) {
         println!("Process {}", message);
-        match serde_json::from_str(&message) {
+        match self.decode_incoming_message(message) {
             Ok(messages::IncomingMessage::Response(response)) =>
                 self.process_response(response),
             Ok(messages::IncomingMessage::Notification(notification)) =>
