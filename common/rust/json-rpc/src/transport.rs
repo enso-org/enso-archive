@@ -2,6 +2,8 @@
 
 use prelude::*;
 
+use failure::Error;
+
 /// A transport that facilitate JSON-RPC protocol.
 ///
 /// Must allow sending and receiving text messages. Additionally, connection at
@@ -11,14 +13,14 @@ use prelude::*;
 /// tests.
 pub trait Transport : Debug {
     /// Send a text message.
-    fn send_text(&mut self, message:String);
+    fn send_text(&mut self, message:String) -> Result<(), Error>;
 
     /// Set a callback that gets notified on transport events.
     fn set_event_tx(&mut self, tx:std::sync::mpsc::Sender<TransportEvent>);
 }
 
 impl<T: Transport> Transport for Rc<RefCell<T>> {
-    fn send_text(&mut self, message:String) {
+    fn send_text(&mut self, message:String) -> Result<(), Error> {
         self.borrow_mut().send_text(message)
     }
     fn set_event_tx(&mut self, tx:std::sync::mpsc::Sender<TransportEvent>) {

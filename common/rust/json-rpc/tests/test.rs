@@ -11,6 +11,7 @@ use json_rpc::messages::Notification;
 use json_rpc::messages::Version;
 use json_rpc::transport::TransportEvent;
 
+use failure::Error;
 use futures::FutureExt;
 use futures::task::Context;
 use serde::de::DeserializeOwned;
@@ -35,7 +36,7 @@ fn pow_impl(msg:MockRequestMessage) -> MockResponseMessage {
 // === Protocol Data ===
 
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
-struct MockRequest { i:i64 }
+struct MockRequest {i:i64}
 
 impl RemoteMethodCall for MockRequest {
     const NAME:&'static str = "pow";
@@ -48,8 +49,8 @@ struct MockResponse { result:i64 }
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(tag = "method", content="params")]
 pub enum MockNotification {
-    Meow{ text:String },
-    Bark{ text:String },
+    Meow {text:String},
+    Bark {text:String},
 }
 
 // === Helper Aliases ===
@@ -74,16 +75,17 @@ impl Transport for MockTransport {
         self.event_tx = Some(tx);
     }
 
-    fn send_text(&mut self, text:String) {
+    fn send_text(&mut self, text:String) -> std::result::Result<(), Error> {
         self.sent_msgs.push(text.clone());
+        Ok(())
     }
 }
 
 impl MockTransport {
     pub fn new() -> MockTransport {
         MockTransport {
-            event_tx :None,
-            sent_msgs:Vec::new(),
+            event_tx  : None,
+            sent_msgs : Vec::new(),
         }
     }
 
@@ -304,7 +306,7 @@ fn test_disconnect_error() {
 
 fn test_notification(mock_notif:MockNotification) {
     let (ws, mut fm) = setup();
-    let message          = Message::new(mock_notif.clone());
+    let message      = Message::new(mock_notif.clone());
     assert!(fm.notifications.borrow().is_empty());
     ws.borrow_mut().mock_peer_message(message.clone());
     assert!(fm.notifications.borrow().is_empty());

@@ -228,7 +228,10 @@ impl Handler {
         self.ongoing_calls.insert(message.payload.id, sender);
 
         let serialized_message = serde_json::to_string(&message).unwrap();
-        self.transport.send_text(serialized_message);
+        if self.transport.send_text(serialized_message).is_err() {
+            // If message cannot be send, future ret must be cancelled.
+            self.ongoing_calls.remove(&id);
+        }
         ret
     }
 
