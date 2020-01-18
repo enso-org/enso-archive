@@ -18,15 +18,15 @@ use futures::channel::oneshot::Canceled;
 #[derive(Debug, Fail)]
 pub enum RpcError {
     /// Error returned by the remote server.
-    #[fail(display = "peer has replied with an error: {:?}", _0)]
+    #[fail(display = "Peer has replied with an error: {:?}.", _0)]
     RemoteError(Error),
 
     /// Lost connection while waiting for response.
-    #[fail(display = "lost connection before receiving reply")]
+    #[fail(display = "Lost connection before receiving a reply.")]
     LostConnection,
 
     /// Failed to deserialize message from server.
-    #[fail(display = "failed to deserialize from JSON: {}", _0)]
+    #[fail(display = "Failed to deserialize a message: {}.", _0)]
     DeserializationFailed(serde_json::Error),
 }
 
@@ -54,17 +54,16 @@ impl From<serde_json::Error> for RpcError {
 #[derive(Debug, Fail)]
 pub enum HandlingError {
     /// When incoming text message can't be decoded.
-    #[fail(display = "failed to decode incoming text message: {}", _0)]
+    #[fail(display = "Failed to decode incoming text message: {}.", _0)]
     InvalidMessage(#[cause] serde_json::Error),
 
     /// Server responded to an identifier that does not match to any known
     /// ongoing request.
-    #[fail(display = "server generated response with no matching request: \
-    id={:?}", _0)]
+    #[fail(display = "Server generated a response with no matching request: id={:?}.", _0)]
     UnexpectedResponse(Response<serde_json::Value>),
 
     /// Server send a message that is notification but client wasn't able to
     /// decode it.
-    #[fail(display = "failed to decode notification: {}", _0)]
+    #[fail(display = "Failed to decode a notification: {}.", _0)]
     InvalidNotification(#[cause] serde_json::Error),
 }
