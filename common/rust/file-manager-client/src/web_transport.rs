@@ -4,7 +4,7 @@ use crate::log;
 
 use js_sys::Function;
 use json_rpc::Transport;
-use json_rpc::TransportCallbacks;
+use json_rpc::TransportEvent;
 
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
@@ -52,21 +52,19 @@ impl Transport for MyWebSocket {
         self.ws.send_with_str(&message);
     }
 
-    fn set_callback(&mut self, cb:Rc<RefCell<dyn TransportCallbacks>>) {
-        let cb1 = cb.clone();
+    fn set_event_tx(&mut self, tx:std::sync::mpsc::Sender<TransportEvent>) {
+        let tx1 = tx.clone();
         let on_message = Closure::wrap(Box::new(move |e: MessageEvent| {
             let data = e.data();
             if let Some(text) = data.as_string() {
-                log!("received text message: {}", text);
-                cb1.borrow_mut().on_text_message(text);
+                tx1.send(TransportEvent::TextMessage(text));
             }
         }) as Box<dyn FnMut(MessageEvent)>);
         self.on_message_closure.store(on_message);
         self.ws.set_onmessage(self.on_message_closure.function());
 
         let on_close = Closure::wrap(Box::new(move |e:CloseEvent| {
-            log!("socket closed {:?}", e);
-            cb.borrow_mut().on_close();
+            tx.send(TransportEvent::Closed);
         }) as Box<dyn FnMut(CloseEvent)>);
 
         self.on_closed_closure.store(on_close);

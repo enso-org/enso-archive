@@ -44,9 +44,9 @@ fn body() -> web_sys::HtmlElement {
 //}
 
 use crate::FmClient;
-use crate::web_transport::new_websocket;
-use std::task::{Context, Poll};
-use std::pin::Pin;
+//use crate::web_transport::new_websocket;
+//use std::task::{Context, Poll};
+//use std::pin::Pin;
 
 pub async fn setup_file_manager(url:&str) -> FmClient {
     let ws = crate::web_transport::MyWebSocket::new(url).await;
@@ -95,16 +95,6 @@ impl Tickable for EventManager {
     }
 }
 
-
-fn lumpen_executor<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
-//    log!("Hello, executor here!");
-    let mut ctx = Context::from_waker(futures::task::noop_waker_ref());
-    match f.as_mut().poll(&mut ctx) {
-        Poll::Ready(result) => Some(result),
-        Poll::Pending       => None,
-    }
-}
-
 // This function is automatically invoked after the wasm module is instantiated.
 #[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
@@ -116,74 +106,39 @@ pub fn run() -> Result<(), JsValue> {
 
 //    let mut file_manager: Rc<RefCell<Option<FmClient>>> = Rc::new(RefCell::new(None));
 
-    let be_nice = async {
-        let ws = new_websocket("ws://localhost:9001").await;
-        ws.send_with_str("nice to meet you");
-        log!("Sent a nice message");
-    };
-    em.execute(be_nice);
+//    let be_nice = async {
+//        let ws = new_websocket("ws://localhost:9001").await;
+//        ws.send_with_str("nice to meet you");
+//        log!("Sent a nice message");
+//    };
+//    em.execute(be_nice);
 
-    let be_nice = async {
-        let ws = new_websocket("ws://localhost:9001").await;
-        ws.send_with_str("nice to meet you2");
-        log!("Sent a nice message");
-    };
-    em.execute(be_nice);
-    let be_nice = async {
-        let ws = new_websocket("ws://localhost:9001").await;
-        ws.send_with_str("nice to meet you3");
-        log!("Sent a nice message");
-    };
-    em.execute(be_nice);
-
-//    log!("Preparing FM handles");
-//    let mut file_manager: Rc<RefCell<Option<FmClient>>> = Rc::new(RefCell::new(None));
-//    let fm2 = file_manager.clone();
-//    log!("Preparing future");
-//    let mut fut = Box::pin(async move {
-//        log!("setting up the file manager");
-//        let fm = setup_file_manager("ws://localhost:9001").await;
-//        log!("file manager created!");
-//        *fm2.borrow_mut() = Some(fm);
-//        let path = "C:/temp";
-//        log!("{} exists? ...", path);
-//        let exists = fm2.borrow_mut().as_mut().unwrap().exists(path.into());
-//        let exists = exists.await;
-//        log!("{} exists? {}", path, exists.unwrap());
-//
-//        let other_exists = fm2.borrow_mut().as_mut().unwrap().exists("C:/Windows/".into());
-//
-//        other_exists.await;
-//        log!("future done");
-//    });
-
-    log!("Starting future");
     let file_manager: Rc<RefCell<Option<FmClient>>> = Rc::new(RefCell::new(None));
     let fm2 = file_manager.clone();
     em.execute(async move {
-        let call_exists = |path:&str| {
-            fm2.borrow_mut().as_mut().unwrap().exists(path.into())
+        let call_exists = |path| {
+            fm2.borrow_mut().as_mut().unwrap().exists(path)
         };
-        log!("setting up the file manager");
         let fm = setup_file_manager("ws://localhost:9001").await;
         log!("file manager created!");
         *fm2.borrow_mut() = Some(fm);
-        let path = "C:/temp";
-        log!("{} exists? ...", path);
-        let exists = fm2.borrow_mut().as_mut().unwrap().exists(path.into());
-        let exists = exists.await;
-        log!("{} exists? {}", path, exists.unwrap());
 
-        let other_exists = call_exists("C:/Windows/".into());
-        log!("other exists: {:?}", other_exists.await);
+        log!("first query");
+        let path = "C:/temp";
+        log!("{} exists? {:?}", path, call_exists(path).await);
+
+        log!("second query");
+        let path = "C:/Windows";
+        log!("{} exists? {:?}", path, call_exists(path).await);
+
         log!("future done");
     });
 
     let mut i = 0;
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         i += 1;
-        let text = format!("requestAnimationFrame has been called {} times.", i);
-        body().set_text_content(Some(&text));
+//        let text = format!("requestAnimationFrame has been called {} times.", i);
+//        body().set_text_content(Some(&text));
         em.tick();
 //        lumpen_executor(&mut fut);
 

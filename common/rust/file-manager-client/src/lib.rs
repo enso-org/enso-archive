@@ -37,13 +37,12 @@ impl FmClient {
         let input = CopyFileInput { from, to };
         self.handler.open_request(input).map(|result| result.map(|_| ()))
     }
-    pub fn exists(&mut self, path:Path) -> impl Future<Output = Result<bool>> {
-        println!("exists?");
-        let input = ExistsInput { path };
+    pub fn exists<S : Into<String>>
+    (&mut self, path:S) -> impl Future<Output = Result<bool>> {
+        let input = ExistsInput { path:path.into() };
         self.handler.open_request(input).map(|result| result.map(|r| r.exists))
     }
     pub fn touch(&mut self, path:Path) -> impl Future<Output = Result<()>> {
-        println!("exists?");
         let input = ExistsInput { path };
         self.handler.open_request(input).map(|result| result.map(|_| ()))
     }

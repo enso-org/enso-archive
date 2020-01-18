@@ -11,12 +11,15 @@ use crate::messages::Id;
 use crate::messages::IncomingMessage;
 use crate::messages::Message;
 use crate::transport::Transport;
-use crate::transport::TransportCallbacks;
+//use crate::transport::TransportCallbacks;
+use crate::transport::TransportEvent;
 
 use futures::FutureExt;
 use futures::channel::oneshot;
 use serde::de::DeserializeOwned;
 use std::future::Future;
+use std::sync::mpsc::TryRecvError;
+
 
 
 // ====================
@@ -38,6 +41,7 @@ pub fn decode_result<Ret:DeserializeOwned>
             Err(RpcError::RemoteError(err))?,
     }
 }
+
 
 
 // ===================
@@ -71,6 +75,7 @@ impl IdGenerator {
         IdGenerator { counter }
     }
 }
+
 
 
 // ====================
@@ -111,15 +116,6 @@ impl SharedBuffer {
     }
 }
 
-impl TransportCallbacks for SharedBuffer {
-    fn on_text_message(&mut self, message:String) {
-        self.incoming.push(message);
-    }
-
-    fn on_close(&mut self) {
-        self.closed = true;
-    }
-}
 
 
 // ================
@@ -166,6 +162,7 @@ impl<T> Callback<T> {
 }
 
 
+
 // ===============
 // === Handler ===
 // ===============
@@ -191,8 +188,8 @@ pub struct Handler {
     pub id_generator    : IdGenerator,
     /// Transports text messages between this handler and the peer.
     pub transport       : Box<dyn Transport>,
-    /// Facilitates communication between `Transport` and this `Handler`.
-    pub buffer          : Rc<RefCell<SharedBuffer>>,
+    /// Allows receiving events from the `Transport`.
+    pub incoming_events : std::sync::mpsc::Receiver<TransportEvent>,
     /// Callback called when internal error happens.
     pub on_error        : Callback<HandlingError>,
     /// Callback called when notification from server is received.
@@ -204,15 +201,16 @@ impl Handler {
     ///
     /// `Transport` must be functional (e.g. not in the process of opening).
     pub fn new(transport:impl Transport + 'static) -> Handler {
+        let (event_tx, event_rx) = std::sync::mpsc::channel();
         let mut ret = Handler {
             ongoing_calls   : OngoingCalls::new(),
             id_generator    : IdGenerator::new(),
             transport       : Box::new(transport),
-            buffer          : Rc::new(RefCell::new(SharedBuffer::new())),
+            incoming_events : event_rx,
             on_error        : Callback::new(),
             on_notification : Callback::new(),
         };
-        ret.transport.set_callback(ret.buffer.clone());
+        ret.transport.set_event_tx(event_tx);
         ret
     }
 
@@ -292,26 +290,34 @@ impl Handler {
         self.on_error.try_call(error);
     }
 
-    /// Handle the events incoming from the Socket.
+    /// Processes a single transport event.
+    pub fn process_event(&mut self, event:TransportEvent) {
+        match event {
+            TransportEvent::TextMessage(msg) =>
+                self.process_incoming_message(msg),
+            TransportEvent::Closed => {
+                // Dropping all ongoing calls will mark their futures as
+                // cancelled.
+                self.ongoing_calls.clear();
+            }
+        }
+    }
+
+    /// Processes all incoming events. Returns as soon as there are no more
+    /// messages pending.
     ///
     /// This will decode the incoming messages, providing input to the futures
     /// returned from RPC calls.
     /// Also this cancels any ongoing calls if the connection was lost.
     pub fn process_events(&mut self) {
-        let buffer = match self.buffer.try_borrow_mut() {
-            Ok(mut buffer) => buffer.take(),
-            Err(_)         => return,
-
-        };
-
-        for msg in buffer.incoming {
-            self.process_incoming_message(msg);
+        loop {
+            match self.incoming_events.try_recv() {
+                Ok(event) => self.process_event(event),
+                Err(TryRecvError::Disconnected) =>
+                    panic!("transport dropped the event sender"),
+                Err(TryRecvError::Empty) => break,
+            }
         }
-
-        if buffer.closed {
-            // Dropping all ongoing calls will mark their futures as cancelled.
-            self.ongoing_calls.clear();
-        };
     }
 
     /// Decode expected notification type from JSON.

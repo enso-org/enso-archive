@@ -18,5 +18,5 @@ pub mod messages;
 pub mod transport;
 
 pub use transport::Transport;
-pub use transport::TransportCallbacks;
+pub use transport::TransportEvent;
 pub use handler::Handler;
