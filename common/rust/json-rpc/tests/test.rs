@@ -64,10 +64,17 @@ type MockResponseMessage = messages::ResponseMessage<MockResponse>;
 // === Mock Transport ===
 // ======================
 
+#[derive(Debug, Fail)]
+enum MockError {
+    #[fail(display = "Cannot send message when socket is closed.")]
+    TransportClosed,
+}
+
 #[derive(Debug)]
 struct MockTransport {
     pub event_tx  : Option<std::sync::mpsc::Sender<TransportEvent>>,
     pub sent_msgs : Vec<String>,
+    pub is_closed : bool,
 }
 
 impl Transport for MockTransport {
@@ -76,8 +83,12 @@ impl Transport for MockTransport {
     }
 
     fn send_text(&mut self, text:String) -> std::result::Result<(), Error> {
-        self.sent_msgs.push(text.clone());
-        Ok(())
+        if self.is_closed {
+            Err(MockError::TransportClosed)?
+        } else {
+            self.sent_msgs.push(text.clone());
+            Ok(())
+        }
     }
 }
 
@@ -86,6 +97,7 @@ impl MockTransport {
         MockTransport {
             event_tx  : None,
             sent_msgs : Vec::new(),
+            is_closed : false,
         }
     }
 
@@ -104,6 +116,7 @@ impl MockTransport {
     pub fn mock_connection_closed(&mut self) {
         if let Some(ref tx) = self.event_tx {
             let _ = tx.send(TransportEvent::Closed);
+            self.is_closed = true;
         }
     }
 
@@ -302,6 +315,15 @@ fn test_disconnect_error() {
     if let RpcError::LostConnection = result {} else {
         panic!("Expected an error to be RemoteError");
     }
+}
+
+#[test]
+fn test_sending_while_disconnected() {
+    let (ws, mut fm) = setup();
+    ws.borrow_mut().mock_connection_closed();
+    let mut fut = Box::pin(fm.pow(8));
+    let result  = poll_for_output(&mut fut).unwrap();
+    assert!(result.is_err())
 }
 
 fn test_notification(mock_notif:MockNotification) {
