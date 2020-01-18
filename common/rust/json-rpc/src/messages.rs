@@ -18,7 +18,7 @@ use shrinkwraprs::Shrinkwrap;
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[derive(Shrinkwrap)]
 pub struct Message<T> {
-    /// JSON-RPC Procol version
+    /// JSON-RPC Protocol version, should be 2.0.
     pub jsonrpc: Version,
 
     /// Payload, either a Request or Response or Notification in direct
@@ -45,8 +45,8 @@ impl<T> Message<T> {
     /// Wraps given payload into a JSON-RPC 2.0 message.
     pub fn new(t:T) -> Message<T> {
         Message {
-            jsonrpc: Version::V2,
-            payload: t,
+            jsonrpc : Version::V2,
+            payload : t,
         }
     }
 
@@ -95,14 +95,9 @@ impl<T> Message<T> {
 /// the current session). Auto-incrementing integer is a common choice.
 #[derive(Serialize, Deserialize)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Ord, Hash)]
+#[derive(Display)]
 #[derive(Shrinkwrap)]
 pub struct Id(pub i64);
-
-impl Display for Id {
-    fn fmt(&self, f:&mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,"{}",self.0)
-    }
-}
 
 /// JSON-RPC protocol version. Only 2.0 is supported.
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
@@ -120,11 +115,11 @@ pub enum Version {
 #[derive(Shrinkwrap)]
 pub struct Request<Call> {
     /// An identifier for this request that will allow matching the response.
-    pub id   : Id,
+    pub id: Id,
     #[serde(flatten)]
     #[shrinkwrap(main_field)]
     /// method and its params
-    pub call : Call,
+    pub call: Call,
 }
 
 impl<M> Request<M> {
@@ -146,7 +141,7 @@ pub struct Notification<Call>(pub Call);
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Response<Res> {
     /// Identifier, matching the value given in `Request` when call was made.
-    pub id : Id,
+    pub id: Id,
     /// Call result.
     #[serde(flatten)]
     pub result: Result<Res>
@@ -166,7 +161,7 @@ pub enum Result<Res> {
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct Success<Ret> {
     /// A value returned from a successful remote call.
-    pub result : Ret,
+    pub result: Ret,
 }
 
 /// Error raised on a failed remote call.
@@ -219,26 +214,26 @@ mod tests {
 
     #[derive(Serialize, Deserialize, Debug, PartialEq)]
     struct MockRequest {
-        number:i64
+        number: i64
     }
     impl MockRequest {
-        const FIELD_COUNT:usize        = 1;
-        const FIELD_NAME :&'static str = "number";
+        const FIELD_COUNT : usize        = 1;
+        const FIELD_NAME  : &'static str = "number";
     }
 
     mod protocol {
         // === Field Names ===
-        pub const JSONRPC:&str = "jsonrpc";
-        pub const METHOD :&str = "method";
-        pub const INPUT  :&str = "input";
-        pub const ID     :&str = "id";
+        pub const JSONRPC : &str = "jsonrpc";
+        pub const METHOD  : &str = "method";
+        pub const INPUT   : &str = "input";
+        pub const ID      : &str = "id";
 
         // === Version strings ===
         pub const VERSION2_STRING:&str = "2.0";
 
         // === Other ===
-        pub const FIELD_COUNT_IN_REQUEST     :usize = 4;
-        pub const FIELD_COUNT_IN_NOTIFICATION:usize = 3;
+        pub const FIELD_COUNT_IN_REQUEST      : usize = 4;
+        pub const FIELD_COUNT_IN_NOTIFICATION : usize = 3;
     }
 
     fn expect_field<'a,Obj:'a>
