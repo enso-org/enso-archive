@@ -22,9 +22,12 @@ use std::pin::Pin;
 use std::task::Poll;
 use std::sync::mpsc::TryRecvError;
 
+
+
 // =====================
 // === Mock Protocol ===
 // =====================
+
 
 // === Remote Method ===
 
@@ -32,6 +35,7 @@ fn pow_impl(msg:MockRequestMessage) -> MockResponseMessage {
     let ret = MockResponse { result : msg.i * msg.i };
     Message::new_success(msg.id,ret)
 }
+
 
 // === Protocol Data ===
 
@@ -53,11 +57,13 @@ pub enum MockNotification {
     Bark {text:String},
 }
 
+
 // === Helper Aliases ===
 
 type MockRequestMessage = messages::RequestMessage<MockRequest>;
 
 type MockResponseMessage = messages::ResponseMessage<MockResponse>;
+
 
 
 // ======================
@@ -115,8 +121,8 @@ impl MockTransport {
 
     pub fn mock_connection_closed(&mut self) {
         if let Some(ref tx) = self.event_tx {
-            let _ = tx.send(TransportEvent::Closed);
             self.is_closed = true;
+            let _          = tx.send(TransportEvent::Closed);
         }
     }
 
@@ -132,6 +138,7 @@ impl MockTransport {
 }
 
 
+
 // ================
 // === Executor ===
 // ================
@@ -145,6 +152,7 @@ fn poll_for_output<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
         Poll::Pending       => None,
     }
 }
+
 
 
 // ===================
@@ -204,6 +212,7 @@ impl Client {
         handling_error.expect("there should be an error")
     }
 }
+
 
 
 // ============
