@@ -9,6 +9,7 @@ use json_rpc::messages::Id;
 use json_rpc::messages::Message;
 use json_rpc::messages::Notification;
 use json_rpc::messages::Version;
+use json_rpc::transport::TransportEvent;
 
 use futures::FutureExt;
 use futures::task::Context;
@@ -18,6 +19,7 @@ use serde::Deserialize;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::Poll;
+use std::sync::mpsc::TryRecvError;
 
 // =====================
 // === Mock Protocol ===
@@ -63,13 +65,13 @@ type MockResponseMessage = messages::ResponseMessage<MockResponse>;
 
 #[derive(Debug)]
 struct MockTransport {
-    pub cb        : Option<Rc<RefCell<dyn TransportCallbacks>>>,
+    pub event_tx  : Option<std::sync::mpsc::Sender<TransportEvent>>,
     pub sent_msgs : Vec<String>,
 }
 
 impl Transport for MockTransport {
-    fn set_callback(&mut self, cb:Rc<RefCell<dyn TransportCallbacks>>) {
-        self.cb = Some(cb);
+    fn set_event_tx(&mut self, tx:std::sync::mpsc::Sender<TransportEvent>) {
+        self.event_tx = Some(tx);
     }
 
     fn send_text(&mut self, text:String) {
@@ -80,15 +82,15 @@ impl Transport for MockTransport {
 impl MockTransport {
     pub fn new() -> MockTransport {
         MockTransport {
-            cb:None,
+            event_tx :None,
             sent_msgs:Vec::new(),
         }
     }
 
     pub fn mock_peer_message_text<S:Into<String>>(&mut self, message:S) {
         let message = message.into();
-        if let Some(ref cb) = self.cb {
-            cb.borrow_mut().on_text_message(message);
+        if let Some(ref tx) = self.event_tx {
+            let _ = tx.send(TransportEvent::TextMessage(message));
         }
     }
 
@@ -98,8 +100,8 @@ impl MockTransport {
     }
 
     pub fn mock_connection_closed(&mut self) {
-        if let Some(ref cb) = self.cb {
-            cb.borrow_mut().on_close();
+        if let Some(ref tx) = self.event_tx {
+            let _ = tx.send(TransportEvent::Closed);
         }
     }
 
@@ -221,12 +223,15 @@ fn test_success_call() {
 
     // before tick message should be in buffer and callbacks should not
     // complete
-    assert_eq!(fm.handler.buffer.borrow_mut().incoming.len(), 1);
     assert!(poll_for_output(&mut fut).is_none()); // not ticked
 
     // now tick
     fm.process_events();
-    assert_eq!(fm.handler.buffer.borrow_mut().incoming.len(), 0);
+    if let Err(TryRecvError::Empty) = fm.handler.incoming_events.try_recv() {
+        // ok
+    } else {
+        panic!("All messages from the buffer should be already processed");
+    }
     let result = poll_for_output(&mut fut);
     let result = result.expect("result should be present");
     let result = result.expect("result should be a success");
