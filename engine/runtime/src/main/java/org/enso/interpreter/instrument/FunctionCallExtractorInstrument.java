@@ -14,17 +14,17 @@ import java.util.function.Consumer;
 @TruffleInstrument.Registration(
     id = FunctionCallExtractorInstrument.INSTRUMENT_ID,
     services = FunctionCallExtractorInstrument.class)
-public class FunctionCallExtractorInstrument extends ExactPositionInstrument<FunctionCallInstrumentationNode.Data> {
+public class FunctionCallExtractorInstrument extends ExactPositionInstrument<FunctionCallInstrumentationNode.FunctionCall> {
   public static final String INSTRUMENT_ID = "function-call-extractor";
 
   @Override
   public ExactPositionListener createListener(
-      String funName, int sourceStart, int length, Consumer<FunctionCallInstrumentationNode.Data> callback) {
+      String funName, int sourceStart, int length, Consumer<FunctionCallInstrumentationNode.FunctionCall> callback) {
     return new ExactPositionListener(funName, sourceStart, length) {
       @Override
       public void handleReturnValue(Object result) {
-        if (result instanceof FunctionCallInstrumentationNode.Data) {
-          callback.accept((FunctionCallInstrumentationNode.Data) result);
+        if (result instanceof FunctionCallInstrumentationNode.FunctionCall) {
+          callback.accept((FunctionCallInstrumentationNode.FunctionCall) result);
         }
       }
     };

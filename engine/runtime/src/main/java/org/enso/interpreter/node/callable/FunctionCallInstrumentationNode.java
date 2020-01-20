@@ -2,7 +2,6 @@ package org.enso.interpreter.node.callable;
 
 import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.dsl.Cached;
-import com.oracle.truffle.api.dsl.CachedContext;
 import com.oracle.truffle.api.dsl.Specialization;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
@@ -10,15 +9,8 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.TruffleObject;
 import com.oracle.truffle.api.library.ExportLibrary;
 import com.oracle.truffle.api.library.ExportMessage;
-import com.oracle.truffle.api.nodes.ExplodeLoop;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-import org.enso.interpreter.Constants;
-import org.enso.interpreter.Language;
-import org.enso.interpreter.node.callable.dispatch.InvokeFunctionNode;
-import org.enso.interpreter.runtime.Context;
-import org.enso.interpreter.runtime.callable.CallerInfo;
-import org.enso.interpreter.runtime.callable.argument.CallArgumentInfo;
 import org.enso.interpreter.runtime.callable.function.Function;
 
 @GenerateWrapper
@@ -29,15 +21,13 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   }
 
   @ExportLibrary(InteropLibrary.class)
-  public static class Data implements TruffleObject {
+  public static class FunctionCall implements TruffleObject {
     private final Function function;
-    private final CallerInfo callerInfo;
     private final Object state;
     private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] arguments;
 
-    public Data(Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
+    public FunctionCall(Function function, Object state, Object[] arguments) {
       this.function = function;
-      this.callerInfo = callerInfo;
       this.state = state;
       this.arguments = arguments;
     }
@@ -51,17 +41,13 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
     static class Execute {
       @Specialization
       static Object callCached(
-          Data data, Object[] arguments, @Cached InteropApplicationNode interopApplicationNode) {
-        return interopApplicationNode.execute(data.function, data.state, data.arguments);
+          FunctionCall functionCall, Object[] arguments, @Cached InteropApplicationNode interopApplicationNode) {
+        return interopApplicationNode.execute(functionCall.function, functionCall.state, functionCall.arguments);
       }
     }
 
     public Function getFunction() {
       return function;
-    }
-
-    public CallerInfo getCallerInfo() {
-      return callerInfo;
     }
 
     public Object getState() {
@@ -76,10 +62,9 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
   public Object execute(
       VirtualFrame frame,
       Function function,
-      CallerInfo callerInfo,
       Object state,
       Object[] arguments) {
-    return new Data(function, callerInfo, state, arguments);
+    return new FunctionCall(function, state, arguments);
   }
 
   @Override

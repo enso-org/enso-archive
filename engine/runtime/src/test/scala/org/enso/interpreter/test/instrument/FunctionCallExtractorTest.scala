@@ -1,7 +1,8 @@
 package org.enso.interpreter.test.instrument
 import java.util.function.Consumer
 
-import org.enso.interpreter.node.callable.{FunctionCallInstrumentationNode}
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.test.InterpreterTest
 
 class FunctionCallExtractorTest extends InterpreterTest {
@@ -29,7 +30,7 @@ class FunctionCallExtractorTest extends InterpreterTest {
     var result: List[(String, List[String])] = List()
 
     val instrument = getFunctionCallExtractorInstrument
-    val listener: Consumer[FunctionCallInstrumentationNode.Data] = { x =>
+    val listener: Consumer[FunctionCall] = { x =>
       result :+= (
         (
           x.getFunction.getCallTarget.getRootNode.getName,

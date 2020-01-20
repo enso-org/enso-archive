@@ -76,7 +76,6 @@ public abstract class InvokeFunctionNode extends BaseNode {
     functionCallInstrumentationNode.execute(
         callerFrame,
         function,
-        callerInfo,
         mappedArguments.getState(),
         mappedArguments.getSortedArguments());
     return curryNode.execute(

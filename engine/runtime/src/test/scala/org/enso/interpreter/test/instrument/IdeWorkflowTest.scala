@@ -1,11 +1,12 @@
 package org.enso.interpreter.test.instrument
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode
+import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.test.InterpreterTest
 import org.graalvm.polyglot.Value
 
 class IdeWorkflowTest extends InterpreterTest {
 
-  def executeCallData(callData: FunctionCallInstrumentationNode.Data): Value = {
+  def executeCallData(callData: FunctionCall): Value = {
     ctx.asValue(callData).execute()
   }
 
@@ -42,11 +43,11 @@ class IdeWorkflowTest extends InterpreterTest {
     getValueExtractorInstrument.bindTo("Test.main", 200, 10, { b =>
       mainValues += "b" -> b
     })
-    var bar0FunctionCall: Option[FunctionCallInstrumentationNode.Data] = None
+    var bar0FunctionCall: Option[FunctionCall] = None
     getFunctionCallExtractorInstrument.bindTo("Test.main", 163, 12, { a =>
       bar0FunctionCall = Some(a)
     })
-    var fooFunctionCall: Option[FunctionCallInstrumentationNode.Data] = None
+    var fooFunctionCall: Option[FunctionCall] = None
     getFunctionCallExtractorInstrument.bindTo("Test.main", 200, 10, { b =>
       fooFunctionCall = Some(b)
     })
@@ -63,7 +64,7 @@ class IdeWorkflowTest extends InterpreterTest {
       bar0Values += "rec" -> rec
     })
 
-    var bar1FunctionCall: Option[FunctionCallInstrumentationNode.Data] = None
+    var bar1FunctionCall: Option[FunctionCall] = None
     getFunctionCallExtractorInstrument.bindTo("Test.bar", 120, 10, { rec =>
       bar1FunctionCall = Some(rec)
     })

@@ -1,13 +1,16 @@
 package org.enso.interpreter.instrument;
 
+import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.RootCallTarget;
+import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.frame.FrameInstance;
+import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.EventContext;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
-
-import java.util.function.Consumer;
 
 public abstract class ExactPositionListener implements ExecutionEventListener {
   private EventBinding<ExactPositionListener> binding;
@@ -23,6 +26,31 @@ public abstract class ExactPositionListener implements ExecutionEventListener {
 
   public void setBinding(EventBinding<ExactPositionListener> binding) {
     this.binding = binding;
+  }
+
+  private boolean isTopFrame() {
+    Object result =
+        Truffle.getRuntime()
+            .iterateFrames(
+                new FrameInstanceVisitor<Object>() {
+                  boolean seenFirst = false;
+
+                  @Override
+                  public Object visitFrame(FrameInstance frameInstance) {
+                    CallTarget ct = frameInstance.getCallTarget();
+                    if (ct instanceof RootCallTarget
+                        && !funName.equals(((RootCallTarget) ct).getRootNode().getName())) {
+                      return null;
+                    }
+                    if (seenFirst) {
+                      return new Object();
+                    } else {
+                      seenFirst = true;
+                      return null;
+                    }
+                  }
+                });
+    return result == null;
   }
 
   public abstract void handleReturnValue(Object result);
@@ -67,7 +95,7 @@ public abstract class ExactPositionListener implements ExecutionEventListener {
    */
   @Override
   public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {
-    if (!InstrumentUtils.isTopFrame(funName)) {
+    if (!isTopFrame()) {
       return;
     }
     Node node = context.getInstrumentedNode();
