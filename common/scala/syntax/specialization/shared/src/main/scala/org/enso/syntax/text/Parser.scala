@@ -423,6 +423,8 @@ object Main extends scala.App {
       |type Maybe a
       |    ## test attached to Just
       |    type Just val:a
+      |    ##DEPRECATED
+      |      foo bar baz
       |    type Nothing
       |    
       |    ## The pow function calculates power of integers.
@@ -466,7 +468,7 @@ object Main extends scala.App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inC))
+  val mod = parser.run(new Reader(inp))
 
   println(Debug.pretty(mod.toString))
 

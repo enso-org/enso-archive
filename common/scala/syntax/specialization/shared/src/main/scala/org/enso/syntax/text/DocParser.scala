@@ -372,6 +372,7 @@ object DocParserHTMLGenerator {
       case Some(b) =>
         val astBodyCls = HTML.`class` := "ASTData"
         val astBody    = Seq(HTML.div(astBodyCls)(b))
+        // Case when producing main page
         HTML.div(docClass)(
           doc.tags.html,
           astName,
@@ -379,10 +380,11 @@ object DocParserHTMLGenerator {
           astBody
         )
       case None =>
+        // Case when listing constructors/methods | Name | Synopsis | Tags |
         HTML.div(docClass)(
-          doc.tags.html,
           astName,
-          doc.htmlWoTags
+          doc.htmlWoTags,
+          doc.tags.html
         )
     }
   }
