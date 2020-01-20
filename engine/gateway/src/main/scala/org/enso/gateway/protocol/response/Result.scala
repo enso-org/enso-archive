@@ -21,6 +21,7 @@ object Result {
     case number: Number                     => number.asJson
     case boolean: Bool                      => boolean.asJson
     case initializeResult: InitializeResult => initializeResult.asJson
+    case shutdownResult: ShutdownResult     => shutdownResult.asJson
   }
 
   /** A string result. */
