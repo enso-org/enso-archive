@@ -3,7 +3,7 @@ package org.enso.graph
 import org.enso.graph.{Graph => PrimGraph}
 import org.scalatest.{FlatSpec, Matchers}
 import shapeless.nat._
-import shapeless.{::, HList, HNil, Poly1}
+import shapeless.{::, HNil}
 
 import scala.collection.mutable
 
@@ -17,21 +17,17 @@ class GraphTestRaw extends FlatSpec with Matchers {
 
     case class Graph() extends PrimGraph
 
-    implicit def opaqueData = new PrimGraph.OpaqueData.List[Graph] {
-      type Out = String :: HNil
-    }
+    implicit def components[G <: PrimGraph] =
+      new PrimGraph.Component.List[Graph] {
+        type Out = Nodes :: Edges :: HNil
+      }
 
-    implicit def components = new PrimGraph.Component.List[Graph] {
-      type Out = Nodes :: Edges :: HNil
-    }
-
-    // TODO [AA] Use a type level map/filter to make this more robust
-    implicit def nodeFields =
+    implicit def nodeFields[G <: PrimGraph] =
       new PrimGraph.Component.Field.List[Graph, Nodes] {
         type Out = Node.Shape :: Node.ParentLink :: Node.Location :: HNil
       }
 
-    implicit def edgeFields =
+    implicit def edgeFields[G <: PrimGraph] =
       new PrimGraph.Component.Field.List[Graph, Edges] {
         type Out = Edge.Shape :: HNil
       }
@@ -72,15 +68,17 @@ class GraphTestRaw extends FlatSpec with Matchers {
       object Shape {
         implicit def sized = new Sized[Shape] { type Out = _3 }
 
-        sealed case class Null() extends Shape;
+        sealed case class Null() extends Shape
         object Null {
-          val any = PrimGraph.Component.VariantMatcher[Shape, Null](0)
+          val index = 0
+          val any   = PrimGraph.Component.VariantMatcher[Shape, Null](0)
 
           implicit def sized = new Sized[Null] { type Out = _0 }
         }
 
         sealed case class App() extends Shape
         object App {
+          val index          = 1
           val any            = PrimGraph.Component.VariantMatcher[Shape, App](1)
           implicit def sized = new Sized[App] { type Out = _2 }
 
@@ -90,7 +88,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
             implicit graph: PrimGraph.GraphData[G],
             ev: PrimGraph.HasComponentField[G, C, Shape]
           ): Option[(Edge[G], Edge[G])] =
-            any.unapply(arg).map(((t) => scala.Tuple2(t.fn, t.arg)))
+            any.unapply(arg).map(t => scala.Tuple2(t.fn, t.arg))
 
           implicit class AppInstance[G <: PrimGraph, C <: PrimGraph.Component](
             node: PrimGraph.Component.Refined[
@@ -142,13 +140,63 @@ class GraphTestRaw extends FlatSpec with Matchers {
               )
           }
         }
+
+        // A centre section
+        sealed case class Centre() extends Shape
+        object Centre {
+          val index          = 2
+          val any            = PrimGraph.Component.VariantMatcher[Shape, App](2)
+          implicit def sized = new Sized[Centre] { type Out = _1 }
+
+          def unapply[G <: PrimGraph, C <: PrimGraph.Component](
+            arg: PrimGraph.Component.Ref[G, C]
+          )(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape]
+          ): Option[scala.Tuple1[Edge[G]]] =
+            any.unapply(arg).map(t => scala.Tuple1(t.fn))
+
+          implicit class CentreInstance[
+            G <: PrimGraph,
+            C <: PrimGraph.Component
+          ](
+            node: PrimGraph.Component.Refined[
+              Shape,
+              Centre,
+              PrimGraph.Component.Ref[G, C]
+            ]
+          ) {
+            def fn(
+              implicit graph: PrimGraph.GraphData[G],
+              ev: PrimGraph.HasComponentField[G, C, Shape]
+            ): Edge[G] =
+              PrimGraph.Component.Ref(
+                graph.unsafeReadField[C, Shape](
+                  PrimGraph.Component.Refined.unwrap(node).ix,
+                  0
+                )
+              )
+
+            def fn_=(value: Edge[G])(
+              implicit graph: PrimGraph.GraphData[G],
+              ev: PrimGraph.HasComponentField[G, C, Shape]
+            ): Unit =
+              graph.unsafeWriteField[C, Shape](
+                PrimGraph.Component.Refined.unwrap(node).ix,
+                0,
+                value.ix
+              )
+          }
+        }
       }
 
       // TODO [AA] Can do this with fields
       // TODO [AA] Can generate named accessor for the base type
+      // TODO [AA] Will need to copy generic tparams around
       sealed case class ParentLink() extends PrimGraph.Component.Field
       object ParentLink {
-        implicit def sized = new Sized[ParentLink] { type Out = _1 }
+        implicit def sized[G <: PrimGraph] =
+          new Sized[ParentLink] { type Out = _1 }
 
         implicit class ParentLinkInstance[
           G <: PrimGraph,
@@ -242,7 +290,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
       };
 
       // TODO [AA] Variants should be able to support nested types.
-      // TODO [AA] How to macro this -> Opaque[T]
+      // TODO [AA] How to macro this -> Opaque[T, M], where M is the name of the map type
       sealed case class NameMap(str: mutable.Map[Int, String])
       sealed case class Name(str: String) extends PrimGraph.Component.Field;
       object Name {
@@ -282,6 +330,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
 
     object Edge {
 
+      // TODO [AA] Can I add tparams safely here?
       sealed case class Shape() extends PrimGraph.Component.Field;
       object Shape {
         implicit def sized = new Sized[Shape] { type Out = _2 }
@@ -352,15 +401,22 @@ class GraphTestRaw extends FlatSpec with Matchers {
   e1.source = n1
   e1.target = n2
 
-  n1.parent = PrimGraph.Component.Ref(1)
-  n2.parent = PrimGraph.Component.Ref(2)
-  n3.parent = PrimGraph.Component.Ref(3)
+  println(n1.parent)
+  n1.parent = e1
 
-  n1.line   = 10
-  n1.column = 5
+  println(n2.parent)
+  n2.parent = e1
 
-  n1.location = Node.Location(1, 2);
-  n1.name     = "foo"
+  // The size calculation can't match `ParentLink[G]` against `ParentLink[G]`
+  case class Foo[G <: PrimGraph]() extends PrimGraph.Component.Field
+
+  def foo[G <: PrimGraph, G1 <: PrimGraph]: Unit =
+    implicitly[Foo[G] =:= Foo[G1]]
+
+  println(n3.parent)
+  n3.parent = e1
+
+  n1.name = "foo"
 
   // This is just dirty and very unsafe way of changing `n1` to be App!
   graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](n1.ix, 0, 1)
@@ -368,6 +424,39 @@ class GraphTestRaw extends FlatSpec with Matchers {
   // ==========================================================================
   // === Tests ================================================================
   // ==========================================================================
+
+  "Nested variants" should "work without issue" in {
+    val nestedNode: Node[Graph] = graph.addNode()
+
+    // This changes the shape of `nestedNode` to be `Centre`
+    graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](
+      nestedNode.ix,
+      0,
+      GraphImpl.Node.Shape.Centre.index
+    )
+
+    // TODO [AA] Make this work
+  }
+
+  "Component fields" should "be able to be accessed by their types" in {
+    n1.line   = 10
+    n1.column = 5
+
+    n1.line shouldEqual 10
+    n1.column shouldEqual 5
+
+    n1.location = Node.Location(1, 2)
+
+    n1.line shouldEqual 1
+    n1.column shouldEqual 2
+  }
+
+  "Opdaque types" should "be accessed successfully" in {
+    val nameStr = "TestName"
+    n1.name = nameStr
+
+    n1.name shouldEqual nameStr
+  }
 
   "Matching on variants" should "work properly" in {
     val typeResult = n1 match {

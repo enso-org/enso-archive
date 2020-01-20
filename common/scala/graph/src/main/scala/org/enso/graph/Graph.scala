@@ -66,7 +66,7 @@ object HListSum {
 // === HListOfNatToVec ===
 // =======================
 
-/** Converts an [[HList]] of [[Nat]] to a vactor containing those same numbers
+/** Converts an [[HList]] of [[Nat]] to a vector containing those same numbers
   * as integers.
   *
   * @tparam L the [[HList]] to convert
@@ -314,7 +314,6 @@ object Graph {
 
   def apply[G <: Graph: GraphInfo](): GraphData[G] = new GraphData[G]()
 
-
   // ==================
   // === OpaqueData ===
   // ==================
@@ -393,6 +392,8 @@ object Graph {
       *
       * @tparam G the graph for which the components are defined.
       */
+    // TODO [AA] Use a type level map/filter to make this more robust. The props
+    //  should be checked at compile time even if a thing isn't used.
     trait List[G <: Graph] {
       type Out <: HList
     }
@@ -426,6 +427,8 @@ object Graph {
         * @tparam G the graph to which the component type [[C]] belongs
         * @tparam C the component type to which the fields in the list belong
         */
+      // TODO [AA] Use a type level map/filter to make this more robust. Props
+      //  should be checked at compile time even if a thing isn't used.
       trait List[G <: Graph, C <: Component] { type Out <: HList }
       object List {
         type Aux[G <: Graph, C <: Component, X] = List[G, C] { type Out = X }
@@ -543,27 +546,23 @@ object Graph {
   trait GraphInfo[G <: Graph] {
     val componentCount: Int
     val componentSizes: Vector[Int]
-    type OpaqueDataTypes <: HList
   }
   object GraphInfo {
     implicit def instance[
       G <: Graph,
       ComponentList <: HList,
       ComponentSizeList >: HList,
-      ComponentListLength <: Nat,
-      OpaqueDataList <: HList
+      ComponentListLength <: Nat
     ](
       implicit
       ev1: Component.List.Aux[G, ComponentList],
       ev2: hlist.Length.Aux[ComponentList, ComponentListLength],
       componentSizesEv: ComponentListToSizes[G, ComponentList],
-      len: nat.ToInt[ComponentListLength],
-      ev3: OpaqueData.List.Aux[G, OpaqueDataList]
+      len: nat.ToInt[ComponentListLength]
     ): GraphInfo[G] = new GraphInfo[G] {
-      val componentCount = len()
-      val componentSizes = componentSizesEv.sizes
-      override type OpaqueDataTypes = OpaqueDataList
-    }
+        val componentCount = len()
+        val componentSizes = componentSizesEv.sizes
+      }
   }
 
   // === HasComponent ===

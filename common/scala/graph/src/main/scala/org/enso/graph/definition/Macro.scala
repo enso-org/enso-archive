@@ -38,7 +38,10 @@ object Macro {
     *         implicit graph: Graph.GraphData[G],
     *         ev: Graph.HasComponentField[G, C, ParentLink]
     *       ): Edge[G] = {
-    *         Graph.Component.Ref(graph.unsafeReadField[C, ParentLink](node.ix, 0))
+    *         Graph.Component.Ref(graph.unsafeReadField[C, ParentLink](
+    *           node.ix,
+    *           0
+    *         ))
     *       }
     *
     *       def parent_=(value: Edge[G])(
@@ -1049,4 +1052,7 @@ object Macro {
       }
     }
   }
+
+  // TODO [AA] An opaque for syntax-only macro
+  class Opaque[T, M]()
 }
