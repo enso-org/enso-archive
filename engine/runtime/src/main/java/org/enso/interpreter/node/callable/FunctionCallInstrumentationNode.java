@@ -49,35 +49,10 @@ public class FunctionCallInstrumentationNode extends Node implements Instrumenta
 
     @ExportMessage
     static class Execute {
-      @ExplodeLoop
-      protected static InvokeFunctionNode buildSorter(int length) {
-        CallArgumentInfo[] args = new CallArgumentInfo[length];
-        for (int i = 0; i < length; i++) {
-          args[i] = new CallArgumentInfo();
-        }
-        return InvokeFunctionNode.build(
-            args,
-            InvokeCallableNode.DefaultsExecutionMode.EXECUTE,
-            InvokeCallableNode.ArgumentsExecutionMode.PRE_EXECUTED);
-      }
-
-      @Specialization(
-          guards = "arguments.length == cachedArgsLength",
-          limit = Constants.CacheSizes.FUNCTION_INTEROP_LIBRARY)
-      protected static Object callCached(
-          Data data,
-          Object[] arguments,
-          @Cached(value = "data.getArguments().length") int cachedArgsLength,
-          @Cached(value = "buildSorter(cachedArgsLength)") InvokeFunctionNode sorterNode) {
-        return sorterNode
-            .execute(data.getFunction(), null, data.state, data.arguments)
-            .getValue();
-      }
-
-      @Specialization(replaces = "callCached")
-      protected static Object callUncached(Data data, Object[] arguments) {
-        return callCached(
-            data, arguments, data.arguments.length, buildSorter(data.arguments.length));
+      @Specialization
+      static Object callCached(
+          Data data, Object[] arguments, @Cached InteropApplicationNode interopApplicationNode) {
+        return interopApplicationNode.execute(data.function, data.state, data.arguments);
       }
     }
 

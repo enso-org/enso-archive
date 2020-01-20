@@ -64,7 +64,7 @@ class IdeWorkflowTest extends InterpreterTest {
     })
 
     var bar1FunctionCall: Option[FunctionCallInstrumentationNode.Data] = None
-    getFunctionCallExtractorInstrument.bindTo("Test.main", 120, 10, { rec =>
+    getFunctionCallExtractorInstrument.bindTo("Test.bar", 120, 10, { rec =>
       bar1FunctionCall = Some(rec)
     })
 
