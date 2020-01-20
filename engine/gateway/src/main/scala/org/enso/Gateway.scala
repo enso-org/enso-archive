@@ -2,6 +2,7 @@ package org.enso
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.typesafe.config.ConfigFactory
+import org.enso.gateway.protocol.response.Result.InitializeResult
 import org.enso.gateway.protocol.response.Result.{
   InitializeResult,
   ShutdownResult
@@ -12,11 +13,10 @@ import org.enso.gateway.protocol.response.result.{
   ServerInfo
 }
 
-/**
-  * The gateway component talks directly to clients using protocol messages,
+/** The gateway component talks directly to clients using protocol messages,
   * and then handles these messages by talking to the language server.
   *
-  * @param languageServer `ActorRef` of [[LanguageServer]] actor
+  * @param languageServer [[ActorRef]] of [[LanguageServer]] actor.
   */
 class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
@@ -95,7 +95,6 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     ServerInfo(name, Some(version))
   }
 }
-
 object Gateway {
   def props(languageServer: ActorRef): Props =
     Props(new Gateway(languageServer))

@@ -14,24 +14,21 @@ import org.enso.gateway.protocol.request.Params.{
   WillSaveTextDocumentWaitUntilParams
 }
 
-/**
-  * Helper object for decoding [[Notification]].
-  */
+/** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {
 
-  /**
+  /** Make Circe decoder for notifications and notification fields of requests.
+    *
     * @tparam P Subtype of [[Params]] for a notification with specific method.
-    * @return Circe decoder for notifications and notification fields of requests.
+    * @return the Circe decoder.
     */
   def instance[P <: Params]: Decoder[Notification[P]] =
     cursor => {
       val jsonrpcCursor = cursor.downField(Notification.jsonrpcField)
       val methodCursor  = cursor.downField(Notification.methodField)
       val paramsCursor  = cursor.downField(Notification.paramsField)
-      // Field `jsonrpc` must be correct
       val jsonrpcResult = validateJsonrpc(jsonrpcCursor)
       val methodResult  = Decoder[String].tryDecode(methodCursor)
-      // Discriminator is field `method`
       val paramsResult = methodResult
         .flatMap(selectParamsDecoder(_).tryDecode(paramsCursor))
       for {
@@ -41,15 +38,10 @@ object NotificationDecoder {
       } yield Notification[P](jsonrpc, method, params)
     }
 
-  /**
-    * @param method Name of method. It is the discriminator
-    * @return Circe decoder for method params
-    */
   private def selectParamsDecoder[P <: Params](
     method: String
   ): Decoder[Option[P]] =
     (method match {
-      // All requests
       case Requests.Initialize.method =>
         Decoder[Option[InitializeParams]]
       case Requests.Shutdown.method =>
@@ -59,7 +51,6 @@ object NotificationDecoder {
       case Requests.WillSaveTextDocumentWaitUntil.method =>
         Decoder[Option[WillSaveTextDocumentWaitUntilParams]]
 
-      // All notifications
       case Notifications.Initialized.method | Notifications.Exit.method =>
         Decoder[Option[VoidParams]]
       case Notifications.DidOpenTextDocument.method =>
@@ -100,5 +91,4 @@ object NotificationDecoder {
 
   private def wrongJsonRpcVersionMessage(version: String) =
     s"jsonrpc must be $jsonRpcVersion but found $version"
-
 }

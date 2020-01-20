@@ -26,9 +26,7 @@ import org.enso.gateway.protocol.request.clientcapabilities.textdocument.{
   TypeDefinition
 }
 
-/**
-  * Define capabilities for text document features the client supports
-  */
+/** Define capabilities for text document features the client supports. */
 case class TextDocument(
   synchronization: Option[Sync]                  = None,
   completion: Option[Completion]                 = None,
@@ -52,7 +50,6 @@ case class TextDocument(
   publishDiagnostics: Option[PublishDiagnostics] = None,
   foldingRange: Option[FoldingRange]             = None
 )
-
 object TextDocument {
   implicit val clientCapabilitiesTextDocumentDecoder: Decoder[TextDocument] =
     deriveDecoder

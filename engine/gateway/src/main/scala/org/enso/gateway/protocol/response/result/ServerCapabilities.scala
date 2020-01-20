@@ -28,8 +28,8 @@ import org.enso.gateway.protocol.response.result.servercapabilities.{
   Workspace
 }
 
-/**
-  * [[org.enso.gateway.protocol.response.Result.InitializeResult]] server capabilities
+/** [[org.enso.gateway.protocol.response.Result.InitializeResult]] server
+  * capabilities.
   *
   * @param textDocumentSync                 @see [[TextDocumentSync]]
   * @param completionProvider               @see [[CompletionOptions]]
@@ -47,12 +47,15 @@ import org.enso.gateway.protocol.response.result.servercapabilities.{
   * @param documentLinkProvider             @see [[DocumentLinkProvider]]
   * @param colorProvider                    @see [[ColorProvider]]
   * @param documentFormattingProvider       @see [[DocumentFormattingProvider]]
-  * @param documentRangeFormattingProvider  @see [[DocumentRangeFormattingProvider]]
-  * @param documentOnTypeFormattingProvider @see [[DocumentOnTypeFormattingProvider]]
+  * @param documentRangeFormattingProvider  @see
+  *                                         [[DocumentRangeFormattingProvider]]
+  * @param documentOnTypeFormattingProvider @see
+  *                                         [[DocumentOnTypeFormattingProvider]]
   * @param renameProvider                   @see [[RenameProvider]]
   * @param foldingRangeProvider             @see [[FoldingRangeProvider]]
   * @param executeCommandProvider           @see [[ExecuteCommandOptions]]
-  * @param workspaceSymbolProvider          The server provides workspace symbol support
+  * @param workspaceSymbolProvider          The server provides workspace symbol
+  *                                         support.
   * @param workspace                        @see [[Workspace]]
   * @param experimental                     @see [[Experimental]]
   */
@@ -84,7 +87,6 @@ case class ServerCapabilities(
   workspace: Option[Workspace]                          = None,
   experimental: Option[Experimental]                    = None
 )
-
 object ServerCapabilities {
   implicit val serverCapabilitiesEncoder: Encoder[ServerCapabilities] =
     deriveEncoder

@@ -10,11 +10,11 @@ import org.enso.gateway.protocol.request.clientcapabilities.workspace.{
   WorkspaceSymbol
 }
 
-/**
-  * Define capabilities for workspace features the client supports
+/** Define capabilities for workspace features the client supports.
   *
-  * @param applyEdit              The client supports applying batch edits to the workspace
-  *                               by supporting the request 'workspace/applyEdit'
+  * @param applyEdit              The client supports applying batch edits to
+  *                               the workspace by supporting the request
+  *                               'workspace/applyEdit'.
   * @param workspaceEdit          @see [[Edit]]
   * @param didChangeConfiguration @see [[DidChangeConfiguration]]
   * @param didChangeWatchedFiles  @see [[DidChangeWatchedFiles]]
@@ -29,7 +29,6 @@ case class Workspace(
   symbol: Option[WorkspaceSymbol]                        = None,
   executeCommand: Option[ExecuteCommand]                 = None
 )
-
 object Workspace {
   implicit val clientCapabilitiesWorkspaceDecoder: Decoder[Workspace] =
     deriveDecoder

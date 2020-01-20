@@ -4,8 +4,7 @@ import io.circe.Json
 import io.circe.literal._
 
 trait TestJson {
-  def request: Json
-
+  def request:          Json
   def expectedResponse: Json
 }
 
@@ -82,5 +81,4 @@ object TestJson {
            }
          }"""
   }
-
 }

@@ -9,13 +9,12 @@ import org.enso.gateway.protocol.response.result.{
 }
 import io.circe.syntax._
 
-/** LSP Spec:
-  * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
+/** [[org.enso.gateway.protocol.Response]] result.
   *
-  * [[org.enso.gateway.protocol.Response]] result
+  * LSP Spec:
+  * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
   */
 sealed trait Result
-
 object Result {
   implicit val resultEncoder: Encoder[Result] = Encoder.instance {
     case text: Text                         => text.asJson
@@ -24,56 +23,40 @@ object Result {
     case initializeResult: InitializeResult => initializeResult.asJson
   }
 
-  /**
-    * A string result
-    */
+  /** A string result. */
   case class Text(value: String) extends Result
-
   object Text {
     implicit val resultStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
   }
 
-  /**
-    * A number result
-    */
+  /** A number result. */
   case class Number(value: Int) extends Result
-
   object Number {
     implicit val resultNumberEncoder: Encoder[Number] = deriveUnwrappedEncoder
   }
 
-  /**
-    * A boolean result
-    */
+  /** A boolean result. */
   case class Bool(value: scala.Boolean) extends Result
-
   object Bool {
     implicit val resultBooleanEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
   }
 
-  /**
-    * [[org.enso.gateway.protocol.Requests.Initialize]] result
-    */
+  /** [[org.enso.gateway.protocol.Requests.Initialize]] result. */
   case class InitializeResult(
     capabilities: ServerCapabilities,
     serverInfo: Option[ServerInfo] = None
   ) extends Result
-
   object InitializeResult {
     implicit val initializeResultEncoder: Encoder[InitializeResult] =
       deriveEncoder
   }
 
-  /**
-    * [[org.enso.gateway.protocol.Requests.Shutdown]] result
-    */
+  /** [[org.enso.gateway.protocol.Requests.Shutdown]] result. */
   case class ShutdownResult(
     ) extends Result
-
   object ShutdownResult {
     implicit val shutdownResultEncoder: Encoder[ShutdownResult] =
       deriveEncoder
   }
-
 }
