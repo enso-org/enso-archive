@@ -424,6 +424,9 @@ object Main extends scala.App {
       |    ## test attached to Just
       |    type Just val:a
       |    type Nothing
+      |    
+      |    ## The pow function calculates power of integers.
+      |    pow x y = x ** y
       |""".stripMargin
   val inC =
     """

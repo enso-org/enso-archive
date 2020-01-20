@@ -297,6 +297,8 @@ object DocParserHTMLGenerator {
           generateHTMLForEveryDocumented(d, path, cssFileName)
           val file = onHTMLRendering(d, cssFileName)
           println("\nFINISHED FILE: " + file.name)
+          // FIXME: For now prints out code. When decided how to save HTML's
+          //        then it should be changed
           println(file.code)
           println()
         case _ =>
@@ -448,26 +450,10 @@ object DocParserHTMLGenerator {
     val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
     val allLines           = firstLine :: body.lines
     val generatedCode      = renderHTMLOnLine(allLines)
-    val typesList =
-      generatedCode.map(
-        el =>
-          if (el.toString().contains("DefTitle")) {
-            el
-          } else {
-            HTML.div()
-          }
-      )
-    val infixList =
-      generatedCode.map(
-        el =>
-          if (el.toString().contains("Infix")) {
-            el
-          } else {
-            HTML.div()
-          }
-      )
-    val head    = createDefTitle(name, args)
-    val clsBody = HTML.`class` := "DefBody"
+    val typesList          = generatedCode.filter(_.toString().contains("DefTitle"))
+    val infixList          = generatedCode.filter(_.toString().contains("Infix"))
+    val head               = createDefTitle(name, args)
+    val clsBody            = HTML.`class` := "DefBody"
     val lines =
       HTML.div(clsBody)(constructorsHeader, typesList, methodsHeader, infixList)
     val cls = HTML.`class` := "Def"
