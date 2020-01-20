@@ -11,7 +11,6 @@ use crate::messages::Id;
 use crate::messages::IncomingMessage;
 use crate::messages::Message;
 use crate::transport::Transport;
-//use crate::transport::TransportCallbacks;
 use crate::transport::TransportEvent;
 
 use futures::FutureExt;
@@ -111,8 +110,8 @@ impl SharedBuffer {
     /// status of `closed` flag is not changed.
     pub fn take(&mut self) -> SharedBuffer {
         let incoming = std::mem::replace(&mut self.incoming, Vec::new());
-        let closed = self.closed;
-        SharedBuffer { incoming, closed }
+        let closed   = self.closed;
+        SharedBuffer {incoming,closed}
     }
 }
 
@@ -229,7 +228,10 @@ impl Handler {
         self.ongoing_calls.insert(message.payload.id, sender);
 
         let serialized_message = serde_json::to_string(&message).unwrap();
-        self.transport.send_text(serialized_message);
+        if self.transport.send_text(serialized_message).is_err() {
+            // If message cannot be send, future ret must be cancelled.
+            self.ongoing_calls.remove(&id);
+        }
         ret
     }
 
