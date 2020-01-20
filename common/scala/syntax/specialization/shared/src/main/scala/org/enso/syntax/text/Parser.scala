@@ -427,7 +427,13 @@ object Main extends scala.App {
       |""".stripMargin
   val inC =
     """
-      |## Optional values.
+      |## DEPRECATED
+      |  REMOVED - replaced by Foo Bar
+      |  ADDED
+      |  MODIFIED
+      |  UPCOMING
+      |  ALAMAKOTA a kot ma Ale
+      |  Optional values.
       |
       |   Type `Option` represents an optional value: every `Option` is either `Some`
       |   and contains a value, or `None`, and does not. Option types are very common
