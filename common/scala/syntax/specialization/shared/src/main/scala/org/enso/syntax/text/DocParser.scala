@@ -57,8 +57,8 @@ object DocParser {
   /**
     * Doc Parser running methods, as described above, in class [[DocParser]]
     */
-  def runMatched(input: String): Doc         = new DocParser().runMatched(input)
-  def run(input: String):        Result[Doc] = new DocParser().run(input)
+  def runMatched(input: String): Doc  = new DocParser().runMatched(input)
+  def run(input: String): Result[Doc] = new DocParser().run(input)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -370,9 +370,18 @@ object DocParserHTMLGenerator {
       case Some(b) =>
         val astBodyCls = HTML.`class` := "ASTData"
         val astBody    = Seq(HTML.div(astBodyCls)(b))
-        HTML.div(docClass)(astName, doc.html, astBody)
+        HTML.div(docClass)(
+          doc.tags.html,
+          astName,
+          doc.htmlWoTags,
+          astBody
+        )
       case None =>
-        HTML.div(docClass)(astName, doc.html)
+        HTML.div(docClass)(
+          doc.tags.html,
+          astName,
+          doc.htmlWoTags
+        )
     }
   }
 
