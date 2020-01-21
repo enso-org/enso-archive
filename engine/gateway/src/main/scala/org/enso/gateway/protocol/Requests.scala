@@ -2,10 +2,8 @@ package org.enso.gateway.protocol
 
 import org.enso.gateway.protocol.request.Params
 
-/** Parent trait for requests extractor objects. */
-sealed trait Requests {
-  val method: String
-
+/** Parent trait for request extractor objects. */
+sealed abstract class RequestExtractor(val method: String) {
   def unapply[T <: Params](
     request: Request[T]
   ): Option[(Id, Option[T])] =
@@ -24,9 +22,7 @@ object Requests {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialize
     */
-  object Initialize extends Requests {
-    override val method = "initialize"
-  }
+  object Initialize extends RequestExtractor("initialize")
 
   /** The request is sent from the client to the server. It asks the server to
     * shut down, but to not exit (otherwise the response might not be
@@ -35,9 +31,7 @@ object Requests {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#shutdown
     */
-  object Shutdown extends Requests {
-    override val method = "shutdown"
-  }
+  object Shutdown extends RequestExtractor("shutdown")
 
   /** The request sent from the server to the client to modify resource on the
     * client side.
@@ -45,9 +39,7 @@ object Requests {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#workspace_applyEdit
     */
-  object ApplyWorkspaceEdit extends Requests {
-    override val method = "workspace/applyEdit"
-  }
+  object ApplyWorkspaceEdit extends RequestExtractor("workspace/applyEdit")
 
   /** The request sent from the client to the server before the document is
     * actually saved.
@@ -55,7 +47,6 @@ object Requests {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_willSaveWaitUntil
     */
-  object WillSaveTextDocumentWaitUntil extends Requests {
-    override val method = "textDocument/willSaveWaitUntil"
-  }
+  object WillSaveTextDocumentWaitUntil
+      extends RequestExtractor("textDocument/willSaveWaitUntil")
 }

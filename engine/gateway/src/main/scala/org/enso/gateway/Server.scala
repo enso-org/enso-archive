@@ -4,9 +4,19 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.BinaryMessage
-import akka.http.scaladsl.model.ws.Message
-import akka.http.scaladsl.model.ws.TextMessage
+import akka.http.scaladsl.model.{
+  HttpMethods,
+  HttpRequest,
+  HttpResponse,
+  StatusCodes,
+  Uri
+}
+import akka.http.scaladsl.model.ws.{
+  BinaryMessage,
+  Message,
+  TextMessage,
+  UpgradeToWebSocket
+}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
@@ -16,6 +26,7 @@ import akka.stream.scaladsl.Source
 import akka.util.Timeout
 import com.typesafe.config.{Config, ConfigFactory}
 
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
@@ -88,7 +99,7 @@ class Server(jsonRpcController: JsonRpcController)(
     * @see [[JsonRpcController.getTextOutput]].
     *      Incoming binary messages are ignored.
     */
-  val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
+  private val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
     Flow[Message]
       .flatMapConcat {
         case tm: TextMessage =>
@@ -110,6 +121,28 @@ class Server(jsonRpcController: JsonRpcController)(
           Source.empty
       }
 
+  //  private val requestHandler: HttpRequest => HttpResponse = {
+  //    case req @ HttpRequest(
+  //          HttpMethods.GET,
+  //          Uri.Path("/"),
+  //          //          Uri.Path(s"/${Server.Config.route}"),
+  //          _,
+  //          _,
+  //          _
+  //        ) =>
+  //      req.header[UpgradeToWebSocket] match {
+  //        case Some(upgrade) => upgrade.handleMessages(handlerFlow)
+  //        case None =>
+  //          HttpResponse(
+  //            StatusCodes.BadRequest,
+  //            entity = "Not a valid websocket request!"
+  //          )
+  //      }
+  //    case r: HttpRequest =>
+  //      r.discardEntityBytes() // important to drain incoming HTTP Entity stream
+  //      HttpResponse(StatusCodes.NotFound, entity = "Unknown resource!")
+  //  }
+
   /** Server behavior upon receiving HTTP request.
     *
     * As server implements websocket-based protocol, this implementation accepts
@@ -117,12 +150,24 @@ class Server(jsonRpcController: JsonRpcController)(
     *
     * The request's URI is not checked.
     */
-  val route: Route =
+  private val route: Route =
     path(Server.Config.route) {
       get {
         handleWebSocketMessages(handlerFlow)
       }
     }
+
+  private val bindingFuture: Future[Http.ServerBinding] =
+    //    Http().bindAndHandleSync(
+    //      requestHandler,
+    //      Server.Config.addressString,
+    //      Server.Config.port
+    //    )
+    Http().bindAndHandle(
+      handler   = route,
+      interface = Server.Config.host,
+      port      = Server.Config.port
+    )
 
   /** Starts a HTTP server listening at the given endpoint.
     *
@@ -130,13 +175,6 @@ class Server(jsonRpcController: JsonRpcController)(
     * start, function will exit the process with a non-zero code.
     */
   def run(): Unit = {
-    val bindingFuture =
-      Http().bindAndHandle(
-        handler   = route,
-        interface = Server.Config.host,
-        port      = Server.Config.port
-      )
-
     bindingFuture
       .onComplete {
         case Success(_) =>
@@ -153,5 +191,11 @@ class Server(jsonRpcController: JsonRpcController)(
           system.terminate()
           System.exit(1)
       }
+  }
+
+  def shutdown(): Future[Http.HttpTerminated] = {
+    Await
+      .result(bindingFuture, 10.seconds)
+      .terminate(hardDeadline = 3.seconds)
   }
 }

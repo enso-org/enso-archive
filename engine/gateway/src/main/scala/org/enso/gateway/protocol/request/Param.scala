@@ -45,6 +45,7 @@ object Param {
 
   /** An array element. */
   case class Array(value: Seq[Option[Param]]) extends Param
+
   object Array {
     implicit val paramArrayDecoder: Decoder[Array] =
       deriveUnwrappedDecoder
@@ -54,7 +55,7 @@ object Param {
     *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
-  case class InitializationOptions(value: Text) extends Param
+  case class InitializationOptions(value: Text) extends Param // TODO
   object InitializationOptions {
     implicit val initializationOptionsDecoder: Decoder[InitializationOptions] =
       deriveUnwrappedDecoder
@@ -92,18 +93,13 @@ object Param {
     *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
-  sealed trait WorkspaceFolder extends Param
+  case class WorkspaceFolder(
+    uri: DocumentUri,
+    name: String
+  ) extends Param
   object WorkspaceFolder {
     implicit val workspaceFolderDecoder: Decoder[WorkspaceFolder] =
-      List[Decoder[WorkspaceFolder]](
-        Decoder[WorkspaceFolderImpl].widen
-      ).reduceLeft(_ or _)
-
-    case class WorkspaceFolderImpl() extends WorkspaceFolder
-    object WorkspaceFolderImpl {
-      implicit val workspaceFolderImplDecoder: Decoder[WorkspaceFolderImpl] =
-        deriveDecoder
-    }
+      deriveDecoder
   }
 
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
@@ -132,8 +128,39 @@ object Param {
     version: Int,
     text: String
   ) extends Param
+
   object TextDocumentItem {
     implicit val textDocumentItemDecoder: Decoder[TextDocumentItem] =
       deriveDecoder
   }
+
+  sealed abstract class TextDocumentSyncKind(value: Int) extends Param
+
+  object TextDocumentSyncKind {
+
+    object NoneKind extends TextDocumentSyncKind(0)
+
+    object Full extends TextDocumentSyncKind(1)
+
+    object Incremental extends TextDocumentSyncKind(2)
+
+    implicit val textDocumentSyncKindDecoder: Decoder[TextDocumentSyncKind] =
+      Decoder.decodeInt.emap {
+        case 0 => Right(NoneKind)
+        case 1 => Right(Full)
+        case 2 => Right(Incremental)
+        case _ => Left("Invalid TextDocumentSyncKind")
+      }
+  }
+
+  case class WorkspaceEdit(
+    changes: Option[Map[DocumentUri, Seq[TextEdit]]],
+    documentChanges: Option[DocumentChanges]
+  ) extends Param
+
+  object WorkspaceEdit {
+    implicit val workspaceEditDecoder: Decoder[WorkspaceEdit] =
+      deriveDecoder
+  }
+
 }

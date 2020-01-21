@@ -19,7 +19,8 @@ import org.scalatest.{
 }
 import io.circe.parser.parse
 
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 
 class GatewaySpec
     extends AsyncFlatSpec
@@ -32,22 +33,26 @@ class GatewaySpec
 
   import system.dispatcher
 
-  override def beforeAll: Unit = {
-    val languageServerActorName = "languageServer"
-    val gatewayActorName        = "gateway"
-    val languageServer: ActorRef =
-      system.actorOf(LanguageServer.props(null), languageServerActorName)
-    val gateway: ActorRef =
-      system.actorOf(Gateway.props(languageServer), gatewayActorName)
+  private val languageServerActorName = "languageServer"
+  private val gatewayActorName        = "gateway"
+  private val languageServer: ActorRef =
+    system.actorOf(LanguageServer.props(null), languageServerActorName)
+  private val gateway: ActorRef =
+    system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
-    val jsonRpcController = new JsonRpcController(gateway)
-    val server            = new Server(jsonRpcController)
+  private val jsonRpcController = new JsonRpcController(gateway)
+  private val server            = new Server(jsonRpcController)
+
+  override def beforeAll: Unit = {
     server.run()
   }
 
   override def afterAll: Unit = {
-    system.terminate()
-    ()
+    val fut = for {
+      _ <- server.shutdown()
+      _ <- system.terminate()
+    } yield ()
+    Await.result(fut, 5.seconds)
   }
 
   "Gateway" should "reply with a proper response to request with initialize method" in {
@@ -63,12 +68,12 @@ class GatewaySpec
   }
 
   private def checkRequestResponse(
-    testJsons: TestJson
+    testJson: TestJson
   ): Future[Assertion] = {
     Given("server replies with responses to requests")
     val messageToMessageFlow: Flow[Message, Message, Future[Message]] =
       createFlow(
-        TextMessage(testJsons.request.toString)
+        TextMessage(testJson.request.toString)
       )
 
     When("server receives request")
@@ -82,7 +87,7 @@ class GatewaySpec
     messageFuture.map {
       case message: TextMessage.Strict =>
         val actualResponse = parse(message.text).getOrElse(Json.Null)
-        assert(actualResponse === testJsons.expectedResponse)
+        assert(actualResponse === testJson.expectedResponse)
       case _ => assert(false, "binary or streamed text message")
     }
   }

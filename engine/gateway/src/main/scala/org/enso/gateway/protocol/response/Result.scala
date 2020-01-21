@@ -1,6 +1,6 @@
 package org.enso.gateway.protocol.response
 
-import io.circe.Encoder
+import io.circe.{Encoder, Json}
 import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.protocol.response.result.{
@@ -17,11 +17,15 @@ import io.circe.syntax._
 sealed trait Result
 object Result {
   implicit val resultEncoder: Encoder[Result] = Encoder.instance {
-    case text: Text                         => text.asJson
-    case number: Number                     => number.asJson
-    case boolean: Bool                      => boolean.asJson
-    case initializeResult: InitializeResult => initializeResult.asJson
-    case shutdownResult: ShutdownResult     => shutdownResult.asJson
+    case text: Text               => text.asJson
+    case number: Number           => number.asJson
+    case boolean: Bool            => boolean.asJson
+    case result: InitializeResult => result.asJson
+    case result: NullResult.type  => result.asJson
+    case result: ApplyWorkspaceEditResult =>
+      result.asJson
+    case result: WillSaveTextDocumentWaitUntilResult =>
+      result.asJson
   }
 
   /** A string result. */
@@ -48,16 +52,36 @@ object Result {
     capabilities: ServerCapabilities,
     serverInfo: Option[ServerInfo] = None
   ) extends Result
+
   object InitializeResult {
     implicit val initializeResultEncoder: Encoder[InitializeResult] =
       deriveEncoder
   }
 
   /** [[org.enso.gateway.protocol.Requests.Shutdown]] result. */
-  case class ShutdownResult(
-    ) extends Result
-  object ShutdownResult {
-    implicit val shutdownResultEncoder: Encoder[ShutdownResult] =
+  case object NullResult extends Result {
+    implicit val nullResultEncoder: Encoder[NullResult.type] = _ => Json.Null
+  }
+
+  case class ApplyWorkspaceEditResult(
+    applied: Boolean,
+    failureReason: Option[String] = None
+  ) extends Result
+
+  object ApplyWorkspaceEditResult {
+    implicit val applyWorkspaceEditResultEncoder
+      : Encoder[ApplyWorkspaceEditResult] =
       deriveEncoder
   }
+
+  // TODO
+  case class WillSaveTextDocumentWaitUntilResult(
+    ) extends Result
+
+  object WillSaveTextDocumentWaitUntilResult {
+    implicit val willSaveTextDocumentWaitUntilResultEncoder
+      : Encoder[WillSaveTextDocumentWaitUntilResult] =
+      deriveEncoder
+  }
+
 }

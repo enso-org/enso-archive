@@ -9,7 +9,9 @@ import org.enso.gateway.protocol.request.Param.{
   ClientInfo,
   InitializationOptions,
   TextDocumentItem,
+  TextDocumentSyncKind,
   Trace,
+  WorkspaceEdit,
   WorkspaceFolder
 }
 
@@ -40,7 +42,6 @@ object Params {
     trace: Option[Trace]                           = None,
     workspaceFolders: Option[Seq[WorkspaceFolder]] = None
   ) extends Params
-
   object InitializeParams {
     implicit val initializeParamsDecoder: Decoder[InitializeParams] =
       deriveDecoder
@@ -60,8 +61,11 @@ object Params {
       deriveDecoder
   }
 
-  /**  */
-  case class ApplyWorkspaceEditParams() extends Params
+  /** */
+  case class ApplyWorkspaceEditParams(
+    label: Option[String],
+    edit: WorkspaceEdit
+  ) extends Params
   object ApplyWorkspaceEditParams {
     implicit val applyWorkspaceEditParamsDecoder
       : Decoder[ApplyWorkspaceEditParams] =
@@ -76,8 +80,10 @@ object Params {
       deriveDecoder
   }
 
-  /**  */
-  case class DidChangeTextDocumentParams() extends Params
+  /** */
+  case class DidChangeTextDocumentParams(
+    syncKind: TextDocumentSyncKind
+  ) extends Params
   object DidChangeTextDocumentParams {
     implicit val didChangeTextDocumentParamsDecoder
       : Decoder[DidChangeTextDocumentParams] =

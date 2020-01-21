@@ -2,10 +2,11 @@ package org.enso
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.typesafe.config.ConfigFactory
-import org.enso.gateway.protocol.response.Result.InitializeResult
 import org.enso.gateway.protocol.response.Result.{
+  ApplyWorkspaceEditResult,
   InitializeResult,
-  ShutdownResult
+  NullResult,
+  WillSaveTextDocumentWaitUntilResult
 }
 import org.enso.gateway.protocol.{Id, Notifications, Requests, Response}
 import org.enso.gateway.protocol.response.result.{
@@ -23,10 +24,10 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     case Requests.Initialize(Id.Number(id), _) =>
       val msg = "Gateway: Initialize received"
       log.info(msg)
-      languageServer ! LanguageServer.Initialize(id, sender())
+      languageServer ! LanguageServer.Requests.Initialize(id, sender())
 
-    case LanguageServer.InitializeReceived(id, replyTo) =>
-      val msg = "Gateway: InitializeReceived received"
+    case LanguageServer.RequestReceived.Initialize(id, replyTo) =>
+      val msg = "Gateway: RequestReceived.Initialize received"
       log.info(msg)
       replyTo ! Response.result(
         id     = Some(Id.Number(id)),
@@ -36,45 +37,97 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     case Requests.Shutdown(Id.Number(id), _) =>
       val msg = "Gateway: Shutdown received"
       log.info(msg)
-      languageServer ! LanguageServer.Shutdown(id)
+      languageServer ! LanguageServer.Requests.Shutdown(id, sender())
 
-    case LanguageServer.ShutdownReceived(id, replyTo) =>
-      val msg = "Gateway: InitializeReceived received"
+    case LanguageServer.RequestReceived.Shutdown(id, replyTo) =>
+      val msg = "Gateway: RequestReceived.Shutdown received"
       log.info(msg)
       replyTo ! Response.result(
         id     = Some(Id.Number(id)),
-        result = ShutdownResult()
+        result = NullResult
       )
 
     case Requests.ApplyWorkspaceEdit(Id.Number(id), _) =>
-      val msg = "Gateway: Shutdown received"
+      val msg = "Gateway: ApplyWorkspaceEdit received"
       log.info(msg)
-      languageServer ! LanguageServer.ApplyWorkspaceEdit(id)
+      languageServer ! LanguageServer.Requests.ApplyWorkspaceEdit(id, sender())
 
-    case LanguageServer.ApplyWorkspaceEditReceived(id, replyTo) =>
-      val msg = "Gateway: InitializeReceived received"
+    case LanguageServer.RequestReceived.ApplyWorkspaceEdit(id, replyTo) =>
+      val msg = "Gateway: RequestReceived.ApplyWorkspaceEdit received"
       log.info(msg)
       replyTo ! Response.result(
         id     = Some(Id.Number(id)),
-        result = ShutdownResult()
+        result = ApplyWorkspaceEditResult(applied = false)
       )
 
-    case Requests.WillSaveTextDocumentWaitUntil(_, _) =>
-      val msg = "Gateway: Initialized received"
+    case Requests.WillSaveTextDocumentWaitUntil(Id.Number(id), _) =>
+      val msg = "Gateway: WillSaveTextDocumentWaitUntil received"
       log.info(msg)
-      languageServer ! LanguageServer.Initialized
+      languageServer ! LanguageServer.Requests
+        .WillSaveTextDocumentWaitUntil(id, sender())
 
-    case LanguageServer.WillSaveTextDocumentWaitUntilReceived =>
-      val msg = "Gateway: InitializedReceived received"
+    case LanguageServer.RequestReceived
+          .WillSaveTextDocumentWaitUntil(id, replyTo) =>
+      val msg =
+        "Gateway: RequestReceived.WillSaveTextDocumentWaitUntil received"
       log.info(msg)
+      replyTo ! Response.result(
+        id     = Some(Id.Number(id)),
+        result = WillSaveTextDocumentWaitUntilResult()
+      )
 
     case Notifications.Initialized(_) =>
       val msg = "Gateway: Initialized received"
       log.info(msg)
-      languageServer ! LanguageServer.Initialized
+      languageServer ! LanguageServer.Notifications.Initialized
 
-    case LanguageServer.InitializedReceived =>
-      val msg = "Gateway: InitializedReceived received"
+    case LanguageServer.NotificationReceived.Initialized =>
+      val msg = "Gateway: NotificationReceived.Initialized received"
+      log.info(msg)
+
+    case Notifications.Exit(_) =>
+      val msg = "Gateway: Exit received"
+      log.info(msg)
+      languageServer ! LanguageServer.Notifications.Exit
+
+    case LanguageServer.NotificationReceived.Exit =>
+      val msg = "Gateway: NotificationReceived.Exit received"
+      log.info(msg)
+
+    case Notifications.DidOpenTextDocument(_) =>
+      val msg = "Gateway: DidOpenTextDocument received"
+      log.info(msg)
+      languageServer ! LanguageServer.Notifications.DidOpenTextDocument
+
+    case LanguageServer.NotificationReceived.DidOpenTextDocument =>
+      val msg = "Gateway: NotificationReceived.DidOpenTextDocument received"
+      log.info(msg)
+
+    case Notifications.DidChangeTextDocument(_) =>
+      val msg = "Gateway: DidChangeTextDocument received"
+      log.info(msg)
+      languageServer ! LanguageServer.Notifications.DidChangeTextDocument
+
+    case LanguageServer.NotificationReceived.DidChangeTextDocument =>
+      val msg = "Gateway: NotificationReceived.DidChangeTextDocument received"
+      log.info(msg)
+
+    case Notifications.DidSaveTextDocument(_) =>
+      val msg = "Gateway: DidSaveTextDocument received"
+      log.info(msg)
+      languageServer ! LanguageServer.Notifications.DidSaveTextDocument
+
+    case LanguageServer.NotificationReceived.DidSaveTextDocument =>
+      val msg = "Gateway: NotificationReceived.DidSaveTextDocument received"
+      log.info(msg)
+
+    case Notifications.DidCloseTextDocument(_) =>
+      val msg = "Gateway: DidCloseTextDocument received"
+      log.info(msg)
+      languageServer ! LanguageServer.Notifications.DidCloseTextDocument
+
+    case LanguageServer.NotificationReceived.DidCloseTextDocument =>
+      val msg = "Gateway: NotificationReceived.DidCloseTextDocument received"
       log.info(msg)
 
     case requestOrNotification =>
