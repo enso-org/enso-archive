@@ -7,6 +7,7 @@ import io.circe.generic.extras.semiauto.{
 }
 import io.circe.generic.semiauto.deriveDecoder
 import cats.syntax.functor._
+import org.enso.gateway.protocol.TextEdit
 import org.enso.gateway.protocol.request.Params.DocumentUri
 
 /** An element of [[Params.Array]]. */
@@ -21,7 +22,11 @@ object Param {
     Decoder[ClientCapabilities].widen,
     Decoder[InitializationOptions].widen,
     Decoder[Trace].widen,
-    Decoder[WorkspaceFolder].widen
+    Decoder[WorkspaceFolder].widen,
+    Decoder[TextDocumentItem].widen,
+    Decoder[TextDocumentSyncKind].widen,
+    Decoder[WorkspaceEdit].widen,
+    Decoder[TextDocumentIdentifier].widen
   ).reduceLeft(_ or _)
 
   /** A string element. */
@@ -45,7 +50,6 @@ object Param {
 
   /** An array element. */
   case class Array(value: Seq[Option[Param]]) extends Param
-
   object Array {
     implicit val paramArrayDecoder: Decoder[Array] =
       deriveUnwrappedDecoder
@@ -128,14 +132,12 @@ object Param {
     version: Int,
     text: String
   ) extends Param
-
   object TextDocumentItem {
     implicit val textDocumentItemDecoder: Decoder[TextDocumentItem] =
       deriveDecoder
   }
 
   sealed abstract class TextDocumentSyncKind(value: Int) extends Param
-
   object TextDocumentSyncKind {
 
     object NoneKind extends TextDocumentSyncKind(0)
@@ -160,6 +162,16 @@ object Param {
 
   object WorkspaceEdit {
     implicit val workspaceEditDecoder: Decoder[WorkspaceEdit] =
+      deriveDecoder
+  }
+
+  case class TextDocumentIdentifier(
+    uri: DocumentUri
+  ) extends Param
+
+  object TextDocumentIdentifier {
+    implicit val textDocumentIdentifierDecoder
+      : Decoder[TextDocumentIdentifier] =
       deriveDecoder
   }
 

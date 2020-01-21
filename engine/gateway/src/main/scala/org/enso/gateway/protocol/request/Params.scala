@@ -8,6 +8,7 @@ import org.enso.gateway.protocol.request.Param.{
   ClientCapabilities,
   ClientInfo,
   InitializationOptions,
+  TextDocumentIdentifier,
   TextDocumentItem,
   TextDocumentSyncKind,
   Trace,
@@ -23,6 +24,12 @@ object Params {
   implicit val paramsDecoder: Decoder[Params] = List[Decoder[Params]](
     Decoder[InitializeParams].widen,
     Decoder[VoidParams].widen,
+    Decoder[DidOpenTextDocumentParams].widen,
+    Decoder[ApplyWorkspaceEditParams].widen,
+    Decoder[WillSaveTextDocumentWaitUntilParams].widen,
+    Decoder[DidChangeTextDocumentParams].widen,
+    Decoder[DidSaveTextDocumentParams].widen,
+    Decoder[DidCloseTextDocumentParams].widen,
     Decoder[Array].widen
   ).reduceLeft(_ or _)
 
@@ -72,8 +79,11 @@ object Params {
       deriveDecoder
   }
 
-  /**  */
-  case class WillSaveTextDocumentWaitUntilParams() extends Params
+  /** */
+  case class WillSaveTextDocumentWaitUntilParams(
+    textDocument: TextDocumentIdentifier,
+    reason: Int
+  ) extends Params
   object WillSaveTextDocumentWaitUntilParams {
     implicit val willSaveTextDocumentWaitUntilParamsDecoder
       : Decoder[WillSaveTextDocumentWaitUntilParams] =

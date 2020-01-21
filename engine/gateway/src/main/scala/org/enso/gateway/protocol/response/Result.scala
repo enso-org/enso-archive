@@ -8,6 +8,7 @@ import org.enso.gateway.protocol.response.result.{
   ServerInfo
 }
 import io.circe.syntax._
+import org.enso.gateway.protocol.TextEdit
 
 /** [[org.enso.gateway.protocol.Response]] result.
   *
@@ -74,14 +75,14 @@ object Result {
       deriveEncoder
   }
 
-  // TODO
   case class WillSaveTextDocumentWaitUntilResult(
-    ) extends Result
+    value: Option[Seq[TextEdit]] = None
+  ) extends Result
 
   object WillSaveTextDocumentWaitUntilResult {
     implicit val willSaveTextDocumentWaitUntilResultEncoder
       : Encoder[WillSaveTextDocumentWaitUntilResult] =
-      deriveEncoder
+      deriveUnwrappedEncoder
   }
 
 }

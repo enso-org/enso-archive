@@ -4,19 +4,7 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{
-  HttpMethods,
-  HttpRequest,
-  HttpResponse,
-  StatusCodes,
-  Uri
-}
-import akka.http.scaladsl.model.ws.{
-  BinaryMessage,
-  Message,
-  TextMessage,
-  UpgradeToWebSocket
-}
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
