@@ -17,6 +17,9 @@ class GraphTestRaw extends FlatSpec with Matchers {
 
     case class Graph() extends PrimGraph
 
+    // TODO [AA] What happens if everywhere I have `G <: PrimGraph` I instead
+    //  put `Graph`?
+
     implicit def components[G <: PrimGraph] =
       new PrimGraph.Component.List[Graph] {
         type Out = Nodes :: Edges :: HNil
@@ -408,10 +411,10 @@ class GraphTestRaw extends FlatSpec with Matchers {
   n2.parent = e1
 
   // The size calculation can't match `ParentLink[G]` against `ParentLink[G]`
-  case class Foo[G <: PrimGraph]() extends PrimGraph.Component.Field
-
-  def foo[G <: PrimGraph, G1 <: PrimGraph]: Unit =
-    implicitly[Foo[G] =:= Foo[G1]]
+//  case class Foo[G <: PrimGraph]() extends PrimGraph.Component.Field
+//
+//  def foo[G <: PrimGraph, G1 <: PrimGraph]: Unit =
+//    implicitly[Foo[G] =:= Foo[G1]]
 
   println(n3.parent)
   n3.parent = e1

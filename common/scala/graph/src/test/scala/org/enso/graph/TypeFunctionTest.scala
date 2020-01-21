@@ -26,11 +26,11 @@ class TypeFunctionTest extends FlatSpec with Matchers {
     implicitly[HListTakeUntil.Aux[B, A :: B :: C :: HNil, A :: HNil]]
     implicitly[HListTakeUntil.Aux[C, A :: B :: C :: HNil, A :: B :: HNil]]
 
-    def higherRank[G <: Nat, G1 <: Nat]: Unit = {
-      implicitly[
-        HListTakeUntil.Aux[D[G], A :: B :: D[G1] :: C :: HNil, A :: B :: HNil]
-      ]
-    }
+//    def higherRank[G <: Nat, G1 <: Nat]: Unit = {
+//      implicitly[
+//        HListTakeUntil.Aux[D[G], A :: B :: D[G1] :: C :: HNil, A :: B :: HNil]
+//      ]
+//    }
   }
 
   object MapSizedTest {
