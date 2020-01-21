@@ -2,14 +2,16 @@ package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.SourceSectionFilter;
-import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
+/**
+ * A simple instrument scaffold for instruments using the {@link ExactPositionListener} through a
+ * {@link Consumer} callback.
+ *
+ * @param <T> the type of values this instrument calls the consumer with.
+ */
 public abstract class ExactPositionInstrument<T> extends TruffleInstrument {
   private Env env;
 
@@ -24,37 +26,37 @@ public abstract class ExactPositionInstrument<T> extends TruffleInstrument {
     this.env = env;
   }
 
+  /**
+   * Creates an instance of the listener.
+   *
+   * @param funName the function name the listener should trigger for.
+   * @param sourceStart the source start of the instrumented location.
+   * @param length the length of the instrumented location.
+   * @param callback the callback passed by the user to trigger when the location is instrumented.
+   * @return an instance of {@link ExactPositionListener}.
+   */
   public abstract ExactPositionListener createListener(
       String funName, int sourceStart, int length, Consumer<T> callback);
 
+  /**
+   * Creates a source section filter for the instrument.
+   *
+   * @param funName the function name this listener should trigger for.
+   * @param sourceStart the source start of the instrumented location.
+   * @param length the length of the instrumented location.
+   * @return the source section filter corresponding to the parameters.
+   */
   public abstract SourceSectionFilter createSourceSectionFilter(
       String funName, int sourceStart, int length);
-
-  public static class CodeIndexLocation {
-    private final int start;
-    private final int length;
-
-    public CodeIndexLocation(int start, int length) {
-      this.start = start;
-      this.length = length;
-    }
-
-    public int getStart() {
-      return start;
-    }
-
-    public int getLength() {
-      return length;
-    }
-  }
 
   /**
    * Attach a new listener to observe nodes with given parameters.
    *
-   * @param sourceStart the source start location of the expected node
-   * @param length the source length of the expected node
-   * @param callback the consumer of the node value
-   * @return a reference to attached event listener
+   * @param funName the function name the listener should trigger for.
+   * @param sourceStart the source start location of the expected node.
+   * @param length the source length of the expected node.
+   * @param callback the consumer of the node value.
+   * @return a reference to attached event listener.
    */
   public EventBinding<ExactPositionListener> bindTo(
       String funName, int sourceStart, int length, Consumer<T> callback) {
@@ -65,12 +67,5 @@ public abstract class ExactPositionInstrument<T> extends TruffleInstrument {
         env.getInstrumenter().attachExecutionEventListener(filter, listener);
     listener.setBinding(binding);
     return binding;
-  }
-
-  public List<EventBinding<ExactPositionListener>> bindTo(
-      String funName, Consumer<T> callback, CodeIndexLocation... locations) {
-    return Arrays.stream(locations)
-        .map(loc -> bindTo(funName, loc.getStart(), loc.getLength(), callback))
-        .collect(Collectors.toList());
   }
 }

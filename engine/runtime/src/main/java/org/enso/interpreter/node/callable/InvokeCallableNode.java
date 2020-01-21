@@ -214,6 +214,7 @@ public abstract class InvokeCallableNode extends BaseNode {
     invokeFunctionNode.setTail(isTail);
   }
 
+  /** @return the source section for this node. */
   @Override
   public SourceSection getSourceSection() {
     Node parent = getParent();

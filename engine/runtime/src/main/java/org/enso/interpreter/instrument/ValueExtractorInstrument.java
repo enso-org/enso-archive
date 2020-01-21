@@ -20,6 +20,15 @@ import java.util.function.Consumer;
 public class ValueExtractorInstrument extends ExactPositionInstrument<Object> {
   public static final String INSTRUMENT_ID = "value-extractor";
 
+  /**
+   * Creates the listener instance for this instrument and given source info.
+   *
+   * @param funName the function name the listener should trigger for.
+   * @param sourceStart the source start of the instrumented location.
+   * @param length the length of the instrumented location.
+   * @param callback the callback passed by the user to trigger when the location is instrumented.
+   * @return the listener instance.
+   */
   @Override
   public ExactPositionListener createListener(
       String funName, int sourceStart, int length, Consumer<Object> callback) {
@@ -31,6 +40,14 @@ public class ValueExtractorInstrument extends ExactPositionInstrument<Object> {
     };
   }
 
+  /**
+   * Creates the source section filter for this instrument.
+   *
+   * @param funName the function name this listener should trigger for.
+   * @param sourceStart the source start of the instrumented location.
+   * @param length the length of the instrumented location.
+   * @return the source section filter.
+   */
   @Override
   public SourceSectionFilter createSourceSectionFilter(
       String funName, int sourceStart, int length) {

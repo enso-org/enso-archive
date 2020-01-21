@@ -12,22 +12,46 @@ import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.nodes.Node;
 import com.oracle.truffle.api.source.SourceSection;
 
+/**
+ * A simple {@link ExecutionEventListener} scaffolding, capable of triggering exactly once for an
+ * exact code position, properly handling recursive calls (fires only in the top frame).
+ */
 public abstract class ExactPositionListener implements ExecutionEventListener {
   private EventBinding<ExactPositionListener> binding;
   private final int start;
   private final int length;
   private final String funName;
 
+  /**
+   * Creates an instance of this listener.
+   *
+   * @param funName the function name for this listener to trigger in.
+   * @param start the source start of the instrumented location.
+   * @param length the source length of the instrumented location.
+   */
   public ExactPositionListener(String funName, int start, int length) {
     this.funName = funName;
     this.start = start;
     this.length = length;
   }
 
+  /**
+   * Sets the insternally stored event binding for this listener. It should always be called after
+   * the listener is attached inside an instrument. This mechanism allows the listener to detach
+   * itself after it first triggers, ensuring the at-most-once semantics.
+   *
+   * @param binding the event binding resulting from attaching this listener.
+   */
   public void setBinding(EventBinding<ExactPositionListener> binding) {
     this.binding = binding;
   }
 
+  /**
+   * Checks if we're not inside a recursive call, i.e. the {@link #funName} only appears in the
+   * stack trace once.
+   *
+   * @return {@code true} if it's not a recursive call, {@code false} otherwise.
+   */
   private boolean isTopFrame() {
     Object result =
         Truffle.getRuntime()
@@ -53,6 +77,12 @@ public abstract class ExactPositionListener implements ExecutionEventListener {
     return result == null;
   }
 
+  /**
+   * Handler for the {@link #onReturnValue(EventContext, VirtualFrame, Object)} event in the case it
+   * triggered for the actually required node.
+   *
+   * @param result the result of executing the instrumented node.
+   */
   public abstract void handleReturnValue(Object result);
 
   /**
@@ -87,7 +117,7 @@ public abstract class ExactPositionListener implements ExecutionEventListener {
 
   /**
    * Checks if the node to be executed is the node this listener was created to observe and triggers
-   * the callback if the correct node just finished executing.
+   * {@link #handleReturnValue(Object)} if the correct node just finished executing.
    *
    * @param context current execution context
    * @param frame current execution frame

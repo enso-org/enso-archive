@@ -32,8 +32,8 @@ public abstract class InvokeFunctionNode extends BaseNode {
   private final InvokeCallableNode.DefaultsExecutionMode defaultsExecutionMode;
   private final InvokeCallableNode.ArgumentsExecutionMode argumentsExecutionMode;
   private @Child CaptureCallerInfoNode captureCallerInfoNode = CaptureCallerInfoNode.build();
-  private @Child
-  FunctionCallInstrumentationNode functionCallInstrumentationNode = new FunctionCallInstrumentationNode();
+  private @Child FunctionCallInstrumentationNode functionCallInstrumentationNode =
+      FunctionCallInstrumentationNode.build();
 
   /**
    * Creates a node that performs the argument organisation for the provided schema.
@@ -74,10 +74,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
       callerInfo = captureCallerInfoNode.execute(callerFrame);
     }
     functionCallInstrumentationNode.execute(
-        callerFrame,
-        function,
-        mappedArguments.getState(),
-        mappedArguments.getSortedArguments());
+        callerFrame, function, mappedArguments.getState(), mappedArguments.getSortedArguments());
     return curryNode.execute(
         callerFrame,
         function,
@@ -162,6 +159,7 @@ public abstract class InvokeFunctionNode extends BaseNode {
     return InvokeFunctionNodeGen.create(schema, defaultsExecutionMode, argumentsExecutionMode);
   }
 
+  /** @return the source section for this node. */
   @Override
   public SourceSection getSourceSection() {
     Node parent = getParent();

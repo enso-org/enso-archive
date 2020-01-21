@@ -88,6 +88,7 @@ public class CurryNode extends BaseNode {
    *
    * @param frame current execution frame, used as a caller frame if the function requires it.
    * @param function the function to execute.
+   * @param callerInfo the caller info to pass to the function.
    * @param state current monadic state.
    * @param arguments the properly ordered arguments to pass to the function.
    * @param oversaturatedArguments any arguments that should be treated as candidates for an

@@ -209,7 +209,7 @@ public final class Function implements TruffleObject {
       throws ArityException, UnknownIdentifierException, UnsupportedTypeException {
     if (member.equals(MethodNames.Function.EQUALS)) {
       Object that = Types.extractArguments(args, Object.class);
-      return this == args[0];
+      return this == that;
     }
     throw UnknownIdentifierException.create(member);
   }
