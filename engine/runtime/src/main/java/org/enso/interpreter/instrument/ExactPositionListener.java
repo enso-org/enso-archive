@@ -17,7 +17,7 @@ import com.oracle.truffle.api.source.SourceSection;
  * position, properly handling recursive calls (fires only in the top frame).
  */
 public class ExactPositionListener implements ExecutionEventListener {
-  private EventBinding<ExactPositionListener> binding;
+  private EventBinding<? extends ExactPositionListener> binding;
   private final int start;
   private final int length;
   private final String funName;
@@ -42,7 +42,7 @@ public class ExactPositionListener implements ExecutionEventListener {
    *
    * @param binding the event binding resulting from attaching this listener.
    */
-  public void setBinding(EventBinding<ExactPositionListener> binding) {
+  public void setBinding(EventBinding<? extends ExactPositionListener> binding) {
     this.binding = binding;
   }
 
@@ -77,6 +77,16 @@ public class ExactPositionListener implements ExecutionEventListener {
     return result == null;
   }
 
+  /**
+   * Checks whether the listener should trigger in the current context.
+   *
+   * <p>The conditions checked are:
+   * <li>Is it not a recursive call?
+   * <li>Is the node at the exact requested source position?
+   *
+   * @param context the current event context.
+   * @return true if the listener should trigger, false otherwise.
+   */
   protected boolean shouldTrigger(EventContext context) {
     if (!isTopFrame()) {
       return false;
@@ -89,6 +99,7 @@ public class ExactPositionListener implements ExecutionEventListener {
     return section.getCharIndex() == start && section.getCharLength() == length;
   }
 
+  /** Detach this listener, ensuring it won't ever trigger. */
   protected void detach() {
     binding.dispose();
   }
@@ -120,7 +131,12 @@ public class ExactPositionListener implements ExecutionEventListener {
     return binding.isDisposed();
   }
 
-  public EventBinding<ExactPositionListener> getBinding() {
+  /**
+   * Get the current binding associated with this listener.
+   *
+   * @return the binding associated with this listener.
+   */
+  public EventBinding<? extends ExactPositionListener> getBinding() {
     return binding;
   }
 

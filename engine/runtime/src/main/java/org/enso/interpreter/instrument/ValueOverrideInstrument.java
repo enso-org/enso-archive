@@ -22,46 +22,65 @@ public class ValueOverrideInstrument extends TruffleInstrument {
     this.env = env;
   }
 
-  private static class OverrideUnwind {
+  /** The Listener handling this instrument's logic. */
+  public static class Listener extends ExactPositionListener {
     private final Object value;
 
-    private OverrideUnwind(Object value) {
+    private Listener(String funName, int start, int length, Object value) {
+      super(funName, start, length);
       this.value = value;
     }
 
-    private Object getValue() {
-      return value;
+    /**
+     * Triggered when the node would execute. Throws itself an unwind containing the override value
+     * instead.
+     *
+     * @param context the event context.
+     * @param frame the current execution frame.
+     */
+    @Override
+    public void onEnter(EventContext context, VirtualFrame frame) {
+      if (shouldTrigger(context)) {
+        throw context.createUnwind(value, getBinding());
+      }
+    }
+
+    /**
+     * Catches the unwind it's thrown itself from {@link #onEnter(EventContext, VirtualFrame)} and
+     * returns it as the value of the executed node.
+     *
+     * @param context the event context.
+     * @param frame the current execution frame.
+     * @param info the object containing the override return value.
+     * @return the {@code info} argument.
+     */
+    @Override
+    public Object onUnwind(EventContext context, VirtualFrame frame, Object info) {
+      return info;
     }
   }
 
-  public EventBinding<ExactPositionListener> overrideAt(
+  /**
+   * Attaches the instrument at a requested source location.
+   *
+   * @param funName the function name this instrument should trigger inside.
+   * @param sourceStart the source start of the overridden node.
+   * @param sourceLength the source length of the overridden node.
+   * @param value the value to use as the override.
+   * @return the event binding for the specified parameters.
+   */
+  public EventBinding<Listener> overrideAt(
       String funName, int sourceStart, int sourceLength, Object value) {
     SourceSectionFilter sourceSectionFilter =
         SourceSectionFilter.newBuilder()
             .indexIn(sourceStart, sourceLength)
             .tagIs(StandardTags.ExpressionTag.class)
             .build();
-    ExactPositionListener positionListener =
-        new ExactPositionListener(funName, sourceStart, sourceLength) {
-          @Override
-          public void onEnter(EventContext context, VirtualFrame frame) {
-            if (shouldTrigger(context)) {
-              throw context.createUnwind(new OverrideUnwind(value), getBinding());
-            }
-          }
+    Listener listener = new Listener(funName, sourceStart, sourceLength, value);
 
-          @Override
-          public Object onUnwind(EventContext context, VirtualFrame frame, Object info) {
-            if (info instanceof OverrideUnwind) {
-              detach();
-              return ((OverrideUnwind) info).getValue();
-            }
-            return info;
-          }
-        };
-    EventBinding<ExactPositionListener> binding =
-        env.getInstrumenter().attachExecutionEventListener(sourceSectionFilter, positionListener);
-    positionListener.setBinding(binding);
+    EventBinding<Listener> binding =
+        env.getInstrumenter().attachExecutionEventListener(sourceSectionFilter, listener);
+    listener.setBinding(binding);
     return binding;
   }
 }
