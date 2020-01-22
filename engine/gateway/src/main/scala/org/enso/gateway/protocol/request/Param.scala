@@ -7,7 +7,7 @@ import io.circe.generic.extras.semiauto.{
 }
 import io.circe.generic.semiauto.deriveDecoder
 import cats.syntax.functor._
-import org.enso.gateway.protocol.TextEdit
+import org.enso.gateway.protocol.{TextEdit, TextRange}
 import org.enso.gateway.protocol.request.Params.DocumentUri
 
 /** An element of [[Params.Array]]. */
@@ -24,9 +24,11 @@ object Param {
     Decoder[Trace].widen,
     Decoder[WorkspaceFolder].widen,
     Decoder[TextDocumentItem].widen,
-    Decoder[TextDocumentSyncKind].widen,
     Decoder[WorkspaceEdit].widen,
-    Decoder[TextDocumentIdentifier].widen
+    Decoder[TextDocumentIdentifier].widen,
+    Decoder[TextDocumentSaveReason].widen,
+    Decoder[TextDocumentContentChangeEvent].widen,
+    Decoder[VersionedTextDocumentIdentifier].widen
   ).reduceLeft(_ or _)
 
   /** A string element. */
@@ -137,29 +139,10 @@ object Param {
       deriveDecoder
   }
 
-  sealed abstract class TextDocumentSyncKind(value: Int) extends Param
-  object TextDocumentSyncKind {
-
-    object NoneKind extends TextDocumentSyncKind(0)
-
-    object Full extends TextDocumentSyncKind(1)
-
-    object Incremental extends TextDocumentSyncKind(2)
-
-    implicit val textDocumentSyncKindDecoder: Decoder[TextDocumentSyncKind] =
-      Decoder.decodeInt.emap {
-        case 0 => Right(NoneKind)
-        case 1 => Right(Full)
-        case 2 => Right(Incremental)
-        case _ => Left("Invalid TextDocumentSyncKind")
-      }
-  }
-
   case class WorkspaceEdit(
     changes: Option[Map[DocumentUri, Seq[TextEdit]]],
     documentChanges: Option[DocumentChanges]
   ) extends Param
-
   object WorkspaceEdit {
     implicit val workspaceEditDecoder: Decoder[WorkspaceEdit] =
       deriveDecoder
@@ -172,6 +155,70 @@ object Param {
   object TextDocumentIdentifier {
     implicit val textDocumentIdentifierDecoder
       : Decoder[TextDocumentIdentifier] =
+      deriveDecoder
+  }
+
+  sealed abstract class TextDocumentSaveReason(value: Int) extends Param
+
+  object TextDocumentSaveReason {
+
+    case object Manual extends TextDocumentSaveReason(1)
+
+    case object AfterDelay extends TextDocumentSaveReason(2)
+
+    case object FocusOut extends TextDocumentSaveReason(3)
+
+    implicit val textDocumentSaveReasonDecoder
+      : Decoder[TextDocumentSaveReason] =
+      Decoder.decodeInt.emap {
+        case 1 => Right(Manual)
+        case 2 => Right(AfterDelay)
+        case 3 => Right(FocusOut)
+        case _ => Left("Invalid TextDocumentSaveReason")
+      }
+  }
+
+  sealed trait TextDocumentContentChangeEvent extends Param
+
+  object TextDocumentContentChangeEvent {
+
+    case class RangeChange(
+      range: TextRange,
+      rangeLength: Option[Int],
+      text: String
+    ) extends TextDocumentContentChangeEvent
+
+    object RangeChange {
+      implicit val textDocumentContentChangeEventRangeChangeDecoder
+        : Decoder[RangeChange] =
+        deriveDecoder
+    }
+
+    case class WholeDocumentChange(text: String)
+        extends TextDocumentContentChangeEvent
+
+    object WholeDocumentChange {
+      implicit val textDocumentContentChangeEventWholeDocumentChangeDecoder
+        : Decoder[WholeDocumentChange] =
+        deriveDecoder
+    }
+
+    implicit val textDocumentContentChangeEventDecoder
+      : Decoder[TextDocumentContentChangeEvent] =
+      List[Decoder[TextDocumentContentChangeEvent]](
+        Decoder[RangeChange].widen,
+        Decoder[WholeDocumentChange].widen
+      ).reduceLeft(_ or _)
+  }
+
+  case class VersionedTextDocumentIdentifier(
+    uri: DocumentUri,
+    version: Option[Int] = None
+  ) extends Param
+
+  object VersionedTextDocumentIdentifier {
+    implicit val versionedTextDocumentIdentifierDecoder
+      : Decoder[VersionedTextDocumentIdentifier] =
       deriveDecoder
   }
 

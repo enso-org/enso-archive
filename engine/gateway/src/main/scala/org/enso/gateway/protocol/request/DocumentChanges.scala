@@ -5,12 +5,10 @@ import io.circe.generic.extras.semiauto.deriveUnwrappedDecoder
 import cats.syntax.functor._
 
 sealed trait DocumentChanges
-
 object DocumentChanges {
 
   case class TextDocumentEdits(value: Seq[TextDocumentEdit])
       extends DocumentChanges
-
   object TextDocumentEdits {
     implicit val documentChangesTextDocumentEditsDecoder
       : Decoder[TextDocumentEdits] =
@@ -19,7 +17,6 @@ object DocumentChanges {
 
   case class AnyDocumentChanges(value: Seq[AnyDocumentChange])
       extends DocumentChanges
-
   object AnyDocumentChanges {
     implicit val documentChangesAnyDocumentChangesDecoder
       : Decoder[AnyDocumentChanges] =
