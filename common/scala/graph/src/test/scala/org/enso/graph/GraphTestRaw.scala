@@ -27,12 +27,14 @@ class GraphTestRaw extends FlatSpec with Matchers {
 
     implicit def nodeFields =
       new PrimGraph.Component.Field.List[Graph, Nodes] {
-        type Out = Node.Shape :: Node.ParentLink[Graph] :: Node.Location :: HNil
+        type Out =
+          Node.Shape :: Node.ParentLink[Graph] ::
+          Node.Location[Graph] :: Node.Name[Graph] :: HNil
       }
 
     implicit def edgeFields =
       new PrimGraph.Component.Field.List[Graph, Edges] {
-        type Out = Edge.Shape :: HNil
+        type Out = Edge.Shape[Graph] :: HNil
       }
 
     // ========================================================================
@@ -196,7 +198,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
       // TODO [AA] Can do this with fields
       // TODO [AA] Can generate named accessor for the base type
       // TODO [AA] Will need to copy generic tparams around
-      sealed case class ParentLink[G <: PrimGraph]()
+      sealed case class ParentLink[G <: PrimGraph](parent: Edge[G])
           extends PrimGraph.Component.Field
       object ParentLink {
         implicit def sized[G <: PrimGraph] =
@@ -223,6 +225,20 @@ class GraphTestRaw extends FlatSpec with Matchers {
           ): Unit = {
             graph.unsafeWriteField[C, ParentLink[G]](node.ix, 0, value.ix)
           }
+
+          def parentLink(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, ParentLink[G]]
+          ): ParentLink[G] = {
+            ParentLink(this.parent)
+          }
+
+          def parentLink_=(value: ParentLink[G])(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, ParentLink[G]]
+          ): Unit = {
+            this.parent = value.parent
+          }
         }
 
         implicit def ParentLink_transInstance[
@@ -235,10 +251,11 @@ class GraphTestRaw extends FlatSpec with Matchers {
         ): ParentLinkInstance[G, C] = t.wrapped
       }
 
-      sealed case class Location(line: Int, column: Int)
+      sealed case class Location[G <: PrimGraph](line: Int, column: Int)
           extends PrimGraph.Component.Field;
       object Location {
-        implicit def sized = new Sized[Location] { type Out = _2 }
+        implicit def sized[G <: PrimGraph] =
+          new Sized[Location[G]] { type Out = _2 }
 
         implicit class LocationInstance[
           G <: PrimGraph,
@@ -248,35 +265,35 @@ class GraphTestRaw extends FlatSpec with Matchers {
         ) {
           def line(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Location]
+            ev: PrimGraph.HasComponentField[G, C, Location[G]]
           ): Int =
-            graph.unsafeReadField[C, Location](node.ix, 0)
+            graph.unsafeReadField[C, Location[G]](node.ix, 0)
 
           def line_=(value: Int)(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Location]
-          ): Unit = graph.unsafeWriteField[C, Location](node.ix, 0, value)
+            ev: PrimGraph.HasComponentField[G, C, Location[G]]
+          ): Unit = graph.unsafeWriteField[C, Location[G]](node.ix, 0, value)
 
           def column(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Location]
+            ev: PrimGraph.HasComponentField[G, C, Location[G]]
           ): Int =
-            graph.unsafeReadField[C, Location](node.ix, 1)
+            graph.unsafeReadField[C, Location[G]](node.ix, 1)
 
           def column_=(value: Int)(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Location]
-          ): Unit = graph.unsafeWriteField[C, Location](node.ix, 1, value)
+            ev: PrimGraph.HasComponentField[G, C, Location[G]]
+          ): Unit = graph.unsafeWriteField[C, Location[G]](node.ix, 1, value)
 
           def location(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Location]
-          ): Location =
+            ev: PrimGraph.HasComponentField[G, C, Location[G]]
+          ): Location[G] =
             Location(this.line, this.column)
 
-          def location_=(value: Location)(
+          def location_=(value: Location[G])(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Location]
+            ev: PrimGraph.HasComponentField[G, C, Location[G]]
           ): Unit = {
             this.line   = value.line
             this.column = value.column
@@ -295,10 +312,14 @@ class GraphTestRaw extends FlatSpec with Matchers {
 
       // TODO [AA] Variants should be able to support nested types.
       // TODO [AA] How to macro this -> Opaque[T, M], where M is the name of the map type
+      // TODO [AA] Field names can't collide with type name
       sealed case class NameMap(str: mutable.Map[Int, String])
-      sealed case class Name(str: String) extends PrimGraph.Component.Field;
+      sealed case class Name[G <: PrimGraph](str: String)
+          extends PrimGraph.Component.Field;
       object Name {
-        implicit def sized = new Sized[Name] { type Out = _0 }
+        implicit def sized[G <: PrimGraph] = new Sized[Name[G]] {
+          type Out = _0
+        }
 
         implicit class NameInstance[
           G <: PrimGraph,
@@ -306,19 +327,37 @@ class GraphTestRaw extends FlatSpec with Matchers {
         ](
           node: PrimGraph.Component.Ref[G, C]
         ) {
+          def str(
+            implicit graph: PrimGraph.GraphData[G],
+            map: NameMap,
+            ev: PrimGraph.HasComponentField[G, C, Name[G]]
+          ): String = {
+            map.str(node.ix)
+          }
+
+          def str_=(value: String)(
+            implicit graph: PrimGraph.GraphData[G],
+            map: NameMap,
+            ev: PrimGraph.HasComponentField[G, C, Name[G]]
+          ): Unit = {
+            map.str(node.ix) = value
+          }
+
           def name(
             implicit graph: PrimGraph.GraphData[G],
             map: NameMap,
-            ev: PrimGraph.HasComponentField[G, C, Name]
-          ): String =
-            map.str(node.ix)
+            ev: PrimGraph.HasComponentField[G, C, Name[G]]
+          ): Name[G] = {
+            Name(map.str(node.ix))
+          }
 
-          def name_=(value: String)(
+          def name_=(value: Name[G])(
             implicit graph: PrimGraph.GraphData[G],
             map: NameMap,
-            ev: PrimGraph.HasComponentField[G, C, Name]
-          ): Unit =
-            map.str(node.ix) = value
+            ev: PrimGraph.HasComponentField[G, C, Name[G]]
+          ): Unit = {
+            map.str(node.ix) = value.str
+          }
         }
 
         implicit def Name_transInstance[
@@ -335,38 +374,55 @@ class GraphTestRaw extends FlatSpec with Matchers {
     object Edge {
 
       // TODO [AA] Can I add tparams safely here?
-      sealed case class Shape() extends PrimGraph.Component.Field;
+      sealed case class Shape[G <: PrimGraph](source: Node[G], target: Node[G])
+          extends PrimGraph.Component.Field
       object Shape {
-        implicit def sized = new Sized[Shape] { type Out = _2 }
+        implicit def sized[G <: PrimGraph] =
+          new Sized[Shape[G]] { type Out = _2 }
 
         implicit class ShapeInstance[G <: PrimGraph, C <: PrimGraph.Component](
           node: PrimGraph.Component.Ref[G, C]
         ) {
           def source(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Shape]
+            ev: PrimGraph.HasComponentField[G, C, Shape[G]]
           ): Node[G] =
             PrimGraph.Component.Ref(
-              graph.unsafeReadField[C, Shape](node.ix, 0)
+              graph.unsafeReadField[C, Shape[G]](node.ix, 0)
             )
 
           def source_=(value: Node[G])(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Shape]
-          ): Unit = graph.unsafeWriteField[C, Shape](node.ix, 0, value.ix)
+            ev: PrimGraph.HasComponentField[G, C, Shape[G]]
+          ): Unit = graph.unsafeWriteField[C, Shape[G]](node.ix, 0, value.ix)
 
           def target(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Shape]
+            ev: PrimGraph.HasComponentField[G, C, Shape[G]]
           ): Node[G] =
             PrimGraph.Component.Ref(
-              graph.unsafeReadField[C, Shape](node.ix, 1)
+              graph.unsafeReadField[C, Shape[G]](node.ix, 1)
             )
 
           def target_=(value: Node[G])(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, Shape]
-          ): Unit = graph.unsafeWriteField[C, Shape](node.ix, 1, value.ix)
+            ev: PrimGraph.HasComponentField[G, C, Shape[G]]
+          ): Unit = graph.unsafeWriteField[C, Shape[G]](node.ix, 1, value.ix)
+
+          def shape(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape[G]]
+          ): Shape[G] = {
+            Shape(this.source, this.target)
+          }
+
+          def shape_=(value: Shape[G])(
+            implicit graph: PrimGraph.GraphData[G],
+            ev: PrimGraph.HasComponentField[G, C, Shape[G]]
+          ): Unit = {
+            this.source = value.source
+            this.target = value.target
+          }
         }
 
         implicit def Shape_transInstance[
@@ -414,7 +470,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
   println(n3.parent)
   n3.parent = e1
 
-  n1.name = "foo"
+  n1.str = "foo"
 
   // This is just dirty and very unsafe way of changing `n1` to be App!
   graph.unsafeWriteField[Nodes, GraphImpl.Node.Shape](n1.ix, 0, 1)
@@ -451,9 +507,9 @@ class GraphTestRaw extends FlatSpec with Matchers {
 
   "Opdaque types" should "be accessed successfully" in {
     val nameStr = "TestName"
-    n1.name = nameStr
+    n1.str = nameStr
 
-    n1.name shouldEqual nameStr
+    n1.str shouldEqual nameStr
   }
 
   "Matching on variants" should "work properly" in {
