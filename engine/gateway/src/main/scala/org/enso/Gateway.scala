@@ -8,6 +8,7 @@ import org.enso.gateway.protocol.response.Result.{
   NullResult,
   WillSaveTextDocumentWaitUntilResult
 }
+import org.enso.gateway.protocol.response.result.servercapabilities.TextDocumentSync
 import org.enso.gateway.protocol.{Id, Notifications, Requests, Response}
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
@@ -30,8 +31,17 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       val msg = "Gateway: RequestReceived.Initialize received"
       log.info(msg)
       replyTo ! Response.result(
-        id     = Some(Id.Number(id)),
-        result = InitializeResult(ServerCapabilities(), Some(serverInfo))
+        id = Some(Id.Number(id)),
+        result = InitializeResult(
+          capabilities = ServerCapabilities(
+            textDocumentSync = Some(
+              TextDocumentSync.WillSaveWaitUntil(
+                willSaveWaitUntil = true
+              )
+            )
+          ),
+          serverInfo = Some(serverInfo)
+        )
       )
 
     case Requests.Shutdown(Id.Number(id), _) =>

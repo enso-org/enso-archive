@@ -29,7 +29,11 @@ object TestJson {
            "jsonrpc": "2.0",
            "id": 10,
            "result": {
-             "capabilities": {},
+             "capabilities" : {
+               "textDocumentSync" : {
+                 "willSaveWaitUntil" : true
+               }
+             },
              "serverInfo": {
                "name": "Enso Language Server",
                "version": "1.0"
