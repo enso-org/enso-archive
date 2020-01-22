@@ -326,7 +326,12 @@ object DocParserHTMLGenerator {
   ): htmlFile = {
     val htmlCode = renderHTML(documented.ast, documented.doc, cssFileName)
     val astLines = documented.ast.show().split("\n")
-    val fileName = astLines.head.replaceAll("/", "").split("=").head
+    val fileName =
+      astLines.head
+        .replaceAll("/", "")
+        .replaceAll(" ", "_")
+        .split("=")
+        .head
     htmlFile(htmlCode, fileName)
   }
   case class htmlFile(code: TypedTag[String], name: String)
@@ -364,10 +369,14 @@ object DocParserHTMLGenerator {
     ast: AST,
     doc: Doc
   ): TypedTag[String] = {
-    val docClass   = HTML.`class` := "Documentation"
-    val astHeadCls = HTML.`class` := "ASTHead"
-    val astHTML    = createHTMLFromAST(ast)
-    val astName    = Seq(HTML.div(astHeadCls)(astHTML.header))
+    val docClass       = HTML.`class` := "Documentation"
+    val astHeadCls     = HTML.`class` := "ASTHead"
+    val astHTML        = createHTMLFromAST(ast)
+    var astName        = HTML.div(astHeadCls)(astHTML.header)
+    val strikeoutStyle = HTML.`style` := "text-decoration: line-through;"
+    if (doc.tags.html.mkString.contains("DEPRECATED")) {
+      astName = HTML.div(astHeadCls)(strikeoutStyle)(astHTML.header)
+    }
     astHTML.body match {
       case Some(b) =>
         val astBodyCls = HTML.`class` := "ASTData"
@@ -381,6 +390,10 @@ object DocParserHTMLGenerator {
         )
       case None =>
         // Case when listing constructors/methods | Name | Synopsis | Tags |
+        var content = HTML.div(doc.htmlWoTags)
+        if (doc.tags.html.mkString.contains("DEPRECATED")) {
+          content = HTML.div(strikeoutStyle)(doc.htmlWoTags)
+        }
         HTML.div(docClass)(
           astName,
           doc.htmlWoTags,
@@ -489,11 +502,15 @@ object DocParserHTMLGenerator {
     * @return - Def title in HTML
     */
   def createDefTitle(name: AST.Cons, args: List[AST]): TypedTag[String] = {
-    val clsTitle = HTML.`class` := "DefTitle"
-    val clsArgs  = HTML.`class` := "DefArgs"
-    val nameStr  = name.show()
-    val argsStr  = args.map(_.show())
-    val pageHref = HTML.`href` := nameStr + argsStr
+    val clsTitle   = HTML.`class` := "DefTitle"
+    val clsArgs    = HTML.`class` := "DefArgs"
+    val nameStr    = name.show()
+    val argsStr    = args.map(_.show())
+    var argsStrUrl = argsStr.mkString("_")
+    if (argsStr.nonEmpty) {
+      argsStrUrl = "_" + argsStrUrl
+    }
+    val pageHref = HTML.`href` := nameStr + argsStrUrl + ".html"
     val innerDiv = HTML.div(clsTitle)(nameStr, HTML.div(clsArgs)(argsStr))
     HTML.a(pageHref)(innerDiv)
   }
@@ -507,7 +524,11 @@ object DocParserHTMLGenerator {
     */
   def createInfixHtmlRepr(infix: AST.App.Infix): TypedTag[String] = {
     val cls = HTML.`class` := "Infix"
-    HTML.div(cls)(infix.larg.show())
+    val pageHref = HTML.`href` := infix.larg
+        .show()
+        .replaceAll(" ", "_") + ".html"
+    val innerDiv = HTML.div(cls)(infix.larg.show())
+    HTML.a(pageHref)(innerDiv)
   }
 
   /**
