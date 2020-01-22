@@ -452,10 +452,12 @@ object DocParserHTMLGenerator {
     val methodsHeader      = HTML.h2(`class` := "constr")("Methods")
     val allLines           = firstLine :: body.lines
     val generatedCode      = renderHTMLOnLine(allLines)
-    val typesList          = generatedCode.filter(_.toString().contains("DefTitle"))
-    val infixList          = generatedCode.filter(_.toString().contains("Infix"))
-    val head               = createDefTitle(name, args)
-    val clsBody            = HTML.`class` := "DefBody"
+    val typesList =
+      generatedCode.filter(_.toString().contains("class=\"DefTitle\""))
+    val infixList =
+      generatedCode.filter(_.toString().contains("class=\"Infix\""))
+    val head    = createDefTitle(name, args)
+    val clsBody = HTML.`class` := "DefBody"
     val lines =
       HTML.div(clsBody)(constructorsHeader, typesList, methodsHeader, infixList)
     val cls = HTML.`class` := "Def"
