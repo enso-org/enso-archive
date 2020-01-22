@@ -42,7 +42,7 @@ object Result {
   }
 
   /** A boolean result. */
-  case class Bool(value: scala.Boolean) extends Result
+  case class Bool(value: Boolean) extends Result
   object Bool {
     implicit val resultBooleanEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -53,7 +53,6 @@ object Result {
     capabilities: ServerCapabilities,
     serverInfo: Option[ServerInfo] = None
   ) extends Result
-
   object InitializeResult {
     implicit val initializeResultEncoder: Encoder[InitializeResult] =
       deriveEncoder
@@ -68,7 +67,6 @@ object Result {
     applied: Boolean,
     failureReason: Option[String] = None
   ) extends Result
-
   object ApplyWorkspaceEditResult {
     implicit val applyWorkspaceEditResultEncoder
       : Encoder[ApplyWorkspaceEditResult] =
@@ -78,11 +76,9 @@ object Result {
   case class WillSaveTextDocumentWaitUntilResult(
     value: Option[Seq[TextEdit]] = None
   ) extends Result
-
   object WillSaveTextDocumentWaitUntilResult {
     implicit val willSaveTextDocumentWaitUntilResultEncoder
       : Encoder[WillSaveTextDocumentWaitUntilResult] =
       deriveUnwrappedEncoder
   }
-
 }

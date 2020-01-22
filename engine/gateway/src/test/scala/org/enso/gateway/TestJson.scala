@@ -4,7 +4,8 @@ import io.circe.Json
 import io.circe.literal._
 
 trait TestJson {
-  def request:          Json
+  def request: Json
+
   def expectedResponse: Json
 }
 
@@ -81,4 +82,59 @@ object TestJson {
            }
          }"""
   }
+
+  object Shutdown extends TestJson {
+    val request =
+      json"""
+         {
+           "jsonrpc": "2.0",
+           "id": 10,
+           "method": "shutdown"         
+         }"""
+
+    val expectedResponse =
+      json"""
+         {
+           "jsonrpc" : "2.0",
+           "id" : 10         
+         }"""
+  }
+
+  object ApplyWorkspaceEdit extends TestJson {
+    val request =
+      json"""
+         {
+           "jsonrpc": "2.0",
+           "id": 10,
+           "method": "workspace/applyEdit"         
+         }"""
+
+    val expectedResponse =
+      json"""
+         {
+           "jsonrpc" : "2.0",
+           "id" : 10,
+           "result" : {
+             "applied" : false
+           }
+         }"""
+  }
+
+  object WillSaveTextDocumentWaitUntil extends TestJson {
+    val request =
+      json"""
+         {
+           "jsonrpc": "2.0",
+           "id": 10,
+           "method": "textDocument/willSaveWaitUntil"         
+         }"""
+
+    val expectedResponse =
+      json"""
+         {
+           "jsonrpc" : "2.0",
+           "id" : 10
+         }"""
+  }
+
 }

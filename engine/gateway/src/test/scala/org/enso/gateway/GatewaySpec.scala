@@ -8,7 +8,14 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import io.circe.Json
 import org.enso.gateway.Server.Config
-import org.enso.gateway.TestJson.{Initialize, WrongJsonrpc, WrongMethod}
+import org.enso.gateway.TestJson.{
+  ApplyWorkspaceEdit,
+  Initialize,
+  Shutdown,
+  WillSaveTextDocumentWaitUntil,
+  WrongJsonrpc,
+  WrongMethod
+}
 import org.enso.{Gateway, LanguageServer}
 import org.scalatest.{
   Assertion,
@@ -65,6 +72,18 @@ class GatewaySpec
 
   "Gateway" should "reply with a proper error to request with wrong method" in {
     checkRequestResponse(WrongMethod)
+  }
+
+  "Gateway" should "reply with a proper response to request with shutdown method" in {
+    checkRequestResponse(Shutdown)
+  }
+
+  "Gateway" should "reply with a proper response to request with workspace/applyEdit method" in {
+    checkRequestResponse(ApplyWorkspaceEdit)
+  }
+
+  "Gateway" should "reply with a proper response to request with textDocument/willSaveWaitUntil method" in {
+    checkRequestResponse(WillSaveTextDocumentWaitUntil)
   }
 
   private def checkRequestResponse(

@@ -111,6 +111,7 @@ object Param {
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
     *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
+    *
     *      The capabilities provided by the client (editor or tool).
     *      Define capabilities for dynamic registration, workspace and text document
     *      features the client supports.
@@ -158,6 +159,17 @@ object Param {
       deriveDecoder
   }
 
+  case class VersionedTextDocumentIdentifier(
+    uri: DocumentUri,
+    version: Option[Int] = None
+  ) extends Param
+
+  object VersionedTextDocumentIdentifier {
+    implicit val versionedTextDocumentIdentifierDecoder
+      : Decoder[VersionedTextDocumentIdentifier] =
+      deriveDecoder
+  }
+
   sealed abstract class TextDocumentSaveReason(value: Int) extends Param
 
   object TextDocumentSaveReason {
@@ -179,7 +191,6 @@ object Param {
   }
 
   sealed trait TextDocumentContentChangeEvent extends Param
-
   object TextDocumentContentChangeEvent {
 
     case class RangeChange(
@@ -187,7 +198,6 @@ object Param {
       rangeLength: Option[Int],
       text: String
     ) extends TextDocumentContentChangeEvent
-
     object RangeChange {
       implicit val textDocumentContentChangeEventRangeChangeDecoder
         : Decoder[RangeChange] =
@@ -196,7 +206,6 @@ object Param {
 
     case class WholeDocumentChange(text: String)
         extends TextDocumentContentChangeEvent
-
     object WholeDocumentChange {
       implicit val textDocumentContentChangeEventWholeDocumentChangeDecoder
         : Decoder[WholeDocumentChange] =
@@ -210,16 +219,4 @@ object Param {
         Decoder[WholeDocumentChange].widen
       ).reduceLeft(_ or _)
   }
-
-  case class VersionedTextDocumentIdentifier(
-    uri: DocumentUri,
-    version: Option[Int] = None
-  ) extends Param
-
-  object VersionedTextDocumentIdentifier {
-    implicit val versionedTextDocumentIdentifierDecoder
-      : Decoder[VersionedTextDocumentIdentifier] =
-      deriveDecoder
-  }
-
 }

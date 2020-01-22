@@ -39,7 +39,6 @@ object Params {
 
   /** Array params. */
   case class Array(value: Seq[Option[Param]]) extends Params
-
   object Array {
     implicit val paramsArrayDecoder: Decoder[Array] =
       deriveUnwrappedDecoder
@@ -48,7 +47,6 @@ object Params {
   //initialized, shutdown, exit
   /** Void params. */
   case class VoidParams() extends Params
-
   object VoidParams {
     implicit val voidParamsDecoder: Decoder[VoidParams] =
       deriveDecoder
@@ -68,7 +66,6 @@ object Params {
     trace: Option[Trace]                           = None,
     workspaceFolders: Option[Seq[WorkspaceFolder]] = None
   ) extends Params
-
   object InitializeParams {
     implicit val initializeParamsDecoder: Decoder[InitializeParams] =
       deriveDecoder
@@ -87,7 +84,6 @@ object Params {
     label: Option[String],
     edit: WorkspaceEdit
   ) extends Params
-
   object ApplyWorkspaceEditParams {
     implicit val applyWorkspaceEditParamsDecoder
       : Decoder[ApplyWorkspaceEditParams] =
@@ -100,7 +96,6 @@ object Params {
     */
   case class DidOpenTextDocumentParams(textDocument: TextDocumentItem)
       extends Params
-
   object DidOpenTextDocumentParams {
     implicit val didOpenTextDocumentParamsDecoder
       : Decoder[DidOpenTextDocumentParams] =
@@ -112,11 +107,9 @@ object Params {
     * [[org.enso.gateway.protocol.Notifications.DidChangeTextDocument]].
     */
   case class DidChangeTextDocumentParams(
-    //    syncKind: TextDocumentSyncKind   //??? TODO
     textDocument: VersionedTextDocumentIdentifier,
     contentChanges: Seq[TextDocumentContentChangeEvent]
   ) extends Params
-
   object DidChangeTextDocumentParams {
     implicit val didChangeTextDocumentParamsDecoder
       : Decoder[DidChangeTextDocumentParams] =
@@ -131,7 +124,6 @@ object Params {
     textDocument: TextDocumentIdentifier,
     reason: TextDocumentSaveReason
   ) extends Params
-
   object WillSaveTextDocumentWaitUntilParams {
     implicit val willSaveTextDocumentWaitUntilParamsDecoder
       : Decoder[WillSaveTextDocumentWaitUntilParams] =
@@ -146,7 +138,6 @@ object Params {
     textDocument: TextDocumentIdentifier,
     text: Option[String]
   ) extends Params
-
   object DidSaveTextDocumentParams {
     implicit val didSaveTextDocumentParamsDecoder
       : Decoder[DidSaveTextDocumentParams] =
@@ -159,11 +150,9 @@ object Params {
     */
   case class DidCloseTextDocumentParams(textDocument: TextDocumentIdentifier)
       extends Params
-
   object DidCloseTextDocumentParams {
     implicit val didCloseTextDocumentParamsDecoder
       : Decoder[DidCloseTextDocumentParams] =
       deriveDecoder
   }
-
 }
