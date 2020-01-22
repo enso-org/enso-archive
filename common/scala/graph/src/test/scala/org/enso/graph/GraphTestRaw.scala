@@ -20,17 +20,17 @@ class GraphTestRaw extends FlatSpec with Matchers {
     // TODO [AA] What happens if everywhere I have `G <: PrimGraph` I instead
     //  put `Graph`?
 
-    implicit def components[G <: PrimGraph] =
+    implicit def components =
       new PrimGraph.Component.List[Graph] {
         type Out = Nodes :: Edges :: HNil
       }
 
-    implicit def nodeFields[G <: PrimGraph] =
+    implicit def nodeFields =
       new PrimGraph.Component.Field.List[Graph, Nodes] {
-        type Out = Node.Shape :: Node.ParentLink :: Node.Location :: HNil
+        type Out = Node.Shape :: Node.ParentLink[Graph] :: Node.Location :: HNil
       }
 
-    implicit def edgeFields[G <: PrimGraph] =
+    implicit def edgeFields =
       new PrimGraph.Component.Field.List[Graph, Edges] {
         type Out = Edge.Shape :: HNil
       }
@@ -196,10 +196,11 @@ class GraphTestRaw extends FlatSpec with Matchers {
       // TODO [AA] Can do this with fields
       // TODO [AA] Can generate named accessor for the base type
       // TODO [AA] Will need to copy generic tparams around
-      sealed case class ParentLink() extends PrimGraph.Component.Field
+      sealed case class ParentLink[G <: PrimGraph]()
+          extends PrimGraph.Component.Field
       object ParentLink {
         implicit def sized[G <: PrimGraph] =
-          new Sized[ParentLink] { type Out = _1 }
+          new Sized[ParentLink[G]] { type Out = _1 }
 
         implicit class ParentLinkInstance[
           G <: PrimGraph,
@@ -209,18 +210,18 @@ class GraphTestRaw extends FlatSpec with Matchers {
         ) {
           def parent(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, ParentLink]
+            ev: PrimGraph.HasComponentField[G, C, ParentLink[G]]
           ): Edge[G] = {
             PrimGraph.Component.Ref(
-              graph.unsafeReadField[C, ParentLink](node.ix, 0)
+              graph.unsafeReadField[C, ParentLink[G]](node.ix, 0)
             )
           }
 
           def parent_=(value: Edge[G])(
             implicit graph: PrimGraph.GraphData[G],
-            ev: PrimGraph.HasComponentField[G, C, ParentLink]
+            ev: PrimGraph.HasComponentField[G, C, ParentLink[G]]
           ): Unit = {
-            graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
+            graph.unsafeWriteField[C, ParentLink[G]](node.ix, 0, value.ix)
           }
         }
 
@@ -409,12 +410,6 @@ class GraphTestRaw extends FlatSpec with Matchers {
 
   println(n2.parent)
   n2.parent = e1
-
-  // The size calculation can't match `ParentLink[G]` against `ParentLink[G]`
-//  case class Foo[G <: PrimGraph]() extends PrimGraph.Component.Field
-//
-//  def foo[G <: PrimGraph, G1 <: PrimGraph]: Unit =
-//    implicitly[Foo[G] =:= Foo[G1]]
 
   println(n3.parent)
   n3.parent = e1
