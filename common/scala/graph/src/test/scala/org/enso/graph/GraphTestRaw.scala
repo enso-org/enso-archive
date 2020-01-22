@@ -76,7 +76,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
         sealed case class Null() extends Shape
         object Null {
           val index = 0
-          val any   = PrimGraph.Component.VariantMatcher[Shape, Null](0)
+          def any   = PrimGraph.Component.VariantMatcher[Shape, Null](0)
 
           implicit def sized = new Sized[Null] { type Out = _0 }
         }
@@ -84,7 +84,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
         sealed case class App() extends Shape
         object App {
           val index          = 1
-          val any            = PrimGraph.Component.VariantMatcher[Shape, App](1)
+          def any            = PrimGraph.Component.VariantMatcher[Shape, App](1)
           implicit def sized = new Sized[App] { type Out = _2 }
 
           def unapply[G <: PrimGraph, C <: PrimGraph.Component](
@@ -150,7 +150,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
         sealed case class Centre() extends Shape
         object Centre {
           val index          = 2
-          val any            = PrimGraph.Component.VariantMatcher[Shape, App](2)
+          def any            = PrimGraph.Component.VariantMatcher[Shape, App](2)
           implicit def sized = new Sized[Centre] { type Out = _1 }
 
           def unapply[G <: PrimGraph, C <: PrimGraph.Component](
@@ -499,7 +499,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
     n1.line shouldEqual 10
     n1.column shouldEqual 5
 
-    n1.location = Node.Location(1, 2)
+    n1.location = Node.Location[Graph](1, 2)
 
     n1.line shouldEqual 1
     n1.column shouldEqual 2
