@@ -12,11 +12,9 @@ import org.enso.gateway.protocol.response.result.servercapabilities.textdocument
   * [[TextDocumentSyncKind.NoneKind]].
   */
 sealed trait TextDocumentSync
-
 object TextDocumentSync {
 
   case class Number(value: Int) extends TextDocumentSync
-
   object Number {
     implicit val textDocumentSyncNumberEncoder: Encoder[Number] =
       deriveUnwrappedEncoder
@@ -26,7 +24,6 @@ object TextDocumentSync {
     openClose: Option[Boolean]           = None,
     change: Option[TextDocumentSyncKind] = None
   ) extends TextDocumentSync
-
   object TextDocumentSyncOptions {
     implicit val textDocumentSyncTextDocumentSyncOptionsEncoder
       : Encoder[TextDocumentSyncOptions] = deriveEncoder
@@ -34,7 +31,6 @@ object TextDocumentSync {
 
   case class WillSaveWaitUntil(willSaveWaitUntil: Boolean)
       extends TextDocumentSync
-
   object WillSaveWaitUntil {
     implicit val textDocumentSyncWillSaveWaitUntilEncoder
       : Encoder[WillSaveWaitUntil] = deriveEncoder

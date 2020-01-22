@@ -9,7 +9,6 @@ case class TextDocumentEdit(
   textDocument: VersionedTextDocumentIdentifier,
   edits: Seq[TextEdit]
 )
-
 object TextDocumentEdit {
   implicit val TextDocumentEditDecoder: Decoder[TextDocumentEdit] =
     deriveDecoder

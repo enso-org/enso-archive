@@ -52,6 +52,7 @@ object Param {
 
   /** An array element. */
   case class Array(value: Seq[Option[Param]]) extends Param
+
   object Array {
     implicit val paramArrayDecoder: Decoder[Array] =
       deriveUnwrappedDecoder
@@ -61,7 +62,7 @@ object Param {
     *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
-  case class InitializationOptions(value: Text) extends Param // TODO
+  case class InitializationOptions(value: String) extends Param // TODO
   object InitializationOptions {
     implicit val initializationOptionsDecoder: Decoder[InitializationOptions] =
       deriveUnwrappedDecoder
@@ -72,8 +73,8 @@ object Param {
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
   case class ClientInfo(
-    name: Text,
-    version: Option[Text]
+    name: String,
+    version: Option[String]
   ) extends Param
   object ClientInfo {
     implicit val clientInfoDecoder: Decoder[ClientInfo] = deriveDecoder
@@ -152,7 +153,6 @@ object Param {
   case class TextDocumentIdentifier(
     uri: DocumentUri
   ) extends Param
-
   object TextDocumentIdentifier {
     implicit val textDocumentIdentifierDecoder
       : Decoder[TextDocumentIdentifier] =
@@ -163,7 +163,6 @@ object Param {
     uri: DocumentUri,
     version: Option[Int] = None
   ) extends Param
-
   object VersionedTextDocumentIdentifier {
     implicit val versionedTextDocumentIdentifierDecoder
       : Decoder[VersionedTextDocumentIdentifier] =
@@ -171,7 +170,6 @@ object Param {
   }
 
   sealed abstract class TextDocumentSaveReason(value: Int) extends Param
-
   object TextDocumentSaveReason {
 
     case object Manual extends TextDocumentSaveReason(1)
