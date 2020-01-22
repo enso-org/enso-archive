@@ -1,10 +1,19 @@
 package org.enso.gateway.protocol
 
 import org.enso.gateway.protocol.request.Params
+import org.enso.gateway.protocol.request.Params.{
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
+  DidSaveTextDocumentParams,
+  VoidParams
+}
 
 /** Parent class for notification extractor objects. */
-sealed abstract class NotificationExtractor(val method: String) {
-  def unapply[T <: Params](
+sealed abstract class NotificationExtractor[T <: Params](
+  val method: String
+) {
+  def unapply(
     request: Notification[T]
   ): Option[Option[T]] =
     request.method match {
@@ -24,13 +33,13 @@ object Notifications {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialized
     */
-  object Initialized extends NotificationExtractor("initialized")
+  object Initialized extends NotificationExtractor[VoidParams]("initialized")
 
   /** A notification to ask the server to exit its process.
     *
     * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#exit
     */
-  object Exit extends NotificationExtractor("exit")
+  object Exit extends NotificationExtractor[VoidParams]("exit")
 
   /** The notification sent from the client to the server to signal newly opened
     * text documents.
@@ -39,7 +48,9 @@ object Notifications {
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didOpen
     */
   object DidOpenTextDocument
-      extends NotificationExtractor("textDocument/didOpen")
+      extends NotificationExtractor[DidOpenTextDocumentParams](
+        "textDocument/didOpen"
+      )
 
   /** The notification sent from the client to the server to signal changes to a
     * text document.
@@ -48,14 +59,18 @@ object Notifications {
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didChange
     */
   object DidChangeTextDocument
-      extends NotificationExtractor("textDocument/didChange")
+      extends NotificationExtractor[DidChangeTextDocumentParams](
+        "textDocument/didChange"
+      )
 
   /** The notification sent from the client to the server when the document was saved in the client.
     *
     * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didSave
     */
   object DidSaveTextDocument
-      extends NotificationExtractor("textDocument/didSave")
+      extends NotificationExtractor[DidSaveTextDocumentParams](
+        "textDocument/didSave"
+      )
 
   /** The notification sent from the client to the server when the document got closed in the client.
     *
@@ -63,5 +78,7 @@ object Notifications {
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didClose
     */
   object DidCloseTextDocument
-      extends NotificationExtractor("textDocument/didClose")
+      extends NotificationExtractor[DidCloseTextDocumentParams](
+        "textDocument/didClose"
+      )
 }
