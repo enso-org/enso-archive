@@ -373,7 +373,7 @@ object DocParserHTMLGenerator {
     val astHeadCls     = HTML.`class` := "ASTHead"
     val astHTML        = createHTMLFromAST(ast)
     var astName        = HTML.div(astHeadCls)(astHTML.header)
-    val strikeoutStyle = HTML.`style` := "text-decoration: line-through;"
+    val strikeoutStyle = HTML.`style` := "text-decoration-line:line-through;"
     if (doc.tags.html.mkString.contains("DEPRECATED")) {
       astName = HTML.div(astHeadCls)(strikeoutStyle)(astHTML.header)
     }
@@ -396,7 +396,7 @@ object DocParserHTMLGenerator {
         }
         HTML.div(docClass)(
           astName,
-          doc.htmlWoTags,
+          content,
           doc.tags.html
         )
     }

@@ -25,12 +25,12 @@ p
 
 a:hover
   color: #35a5ff !important
-  text-decoration: none
+  text-decoration: inherit
 
 a
   color: #333333
   background-color: transparent
-  text-decoration: none
+  text-decoration: inherit
   display: inline-block
   transition: all 0.3s ease
 
@@ -189,6 +189,7 @@ li
   margin-left: auto
   margin-right: auto
   position: relative
+  text-decoration: inherit
 
 
 .Body .Raw
@@ -239,12 +240,14 @@ li
 .Def
   margin: auto
   padding: 0 15px
+  text-decoration: inherit
 
   .Synopsis,
   .Body,
   .Tags,
   .ASTData
     padding-left: 0
+    text-decoration: inherit
 
   .Synopsis
     padding: 0
@@ -278,12 +281,15 @@ li
           font-size: 18px
           font-weight: 400
           font-style: normal
+          text-decoration: inherit
 
       .ASTData
         width: 70% !important
 
       .Doc
+        text-decoration: inherit
         .Synopsis
+          text-decoration: inherit
           margin: 15px 0
 
       .Tags
@@ -345,6 +351,9 @@ li
     margin: 0
     width: 100%
     background-color: #ffffff
+
+  .DefNoBody
+    text-decoration: inherit
 
 @media (max-width: 500px)
   .Synopsis,
