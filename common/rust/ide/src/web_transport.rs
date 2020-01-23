@@ -12,7 +12,6 @@ use wasm_bindgen::JsCast;
 use web_sys::CloseEvent;
 use web_sys::MessageEvent;
 use web_sys::WebSocket;
-//use std::cell::Cell;
 
 #[derive(Clone,Copy,Debug,PartialEq)]
 pub enum WebSocketState {

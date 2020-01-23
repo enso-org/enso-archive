@@ -264,8 +264,8 @@ mod tests {
 
     #[test]
     fn test_notification() {
-        let (ws, mut fm)  = setup_fm();
-        let mut events = Box::pin(fm.events());
+        let (ws, mut fm) = setup_fm();
+        let mut events   = Box::pin(fm.events());
         assert!(poll_stream_output(&mut events).is_none());
 
         let expected_notification = FilesystemEvent {
@@ -320,15 +320,15 @@ mod tests {
 
     #[test]
     fn version_serialization_and_deserialization() {
-        let main   = Path::new("./Main.luna");
-        let target = Path::new("./Target.luna");
-
+        let main      = Path::new("./Main.luna");
+        let target    = Path::new("./Target.luna");
         let path_main = json!({"path" : "./Main.luna"});
-        let from_main_to_target = json!({"from" : "./Main.luna", "to" : "./Target.luna"});
+        let from_main_to_target = json!({
+            "from" : "./Main.luna",
+            "to"   : "./Target.luna"
+        });
         let true_json = json!(true);
         let unit_json = json!(null);
-
-        println!("AAA {}", serde_json::to_string(&()).unwrap());
 
         test_request(
             |fm| fm.copy_directory(main.clone(), target.clone()),
@@ -382,7 +382,9 @@ mod tests {
             json!("Hello world!"),
             "Hello world!".into());
 
-        let parse_rfc3339 = |s| { chrono::DateTime::parse_from_rfc3339(s).unwrap() };
+        let parse_rfc3339 = |s| {
+            chrono::DateTime::parse_from_rfc3339(s).unwrap()
+        };
         let expected_attributes = Attributes {
             creation_time      : parse_rfc3339("2020-01-07T21:25:26Z"),
             last_access_time   : parse_rfc3339("2020-01-21T22:16:51.123994500+00:00"),
@@ -418,13 +420,15 @@ mod tests {
 
         let uuid_value = uuid::Uuid::parse_str("02723954-fbb0-4641-af53-cec0883f260a").unwrap();
         let uuid_json  = json!("02723954-fbb0-4641-af53-cec0883f260a");
-        let watch_id   = json!({"watchId" : "02723954-fbb0-4641-af53-cec0883f260a"});
         test_request(
             |fm| fm.create_watch(main.clone()),
             "createWatch",
             path_main.clone(),
             uuid_json.clone(),
             uuid_value);
+        let watch_id   = json!({
+            "watchId" : "02723954-fbb0-4641-af53-cec0883f260a"
+        });
         test_request(
             |fm| fm.delete_watch(uuid_value.clone()),
             "deleteWatch",

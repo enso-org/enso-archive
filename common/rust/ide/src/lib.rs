@@ -1,197 +1,166 @@
-use prelude::*;
-
-use serde::Serialize;
-use serde::Deserialize;
-use json_rpc::*;
-use json_rpc::api::Result;
-use std::future::Future;
-//use futures::FutureExt;
-
-use uuid::Uuid;
-use wasm_bindgen::__rt::std::time::SystemTime;
-
-////////////////////////////////////////////////////////////////////////////////
-
 pub mod web_transport;
-pub mod web_main;
 
-pub type Path = String;
+use std::cell::RefCell;
+use std::rc::Rc;
+use std::future::Future;
+//use futures::{FutureExt, StreamExt};
+use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast;
+use futures::executor::{LocalSpawner, LocalPool};
+use futures::task::LocalSpawn;
+
+use file_manager_client::Client;
+use file_manager_client::Path;
+
+
+/// A macro to provide `println!(..)`-style syntax for `console.log` logging.
+#[macro_export]
+macro_rules! log {
+    ( $( $t:tt )* ) => {
+        web_sys::console::log_1(&format!( $( $t )* ).into());
+    }
+}
+
+fn window() -> web_sys::Window {
+    web_sys::window().expect("no global `window` exists")
+}
+
+fn request_animation_frame(f: &Closure<dyn FnMut()>) {
+    window()
+        .request_animation_frame(f.as_ref().unchecked_ref())
+        .expect("should register `requestAnimationFrame` OK");
+}
+
+fn document() -> web_sys::Document {
+    window()
+        .document()
+        .expect("should have a document on window")
+}
+
+fn body() -> web_sys::HtmlElement {
+    document().body().expect("document should have a body")
+}
+
+//fn prepend_text(line:&str) {
+//    let old_text = body().text_content().unwrap_or("".into());
+//    let new_text = format!("{}\n\n{}", line, old_text);
+//    body().set_text_content(Some(&new_text));
+//}
+
+pub async fn setup_file_manager(url:&str) -> Client {
+    let ws = crate::web_transport::MyWebSocket::new(url).await;
+    Client::new(ws)
+}
+
+trait Tickable {
+    fn tick(&mut self);
+}
 
 #[derive(Debug)]
-pub struct FmClient {
-    pub handler:Handler,
+pub struct EventManager {
+    pub pool    : LocalPool,
+    pub spawner : LocalSpawner,
 }
 
-macro_rules! make_rpc_method {
-    ( $nameTypename:ident $name:ident $name_ext:ident ($($arg:ident : $type:ty),* $(,)?) -> $out:ty ) => {
-    paste::item! {
-        impl FmClient {
-            pub fn $name
-            (&mut self, $($arg:$type),*) -> impl Future<Output=Result<$out>> {
-                let input = [<$nameTypename Input>] { $($arg:$arg),* };
-                self.handler.open_request(input)
+impl EventManager {
+    pub fn new() -> EventManager {
+        let pool = LocalPool::new();
+        let spawner = pool.spawner();
+        EventManager {
+            pool,
+            spawner,
+        }
+    }
+
+    pub fn execute<F:Future<Output=()>+'static>(&mut self, f:F) {
+        let f = Box::pin(f);
+        let _ = self.spawner.spawn_local_obj(f.into());
+    }
+
+    pub fn execute_cb<F,Cb>(&mut self, f:F, cb:Cb)
+        where F  : Future+'static,
+              Cb : FnOnce(F::Output)->()+'static {
+        let f = async {
+            cb(f.await);
+        };
+        self.execute(f);
+    }
+}
+
+impl Tickable for EventManager {
+    fn tick(&mut self) {
+//        log!("EM tick");
+        self.pool.run_until_stalled();
+    }
+}
+
+// This function is automatically invoked after the wasm module is instantiated.
+#[wasm_bindgen(start)]
+pub fn run() -> Result<(), JsValue> {
+    console_error_panic_hook::set_once();
+    let f = Rc::new(RefCell::new(None));
+    let g = f.clone();
+
+    let mut em = EventManager::new();
+
+//    let mut file_manager: Rc<RefCell<Option<FmClient>>> = Rc::new(RefCell::new(None));
+
+//    let be_nice = async {
+//        let ws = new_websocket("ws://localhost:9001").await;
+//        ws.send_with_str("nice to meet you");
+//        log!("Sent a nice message");
+//    };
+//    em.execute(be_nice);
+
+    let file_manager: Rc<RefCell<Option<Client>>> = Rc::new(RefCell::new(None));
+    let fm2 = file_manager.clone();
+    em.execute(async move {
+        let call_exists = |path| {
+            fm2.borrow_mut().as_mut().unwrap().exists(path)
+        };
+        let fm = setup_file_manager("ws://localhost:9001").await;
+        log!("file manager created!");
+        *fm2.borrow_mut() = Some(fm);
+
+        log!("first query");
+        let path = "C:/temp";
+        log!("{} exists? {:?}", path, call_exists(Path::new(path)).await);
+
+        log!("second query");
+        let path = "C:/Windows";
+        log!("{} exists? {:?}", path, call_exists(Path::new(path)).await);
+
+        log!("third query");
+        let path = "C:/Windows";
+        log!("{} exists? {:?}", path, call_exists(Path::new(path)).await);
+
+        log!("future done");
+    });
+
+    let mut i = 0;
+    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        i += 1;
+//        log!("tick {}", i);
+//        let text = format!("Time now: {:?}", std::time::Instant::now());
+
+        let text = format!("requestAnimationFrame has been called {} times.", i);
+        body().set_text_content(Some(&text));
+        em.tick();
+//        lumpen_executor(&mut fut);
+
+        if let Ok(mut opt_fm) = file_manager.try_borrow_mut() {
+//            log!("opt_fm: {:?}", opt_fm);
+            if let Some(fm) = opt_fm.as_mut() {
+//                log!("will tick fm");
+                fm.process_events();
+//                log!("buffer now: {:?};\nongoing: {:?}\nem: {:?}", fm.handler.buffer.try_borrow_mut(), fm.handler.ongoing_calls, em)
             }
+        } else {
+            log!("Canot tick FM, it is busy!");
         }
+        request_animation_frame(f.borrow().as_ref().unwrap());
+    }) as Box<dyn FnMut()>));
 
-        #[derive(Serialize,Deserialize,Debug,PartialEq)]
-        struct [<$nameTypename Input>] {
-            $($arg : $type),*
-        }
-
-        impl api::RemoteMethodCall for [<$nameTypename Input>] {
-            const NAME:&'static str = stringify!($name_ext);
-            type Returned = $out;
-        }
-    }}
-}
-
-impl FmClient {
-    pub fn new(transport:impl Transport + 'static) -> FmClient {
-        let mut handler = Handler::new(transport);
-        handler.on_error.set(|e| {
-            log!("Encountered handling error: {:?}", e);
-        });
-        handler.on_notification.set(|n| {
-            log!("Received a notification: {:?}", n);
-        });
-        FmClient { handler }
-    }
-
-    pub fn tick(&mut self) {
-        self.handler.process_events()
-    }
-}
-
-make_rpc_method!(CopyDirectory copy_directory copyDirectory (from:Path, to:Path)         -> ()        );
-make_rpc_method!(CopyFile      copy_file      copyFile      (from:Path, to:Path)         -> ()        );
-make_rpc_method!(DeleteFile    delete_file    deleteFile    (path:Path)                  -> ()        );
-make_rpc_method!(Exists        exists         exists        (path:Path)                  -> bool      );
-make_rpc_method!(List          list           list          (path:Path)                  -> Vec<Path> );
-make_rpc_method!(MoveDirectory move_directory moveDirectory (from:Path, to:Path)         -> ()        );
-make_rpc_method!(MoveFile      move_file      moveFile      (from:Path, to:Path)         -> ()        );
-make_rpc_method!(Read          read           read          (path:Path)                  -> String    );
-make_rpc_method!(Status        status         status        (path:Path)                  -> Attributes);
-make_rpc_method!(Touch         touch          touch         (path:Path)                  -> ()        );
-make_rpc_method!(Write         write          write         (path:Path, contents:String) -> ()        );
-make_rpc_method!(CreateWatch   create_watch   createWatch   (path:Path)                  -> Uuid      );
-make_rpc_method!(DeleteWatch   delete_watch   deleteWatch   (path:Path)                  -> ()        );
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-#[serde(rename_all = "camelCase")]
-pub struct Attributes{
-    pub creation_time      : FileTime,
-    pub last_access_time   : FileTime,
-    pub last_modified_time : FileTime,
-    pub file_kind          : FileKind,
-    pub size_in_bytes      : u64
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub struct FileTime(pub SystemTime);
-
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
-pub enum FileKind {
-    Directory, RegularFile, SymbolicLink, Other
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::transport::mock::MockTransport;
-    use failure::_core::cell::RefCell;
-    use std::rc::Rc;
-    use crate::FmClient;
-    use serde_json::json;
-    use serde_json::Value;
-    use json_rpc::messages::{RequestMessage, Message};
-    use std::future::Future;
-    use serde::de::DeserializeOwned;
-
-
-    use std::pin::Pin;
-    use std::task::Context;
-    use std::task::Poll;
-
-    /// Polls the future, performing any available work. If future is complete,
-    /// returns result. Otherwise, returns control when stalled.
-    fn poll_for_output<F : Future>(f:&mut Pin<Box<F>>) -> Option<F::Output> {
-        let mut ctx = Context::from_waker(futures::task::noop_waker_ref());
-        match f.as_mut().poll(&mut ctx) {
-            Poll::Ready(result) => Some(result),
-            Poll::Pending       => None,
-        }
-    }
-
-
-    fn fixture<Fun, Fut, T>
-    (make_request:Fun
-    , expected_method:&str
-    , expected_input:Value
-    , result:Value
-    , expected_output:T)
-    where Fun : FnOnce(&mut FmClient) -> Fut,
-          Fut : Future<Output= json_rpc::Result<T>>,
-          T   : Debug + PartialEq {
-        let     ws  = Rc::new(RefCell::new(MockTransport::new()));
-        let mut fm  = FmClient::new(ws.clone());
-        let mut fut = Box::pin(make_request(&mut fm));
-
-        let request = ws.borrow_mut().expect_message::<RequestMessage<Value>>();
-        assert_eq!(request.method, expected_method);
-        assert_eq!(request.input, expected_input);
-
-        let response = Message::new_success(request.id, result);
-        ws.borrow_mut().mock_peer_message(response);
-
-        fm.tick();
-        let output = poll_for_output(&mut fut).unwrap().unwrap();
-        assert_eq!(output, expected_output);
-    }
-
-    #[test]
-    fn version_serialization_and_deserialization() {
-        let main = "./Main.luna";
-        let target = "./Target.luna";
-
-        let path_main = json!({"path" : "./Main.luna"});
-        let from_main_to_target = json!({"from" : "./Main.luna", "to" : "./Target.luna"});
-        let true_json = json!(true);
-        let unit_json = json!(true);
-
-        println!("AAA {}", serde_json::to_string(&()).unwrap());
-
-        fixture(
-            |mut fm| fm.copy_directory(main.into(), target.into()),
-            "copyDirectory",
-            from_main_to_target.clone(),
-            unit_json.clone(),
-            ());
-        fixture(
-            |mut fm| fm.copy_file(main.into(), target.into()),
-            "copyFile",
-            from_main_to_target.clone(),
-            unit_json.clone(),
-            ());
-        fixture(
-            |mut fm| fm.delete_file(main.into()),
-            "deleteFile",
-            path_main.clone(),
-            unit_json.clone(),
-            ());
-        fixture(
-            |mut fm| fm.exists(main.into()),
-            "exists",
-            path_main.clone(),
-            json!(true),
-            true);
-        fixture(
-            |mut fm| fm.list(main.into()),
-            "list",
-            path_main.clone(),
-            json!(["Bar.luna",       "Foo.luna"       ]),
-            vec!  ["Bar.luna".into(),"Foo.luna".into()]);
-
-
-    }
+    request_animation_frame(g.borrow().as_ref().unwrap());
+    Ok(())
 }
