@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn test_notification() {
         let (mut ws, mut fm) = setup_fm();
-        let mut events   = Box::pin(fm.events());
+        let mut events       = Box::pin(fm.events());
         assert!(poll_stream_output(&mut events).is_none());
 
         let expected_notification = FilesystemEvent {
@@ -298,7 +298,7 @@ mod tests {
     , expected_method:&str
     , expected_input:Value
     , result:Value
-    , expected_output:T)
+    , expected_output:T )
     where Fun : FnOnce(&mut Client) -> Fut,
           Fut : Future<Output = Result<T>>,
           T   : Debug + PartialEq {
@@ -307,7 +307,7 @@ mod tests {
 
         let request = ws.expect_message::<RequestMessage<Value>>();
         assert_eq!(request.method, expected_method);
-        assert_eq!(request.input, expected_input);
+        assert_eq!(request.input,  expected_input);
 
         let response = Message::new_success(request.id, result);
         ws.mock_peer_message(response);
