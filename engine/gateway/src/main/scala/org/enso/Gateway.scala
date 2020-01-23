@@ -3,7 +3,6 @@ package org.enso
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.typesafe.config.ConfigFactory
 import org.enso.gateway.protocol.response.Result.{InitializeResult, NullResult}
-import org.enso.gateway.protocol.response.result.servercapabilities.TextDocumentSync
 import org.enso.gateway.protocol.{Id, Notifications, Requests, Response}
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
@@ -21,7 +20,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       val msg = "Gateway: Initialize received"
       log.info(msg)
       languageServer ! languageserver.Requests.Initialize(
-        id.toLsp,
+        id.toLsModel,
         sender()
       )
 
@@ -29,7 +28,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       val msg = "Gateway: RequestReceived.Initialize received"
       log.info(msg)
       replyTo ! Response.result(
-        id = Some(Id.fromLsp(id)),
+        id = Some(Id.fromLsModel(id)),
         result = InitializeResult(
           capabilities = ServerCapabilities(),
           serverInfo   = Some(serverInfo)
@@ -39,13 +38,13 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     case Requests.Shutdown(id, _) =>
       val msg = "Gateway: Shutdown received"
       log.info(msg)
-      languageServer ! languageserver.Requests.Shutdown(id.toLsp, sender())
+      languageServer ! languageserver.Requests.Shutdown(id.toLsModel, sender())
 
     case languageserver.RequestReceived.Shutdown(id, replyTo) =>
       val msg = "Gateway: RequestReceived.Shutdown received"
       log.info(msg)
       replyTo ! Response.result(
-        id     = Some(Id.fromLsp(id)),
+        id     = Some(Id.fromLsModel(id)),
         result = NullResult
       )
 
