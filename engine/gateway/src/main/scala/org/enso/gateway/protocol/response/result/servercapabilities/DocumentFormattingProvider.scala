@@ -7,7 +7,6 @@ import io.circe.generic.semiauto.deriveEncoder
 
 /** The server provides document formatting. */
 sealed trait DocumentFormattingProvider
-
 object DocumentFormattingProvider {
 
   case class Bool(value: Boolean) extends DocumentFormattingProvider

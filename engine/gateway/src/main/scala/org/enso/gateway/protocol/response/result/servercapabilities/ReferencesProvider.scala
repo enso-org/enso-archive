@@ -7,7 +7,6 @@ import io.circe.generic.semiauto.deriveEncoder
 
 /** The server provides find references support. */
 sealed trait ReferencesProvider
-
 object ReferencesProvider {
 
   case class Bool(value: Boolean) extends ReferencesProvider

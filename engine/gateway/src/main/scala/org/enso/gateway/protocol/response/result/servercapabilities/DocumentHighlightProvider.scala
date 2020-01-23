@@ -7,7 +7,6 @@ import io.circe.generic.semiauto.deriveEncoder
 
 /** The server provides document highlight support. */
 sealed trait DocumentHighlightProvider
-
 object DocumentHighlightProvider {
 
   case class Bool(value: Boolean) extends DocumentHighlightProvider

@@ -5,7 +5,6 @@ import io.circe.literal._
 
 trait TestJson {
   def request: Json
-
   def expectedResponse: Json
 }
 
@@ -29,7 +28,7 @@ object TestJson {
            "jsonrpc": "2.0",
            "id": 10,
            "result": {
-             "capabilities" : {},
+             "capabilities": {},
              "serverInfo": {
                "name": "Enso Language Server",
                "version": "1.0"

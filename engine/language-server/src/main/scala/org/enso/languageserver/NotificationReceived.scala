@@ -1,5 +1,6 @@
 package org.enso.languageserver
 
+/** Language server responses to [[Notifications]]. */
 object NotificationReceived {
 
   /** Language server response to [[Notifications.Initialized]]. */

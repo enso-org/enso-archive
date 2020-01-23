@@ -8,7 +8,6 @@ import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSele
 
 /** The server provides go to declaration support. */
 sealed trait DeclarationProvider
-
 object DeclarationProvider {
 
   case class Bool(value: Boolean) extends DeclarationProvider

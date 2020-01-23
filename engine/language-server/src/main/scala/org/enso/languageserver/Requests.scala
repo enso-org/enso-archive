@@ -2,6 +2,7 @@ package org.enso.languageserver
 
 import akka.actor.ActorRef
 
+/** Akka messages sent by Gateway received LSP requests. */
 object Requests {
 
   /** Akka message sent by Gateway received LSP request `initialize`. */

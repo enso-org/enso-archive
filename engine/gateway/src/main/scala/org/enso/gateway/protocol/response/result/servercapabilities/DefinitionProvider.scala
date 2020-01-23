@@ -7,7 +7,6 @@ import io.circe.generic.semiauto.deriveEncoder
 
 /** The server provides goto definition support. */
 sealed trait DefinitionProvider
-
 object DefinitionProvider {
 
   case class Bool(value: Boolean) extends DefinitionProvider

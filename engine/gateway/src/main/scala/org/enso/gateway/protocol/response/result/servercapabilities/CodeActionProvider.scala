@@ -11,7 +11,6 @@ import org.enso.gateway.protocol.CodeActionKind
   * property `textDocument.codeAction.codeActionLiteralSupport`.
   */
 sealed trait CodeActionProvider
-
 object CodeActionProvider {
 
   case class Bool(value: Boolean) extends CodeActionProvider

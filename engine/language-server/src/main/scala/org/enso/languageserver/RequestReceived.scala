@@ -2,6 +2,7 @@ package org.enso.languageserver
 
 import akka.actor.ActorRef
 
+/** Language server responses to [[Requests]]. */
 object RequestReceived {
 
   /** Language server response to [[Requests.Initialize]]. */
