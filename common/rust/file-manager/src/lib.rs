@@ -246,7 +246,6 @@ mod tests {
     use super::*;
     use super::FileKind::RegularFile;
 
-    use failure::_core::cell::RefCell;
     use json_rpc::messages::Message;
     use json_rpc::messages::RequestMessage;
     use json_rpc::transport::mock::MockTransport;
@@ -256,15 +255,15 @@ mod tests {
     use utils::poll_future_output;
     use utils::poll_stream_output;
 
-    fn setup_fm() -> (Rc<RefCell<MockTransport>>, Client) {
-        let ws  = Rc::new(RefCell::new(MockTransport::new()));
+    fn setup_fm() -> (MockTransport, Client) {
+        let ws  = MockTransport::new();
         let fm  = Client::new(ws.clone());
         (ws,fm)
     }
 
     #[test]
     fn test_notification() {
-        let (ws, mut fm) = setup_fm();
+        let (mut ws, mut fm) = setup_fm();
         let mut events   = Box::pin(fm.events());
         assert!(poll_stream_output(&mut events).is_none());
 
@@ -277,7 +276,7 @@ mod tests {
             "method": "filesystemEvent",
             "params": {"path" : "./Main.luna", "kind" : "Modified"}
         }"#;
-        ws.borrow_mut().mock_peer_message_text(notification_text);
+        ws.mock_peer_message_text(notification_text);
         assert!(poll_stream_output(&mut events).is_none());
         fm.process_events();
         let event = poll_stream_output(&mut events);
@@ -303,15 +302,15 @@ mod tests {
     where Fun : FnOnce(&mut Client) -> Fut,
           Fut : Future<Output = Result<T>>,
           T   : Debug + PartialEq {
-        let (ws, mut fm)  = setup_fm();
+        let (mut ws, mut fm)  = setup_fm();
         let mut fut = Box::pin(make_request(&mut fm));
 
-        let request = ws.borrow_mut().expect_message::<RequestMessage<Value>>();
+        let request = ws.expect_message::<RequestMessage<Value>>();
         assert_eq!(request.method, expected_method);
         assert_eq!(request.input, expected_input);
 
         let response = Message::new_success(request.id, result);
-        ws.borrow_mut().mock_peer_message(response);
+        ws.mock_peer_message(response);
 
         fm.process_events();
         let output = poll_future_output(&mut fut).unwrap().unwrap();

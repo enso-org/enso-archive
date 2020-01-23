@@ -125,21 +125,21 @@ impl Client {
 // === Test ===
 // ============
 
-fn setup() -> (Rc<RefCell<MockTransport>>, Client) {
-    let ws = Rc::new(RefCell::new(MockTransport::new()));
+fn setup() -> (MockTransport, Client) {
+    let ws = MockTransport::new();
     let fm = Client::new(ws.clone());
     (ws,fm)
 }
 
 #[test]
 fn test_success_call() {
-    let (ws, mut fm) = setup();
+    let (mut ws, mut fm) = setup();
     let call_input = 8;
     let mut fut = Box::pin(fm.pow(8));
     let expected_first_request_id = Id(0);
 
     // validate request sent
-    let req_msg = ws.borrow_mut().expect_message::<MockRequestMessage>();
+    let req_msg = ws.expect_message::<MockRequestMessage>();
     assert_eq!(req_msg.id, expected_first_request_id);
     assert_eq!(req_msg.method, MockRequest::NAME);
     assert_eq!(req_msg.i, call_input);
@@ -149,7 +149,7 @@ fn test_success_call() {
 
     // let's reply
     let reply = pow_impl(req_msg);
-    ws.borrow_mut().mock_peer_message(reply);
+    ws.mock_peer_message(reply);
 
     // before tick message should be in buffer and callbacks should not
     // complete
@@ -170,12 +170,12 @@ fn test_success_call() {
 
 #[test]
 fn test_error_call() {
-    let (ws, mut fm) = setup();
+    let (mut ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
     assert!(poll_future_output(&mut fut).is_none()); // no reply
 
     // reply with error
-    let req_msg = ws.borrow_mut().expect_message::<MockRequestMessage>();
+    let req_msg = ws.expect_message::<MockRequestMessage>();
     let error_code = 5;
     let error_description = "wrong!";
     let error_data = None;
@@ -185,7 +185,7 @@ fn test_error_call() {
         error_description.into(),
         error_data.clone(),
     );
-    ws.borrow_mut().mock_peer_message(error_msg);
+    ws.mock_peer_message(error_msg);
 
     // receive error
     fm.process_events();
@@ -203,10 +203,10 @@ fn test_error_call() {
 
 #[test]
 fn test_garbage_reply_error() {
-    let (ws, mut fm) = setup();
+    let (mut ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
     assert!(poll_future_output(&mut fut).is_none()); // no reply
-    ws.borrow_mut().mock_peer_message_text("hello, nice to meet you");
+    ws.mock_peer_message_text("hello, nice to meet you");
     fm.process_events();
     assert!(poll_future_output(&mut fut).is_none()); // no valid reply
     let internal_error = fm.expect_handling_error();
@@ -218,10 +218,10 @@ fn test_garbage_reply_error() {
 
 #[test]
 fn test_disconnect_error() {
-    let (ws, mut fm) = setup();
+    let (mut ws, mut fm) = setup();
     let mut fut = Box::pin(fm.pow(8));
     assert!(poll_future_output(&mut fut).is_none()); // no reply
-    ws.borrow_mut().mock_connection_closed();
+    ws.mock_connection_closed();
     assert!(poll_future_output(&mut fut).is_none()); // no reply
     fm.process_events();
     let result = poll_future_output(&mut fut);
@@ -234,18 +234,18 @@ fn test_disconnect_error() {
 
 #[test]
 fn test_sending_while_disconnected() {
-    let (ws, mut fm) = setup();
-    ws.borrow_mut().mock_connection_closed();
+    let (mut ws, mut fm) = setup();
+    ws.mock_connection_closed();
     let mut fut = Box::pin(fm.pow(8));
     let result  = poll_future_output(&mut fut).unwrap();
     assert!(result.is_err())
 }
 
 fn test_notification(mock_notif:MockNotification) {
-    let (ws, mut fm) = setup();
+    let (mut ws, mut fm) = setup();
     let message      = Message::new(mock_notif.clone());
     assert!(fm.try_get_notification().is_none());
-    ws.borrow_mut().mock_peer_message(message.clone());
+    ws.mock_peer_message(message.clone());
     assert!(fm.try_get_notification().is_none());
     fm.process_events();
     let notification = fm.try_get_notification();
@@ -270,9 +270,9 @@ fn test_handling_invalid_notification() {
         "params": [1,2,3,4,5]
     }"#;
 
-    let (ws, mut fm) = setup();
+    let (mut ws, mut fm) = setup();
     assert!(fm.try_get_notification().is_none());
-    ws.borrow_mut().mock_peer_message_text(other_notification);
+    ws.mock_peer_message_text(other_notification);
     assert!(fm.try_get_notification().is_none());
     fm.process_events();
     let internal_error = fm.expect_handling_error();
