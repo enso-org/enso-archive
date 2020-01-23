@@ -12,7 +12,6 @@ sealed trait DeclarationProvider
 object DeclarationProvider {
 
   case class Bool(value: Boolean) extends DeclarationProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -20,7 +19,6 @@ object DeclarationProvider {
 
   case class DeclarationOptions(workDoneProgress: Option[Boolean] = None)
       extends DeclarationProvider
-
   object DeclarationOptions {
     implicit val declarationOptionsEncoder: Encoder[DeclarationOptions] =
       deriveEncoder
@@ -31,7 +29,6 @@ object DeclarationProvider {
     documentSelector: Option[DocumentSelector] = None,
     id: Option[String]                         = None
   ) extends DeclarationProvider
-
   object DeclarationRegistrationOptions {
     implicit val declarationRegistrationOptionsEncoder
       : Encoder[DeclarationRegistrationOptions] =

@@ -40,7 +40,6 @@ object JsonRpcController {
   * @param gateway [[ActorRef]] of Gateway actor.
   */
 class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
-
   import system.dispatcher
 
   /** Generate text reply for given request text message, no reply for

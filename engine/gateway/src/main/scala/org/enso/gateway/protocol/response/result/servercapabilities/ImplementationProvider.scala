@@ -8,18 +8,15 @@ import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSele
 
 /** The server provides goto implementation support. */
 sealed trait ImplementationProvider
-
 object ImplementationProvider {
 
   case class Bool(value: Boolean) extends ImplementationProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
 
   case class ImplementationOptions(workDoneProgress: Option[Boolean] = None)
       extends ImplementationProvider
-
   object ImplementationOptions {
     implicit val implementationOptionsEncoder: Encoder[ImplementationOptions] =
       deriveEncoder
@@ -30,7 +27,6 @@ object ImplementationProvider {
     workDoneProgress: Option[Boolean]          = None,
     id: Option[String]                         = None
   ) extends ImplementationProvider
-
   object ImplementationRegistrationOptions {
     implicit val implementationRegistrationOptionsEncoder
       : Encoder[ImplementationRegistrationOptions] =

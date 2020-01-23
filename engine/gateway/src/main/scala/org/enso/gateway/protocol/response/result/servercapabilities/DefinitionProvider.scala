@@ -11,7 +11,6 @@ sealed trait DefinitionProvider
 object DefinitionProvider {
 
   case class Bool(value: Boolean) extends DefinitionProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -19,7 +18,6 @@ object DefinitionProvider {
 
   case class DefinitionOptions(workDoneProgress: Option[Boolean] = None)
       extends DefinitionProvider
-
   object DefinitionOptions {
     implicit val definitionOptionsEncoder: Encoder[DefinitionOptions] =
       deriveEncoder

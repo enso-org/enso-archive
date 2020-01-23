@@ -11,7 +11,6 @@ sealed trait DocumentHighlightProvider
 object DocumentHighlightProvider {
 
   case class Bool(value: Boolean) extends DocumentHighlightProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -19,7 +18,6 @@ object DocumentHighlightProvider {
 
   case class DocumentHighlightOptions(workDoneProgress: Option[Boolean] = None)
       extends DocumentHighlightProvider
-
   object DocumentHighlightOptions {
     implicit val documentHighlightOptionsEncoder
       : Encoder[DocumentHighlightOptions] =

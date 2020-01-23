@@ -7,11 +7,9 @@ import io.circe.generic.semiauto.deriveEncoder
 
 /** The server provides document range formatting. */
 sealed trait DocumentRangeFormattingProvider
-
 object DocumentRangeFormattingProvider {
 
   case class Bool(value: Boolean) extends DocumentRangeFormattingProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -20,7 +18,6 @@ object DocumentRangeFormattingProvider {
   case class DocumentRangeFormattingOptions(
     workDoneProgress: Option[Boolean] = None
   ) extends DocumentRangeFormattingProvider
-
   object DocumentRangeFormattingOptions {
     implicit val DocumentRangeFormattingOptiondEncoder
       : Encoder[DocumentRangeFormattingOptions] =

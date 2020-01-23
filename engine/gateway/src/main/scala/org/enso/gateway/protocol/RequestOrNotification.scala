@@ -38,7 +38,6 @@ case class Request[P <: Params](
   method: String,
   params: Option[P]
 ) extends RequestOrNotification
-
 object Request {
 
   /** Field `id`. */

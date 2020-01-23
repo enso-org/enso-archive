@@ -8,18 +8,15 @@ import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSele
 
 /** The server provides goto type definition support. */
 sealed trait TypeDefinitionProvider
-
 object TypeDefinitionProvider {
 
   case class Bool(value: Boolean) extends TypeDefinitionProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
 
   case class TypeDefinitionOptions(workDoneProgress: Option[Boolean] = None)
       extends TypeDefinitionProvider
-
   object TypeDefinitionOptions {
     implicit val typeDefinitionOptionsEncoder: Encoder[TypeDefinitionOptions] =
       deriveEncoder

@@ -37,7 +37,6 @@ class Server(jsonRpcController: JsonRpcController, config: Config)(
   system: ActorSystem,
   materializer: ActorMaterializer
 ) {
-
   import system.dispatcher
 
   implicit private val timeout: Timeout = Timeout(config.timeout)

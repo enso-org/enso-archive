@@ -3,7 +3,6 @@ package org.enso.gateway.protocol
 import io.circe.{Decoder, Encoder}
 
 sealed abstract class CodeActionKind(val value: String)
-
 object CodeActionKind {
   private val empty                 = ""
   private val quickfix              = "quickfix"

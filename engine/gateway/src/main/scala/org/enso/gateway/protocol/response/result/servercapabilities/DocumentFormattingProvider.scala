@@ -11,7 +11,6 @@ sealed trait DocumentFormattingProvider
 object DocumentFormattingProvider {
 
   case class Bool(value: Boolean) extends DocumentFormattingProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -19,7 +18,6 @@ object DocumentFormattingProvider {
 
   case class DocumentFormattingOptions(workDoneProgress: Option[Boolean] = None)
       extends DocumentFormattingProvider
-
   object DocumentFormattingOptions {
     implicit val documentFormattingOptionsEncoder
       : Encoder[DocumentFormattingOptions] =

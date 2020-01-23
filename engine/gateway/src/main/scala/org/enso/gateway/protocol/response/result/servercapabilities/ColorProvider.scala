@@ -8,11 +8,9 @@ import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSele
 
 /** The server provides color provider support. */
 sealed trait ColorProvider
-
 object ColorProvider {
 
   case class Bool(value: Boolean) extends ColorProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -20,7 +18,6 @@ object ColorProvider {
 
   case class DocumentColorOptions(workDoneProgress: Option[Boolean] = None)
       extends ColorProvider
-
   object DocumentColorOptions {
     implicit val documentColorOptionsEncoder: Encoder[DocumentColorOptions] =
       deriveEncoder
@@ -31,7 +28,6 @@ object ColorProvider {
     documentSelector: Option[DocumentSelector] = None,
     id: Option[String]                         = None
   ) extends ColorProvider
-
   object DocumentColorRegistrationOptions {
     implicit val documentColorRegistrationOptionsEncoder
       : Encoder[DocumentColorRegistrationOptions] =

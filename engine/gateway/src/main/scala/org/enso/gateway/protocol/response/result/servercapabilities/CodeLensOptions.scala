@@ -8,7 +8,6 @@ case class CodeLensOptions(
   workDoneProgress: Option[Boolean] = None,
   resolveProvider: Option[Boolean]  = None
 )
-
 object CodeLensOptions {
   implicit val serverCapabilitiesCodeLensOptionsEncoder
     : Encoder[CodeLensOptions] =

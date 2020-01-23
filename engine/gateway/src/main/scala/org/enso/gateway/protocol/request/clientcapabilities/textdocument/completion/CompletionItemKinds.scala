@@ -3,11 +3,12 @@ package org.enso.gateway.protocol.request.clientcapabilities.textdocument.comple
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
-case class CompletionItemKindHolder(
+/** Array of [[CompletionItemKind]]. */
+case class CompletionItemKinds(
   valueSet: Option[Seq[CompletionItemKind]] = None
 ) extends AnyVal
-object CompletionItemKindHolder {
+object CompletionItemKinds {
   implicit val clientCapabilitiesTextDocumentCompletionItemKindHolderDecoder
-    : Decoder[CompletionItemKindHolder] =
+    : Decoder[CompletionItemKinds] =
     deriveDecoder
 }

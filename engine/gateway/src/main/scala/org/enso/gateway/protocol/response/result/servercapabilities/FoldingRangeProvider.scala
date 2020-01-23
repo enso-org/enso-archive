@@ -8,18 +8,15 @@ import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSele
 
 /** The server provides folding provider support. */
 sealed trait FoldingRangeProvider
-
 object FoldingRangeProvider {
 
   case class Bool(value: Boolean) extends FoldingRangeProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
 
   case class FoldingRangeOptions(workDoneProgress: Option[Boolean] = None)
       extends FoldingRangeProvider
-
   object FoldingRangeOptions {
     implicit val foldingRangeOptionsEncoder: Encoder[FoldingRangeOptions] =
       deriveEncoder
@@ -30,7 +27,6 @@ object FoldingRangeProvider {
     workDoneProgress: Option[Boolean]          = None,
     id: Option[String]                         = None
   ) extends FoldingRangeProvider
-
   object FoldingRangeRegistrationOptions {
     implicit val foldingRangeRegistrationOptionsEncoder
       : Encoder[FoldingRangeRegistrationOptions] =

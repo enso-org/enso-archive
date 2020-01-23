@@ -27,7 +27,6 @@ object Params {
 
   /** Array params. */
   case class Array(value: Seq[Option[Param]]) extends Params
-
   object Array {
     implicit val paramsArrayDecoder: Decoder[Array] =
       deriveUnwrappedDecoder
@@ -40,7 +39,6 @@ object Params {
     * [[org.enso.gateway.protocol.Notifications.Exit]].
     */
   case class VoidParams() extends Params
-
   object VoidParams {
     implicit val voidParamsDecoder: Decoder[VoidParams] =
       deriveDecoder

@@ -11,14 +11,12 @@ sealed trait ReferencesProvider
 object ReferencesProvider {
 
   case class Bool(value: Boolean) extends ReferencesProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
 
   case class ReferenceOptions(workDoneProgress: Option[Boolean] = None)
       extends ReferencesProvider
-
   object ReferenceOptions {
     implicit val referenceOptionsEncoder: Encoder[ReferenceOptions] =
       deriveEncoder

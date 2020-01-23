@@ -7,11 +7,9 @@ import io.circe.generic.semiauto.deriveEncoder
 
 /** The server provides document symbol support. */
 sealed trait DocumentSymbolProvider
-
 object DocumentSymbolProvider {
 
   case class Bool(value: Boolean) extends DocumentSymbolProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -19,7 +17,6 @@ object DocumentSymbolProvider {
 
   case class DocumentSymbolOptions(workDoneProgress: Option[Boolean] = None)
       extends DocumentSymbolProvider
-
   object DocumentSymbolOptions {
     implicit val documentSymbolOptionsEncoder: Encoder[DocumentSymbolOptions] =
       deriveEncoder

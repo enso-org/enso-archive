@@ -3,6 +3,10 @@ package org.enso.gateway.protocol.request.clientcapabilities.textdocument.comple
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
 
+/** Array of [[CompletionItemTag]].
+  *
+  * Part of [[CompletionItem]].
+  */
 case class TagSupport(
   valueSet: Seq[CompletionItemTag]
 ) extends AnyVal

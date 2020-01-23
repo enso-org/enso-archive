@@ -2,8 +2,8 @@ package org.enso.gateway.protocol.request.clientcapabilities.textdocument.comple
 
 import io.circe.Decoder
 
+/** Tag of [[CompletionItem]]. */
 sealed abstract class CompletionItemTag(value: Int)
-
 object CompletionItemTag {
   private val deprecated               = 1
   private val invalidCompletionItemTag = "Invalid CompletionItemTag"

@@ -2,6 +2,7 @@ package org.enso.gateway.protocol.request.clientcapabilities.textdocument.comple
 
 import io.circe.Decoder
 
+/** Kind of [[CompletionItem]]. */
 sealed abstract class CompletionItemKind(value: Int)
 object CompletionItemKind {
   private val text                      = 1

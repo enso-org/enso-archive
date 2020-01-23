@@ -15,7 +15,6 @@ sealed trait CodeActionProvider
 object CodeActionProvider {
 
   case class Bool(value: Boolean) extends CodeActionProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
@@ -25,7 +24,6 @@ object CodeActionProvider {
     workDoneProgress: Option[Boolean]            = None,
     codeActionKinds: Option[Seq[CodeActionKind]] = None
   ) extends CodeActionProvider
-
   object CodeActionOptions {
     implicit val codeActionOptionsEncoder: Encoder[CodeActionOptions] =
       deriveEncoder

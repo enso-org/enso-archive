@@ -46,8 +46,12 @@ class GatewaySpec
     system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
   private val jsonRpcController = new JsonRpcController(gateway)
-  private val config            = new Config(port = 30001, host = "localhost")
-  private val server            = new Server(jsonRpcController, config)
+
+  private val port   = 30001
+  private val host   = "localhost"
+  private val config = new Config(port, host)
+
+  private val server = new Server(jsonRpcController, config)
 
   override def beforeAll: Unit = {
     server.run()
@@ -58,7 +62,8 @@ class GatewaySpec
       _ <- server.shutdown()
       _ <- system.terminate()
     } yield ()
-    Await.result(terminationFuture, 5.seconds)
+    val timeout = 5.seconds
+    Await.result(terminationFuture, timeout)
   }
 
   "Gateway" should "reply with a proper response to request with initialize method" in {

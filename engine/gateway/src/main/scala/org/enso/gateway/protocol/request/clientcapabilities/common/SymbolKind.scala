@@ -2,8 +2,8 @@ package org.enso.gateway.protocol.request.clientcapabilities.common
 
 import io.circe.Decoder
 
+/** A symbol kind. */
 sealed abstract class SymbolKind(value: Int)
-
 object SymbolKind {
   private val file              = 1
   private val module            = 2

@@ -10,14 +10,12 @@ sealed trait HoverProvider
 object HoverProvider {
 
   case class Bool(value: Boolean) extends HoverProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
 
   case class HoverOptions(workDoneProgress: Option[Boolean] = None)
       extends HoverProvider
-
   object HoverOptions {
     implicit val hoverOptionsEncoder: Encoder[HoverOptions] = deriveEncoder
   }

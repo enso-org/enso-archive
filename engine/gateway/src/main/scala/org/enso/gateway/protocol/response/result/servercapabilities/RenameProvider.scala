@@ -10,11 +10,9 @@ import io.circe.generic.semiauto.deriveEncoder
   * `initialize` request.
   */
 sealed trait RenameProvider
-
 object RenameProvider {
 
   case class Bool(value: Boolean) extends RenameProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
   }
@@ -23,7 +21,6 @@ object RenameProvider {
     workDoneProgress: Option[Boolean] = None,
     prepareProvider: Option[Boolean]  = None
   ) extends RenameProvider
-
   object RenameOptions {
     implicit val renameOptionsEncoder: Encoder[RenameOptions] =
       deriveEncoder

@@ -5,8 +5,8 @@ import com.typesafe.config.{ConfigFactory, Config => TypesafeConfig}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 
-/** Describes endpoint to which [[org.enso.gateway.Server]] can bind (host,
-  * port, route) and timeouts.
+/** Describes endpoint to which [[org.enso.gateway.Server]] can bind and
+  * timeouts.
   *
   * Gets default values of parameters from typesafe config.
   *

@@ -8,7 +8,6 @@ case class DocumentLinkOptions(
   workDoneProgress: Option[Boolean] = None,
   resolveProvider: Option[Boolean]  = None
 )
-
 object DocumentLinkOptions {
   implicit val serverCapabilitiesDocumentLinkOptionsEncoder
     : Encoder[DocumentLinkOptions] =

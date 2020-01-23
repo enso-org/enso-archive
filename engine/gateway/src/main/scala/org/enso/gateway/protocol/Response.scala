@@ -20,7 +20,6 @@ case class Response private (
   result: Option[Result],
   error: Option[ResponseError]
 )
-
 object Response {
 
   /** Create response with a result.
