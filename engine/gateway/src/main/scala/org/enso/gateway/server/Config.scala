@@ -34,9 +34,9 @@ object Config {
   private val hostPath           = "host"
   private val portPath           = "port"
   private val routePath          = "route"
-  private val timeoutPath        = "timeout"
-  private val bindingTimeoutPath = "bindingTimeout"
-  private val hardDeadlinePath   = "hardDeadline"
+  private val timeoutPath        = "timeoutSecs"
+  private val bindingTimeoutPath = "bindingTimeoutSecs"
+  private val hardDeadlinePath   = "hardDeadlineSecs"
 
   private val gatewayConfig: TypesafeConfig =
     ConfigFactory.load.getConfig(gatewayPath)
