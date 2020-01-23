@@ -10,7 +10,7 @@ body
   line-height: 1.52947
   font-weight: 400
   letter-spacing: -0.021em
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
+  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
   background-color: white
   color: #333333
   margin: 0
@@ -127,7 +127,7 @@ li
   letter-spacing: -0.021em
   line-height: 17px
   font-synthesis: none
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
+  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
 
 
 /*////////////
@@ -158,19 +158,26 @@ li
     background: transparent
 
   .DEPRECATED
-    border: 1px solid #c35400
-    color: #c35400
+    $col: #d20606
+    border: 1px solid $col
+    color: $col
+
   .MODIFIED
-    border: 1px solid #003ec3
-    color: #003ec3
+    $col: #003ec3
+    border: 1px solid $col
+    color: $col
+
   .ADDED
-    border: 1px solid #79A129
-    color: #79A129
+    $col: #79A129
+    border: 1px solid $col
+    color: $col
+
   .UPCOMING,
   .REMOVED,
   .UNRECOGNIZED
-    border: 1px solid #666666
-    color: #666666
+    $col: #666666
+    border: 1px solid $col
+    color: $col
 
 .ExtForTagDetails
   margin: 0 3px
@@ -198,7 +205,7 @@ li
   line-height: 1.52947
   font-weight: 400
   letter-spacing: -0.021em
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica","Arial", sans-serif
+  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
   color: #333333
   font-style: normal
 
@@ -214,11 +221,11 @@ li
 
 
 .Important
-  background-color: #fff9d7
+  background-color: #FBECC2
 
 
 .Info
-  background-color: #d8f2dd
+  background-color: #D6E1CA
 
 
 .Example
@@ -269,15 +276,16 @@ li
     .documentation
       display: inline-flex
       width: 100%
+      margin-bottom: 10px
+
 
       .ASTHead
         width: 30% !important
-        margin: 15px 0
+        margin: 10px 0
 
         .DefTitle,
         .Infix
           padding: 0
-          margin-bottom: 15px
           font-size: 18px
           font-weight: 400
           font-style: normal
@@ -288,13 +296,14 @@ li
 
       .Doc
         text-decoration: inherit
+
         .Synopsis
           text-decoration: inherit
-          margin: 15px 0
+          margin: 10px 0
 
       .Tags
-        margin: 0 0 0 auto
-        padding: 7px 0
+        margin: 2px 0 0 auto
+        padding: 0
 
 .DefTitle
   display: inline-flex
@@ -337,6 +346,7 @@ li
   .ASTHead
     margin: 20px auto 5px
     background-color: #ffffff
+
     .DefTitle
       font-size: 42px
       margin: 0
@@ -344,6 +354,7 @@ li
   .ASTData
     .ASTHead
       background-color: #fafafa
+
       .DefTitle
         font-size: x-large
 
