@@ -4,16 +4,10 @@ import akka.actor.ActorRef
 
 object RequestReceived {
 
-  /** Language server response to [[Initialize]]. */
+  /** Language server response to [[Requests.Initialize]]. */
   case class Initialize(id: Id, replyTo: ActorRef)
 
-  /** */
+  /** Language server response to [[Requests.Shutdown]]. */
   case class Shutdown(id: Id, replyTo: ActorRef)
-
-  /** */
-  case class ApplyWorkspaceEdit(id: Id, replyTo: ActorRef)
-
-  /** */
-  case class WillSaveTextDocumentWaitUntil(id: Id, replyTo: ActorRef)
 
 }

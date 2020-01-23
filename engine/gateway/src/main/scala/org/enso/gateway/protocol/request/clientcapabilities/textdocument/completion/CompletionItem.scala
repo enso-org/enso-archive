@@ -2,6 +2,7 @@ package org.enso.gateway.protocol.request.clientcapabilities.textdocument.comple
 
 import io.circe.Decoder
 import io.circe.generic.semiauto.deriveDecoder
+import org.enso.gateway.protocol.request.clientcapabilities.textdocument.common.MarkupKind
 
 case class CompletionItem(
   snippetSupport: Option[Boolean]              = None,

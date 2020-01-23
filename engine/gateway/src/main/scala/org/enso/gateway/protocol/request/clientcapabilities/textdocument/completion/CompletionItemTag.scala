@@ -5,13 +5,15 @@ import io.circe.Decoder
 sealed abstract class CompletionItemTag(value: Int)
 
 object CompletionItemTag {
+  private val deprecated               = 1
+  private val invalidCompletionItemTag = "Invalid CompletionItemTag"
 
-  object Deprecated extends CompletionItemTag(1)
+  object Deprecated extends CompletionItemTag(deprecated)
 
   implicit val textDocumentCompletionItemTagDecoder
     : Decoder[CompletionItemTag] =
     Decoder.decodeInt.emap {
-      case 1 => Right(Deprecated)
-      case _ => Left("Invalid CompletionItemTag")
+      case `deprecated` => Right(Deprecated)
+      case _            => Left(invalidCompletionItemTag)
     }
 }

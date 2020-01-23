@@ -4,7 +4,12 @@ import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 
 /** The server provides completion support. */
-case class CompletionOptions()
+case class CompletionOptions(
+  triggerCharacters: Option[Seq[String]]   = None,
+  allCommitCharacters: Option[Seq[String]] = None,
+  resolveProvider: Option[Boolean]         = None,
+  workDoneProgress: Option[Boolean]        = None
+)
 object CompletionOptions {
   implicit val serverCapabilitiesCompletionOptionsEncoder
     : Encoder[CompletionOptions] =

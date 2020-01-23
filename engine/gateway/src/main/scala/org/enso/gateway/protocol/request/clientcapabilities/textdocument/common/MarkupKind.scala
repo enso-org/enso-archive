@@ -1,4 +1,4 @@
-package org.enso.gateway.protocol.request.clientcapabilities.textdocument.completion
+package org.enso.gateway.protocol.request.clientcapabilities.textdocument.common
 
 import io.circe.Decoder
 import io.circe.generic.extras.semiauto.deriveEnumerationDecoder

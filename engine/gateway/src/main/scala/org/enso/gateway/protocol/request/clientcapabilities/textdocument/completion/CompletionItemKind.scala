@@ -3,86 +3,111 @@ package org.enso.gateway.protocol.request.clientcapabilities.textdocument.comple
 import io.circe.Decoder
 
 sealed abstract class CompletionItemKind(value: Int)
-
 object CompletionItemKind {
+  private val text                      = 1
+  private val method                    = 2
+  private val function                  = 3
+  private val constructor               = 4
+  private val field                     = 5
+  private val variable                  = 6
+  private val classKind                 = 7
+  private val interface                 = 8
+  private val module                    = 9
+  private val property                  = 10
+  private val unit                      = 11
+  private val value                     = 12
+  private val enum                      = 13
+  private val keyword                   = 14
+  private val snippet                   = 15
+  private val color                     = 16
+  private val file                      = 17
+  private val reference                 = 18
+  private val folder                    = 19
+  private val enumMember                = 20
+  private val constant                  = 21
+  private val struct                    = 22
+  private val event                     = 23
+  private val operator                  = 24
+  private val typeParameter             = 25
+  private val invalidCompletionItemKind = "Invalid CompletionItemKind"
 
-  case object Text extends CompletionItemKind(1)
+  case object Text extends CompletionItemKind(text)
 
-  case object Method extends CompletionItemKind(2)
+  case object Method extends CompletionItemKind(method)
 
-  case object Function extends CompletionItemKind(3)
+  case object Function extends CompletionItemKind(function)
 
-  case object Constructor extends CompletionItemKind(4)
+  case object Constructor extends CompletionItemKind(constructor)
 
-  case object Field extends CompletionItemKind(5)
+  case object Field extends CompletionItemKind(field)
 
-  case object Variable extends CompletionItemKind(6)
+  case object Variable extends CompletionItemKind(variable)
 
-  case object Class extends CompletionItemKind(7)
+  case object Class extends CompletionItemKind(classKind)
 
-  case object Interface extends CompletionItemKind(8)
+  case object Interface extends CompletionItemKind(interface)
 
-  case object Module extends CompletionItemKind(9)
+  case object Module extends CompletionItemKind(module)
 
-  case object Property extends CompletionItemKind(10)
+  case object Property extends CompletionItemKind(property)
 
-  case object Unit extends CompletionItemKind(11)
+  case object Unit extends CompletionItemKind(unit)
 
-  case object Value extends CompletionItemKind(12)
+  case object Value extends CompletionItemKind(value)
 
-  case object Enum extends CompletionItemKind(13)
+  case object Enum extends CompletionItemKind(enum)
 
-  case object Keyword extends CompletionItemKind(14)
+  case object Keyword extends CompletionItemKind(keyword)
 
-  case object Snippet extends CompletionItemKind(15)
+  case object Snippet extends CompletionItemKind(snippet)
 
-  case object Color extends CompletionItemKind(16)
+  case object Color extends CompletionItemKind(color)
 
-  case object File extends CompletionItemKind(17)
+  case object File extends CompletionItemKind(file)
 
-  case object Reference extends CompletionItemKind(18)
+  case object Reference extends CompletionItemKind(reference)
 
-  case object Folder extends CompletionItemKind(19)
+  case object Folder extends CompletionItemKind(folder)
 
-  case object EnumMember extends CompletionItemKind(20)
+  case object EnumMember extends CompletionItemKind(enumMember)
 
-  case object Constant extends CompletionItemKind(21)
+  case object Constant extends CompletionItemKind(constant)
 
-  case object Struct extends CompletionItemKind(22)
+  case object Struct extends CompletionItemKind(struct)
 
-  case object Event extends CompletionItemKind(23)
+  case object Event extends CompletionItemKind(event)
 
-  case object Operator extends CompletionItemKind(24)
+  case object Operator extends CompletionItemKind(operator)
 
-  case object TypeParameter extends CompletionItemKind(25)
+  case object TypeParameter extends CompletionItemKind(typeParameter)
 
   implicit val textDocumentSyncKindDecoder: Decoder[CompletionItemKind] =
     Decoder.decodeInt.emap {
-      case 1  => Right(Text)
-      case 2  => Right(Method)
-      case 3  => Right(Function)
-      case 4  => Right(Constructor)
-      case 5  => Right(Field)
-      case 6  => Right(Variable)
-      case 7  => Right(Class)
-      case 8  => Right(Interface)
-      case 9  => Right(Module)
-      case 10 => Right(Property)
-      case 11 => Right(Unit)
-      case 12 => Right(Value)
-      case 13 => Right(Enum)
-      case 14 => Right(Keyword)
-      case 15 => Right(Snippet)
-      case 16 => Right(Color)
-      case 17 => Right(File)
-      case 18 => Right(Reference)
-      case 19 => Right(Folder)
-      case 20 => Right(EnumMember)
-      case 21 => Right(Constant)
-      case 22 => Right(Struct)
-      case 23 => Right(Event)
-      case 24 => Right(Operator)
-      case 25 => Right(TypeParameter)
-      case _  => Left("Invalid CompletionItemKind")
+      case `text`          => Right(Text)
+      case `method`        => Right(Method)
+      case `function`      => Right(Function)
+      case `constructor`   => Right(Constructor)
+      case `field`         => Right(Field)
+      case `variable`      => Right(Variable)
+      case `classKind`     => Right(Class)
+      case `interface`     => Right(Interface)
+      case `module`        => Right(Module)
+      case `property`      => Right(Property)
+      case `unit`          => Right(Unit)
+      case `value`         => Right(Value)
+      case `enum`          => Right(Enum)
+      case `keyword`       => Right(Keyword)
+      case `snippet`       => Right(Snippet)
+      case `color`         => Right(Color)
+      case `file`          => Right(File)
+      case `reference`     => Right(Reference)
+      case `folder`        => Right(Folder)
+      case `enumMember`    => Right(EnumMember)
+      case `constant`      => Right(Constant)
+      case `struct`        => Right(Struct)
+      case `event`         => Right(Event)
+      case `operator`      => Right(Operator)
+      case `typeParameter` => Right(TypeParameter)
+      case _               => Left(invalidCompletionItemKind)
     }
 }

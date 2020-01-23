@@ -5,8 +5,7 @@ import io.circe.generic.semiauto.deriveDecoder
 
 case class TagSupport(
   valueSet: Seq[CompletionItemTag]
-)
-
+) extends AnyVal
 object TagSupport {
   implicit val clientCapabilitiesTextDocumentCompletionTagSupportDecoder
     : Decoder[TagSupport] = deriveDecoder

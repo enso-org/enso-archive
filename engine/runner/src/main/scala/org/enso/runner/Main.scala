@@ -197,15 +197,17 @@ object Main {
       system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
     val jsonRpcController = new JsonRpcController(gateway)
-    val server            = new enso.gateway.Server(jsonRpcController)
+    val config            = new enso.gateway.server.Config
+    val server            = new enso.gateway.Server(jsonRpcController, config)
     server.run()
 
     StdIn.readLine()
-    val fut = for {
+    val terminationFuture = for {
       _ <- server.shutdown()
       _ <- system.terminate()
     } yield ()
-    Await.result(fut, 5.seconds)
+    val timeout = 5.seconds
+    Await.result(terminationFuture, timeout)
     exitSuccess()
   }
 

@@ -12,49 +12,11 @@ import akka.stream.scaladsl.Flow
 import akka.stream.scaladsl.Sink
 import akka.stream.scaladsl.Source
 import akka.util.Timeout
-import com.typesafe.config.{Config, ConfigFactory}
+import org.enso.gateway.server.Config
 
 import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
 import scala.util.Failure
 import scala.util.Success
-
-object Server {
-
-  /** Describes endpoint to which [[Server]] can bind (host, port, route) and
-    * timeout for waiting response.
-    *
-    * Gets parameters from typesafe config.
-    */
-  object Config {
-    private val gatewayPath = "gateway"
-    private val serverPath  = "server"
-    private val hostPath    = "host"
-    private val portPath    = "port"
-    private val routePath   = "route"
-    private val timeoutPath = "timeout"
-    private val gatewayConfig: Config =
-      ConfigFactory.load.getConfig(gatewayPath)
-    private val serverConfig: Config = gatewayConfig.getConfig(serverPath)
-
-    /** Host of endpoint. */
-    val host: String = serverConfig.getString(hostPath)
-
-    /** Port of endpoint. */
-    val port: Int = serverConfig.getInt(portPath)
-
-    /** Route of endpoint. */
-    val route: String = serverConfig.getString(routePath)
-
-    /** Timeout for waiting response after request. */
-    implicit val timeout: Timeout = Timeout(
-      serverConfig.getLong(timeoutPath).seconds
-    )
-
-    /** Creates address string. */
-    val addressString: String = s"ws://$host:$port"
-  }
-}
 
 /** WebSocket server supporting synchronous request-response protocol.
   *
@@ -68,17 +30,18 @@ object Server {
   *
   * @param jsonRpcController Encapsulates encoding JSONs and talking to
   *                          [[org.enso.Gateway]].
+  * @param config            Server config.
   */
-class Server(jsonRpcController: JsonRpcController)(
+class Server(jsonRpcController: JsonRpcController, config: Config)(
   implicit
   system: ActorSystem,
   materializer: ActorMaterializer
 ) {
 
   import system.dispatcher
-  import Server.Config.timeout
 
-  private val log: LoggingAdapter = Logging.getLogger(system, this)
+  implicit private val timeout: Timeout = Timeout(config.timeout)
+  private val log: LoggingAdapter       = Logging.getLogger(system, this)
 
   /** Akka stream defining server behavior.
     *
@@ -109,28 +72,6 @@ class Server(jsonRpcController: JsonRpcController)(
           Source.empty
       }
 
-  //  private val requestHandler: HttpRequest => HttpResponse = {
-  //    case req @ HttpRequest(
-  //          HttpMethods.GET,
-  //          Uri.Path("/"),
-  //          //          Uri.Path(s"/${Server.Config.route}"),
-  //          _,
-  //          _,
-  //          _
-  //        ) =>
-  //      req.header[UpgradeToWebSocket] match {
-  //        case Some(upgrade) => upgrade.handleMessages(handlerFlow)
-  //        case None =>
-  //          HttpResponse(
-  //            StatusCodes.BadRequest,
-  //            entity = "Not a valid websocket request!"
-  //          )
-  //      }
-  //    case r: HttpRequest =>
-  //      r.discardEntityBytes() // important to drain incoming HTTP Entity stream
-  //      HttpResponse(StatusCodes.NotFound, entity = "Unknown resource!")
-  //  }
-
   /** Server behavior upon receiving HTTP request.
     *
     * As server implements websocket-based protocol, this implementation accepts
@@ -139,22 +80,17 @@ class Server(jsonRpcController: JsonRpcController)(
     * The request's URI is not checked.
     */
   private val route: Route =
-    path(Server.Config.route) {
+    path(config.route) {
       get {
         handleWebSocketMessages(handlerFlow)
       }
     }
 
   private val bindingFuture: Future[Http.ServerBinding] =
-    //    Http().bindAndHandleSync(
-    //      requestHandler,
-    //      Server.Config.addressString,
-    //      Server.Config.port
-    //    )
     Http().bindAndHandle(
       handler   = route,
-      interface = Server.Config.host,
-      port      = Server.Config.port
+      interface = config.host,
+      port      = config.port
     )
 
   /** Starts a HTTP server listening at the given endpoint.
@@ -167,7 +103,7 @@ class Server(jsonRpcController: JsonRpcController)(
       .onComplete {
         case Success(_) =>
           val serverOnlineMessage =
-            s"Server online at ${Server.Config.addressString}"
+            s"Server online at ${config.addressString}"
           val shutDownMessage = "Press ENTER to shut down"
           Seq(
             serverOnlineMessage,
@@ -181,9 +117,10 @@ class Server(jsonRpcController: JsonRpcController)(
       }
   }
 
+  /** Stops the HTTP server gracefully. */
   def shutdown(): Future[Http.HttpTerminated] = {
     Await
-      .result(bindingFuture, 10.seconds)
-      .terminate(hardDeadline = 3.seconds)
+      .result(bindingFuture, config.bindingTimeout)
+      .terminate(hardDeadline = config.hardDeadline)
   }
 }

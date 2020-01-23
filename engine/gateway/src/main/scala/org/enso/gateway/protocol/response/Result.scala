@@ -8,7 +8,6 @@ import org.enso.gateway.protocol.response.result.{
   ServerInfo
 }
 import io.circe.syntax._
-import org.enso.gateway.protocol.TextEdit
 
 /** [[org.enso.gateway.protocol.Response]] result.
   *
@@ -23,10 +22,6 @@ object Result {
     case boolean: Bool            => boolean.asJson
     case result: InitializeResult => result.asJson
     case result: NullResult.type  => result.asJson
-    case result: ApplyWorkspaceEditResult =>
-      result.asJson
-    case result: WillSaveTextDocumentWaitUntilResult =>
-      result.asJson
   }
 
   /** A string result. */
@@ -61,24 +56,5 @@ object Result {
   /** [[org.enso.gateway.protocol.Requests.Shutdown]] result. */
   case object NullResult extends Result {
     implicit val nullResultEncoder: Encoder[NullResult.type] = _ => Json.Null
-  }
-
-  case class ApplyWorkspaceEditResult(
-    applied: Boolean,
-    failureReason: Option[String] = None
-  ) extends Result
-  object ApplyWorkspaceEditResult {
-    implicit val applyWorkspaceEditResultEncoder
-      : Encoder[ApplyWorkspaceEditResult] =
-      deriveEncoder
-  }
-
-  case class WillSaveTextDocumentWaitUntilResult(
-    value: Option[Seq[TextEdit]] = None
-  ) extends Result
-  object WillSaveTextDocumentWaitUntilResult {
-    implicit val willSaveTextDocumentWaitUntilResultEncoder
-      : Encoder[WillSaveTextDocumentWaitUntilResult] =
-      deriveUnwrappedEncoder
   }
 }

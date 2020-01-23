@@ -3,16 +3,7 @@ package org.enso.gateway.protocol
 import io.circe.{ACursor, Decoder, DecodingFailure}
 import org.enso.gateway.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Params
-import org.enso.gateway.protocol.request.Params.{
-  ApplyWorkspaceEditParams,
-  DidChangeTextDocumentParams,
-  DidCloseTextDocumentParams,
-  DidOpenTextDocumentParams,
-  DidSaveTextDocumentParams,
-  InitializeParams,
-  VoidParams,
-  WillSaveTextDocumentWaitUntilParams
-}
+import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
 
 /** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {
@@ -46,21 +37,9 @@ object NotificationDecoder {
         Decoder[Option[InitializeParams]]
       case Requests.Shutdown.method =>
         Decoder[Option[VoidParams]]
-      case Requests.ApplyWorkspaceEdit.method =>
-        Decoder[Option[ApplyWorkspaceEditParams]]
-      case Requests.WillSaveTextDocumentWaitUntil.method =>
-        Decoder[Option[WillSaveTextDocumentWaitUntilParams]]
 
       case Notifications.Initialized.method | Notifications.Exit.method =>
         Decoder[Option[VoidParams]]
-      case Notifications.DidOpenTextDocument.method =>
-        Decoder[Option[DidOpenTextDocumentParams]]
-      case Notifications.DidChangeTextDocument.method =>
-        Decoder[Option[DidChangeTextDocumentParams]]
-      case Notifications.DidSaveTextDocument.method =>
-        Decoder[Option[DidSaveTextDocumentParams]]
-      case Notifications.DidCloseTextDocument.method =>
-        Decoder[Option[DidCloseTextDocumentParams]]
 
       case m =>
         Decoder.failed(

@@ -29,11 +29,7 @@ object TestJson {
            "jsonrpc": "2.0",
            "id": 10,
            "result": {
-             "capabilities" : {
-               "textDocumentSync" : {
-                 "willSaveWaitUntil" : true
-               }
-             },
+             "capabilities" : {},
              "serverInfo": {
                "name": "Enso Language Server",
                "version": "1.0"
@@ -103,42 +99,4 @@ object TestJson {
            "id" : 10         
          }"""
   }
-
-  object ApplyWorkspaceEdit extends TestJson {
-    val request =
-      json"""
-         {
-           "jsonrpc": "2.0",
-           "id": 10,
-           "method": "workspace/applyEdit"         
-         }"""
-
-    val expectedResponse =
-      json"""
-         {
-           "jsonrpc" : "2.0",
-           "id" : 10,
-           "result" : {
-             "applied" : false
-           }
-         }"""
-  }
-
-  object WillSaveTextDocumentWaitUntil extends TestJson {
-    val request =
-      json"""
-         {
-           "jsonrpc": "2.0",
-           "id": 10,
-           "method": "textDocument/willSaveWaitUntil"         
-         }"""
-
-    val expectedResponse =
-      json"""
-         {
-           "jsonrpc" : "2.0",
-           "id" : 10
-         }"""
-  }
-
 }

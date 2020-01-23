@@ -7,12 +7,9 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import io.circe.Json
-import org.enso.gateway.Server.Config
 import org.enso.gateway.TestJson.{
-  ApplyWorkspaceEdit,
   Initialize,
   Shutdown,
-  WillSaveTextDocumentWaitUntil,
   WrongJsonrpc,
   WrongMethod
 }
@@ -25,6 +22,7 @@ import org.scalatest.{
   Matchers
 }
 import io.circe.parser.parse
+import org.enso.gateway.server.Config
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -40,26 +38,27 @@ class GatewaySpec
 
   import system.dispatcher
 
-  private val languageServerActorName = "languageServer"
-  private val gatewayActorName        = "gateway"
+  private val languageServerActorName = "testingLanguageServer"
+  private val gatewayActorName        = "testingGateway"
   private val languageServer: ActorRef =
     system.actorOf(LanguageServer.props(null), languageServerActorName)
   private val gateway: ActorRef =
     system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
   private val jsonRpcController = new JsonRpcController(gateway)
-  private val server            = new Server(jsonRpcController)
+  private val config            = new Config(port = 30001, host = "localhost")
+  private val server            = new Server(jsonRpcController, config)
 
   override def beforeAll: Unit = {
     server.run()
   }
 
   override def afterAll: Unit = {
-    val fut = for {
+    val terminationFuture = for {
       _ <- server.shutdown()
       _ <- system.terminate()
     } yield ()
-    Await.result(fut, 5.seconds)
+    Await.result(terminationFuture, 5.seconds)
   }
 
   "Gateway" should "reply with a proper response to request with initialize method" in {
@@ -78,14 +77,6 @@ class GatewaySpec
     checkRequestResponse(Shutdown)
   }
 
-  "Gateway" should "reply with a proper response to request with workspace/applyEdit method" in {
-    checkRequestResponse(ApplyWorkspaceEdit)
-  }
-
-  "Gateway" should "reply with a proper response to request with textDocument/willSaveWaitUntil method" in {
-    checkRequestResponse(WillSaveTextDocumentWaitUntil)
-  }
-
   private def checkRequestResponse(
     testJson: TestJson
   ): Future[Assertion] = {
@@ -98,7 +89,7 @@ class GatewaySpec
     When("server receives request")
     val (_, messageFuture) = Http()
       .singleWebSocketRequest(
-        WebSocketRequest(Config.addressString),
+        WebSocketRequest(config.addressString),
         messageToMessageFlow
       )
 

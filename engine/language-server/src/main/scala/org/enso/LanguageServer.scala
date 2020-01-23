@@ -17,7 +17,7 @@ class LanguageServer(context: ExecutionContext)
     extends Actor
     with ActorLogging {
   override def receive: Receive = {
-    case Requests.Initialize(id, _, actorRef) =>
+    case Requests.Initialize(id, actorRef) =>
       val msg = "LanguageServer: Initialize received"
       log.info(msg)
       sender() ! RequestReceived.Initialize(id, actorRef)
@@ -26,16 +26,6 @@ class LanguageServer(context: ExecutionContext)
       val msg = "LanguageServer: Shutdown received"
       log.info(msg)
       sender() ! RequestReceived.Shutdown(id, actorRef)
-
-    case Requests.ApplyWorkspaceEdit(id, actorRef) =>
-      val msg = "LanguageServer: ApplyWorkspaceEdit received"
-      log.info(msg)
-      sender() ! RequestReceived.ApplyWorkspaceEdit(id, actorRef)
-
-    case Requests.WillSaveTextDocumentWaitUntil(id, actorRef) =>
-      val msg = "LanguageServer: WillSaveTextDocumentWaitUntilEdit received"
-      log.info(msg)
-      sender() ! RequestReceived.WillSaveTextDocumentWaitUntil(id, actorRef)
 
     case Notifications.Initialized =>
       val msg = "LanguageServer: Initialized received"
@@ -47,25 +37,10 @@ class LanguageServer(context: ExecutionContext)
       log.info(msg)
       sender() ! NotificationReceived.Exit
 
-    case Notifications.DidOpenTextDocument =>
-      val msg = "LanguageServer: DidOpenTextDocument received"
-      log.info(msg)
-      sender() ! NotificationReceived.DidOpenTextDocument
-
-    case Notifications.DidChangeTextDocument =>
-      val msg = "LanguageServer: DidChangeTextDocument received"
-      log.info(msg)
-      sender() ! NotificationReceived.DidChangeTextDocument
-
-    case Notifications.DidSaveTextDocument =>
-      val msg = "LanguageServer: DidSaveTextDocument received"
-      log.info(msg)
-      sender() ! NotificationReceived.DidSaveTextDocument
-
-    case Notifications.DidCloseTextDocument =>
-      val msg = "LanguageServer: DidCloseTextDocument received"
-      log.info(msg)
-      sender() ! NotificationReceived.DidCloseTextDocument
+    case requestOrNotification =>
+      val msg = "LanguageServer: unexpected request or notification " +
+        requestOrNotification
+      log.error(msg)
   }
 }
 object LanguageServer {
