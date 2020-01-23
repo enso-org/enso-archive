@@ -2,7 +2,7 @@ package org.enso.graph
 
 import shapeless.ops.hlist._
 import shapeless.ops.{hlist, nat}
-import shapeless.{::, HList, HNil, IsDistinctConstraint, Nat, Select}
+import shapeless.{::, HList, HNil, IsDistinctConstraint, Nat}
 
 import scala.collection.mutable
 
