@@ -35,9 +35,21 @@ object RequestOrNotificationDecoder {
         Decoder[Request[InitializeParams]]
       case Requests.Shutdown.method =>
         Decoder[Request[VoidParams]]
+      case Requests.ApplyWorkspaceEdit.method =>
+        Decoder[Request[ApplyWorkspaceEditParams]]
+      case Requests.WillSaveTextDocumentWaitUntil.method =>
+        Decoder[Request[WillSaveTextDocumentWaitUntilParams]]
 
       case Notifications.Initialized.method | Notifications.Exit.method =>
         Decoder[Notification[VoidParams]]
+      case Notifications.DidOpenTextDocument.method =>
+        Decoder[Notification[DidOpenTextDocumentParams]]
+      case Notifications.DidChangeTextDocument.method =>
+        Decoder[Notification[DidChangeTextDocumentParams]]
+      case Notifications.DidSaveTextDocument.method =>
+        Decoder[Notification[DidSaveTextDocumentParams]]
+      case Notifications.DidCloseTextDocument.method =>
+        Decoder[Notification[DidCloseTextDocumentParams]]
 
       case m =>
         Decoder.failed(

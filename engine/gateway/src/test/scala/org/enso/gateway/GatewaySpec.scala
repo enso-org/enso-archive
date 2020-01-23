@@ -82,6 +82,14 @@ class GatewaySpec
     checkRequestResponse(Shutdown)
   }
 
+  "Gateway" should "reply with a proper response to request with workspace/applyEdit method" in {
+    checkRequestResponse(ApplyWorkspaceEdit)
+  }
+
+  "Gateway" should "reply with a proper response to request with textDocument/willSaveWaitUntil method" in {
+    checkRequestResponse(WillSaveTextDocumentWaitUntil)
+  }
+
   private def checkRequestResponse(
     testJson: TestJson
   ): Future[Assertion] = {

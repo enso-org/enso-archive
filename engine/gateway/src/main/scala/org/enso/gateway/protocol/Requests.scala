@@ -34,4 +34,24 @@ object Requests {
     */
   object Shutdown extends RequestExtractor[VoidParams]("shutdown")
 
+  /** The request sent from the server to the client to modify resource on the
+    * client side.
+    *
+    * LSP Spec:
+    * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#workspace_applyEdit
+    */
+  object ApplyWorkspaceEdit
+      extends RequestExtractor[ApplyWorkspaceEditParams]("workspace/applyEdit")
+
+  /** The request sent from the client to the server before the document is
+    * actually saved.
+    *
+    * LSP Spec:
+    * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_willSaveWaitUntil
+    */
+  object WillSaveTextDocumentWaitUntil
+      extends RequestExtractor[WillSaveTextDocumentWaitUntilParams](
+        "textDocument/willSaveWaitUntil"
+      )
+
 }

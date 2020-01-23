@@ -11,4 +11,10 @@ object RequestReceived {
   /** Language server response to [[Requests.Shutdown]]. */
   case class Shutdown(id: Id, replyTo: ActorRef)
 
+  /** */
+  case class ApplyWorkspaceEdit(id: Id, replyTo: ActorRef)
+
+  /** */
+  case class WillSaveTextDocumentWaitUntil(id: Id, replyTo: ActorRef)
+
 }
