@@ -54,7 +54,7 @@ object Param {
     *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
-  case class InitializationOptions(value: String) extends Param // TODO
+  case class InitializationOptions(value: String) extends Param
   object InitializationOptions {
     implicit val initializationOptionsDecoder: Decoder[InitializationOptions] =
       deriveUnwrappedDecoder
@@ -74,8 +74,9 @@ object Param {
 
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
     *
+    * The initial trace setting.
+    *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
-    *      The initial trace setting.
     */
   sealed trait Trace extends Param
   object Trace {
@@ -103,11 +104,11 @@ object Param {
 
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
     *
-    * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
+    * The capabilities provided by the client (editor or tool).
+    * Define capabilities for dynamic registration, workspace and text document
+    * features the client supports.
     *
-    *      The capabilities provided by the client (editor or tool).
-    *      Define capabilities for dynamic registration, workspace and text document
-    *      features the client supports.
+    * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
   case class ClientCapabilities(
     workspace: Option[clientcapabilities.Workspace]       = None,

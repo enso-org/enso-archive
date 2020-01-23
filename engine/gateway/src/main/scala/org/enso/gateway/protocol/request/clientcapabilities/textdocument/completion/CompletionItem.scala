@@ -15,7 +15,6 @@ case class CompletionItem(
   preselectSupport: Option[Boolean]            = None,
   tagSupport: Option[TagSupport]               = None
 )
-
 object CompletionItem {
   implicit val clientCapabilitiesTextDocumentCompletionItemDecoder
     : Decoder[CompletionItem] =
