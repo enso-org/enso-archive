@@ -75,7 +75,7 @@ impl EventManager {
 
     pub fn execute<F:Future<Output=()>+'static>(&mut self, f:F) {
         let f = Box::pin(f);
-        self.spawner.spawn_local_obj(f.into());
+        let _ = self.spawner.spawn_local_obj(f.into());
     }
 
     pub fn execute_cb<F,Cb>(&mut self, f:F, cb:Cb)
@@ -125,11 +125,15 @@ pub fn run() -> Result<(), JsValue> {
 
         log!("first query");
         let path = "C:/temp";
-        log!("{} exists? {:?}", path, call_exists(path).await);
+        log!("{} exists? {:?}", path, call_exists(path.into()).await);
 
         log!("second query");
         let path = "C:/Windows";
-        log!("{} exists? {:?}", path, call_exists(path).await);
+        log!("{} exists? {:?}", path, call_exists(path.into()).await);
+
+        log!("third query");
+        let path = "C:/Windows";
+        log!("{} exists? {:?}", path, call_exists(path.into()).await);
 
         log!("future done");
     });
@@ -137,8 +141,11 @@ pub fn run() -> Result<(), JsValue> {
     let mut i = 0;
     *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
         i += 1;
-//        let text = format!("requestAnimationFrame has been called {} times.", i);
-//        body().set_text_content(Some(&text));
+//        log!("tick {}", i);
+//        let text = format!("Time now: {:?}", std::time::Instant::now());
+
+        let text = format!("requestAnimationFrame has been called {} times.", i);
+        body().set_text_content(Some(&text));
         em.tick();
 //        lumpen_executor(&mut fut);
 
