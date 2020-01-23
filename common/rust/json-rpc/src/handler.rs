@@ -151,10 +151,11 @@ pub type OngoingCalls = HashMap<Id,oneshot::Sender<ReplyMessage>>;
 ///
 /// Notifications and internal messages are emitted using the `events` stream.
 ///
-/// `N` is a type for notifications. It should implement `DeserializeOwned` and
-/// deserialize from JSON maps with `method` and `params` fields.
+/// `Notification` is a type for notifications. It should implement
+/// `DeserializeOwned` and deserialize from JSON maps with `method` and `params`
+/// fields.
 #[derive(Debug)]
-pub struct Handler<N> {
+pub struct Handler<Notification> {
     /// Contains handles to calls that were made but no response has came.
     pub ongoing_calls   : OngoingCalls,
     /// Provides identifiers for requests.
@@ -164,16 +165,16 @@ pub struct Handler<N> {
     /// Allows receiving events from the `Transport`.
     pub incoming_events : std::sync::mpsc::Receiver<TransportEvent>,
     /// Handle to send outgoing events.
-    pub outgoing_events : Option<UnboundedSender<Event<N>>>,
+    pub outgoing_events : Option<UnboundedSender<Event<Notification>>>,
     /// Phantom marker for `N` type parameter.
-    pub phantom         : PhantomData<N>,
+    pub phantom         : PhantomData<Notification>,
 }
 
-impl<N> Handler<N> {
+impl<Notification> Handler<Notification> {
     /// Creates a new handler working on a given `Transport`.
     ///
     /// `Transport` must be functional (e.g. not in the process of opening).
-    pub fn new(transport:impl Transport + 'static) -> Handler<N> {
+    pub fn new(transport:impl Transport + 'static) -> Handler<Notification> {
         let (event_tx, event_rx) = std::sync::mpsc::channel();
         let mut ret = Handler {
             ongoing_calls   : OngoingCalls::new(),
@@ -229,7 +230,7 @@ impl<N> Handler<N> {
     /// emits relevant error.
     pub fn process_notification
     (&mut self, message:messages::Notification<serde_json::Value>)
-    where N: DeserializeOwned {
+    where Notification: DeserializeOwned {
         match serde_json::from_value(message.0) {
             Ok(notification) => {
                 let event = Event::Notification(notification);
@@ -247,7 +248,7 @@ impl<N> Handler<N> {
     /// The message must conform either to the `Response` or to the
     /// `Notification` JSON-serialized format. Otherwise, an error is raised.
     pub fn process_incoming_message(&mut self, message:String)
-    where N: DeserializeOwned {
+    where Notification: DeserializeOwned {
         match messages::decode_incoming_message(message) {
             Ok(messages::IncomingMessage::Response(response)) =>
                 self.process_response(response),
@@ -268,7 +269,7 @@ impl<N> Handler<N> {
     ///
     /// Each event either completes a requests or is translated into `Event`.
     pub fn process_event(&mut self, event:TransportEvent)
-    where N: DeserializeOwned {
+    where Notification: DeserializeOwned {
         match event {
             TransportEvent::TextMessage(msg) =>
                 self.process_incoming_message(msg),
@@ -288,7 +289,7 @@ impl<N> Handler<N> {
     /// returned from RPC calls.
     /// Also this cancels any ongoing calls if the connection was lost.
     pub fn process_events(&mut self)
-    where N: DeserializeOwned {
+    where Notification: DeserializeOwned {
         loop {
             match self.incoming_events.try_recv() {
                 Ok(event) => self.process_event(event),
@@ -300,7 +301,7 @@ impl<N> Handler<N> {
     }
 
     /// Sends a handler event to the event stream.
-    pub fn send_event(&mut self, event:Event<N>) {
+    pub fn send_event(&mut self, event:Event<Notification>) {
         if let Some(tx) = self.outgoing_events.as_mut() {
             let _ = tx.unbounded_send(event);
         }
@@ -310,7 +311,7 @@ impl<N> Handler<N> {
     ///
     /// If such stream was already existing, it will be finished (and
     /// continuations should be able to process any remaining events).
-    pub fn events(&mut self) -> impl Stream<Item = Event<N>> {
+    pub fn events(&mut self) -> impl Stream<Item = Event<Notification>> {
         let (tx,rx)          = unbounded();
         self.outgoing_events = Some(tx);
         rx
