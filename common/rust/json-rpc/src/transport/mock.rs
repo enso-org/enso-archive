@@ -83,17 +83,20 @@ pub struct MockTransport(Rc<RefCell<MockTransportData>>);
 
 impl Transport for MockTransport {
     fn send_text(&mut self, text:String) -> Result<(), Error> {
-        let mut me = self.0.borrow_mut();
-        if me.is_closed {
-            Err(SendingError::TransportClosed)?
-        } else {
-            me.sent_msgs.push_back(text.clone());
-            Ok(())
-        }
+        self.with_mut_data(|data| {
+            if data.is_closed {
+                Err(SendingError::TransportClosed)?
+            } else {
+                data.sent_msgs.push_back(text.clone());
+                Ok(())
+            }
+        })
     }
 
     fn set_event_tx(&mut self, tx:std::sync::mpsc::Sender<TransportEvent>) {
-        self.0.borrow_mut().event_tx = Some(tx);
+        self.with_mut_data(|data| {
+            data.event_tx = Some(tx);
+        })
     }
 }
 
@@ -101,6 +104,13 @@ impl MockTransport {
     /// Create a new `MockTransport`.
     pub fn new() -> MockTransport {
         MockTransport::default()
+    }
+
+    /// Executes given function with access to borrowed mutable data reference.
+    pub fn with_mut_data<R,F>(&mut self, f:F) -> R
+    where F: FnOnce(&mut MockTransportData) -> R {
+        let mut data = self.0.borrow_mut();
+        f(&mut data)
     }
 
     /// Generates event that mocks receiving a text message from a peer.
@@ -122,10 +132,12 @@ impl MockTransport {
     /// Mocks event generated when peer closes the socket (or connection is lost
     /// for any other reason).
     pub fn mock_connection_closed(&mut self) {
-        if let Some(ref tx) = self.0.borrow_mut().event_tx {
-            self.0.borrow_mut().is_closed = true;
-            let _          = tx.send(TransportEvent::Closed);
-        }
+        self.with_mut_data(|data| {
+            if let Some(ref tx) = data.event_tx {
+                data.is_closed = true;
+                let _          = tx.send(TransportEvent::Closed);
+            }
+        })
     }
 
     /// Takes the message sent by the client and returns its texts.
@@ -134,7 +146,9 @@ impl MockTransport {
     /// If the client sent multiple messages, the first one is returned.
     /// Further messages can be obtained by subsequent calls.
     pub fn expect_message_text(&mut self) -> String {
-        self.0.borrow_mut().sent_msgs.pop_front().expect("client should have sent request")
+        self.with_mut_data(|data| {
+            data.sent_msgs.pop_front().expect("client should have sent request")
+        })
     }
 
     /// Similar to `expect_message_text` but deserializes the message into
