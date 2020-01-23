@@ -9,5 +9,6 @@ members = [
     "common/rust/parser",
     "common/rust/prelude",
     "common/rust/shapely/core",
-    "common/rust/shapely/macros"
+    "common/rust/shapely/macros",
+    "common/rust/utils",
 ]

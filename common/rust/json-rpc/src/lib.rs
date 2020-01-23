@@ -17,6 +17,9 @@ pub mod handler;
 pub mod messages;
 pub mod transport;
 
+pub use api::RemoteMethodCall;
+pub use api::Result;
 pub use transport::Transport;
 pub use transport::TransportEvent;
+pub use handler::Event;
 pub use handler::Handler;
