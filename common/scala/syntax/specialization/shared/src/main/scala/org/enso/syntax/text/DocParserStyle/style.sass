@@ -2,17 +2,28 @@
 //// DOM ////
 ///////////*/
 
+$defaultLineHeight: 1.52947
+$defaultFontSize: 17px
+$defaultFontFamily: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
+$defaultFontWeight: 400
+$defaultBoldFontWeight: 600
+$defaultHeaderFontWeight: 500
+$defaultLetterSpacing: -0.021em
+$defaultTextColor: #333333
+$defaultCodeColor: #0070c9
+
+
 body
   -webkit-font-smoothing: antialiased
   font-style: normal
   word-wrap: break-word
-  font-size: 17px
-  line-height: 1.52947
-  font-weight: 400
-  letter-spacing: -0.021em
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
+  font-size: $defaultFontSize
+  line-height: $defaultLineHeight
+  font-weight: $defaultFontWeight
+  letter-spacing: $defaultLetterSpacing
+  font-family: $defaultFontFamily
   background-color: white
-  color: #333333
+  color: $defaultTextColor
   margin: 0
   padding: 0
 
@@ -24,11 +35,11 @@ p
   margin-inline-end: 0
 
 a:hover
-  color: #35a5ff !important
+  color: $defaultCodeColor !important
   text-decoration: inherit
 
 a
-  color: #333333
+  color: $defaultTextColor
   background-color: transparent
   text-decoration: inherit
   display: inline-block
@@ -38,10 +49,10 @@ img
   display: block
 
 code
-  color: #0070c9
+  color: $defaultCodeColor
   background-color: transparent
   font-size: inherit
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
+  font-family: $defaultFontFamily
   line-height: inherit
   display: inline-block
   white-space: pre-wrap
@@ -51,33 +62,32 @@ button
   padding: 8px 30px
   margin: 10px 0
   outline: none
-  // background-color: #e5e5e5
   background-color: transparent
-  border: 1px solid #333
-  color: #333
+  border: 1px solid $defaultTextColor
+  color: $defaultTextColor
   border-radius: 5px
   font-size: 13px
   vertical-align: top
   transition: all 0.3s ease
 
 button:hover
-  background-color: #333
+  background-color: $defaultTextColor
   color: #e5e5e5
 
 b
-  font-weight: 600
+  font-weight: $defaultBoldFontWeight
 
 h1
   font-size: 34px
   line-height: 1.08824
-  font-weight: 500
+  font-weight: $defaultHeaderFontWeight
   letter-spacing: 0.01em
 
 
 h2
   font-size: 28px
   line-height: 1.1073
-  font-weight: 500
+  font-weight: $defaultHeaderFontWeight
   letter-spacing: 0.012em
 
 
@@ -116,19 +126,18 @@ li
 
 .Header
   font-size: 19px
-  font-weight: 500
+  font-weight: $defaultHeaderFontWeight
 
 
 .Important .Header,
 .Info .Header,
 .Example .Header
   margin-bottom: 0.7em
-  font-weight: 600
-  letter-spacing: -0.021em
-  line-height: 17px
+  font-weight: $defaultBoldFontWeight
+  letter-spacing: $defaultLetterSpacing
+  line-height: $defaultFontSize
   font-synthesis: none
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
-
+  font-family: $defaultFontFamily
 
 /*////////////
 //// Tags ////
@@ -138,7 +147,7 @@ li
   margin-left: auto
   margin-right: auto
   margin-bottom: 20px
-  padding: 15px 0
+  padding-top: 15px
 
   .DEPRECATED,
   .MODIFIED,
@@ -147,10 +156,10 @@ li
   .REMOVED,
   .UNRECOGNIZED
     line-height: 1.5
-    font-weight: 400
+    font-weight: $defaultFontWeight
     border-radius: 4px
     font-size: 12px
-    letter-spacing: -0.021em
+    letter-spacing: $defaultLetterSpacing
     display: inline-flex
     padding: 5px 15px
     margin: 2px
@@ -201,19 +210,19 @@ li
 
 .Body .Raw
   margin-bottom: 0.6rem
-  font-size: 17px
-  line-height: 1.52947
-  font-weight: 400
-  letter-spacing: -0.021em
-  font-family: "SF Pro Text", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
-  color: #333333
+  font-size: $defaultFontSize
+  line-height: $defaultLineHeight
+  font-weight: $defaultFontWeight
+  letter-spacing: $defaultLetterSpacing
+  font-family: $defaultFontFamily
+  color: $defaultTextColor
   font-style: normal
 
 .Important,
 .Info,
 .CodeBlock,
 .Example
-  font-size: 17px
+  font-size: $defaultFontSize
   padding: 15px 10px 15px 20px
   border: 0
   border-radius: 6px
@@ -245,7 +254,7 @@ li
 ///////////////////////////////////*/
 
 .Def
-  margin: auto
+  margin: 40px auto auto
   padding: 0 15px
   text-decoration: inherit
 
@@ -259,15 +268,14 @@ li
   .Synopsis
     padding: 0
     margin-bottom: 15px
-    font-size: 17px
-    font-weight: 400
-    color: #333333
+    font-size: $defaultFontSize
+    font-weight: $defaultFontWeight
+    color: $defaultTextColor
     font-style: normal
 
   .constr
-    margin-bottom: 35px
-    padding-top: 15px
-    margin-top: 40px
+    padding: 25px 0
+    margin: 0
 
   .DefDoc
     .Body
@@ -286,8 +294,8 @@ li
         .DefTitle,
         .Infix
           padding: 0
-          font-size: 18px
-          font-weight: 400
+          font-size: $defaultFontSize
+          font-weight: $defaultFontWeight
           font-style: normal
           text-decoration: inherit
 
@@ -308,14 +316,14 @@ li
 .DefTitle
   display: inline-flex
   font-size: x-large
-  font-weight: 400
+  font-weight: $defaultFontWeight
   margin-bottom: 20px
 
 
 .DefArgs
   margin-left: 5px
-  font-weight: 400
-  color: #0070c9
+  font-weight: $defaultFontWeight
+  color: $defaultCodeColor
 
 /*/////////////////////////
 //// Synopsis & Detail ////
@@ -337,11 +345,12 @@ li
   .ASTHead
     text-align: left
     line-height: 1.05
-    background-color: #fafafa
     border-radius: 6px
 
   .ASTData
     width: 100%
+    background-color: #fafafa
+
 
   .ASTHead
     margin: 20px auto 5px
@@ -366,6 +375,10 @@ li
   .DefNoBody
     text-decoration: inherit
 
+
+/*///////////////////////////
+////         RWD         ////
+///////////////////////////*/
 @media (max-width: 500px)
   .Synopsis,
   .Body,
