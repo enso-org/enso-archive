@@ -42,6 +42,7 @@ Where `()` is a unit value.
 
 # Notifications
 Notifications are emitted by the server.
+
 | Method          | Input                       | Result |
 |-----------------|-----------------------------|--------|
 | filesystemEvent | {path:Path, kind:EventKind} | N/A    |
