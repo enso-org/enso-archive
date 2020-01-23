@@ -7,7 +7,6 @@ import shapeless.{::, HNil}
 
 import scala.collection.mutable
 
-// TODO [AA] Can I macro this into a separate file like AST does?
 class GraphTestRaw extends FlatSpec with Matchers {
   object GraphImpl {
 
@@ -16,9 +15,6 @@ class GraphTestRaw extends FlatSpec with Matchers {
     // ========================================================================
 
     case class Graph() extends PrimGraph
-
-    // TODO [AA] What happens if everywhere I have `G <: PrimGraph` I instead
-    //  put `Graph`?
 
     implicit def components =
       new PrimGraph.Component.List[Graph] {
