@@ -15,6 +15,7 @@ pub mod api;
 pub mod error;
 pub mod handler;
 pub mod messages;
+pub mod test_util;
 pub mod transport;
 
 pub use api::RemoteMethodCall;

@@ -248,7 +248,7 @@ mod tests {
 
     use json_rpc::messages::Message;
     use json_rpc::messages::RequestMessage;
-    use json_rpc::transport::mock::MockTransport;
+    use json_rpc::test_util::transport::mock::MockTransport;
     use serde_json::json;
     use serde_json::Value;
     use std::future::Future;

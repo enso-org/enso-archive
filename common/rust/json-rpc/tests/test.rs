@@ -10,7 +10,7 @@ use json_rpc::error::HandlingError;
 use json_rpc::messages::Id;
 use json_rpc::messages::Message;
 use json_rpc::messages::Version;
-use json_rpc::transport::mock::MockTransport;
+use json_rpc::test_util::transport::mock::MockTransport;
 use serde::Deserialize;
 use serde::Serialize;
 use std::future::Future;

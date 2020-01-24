@@ -1,5 +1,4 @@
 //! Traits providing abstraction over transport used by the JSON-RPC client.
-pub mod mock;
 
 use prelude::*;
 
