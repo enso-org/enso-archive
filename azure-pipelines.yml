@@ -41,5 +41,5 @@ jobs:
           regionName: 'us-west-2'
           bucketName: 'packages-luna'
           globExpressions: 'touch.txt'
-          targetFolder: 'parser-js/nightly/$(Release.Artifacts.Dataframes.SourceVersion)'
+          targetFolder: 'parser-js/nightly/$(Build.SourceVersion)'
           filesAcl: 'public-read'
