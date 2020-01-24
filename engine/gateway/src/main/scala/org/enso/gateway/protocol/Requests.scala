@@ -3,7 +3,10 @@ package org.enso.gateway.protocol
 import org.enso.gateway.protocol.request.Params
 import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
 
-/** Parent trait for request extractor objects. */
+/** Parent trait for request (Scala) extractor objects.
+  *
+  * Simplifies matching in [[org.enso.Gateway.receive()]].
+  */
 sealed abstract class RequestExtractor[T <: Params](
   val method: String
 ) {
