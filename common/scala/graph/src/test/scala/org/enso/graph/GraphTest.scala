@@ -1,13 +1,19 @@
 package org.enso.graph
 
+import org.enso.graph.definition.Macro.{component, field, opaque}
 import org.enso.graph.{Graph => PrimGraph}
 import org.scalatest.{FlatSpec, Matchers}
 import shapeless.nat._
 import shapeless.{::, HNil}
 
-import scala.collection.mutable
-
-class GraphTestRaw extends FlatSpec with Matchers {
+/** This file contains tests for the graph library.
+  *
+  * It creates a small graph implementation that tests both the various features
+  * of the library and of the library's macros. The commented out code has been
+  * left intentionally to demonstrate the expansion of the macros here, and to
+  * aid in debugging said macros.
+  */
+class GraphTest extends FlatSpec with Matchers {
   object GraphImpl {
 
     // ========================================================================
@@ -36,47 +42,48 @@ class GraphTestRaw extends FlatSpec with Matchers {
     // === Opaque Storage =====================================================
     // ========================================================================
 
-    // TODO [AA] Macro this
-    sealed case class StringStorage() {
-      val string: mutable.Map[Int, String] = mutable.Map()
-    }
+    @opaque case class String(opaque: String)
+    //    sealed case class StringStorage() {
+    //      val string: mutable.Map[Int, String] = mutable.Map()
+    //    }
 
-    sealed case class BackrefStorage() {
-      val backref: mutable.Map[Int, Vector[Int]] = mutable.Map()
-    }
+    @opaque case class Backref(opaque: Vector[Int])
+    //    sealed case class BackrefStorage() {
+    //      val backref: mutable.Map[Int, Vector[Int]] = mutable.Map()
+    //    }
 
     // ========================================================================
     // === Component Definitions ==============================================
     // ========================================================================
 
     // === Node ===
-    sealed case class Nodes() extends PrimGraph.Component
-    type Node[G <: PrimGraph] = PrimGraph.Component.Ref[G, Nodes]
-    implicit class GraphWithNodes[G <: PrimGraph](
-      graph: PrimGraph.GraphData[G]
-    ) {
-      def addNode()(implicit ev: PrimGraph.HasComponent[G, Nodes]): Node[G] = {
-        graph.addComponent[Nodes]()
-      }
-    }
+    @component case class Nodes() { type Node[G <: PrimGraph] }
+//    sealed case class Nodes() extends PrimGraph.Component
+//    type Node[G <: PrimGraph] = PrimGraph.Component.Ref[G, Nodes]
+//    implicit class GraphWithNodes[G <: PrimGraph](
+//      graph: PrimGraph.GraphData[G]
+//    ) {
+//      def addNode()(implicit ev: PrimGraph.HasComponent[G, Nodes]): Node[G] = {
+//        graph.addComponent[Nodes]()
+//      }
+//    }
 
     // === Edge ===
-    sealed case class Edges() extends PrimGraph.Component
-    type Edge[G <: PrimGraph] = PrimGraph.Component.Ref[G, Edges]
-    implicit class GraphWithEdges[G <: PrimGraph](
-      graph: PrimGraph.GraphData[G]
-    ) {
-      def addEdge()(implicit ev: PrimGraph.HasComponent[G, Edges]): Edge[G] = {
-        graph.addComponent[Edges]()
-      }
-    }
+    @component case class Edges() { type Edge[G <: PrimGraph] }
+//    sealed case class Edges() extends PrimGraph.Component
+//    type Edge[G <: PrimGraph] = PrimGraph.Component.Ref[G, Edges]
+//    implicit class GraphWithEdges[G <: PrimGraph](
+//      graph: PrimGraph.GraphData[G]
+//    ) {
+//      def addEdge()(implicit ev: PrimGraph.HasComponent[G, Edges]): Edge[G] = {
+//        graph.addComponent[Edges]()
+//      }
+//    }
 
     // ========================================================================
     // === Component Field Definitions ========================================
     // ========================================================================
 
-    // TODO [AA] Test a complex opaque field (e.g. higher-rank type) to make
-    //  sure that the macro logic handles it
     // TODO [AA] How to macro this -> Opaque[T, M], where M is the name of the map type
     object Node {
 
@@ -375,6 +382,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
         }
       }
 
+//      @field case class ParentLink[G <: PrimGraph](parent: Edge[G])
       sealed case class ParentLink() extends PrimGraph.Component.Field
       sealed case class ParentLinkVal[G <: PrimGraph](parent: Edge[G])
       object ParentLink {
@@ -539,7 +547,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
     }
 
     object Edge {
-
+//      @field case class Shape[G <: PrimGraph](source: Node[G], target: Node[G])
       sealed case class Shape() extends PrimGraph.Component.Field
       sealed case class ShapeVal[G <: PrimGraph](
         source: Node[G],
@@ -602,7 +610,7 @@ class GraphTestRaw extends FlatSpec with Matchers {
         ](
           t: PrimGraph.Component.Refined[F, R, PrimGraph.Component.Ref[G, C]]
         ): ShapeInstance[G, C] = t.wrapped
-      };
+      }
     }
   }
 
