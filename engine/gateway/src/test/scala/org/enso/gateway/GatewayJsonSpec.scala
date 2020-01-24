@@ -27,7 +27,7 @@ import org.enso.gateway.server.Config
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 
-class GatewaySpec
+class GatewayJsonSpec
     extends AsyncFlatSpec
     with Matchers
     with BeforeAndAfterAll
@@ -47,9 +47,11 @@ class GatewaySpec
 
   private val jsonRpcController = new JsonRpcController(gateway)
 
-  private val port   = 30001
-  private val host   = "localhost"
-  private val config = new Config(port, host)
+  private val config = {
+    val port = 30001
+    val host = "localhost"
+    new Config(port, host)
+  }
 
   private val server = new Server(jsonRpcController, config)
 
