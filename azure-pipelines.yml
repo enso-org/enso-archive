@@ -39,6 +39,6 @@ jobs:
           echo bar > foo.txt
       - task: PublishPipelineArtifact@1
         inputs:
-          targetPath: '$(Pipeline.Workspace)/foo.txt'
+          targetPath: '$(Pipeline.Workspace)/s/foo.txt'
           artifact: 'std'
           publishLocation: 'pipeline'
