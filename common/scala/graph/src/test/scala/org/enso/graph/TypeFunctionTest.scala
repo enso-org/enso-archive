@@ -77,7 +77,6 @@ class TypeFunctionTest extends FlatSpec with Matchers {
 
   "A HList of Maps" should "allow selection by Value type" in {
     val mapsOf = MapsOf[String :: Long :: HNil]
-    type MapsOfT = mapsOf.Out
     val test = MapsOf[String :: Long :: HNil].instance
 
     MapsOf.getOpaqueData[Long, mapsOf.Out](test) shouldEqual mutable

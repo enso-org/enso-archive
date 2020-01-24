@@ -314,12 +314,12 @@ object Graph {
 
   def apply[G <: Graph: GraphInfo](): GraphData[G] = new GraphData[G]()
 
-  // ==================
-  // === OpaqueData ===
-  // ==================
+  // ======================
+  // === OpaqueDataList ===
+  // ======================
 
-  trait OpaqueData
-  object OpaqueData {
+  trait OpaqueDataList
+  object OpaqueDataList {
     trait List[G <: Graph] {
       type Out <: HList
     }
