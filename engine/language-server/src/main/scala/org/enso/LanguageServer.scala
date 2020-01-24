@@ -9,9 +9,12 @@ import org.enso.languageserver.{
 }
 import org.enso.polyglot.ExecutionContext
 
-/** The language server component wraps the runtime itself, and uses the APIs
-  * provided by the interpreter and the compiler to service the requests sent
-  * to the Enso Engine.
+/** The Language Server component of Enso Engine.
+  *
+  * Wraps the runtime itself, and uses the APIs provided by the interpreter
+  * and the compiler to service the requests sent to the Enso Engine.
+  *
+  * @param context Polyglot Execution context.
   */
 class LanguageServer(context: ExecutionContext)
     extends Actor

@@ -9,7 +9,7 @@ import org.enso.gateway.protocol.response.result.{
 }
 import io.circe.syntax._
 
-/** [[org.enso.gateway.protocol.Response]] result.
+/** Result of [[org.enso.gateway.protocol.Response]].
   *
   * LSP Spec:
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
@@ -43,7 +43,7 @@ object Result {
       deriveUnwrappedEncoder
   }
 
-  /** [[org.enso.gateway.protocol.Requests.Initialize]] result. */
+  /** Result of [[org.enso.gateway.protocol.Requests.Initialize]]. */
   case class InitializeResult(
     capabilities: ServerCapabilities,
     serverInfo: Option[ServerInfo] = None
@@ -53,7 +53,7 @@ object Result {
       deriveEncoder
   }
 
-  /** [[org.enso.gateway.protocol.Requests.Shutdown]] result. */
+  /** Result of [[org.enso.gateway.protocol.Requests.Shutdown]]. */
   case object NullResult extends Result {
     implicit val nullResultEncoder: Encoder[NullResult.type] = _ => Json.Null
   }

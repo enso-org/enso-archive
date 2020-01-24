@@ -5,7 +5,8 @@ import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.response.{ResponseError, Result}
 
-/** `ResponseMessage` in LSP Spec:
+/** `ResponseMessage` in LSP Spec.
+  *
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
   *
   * @param jsonrpc JSON-RPC Version.
@@ -22,7 +23,7 @@ case class Response private (
 )
 object Response {
 
-  /** Create response with a result.
+  /** Creates response with a result.
     *
     * @param id     Id of request.
     * @param result [[Result]] of response.
@@ -34,7 +35,7 @@ object Response {
   ): Response =
     Response(jsonRpcVersion, id, Some(result), None)
 
-  /** Create response with an error.
+  /** Creates response with an error.
     *
     * @param id    Id of request.
     * @param error [[ResponseError]] of response.

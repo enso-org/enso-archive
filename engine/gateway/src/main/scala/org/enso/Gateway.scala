@@ -15,8 +15,10 @@ import org.enso.languageserver.{
   Requests => LsRequests
 }
 
-/** The gateway component talks directly to clients using protocol messages,
-  * and then handles these messages by talking to the language server.
+/** The Gateway component of Enso Engine.
+  *
+  * Talks directly to clients using protocol messages, and then handles these
+  * messages by talking to the language server.
   *
   * @param languageServer [[ActorRef]] of [[LanguageServer]] actor.
   */

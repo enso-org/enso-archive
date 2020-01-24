@@ -6,7 +6,7 @@ import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSelector
 
-/** The server provides folding provider support. */
+/** Server capability to provide folding provider support. */
 sealed trait FoldingRangeProvider
 object FoldingRangeProvider {
 

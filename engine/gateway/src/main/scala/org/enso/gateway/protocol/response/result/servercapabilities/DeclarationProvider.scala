@@ -6,7 +6,7 @@ import io.circe.generic.semiauto.deriveEncoder
 import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSelector
 
-/** The server provides go to declaration support. */
+/** Server capability to provide "go to declaration" support. */
 sealed trait DeclarationProvider
 object DeclarationProvider {
 

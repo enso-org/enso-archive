@@ -3,7 +3,7 @@ package org.enso.gateway.protocol.response.result.servercapabilities
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 
-/** The server provides completion support. */
+/** Server capability to provide completion support. */
 case class CompletionOptions(
   triggerCharacters: Option[Seq[String]]   = None,
   allCommitCharacters: Option[Seq[String]] = None,

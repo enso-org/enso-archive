@@ -6,9 +6,10 @@ import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.protocol.response.result.servercapabilities.textdocumentsync.TextDocumentSyncKind
 
-/** Defines how text documents are synced. Is either a detailed structure
-  * defining each notification or for backwards compatibility the
-  * [[TextDocumentSyncKind]] number. If omitted it defaults to
+/** Defines how text documents are synced.
+  *
+  * Is either a detailed structure defining each notification or for backwards
+  * compatibility the [[TextDocumentSyncKind]] number. If omitted it defaults to
   * [[TextDocumentSyncKind.NoneKind]].
   */
 sealed trait TextDocumentSync
