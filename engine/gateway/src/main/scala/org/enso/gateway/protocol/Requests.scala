@@ -1,7 +1,12 @@
 package org.enso.gateway.protocol
 
 import org.enso.gateway.protocol.request.Params
-import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
+import org.enso.gateway.protocol.request.Params.{
+  ApplyWorkspaceEditParams,
+  InitializeParams,
+  VoidParams,
+  WillSaveTextDocumentWaitUntilParams
+}
 
 /** Parent trait for request extractor objects. */
 sealed abstract class RequestExtractor[T <: Params](

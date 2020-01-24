@@ -2,7 +2,16 @@ package org.enso.gateway.protocol
 
 import io.circe.CursorOp.DownField
 import io.circe.{Decoder, DecodingFailure}
-import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
+import org.enso.gateway.protocol.request.Params.{
+  ApplyWorkspaceEditParams,
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
+  DidSaveTextDocumentParams,
+  InitializeParams,
+  VoidParams,
+  WillSaveTextDocumentWaitUntilParams
+}
 
 /** Helper object for decoding [[RequestOrNotification]]. */
 object RequestOrNotificationDecoder {

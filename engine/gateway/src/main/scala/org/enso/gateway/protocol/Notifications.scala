@@ -1,7 +1,13 @@
 package org.enso.gateway.protocol
 
 import org.enso.gateway.protocol.request.Params
-import org.enso.gateway.protocol.request.Params.VoidParams
+import org.enso.gateway.protocol.request.Params.{
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
+  DidSaveTextDocumentParams,
+  VoidParams
+}
 
 /** Parent class for notification extractor objects. */
 sealed abstract class NotificationExtractor[T <: Params](

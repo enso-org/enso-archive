@@ -8,7 +8,13 @@ import org.enso.gateway.protocol.request.Param.{
   ClientCapabilities,
   ClientInfo,
   InitializationOptions,
+  TextDocumentContentChangeEvent,
+  TextDocumentIdentifier,
+  TextDocumentItem,
+  TextDocumentSaveReason,
   Trace,
+  VersionedTextDocumentIdentifier,
+  WorkspaceEdit,
   WorkspaceFolder
 }
 

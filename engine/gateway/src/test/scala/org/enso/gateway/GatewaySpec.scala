@@ -8,8 +8,10 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Flow, Keep, Sink, Source}
 import io.circe.Json
 import org.enso.gateway.TestJson.{
+  ApplyWorkspaceEdit,
   Initialize,
   Shutdown,
+  WillSaveTextDocumentWaitUntil,
   WrongJsonrpc,
   WrongMethod
 }

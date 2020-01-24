@@ -3,7 +3,16 @@ package org.enso.gateway.protocol
 import io.circe.{ACursor, Decoder, DecodingFailure}
 import org.enso.gateway.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Params
-import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
+import org.enso.gateway.protocol.request.Params.{
+  ApplyWorkspaceEditParams,
+  DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
+  DidOpenTextDocumentParams,
+  DidSaveTextDocumentParams,
+  InitializeParams,
+  VoidParams,
+  WillSaveTextDocumentWaitUntilParams
+}
 
 /** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {

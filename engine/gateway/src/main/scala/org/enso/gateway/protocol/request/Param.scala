@@ -7,6 +7,7 @@ import io.circe.generic.extras.semiauto.{
 }
 import io.circe.generic.semiauto.deriveDecoder
 import cats.syntax.functor._
+import org.enso.gateway.protocol.{TextEdit, TextRange}
 import org.enso.gateway.protocol.request.Params.DocumentUri
 
 /** An element of [[Params.Array]]. */
