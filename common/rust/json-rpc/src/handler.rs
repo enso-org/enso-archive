@@ -11,7 +11,8 @@ use crate::messages::Id;
 use crate::transport::Transport;
 use crate::transport::TransportEvent;
 
-use futures::{FutureExt, Stream};
+use futures::FutureExt;
+use futures::Stream;
 use futures::channel::mpsc::unbounded;
 use futures::channel::mpsc::UnboundedSender;
 use futures::channel::oneshot;
@@ -300,7 +301,19 @@ impl<Notification> Handler<Notification> {
     /// Sends a handler event to the event stream.
     pub fn send_event(&mut self, event:Event<Notification>) {
         if let Some(tx) = self.outgoing_events.as_mut() {
-            let _ = tx.unbounded_send(event);
+            match tx.unbounded_send(event) {
+                Ok(()) => {},
+                Err(e) =>
+                    if e.is_full() {
+                        // Impossible, as per `futures` library docs.
+                        panic!("unbounded channel should never be full")
+                    } else if e.is_disconnected() {
+                        // It is ok for receiver to disconnect and ignore events.
+                    } else {
+                        // Never happens unless `futures` library changes API.
+                        panic!("unknown unexpected error")
+                    }
+            }
         }
     }
 

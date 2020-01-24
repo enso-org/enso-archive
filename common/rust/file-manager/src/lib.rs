@@ -256,15 +256,15 @@ mod tests {
     use utils::poll_stream_output;
 
     fn setup_fm() -> (MockTransport, Client) {
-        let ws  = MockTransport::new();
-        let fm  = Client::new(ws.clone());
-        (ws,fm)
+        let transport = MockTransport::new();
+        let client    = Client::new(transport.clone());
+        (transport,client)
     }
 
     #[test]
     fn test_notification() {
-        let (mut ws, mut fm) = setup_fm();
-        let mut events       = Box::pin(fm.events());
+        let (mut transport, mut client) = setup_fm();
+        let mut events                  = Box::pin(client.events());
         assert!(poll_stream_output(&mut events).is_none());
 
         let expected_notification = FilesystemEvent {
@@ -276,9 +276,9 @@ mod tests {
             "method": "filesystemEvent",
             "params": {"path" : "./Main.luna", "kind" : "Modified"}
         }"#;
-        ws.mock_peer_message_text(notification_text);
+        transport.mock_peer_message_text(notification_text);
         assert!(poll_stream_output(&mut events).is_none());
-        fm.process_events();
+        client.process_events();
         let event = poll_stream_output(&mut events);
         if let Some(Event::Notification(n)) = event {
             assert_eq!(n, Notification::FilesystemEvent(expected_notification));
@@ -302,26 +302,26 @@ mod tests {
     where Fun : FnOnce(&mut Client) -> Fut,
           Fut : Future<Output = Result<T>>,
           T   : Debug + PartialEq {
-        let (mut ws, mut fm)  = setup_fm();
-        let mut fut = Box::pin(make_request(&mut fm));
+        let (mut transport, mut client) = setup_fm();
+        let mut fut                     = Box::pin(make_request(&mut client));
 
-        let request = ws.expect_message::<RequestMessage<Value>>();
+        let request = transport.expect_message::<RequestMessage<Value>>();
         assert_eq!(request.method, expected_method);
         assert_eq!(request.input,  expected_input);
 
         let response = Message::new_success(request.id, result);
-        ws.mock_peer_message(response);
+        transport.mock_peer_message(response);
 
-        fm.process_events();
+        client.process_events();
         let output = poll_future_output(&mut fut).unwrap().unwrap();
         assert_eq!(output, expected_output);
     }
 
     #[test]
     fn version_serialization_and_deserialization() {
-        let main      = Path::new("./Main.luna");
-        let target    = Path::new("./Target.luna");
-        let path_main = json!({"path" : "./Main.luna"});
+        let main                = Path::new("./Main.luna");
+        let target              = Path::new("./Target.luna");
+        let path_main           = json!({"path" : "./Main.luna"});
         let from_main_to_target = json!({
             "from" : "./Main.luna",
             "to"   : "./Target.luna"
@@ -330,25 +330,25 @@ mod tests {
         let unit_json = json!(null);
 
         test_request(
-            |fm| fm.copy_directory(main.clone(), target.clone()),
+            |client| client.copy_directory(main.clone(), target.clone()),
             "copyDirectory",
             from_main_to_target.clone(),
             unit_json.clone(),
             ());
         test_request(
-            |fm| fm.copy_file(main.clone(), target.clone()),
+            |client| client.copy_file(main.clone(), target.clone()),
             "copyFile",
             from_main_to_target.clone(),
             unit_json.clone(),
             ());
         test_request(
-            |fm| fm.delete_file(main.clone()),
+            |client| client.delete_file(main.clone()),
             "deleteFile",
             path_main.clone(),
             unit_json.clone(),
             ());
         test_request(
-            |fm| fm.exists(main.clone()),
+            |client| client.exists(main.clone()),
             "exists",
             path_main.clone(),
             true_json,
@@ -357,25 +357,25 @@ mod tests {
         let list_response_json  = json!([          "Bar.luna",           "Foo.luna" ]);
         let list_response_value = vec!  [Path::new("Bar.luna"),Path::new("Foo.luna")];
         test_request(
-            |fm| fm.list(main.clone()),
+            |client| client.list(main.clone()),
             "list",
             path_main.clone(),
             list_response_json,
             list_response_value);
         test_request(
-            |fm| fm.move_directory(main.clone(), target.clone()),
+            |client| client.move_directory(main.clone(), target.clone()),
             "moveDirectory",
             from_main_to_target.clone(),
             unit_json.clone(),
             ());
         test_request(
-            |fm| fm.move_file(main.clone(), target.clone()),
+            |client| client.move_file(main.clone(), target.clone()),
             "moveFile",
             from_main_to_target.clone(),
             unit_json.clone(),
             ());
         test_request(
-            |fm| fm.read(main.clone()),
+            |client| client.read(main.clone()),
             "read",
             path_main.clone(),
             json!("Hello world!"),
@@ -399,19 +399,19 @@ mod tests {
             "sizeInBytes"       : 125125
         });
         test_request(
-            |fm| fm.status(main.clone()),
+            |client| client.status(main.clone()),
             "status",
             path_main.clone(),
             sample_attributes_json,
             expected_attributes);
         test_request(
-            |fm| fm.touch(main.clone()),
+            |client| client.touch(main.clone()),
             "touch",
             path_main.clone(),
             unit_json.clone(),
             ());
         test_request(
-            |fm| fm.write(main.clone(), "Hello world!".into()),
+            |client| client.write(main.clone(), "Hello world!".into()),
             "write",
             json!({"path" : "./Main.luna", "contents" : "Hello world!"}),
             unit_json.clone(),
@@ -420,7 +420,7 @@ mod tests {
         let uuid_value = uuid::Uuid::parse_str("02723954-fbb0-4641-af53-cec0883f260a").unwrap();
         let uuid_json  = json!("02723954-fbb0-4641-af53-cec0883f260a");
         test_request(
-            |fm| fm.create_watch(main.clone()),
+            |client| client.create_watch(main.clone()),
             "createWatch",
             path_main.clone(),
             uuid_json.clone(),
@@ -429,7 +429,7 @@ mod tests {
             "watchId" : "02723954-fbb0-4641-af53-cec0883f260a"
         });
         test_request(
-            |fm| fm.delete_watch(uuid_value.clone()),
+            |client| client.delete_watch(uuid_value.clone()),
             "deleteWatch",
             watch_id.clone(),
             unit_json.clone(),
