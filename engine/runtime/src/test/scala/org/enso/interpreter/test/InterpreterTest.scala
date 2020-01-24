@@ -6,8 +6,10 @@ import com.oracle.truffle.api.instrumentation.EventBinding
 import org.enso.interpreter.Constants
 import org.graalvm.polyglot.{Context, Source, Value}
 import org.enso.interpreter.instrument.{
+  FunctionCallExtractorInstrument,
   ReplDebuggerInstrument,
-  ValueExtractorInstrument
+  ValueExtractorInstrument,
+  ValueOverrideInstrument
 }
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
 import org.enso.polyglot.{ExecutionContext, Function, LanguageInfo}
@@ -99,6 +101,18 @@ trait InterpreterRunner {
     ctx.getEngine.getInstruments
       .get(ValueExtractorInstrument.INSTRUMENT_ID)
       .lookup(classOf[ValueExtractorInstrument])
+  }
+
+  def getFunctionCallExtractorInstrument: FunctionCallExtractorInstrument = {
+    ctx.getEngine.getInstruments
+      .get(FunctionCallExtractorInstrument.INSTRUMENT_ID)
+      .lookup(classOf[FunctionCallExtractorInstrument])
+  }
+
+  def getValueOverrideInstrument: ValueOverrideInstrument = {
+    ctx.getEngine.getInstruments
+      .get(ValueOverrideInstrument.INSTRUMENT_ID)
+      .lookup(classOf[ValueOverrideInstrument])
   }
 
   // For Enso raw text blocks inside scala multiline strings
