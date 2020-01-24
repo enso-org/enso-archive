@@ -21,7 +21,7 @@ use serde::Serialize;
 
 /// Errors emitted by the `MockTransport`.
 #[derive(Clone,Copy,Debug,Fail)]
-pub enum SendingError {
+pub enum SendError {
     /// Cannot send message while the connection is closed.
     #[fail(display = "Cannot send message when socket is closed.")]
     TransportClosed,
@@ -51,7 +51,7 @@ pub enum Status {
 /// Mock transport shared data. Collects all the messages sent by the owner.
 ///
 /// Allows mocking messages from the peer.
-#[derive(Debug)]
+#[derive(Debug,Default)]
 pub struct MockTransportData {
     /// Events sink.
     pub event_tx  : Option<std::sync::mpsc::Sender<TransportEvent>>,
@@ -61,16 +61,6 @@ pub struct MockTransportData {
     pub is_closed : bool,
 }
 
-impl Default for MockTransportData {
-    fn default() -> MockTransportData {
-        MockTransportData {
-            event_tx  : None,
-            sent_msgs : VecDeque::new(),
-            is_closed : false,
-        }
-    }
-}
-
 
 
 // ======================
@@ -78,14 +68,14 @@ impl Default for MockTransportData {
 // ======================
 
 /// Shareable wrapper over `MockTransportData`.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone,Debug,Default)]
 pub struct MockTransport(Rc<RefCell<MockTransportData>>);
 
 impl Transport for MockTransport {
     fn send_text(&mut self, text:String) -> Result<(), Error> {
         self.with_mut_data(|data| {
             if data.is_closed {
-                Err(SendingError::TransportClosed)?
+                Err(SendError::TransportClosed)?
             } else {
                 data.sent_msgs.push_back(text.clone());
                 Ok(())
