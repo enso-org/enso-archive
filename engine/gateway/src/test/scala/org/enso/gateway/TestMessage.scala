@@ -11,6 +11,7 @@ import org.enso.gateway.protocol.response.result.{
   ServerInfo
 }
 import TestMessageDefinitions._
+import org.enso.gateway.protocol.response.result.servercapabilities.TextDocumentSync.WillSaveWaitUntil
 
 trait TestMessage[P <: Params] {
   def request: Request[P]
@@ -41,7 +42,13 @@ object TestMessage {
     val response = Response.result(
       id = Some(id1),
       result = InitializeResult(
-        capabilities = ServerCapabilities(),
+        capabilities = ServerCapabilities(
+          textDocumentSync = Some(
+            WillSaveWaitUntil(
+              willSaveWaitUntil = true
+            )
+          )
+        ),
         serverInfo = Some(
           ServerInfo(
             name    = serverName,

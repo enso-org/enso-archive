@@ -30,7 +30,7 @@ import org.enso.languageserver.{
   */
 class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
-    case Requests.Initialize(id, _) =>
+    case Requests.Initialize(id, params) =>
       val msg = "Gateway: Initialize received"
       log.info(msg)
       languageServer ! LsRequests.Initialize(

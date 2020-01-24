@@ -30,7 +30,7 @@ class LanguageServerSpec()
       val id1 = Id.Number(1)
       val id2 = Id.Number(2)
 
-      languageServer ! Initialize(id1, probeRef)
+      languageServer ! Initialize(id1, willSaveWaitUntil = true, probeRef)
       expectMsg(RequestReceived.Initialize(id1, probeRef))
 
       languageServer ! Initialized
