@@ -166,8 +166,6 @@ pub struct Handler<Notification> {
     pub incoming_events : std::sync::mpsc::Receiver<TransportEvent>,
     /// Handle to send outgoing events.
     pub outgoing_events : Option<UnboundedSender<Event<Notification>>>,
-    /// Phantom marker for `N` type parameter.
-    pub phantom         : PhantomData<Notification>,
 }
 
 impl<Notification> Handler<Notification> {
@@ -182,7 +180,6 @@ impl<Notification> Handler<Notification> {
             transport       : Box::new(transport),
             incoming_events : event_rx,
             outgoing_events : None,
-            phantom         : PhantomData,
         };
         ret.transport.set_event_tx(event_tx);
         ret
@@ -218,7 +215,7 @@ impl<Notification> Handler<Notification> {
         if let Some(sender) = self.ongoing_calls.remove(&message.id) {
             // Disregard any error. We do not care if RPC caller already
             // dropped the future.
-            let _ = sender.send(message.result);
+            sender.send(message.result).ok();
         } else {
             self.error_occurred(HandlingError::UnexpectedResponse(message));
         }
