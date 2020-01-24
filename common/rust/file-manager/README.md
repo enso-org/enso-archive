@@ -60,7 +60,7 @@ Attributes = struct {
     lastAccess_time   : FileTime, 
     lastModified_time : FileTime, 
     fileKind          : FileKind,
-    sizeInBytes       : u64
+    byteSize          : u64,
 }
 
 EventKind = enum { Created, Deleted, Modified, Overflow }

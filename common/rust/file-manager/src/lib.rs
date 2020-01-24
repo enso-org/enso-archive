@@ -322,7 +322,7 @@ mod tests {
     }
 
     #[test]
-    fn version_serialization_and_deserialization() {
+    fn test_requests() {
         let main                = Path::new("./Main.luna");
         let target              = Path::new("./Target.luna");
         let path_main           = json!({"path" : "./Main.luna"});
@@ -400,7 +400,7 @@ mod tests {
             "lastAccessTime"    : "2020-01-21T22:16:51.123994500+00:00",
             "lastModifiedTime"  : "2020-01-07T21:25:26Z",
             "fileKind"          : "RegularFile",
-            "sizeInBytes"       : 125125
+            "byteSize"          : 125125
         });
         test_request(
             |client| client.status(main.clone()),
