@@ -302,8 +302,6 @@ object MapsOf {
   * The type [[Graph]] should not be used directly by programs that use this
   * library. Instead, it should be used to implement custom graph instances by
   * extending the [[Graph]] trait.
-  *
-  * Clients of the library must specify the
   */
 trait Graph
 object Graph {
