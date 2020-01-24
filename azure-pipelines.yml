@@ -33,6 +33,8 @@ jobs:
       image: oracle/graalvm-ce:$(graalVersion)-java8
       options: "--name ci-container -v /usr/bin/docker:/tmp/docker:ro"
     steps:
+      - script: pwd
+      - script: echo parser-js/nightly/$(Build.SourceVersion)
       - script: |
           echo bar > foo.txt
       - task: PublishPipelineArtifact@1
