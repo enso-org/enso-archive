@@ -5,11 +5,6 @@ import scala.reflect.macros.whitebox
 
 object Macro {
 
-  // TODO [AA] Fix up the variant case next
-  // TODO [AA] Refactor dupe fragments
-  // TODO [AA] Ensure a field name cannot collide with the type name
-  // TODO [AA] Check the docs
-
   /** This macro generates a field definition for the graph, and can generate
     * these definitions for both single and variant fields for a
     * [[org.enso.graph.Graph.Component]].
@@ -17,7 +12,7 @@ object Macro {
     * For a single field, you provide it a definition as follows:
     *
     * {{{
-    *   @field case class MyName[G <: Graph, TParams..](args...)
+    *   @field case class MyName[G <: Graph].](args...)
     * }}}
     *
     * It will then generate the required boilerplate for this field definition,
@@ -25,51 +20,11 @@ object Macro {
     * in the template definition. It must include a type parameter `G` with its
     * bound set to the imported name of the primitive graph in its definition.
     *
-    * As an example, consider the following:
+    * For examples, please see [[GraphTestDefinition]] as this contains macro
+    * usages and their expansions.
     *
-    * {{{@field case class ParentLink[G <: Graph](parent: Edge[G])}}}
-    *
-    * This application of the macro will generate the following code:
-    *
-    * {{{
-    *   sealed case class ParentLink() extends Graph.Component.Field
-    *   object ParentLink {
-    *     implicit def sized = new Graph.Sized[ParentLink] { type Out = _1 }
-    *
-    *     implicit class ParentLinkInstance[G <: Graph, C <: Graph.Component](
-    *       node: Graph.Component.Ref[G, C]
-    *     ) {
-    *       def parent(
-    *         implicit graph: Graph.GraphData[G],
-    *         ev: Graph.HasComponentField[G, C, ParentLink]
-    *       ): Edge[G] = {
-    *         Graph.Component.Ref(graph.unsafeReadField[C, ParentLink](
-    *           node.ix,
-    *           0
-    *         ))
-    *       }
-    *
-    *       def parent_=(value: Edge[G])(
-    *         implicit graph: Graph.GraphData[G],
-    *         ev: Graph.HasComponentField[G, C, ParentLink]
-    *       ): Unit = {
-    *         graph.unsafeWriteField[C, ParentLink](node.ix, 0, value.ix)
-    *       }
-    *     }
-    *
-    *     implicit def ParentLink_transInstance[
-    *       F <: Graph.Component.Field,
-    *       R,
-    *       G <: Graph,
-    *       C <: Graph.Component
-    *     ](
-    *       t: Graph.Component.Refined[F, R, Graph.Component.Ref[G, C]]
-    *     ): ParentLinkInstance[G, C] =
-    *       t.wrapped
-    *   }
-    * }}}
-    *
-    * You will need to ensure that `T._` is imported into scope as we currently
+    * You will need to ensure that the correct implicit scopes are imported at
+    * the usage site, as we currently have no way of making that work better.
     * have no way of making that work better.
     *
     * For a variant field (tagged union), the same macro can be applied to an
@@ -93,102 +48,14 @@ object Macro {
     * access. Furthermore, the body must define a `type G` that binds the name
     * of the primtive graph implementation in scope.
     *
-    * The following is a simple definition of a variant component:
+    * Again, please see [[GraphTestDefinition]] fpr examples of usage.
     *
-    * {{{
-    *   @field object Shape {
-    *      type G = Graph
-    *     case class Null()
-    *     case class App(fn: Edge[G], argTest: Edge[G])
-    *   }
-    * }}}
-    *
-    * This generates the following field definition:
-    *
-    * {{{
-    *   sealed trait Shape extends Graph.Component.Field
-    *   object Shape {
-    *     implicit def sized = new Sized[Shape] { type Out = _3 }
-    *
-    *     sealed case class Null() extends Shape
-    *     object Null {
-    *       val any            = Graph.Component.VariantMatcher[Shape, Null](0)
-    *       implicit def sized = new Sized[Null] { type Out = _0 }
-    *     }
-    *
-    *     sealed case class App() extends Shape
-    *     object App {
-    *       implicit def sized = new Sized[App] { type Out = _2 }
-    *
-    *       val any = Graph.Component.VariantMatcher[Shape, App](1)
-    *
-    *       def unapply[G <: Graph, C <: Graph.Component]
-    *          (arg: Graph.Component.Ref[G, C])(
-    *         implicit
-    *         graph: Graph.GraphData[G],
-    *         ev: Graph.HasComponentField[G, C, Shape]
-    *       ): Option[(Edge[G], Edge[G])] =
-    *         any.unapply(arg).map(t => (t.fn, t.arg))
-    *
-    *       implicit class AppInstance[G <: Graph, C <: Graph.Component](
-    *         node: Graph.Component.Refined[
-    *            Shape,
-    *            App,
-    *            Graph.Component.Ref[G, C]
-    *          ]
-    *       ) {
-    *
-    *         def fn(
-    *           implicit graph: Graph.GraphData[G],
-    *           ev: Graph.HasComponentField[G, C, Shape]
-    *         ): Edge[G] = {
-    *           Graph.Component.Ref(
-    *             graph
-    *               .unsafeReadField[C, Shape](
-    *                 Graph.Component.Refined.unwrap(node).ix,
-    *                 1
-    *               )
-    *           )
-    *         }
-    *
-    *         def fn_=(value: Edge[G])(
-    *           implicit graph: Graph.GraphData[G],
-    *           ev: Graph.HasComponentField[G, C, Shape]
-    *         ): Unit = {
-    *           graph.unsafeWriteField[C, Shape](
-    *             Graph.Component.Refined.unwrap(node).ix,
-    *             1,
-    *             value.ix
-    *           )
-    *         }
-    *
-    *         def arg(
-    *           implicit graph: Graph.GraphData[G],
-    *           ev: Graph.HasComponentField[G, C, Shape]
-    *         ): Edge[G] = {
-    *           Graph.Component.Ref(
-    *             graph
-    *               .unsafeReadField[C, Shape](
-    *                 Graph.Component.Refined.unwrap(node).ix,
-    *                 2
-    *               )
-    *           )
-    *         }
-    *
-    *         def arg_=(value: Edge[G])(
-    *           implicit graph: Graph.GraphData[G],
-    *           ev: Graph.HasComponentField[G, C, Shape]
-    *         ): Unit = {
-    *           graph.unsafeWriteField[C, Shape](
-    *             Graph.Component.Refined.unwrap(node).ix,
-    *             2,
-    *             value.ix
-    *           )
-    *         }
-    *       }
-    *     }
-    *   }
-    * }}}
+    * The [[field]] macro supports the creation of fields that either use the
+    * graph's raw storage directly (having subfields of type [[Int]], or that
+    * use an external opaque data storage (see [[OpaqueData]]. The former is as
+    * simple as typing the subfield as [[Int]], while the latter requires you to
+    * type the field appropriately using the [[OpaqueData]] marker trait. See
+    * its documentation for instructions.
     */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class field extends StaticAnnotation {
@@ -278,237 +145,20 @@ object Macro {
       def mkNatConstantTypeName(num: Int): TypeName =
         TypeName("_" + num.toString)
 
-      /** Generates a getter for an element of a non-variant field.
-        *
-        * @param paramDef the definition of the subfield
-        * @param enclosingTypeName the name of the field type
-        * @param index the index of this subfield in the field
-        * @return a definition for this subfield getter
-        */
-      def genSubfieldGetter(
-        paramDef: ValDef,
-        enclosingTypeName: TypeName,
-        index: Int,
-        graphTypeName: TypeName,
-        isSimple: Boolean
-      ): Tree = {
-        val paramName: TermName     = paramDef.name
-        val paramType: Tree         = paramDef.tpt
-        val graphTermName: TermName = graphTypeName.toTermName
-
-        val isOpaqueType = isOpaqueParam(paramDef)
-
-        val isRawType = paramDef.tpt match {
-          case Ident(TypeName("Int")) => true
-          case _                      => false
+      def getOpaqueAccessorNames(
+        paramType: Tree
+      ): (Tree, TypeName, TermName) = {
+        val (opaqueType, opaqueStorageName) = paramType match {
+          case AppliedTypeTree(
+              Ident(_),
+              typeName :: Ident(storageName) :: Nil
+              ) =>
+            (typeName, storageName.toTypeName)
         }
-
-        if (isRawType) {
-          if (isSimple) {
-            q"""
-            def $paramName(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): $paramType = {
-              graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
-            }
-            """
-          } else {
-            q"""
-            def $paramName(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): $paramType = {
-              $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](
-                  $graphTermName.Component.Refined.unwrap(node),
-                  $index
-                )
-              )
-            }
-            """
-          }
-        } else if (isOpaqueType) {
-          val (opaqueType, opaqueStorageName) = paramType match {
-            case AppliedTypeTree(
-                Ident(_),
-                typeName :: Ident(storageName) :: Nil
-                ) =>
-              (typeName, storageName.toTypeName)
-          }
-          val opaqueAccessorName = TermName(
-            opaqueStorageName.toString.replace("Storage", "").toLowerCase
-          )
-
-          if (isSimple) {
-            q"""
-            def $paramName(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
-              map: $opaqueStorageName
-            ): $opaqueType = {
-              map.$opaqueAccessorName(node.ix)
-            }
-            """
-          } else {
-            q"""
-            def $paramName(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
-              map: $opaqueStorageName
-            ): $opaqueType = {
-              map.$opaqueAccessorName($graphTermName.Component.Refined.unwrap(node).ix)
-            }
-            """
-          }
-        } else {
-          if (isSimple) {
-            q"""
-            def $paramName(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): $paramType = {
-              $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
-              )
-            }
-            """
-          } else {
-            q"""
-            def $paramName(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): $paramType = {
-              $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](
-                  $graphTermName.Component.Refined.unwrap(node).ix,
-                  $index
-                )
-              )
-            }
-            """
-          }
-        }
-      }
-
-      def isOpaqueParam(paramDef: ValDef): Boolean = {
-        paramDef.tpt match {
-          case AppliedTypeTree(Ident(TypeName("OpaqueData")), _) => true
-          case _                                                 => false
-        }
-      }
-
-      /** Generates a setter for an element of a non-variant field.
-        *
-        * @param paramDef the definition of the subfield
-        * @param enclosingTypeName the name of the field type
-        * @param index the index of this subfield in the field
-        * @return a definition for this subfield setter
-        */
-      def genSubfieldSetter(
-        paramDef: ValDef,
-        enclosingTypeName: TypeName,
-        index: Int,
-        graphTypeName: TypeName,
-        isSimple: Boolean
-      ): Tree = {
-        val accessorName: TermName  = TermName(paramDef.name.toString + "_$eq")
-        val paramType: Tree         = paramDef.tpt
-        val graphTermName: TermName = graphTypeName.toTermName
-
-        val isOpaqueType = isOpaqueParam(paramDef)
-
-        val isRawType = paramType match {
-          case Ident(TypeName("Int")) => true
-          case _                      => false
-        }
-
-        if (isRawType) {
-          if (isSimple) {
-            q"""
-            def $accessorName(value: $paramType)(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
-                node.ix, $index, value
-              )
-            }
-            """
-          } else {
-            q"""
-            def $accessorName(value: $paramType)(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
-                $graphTermName.Component.Refined.unwrap(node).ix,
-                $index,
-                value
-              )
-            }
-            """
-          }
-        } else if (isOpaqueType) {
-          val (opaqueType, opaqueStorageName) = paramType match {
-            case AppliedTypeTree(
-                Ident(_),
-                typeName :: Ident(storageName) :: Nil
-                ) =>
-              (typeName, storageName.toTypeName)
-          }
-          val opaqueAccessorName = TermName(
-            opaqueStorageName.toString.replace("Storage", "").toLowerCase
-          )
-
-          if (isSimple) {
-            q"""
-            def $accessorName(value: $opaqueType)(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
-              map: $opaqueStorageName
-            ): Unit = {
-              map.$opaqueAccessorName(node.ix) = value
-            }
-             """
-          } else {
-            q"""
-            def $accessorName(value: $opaqueType)(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
-              map: $opaqueStorageName
-            ): Unit = {
-              map.$opaqueAccessorName($graphTermName.Component.Refined.unwrap(node).ix) = value
-            }
-             """
-          }
-        } else {
-          if (isSimple) {
-            q"""
-            def $accessorName(value: $paramType)(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
-                node.ix, $index, value.ix
-              )
-            }
-            """
-          } else {
-            q"""
-            def $accessorName(value: $paramType)(
-              implicit graph: $graphTermName.GraphData[G],
-              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
-            ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
-                $graphTermName.Component.Refined.unwrap(node).ix,
-                $index,
-                value.ix
-              )
-            }
-            """
-          }
-        }
+        val opaqueAccessorName = TermName(
+          opaqueStorageName.toString.replace("Storage", "").toLowerCase
+        )
+        (opaqueType, opaqueStorageName, opaqueAccessorName)
       }
 
       /** Generates setters and getters for all the subfields for a given field.
@@ -557,6 +207,240 @@ object Macro {
         accessorDefs ++ valClassAccessors
       }
 
+      /** Generates a getter for an element of a non-variant field.
+        *
+        * @param paramDef the definition of the subfield
+        * @param enclosingTypeName the name of the field type
+        * @param index the index of this subfield in the field
+        * @param graphTypeName the name of the graph type
+        * @param isSimple is the getter being generated for a simple field or a
+        *                 variant field
+        * @return a definition for this subfield getter
+        */
+      def genSubfieldGetter(
+        paramDef: ValDef,
+        enclosingTypeName: TypeName,
+        index: Int,
+        graphTypeName: TypeName,
+        isSimple: Boolean
+      ): Tree = {
+        val paramName: TermName     = paramDef.name
+        val paramType: Tree         = paramDef.tpt
+        val graphTermName: TermName = graphTypeName.toTermName
+
+        val isOpaqueType = isOpaqueParam(paramDef)
+
+        val isRawType = paramDef.tpt match {
+          case Ident(TypeName("Int")) => true
+          case _                      => false
+        }
+
+        if (isRawType) {
+          if (isSimple) {
+            q"""
+            def $paramName(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): $paramType = {
+              graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
+            }
+            """
+          } else {
+            q"""
+            def $paramName(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): $paramType = {
+              $graphTermName.Component.Ref(
+                graph.unsafeReadField[C, $enclosingTypeName](
+                  $graphTermName.Component.Refined.unwrap(node),
+                  $index
+                )
+              )
+            }
+            """
+          }
+        } else if (isOpaqueType) {
+          val (opaqueType, opaqueStorageName, opaqueAccessorName) =
+            getOpaqueAccessorNames(paramType)
+
+          if (isSimple) {
+            q"""
+            def $paramName(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
+              map: $opaqueStorageName
+            ): $opaqueType = {
+              map.$opaqueAccessorName(node.ix)
+            }
+            """
+          } else {
+            q"""
+            def $paramName(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
+              map: $opaqueStorageName
+            ): $opaqueType = {
+              map.$opaqueAccessorName(
+                $graphTermName.Component.Refined.unwrap(node).ix
+              )
+            }
+            """
+          }
+        } else {
+          if (isSimple) {
+            q"""
+            def $paramName(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): $paramType = {
+              $graphTermName.Component.Ref(
+                graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
+              )
+            }
+            """
+          } else {
+            q"""
+            def $paramName(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): $paramType = {
+              $graphTermName.Component.Ref(
+                graph.unsafeReadField[C, $enclosingTypeName](
+                  $graphTermName.Component.Refined.unwrap(node).ix,
+                  $index
+                )
+              )
+            }
+            """
+          }
+        }
+      }
+
+      /** Generates a setter for an element of a non-variant field.
+        *
+        * @param paramDef the definition of the subfield
+        * @param enclosingTypeName the name of the field type
+        * @param index the index of this subfield in the field
+        * @param graphTypeName the name of the graph type
+        * @param isSimple is the getter being generated for a simple field or a
+        *                 variant field
+        * @return a definition for this subfield setter
+        */
+      def genSubfieldSetter(
+        paramDef: ValDef,
+        enclosingTypeName: TypeName,
+        index: Int,
+        graphTypeName: TypeName,
+        isSimple: Boolean
+      ): Tree = {
+        val accessorName: TermName  = TermName(paramDef.name.toString + "_$eq")
+        val paramType: Tree         = paramDef.tpt
+        val graphTermName: TermName = graphTypeName.toTermName
+
+        val isOpaqueType = isOpaqueParam(paramDef)
+
+        val isRawType = paramType match {
+          case Ident(TypeName("Int")) => true
+          case _                      => false
+        }
+
+        if (isRawType) {
+          if (isSimple) {
+            q"""
+            def $accessorName(value: $paramType)(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): Unit = {
+              graph.unsafeWriteField[C, $enclosingTypeName](
+                node.ix, $index, value
+              )
+            }
+            """
+          } else {
+            q"""
+            def $accessorName(value: $paramType)(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): Unit = {
+              graph.unsafeWriteField[C, $enclosingTypeName](
+                $graphTermName.Component.Refined.unwrap(node).ix,
+                $index,
+                value
+              )
+            }
+            """
+          }
+        } else if (isOpaqueType) {
+          val (opaqueType, opaqueStorageName, opaqueAccessorName) =
+            getOpaqueAccessorNames(paramType)
+
+          if (isSimple) {
+            q"""
+            def $accessorName(value: $opaqueType)(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
+              map: $opaqueStorageName
+            ): Unit = {
+              map.$opaqueAccessorName(node.ix) = value
+            }
+             """
+          } else {
+            q"""
+            def $accessorName(value: $opaqueType)(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName],
+              map: $opaqueStorageName
+            ): Unit = {
+              map.$opaqueAccessorName(
+                $graphTermName.Component.Refined.unwrap(node).ix
+              ) = value
+            }
+             """
+          }
+        } else {
+          if (isSimple) {
+            q"""
+            def $accessorName(value: $paramType)(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): Unit = {
+              graph.unsafeWriteField[C, $enclosingTypeName](
+                node.ix, $index, value.ix
+              )
+            }
+            """
+          } else {
+            q"""
+            def $accessorName(value: $paramType)(
+              implicit graph: $graphTermName.GraphData[G],
+              ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
+            ): Unit = {
+              graph.unsafeWriteField[C, $enclosingTypeName](
+                $graphTermName.Component.Refined.unwrap(node).ix,
+                $index,
+                value.ix
+              )
+            }
+            """
+          }
+        }
+      }
+
+      /** Generates accessor methods for the 'value class', the one that can
+        * represent the graph values as a scala object.
+        *
+        * @param subfields a list containing the subfield definitions
+        * @param enclosingName the name of the field type
+        * @param fieldName the name of the field type (may be the same as
+        *                  `enclosingName` above)
+        * @param graphTypeName the name of the graph type
+        * @param valClassTypeName the typename of the value class
+        * @param isSimple whather or not the accessors are being generated for a
+        *                 simple field or a variant field
+        * @return the definitions of the value class getter and the value class
+        *         setter
+        */
       def genValClassAccessors(
         subfields: List[ValDef],
         enclosingName: TypeName,
@@ -573,17 +457,8 @@ object Macro {
           fieldName.toString.toLowerCase + "_$eq"
         )
 
-        val opaqueMemberStorageTypes = subfields
-          .collect {
-            case valDef: ValDef if isOpaqueParam(valDef) => valDef.tpt
-          }
-          .collect {
-            case AppliedTypeTree(_, _ :: storageName :: Nil) => storageName
-          }
-          .distinct
         val opaqueStorageImplicits =
-          for ((t, ix) <- opaqueMemberStorageTypes.view.zipWithIndex)
-            yield q"${TermName("map" + ix.toString)}: $t"
+          generateOpaqueStorageImplicitArguments(subfields)
 
         val valGetter =
           q"""
@@ -612,11 +487,25 @@ object Macro {
         List(valGetter, valSetter)
       }
 
+      /** Determines whether the parameter definition is defining an opaque
+        * type. An opaque type is one not stored in the graph represntation.
+        *
+        * @param paramDef the definition to check
+        * @return `true` if `paramDef` defines an opauqe type, otherwise `false`
+        */
+      def isOpaqueParam(paramDef: ValDef): Boolean = {
+        paramDef.tpt match {
+          case AppliedTypeTree(Ident(TypeName("OpaqueData")), _) => true
+          case _                                                 => false
+        }
+      }
+
       /** Generates an instance that is used for assisting inference with
         * refined subfields.
         *
         * @param enclosingName the name of the field
         * @param implicitClassName the name of the instance
+        * @param graphTypeName the name of the graph type
         * @return an instance definition that assists with inference
         */
       def genTransInstance(
@@ -634,7 +523,11 @@ object Macro {
             G <: $graphTypeName,
             C <: $graphTermName.Component
           ](
-            t: $graphTermName.Component.Refined[F, R, $graphTermName.Component.Ref[G, C]]
+            t: $graphTermName.Component.Refined[
+                 F,
+                 R,
+                 $graphTermName.Component.Ref[G, C]
+               ]
           ): $implicitClassName[G, C] = t.wrapped
          """
       }
@@ -690,6 +583,11 @@ object Macro {
       def mkImplicitClassName(typeName: TypeName): TypeName =
         TypeName(typeName.toString + "Instance")
 
+      /** Extracts the name of the graph type from a single field.
+        *
+        * @param tParams the type parameters of the field
+        * @return the graph type, if it exists.
+        */
       def extractSingleGraphTypeName(
         tParams: List[c.universe.TypeDef]
       ): TypeName = {
@@ -726,7 +624,15 @@ object Macro {
         }
       }
 
-      def translateOpaque(valDef: ValDef): ValDef = {
+      /** Turns the definition of an opaque type member into the definition of a
+        * member containing just the opaque type T, rather than the
+        * [[OpaqueData]] sentinel.
+        *
+        * @param valDef the definition to translate
+        * @return `valDef`, with its type translated to the concrete opauqe type
+        *        if it defines an opaque field
+        */
+      def opaqueToValueType(valDef: ValDef): ValDef = {
         if (isOpaqueParam(valDef)) {
           val nonOpaqueType = valDef.tpt match {
             case AppliedTypeTree(Ident(_), typeName :: _) => typeName
@@ -754,24 +660,45 @@ object Macro {
         val fieldTermName      = fieldTypeName.toTermName
         val subfields          = extractConstructorArguments(classDef)
         val nonOpaqueSubfields = subfields.filter(t => !isOpaqueParam(t))
-        val valClassSubfields  = subfields.map(t => translateOpaque(t))
-        val natSubfields       = mkNatConstantTypeName(nonOpaqueSubfields.length)
-        val implicitClassName  = mkImplicitClassName(fieldTypeName)
-        val graphTypeName      = extractSingleGraphTypeName(classDef.tparams)
-        val graphTermName      = graphTypeName.toTermName
-        val valClassName       = TypeName(fieldTermName.toString + "Val")
+        val valClassSubfields  = subfields.map(t => opaqueToValueType(t))
+        val natSubfields =
+          mkNatConstantTypeName(nonOpaqueSubfields.length)
+        val implicitClassName = mkImplicitClassName(fieldTypeName)
+        val graphTypeName     = extractSingleGraphTypeName(classDef.tparams)
+        val graphTermName     = graphTypeName.toTermName
+        val valClassName      = TypeName(fieldTermName.toString + "Val")
+
+        if (subfields
+              .map(_.name.toString.toLowerCase)
+              .contains(fieldTermName.toString.toLowerCase)) {
+          c.error(
+            c.enclosingPosition,
+            "YOu cannot define a subfield name that clashes with the field name"
+          )
+        }
 
         val baseClass: Tree =
-          q"sealed case class $fieldTypeName() extends $graphTermName.Component.Field"
+          q"""
+          sealed case class $fieldTypeName()
+            extends $graphTermName.Component.Field
+          """
 
         val valueClass: Tree =
-          q"sealed case class $valClassName[G <: $graphTypeName](..$valClassSubfields)"
+          q"""
+          sealed case class $valClassName[G <: $graphTypeName](
+            ..$valClassSubfields
+          )
+          """
 
-        val accessorClassStub: ClassDef = q"""
-            implicit class $implicitClassName[G <: $graphTypeName, C <: $graphTermName.Component](
+        val accessorClassStub: ClassDef =
+          q"""
+            implicit class $implicitClassName[
+              G <: $graphTypeName, C <: $graphTermName.Component
+            ](
               node: $graphTermName.Component.Ref[G, C]
             )
            """.asInstanceOf[ClassDef]
+
         val accessorClass: ClassDef = appendToClass(
           accessorClassStub,
           genAccessors(
@@ -819,6 +746,32 @@ object Macro {
         template.body.collect { case classDef: ClassDef => classDef }
       }
 
+      /** Generates a full set of implicit arguments for the opaque data storage
+        * to be splatted into place.
+        *
+        * @param subfields the full list of subfields for the type
+        * @return a set of arguments to be used for implicitly getting at the
+        *         opaque data storage
+        */
+      def generateOpaqueStorageImplicitArguments(
+        subfields: List[ValDef]
+      ): List[Tree] = {
+        val opaqueMemberStorageTypes = subfields
+          .collect {
+            case valDef: ValDef if isOpaqueParam(valDef) => valDef.tpt
+          }
+          .collect {
+            case AppliedTypeTree(_, _ :: storageName :: Nil) => storageName
+          }
+          .distinct
+
+        val opaqueStorageImplicits =
+          for ((t, ix) <- opaqueMemberStorageTypes.view.zipWithIndex)
+            yield q"${TermName("map" + ix.toString)}: $t"
+
+        opaqueStorageImplicits.toList
+      }
+
       /** Generates the definition body for a variant case.
         *
         * @param classDef the definition of the variant case
@@ -833,16 +786,28 @@ object Macro {
         index: Int,
         graphTypeName: TypeName
       ): (Block, Int) = {
-        val typeName              = classDef.name
-        val termName              = typeName.toTermName
-        val subfields             = extractConstructorArguments(classDef)
-        val nonOpaqueSubfields    = subfields.filter(t => !isOpaqueParam(t))
-        val valClassSubfields     = subfields.map(t => translateOpaque(t))
-        val natSubfields          = mkNatConstantTypeName(nonOpaqueSubfields.length)
+        val typeName           = classDef.name
+        val termName           = typeName.toTermName
+        val subfields          = extractConstructorArguments(classDef)
+        val nonOpaqueSubfields = subfields.filter(t => !isOpaqueParam(t))
+        val valClassSubfields  = subfields.map(t => opaqueToValueType(t))
+        val natSubfields =
+          mkNatConstantTypeName(nonOpaqueSubfields.length)
         val implicitClassName     = mkImplicitClassName(typeName)
         val valClassSubfieldTypes = valClassSubfields.map(f => f.tpt)
         val graphTermName         = graphTypeName.toTermName
         val valClassName          = TypeName(typeName.toString + "Val")
+
+        val subfieldNamesLower = subfields.map(_.name.toString.toLowerCase)
+
+        if (subfieldNamesLower.contains(parentName.toString.toLowerCase) ||
+            subfieldNamesLower.contains(typeName.toString.toLowerCase)) {
+          c.error(
+            c.enclosingPosition,
+            "You cannot define a variant subfield that clashes with either " +
+            "the variant or case name"
+          )
+        }
 
         val variantClass: ClassDef =
           q"""
@@ -850,7 +815,11 @@ object Macro {
            """.asInstanceOf[ClassDef]
 
         val valueClass: Tree =
-          q"sealed case class $valClassName[G <: $graphTypeName](..$valClassSubfields)"
+          q"""
+          sealed case class $valClassName[G <: $graphTypeName](
+            ..$valClassSubfields
+          )
+          """
 
         val variantModuleStub: ModuleDef =
           q"""
@@ -866,17 +835,8 @@ object Macro {
             }
            """.asInstanceOf[ModuleDef]
 
-        val opaqueMemberStorageTypes = subfields
-          .collect {
-            case valDef: ValDef if isOpaqueParam(valDef) => valDef.tpt
-          }
-          .collect {
-            case AppliedTypeTree(_, _ :: storageName :: Nil) => storageName
-          }
-          .distinct
         val opaqueStorageImplicits =
-          for ((t, ix) <- opaqueMemberStorageTypes.view.zipWithIndex)
-            yield q"${TermName("map" + ix.toString)}: $t"
+          generateOpaqueStorageImplicitArguments(subfields)
 
         val unapplyDef: DefDef =
           q"""
@@ -993,6 +953,15 @@ object Macro {
 
         val variantDefs = extractVariantDefs(moduleDef.impl)
 
+        val variantDefNames = variantDefs.map(_.name.toString.toLowerCase)
+
+        if (variantDefNames.contains(variantTermName.toString.toLowerCase)) {
+          c.error(
+            c.enclosingPosition,
+            "A variant case cannot share its name with the variant"
+          )
+        }
+
         if (variantDefs.length < 1) {
           c.error(
             c.enclosingPosition,
@@ -1027,11 +996,11 @@ object Macro {
             }
            """.asInstanceOf[ModuleDef]
 
-        val traitCompanionModule =
+        val traitCompanionMod =
           appendToModule(baseModuleStub, variantDefinitions.toList)
 
         val result =
-          q"..${appendToBlock(baseBlock, baseTrait, traitCompanionModule).stats}"
+          q"..${appendToBlock(baseBlock, baseTrait, traitCompanionMod).stats}"
 
         c.Expr(result)
       }
@@ -1078,8 +1047,6 @@ object Macro {
       }
     }
   }
-
-  trait OpaqueData[T, Storage]
 
   /** This macro generates a component definition for the graph to help avoid
     * the boilerplate necessary to defined a [[org.enso.graph.Graph.Component]].
@@ -1371,4 +1338,13 @@ object Macro {
       }
     }
   }
+
+  /** A simple marker type used by the macros to know how to handle fields that
+    * store opaque (not stored in the graph) data.
+    *
+    * @tparam T the type to be stored opaquely
+    * @tparam Storage the type in which it is stored (generated by the
+    *                 [[opaque]] macro
+    */
+  trait OpaqueData[T, Storage]
 }

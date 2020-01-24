@@ -314,20 +314,6 @@ object Graph {
 
   def apply[G <: Graph: GraphInfo](): GraphData[G] = new GraphData[G]()
 
-  // ======================
-  // === OpaqueDataList ===
-  // ======================
-
-  trait OpaqueDataList
-  object OpaqueDataList {
-    trait List[G <: Graph] {
-      type Out <: HList
-    }
-    object List {
-      type Aux[G <: Graph, X <: HList] = List[G] { type Out = X }
-    }
-  }
-
   // =================
   // === Component ===
   // =================

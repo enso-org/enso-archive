@@ -1,6 +1,6 @@
 package org.enso.graph
 
-import org.enso.graph.definition.Macro.{component, field, opaque, OpaqueData}
+import org.enso.graph.definition.Macro.{component, field, opaque}
 import org.enso.graph.{Graph => PrimGraph}
 import org.scalatest.{FlatSpec, Matchers}
 import shapeless.test.illTyped
@@ -77,12 +77,28 @@ class FieldMacroTest extends FlatSpec with Matchers {
   }
 
   subject should "error if a field defines a subfield with a name clash" in {
-    pending
-    // clash with field name
+    illTyped(
+      "@field case class Location[G <: PrimGraph](location: Int)",
+      "You cannot define a subfield name that clashes with the field name"
+    )
   }
 
   subject should "error if a variant defines a subfield with a name clash" in {
-    pending
-    // clash with either variant or case
+    illTyped(
+      "@field object Shape {  type G = PrimGraph\n  case class Foo(shape: Edge[G])}",
+      "You cannot define a variant subfield that clashes with either the variant or case name"
+    )
+
+    illTyped(
+      "@field object Shape {  type G = PrimGraph\n  case class Foo(foo: Edge[G])}",
+      "You cannot define a variant subfield that clashes with either the variant or case name"
+    )
+  }
+
+  subject should "error if a variant case name clashes with the variant name" in {
+    illTyped(
+      "@field object Shape {  type G = PrimGraph\n  case class Shape(foo: Edge[G])}",
+      "A variant case cannot share its name with the variant"
+    )
   }
 }
