@@ -42,3 +42,11 @@ jobs:
           targetPath: '$(Pipeline.Workspace)/s/foo.txt'
           artifact: 'std'
           publishLocation: 'pipeline'
+      - task: S3Upload@1
+        inputs:
+          awsCredentials: 'AWS S3 Access'
+          regionName: 'us-west-2'
+          bucketName: 'packages-luna'
+          globExpressions: '$(Pipeline.Workspace)/s/foo.txt'
+          targetFolder: 'parser-js/nightly/'
+          filesAcl: 'public-read'
