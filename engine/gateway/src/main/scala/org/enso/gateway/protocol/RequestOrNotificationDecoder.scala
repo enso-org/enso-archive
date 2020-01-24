@@ -25,7 +25,7 @@ object RequestOrNotificationDecoder {
         .flatMap(selectRequestOrNotificationDecoder(_).apply(cursor))
     }
 
-  /** Make Circe failure if method is unknown.
+  /** Makes Circe failure if method is unknown.
     *
     * @param method Name of method.
     * @return The failure.

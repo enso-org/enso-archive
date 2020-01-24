@@ -14,18 +14,26 @@ import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
   ServerInfo
 }
+import org.enso.languageserver.{
+  NotificationReceived,
+  RequestReceived,
+  Notifications => LsNotifications,
+  Requests => LsRequests
+}
 
-/** The gateway component talks directly to clients using protocol messages,
-  * and then handles these messages by talking to the language server.
+/** The Gateway component of Enso Engine.
+  *
+  * Talks directly to clients using protocol messages, and then handles these
+  * messages by talking to the language server.
   *
   * @param languageServer [[ActorRef]] of [[LanguageServer]] actor.
   */
 class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
-    case Requests.Initialize(id, params) =>
+    case Requests.Initialize(id, _) =>
       val msg = "Gateway: Initialize received"
       log.info(msg)
-      languageServer ! languageserver.Requests.Initialize(
+      languageServer ! LsRequests.Initialize(
         id.toLsModel,
         params
           .flatMap(
@@ -36,7 +44,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
         sender()
       )
 
-    case languageserver.RequestReceived.Initialize(id, replyTo) =>
+    case RequestReceived.Initialize(id, replyTo) =>
       val msg = "Gateway: RequestReceived.Initialize received"
       log.info(msg)
       replyTo ! Response.result(
@@ -56,9 +64,9 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     case Requests.Shutdown(id, _) =>
       val msg = "Gateway: Shutdown received"
       log.info(msg)
-      languageServer ! languageserver.Requests.Shutdown(id.toLsModel, sender())
+      languageServer ! LsRequests.Shutdown(id.toLsModel, sender())
 
-    case languageserver.RequestReceived.Shutdown(id, replyTo) =>
+    case RequestReceived.Shutdown(id, replyTo) =>
       val msg = "Gateway: RequestReceived.Shutdown received"
       log.info(msg)
       replyTo ! Response.result(
@@ -99,18 +107,18 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     case Notifications.Initialized(_) =>
       val msg = "Gateway: Initialized received"
       log.info(msg)
-      languageServer ! languageserver.Notifications.Initialized
+      languageServer ! LsNotifications.Initialized
 
-    case languageserver.NotificationReceived.Initialized =>
+    case NotificationReceived.Initialized =>
       val msg = "Gateway: NotificationReceived.Initialized received"
       log.info(msg)
 
     case Notifications.Exit(_) =>
       val msg = "Gateway: Exit received"
       log.info(msg)
-      languageServer ! languageserver.Notifications.Exit
+      languageServer ! LsNotifications.Exit
 
-    case languageserver.NotificationReceived.Exit =>
+    case NotificationReceived.Exit =>
       val msg = "Gateway: NotificationReceived.Exit received"
       log.info(msg)
 
@@ -163,8 +171,10 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     val languageServerVersionPath = "version"
     val gatewayConfig             = ConfigFactory.load.getConfig(gatewayPath)
     val languageServerConfig      = gatewayConfig.getConfig(languageServerPath)
-    val name                      = languageServerConfig.getString(languageServerNamePath)
-    val version                   = languageServerConfig.getString(languageServerVersionPath)
+    val name =
+      languageServerConfig.getString(languageServerNamePath)
+    val version =
+      languageServerConfig.getString(languageServerVersionPath)
     ServerInfo(name, Some(version))
   }
 }

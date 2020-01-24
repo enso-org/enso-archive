@@ -6,9 +6,11 @@ import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.protocol.CodeActionKind
 
-/** The server provides code actions. The `CodeActionOptions` return type is
-  * only valid if the client signals code action literal support via the
-  * property `textDocument.codeAction.codeActionLiteralSupport`.
+/** Server capability to provide code actions.
+  *
+  * The [[CodeActionProvider.CodeActionOptions]] return type is only valid if
+  * the client signals code action literal support via the property
+  * `textDocument.codeAction.codeActionLiteralSupport`.
   */
 sealed trait CodeActionProvider
 object CodeActionProvider {

@@ -22,7 +22,6 @@ import scala.util.Success
   *
   * Server when run binds to endpoint and accepts establishing web socket
   * connection for any number of peers.
-  *
   * Server replies to each incoming text request with a single text response,
   * no response for notifications.
   * Server accepts a single Text Message from a peer and responds with another

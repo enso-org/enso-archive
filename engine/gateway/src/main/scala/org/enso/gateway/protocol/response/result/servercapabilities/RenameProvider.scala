@@ -5,7 +5,9 @@ import io.circe.syntax._
 import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 
-/** The server provides rename support. RenameOptions may only be specified if
+/** Server capability to provide rename support.
+  *
+  * [[RenameProvider.RenameOptions]] may only be specified if
   * the client states that it supports `prepareSupport` in its initial
   * `initialize` request.
   */

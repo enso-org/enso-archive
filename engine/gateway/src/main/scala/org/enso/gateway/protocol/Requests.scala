@@ -8,7 +8,10 @@ import org.enso.gateway.protocol.request.Params.{
   WillSaveTextDocumentWaitUntilParams
 }
 
-/** Parent trait for request extractor objects. */
+/** Parent trait for request (Scala) extractor objects.
+  *
+  * Simplifies matching in [[org.enso.Gateway.receive()]].
+  */
 sealed abstract class RequestExtractor[T <: Params](
   val method: String
 ) {
@@ -30,9 +33,8 @@ object Requests {
     */
   object Initialize extends RequestExtractor[InitializeParams]("initialize")
 
-  /** The request is sent from the client to the server. It asks the server to
-    * shut down, but to not exit (otherwise the response might not be
-    * delivered correctly to the client).
+  /** Asks the server to shut down, but to not exit (otherwise the response
+    * might not be delivered correctly to the client).
     *
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#shutdown

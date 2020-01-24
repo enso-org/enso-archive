@@ -26,18 +26,19 @@ sealed abstract class NotificationExtractor[T <: Params](
 /** All notifications. */
 object Notifications {
 
-  /** The initialized notification is sent from the client to the server after
-    * the client received the result of the initialize request but before the
-    * client is sending any other request or notification to the server.
+  /** Sent from the client to the server after the client received the result of
+    * the initialize request but before the client is sending any other request
+    * or notification to the server.
     *
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialized
     */
   object Initialized extends NotificationExtractor[VoidParams]("initialized")
 
-  /** A notification to ask the server to exit its process.
+  /** Asks the server to exit its process.
     *
-    * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#exit
+    * LSP Spec:
+    * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#exit
     */
   object Exit extends NotificationExtractor[VoidParams]("exit")
 

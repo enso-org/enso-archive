@@ -17,7 +17,7 @@ import org.enso.gateway.protocol.request.Params.{
 /** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {
 
-  /** Make Circe decoder for notifications and notification fields of requests.
+  /** Makes Circe decoder for notifications and notification fields of requests.
     *
     * @tparam P Subtype of [[Params]] for a notification with specific method.
     * @return the Circe decoder.

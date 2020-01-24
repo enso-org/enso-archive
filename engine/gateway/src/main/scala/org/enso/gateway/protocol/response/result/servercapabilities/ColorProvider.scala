@@ -6,7 +6,7 @@ import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 import org.enso.gateway.protocol.response.result.ServerCapabilities.DocumentSelector
 
-/** The server provides color provider support. */
+/** Server capability to provide color provider support. */
 sealed trait ColorProvider
 object ColorProvider {
 

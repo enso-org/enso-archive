@@ -5,7 +5,7 @@ import io.circe.syntax._
 import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 
-/** The server provides goto definition support. */
+/** Server capability to provide "go to definition" support. */
 sealed trait DefinitionProvider
 object DefinitionProvider {
 

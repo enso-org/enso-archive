@@ -29,8 +29,8 @@ import org.enso.gateway.protocol.response.result.servercapabilities.{
   Workspace
 }
 
-/** [[org.enso.gateway.protocol.response.Result.InitializeResult]] server
-  * capabilities.
+/** Server capabilities in
+  * [[org.enso.gateway.protocol.response.Result.InitializeResult]].
   *
   * @param textDocumentSync                 @see [[TextDocumentSync]]
   * @param completionProvider               @see [[CompletionOptions]]

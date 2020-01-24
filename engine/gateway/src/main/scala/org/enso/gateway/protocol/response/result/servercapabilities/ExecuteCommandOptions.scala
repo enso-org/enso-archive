@@ -3,7 +3,7 @@ package org.enso.gateway.protocol.response.result.servercapabilities
 import io.circe.Encoder
 import io.circe.generic.semiauto.deriveEncoder
 
-/** The server provides execute command support. */
+/** Server capability to provide execute command support. */
 case class ExecuteCommandOptions(
   workDoneProgress: Option[Boolean] = None,
   commands: Seq[String]

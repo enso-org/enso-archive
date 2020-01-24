@@ -5,7 +5,7 @@ import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 import io.circe.syntax._
 
-/** The server provides hover support. */
+/** Server capability to provide hover support. */
 sealed trait HoverProvider
 object HoverProvider {
 

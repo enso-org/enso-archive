@@ -9,15 +9,17 @@ object TextDocumentSyncKind {
   private val full        = 1
   private val incremental = 2
 
-  /** Documents should not be synced at all. */
+  /** Signals that documents should not be synced at all. */
   object NoneKind extends TextDocumentSyncKind(none)
 
-  /** Documents are synced by always sending the full content of the document.
+  /** Signals that documents are synced by always sending the full content of
+    * the document.
     */
   object Full extends TextDocumentSyncKind(full)
 
-  /** Documents are synced by sending the full content on open. After that only
-    * incremental updates to the document are send.
+  /** Signals that documents are synced by sending the full content on open.
+    *
+    * After that only incremental updates to the document are sent.
     */
   object Incremental extends TextDocumentSyncKind(incremental)
 

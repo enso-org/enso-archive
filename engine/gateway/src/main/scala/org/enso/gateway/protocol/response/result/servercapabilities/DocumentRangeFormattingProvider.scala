@@ -5,7 +5,7 @@ import io.circe.syntax._
 import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
 
-/** The server provides document range formatting. */
+/** Server capability to provide document range formatting. */
 sealed trait DocumentRangeFormattingProvider
 object DocumentRangeFormattingProvider {
 
