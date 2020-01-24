@@ -35,11 +35,3 @@ jobs:
     steps:
       - script: |
           echo bar > foo.txt
-      - task: S3Upload@1
-        inputs:
-          awsCredentials: 'AWS S3 Access'
-          regionName: 'us-west-2'
-          bucketName: 'packages-luna'
-          globExpressions: 'touch.txt'
-          targetFolder: 'parser-js/nightly/$(Build.SourceVersion)'
-          filesAcl: 'public-read'
