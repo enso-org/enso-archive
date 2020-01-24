@@ -51,54 +51,54 @@ class FieldMacroTest extends FlatSpec with Matchers {
   subject should "not allow application to non case classes" in {
     illTyped(
       "@field class Shape",
-      "@field must be applied to a case class or object"
+      "@field must be applied to a case class or object."
     )
   }
 
   subject should "not allow application to invalid constructs" in {
     illTyped(
       "@field type foo",
-      "The @field macro only operates on case classes"
+      "The @field macro only operates on case classes."
     )
   }
 
   subject should "error on variants without branches" in {
     illTyped(
       "@field object Shape{\n  type G = Graph}",
-      "A variant must contain at least one case"
+      "A variant must contain at least one case."
     )
   }
 
   subject should "error on variants that do not define `type G`" in {
     illTyped(
       "@field object Shape{\n  case class Nul()}",
-      "You must define a type named `G` in your variant that defines the graph type name"
+      "You must define a type named `G` in your variant that defines the graph type name."
     )
   }
 
   subject should "error if a field defines a subfield with a name clash" in {
     illTyped(
       "@field case class Location[G <: PrimGraph](location: Int)",
-      "You cannot define a subfield name that clashes with the field name"
+      "You cannot define a subfield name that clashes with the field name."
     )
   }
 
   subject should "error if a variant defines a subfield with a name clash" in {
     illTyped(
       "@field object Shape {  type G = PrimGraph\n  case class Foo(shape: Edge[G])}",
-      "You cannot define a variant subfield that clashes with either the variant or case name"
+      "You cannot define a variant subfield that clashes with either the variant or case name."
     )
 
     illTyped(
       "@field object Shape {  type G = PrimGraph\n  case class Foo(foo: Edge[G])}",
-      "You cannot define a variant subfield that clashes with either the variant or case name"
+      "You cannot define a variant subfield that clashes with either the variant or case name."
     )
   }
 
   subject should "error if a variant case name clashes with the variant name" in {
     illTyped(
       "@field object Shape {  type G = PrimGraph\n  case class Shape(foo: Edge[G])}",
-      "A variant case cannot share its name with the variant"
+      "A variant case cannot share its name with the variant."
     )
   }
 }

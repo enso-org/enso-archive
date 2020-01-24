@@ -22,18 +22,18 @@ class ComponentMacroTest extends FlatSpec with Matchers {
   "The `@component` child type" must "not allow more than one type parameter" in {
     illTyped(
       "@component case class Nodes() { type Node[G <: Graph, C] }",
-      "Your contained type must only have one type parameter"
+      "Your contained type must only have one type parameter."
     )
   }
 
   "The `@component` macro" should "only allow application to case classes" in {
     illTyped (
       "@component object Test",
-      "You must provide a class definition to the @component macro"
+      "You must provide a class definition to the @component macro."
     )
     illTyped (
       "@component class Foo()",
-      "@component must be applied to a case class"
+      "@component must be applied to a case class."
     )
   }
 }

@@ -17,14 +17,14 @@ class OpaqueMacroTest extends FlatSpec with Matchers {
   subject should "error if not passed a class def" in {
     illTyped(
       "@opaque object Foo",
-      "You must provide a class definition to the @opaque macro"
+      "You must provide a class definition to the @opaque macro."
     )
   }
 
   subject should "error if defined with incorrect val members" in {
     illTyped(
       "@opaque case class String()",
-      "You must define a constructor member called `opaque` that specifies your opaque type"
+      "You must define a constructor member called `opaque` that specifies your opaque type."
     )
   }
 

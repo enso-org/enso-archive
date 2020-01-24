@@ -25,7 +25,6 @@ object Macro {
     *
     * You will need to ensure that the correct implicit scopes are imported at
     * the usage site, as we currently have no way of making that work better.
-    * have no way of making that work better.
     *
     * For a variant field (tagged union), the same macro can be applied to an
     * object definition. This object definition must be provided as follows:
@@ -48,7 +47,7 @@ object Macro {
     * access. Furthermore, the body must define a `type G` that binds the name
     * of the primtive graph implementation in scope.
     *
-    * Again, please see [[GraphTestDefinition]] fpr examples of usage.
+    * Again, please see [[GraphTestDefinition]] for examples of usage.
     *
     * The [[field]] macro supports the creation of fields that either use the
     * graph's raw storage directly (having subfields of type [[Int]], or that
@@ -70,7 +69,7 @@ object Macro {
       if (members.size != 1) {
         c.error(
           c.enclosingPosition,
-          "You must apply the @field annotation to a single entity"
+          "You must apply the @field annotation to a single entity."
         )
       }
 
@@ -145,6 +144,13 @@ object Macro {
       def mkNatConstantTypeName(num: Int): TypeName =
         TypeName("_" + num.toString)
 
+      /** Generates a set of names for working with the opaque accessors.
+        *
+        * @param paramType the type of the opaque parameter
+        * @return a tuple containing the type being stored opaquely, the name of
+        *         the opaque storage type, and the name of the opaque storage
+        *         member accessor
+        */
       def getOpaqueAccessorNames(
         paramType: Tree
       ): (Tree, TypeName, TermName) = {
@@ -207,6 +213,21 @@ object Macro {
         accessorDefs ++ valClassAccessors
       }
 
+      /** Checks if a given type is the underlying raw storage of the graph.
+        *
+        * The only types that the graph can store are raw [[Int]] and graph
+        * components. This checks for the former.
+        *
+        * @param tpt the type to check.
+        * @return `true` if `tpt` represents the raw storage, otherwise `false`
+        */
+      def isRawStorageType(tpt: Tree): Boolean = {
+        tpt match {
+          case Ident(TypeName("Int")) => true
+          case _                      => false
+        }
+      }
+
       /** Generates a getter for an element of a non-variant field.
         *
         * @param paramDef the definition of the subfield
@@ -230,10 +251,7 @@ object Macro {
 
         val isOpaqueType = isOpaqueParam(paramDef)
 
-        val isRawType = paramDef.tpt match {
-          case Ident(TypeName("Int")) => true
-          case _                      => false
-        }
+        val isRawType = isRawStorageType(paramDef.tpt)
 
         if (isRawType) {
           if (isSimple) {
@@ -340,10 +358,7 @@ object Macro {
 
         val isOpaqueType = isOpaqueParam(paramDef)
 
-        val isRawType = paramType match {
-          case Ident(TypeName("Int")) => true
-          case _                      => false
-        }
+        val isRawType = isRawStorageType(paramType)
 
         if (isRawType) {
           if (isSimple) {
@@ -596,7 +611,7 @@ object Macro {
         if (tParams.isEmpty) {
           c.error(
             c.enclosingPosition,
-            "Your case class must have at least one type parameter"
+            "Your case class must have at least one type parameter."
           )
           errorTName
         } else {
@@ -606,7 +621,7 @@ object Macro {
           if (firstTParamName != TypeName("G")) {
             c.error(
               c.enclosingPosition,
-              "Your first type bound must be named \"G\""
+              "Your first type bound must be named \"G\"."
             )
             errorTName
           } else {
@@ -673,7 +688,7 @@ object Macro {
               .contains(fieldTermName.toString.toLowerCase)) {
           c.error(
             c.enclosingPosition,
-            "YOu cannot define a subfield name that clashes with the field name"
+            "YOu cannot define a subfield name that clashes with the field name."
           )
         }
 
@@ -805,7 +820,7 @@ object Macro {
           c.error(
             c.enclosingPosition,
             "You cannot define a variant subfield that clashes with either " +
-            "the variant or case name"
+            "the variant or case name."
           )
         }
 
@@ -901,7 +916,7 @@ object Macro {
           c.error(
             c.enclosingPosition,
             "You must define a type named `G` in your variant that " +
-            "defines the graph type name"
+            "defines the graph type name."
           )
           errorName
         } else {
@@ -911,7 +926,7 @@ object Macro {
             c.error(
               c.enclosingPosition,
               "You must define a type named `G` in your variant that " +
-              "defines the graph type name"
+              "defines the graph type name."
             )
             errorName
           } else {
@@ -923,7 +938,7 @@ object Macro {
             if (idents.length != 1) {
               c.error(
                 c.enclosingPosition,
-                "You must assign the name of the primitive graph to `G`"
+                "You must assign the name of the primitive graph to `G`."
               )
               errorName
             } else {
@@ -958,14 +973,14 @@ object Macro {
         if (variantDefNames.contains(variantTermName.toString.toLowerCase)) {
           c.error(
             c.enclosingPosition,
-            "A variant case cannot share its name with the variant"
+            "A variant case cannot share its name with the variant."
           )
         }
 
         if (variantDefs.length < 1) {
           c.error(
             c.enclosingPosition,
-            "A variant must contain at least one case"
+            "A variant must contain at least one case."
           )
         }
 
@@ -1027,7 +1042,7 @@ object Macro {
           if (!modifiers.hasFlag(c.universe.Flag.CASE)) {
             c.error(
               c.enclosingPosition,
-              "@field must be applied to a case class or object"
+              "@field must be applied to a case class or object."
             )
             annottees.head
           } else {
@@ -1040,7 +1055,7 @@ object Macro {
         case _ => {
           c.error(
             c.enclosingPosition,
-            "The @field macro only operates on case classes"
+            "The @field macro only operates on case classes."
           )
           annottees.head
         }
@@ -1094,7 +1109,7 @@ object Macro {
       if (members.size != 1) {
         c.error(
           c.enclosingPosition,
-          "You must apply the @component annotation to a single entity"
+          "You must apply the @component annotation to a single entity."
         )
       }
 
@@ -1129,7 +1144,7 @@ object Macro {
         if (typeDefs.isEmpty) {
           c.error(
             c.enclosingPosition,
-            "You must provide a name for the contained type, none found"
+            "You must provide a name for the contained type, none found."
           )
           (errorTName, errorTName)
         } else {
@@ -1152,7 +1167,7 @@ object Macro {
           } else {
             c.error(
               c.enclosingPosition,
-              "Your contained type must only have one type parameter"
+              "Your contained type must only have one type parameter."
             )
             (errorTName, errorTName)
           }
@@ -1168,7 +1183,7 @@ object Macro {
         if (!classDef.mods.hasFlag(Flag.CASE)) {
           c.error(
             c.enclosingPosition,
-            "@component must be applied to a case class"
+            "@component must be applied to a case class."
           )
         }
 
@@ -1217,7 +1232,7 @@ object Macro {
         case _ => {
           c.error(
             c.enclosingPosition,
-            "You must provide a class definition to the @component macro"
+            "You must provide a class definition to the @component macro."
           )
           c.Expr(annotatedItem)
         }
@@ -1274,7 +1289,7 @@ object Macro {
       if (members.length != 1) {
         c.error(
           c.enclosingPosition,
-          "You must annotate one definition with the @opaque macro"
+          "You must annotate one definition with the @opaque macro."
         )
         c.Expr(q"..$members")
       }
@@ -1296,7 +1311,7 @@ object Macro {
           c.error(
             c.enclosingPosition,
             "You must define a constructor member called `opaque` that " +
-            "specifies your opaque type"
+            "specifies your opaque type."
           )
         }
 
@@ -1331,7 +1346,7 @@ object Macro {
         case _ => {
           c.error(
             c.enclosingPosition,
-            "You must provide a class definition to the @opaque macro"
+            "You must provide a class definition to the @opaque macro."
           )
           c.Expr(annotatedItem)
         }
