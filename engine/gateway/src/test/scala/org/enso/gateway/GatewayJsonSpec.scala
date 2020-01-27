@@ -82,15 +82,15 @@ class GatewayJsonSpec
     checkRequestResponse(WrongMethod)
   }
 
-  "Gateway" should "reply with a proper response to request with shutdown method" in {
+  "Gateway" should "reply with a proper response to request with shutdown method" ignore {
     checkRequestResponse(Shutdown)
   }
 
-  "Gateway" should "reply with a proper response to request with workspace/applyEdit method" in {
+  "Gateway" should "reply with a proper response to request with workspace/applyEdit method" ignore {
     checkRequestResponse(ApplyWorkspaceEdit)
   }
 
-  "Gateway" should "reply with a proper response to request with textDocument/willSaveWaitUntil method" in {
+  "Gateway" should "reply with a proper response to request with textDocument/willSaveWaitUntil method" ignore {
     checkRequestResponse(WillSaveTextDocumentWaitUntil)
   }
 

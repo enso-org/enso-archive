@@ -32,43 +32,43 @@ class GatewayMessageSpec()
 
   "Gateway" must {
     "properly handle init/shutdown workflow" in {
-      gateway ! Initialize.request
-      expectMsg(Initialize.response)
-
-      gateway ! Initialized.notification
+      sendInitializeAndInitialized()
       expectNoMessage()
 
-      gateway ! Shutdown.request
-      expectMsg(Shutdown.response)
-
-      gateway ! Exit.notification
+      sendShutdownAndExit()
       expectNoMessage()
     }
 
     "properly handle request ApplyWorkspaceEdit" in {
-      gateway ! Initialize.request
-      expectMsg(Initialize.response)
-      gateway ! Initialized.notification
+      sendInitializeAndInitialized()
 
       gateway ! ApplyWorkspaceEdit.request
       expectMsg(ApplyWorkspaceEdit.response)
 
-      gateway ! Shutdown.request
-      expectMsg(Shutdown.response)
-      gateway ! Exit.notification
+      sendShutdownAndExit()
     }
 
     "properly handle request WillSaveTextDocumentWaitUntil" in {
-      gateway ! Initialize.request
-      expectMsg(Initialize.response)
-      gateway ! Initialized.notification
+      sendInitializeAndInitialized()
 
       gateway ! WillSaveTextDocumentWaitUntil.request
       expectMsg(WillSaveTextDocumentWaitUntil.response)
 
-      gateway ! Shutdown.request
-      expectMsg(Shutdown.response)
-      gateway ! Exit.notification
+      sendShutdownAndExit()
     }
+  }
+
+  private def sendInitializeAndInitialized(): Unit = {
+    gateway ! Initialize.request
+    expectMsg(Initialize.response)
+
+    gateway ! Initialized.notification
+  }
+
+  private def sendShutdownAndExit(): Unit = {
+    gateway ! Shutdown.request
+    expectMsg(Shutdown.response)
+
+    gateway ! Exit.notification
   }
 }
