@@ -427,7 +427,8 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.scalatest"       %% "scalatest"            % "3.2.0-SNAP10" % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % Benchmark,
       "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
-    )
+    ),
+    Compile/unmanagedClasspath += (core_definition / Compile / packageBin).value
   )
   .settings(
     (Compile / javacOptions) ++= Seq(
@@ -469,7 +470,6 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(syntax.jvm)
   .dependsOn(graph)
   .dependsOn(polyglot_api)
-  .dependsOn(core_definition)
 
 lazy val runner = project
   .in(file("engine/runner"))
