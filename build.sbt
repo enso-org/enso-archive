@@ -383,13 +383,25 @@ lazy val core_definition = (project in file("engine/core-definition"))
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
-      "com.chuusai"            %% "shapeless"                % "2.3.3",
-      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
-      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
-      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
+      "com.chuusai"                %% "shapeless"    % "2.3.3",
+      "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
+      "org.scalactic"              %% "scalactic"    % "3.0.8" % Test,
+      "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
+      "org.typelevel"              %% "cats-core"    % "2.0.0-M4",
+      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
+    ),
+    addCompilerPlugin(
+      "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
+  .dependsOn(graph)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
@@ -401,20 +413,20 @@ lazy val runtime = (project in file("engine/runtime"))
     parallelExecution in Test := false,
     logBuffered in Test := false,
     libraryDependencies ++= jmh ++ Seq(
-      "com.chuusai"            %% "shapeless"                % "2.3.3",
-      "org.apache.commons"     % "commons-lang3"             % "3.9",
-      "org.apache.tika"        % "tika-core"                 % "1.21",
-      "org.graalvm.sdk"        % "graal-sdk"                 % graalVersion % "provided",
-      "org.graalvm.sdk"        % "polyglot-tck"              % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
-      "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
-      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
-      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
-      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
-      "org.graalvm.truffle"    % "truffle-api"               % graalVersion % Benchmark,
-      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
+      "com.chuusai"         %% "shapeless"            % "2.3.3",
+      "org.apache.commons"  % "commons-lang3"         % "3.9",
+      "org.apache.tika"     % "tika-core"             % "1.21",
+      "org.graalvm.sdk"     % "graal-sdk"             % graalVersion % "provided",
+      "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion % "provided",
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion % "provided",
+      "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion % "provided",
+      "org.graalvm.truffle" % "truffle-tck"           % graalVersion % "provided",
+      "org.graalvm.truffle" % "truffle-tck-common"    % graalVersion % "provided",
+      "org.scalacheck"      %% "scalacheck"           % "1.14.0" % Test,
+      "org.scalactic"       %% "scalactic"            % "3.0.8" % Test,
+      "org.scalatest"       %% "scalatest"            % "3.2.0-SNAP10" % Test,
+      "org.graalvm.truffle" % "truffle-api"           % graalVersion % Benchmark,
+      "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
     )
   )
   .settings(
@@ -457,6 +469,7 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(syntax.jvm)
   .dependsOn(graph)
   .dependsOn(polyglot_api)
+  .dependsOn(core_definition)
 
 lazy val runner = project
   .in(file("engine/runner"))
