@@ -1,6 +1,6 @@
 package org.enso.languageserver
 
-/** Id of [[Requests]], [[RequestReceived]]. */
+/** Id of [[Request]], [[Response]]. */
 sealed trait Id
 object Id {
 

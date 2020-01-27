@@ -30,7 +30,6 @@ class Config(
 
 object Config {
   private val gatewayPath        = "gateway"
-  private val serverPath         = "server"
   private val hostPath           = "host"
   private val portPath           = "port"
   private val routePath          = "route"
@@ -40,16 +39,14 @@ object Config {
 
   private val gatewayConfig: TypesafeConfig =
     ConfigFactory.load.getConfig(gatewayPath)
-  private val serverConfig: TypesafeConfig =
-    gatewayConfig.getConfig(serverPath)
 
-  private val host: String  = serverConfig.getString(hostPath)
-  private val port: Int     = serverConfig.getInt(portPath)
-  private val route: String = serverConfig.getString(routePath)
+  private val host: String  = gatewayConfig.getString(hostPath)
+  private val port: Int     = gatewayConfig.getInt(portPath)
+  private val route: String = gatewayConfig.getString(routePath)
   private val timeout: FiniteDuration =
-    serverConfig.getLong(timeoutPath).seconds
+    gatewayConfig.getLong(timeoutPath).seconds
   private val bindingTimeout: FiniteDuration =
-    serverConfig.getLong(bindingTimeoutPath).seconds
+    gatewayConfig.getLong(bindingTimeoutPath).seconds
   private val hardDeadline: FiniteDuration =
-    serverConfig.getLong(hardDeadlinePath).seconds
+    gatewayConfig.getLong(hardDeadlinePath).seconds
 }
