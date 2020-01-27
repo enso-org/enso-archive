@@ -2,11 +2,6 @@ package org.enso.compiler.core
 
 import org.enso.graph.{Graph => PrimGraph}
 
-// TODO [AA] We may need to _re-export_ things instead
-
-// TODO [AA] How do we store concrete types like `Location` in nodes?
-// TODO [AA] Can I do a deeply-nested hierarchy without breaking things?
-
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
   *
