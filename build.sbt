@@ -374,6 +374,23 @@ val truffleRunOptionsSettings = Seq(
   javaOptions ++= truffleRunOptions
 )
 
+lazy val core_definition = (project in file("engine/core-definition"))
+  .configs(Benchmark)
+  .settings(
+    version := "0.1",
+    inConfig(Compile)(truffleRunOptionsSettings),
+    inConfig(Benchmark)(Defaults.testSettings),
+    parallelExecution in Test := false,
+    logBuffered in Test := false,
+    libraryDependencies ++= jmh ++ Seq(
+      "com.chuusai"            %% "shapeless"                % "2.3.3",
+      "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
+      "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
+      "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
+      "org.typelevel"          %% "cats-core"                % "2.0.0-M4"
+    )
+  )
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -393,7 +410,6 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle"    % "truffle-dsl-processor"     % graalVersion % "provided",
       "org.graalvm.truffle"    % "truffle-tck"               % graalVersion % "provided",
       "org.graalvm.truffle"    % "truffle-tck-common"        % graalVersion % "provided",
-      "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
       "org.scalacheck"         %% "scalacheck"               % "1.14.0" % Test,
       "org.scalactic"          %% "scalactic"                % "3.0.8" % Test,
       "org.scalatest"          %% "scalatest"                % "3.2.0-SNAP10" % Test,
@@ -408,6 +424,13 @@ lazy val runtime = (project in file("engine/runtime"))
     ),
     addCompilerPlugin(
       "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
   .settings(
