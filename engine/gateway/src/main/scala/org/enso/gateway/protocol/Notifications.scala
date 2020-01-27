@@ -33,14 +33,15 @@ object Notifications {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialized
     */
-  object Initialized extends NotificationExtractor[VoidParams]("initialized")
+  object Initialized
+      extends NotificationExtractor[VoidParams @unchecked]("initialized")
 
   /** Asks the server to exit its process.
     *
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#exit
     */
-  object Exit extends NotificationExtractor[VoidParams]("exit")
+  object Exit extends NotificationExtractor[VoidParams @unchecked]("exit")
 
   /** The notification sent from the client to the server to signal newly opened
     * text documents.
@@ -49,7 +50,7 @@ object Notifications {
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didOpen
     */
   object DidOpenTextDocument
-      extends NotificationExtractor[DidOpenTextDocumentParams](
+      extends NotificationExtractor[DidOpenTextDocumentParams @unchecked](
         "textDocument/didOpen"
       )
 
@@ -60,26 +61,28 @@ object Notifications {
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didChange
     */
   object DidChangeTextDocument
-      extends NotificationExtractor[DidChangeTextDocumentParams](
+      extends NotificationExtractor[DidChangeTextDocumentParams @unchecked](
         "textDocument/didChange"
       )
 
-  /** The notification sent from the client to the server when the document was saved in the client.
+  /** The notification sent from the client to the server when the document was
+    * saved in the client.
     *
     * LSP Spec: https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didSave
     */
   object DidSaveTextDocument
-      extends NotificationExtractor[DidSaveTextDocumentParams](
+      extends NotificationExtractor[DidSaveTextDocumentParams @unchecked](
         "textDocument/didSave"
       )
 
-  /** The notification sent from the client to the server when the document got closed in the client.
+  /** The notification sent from the client to the server when the document got
+    * closed in the client.
     *
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_didClose
     */
   object DidCloseTextDocument
-      extends NotificationExtractor[DidCloseTextDocumentParams](
+      extends NotificationExtractor[DidCloseTextDocumentParams @unchecked](
         "textDocument/didClose"
       )
 

@@ -86,7 +86,7 @@ object Params {
     * [[org.enso.gateway.protocol.Requests.ApplyWorkspaceEdit]].
     */
   case class ApplyWorkspaceEditParams(
-    label: Option[String],
+    label: Option[String] = None,
     edit: WorkspaceEdit
   ) extends Params
 
@@ -145,7 +145,7 @@ object Params {
     */
   case class DidSaveTextDocumentParams(
     textDocument: TextDocumentIdentifier,
-    text: Option[String]
+    text: Option[String] = None
   ) extends Params
 
   object DidSaveTextDocumentParams {

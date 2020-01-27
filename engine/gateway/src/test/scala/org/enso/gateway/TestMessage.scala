@@ -1,11 +1,27 @@
 package org.enso.gateway
 
 import org.enso.gateway.JsonRpcController.jsonRpcVersion
-import org.enso.gateway.protocol.request.Param.{ClientCapabilities, ClientInfo}
+import org.enso.gateway.protocol.request.Param.{
+  ClientCapabilities,
+  ClientInfo,
+  TextDocumentIdentifier,
+  TextDocumentSaveReason,
+  WorkspaceEdit
+}
 import org.enso.gateway.protocol.{Request, Requests, Response}
 import org.enso.gateway.protocol.request.Params
-import org.enso.gateway.protocol.request.Params.{InitializeParams, VoidParams}
-import org.enso.gateway.protocol.response.Result.{InitializeResult, NullResult}
+import org.enso.gateway.protocol.request.Params.{
+  ApplyWorkspaceEditParams,
+  InitializeParams,
+  VoidParams,
+  WillSaveTextDocumentWaitUntilParams
+}
+import org.enso.gateway.protocol.response.Result.{
+  ApplyWorkspaceEditResult,
+  InitializeResult,
+  NullResult,
+  WillSaveTextDocumentWaitUntilResult
+}
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
   ServerInfo
@@ -70,6 +86,48 @@ object TestMessage {
     val response = Response.result(
       id     = Some(id2),
       result = NullResult
+    )
+  }
+
+  object ApplyWorkspaceEdit extends TestMessage[ApplyWorkspaceEditParams] {
+    val request = Request(
+      jsonrpc = jsonRpcVersion,
+      id      = id2,
+      method  = Requests.ApplyWorkspaceEdit.method,
+      params = Some(
+        ApplyWorkspaceEditParams(
+          edit = WorkspaceEdit()
+        )
+      )
+    )
+
+    val response: Response = Response.result(
+      id = Some(id2),
+      result = ApplyWorkspaceEditResult(
+        applied = false
+      )
+    )
+  }
+
+  object WillSaveTextDocumentWaitUntil
+      extends TestMessage[WillSaveTextDocumentWaitUntilParams] {
+    val request = Request(
+      jsonrpc = jsonRpcVersion,
+      id      = id2,
+      method  = Requests.WillSaveTextDocumentWaitUntil.method,
+      params = Some(
+        WillSaveTextDocumentWaitUntilParams(
+          textDocument = TextDocumentIdentifier(
+            uri = "/path/to/HelloWorld.enso"
+          ),
+          reason = TextDocumentSaveReason.Manual
+        )
+      )
+    )
+
+    val response: Response = Response.result(
+      id     = Some(id2),
+      result = WillSaveTextDocumentWaitUntilResult()
     )
   }
 

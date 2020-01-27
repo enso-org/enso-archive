@@ -28,8 +28,8 @@ class LanguageServerSpec()
     with BeforeAndAfterAll
     with BeforeAndAfterEach {
 
-  var testCount: Int           = _
-  var languageServer: ActorRef = _
+  private var testCount: Int           = _
+  private var languageServer: ActorRef = _
 
   override def beforeEach(): Unit = {
     val languageServerActorName = s"testingLanguageServer$testCount"

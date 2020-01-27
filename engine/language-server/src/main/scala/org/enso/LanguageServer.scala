@@ -26,7 +26,7 @@ class LanguageServer(executionContext: ExecutionContext)
 
   override def receive: Receive = {
     case Notification.Exit =>
-      exit
+      exit()
 
     case notification: Notification =>
       val msg =
@@ -124,7 +124,7 @@ class LanguageServer(executionContext: ExecutionContext)
 
   def afterShutdown: Receive = {
     case Notification.Exit =>
-      exit
+      exit()
 
     case request: Request =>
       val msg =
@@ -141,11 +141,6 @@ class LanguageServer(executionContext: ExecutionContext)
       default(requestOrNotification)
   }
 
-  def afterExit: Receive = {
-    case requestOrNotification =>
-      default(requestOrNotification)
-  }
-
   private def default(requestOrNotification: Any): Unit = {
     val msg = "LanguageServer: unexpected request or notification " +
       requestOrNotification
@@ -155,7 +150,7 @@ class LanguageServer(executionContext: ExecutionContext)
   private def exit(): Unit = {
     val msg = "LanguageServer: Exit received"
     log.info(msg)
-    become(afterExit)
+    become(receive)
   }
 }
 object LanguageServer {

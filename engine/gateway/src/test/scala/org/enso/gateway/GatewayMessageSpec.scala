@@ -4,7 +4,12 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.enso.{Gateway, LanguageServer}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import org.enso.gateway.TestMessage.{Initialize, Shutdown}
+import org.enso.gateway.TestMessage.{
+  ApplyWorkspaceEdit,
+  Initialize,
+  Shutdown,
+  WillSaveTextDocumentWaitUntil
+}
 import org.enso.gateway.TestNotification.{Exit, Initialized}
 
 class GatewayMessageSpec()
@@ -38,6 +43,32 @@ class GatewayMessageSpec()
 
       gateway ! Exit.notification
       expectNoMessage()
+    }
+
+    "properly handle request ApplyWorkspaceEdit" in {
+      gateway ! Initialize.request
+      expectMsg(Initialize.response)
+      gateway ! Initialized.notification
+
+      gateway ! ApplyWorkspaceEdit.request
+      expectMsg(ApplyWorkspaceEdit.response)
+
+      gateway ! Shutdown.request
+      expectMsg(Shutdown.response)
+      gateway ! Exit.notification
+    }
+
+    "properly handle request WillSaveTextDocumentWaitUntil" in {
+      gateway ! Initialize.request
+      expectMsg(Initialize.response)
+      gateway ! Initialized.notification
+
+      gateway ! WillSaveTextDocumentWaitUntil.request
+      expectMsg(WillSaveTextDocumentWaitUntil.response)
+
+      gateway ! Shutdown.request
+      expectMsg(Shutdown.response)
+      gateway ! Exit.notification
     }
   }
 }

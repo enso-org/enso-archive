@@ -31,7 +31,8 @@ object Requests {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#initialize
     */
-  object Initialize extends RequestExtractor[InitializeParams]("initialize")
+  object Initialize
+      extends RequestExtractor[InitializeParams @unchecked]("initialize")
 
   /** Asks the server to shut down, but to not exit (otherwise the response
     * might not be delivered correctly to the client).
@@ -39,7 +40,7 @@ object Requests {
     * LSP Spec:
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#shutdown
     */
-  object Shutdown extends RequestExtractor[VoidParams]("shutdown")
+  object Shutdown extends RequestExtractor[VoidParams @unchecked]("shutdown")
 
   /** The request sent from the server to the client to modify resource on the
     * client side.
@@ -48,7 +49,9 @@ object Requests {
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#workspace_applyEdit
     */
   object ApplyWorkspaceEdit
-      extends RequestExtractor[ApplyWorkspaceEditParams]("workspace/applyEdit")
+      extends RequestExtractor[ApplyWorkspaceEditParams @unchecked](
+        "workspace/applyEdit"
+      )
 
   /** The request sent from the client to the server before the document is
     * actually saved.
@@ -57,7 +60,7 @@ object Requests {
     * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#textDocument_willSaveWaitUntil
     */
   object WillSaveTextDocumentWaitUntil
-      extends RequestExtractor[WillSaveTextDocumentWaitUntilParams](
+      extends RequestExtractor[WillSaveTextDocumentWaitUntilParams @unchecked](
         "textDocument/willSaveWaitUntil"
       )
 

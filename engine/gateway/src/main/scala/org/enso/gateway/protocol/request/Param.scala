@@ -145,8 +145,8 @@ object Param {
   }
 
   case class WorkspaceEdit(
-    changes: Option[Map[DocumentUri, Seq[TextEdit]]],
-    documentChanges: Option[DocumentChanges]
+    changes: Option[Map[DocumentUri, Seq[TextEdit]]] = None,
+    documentChanges: Option[DocumentChanges]         = None
   ) extends Param
 
   object WorkspaceEdit {
@@ -201,7 +201,7 @@ object Param {
 
     case class RangeChange(
       range: TextRange,
-      rangeLength: Option[Int],
+      rangeLength: Option[Int] = None,
       text: String
     ) extends TextDocumentContentChangeEvent
 
