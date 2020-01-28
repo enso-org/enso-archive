@@ -31,7 +31,10 @@ object TestJson {
            "result": {
              "capabilities": {
                "textDocumentSync" : {
-                 "willSaveWaitUntil" : true
+                 "openClose" : true,
+                 "change" : 1,
+                 "willSaveWaitUntil" : true,
+                 "didSave" : true
                }
              },
              "serverInfo": {
@@ -58,7 +61,7 @@ object TestJson {
            "id": 10,
            "error": {
              "code": 1,
-             "message": "Wrong JSON-RPC Version",
+             "message": "Wrong JSON-RPC version",
              "data": {
                "retry": false
              }
