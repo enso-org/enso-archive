@@ -122,14 +122,15 @@ public class Module implements TruffleObject {
       return scope.getConstructors().get(name);
     }
 
-    private static ModuleScope patch(ModuleScope scope, Object[] args, Context context)
+    private static Module patch(Module module, Object[] args, Context context)
         throws ArityException, UnsupportedTypeException {
+      ModuleScope scope = module.getScope(context);
       String sourceString = Types.extractArguments(args, String.class);
       Source source =
           Source.newBuilder(LanguageInfo.ID, sourceString, scope.getAssociatedType().getName())
               .build();
       context.compiler().run(source, scope);
-      return scope;
+      return module;
     }
 
     private static AtomConstructor getAssociatedConstructor(ModuleScope scope, Object[] args)
@@ -170,7 +171,7 @@ public class Module implements TruffleObject {
         case MethodNames.Module.GET_CONSTRUCTOR:
           return getConstructor(scope, arguments);
         case MethodNames.Module.PATCH:
-          return patch(scope, arguments, context);
+          return patch(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
           return getAssociatedConstructor(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
