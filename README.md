@@ -19,7 +19,7 @@ Visit [The Enso Website](http://www.luna-lang.org) to learn more!
 
 This repository contains [Enso Engine](engine/) (its compiler, 
 interpreter, runtime, and language server). Its cloud-ready IDE can be found on
-a [a separate repository](https://github.com/luna/ide/).
+a [separate repository](https://github.com/luna/ide/).
 
 ## Contributing to Enso
 If you are interested in contributing to the development of Enso, please read
