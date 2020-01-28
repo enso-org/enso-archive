@@ -10,9 +10,16 @@ import org.enso.gateway.TestMessage.{
   Shutdown,
   WillSaveTextDocumentWaitUntil
 }
-import org.enso.gateway.TestNotification.{Exit, Initialized}
+import org.enso.gateway.TestNotification.{
+  DidChangeTextDocument,
+  DidCloseTextDocument,
+  DidOpenTextDocument,
+  DidSaveTextDocument,
+  Exit,
+  Initialized
+}
 
-class GatewayMessageSpec()
+class GatewayMessageSpec
     extends TestKit(ActorSystem("GatewayMessageSpec"))
     with ImplicitSender
     with WordSpecLike
@@ -55,6 +62,19 @@ class GatewayMessageSpec()
       expectMsg(WillSaveTextDocumentWaitUntil.response)
 
       sendShutdownAndExit()
+    }
+
+    "properly handle notifications" in {
+      sendInitializeAndInitialized()
+      expectNoMessage()
+
+      gateway ! DidOpenTextDocument.notification
+      gateway ! DidChangeTextDocument.notification
+      gateway ! DidSaveTextDocument.notification
+      gateway ! DidCloseTextDocument.notification
+
+      sendShutdownAndExit()
+      expectNoMessage()
     }
   }
 

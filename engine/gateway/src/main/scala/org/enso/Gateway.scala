@@ -13,6 +13,12 @@ import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
   ServerInfo
 }
+import org.enso.gateway.protocol.response.ResponseError
+import org.enso.gateway.protocol.response.error.Data
+import org.enso.gateway.protocol.response.result.servercapabilities.textdocumentsync.{
+  TextDocumentSyncDidSave,
+  TextDocumentSyncKind
+}
 import org.enso.{languageserver => ls}
 
 /** The Gateway component of Enso Engine.
@@ -28,26 +34,41 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       val msg = "Gateway: Initialize received"
       log.info(msg)
       languageServer ! ls.Request.Initialize(
-        id.toLsModel,
-        params
+        id = id.toLsModel,
+        dynamicRegistration = params
+          .flatMap(
+            _.capabilities.textDocument
+              .flatMap(_.synchronization.flatMap(_.dynamicRegistration))
+          )
+          .getOrElse(false),
+        willSaveWaitUntil = params
           .flatMap(
             _.capabilities.textDocument
               .flatMap(_.synchronization.flatMap(_.willSaveWaitUntil))
           )
           .getOrElse(false),
-        sender()
+        didSave = params
+          .flatMap(
+            _.capabilities.textDocument
+              .flatMap(_.synchronization.flatMap(_.didSave))
+          )
+          .getOrElse(false),
+        replyTo = sender()
       )
 
     case ls.Response.Initialize(id, name, version, replyTo) =>
-      val msg = "Gateway: RequestReceived.Initialize received"
+      val msg = "Gateway: Response.Initialize received"
       log.info(msg)
       replyTo ! Response.result(
         id = Some(Id.fromLsModel(id)),
         result = InitializeResult(
           capabilities = ServerCapabilities(
             textDocumentSync = Some(
-              TextDocumentSync.WillSaveWaitUntil(
-                willSaveWaitUntil = true
+              TextDocumentSync.TextDocumentSyncOptions(
+                openClose         = Some(true),
+                change            = Some(TextDocumentSyncKind.Full),
+                willSaveWaitUntil = Some(true),
+                didSave           = Some(TextDocumentSyncDidSave.Bool(true))
               )
             )
           ),
@@ -61,7 +82,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       languageServer ! ls.Request.Shutdown(id.toLsModel, sender())
 
     case ls.Response.Shutdown(id, replyTo) =>
-      val msg = "Gateway: RequestReceived.Shutdown received"
+      val msg = "Gateway: Response.Shutdown received"
       log.info(msg)
       replyTo ! Response.result(
         id     = Some(Id.fromLsModel(id)),
@@ -75,7 +96,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
         .ApplyWorkspaceEdit(id.toLsModel, sender())
 
     case ls.Response.ApplyWorkspaceEdit(id, replyTo) =>
-      val msg = "Gateway: RequestReceived.ApplyWorkspaceEdit received"
+      val msg = "Gateway: Response.ApplyWorkspaceEdit received"
       log.info(msg)
       replyTo ! Response.result(
         id     = Some(Id.fromLsModel(id)),
@@ -91,7 +112,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     case ls.Response
           .WillSaveTextDocumentWaitUntil(id, replyTo) =>
       val msg =
-        "Gateway: RequestReceived.WillSaveTextDocumentWaitUntil received"
+        "Gateway: Response.WillSaveTextDocumentWaitUntil received"
       log.info(msg)
       replyTo ! Response.result(
         id     = Some(Id.fromLsModel(id)),
@@ -103,54 +124,50 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       log.info(msg)
       languageServer ! ls.Notification.Initialized
 
-    //    case ls.NotificationReceived.Initialized =>
-    //      val msg = "Gateway: NotificationReceived.Initialized received"
-    //      log.info(msg)
-
     case Notifications.Exit(_) =>
       val msg = "Gateway: Exit received"
       log.info(msg)
       languageServer ! ls.Notification.Exit
-
-    //    case ls.NotificationReceived.Exit =>
-    //      val msg = "Gateway: NotificationReceived.Exit received"
-    //      log.info(msg)
 
     case Notifications.DidOpenTextDocument(_) =>
       val msg = "Gateway: DidOpenTextDocument received"
       log.info(msg)
       languageServer ! ls.Notification.DidOpenTextDocument
 
-    //    case ls.NotificationReceived.DidOpenTextDocument =>
-    //      val msg = "Gateway: NotificationReceived.DidOpenTextDocument received"
-    //      log.info(msg)
-
     case Notifications.DidChangeTextDocument(_) =>
       val msg = "Gateway: DidChangeTextDocument received"
       log.info(msg)
       languageServer ! ls.Notification.DidChangeTextDocument
-
-    //    case ls.NotificationReceived.DidChangeTextDocument =>
-    //      val msg = "Gateway: NotificationReceived.DidChangeTextDocument received"
-    //      log.info(msg)
 
     case Notifications.DidSaveTextDocument(_) =>
       val msg = "Gateway: DidSaveTextDocument received"
       log.info(msg)
       languageServer ! ls.Notification.DidSaveTextDocument
 
-    //    case ls.NotificationReceived.DidSaveTextDocument =>
-    //      val msg = "Gateway: NotificationReceived.DidSaveTextDocument received"
-    //      log.info(msg)
-
     case Notifications.DidCloseTextDocument(_) =>
       val msg = "Gateway: DidCloseTextDocument received"
       log.info(msg)
       languageServer ! ls.Notification.DidCloseTextDocument
 
-    //    case ls.NotificationReceived.DidCloseTextDocument =>
-    //      val msg = "Gateway: NotificationReceived.DidCloseTextDocument received"
-    //      log.info(msg)
+    case ls.ErrorResponse.InvalidRequest(id, message, replyTo) =>
+      val msg = "Gateway: ErrorResponse.InvalidRequest received"
+      log.error(msg)
+      replyTo ! Response.error(
+        id = Some(Id.fromLsModel(id)),
+        error = ResponseError.InvalidRequest(
+          data = Some(Data.Text(message))
+        )
+      )
+
+    case ls.ErrorResponse.ServerNotInitialized(id, message, replyTo) =>
+      val msg = "Gateway: ErrorResponse.InvalidRequest received"
+      log.error(msg)
+      replyTo ! Response.error(
+        id = Some(Id.fromLsModel(id)),
+        error = ResponseError.ServerNotInitialized(
+          data = Some(Data.Text(message))
+        )
+      )
 
     case requestOrNotification =>
       val err = "Gateway: unimplemented request or notification: " +

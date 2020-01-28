@@ -4,14 +4,18 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.enso.LanguageServer
 import org.enso.languageserver.Notification.{
+  DidChangeTextDocument,
+  DidCloseTextDocument,
   DidOpenTextDocument,
+  DidSaveTextDocument,
   Exit,
   Initialized
 }
 import org.enso.languageserver.Request.{
   ApplyWorkspaceEdit,
   Initialize,
-  Shutdown
+  Shutdown,
+  WillSaveTextDocumentWaitUntil
 }
 import org.scalatest.{
   BeforeAndAfterAll,
@@ -20,7 +24,7 @@ import org.scalatest.{
   WordSpecLike
 }
 
-class LanguageServerSpec()
+class LanguageServerSpec
     extends TestKit(ActorSystem("LanguageServerSpec"))
     with ImplicitSender
     with WordSpecLike
@@ -77,10 +81,10 @@ class LanguageServerSpec()
 
       val id1 = Id.Number(1)
 
-      languageServer ! ApplyWorkspaceEdit(id1, probeRef)
-      expectMsg(
-        ErrorResponse.ServerNotInitialized(id1, probeRef)
-      )
+      languageServer ! Shutdown(id1, probeRef)
+      expectMsgPF() {
+        case ErrorResponse.ServerNotInitialized(`id1`, _, `probeRef`) =>
+      }
     }
 
     "drop notification before initialize" in {
@@ -98,9 +102,9 @@ class LanguageServerSpec()
       languageServer ! Initialize(id1, replyTo = probeRef)
       expectMsgClass(classOf[Response.Initialize])
       languageServer ! ApplyWorkspaceEdit(id2, probeRef)
-      expectMsg(
-        ErrorResponse.InvalidRequest(id2, probeRef)
-      )
+      expectMsgPF() {
+        case ErrorResponse.InvalidRequest(`id2`, _, `probeRef`) =>
+      }
     }
 
     "drop notification after initialize but before initialized" in {
@@ -134,9 +138,9 @@ class LanguageServerSpec()
       languageServer ! Shutdown(id2, probeRef)
       expectMsgClass(classOf[Response.Shutdown])
       languageServer ! ApplyWorkspaceEdit(id3, probeRef)
-      expectMsg(
-        ErrorResponse.InvalidRequest(id3, probeRef)
-      )
+      expectMsgPF() {
+        case ErrorResponse.InvalidRequest(`id3`, _, `probeRef`) =>
+      }
     }
 
     "drop notification after shutdown but before exit" in {
@@ -154,5 +158,50 @@ class LanguageServerSpec()
       languageServer ! DidOpenTextDocument
       expectNoMessage()
     }
+
+    "properly handle ApplyWorkspaceEdit request" in {
+      val probe    = TestProbe()
+      val probeRef = probe.ref
+
+      val id1 = Id.Number(1)
+      val id2 = Id.Number(2)
+
+      languageServer ! Initialize(id1, replyTo = probeRef)
+      expectMsgClass(classOf[Response.Initialize])
+      languageServer ! Initialized
+      languageServer ! ApplyWorkspaceEdit(id2, probeRef)
+      expectMsg(Response.ApplyWorkspaceEdit(id2, probeRef))
+    }
+
+    "properly handle WillSaveTextDocumentWaitUntil request" in {
+      val probe    = TestProbe()
+      val probeRef = probe.ref
+
+      val id1 = Id.Number(1)
+      val id2 = Id.Number(2)
+
+      languageServer ! Initialize(id1, replyTo = probeRef)
+      expectMsgClass(classOf[Response.Initialize])
+      languageServer ! Initialized
+      languageServer ! WillSaveTextDocumentWaitUntil(id2, probeRef)
+      expectMsg(Response.WillSaveTextDocumentWaitUntil(id2, probeRef))
+    }
+
+    "properly handle notifications" in {
+      val probe    = TestProbe()
+      val probeRef = probe.ref
+
+      val id1 = Id.Number(1)
+
+      languageServer ! Initialize(id1, replyTo = probeRef)
+      expectMsgClass(classOf[Response.Initialize])
+      languageServer ! Initialized
+      languageServer ! DidOpenTextDocument
+      languageServer ! DidChangeTextDocument
+      languageServer ! DidSaveTextDocument
+      languageServer ! DidCloseTextDocument
+      expectNoMessage()
+    }
+
   }
 }

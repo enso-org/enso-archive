@@ -54,6 +54,22 @@ object ResponseError {
         data
       )
 
+  case class InvalidRequest(
+    override val data: Option[Data.Text] = None
+  ) extends ResponseError(
+        ErrorCode.InvalidRequest,
+        ErrorMessage.invalidRequest,
+        data
+      )
+
+  case class ServerNotInitialized(
+    override val data: Option[Data.Text] = None
+  ) extends ResponseError(
+        ErrorCode.ServerNotInitialized,
+        ErrorMessage.serverNotInitialized,
+        data
+      )
+
   /** Default type of errors. */
   case class UnexpectedError(
     override val data: Option[Data.Text] = None
@@ -62,4 +78,5 @@ object ResponseError {
         ErrorMessage.unexpectedError,
         data
       )
+
 }

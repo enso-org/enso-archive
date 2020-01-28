@@ -27,7 +27,11 @@ import org.enso.gateway.protocol.response.result.{
   ServerInfo
 }
 import TestMessageDefinitions._
-import org.enso.gateway.protocol.response.result.servercapabilities.TextDocumentSync.WillSaveWaitUntil
+import org.enso.gateway.protocol.response.result.servercapabilities.TextDocumentSync
+import org.enso.gateway.protocol.response.result.servercapabilities.textdocumentsync.{
+  TextDocumentSyncDidSave,
+  TextDocumentSyncKind
+}
 
 trait TestMessage[P <: Params] {
   def request: Request[P]
@@ -60,8 +64,11 @@ object TestMessage {
       result = InitializeResult(
         capabilities = ServerCapabilities(
           textDocumentSync = Some(
-            WillSaveWaitUntil(
-              willSaveWaitUntil = true
+            TextDocumentSync.TextDocumentSyncOptions(
+              openClose         = Some(true),
+              change            = Some(TextDocumentSyncKind.Full),
+              willSaveWaitUntil = Some(true),
+              didSave           = Some(TextDocumentSyncDidSave.Bool(true))
             )
           )
         ),

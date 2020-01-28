@@ -16,7 +16,9 @@ object Request {
   /** Akka message sent by Gateway received LSP request `initialize`. */
   case class Initialize(
     id: Id,
-    willSaveWaitUntil: Boolean = false,
+    dynamicRegistration: Boolean = false,
+    willSaveWaitUntil: Boolean   = false,
+    didSave: Boolean             = false,
     replyTo: ActorRef
   ) extends Request
 

@@ -4,7 +4,10 @@ import io.circe.Encoder
 import io.circe.syntax._
 import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
 import io.circe.generic.semiauto.deriveEncoder
-import org.enso.gateway.protocol.response.result.servercapabilities.textdocumentsync.TextDocumentSyncKind
+import org.enso.gateway.protocol.response.result.servercapabilities.textdocumentsync.{
+  TextDocumentSyncDidSave,
+  TextDocumentSyncKind
+}
 
 /** Defines how text documents are synced.
   *
@@ -22,25 +25,19 @@ object TextDocumentSync {
   }
 
   case class TextDocumentSyncOptions(
-    openClose: Option[Boolean]           = None,
-    change: Option[TextDocumentSyncKind] = None
+    openClose: Option[Boolean]               = None,
+    change: Option[TextDocumentSyncKind]     = None,
+    willSaveWaitUntil: Option[Boolean]       = None,
+    didSave: Option[TextDocumentSyncDidSave] = None
   ) extends TextDocumentSync
   object TextDocumentSyncOptions {
     implicit val textDocumentSyncTextDocumentSyncOptionsEncoder
       : Encoder[TextDocumentSyncOptions] = deriveEncoder
   }
 
-  case class WillSaveWaitUntil(willSaveWaitUntil: Boolean)
-      extends TextDocumentSync
-  object WillSaveWaitUntil {
-    implicit val textDocumentSyncWillSaveWaitUntilEncoder
-      : Encoder[WillSaveWaitUntil] = deriveEncoder
-  }
-
   implicit val serverCapabilitiesTextDocumentSyncEncoder
     : Encoder[TextDocumentSync] = Encoder.instance {
     case number: Number                      => number.asJson
     case capability: TextDocumentSyncOptions => capability.asJson
-    case capability: WillSaveWaitUntil       => capability.asJson
   }
 }

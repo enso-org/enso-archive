@@ -33,7 +33,7 @@ class LanguageServer(executionContext: ExecutionContext)
         s"LanguageServer: $notification received before Initialize and dropped"
       log.info(msg)
 
-    case Request.Initialize(id, _, actorRef) =>
+    case Request.Initialize(id, _, _, _, actorRef) =>
       val msg = "LanguageServer: Initialize received"
       log.info(msg)
       sender() ! Response.Initialize(
@@ -47,7 +47,11 @@ class LanguageServer(executionContext: ExecutionContext)
     case request: Request =>
       val msg = s"LanguageServer: $request received before Initialize"
       log.error(msg)
-      sender() ! ErrorResponse.ServerNotInitialized(request.id, request.replyTo)
+      sender() ! ErrorResponse.ServerNotInitialized(
+        request.id,
+        msg,
+        request.replyTo
+      )
 
     case requestOrNotification =>
       default(requestOrNotification)
@@ -63,7 +67,7 @@ class LanguageServer(executionContext: ExecutionContext)
       val msg =
         s"LanguageServer: $request received before Initialized"
       log.error(msg)
-      sender() ! ErrorResponse.InvalidRequest(request.id, request.replyTo)
+      sender() ! ErrorResponse.InvalidRequest(request.id, msg, request.replyTo)
 
     case notification: Notification =>
       val msg =
@@ -75,11 +79,11 @@ class LanguageServer(executionContext: ExecutionContext)
   }
 
   def afterInitialized: Receive = {
-    case Request.Initialize(id, _, actorRef) =>
+    case Request.Initialize(id, _, _, _, actorRef) =>
       val msg =
         s"LanguageServer: Initialize received after Initialized"
       log.error(msg)
-      sender() ! ErrorResponse.InvalidRequest(id, actorRef)
+      sender() ! ErrorResponse.InvalidRequest(id, msg, actorRef)
 
     case Notification.Initialized =>
       val msg =
@@ -130,7 +134,7 @@ class LanguageServer(executionContext: ExecutionContext)
       val msg =
         s"LanguageServer: $request received after Shutdown"
       log.error(msg)
-      sender() ! ErrorResponse.InvalidRequest(request.id, request.replyTo)
+      sender() ! ErrorResponse.InvalidRequest(request.id, msg, request.replyTo)
 
     case notification: Notification =>
       val msg =
