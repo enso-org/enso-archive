@@ -428,8 +428,11 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % Benchmark,
       "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
     ),
-    Compile/unmanagedClasspath += (core_definition / Compile / packageBin).value,
-    Test/unmanagedClasspath += (core_definition / Compile / packageBin).value
+    Compile / unmanagedClasspath += (core_definition / Compile / packageBin).value,
+    Test / unmanagedClasspath += (core_definition / Compile / packageBin).value,
+    Compile / compile := (Compile / compile)
+      .dependsOn(core_definition / Compile / packageBin)
+      .value
   )
   .settings(
     (Compile / javacOptions) ++= Seq(

@@ -47,7 +47,7 @@ object CoreGraph {
     }
 
   object Node {
-    @field case class Location[G <: PrimGraph](start: Int, end: Int)
+    @field case class Location[G <: PrimGraph](sourceStart: Int, sourceEnd: Int)
 
     @field case class ParentLinks[G <: PrimGraph](
       parents: OpaqueData[Vector[Int], ParentStorage]

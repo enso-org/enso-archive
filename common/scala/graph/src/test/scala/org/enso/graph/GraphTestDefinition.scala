@@ -41,12 +41,12 @@ object GraphTestDefinition {
     // === Opaque Storage =====================================================
     // ========================================================================
 
-    @opaque case class Str(opaque: String)
+    @opaque case class Str[G <: PrimGraph](opaque: String)
 //    sealed case class StringStorage() {
 //      val string: mutable.Map[Int, String] = mutable.Map()
 //    }
 
-    @opaque case class Backref(opaque: Vector[Int])
+    @opaque case class Backref[G <: PrimGraph](opaque: Vector[Int])
 //    sealed case class BackrefStorage() {
 //      val backref: mutable.Map[Int, Vector[Int]] = mutable.Map()
 //    }
@@ -90,7 +90,10 @@ object GraphTestDefinition {
         case class Nul()
         case class App(fn: Edge[G], arg: Edge[G])
         case class Centre(fn: Edge[G])
-        case class Name(str: OpaqueData[String, StrStorage], linkEdge: Edge[G])
+        case class Name(
+          str: OpaqueData[String, StrStorage[Graph]],
+          linkEdge: Edge[G]
+        )
       }
 
 //      sealed trait Shape extends PrimGraph.Component.Field
