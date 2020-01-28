@@ -13,6 +13,8 @@ import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.pkg.Package;
+import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
 
 import java.util.Map;
@@ -90,7 +92,7 @@ public class TopLevelScope implements TruffleObject {
   /** Handles member invocation through the polyglot API. */
   @ExportMessage
   abstract static class InvokeMember {
-    private static ModuleScope getModule(
+    private static Module getModule(
         TopLevelScope scope,
         Object[] arguments,
         TruffleLanguage.ContextReference<Context> contextReference)
@@ -98,28 +100,25 @@ public class TopLevelScope implements TruffleObject {
       String moduleName = Types.extractArguments(arguments, String.class);
 
       if (moduleName.equals(Builtins.MODULE_NAME)) {
-        return scope.builtins.getScope();
+        return scope.builtins.getModule();
       }
       Module module = scope.modules.get(moduleName);
       if (module == null) {
         throw UnknownIdentifierException.create(moduleName);
       }
-      if (module.hasComputedScope()) {
-        return module.getScope();
-      } else {
-        return module.requestParse(contextReference.get());
-      }
+
+      return module;
     }
 
-    private static ModuleScope createModule(
-        TopLevelScope scope, Object[] arguments, Context context)
+    private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return context.createScope(moduleName);
+      return new Module(
+          QualifiedName.simpleName(moduleName), context.createScope(moduleName));
     }
 
     @Specialization
-    static ModuleScope doInvoke(
+    static Module doInvoke(
         TopLevelScope scope,
         String member,
         Object[] arguments,
