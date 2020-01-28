@@ -1261,7 +1261,8 @@ object Macro {
     *
     * Please note that the type `T` must be fully applied. The macro must also
     * be applied to a case class, and that case class must define a single
-    * value member `opaque`.
+    * value member `opaque`. This means that the opaque storage cannot be used
+    * to store graph elements.
     *
     * By way of example, consider the following macro invocation:
     *
@@ -1319,63 +1320,21 @@ object Macro {
         valDef.tpt
       }
 
-      /** Extracts the name of the graph type from an opaque storage definition.
-        *
-        * @param tParams the type parameters of the storage definition
-        * @return the graph type, if it exists.
-        */
-      def extractGraphTypeName(
-        tParams: List[c.universe.TypeDef]
-      ): TypeName = {
-        val errorTName = TypeName("ERROR")
-
-        if (tParams.isEmpty) {
-          c.error(
-            c.enclosingPosition,
-            "Your case class must have at least one type parameter."
-          )
-          errorTName
-        } else {
-          val firstTParam     = tParams.head
-          val firstTParamName = firstTParam.name
-
-          if (firstTParamName != TypeName("G")) {
-            c.error(
-              c.enclosingPosition,
-              "Your first type bound must be named \"G\"."
-            )
-            errorTName
-          } else {
-            val boundsNames = firstTParam.children
-              .collect {
-                case tree: TypeBoundsTree => tree
-              }
-              .map(_.hi)
-              .collect {
-                case Ident(name) => name.toTypeName
-              }
-
-            boundsNames.head
-          }
-        }
-      }
-
       /** Generates the definition of opaque storage from the provided class.
         *
         * @param classDef the member to which the macro has been applied
         * @return the definition of opaque storage for `classDef`
         */
       def processOpaqueClass(classDef: ClassDef): c.Expr[Any] = {
-        val inputName     = classDef.name
-        val className     = TypeName(inputName.toString + "Storage")
-        val memberName    = TermName(inputName.toString.toLowerCase)
-        val opaqueType    = findOpaqueType(classDef.impl)
-        val graphTypeName = extractGraphTypeName(classDef.tparams)
+        val inputName  = classDef.name
+        val className  = TypeName(inputName.toString + "Storage")
+        val memberName = TermName(inputName.toString.toLowerCase)
+        val opaqueType = findOpaqueType(classDef.impl)
 
         val outputBody =
           q"""
             import scala.collection.mutable
-            sealed case class $className[G <: $graphTypeName]() {
+            sealed case class $className() {
               val $memberName: mutable.Map[Int, $opaqueType] = mutable.Map()
             }
            """

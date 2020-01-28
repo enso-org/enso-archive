@@ -17,8 +17,8 @@ class GraphTest extends FlatSpec with Matchers {
   import GraphImpl.Edge.Shape._
 
   implicit val graph: PrimGraph.GraphData[Graph] = PrimGraph[Graph]();
-  implicit val stringStorage: StrStorage[Graph]         = StrStorage()
-  implicit val backrefStorage: BackrefStorage[Graph]   = BackrefStorage()
+  implicit val stringStorage: StrStorage         = StrStorage()
+  implicit val backrefStorage: BackrefStorage    = BackrefStorage()
 
   val n1: Node[Graph] = graph.addNode()
   val n2: Node[Graph] = graph.addNode()

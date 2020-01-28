@@ -477,6 +477,12 @@ object Graph {
     var components: Array[Component.Storage] =
       this.componentSizes.map(size => new Component.Storage(size)).to[Array]
 
+    def unsafeComponentFromIx[C <: Component](index: Int)(
+      implicit ev: HasComponent[G, C]
+    ): Graph.Component.Ref[G, C] = {
+      Graph.Component.Ref(index)
+    }
+
     def unsafeGetFieldData[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int
@@ -544,9 +550,9 @@ object Graph {
       componentSizesEv: ComponentListToSizes[G, ComponentList],
       len: nat.ToInt[ComponentListLength]
     ): GraphInfo[G] = new GraphInfo[G] {
-        val componentCount = len()
-        val componentSizes = componentSizesEv.sizes
-      }
+      val componentCount = len()
+      val componentSizes = componentSizesEv.sizes
+    }
   }
 
   // === HasComponent ===

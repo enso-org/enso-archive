@@ -1,11 +1,9 @@
 package org.enso.compiler.test.core
 
 import org.enso.compiler.test.CompilerTest
-import org.enso.core.CoreGraph.{Link, Node, ParentStorage, StringLiteralStorage}
+import org.enso.core.CoreGraph.{Link, Links, Node, ParentStorage, StringLiteralStorage}
 import org.scalatest.BeforeAndAfterEach
 import org.enso.graph.{Graph => PrimGraph}
-
-import scala.collection.mutable
 
 /** This file tests the primitive, low-level operations on core.
   *
@@ -19,7 +17,6 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
   import org.enso.core.CoreGraph.Link.Shape._
   import org.enso.core.CoreGraph.Node.Location._
   import org.enso.core.CoreGraph.Node.ParentLinks._
-
 
   // Reassignable mutable fixture elements
   implicit var graph: PrimGraph.GraphData[CoreGraph] = _
@@ -48,7 +45,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     val n1: Node[CoreGraph] = graph.addNode()
 
     n1.sourceStart = 302
-    n1.sourceEnd = 364
+    n1.sourceEnd   = 364
 
     val expectedLocation = Node.LocationVal(302, 364)
 
@@ -65,10 +62,11 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     l2.target = n1
     l3.target = n1
 
-    val test: Vector[Int] = Vector(l1.ix)
+    val parentIndices: Vector[Int] = Vector(l1.ix, l2.ix, l3.ix)
+    n1.parents = parentIndices
 
-    val nodeParents: Vector[Int] = n1.parents
-
+    n1.parents shouldEqual parentIndices
+    n1.parents.length shouldEqual 3
   }
 
   // === Tests for Links ======================================================
