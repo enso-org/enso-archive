@@ -43,7 +43,7 @@ object CoreGraph {
   /** The list of fields that a [[Node]] has in a [[CoreGraph]]. */
   implicit def nodeFields =
     new PrimGraph.Component.Field.List[CoreGraph, Nodes] {
-      type Out = Node.Location :: HNil
+      type Out = Node.ParentLinks :: Node.Location :: HNil
     }
 
   object Node {
