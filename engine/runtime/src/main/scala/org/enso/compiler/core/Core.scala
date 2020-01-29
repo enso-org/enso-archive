@@ -12,11 +12,11 @@ import org.enso.graph.{Graph => PrimGraph}
   * - Mutable links to represent program structure.
   */
 class Core {
-  import org.enso.core.CoreGraph._
-
-  implicit val core: PrimGraph.GraphData[CoreGraph] = PrimGraph[CoreGraph]()
-
-  val n1: Node[CoreGraph] = core.addNode()
+//  import org.enso.core.CoreGraph._
+//
+//  implicit val core: PrimGraph.GraphData[CoreGraph] = PrimGraph[CoreGraph]()
+//
+//  val n1: Node[CoreGraph] = core.addNode()
 }
 object Core {
 
