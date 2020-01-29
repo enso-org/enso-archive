@@ -1,7 +1,13 @@
 package org.enso.compiler.test.core
 
 import org.enso.compiler.test.CompilerTest
-import org.enso.core.CoreGraph.{Link, Links, Node, ParentStorage, StringLiteralStorage}
+import org.enso.core.CoreGraph.{
+  Link,
+  LiteralStorage,
+  Node,
+  Nodes,
+  ParentStorage
+}
 import org.scalatest.BeforeAndAfterEach
 import org.enso.graph.{Graph => PrimGraph}
 
@@ -20,18 +26,44 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
   // Reassignable mutable fixture elements
   implicit var graph: PrimGraph.GraphData[CoreGraph] = _
-  implicit var stringStorage: StringLiteralStorage   = _
+  implicit var literalStorage: LiteralStorage        = _
   implicit var parentStorage: ParentStorage          = _
 
   override def beforeEach(): Unit = {
-    graph         = PrimGraph[CoreGraph]()
-    stringStorage = StringLiteralStorage()
-    parentStorage = ParentStorage()
+    graph          = PrimGraph[CoreGraph]()
+    literalStorage = LiteralStorage()
+    parentStorage  = ParentStorage()
+  }
+
+  // === Tests for Links ======================================================
+
+  val link = "A link"
+
+  link should "only be equal to itself" in {
+    val l1: Link[CoreGraph] = graph.addLink()
+    val l2: Link[CoreGraph] = graph.addLink()
+
+    l1 shouldEqual l1
+    l1 should not equal l2
+  }
+
+  link should "have a source and a target" in {
+    val l1: Link[CoreGraph]       = graph.addLink()
+    val srcNode: Node[CoreGraph]  = graph.addNode()
+    val destNode: Node[CoreGraph] = graph.addNode()
+
+    l1.source = srcNode
+    l1.target = destNode
+
+    val expectedShape = Link.ShapeVal(srcNode, destNode)
+
+    l1.shape shouldEqual expectedShape
   }
 
   // === Tests for Nodes ======================================================
 
   val node = "A node"
+  val nodeShape = "A node's shape"
 
   node should "only be equal to itself" in {
     val n1: Node[CoreGraph] = graph.addNode()
@@ -69,28 +101,16 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1.parents.length shouldEqual 3
   }
 
-  // === Tests for Links ======================================================
+  nodeShape should "be able to be empty" in {
+    val n1: Node[CoreGraph] = graph.addNode()
 
-  val link = "A link"
+    graph.unsafeSetVariantCase[Nodes, Node.Shape, Node.Shape.Empty](n1)
 
-  link should "only be equal to itself" in {
-    val l1: Link[CoreGraph] = graph.addLink()
-    val l2: Link[CoreGraph] = graph.addLink()
+    val isEmpty = n1 match {
+      case Node.Shape.Empty.any(_) => true
+      case _                       => false
+    }
 
-    l1 shouldEqual l1
-    l1 should not equal l2
-  }
-
-  link should "have a source and a target" in {
-    val l1: Link[CoreGraph]       = graph.addLink()
-    val srcNode: Node[CoreGraph]  = graph.addNode()
-    val destNode: Node[CoreGraph] = graph.addNode()
-
-    l1.source = srcNode
-    l1.target = destNode
-
-    val expectedShape = Link.ShapeVal(srcNode, destNode)
-
-    l1.shape shouldEqual expectedShape
+    isEmpty shouldEqual true
   }
 }

@@ -260,7 +260,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
-              graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
+              graph.primUnsafeReadField[C, $enclosingTypeName](node.ix, $index)
             }
             """
           } else {
@@ -270,7 +270,7 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](
+                graph.primUnsafeReadField[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node),
                   $index
                 )
@@ -313,7 +313,7 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](node.ix, $index)
+                graph.primUnsafeReadField[C, $enclosingTypeName](node.ix, $index)
               )
             }
             """
@@ -324,7 +324,7 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.unsafeReadField[C, $enclosingTypeName](
+                graph.primUnsafeReadField[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node).ix,
                   $index
                 )
@@ -367,7 +367,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.primUnsafeWriteField[C, $enclosingTypeName](
                 node.ix, $index, value
               )
             }
@@ -378,7 +378,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.primUnsafeWriteField[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
                 $index,
                 value
@@ -420,7 +420,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.primUnsafeWriteField[C, $enclosingTypeName](
                 node.ix, $index, value.ix
               )
             }
@@ -431,7 +431,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.unsafeWriteField[C, $enclosingTypeName](
+              graph.primUnsafeWriteField[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
                 $index,
                 value.ix
@@ -847,6 +847,10 @@ object Macro {
               implicit def sized = new Sized[$typeName] {
                 type Out = $natSubfields
               }
+              implicit def indexed =
+                new VariantIndexed[$parentName, $typeName] {
+                  val ix = index
+                }
             }
            """.asInstanceOf[ModuleDef]
 
