@@ -117,6 +117,12 @@ object CoreGraph {
         /** A representation of the end of a linked-list on the graph. */
         case class Nil()
 
+        /** A node representing boolean true. */
+        case class True()
+
+        /** A node representing boolean false. */
+        case class False()
+
         // === Literals =======================================================
 
         /** A raw literal is the basic literal type in the [[CoreGraph]].
@@ -144,9 +150,9 @@ object CoreGraph {
         case class NameLiteral(literal: OpaqueData[String, NameStorage])
 
         /** A representation of literal text from a foreign code block.
-         *
-         * @param literal a link to the [[RawLiteral]] representing the code
-         */
+          *
+          * @param literal a link to the [[RawLiteral]] representing the code
+          */
         case class ForeignCodeLiteral(literal: Link[G])
 
         // === Names ==========================================================
@@ -179,6 +185,12 @@ object CoreGraph {
           */
         case class OperatorName(name: Link[G])
 
+        /** A representation of the `this` reserved name */
+        case class ThisName()
+
+        /** A representation of the `here` reserved name */
+        case class HereName()
+
         // === Module =========================================================
 
         /** The core representation of a top-level Enso module.
@@ -210,7 +222,7 @@ object CoreGraph {
         /** An atom definition.
           *
           * @param name the name of the atom
-          * @param args the atom's arguments
+          * @param args the atom's arguments as a [[List]]
           */
         case class AtomDef(name: Link[G], args: Link[G])
 
@@ -230,16 +242,24 @@ object CoreGraph {
         // === Typing =========================================================
 
         /** A type signature.
-         *
-         * @param typed the expression being ascribed a type
-         * @param sig the signature being ascribed to [[typed]]
-         */
+          *
+          * @param typed the expression being ascribed a type
+          * @param sig the signature being ascribed to [[typed]]
+          */
         case class Signature(typed: Link[G], sig: Link[G])
+
+        /** The `in` portion of a type signature that represents the monadic
+          * contexts.
+          *
+          * @param typed the type being put in a context
+          * @param context the context
+          */
+        case class MonadicIn(typed: Link[G], context: Link[G])
 
         /** A representation of a typeset member.
           *
           * PLEASE NOTE: This is here more as a note than anything, and will not
-          * be exposed to users yet.
+          * be exposed to users yet. It is currently used for Atom arguments.
           *
           * @param label the member's label, if given
           * @param memberType the member's type, if given
@@ -251,7 +271,56 @@ object CoreGraph {
           value: Link[G]
         )
 
-        // TODO [AA] Typeset operators
+        /** The function arrow `->`.
+          *
+          * Please note that this is the _same_ construct as [[Lambda]]
+          *
+          * @param left the left operand
+          * @param right the right operand
+          */
+        case class Arrow(left: Link[G], right: Link[G])
+
+        /** The typset subsumption judgement `<:`.
+          *
+          * @param left the left type in the subsumption judgement
+          * @param right the right type in the subsumption judgement
+          */
+        case class TypesetSubsumption(left: Link[G], right: Link[G])
+
+        /** The typeset equality judgement `~`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          */
+        case class TypesetEquality(left: Link[G], right: Link[G])
+
+        /** The typeset concatenation operator `,`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          */
+        case class TypesetConcat(left: Link[G], right: Link[G])
+
+        /** The typeset union operator `|`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          */
+        case class TypesetUnion(left: Link[G], right: Link[G])
+
+        /** The typeset intersection operator `&`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          */
+        case class TypesetIntersection(left: Link[G], right: Link[G])
+
+        /** The typeset subtraction operator `\`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          */
+        case class TypesetSubtraction(left: Link[G], right: Link[G])
 
         // === Function =======================================================
 
@@ -287,10 +356,26 @@ object CoreGraph {
 
         // === Definition-Site Argument Types =================================
 
-        // `_` in definition (e.g. `_ -> foo bar baz`
+        /** An ignored function argument, denoted by `_`.
+          *
+          * This can commonly be seen in use where an API requires a function
+          * take an argument, but a particular implementation doesn't need it:
+          * `_ -> ...`.
+          */
         case class IgnoredArgument()
 
-        // TODO [AA] Definition argument types
+        /** A function argument definition.
+          *
+          * @param name the name of the argument
+          * @param suspended whether or not the argument uses suspended
+          *                  evaluation (should be [[True]] or [[False]]
+          * @param default the default value for the argument, if present
+          */
+        case class DefinitionArgument(
+          name: Link[G],
+          suspended: Link[G],
+          default: Link[G]
+        )
 
         // === Applications ===================================================
 
@@ -305,38 +390,71 @@ object CoreGraph {
         case class Application(function: Link[G], argument: Link[G])
 
         /** A mixfix function application.
-         *
-         * @param function the name of the mixfix function
-         * @param arguments the arguments to the mixfix function as a [[List]]
-         */
+          *
+          * @param function the name of the mixfix function
+          * @param arguments the arguments to the mixfix function as a [[List]]
+          */
         case class MixfixApplication(function: Link[G], arguments: Link[G])
 
+        /** An infix function application.
+          *
+          * @param left the left argument
+          * @param operator the function being applied
+          * @param right the right argument
+          */
+        case class InfixApplication(
+          left: Link[G],
+          operator: Link[G],
+          right: Link[G]
+        )
+
         /** A left section operator application.
-         *
-         * @param arg the left argument to [[operator]]
-         * @param operator the function being sectioned
-         */
+          *
+          * @param arg the left argument to [[operator]]
+          * @param operator the function being sectioned
+          */
         case class LeftSection(arg: Link[G], operator: Link[G])
 
         /** A right section operator application.
-         *
-         * @param operator the function being sectioned
-         * @param arg the right argument to [[operator]]
-         */
+          *
+          * @param operator the function being sectioned
+          * @param arg the right argument to [[operator]]
+          */
         case class RightSection(operator: Link[G], arg: Link[G])
 
         /** A centre section operator application.
-         *
-         * @param operator the operator being sectioned
-         */
+          *
+          * @param operator the operator being sectioned
+          */
         case class CentreSection(operator: Link[G])
+
+        /** T
+          *
+          * PLEASE NOTE: This is temporary and will be removed as soon as the
+          * compiler is capable enough to not require it.
+          *
+          * @param expression
+          */
+        case class ForcedTerm(expression: Link[G])
 
         // === Call-Site Argument Types =======================================
 
-        // `foo _`
-        case class BlankArgument()
+        /** Used to represent `_` arguments that are shorthand for the creation
+          * of lambdas.
+          */
+        case class LambdaShorthandArgument()
 
-        // TODO [AA] Call argument types
+        /** A function call-site argument.
+          *
+          * @param expression the argument expression
+          * @param name the name of the argument, if given
+          */
+        case class CallSiteArgument(expression: Link[G], name: Link[G])
+
+        /** The `...` argument that may be passed to a function to suspend the
+          * execution of its default arguments.
+          */
+        case class SuspendDefaultsOperator()
 
         // === Structure ======================================================
 
@@ -370,7 +488,31 @@ object CoreGraph {
           */
         case class CaseBranch(pattern: Link[G], expression: Link[G])
 
-        // TODO [AA] Pattern types
+        /** A pattern that matches on the scrutinee based on its structure.
+          *
+          * @param matchExpression the expression representing the possible
+          *                        structure of the scrutinee
+          */
+        case class StructuralMatch(matchExpression: Link[G])
+
+        /** A pattern that matches on the scrutinee purely based on a type
+          * subsumption judgement.
+          *
+          * @param matchExpression the expression representing the possible type
+          *                        of the scrutinee
+          */
+        case class TypeMatch(matchExpression: Link[G])
+
+        /** A pattern that matches on the scrutinee based on a type subsumption
+          * judgement and assigns a new name to it for use in the branch.
+          *
+          * @param matchExpression the expression representing the possible type
+          *                        of the scrutinee, and its new name
+          */
+        case class NamedMatch(matchExpression: Link[G])
+
+        /** A pattern that matches on any scrutinee. */
+        case class FallbackMatch()
 
         // === Comments =======================================================
 
@@ -391,21 +533,21 @@ object CoreGraph {
         // === Foreign ========================================================
 
         /** A foreign code definition.
-         *
-         * @param language the name of the foreign programming language
-         * @param code the foreign code, represented as a [[ForeignCodeLiteral]]
-         */
+          *
+          * @param language the name of the foreign programming language
+          * @param code the foreign code, represented as a [[ForeignCodeLiteral]]
+          */
         case class ForeignDefinition(language: Link[G], code: Link[G])
 
         // === Errors =========================================================
 
         /** A syntax error.
-         *
-         * @param errorNode the node representation of the syntax error
-         */
+          *
+          * @param errorNode the node representation of the syntax error
+          */
         case class SyntaxError(errorNode: Link[G])
 
-        // TODO [AA] Fill in the error types
+        // TODO [AA] Fill in the error types as they become evident
       }
 
       // ======================================================================
@@ -428,7 +570,6 @@ object CoreGraph {
         graph.unsafeSetVariantCase[Nodes, Node.Shape, Shape](node)
       }
 
-      // TODO [AA] Actually fill this in
       /** Checks whether a given node represents some kind of language error.
         *
         * @param node the node to check
@@ -437,20 +578,36 @@ object CoreGraph {
       def isErrorNode(node: Node[CoreGraph]): Boolean = {
         node match {
           case Shape.SyntaxError.any(_) => true
-          case _ => false
+          case _                        => false
         }
       }
 
-      // TODO [AA] Actually fill this in
       /** Checks whether a given node represents syntactic sugar.
         *
         * @param node the node to check
         * @return `true` if [[node]] represents syntax sugar, `false` otherwise
         */
-      def isSugarType(node: Node[CoreGraph]): Boolean = {
+      def shapeIsSugar(node: Node[CoreGraph]): Boolean = {
         node match {
-          case _ => false
+          case Shape.ComplexTypeDef.any(_)    => true
+          case Shape.FunctionDef.any(_)       => true
+          case Shape.MixfixApplication.any(_) => true
+          case Shape.InfixApplication.any(_)  => true
+          case Shape.LeftSection.any(_)       => true
+          case Shape.RightSection.any(_)      => true
+          case Shape.CentreSection.any(_)     => true
+          case Shape.ForcedTerm.any(_)        => true
+          case _                              => false
         }
+      }
+
+      /** Checks whether a given node represents primitive language constructs.
+        *
+        * @param node the node to check
+        * @return `true` if [[Node]] has a primitive shape, `false` otherwise
+        */
+      def shapeIsPrimitive(node: Node[CoreGraph]): Boolean = {
+        !shapeIsSugar(node)
       }
     }
 
