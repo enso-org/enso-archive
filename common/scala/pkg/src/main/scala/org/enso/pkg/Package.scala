@@ -195,7 +195,7 @@ object QualifiedName {
     * @return the corresponding [[QualifiedName]] object.
     */
   def fromString(qualName: String): Option[QualifiedName] = {
-    val segments = qualName.split(qualifiedNameSeparator).toList
+    val segments = qualName.split(Package.qualifiedNameSeparatorRegex).toList
     if (segments.nonEmpty) {
       Some(QualifiedName(segments.dropRight(1), segments.last))
     } else {
@@ -211,11 +211,13 @@ object QualifiedName {
   * A companion object for static methods on the [[Package]] class.
   */
 object Package {
-  val configFileName         = "package.yaml"
-  val sourceDirName          = "src"
-  val mainFileName           = "Main.enso"
-  val thumbFileName          = "thumb.png"
-  val qualifiedNameSeparator = "."
+  val fileExtension               = "enso"
+  val configFileName              = "package.yaml"
+  val sourceDirName               = "src"
+  val mainFileName                = "Main.enso"
+  val thumbFileName               = "thumb.png"
+  val qualifiedNameSeparator      = "."
+  val qualifiedNameSeparatorRegex = "\\."
 
   /**
     * Creates a new Package in a given location and with config file.

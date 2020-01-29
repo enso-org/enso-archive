@@ -17,6 +17,7 @@ import org.enso.pkg.Package;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
 
+import java.io.File;
 import java.util.Map;
 import java.util.Optional;
 
@@ -86,7 +87,10 @@ public class TopLevelScope implements TruffleObject {
    */
   @ExportMessage
   Vector getMembers(boolean includeInternal) {
-    return new Vector(MethodNames.TopScope.GET_MODULE, MethodNames.TopScope.CREATE_MODULE);
+    return new Vector(
+        MethodNames.TopScope.GET_MODULE,
+        MethodNames.TopScope.CREATE_MODULE,
+        MethodNames.TopScope.REGISTER_MODULE);
   }
 
   /** Handles member invocation through the polyglot API. */
@@ -113,8 +117,18 @@ public class TopLevelScope implements TruffleObject {
     private static Module createModule(TopLevelScope scope, Object[] arguments, Context context)
         throws ArityException, UnsupportedTypeException {
       String moduleName = Types.extractArguments(arguments, String.class);
-      return new Module(
-          QualifiedName.simpleName(moduleName), context.createScope(moduleName));
+      return new Module(QualifiedName.simpleName(moduleName), context.createScope(moduleName));
+    }
+
+    private static Module registerModule(TopLevelScope scope, Object[] arguments, Context context)
+        throws ArityException, UnsupportedTypeException {
+      Types.Pair<String, String> args =
+          Types.extractArguments(arguments, String.class, String.class);
+      QualifiedName qualName = QualifiedName.fromString(args.getFirst()).get();
+      File location = new File(args.getSecond());
+      Module module = new Module(qualName, context.getTruffleFile(location));
+      scope.modules.put(qualName.toString(), module);
+      return module;
     }
 
     @Specialization
@@ -129,6 +143,8 @@ public class TopLevelScope implements TruffleObject {
           return getModule(scope, arguments, contextRef);
         case MethodNames.TopScope.CREATE_MODULE:
           return createModule(scope, arguments, contextRef.get());
+        case MethodNames.TopScope.REGISTER_MODULE:
+          return registerModule(scope, arguments, contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -144,6 +160,7 @@ public class TopLevelScope implements TruffleObject {
   @ExportMessage
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.TopScope.GET_MODULE)
-        || member.equals(MethodNames.TopScope.CREATE_MODULE);
+        || member.equals(MethodNames.TopScope.CREATE_MODULE)
+        || member.equals(MethodNames.TopScope.REGISTER_MODULE);
   }
 }

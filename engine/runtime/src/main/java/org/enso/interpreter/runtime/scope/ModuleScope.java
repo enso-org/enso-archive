@@ -27,9 +27,9 @@ import java.util.*;
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope {
   private final AtomConstructor associatedType;
-  private final Map<String, AtomConstructor> constructors = new HashMap<>();
-  private final Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
-  private final Set<ModuleScope> imports = new HashSet<>();
+  private Map<String, AtomConstructor> constructors = new HashMap<>();
+  private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
+  private Set<ModuleScope> imports = new HashSet<>();
 
   /**
    * Creates a new object of this class.
@@ -145,5 +145,11 @@ public class ModuleScope {
 
   public Map<AtomConstructor, Map<String, Function>> getMethods() {
     return methods;
+  }
+
+  public void reset() {
+    imports = new HashSet<>();
+    methods = new HashMap<>();
+    constructors = new HashMap<>();
   }
 }

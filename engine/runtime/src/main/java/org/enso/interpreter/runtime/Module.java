@@ -22,14 +22,16 @@ import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
 
+import java.io.File;
 import java.io.IOException;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)
 public class Module implements TruffleObject {
-  private ModuleScope scope = null;
+  private ModuleScope scope;
   private TruffleFile sourceFile;
   private Source literalSource;
+  private boolean isParsed = false;
   private final QualifiedName name;
 
   /**
@@ -56,20 +58,19 @@ public class Module implements TruffleObject {
   public Module(QualifiedName name, ModuleScope scope) {
     this.name = name;
     this.scope = scope;
+    this.isParsed = true;
   }
 
   public void setLiteralSource(Source source) {
     this.literalSource = source;
     this.sourceFile = null;
+    this.isParsed = false;
   }
 
   public void setSourceFile(TruffleFile file) {
     this.literalSource = null;
     this.sourceFile = file;
-  }
-
-  private void initializeScope(Context context) {
-    scope = context.createScope(name.module());
+    this.isParsed = false;
   }
 
   /**
@@ -77,17 +78,26 @@ public class Module implements TruffleObject {
    *
    * @param context context in which the parsing should take place
    * @return the scope defined by this module
-   * @throws IOException when the source file could not be read
    */
   public ModuleScope getScope(Context context) {
-    if (scope == null) {
-      initializeScope(context);
+    ensureScopeExists(context);
+    if (!isParsed) {
       parse(context);
     }
     return scope;
   }
 
+  private void ensureScopeExists(Context context) {
+    if (scope == null) {
+      scope = context.createScope(name.module());
+      isParsed = false;
+    }
+  }
+
   public void parse(Context context) {
+    ensureScopeExists(context);
+    context.resetScope(scope);
+    isParsed = true;
     if (sourceFile != null) {
       context.compiler().run(sourceFile, scope);
     } else if (literalSource != null) {
@@ -133,6 +143,28 @@ public class Module implements TruffleObject {
       return module;
     }
 
+    private static Module reparse(Module module, Object[] args, Context context)
+        throws ArityException {
+      Types.extractArguments(args);
+      module.parse(context);
+      return module;
+    }
+
+    private static Module setSource(Module module, Object[] args, Context context)
+        throws ArityException, UnsupportedTypeException {
+      String source = Types.extractArguments(args, String.class);
+      module.setLiteralSource(
+          Source.newBuilder(LanguageInfo.ID, source, module.name.module()).build());
+      return module;
+    }
+
+    private static Module setSourceFile(Module module, Object[] args, Context context)
+        throws ArityException, UnsupportedTypeException {
+      String file = Types.extractArguments(args, String.class);
+      module.setSourceFile(context.getTruffleFile(new File(file)));
+      return module;
+    }
+
     private static AtomConstructor getAssociatedConstructor(ModuleScope scope, Object[] args)
         throws ArityException {
       Types.extractArguments(args);
@@ -172,6 +204,12 @@ public class Module implements TruffleObject {
           return getConstructor(scope, arguments);
         case MethodNames.Module.PATCH:
           return patch(module, arguments, context);
+        case MethodNames.Module.REPARSE:
+          return reparse(module, arguments, context);
+        case MethodNames.Module.SET_SOURCE:
+          return setSource(module, arguments, context);
+        case MethodNames.Module.SET_SOURCE_FILE:
+          return setSourceFile(module, arguments, context);
         case MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR:
           return getAssociatedConstructor(scope, arguments);
         case MethodNames.Module.EVAL_EXPRESSION:
@@ -203,6 +241,9 @@ public class Module implements TruffleObject {
     return member.equals(MethodNames.Module.GET_METHOD)
         || member.equals(MethodNames.Module.GET_CONSTRUCTOR)
         || member.equals(MethodNames.Module.PATCH)
+        || member.equals(MethodNames.Module.REPARSE)
+        || member.equals(MethodNames.Module.SET_SOURCE)
+        || member.equals(MethodNames.Module.SET_SOURCE_FILE)
         || member.equals(MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR)
         || member.equals(MethodNames.Module.EVAL_EXPRESSION);
   }
@@ -219,6 +260,9 @@ public class Module implements TruffleObject {
         MethodNames.Module.GET_METHOD,
         MethodNames.Module.GET_CONSTRUCTOR,
         MethodNames.Module.PATCH,
+        MethodNames.Module.REPARSE,
+        MethodNames.Module.SET_SOURCE,
+        MethodNames.Module.SET_SOURCE_FILE,
         MethodNames.Module.GET_ASSOCIATED_CONSTRUCTOR,
         MethodNames.Module.EVAL_EXPRESSION);
   }
