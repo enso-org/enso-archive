@@ -5,7 +5,6 @@ import org.enso.core.CoreGraph.{
   Link,
   LiteralStorage,
   Node,
-  Nodes,
   ParentStorage
 }
 import org.scalatest.BeforeAndAfterEach
@@ -62,7 +61,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
   // === Tests for Nodes ======================================================
 
-  val node = "A node"
+  val node      = "A node"
   val nodeShape = "A node's shape"
 
   node should "only be equal to itself" in {
@@ -104,7 +103,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
   nodeShape should "be able to be empty" in {
     val n1: Node[CoreGraph] = graph.addNode()
 
-    graph.unsafeSetVariantCase[Nodes, Node.Shape, Node.Shape.Empty](n1)
+    Node.setShape[Node.Shape.Empty](n1)
 
     val isEmpty = n1 match {
       case Node.Shape.Empty.any(_) => true
@@ -112,5 +111,82 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     }
 
     isEmpty shouldEqual true
+  }
+
+  nodeShape should "be able to represent a list cons cell" in {
+    val n1: Node[CoreGraph] = graph.addNode()
+    val l1: Link[CoreGraph] = graph.addLink()
+    val l2: Link[CoreGraph] = graph.addLink()
+
+    Node.setShape[Node.Shape.List](n1)
+
+    n1 match {
+      case Node.Shape.List.any(n1) =>
+        n1.head = l1
+        n1.tail = l2
+
+        n1.head shouldEqual l1
+        n1.tail shouldEqual l2
+      case _ => fail
+    }
+  }
+
+  nodeShape should "be able to represent a nil cell" in {
+    val n1: Node[CoreGraph] = graph.addNode()
+
+    Node.setShape[Node.Shape.Nil](n1)
+
+    val isNil = n1 match {
+      case Node.Shape.Nil.any(_) => true
+      case _                     => false
+    }
+
+    isNil shouldEqual true
+  }
+
+  nodeShape should "be able to represent a raw literal" in {
+    val n1: Node[CoreGraph] = graph.addNode()
+
+    Node.setShape[Node.Shape.RawLiteral](n1)
+
+    n1 match {
+      case Node.Shape.RawLiteral.any(n1) =>
+        val literalText = "Literal Text"
+
+        n1.literal = literalText
+
+        n1.literal shouldEqual literalText
+      case _ => fail
+    }
+  }
+
+  nodeShape should "be able to represent a numeric literal" in {
+    val n1: Node[CoreGraph] = graph.addNode()
+    val l1: Link[CoreGraph] = graph.addLink()
+
+    Node.setShape[Node.Shape.NumericLiteral](n1)
+
+    n1 match {
+      case Node.Shape.NumericLiteral.any(n1) =>
+        n1.number = l1
+
+        n1.number shouldEqual l1
+      case _ => fail
+    }
+  }
+
+  nodeShape should "be able to represent a text literal" in {
+    val n1: Node[CoreGraph] = graph.addNode()
+    val l1: Link[CoreGraph] = graph.addLink()
+
+    Node.setShape[Node.Shape.TextLiteral](n1)
+
+    n1 match {
+      case Node.Shape.TextLiteral.any(n1) =>
+        n1.text = l1
+
+        n1.text shouldEqual l1
+      case _ => fail
+    }
   }
 }

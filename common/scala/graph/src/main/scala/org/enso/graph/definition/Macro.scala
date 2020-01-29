@@ -1281,6 +1281,9 @@ object Macro {
     *   val backref: mutable.Map[Int, Vector[Int]] = mutable.Map()
     * }
     * }}}
+    *
+    * Please note that while you can define a field with multiple opaque
+    * subfields, those fields _must_ not use the same underlying storage type.
     */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class opaque extends StaticAnnotation {
@@ -1367,4 +1370,21 @@ object Macro {
     *                 [[opaque]] macro
     */
   trait OpaqueData[T, Storage]
+
+  @compileTimeOnly("please enable macro paradise to expand macro annotations")
+  class genGraph extends StaticAnnotation {
+    def macroTransform(annottees: Any*): Any = macro GenGraph.impl
+  }
+  object GenGraph {
+    def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
+      import c.universe._
+      val members   = annottees.map(_.tree).toList
+      val objectDef = members.head
+      val foo = objectDef match {
+        case ModuleDef(mods, name, body) =>
+          ModuleDef(mods, TermName(name.toString + "Gen"), body)
+      }
+      c.Expr(foo)
+    }
+  }
 }
