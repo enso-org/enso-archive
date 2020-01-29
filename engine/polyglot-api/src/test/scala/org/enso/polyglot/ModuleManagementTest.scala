@@ -2,7 +2,7 @@ package org.enso.polyglot
 import java.io.File
 import java.nio.file.Files
 
-import org.graalvm.polyglot.Context
+import org.graalvm.polyglot.{Context, PolyglotException}
 import org.scalatest.{FlatSpec, Matchers}
 import org.enso.pkg.{Package, QualifiedName}
 
@@ -137,5 +137,38 @@ class ModuleManagementTest extends FlatSpec with Matchers {
     val assocCons  = mainModule.getAssociatedConstructor
     val mainFun    = mainModule.getMethod(assocCons, "main")
     mainFun.execute(assocCons).asLong shouldEqual 21L
+  }
+
+  subject should "allow for module deletions" in {
+    val ctx = new TestContext("Test")
+
+    ctx.writeMain("""
+                    |foo = 123
+                    |""".stripMargin)
+
+    val mod1 = ctx.executionContext.evalModule(
+      """
+        |import Test.Main
+        |
+        |bar = Main.foo + 1
+        |""".stripMargin,
+      "X"
+    )
+    val mod1AssocCons = mod1.getAssociatedConstructor
+    val mod1Main      = mod1.getMethod(mod1AssocCons, "bar")
+    mod1Main.execute(mod1AssocCons).asLong shouldEqual 124
+
+    ctx.executionContext.getTopScope.unregisterModule("Test.Main")
+
+    val mod2 = ctx.executionContext.evalModule(
+      """
+        |import Test.Main
+        |
+        |bar = Main.foo + 1
+        |""".stripMargin,
+      "X2"
+    )
+    val exception = the[PolyglotException] thrownBy mod2.getAssociatedConstructor
+    exception.getMessage shouldEqual "Module Test.Main does not exist."
   }
 }

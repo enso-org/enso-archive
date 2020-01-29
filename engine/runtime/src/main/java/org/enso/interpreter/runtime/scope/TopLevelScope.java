@@ -90,7 +90,8 @@ public class TopLevelScope implements TruffleObject {
     return new Vector(
         MethodNames.TopScope.GET_MODULE,
         MethodNames.TopScope.CREATE_MODULE,
-        MethodNames.TopScope.REGISTER_MODULE);
+        MethodNames.TopScope.REGISTER_MODULE,
+        MethodNames.TopScope.UNREGISTER_MODULE);
   }
 
   /** Handles member invocation through the polyglot API. */
@@ -131,8 +132,15 @@ public class TopLevelScope implements TruffleObject {
       return module;
     }
 
+    private static Object unregisterModule(TopLevelScope scope, Object[] arguments, Context context)
+        throws ArityException, UnsupportedTypeException {
+      String name = Types.extractArguments(arguments, String.class);
+      scope.modules.remove(name);
+      return context.getUnit().newInstance();
+    }
+
     @Specialization
-    static Module doInvoke(
+    static Object doInvoke(
         TopLevelScope scope,
         String member,
         Object[] arguments,
@@ -145,6 +153,8 @@ public class TopLevelScope implements TruffleObject {
           return createModule(scope, arguments, contextRef.get());
         case MethodNames.TopScope.REGISTER_MODULE:
           return registerModule(scope, arguments, contextRef.get());
+        case MethodNames.TopScope.UNREGISTER_MODULE:
+          return unregisterModule(scope, arguments, contextRef.get());
         default:
           throw UnknownIdentifierException.create(member);
       }
@@ -161,6 +171,7 @@ public class TopLevelScope implements TruffleObject {
   boolean isMemberInvocable(String member) {
     return member.equals(MethodNames.TopScope.GET_MODULE)
         || member.equals(MethodNames.TopScope.CREATE_MODULE)
-        || member.equals(MethodNames.TopScope.REGISTER_MODULE);
+        || member.equals(MethodNames.TopScope.REGISTER_MODULE)
+        || member.equals(MethodNames.TopScope.UNREGISTER_MODULE);
   }
 }
