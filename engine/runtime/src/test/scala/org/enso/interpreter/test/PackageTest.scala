@@ -2,9 +2,8 @@ package org.enso.interpreter.test
 
 import java.io.File
 
-import org.enso.interpreter.runtime.RuntimeOptions
 import org.enso.pkg.Package
-import org.enso.polyglot.{ExecutionContext, LanguageInfo}
+import org.enso.polyglot.{ExecutionContext, LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.{FlatSpec, Matchers}
 
