@@ -442,6 +442,22 @@ object Macro {
         }
       }
 
+      /** Makes a type accessor name from a type name.
+        *
+        * This basically means converting from `PascalCase` to `camelCase`.
+        *
+        * @param fieldName the name of the field
+        * @return the accessor name for [[fieldName]]
+        */
+      def makeTypeAccessorName(fieldName: TypeName): String = {
+        val matcher = "([A-Z])(.*)".r
+
+        matcher.findFirstMatchIn(fieldName.toString) match {
+          case Some(t) => s"${t.group(1).toLowerCase()}${t.group(2)}"
+          case None    => fieldName.toString.toLowerCase
+        }
+      }
+
       /** Generates accessor methods for the 'value class', the one that can
         * represent the graph values as a scala object.
         *
@@ -467,10 +483,9 @@ object Macro {
         val graphTermName = graphTypeName.toTermName
 
         val valClassTermName = valClassTypeName.toTermName
-        val valGetterName    = TermName(fieldName.toString.toLowerCase)
-        val valSetterName = TermName(
-          fieldName.toString.toLowerCase + "_$eq"
-        )
+        val valGetterName    = TermName(makeTypeAccessorName(fieldName))
+        val valSetterName =
+          TermName(makeTypeAccessorName(fieldName) + "_$eq")
 
         val opaqueStorageImplicits =
           generateOpaqueStorageImplicitArguments(subfields)

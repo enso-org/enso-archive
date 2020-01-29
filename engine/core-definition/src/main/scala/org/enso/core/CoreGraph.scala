@@ -157,33 +157,12 @@ object CoreGraph {
 
         // === Names ==========================================================
 
-        /** The name of a module
+        /** A name.
           *
-          * @param module a link to the name literal, represented as a
-          *               [[NameLiteral]]
+          * @param nameLiteral a link to the name literal, represented as a
+          *                    [[NameLiteral]]
           */
-        case class ModuleName(module: Link[G])
-
-        /** The name of a constructor.
-          *
-          * @param name a link to the name literal, represented as a
-          *             [[NameLiteral]].
-          */
-        case class ConstructorName(name: Link[G])
-
-        /** The name of a variable.
-          *
-          * @param name a link to the name literal, represented as a
-          *             [[NameLiteral]]
-          */
-        case class VariableName(name: Link[G])
-
-        /** The name of an operator.
-          *
-          * @param name a link to the name literal, represented as a
-          *             [[NameLiteral]]
-          */
-        case class OperatorName(name: Link[G])
+        case class Name(nameLiteral: Link[G])
 
         /** A representation of the `this` reserved name */
         case class ThisName()
@@ -246,7 +225,7 @@ object CoreGraph {
           * @param typed the expression being ascribed a type
           * @param sig the signature being ascribed to [[typed]]
           */
-        case class Signature(typed: Link[G], sig: Link[G])
+        case class TypeAscription(typed: Link[G], sig: Link[G])
 
         /** The `in` portion of a type signature that represents the monadic
           * contexts.
@@ -254,7 +233,7 @@ object CoreGraph {
           * @param typed the type being put in a context
           * @param context the context
           */
-        case class MonadicIn(typed: Link[G], context: Link[G])
+        case class ContextAscription(typed: Link[G], context: Link[G])
 
         /** A representation of a typeset member.
           *
@@ -270,15 +249,6 @@ object CoreGraph {
           memberType: Link[G],
           value: Link[G]
         )
-
-        /** The function arrow `->`.
-          *
-          * Please note that this is the _same_ construct as [[Lambda]]
-          *
-          * @param left the left operand
-          * @param right the right operand
-          */
-        case class Arrow(left: Link[G], right: Link[G])
 
         /** The typset subsumption judgement `<:`.
           *
@@ -324,7 +294,7 @@ object CoreGraph {
 
         // === Function =======================================================
 
-        /** A lambda expression.
+        /** A lambda expression, the `->` function arrrow.
           *
           * Note that all lambdas in Enso are explicitly single-argument.
           *
@@ -428,7 +398,7 @@ object CoreGraph {
           */
         case class CentreSection(operator: Link[G])
 
-        /** T
+        /** A representatin of a term that is explicitly forced.
           *
           * PLEASE NOTE: This is temporary and will be removed as soon as the
           * compiler is capable enough to not require it.
