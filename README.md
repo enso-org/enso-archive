@@ -18,7 +18,7 @@ results and visually profile the performance in real-time.
 Visit [The Enso Website](http://www.luna-lang.org) to learn more!
 
 This repository contains [Enso Engine](engine/) (its compiler, 
-interpreter, runtime, and language server). Its cloud-ready IDE can be found on
+interpreter, runtime, and language server). Its cloud-ready IDE can be found in
 a [separate repository](https://github.com/luna/ide/).
 
 ## Contributing to Enso
