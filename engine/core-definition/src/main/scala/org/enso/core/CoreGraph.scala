@@ -4,13 +4,13 @@ import org.enso.graph.definition.Macro.{component, field, genGraph, opaque}
 import org.enso.graph.{Sized, VariantIndexed, Graph => PrimGraph}
 import shapeless.{::, HNil}
 
-// TODO [AA] Top-level bindings need a module link
+// TODO [AA] More detailed semantic descriptions for each node shape in future.
 object CoreGraph {
   @genGraph object Definition {
 
-    // ==========================================================================
-    // === The Graph Definition =================================================
-    // ==========================================================================
+    // ========================================================================
+    // === The Graph Definition ===============================================
+    // ========================================================================
 
     /** This type denotes the core graph itself. */
     case class CoreGraph() extends PrimGraph
@@ -21,9 +21,9 @@ object CoreGraph {
         type Out = Nodes :: Links :: HNil
       }
 
-    // ==========================================================================
-    // === Opaque Storage =======================================================
-    // ==========================================================================
+    // ========================================================================
+    // === Opaque Storage =====================================================
+    // ========================================================================
 
     /** Storage for string literals. */
     @opaque case class Literal(opaque: String)
@@ -33,14 +33,14 @@ object CoreGraph {
 
     /** Storage for parents for a given node.
       *
-      * An entry in the vector will be the index of an [[Edge]] in the graph that
-      * has the containing node as its `target` field.
+      * An entry in the vector will be the index of an [[Edge]] in the graph
+      * that has the containing node as its `target` field.
       */
     @opaque case class Parent(opaque: Vector[Int])
 
-    // ==========================================================================
-    // === Node =================================================================
-    // ==========================================================================
+    // ========================================================================
+    // === Node ===============================================================
+    // ========================================================================
 
     /** A node in the [[CoreGraph]]. */
     @component case class Nodes() { type Node[G <: PrimGraph] }
@@ -53,9 +53,9 @@ object CoreGraph {
 
     object Node {
 
-      // ========================================================================
-      // === Field Definitions ==================================================
-      // ========================================================================
+      // ======================================================================
+      // === Field Definitions ================================================
+      // ======================================================================
 
       /** A location describes which portion of the source code this particular
         * node in the graph represents.
@@ -90,7 +90,7 @@ object CoreGraph {
       @field object Shape {
         type G = PrimGraph
 
-        // === Base Shapes ======================================================
+        // === Base Shapes ====================================================
         /** A representation of a node that has no particular shape. */
         case class Empty()
 
@@ -101,11 +101,11 @@ object CoreGraph {
           * way to store dynamically-sized core components providing they can be
           * broken down into statically sized components.
           *
-          * The [[tail]] parameter should always point to either another node with
-          * shape [[List]] or a node with shape [[Nil]].
+          * The [[tail]] parameter should always point to either another node
+          * with shape [[List]] or a node with shape [[Nil]].
           *
-          * It should be noted that, given that each [[Node]] contains a field of
-          * [[ParentLinks]], that constructing this properly provides a
+          * It should be noted that, given that each [[Node]] contains a field
+          * of [[ParentLinks]], that constructing this properly provides a
           * doubly-linked list, as no [[List]] or [[Nil]] should have more than
           * one parent.
           *
@@ -117,7 +117,7 @@ object CoreGraph {
         /** A representation of the end of a linked-list on the graph. */
         case class Nil()
 
-        // === Literals =========================================================
+        // === Literals =======================================================
 
         /** A raw literal is the basic literal type in the [[CoreGraph]].
           *
@@ -143,7 +143,13 @@ object CoreGraph {
           */
         case class NameLiteral(literal: OpaqueData[String, NameStorage])
 
-        // === Names ============================================================
+        /** A representation of literal text from a foreign code block.
+         *
+         * @param literal a link to the [[RawLiteral]] representing the code
+         */
+        case class ForeignCodeLiteral(literal: Link[G])
+
+        // === Names ==========================================================
 
         /** The name of a module
           *
@@ -154,19 +160,34 @@ object CoreGraph {
 
         /** The name of a constructor.
           *
-          * @param name a link to the name literal, represented as a [[NameLiteral]].
+          * @param name a link to the name literal, represented as a
+          *             [[NameLiteral]].
           */
         case class ConstructorName(name: Link[G])
 
-        // === Module ===========================================================
+        /** The name of a variable.
+          *
+          * @param name a link to the name literal, represented as a
+          *             [[NameLiteral]]
+          */
+        case class VariableName(name: Link[G])
+
+        /** The name of an operator.
+          *
+          * @param name a link to the name literal, represented as a
+          *             [[NameLiteral]]
+          */
+        case class OperatorName(name: Link[G])
+
+        // === Module =========================================================
 
         /** The core representation of a top-level Enso module.
           *
           * @param name the name of the module
           * @param imports the module's imports as a [[List]], where each list
           *                member points to an import
-          * @param definitions the module's definitions as a [[List]], where each
-          *                    list member points to a binding
+          * @param definitions the module's definitions as a [[List]], where
+          *                    each list member points to a binding
           */
         case class Module(name: Link[G], imports: Link[G], definitions: Link[G])
 
@@ -177,32 +198,219 @@ object CoreGraph {
           */
         case class Import(segments: Link[G])
 
-        case class TypeDef(name: Link[G], args: Link[G], body: Link[G])
+        /** A module-level binding.
+          *
+          * @param module a link to the module in which this binding is found
+          * @param binding the binding itself
+          */
+        case class TopLevelBinding(module: Link[G], binding: Link[G])
 
-        // === Function =========================================================
+        // === Type Definitions ===============================================
 
-        case class Lambda()
+        /** An atom definition.
+          *
+          * @param name the name of the atom
+          * @param args the atom's arguments
+          */
+        case class AtomDef(name: Link[G], args: Link[G])
 
+        /** An expanded-form type definition, with a body.
+          *
+          * @param name the name of the aggregate type
+          * @param typeParams the type parameters to the definition
+          * @param body the body of the type definition, represented as a
+          *             [[List]] of bindings
+          */
+        case class ComplexTypeDef(
+          name: Link[G],
+          typeParams: Link[G],
+          body: Link[G]
+        )
+
+        // === Typing =========================================================
+
+        /** A type signature.
+         *
+         * @param typed the expression being ascribed a type
+         * @param sig the signature being ascribed to [[typed]]
+         */
+        case class Signature(typed: Link[G], sig: Link[G])
+
+        /** A representation of a typeset member.
+          *
+          * PLEASE NOTE: This is here more as a note than anything, and will not
+          * be exposed to users yet.
+          *
+          * @param label the member's label, if given
+          * @param memberType the member's type, if given
+          * @param value the member's value, if given
+          */
+        case class TypesetMember(
+          label: Link[G],
+          memberType: Link[G],
+          value: Link[G]
+        )
+
+        // TODO [AA] Typeset operators
+
+        // === Function =======================================================
+
+        /** A lambda expression.
+          *
+          * Note that all lambdas in Enso are explicitly single-argument.
+          *
+          * @param arg the argument to the lambda
+          * @param body the body of the lambda
+          */
+        case class Lambda(arg: Link[G], body: Link[G])
+
+        /** A sugared function definition.
+          *
+          * @param name the name of the function
+          * @param args the function arguments, as a [[List]]
+          * @param body the body of the function
+          */
+        case class FunctionDef(name: Link[G], args: Link[G], body: Link[G])
+
+        /** A method definition.
+          *
+          * @param targetPath the path of the method
+          * @param name the name of the method
+          * @param function the function that is executed (can be any callable
+          *                 representation)
+          */
         case class MethodDef(
           targetPath: Link[G],
           name: Link[G],
-          functionDef: Link[G]
+          function: Link[G]
         )
 
-        // === Structure ========================================================
+        // === Definition-Site Argument Types =================================
 
+        // `_` in definition (e.g. `_ -> foo bar baz`
+        case class IgnoredArgument()
+
+        // TODO [AA] Definition argument types
+
+        // === Applications ===================================================
+
+        /** A function application.
+          *
+          * All functions in Enso are curried by default, and are represented in
+          * the [[CoreGraph]] as single-argument functions.
+          *
+          * @param function function expression being called
+          * @param argument the argument to the function
+          */
+        case class Application(function: Link[G], argument: Link[G])
+
+        /** A mixfix function application.
+         *
+         * @param function the name of the mixfix function
+         * @param arguments the arguments to the mixfix function as a [[List]]
+         */
+        case class MixfixApplication(function: Link[G], arguments: Link[G])
+
+        /** A left section operator application.
+         *
+         * @param arg the left argument to [[operator]]
+         * @param operator the function being sectioned
+         */
+        case class LeftSection(arg: Link[G], operator: Link[G])
+
+        /** A right section operator application.
+         *
+         * @param operator the function being sectioned
+         * @param arg the right argument to [[operator]]
+         */
+        case class RightSection(operator: Link[G], arg: Link[G])
+
+        /** A centre section operator application.
+         *
+         * @param operator the operator being sectioned
+         */
+        case class CentreSection(operator: Link[G])
+
+        // === Call-Site Argument Types =======================================
+
+        // `foo _`
+        case class BlankArgument()
+
+        // TODO [AA] Call argument types
+
+        // === Structure ======================================================
+
+        /** A block expression.
+          *
+          * @param expressions the expressions in the block as a [[List]]
+          * @param returnVal the final expression of the block
+          */
         case class Block(expressions: Link[G], returnVal: Link[G])
 
-        // === Typing ===========================================================
+        /** A binding expression of the form `name = expr`.
+          *
+          * @param name the name being bound to
+          * @param expression the expression being bound to [[name]]
+          */
+        case class Binding(name: Link[G], expression: Link[G])
 
-        case class Signature(typed: Link[G], sig: Link[G])
+        // === Case Expression ================================================
 
-        // === Errors ===========================================================
+        /** A case expression.
+          *
+          * @param scrutinee the case expression's scrutinee
+          * @param branches the match branches, as a [[List]]
+          */
+        case class CaseExpr(scrutinee: Link[G], branches: Link[G])
+
+        /** A case branch.
+          *
+          * @param pattern the pattern to match the scrutinee against
+          * @param expression the expression
+          */
+        case class CaseBranch(pattern: Link[G], expression: Link[G])
+
+        // TODO [AA] Pattern types
+
+        // === Comments =======================================================
+
+        /** A documentation comment.
+          *
+          * @param commented the commented entity
+          * @param doc a [[TextLiteral]] containing the documentation comment
+          */
+        case class DocComment(commented: Link[G], doc: Link[G])
+
+        /** A disable comment.
+          *
+          * @param disabledExpr the portion of the program that has been
+          *                     disabled
+          */
+        case class DisableComment(disabledExpr: Link[G])
+
+        // === Foreign ========================================================
+
+        /** A foreign code definition.
+         *
+         * @param language the name of the foreign programming language
+         * @param code the foreign code, represented as a [[ForeignCodeLiteral]]
+         */
+        case class ForeignDefinition(language: Link[G], code: Link[G])
+
+        // === Errors =========================================================
+
+        /** A syntax error.
+         *
+         * @param errorNode the node representation of the syntax error
+         */
+        case class SyntaxError(errorNode: Link[G])
+
+        // TODO [AA] Fill in the error types
       }
 
-      // ========================================================================
-      // === Utility Functions ==================================================
-      // ========================================================================
+      // ======================================================================
+      // === Utility Functions ================================================
+      // ======================================================================
 
       /** Sets the shape of the provided [[node]] to [[Shape]].
         *
@@ -220,6 +428,7 @@ object CoreGraph {
         graph.unsafeSetVariantCase[Nodes, Node.Shape, Shape](node)
       }
 
+      // TODO [AA] Actually fill this in
       /** Checks whether a given node represents some kind of language error.
         *
         * @param node the node to check
@@ -227,14 +436,27 @@ object CoreGraph {
         */
       def isErrorNode(node: Node[CoreGraph]): Boolean = {
         node match {
+          case Shape.SyntaxError.any(_) => true
+          case _ => false
+        }
+      }
+
+      // TODO [AA] Actually fill this in
+      /** Checks whether a given node represents syntactic sugar.
+        *
+        * @param node the node to check
+        * @return `true` if [[node]] represents syntax sugar, `false` otherwise
+        */
+      def isSugarType(node: Node[CoreGraph]): Boolean = {
+        node match {
           case _ => false
         }
       }
     }
 
-    // ==========================================================================
-    // === Link =================================================================
-    // ==========================================================================
+    // ========================================================================
+    // === Link ===============================================================
+    // ========================================================================
 
     /** A link between nodes in the [[CoreGraph]]. */
     @component case class Links() { type Link[G <: PrimGraph] }
@@ -247,12 +469,12 @@ object CoreGraph {
 
     object Link {
 
-      // ========================================================================
-      // === Field Definitions ==================================================
-      // ========================================================================
+      // ======================================================================
+      // === Field Definitions ================================================
+      // ======================================================================
 
-      /** The shape of a link is static and represents a standard directional edge
-        * in a graph.
+      /** The shape of a link is static and represents a standard directional
+        * edge in a graph.
         *
         * @param source the node at the start of the link
         * @param target the node at the end of the link
@@ -260,9 +482,9 @@ object CoreGraph {
         */
       @field case class Shape[G <: PrimGraph](source: Node[G], target: Node[G])
 
-      // ========================================================================
-      // === Utility Functions ==================================================
-      // ========================================================================
+      // ======================================================================
+      // === Utility Functions ================================================
+      // ======================================================================
     }
   }
 }
