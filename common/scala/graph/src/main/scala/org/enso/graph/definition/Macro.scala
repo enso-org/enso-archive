@@ -1371,6 +1371,20 @@ object Macro {
     */
   trait OpaqueData[T, Storage]
 
+  /** This macro is used to annotate the object that defines the graph. It will
+    * output the macro results into a separate object nested at the same level,
+    * which can help with autocompletion in an IDE.
+    *
+    * It is used as follows:
+    *
+    * {{{
+    * @genGraph object Definition { ... }
+    * }}}
+    *
+    * If your graph definition is in an object called Foo, the new object will
+    * be called `FooGen`. The definition object must not be the top-level object
+    * in the file due to restrictions of Macro Paradise.
+    */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class genGraph extends StaticAnnotation {
     def macroTransform(annottees: Any*): Any = macro GenGraph.impl
@@ -1378,13 +1392,29 @@ object Macro {
   object GenGraph {
     def impl(c: whitebox.Context)(annottees: c.Expr[Any]*): c.Expr[Any] = {
       import c.universe._
-      val members   = annottees.map(_.tree).toList
-      val objectDef = members.head
-      val foo = objectDef match {
-        case ModuleDef(mods, name, body) =>
-          ModuleDef(mods, TermName(name.toString + "Gen"), body)
+      val members = annottees.map(_.tree).toList
+
+      if (members.length != 1) {
+        c.error(
+          c.enclosingPosition,
+          "You must apply the `@genGraph` macro to a single object."
+        )
       }
-      c.Expr(foo)
+
+      val objectDef = members.head
+      objectDef match {
+        case ModuleDef(mods, name, body) =>
+          val genDef = ModuleDef(mods, TermName(name.toString + "Gen"), body)
+
+          c.Expr(genDef)
+        case _ =>
+          c.error(
+            c.enclosingPosition,
+            "Your macro must be applied to an object definition."
+          )
+
+          c.Expr(objectDef)
+      }
     }
   }
 }

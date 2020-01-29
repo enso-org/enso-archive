@@ -1,7 +1,7 @@
 package org.enso.compiler.test.core
 
 import org.enso.compiler.test.CompilerTest
-import org.enso.core.CoreGraph.CoreDefGen.{
+import org.enso.core.CoreGraph.DefinitionGen.{
   Link,
   LiteralStorage,
   Node,
@@ -18,10 +18,10 @@ import org.enso.graph.{Graph => PrimGraph}
 class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
   // === Test Setup ===========================================================
-  import org.enso.core.CoreGraph.CoreDefGen.CoreGraph
-  import org.enso.core.CoreGraph.CoreDefGen.Link.Shape._
-  import org.enso.core.CoreGraph.CoreDefGen.Node.Location._
-  import org.enso.core.CoreGraph.CoreDefGen.Node.ParentLinks._
+  import org.enso.core.CoreGraph.DefinitionGen.CoreGraph
+  import org.enso.core.CoreGraph.DefinitionGen.Link.Shape._
+  import org.enso.core.CoreGraph.DefinitionGen.Node.Location._
+  import org.enso.core.CoreGraph.DefinitionGen.Node.ParentLinks._
 
   // Reassignable mutable fixture elements
   implicit var graph: PrimGraph.GraphData[CoreGraph] = _

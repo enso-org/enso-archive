@@ -11,13 +11,7 @@ import org.enso.graph.{Graph => PrimGraph}
   * - High levels of type-safety to reduce the incidence of bugs.
   * - Mutable links to represent program structure.
   */
-class Core {
-//  import org.enso.core.CoreGraph._
-//
-//  implicit val core: PrimGraph.GraphData[CoreGraph] = PrimGraph[CoreGraph]()
-//
-//  val n1: Node[CoreGraph] = core.addNode()
-}
+class Core  {}
 object Core {
 
   // ==========================================================================

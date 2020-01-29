@@ -6,7 +6,7 @@ import shapeless.{::, HNil}
 
 // TODO [AA] Top-level bindings need a module link
 object CoreGraph {
-  @genGraph object CoreDef {
+  @genGraph object Definition {
 
     // ==========================================================================
     // === The Graph Definition =================================================
