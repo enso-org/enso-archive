@@ -575,7 +575,9 @@ object CoreGraph {
         * @param node the node to check
         * @return `true` if [[node]] represents an errors `false` otherwise
         */
-      def isErrorNode(node: Node[CoreGraph]): Boolean = {
+      def isErrorNode(
+        node: Node[CoreGraph]
+      )(implicit graph: PrimGraph.GraphData[CoreGraph]): Boolean = {
         node match {
           case Shape.SyntaxError.any(_) => true
           case _                        => false
@@ -587,7 +589,9 @@ object CoreGraph {
         * @param node the node to check
         * @return `true` if [[node]] represents syntax sugar, `false` otherwise
         */
-      def shapeIsSugar(node: Node[CoreGraph]): Boolean = {
+      def shapeIsSugar(
+        node: Node[CoreGraph]
+      )(implicit graph: PrimGraph.GraphData[CoreGraph]): Boolean = {
         node match {
           case Shape.ComplexTypeDef.any(_)    => true
           case Shape.FunctionDef.any(_)       => true
@@ -606,7 +610,9 @@ object CoreGraph {
         * @param node the node to check
         * @return `true` if [[Node]] has a primitive shape, `false` otherwise
         */
-      def shapeIsPrimitive(node: Node[CoreGraph]): Boolean = {
+      def shapeIsPrimitive(
+        node: Node[CoreGraph]
+      )(implicit graph: PrimGraph.GraphData[CoreGraph]): Boolean = {
         !shapeIsSugar(node)
       }
     }
