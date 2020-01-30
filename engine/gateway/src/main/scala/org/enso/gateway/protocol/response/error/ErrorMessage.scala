@@ -8,4 +8,5 @@ object ErrorMessage {
   val wrongJsonRpcVersion  = "Wrong JSON-RPC version"
   val methodNotFound       = "Method not found"
   val unexpectedError      = "Unexpected error"
+  val invalidResponse      = "Invalid response"
 }

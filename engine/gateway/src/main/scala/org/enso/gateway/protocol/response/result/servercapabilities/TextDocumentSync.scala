@@ -1,13 +1,17 @@
 package org.enso.gateway.protocol.response.result.servercapabilities
 
-import io.circe.Encoder
+import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
-import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
-import io.circe.generic.semiauto.deriveEncoder
+import io.circe.generic.extras.semiauto.{
+  deriveUnwrappedDecoder,
+  deriveUnwrappedEncoder
+}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.response.result.servercapabilities.textdocumentsync.{
   TextDocumentSyncDidSave,
   TextDocumentSyncKind
 }
+import cats.syntax.functor._
 
 /** Defines how text documents are synced.
   *
@@ -22,6 +26,8 @@ object TextDocumentSync {
   object Number {
     implicit val textDocumentSyncNumberEncoder: Encoder[Number] =
       deriveUnwrappedEncoder
+    implicit val textDocumentSyncNumberDecoder: Decoder[Number] =
+      deriveUnwrappedDecoder
   }
 
   case class TextDocumentSyncOptions(
@@ -33,6 +39,8 @@ object TextDocumentSync {
   object TextDocumentSyncOptions {
     implicit val textDocumentSyncTextDocumentSyncOptionsEncoder
       : Encoder[TextDocumentSyncOptions] = deriveEncoder
+    implicit val textDocumentSyncTextDocumentSyncOptionsDecoder
+      : Decoder[TextDocumentSyncOptions] = deriveDecoder
   }
 
   implicit val serverCapabilitiesTextDocumentSyncEncoder
@@ -40,4 +48,10 @@ object TextDocumentSync {
     case number: Number                      => number.asJson
     case capability: TextDocumentSyncOptions => capability.asJson
   }
+
+  implicit val serverCapabilitiesTextDocumentSyncDecoder
+    : Decoder[TextDocumentSync] = List[Decoder[TextDocumentSync]](
+    Decoder[Number].widen,
+    Decoder[TextDocumentSyncOptions].widen
+  ).reduceLeft(_ or _)
 }

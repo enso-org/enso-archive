@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities.textdocument.completion
 
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.request.clientcapabilities.textdocument.common.MarkupKind
 
 /** Part of
@@ -19,4 +19,8 @@ object CompletionItem {
   implicit val clientCapabilitiesTextDocumentCompletionItemDecoder
     : Decoder[CompletionItem] =
     deriveDecoder
+
+  implicit val clientCapabilitiesTextDocumentCompletionItemEncoder
+    : Encoder[CompletionItem] =
+    deriveEncoder
 }

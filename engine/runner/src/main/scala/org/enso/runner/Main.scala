@@ -10,7 +10,7 @@ import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.ActorMaterializer
-import org.enso.gateway.JsonRpcController
+import org.enso.gateway.protocol.JsonRpcController
 
 import scala.io.StdIn
 import scala.util.Try

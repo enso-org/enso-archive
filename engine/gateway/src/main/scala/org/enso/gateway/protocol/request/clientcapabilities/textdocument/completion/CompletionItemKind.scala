@@ -1,9 +1,9 @@
 package org.enso.gateway.protocol.request.clientcapabilities.textdocument.completion
 
-import io.circe.Decoder
+import io.circe.{Decoder, Encoder}
 
 /** Kind of [[CompletionItem]]. */
-sealed abstract class CompletionItemKind(value: Int)
+sealed abstract class CompletionItemKind(val value: Int)
 object CompletionItemKind {
   private val text                      = 1
   private val method                    = 2
@@ -111,4 +111,7 @@ object CompletionItemKind {
       case `typeParameter` => Right(TypeParameter)
       case _               => Left(invalidCompletionItemKind)
     }
+
+  implicit val textDocumentSyncKindEncoder: Encoder[CompletionItemKind] =
+    Encoder.encodeInt.contramap(_.value)
 }

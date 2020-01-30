@@ -1,9 +1,9 @@
 package org.enso.gateway.protocol.request.clientcapabilities.common
 
-import io.circe.Decoder
+import io.circe.{Decoder, Encoder}
 
 /** A symbol kind. */
-sealed abstract class SymbolKind(value: Int)
+sealed abstract class SymbolKind(val value: Int)
 object SymbolKind {
   private val file              = 1
   private val module            = 2
@@ -115,4 +115,7 @@ object SymbolKind {
       case `typeParameter` => Right(TypeParameter)
       case _               => Left(invalidSymbolKind)
     }
+
+  implicit val SymbolKindEncoder: Encoder[SymbolKind] =
+    Encoder.encodeInt.contramap(_.value)
 }

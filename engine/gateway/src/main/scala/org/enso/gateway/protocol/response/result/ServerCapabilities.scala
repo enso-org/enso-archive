@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.response.result
 
-import io.circe.generic.semiauto.deriveEncoder
-import io.circe.Encoder
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.{Decoder, Encoder}
 import org.enso.gateway.protocol.response.result.servercapabilities.declarationprovider.DocumentFilter
 import org.enso.gateway.protocol.response.result.servercapabilities.{
   CodeActionProvider,
@@ -92,4 +92,6 @@ object ServerCapabilities {
   type DocumentSelector = Seq[DocumentFilter]
   implicit val serverCapabilitiesEncoder: Encoder[ServerCapabilities] =
     deriveEncoder
+  implicit val serverCapabilitiesDecoder: Decoder[ServerCapabilities] =
+    deriveDecoder
 }

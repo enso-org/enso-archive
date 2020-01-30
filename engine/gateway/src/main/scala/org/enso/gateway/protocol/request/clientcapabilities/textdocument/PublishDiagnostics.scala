@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities.textdocument
 
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.request.clientcapabilities.textdocument.publishdiagnostics.TagSupport
 
 /** Capabilities specific to the `textDocument/publishDiagnostics` notification.
@@ -11,8 +11,13 @@ case class PublishDiagnostics(
   tagSupport: Option[TagSupport]      = None,
   versionSupport: Option[Boolean]     = None
 )
+
 object PublishDiagnostics {
   implicit val clientCapabilitiesTextDocumentPublishDiagnosticsDecoder
     : Decoder[PublishDiagnostics] =
     deriveDecoder
+
+  implicit val clientCapabilitiesTextDocumentPublishDiagnosticsEncoder
+    : Encoder[PublishDiagnostics] =
+    deriveEncoder
 }

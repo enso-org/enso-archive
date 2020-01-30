@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities
 
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.request.clientcapabilities.workspace.{
   DidChangeConfiguration,
   DidChangeWatchedFiles,
@@ -32,4 +32,7 @@ case class Workspace(
 object Workspace {
   implicit val clientCapabilitiesWorkspaceDecoder: Decoder[Workspace] =
     deriveDecoder
+
+  implicit val clientCapabilitiesWorkspaceEncoder: Encoder[Workspace] =
+    deriveEncoder
 }

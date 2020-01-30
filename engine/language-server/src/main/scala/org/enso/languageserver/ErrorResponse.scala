@@ -1,6 +1,7 @@
 package org.enso.languageserver
 
 import akka.actor.ActorRef
+import org.enso.languageserver.model.Id
 
 trait ErrorResponse {
   def id: Id

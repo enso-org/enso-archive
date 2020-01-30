@@ -1,12 +1,16 @@
 package org.enso.gateway.protocol.request.clientcapabilities.workspace.edit
 
-import io.circe.Decoder
-import io.circe.generic.extras.semiauto.deriveEnumerationDecoder
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.extras.semiauto.{
+  deriveEnumerationDecoder,
+  deriveEnumerationEncoder
+}
 
 /** Part of
   * [[org.enso.gateway.protocol.request.clientcapabilities.workspace.Edit]].
   */
 sealed trait FailureHandlingKind
+
 object FailureHandlingKind {
 
   /** Applying the workspace change is simply aborted if one of the changes
@@ -36,4 +40,7 @@ object FailureHandlingKind {
 
   implicit val failureHandlingKindDecoder: Decoder[FailureHandlingKind] =
     deriveEnumerationDecoder
+
+  implicit val failureHandlingKindEncoder: Encoder[FailureHandlingKind] =
+    deriveEnumerationEncoder
 }

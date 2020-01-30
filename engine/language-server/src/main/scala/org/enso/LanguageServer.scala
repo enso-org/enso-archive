@@ -1,13 +1,17 @@
 package org.enso
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.typesafe.config.ConfigFactory
+import org.enso.languageserver.model.ServerInfo
 import org.enso.languageserver.{
   ErrorResponse,
   Notification,
   Request,
+  RequestToClient,
   Response,
-  ServerInfo
+  ResponseFromClient,
+  SendRequestToClient,
+  SetGateway
 }
 import org.enso.polyglot.ExecutionContext
 
@@ -18,13 +22,19 @@ import org.enso.polyglot.ExecutionContext
   *
   * @param executionContext Polyglot Execution context.
   */
-class LanguageServer(executionContext: ExecutionContext)
-    extends Actor
+class LanguageServer(
+  executionContext: ExecutionContext
+) extends Actor
     with ActorLogging {
 
   import context._
 
+  private var gateway: ActorRef = _
+
   override def receive: Receive = {
+    case SetGateway(actorRef) =>
+      gateway = actorRef
+
     case Notification.Exit =>
       exit()
 
@@ -33,13 +43,12 @@ class LanguageServer(executionContext: ExecutionContext)
         s"LanguageServer: $notification received before Initialize and dropped"
       log.info(msg)
 
-    case Request.Initialize(id, _, _, _, actorRef) =>
+    case Request.Initialize(id, _, actorRef) =>
       val msg = "LanguageServer: Initialize received"
       log.info(msg)
       sender() ! Response.Initialize(
         id,
-        LanguageServer.serverInfo.name,
-        LanguageServer.serverInfo.version,
+        LanguageServer.serverInfo,
         actorRef
       )
       become(afterInitialize)
@@ -53,8 +62,7 @@ class LanguageServer(executionContext: ExecutionContext)
         request.replyTo
       )
 
-    case requestOrNotification =>
-      default(requestOrNotification)
+    case message => default(message)
   }
 
   def afterInitialize: Receive = {
@@ -74,12 +82,11 @@ class LanguageServer(executionContext: ExecutionContext)
         s"LanguageServer: $notification received before Initialized and dropped"
       log.error(msg)
 
-    case requestOrNotification =>
-      default(requestOrNotification)
+    case message => default(message)
   }
 
   def afterInitialized: Receive = {
-    case Request.Initialize(id, _, _, _, actorRef) =>
+    case Request.Initialize(id, _, actorRef) =>
       val msg =
         s"LanguageServer: Initialize received after Initialized"
       log.error(msg)
@@ -95,11 +102,6 @@ class LanguageServer(executionContext: ExecutionContext)
       log.info(msg)
       sender() ! Response.Shutdown(id, actorRef)
       become(afterShutdown)
-
-    case Request.ApplyWorkspaceEdit(id, actorRef) =>
-      val msg = "LanguageServer: ApplyWorkspaceEdit received"
-      log.info(msg)
-      sender() ! Response.ApplyWorkspaceEdit(id, actorRef)
 
     case Request.WillSaveTextDocumentWaitUntil(id, actorRef) =>
       val msg = "LanguageServer: WillSaveTextDocumentWaitUntilEdit received"
@@ -122,8 +124,16 @@ class LanguageServer(executionContext: ExecutionContext)
       val msg = "LanguageServer: DidCloseTextDocument received"
       log.info(msg)
 
-    case requestOrNotification =>
-      default(requestOrNotification)
+    case SendRequestToClient.SendApplyWorkspaceEdit(id) =>
+      val msg = "LanguageServer: SendApplyWorkspaceEdit received"
+      log.info(msg)
+      gateway ! RequestToClient.ApplyWorkspaceEdit(id)
+
+    case ResponseFromClient.ApplyWorkspaceEdit(_) =>
+      val msg = "LanguageServer: ApplyWorkspaceEdit received"
+      log.info(msg)
+
+    case message => default(message)
   }
 
   def afterShutdown: Receive = {
@@ -141,13 +151,12 @@ class LanguageServer(executionContext: ExecutionContext)
         s"LanguageServer: $notification received after Shutdown and dropped"
       log.error(msg)
 
-    case requestOrNotification =>
-      default(requestOrNotification)
+    case message => default(message)
   }
 
-  private def default(requestOrNotification: Any): Unit = {
-    val msg = "LanguageServer: unexpected request or notification " +
-      requestOrNotification
+  private def default(message: Any): Unit = {
+    val msg = "LanguageServer: unexpected incoming message " +
+      message
     log.error(msg)
   }
 

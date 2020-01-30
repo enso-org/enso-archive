@@ -1,9 +1,8 @@
-package org.enso.gateway.protocol
+package org.enso.gateway.protocol.codec
 
 import io.circe.CursorOp.DownField
 import io.circe.{Decoder, DecodingFailure}
 import org.enso.gateway.protocol.request.Params.{
-  ApplyWorkspaceEditParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
@@ -12,6 +11,7 @@ import org.enso.gateway.protocol.request.Params.{
   VoidParams,
   WillSaveTextDocumentWaitUntilParams
 }
+import org.enso.gateway.protocol._
 
 /** Helper object for decoding [[RequestOrNotification]]. */
 object RequestOrNotificationDecoder {
@@ -19,7 +19,7 @@ object RequestOrNotificationDecoder {
   /** Circe decoder for requests and notifications. */
   val instance: Decoder[RequestOrNotification] =
     cursor => {
-      val methodCursor = cursor.downField(Notification.methodField)
+      val methodCursor = cursor.downField(Field.method)
       Decoder[String]
         .tryDecode(methodCursor)
         .flatMap(selectRequestOrNotificationDecoder(_).apply(cursor))
@@ -33,7 +33,7 @@ object RequestOrNotificationDecoder {
   def unknownMethodFailure(method: String): DecodingFailure =
     DecodingFailure(
       unknownMethodMessage(method),
-      List(DownField(Notification.methodField))
+      List(DownField(Field.method))
     )
 
   private def selectRequestOrNotificationDecoder(
@@ -44,8 +44,8 @@ object RequestOrNotificationDecoder {
         Decoder[Request[InitializeParams]]
       case Requests.Shutdown.method =>
         Decoder[Request[VoidParams]]
-      case Requests.ApplyWorkspaceEdit.method =>
-        Decoder[Request[ApplyWorkspaceEditParams]]
+      //      case Requests.ApplyWorkspaceEdit.method =>
+      //        Decoder[Request[ApplyWorkspaceEditParams]]
       case Requests.WillSaveTextDocumentWaitUntil.method =>
         Decoder[Request[WillSaveTextDocumentWaitUntilParams]]
 

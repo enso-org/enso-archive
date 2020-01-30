@@ -2,7 +2,6 @@ package org.enso.gateway.protocol
 
 import org.enso.gateway.protocol.request.Params
 import org.enso.gateway.protocol.request.Params.{
-  ApplyWorkspaceEditParams,
   InitializeParams,
   VoidParams,
   WillSaveTextDocumentWaitUntilParams
@@ -41,16 +40,16 @@ object Requests {
     */
   object Shutdown extends RequestExtractor[VoidParams]("shutdown")
 
-  /** The request sent from the server to the client to modify resource on the
-    * client side.
-    *
-    * LSP Spec:
-    * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#workspace_applyEdit
-    */
-  object ApplyWorkspaceEdit
-      extends RequestExtractor[ApplyWorkspaceEditParams](
-        "workspace/applyEdit"
-      )
+  //  /** The request sent from the server to the client to modify resource on the
+  //    * client side.
+  //    *
+  //    * LSP Spec:
+  //    * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#workspace_applyEdit
+  //    */
+  //  object ApplyWorkspaceEdit
+  //      extends RequestExtractor[ApplyWorkspaceEditParams](
+  //        "workspace/applyEdit"
+  //      )
 
   /** The request sent from the client to the server before the document is
     * actually saved.
@@ -62,5 +61,4 @@ object Requests {
       extends RequestExtractor[WillSaveTextDocumentWaitUntilParams](
         "textDocument/willSaveWaitUntil"
       )
-
 }

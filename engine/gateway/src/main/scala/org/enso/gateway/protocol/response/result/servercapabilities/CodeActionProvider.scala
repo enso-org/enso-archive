@@ -1,10 +1,14 @@
 package org.enso.gateway.protocol.response.result.servercapabilities
 
-import io.circe.Encoder
+import io.circe.{Decoder, Encoder}
 import io.circe.syntax._
-import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
-import io.circe.generic.semiauto.deriveEncoder
+import io.circe.generic.extras.semiauto.{
+  deriveUnwrappedDecoder,
+  deriveUnwrappedEncoder
+}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.CodeActionKind
+import cats.syntax.functor._
 
 /** Server capability to provide code actions.
   *
@@ -19,6 +23,8 @@ object CodeActionProvider {
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
+    implicit val boolDecoder: Decoder[Bool] =
+      deriveUnwrappedDecoder
   }
 
   case class CodeActionOptions(
@@ -28,6 +34,8 @@ object CodeActionProvider {
   object CodeActionOptions {
     implicit val codeActionOptionsEncoder: Encoder[CodeActionOptions] =
       deriveEncoder
+    implicit val codeActionOptionsDecoder: Decoder[CodeActionOptions] =
+      deriveDecoder
   }
 
   implicit val serverCapabilitiesCodeActionProviderEncoder
@@ -36,4 +44,11 @@ object CodeActionProvider {
       case boolean: Bool              => boolean.asJson
       case options: CodeActionOptions => options.asJson
     }
+
+  implicit val serverCapabilitiesCodeActionProviderDecoder
+    : Decoder[CodeActionProvider] =
+    List[Decoder[CodeActionProvider]](
+      Decoder[Bool].widen,
+      Decoder[CodeActionOptions].widen
+    ).reduceLeft(_ or _)
 }

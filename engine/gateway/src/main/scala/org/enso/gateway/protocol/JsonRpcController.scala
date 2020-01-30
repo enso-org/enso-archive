@@ -1,21 +1,17 @@
-package org.enso.gateway
+package org.enso.gateway.protocol
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.util.Timeout
 import io.circe
 import io.circe.CursorOp.DownField
-import io.circe.{DecodingFailure, ParsingFailure, Printer}
 import io.circe.parser.decode
 import io.circe.syntax._
-import org.enso.gateway.protocol._
+import io.circe.{DecodingFailure, ParsingFailure, Printer}
+import org.enso.gateway.Server
+import org.enso.gateway.protocol.codec.Field
 import org.enso.gateway.protocol.request.IdHolder
-import org.enso.gateway.protocol.response.ResponseError.{
-  InitializeError,
-  MethodNotFoundError,
-  ParseError,
-  UnexpectedError
-}
+import org.enso.gateway.protocol.response.ResponseError
 import org.enso.gateway.protocol.response.error.Data
 
 import scala.concurrent.Future
@@ -39,20 +35,38 @@ object JsonRpcController {
   * It handles and decodes all JSON-RPC messages and dispatch them to the
   * Gateway.
   *
-  * @param gateway [[ActorRef]] of Gateway actor.
+  * //  * @param gateway [[ActorRef]] of Gateway actor.
   */
-class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
+class JsonRpcController(gateway: ActorRef, server: Server)(
+  implicit system: ActorSystem
+) {
+
   import system.dispatcher
 
   /** Generates text reply for given request text message, no reply for
     * notification.
     */
+  //  def decodeFromJson /*getTextOutput*/ (
+  //    input: String
+  //  ): Message /*Option[String]*/ = {
+  //    val id = decode[IdHolder](input).map(_.id).toOption
+  //
+  //    decode[Message](input) match {
+  //      case Right(message) => message
+  //      case Left(err)      => mkErrorResponse(input, err).copy(id = id)
+  //    }
+  //  }
+
   def getTextOutput(
     input: String
   )(implicit timeout: Timeout): Future[Option[String]] = {
     val id = decode[IdHolder](input).map(_.id).toOption
 
-    decode[RequestOrNotification](input) match {
+    decode[Message](input) match {
+      case Right(response: Response) =>
+        gateway ! response
+        Future.successful(None)
+
       case Right(notification: Notification[_]) =>
         gateway ! notification
         Future.successful(None)
@@ -77,6 +91,12 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
    * to id of request.
    */
 
+  def handleRequestOrNotification(
+    requestOrNotification: RequestOrNotification
+  ): Unit = {
+    server.sendToConnections(encodeToJson(requestOrNotification))
+  }
+
   private def mkErrorResponse(
     input: String,
     err: circe.Error
@@ -85,10 +105,10 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
       case err: ParsingFailure =>
         mkParseErrorResponse(input, err)
 
-      case DecodingFailure(_, List(DownField(Notification.jsonrpcField))) =>
+      case DecodingFailure(_, List(DownField(Field.jsonrpc))) =>
         initializeErrorResponse
 
-      case DecodingFailure(_, List(DownField(Notification.methodField))) =>
+      case DecodingFailure(_, List(DownField(Field.method))) =>
         methodNotFoundResponse
 
       case e =>
@@ -99,7 +119,7 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
     err: circe.Error
   ): Response = {
     Response.error(
-      error = UnexpectedError(
+      error = ResponseError.unexpectedError(
         data = Some(
           Data.Text(err.toString)
         )
@@ -109,14 +129,14 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
 
   private val methodNotFoundResponse: Response = {
     Response.error(
-      error = MethodNotFoundError()
+      error = ResponseError.methodNotFoundError()
     )
   }
 
   private val initializeErrorResponse: Response = {
     val defaultRetry = false
     Response.error(
-      error = InitializeError(
+      error = ResponseError.initializeError(
         data = Some(
           Data
             .InitializeData(
@@ -132,7 +152,7 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
     err: ParsingFailure
   ): Response = {
     Response.error(
-      error = ParseError(
+      error = ResponseError.parseError(
         Some(
           Data
             .ParseData(
@@ -145,9 +165,11 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
   }
 
   private def encodeToJson(
-    response: Response
+    message: Message
+    //    response: Response
   ): String = {
-    response.asJson.printWith(
+    /*response*/
+    message.asJson.printWith(
       Printer.noSpaces.copy(dropNullValues = true)
     )
   }

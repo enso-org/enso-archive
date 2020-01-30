@@ -1,9 +1,9 @@
 package org.enso.gateway.protocol.request.clientcapabilities.textdocument.publishdiagnostics
 
-import io.circe.Decoder
+import io.circe.{Decoder, Encoder}
 
 /** Element of [[TagSupport]]. */
-sealed abstract class DiagnosticTag(value: Int)
+sealed abstract class DiagnosticTag(val value: Int)
 object DiagnosticTag {
   private val unnecessary          = 1
   private val deprecated           = 2
@@ -28,4 +28,7 @@ object DiagnosticTag {
       case `deprecated`  => Right(Deprecated)
       case _             => Left(invalidDiagnosticTag)
     }
+
+  implicit val diagnosticTagEncoder: Encoder[DiagnosticTag] =
+    Encoder.encodeInt.contramap(_.value)
 }

@@ -84,5 +84,4 @@ object Notifications {
       extends NotificationExtractor[DidCloseTextDocumentParams](
         "textDocument/didClose"
       )
-
 }

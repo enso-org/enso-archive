@@ -2,13 +2,20 @@ package org.enso
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.gateway.protocol.response.Result.{
-  ApplyWorkspaceEditResult,
   InitializeResult,
   NullResult,
   WillSaveTextDocumentWaitUntilResult
 }
 import org.enso.gateway.protocol.response.result.servercapabilities.TextDocumentSync
-import org.enso.gateway.protocol.{Id, Notifications, Requests, Response}
+import org.enso.gateway.protocol.{
+  Id,
+  JsonRpcController,
+  Notifications,
+  Requests,
+  RequestsToClient,
+  Response,
+  ResponsesFromClient
+}
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
   ServerInfo
@@ -28,35 +35,39 @@ import org.enso.{languageserver => ls}
   *
   * @param languageServer [[ActorRef]] of [[LanguageServer]] actor.
   */
-class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
+class Gateway(languageServer: ActorRef, jsonRpcController: JsonRpcController)
+    extends Actor
+    with ActorLogging {
   override def receive: Receive = {
     case Requests.Initialize(id, params) =>
       val msg = "Gateway: Initialize received"
       log.info(msg)
       languageServer ! ls.Request.Initialize(
         id = id.toLsModel,
-        dynamicRegistration = params
-          .flatMap(
-            _.capabilities.textDocument
-              .flatMap(_.synchronization.flatMap(_.dynamicRegistration))
-          )
-          .getOrElse(false),
-        willSaveWaitUntil = params
-          .flatMap(
-            _.capabilities.textDocument
-              .flatMap(_.synchronization.flatMap(_.willSaveWaitUntil))
-          )
-          .getOrElse(false),
-        didSave = params
-          .flatMap(
-            _.capabilities.textDocument
-              .flatMap(_.synchronization.flatMap(_.didSave))
-          )
-          .getOrElse(false),
+        ls.model.ClientCapabilities(
+          dynamicRegistration = params
+            .flatMap(
+              _.capabilities.textDocument
+                .flatMap(_.synchronization.flatMap(_.dynamicRegistration))
+            )
+            .getOrElse(false),
+          willSaveWaitUntil = params
+            .flatMap(
+              _.capabilities.textDocument
+                .flatMap(_.synchronization.flatMap(_.willSaveWaitUntil))
+            )
+            .getOrElse(false),
+          didSave = params
+            .flatMap(
+              _.capabilities.textDocument
+                .flatMap(_.synchronization.flatMap(_.didSave))
+            )
+            .getOrElse(false)
+        ),
         replyTo = sender()
       )
 
-    case ls.Response.Initialize(id, name, version, replyTo) =>
+    case ls.Response.Initialize(id, serverInfo, replyTo) =>
       val msg = "Gateway: Response.Initialize received"
       log.info(msg)
       replyTo ! Response.result(
@@ -72,7 +83,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
               )
             )
           ),
-          serverInfo = Some(ServerInfo(name, Some(version)))
+          serverInfo = Some(ServerInfo.fromLsModel(serverInfo))
         )
       )
 
@@ -89,19 +100,18 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
         result = NullResult
       )
 
-    case Requests.ApplyWorkspaceEdit(id, _) =>
+    case ls.RequestToClient.ApplyWorkspaceEdit(id) =>
+      val msg = "Gateway: RequestToClient.ApplyWorkspaceEdit received"
+      log.info(msg)
+      jsonRpcController.handleRequest(
+        RequestsToClient.ApplyWorkspaceEdit(Id.fromLsModel(id))
+      )
+
+    case ResponsesFromClient.ApplyWorkspaceEdit(id, _) =>
       val msg = "Gateway: ApplyWorkspaceEdit received"
       log.info(msg)
-      languageServer ! ls.Request
-        .ApplyWorkspaceEdit(id.toLsModel, sender())
-
-    case ls.Response.ApplyWorkspaceEdit(id, replyTo) =>
-      val msg = "Gateway: Response.ApplyWorkspaceEdit received"
-      log.info(msg)
-      replyTo ! Response.result(
-        id     = Some(Id.fromLsModel(id)),
-        result = ApplyWorkspaceEditResult(applied = false)
-      )
+      languageServer ! ls.ResponseFromClient
+        .ApplyWorkspaceEdit(id.toLsModel)
 
     case Requests.WillSaveTextDocumentWaitUntil(id, _) =>
       val msg = "Gateway: WillSaveTextDocumentWaitUntil received"
@@ -154,7 +164,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       log.error(msg)
       replyTo ! Response.error(
         id = Some(Id.fromLsModel(id)),
-        error = ResponseError.InvalidRequest(
+        error = ResponseError.invalidRequest(
           data = Some(Data.Text(message))
         )
       )
@@ -164,7 +174,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
       log.error(msg)
       replyTo ! Response.error(
         id = Some(Id.fromLsModel(id)),
-        error = ResponseError.ServerNotInitialized(
+        error = ResponseError.serverNotInitialized(
           data = Some(Data.Text(message))
         )
       )
@@ -176,6 +186,9 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
   }
 }
 object Gateway {
-  def props(languageServer: ActorRef): Props =
-    Props(new Gateway(languageServer))
+  def props(
+    languageServer: ActorRef,
+    jsonRpcController: JsonRpcController
+  ): Props =
+    Props(new Gateway(languageServer, jsonRpcController))
 }

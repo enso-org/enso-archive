@@ -1,39 +1,47 @@
 package org.enso.languageserver
 
 import akka.actor.ActorRef
+import org.enso.languageserver.model.{ClientCapabilities, Id}
 
-sealed trait RequestOrNotification
+sealed trait IncomingMessage
 
+case class SetGateway(gateway: ActorRef) extends IncomingMessage
+
+sealed trait SendRequestToClient extends IncomingMessage {
+  def id: Id
+}
+
+object SendRequestToClient {
+
+  case class SendApplyWorkspaceEdit(id: Id) extends SendRequestToClient
+
+}
+
+sealed trait RequestOrNotification extends IncomingMessage
+
+/** Akka message sent by Gateway received LSP requests. */
 sealed trait Request extends RequestOrNotification {
   def id: Id
 
   def replyTo: ActorRef
 }
 
-/** Akka messages sent by Gateway received LSP requests. */
 object Request {
 
   /** Akka message sent by Gateway received LSP request `initialize`. */
   case class Initialize(
     id: Id,
-    dynamicRegistration: Boolean = false,
-    willSaveWaitUntil: Boolean   = false,
-    didSave: Boolean             = false,
+    clientCapabilities: ClientCapabilities,
     replyTo: ActorRef
   ) extends Request
 
   /** Akka message sent by Gateway received LSP request `shutdown`. */
   case class Shutdown(id: Id, replyTo: ActorRef) extends Request
 
-  /** Akka message sent by Gateway received LSP request `workspace/applyEdit`.
-    */
-  case class ApplyWorkspaceEdit(id: Id, replyTo: ActorRef) extends Request
-
   /** Akka message sent by Gateway received LSP request `textDocument/willSave`.
     */
   case class WillSaveTextDocumentWaitUntil(id: Id, replyTo: ActorRef)
       extends Request
-
 }
 
 sealed trait Notification extends RequestOrNotification
@@ -66,5 +74,14 @@ object Notification {
     * `textDocument/didClose`.
     */
   case object DidCloseTextDocument extends Notification
+
+}
+
+sealed trait ResponseFromClient extends IncomingMessage
+
+object ResponseFromClient {
+
+  /** Gateway response to [[RequestToClient.ApplyWorkspaceEdit]]. */
+  case class ApplyWorkspaceEdit(id: Id) extends ResponseFromClient
 
 }

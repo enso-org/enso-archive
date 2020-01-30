@@ -7,7 +7,6 @@ case class TextEdit(
   range: TextRange,
   newText: String
 )
-
 object TextEdit {
   implicit val textEditDecoder: Decoder[TextEdit] =
     deriveDecoder

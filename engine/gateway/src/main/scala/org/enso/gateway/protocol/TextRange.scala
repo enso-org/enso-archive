@@ -7,7 +7,6 @@ case class TextRange(
   start: Position,
   end: Position
 )
-
 object TextRange {
   implicit val textRangeDecoder: Decoder[TextRange] =
     deriveDecoder

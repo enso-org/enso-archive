@@ -24,6 +24,7 @@ import org.scalatest.{
   Matchers
 }
 import io.circe.parser.parse
+import org.enso.gateway.protocol.JsonRpcController
 import org.enso.gateway.server.Config
 
 import scala.concurrent.{Await, Future}

@@ -7,11 +7,10 @@ import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Flow
-import akka.stream.scaladsl.Sink
-import akka.stream.scaladsl.Source
+import akka.stream.{ActorMaterializer, OverflowStrategy}
+import akka.stream.scaladsl.{Flow, Sink, Source, SourceQueueWithComplete}
 import akka.util.Timeout
+import org.enso.gateway.protocol.JsonRpcController
 import org.enso.gateway.server.Config
 
 import scala.concurrent.{Await, Future}
@@ -36,10 +35,37 @@ class Server(jsonRpcController: JsonRpcController, config: Config)(
   system: ActorSystem,
   materializer: ActorMaterializer
 ) {
+
   import system.dispatcher
 
   implicit private val timeout: Timeout = Timeout(config.timeout)
   private val log: LoggingAdapter       = Logging.getLogger(system, this)
+
+  private var connections: List[TextMessage => Unit] = List()
+
+  def sendToConnections(s: String): Unit =
+    connections.foreach(_.apply(TextMessage.Strict(s)))
+
+  private val incoming: Sink[Message, Any] =
+    Sink.foreachAsync(parallelism = 1) {
+      case tm: TextMessage =>
+        val strict = tm.textStream.fold("")(_ + _)
+        //      strict.runFoldAsync() { (_, input) =>
+        //        jsonRpcController.getTextOutput(input)
+        //      }
+        strict
+          .runForeach { input =>
+            jsonRpcController
+              .getTextOutput(input)
+              .foreach(_.foreach(sendToConnections))
+          }
+          .map(_ => ())
+      case bm: BinaryMessage =>
+        bm.dataStream.runWith(Sink.ignore).map(_ => ())
+    }
+
+  private val outcoming: Source[Message, SourceQueueWithComplete[Message]] =
+    Source.queue[Message](16, OverflowStrategy.fail)
 
   /** Akka stream defining server behavior.
     *
@@ -48,27 +74,32 @@ class Server(jsonRpcController: JsonRpcController, config: Config)(
     * @see [[JsonRpcController.getTextOutput]].
     *      Incoming binary messages are ignored.
     */
-  private val handlerFlow: Flow[Message, TextMessage.Strict, NotUsed] =
-    Flow[Message]
-      .flatMapConcat {
-        case tm: TextMessage =>
-          val strict = tm.textStream.fold("")(_ + _)
-          strict
-            .flatMapConcat(
-              input =>
-                Source
-                  .fromFuture(
-                    jsonRpcController.getTextOutput(input)
-                  )
-            )
-            .flatMapConcat {
-              case Some(input) => Source.single(TextMessage(input))
-              case None        => Source.empty
-            }
-        case bm: BinaryMessage =>
-          bm.dataStream.runWith(Sink.ignore)
-          Source.empty
-      }
+  private val handlerFlow
+    : Flow[Message, /*TextMessage.Strict*/ Message, NotUsed] =
+    Flow.fromSinkAndSourceMat(incoming, outcoming)((_, outcomingMat) => {
+      connections ::= outcomingMat.offer
+      NotUsed
+    })
+  //    Flow[Message]
+  //      .flatMapConcat {
+  //        case tm: TextMessage =>
+  //          val strict = tm.textStream.fold("")(_ + _)
+  //          strict
+  //            .flatMapConcat(
+  //              input =>
+  //                Source
+  //                  .fromFuture(
+  //                    jsonRpcController.getTextOutput(input)
+  //                  )
+  //            )
+  //            .flatMapConcat {
+  //              case Some(input) => Source.single(TextMessage(input))
+  //              case None        => Source.empty
+  //            }
+  //        case bm: BinaryMessage =>
+  //          bm.dataStream.runWith(Sink.ignore)
+  //          Source.empty
+  //      }
 
   /** Server behavior upon receiving HTTP request.
     *

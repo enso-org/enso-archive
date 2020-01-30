@@ -1,6 +1,7 @@
 package org.enso.gateway.protocol.response
 
-import io.circe.Encoder
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
+import io.circe.{Decoder, Encoder}
 import org.enso.gateway.protocol.response.error.{Data, ErrorCode, ErrorMessage}
 import org.enso.gateway.protocol.response.error.Data.{InitializeData, ParseData}
 
@@ -9,74 +10,67 @@ import org.enso.gateway.protocol.response.error.Data.{InitializeData, ParseData}
   * `ResponseError` in LSP Spec:
   * https://microsoft.github.io/language-server-protocol/specifications/specification-3-15/#responseMessage
   */
-sealed abstract class ResponseError(
-  val code: ErrorCode,
-  val message: String,
-  val data: Option[Data]
+case class ResponseError private (
+  code: ErrorCode,
+  message: String,
+  data: Option[Data]
 )
 object ResponseError {
-  implicit val responseErrorEncoder: Encoder[ResponseError] = {
-    val codeField    = "code"
-    val messageField = "message"
-    val dataField    = "data"
-    Encoder.forProduct3(codeField, messageField, dataField)(
-      error => (error.code, error.message, error.data)
-    )
-  }
+  implicit val responseErrorEncoder: Encoder[ResponseError] = deriveEncoder
+  implicit val responseErrorDecoder: Decoder[ResponseError] = deriveDecoder
 
   /** Invalid JSON. */
-  case class ParseError(
-    override val data: Option[ParseData] = None
-  ) extends ResponseError(
-        ErrorCode.ParseError,
-        ErrorMessage.invalidJson,
-        data
-      )
+  def parseError(
+    data: Option[ParseData] = None
+  ): ResponseError = ResponseError(
+    ErrorCode.ParseError,
+    ErrorMessage.invalidJson,
+    data
+  )
 
   /** Unknown JSON-RPC method. */
-  case class MethodNotFoundError(
-    override val data: Option[Data] = None
-  ) extends ResponseError(
-        ErrorCode.MethodNotFound,
-        ErrorMessage.methodNotFound,
-        data
-      )
+  def methodNotFoundError(
+    data: Option[Data] = None
+  ): ResponseError = ResponseError(
+    ErrorCode.MethodNotFound,
+    ErrorMessage.methodNotFound,
+    data
+  )
 
   /** Error of [[org.enso.gateway.protocol.Requests.Initialize]].
     *
     * Wrong JSON-RPC version.
     */
-  case class InitializeError(
-    override val data: Option[InitializeData] = None
-  ) extends ResponseError(
-        ErrorCode.UnknownProtocolVersion,
-        ErrorMessage.wrongJsonRpcVersion,
-        data
-      )
+  def initializeError(
+    data: Option[InitializeData] = None
+  ): ResponseError = ResponseError(
+    ErrorCode.UnknownProtocolVersion,
+    ErrorMessage.wrongJsonRpcVersion,
+    data
+  )
 
-  case class InvalidRequest(
-    override val data: Option[Data.Text] = None
-  ) extends ResponseError(
-        ErrorCode.InvalidRequest,
-        ErrorMessage.invalidRequest,
-        data
-      )
+  def invalidRequest(
+    data: Option[Data.Text] = None
+  ): ResponseError = ResponseError(
+    ErrorCode.InvalidRequest,
+    ErrorMessage.invalidRequest,
+    data
+  )
 
-  case class ServerNotInitialized(
-    override val data: Option[Data.Text] = None
-  ) extends ResponseError(
-        ErrorCode.ServerNotInitialized,
-        ErrorMessage.serverNotInitialized,
-        data
-      )
+  def serverNotInitialized(
+    data: Option[Data.Text] = None
+  ): ResponseError = ResponseError(
+    ErrorCode.ServerNotInitialized,
+    ErrorMessage.serverNotInitialized,
+    data
+  )
 
   /** Default type of errors. */
-  case class UnexpectedError(
-    override val data: Option[Data.Text] = None
-  ) extends ResponseError(
-        ErrorCode.UnknownErrorCode,
-        ErrorMessage.unexpectedError,
-        data
-      )
-
+  def unexpectedError(
+    data: Option[Data.Text] = None
+  ): ResponseError = ResponseError(
+    ErrorCode.UnknownErrorCode,
+    ErrorMessage.unexpectedError,
+    data
+  )
 }

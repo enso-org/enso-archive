@@ -7,19 +7,20 @@ import io.circe.generic.extras.semiauto.{
 }
 import cats.syntax.functor._
 import io.circe.syntax._
+import org.enso.languageserver.model
 import org.enso.{languageserver => ls}
 
 /** Id of [[RequestOrNotification]] or [[Response]]. */
 sealed trait Id {
-  def toLsModel: ls.Id = this match {
-    case Id.Number(value) => ls.Id.Number(value)
-    case Id.Text(value)   => ls.Id.Text(value)
+  def toLsModel: model.Id = this match {
+    case Id.Number(value) => ls.model.Id.Number(value)
+    case Id.Text(value)   => ls.model.Id.Text(value)
   }
 }
 object Id {
-  def fromLsModel(id: ls.Id): Id = id match {
-    case ls.Id.Number(value) => Id.Number(value)
-    case ls.Id.Text(value)   => Id.Text(value)
+  def fromLsModel(id: model.Id): Id = id match {
+    case ls.model.Id.Number(value) => Id.Number(value)
+    case ls.model.Id.Text(value)   => Id.Text(value)
   }
 
   implicit val idEncoder: Encoder[Id] = Encoder.instance {

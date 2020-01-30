@@ -1,14 +1,18 @@
 package org.enso.gateway.protocol.response
 
-import io.circe.{Encoder, Json}
-import io.circe.generic.extras.semiauto.deriveUnwrappedEncoder
-import io.circe.generic.semiauto.deriveEncoder
+import io.circe.{Decoder, Encoder, Json}
+import io.circe.generic.extras.semiauto.{
+  deriveUnwrappedDecoder,
+  deriveUnwrappedEncoder
+}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.response.result.{
   ServerCapabilities,
   ServerInfo
 }
 import io.circe.syntax._
 import org.enso.gateway.protocol.TextEdit
+import cats.syntax.functor._
 
 /** Result of [[org.enso.gateway.protocol.Response]].
   *
@@ -29,16 +33,29 @@ object Result {
       result.asJson
   }
 
+  implicit val resultDecoder: Decoder[Result] = List[Decoder[Result]](
+    Decoder[Text].widen,
+    Decoder[Number].widen,
+    Decoder[Bool].widen,
+    Decoder[InitializeResult].widen,
+    Decoder[NullResult.type].widen,
+    Decoder[ApplyWorkspaceEditResult].widen,
+    Decoder[WillSaveTextDocumentWaitUntilResult].widen
+  ).reduceLeft(_ or _)
+
   /** A string result. */
   case class Text(value: String) extends Result
+
   object Text {
     implicit val resultStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
+    implicit val resultStringDecoder: Decoder[Text] = deriveUnwrappedDecoder
   }
 
   /** A number result. */
   case class Number(value: Int) extends Result
   object Number {
     implicit val resultNumberEncoder: Encoder[Number] = deriveUnwrappedEncoder
+    implicit val resultNumberDecoder: Decoder[Number] = deriveUnwrappedDecoder
   }
 
   /** A boolean result. */
@@ -46,6 +63,8 @@ object Result {
   object Bool {
     implicit val resultBooleanEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder
+    implicit val resultBooleanDecoder: Decoder[Bool] =
+      deriveUnwrappedDecoder
   }
 
   /** Result of [[org.enso.gateway.protocol.Requests.Initialize]]. */
@@ -53,36 +72,42 @@ object Result {
     capabilities: ServerCapabilities,
     serverInfo: Option[ServerInfo] = None
   ) extends Result
-
   object InitializeResult {
     implicit val initializeResultEncoder: Encoder[InitializeResult] =
       deriveEncoder
+    implicit val initializeResultDecoder: Decoder[InitializeResult] =
+      deriveDecoder
   }
 
   /** Result of [[org.enso.gateway.protocol.Requests.Shutdown]]. */
   case object NullResult extends Result {
     implicit val nullResultEncoder: Encoder[NullResult.type] = _ => Json.Null
+    implicit val nullResultDecoder: Decoder[NullResult.type] = _ =>
+      Right(NullResult)
   }
 
   case class ApplyWorkspaceEditResult(
     applied: Boolean,
     failureReason: Option[String] = None
   ) extends Result
-
   object ApplyWorkspaceEditResult {
     implicit val applyWorkspaceEditResultEncoder
       : Encoder[ApplyWorkspaceEditResult] =
       deriveEncoder
+    implicit val applyWorkspaceEditResultDecoder
+      : Decoder[ApplyWorkspaceEditResult] =
+      deriveDecoder
   }
 
   case class WillSaveTextDocumentWaitUntilResult(
     value: Option[Seq[TextEdit]] = None
   ) extends Result
-
   object WillSaveTextDocumentWaitUntilResult {
     implicit val willSaveTextDocumentWaitUntilResultEncoder
       : Encoder[WillSaveTextDocumentWaitUntilResult] =
       deriveUnwrappedEncoder
+    implicit val willSaveTextDocumentWaitUntilResultDecoder
+      : Decoder[WillSaveTextDocumentWaitUntilResult] =
+      deriveUnwrappedDecoder
   }
-
 }

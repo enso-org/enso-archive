@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities.textdocument
 
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.request.clientcapabilities.textdocument.completion.{
   CompletionItem,
   CompletionItemKinds
@@ -16,6 +16,8 @@ case class Completion(
 )
 object Completion {
   implicit val clientCapabilitiesTextDocumentCompletionDecoder
-    : Decoder[Completion] =
-    deriveDecoder
+    : Decoder[Completion] = deriveDecoder
+
+  implicit val clientCapabilitiesTextDocumentCompletionEncoder
+    : Encoder[Completion] = deriveEncoder
 }

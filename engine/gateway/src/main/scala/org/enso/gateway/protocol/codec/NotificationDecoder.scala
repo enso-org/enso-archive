@@ -1,10 +1,9 @@
-package org.enso.gateway.protocol
+package org.enso.gateway.protocol.codec
 
 import io.circe.{ACursor, Decoder, DecodingFailure}
-import org.enso.gateway.JsonRpcController.jsonRpcVersion
+import org.enso.gateway.protocol.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Params
 import org.enso.gateway.protocol.request.Params.{
-  ApplyWorkspaceEditParams,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
   DidOpenTextDocumentParams,
@@ -13,6 +12,7 @@ import org.enso.gateway.protocol.request.Params.{
   VoidParams,
   WillSaveTextDocumentWaitUntilParams
 }
+import org.enso.gateway.protocol.{Notification, Notifications, Requests}
 
 /** Helper object for decoding [[Notification]]. */
 object NotificationDecoder {
@@ -24,9 +24,9 @@ object NotificationDecoder {
     */
   def instance[P <: Params]: Decoder[Notification[P]] =
     cursor => {
-      val jsonrpcCursor = cursor.downField(Notification.jsonrpcField)
-      val methodCursor  = cursor.downField(Notification.methodField)
-      val paramsCursor  = cursor.downField(Notification.paramsField)
+      val jsonrpcCursor = cursor.downField(Field.jsonrpc)
+      val methodCursor  = cursor.downField(Field.method)
+      val paramsCursor  = cursor.downField(Field.params)
       val jsonrpcResult = validateJsonrpc(jsonrpcCursor)
       val methodResult  = Decoder[String].tryDecode(methodCursor)
       val paramsResult = methodResult
@@ -46,8 +46,8 @@ object NotificationDecoder {
         Decoder[Option[InitializeParams]]
       case Requests.Shutdown.method =>
         Decoder[Option[VoidParams]]
-      case Requests.ApplyWorkspaceEdit.method =>
-        Decoder[Option[ApplyWorkspaceEditParams]]
+      //      case Requests.ApplyWorkspaceEdit.method =>
+      //        Decoder[Option[ApplyWorkspaceEditParams]]
       case Requests.WillSaveTextDocumentWaitUntil.method =>
         Decoder[Option[WillSaveTextDocumentWaitUntilParams]]
 

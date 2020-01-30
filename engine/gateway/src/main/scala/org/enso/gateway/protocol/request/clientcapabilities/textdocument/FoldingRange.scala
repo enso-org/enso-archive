@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities.textdocument
 
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 
 /** Capabilities specific to the `textDocument/foldingRange` request. */
 case class FoldingRange(
@@ -9,8 +9,11 @@ case class FoldingRange(
   rangeLimit: Option[Int]              = None,
   lineFoldingOnly: Option[Boolean]     = None
 )
+
 object FoldingRange {
   implicit val clientCapabilitiesTextDocumentFoldingRangeDecoder
-    : Decoder[FoldingRange] =
-    deriveDecoder
+    : Decoder[FoldingRange] = deriveDecoder
+
+  implicit val clientCapabilitiesTextDocumentFoldingRangeEncoder
+    : Encoder[FoldingRange] = deriveEncoder
 }

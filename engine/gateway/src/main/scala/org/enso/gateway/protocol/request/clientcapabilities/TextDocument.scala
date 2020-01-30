@@ -1,7 +1,7 @@
 package org.enso.gateway.protocol.request.clientcapabilities
 
-import io.circe.Decoder
-import io.circe.generic.semiauto.deriveDecoder
+import io.circe.{Decoder, Encoder}
+import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import org.enso.gateway.protocol.request.clientcapabilities.textdocument.{
   CodeAction,
   CodeLens,
@@ -53,4 +53,7 @@ case class TextDocument(
 object TextDocument {
   implicit val clientCapabilitiesTextDocumentDecoder: Decoder[TextDocument] =
     deriveDecoder
+
+  implicit val clientCapabilitiesTextDocumentEncoder: Encoder[TextDocument] =
+    deriveEncoder
 }

@@ -1,7 +1,10 @@
-package org.enso.languageserver
+package org.enso.languageserver.model
 
-/** Id of [[Request]], [[Response]]. */
+/** Id of [[org.enso.languageserver.Request]],
+  * [[org.enso.languageserver.Response]].
+  */
 sealed trait Id
+
 object Id {
 
   /** A number id. */
