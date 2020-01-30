@@ -37,26 +37,17 @@ object JsonRpcController {
   *
   * //  * @param gateway [[ActorRef]] of Gateway actor.
   */
-class JsonRpcController(gateway: ActorRef, server: Server)(
-  implicit system: ActorSystem
-) {
+class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
 
   import system.dispatcher
+
+  private var _server: Server = _
+
+  def server_=(server: Server): Unit = _server = server
 
   /** Generates text reply for given request text message, no reply for
     * notification.
     */
-  //  def decodeFromJson /*getTextOutput*/ (
-  //    input: String
-  //  ): Message /*Option[String]*/ = {
-  //    val id = decode[IdHolder](input).map(_.id).toOption
-  //
-  //    decode[Message](input) match {
-  //      case Right(message) => message
-  //      case Left(err)      => mkErrorResponse(input, err).copy(id = id)
-  //    }
-  //  }
-
   def getTextOutput(
     input: String
   )(implicit timeout: Timeout): Future[Option[String]] = {
@@ -94,7 +85,7 @@ class JsonRpcController(gateway: ActorRef, server: Server)(
   def handleRequestOrNotification(
     requestOrNotification: RequestOrNotification
   ): Unit = {
-    server.sendToConnections(encodeToJson(requestOrNotification))
+    _server.sendToConnections(encodeToJson(requestOrNotification))
   }
 
   private def mkErrorResponse(

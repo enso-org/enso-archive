@@ -66,7 +66,24 @@ object Request {
     RequestDecoder.instance
 
   implicit def requestEncoder[P <: Params: Encoder]: Encoder[Request[P]] =
-    deriveEncoder
+    //    new Encoder[Request[P]] {
+    //      override def apply(request: Request[P]): Json = {
+    //        val jsonrpcJson = Encoder[String].apply(request.jsonrpc)
+    //        val idJson      = Encoder[Id].apply(request.id)
+    //        val methodJson  = Encoder[String].apply(request.method)
+    //        val paramsJson  = encoder.apply(request.params)
+    //        Json.obj(
+    //          "jsonrpc" -> jsonrpcJson,
+    //          "id"      -> idJson,
+    //          "method"  -> methodJson,
+    //          "params"  -> paramsJson
+    //        )
+    //      }
+    //    }
+    //    Encoder.forProduct4("jsonrpc", "id", "method", "params")(
+    //      request => (request.jsonrpc, request.id, request.method, request.params)
+    //    )
+    deriveEncoder[Request[P]]
 }
 
 /** `NotificationMessage` in LSP Spec.
@@ -87,14 +104,12 @@ case class Notification[P <: Params](
   method: String,
   params: Option[P]
 ) extends RequestOrNotification
-
 object Notification {
   implicit def notificationDecoder[P <: Params]: Decoder[Notification[P]] =
     NotificationDecoder.instance
 
   implicit def notificationEncoder[P <: Params: Encoder]
-    : Encoder[Notification[P]] =
-    deriveEncoder
+    : Encoder[Notification[P]] = deriveEncoder
 }
 
 /** `ResponseMessage` in LSP Spec.
@@ -113,7 +128,6 @@ case class Response private (
   result: Option[Result],
   error: Option[ResponseError]
 ) extends Message
-
 object Response {
 
   /** Creates response with a result.
@@ -148,6 +162,5 @@ object Response {
     Response(jsonRpcVersion, id, None, Some(error))
 
   implicit val responseEncoder: Encoder[Response] = deriveEncoder
-
   implicit def responseDecoder: Decoder[Response] = ResponseDecoder.instance
 }

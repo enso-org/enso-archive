@@ -197,8 +197,10 @@ object Main {
       system.actorOf(Gateway.props(languageServer), gatewayActorName)
 
     val jsonRpcController = new JsonRpcController(gateway)
-    val config            = new enso.gateway.server.Config
-    val server            = new enso.gateway.Server(jsonRpcController, config)
+    gateway ! Gateway.SetJsonRpcController(jsonRpcController)
+    val config = new enso.gateway.server.Config
+    val server = new enso.gateway.Server(jsonRpcController, config)
+    jsonRpcController.server_=(server)
     server.run()
 
     StdIn.readLine()

@@ -7,7 +7,7 @@ import org.enso.gateway.protocol.{Notification, Request, RequestOrNotification}
 object RequestOrNotificationEncoder {
   val instance: Encoder[RequestOrNotification] =
     Encoder.instance {
-      case request: Request[p]           => request.asJson
-      case notification: Notification[p] => notification.asJson
+      case request: Request[_]           => request.asJson
+      case notification: Notification[_] => notification.asJson
     }
 }

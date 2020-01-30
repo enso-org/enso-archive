@@ -35,10 +35,13 @@ import org.enso.{languageserver => ls}
   *
   * @param languageServer [[ActorRef]] of [[LanguageServer]] actor.
   */
-class Gateway(languageServer: ActorRef, jsonRpcController: JsonRpcController)
-    extends Actor
-    with ActorLogging {
+class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
+  var jsonRpcController: JsonRpcController = _
+
   override def receive: Receive = {
+    case Gateway.SetJsonRpcController(jsonRpcController) =>
+      this.jsonRpcController = jsonRpcController
+
     case Requests.Initialize(id, params) =>
       val msg = "Gateway: Initialize received"
       log.info(msg)
@@ -103,7 +106,7 @@ class Gateway(languageServer: ActorRef, jsonRpcController: JsonRpcController)
     case ls.RequestToClient.ApplyWorkspaceEdit(id) =>
       val msg = "Gateway: RequestToClient.ApplyWorkspaceEdit received"
       log.info(msg)
-      jsonRpcController.handleRequest(
+      jsonRpcController.handleRequestOrNotification(
         RequestsToClient.ApplyWorkspaceEdit(Id.fromLsModel(id))
       )
 
@@ -187,8 +190,10 @@ class Gateway(languageServer: ActorRef, jsonRpcController: JsonRpcController)
 }
 object Gateway {
   def props(
-    languageServer: ActorRef,
-    jsonRpcController: JsonRpcController
+    languageServer: ActorRef
   ): Props =
-    Props(new Gateway(languageServer, jsonRpcController))
+    Props(new Gateway(languageServer))
+
+  case class SetJsonRpcController(jsonRpcController: JsonRpcController)
+
 }

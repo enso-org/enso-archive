@@ -31,8 +31,7 @@ object Param {
     Decoder[TextDocumentIdentifier].widen,
     Decoder[TextDocumentSaveReason].widen,
     Decoder[TextDocumentContentChangeEvent].widen,
-    Decoder[VersionedTextDocumentIdentifier].widen,
-    Decoder[WorkspaceFolder].widen
+    Decoder[VersionedTextDocumentIdentifier].widen
   ).reduceLeft(_ or _)
 
   implicit val paramEncoder: Encoder[Param] = Encoder.instance {
@@ -46,11 +45,11 @@ object Param {
     case param: Trace                           => param.asJson
     case param: WorkspaceFolder                 => param.asJson
     case param: TextDocumentItem                => param.asJson
+    case param: WorkspaceEdit                   => param.asJson
     case param: TextDocumentIdentifier          => param.asJson
     case param: TextDocumentSaveReason          => param.asJson
     case param: TextDocumentContentChangeEvent  => param.asJson
     case param: VersionedTextDocumentIdentifier => param.asJson
-    case param: WorkspaceFolder                 => param.asJson
   }
 
   /** A string element. */

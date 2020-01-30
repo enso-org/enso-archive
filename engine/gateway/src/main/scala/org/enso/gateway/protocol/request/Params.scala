@@ -36,22 +36,23 @@ object Params {
     Decoder[DidChangeTextDocumentParams].widen,
     Decoder[WillSaveTextDocumentWaitUntilParams].widen,
     Decoder[DidSaveTextDocumentParams].widen,
-    Decoder[DidCloseTextDocumentParams].widen,
-    Decoder[InitializeParams].widen
+    Decoder[DidCloseTextDocumentParams].widen
   ).reduceLeft(_ or _)
 
-  implicit val paramsEncoder: Encoder[Params] = Encoder.instance {
-    case params: Array                               => params.asJson
-    case params: VoidParams                          => params.asJson
-    case params: InitializeParams                    => params.asJson
-    case params: ApplyWorkspaceEditParams            => params.asJson
-    case params: DidOpenTextDocumentParams           => params.asJson
-    case params: DidChangeTextDocumentParams         => params.asJson
-    case params: WillSaveTextDocumentWaitUntilParams => params.asJson
-    case params: DidSaveTextDocumentParams           => params.asJson
-    case params: DidCloseTextDocumentParams          => params.asJson
-    case params: InitializeParams                    => params.asJson
-  }
+  implicit def paramsEncoder[P <: Params]: Encoder[P] =
+    Encoder
+      .instance[Params] {
+        case params: Array                               => params.asJson
+        case params: VoidParams                          => params.asJson
+        case params: InitializeParams                    => params.asJson
+        case params: ApplyWorkspaceEditParams            => params.asJson
+        case params: DidOpenTextDocumentParams           => params.asJson
+        case params: DidChangeTextDocumentParams         => params.asJson
+        case params: WillSaveTextDocumentWaitUntilParams => params.asJson
+        case params: DidSaveTextDocumentParams           => params.asJson
+        case params: DidCloseTextDocumentParams          => params.asJson
+      }
+      .asInstanceOf[Encoder[P]]
 
   type DocumentUri = String
 
@@ -106,7 +107,7 @@ object Params {
 
   //workspace/applyEdit
   /** Params of the request
-    * [[org.enso.gateway.protocol.Requests.ApplyWorkspaceEdit]].
+    * [[org.enso.gateway.protocol.RequestsToClient.ApplyWorkspaceEdit]].
     */
   case class ApplyWorkspaceEditParams(
     label: Option[String] = None,
