@@ -15,6 +15,9 @@ import org.enso.graph.{Graph => PrimGraph}
   *
   * It does _not_ utilise the high-level API, and instead works directly with
   * the defined graph primitives.
+  *
+  * PLEASE NOTE: Many of these tests will be removed once the smart constructors
+  * exist.
   */
 class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
@@ -102,6 +105,23 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1.parents shouldEqual parentIndices
     n1.parents.length shouldEqual 3
+  }
+
+  node should "be able to take on multiple shapes" in {
+    val n1 = graph.addNode()
+
+    Node.setShape[Empty](n1)
+
+    n1 match {
+      case Empty.any(_) =>
+        Node.setShape[AtomDef](n1)
+
+        n1 match {
+          case AtomDef.any(_) => succeed
+          case _ => fail
+        }
+      case _ => fail
+    }
   }
 
   nodeShape should "be able to be empty" in {
@@ -219,21 +239,6 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     }
   }
 
-  nodeShape should "be able to represent a name literal" in {
-    val n1 = graph.addNode()
-
-    Node.setShape[NameLiteral](n1)
-
-    n1 match {
-      case NameLiteral.any(n1) =>
-        val name = "FooBar"
-        n1.literal = name
-
-        n1.nameLiteral shouldEqual NameLiteralVal(name)
-      case _ => fail
-    }
-  }
-
   nodeShape should "be able to represent a foreign code literal" in {
     val n1 = graph.addNode()
     val l1 = graph.addLink()
@@ -250,15 +255,15 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
   nodeShape should "be able to represent a name" in {
     val n1 = graph.addNode()
-    val l1 = graph.addLink()
 
     Node.setShape[Name](n1)
 
     n1 match {
       case Name.any(n1) =>
-        n1.nameLiteral = l1
+        val testName = "Name"
+        n1.nameLiteral = testName
 
-        n1.name shouldEqual NameVal(l1)
+        n1.name shouldEqual NameVal(testName)
       case _ => fail
     }
   }
@@ -359,15 +364,15 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     val l2 = graph.addLink()
     val l3 = graph.addLink()
 
-    Node.setShape[ComplexTypeDef](n1)
+    Node.setShape[TypeDef](n1)
 
     n1 match {
-      case ComplexTypeDef.any(n1) =>
+      case TypeDef.any(n1) =>
         n1.name       = l1
         n1.typeParams = l2
         n1.body       = l3
 
-        n1.complexTypeDef shouldEqual ComplexTypeDefVal(l1, l2, l3)
+        n1.typeDef shouldEqual TypeDefVal(l1, l2, l3)
       case _ => fail
     }
   }
@@ -382,7 +387,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case TypeAscription.any(n1) =>
         n1.typed = l1
-        n1.sig = l2
+        n1.sig   = l2
 
         n1.typeAscription shouldEqual TypeAscriptionVal(l1, l2)
       case _ => fail
@@ -398,7 +403,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case ContextAscription.any(n1) =>
-        n1.typed = l1
+        n1.typed   = l1
         n1.context = l2
 
         n1.contextAscription shouldEqual ContextAscriptionVal(l1, l2)
@@ -416,9 +421,9 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case TypesetMember.any(n1) =>
-        n1.label = l1
+        n1.label      = l1
         n1.memberType = l2
-        n1.value = l3
+        n1.value      = l3
 
         n1.typesetMember shouldEqual TypesetMemberVal(l1, l2, l3)
       case _ => fail
@@ -434,7 +439,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case TypesetSubsumption.any(n1) =>
-        n1.left = l1
+        n1.left  = l1
         n1.right = l2
 
         n1.typesetSubsumption shouldEqual TypesetSubsumptionVal(l1, l2)
@@ -451,7 +456,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case TypesetEquality.any(n1) =>
-        n1.left = l1
+        n1.left  = l1
         n1.right = l2
 
         n1.typesetEquality shouldEqual TypesetEqualityVal(l1, l2)
@@ -468,7 +473,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case TypesetConcat.any(n1) =>
-        n1.left = l1
+        n1.left  = l1
         n1.right = l2
 
         n1.typesetConcat shouldEqual TypesetConcatVal(l1, l2)
@@ -485,7 +490,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case TypesetUnion.any(n1) =>
-        n1.left = l1
+        n1.left  = l1
         n1.right = l2
 
         n1.typesetUnion shouldEqual TypesetUnionVal(l1, l2)
@@ -502,7 +507,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case TypesetIntersection.any(n1) =>
-        n1.left = l1
+        n1.left  = l1
         n1.right = l2
 
         n1.typesetIntersection shouldEqual TypesetIntersectionVal(l1, l2)
@@ -519,7 +524,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case TypesetSubtraction.any(n1) =>
-        n1.left = l1
+        n1.left  = l1
         n1.right = l2
 
         n1.typesetSubtraction shouldEqual TypesetSubtractionVal(l1, l2)
@@ -536,7 +541,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case Lambda.any(n1) =>
-        n1.arg = l1
+        n1.arg  = l1
         n1.body = l2
 
         n1.lambda shouldEqual LambdaVal(l1, l2)
@@ -574,8 +579,8 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case MethodDef.any(n1) =>
         n1.targetPath = l1
-        n1.name = l2
-        n1.function = l3
+        n1.name       = l2
+        n1.function   = l3
 
         n1.methodDef shouldEqual MethodDefVal(l1, l2, l3)
       case _ => fail
@@ -589,7 +594,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case IgnoredArgument.any(_) => succeed
-      case _ => fail
+      case _                      => fail
     }
   }
 
@@ -603,9 +608,9 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case DefinitionArgument.any(n1) =>
-        n1.name = l1
+        n1.name      = l1
         n1.suspended = l2
-        n1.default = l3
+        n1.default   = l3
 
         n1.definitionArgument shouldEqual DefinitionArgumentVal(l1, l2, l3)
       case _ => fail
@@ -638,7 +643,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case MixfixApplication.any(n1) =>
-        n1.function = l1
+        n1.function  = l1
         n1.arguments = l2
 
         n1.mixfixApplication shouldEqual MixfixApplicationVal(l1, l2)
@@ -656,9 +661,9 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case InfixApplication.any(n1) =>
-        n1.left = l1
+        n1.left     = l1
         n1.operator = l2
-        n1.right = l3
+        n1.right    = l3
 
         n1.infixApplication shouldEqual InfixApplicationVal(l1, l2, l3)
       case _ => fail
@@ -674,7 +679,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case LeftSection.any(n1) =>
-        n1.arg = l1
+        n1.arg      = l1
         n1.operator = l2
 
         n1.leftSection shouldEqual LeftSectionVal(l1, l2)
@@ -692,7 +697,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case RightSection.any(n1) =>
         n1.operator = l1
-        n1.arg = l2
+        n1.arg      = l2
 
         n1.rightSection shouldEqual RightSectionVal(l1, l2)
       case _ => fail
@@ -736,7 +741,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case LambdaShorthandArgument.any(_) => succeed
-      case _ => fail
+      case _                              => fail
     }
   }
 
@@ -750,7 +755,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case CallSiteArgument.any(n1) =>
         n1.expression = l1
-        n1.name = l2
+        n1.name       = l2
 
         n1.callSiteArgument shouldEqual CallSiteArgumentVal(l1, l2)
       case _ => fail
@@ -764,7 +769,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case SuspendDefaultsOperator.any(_) => succeed
-      case _ => fail
+      case _                              => fail
     }
   }
 
@@ -778,7 +783,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case Block.any(n1) =>
         n1.expressions = l1
-        n1.returnVal = l2
+        n1.returnVal   = l2
 
         n1.block shouldEqual BlockVal(l1, l2)
       case _ => fail
@@ -794,7 +799,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case Binding.any(n1) =>
-        n1.name = l1
+        n1.name       = l1
         n1.expression = l2
 
         n1.binding shouldEqual BindingVal(l1, l2)
@@ -812,7 +817,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case CaseExpr.any(n1) =>
         n1.scrutinee = l1
-        n1.branches = l2
+        n1.branches  = l2
 
         n1.caseExpr shouldEqual CaseExprVal(l1, l2)
       case _ => fail
@@ -828,7 +833,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case CaseBranch.any(n1) =>
-        n1.pattern = l1
+        n1.pattern    = l1
         n1.expression = l2
 
         n1.caseBranch shouldEqual CaseBranchVal(l1, l2)
@@ -888,7 +893,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
     n1 match {
       case FallbackMatch.any(_) => succeed
-      case _ => fail
+      case _                    => fail
     }
   }
 
@@ -902,7 +907,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case DocComment.any(n1) =>
         n1.commented = l1
-        n1.doc = l2
+        n1.doc       = l2
 
         n1.docComment shouldEqual DocCommentVal(l1, l2)
       case _ => fail
@@ -934,7 +939,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     n1 match {
       case ForeignDefinition.any(n1) =>
         n1.language = l1
-        n1.code = l2
+        n1.code     = l2
 
         n1.foreignDefinition shouldEqual ForeignDefinitionVal(l1, l2)
       case _ => fail

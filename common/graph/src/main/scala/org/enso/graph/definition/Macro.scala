@@ -1,5 +1,7 @@
 package org.enso.graph.definition
 
+import org.apache.commons.lang3.StringUtils
+
 import scala.annotation.{compileTimeOnly, StaticAnnotation}
 import scala.reflect.macros.whitebox
 
@@ -260,7 +262,10 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
-              graph.primUnsafeReadField[C, $enclosingTypeName](node.ix, $index)
+              graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
+                node.ix,
+                $index
+              )
             }
             """
           } else {
@@ -270,7 +275,7 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.primUnsafeReadField[C, $enclosingTypeName](
+                graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node),
                   $index
                 )
@@ -313,7 +318,10 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.primUnsafeReadField[C, $enclosingTypeName](node.ix, $index)
+                graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
+                  node.ix,
+                  $index
+                )
               )
             }
             """
@@ -324,7 +332,7 @@ object Macro {
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): $paramType = {
               $graphTermName.Component.Ref(
-                graph.primUnsafeReadField[C, $enclosingTypeName](
+                graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node).ix,
                   $index
                 )
@@ -367,7 +375,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.primUnsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 node.ix, $index, value
               )
             }
@@ -378,7 +386,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.primUnsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
                 $index,
                 value
@@ -420,7 +428,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.primUnsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 node.ix, $index, value.ix
               )
             }
@@ -431,7 +439,7 @@ object Macro {
               implicit graph: $graphTermName.GraphData[G],
               ev: $graphTermName.HasComponentField[G, C, $enclosingTypeName]
             ): Unit = {
-              graph.primUnsafeWriteField[C, $enclosingTypeName](
+              graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
                 $index,
                 value.ix
@@ -450,12 +458,13 @@ object Macro {
         * @return the accessor name for [[fieldName]]
         */
       def makeTypeAccessorName(fieldName: TypeName): String = {
-        val matcher = "([A-Z])(.*)".r
-
-        matcher.findFirstMatchIn(fieldName.toString) match {
-          case Some(t) => s"${t.group(1).toLowerCase()}${t.group(2)}"
-          case None    => fieldName.toString.toLowerCase
-        }
+        StringUtils.uncapitalize(fieldName.toString)
+//        val matcher = "([A-Z])(.*)".r
+//
+//        matcher.findFirstMatchIn(fieldName.toString) match {
+//          case Some(t) => s"${t.group(1).toLowerCase()}${t.group(2)}"
+//          case None    => fieldName.toString.toLowerCase
+//        }
       }
 
       /** Generates accessor methods for the 'value class', the one that can
@@ -1297,8 +1306,9 @@ object Macro {
     * }
     * }}}
     *
-    * Please note that while you can define a field with multiple opaque
-    * subfields, those fields _must_ not use the same underlying storage type.
+    * Please note that while it is possible to define a field with multiple
+    * opaque subfields, those fields _must_ not use the same underlying storage
+    * type.
     */
   @compileTimeOnly("please enable macro paradise to expand macro annotations")
   class opaque extends StaticAnnotation {

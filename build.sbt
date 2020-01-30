@@ -302,7 +302,8 @@ lazy val graph = (project in file("common/graph/"))
       "io.estatico"                %% "newtype"      % "0.4.3",
       "org.scalatest"              %% "scalatest"    % "3.2.0-SNAP10" % Test,
       "org.scalacheck"             %% "scalacheck"   % "1.14.0" % Test,
-      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
+      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0",
+      "org.apache.commons"         % "commons-lang3" % "3.9"
     ),
     libraryDependencies ++= Seq(
       compilerPlugin(
@@ -428,6 +429,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % Benchmark,
       "org.typelevel"       %% "cats-core"            % "2.0.0-M4"
     ),
+    // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (core_definition / Compile / packageBin).value,
     Test / unmanagedClasspath += (core_definition / Compile / packageBin).value,
     Compile / compile := (Compile / compile)
@@ -474,6 +476,20 @@ lazy val runtime = (project in file("engine/runtime"))
   .dependsOn(syntax.jvm)
   .dependsOn(graph)
   .dependsOn(polyglot_api)
+
+/* Note [Unmanaged Classpath]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * As the definition of the core primitives in `core_definition` is achieved
+ * entirely using the graph macros, this means that the IDE experience for those
+ * using these primitives is very poor.
+ *
+ * To get around this, we want to treat the core definition as a .jar dependency
+ * to force the IDE to depend on bytecode for its diagnostics, rather than the
+ * source code (as this means it sees the macros expanded). A standard workflow
+ * with local publishing would not recompile the definition automatically on
+ * changes, so the `unmanagedClasspath` route allows us to get automatic
+ * recompilation but still convince the IDE that it is a .jar dependency.
+ */
 
 lazy val runner = project
   .in(file("engine/runner"))
@@ -562,4 +578,5 @@ lazy val polyglot_api = project
       "org.scalatest"   %% "scalatest"   % "3.2.0-SNAP10" % Test,
       "org.scalacheck"  %% "scalacheck"  % "1.14.0"       % Test
     )
-  ).dependsOn(pkg)
+  )
+  .dependsOn(pkg)

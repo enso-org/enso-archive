@@ -127,6 +127,9 @@ object CoreGraph {
 
         /** A raw literal is the basic literal type in the [[CoreGraph]].
           *
+          * This is the underlying storage of the literal string for all of the
+          * other literal types.
+          *
           * @param literal the literal text
           */
         case class RawLiteral(literal: OpaqueData[String, LiteralStorage])
@@ -143,12 +146,6 @@ object CoreGraph {
           */
         case class TextLiteral(text: Link[G])
 
-        /** The raw representation of a name.
-          *
-          * @param literal the literal text of the name
-          */
-        case class NameLiteral(literal: OpaqueData[String, NameStorage])
-
         /** A representation of literal text from a foreign code block.
           *
           * @param literal a link to the [[RawLiteral]] representing the code
@@ -159,10 +156,9 @@ object CoreGraph {
 
         /** A name.
           *
-          * @param nameLiteral a link to the name literal, represented as a
-          *                    [[NameLiteral]]
+          * @param nameLiteral the literal string representing the name
           */
-        case class Name(nameLiteral: Link[G])
+        case class Name(nameLiteral: OpaqueData[String, LiteralStorage])
 
         /** A representation of the `this` reserved name */
         case class ThisName()
@@ -212,7 +208,7 @@ object CoreGraph {
           * @param body the body of the type definition, represented as a
           *             [[List]] of bindings
           */
-        case class ComplexTypeDef(
+        case class TypeDef(
           name: Link[G],
           typeParams: Link[G],
           body: Link[G]
@@ -563,7 +559,7 @@ object CoreGraph {
         node: Node[CoreGraph]
       )(implicit graph: PrimGraph.GraphData[CoreGraph]): Boolean = {
         node match {
-          case Shape.ComplexTypeDef.any(_)    => true
+          case Shape.TypeDef.any(_)    => true
           case Shape.FunctionDef.any(_)       => true
           case Shape.MixfixApplication.any(_) => true
           case Shape.InfixApplication.any(_)  => true

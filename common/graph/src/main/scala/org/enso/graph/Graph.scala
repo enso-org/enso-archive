@@ -463,7 +463,7 @@ object Graph {
         ev: HasComponentField[G, C, T]
       ): Option[Component.Refined[T, V, Component.Ref[G, C]]] = {
         val variantIndexByteOffset = 0
-        if (graph.primUnsafeReadField[C, T](arg.ix, variantIndexByteOffset) == ix)
+        if (graph.unsafeReadFieldByIndex[C, T](arg.ix, variantIndexByteOffset) == ix)
           Some(Component.Refined[T, V, Component.Ref[G, C]](arg))
         else None
       }
@@ -532,7 +532,7 @@ object Graph {
     def unsafeGetFieldData[C <: Component, F <: Component.Field](
       component: Component.Ref[G, C]
     )(implicit info: HasComponentField[G, C, F]): (Array[Int], Int) = {
-      primUnsafeGetFieldData[C, F](component.ix, info.fieldOffset)
+      unsafeGetFieldDataByIndex[C, F](component.ix, info.fieldOffset)
     }
 
     /** Reads the data for a specified field [[F]] in a component [[C]] from the
@@ -547,7 +547,7 @@ object Graph {
       * @tparam F the field type
       * @return the raw field data from [[component]] specified by [[F]]
       */
-    def primUnsafeGetFieldData[C <: Component, F <: Component.Field](
+    def unsafeGetFieldDataByIndex[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int
     )(implicit info: HasComponentField[G, C, F]): (Array[Int], Int) = {
@@ -567,7 +567,7 @@ object Graph {
     def unsafeReadField[C <: Component, F <: Component.Field](
       component: Component.Ref[G, C]
     )(implicit ev: HasComponentField[G, C, F]): Int = {
-      primUnsafeReadField[C, F](component.ix, ev.fieldOffset)
+      unsafeReadFieldByIndex[C, F](component.ix, ev.fieldOffset)
     }
 
     /** Reads the spcified field [[F]] from the instance of [[C]] at
@@ -582,11 +582,11 @@ object Graph {
       * @tparam F the field type
       * @return the value of field [[F]] in [[component]]
       */
-    def primUnsafeReadField[C <: Component, F <: Component.Field](
+    def unsafeReadFieldByIndex[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int
     )(implicit ev: HasComponentField[G, C, F]): Int = {
-      val (arr, idx) = primUnsafeGetFieldData(componentIx, fieldIx)
+      val (arr, idx) = unsafeGetFieldDataByIndex(componentIx, fieldIx)
       arr(idx)
     }
 
@@ -604,7 +604,7 @@ object Graph {
     )(
       implicit ev: HasComponentField[G, C, F]
     ): Unit = {
-      primUnsafeWriteField[C, F](component.ix, ev.fieldOffset, value)
+      unsafeWriteFieldByIndex[C, F](component.ix, ev.fieldOffset, value)
     }
 
     /** Sets the field at [[fieldIx]] in the instance of [[C]] represented by
@@ -619,12 +619,12 @@ object Graph {
      * @tparam C the component type
      * @tparam F the field type
      */
-    def primUnsafeWriteField[C <: Component, F <: Component.Field](
+    def unsafeWriteFieldByIndex[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int,
       value: Int
     )(implicit ev: HasComponentField[G, C, F]): Unit = {
-      val (arr, idx) = primUnsafeGetFieldData(componentIx, fieldIx)
+      val (arr, idx) = unsafeGetFieldDataByIndex(componentIx, fieldIx)
       arr(idx) = value
     }
 
