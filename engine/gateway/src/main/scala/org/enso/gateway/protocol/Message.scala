@@ -64,25 +64,7 @@ case class Request[P <: Params](
 object Request {
   implicit def requestDecoder[P <: Params]: Decoder[Request[P]] =
     RequestDecoder.instance
-
   implicit def requestEncoder[P <: Params: Encoder]: Encoder[Request[P]] =
-    //    new Encoder[Request[P]] {
-    //      override def apply(request: Request[P]): Json = {
-    //        val jsonrpcJson = Encoder[String].apply(request.jsonrpc)
-    //        val idJson      = Encoder[Id].apply(request.id)
-    //        val methodJson  = Encoder[String].apply(request.method)
-    //        val paramsJson  = encoder.apply(request.params)
-    //        Json.obj(
-    //          "jsonrpc" -> jsonrpcJson,
-    //          "id"      -> idJson,
-    //          "method"  -> methodJson,
-    //          "params"  -> paramsJson
-    //        )
-    //      }
-    //    }
-    //    Encoder.forProduct4("jsonrpc", "id", "method", "params")(
-    //      request => (request.jsonrpc, request.id, request.method, request.params)
-    //    )
     deriveEncoder[Request[P]]
 }
 
@@ -107,7 +89,6 @@ case class Notification[P <: Params](
 object Notification {
   implicit def notificationDecoder[P <: Params]: Decoder[Notification[P]] =
     NotificationDecoder.instance
-
   implicit def notificationEncoder[P <: Params: Encoder]
     : Encoder[Notification[P]] = deriveEncoder
 }
@@ -142,8 +123,7 @@ object Response {
   ): Response =
     Response(jsonRpcVersion, id, Some(result), None)
 
-  /**
-    */
+  /** Creates response with empty result. */
   def emptyResult(
     id: Option[Id] = None
   ): Response =

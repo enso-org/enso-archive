@@ -46,8 +46,6 @@ object NotificationDecoder {
         Decoder[Option[InitializeParams]]
       case Requests.Shutdown.method =>
         Decoder[Option[VoidParams]]
-      //      case Requests.ApplyWorkspaceEdit.method =>
-      //        Decoder[Option[ApplyWorkspaceEditParams]]
       case Requests.WillSaveTextDocumentWaitUntil.method =>
         Decoder[Option[WillSaveTextDocumentWaitUntilParams]]
 

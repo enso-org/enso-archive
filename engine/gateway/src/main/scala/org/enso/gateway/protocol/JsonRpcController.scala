@@ -35,7 +35,7 @@ object JsonRpcController {
   * It handles and decodes all JSON-RPC messages and dispatch them to the
   * Gateway.
   *
-  * //  * @param gateway [[ActorRef]] of Gateway actor.
+  * @param gateway [[ActorRef]] of Gateway actor.
   */
 class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
 
@@ -157,13 +157,8 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
     )
   }
 
-  private def encodeToJson(
-    message: Message
-    //    response: Response
-  ): String = {
-    /*response*/
+  private def encodeToJson(message: Message): String =
     message.asJson.printWith(
       Printer.noSpaces.copy(dropNullValues = true)
     )
-  }
 }

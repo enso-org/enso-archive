@@ -50,9 +50,6 @@ class Server(jsonRpcController: JsonRpcController, config: Config)(
     Sink.foreachAsync(parallelism = 1) {
       case tm: TextMessage =>
         val strict = tm.textStream.fold("")(_ + _)
-        //      strict.runFoldAsync() { (_, input) =>
-        //        jsonRpcController.getTextOutput(input)
-        //      }
         strict
           .runForeach { input =>
             jsonRpcController
@@ -74,32 +71,11 @@ class Server(jsonRpcController: JsonRpcController, config: Config)(
     * @see [[JsonRpcController.getTextOutput]].
     *      Incoming binary messages are ignored.
     */
-  private val handlerFlow
-    : Flow[Message, /*TextMessage.Strict*/ Message, NotUsed] =
+  private val handlerFlow: Flow[Message, Message, NotUsed] =
     Flow.fromSinkAndSourceMat(incoming, outcoming)((_, outcomingMat) => {
       connections ::= outcomingMat.offer
       NotUsed
     })
-  //    Flow[Message]
-  //      .flatMapConcat {
-  //        case tm: TextMessage =>
-  //          val strict = tm.textStream.fold("")(_ + _)
-  //          strict
-  //            .flatMapConcat(
-  //              input =>
-  //                Source
-  //                  .fromFuture(
-  //                    jsonRpcController.getTextOutput(input)
-  //                  )
-  //            )
-  //            .flatMapConcat {
-  //              case Some(input) => Source.single(TextMessage(input))
-  //              case None        => Source.empty
-  //            }
-  //        case bm: BinaryMessage =>
-  //          bm.dataStream.runWith(Sink.ignore)
-  //          Source.empty
-  //      }
 
   /** Server behavior upon receiving HTTP request.
     *
