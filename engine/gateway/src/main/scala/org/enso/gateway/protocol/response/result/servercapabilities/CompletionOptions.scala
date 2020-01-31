@@ -10,12 +10,9 @@ case class CompletionOptions(
   resolveProvider: Option[Boolean]         = None,
   workDoneProgress: Option[Boolean]        = None
 )
-
 object CompletionOptions {
   implicit val serverCapabilitiesCompletionOptionsEncoder
-    : Encoder[CompletionOptions] =
-    deriveEncoder
+    : Encoder[CompletionOptions] = deriveEncoder
   implicit val serverCapabilitiesCompletionOptionsDecoder
-    : Decoder[CompletionOptions] =
-    deriveDecoder
+    : Decoder[CompletionOptions] = deriveDecoder
 }

@@ -7,11 +7,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 case class Highlight(
   dynamicRegistration: Option[Boolean] = None
 )
-
 object Highlight {
   implicit val clientCapabilitiesTextDocumentHighlightDecoder
     : Decoder[Highlight] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentHighlightEncoder
     : Encoder[Highlight] = deriveEncoder
 }

@@ -8,11 +8,9 @@ case class Definition(
   dynamicRegistration: Option[Boolean] = None,
   linkSupport: Option[Boolean]         = None
 )
-
 object Definition {
   implicit val clientCapabilitiesTextDocumentDefinitionDecoder
     : Decoder[Definition] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentDefinitionEncoder
     : Encoder[Definition] = deriveEncoder
 }

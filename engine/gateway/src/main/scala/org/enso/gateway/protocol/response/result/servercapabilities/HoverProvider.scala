@@ -11,11 +11,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide hover support. */
 sealed trait HoverProvider
-
 object HoverProvider {
 
   case class Bool(value: Boolean) extends HoverProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val boolDecoder: Decoder[Bool] = deriveUnwrappedDecoder
@@ -23,7 +21,6 @@ object HoverProvider {
 
   case class HoverOptions(workDoneProgress: Option[Boolean] = None)
       extends HoverProvider
-
   object HoverOptions {
     implicit val hoverOptionsEncoder: Encoder[HoverOptions] = deriveEncoder
     implicit val hoverOptionsDecoder: Decoder[HoverOptions] = deriveDecoder

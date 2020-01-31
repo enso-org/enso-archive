@@ -7,13 +7,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 case class CompletionItemKinds(
   valueSet: Option[Seq[CompletionItemKind]] = None
 ) extends AnyVal
-
 object CompletionItemKinds {
   implicit val clientCapabilitiesTextDocumentCompletionItemKindHolderDecoder
-    : Decoder[CompletionItemKinds] =
-    deriveDecoder
-
+    : Decoder[CompletionItemKinds] = deriveDecoder
   implicit val clientCapabilitiesTextDocumentCompletionItemKindHolderEncoder
-    : Encoder[CompletionItemKinds] =
-    deriveEncoder
+    : Encoder[CompletionItemKinds] = deriveEncoder
 }

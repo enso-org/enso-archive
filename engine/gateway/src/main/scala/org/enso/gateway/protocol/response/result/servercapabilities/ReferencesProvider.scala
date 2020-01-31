@@ -11,11 +11,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide find references support. */
 sealed trait ReferencesProvider
-
 object ReferencesProvider {
 
   case class Bool(value: Boolean) extends ReferencesProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val boolDecoder: Decoder[Bool] = deriveUnwrappedDecoder

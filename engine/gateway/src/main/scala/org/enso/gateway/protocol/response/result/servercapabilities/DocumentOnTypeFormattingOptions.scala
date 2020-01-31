@@ -8,7 +8,6 @@ case class DocumentOnTypeFormattingOptions(
   firstTriggerCharacter: String,
   moreTriggerCharacter: Option[Seq[String]]
 )
-
 object DocumentOnTypeFormattingOptions {
   implicit val serverCapabilitiesDocumentOnTypeFormattingOptionsEncoder
     : Encoder[DocumentOnTypeFormattingOptions] =

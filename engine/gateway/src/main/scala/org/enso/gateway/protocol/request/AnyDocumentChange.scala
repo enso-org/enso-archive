@@ -9,16 +9,13 @@ import io.circe.generic.extras.semiauto.{
 import cats.syntax.functor._
 
 sealed trait AnyDocumentChange
-
 object AnyDocumentChange {
 
   case class TextDocumentEditChange(value: TextDocumentEdit)
       extends AnyDocumentChange
-
   object TextDocumentEditChange {
     implicit val anyDocumentChangeTextDocumentEditChangeDecoder
       : Decoder[TextDocumentEditChange] = deriveUnwrappedDecoder
-
     implicit val anyDocumentChangeTextDocumentEditChangeEncoder
       : Encoder[TextDocumentEditChange] = deriveUnwrappedEncoder
   }
@@ -28,7 +25,6 @@ object AnyDocumentChange {
   object CreateFileChange {
     implicit val anyDocumentChangeCreateFileChangeDecoder
       : Decoder[CreateFileChange] = deriveUnwrappedDecoder
-
     implicit val anyDocumentChangeCreateFileChangeEncoder
       : Encoder[CreateFileChange] = deriveUnwrappedEncoder
   }
@@ -38,7 +34,6 @@ object AnyDocumentChange {
   object RenameFileChange {
     implicit val anyDocumentChangeRenameFileChangeDecoder
       : Decoder[RenameFileChange] = deriveUnwrappedDecoder
-
     implicit val anyDocumentChangeRenameFileChangeEncoder
       : Encoder[RenameFileChange] = deriveUnwrappedEncoder
   }
@@ -48,7 +43,6 @@ object AnyDocumentChange {
   object DeleteFileChange {
     implicit val anyDocumentChangeDeleteFileChangeDecoder
       : Decoder[DeleteFileChange] = deriveUnwrappedDecoder
-
     implicit val anyDocumentChangeDeleteFileChangeEncoder
       : Encoder[DeleteFileChange] = deriveUnwrappedEncoder
   }

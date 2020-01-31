@@ -42,10 +42,8 @@ class JsonRpcController(gateway: ActorRef)(implicit system: ActorSystem) {
   import system.dispatcher
 
   private var _server: Server = _
-
-  def server: Server = _server
-
-  def server_=(server: Server): Unit = _server = server
+  def server:                   Server = _server
+  def server_=(server: Server): Unit   = _server = server
 
   /** Generates text reply for given request text message, no reply for
     * notification.

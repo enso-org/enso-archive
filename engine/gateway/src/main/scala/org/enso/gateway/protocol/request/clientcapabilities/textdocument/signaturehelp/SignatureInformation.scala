@@ -11,11 +11,9 @@ case class SignatureInformation(
   documentationFormat: Option[Seq[MarkupKind]]       = None,
   parameterInformation: Option[ParameterInformation] = None
 )
-
 object SignatureInformation {
   implicit val signatureInformationDecoder: Decoder[SignatureInformation] =
     deriveDecoder
-
   implicit val signatureInformationEncoder: Encoder[SignatureInformation] =
     deriveEncoder
 }

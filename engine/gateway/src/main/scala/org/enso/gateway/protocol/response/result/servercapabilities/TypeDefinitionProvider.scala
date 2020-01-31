@@ -12,11 +12,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide "go to type definition" support. */
 sealed trait TypeDefinitionProvider
-
 object TypeDefinitionProvider {
 
   case class Bool(value: Boolean) extends TypeDefinitionProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val boolDecoder: Decoder[Bool] = deriveUnwrappedDecoder
@@ -36,7 +34,6 @@ object TypeDefinitionProvider {
     workDoneProgress: Option[Boolean]          = None,
     id: Option[String]                         = None
   ) extends TypeDefinitionProvider
-
   object TypeDefinitionRegistrationOptions {
     implicit val typeDefinitionRegistrationOptionsEncoder
       : Encoder[TypeDefinitionRegistrationOptions] =

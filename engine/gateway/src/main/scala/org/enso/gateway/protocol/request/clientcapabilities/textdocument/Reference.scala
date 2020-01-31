@@ -7,11 +7,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 case class Reference(
   dynamicRegistration: Option[Boolean] = None
 )
-
 object Reference {
   implicit val clientCapabilitiesTextDocumentReferenceDecoder
     : Decoder[Reference] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentReferenceEncoder
     : Encoder[Reference] = deriveEncoder
 }

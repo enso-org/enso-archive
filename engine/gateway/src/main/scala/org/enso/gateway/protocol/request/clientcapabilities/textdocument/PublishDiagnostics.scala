@@ -11,13 +11,9 @@ case class PublishDiagnostics(
   tagSupport: Option[TagSupport]      = None,
   versionSupport: Option[Boolean]     = None
 )
-
 object PublishDiagnostics {
   implicit val clientCapabilitiesTextDocumentPublishDiagnosticsDecoder
-    : Decoder[PublishDiagnostics] =
-    deriveDecoder
-
+    : Decoder[PublishDiagnostics] = deriveDecoder
   implicit val clientCapabilitiesTextDocumentPublishDiagnosticsEncoder
-    : Encoder[PublishDiagnostics] =
-    deriveEncoder
+    : Encoder[PublishDiagnostics] = deriveEncoder
 }

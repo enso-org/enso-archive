@@ -12,11 +12,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide folding provider support. */
 sealed trait FoldingRangeProvider
-
 object FoldingRangeProvider {
 
   case class Bool(value: Boolean) extends FoldingRangeProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val boolDecoder: Decoder[Bool] = deriveUnwrappedDecoder

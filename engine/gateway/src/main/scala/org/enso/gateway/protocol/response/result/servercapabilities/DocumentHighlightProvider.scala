@@ -11,11 +11,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide document highlight support. */
 sealed trait DocumentHighlightProvider
-
 object DocumentHighlightProvider {
 
   case class Bool(value: Boolean) extends DocumentHighlightProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder

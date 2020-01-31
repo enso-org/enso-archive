@@ -10,7 +10,6 @@ case class WorkspaceFoldersServerCapabilities(
   supported: Option[Boolean]                       = None,
   changeNotifications: Option[ChangeNotifications] = None
 )
-
 object WorkspaceFoldersServerCapabilities {
   implicit val workspaceFoldersServerCapabilitiesEncoder
     : Encoder[WorkspaceFoldersServerCapabilities] =

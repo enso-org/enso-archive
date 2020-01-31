@@ -8,11 +8,9 @@ case class Rename(
   dynamicRegistration: Option[Boolean] = None,
   prepareSupport: Option[Boolean]      = None
 )
-
 object Rename {
   implicit val clientCapabilitiesTextDocumentRenameDecoder: Decoder[Rename] =
     deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentRenameEncoder: Encoder[Rename] =
     deriveEncoder
 }

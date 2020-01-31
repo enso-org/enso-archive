@@ -10,7 +10,6 @@ import io.circe.generic.extras.semiauto.{
   * [[org.enso.gateway.protocol.response.result.ServerCapabilities]].
   */
 case class Experimental(value: String) extends AnyVal
-
 object Experimental {
   implicit val serverCapabilitiesExperimentalEncoder: Encoder[Experimental] =
     deriveUnwrappedEncoder

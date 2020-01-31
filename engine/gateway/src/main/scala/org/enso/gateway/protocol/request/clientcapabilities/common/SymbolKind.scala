@@ -33,56 +33,31 @@ object SymbolKind {
   private val typeParameter     = 26
   private val invalidSymbolKind = "Invalid SymbolKind"
 
-  case object File extends SymbolKind(file)
-
-  case object Module extends SymbolKind(module)
-
-  case object Namespace extends SymbolKind(namespace)
-
-  case object Package extends SymbolKind(packageKind)
-
-  case object Class extends SymbolKind(classKind)
-
-  case object Method extends SymbolKind(method)
-
-  case object Property extends SymbolKind(property)
-
-  case object Field extends SymbolKind(field)
-
-  case object Constructor extends SymbolKind(constructor)
-
-  case object Enum extends SymbolKind(enum)
-
-  case object Interface extends SymbolKind(interface)
-
-  case object Function extends SymbolKind(function)
-
-  case object Variable extends SymbolKind(variable)
-
-  case object Constant extends SymbolKind(constant)
-
-  case object StringKind extends SymbolKind(string)
-
-  case object Number extends SymbolKind(number)
-
-  case object BooleanKind extends SymbolKind(boolean)
-
-  case object ArrayKind extends SymbolKind(array)
-
-  case object ObjectKind extends SymbolKind(objectKind)
-
-  case object Key extends SymbolKind(key)
-
-  case object NullKind extends SymbolKind(nullKind)
-
-  case object EnumMember extends SymbolKind(enumMember)
-
-  case object Struct extends SymbolKind(struct)
-
-  case object Event extends SymbolKind(event)
-
-  case object Operator extends SymbolKind(operator)
-
+  case object File          extends SymbolKind(file)
+  case object Module        extends SymbolKind(module)
+  case object Namespace     extends SymbolKind(namespace)
+  case object Package       extends SymbolKind(packageKind)
+  case object Class         extends SymbolKind(classKind)
+  case object Method        extends SymbolKind(method)
+  case object Property      extends SymbolKind(property)
+  case object Field         extends SymbolKind(field)
+  case object Constructor   extends SymbolKind(constructor)
+  case object Enum          extends SymbolKind(enum)
+  case object Interface     extends SymbolKind(interface)
+  case object Function      extends SymbolKind(function)
+  case object Variable      extends SymbolKind(variable)
+  case object Constant      extends SymbolKind(constant)
+  case object StringKind    extends SymbolKind(string)
+  case object Number        extends SymbolKind(number)
+  case object BooleanKind   extends SymbolKind(boolean)
+  case object ArrayKind     extends SymbolKind(array)
+  case object ObjectKind    extends SymbolKind(objectKind)
+  case object Key           extends SymbolKind(key)
+  case object NullKind      extends SymbolKind(nullKind)
+  case object EnumMember    extends SymbolKind(enumMember)
+  case object Struct        extends SymbolKind(struct)
+  case object Event         extends SymbolKind(event)
+  case object Operator      extends SymbolKind(operator)
   case object TypeParameter extends SymbolKind(typeParameter)
 
   implicit val SymbolKindDecoder: Decoder[SymbolKind] =

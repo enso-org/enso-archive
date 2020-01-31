@@ -11,11 +11,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide document symbol support. */
 sealed trait DocumentSymbolProvider
-
 object DocumentSymbolProvider {
 
   case class Bool(value: Boolean) extends DocumentSymbolProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder

@@ -32,7 +32,6 @@ case class Workspace(
 object Workspace {
   implicit val clientCapabilitiesWorkspaceDecoder: Decoder[Workspace] =
     deriveDecoder
-
   implicit val clientCapabilitiesWorkspaceEncoder: Encoder[Workspace] =
     deriveEncoder
 }

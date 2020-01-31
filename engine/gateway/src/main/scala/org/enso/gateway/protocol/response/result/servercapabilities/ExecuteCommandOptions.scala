@@ -8,7 +8,6 @@ case class ExecuteCommandOptions(
   workDoneProgress: Option[Boolean] = None,
   commands: Seq[String]
 )
-
 object ExecuteCommandOptions {
   implicit val serverCapabilitiesExecuteCommandOptionsEncoder
     : Encoder[ExecuteCommandOptions] =

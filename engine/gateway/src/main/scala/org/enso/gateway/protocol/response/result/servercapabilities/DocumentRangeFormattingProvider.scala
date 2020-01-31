@@ -11,11 +11,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide document range formatting. */
 sealed trait DocumentRangeFormattingProvider
-
 object DocumentRangeFormattingProvider {
 
   case class Bool(value: Boolean) extends DocumentRangeFormattingProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder

@@ -32,54 +32,30 @@ object CompletionItemKind {
   private val typeParameter             = 25
   private val invalidCompletionItemKind = "Invalid CompletionItemKind"
 
-  case object Text extends CompletionItemKind(text)
-
-  case object Method extends CompletionItemKind(method)
-
-  case object Function extends CompletionItemKind(function)
-
-  case object Constructor extends CompletionItemKind(constructor)
-
-  case object Field extends CompletionItemKind(field)
-
-  case object Variable extends CompletionItemKind(variable)
-
-  case object Class extends CompletionItemKind(classKind)
-
-  case object Interface extends CompletionItemKind(interface)
-
-  case object Module extends CompletionItemKind(module)
-
-  case object Property extends CompletionItemKind(property)
-
-  case object Unit extends CompletionItemKind(unit)
-
-  case object Value extends CompletionItemKind(value)
-
-  case object Enum extends CompletionItemKind(enum)
-
-  case object Keyword extends CompletionItemKind(keyword)
-
-  case object Snippet extends CompletionItemKind(snippet)
-
-  case object Color extends CompletionItemKind(color)
-
-  case object File extends CompletionItemKind(file)
-
-  case object Reference extends CompletionItemKind(reference)
-
-  case object Folder extends CompletionItemKind(folder)
-
-  case object EnumMember extends CompletionItemKind(enumMember)
-
-  case object Constant extends CompletionItemKind(constant)
-
-  case object Struct extends CompletionItemKind(struct)
-
-  case object Event extends CompletionItemKind(event)
-
-  case object Operator extends CompletionItemKind(operator)
-
+  case object Text          extends CompletionItemKind(text)
+  case object Method        extends CompletionItemKind(method)
+  case object Function      extends CompletionItemKind(function)
+  case object Constructor   extends CompletionItemKind(constructor)
+  case object Field         extends CompletionItemKind(field)
+  case object Variable      extends CompletionItemKind(variable)
+  case object Class         extends CompletionItemKind(classKind)
+  case object Interface     extends CompletionItemKind(interface)
+  case object Module        extends CompletionItemKind(module)
+  case object Property      extends CompletionItemKind(property)
+  case object Unit          extends CompletionItemKind(unit)
+  case object Value         extends CompletionItemKind(value)
+  case object Enum          extends CompletionItemKind(enum)
+  case object Keyword       extends CompletionItemKind(keyword)
+  case object Snippet       extends CompletionItemKind(snippet)
+  case object Color         extends CompletionItemKind(color)
+  case object File          extends CompletionItemKind(file)
+  case object Reference     extends CompletionItemKind(reference)
+  case object Folder        extends CompletionItemKind(folder)
+  case object EnumMember    extends CompletionItemKind(enumMember)
+  case object Constant      extends CompletionItemKind(constant)
+  case object Struct        extends CompletionItemKind(struct)
+  case object Event         extends CompletionItemKind(event)
+  case object Operator      extends CompletionItemKind(operator)
   case object TypeParameter extends CompletionItemKind(typeParameter)
 
   implicit val textDocumentSyncKindDecoder: Decoder[CompletionItemKind] =

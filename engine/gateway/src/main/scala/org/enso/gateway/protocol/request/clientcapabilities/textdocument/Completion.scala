@@ -17,7 +17,6 @@ case class Completion(
 object Completion {
   implicit val clientCapabilitiesTextDocumentCompletionDecoder
     : Decoder[Completion] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentCompletionEncoder
     : Encoder[Completion] = deriveEncoder
 }

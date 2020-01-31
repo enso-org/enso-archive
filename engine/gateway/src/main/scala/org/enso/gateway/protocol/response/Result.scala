@@ -45,7 +45,6 @@ object Result {
 
   /** A string result. */
   case class Text(value: String) extends Result
-
   object Text {
     implicit val resultStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
     implicit val resultStringDecoder: Decoder[Text] = deriveUnwrappedDecoder

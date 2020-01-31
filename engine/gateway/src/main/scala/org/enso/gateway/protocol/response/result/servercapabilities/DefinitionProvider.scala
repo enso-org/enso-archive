@@ -11,11 +11,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide "go to definition" support. */
 sealed trait DefinitionProvider
-
 object DefinitionProvider {
 
   case class Bool(value: Boolean) extends DefinitionProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder

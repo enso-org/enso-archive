@@ -6,11 +6,9 @@ import org.enso.gateway.protocol.CodeActionKind
 
 /** Array of [[CodeActionKind]]. */
 case class CodeActionKinds(valueSet: Seq[CodeActionKind]) extends AnyVal
-
 object CodeActionKinds {
   implicit val codeActionKindsDecoder: Decoder[CodeActionKinds] =
     deriveDecoder
-
   implicit val codeActionKindsEncoder: Encoder[CodeActionKinds] =
     deriveEncoder
 }

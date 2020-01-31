@@ -11,11 +11,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide document formatting. */
 sealed trait DocumentFormattingProvider
-
 object DocumentFormattingProvider {
 
   case class Bool(value: Boolean) extends DocumentFormattingProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder

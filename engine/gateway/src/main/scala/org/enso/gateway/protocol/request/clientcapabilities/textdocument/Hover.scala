@@ -9,11 +9,9 @@ case class Hover(
   dynamicRegistration: Option[Boolean] = None,
   contentFormat: Option[MarkupKind]    = None
 )
-
 object Hover {
   implicit val clientCapabilitiesTextDocumentHoverDecoder: Decoder[Hover] =
     deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentHoverEncoder: Encoder[Hover] =
     deriveEncoder
 }

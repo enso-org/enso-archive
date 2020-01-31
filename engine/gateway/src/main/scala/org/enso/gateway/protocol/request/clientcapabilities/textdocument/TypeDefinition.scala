@@ -8,11 +8,9 @@ case class TypeDefinition(
   dynamicRegistration: Option[Boolean] = None,
   linkSupport: Option[Boolean]         = None
 )
-
 object TypeDefinition {
   implicit val clientCapabilitiesTextDocumentTypeDefinitionDecoder
     : Decoder[TypeDefinition] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentTypeDefinitionEncoder
     : Encoder[TypeDefinition] = deriveEncoder
 }

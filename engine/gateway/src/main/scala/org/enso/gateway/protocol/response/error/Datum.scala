@@ -24,7 +24,6 @@ object Datum {
 
   /** A string element. */
   case class Text(value: String) extends Datum
-
   object Text {
     implicit val datumStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
     implicit val datumStringDecoder: Decoder[Text] = deriveUnwrappedDecoder
@@ -39,7 +38,6 @@ object Datum {
 
   /** A boolean element. */
   case class Bool(value: Boolean) extends Datum
-
   object Bool {
     implicit val datumBooleanEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val datumBooleanDecoder: Decoder[Bool] = deriveUnwrappedDecoder
@@ -49,10 +47,8 @@ object Datum {
   case class ArrayDatum(value: Seq[Option[Datum]]) extends Datum {
     println(s"Datum.Array, value=$value")
   }
-
   object ArrayDatum {
     implicit val datumArrayEncoder: Encoder[ArrayDatum] = deriveUnwrappedEncoder
     implicit val datumArrayDecoder: Decoder[ArrayDatum] = deriveUnwrappedDecoder
   }
-
 }

@@ -68,7 +68,6 @@ object Param {
 
   /** A boolean element. */
   case class Bool(value: Boolean) extends Param
-
   object Bool {
     implicit val paramBooleanDecoder: Decoder[Bool] =
       deriveUnwrappedDecoder
@@ -78,7 +77,6 @@ object Param {
 
   /** An array element. */
   case class ArrayParam(value: Seq[Option[Param]]) extends Param
-
   object ArrayParam {
     implicit val paramArrayDecoder: Decoder[ArrayParam] =
       deriveUnwrappedDecoder
@@ -91,7 +89,6 @@ object Param {
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
   case class InitializationOptions(value: String) extends Param
-
   object InitializationOptions {
     implicit val initializationOptionsDecoder: Decoder[InitializationOptions] =
       deriveUnwrappedDecoder
@@ -123,11 +120,9 @@ object Param {
     implicit val traceOffDecoder: Decoder[Trace] = deriveEnumerationDecoder
     implicit val traceOffEncoder: Encoder[Trace] = deriveEnumerationEncoder
 
-    case object off extends Trace
-
+    case object off      extends Trace
     case object messages extends Trace
-
-    case object verbose extends Trace
+    case object verbose  extends Trace
   }
 
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
@@ -175,7 +170,6 @@ object Param {
     version: Int,
     text: String
   ) extends Param
-
   object TextDocumentItem {
     implicit val textDocumentItemDecoder: Decoder[TextDocumentItem] =
       deriveDecoder
@@ -190,7 +184,6 @@ object Param {
     changes: Option[Map[DocumentUri, Seq[TextEdit]]] = None,
     documentChanges: Option[DocumentChanges]         = None
   ) extends Param
-
   object WorkspaceEdit {
     implicit val workspaceEditDecoder: Decoder[WorkspaceEdit] =
       deriveDecoder
@@ -204,7 +197,6 @@ object Param {
   case class TextDocumentIdentifier(
     uri: DocumentUri
   ) extends Param
-
   object TextDocumentIdentifier {
     implicit val textDocumentIdentifierDecoder
       : Decoder[TextDocumentIdentifier] =
@@ -221,7 +213,6 @@ object Param {
     uri: DocumentUri,
     version: Option[Int] = None
   ) extends Param
-
   object VersionedTextDocumentIdentifier {
     implicit val versionedTextDocumentIdentifierDecoder
       : Decoder[VersionedTextDocumentIdentifier] =
@@ -235,14 +226,11 @@ object Param {
     * [[org.enso.gateway.protocol.Requests.WillSaveTextDocumentWaitUntil]].
     */
   sealed abstract class TextDocumentSaveReason(val value: Int) extends Param
-
   object TextDocumentSaveReason {
 
-    case object Manual extends TextDocumentSaveReason(1)
-
+    case object Manual     extends TextDocumentSaveReason(1)
     case object AfterDelay extends TextDocumentSaveReason(2)
-
-    case object FocusOut extends TextDocumentSaveReason(3)
+    case object FocusOut   extends TextDocumentSaveReason(3)
 
     implicit val textDocumentSaveReasonDecoder
       : Decoder[TextDocumentSaveReason] =
@@ -262,7 +250,6 @@ object Param {
     * [[org.enso.gateway.protocol.Notifications.DidChangeTextDocument]].
     */
   sealed trait TextDocumentContentChangeEvent extends Param
-
   object TextDocumentContentChangeEvent {
 
     case class RangeChange(
@@ -270,7 +257,6 @@ object Param {
       rangeLength: Option[Int] = None,
       text: String
     ) extends TextDocumentContentChangeEvent
-
     object RangeChange {
       implicit val textDocumentContentChangeEventRangeChangeDecoder
         : Decoder[RangeChange] = deriveDecoder

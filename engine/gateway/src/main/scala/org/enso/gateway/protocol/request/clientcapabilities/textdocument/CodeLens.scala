@@ -7,13 +7,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 case class CodeLens(
   dynamicRegistration: Option[Boolean] = None
 ) extends AnyVal
-
 object CodeLens {
   implicit val clientCapabilitiesTextDocumentCodeLensDecoder
-    : Decoder[CodeLens] =
-    deriveDecoder
-
+    : Decoder[CodeLens] = deriveDecoder
   implicit val clientCapabilitiesTextDocumentCodeLensEncoder
-    : Encoder[CodeLens] =
-    deriveEncoder
+    : Encoder[CodeLens] = deriveEncoder
 }

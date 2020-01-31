@@ -8,13 +8,9 @@ case class CodeLensOptions(
   workDoneProgress: Option[Boolean] = None,
   resolveProvider: Option[Boolean]  = None
 )
-
 object CodeLensOptions {
   implicit val serverCapabilitiesCodeLensOptionsEncoder
-    : Encoder[CodeLensOptions] =
-    deriveEncoder
-
+    : Encoder[CodeLensOptions] = deriveEncoder
   implicit val serverCapabilitiesCodeLensOptionsDecoder
-    : Decoder[CodeLensOptions] =
-    deriveDecoder
+    : Decoder[CodeLensOptions] = deriveDecoder
 }

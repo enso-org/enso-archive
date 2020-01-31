@@ -12,7 +12,6 @@ import io.circe.generic.extras.semiauto.{
   * [[org.enso.gateway.protocol.request.clientcapabilities.textdocument.signaturehelp.SignatureInformation]].
   */
 sealed trait MarkupKind
-
 object MarkupKind {
 
   /** Plain text is supported as a content format. */

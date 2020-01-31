@@ -8,7 +8,6 @@ import cats.syntax.functor._
 sealed trait FileOptions {
   def ignoreIfExists: Option[Boolean]
 }
-
 object FileOptions {
 
   case class CreateOrRename(

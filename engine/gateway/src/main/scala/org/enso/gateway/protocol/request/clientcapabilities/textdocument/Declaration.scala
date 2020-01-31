@@ -8,11 +8,9 @@ case class Declaration(
   dynamicRegistration: Option[Boolean] = None,
   linkSupport: Option[Boolean]         = None
 )
-
 object Declaration {
   implicit val clientCapabilitiesTextDocumentDeclarationDecoder
     : Decoder[Declaration] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentDeclarationEncoder
     : Encoder[Declaration] = deriveEncoder
 }

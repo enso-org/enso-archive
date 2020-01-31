@@ -9,11 +9,9 @@ case class WorkspaceSymbol(
   dynamicRegistration: Option[Boolean] = None,
   symbolKind: Option[SymbolKinds]      = None
 )
-
 object WorkspaceSymbol {
   implicit val clientCapabilitiesWorkspaceWorkspaceSymbolDecoder
     : Decoder[WorkspaceSymbol] = deriveDecoder
-
   implicit val clientCapabilitiesWorkspaceWorkspaceSymbolEncoder
     : Encoder[WorkspaceSymbol] = deriveEncoder
 }

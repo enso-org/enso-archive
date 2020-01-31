@@ -7,11 +7,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
   * notification.
   */
 case class DidChangeConfiguration(dynamicRegistration: Option[Boolean] = None)
-
 object DidChangeConfiguration {
   implicit val clientCapabilitiesWorkspaceDidChangeConfigurationDecoder
     : Decoder[DidChangeConfiguration] = deriveDecoder
-
   implicit val clientCapabilitiesWorkspaceDidChangeConfigurationEncoder
     : Encoder[DidChangeConfiguration] = deriveEncoder
 }

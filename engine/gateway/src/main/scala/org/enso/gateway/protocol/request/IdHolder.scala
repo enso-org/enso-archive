@@ -8,11 +8,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
   * [[org.enso.gateway.protocol.JsonRpcController.getTextOutput()]].
   */
 case class IdHolder(id: Id)
-
 object IdHolder {
   implicit val idHolderDecoder: Decoder[IdHolder] =
     deriveDecoder
-
   implicit val idHolderEncoder: Encoder[IdHolder] =
     deriveEncoder
 }

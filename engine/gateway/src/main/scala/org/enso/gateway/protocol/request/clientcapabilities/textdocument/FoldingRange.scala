@@ -9,11 +9,9 @@ case class FoldingRange(
   rangeLimit: Option[Int]              = None,
   lineFoldingOnly: Option[Boolean]     = None
 )
-
 object FoldingRange {
   implicit val clientCapabilitiesTextDocumentFoldingRangeDecoder
     : Decoder[FoldingRange] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentFoldingRangeEncoder
     : Encoder[FoldingRange] = deriveEncoder
 }

@@ -10,11 +10,9 @@ case class CodeAction(
   codeActionLiteralSupport: Option[CodeActionLiteralSupport] = None,
   isPreferredSupport: Option[Boolean]                        = None
 )
-
 object CodeAction {
   implicit val clientCapabilitiesTextDocumentCodeActionDecoder
     : Decoder[CodeAction] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentCodeActionEncoder
     : Encoder[CodeAction] = deriveEncoder
 }

@@ -9,7 +9,6 @@ case class SignatureHelpOptions(
   retriggerCharacters: Option[Seq[String]] = None,
   workDoneProgress: Option[Boolean]        = None
 )
-
 object SignatureHelpOptions {
   implicit val serverCapabilitiesSignatureHelpOptionsEncoder
     : Encoder[SignatureHelpOptions] =

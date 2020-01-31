@@ -12,11 +12,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide "go to implementation" support. */
 sealed trait ImplementationProvider
-
 object ImplementationProvider {
 
   case class Bool(value: Boolean) extends ImplementationProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val boolDecoder: Decoder[Bool] = deriveUnwrappedDecoder

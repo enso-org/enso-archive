@@ -8,13 +8,9 @@ case class Implementation(
   dynamicRegistration: Option[Boolean] = None,
   linkSupport: Option[Boolean]         = None
 )
-
 object Implementation {
   implicit val clientCapabilitiesTextDocumentImplementationDecoder
-    : Decoder[Implementation] =
-    deriveDecoder
-
+    : Decoder[Implementation] = deriveDecoder
   implicit val clientCapabilitiesTextDocumentImplementationEncoder
-    : Encoder[Implementation] =
-    deriveEncoder
+    : Encoder[Implementation] = deriveEncoder
 }

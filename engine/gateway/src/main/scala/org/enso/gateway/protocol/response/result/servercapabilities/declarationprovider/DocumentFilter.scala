@@ -9,7 +9,6 @@ case class DocumentFilter(
   scheme: Option[String]   = None,
   pattern: Option[String]  = None
 )
-
 object DocumentFilter {
   implicit val documentFilterEncoder: Encoder[DocumentFilter] =
     deriveEncoder

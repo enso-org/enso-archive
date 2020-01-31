@@ -16,7 +16,6 @@ case class Edit(
 object Edit {
   implicit val clientCapabilitiesWorkspaceEditDecoder: Decoder[Edit] =
     deriveDecoder
-
   implicit val clientCapabilitiesWorkspaceEditEncoder: Encoder[Edit] =
     deriveEncoder
 }

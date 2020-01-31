@@ -58,7 +58,6 @@ object Params {
 
   /** Array params. */
   case class ArrayParams(value: Seq[Option[Param]]) extends Params
-
   object ArrayParams {
     implicit val paramsArrayDecoder: Decoder[ArrayParams] =
       deriveUnwrappedDecoder

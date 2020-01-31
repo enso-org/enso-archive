@@ -10,12 +10,10 @@ import cats.syntax.functor._
 
 /** Part of [[WorkspaceFoldersServerCapabilities]]. */
 sealed trait ChangeNotifications
-
 object ChangeNotifications {
 
   /** String [[ChangeNotifications]]. */
   case class Text(value: String) extends ChangeNotifications
-
   object Text {
     implicit val textEncoder: Encoder[Text] =
       deriveUnwrappedEncoder

@@ -9,11 +9,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 case class Color(
   dynamicRegistration: Option[Boolean] = None
 )
-
 object Color {
   implicit val clientCapabilitiesTextDocumentColorDecoder: Decoder[Color] =
     deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentColorEncoder: Encoder[Color] =
     deriveEncoder
 }

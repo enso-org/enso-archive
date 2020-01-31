@@ -8,11 +8,9 @@ case class Link(
   dynamicRegistration: Option[Boolean] = None,
   tooltipSupport: Option[Boolean]      = None
 )
-
 object Link {
   implicit val clientCapabilitiesTextDocumentLinkDecoder: Decoder[Link] =
     deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentLinkEncoder: Encoder[Link] =
     deriveEncoder
 }

@@ -16,7 +16,6 @@ import cats.syntax.functor._
   * `initialize` request.
   */
 sealed trait RenameProvider
-
 object RenameProvider {
 
   case class Bool(value: Boolean) extends RenameProvider

@@ -10,7 +10,6 @@ import io.circe.generic.extras.semiauto.{
   * [[org.enso.gateway.protocol.request.clientcapabilities.workspace.Edit]].
   */
 sealed trait ResourceOperationKind
-
 object ResourceOperationKind {
 
   /** Supports creating new files and folders. */
@@ -24,7 +23,6 @@ object ResourceOperationKind {
 
   implicit val resourceOperationKindDecoder: Decoder[ResourceOperationKind] =
     deriveEnumerationDecoder
-
   implicit val resourceOperationKindEncoder: Encoder[ResourceOperationKind] =
     deriveEnumerationEncoder
 }

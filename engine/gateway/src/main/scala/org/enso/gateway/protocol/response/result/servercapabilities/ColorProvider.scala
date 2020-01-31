@@ -12,11 +12,9 @@ import cats.syntax.functor._
 
 /** Server capability to provide color provider support. */
 sealed trait ColorProvider
-
 object ColorProvider {
 
   case class Bool(value: Boolean) extends ColorProvider
-
   object Bool {
     implicit val boolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder

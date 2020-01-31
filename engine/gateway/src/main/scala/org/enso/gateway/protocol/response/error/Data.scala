@@ -11,7 +11,6 @@ import cats.syntax.functor._
 
 /** Data of [[org.enso.gateway.protocol.response.ResponseError]]. */
 sealed trait Data
-
 object Data {
   implicit val dataEncoder: Encoder[Data] = Encoder.instance {
     case text: Text                     => text.asJson
@@ -33,7 +32,6 @@ object Data {
 
   /** A string data. */
   case class Text(value: String) extends Data
-
   object Text {
     implicit val dataStringEncoder: Encoder[Text] = deriveUnwrappedEncoder
     implicit val dataStringDecoder: Decoder[Text] = deriveUnwrappedDecoder
@@ -48,7 +46,6 @@ object Data {
 
   /** A boolean data. */
   case class Bool(value: Boolean) extends Data
-
   object Bool {
     implicit val dataBooleanEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val dataBooleanDecoder: Decoder[Bool] = deriveUnwrappedDecoder
@@ -58,7 +55,6 @@ object Data {
   case class ArrayData(value: Seq[Option[Datum]]) extends Data {
     println(s"Data.Array, value=$value")
   }
-
   object ArrayData {
     implicit val dataArrayEncoder: Encoder[ArrayData] = deriveUnwrappedEncoder
     implicit val dataArrayDecoder: Decoder[ArrayData] = deriveUnwrappedDecoder
@@ -70,7 +66,6 @@ object Data {
     json: String,
     circeMessage: String
   ) extends Data
-
   object ParseData {
     implicit val parseDataEncoder: Encoder[ParseData] = deriveEncoder
     implicit val parseDataDecoder: Decoder[ParseData] = deriveDecoder

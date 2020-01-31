@@ -53,7 +53,6 @@ case class TextDocument(
 object TextDocument {
   implicit val clientCapabilitiesTextDocumentDecoder: Decoder[TextDocument] =
     deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentEncoder: Encoder[TextDocument] =
     deriveEncoder
 }

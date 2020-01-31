@@ -10,11 +10,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 import cats.syntax.functor._
 
 sealed trait TextDocumentSyncDidSave
-
 object TextDocumentSyncDidSave {
 
   case class Bool(value: Boolean) extends TextDocumentSyncDidSave
-
   object Bool {
     implicit val textDocumentSyncDidSaveBoolEncoder: Encoder[Bool] =
       deriveUnwrappedEncoder

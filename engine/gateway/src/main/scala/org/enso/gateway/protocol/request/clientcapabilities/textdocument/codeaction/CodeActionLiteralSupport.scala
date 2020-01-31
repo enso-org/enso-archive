@@ -7,13 +7,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
   * [[org.enso.gateway.protocol.request.clientcapabilities.textdocument.CodeAction]].
   */
 case class CodeActionLiteralSupport(codeActionKind: CodeActionKinds)
-
 object CodeActionLiteralSupport {
   implicit val codeActionLiteralSupportDecoder
-    : Decoder[CodeActionLiteralSupport] =
-    deriveDecoder
-
+    : Decoder[CodeActionLiteralSupport] = deriveDecoder
   implicit val codeActionLiteralSupportEncoder
-    : Encoder[CodeActionLiteralSupport] =
-    deriveEncoder
+    : Encoder[CodeActionLiteralSupport] = deriveEncoder
 }

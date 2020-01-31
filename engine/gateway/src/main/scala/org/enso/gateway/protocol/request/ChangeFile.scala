@@ -10,7 +10,6 @@ sealed abstract class ChangeFile[FOpts <: FileOptions](
   kind: String,
   options: Option[FOpts]
 )
-
 object ChangeFile {
   private val kindField = "kind"
 
@@ -20,9 +19,7 @@ object ChangeFile {
   ) extends ChangeFile[FileOptions.CreateOrRename](Create.kind, options)
   object Create {
     val kind = "create"
-
     implicit def changeFileCreateDecoder: Decoder[Create] = deriveDecoder
-
     implicit def changeFileCreateEncoder: Encoder[Create] = deriveEncoder
   }
 
@@ -33,9 +30,7 @@ object ChangeFile {
   ) extends ChangeFile[FileOptions.CreateOrRename](Rename.kind, options)
   object Rename {
     val kind = "rename"
-
     implicit def changeFileRenameDecoder: Decoder[Rename] = deriveDecoder
-
     implicit def changeFileRenameEncoder: Encoder[Rename] = deriveEncoder
   }
 
@@ -45,9 +40,7 @@ object ChangeFile {
   ) extends ChangeFile[FileOptions.Delete](Delete.kind, options)
   object Delete {
     val kind = "delete"
-
     implicit def changeFileDeleteDecoder: Decoder[Delete] = deriveDecoder
-
     implicit def changeFileDeleteEncoder: Encoder[Delete] = deriveEncoder
   }
 

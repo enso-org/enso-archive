@@ -10,11 +10,9 @@ case class SignatureHelp(
   signatureInformation: Option[SignatureInformation] = None,
   contextSupport: Option[Boolean]                    = None
 )
-
 object SignatureHelp {
   implicit val clientCapabilitiesTextDocumentSignatureHelpDecoder
     : Decoder[SignatureHelp] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentSignatureHelpEncoder
     : Encoder[SignatureHelp] = deriveEncoder
 }

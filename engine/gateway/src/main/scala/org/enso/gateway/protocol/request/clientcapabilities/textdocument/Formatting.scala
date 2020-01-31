@@ -7,11 +7,9 @@ import io.circe.generic.semiauto.{deriveDecoder, deriveEncoder}
 case class Formatting(
   dynamicRegistration: Option[Boolean] = None
 )
-
 object Formatting {
   implicit val clientCapabilitiesTextDocumentFormattingDecoder
     : Decoder[Formatting] = deriveDecoder
-
   implicit val clientCapabilitiesTextDocumentFormattingEncoder
     : Encoder[Formatting] = deriveEncoder
 }
