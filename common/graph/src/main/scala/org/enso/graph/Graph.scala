@@ -295,6 +295,14 @@ object MapsOf {
 
 /** A representation of the index of a variant case within the variant field.
   *
+  * A variant node field is one that may take on many different forms under the
+  * umbrella of a single field. The prototypical example of this is `Shape`,
+  * which can be anything from `Empty` to `TypeDef`. We use the following
+  * terminology to describe variant fields:
+  * - "The variant" refers to the umbrella type (`Shape` in the example above).
+  * - "Branch" revers to the particular variant _element_ which the variant is
+  *   taking on at any given time.
+  *
   * @tparam F the variant field type
   * @tparam V the variant branch type
   */
@@ -591,13 +599,13 @@ object Graph {
     }
 
     /** Writes the value of field [[F]] in [[component]] to be [[value]].
-     *
-     * @param component the instance of [[C]] to write to
-     * @param value the value to write to the field [[F]]
-     * @param ev evidence that component [[C]] has field [[F]] in [[G]]
-     * @tparam C the component type
-     * @tparam F the field type
-     */
+      *
+      * @param component the instance of [[C]] to write to
+      * @param value the value to write to the field [[F]]
+      * @param ev evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      */
     def unsafeWriteField[C <: Component, F <: Component.Field](
       component: Component.Ref[G, C],
       value: Int
@@ -608,17 +616,17 @@ object Graph {
     }
 
     /** Sets the field at [[fieldIx]] in the instance of [[C]] represented by
-     * [[componentIx]] to have the value [[value]].
-     *
-     * No bounds checking is performed on any of the provided indices.
-     *
-     * @param componentIx the index representing an instance of [[C]]
-     * @param fieldIx the index of the field [[F]] in [[C]]
-     * @param value the value to set [[F]] to
-     * @param ev evidence that component [[C]] has field [[F]] in [[G]]
-     * @tparam C the component type
-     * @tparam F the field type
-     */
+      * [[componentIx]] to have the value [[value]].
+      *
+      * No bounds checking is performed on any of the provided indices.
+      *
+      * @param componentIx the index representing an instance of [[C]]
+      * @param fieldIx the index of the field [[F]] in [[C]]
+      * @param value the value to set [[F]] to
+      * @param ev evidence that component [[C]] has field [[F]] in [[G]]
+      * @tparam C the component type
+      * @tparam F the field type
+      */
     def unsafeWriteFieldByIndex[C <: Component, F <: Component.Field](
       componentIx: Int,
       fieldIx: Int,
@@ -629,11 +637,11 @@ object Graph {
     }
 
     /** Adds a new instance of component [[C]] to the graph.
-     *
-     * @param info evidence that the graph [[G]] has component [[C]]
-     * @tparam C the component type
-     * @return a reference to the new component [[C]]
-     */
+      *
+      * @param info evidence that the graph [[G]] has component [[C]]
+      * @tparam C the component type
+      * @return a reference to the new component [[C]]
+      */
     def addComponent[C <: Component]()(
       implicit info: HasComponent[G, C]
     ): Component.Ref[G, C] = {
@@ -647,11 +655,11 @@ object Graph {
   object GraphData {
 
     /** Gets the [[GraphInfo]] from the [[GraphData]] instance.
-     *
-     * @param g the graph data
-     * @tparam G the graph type
-     * @return the graph info for [[G]]
-     */
+      *
+      * @param g the graph data
+      * @tparam G the graph type
+      * @return the graph info for [[G]]
+      */
     implicit def getInfo[G <: Graph](g: GraphData[G]): GraphInfo[G] = g.info
   }
 

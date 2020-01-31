@@ -118,7 +118,7 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
         n1 match {
           case AtomDef.any(_) => succeed
-          case _ => fail
+          case _              => fail
         }
       case _ => fail
     }
@@ -142,113 +142,92 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     val l1 = graph.addLink()
     val l2 = graph.addLink()
 
-    Node.setShape[List](n1)
+    Node.setShape[MetaList](n1)
 
     n1 match {
-      case List.any(n1) =>
+      case MetaList.any(n1) =>
         n1.head = l1
         n1.tail = l2
 
-        n1.list shouldEqual ListVal(l1, l2)
+        n1.metaList shouldEqual MetaListVal(l1, l2)
       case _ => fail
+    }
+  }
+
+  nodeShape should "be able to represent boolean true" in {
+    val n1 = graph.addNode()
+
+    Node.setShape[MetaNil](n1)
+
+    n1 match {
+      case MetaNil.any(_) => succeed
+      case _              => fail
     }
   }
 
   nodeShape should "be able to represent a nil cell" in {
     val n1 = graph.addNode()
 
-    Node.setShape[True](n1)
+    Node.setShape[MetaTrue](n1)
 
-    val isNil = n1 match {
-      case True.any(_) => true
-      case _           => false
+    n1 match {
+      case MetaTrue.any(_) => succeed
+      case _               => fail
     }
-
-    isNil shouldEqual true
-  }
-
-  nodeShape should "be able to represent boolean true" in {
-    val n1 = graph.addNode()
-
-    Node.setShape[Nil](n1)
-
-    val isNil = n1 match {
-      case Nil.any(_) => true
-      case _          => false
-    }
-
-    isNil shouldEqual true
   }
 
   nodeShape should "be able to represent boolean false" in {
     val n1 = graph.addNode()
 
-    Node.setShape[False](n1)
-
-    val isNil = n1 match {
-      case False.any(_) => true
-      case _            => false
-    }
-
-    isNil shouldEqual true
-  }
-
-  nodeShape should "be able to represent a raw literal" in {
-    val n1 = graph.addNode()
-
-    Node.setShape[RawLiteral](n1)
+    Node.setShape[MetaFalse](n1)
 
     n1 match {
-      case RawLiteral.any(n1) =>
-        val literalText = "Literal Text"
-
-        n1.literal = literalText
-
-        n1.rawLiteral shouldEqual RawLiteralVal(literalText)
-      case _ => fail
+      case MetaFalse.any(_) => succeed
+      case _                => fail
     }
   }
 
   nodeShape should "be able to represent a numeric literal" in {
     val n1 = graph.addNode()
-    val l1 = graph.addLink()
 
     Node.setShape[NumericLiteral](n1)
 
     n1 match {
       case NumericLiteral.any(n1) =>
-        n1.number = l1
+        val testText = "1e-1"
+        n1.number = testText
 
-        n1.numericLiteral shouldEqual NumericLiteralVal(l1)
+        n1.numericLiteral shouldEqual NumericLiteralVal(testText)
       case _ => fail
     }
   }
 
   nodeShape should "be able to represent a text literal" in {
     val n1 = graph.addNode()
-    val l1 = graph.addLink()
 
     Node.setShape[TextLiteral](n1)
 
     n1 match {
       case TextLiteral.any(n1) =>
-        n1.text = l1
+        val testText = "Lorem ipsum"
+        n1.text = testText
 
-        n1.textLiteral shouldEqual TextLiteralVal(l1)
+        n1.textLiteral shouldEqual TextLiteralVal(testText)
       case _ => fail
     }
   }
 
   nodeShape should "be able to represent a foreign code literal" in {
     val n1 = graph.addNode()
-    val l1 = graph.addLink()
 
     Node.setShape[ForeignCodeLiteral](n1)
 
     n1 match {
       case ForeignCodeLiteral.any(n1) =>
-        n1.literal = l1
-        n1.foreignCodeLiteral shouldEqual ForeignCodeLiteralVal(l1)
+        val testText = "lambda x: x + 1"
+        n1.code = testText
+
+        n1.foreignCodeLiteral shouldEqual ForeignCodeLiteralVal(testText)
       case _ => fail
     }
   }
@@ -296,15 +275,15 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     val l2 = graph.addLink()
     val l3 = graph.addLink()
 
-    Node.setShape[Module](n1)
+    Node.setShape[ModuleDef](n1)
 
     n1 match {
-      case Module.any(n1) =>
+      case ModuleDef.any(n1) =>
         n1.name        = l1
         n1.imports     = l2
         n1.definitions = l3
 
-        n1.module shouldEqual ModuleVal(l1, l2, l3)
+        n1.moduleDef shouldEqual ModuleDefVal(l1, l2, l3)
       case _ => fail
     }
   }
@@ -634,23 +613,6 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     }
   }
 
-  nodeShape should "be able to represent mixfix function application" in {
-    val n1 = graph.addNode()
-    val l1 = graph.addLink()
-    val l2 = graph.addLink()
-
-    Node.setShape[MixfixApplication](n1)
-
-    n1 match {
-      case MixfixApplication.any(n1) =>
-        n1.function  = l1
-        n1.arguments = l2
-
-        n1.mixfixApplication shouldEqual MixfixApplicationVal(l1, l2)
-      case _ => fail
-    }
-  }
-
   nodeShape should "be able to represent infix function application" in {
     val n1 = graph.addNode()
     val l1 = graph.addLink()
@@ -910,21 +872,6 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
         n1.doc       = l2
 
         n1.docComment shouldEqual DocCommentVal(l1, l2)
-      case _ => fail
-    }
-  }
-
-  nodeShape should "be able to represent disable comments" in {
-    val n1 = graph.addNode()
-    val l1 = graph.addLink()
-
-    Node.setShape[DisableComment](n1)
-
-    n1 match {
-      case DisableComment.any(n1) =>
-        n1.disabledExpr = l1
-
-        n1.disableComment shouldEqual DisableCommentVal(l1)
       case _ => fail
     }
   }

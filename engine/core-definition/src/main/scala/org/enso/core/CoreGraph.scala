@@ -102,55 +102,46 @@ object CoreGraph {
           * broken down into statically sized components.
           *
           * The [[tail]] parameter should always point to either another node
-          * with shape [[List]] or a node with shape [[Nil]].
+          * with shape [[MetaList]] or a node with shape [[MetaNil]].
           *
           * It should be noted that, given that each [[Node]] contains a field
           * of [[ParentLinks]], that constructing this properly provides a
-          * doubly-linked list, as no [[List]] or [[Nil]] should have more than
-          * one parent.
+          * doubly-linked list, as no [[MetaList]] or [[MetaNil]] should have
+          * more than one parent.
           *
           * @param head the current, arbitrary, element in the list
           * @param tail the rest of the list
           */
-        case class List(head: Link[G], tail: Link[G])
+        case class MetaList(head: Link[G], tail: Link[G])
 
         /** A representation of the end of a linked-list on the graph. */
-        case class Nil()
+        case class MetaNil()
 
         /** A node representing boolean true. */
-        case class True()
+        case class MetaTrue()
 
         /** A node representing boolean false. */
-        case class False()
+        case class MetaFalse()
 
         // === Literals =======================================================
 
-        /** A raw literal is the basic literal type in the [[CoreGraph]].
-          *
-          * This is the underlying storage of the literal string for all of the
-          * other literal types.
-          *
-          * @param literal the literal text
-          */
-        case class RawLiteral(literal: OpaqueData[String, LiteralStorage])
-
         /** A representation of a numeric literal.
           *
-          * @param number a link to the [[RawLiteral]] representing the number
+          * @param number the numeric literal
           */
-        case class NumericLiteral(number: Link[G])
+        case class NumericLiteral(number: OpaqueData[String, LiteralStorage])
 
         /** A representation of a textual literal.
           *
-          * @param text a link to the [[RawLiteral]] representing the number
+          * @param text the textual literal
           */
-        case class TextLiteral(text: Link[G])
+        case class TextLiteral(text: OpaqueData[String, LiteralStorage])
 
         /** A representation of literal text from a foreign code block.
           *
-          * @param literal a link to the [[RawLiteral]] representing the code
+          * @param code the foreign code literal
           */
-        case class ForeignCodeLiteral(literal: Link[G])
+        case class ForeignCodeLiteral(code: OpaqueData[String, LiteralStorage])
 
         // === Names ==========================================================
 
@@ -170,13 +161,17 @@ object CoreGraph {
 
         /** The core representation of a top-level Enso module.
           *
-          * @param name the name of the module
-          * @param imports the module's imports as a [[List]], where each list
-          *                member points to an import
-          * @param definitions the module's definitions as a [[List]], where
+          * @param name        the name of the module
+          * @param imports     the module's imports as a [[MetaList]], where
+          *                    each list member points to an import
+          * @param definitions the module's definitions as a [[MetaList]], where
           *                    each list member points to a binding
           */
-        case class Module(name: Link[G], imports: Link[G], definitions: Link[G])
+        case class ModuleDef(
+          name: Link[G],
+          imports: Link[G],
+          definitions: Link[G]
+        )
 
         /** An import statement.
           *
@@ -197,7 +192,7 @@ object CoreGraph {
         /** An atom definition.
           *
           * @param name the name of the atom
-          * @param args the atom's arguments as a [[List]]
+          * @param args the atom's arguments as a [[MetaList]]
           */
         case class AtomDef(name: Link[G], args: Link[G])
 
@@ -205,8 +200,8 @@ object CoreGraph {
           *
           * @param name the name of the aggregate type
           * @param typeParams the type parameters to the definition
-          * @param body the body of the type definition, represented as a
-          *             [[List]] of bindings
+          * @param body       the body of the type definition, represented as a
+          *                   [[MetaList]] of bindings
           */
         case class TypeDef(
           name: Link[G],
@@ -248,12 +243,16 @@ object CoreGraph {
 
         /** The typset subsumption judgement `<:`.
           *
+          * This construct does not represent a user-facing language element.
+          *
           * @param left the left type in the subsumption judgement
           * @param right the right type in the subsumption judgement
           */
         case class TypesetSubsumption(left: Link[G], right: Link[G])
 
         /** The typeset equality judgement `~`.
+          *
+          * This construct does not represent a user-facing language element.
           *
           * @param left the left operand
           * @param right the right operand
@@ -302,7 +301,7 @@ object CoreGraph {
         /** A sugared function definition.
           *
           * @param name the name of the function
-          * @param args the function arguments, as a [[List]]
+          * @param args the function arguments, as a [[MetaList]]
           * @param body the body of the function
           */
         case class FunctionDef(name: Link[G], args: Link[G], body: Link[G])
@@ -332,10 +331,10 @@ object CoreGraph {
 
         /** A function argument definition.
           *
-          * @param name the name of the argument
+          * @param name      the name of the argument
           * @param suspended whether or not the argument uses suspended
-          *                  evaluation (should be [[True]] or [[False]]
-          * @param default the default value for the argument, if present
+          *                  evaluation (should be [[MetaTrue]] or [[MetaFalse]]
+          * @param default   the default value for the argument, if present
           */
         case class DefinitionArgument(
           name: Link[G],
@@ -354,13 +353,6 @@ object CoreGraph {
           * @param argument the argument to the function
           */
         case class Application(function: Link[G], argument: Link[G])
-
-        /** A mixfix function application.
-          *
-          * @param function the name of the mixfix function
-          * @param arguments the arguments to the mixfix function as a [[List]]
-          */
-        case class MixfixApplication(function: Link[G], arguments: Link[G])
 
         /** An infix function application.
           *
@@ -396,6 +388,10 @@ object CoreGraph {
 
         /** A representatin of a term that is explicitly forced.
           *
+          * An explicitly forced term is one where the user has explicitly
+          * called the `force` operator on it. This is useful only while the
+          * compiler does not _automatically_ handle suspensions and forcing.
+          *
           * PLEASE NOTE: This is temporary and will be removed as soon as the
           * compiler is capable enough to not require it.
           *
@@ -426,7 +422,7 @@ object CoreGraph {
 
         /** A block expression.
           *
-          * @param expressions the expressions in the block as a [[List]]
+          * @param expressions the expressions in the block as a [[MetaList]]
           * @param returnVal the final expression of the block
           */
         case class Block(expressions: Link[G], returnVal: Link[G])
@@ -443,11 +439,15 @@ object CoreGraph {
         /** A case expression.
           *
           * @param scrutinee the case expression's scrutinee
-          * @param branches the match branches, as a [[List]]
+          * @param branches the match branches, as a [[MetaList]]
           */
         case class CaseExpr(scrutinee: Link[G], branches: Link[G])
 
         /** A case branch.
+          *
+          * All case patterns will initially be desugared to a
+          * [[StructuralMatch]] and will be refined during further desugaring
+          * passes, some of which may depend on type checking.
           *
           * @param pattern the pattern to match the scrutinee against
           * @param expression the expression
@@ -488,13 +488,6 @@ object CoreGraph {
           * @param doc a [[TextLiteral]] containing the documentation comment
           */
         case class DocComment(commented: Link[G], doc: Link[G])
-
-        /** A disable comment.
-          *
-          * @param disabledExpr the portion of the program that has been
-          *                     disabled
-          */
-        case class DisableComment(disabledExpr: Link[G])
 
         // === Foreign ========================================================
 
@@ -559,15 +552,14 @@ object CoreGraph {
         node: Node[CoreGraph]
       )(implicit graph: PrimGraph.GraphData[CoreGraph]): Boolean = {
         node match {
-          case Shape.TypeDef.any(_)    => true
-          case Shape.FunctionDef.any(_)       => true
-          case Shape.MixfixApplication.any(_) => true
-          case Shape.InfixApplication.any(_)  => true
-          case Shape.LeftSection.any(_)       => true
-          case Shape.RightSection.any(_)      => true
-          case Shape.CentreSection.any(_)     => true
-          case Shape.ForcedTerm.any(_)        => true
-          case _                              => false
+          case Shape.TypeDef.any(_)          => true
+          case Shape.FunctionDef.any(_)      => true
+          case Shape.InfixApplication.any(_) => true
+          case Shape.LeftSection.any(_)      => true
+          case Shape.RightSection.any(_)     => true
+          case Shape.CentreSection.any(_)    => true
+          case Shape.ForcedTerm.any(_)       => true
+          case _                             => false
         }
       }
 
@@ -610,10 +602,6 @@ object CoreGraph {
         * @tparam G the graph type
         */
       @field case class Shape[G <: PrimGraph](source: Node[G], target: Node[G])
-
-      // ======================================================================
-      // === Utility Functions ================================================
-      // ======================================================================
     }
   }
 }
