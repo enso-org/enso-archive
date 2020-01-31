@@ -48,16 +48,6 @@ class GatewayMessageSpec
       expectNoMessage(timeout)
     }
 
-    //    "properly send request to client ApplyWorkspaceEdit" in {
-    //      sendInitializeAndInitialized()
-    //
-    //      languageServer ! SendApplyWorkspaceEdit
-    //      gateway ! ApplyWorkspaceEdit.request
-    //      expectMsg(ApplyWorkspaceEdit.response)
-    //
-    //      sendShutdownAndExit()
-    //    }
-
     "properly handle request WillSaveTextDocumentWaitUntil" in {
       sendInitializeAndInitialized()
 

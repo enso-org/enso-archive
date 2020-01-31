@@ -27,8 +27,8 @@ object Data {
     Decoder[Number].widen,
     Decoder[Bool].widen,
     Decoder[ParseData].widen,
-    Decoder[InitializeData].widen,
-    Decoder[ArrayData].widen
+    Decoder[InitializeData].widen
+    //    Decoder[ArrayData].widen
   ).reduceLeft(_ or _)
 
   /** A string data. */

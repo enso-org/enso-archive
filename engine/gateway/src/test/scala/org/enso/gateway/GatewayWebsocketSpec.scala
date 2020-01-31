@@ -10,7 +10,14 @@ import org.enso.{Gateway, LanguageServer}
 
 import scala.concurrent.duration._
 import org.enso.gateway.Server
-import org.enso.gateway.TestJson.{Exit, Initialize, Initialized, Shutdown}
+import org.enso.gateway.TestJson.{
+  ApplyWorkspaceEdit,
+  Exit,
+  Initialize,
+  Initialized,
+  Shutdown,
+  WrongJsonrpc
+}
 import org.enso.gateway.protocol.JsonRpcController
 import org.enso.languageserver.SetGateway
 import io.circe.parser.parse
@@ -51,10 +58,8 @@ class GatewayWebsocketSpec
   private def expectNoJson(): Unit =
     wsClient.expectNoMessage(timeout)
 
-  "Websocket" should {
-
-    "reply properly" in {
-
+  "Gateway" should {
+    "properly handle init/shutdown workflow" in {
       WS("/", wsClient.flow) ~> server.route ~>
       check {
         isWebSocketUpgrade shouldEqual true
@@ -70,9 +75,10 @@ class GatewayWebsocketSpec
 
         sendRequestJson(Exit)
         expectNoJson()
+
+        wsClient.sendCompletion()
       }
     }
-
   }
 
   server.shutdown()
