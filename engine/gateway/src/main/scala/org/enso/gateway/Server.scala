@@ -108,7 +108,7 @@ class Server(jsonRpcController: JsonRpcController, config: Config)(
     *
     * The request's URI is not checked.
     */
-  private val route: Route =
+  val route: Route =
     path(config.route) {
       get {
         handleWebSocketMessages(handlerFlow)

@@ -1,6 +1,6 @@
 package org.enso.gateway
 
-import org.enso.gateway.JsonRpcController.jsonRpcVersion
+import org.enso.gateway.protocol.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Param.{
   ClientCapabilities,
   ClientInfo,
@@ -8,7 +8,7 @@ import org.enso.gateway.protocol.request.Param.{
   TextDocumentSaveReason,
   WorkspaceEdit
 }
-import org.enso.gateway.protocol.{Request, Requests, Response}
+import org.enso.gateway.protocol.{Request, Requests, RequestsToClient, Response}
 import org.enso.gateway.protocol.request.Params
 import org.enso.gateway.protocol.request.Params.{
   ApplyWorkspaceEditParams,
@@ -97,10 +97,8 @@ object TestMessage {
   }
 
   object ApplyWorkspaceEdit extends TestMessage[ApplyWorkspaceEditParams] {
-    val request = Request(
-      jsonrpc = jsonRpcVersion,
-      id      = id2,
-      method  = Requests.ApplyWorkspaceEdit.method,
+    val request = RequestsToClient.ApplyWorkspaceEdit(
+      id = id2,
       params = Some(
         ApplyWorkspaceEditParams(
           edit = WorkspaceEdit()

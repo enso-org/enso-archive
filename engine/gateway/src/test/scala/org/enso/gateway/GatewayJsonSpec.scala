@@ -24,8 +24,10 @@ import org.scalatest.{
   Matchers
 }
 import io.circe.parser.parse
+import org.enso
 import org.enso.gateway.protocol.JsonRpcController
 import org.enso.gateway.server.Config
+import org.enso.languageserver.SetGateway
 
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
@@ -47,8 +49,10 @@ class GatewayJsonSpec
     system.actorOf(LanguageServer.props(null), languageServerActorName)
   private val gateway: ActorRef =
     system.actorOf(Gateway.props(languageServer), gatewayActorName)
+  languageServer ! SetGateway(gateway)
 
   private val jsonRpcController = new JsonRpcController(gateway)
+  gateway ! Gateway.SetJsonRpcController(jsonRpcController)
 
   private val config = {
     val port = 30001
@@ -57,6 +61,7 @@ class GatewayJsonSpec
   }
 
   private val server = new Server(jsonRpcController, config)
+  jsonRpcController.server = server
 
   override def beforeAll: Unit = {
     server.run()
@@ -67,7 +72,7 @@ class GatewayJsonSpec
       _ <- server.shutdown()
       _ <- system.terminate()
     } yield ()
-    val timeout = 5.seconds
+    val timeout = 15.seconds
     Await.result(terminationFuture, timeout)
   }
 
@@ -83,15 +88,15 @@ class GatewayJsonSpec
     checkRequestResponse(WrongMethod)
   }
 
-  "Gateway" should "reply with a proper response to request with shutdown method" ignore {
+  "Gateway" should "reply with a proper response to request with shutdown method" in {
     checkRequestResponse(Shutdown)
   }
 
-  "Gateway" should "reply with a proper response to request with workspace/applyEdit method" ignore {
+  "Gateway" should "reply with a proper response to request with workspace/applyEdit method" in {
     checkRequestResponse(ApplyWorkspaceEdit)
   }
 
-  "Gateway" should "reply with a proper response to request with textDocument/willSaveWaitUntil method" ignore {
+  "Gateway" should "reply with a proper response to request with textDocument/willSaveWaitUntil method" in {
     checkRequestResponse(WillSaveTextDocumentWaitUntil)
   }
 

@@ -11,6 +11,8 @@ import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.ActorMaterializer
 import org.enso.gateway.protocol.JsonRpcController
+import org.enso.languageserver.model.Id
+import org.enso.languageserver.{Runner, SendRequestToClient, SetGateway}
 
 import scala.io.StdIn
 import scala.util.Try
@@ -195,20 +197,28 @@ object Main {
       system.actorOf(LanguageServer.props(context), languageServerActorName)
     val gateway: ActorRef =
       system.actorOf(Gateway.props(languageServer), gatewayActorName)
+    languageServer ! SetGateway(gateway)
 
     val jsonRpcController = new JsonRpcController(gateway)
     gateway ! Gateway.SetJsonRpcController(jsonRpcController)
     val config = new enso.gateway.server.Config
     val server = new enso.gateway.Server(jsonRpcController, config)
-    jsonRpcController.server_=(server)
+    jsonRpcController.server = server
     server.run()
+
+    val s = StdIn.readLine()
+    if (s == "x") {
+      languageServer ! SendRequestToClient.SendApplyWorkspaceEdit(
+        Id.Number(100)
+      )
+    }
 
     StdIn.readLine()
     val terminationFuture = for {
       _ <- server.shutdown()
       _ <- system.terminate()
     } yield ()
-    val timeout = 5.seconds
+    val timeout = 15.seconds
     Await.result(terminationFuture, timeout)
     exitSuccess()
   }

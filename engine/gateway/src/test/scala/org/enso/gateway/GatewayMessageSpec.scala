@@ -5,7 +5,6 @@ import akka.testkit.{ImplicitSender, TestKit}
 import org.enso.{Gateway, LanguageServer}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import org.enso.gateway.TestMessage.{
-  ApplyWorkspaceEdit,
   Initialize,
   Shutdown,
   WillSaveTextDocumentWaitUntil
@@ -19,6 +18,8 @@ import org.enso.gateway.TestNotification.{
   Initialized
 }
 
+import scala.concurrent.duration._
+
 class GatewayMessageSpec
     extends TestKit(ActorSystem("GatewayMessageSpec"))
     with ImplicitSender
@@ -26,6 +27,7 @@ class GatewayMessageSpec
     with Matchers
     with BeforeAndAfterAll {
 
+  private val timeout                 = 100.millis
   private val languageServerActorName = "testingLanguageServer"
   private val gatewayActorName        = "testingGateway"
   private val languageServer: ActorRef =
@@ -40,20 +42,21 @@ class GatewayMessageSpec
   "Gateway" must {
     "properly handle init/shutdown workflow" in {
       sendInitializeAndInitialized()
-      expectNoMessage()
+      expectNoMessage(timeout)
 
       sendShutdownAndExit()
-      expectNoMessage()
+      expectNoMessage(timeout)
     }
 
-    "properly handle request ApplyWorkspaceEdit" in {
-      sendInitializeAndInitialized()
-
-      gateway ! ApplyWorkspaceEdit.request
-      expectMsg(ApplyWorkspaceEdit.response)
-
-      sendShutdownAndExit()
-    }
+    //    "properly send request to client ApplyWorkspaceEdit" in {
+    //      sendInitializeAndInitialized()
+    //
+    //      languageServer ! SendApplyWorkspaceEdit
+    //      gateway ! ApplyWorkspaceEdit.request
+    //      expectMsg(ApplyWorkspaceEdit.response)
+    //
+    //      sendShutdownAndExit()
+    //    }
 
     "properly handle request WillSaveTextDocumentWaitUntil" in {
       sendInitializeAndInitialized()
@@ -66,7 +69,7 @@ class GatewayMessageSpec
 
     "properly handle notifications" in {
       sendInitializeAndInitialized()
-      expectNoMessage()
+      expectNoMessage(timeout)
 
       gateway ! DidOpenTextDocument.notification
       gateway ! DidChangeTextDocument.notification
@@ -74,7 +77,7 @@ class GatewayMessageSpec
       gateway ! DidCloseTextDocument.notification
 
       sendShutdownAndExit()
-      expectNoMessage()
+      expectNoMessage(timeout)
     }
   }
 

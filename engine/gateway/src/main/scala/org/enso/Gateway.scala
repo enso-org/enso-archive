@@ -40,6 +40,8 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
 
   override def receive: Receive = {
     case Gateway.SetJsonRpcController(jsonRpcController) =>
+      val msg = "Gateway: SetJsonRpcController received"
+      log.info(msg)
       this.jsonRpcController = jsonRpcController
 
     case Requests.Initialize(id, params) =>
@@ -106,7 +108,7 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
     case ls.RequestToClient.ApplyWorkspaceEdit(id) =>
       val msg = "Gateway: RequestToClient.ApplyWorkspaceEdit received"
       log.info(msg)
-      jsonRpcController.handleRequestOrNotification(
+      jsonRpcController.handleRequestOrNotificationToClient(
         RequestsToClient.ApplyWorkspaceEdit(Id.fromLsModel(id))
       )
 
@@ -182,9 +184,8 @@ class Gateway(languageServer: ActorRef) extends Actor with ActorLogging {
         )
       )
 
-    case requestOrNotification =>
-      val err = "Gateway: unimplemented request or notification: " +
-        requestOrNotification
+    case message =>
+      val err = s"Gateway: unexpected incoming message: $message"
       log.error(err)
   }
 }

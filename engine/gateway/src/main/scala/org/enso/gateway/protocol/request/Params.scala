@@ -28,7 +28,6 @@ import org.enso.gateway.protocol.request.Param.{
 sealed trait Params
 object Params {
   implicit val paramsDecoder: Decoder[Params] = List[Decoder[Params]](
-    Decoder[Array].widen,
     Decoder[VoidParams].widen,
     Decoder[InitializeParams].widen,
     Decoder[ApplyWorkspaceEditParams].widen,
@@ -36,13 +35,13 @@ object Params {
     Decoder[DidChangeTextDocumentParams].widen,
     Decoder[WillSaveTextDocumentWaitUntilParams].widen,
     Decoder[DidSaveTextDocumentParams].widen,
-    Decoder[DidCloseTextDocumentParams].widen
+    Decoder[DidCloseTextDocumentParams].widen,
+    Decoder[ArrayParams].widen
   ).reduceLeft(_ or _)
 
   implicit def paramsEncoder[P <: Params]: Encoder[P] =
     Encoder
       .instance[Params] {
-        case params: Array                               => params.asJson
         case params: VoidParams                          => params.asJson
         case params: InitializeParams                    => params.asJson
         case params: ApplyWorkspaceEditParams            => params.asJson
@@ -51,18 +50,19 @@ object Params {
         case params: WillSaveTextDocumentWaitUntilParams => params.asJson
         case params: DidSaveTextDocumentParams           => params.asJson
         case params: DidCloseTextDocumentParams          => params.asJson
+        case params: ArrayParams                         => params.asJson
       }
       .asInstanceOf[Encoder[P]]
 
   type DocumentUri = String
 
   /** Array params. */
-  case class Array(value: Seq[Option[Param]]) extends Params
+  case class ArrayParams(value: Seq[Option[Param]]) extends Params
 
-  object Array {
-    implicit val paramsArrayDecoder: Decoder[Array] =
+  object ArrayParams {
+    implicit val paramsArrayDecoder: Decoder[ArrayParams] =
       deriveUnwrappedDecoder
-    implicit val paramsArrayEncoder: Encoder[Array] =
+    implicit val paramsArrayEncoder: Encoder[ArrayParams] =
       deriveUnwrappedEncoder
   }
 

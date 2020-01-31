@@ -147,18 +147,20 @@ val circe = Seq("circe-core", "circe-generic", "circe-parser")
 def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
 
-val akkaURL          = "com.typesafe.akka"
-val akkaVersion      = "2.5.23"
-val akkaHTTPVersion  = "10.1.8"
-val akkaActor        = akkaPkg("actor")
-val akkaStream       = akkaPkg("stream")
-val akkaTyped        = akkaPkg("actor-typed")
-val akkaTestkit      = akkaPkg("testkit")
-val akkaSLF4J        = akkaPkg("slf4j")
-val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
-val akkaHttp         = akkaHTTPPkg("http")
-val akkaSpray        = akkaHTTPPkg("http-spray-json")
-val akka             = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
+val akkaURL           = "com.typesafe.akka"
+val akkaVersion       = "2.5.23"
+val akkaHTTPVersion   = "10.1.8"
+val akkaActor         = akkaPkg("actor")
+val akkaStream        = akkaPkg("stream")
+val akkaTyped         = akkaPkg("actor-typed")
+val akkaTestkit       = akkaPkg("testkit")
+val akkaStreamTestkit = akkaPkg("stream-testkit")
+val akkaHTTPTestkit   = akkaHTTPPkg("http-testkit")
+val akkaSLF4J         = akkaPkg("slf4j")
+val akkaTestkitTyped  = akkaPkg("actor-testkit-typed") % Test
+val akkaHttp          = akkaHTTPPkg("http")
+val akkaSpray         = akkaHTTPPkg("http-spray-json")
+val akka              = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
 
 val jmh = Seq(
   "org.openjdk.jmh" % "jmh-core"                 % "1.21" % Benchmark,
@@ -485,11 +487,13 @@ lazy val gateway = (project in file("engine/gateway"))
   .dependsOn(language_server)
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "io.circe"       %% "circe-generic-extras" % "0.12.2",
-      "io.circe"       %% "circe-literal" % circeVersion,
-      akkaTestkit      % Test,
-      "org.scalatest"  %% "scalatest" % "3.2.0-SNAP10" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+      "io.circe"        %% "circe-generic-extras" % "0.12.2",
+      "io.circe"        %% "circe-literal" % circeVersion,
+      akkaTestkit       % Test,
+      akkaStreamTestkit % Test,
+      akkaHTTPTestkit   % Test,
+      "org.scalatest"   %% "scalatest" % "3.2.0-SNAP10" % Test,
+      "org.scalacheck"  %% "scalacheck" % "1.14.0" % Test
     )
   )
 

@@ -1,6 +1,6 @@
 package org.enso.gateway
 
-import org.enso.gateway.JsonRpcController.jsonRpcVersion
+import org.enso.gateway.protocol.JsonRpcController.jsonRpcVersion
 import org.enso.gateway.protocol.request.Param.{
   TextDocumentIdentifier,
   TextDocumentItem,

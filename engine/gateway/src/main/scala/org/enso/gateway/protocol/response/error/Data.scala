@@ -17,18 +17,18 @@ object Data {
     case text: Text                     => text.asJson
     case number: Number                 => number.asJson
     case boolean: Bool                  => boolean.asJson
-    case array: Array                   => array.asJson
     case parseData: ParseData           => parseData.asJson
     case initializeData: InitializeData => initializeData.asJson
+    case array: ArrayData               => array.asJson
   }
 
   implicit val paramsDecoder: Decoder[Data] = List[Decoder[Data]](
     Decoder[Text].widen,
     Decoder[Number].widen,
     Decoder[Bool].widen,
-    Decoder[Array].widen,
     Decoder[ParseData].widen,
-    Decoder[InitializeData].widen
+    Decoder[InitializeData].widen,
+    Decoder[ArrayData].widen
   ).reduceLeft(_ or _)
 
   /** A string data. */
@@ -48,24 +48,29 @@ object Data {
 
   /** A boolean data. */
   case class Bool(value: Boolean) extends Data
+
   object Bool {
     implicit val dataBooleanEncoder: Encoder[Bool] = deriveUnwrappedEncoder
     implicit val dataBooleanDecoder: Decoder[Bool] = deriveUnwrappedDecoder
   }
 
   /** An array data. */
-  case class Array(value: Seq[Option[Datum]]) extends Data
-  object Array {
-    implicit val dataArrayEncoder: Encoder[Array] = deriveUnwrappedEncoder
-    implicit val dataArrayDecoder: Decoder[Array] = deriveUnwrappedDecoder
+  case class ArrayData(value: Seq[Option[Datum]]) extends Data {
+    println(s"Data.Array, value=$value")
   }
 
-  /** Data of [[org.enso.gateway.protocol.response.ResponseError.ParseError]].
+  object ArrayData {
+    implicit val dataArrayEncoder: Encoder[ArrayData] = deriveUnwrappedEncoder
+    implicit val dataArrayDecoder: Decoder[ArrayData] = deriveUnwrappedDecoder
+  }
+
+  /** Data of [[org.enso.gateway.protocol.response.ResponseError.parseError]].
     */
   case class ParseData(
     json: String,
     circeMessage: String
   ) extends Data
+
   object ParseData {
     implicit val parseDataEncoder: Encoder[ParseData] = deriveEncoder
     implicit val parseDataDecoder: Decoder[ParseData] = deriveDecoder

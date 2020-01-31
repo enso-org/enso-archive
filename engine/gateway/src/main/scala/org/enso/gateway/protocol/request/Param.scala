@@ -13,13 +13,12 @@ import cats.syntax.functor._
 import org.enso.gateway.protocol.{TextEdit, TextRange}
 import org.enso.gateway.protocol.request.Params.DocumentUri
 
-/** An element of [[Params.Array]]. */
+/** An element of [[Params.ArrayParams]]. */
 sealed trait Param
 object Param {
   implicit val paramDecoder: Decoder[Param] = List[Decoder[Param]](
     Decoder[Number].widen,
     Decoder[Bool].widen,
-    Decoder[Array].widen,
     Decoder[Text].widen,
     Decoder[ClientInfo].widen,
     Decoder[ClientCapabilities].widen,
@@ -32,12 +31,12 @@ object Param {
     Decoder[TextDocumentSaveReason].widen,
     Decoder[TextDocumentContentChangeEvent].widen,
     Decoder[VersionedTextDocumentIdentifier].widen
+    //    Decoder[ArrayParam].widen
   ).reduceLeft(_ or _)
 
   implicit val paramEncoder: Encoder[Param] = Encoder.instance {
     case param: Number                          => param.asJson
     case param: Bool                            => param.asJson
-    case param: Array                           => param.asJson
     case param: Text                            => param.asJson
     case param: ClientInfo                      => param.asJson
     case param: ClientCapabilities              => param.asJson
@@ -50,6 +49,7 @@ object Param {
     case param: TextDocumentSaveReason          => param.asJson
     case param: TextDocumentContentChangeEvent  => param.asJson
     case param: VersionedTextDocumentIdentifier => param.asJson
+    //    case param: ArrayParam                      => param.asJson
   }
 
   /** A string element. */
@@ -69,6 +69,7 @@ object Param {
 
   /** A boolean element. */
   case class Bool(value: Boolean) extends Param
+
   object Bool {
     implicit val paramBooleanDecoder: Decoder[Bool] =
       deriveUnwrappedDecoder
@@ -76,20 +77,21 @@ object Param {
       deriveUnwrappedEncoder
   }
 
-  /** An array element. */
-  case class Array(value: Seq[Option[Param]]) extends Param
-  object Array {
-    implicit val paramArrayDecoder: Decoder[Array] =
-      deriveUnwrappedDecoder
-    implicit val paramArrayEncoder: Encoder[Array] =
-      deriveUnwrappedEncoder
-  }
+  //  /** An array element. */
+  //  case class ArrayParam(value: Seq[Option[Param]]) extends Param
+  //  object ArrayParam {
+  //    implicit val paramArrayDecoder: Decoder[ArrayParam] =
+  //      deriveUnwrappedDecoder
+  //    implicit val paramArrayEncoder: Encoder[ArrayParam] =
+  //      deriveUnwrappedEncoder
+  //  }
 
   /** A param of the request [[org.enso.gateway.protocol.Requests.Initialize]].
     *
     * @see [[org.enso.gateway.protocol.request.Params.InitializeParams]].
     */
   case class InitializationOptions(value: String) extends Param
+
   object InitializationOptions {
     implicit val initializationOptionsDecoder: Decoder[InitializationOptions] =
       deriveUnwrappedDecoder

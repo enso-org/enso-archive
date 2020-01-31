@@ -26,11 +26,11 @@ object Result {
     case number: Number           => number.asJson
     case boolean: Bool            => boolean.asJson
     case result: InitializeResult => result.asJson
-    case result: NullResult.type  => result.asJson
     case result: ApplyWorkspaceEditResult =>
       result.asJson
     case result: WillSaveTextDocumentWaitUntilResult =>
       result.asJson
+    case result: NullResult.type => result.asJson
   }
 
   implicit val resultDecoder: Decoder[Result] = List[Decoder[Result]](
@@ -38,9 +38,9 @@ object Result {
     Decoder[Number].widen,
     Decoder[Bool].widen,
     Decoder[InitializeResult].widen,
-    Decoder[NullResult.type].widen,
     Decoder[ApplyWorkspaceEditResult].widen,
-    Decoder[WillSaveTextDocumentWaitUntilResult].widen
+    Decoder[WillSaveTextDocumentWaitUntilResult].widen,
+    Decoder[NullResult.type].widen
   ).reduceLeft(_ or _)
 
   /** A string result. */

@@ -33,6 +33,9 @@ class LanguageServer(
 
   override def receive: Receive = {
     case SetGateway(actorRef) =>
+      val msg =
+        s"LanguageServer: SetGateway received"
+      log.info(msg)
       gateway = actorRef
 
     case Notification.Exit =>
@@ -130,7 +133,7 @@ class LanguageServer(
       gateway ! RequestToClient.ApplyWorkspaceEdit(id)
 
     case ResponseFromClient.ApplyWorkspaceEdit(_) =>
-      val msg = "LanguageServer: ApplyWorkspaceEdit received"
+      val msg = "LanguageServer: ResponseFromClient.ApplyWorkspaceEdit received"
       log.info(msg)
 
     case message => default(message)
