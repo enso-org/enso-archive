@@ -11,8 +11,7 @@ import org.enso.{Gateway, LanguageServer}
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.ActorMaterializer
 import org.enso.gateway.protocol.JsonRpcController
-import org.enso.languageserver.model.Id
-import org.enso.languageserver.{Runner, SendRequestToClient, SetGateway}
+import org.enso.languageserver.SetGateway
 
 import scala.io.StdIn
 import scala.util.Try
@@ -205,13 +204,6 @@ object Main {
     val server = new enso.gateway.Server(jsonRpcController, config)
     jsonRpcController.server = server
     server.run()
-
-    val s = StdIn.readLine()
-    if (s == "x") {
-      languageServer ! SendRequestToClient.SendApplyWorkspaceEdit(
-        Id.Number(100)
-      )
-    }
 
     StdIn.readLine()
     val terminationFuture = for {
