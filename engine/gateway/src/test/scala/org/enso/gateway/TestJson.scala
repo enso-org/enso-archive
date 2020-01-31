@@ -3,15 +3,17 @@ package org.enso.gateway
 import io.circe.Json
 import io.circe.literal._
 
-trait TestJson {
+sealed trait TestJson {
   def request: Json
+}
 
+sealed trait RequestJson extends TestJson {
   def expectedResponse: Json
 }
 
 object TestJson {
 
-  object Initialize extends TestJson {
+  object Initialize extends RequestJson {
     val request =
       json"""
          {
@@ -45,7 +47,17 @@ object TestJson {
          }"""
   }
 
-  object WrongJsonrpc extends TestJson {
+  object Initialized extends TestJson {
+    val request =
+      json"""
+         {
+           "jsonrpc": "2.0", 
+           "method": "initialized", 
+           "params" : {}
+         }"""
+  }
+
+  object WrongJsonrpc extends RequestJson {
     val request =
       json"""
          {
@@ -69,7 +81,7 @@ object TestJson {
          }"""
   }
 
-  object WrongMethod extends TestJson {
+  object WrongMethod extends RequestJson {
     val request =
       json"""
          {
@@ -90,7 +102,7 @@ object TestJson {
          }"""
   }
 
-  object Shutdown extends TestJson {
+  object Shutdown extends RequestJson {
     val request =
       json"""
          {
@@ -107,7 +119,16 @@ object TestJson {
          }"""
   }
 
-  object ApplyWorkspaceEdit extends TestJson {
+  object Exit extends TestJson {
+    val request =
+      json"""
+         {
+           "jsonrpc" : "2.0",
+           "method": "exit"        
+         }"""
+  }
+
+  object ApplyWorkspaceEdit extends RequestJson {
     val request =
       json"""
          {
@@ -127,7 +148,7 @@ object TestJson {
          }"""
   }
 
-  object WillSaveTextDocumentWaitUntil extends TestJson {
+  object WillSaveTextDocumentWaitUntil extends RequestJson {
     val request =
       json"""
          {
