@@ -370,10 +370,10 @@ object Graph {
       * encoded having the following type `Refined[Shape, App, Node]`.
       */
     @newtype
-    final case class Refined[C <: Component.Field, Spec, T](wrapped: T)
+    final case class Refined[F <: Component.Field, Spec, T](wrapped: T)
     object Refined {
-      implicit def unwrap[C <: Component.Field, S, T](
-        t: Refined[C, S, T]
+      implicit def unwrap[F <: Component.Field, S, T](
+        t: Refined[F, S, T]
       ): T = { t.wrapped }
     }
 
