@@ -175,7 +175,7 @@ object CoreGraph {
         /** An import statement.
           *
           * @param segments the segments of the import path, represented as a
-          *                 [[NameLiteral]].
+          *                 [[MetaList]].
           */
         case class Import(segments: Link[G])
 
@@ -198,7 +198,8 @@ object CoreGraph {
         /** An expanded-form type definition, with a body.
           *
           * @param name the name of the aggregate type
-          * @param typeParams the type parameters to the definition
+          * @param typeParams the type parameters to the definition, as a
+          *                   [[MetaList]] of bindings
           * @param body       the body of the type definition, represented as a
           *                   [[MetaList]] of bindings
           */
@@ -210,7 +211,7 @@ object CoreGraph {
 
         // === Typing =========================================================
 
-        /** A type signature.
+        /** The ascription of a type to a value.
           *
           * @param typed the expression being ascribed a type
           * @param sig the signature being ascribed to [[typed]]
