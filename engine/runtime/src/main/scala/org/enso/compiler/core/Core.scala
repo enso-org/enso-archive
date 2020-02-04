@@ -68,7 +68,6 @@ class Core {
     /** Smart constructors to create nodes of various shapes. */
     //noinspection DuplicatedCode
     object Make {
-      import Node.Conversions._
 
       // === Base Shapes ======================================================
 
@@ -822,7 +821,7 @@ class Core {
         */
       def constructionError(
         erroneousCore: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.ConstructionError] = {
         val node = CoreDef.Node.addRefined[NodeShape.ConstructionError]
 
@@ -857,18 +856,6 @@ class Core {
         location: AstLocation
       ): CoreDef.Node.LocationVal[CoreGraph] = {
         CoreDef.Node.LocationVal(location.start, location.end)
-      }
-
-      /** Converts the location representation from [[Core]] into the one used
-        * by the parser.
-        *
-        * @param location the location from [[Core]]
-        * @return the parser representation of [[location]]
-        */
-      implicit def nodeLocationToAstLocation(
-        location: CoreDef.Node.LocationVal[CoreGraph]
-      ): AstLocation = {
-        AstLocation(location.sourceStart, location.sourceEnd)
       }
     }
 

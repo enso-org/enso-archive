@@ -372,11 +372,12 @@ object Graph {
     @newtype
     final case class Refined[F <: Component.Field, Spec, T](wrapped: T)
     object Refined {
-      implicit def unwrap[F <: Component.Field, S, T](
+      implicit def unwrap[F <: Component.Field, S <: F, T](
         t: Refined[F, S, T]
       ): T = { t.wrapped }
 
-      def wrap[F <: Component.Field, S, T](t: T): Refined[F, S, T] = Refined(t)
+      def wrap[F <: Component.Field, S <: F, T](t: T): Refined[F, S, T] =
+        Refined(t)
     }
 
     // === List ===
