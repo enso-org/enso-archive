@@ -1,11 +1,10 @@
 package org.enso.compiler.core
 
-import org.enso.graph.{Graph => PrimGraph}
-import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
+import cats.data.NonEmptyList
 import org.enso.core.CoreGraph.DefinitionGen.Node.{Shape => NodeShape}
+import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
+import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{Location => AstLocation}
-
-import scala.util.{Failure, Success, Try}
 
 // TODO [AA] Detailed semantic descriptions for each node shape in future.
 
@@ -36,10 +35,18 @@ class Core {
 
   type CoreGraph = CoreDef.CoreGraph
   type GraphData = PrimGraph.GraphData[CoreGraph]
-  type CoreNode  = CoreDef.Node[CoreGraph]
-  type CoreLink  = CoreDef.Link[CoreGraph]
+
+  type CoreNode = CoreDef.Node[CoreGraph]
+  type CoreLink = CoreDef.Link[CoreGraph]
   type RefinedNode[V <: CoreDef.Node.Shape] =
     PrimGraph.Component.Refined[NodeShape, V, CoreNode]
+
+  type ErrorOrRefined[Err <: CoreDef.Node.Shape, T <: CoreDef.Node.Shape] =
+    Either[RefinedNode[Err], RefinedNode[T]]
+  type ConsErrOrT[T <: CoreDef.Node.Shape] =
+    ErrorOrRefined[NodeShape.ConstructionError, T]
+
+  type Location = CoreDef.Node.LocationVal[CoreGraph]
 
   // ==========================================================================
   // === Graph Storage ========================================================
@@ -102,7 +109,7 @@ class Core {
       def metaList(
         head: CoreNode,
         tail: CoreNode
-      ): Try[RefinedNode[NodeShape.MetaList]] = {
+      ): ConsErrOrT[NodeShape.MetaList] = {
         if (Utility.isListNode(tail)) {
           val node = CoreDef.Node.addRefined[NodeShape.MetaList]
 
@@ -116,13 +123,12 @@ class Core {
           node.tail     = tailLink
           node.location = Constants.invalidLocation
 
-          Success(node)
+          Right(node)
         } else {
-          Failure(
-            new Exception.InvalidListConstruction(
-              s"Provided tail with index ${tail.ix} is not a valid list cell."
-            )
-          )
+          val errorElems = Utility.coreListFromList(NonEmptyList(tail, List()))
+          val errorNode  = constructionError(errorElems, tail.location)
+
+          Left(errorNode)
         }
       }
 
@@ -181,7 +187,7 @@ class Core {
         */
       def numericLiteral(
         number: String,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.NumericLiteral] = {
         val node = CoreDef.Node.addRefined[NodeShape.NumericLiteral]
 
@@ -199,7 +205,7 @@ class Core {
         */
       def textLiteral(
         text: String,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TextLiteral] = {
         val node = CoreDef.Node.addRefined[NodeShape.TextLiteral]
 
@@ -217,7 +223,7 @@ class Core {
         */
       def foreignCodeLiteral(
         code: String,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.ForeignCodeLiteral] = {
         val node = CoreDef.Node.addRefined[NodeShape.ForeignCodeLiteral]
 
@@ -237,7 +243,7 @@ class Core {
         */
       def name(
         nameLiteral: String,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.Name] = {
         val node = CoreDef.Node.addRefined[NodeShape.Name]
 
@@ -252,7 +258,7 @@ class Core {
         * @param location the source location of the `this` usage
         * @return a node representing the `this` usage at [[location]]
         */
-      def thisName(location: AstLocation): RefinedNode[NodeShape.ThisName] = {
+      def thisName(location: Location): RefinedNode[NodeShape.ThisName] = {
         val node = CoreDef.Node.addRefined[NodeShape.ThisName]
 
         node.location = location
@@ -265,7 +271,7 @@ class Core {
         * @param location the source location of the `here` usage
         * @return a node representing the `here` usage at [[location]]
         */
-      def hereName(location: AstLocation): RefinedNode[NodeShape.HereName] = {
+      def hereName(location: Location): RefinedNode[NodeShape.HereName] = {
         val node = CoreDef.Node.addRefined[NodeShape.HereName]
 
         node.location = location
@@ -289,8 +295,8 @@ class Core {
         name: CoreNode,
         imports: CoreNode,
         definitions: CoreNode,
-        location: AstLocation
-      ): Try[RefinedNode[NodeShape.ModuleDef]] = {
+        location: Location
+      ): ConsErrOrT[NodeShape.ModuleDef] = {
         if (Utility.isListNode(imports) && Utility.isListNode(definitions)) {
           val node = CoreDef.Node.addRefined[NodeShape.ModuleDef]
 
@@ -307,14 +313,19 @@ class Core {
           node.definitions = definitionsLink
           node.location    = location
 
-          Success(node)
+          Right(node)
         } else {
-          Failure(
-            new Exception.NotValidList(
-              s"Imports and definitions must be a valid meta list but node " +
-              s"at index ${definitions.ix} or ${imports.ix} is not."
+          val errorElems =
+            Utility.coreListFromList(NonEmptyList(imports, List(definitions)))
+          val error = constructionError(
+            errorElems,
+            CoreDef.Node.LocationVal[CoreGraph](
+              imports.location.sourceStart,
+              definitions.location.sourceEnd
             )
           )
+
+          Left(error)
         }
       }
 
@@ -326,8 +337,8 @@ class Core {
         */
       def `import`(
         segments: CoreNode,
-        location: AstLocation
-      ): Try[RefinedNode[NodeShape.Import]] = {
+        location: Location
+      ): ConsErrOrT[NodeShape.Import] = {
         if (Utility.isListNode(segments)) {
           val node = CoreDef.Node.addRefined[NodeShape.Import]
 
@@ -338,14 +349,12 @@ class Core {
           node.segments = segmentsLink
           node.location = location
 
-          Success(node)
+          Right(node)
         } else {
-          Failure(
-            new Exception.NotValidList(
-              s"Import segments must be a valid meta list but node " +
-              s"at index ${segments.ix} is not."
-            )
-          )
+          val errList = Utility.coreListFromList(NonEmptyList(segments, List()))
+          val errNode = constructionError(errList, segments.location)
+
+          Left(errNode)
         }
       }
 
@@ -363,8 +372,8 @@ class Core {
       def topLevelBinding(
         module: CoreNode,
         binding: CoreNode,
-        location: AstLocation
-      ): Try[RefinedNode[NodeShape.TopLevelBinding]] = {
+        location: Location
+      ): ConsErrOrT[NodeShape.TopLevelBinding] = {
         binding match {
           case NodeShape.Binding.any(_) =>
             val node = CoreDef.Node.addRefined[NodeShape.TopLevelBinding]
@@ -379,14 +388,9 @@ class Core {
             node.binding  = bindingLink
             node.location = location
 
-            Success(node)
+            Right(node)
           case _ =>
-            Failure(
-              new Exception.NotBinding(
-                s"Node passed as `binding` must have" +
-                s"binding shape but node at ${binding.ix} does not."
-              )
-            )
+            Left(constructionError(binding, binding.location))
         }
       }
 
@@ -402,9 +406,9 @@ class Core {
       def atomDef(
         name: CoreNode,
         args: CoreNode,
-        location: AstLocation
-      ): Try[RefinedNode[NodeShape.AtomDef]] = {
-        if (Utility.isListNode(name)) {
+        location: Location
+      ): ConsErrOrT[NodeShape.AtomDef] = {
+        if (Utility.isListNode(args)) {
           val node = CoreDef.Node.addRefined[NodeShape.AtomDef]
 
           val nameLink = Link.make(node, name)
@@ -417,14 +421,12 @@ class Core {
           node.args     = argsLink
           node.location = location
 
-          Success(node)
+          Right(node)
         } else {
-          Failure(
-            new Exception.NotValidList(
-              s"Args must be provided as a valid list, but the node at " +
-              s"${args.ix} is not."
-            )
-          )
+          val errList = Utility.coreListFromList(NonEmptyList(args, List()))
+          val errNode = constructionError(errList, args.location)
+
+          Left(errNode)
         }
       }
 
@@ -440,8 +442,8 @@ class Core {
         name: CoreNode,
         typeParams: CoreNode,
         body: CoreNode,
-        location: AstLocation
-      ): Try[RefinedNode[NodeShape.TypeDef]] = {
+        location: Location
+      ): ConsErrOrT[NodeShape.TypeDef] = {
         if (Utility.isListNode(typeParams) && Utility.isListNode(body)) {
           val node = CoreDef.Node.addRefined[NodeShape.TypeDef]
 
@@ -458,14 +460,19 @@ class Core {
           node.body       = bodyLink
           node.location   = location
 
-          Success(node)
+          Right(node)
         } else {
-          Failure(
-            new Exception.NotValidList(
-              s"Type params and body must both be valid meta lists, but the " +
-              s"node at ${typeParams.ix} or ${body.ix} is not."
+          val errList =
+            Utility.coreListFromList(NonEmptyList(typeParams, List(body)))
+          val errNode = constructionError(
+            errList,
+            CoreDef.Node.LocationVal[CoreGraph](
+              typeParams.location.sourceStart,
+              body.location.sourceEnd
             )
           )
+
+          Left(errNode)
         }
       }
 
@@ -485,7 +492,7 @@ class Core {
       def typeAscription(
         typed: CoreNode,
         sig: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypeAscription] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypeAscription]
 
@@ -514,7 +521,7 @@ class Core {
       def contextAscription(
         typed: CoreNode,
         context: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.ContextAscription] = {
         val node = CoreDef.Node.addRefined[NodeShape.ContextAscription]
 
@@ -547,7 +554,7 @@ class Core {
         label: CoreNode,
         memberType: CoreNode,
         value: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypesetMember] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetMember]
 
@@ -581,7 +588,7 @@ class Core {
       def typesetSubsumption(
         left: CoreNode,
         right: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypesetSubsumption] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetSubsumption]
 
@@ -612,7 +619,7 @@ class Core {
       def typesetEquality(
         left: CoreNode,
         right: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypesetEquality] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetEquality]
 
@@ -640,7 +647,7 @@ class Core {
       def typesetConcat(
         left: CoreNode,
         right: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypesetConcat] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetConcat]
 
@@ -668,7 +675,7 @@ class Core {
       def typesetUnion(
         left: CoreNode,
         right: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypesetUnion] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetUnion]
 
@@ -696,7 +703,7 @@ class Core {
       def typesetIntersection(
         left: CoreNode,
         right: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypesetIntersection] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetIntersection]
 
@@ -724,7 +731,7 @@ class Core {
       def typesetSubtraction(
         left: CoreNode,
         right: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.TypesetSubtraction] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetSubtraction]
 
@@ -756,7 +763,7 @@ class Core {
       def lambda(
         arg: CoreNode,
         body: CoreNode,
-        location: AstLocation
+        location: Location
       ): RefinedNode[NodeShape.Lambda] = {
         val node = CoreDef.Node.addRefined[NodeShape.Lambda]
 
@@ -777,8 +784,8 @@ class Core {
         name: CoreNode,
         args: CoreNode,
         body: CoreNode,
-        location: AstLocation
-      ): Try[RefinedNode[NodeShape.FunctionDef]] = {
+        location: Location
+      ): ConsErrOrT[NodeShape.FunctionDef] = {
         if (Utility.isListNode(args)) {
           val node = CoreDef.Node.addRefined[NodeShape.FunctionDef]
 
@@ -795,14 +802,38 @@ class Core {
           node.body     = bodyLink
           node.location = location
 
-          Success(node)
+          Right(node)
         } else {
-          Failure(
-            new Exception.NotValidList(
-              s"Args must be a valid meta list, but node at ${args.ix} is not."
-            )
-          )
+          val errList = Utility.coreListFromList(NonEmptyList(args, List()))
+          val errNode = constructionError(errList, args.location)
+
+          Left(errNode)
         }
+      }
+
+      // === Errors ===========================================================
+
+      /** Creates a node representing an error that occurred when constructing
+        * a [[Core]] expression.
+        *
+        * @param erroneousCore the core expression(s) that caused a problem
+        * @param location the location at which the erroneous core occurred
+        * @return a node representing an erroneous core expression
+        */
+      def constructionError(
+        erroneousCore: CoreNode,
+        location: AstLocation
+      ): RefinedNode[NodeShape.ConstructionError] = {
+        val node = CoreDef.Node.addRefined[NodeShape.ConstructionError]
+
+        val erroneousCoreLink = Link.make(node, erroneousCore)
+
+        CoreDef.Node.addParent(erroneousCore, erroneousCoreLink)
+
+        node.erroneousCore = erroneousCoreLink
+        node.location      = location
+
+        node
       }
     }
 
@@ -826,6 +857,18 @@ class Core {
         location: AstLocation
       ): CoreDef.Node.LocationVal[CoreGraph] = {
         CoreDef.Node.LocationVal(location.start, location.end)
+      }
+
+      /** Converts the location representation from [[Core]] into the one used
+        * by the parser.
+        *
+        * @param location the location from [[Core]]
+        * @return the parser representation of [[location]]
+        */
+      implicit def nodeLocationToAstLocation(
+        location: CoreDef.Node.LocationVal[CoreGraph]
+      ): AstLocation = {
+        AstLocation(location.sourceStart, location.sourceEnd)
       }
     }
 
@@ -856,6 +899,40 @@ class Core {
           case _                         => false
         }
       }
+
+      /** Constructs a meta list on the [[Core]] graph from a list of [[Core]]
+        * nodes.
+        *
+        * @param nodes the nodes to make a list out of
+        * @return a node representing the head of a meta-level list
+        */
+      def coreListFromList(
+        nodes: NonEmptyList[CoreNode]
+      ): RefinedNode[NodeShape.MetaList] = {
+        val nodesWithNil = nodes :+ Make.metaNil().wrapped
+
+        // Note [Unsafety in List Construction]
+        val unrefinedMetaList =
+          nodesWithNil.reduceLeft(
+            (l, r) => Make.metaList(l, r).right.get.wrapped
+          )
+
+        PrimGraph.Component.Refined
+          .wrap[NodeShape, NodeShape.MetaList, CoreNode](unrefinedMetaList)
+      }
+
+      /* Note [Unsafety in List Construction]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * This makes use of internal implementation details to know that calling
+     * `right` here is always safe. The error condition for the `metaList`
+     * constructor occurs when the `tail` argument doesn't point to a valid
+     * list element, but here we construct that element directly and hence we
+     * know that it is valid.
+     *
+     * Furthermore, we can unconditionally refine the type as we know that the
+     * node we get back must be a MetaList, and we know that the input is not
+     * empty.
+     */
     }
   }
 

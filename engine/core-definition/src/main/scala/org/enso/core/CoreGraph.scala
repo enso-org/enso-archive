@@ -506,7 +506,12 @@ object CoreGraph {
           */
         case class SyntaxError(errorNode: Link[G])
 
-        // TODO [AA] Fill in the error types as they become evident
+        /** Returned on an attempt to construct erroneous core.
+          *
+          * @param erroneousCore a [[MetaList]] containing the one-or-more core
+          *                      nodes that were in an incorrect format
+          */
+        case class ConstructionError(erroneousCore: Link[G])
       }
 
       // ======================================================================
@@ -576,8 +581,9 @@ object CoreGraph {
         node: Node[CoreGraph]
       )(implicit graph: PrimGraph.GraphData[CoreGraph]): Boolean = {
         node match {
-          case Shape.SyntaxError.any(_) => true
-          case _                        => false
+          case Shape.SyntaxError.any(_)       => true
+          case Shape.ConstructionError.any(_) => true
+          case _                              => false
         }
       }
 

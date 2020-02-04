@@ -375,6 +375,8 @@ object Graph {
       implicit def unwrap[F <: Component.Field, S, T](
         t: Refined[F, S, T]
       ): T = { t.wrapped }
+
+      def wrap[F <: Component.Field, S, T](t: T): Refined[F, S, T] = Refined(t)
     }
 
     // === List ===
