@@ -357,8 +357,6 @@ object Graph {
     @newtype
     final case class Ref[G <: Graph, C <: Component](ix: Int)
 
-    // === Refined ===
-
     /** Type refinement for component references.
       *
       * Type refinement is used to add additional information to a [[Component]]
@@ -724,7 +722,8 @@ object Graph {
       ev3: HListTakeUntil.Aux[C, ComponentList, PrevComponentList],
       ev4: hlist.Length.Aux[PrevComponentList, ComponentIndex],
       componentIndexEv: nat.ToInt[ComponentIndex],
-      componentSizeEv: KnownSize[FieldList]
+      componentSizeEv: KnownSize[FieldList],
+      listContainsComponent: Selector[ComponentList, C]
     ): HasComponent[G, C] = new HasComponent[G, C] {
       val componentIndex = componentIndexEv()
       val componentSize  = componentSizeEv.asInt
@@ -744,6 +743,7 @@ object Graph {
     val componentSize: Int
     val fieldOffset: Int
   }
+  // TODO [AA] Does this ever check if FieldList contains the field?
   object HasComponentField {
     implicit def instance[
       G <: Graph,
@@ -754,7 +754,8 @@ object Graph {
       implicit
       ev1: Component.Field.List.Aux[G, C, FieldList],
       evx: HasComponent[G, C],
-      fieldOffsetEv: SizeUntil[F, FieldList]
+      fieldOffsetEv: SizeUntil[F, FieldList],
+      containsField: Selector[FieldList, F]
     ): HasComponentField[G, C, F] = new HasComponentField[G, C, F] {
       val componentIndex = evx.componentIndex
       val componentSize  = evx.componentSize

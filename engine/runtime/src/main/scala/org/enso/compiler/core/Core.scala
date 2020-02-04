@@ -779,6 +779,14 @@ class Core {
         node
       }
 
+      /** Creates a node representing a function definition.
+        *
+        * @param name the name of the function being defined
+        * @param args the arguments to the function being defined
+        * @param body the body of the function being defined
+        * @param location the source location of the function definition
+        * @return a node representing a function defined for [[name]]
+        */
       def functionDef(
         name: CoreNode,
         args: CoreNode,
@@ -805,6 +813,52 @@ class Core {
         } else {
           val errList = Utility.coreListFromList(NonEmptyList(args, List()))
           val errNode = constructionError(errList, args.location)
+
+          Left(errNode)
+        }
+      }
+
+      /** Creates a node representing a method definition
+        *
+        * @param targetPath the method path for the definition
+        * @param name the method name
+        * @param function the implementation of the method. This must either be
+        *                 a [[NodeShape.Lambda]] or a [[NodeShape.FunctionDef]]
+        * @param location the source location of the method definition
+        * @return a node that defines method [[name]] on [[path]]
+        */
+      def methodDef(
+        targetPath: CoreNode,
+        name: CoreNode,
+        function: CoreNode,
+        location: Location
+      ): ConsErrOrT[NodeShape.MethodDef] = {
+        val bodyIsValid = function match {
+          case NodeShape.FunctionDef.any(_) => true
+          case NodeShape.Lambda.any(_)      => true
+          case _                            => false
+        }
+
+        if (bodyIsValid) {
+          val node = CoreDef.Node.addRefined[NodeShape.MethodDef]
+
+          val targetPathLink = Link.make(node, targetPath)
+          val nameLink       = Link.make(node, name)
+          val functionLink   = Link.make(node, function)
+
+          CoreDef.Node.addParent(targetPath, targetPathLink)
+          CoreDef.Node.addParent(name, nameLink)
+          CoreDef.Node.addParent(function, functionLink)
+
+          node.targetPath = targetPathLink
+          node.name       = nameLink
+          node.function   = functionLink
+          node.location   = location
+
+          Right(node)
+        } else {
+          val errList = Utility.coreListFromList(NonEmptyList(function, List()))
+          val errNode = constructionError(errList, function.location)
 
           Left(errNode)
         }
