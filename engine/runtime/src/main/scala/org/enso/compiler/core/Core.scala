@@ -7,6 +7,8 @@ import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{AST, Location => AstLocation}
 
 // TODO [AA] Detailed semantic descriptions for each node shape in future.
+// TODO [AA] Eventually refactor graph macro generation so as to allow the
+//  trait-extension based approach to implicit imports.
 
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
@@ -15,6 +17,20 @@ import org.enso.syntax.text.{AST, Location => AstLocation}
   * transformation and features:
   * - High performance on a mutable graph structure.
   * - Mutable links to represent program structure.
+  *
+  * To use core properly you will need to have the following imports in scope.
+  * These serve to bring the correct set of implicits into scope:
+  *
+  * {{{
+  *   import Core._
+  *   import CoreDef.Link.Shape._
+  *   import CoreDef.Node.Location._
+  *   import CoreDef.Node.ParentLinks._
+  *   import CoreDef.Node.Shape._
+  *   import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
+  *   import org.enso.graph.{Graph => PrimGraph}
+  *   import PrimGraph.Component.Refined._
+  * }}}
   */
 class Core {
   // TODO [AA] Need to present a nice interface
@@ -31,31 +47,36 @@ class Core {
   // === Useful Type Aliases ==================================================
   // ==========================================================================
 
-  type CoreGraph = CoreDef.CoreGraph
-  type GraphData = PrimGraph.GraphData[CoreGraph]
+  type Graph     = CoreDef.CoreGraph
+  type GraphData = PrimGraph.GraphData[Graph]
 
-  type CoreNode = CoreDef.Node[CoreGraph]
-  type CoreLink = CoreDef.Link[CoreGraph]
+  type Node = CoreDef.Node[Graph]
+  type Link = CoreDef.Link[Graph]
   type RefinedNode[V <: CoreDef.Node.Shape] =
-    PrimGraph.Component.Refined[NodeShape, V, CoreNode]
+    PrimGraph.Component.Refined[NodeShape, V, Node]
 
   type ErrorOrRefined[Err <: CoreDef.Node.Shape, T <: CoreDef.Node.Shape] =
     Either[RefinedNode[Err], RefinedNode[T]]
   type ConsErrOrT[T <: CoreDef.Node.Shape] =
     ErrorOrRefined[NodeShape.ConstructionError, T]
 
-  type Location = CoreDef.Node.LocationVal[CoreGraph]
+  type Location = CoreDef.Node.LocationVal[Graph]
+
+  type LiteralStorage = CoreDef.LiteralStorage
+  type NameStorage    = CoreDef.NameStorage
+  type ParentStorage  = CoreDef.ParentStorage
+  type AstStorage     = CoreDef.AstStorage
 
   // ==========================================================================
   // === Graph Storage ========================================================
   // ==========================================================================
 
-  implicit val graph: GraphData = PrimGraph[CoreGraph]()
+  implicit val graph: GraphData = PrimGraph[Graph]()
 
-  implicit val literalStorage = CoreDef.LiteralStorage()
-  implicit val nameStorage    = CoreDef.NameStorage()
-  implicit val parentStorage  = CoreDef.ParentStorage()
-  implicit val astStorage     = CoreDef.AstStorage()
+  implicit val literalStorage: LiteralStorage = CoreDef.LiteralStorage()
+  implicit val nameStorage: NameStorage       = CoreDef.NameStorage()
+  implicit val parentStorage: ParentStorage   = CoreDef.ParentStorage()
+  implicit val astStorage: AstStorage         = CoreDef.AstStorage()
 
   // ==========================================================================
   // === Node =================================================================
@@ -66,7 +87,7 @@ class Core {
 
     /** Smart constructors to create nodes of various shapes. */
     //noinspection DuplicatedCode
-    object Make {
+    object New {
 
       // === Base Shapes ======================================================
 
@@ -105,14 +126,14 @@ class Core {
         * @return a node representing an on-graph meta list
         */
       def metaList(
-        head: CoreNode,
-        tail: CoreNode
+        head: Node,
+        tail: Node
       ): ConsErrOrT[NodeShape.MetaList] = {
         if (Utility.isListNode(tail)) {
           val node = CoreDef.Node.addRefined[NodeShape.MetaList]
 
-          val headLink = Link.make(node, head)
-          val tailLink = Link.make(node, tail)
+          val headLink = Link.New.connected(node, head)
+          val tailLink = Link.New.connected(node, tail)
 
           CoreDef.Node.addParent(head, headLink)
           CoreDef.Node.addParent(tail, tailLink)
@@ -290,17 +311,17 @@ class Core {
         * @return a node representing the module definition
         */
       def moduleDef(
-        name: CoreNode,
-        imports: CoreNode,
-        definitions: CoreNode,
+        name: Node,
+        imports: Node,
+        definitions: Node,
         location: Location
       ): ConsErrOrT[NodeShape.ModuleDef] = {
         if (Utility.isListNode(imports) && Utility.isListNode(definitions)) {
           val node = CoreDef.Node.addRefined[NodeShape.ModuleDef]
 
-          val nameLink        = Link.make(node, name)
-          val importsLink     = Link.make(node, imports)
-          val definitionsLink = Link.make(node, definitions)
+          val nameLink        = Link.New.connected(node, name)
+          val importsLink     = Link.New.connected(node, imports)
+          val definitionsLink = Link.New.connected(node, definitions)
 
           CoreDef.Node.addParent(name, nameLink)
           CoreDef.Node.addParent(imports, importsLink)
@@ -317,7 +338,7 @@ class Core {
             Utility.coreListFrom(NonEmptyList(imports, List(definitions)))
           val error = constructionError(
             errorElems,
-            CoreDef.Node.LocationVal[CoreGraph](
+            CoreDef.Node.LocationVal[Graph](
               imports.location.sourceStart,
               definitions.location.sourceEnd
             )
@@ -334,13 +355,13 @@ class Core {
         * @return a node representing the import statement
         */
       def `import`(
-        segments: CoreNode,
+        segments: Node,
         location: Location
       ): ConsErrOrT[NodeShape.Import] = {
         if (Utility.isListNode(segments)) {
           val node = CoreDef.Node.addRefined[NodeShape.Import]
 
-          val segmentsLink = Link.make(node, segments)
+          val segmentsLink = Link.New.connected(node, segments)
 
           CoreDef.Node.addParent(segments, segmentsLink)
 
@@ -368,16 +389,16 @@ class Core {
         * @return a node representing the top-level binding
         */
       def topLevelBinding(
-        module: CoreNode,
-        binding: CoreNode,
+        module: Node,
+        binding: Node,
         location: Location
       ): ConsErrOrT[NodeShape.TopLevelBinding] = {
         binding match {
           case NodeShape.Binding.any(_) =>
             val node = CoreDef.Node.addRefined[NodeShape.TopLevelBinding]
 
-            val moduleLink  = Link.make(node, module)
-            val bindingLink = Link.make(node, binding)
+            val moduleLink  = Link.New.connected(node, module)
+            val bindingLink = Link.New.connected(node, binding)
 
             CoreDef.Node.addParent(module, moduleLink)
             CoreDef.Node.addParent(binding, bindingLink)
@@ -402,15 +423,15 @@ class Core {
         * @return a node representing an atom definition for [[name]]
         */
       def atomDef(
-        name: CoreNode,
-        args: CoreNode,
+        name: Node,
+        args: Node,
         location: Location
       ): ConsErrOrT[NodeShape.AtomDef] = {
         if (Utility.isListNode(args)) {
           val node = CoreDef.Node.addRefined[NodeShape.AtomDef]
 
-          val nameLink = Link.make(node, name)
-          val argsLink = Link.make(node, args)
+          val nameLink = Link.New.connected(node, name)
+          val argsLink = Link.New.connected(node, args)
 
           CoreDef.Node.addParent(name, nameLink)
           CoreDef.Node.addParent(args, argsLink)
@@ -437,17 +458,17 @@ class Core {
         * @return a node representing the type definition for [[name]]
         */
       def typeDef(
-        name: CoreNode,
-        typeParams: CoreNode,
-        body: CoreNode,
+        name: Node,
+        typeParams: Node,
+        body: Node,
         location: Location
       ): ConsErrOrT[NodeShape.TypeDef] = {
         if (Utility.isListNode(typeParams) && Utility.isListNode(body)) {
           val node = CoreDef.Node.addRefined[NodeShape.TypeDef]
 
-          val nameLink       = Link.make(node, name)
-          val typeParamsLink = Link.make(node, typeParams)
-          val bodyLink       = Link.make(node, body)
+          val nameLink       = Link.New.connected(node, name)
+          val typeParamsLink = Link.New.connected(node, typeParams)
+          val bodyLink       = Link.New.connected(node, body)
 
           CoreDef.Node.addParent(name, nameLink)
           CoreDef.Node.addParent(typeParams, typeParamsLink)
@@ -464,7 +485,7 @@ class Core {
             Utility.coreListFrom(NonEmptyList(typeParams, List(body)))
           val errNode = constructionError(
             errList,
-            CoreDef.Node.LocationVal[CoreGraph](
+            CoreDef.Node.LocationVal[Graph](
               typeParams.location.sourceStart,
               body.location.sourceEnd
             )
@@ -488,14 +509,14 @@ class Core {
         *         [[sig]] to [[typed]]
         */
       def typeAscription(
-        typed: CoreNode,
-        sig: CoreNode,
+        typed: Node,
+        sig: Node,
         location: Location
       ): RefinedNode[NodeShape.TypeAscription] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypeAscription]
 
-        val typedLink = Link.make(node, typed)
-        val sigLink   = Link.make(node, sig)
+        val typedLink = Link.New.connected(node, typed)
+        val sigLink   = Link.New.connected(node, sig)
 
         CoreDef.Node.addParent(typed, typedLink)
         CoreDef.Node.addParent(sig, sigLink)
@@ -517,14 +538,14 @@ class Core {
         *         to the expression [[typed]]
         */
       def contextAscription(
-        typed: CoreNode,
-        context: CoreNode,
+        typed: Node,
+        context: Node,
         location: Location
       ): RefinedNode[NodeShape.ContextAscription] = {
         val node = CoreDef.Node.addRefined[NodeShape.ContextAscription]
 
-        val typedLink   = Link.make(node, typed)
-        val contextLink = Link.make(node, context)
+        val typedLink   = Link.New.connected(node, typed)
+        val contextLink = Link.New.connected(node, context)
 
         CoreDef.Node.addParent(typed, typedLink)
         CoreDef.Node.addParent(context, contextLink)
@@ -549,16 +570,16 @@ class Core {
         *         type [[memberType]] and default value [[value]]
         */
       def typesetMember(
-        label: CoreNode,
-        memberType: CoreNode,
-        value: CoreNode,
+        label: Node,
+        memberType: Node,
+        value: Node,
         location: Location
       ): RefinedNode[NodeShape.TypesetMember] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetMember]
 
-        val labelLink      = Link.make(node, label)
-        val memberTypeLink = Link.make(node, memberType)
-        val valueLink      = Link.make(node, value)
+        val labelLink      = Link.New.connected(node, label)
+        val memberTypeLink = Link.New.connected(node, memberType)
+        val valueLink      = Link.New.connected(node, value)
 
         CoreDef.Node.addParent(label, labelLink)
         CoreDef.Node.addParent(memberType, memberTypeLink)
@@ -584,14 +605,14 @@ class Core {
         * @return a node representing the judgement that [[left]] `<:` [[right]]
         */
       def typesetSubsumption(
-        left: CoreNode,
-        right: CoreNode,
+        left: Node,
+        right: Node,
         location: Location
       ): RefinedNode[NodeShape.TypesetSubsumption] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetSubsumption]
 
-        val leftLink  = Link.make(node, left)
-        val rightLink = Link.make(node, right)
+        val leftLink  = Link.New.connected(node, left)
+        val rightLink = Link.New.connected(node, right)
 
         CoreDef.Node.addParent(left, leftLink)
         CoreDef.Node.addParent(right, rightLink)
@@ -615,14 +636,14 @@ class Core {
         * @return a node representing the judgement that [[left]] `~` [[right]]
         */
       def typesetEquality(
-        left: CoreNode,
-        right: CoreNode,
+        left: Node,
+        right: Node,
         location: Location
       ): RefinedNode[NodeShape.TypesetEquality] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetEquality]
 
-        val leftLink  = Link.make(node, left)
-        val rightLink = Link.make(node, right)
+        val leftLink  = Link.New.connected(node, left)
+        val rightLink = Link.New.connected(node, right)
 
         CoreDef.Node.addParent(left, leftLink)
         CoreDef.Node.addParent(right, rightLink)
@@ -643,14 +664,14 @@ class Core {
         * @return a node representing the judgement of [[left]] `,` [[right]]
         */
       def typesetConcat(
-        left: CoreNode,
-        right: CoreNode,
+        left: Node,
+        right: Node,
         location: Location
       ): RefinedNode[NodeShape.TypesetConcat] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetConcat]
 
-        val leftLink  = Link.make(node, left)
-        val rightLink = Link.make(node, right)
+        val leftLink  = Link.New.connected(node, left)
+        val rightLink = Link.New.connected(node, right)
 
         CoreDef.Node.addParent(left, leftLink)
         CoreDef.Node.addParent(right, rightLink)
@@ -671,14 +692,14 @@ class Core {
         * @return a node representing the judgement of [[left]] `|` [[right]]
         */
       def typesetUnion(
-        left: CoreNode,
-        right: CoreNode,
+        left: Node,
+        right: Node,
         location: Location
       ): RefinedNode[NodeShape.TypesetUnion] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetUnion]
 
-        val leftLink  = Link.make(node, left)
-        val rightLink = Link.make(node, right)
+        val leftLink  = Link.New.connected(node, left)
+        val rightLink = Link.New.connected(node, right)
 
         CoreDef.Node.addParent(left, leftLink)
         CoreDef.Node.addParent(right, rightLink)
@@ -699,14 +720,14 @@ class Core {
         * @return a node representing the judgement of [[left]] `&` [[right]]
         */
       def typesetIntersection(
-        left: CoreNode,
-        right: CoreNode,
+        left: Node,
+        right: Node,
         location: Location
       ): RefinedNode[NodeShape.TypesetIntersection] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetIntersection]
 
-        val leftLink  = Link.make(node, left)
-        val rightLink = Link.make(node, right)
+        val leftLink  = Link.New.connected(node, left)
+        val rightLink = Link.New.connected(node, right)
 
         CoreDef.Node.addParent(left, leftLink)
         CoreDef.Node.addParent(right, rightLink)
@@ -727,14 +748,14 @@ class Core {
         * @return a node representing the judgement of [[left]] `\` [[right]]
         */
       def typesetSubtraction(
-        left: CoreNode,
-        right: CoreNode,
+        left: Node,
+        right: Node,
         location: Location
       ): RefinedNode[NodeShape.TypesetSubtraction] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypesetSubtraction]
 
-        val leftLink  = Link.make(node, left)
-        val rightLink = Link.make(node, right)
+        val leftLink  = Link.New.connected(node, left)
+        val rightLink = Link.New.connected(node, right)
 
         CoreDef.Node.addParent(left, leftLink)
         CoreDef.Node.addParent(right, rightLink)
@@ -759,14 +780,14 @@ class Core {
         * @return a lambda node with [[arg]] and [[body]] as its children
         */
       def lambda(
-        arg: CoreNode,
-        body: CoreNode,
+        arg: Node,
+        body: Node,
         location: Location
       ): RefinedNode[NodeShape.Lambda] = {
         val node = CoreDef.Node.addRefined[NodeShape.Lambda]
 
-        val argLink  = Link.make(node, arg)
-        val bodyLink = Link.make(node, body)
+        val argLink  = Link.New.connected(node, arg)
+        val bodyLink = Link.New.connected(node, body)
 
         CoreDef.Node.addParent(arg, argLink)
         CoreDef.Node.addParent(body, bodyLink)
@@ -787,17 +808,17 @@ class Core {
         * @return a node representing a function defined for [[name]]
         */
       def functionDef(
-        name: CoreNode,
-        args: CoreNode,
-        body: CoreNode,
+        name: Node,
+        args: Node,
+        body: Node,
         location: Location
       ): ConsErrOrT[NodeShape.FunctionDef] = {
         if (Utility.isListNode(args)) {
           val node = CoreDef.Node.addRefined[NodeShape.FunctionDef]
 
-          val nameLink = Link.make(node, name)
-          val argsLink = Link.make(node, args)
-          val bodyLink = Link.make(node, body)
+          val nameLink = Link.New.connected(node, name)
+          val argsLink = Link.New.connected(node, args)
+          val bodyLink = Link.New.connected(node, body)
 
           CoreDef.Node.addParent(name, nameLink)
           CoreDef.Node.addParent(args, argsLink)
@@ -827,9 +848,9 @@ class Core {
         * @return a node that defines method [[name]] on [[path]]
         */
       def methodDef(
-        targetPath: CoreNode,
-        name: CoreNode,
-        function: CoreNode,
+        targetPath: Node,
+        name: Node,
+        function: Node,
         location: Location
       ): ConsErrOrT[NodeShape.MethodDef] = {
         val bodyIsValid = function match {
@@ -841,9 +862,9 @@ class Core {
         if (bodyIsValid) {
           val node = CoreDef.Node.addRefined[NodeShape.MethodDef]
 
-          val targetPathLink = Link.make(node, targetPath)
-          val nameLink       = Link.make(node, name)
-          val functionLink   = Link.make(node, function)
+          val targetPathLink = Link.New.connected(node, targetPath)
+          val nameLink       = Link.New.connected(node, name)
+          val functionLink   = Link.New.connected(node, function)
 
           CoreDef.Node.addParent(targetPath, targetPathLink)
           CoreDef.Node.addParent(name, nameLink)
@@ -894,9 +915,9 @@ class Core {
         * @return a node representing a definition site argument called [[name]]
         */
       def definitionArgument(
-        name: CoreNode,
-        suspended: CoreNode,
-        default: CoreNode,
+        name: Node,
+        suspended: Node,
+        default: Node,
         location: Location
       ): ConsErrOrT[NodeShape.DefinitionArgument] = {
         val suspendedIsBool = suspended match {
@@ -908,9 +929,9 @@ class Core {
         if (suspendedIsBool) {
           val node = CoreDef.Node.addRefined[NodeShape.DefinitionArgument]
 
-          val nameLink      = Link.make(node, name)
-          val suspendedLink = Link.make(node, name)
-          val defaultLink   = Link.make(node, name)
+          val nameLink      = Link.New.connected(node, name)
+          val suspendedLink = Link.New.connected(node, name)
+          val defaultLink   = Link.New.connected(node, name)
 
           CoreDef.Node.addParent(name, nameLink)
           CoreDef.Node.addParent(suspended, suspendedLink)
@@ -944,14 +965,14 @@ class Core {
         * @return a node that applies [[function]] to [[argument]]
         */
       def application(
-        function: CoreNode,
-        argument: CoreNode,
+        function: Node,
+        argument: Node,
         location: Location
       ): RefinedNode[NodeShape.Application] = {
         val node = CoreDef.Node.addRefined[NodeShape.Application]
 
-        val functionLink = Link.make(node, function)
-        val argumentLink = Link.make(node, argument)
+        val functionLink = Link.New.connected(node, function)
+        val argumentLink = Link.New.connected(node, argument)
 
         CoreDef.Node.addParent(function, functionLink)
         CoreDef.Node.addParent(argument, argumentLink)
@@ -973,16 +994,16 @@ class Core {
         *         [[left]] and [[right]]
         */
       def infixApplication(
-        left: CoreNode,
-        operator: CoreNode,
-        right: CoreNode,
+        left: Node,
+        operator: Node,
+        right: Node,
         location: Location
       ): RefinedNode[NodeShape.InfixApplication] = {
         val node = CoreDef.Node.addRefined[NodeShape.InfixApplication]
 
-        val leftLink     = Link.make(node, left)
-        val operatorLink = Link.make(node, operator)
-        val rightLink    = Link.make(node, right)
+        val leftLink     = Link.New.connected(node, left)
+        val operatorLink = Link.New.connected(node, operator)
+        val rightLink    = Link.New.connected(node, right)
 
         CoreDef.Node.addParent(left, leftLink)
         CoreDef.Node.addParent(operator, operatorLink)
@@ -1005,14 +1026,14 @@ class Core {
         *         [[arg]]
         */
       def leftSection(
-        arg: CoreNode,
-        operator: CoreNode,
+        arg: Node,
+        operator: Node,
         location: Location
       ): RefinedNode[NodeShape.LeftSection] = {
         val node = CoreDef.Node.addRefined[NodeShape.LeftSection]
 
-        val argLink      = Link.make(node, arg)
-        val operatorLink = Link.make(node, operator)
+        val argLink      = Link.New.connected(node, arg)
+        val operatorLink = Link.New.connected(node, operator)
 
         CoreDef.Node.addParent(arg, argLink)
         CoreDef.Node.addParent(operator, operatorLink)
@@ -1033,14 +1054,14 @@ class Core {
         *         [[arg]]
         */
       def rightSection(
-        operator: CoreNode,
-        arg: CoreNode,
+        operator: Node,
+        arg: Node,
         location: Location
       ): RefinedNode[NodeShape.RightSection] = {
         val node = CoreDef.Node.addRefined[NodeShape.RightSection]
 
-        val operatorLink = Link.make(node, operator)
-        val argLink      = Link.make(node, arg)
+        val operatorLink = Link.New.connected(node, operator)
+        val argLink      = Link.New.connected(node, arg)
 
         CoreDef.Node.addParent(operator, operatorLink)
         CoreDef.Node.addParent(arg, argLink)
@@ -1059,12 +1080,12 @@ class Core {
         * @return a node representing the partial application of [[operator]]
         */
       def centreSection(
-        operator: CoreNode,
+        operator: Node,
         location: Location
       ): RefinedNode[NodeShape.CentreSection] = {
         val node = CoreDef.Node.addRefined[NodeShape.CentreSection]
 
-        val operatorLink = Link.make(node, operator)
+        val operatorLink = Link.New.connected(node, operator)
 
         CoreDef.Node.addParent(operator, operatorLink)
 
@@ -1088,12 +1109,12 @@ class Core {
         * @return a node representing [[expression]] being explicitly forced
         */
       def forcedTerm(
-        expression: CoreNode,
+        expression: Node,
         location: Location
       ): RefinedNode[NodeShape.ForcedTerm] = {
         val node = CoreDef.Node.addRefined[NodeShape.ForcedTerm]
 
-        val expressionLink = Link.make(node, expression)
+        val expressionLink = Link.New.connected(node, expression)
 
         CoreDef.Node.addParent(expression, expressionLink)
 
@@ -1136,14 +1157,14 @@ class Core {
         *         to a function
         */
       def callSiteArgument(
-        expression: CoreNode,
-        name: CoreNode,
+        expression: Node,
+        name: Node,
         location: Location
       ): RefinedNode[NodeShape.CallSiteArgument] = {
         val node = CoreDef.Node.addRefined[NodeShape.CallSiteArgument]
 
-        val expressionLink = Link.make(node, expression)
-        val nameLink       = Link.make(node, name)
+        val expressionLink = Link.New.connected(node, expression)
+        val nameLink       = Link.New.connected(node, name)
 
         CoreDef.Node.addParent(expression, expressionLink)
         CoreDef.Node.addParent(name, nameLink)
@@ -1183,15 +1204,15 @@ class Core {
         *         [[returnVal]]
         */
       def block(
-        expressions: CoreNode,
-        returnVal: CoreNode,
+        expressions: Node,
+        returnVal: Node,
         location: Location
       ): ConsErrOrT[NodeShape.Block] = {
         if (Utility.isListNode(expressions)) {
           val node = CoreDef.Node.addRefined[NodeShape.Block]
 
-          val expressionsLink = Link.make(node, expressions)
-          val returnValLink   = Link.make(node, returnVal)
+          val expressionsLink = Link.New.connected(node, expressions)
+          val returnValLink   = Link.New.connected(node, returnVal)
 
           CoreDef.Node.addParent(expressions, expressionsLink)
           CoreDef.Node.addParent(returnVal, returnValLink)
@@ -1218,14 +1239,14 @@ class Core {
         *         [[expression]] to [[name]]
         */
       def binding(
-        name: CoreNode,
-        expression: CoreNode,
+        name: Node,
+        expression: Node,
         location: Location
       ): RefinedNode[NodeShape.Binding] = {
         val node = CoreDef.Node.addRefined[NodeShape.Binding]
 
-        val nameLink       = Link.make(node, name)
-        val expressionLink = Link.make(node, expression)
+        val nameLink       = Link.New.connected(node, name)
+        val expressionLink = Link.New.connected(node, expression)
 
         CoreDef.Node.addParent(name, nameLink)
         CoreDef.Node.addParent(expression, expressionLink)
@@ -1248,15 +1269,15 @@ class Core {
         *         [[branches]]
         */
       def caseExpr(
-        scrutinee: CoreNode,
-        branches: CoreNode,
+        scrutinee: Node,
+        branches: Node,
         location: Location
       ): ConsErrOrT[NodeShape.CaseExpr] = {
         if (Utility.isListNode(branches)) {
           val node = CoreDef.Node.addRefined[NodeShape.CaseExpr]
 
-          val scrutineeLink = Link.make(node, scrutinee)
-          val branchesLink  = Link.make(node, branches)
+          val scrutineeLink = Link.New.connected(node, scrutinee)
+          val branchesLink  = Link.New.connected(node, branches)
 
           CoreDef.Node.addParent(scrutinee, scrutineeLink)
           CoreDef.Node.addParent(branches, branchesLink)
@@ -1283,14 +1304,14 @@ class Core {
         * @return a node representing a case branch matching [[pattern]]
         */
       def caseBranch(
-        pattern: CoreNode,
-        expression: CoreNode,
+        pattern: Node,
+        expression: Node,
         location: Location
       ): RefinedNode[NodeShape.CaseBranch] = {
         val node = CoreDef.Node.addRefined[NodeShape.CaseBranch]
 
-        val patternLink    = Link.make(node, pattern)
-        val expressionLink = Link.make(node, expression)
+        val patternLink    = Link.New.connected(node, pattern)
+        val expressionLink = Link.New.connected(node, expression)
 
         CoreDef.Node.addParent(pattern, patternLink)
         CoreDef.Node.addParent(expression, expressionLink)
@@ -1314,12 +1335,12 @@ class Core {
         *         [[matchExpression]]
         */
       def structuralPattern(
-        matchExpression: CoreNode,
+        matchExpression: Node,
         location: Location
       ): RefinedNode[NodeShape.StructuralPattern] = {
         val node = CoreDef.Node.addRefined[NodeShape.StructuralPattern]
 
-        val matchExpressionLink = Link.make(node, matchExpression)
+        val matchExpressionLink = Link.New.connected(node, matchExpression)
 
         CoreDef.Node.addParent(matchExpression, matchExpressionLink)
 
@@ -1340,12 +1361,12 @@ class Core {
         *         [[matchExpression]]
         */
       def typePattern(
-        matchExpression: CoreNode,
+        matchExpression: Node,
         location: Location
       ): RefinedNode[NodeShape.TypePattern] = {
         val node = CoreDef.Node.addRefined[NodeShape.TypePattern]
 
-        val matchExpressionLink = Link.make(node, matchExpression)
+        val matchExpressionLink = Link.New.connected(node, matchExpression)
 
         CoreDef.Node.addParent(matchExpression, matchExpressionLink)
 
@@ -1366,12 +1387,12 @@ class Core {
         *         [[matchExpression]]
         */
       def namedPattern(
-        matchExpression: CoreNode,
+        matchExpression: Node,
         location: Location
       ): RefinedNode[NodeShape.NamedPattern] = {
         val node = CoreDef.Node.addRefined[NodeShape.NamedPattern]
 
-        val matchExpressionLink = Link.make(node, matchExpression)
+        val matchExpressionLink = Link.New.connected(node, matchExpression)
 
         CoreDef.Node.addParent(matchExpression, matchExpressionLink)
 
@@ -1411,14 +1432,14 @@ class Core {
         *         [[commented]]
         */
       def docComment(
-        commented: CoreNode,
-        doc: CoreNode,
+        commented: Node,
+        doc: Node,
         location: Location
       ): RefinedNode[NodeShape.DocComment] = {
         val node = CoreDef.Node.addRefined[NodeShape.DocComment]
 
-        val commentedLink = Link.make(node, commented)
-        val docLink       = Link.make(node, doc)
+        val commentedLink = Link.New.connected(node, commented)
+        val docLink       = Link.New.connected(node, doc)
 
         CoreDef.Node.addParent(commented, commentedLink)
         CoreDef.Node.addParent(doc, docLink)
@@ -1441,16 +1462,16 @@ class Core {
         * @return a node representing [[code]] in [[language]]
         */
       def foreignDefinition(
-        language: CoreNode,
-        code: CoreNode,
+        language: Node,
+        code: Node,
         location: Location
       ): ConsErrOrT[NodeShape.ForeignDefinition] = {
         code match {
           case NodeShape.ForeignCodeLiteral.any(_) =>
             val node = CoreDef.Node.addRefined[NodeShape.ForeignDefinition]
 
-            val languageLink = Link.make(node, language)
-            val codeLink     = Link.make(node, code)
+            val languageLink = Link.New.connected(node, language)
+            val codeLink     = Link.New.connected(node, code)
 
             CoreDef.Node.addParent(language, languageLink)
             CoreDef.Node.addParent(code, codeLink)
@@ -1496,12 +1517,12 @@ class Core {
         * @return a node representing an erroneous core expression
         */
       def constructionError(
-        erroneousCore: CoreNode,
+        erroneousCore: Node,
         location: Location
       ): RefinedNode[NodeShape.ConstructionError] = {
         val node = CoreDef.Node.addRefined[NodeShape.ConstructionError]
 
-        val erroneousCoreLink = Link.make(node, erroneousCore)
+        val erroneousCoreLink = Link.New.connected(node, erroneousCore)
 
         CoreDef.Node.addParent(erroneousCore, erroneousCoreLink)
 
@@ -1530,7 +1551,7 @@ class Core {
         */
       implicit def astLocationToNodeLocation(
         location: AstLocation
-      ): CoreDef.Node.LocationVal[CoreGraph] = {
+      ): CoreDef.Node.LocationVal[Graph] = {
         CoreDef.Node.LocationVal(location.start, location.end)
       }
     }
@@ -1540,7 +1561,7 @@ class Core {
 
       /** An invalid location in the pogram source. */
       val invalidSourceIndex: Int = -1
-      val invalidLocation: CoreDef.Node.LocationVal[CoreGraph] =
+      val invalidLocation: CoreDef.Node.LocationVal[Graph] =
         CoreDef.Node.LocationVal(invalidSourceIndex, invalidSourceIndex)
     }
 
@@ -1555,7 +1576,7 @@ class Core {
         * @param node the node to check
         * @return `true` if [[node]] is a list node, otherwise `false`
         */
-      def isListNode(node: CoreNode): Boolean = {
+      def isListNode(node: Node): Boolean = {
         node match {
           case NodeShape.MetaList.any(_) => true
           case NodeShape.MetaNil.any(_)  => true
@@ -1569,7 +1590,7 @@ class Core {
         * @param node the expression to turn into a valid list
         * @return a node representing the head of a meta-level list
         */
-      def coreListFrom(node: CoreNode): RefinedNode[NodeShape.MetaList] = {
+      def coreListFrom(node: Node): RefinedNode[NodeShape.MetaList] = {
         coreListFrom(NonEmptyList(node, List()))
       }
 
@@ -1580,18 +1601,18 @@ class Core {
         * @return a node representing the head of a meta-level list
         */
       def coreListFrom(
-        nodes: NonEmptyList[CoreNode]
+        nodes: NonEmptyList[Node]
       ): RefinedNode[NodeShape.MetaList] = {
-        val nodesWithNil = nodes :+ Make.metaNil().wrapped
+        val nodesWithNil = nodes :+ New.metaNil().wrapped
 
         // Note [Unsafety in List Construction]
         val unrefinedMetaList =
           nodesWithNil.reduceLeft(
-            (l, r) => Make.metaList(l, r).right.get.wrapped
+            (l, r) => New.metaList(l, r).right.get.wrapped
           )
 
         PrimGraph.Component.Refined
-          .wrap[NodeShape, NodeShape.MetaList, CoreNode](unrefinedMetaList)
+          .wrap[NodeShape, NodeShape.MetaList, Node](unrefinedMetaList)
       }
 
       /* Note [Unsafety in List Construction]
@@ -1615,30 +1636,103 @@ class Core {
 
   /** Functionality for working with links. */
   object Link {
+    object New {
 
-    /**
-      *
-      * @param source
-      * @param target
-      * @return
-      */
-    def make(source: CoreNode, target: CoreNode): CoreLink = {
-      val link = graph.addLink()
+      /** Makes a link with the provided source and target.
+        *
+        * @param source the start of the link
+        * @param target the end of the link
+        * @return a link from [[source]] to [[target]]
+        */
+      def connected(source: Node, target: Node): Link = {
+        val link = graph.addLink()
 
-      link.source = source
-      link.target = target
+        link.source = source
+        link.target = target
 
-      link
-    }
+        link
+      }
 
-    def make(source: CoreNode): CoreLink = {
-      val link      = graph.addLink()
-      val emptyNode = Node.Make.empty()
+      /** Makes a link with only a source.
+        *
+        * The target is defaulted to a new empty node.
+        *
+        * @param source the start of the link
+        * @return a link from [[source]] to a new [[NodeShape.Empty]] node
+        */
+      def disconnected(source: Node): Link = {
+        val link      = graph.addLink()
+        val emptyNode = Node.New.empty()
 
-      link.source = source
-      link.target = emptyNode
+        link.source = source
+        link.target = emptyNode
 
-      link
+        link
+      }
     }
   }
+}
+object Core {
+
+  // ==========================================================================
+  // === Implicits ============================================================
+  // ==========================================================================
+
+  /* Note [Implicit Conversions On Implicits]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * While the enforced usage of the compiler plugin 'splain' does much to make
+   * debugging issues with implicit resolution easier, implicit conversions of
+   * implicit values can sometimes fail to resolve. If you have all of the
+   * imports described in the `Core` doc comment, as well as an implicit value
+   * of type `Core` and are seeing errors related to implicits resolution, you
+   * may be running into issues with implicits resolution.
+   *
+   * A quick fix is to make the values that the following implicits would
+   * generate _explicitly_ available as implicits in the usage scope.
+   */
+
+  /** Implicitly converts an implicit instance of core to the underlying graph
+    * data.
+    *
+    * @param core the core instance to convert
+    * @return the graph data stored in [[core]]
+    */
+  implicit def getGraphData(implicit core: Core): core.GraphData = core.graph
+
+  /** Implicitly converts an implicit instance of core to the associated storage
+    * for literals.
+    *
+    * @param core the core instance to convert
+    * @return the literal storage stored in [[core]]
+    */
+  implicit def getLiteralStorage(implicit core: Core): core.LiteralStorage =
+    core.literalStorage
+
+  /** Implicitly converts an implicit instance of core to the associated storage
+    * for names.
+    *
+    * @param core the core instance to convert
+    * @return the name storage stored in [[core]]
+    */
+  implicit def getNameStorage(implicit core: Core): core.NameStorage =
+    core.nameStorage
+
+  /** Implicitly converts an implicit instance of core to the associated storage
+    * for parent links.
+    *
+    * @param core the core instance to convert
+    * @return the parent link storage stored in [[core]]
+    */
+  implicit def getParentStorage(implicit core: Core): core.ParentStorage =
+    core.parentStorage
+
+  /** Implicitly converts an implicit instance of core to the associated storage
+    * for ast data.
+    *
+    * @param core the core instance to convert
+    * @return the ast storage stored in [[core]]
+    */
+  implicit def getAstStorage(implicit core: Core): core.AstStorage =
+    core.astStorage
+
 }
