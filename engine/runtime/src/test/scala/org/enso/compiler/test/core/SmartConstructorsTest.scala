@@ -30,10 +30,10 @@ class SmartConstructorsTest extends CompilerTest with BeforeAndAfterEach {
   // === Tests for Link Smart Constructors ====================================
 
   "Links" should "be able to be made with a source and target" in {
-    val n1 = core.Node.New.empty()
-    val n2 = core.Node.New.empty()
+    val n1 = Core.Node.New.empty()
+    val n2 = Core.Node.New.empty()
 
-    val link = core.Link.New.connected(n1, n2)
+    val link = Core.Link.New.connected(n1, n2)
 
     link.source shouldEqual n1
     link.target shouldEqual n2
