@@ -409,6 +409,7 @@ lazy val core_definition = (project in file("engine/core-definition"))
     )
   )
   .dependsOn(graph)
+  .dependsOn(syntax.jvm)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)

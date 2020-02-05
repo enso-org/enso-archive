@@ -3,6 +3,7 @@ package org.enso.core
 import org.enso.graph.definition.Macro.{component, field, genGraph, opaque}
 import org.enso.graph.{Sized, VariantIndexed, Graph => PrimGraph}
 import shapeless.{::, HNil}
+import org.enso.syntax.text.AST
 
 object CoreGraph {
   @genGraph object Definition {
@@ -36,6 +37,9 @@ object CoreGraph {
       * that has the containing node as its `target` field.
       */
     @opaque case class Parent(opaque: Vector[Int])
+
+    /** Storage for raw AST nodes. */
+    @opaque case class Ast(opaque: AST)
 
     // ========================================================================
     // === Node ===============================================================
@@ -446,7 +450,7 @@ object CoreGraph {
         /** A case branch.
           *
           * All case patterns will initially be desugared to a
-          * [[StructuralMatch]] and will be refined during further desugaring
+          * [[StructuralPattern]] and will be refined during further desugaring
           * passes, some of which may depend on type checking.
           *
           * @param pattern the pattern to match the scrutinee against
@@ -459,7 +463,7 @@ object CoreGraph {
           * @param matchExpression the expression representing the possible
           *                        structure of the scrutinee
           */
-        case class StructuralMatch(matchExpression: Link[G])
+        case class StructuralPattern(matchExpression: Link[G])
 
         /** A pattern that matches on the scrutinee purely based on a type
           * subsumption judgement.
@@ -467,7 +471,7 @@ object CoreGraph {
           * @param matchExpression the expression representing the possible type
           *                        of the scrutinee
           */
-        case class TypeMatch(matchExpression: Link[G])
+        case class TypePattern(matchExpression: Link[G])
 
         /** A pattern that matches on the scrutinee based on a type subsumption
           * judgement and assigns a new name to it for use in the branch.
@@ -475,10 +479,10 @@ object CoreGraph {
           * @param matchExpression the expression representing the possible type
           *                        of the scrutinee, and its new name
           */
-        case class NamedMatch(matchExpression: Link[G])
+        case class NamedPattern(matchExpression: Link[G])
 
         /** A pattern that matches on any scrutinee. */
-        case class FallbackMatch()
+        case class FallbackPattern()
 
         // === Comments =======================================================
 
@@ -502,9 +506,9 @@ object CoreGraph {
 
         /** A syntax error.
           *
-          * @param errorNode the node representation of the syntax error
+          * @param errorAst the raw AST representation of the syntax error
           */
-        case class SyntaxError(errorNode: Link[G])
+        case class SyntaxError(errorAst: OpaqueData[AST, AstStorage])
 
         /** Returned on an attempt to construct erroneous core.
           *

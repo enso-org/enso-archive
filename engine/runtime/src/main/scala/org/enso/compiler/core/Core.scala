@@ -4,7 +4,7 @@ import cats.data.NonEmptyList
 import org.enso.core.CoreGraph.DefinitionGen.Node.{Shape => NodeShape}
 import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
 import org.enso.graph.{Graph => PrimGraph}
-import org.enso.syntax.text.{Location => AstLocation}
+import org.enso.syntax.text.{AST, Location => AstLocation}
 
 // TODO [AA] Detailed semantic descriptions for each node shape in future.
 
@@ -20,8 +20,6 @@ class Core {
   // TODO [AA] Need to present a nice interface
   //  - Copy subsection of graph
   //  - Check equality for subsection of graph
-  //  - Improve the way construction errors are handled (use Either and an err
-  //    node on failure)
 
   import CoreDef.Link.Shape._
   import CoreDef.Node.Location._
@@ -57,6 +55,7 @@ class Core {
   implicit val literalStorage = CoreDef.LiteralStorage()
   implicit val nameStorage    = CoreDef.NameStorage()
   implicit val parentStorage  = CoreDef.ParentStorage()
+  implicit val astStorage     = CoreDef.AstStorage()
 
   // ==========================================================================
   // === Node =================================================================
@@ -124,7 +123,7 @@ class Core {
 
           Right(node)
         } else {
-          val errorElems = Utility.coreListFromList(NonEmptyList(tail, List()))
+          val errorElems = Utility.coreListFrom(tail)
           val errorNode  = constructionError(errorElems, tail.location)
 
           Left(errorNode)
@@ -315,7 +314,7 @@ class Core {
           Right(node)
         } else {
           val errorElems =
-            Utility.coreListFromList(NonEmptyList(imports, List(definitions)))
+            Utility.coreListFrom(NonEmptyList(imports, List(definitions)))
           val error = constructionError(
             errorElems,
             CoreDef.Node.LocationVal[CoreGraph](
@@ -350,7 +349,7 @@ class Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFromList(NonEmptyList(segments, List()))
+          val errList = Utility.coreListFrom(NonEmptyList(segments, List()))
           val errNode = constructionError(errList, segments.location)
 
           Left(errNode)
@@ -422,7 +421,7 @@ class Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFromList(NonEmptyList(args, List()))
+          val errList = Utility.coreListFrom(args)
           val errNode = constructionError(errList, args.location)
 
           Left(errNode)
@@ -462,7 +461,7 @@ class Core {
           Right(node)
         } else {
           val errList =
-            Utility.coreListFromList(NonEmptyList(typeParams, List(body)))
+            Utility.coreListFrom(NonEmptyList(typeParams, List(body)))
           val errNode = constructionError(
             errList,
             CoreDef.Node.LocationVal[CoreGraph](
@@ -811,7 +810,7 @@ class Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFromList(NonEmptyList(args, List()))
+          val errList = Utility.coreListFrom(args)
           val errNode = constructionError(errList, args.location)
 
           Left(errNode)
@@ -857,14 +856,637 @@ class Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFromList(NonEmptyList(function, List()))
+          val errList = Utility.coreListFrom(function)
           val errNode = constructionError(errList, function.location)
 
           Left(errNode)
         }
       }
 
+      // === Definition-Site Argument Types ===================================
+
+      /** Creates a node representing an ignored argument.
+        *
+        * An ignored argument is one that is not used in the body and is
+        * explicitly ignored so as not to introduce warnings.
+        *
+        * @param location the location of the ignored argument usage
+        * @return a node representing an ignored argument
+        */
+      def ignoredArgument(
+        location: Location
+      ): RefinedNode[NodeShape.IgnoredArgument] = {
+        val node = CoreDef.Node.addRefined[NodeShape.IgnoredArgument]
+
+        node.location = location
+
+        node
+      }
+
+      /** Creates a node representing an argument from a function definition
+        * site.
+        *
+        * @param name the name of the argument
+        * @param suspended whether or not the argument is suspended, as either
+        *                  [[NodeShape.MetaTrue]] or [[NodeShape.MetaFalse]]
+        * @param default the default value for the argument, if present
+        * @param location the source location of the argument
+        * @return a node representing a definition site argument called [[name]]
+        */
+      def definitionArgument(
+        name: CoreNode,
+        suspended: CoreNode,
+        default: CoreNode,
+        location: Location
+      ): ConsErrOrT[NodeShape.DefinitionArgument] = {
+        val suspendedIsBool = suspended match {
+          case NodeShape.MetaTrue.any(_)  => true
+          case NodeShape.MetaFalse.any(_) => true
+          case _                          => false
+        }
+
+        if (suspendedIsBool) {
+          val node = CoreDef.Node.addRefined[NodeShape.DefinitionArgument]
+
+          val nameLink      = Link.make(node, name)
+          val suspendedLink = Link.make(node, name)
+          val defaultLink   = Link.make(node, name)
+
+          CoreDef.Node.addParent(name, nameLink)
+          CoreDef.Node.addParent(suspended, suspendedLink)
+          CoreDef.Node.addParent(default, defaultLink)
+
+          node.name      = nameLink
+          node.suspended = suspendedLink
+          node.default   = defaultLink
+          node.location  = location
+
+          Right(node)
+        } else {
+          val errList = Utility.coreListFrom(suspended)
+          val errNode = constructionError(errList, suspended.location)
+
+          Left(errNode)
+        }
+      }
+
+      // === Applications =====================================================
+
+      /** Creates a node representing a function application.
+        *
+        * Please note that _all_ functions in Enso are curried by default. and
+        * applications to multiple arguments are represented in [[Core]] as
+        * single-argument functions.
+        *
+        * @param function the function being applied
+        * @param argument the argument to [[function]]
+        * @param location the soure location for the application
+        * @return a node that applies [[function]] to [[argument]]
+        */
+      def application(
+        function: CoreNode,
+        argument: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.Application] = {
+        val node = CoreDef.Node.addRefined[NodeShape.Application]
+
+        val functionLink = Link.make(node, function)
+        val argumentLink = Link.make(node, argument)
+
+        CoreDef.Node.addParent(function, functionLink)
+        CoreDef.Node.addParent(argument, argumentLink)
+
+        node.function = functionLink
+        node.argument = argumentLink
+        node.location = location
+
+        node
+      }
+
+      /** Creates a node representing an infix application.
+        *
+        * @param left the left argument to the operator
+        * @param operator the operator being applied
+        * @param right the right argument to the operator
+        * @param location the source location of the infox application
+        * @return a node representing the application of [[operator]] to
+        *         [[left]] and [[right]]
+        */
+      def infixApplication(
+        left: CoreNode,
+        operator: CoreNode,
+        right: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.InfixApplication] = {
+        val node = CoreDef.Node.addRefined[NodeShape.InfixApplication]
+
+        val leftLink     = Link.make(node, left)
+        val operatorLink = Link.make(node, operator)
+        val rightLink    = Link.make(node, right)
+
+        CoreDef.Node.addParent(left, leftLink)
+        CoreDef.Node.addParent(operator, operatorLink)
+        CoreDef.Node.addParent(right, rightLink)
+
+        node.left     = leftLink
+        node.operator = operatorLink
+        node.right    = rightLink
+        node.location = location
+
+        node
+      }
+
+      /** Creates a node representing a left operator section.
+        *
+        * @param arg the left argument to [[operator]]
+        * @param operator the function being applied
+        * @param location the source location of the application
+        * @return a node representing the partial application of [[operator]] to
+        *         [[arg]]
+        */
+      def leftSection(
+        arg: CoreNode,
+        operator: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.LeftSection] = {
+        val node = CoreDef.Node.addRefined[NodeShape.LeftSection]
+
+        val argLink      = Link.make(node, arg)
+        val operatorLink = Link.make(node, operator)
+
+        CoreDef.Node.addParent(arg, argLink)
+        CoreDef.Node.addParent(operator, operatorLink)
+
+        node.arg      = argLink
+        node.operator = operatorLink
+        node.location = location
+
+        node
+      }
+
+      /** Creates a node representing a right operator section.
+        *
+        * @param operator the function being applied
+        * @param arg the right argument to [[operator]]
+        * @param location the source location of the application
+        * @return a node representing the partial application of [[operator]] to
+        *         [[arg]]
+        */
+      def rightSection(
+        operator: CoreNode,
+        arg: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.RightSection] = {
+        val node = CoreDef.Node.addRefined[NodeShape.RightSection]
+
+        val operatorLink = Link.make(node, operator)
+        val argLink      = Link.make(node, arg)
+
+        CoreDef.Node.addParent(operator, operatorLink)
+        CoreDef.Node.addParent(arg, argLink)
+
+        node.operator = operatorLink
+        node.arg      = argLink
+        node.location = location
+
+        node
+      }
+
+      /** Creates a node representing a centre operator section.
+        *
+        * @param operator the function being partially applied
+        * @param location the source location of the application
+        * @return a node representing the partial application of [[operator]]
+        */
+      def centreSection(
+        operator: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.CentreSection] = {
+        val node = CoreDef.Node.addRefined[NodeShape.CentreSection]
+
+        val operatorLink = Link.make(node, operator)
+
+        CoreDef.Node.addParent(operator, operatorLink)
+
+        node.operator = operatorLink
+        node.location = location
+
+        node
+      }
+
+      /** A node representing a term being explicitly forced.
+        *
+        * An explicitly forced term is one where the user has explicitly called
+        * the `force` operator on it. This is useful only while the compiler
+        * does not _automatically_ handle suspensions and forcing.
+        *
+        * PLEASE NOTE: This is temporary and will be removed as soon as the
+        * compiler is capable enough to not require it.
+        *
+        * @param expression the expression being forced
+        * @param location the source location of the forced expression
+        * @return a node representing [[expression]] being explicitly forced
+        */
+      def forcedTerm(
+        expression: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.ForcedTerm] = {
+        val node = CoreDef.Node.addRefined[NodeShape.ForcedTerm]
+
+        val expressionLink = Link.make(node, expression)
+
+        CoreDef.Node.addParent(expression, expressionLink)
+
+        node.expression = expressionLink
+        node.location   = location
+
+        node
+      }
+
+      // === Call-Site Argument Types =========================================
+
+      /** Creates a node representing a lambda shorthand argument.
+        *
+        * A lambda shorthand argument is the name for the usage of `_` at a
+        * function call-site, where it is syntax sugar for a lambda parameter to
+        * that function.
+        *
+        * @param location the location of this argument in the source code
+        * @return a node representing the `_` argument found at [[location]]
+        */
+      def lambdaShorthandArgument(
+        location: Location
+      ): RefinedNode[NodeShape.LambdaShorthandArgument] = {
+        val node = CoreDef.Node.addRefined[NodeShape.LambdaShorthandArgument]
+
+        node.location = location
+
+        node
+      }
+
+      /** Creates a node representing an argument from a function call site.
+        *
+        * The expression must always be present, but the argument [[name]] may
+        * be an instance of [[NodeShape.Empty]].
+        *
+        * @param expression the expression being passes as the argument
+        * @param name the name of the argument, if present
+        * @param location the source location of this argument
+        * @return a node representing the use of [[expression]] as an argument
+        *         to a function
+        */
+      def callSiteArgument(
+        expression: CoreNode,
+        name: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.CallSiteArgument] = {
+        val node = CoreDef.Node.addRefined[NodeShape.CallSiteArgument]
+
+        val expressionLink = Link.make(node, expression)
+        val nameLink       = Link.make(node, name)
+
+        CoreDef.Node.addParent(expression, expressionLink)
+        CoreDef.Node.addParent(name, nameLink)
+
+        node.expression = expressionLink
+        node.name       = nameLink
+        node.location   = location
+
+        node
+      }
+
+      /** Creates a node representing a usage of the function defaults
+        * suspension operator `...`.
+        *
+        * @param location the source location of the operator usage
+        * @return a node representing a usage of the `...` operator
+        */
+      def suspendDefaultsOperator(
+        location: Location
+      ): RefinedNode[NodeShape.SuspendDefaultsOperator] = {
+        val node = CoreDef.Node.addRefined[NodeShape.SuspendDefaultsOperator]
+
+        node.location = location
+
+        node
+      }
+
+      // === Structure ========================================================
+
+      /** Creates a node representing a block expression.
+        *
+        * @param expressions a valid meta list of expressions (should be
+        *                    [[NodeShape.MetaNil]] if none are present
+        * @param returnVal the final expression in the block
+        * @param location the source location of the block
+        * @return a representation of a block containing [[expressions]] and
+        *         [[returnVal]]
+        */
+      def block(
+        expressions: CoreNode,
+        returnVal: CoreNode,
+        location: Location
+      ): ConsErrOrT[NodeShape.Block] = {
+        if (Utility.isListNode(expressions)) {
+          val node = CoreDef.Node.addRefined[NodeShape.Block]
+
+          val expressionsLink = Link.make(node, expressions)
+          val returnValLink   = Link.make(node, returnVal)
+
+          CoreDef.Node.addParent(expressions, expressionsLink)
+          CoreDef.Node.addParent(returnVal, returnValLink)
+
+          node.expressions = expressionsLink
+          node.returnVal   = returnValLink
+          node.location    = location
+
+          Right(node)
+        } else {
+          val errList = Utility.coreListFrom(expressions)
+          val errNode = constructionError(errList, expressions.location)
+
+          Left(errNode)
+        }
+      }
+
+      /** Creates a node representing a binding of the form `name = expression`.
+        *
+        * @param name the name being bound to
+        * @param expression the expression being bound to [[name]]
+        * @param location the soure location of the binding
+        * @return a representation of the binding of the result of
+        *         [[expression]] to [[name]]
+        */
+      def binding(
+        name: CoreNode,
+        expression: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.Binding] = {
+        val node = CoreDef.Node.addRefined[NodeShape.Binding]
+
+        val nameLink       = Link.make(node, name)
+        val expressionLink = Link.make(node, expression)
+
+        CoreDef.Node.addParent(name, nameLink)
+        CoreDef.Node.addParent(expression, expressionLink)
+
+        node.name       = nameLink
+        node.expression = expressionLink
+        node.location   = location
+
+        node
+      }
+
+      // === Case Expression ==================================================
+
+      /** Creates a node representing a case expression.
+        *
+        * @param scrutinee the expression being matched on
+        * @param branches the branches doing the matching
+        * @param location the soure location of the case expression
+        * @return a node representing pattern matching on [[scrutinee]] using
+        *         [[branches]]
+        */
+      def caseExpr(
+        scrutinee: CoreNode,
+        branches: CoreNode,
+        location: Location
+      ): ConsErrOrT[NodeShape.CaseExpr] = {
+        if (Utility.isListNode(branches)) {
+          val node = CoreDef.Node.addRefined[NodeShape.CaseExpr]
+
+          val scrutineeLink = Link.make(node, scrutinee)
+          val branchesLink  = Link.make(node, branches)
+
+          CoreDef.Node.addParent(scrutinee, scrutineeLink)
+          CoreDef.Node.addParent(branches, branchesLink)
+
+          node.scrutinee = scrutineeLink
+          node.branches  = branchesLink
+          node.location  = location
+
+          Right(node)
+        } else {
+          val errList = Utility.coreListFrom(branches)
+          val errNode = constructionError(errList, branches.location)
+
+          Left(errNode)
+        }
+      }
+
+      /** Creates a node representing a branch in a case expression.
+        *
+        * @param pattern the pattern match for the branch
+        * @param expression the expression that is executed if [[pattern]]
+        *                   successfully matches the case scrutinee
+        * @param location the source location of the case branch
+        * @return a node representing a case branch matching [[pattern]]
+        */
+      def caseBranch(
+        pattern: CoreNode,
+        expression: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.CaseBranch] = {
+        val node = CoreDef.Node.addRefined[NodeShape.CaseBranch]
+
+        val patternLink    = Link.make(node, pattern)
+        val expressionLink = Link.make(node, expression)
+
+        CoreDef.Node.addParent(pattern, patternLink)
+        CoreDef.Node.addParent(expression, expressionLink)
+
+        node.pattern    = patternLink
+        node.expression = expressionLink
+        node.location   = location
+
+        node
+      }
+
+      /** Creates a node representing a structural pattern.
+        *
+        * A structural pattern is one that examines the _structure_ of the
+        * scrutinee. However, as Enso is a dependently typed language, an
+        * examination of the structure is also an examination of the type.
+        *
+        * @param matchExpression the expression representing the pattern
+        * @param location the source location of the patttern
+        * @return a node representing the structural match defined by
+        *         [[matchExpression]]
+        */
+      def structuralPattern(
+        matchExpression: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.StructuralPattern] = {
+        val node = CoreDef.Node.addRefined[NodeShape.StructuralPattern]
+
+        val matchExpressionLink = Link.make(node, matchExpression)
+
+        CoreDef.Node.addParent(matchExpression, matchExpressionLink)
+
+        node.matchExpression = matchExpressionLink
+        node.location        = location
+
+        node
+      }
+
+      /** Creates a node representing a type-based pattern.
+        *
+        * A type-based pattern is one that purely examines the type of the
+        * scrutinee, without including any structural elements.
+        *
+        * @param matchExpression the expression representing the pattern
+        * @param location the source location of the pattern
+        * @return a node representing the type-based match defined by
+        *         [[matchExpression]]
+        */
+      def typePattern(
+        matchExpression: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.TypePattern] = {
+        val node = CoreDef.Node.addRefined[NodeShape.TypePattern]
+
+        val matchExpressionLink = Link.make(node, matchExpression)
+
+        CoreDef.Node.addParent(matchExpression, matchExpressionLink)
+
+        node.matchExpression = matchExpressionLink
+        node.location        = location
+
+        node
+      }
+
+      /** Creates a node representing a named pattern.
+        *
+        * A named pattern is one that renames the scrutinee in the pattern
+        * branch.
+        *
+        * @param matchExpression the expression representing the pattern
+        * @param location the soure location of the pattern
+        * @return a node representing the type-based match defined by
+        *         [[matchExpression]]
+        */
+      def namedPattern(
+        matchExpression: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.NamedPattern] = {
+        val node = CoreDef.Node.addRefined[NodeShape.NamedPattern]
+
+        val matchExpressionLink = Link.make(node, matchExpression)
+
+        CoreDef.Node.addParent(matchExpression, matchExpressionLink)
+
+        node.matchExpression = matchExpressionLink
+        node.location        = location
+
+        node
+      }
+
+      /** Creates a node representing a fallback pattern.
+        *
+        * A fallback pattern is also known as a catch-all, pattern, and will
+        * unconditionally match any scrutinee.
+        *
+        * @param location the soure location of the pattern
+        * @return a node representing the fallback pattern at [[location]]
+        */
+      def fallbackPattern(
+        location: Location
+      ): RefinedNode[NodeShape.FallbackPattern] = {
+        val node = CoreDef.Node.addRefined[NodeShape.FallbackPattern]
+
+        node.location = location
+
+        node
+      }
+
+      // === Comments =========================================================
+
+      /** Creates a node representing an entity with an associated doc comment.
+        *
+        * @param commented the entity that has the comment
+        * @param doc the documentation associated with [[commented]]
+        * @param location the source location of [[commented]] and its
+        *                 associated doc
+        * @return a node representing the association of [[doc]] to
+        *         [[commented]]
+        */
+      def docComment(
+        commented: CoreNode,
+        doc: CoreNode,
+        location: Location
+      ): RefinedNode[NodeShape.DocComment] = {
+        val node = CoreDef.Node.addRefined[NodeShape.DocComment]
+
+        val commentedLink = Link.make(node, commented)
+        val docLink       = Link.make(node, doc)
+
+        CoreDef.Node.addParent(commented, commentedLink)
+        CoreDef.Node.addParent(doc, docLink)
+
+        node.commented = commentedLink
+        node.doc       = docLink
+        node.location  = location
+
+        node
+      }
+
+      // === Foreign ==========================================================
+
+      /** Creates a node representing a block of foreign code.
+        *
+        * @param language the programming language for which [[code]] is written
+        * @param code the source code in [[language]] (must be a
+        *             [[NodeShape.ForeignCodeLiteral]])
+        * @param location the source location of the foreign code block
+        * @return a node representing [[code]] in [[language]]
+        */
+      def foreignDefinition(
+        language: CoreNode,
+        code: CoreNode,
+        location: Location
+      ): ConsErrOrT[NodeShape.ForeignDefinition] = {
+        code match {
+          case NodeShape.ForeignCodeLiteral.any(_) =>
+            val node = CoreDef.Node.addRefined[NodeShape.ForeignDefinition]
+
+            val languageLink = Link.make(node, language)
+            val codeLink     = Link.make(node, code)
+
+            CoreDef.Node.addParent(language, languageLink)
+            CoreDef.Node.addParent(code, codeLink)
+
+            node.language = languageLink
+            node.code     = codeLink
+            node.location = location
+
+            Right(node)
+          case _ =>
+            val errList = Utility.coreListFrom(code)
+            val errNode = constructionError(errList, code.location)
+
+            Left(errNode)
+        }
+      }
+
       // === Errors ===========================================================
+
+      /** Creates a node representing a syntax error.
+        *
+        * @param errorAst the AST that is syntactically invalid
+        * @return a node representing the syntax error described by [[errorAst]]
+        */
+      def syntaxError(errorAst: AST): RefinedNode[NodeShape.SyntaxError] = {
+        val node = CoreDef.Node.addRefined[NodeShape.SyntaxError]
+        val errLocation: Location =
+          errorAst.location
+            .map(Conversions.astLocationToNodeLocation)
+            .getOrElse(Constants.invalidLocation)
+
+        node.errorAst = errorAst
+        node.location = errLocation
+
+        node
+      }
 
       /** Creates a node representing an error that occurred when constructing
         * a [[Core]] expression.
@@ -941,13 +1563,23 @@ class Core {
         }
       }
 
+      /** Constructs a meta list on the [[Core]] graph from a single core
+        * expression.
+        *
+        * @param node the expression to turn into a valid list
+        * @return a node representing the head of a meta-level list
+        */
+      def coreListFrom(node: CoreNode): RefinedNode[NodeShape.MetaList] = {
+        coreListFrom(NonEmptyList(node, List()))
+      }
+
       /** Constructs a meta list on the [[Core]] graph from a list of [[Core]]
         * nodes.
         *
         * @param nodes the nodes to make a list out of
         * @return a node representing the head of a meta-level list
         */
-      def coreListFromList(
+      def coreListFrom(
         nodes: NonEmptyList[CoreNode]
       ): RefinedNode[NodeShape.MetaList] = {
         val nodesWithNil = nodes :+ Make.metaNil().wrapped

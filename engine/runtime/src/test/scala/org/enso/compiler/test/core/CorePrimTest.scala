@@ -2,6 +2,7 @@ package org.enso.compiler.test.core
 
 import org.enso.compiler.test.CompilerTest
 import org.enso.core.CoreGraph.DefinitionGen.{
+  AstStorage,
   Link,
   LiteralStorage,
   NameStorage,
@@ -10,6 +11,7 @@ import org.enso.core.CoreGraph.DefinitionGen.{
 }
 import org.scalatest.BeforeAndAfterEach
 import org.enso.graph.{Graph => PrimGraph}
+import org.enso.syntax.text.AST
 
 /** This file tests the primitive, low-level operations on core.
   *
@@ -33,12 +35,14 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
   implicit var literalStorage: LiteralStorage        = _
   implicit var parentStorage: ParentStorage          = _
   implicit var nameStorage: NameStorage              = _
+  implicit var astStorage: AstStorage                = _
 
   override def beforeEach(): Unit = {
     graph          = PrimGraph[CoreGraph]()
     literalStorage = LiteralStorage()
     parentStorage  = ParentStorage()
     nameStorage    = NameStorage()
+    astStorage     = AstStorage()
   }
 
   // === Tests for Links ======================================================
@@ -807,13 +811,13 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     val n1 = graph.addNode()
     val l1 = graph.addLink()
 
-    Node.setShape[StructuralMatch](n1)
+    Node.setShape[StructuralPattern](n1)
 
     n1 match {
-      case StructuralMatch.any(n1) =>
+      case StructuralPattern.any(n1) =>
         n1.matchExpression = l1
 
-        n1.structuralMatch shouldEqual StructuralMatchVal(l1)
+        n1.structuralPattern shouldEqual StructuralPatternVal(l1)
       case _ => fail
     }
   }
@@ -822,13 +826,13 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     val n1 = graph.addNode()
     val l1 = graph.addLink()
 
-    Node.setShape[TypeMatch](n1)
+    Node.setShape[TypePattern](n1)
 
     n1 match {
-      case TypeMatch.any(n1) =>
+      case TypePattern.any(n1) =>
         n1.matchExpression = l1
 
-        n1.typeMatch shouldEqual TypeMatchVal(l1)
+        n1.typePattern shouldEqual TypePatternVal(l1)
       case _ => fail
     }
   }
@@ -837,13 +841,13 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     val n1 = graph.addNode()
     val l1 = graph.addLink()
 
-    Node.setShape[NamedMatch](n1)
+    Node.setShape[NamedPattern](n1)
 
     n1 match {
-      case NamedMatch.any(n1) =>
+      case NamedPattern.any(n1) =>
         n1.matchExpression = l1
 
-        n1.namedMatch shouldEqual NamedMatchVal(l1)
+        n1.namedPattern shouldEqual NamedPatternVal(l1)
       case _ => fail
     }
   }
@@ -851,11 +855,11 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
   nodeShape should "be able to represent fallback patterns" in {
     val n1 = graph.addNode()
 
-    Node.setShape[FallbackMatch](n1)
+    Node.setShape[FallbackPattern](n1)
 
     n1 match {
-      case FallbackMatch.any(_) => succeed
-      case _                    => fail
+      case FallbackPattern.any(_) => succeed
+      case _                      => fail
     }
   }
 
@@ -894,17 +898,31 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
   }
 
   nodeShape should "be able to represent syntax errors" in {
-    val n1 = graph.addNode()
-    val l1 = graph.addLink()
+    val n1  = graph.addNode()
+    val ast = AST.Blank()
 
     Node.setShape[SyntaxError](n1)
 
     n1 match {
       case SyntaxError.any(n1) =>
-        n1.errorNode = l1
+        n1.errorAst = ast
 
-        n1.syntaxError shouldEqual SyntaxErrorVal(l1)
+        n1.syntaxError shouldEqual SyntaxErrorVal(ast)
       case _ => fail
+    }
+  }
+
+  nodeShape should "be able to represent construction errors" in {
+    val n1 = graph.addNode()
+    val l1 = graph.addLink()
+
+    Node.setShape[ConstructionError](n1)
+
+    n1 match {
+      case ConstructionError.any(n1) =>
+        n1.erroneousCore = l1
+
+        n1.constructionError shouldEqual ConstructionErrorVal(l1)
     }
   }
 }
