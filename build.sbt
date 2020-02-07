@@ -216,9 +216,9 @@ lazy val syntax_definition = crossProject(JVMPlatform, JSPlatform)
   .dependsOn(logger, flexer)
   .settings(
     libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
-      "org.typelevel" %%% "cats-core"     % "2.0.0-RC1",
+      "org.typelevel" %%% "cats-core"     % catsVersion,
       "org.typelevel" %%% "kittens"       % "2.0.0",
-      "com.lihaoyi"   %%% "scalatags"     % "0.7.0",
+      "com.lihaoyi"   %%% "scalatags"     % "0.8.5",
       "io.circe"      %%% "circe-core"    % circeVersion,
       "io.circe"      %%% "circe-generic" % circeVersion,
       "io.circe"      %%% "circe-parser"  % circeVersion
