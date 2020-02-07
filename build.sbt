@@ -339,7 +339,7 @@ lazy val file_manager = (project in file("common/file-manager"))
     libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.3" % Test,
     libraryDependencies += akkaTestkitTyped,
     libraryDependencies += "commons-io" % "commons-io"        % "2.6",
-    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
+    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.9"
   )
 
 lazy val project_manager = (project in file("common/project-manager"))
