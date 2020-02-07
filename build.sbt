@@ -239,8 +239,8 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest"     % "3.0.5" % Test,
-      "com.lihaoyi"   %%% "pprint"        % "0.5.3",
+      "org.scalatest" %%% "scalatest"     % "3.1.0" % Test,
+      "com.lihaoyi"   %%% "pprint"        % "0.5.9",
       "io.circe"      %%% "circe-core"    % circeVersion,
       "io.circe"      %%% "circe-generic" % circeVersion,
       "io.circe"      %%% "circe-parser"  % circeVersion
@@ -262,7 +262,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     inConfig(Benchmark)(Defaults.testSettings),
     unmanagedSourceDirectories in Benchmark +=
     baseDirectory.value.getParentFile / "src/bench/scala",
-    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.17" % "bench",
+    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.19" % "bench",
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
