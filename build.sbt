@@ -322,7 +322,7 @@ lazy val pkg = (project in file("common/pkg"))
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "io.circe"   %% "circe-yaml" % "0.10.0", // separate from other circe deps because its independent project with its own versioning
+      "io.circe"   %% "circe-yaml" % "0.12.0", // separate from other circe deps because its independent project with its own versioning
       "commons-io" % "commons-io"  % "2.6"
     )
   )
