@@ -430,6 +430,18 @@ lazy val language_server = (project in file("engine/language-server"))
   )
   .dependsOn(polyglot_api)
 
+lazy val gateway = (project in file("engine/gateway"))
+  .dependsOn(language_server)
+  .settings(
+    libraryDependencies ++= akka ++ circe ++ Seq(
+      "io.circe"       %% "circe-generic-extras" % "0.12.2",
+      "io.circe"       %% "circe-literal"        % circeVersion,
+      akkaTestkit      % Test,
+      "org.scalatest"  %% "scalatest"            % "3.2.0-M2" % Test,
+      "org.scalacheck" %% "scalacheck"           % "1.14.3" % Test
+    )
+  )
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -560,15 +572,3 @@ lazy val runner = project
   .dependsOn(language_server)
   .dependsOn(gateway)
   .dependsOn(polyglot_api)
-
-lazy val gateway = (project in file("engine/gateway"))
-  .dependsOn(language_server)
-  .settings(
-    libraryDependencies ++= akka ++ circe ++ Seq(
-      "io.circe"       %% "circe-generic-extras" % "0.12.2",
-      "io.circe"       %% "circe-literal" % circeVersion,
-      akkaTestkit      % Test,
-      "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.3" % Test
-    )
-  )
