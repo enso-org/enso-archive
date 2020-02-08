@@ -549,7 +549,7 @@ lazy val runner = project
       "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
       "commons-cli"           % "commons-cli"            % "1.4",
       "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
-      "org.jline"             % "jline"                  % "3.1.3" // 3.13.3
+      "org.jline"             % "jline"                  % "3.13.3"
     ),
     connectInput in run := true
   )
