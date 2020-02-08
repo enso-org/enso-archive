@@ -114,8 +114,6 @@ lazy val enso = (project in file("."))
 //// Dependency Bundles ////
 ////////////////////////////
 
-// TODO: scalactic 3.1.0
-
 val monocle = {
   val monocleVersion = "2.0.0"
   Seq(
@@ -382,7 +380,7 @@ lazy val core_definition = (project in file("engine/core-definition"))
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"                %% "shapeless"    % "2.3.3",
       "org.scalacheck"             %% "scalacheck"   % "1.14.3" % Test,
-      "org.scalactic"              %% "scalactic"    % "3.0.8" % Test,
+      "org.scalactic"              %% "scalactic"    % "3.2.0-M2" % Test,
       "org.scalatest"              %% "scalatest"    % "3.2.0-M2" % Test,
       "org.typelevel"              %% "cats-core"    % catsVersion,
       "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
@@ -463,7 +461,7 @@ lazy val runtime = (project in file("engine/runtime"))
       "org.graalvm.truffle" % "truffle-tck"           % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-tck-common"    % graalVersion % "provided",
       "org.scalacheck"      %% "scalacheck"           % "1.14.3" % Test,
-      "org.scalactic"       %% "scalactic"            % "3.0.8" % Test,
+      "org.scalactic"       %% "scalactic"            % "3.2.0-M2" % Test,
       "org.scalatest"       %% "scalatest"            % "3.2.0-M2" % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % Benchmark,
       "org.typelevel"       %% "cats-core"            % catsVersion
