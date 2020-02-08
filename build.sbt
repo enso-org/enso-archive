@@ -113,6 +113,8 @@ lazy val enso = (project in file("."))
 //// Dependency Bundles ////
 ////////////////////////////
 
+// TODO: scalactic 3.1.0
+
 val monocle = {
   val monocleVersion = "2.0.0"
   Seq(
@@ -381,20 +383,17 @@ lazy val core_definition = (project in file("engine/core-definition"))
       "org.scalacheck"             %% "scalacheck"   % "1.14.3" % Test,
       "org.scalactic"              %% "scalactic"    % "3.0.8" % Test,
       "org.scalatest"              %% "scalatest"    % "3.2.0-M2" % Test,
-      "org.typelevel"              %% "cats-core"    % "2.0.0-M4",
+      "org.typelevel"              %% "cats-core"    % catsVersion,
       "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
     ),
     scalacOptions += "-Ymacro-annotations",
-    // addCompilerPlugin(
-    //   "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
-    // ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
-    scalacOptions ++= Seq(
-      "-P:splain:infix:true",
-      "-P:splain:foundreq:true",
-      "-P:splain:implicits:true",
-      "-P:splain:tree:true"
-    )
+    // addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    // scalacOptions ++= Seq(
+    //   "-P:splain:infix:true",
+    //   "-P:splain:foundreq:true",
+    //   "-P:splain:implicits:true",
+    //   "-P:splain:tree:true"
+    // )
   )
   .dependsOn(graph)
 
