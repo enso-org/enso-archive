@@ -1,7 +1,5 @@
 package org.enso.compiler.core
 
-import org.enso.graph.{Graph => PrimGraph}
-
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
   *

@@ -25,8 +25,9 @@ Global / onChangedBuildSource := ReloadOnSourceChanges
 //////////////////////////
 
 javacOptions in ThisBuild ++= Seq(
-  "-encoding", // Provide explicit encoding (the next line)
-  "UTF-8"      // Specify character encoding used by Java source files.
+  "-encoding",   // Provide explicit encoding (the next line)
+  "UTF-8",       // Specify character encoding used by Java source files.
+  "-deprecation" // Shows a description of each use or override of a deprecated member or class.
 )
 
 scalacOptions in ThisBuild ++= Seq(
@@ -397,6 +398,27 @@ lazy val core_definition = (project in file("engine/core-definition"))
   )
   .dependsOn(graph)
 
+lazy val polyglot_api = project
+  .in(file("engine/polyglot-api"))
+  .settings(
+    Test / fork := true,
+    Test / javaOptions ++= Seq(
+      // Puts the language runtime on the truffle classpath, rather than the
+      // standard classpath. This is the recommended way of handling this and
+      // we should strive to use such structure everywhere. See
+      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
+      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value
+        .map(_.data)
+        .mkString(File.pathSeparator)}"
+    ),
+    libraryDependencies ++= Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
+      "org.scalatest"   %% "scalatest"   % "3.2.0-M2" % Test,
+      "org.scalacheck"  %% "scalacheck"  % "1.14.3"       % Test
+    )
+  )
+  .dependsOn(pkg)
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -406,10 +428,11 @@ lazy val runtime = (project in file("engine/runtime"))
     inConfig(Benchmark)(Defaults.testSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
+    scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"         %% "shapeless"            % "2.3.3",
       "org.apache.commons"  % "commons-lang3"         % "3.9",
-      "org.apache.tika"     % "tika-core"             % "1.21",
+      "org.apache.tika"     % "tika-core"             % "1.23",
       "org.graalvm.sdk"     % "graal-sdk"             % graalVersion % "provided",
       "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % "provided",
@@ -434,17 +457,13 @@ lazy val runtime = (project in file("engine/runtime"))
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath
     ),
-    // addCompilerPlugin(
-    //   "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full
-    // ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
-    scalacOptions += "-Ymacro-annotations",
-    scalacOptions ++= Seq(
-      "-P:splain:infix:true",
-      "-P:splain:foundreq:true",
-      "-P:splain:implicits:true",
-      "-P:splain:tree:true"
-    )
+    // addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    // scalacOptions ++= Seq(
+    //   "-P:splain:infix:true",
+    //   "-P:splain:foundreq:true",
+    //   "-P:splain:implicits:true",
+    //   "-P:splain:tree:true"
+    // )
   )
   .settings(
     (Compile / compile) := (Compile / compile)
@@ -553,24 +572,3 @@ lazy val language_server = (project in file("engine/language-server"))
     )
   )
   .dependsOn(polyglot_api)
-
-lazy val polyglot_api = project
-  .in(file("engine/polyglot-api"))
-  .settings(
-    Test / fork := true,
-    Test / javaOptions ++= Seq(
-      // Puts the language runtime on the truffle classpath, rather than the
-      // standard classpath. This is the recommended way of handling this and
-      // we should strive to use such structure everywhere. See
-      // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
-      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value
-        .map(_.data)
-        .mkString(File.pathSeparator)}"
-    ),
-    libraryDependencies ++= Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
-      "org.scalatest"   %% "scalatest"   % "3.2.0-M2" % Test,
-      "org.scalacheck"  %% "scalacheck"  % "1.14.3"       % Test
-    )
-  )
-  .dependsOn(pkg)
