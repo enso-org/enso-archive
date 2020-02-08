@@ -413,7 +413,7 @@ lazy val polyglot_api = project
     ),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
-      "org.scalatest"   %% "scalatest"   % "3.2.0-M2" % Test,
+      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"     % Test,
       "org.scalacheck"  %% "scalacheck"  % "1.14.3"       % Test
     )
   )
