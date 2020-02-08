@@ -348,8 +348,7 @@ lazy val project_manager = (project in file("common/project-manager"))
   )
   .settings(
     libraryDependencies ++= akka,
-    libraryDependencies ++= circe,
-    libraryDependencies += "io.spray" %% "spray-json" % "1.3.5"
+    libraryDependencies ++= circe
   )
   .dependsOn(pkg)
 
