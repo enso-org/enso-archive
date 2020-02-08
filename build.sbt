@@ -419,6 +419,17 @@ lazy val polyglot_api = project
   )
   .dependsOn(pkg)
 
+lazy val language_server = (project in file("engine/language-server"))
+  .settings(
+    libraryDependencies ++= akka ++ Seq(
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided,
+      akkaTestkit       % Test,
+      "org.scalatest"   %% "scalatest"   % "3.2.0-M2"   % Test,
+      "org.scalacheck"  %% "scalacheck"  % "1.14.3"     % Test
+    )
+  )
+  .dependsOn(polyglot_api)
+
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)
   .settings(
@@ -526,7 +537,7 @@ lazy val runner = project
       "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
       "commons-cli"           % "commons-cli"            % "1.4",
       "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
-      "org.jline"             % "jline"                  % "3.1.3"
+      "org.jline"             % "jline"                  % "3.1.3" // 3.13.3
     ),
     connectInput in run := true
   )
@@ -561,14 +572,3 @@ lazy val gateway = (project in file("engine/gateway"))
       "org.scalacheck" %% "scalacheck" % "1.14.3" % Test
     )
   )
-
-lazy val language_server = (project in file("engine/language-server"))
-  .settings(
-    libraryDependencies ++= akka ++ Seq(
-      "org.graalvm.sdk" % "polyglot-tck" % graalVersion % Provided,
-      akkaTestkit       % Test,
-      "org.scalatest"   %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck"  %% "scalacheck" % "1.14.3" % Test
-    )
-  )
-  .dependsOn(polyglot_api)
