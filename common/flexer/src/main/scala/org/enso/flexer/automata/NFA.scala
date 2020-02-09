@@ -67,8 +67,6 @@ final class NFA {
   private def epsMatrix(): IndexedSeq[Set[Int]] = {
     val arr = new Array[EpsMatrix](states.size)
     states.indices.foreach(fillEpsMatrix(_, arr))
-    // TODO: if the array isn't mutated we can eliminate copying with
-    // `toIndexedSeq` by using `ArraySeq.unsafeWrapArray`
     arr.toIndexedSeq.map(_.links)
   }
 

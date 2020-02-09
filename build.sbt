@@ -70,11 +70,6 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-value-discard"                // Warn when non-Unit expression results are unused.
 )
 
-// ENABLE THIS IN Scala 2.13.1 (where import annotation.unused is available).
-//  "-Xlint:type-parameter-shadow",     // A local type parameter shadows a type already in scope.
-//  "-Ywarn-unused:implicits",          // Warn if an implicit parameter is unused.
-//  "-Ywarn-unused:params",             // Warn if a value parameter is unused.
-
 /////////////////////////////////
 //// Benchmark Configuration ////
 /////////////////////////////////
@@ -308,14 +303,6 @@ lazy val graph = (project in file("common/graph/"))
       ),
       "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
     )
-    // TODO: plugin seems to ruin macro expansion
-    // addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
-    // scalacOptions ++= Seq(
-    //   "-P:splain:infix:true",
-    //   "-P:splain:foundreq:true",
-    //   "-P:splain:implicits:true",
-    //   "-P:splain:tree:true"
-    // )
   )
 
 lazy val pkg = (project in file("common/pkg"))
@@ -377,6 +364,7 @@ lazy val core_definition = (project in file("engine/core-definition"))
     inConfig(Benchmark)(Defaults.testSettings),
     parallelExecution in Test := false,
     logBuffered in Test := false,
+    scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"                %% "shapeless"    % "2.3.3",
       "org.scalacheck"             %% "scalacheck"   % "1.14.3" % Test,
@@ -385,14 +373,6 @@ lazy val core_definition = (project in file("engine/core-definition"))
       "org.typelevel"              %% "cats-core"    % catsVersion,
       "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
     ),
-    scalacOptions += "-Ymacro-annotations",
-    // addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
-    // scalacOptions ++= Seq(
-    //   "-P:splain:infix:true",
-    //   "-P:splain:foundreq:true",
-    //   "-P:splain:implicits:true",
-    //   "-P:splain:tree:true"
-    // )
   )
   .dependsOn(graph)
 
@@ -477,14 +457,7 @@ lazy val runtime = (project in file("engine/runtime"))
     (Compile / javacOptions) ++= Seq(
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath
-    ),
-    // addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
-    // scalacOptions ++= Seq(
-    //   "-P:splain:infix:true",
-    //   "-P:splain:foundreq:true",
-    //   "-P:splain:implicits:true",
-    //   "-P:splain:tree:true"
-    // )
+    )
   )
   .settings(
     (Compile / compile) := (Compile / compile)
