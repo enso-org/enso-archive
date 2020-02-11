@@ -139,9 +139,9 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
     consNode.location = LocationVal[CoreGraph](20, 30)
     consNode.parents  = Vector()
 
-    // Intentional re-assignment to check for clobbering
-    consNode.head     = emptyLink
+    // Intentional re-assignment in reverse order to check for clobbering
     consNode.tail     = nilLink
+    consNode.head     = emptyLink
 
     consNode.head shouldEqual emptyLink
     consNode.tail shouldEqual nilLink

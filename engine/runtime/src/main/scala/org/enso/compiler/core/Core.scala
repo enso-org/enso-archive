@@ -142,8 +142,7 @@ object Core {
           CoreDef.Node.addParent(head, headLink)
           CoreDef.Node.addParent(tail, tailLink)
 
-          // Clobbering the variant field
-//          node.head     = headLink
+          node.head     = headLink
           node.tail     = tailLink
           node.location = Constants.invalidLocation
           node.parents  = Vector()
