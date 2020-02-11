@@ -393,7 +393,7 @@ object Core {
 
           Right(node)
         } else {
-          val errList = Utility.coreListFrom(NonEmptyList(segments, List()))
+          val errList = Utility.coreListFrom(segments)
           val errNode = constructionError(errList, segments.location)
 
           Left(errNode)
@@ -1595,13 +1595,6 @@ object Core {
       }
     }
 
-    /** Exceptions used by the core graph. */
-    object Exception {
-      class InvalidListConstruction(val message: String) extends Throwable
-      class NotValidList(val message: String)            extends Throwable
-      class NotBinding(val message: String)              extends Throwable
-    }
-
     /** Useful conversions between types that are used for Core nodes. */
     object Conversions {
 
@@ -1671,7 +1664,7 @@ object Core {
 
         // Note [Unsafety in List Construction]
         val unrefinedMetaList =
-          nodesWithNil.reduceLeft(
+          nodesWithNil.toList.reduceRight(
             (l, r) => New.metaList(l, r).right.get.wrapped
           )
 
@@ -1680,7 +1673,7 @@ object Core {
       }
 
       /* Note [Unsafety in List Construction]
-     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      * This makes use of internal implementation details to know that calling
      * `right` here is always safe. The error condition for the `metaList`
      * constructor occurs when the `tail` argument doesn't point to a valid
@@ -1690,6 +1683,11 @@ object Core {
      * Furthermore, we can unconditionally refine the type as we know that the
      * node we get back must be a MetaList, and we know that the input is not
      * empty.
+     *
+     * It also bears noting that for this to be safe we _must_ use a right
+     * reduce, rather than a left reduce, otherwise the elements will not be
+     * constructed properly. This does, however, mean that this can stack
+     * overflow when provided with too many elements.
      */
     }
   }
