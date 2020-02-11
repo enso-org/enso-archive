@@ -277,7 +277,7 @@ object Macro {
               $graphTermName.Component.Ref(
                 graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node),
-                  $index
+                  ${index + 1}
                 )
               )
             }
@@ -334,7 +334,7 @@ object Macro {
               $graphTermName.Component.Ref(
                 graph.unsafeReadFieldByIndex[C, $enclosingTypeName](
                   $graphTermName.Component.Refined.unwrap(node).ix,
-                  $index
+                  ${index + 1}
                 )
               )
             }
@@ -343,7 +343,7 @@ object Macro {
         }
       }
 
-      /** Generates a setter for an element of a non-variant field.
+      /** Generates a setter for an element of field.
         *
         * @param paramDef the definition of the subfield
         * @param enclosingTypeName the name of the field type
@@ -388,7 +388,7 @@ object Macro {
             ): Unit = {
               graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
-                $index,
+                ${index + 1},
                 value
               )
             }
@@ -441,7 +441,7 @@ object Macro {
             ): Unit = {
               graph.unsafeWriteFieldByIndex[C, $enclosingTypeName](
                 $graphTermName.Component.Refined.unwrap(node).ix,
-                $index,
+                ${index + 1},
                 value.ix
               )
             }

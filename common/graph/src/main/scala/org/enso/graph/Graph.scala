@@ -743,7 +743,6 @@ object Graph {
     val componentSize: Int
     val fieldOffset: Int
   }
-  // TODO [AA] Does this ever check if FieldList contains the field?
   object HasComponentField {
     implicit def instance[
       G <: Graph,

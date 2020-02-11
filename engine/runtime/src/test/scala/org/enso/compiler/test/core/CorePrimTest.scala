@@ -1,6 +1,7 @@
 package org.enso.compiler.test.core
 
 import org.enso.compiler.test.CompilerTest
+import org.enso.core.CoreGraph.DefinitionGen.Node.LocationVal
 import org.enso.core.CoreGraph.DefinitionGen.{
   AstStorage,
   Link,
@@ -24,7 +25,7 @@ import org.enso.syntax.text.AST
 class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
 
   // === Test Setup ===========================================================
-  import org.enso.core.CoreGraph.DefinitionGen.CoreGraph
+  import org.enso.core.CoreGraph.DefinitionGen._
   import org.enso.core.CoreGraph.DefinitionGen.Link.Shape._
   import org.enso.core.CoreGraph.DefinitionGen.Node.Shape._
   import org.enso.core.CoreGraph.DefinitionGen.Node.Location._
@@ -127,6 +128,34 @@ class CorePrimTest extends CompilerTest with BeforeAndAfterEach {
       case _ => fail
     }
   }
+
+  node should "be able to be constructed without clobbering its fields" in {
+    val emptyLink = graph.addLink()
+    val nilLink   = graph.addLink()
+    val consNode  = Node.addRefined[MetaList]
+
+    consNode.head     = emptyLink
+    consNode.tail     = nilLink
+    consNode.location = LocationVal[CoreGraph](20, 30)
+    consNode.parents  = Vector()
+
+    // Intentional re-assignment to check for clobbering
+    consNode.head     = emptyLink
+    consNode.tail     = nilLink
+
+    consNode.head shouldEqual emptyLink
+    consNode.tail shouldEqual nilLink
+    consNode.sourceStart shouldEqual 20
+    consNode.sourceEnd shouldEqual 30
+    consNode.parents shouldEqual Vector()
+
+    consNode.wrapped match {
+      case MetaList.any(_) => succeed
+      case _               => fail
+    }
+  }
+
+  // === Tests for Node Shapes ================================================
 
   nodeShape should "be able to be empty" in {
     val n1 = graph.addNode()

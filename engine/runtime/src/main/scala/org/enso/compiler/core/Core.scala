@@ -102,6 +102,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.Empty]
 
         node.location = Constants.invalidLocation
+        node.parents  = Vector()
 
         node
       }
@@ -141,9 +142,11 @@ object Core {
           CoreDef.Node.addParent(head, headLink)
           CoreDef.Node.addParent(tail, tailLink)
 
-          node.head     = headLink
+          // Clobbering the variant field
+//          node.head     = headLink
           node.tail     = tailLink
           node.location = Constants.invalidLocation
+          node.parents  = Vector()
 
           Right(node)
         } else {
@@ -168,6 +171,8 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.MetaNil]
 
         node.location = Constants.invalidLocation
+        node.parents  = Vector()
+
         node
       }
 
@@ -182,6 +187,8 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.MetaTrue]
 
         node.location = Constants.invalidLocation
+        node.parents  = Vector()
+
         node
       }
 
@@ -196,6 +203,8 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.MetaFalse]
 
         node.location = Constants.invalidLocation
+        node.parents  = Vector()
+
         node
       }
 
@@ -215,6 +224,7 @@ object Core {
 
         node.number   = number
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -233,6 +243,7 @@ object Core {
 
         node.text     = text
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -251,6 +262,7 @@ object Core {
 
         node.code     = code
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -271,6 +283,7 @@ object Core {
 
         node.nameLiteral = nameLiteral
         node.location    = location
+        node.parents     = Vector()
 
         node
       }
@@ -286,6 +299,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.ThisName]
 
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -301,6 +315,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.HereName]
 
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -338,6 +353,7 @@ object Core {
           node.imports     = importsLink
           node.definitions = definitionsLink
           node.location    = location
+          node.parents     = Vector()
 
           Right(node)
         } else {
@@ -374,6 +390,7 @@ object Core {
 
           node.segments = segmentsLink
           node.location = location
+          node.parents  = Vector()
 
           Right(node)
         } else {
@@ -413,6 +430,7 @@ object Core {
             node.module   = moduleLink
             node.binding  = bindingLink
             node.location = location
+            node.parents  = Vector()
 
             Right(node)
           case _ =>
@@ -446,6 +464,7 @@ object Core {
           node.name     = nameLink
           node.args     = argsLink
           node.location = location
+          node.parents  = Vector()
 
           Right(node)
         } else {
@@ -485,6 +504,7 @@ object Core {
           node.typeParams = typeParamsLink
           node.body       = bodyLink
           node.location   = location
+          node.parents    = Vector()
 
           Right(node)
         } else {
@@ -531,6 +551,7 @@ object Core {
         node.typed    = typedLink
         node.sig      = sigLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -560,6 +581,7 @@ object Core {
         node.typed    = typedLink
         node.context  = contextLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -596,6 +618,7 @@ object Core {
         node.memberType = memberTypeLink
         node.value      = valueLink
         node.location   = location
+        node.parents    = Vector()
 
         node
       }
@@ -627,6 +650,7 @@ object Core {
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -658,6 +682,7 @@ object Core {
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -686,6 +711,7 @@ object Core {
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -714,6 +740,7 @@ object Core {
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -742,6 +769,7 @@ object Core {
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -770,6 +798,7 @@ object Core {
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -802,6 +831,7 @@ object Core {
         node.arg      = argLink
         node.body     = bodyLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -835,6 +865,7 @@ object Core {
           node.args     = argsLink
           node.body     = bodyLink
           node.location = location
+          node.parents  = Vector()
 
           Right(node)
         } else {
@@ -881,6 +912,7 @@ object Core {
           node.name       = nameLink
           node.function   = functionLink
           node.location   = location
+          node.parents    = Vector()
 
           Right(node)
         } else {
@@ -948,6 +980,7 @@ object Core {
           node.suspended = suspendedLink
           node.default   = defaultLink
           node.location  = location
+          node.parents   = Vector()
 
           Right(node)
         } else {
@@ -987,6 +1020,7 @@ object Core {
         node.function = functionLink
         node.argument = argumentLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1020,6 +1054,7 @@ object Core {
         node.operator = operatorLink
         node.right    = rightLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1048,6 +1083,7 @@ object Core {
         node.arg      = argLink
         node.operator = operatorLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1076,6 +1112,7 @@ object Core {
         node.operator = operatorLink
         node.arg      = argLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1098,6 +1135,7 @@ object Core {
 
         node.operator = operatorLink
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1127,6 +1165,7 @@ object Core {
 
         node.expression = expressionLink
         node.location   = location
+        node.parents    = Vector()
 
         node
       }
@@ -1148,6 +1187,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.LambdaShorthandArgument]
 
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1179,6 +1219,7 @@ object Core {
         node.expression = expressionLink
         node.name       = nameLink
         node.location   = location
+        node.parents    = Vector()
 
         node
       }
@@ -1195,6 +1236,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.SuspendDefaultsOperator]
 
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1227,6 +1269,7 @@ object Core {
           node.expressions = expressionsLink
           node.returnVal   = returnValLink
           node.location    = location
+          node.parents     = Vector()
 
           Right(node)
         } else {
@@ -1261,6 +1304,7 @@ object Core {
         node.name       = nameLink
         node.expression = expressionLink
         node.location   = location
+        node.parents    = Vector()
 
         node
       }
@@ -1292,6 +1336,7 @@ object Core {
           node.scrutinee = scrutineeLink
           node.branches  = branchesLink
           node.location  = location
+          node.parents   = Vector()
 
           Right(node)
         } else {
@@ -1326,6 +1371,7 @@ object Core {
         node.pattern    = patternLink
         node.expression = expressionLink
         node.location   = location
+        node.parents    = Vector()
 
         node
       }
@@ -1353,6 +1399,7 @@ object Core {
 
         node.matchExpression = matchExpressionLink
         node.location        = location
+        node.parents         = Vector()
 
         node
       }
@@ -1379,6 +1426,7 @@ object Core {
 
         node.matchExpression = matchExpressionLink
         node.location        = location
+        node.parents         = Vector()
 
         node
       }
@@ -1405,6 +1453,7 @@ object Core {
 
         node.matchExpression = matchExpressionLink
         node.location        = location
+        node.parents         = Vector()
 
         node
       }
@@ -1423,6 +1472,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.FallbackPattern]
 
         node.location = location
+        node.parents  = Vector()
 
         node
       }
@@ -1454,6 +1504,7 @@ object Core {
         node.commented = commentedLink
         node.doc       = docLink
         node.location  = location
+        node.parents   = Vector()
 
         node
       }
@@ -1486,6 +1537,7 @@ object Core {
             node.language = languageLink
             node.code     = codeLink
             node.location = location
+            node.parents  = Vector()
 
             Right(node)
           case _ =>
@@ -1514,6 +1566,7 @@ object Core {
 
         node.errorAst = errorAst
         node.location = errLocation
+        node.parents  = Vector()
 
         node
       }
@@ -1537,6 +1590,7 @@ object Core {
 
         node.erroneousCore = erroneousCoreLink
         node.location      = location
+        node.parents       = Vector()
 
         node
       }
@@ -1587,8 +1641,8 @@ object Core {
         */
       def isListNode(node: Node)(implicit core: Core): Boolean = {
         node match {
-          case NodeShape.MetaList.any(_) => true
           case NodeShape.MetaNil.any(_)  => true
+          case NodeShape.MetaList.any(_) => true
           case _                         => false
         }
       }

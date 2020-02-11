@@ -540,6 +540,7 @@ object CoreGraph {
         map: ParentStorage
       ): Unit = {
         import Node.ParentLinks._
+
         node.parents = node.parents :+ link.ix
       }
 
@@ -557,7 +558,7 @@ object CoreGraph {
         val node = graph.addNode()
 
         setShape[V](node)
-        PrimGraph.Component.Refined(node)
+        PrimGraph.Component.Refined[Node.Shape, V, Node[CoreGraph]](node)
       }
 
       /** Sets the shape of the provided [[node]] to [[Shape]].

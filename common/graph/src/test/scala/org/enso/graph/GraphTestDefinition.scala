@@ -175,7 +175,7 @@ object GraphTestDefinition {
 //              PrimGraph.Component.Ref(
 //                graph.primUnsafeReadFieldByIndex[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
-//                  0
+//                  1
 //                )
 //              )
 //
@@ -185,7 +185,7 @@ object GraphTestDefinition {
 //            ): Unit =
 //              graph.primUnsafeWriteFieldByIndex[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
-//                0,
+//                1,
 //                value.ix
 //              )
 //
@@ -196,7 +196,7 @@ object GraphTestDefinition {
 //              PrimGraph.Component.Ref(
 //                graph.primUnsafeReadFieldByIndex[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
-//                  1
+//                  2
 //                )
 //              )
 //
@@ -206,7 +206,7 @@ object GraphTestDefinition {
 //            ): Unit =
 //              graph.primUnsafeWriteFieldByIndex[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
-//                1,
+//                2,
 //                value.ix
 //              )
 //
@@ -267,7 +267,7 @@ object GraphTestDefinition {
 //              PrimGraph.Component.Ref(
 //                graph.primUnsafeReadFieldByIndex[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
-//                  0
+//                  1
 //                )
 //              )
 //
@@ -277,7 +277,7 @@ object GraphTestDefinition {
 //            ): Unit =
 //              graph.primUnsafeWriteFieldByIndex[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
-//                0,
+//                2,
 //                value.ix
 //              )
 //
@@ -286,11 +286,7 @@ object GraphTestDefinition {
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): CentreVal[G] = {
 //              CentreVal(
-//                PrimGraph.Component.Ref(
-//                  graph.primUnsafeReadFieldByIndex[C, Shape](
-//                    PrimGraph.Component.Refined.unwrap(node).ix,
-//                    0
-//                  )
+//                this.fn
 //                )
 //              )
 //            }
@@ -299,11 +295,7 @@ object GraphTestDefinition {
 //              implicit graph: PrimGraph.GraphData[G],
 //              ev: PrimGraph.HasComponentField[G, C, Shape]
 //            ): Unit = {
-//              graph.primUnsafeWriteFieldByIndex[C, Shape](
-//                PrimGraph.Component.Refined.unwrap(node).ix,
-//                0,
-//                value.fn.ix
-//              )
+//              this.fn = value.fn
 //            }
 //          }
 //        }
@@ -364,7 +356,7 @@ object GraphTestDefinition {
 //              PrimGraph.Component.Ref(
 //                graph.primUnsafeReadFieldByIndex[C, Shape](
 //                  PrimGraph.Component.Refined.unwrap(node).ix,
-//                  0 // as the other field is opaque
+//                  1 // as the other field is opaque
 //                )
 //              )
 //            }
@@ -375,7 +367,7 @@ object GraphTestDefinition {
 //            ): Unit = {
 //              graph.primUnsafeWriteFieldByIndex[C, Shape](
 //                PrimGraph.Component.Refined.unwrap(node).ix,
-//                0,
+//                1,
 //                value.ix
 //              )
 //            }
