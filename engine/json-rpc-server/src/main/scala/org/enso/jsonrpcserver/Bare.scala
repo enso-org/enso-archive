@@ -14,7 +14,7 @@ object Bare {
   case class ResponseResult(id: Option[Id], result: Json)    extends BareMessage
   case class ResponseError(id: Option[Id], error: ErrorData) extends BareMessage
 
-  case class ErrorData(code: Int, message: String, data: Json)
+  case class ErrorData(code: Int, message: String)
 
   implicit val responseEncoder: Encoder[ResponseResult] = (a: ResponseResult) =>
     Json.obj(
@@ -28,6 +28,13 @@ object Bare {
       "jsonrpc" -> "2.0".asJson,
       "method"  -> n.method.asJson,
       "params"  -> n.params
+    )
+
+  implicit val errorDecoder: Encoder[ResponseError] = (r: ResponseError) =>
+    Json.obj(
+      "jsonrpc" -> "2.0".asJson,
+      "id"      -> r.id.asJson,
+      "error"   -> r.error.asJson
     )
 
   implicit val decoder: Decoder[BareMessage] = new Decoder[BareMessage] {
@@ -70,4 +77,6 @@ object Bare {
   def encode(res: ResponseResult): String = res.asJson.toString
 
   def encode(notif: Notification): String = notif.asJson.toString
+
+  def encode(res: ResponseError): String = res.asJson.toString
 }

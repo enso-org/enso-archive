@@ -1,5 +1,5 @@
 package org.enso.jsonrpcserver
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.{Decoder, Encoder, Json}
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, WordSpecLike}
@@ -24,49 +24,60 @@ class MessageHandlerTest
     TestKit.shutdownActorSystem(system)
   }
 
-  sealed trait MyProtocol
+  case object MyMethod extends Method("MyMethod")
+  case class MyMethodParams(foo: Int, bar: String)
+      extends ParamsOf[MyMethod.type]
+  case class MyMethodResponse(baz: Int) extends ResultOf[MyMethod.type]
 
-  case object MyMethodTag                    extends MethodTag[MyProtocol]("MyMethod")
-  case class MyMethod(foo: Int, bar: String) extends MyProtocol
-  case class MyMethodResponse(baz: Int)      extends MyProtocol
-
-  case object NotificationTag
-      extends MethodTag[MyProtocol]("NotificationMethod")
-  case class MyNotification(spam: String) extends MyProtocol
+  case object MyNotification extends Method("NotificationMethod")
+  case class MyNotificationParams(spam: String)
+      extends ParamsOf[MyNotification.type]
 
   object MyProtocol {
     import io.circe.generic.auto._
     import io.circe.syntax._
     import cats.syntax.functor._
 
-    val encoder: Encoder[MyProtocol] = Encoder.instance {
-      case m: MyMethod         => m.asJson
-      case m: MyMethodResponse => m.asJson
-      case m: MyNotification   => m.asJson
+    val encoder: Encoder[DataOf[Method]] = Encoder.instance {
+      case m: MyMethodParams       => m.asJson
+      case m: MyMethodResponse     => m.asJson
+      case m: MyNotificationParams => m.asJson
     }
 
-    val protocol: Protocol[MyProtocol] =
+    val protocol: Protocol =
       Protocol(
-        Set(MyMethodTag, NotificationTag),
-        Map(MyMethodTag -> implicitly[Decoder[MyMethod]].widen),
+        Set(MyMethod, MyNotification),
         Map(
-          MyMethodTag -> implicitly[Decoder[MyMethodResponse]].widen
+          MyNotification -> implicitly[Decoder[MyNotificationParams]].widen,
+          MyMethod       -> implicitly[Decoder[MyMethodParams]].widen
         ),
-        Map(NotificationTag -> implicitly[Decoder[MyNotification]].widen),
+        Map(
+          MyMethod -> implicitly[Decoder[MyMethodResponse]].widen
+        ),
         encoder
       )
   }
 
-  "Message handler" must {
-    "be able to issue notifications" in {
-      val out        = TestProbe()
-      val controller = TestProbe()
-      val handler = system.actorOf(
-        Props(new MessageHandler(MyProtocol.protocol, controller.ref))
-      )
+  var out: TestProbe        = _
+  var controller: TestProbe = _
+  var handler: ActorRef     = _
 
-      handler ! Connected(out.ref)
-      handler ! Notification(NotificationTag, MyNotification("test"))
+  override def beforeAll(): Unit = {
+    out        = TestProbe()
+    controller = TestProbe()
+    handler = system.actorOf(
+      Props(new MessageHandler(MyProtocol.protocol, controller.ref))
+    )
+    handler ! Connected(out.ref)
+  }
+
+  "Message handler" must {
+
+    "issue notifications" in {
+      handler ! Notification(
+        MyNotification,
+        MyNotificationParams("test")
+      )
 
       expectJson(out, json"""
           { "jsonrpc": "2.0",
@@ -75,13 +86,20 @@ class MessageHandlerTest
           }""")
     }
 
-    "be able to reply to requests" in {
-      val out        = TestProbe()
-      val controller = TestProbe()
-      val handler = system.actorOf(
-        Props(new MessageHandler(MyProtocol.protocol, controller.ref))
+    "receive notifications" in {
+      handler ! IncomingMessage("""
+                                  |{ "jsonrpc": "2.0",
+                                  |  "method": "NotificationMethod",
+                                  |  "params": { "spam": "hello" }
+                                  |}
+                                  |""".stripMargin)
+
+      controller.expectMsg(
+        Notification(MyNotification, MyNotificationParams("hello"))
       )
-      handler ! Connected(out.ref)
+    }
+
+    "reply to requests" in {
       handler ! IncomingMessage("""
                                   |{ "jsonrpc": "2.0",
                                   |  "method": "MyMethod",
@@ -90,7 +108,7 @@ class MessageHandlerTest
                                   |}
                                   |""".stripMargin)
       controller.expectMsg(
-        Request(MyMethodTag, "1234", MyMethod(30, "bar"))
+        Request(MyMethod, "1234", MyMethodParams(30, "bar"))
       )
       controller.reply(
         ResponseResult(Some("1234"), MyMethodResponse(123))
@@ -102,8 +120,63 @@ class MessageHandlerTest
           { "jsonrpc": "2.0",
             "id": "1234",
             "result": {"baz": 123}
-          }
-        """
+          }"""
+      )
+    }
+
+    "reply with an error to malformed messages" in {
+      handler ! IncomingMessage("Is this a JSON RPC message...?")
+      expectJson(
+        out,
+        json"""
+          { "jsonrpc": "2.0",
+            "id": null,
+            "error": { "code": -32700,
+                       "message": "Parse error"
+                     }
+          }"""
+      )
+    }
+
+    "reply with an error to unrecognized messages" in {
+      handler ! IncomingMessage("""
+                                  |{ "jsonrpc": "2.0",
+                                  |  "method": "MyMethodZZZZZ",
+                                  |  "params": {"foo": 30, "bar": "bar"},
+                                  |  "id": "1234"
+                                  |}
+                                  |""".stripMargin)
+
+      expectJson(
+        out,
+        json"""
+          { "jsonrpc": "2.0",
+            "id": "1234",
+            "error": { "code": -32601,
+                       "message": "Method not found"
+                     }
+          }"""
+      )
+    }
+
+    "reply with an error to messages with wrong params" in {
+      handler ! IncomingMessage("""
+                                  |{ "jsonrpc": "2.0",
+                                  |  "method": "MyMethod",
+                                  |  "params": {"foop": 30, "barp": "bar"},
+                                  |  "id": "1234"
+                                  |}
+                                  |""".stripMargin)
+
+      expectJson(
+        out,
+        json"""
+          { "jsonrpc": "2.0",
+            "id": "1234",
+            "error": { "code": -32602,
+                       "message": "Invalid params"
+                     }
+          }"""
       )
     }
   }

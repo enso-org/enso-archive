@@ -1,11 +1,23 @@
 package org.enso.jsonrpcserver
 import io.circe.{Decoder, Encoder, Json}
 
-abstract class MethodTag[+P](val name: String)
+abstract class Method(val name: String)
 
-case class Request[+M](tag: MethodTag[M], id: String, params: M)
-case class Notification[+M](tag: MethodTag[M], params: M)
-case class ResponseResult[+M](id: Option[String], data: M)
+trait DataOf[+M]
+
+trait ParamsOf[+M] extends DataOf[M]
+trait ResultOf[+M] extends DataOf[M]
+
+case class Request[+M <: Method](
+  tag: M,
+  id: String,
+  params: ParamsOf[M]
+)
+case class Notification[+M <: Method](tag: M, params: ParamsOf[M])
+case class ResponseResult[+M <: Method](
+  id: Option[String],
+  data: ResultOf[M]
+)
 
 abstract class Error(val code: Int, val message: String)
 case object ParseError     extends Error(-32700, "Parse error")
@@ -15,18 +27,19 @@ case object InvalidParams  extends Error(-32602, "Invalid params")
 
 case class ResponseError(id: Option[String], error: Error)
 
-case class Protocol[P](
-  methods: Set[MethodTag[P]],
-  requestSerializers: Map[MethodTag[P], Decoder[P]],
-  responseSerializers: Map[MethodTag[P], Decoder[P]],
-  notificationSerializers: Map[MethodTag[P], Decoder[P]],
-  allStuffEncoder: Encoder[P]
+case class Protocol(
+  methods: Set[Method],
+  paramsDecoders: Map[Method, Decoder[ParamsOf[Method]]],
+  responseDecoders: Map[Method, Decoder[ResultOf[Method]]],
+  allStuffEncoder: Encoder[DataOf[Method]]
 ) {
-  val methodsMap: Map[String, MethodTag[P]] =
+  val methodsMap: Map[String, Method] =
     methods.map(tag => (tag.name, tag)).toMap
 
-  def resolveMethod(name: String): Option[MethodTag[P]] = methodsMap.get(name)
+  def resolveMethod(name: String): Option[Method] = methodsMap.get(name)
 
-  def getRequestSerializer(name: MethodTag[P]): Option[Decoder[P]] =
-    requestSerializers.get(name)
+  def getParamsDecoder(
+    name: Method
+  ): Option[Decoder[ParamsOf[Method]]] =
+    paramsDecoders.get(name)
 }
