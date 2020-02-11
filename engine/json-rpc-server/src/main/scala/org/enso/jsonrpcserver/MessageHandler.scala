@@ -1,12 +1,13 @@
 package org.enso.jsonrpcserver
 import akka.actor.{Actor, ActorRef, Stash}
+import io.circe.Json
 import org.enso.jsonrpcserver.MessageHandler.{
   Connected,
   IncomingMessage,
   OutgoingMessage
 }
 
-class MessageHandler(val protocol: Protocol, val handler: ActorRef)
+class MessageHandler[P](val protocol: Protocol[P], val handler: ActorRef)
     extends Actor
     with Stash {
 
@@ -22,20 +23,23 @@ class MessageHandler(val protocol: Protocol, val handler: ActorRef)
       val bareMsg = Bare.parse(msg)
       bareMsg match {
         case Some(Bare.Request(methodName, id, params)) =>
-          val request: Either[Error, Request[_]] = for {
+          val request: Either[Error, Request[P]] = for {
             method <- protocol.resolveMethod(methodName).toRight(MethodNotFound)
-            serializer <- protocol
+            decoder <- protocol
               .getRequestSerializer(method)
               .toRight(InvalidRequest)
-            parsedParams <- serializer
-              .decodeRequest(params)
-              .toRight(InvalidParams)
+            parsedParams <- decoder
+              .decodeJson(params)
+              .left
+              .map(_ => InvalidParams)
           } yield Request(method, id, parsedParams)
           request.foreach(handler ! _)
       }
-      println(Bare.parse(msg))
+    case resp: ResponseResult[P] =>
+      val responseDataJson: Json = protocol.allStuffEncoder(resp.data)
+      val bareResp               = Bare.ResponseResult(resp.id, responseDataJson)
+      outConnection ! OutgoingMessage(Bare.encode(bareResp))
 
-      outConnection ! OutgoingMessage(msg)
   }
 }
 

@@ -1,9 +1,10 @@
 package org.enso.jsonrpcserver
 import io.circe.Decoder.Result
-import io.circe.{Decoder, DecodingFailure, HCursor, Json}
+import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
 
 object Bare {
   import io.circe.generic.auto._
+  import io.circe.syntax._
 
   type Id = String
   sealed trait BareMessage
@@ -14,6 +15,13 @@ object Bare {
   case class ResponseError(id: Option[Id], error: ErrorData) extends BareMessage
 
   case class ErrorData(code: Int, message: String, data: Json)
+
+  implicit val responseEncoder: Encoder[ResponseResult] = (a: ResponseResult) =>
+    Json.obj(
+      "jsonrpc" -> "2.0".asJson,
+      "id"      -> a.id.asJson,
+      "result"  -> a.result
+    )
 
   implicit val decoder: Decoder[BareMessage] = new Decoder[BareMessage] {
     val expectedNotificationKeys: Set[String] =
@@ -51,4 +59,6 @@ object Bare {
   def parse(a: String): Option[BareMessage] = {
     io.circe.parser.parse(a).toOption.flatMap(_.as[BareMessage].toOption)
   }
+
+  def encode(res: ResponseResult): String = res.asJson.toString()
 }
