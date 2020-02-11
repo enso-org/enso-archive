@@ -23,6 +23,13 @@ object Bare {
       "result"  -> a.result
     )
 
+  implicit val notificationEncoder: Encoder[Notification] = (n: Notification) =>
+    Json.obj(
+      "jsonrpc" -> "2.0".asJson,
+      "method"  -> n.method.asJson,
+      "params"  -> n.params
+    )
+
   implicit val decoder: Decoder[BareMessage] = new Decoder[BareMessage] {
     val expectedNotificationKeys: Set[String] =
       Set("jsonrpc", "method", "params")
@@ -60,5 +67,7 @@ object Bare {
     io.circe.parser.parse(a).toOption.flatMap(_.as[BareMessage].toOption)
   }
 
-  def encode(res: ResponseResult): String = res.asJson.toString()
+  def encode(res: ResponseResult): String = res.asJson.toString
+
+  def encode(notif: Notification): String = notif.asJson.toString
 }

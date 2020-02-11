@@ -40,6 +40,10 @@ class MessageHandler[P](val protocol: Protocol[P], val handler: ActorRef)
       val bareResp               = Bare.ResponseResult(resp.id, responseDataJson)
       outConnection ! OutgoingMessage(Bare.encode(bareResp))
 
+    case notif: Notification[P] =>
+      val paramsJson       = protocol.allStuffEncoder(notif.params)
+      val bareNotification = Bare.Notification(notif.tag.name, paramsJson)
+      outConnection ! OutgoingMessage(Bare.encode(bareNotification))
   }
 }
 
