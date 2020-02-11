@@ -302,6 +302,13 @@ lazy val graph = (project in file("common/graph/"))
         "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
       ),
       "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
 
@@ -393,6 +400,13 @@ lazy val polyglot_api = project
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
       "org.scalatest"   %% "scalatest"   % "3.2.0-M2"     % Test,
       "org.scalacheck"  %% "scalacheck"  % "1.14.3"       % Test
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
   .dependsOn(pkg)
@@ -457,6 +471,13 @@ lazy val runtime = (project in file("engine/runtime"))
     (Compile / javacOptions) ++= Seq(
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
   .settings(
