@@ -83,10 +83,10 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
 
     case req: Request[Method] =>
       val paramsJson = protocol.payloadsEncoder(req.params)
-      val bareReq    = JsonProtocol.Request(req.tag.name, req.id, paramsJson)
+      val bareReq    = JsonProtocol.Request(req.method.name, req.id, paramsJson)
       webConnection ! WebMessage(JsonProtocol.encode(bareReq))
       context.become(
-        established(webConnection, awaitingResponses + (req.id -> req.tag))
+        established(webConnection, awaitingResponses + (req.id -> req.method))
       )
 
     case resp: ResponseResult[Method] =>
@@ -103,7 +103,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     case notif: Notification[Method] =>
       val paramsJson = protocol.payloadsEncoder(notif.params)
       val bareNotification =
-        JsonProtocol.Notification(notif.tag.name, paramsJson)
+        JsonProtocol.Notification(notif.method.name, paramsJson)
       webConnection ! WebMessage(JsonProtocol.encode(bareNotification))
 
   }
