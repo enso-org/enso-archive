@@ -39,8 +39,10 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     case WebMessage(msg) =>
       val bareMsg = JsonProtocol.parse(msg)
       bareMsg match {
+
         case None =>
           webConnection ! WebMessage(makeError(None, Errors.ParseError))
+
         case Some(JsonProtocol.Request(methodName, id, params)) =>
           val methodAndParams = resolveMethodAndParams(methodName, params)
           methodAndParams match {
@@ -49,6 +51,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
             case Right((method, params)) =>
               controller ! Request(method, id, params)
           }
+
         case Some(JsonProtocol.Notification(methodName, params)) =>
           val notification = resolveMethodAndParams(methodName, params).map {
             case (method, params) => Notification(method, params)
