@@ -27,14 +27,25 @@ case object InvalidRequest extends Error(-32600, "Invalid Request")
 case object MethodNotFound extends Error(-32601, "Method not found")
 case object InvalidParams  extends Error(-32602, "Invalid params")
 
+case class UnknownError(override val code: Int, override val message: String)
+    extends Error(code, message)
+
 case class ResponseError(id: Option[String], error: Error)
 
 case class Protocol(
   methods: Set[Method],
   paramsDecoders: Map[Method, Decoder[ParamsOf[Method]]],
   responseDecoders: Map[Method, Decoder[ResultOf[Method]]],
+  customErrors: Map[Int, Error],
   allStuffEncoder: Encoder[DataOf[Method]]
 ) {
+  val builtinErrors: Map[Int, Error] = List(
+    ParseError,
+    InvalidRequest,
+    MethodNotFound,
+    InvalidParams
+  ).map(err => err.code -> err).toMap
+
   val methodsMap: Map[String, Method] =
     methods.map(tag => (tag.name, tag)).toMap
 
@@ -47,4 +58,7 @@ case class Protocol(
 
   def getResultDecoder(method: Method): Option[Decoder[ResultOf[Method]]] =
     responseDecoders.get(method)
+
+  def resolveError(code: Int): Option[Error] =
+    builtinErrors.get(code).orElse(customErrors.get(code))
 }

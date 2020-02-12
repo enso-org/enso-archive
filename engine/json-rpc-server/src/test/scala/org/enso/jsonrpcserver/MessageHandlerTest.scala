@@ -2,7 +2,7 @@ package org.enso.jsonrpcserver
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.{Decoder, Encoder, Json}
-import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
 import io.circe.parser._
@@ -33,6 +33,8 @@ class MessageHandlerTest
   case class MyNotificationParams(spam: String)
       extends ParamsOf[MyNotification.type]
 
+  case object MyError extends Error(15, "Test error")
+
   object MyProtocol {
     import io.circe.generic.auto._
     import io.circe.syntax._
@@ -54,6 +56,7 @@ class MessageHandlerTest
         Map(
           MyRequest -> implicitly[Decoder[MyRequestResult]].widen
         ),
+        Map(MyError.code -> MyError),
         encoder
       )
   }
@@ -201,6 +204,30 @@ class MessageHandlerTest
       controller.expectMsg(
         ResponseResult(Some("some_id"), MyRequestResult(789))
       )
+    }
+
+    "issue a request and pass an error response" in {
+      handler ! Request(MyRequest, "some_id", MyRequestParams(123, "456"))
+      expectJson(
+        out,
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "RequestMethod",
+            "id": "some_id",
+            "params": { "foo": 123,
+                        "bar": "456" }
+          }"""
+      )
+      handler ! IncomingMessage("""
+                                  |{ "jsonrpc": "2.0",
+                                  |  "id": "some_id",
+                                  |  "error": { "code": 15,
+                                  |             "message": "Test error"
+                                  |           }
+                                  |}
+                                  |""".stripMargin)
+
+      controller.expectMsg(ResponseError(Some("some_id"), MyError))
     }
   }
 

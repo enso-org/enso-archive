@@ -56,6 +56,17 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
             id =>
               context.become(established(outConnection, awaitingResponses - id))
           )
+
+        case Some(Bare.ResponseError(mayId, bareError)) =>
+          val error = protocol
+            .resolveError(bareError.code)
+            .getOrElse(UnknownError(bareError.code, bareError.message))
+          controller ! ResponseError(mayId, error)
+          mayId.map(
+            id =>
+              context.become(established(outConnection, awaitingResponses - id))
+          )
+
       }
 
     case req: Request[Method] =>
