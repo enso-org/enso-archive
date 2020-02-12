@@ -33,6 +33,9 @@ import scala.annotation.tailrec
   *   import org.enso.graph.{Graph => PrimGraph}
   *   import PrimGraph.Component.Refined._
   * }}}
+  *
+  * Please note that the smart constructor functions are _intentionally_ named
+  * using upper-case so as to signify that they construct a value.
   */
 class Core {
   // TODO [AA] Need to present a nice interface
@@ -966,6 +969,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.IgnoredArgument]
 
         node.location = location
+        node.parents = Vector()
 
         node
       }
@@ -997,8 +1001,8 @@ object Core {
           val node = CoreDef.Node.addRefined[NodeShape.DefinitionArgument]
 
           val nameLink      = Link.New.Connected(node, name)
-          val suspendedLink = Link.New.Connected(node, name)
-          val defaultLink   = Link.New.Connected(node, name)
+          val suspendedLink = Link.New.Connected(node, suspended)
+          val defaultLink   = Link.New.Connected(node, default)
 
           CoreDef.Node.addParent(name, nameLink)
           CoreDef.Node.addParent(suspended, suspendedLink)

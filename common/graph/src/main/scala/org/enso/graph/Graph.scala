@@ -786,4 +786,76 @@ object Graph {
         val sizes = info.componentSize +: tail.sizes
       }
   }
+
+  /** Allows casting between variant cases without actually mutating the
+    * underlying structure.
+    *
+    * This is a very unsafe operation and should be used with care.
+    *
+    * @param component the component to cast the variant field in
+    * @param ev evidence that component [[C]] has field [[G]] in graph [[G]]
+    * @tparam G the graph type
+    * @tparam C the component type
+    * @tparam F the field type
+    */
+  implicit class VariantCast[
+    G <: Graph,
+    C <: Component,
+    F <: Component.Field
+  ](val component: Component.Ref[G, C])(
+    implicit ev: HasComponentField[G, C, F],
+    graph: GraphData[G]
+  ) {
+
+    /** Checks if [[component]] is in the variant case denoted by the type
+      * [[V]].
+      *
+      * @param variantIndexed information that [[F]] is indeed a variant, with
+      *                       [[V]] as a valid case
+      * @tparam V the type of the variant case in question
+      * @return `true` if [[component]] is of the form denoted by [[V]], `false`
+      *         otherwise
+      */
+    def is[V <: F](
+      implicit variantIndexed: VariantIndexed[F, V]
+    ): Boolean = {
+      graph.unsafeReadField[C, F](component) == variantIndexed.ix
+    }
+
+    /** Casts the variant field [[F]] to behave as the variant branch [[V]].
+      *
+      * It should be noted that this is purely a superficial cast, and does not
+      * affect the underlying graph. This means that [[C]] will still pattern
+      * match as if it was its original variant branch.
+      *
+      * @param variantIndexed information that [[F]] is indeed a variant, with
+      *                       [[V]] as a valid case
+      * @tparam V the type of the variant case in question
+      * @return the component [[component]] refined to be the variant branch
+      *         [[V]]
+      */
+    def unsafeAs[V <: F](
+      implicit variantIndexed: VariantIndexed[F, V]
+    ): Component.Refined[F, V, Component.Ref[G, C]] = {
+      Component.Refined[F, V, Component.Ref[G, C]](component)
+    }
+
+    /** Performs a checked cast of [[component]] to the variant state denoted
+      * by [[V]].
+      *
+      * @param variantIndexed information that [[F]] is indeed a variant, with
+      *                       [[V]] as a valid case
+      * @tparam V the type of the variant case in question
+      * @return [[Some]] if [[component]] is a [[V]], otherwise [[None]]
+      */
+    def as[V <: F](
+      implicit variantIndexed: VariantIndexed[F, V]
+    ): Option[Component.Refined[F, V, Component.Ref[G, C]]] = {
+      if (is[V]) {
+        Some(unsafeAs[V])
+      } else {
+        None
+      }
+    }
+  }
 }
