@@ -1431,30 +1431,42 @@ class SmartConstructorsTest
 
   // === Tests for Link Smart Constructors ====================================
 
-  "Links" should {
+  "Connected links" should {
     implicit val core: Core = new Core()
 
+    val n1 = Node.New.Empty()
+    val n2 = Node.New.Empty()
+
+    val link = Link.New.Connected(n1, n2)
+
     "be able to be made with a source and target" in {
-      val n1 = Node.New.Empty()
-      val n2 = Node.New.Empty()
-
-      val link = Link.New.Connected(n1, n2)
-
       link.source shouldEqual n1
       link.target shouldEqual n2
     }
 
+    "be a parent of their target" in {
+      n2.parents should contain(link.ix)
+    }
+  }
+
+  "Disconnected links" should {
+    implicit val core: Core = new Core()
+
+    val sourceNode = Node.New.MetaNil()
+
+    val link = Link.New.Disconnected(sourceNode)
+
     "be able to be made with only a source" in {
-      val sourceNode = Node.New.MetaNil()
-
-      val link = Link.New.Disconnected(sourceNode)
-
       link.source shouldEqual sourceNode
 
       link.target match {
         case NodeShape.Empty.any(_) => succeed
         case _                      => fail
       }
+    }
+
+    "be a parent of their empty target" in {
+      link.target.parents should contain(link.ix)
     }
   }
 }

@@ -19,6 +19,8 @@ import shapeless.nat._
  *    as much as possible.
  *  - Basic equality testing (that should be overridden as needed).
  *  - An ability to define fields that store complex data such as `String`.
+ *  - Add a `Default` typeclass, and ensure that all component fields are
+ *    instances of it. Fields should then be initialised using it.
  */
 
 /** This file contains the implementation of an incredibly generic graph.

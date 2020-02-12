@@ -12,8 +12,12 @@ import org.enso.syntax.text.{AST, Location => AstLocation}
 import scala.annotation.tailrec
 
 // TODO [AA] Detailed semantic descriptions for each node shape in future.
+// TODO [AA] Refactor over time to remove as much boilerplate as possible.
 // TODO [AA] Eventually refactor graph macro generation so as to allow the
 //  trait-extension based approach to implicit imports.
+// TODO [AA] Need to present a nice interface
+//  - Copy subsection of graph
+//  - Check equality for subsection of graph
 
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
@@ -41,9 +45,6 @@ import scala.annotation.tailrec
   * using upper-case so as to signify that they construct a value.
   */
 class Core {
-  // TODO [AA] Need to present a nice interface
-  //  - Copy subsection of graph
-  //  - Check equality for subsection of graph
 
   // ==========================================================================
   // === Graph Storage ========================================================
@@ -156,9 +157,6 @@ object Core {
 
           val headLink = Link.New.Connected(node, head)
           val tailLink = Link.New.Connected(node, tail)
-
-          CoreDef.Node.addParent(head, headLink)
-          CoreDef.Node.addParent(tail, tailLink)
 
           node.head     = headLink
           node.tail     = tailLink
@@ -382,10 +380,6 @@ object Core {
           val importsLink     = Link.New.Connected(node, imports)
           val definitionsLink = Link.New.Connected(node, definitions)
 
-          CoreDef.Node.addParent(name, nameLink)
-          CoreDef.Node.addParent(imports, importsLink)
-          CoreDef.Node.addParent(definitions, definitionsLink)
-
           node.name        = nameLink
           node.imports     = importsLink
           node.definitions = definitionsLink
@@ -411,8 +405,6 @@ object Core {
           val node = CoreDef.Node.addRefined[NodeShape.Import]
 
           val segmentsLink = Link.New.Connected(node, segments)
-
-          CoreDef.Node.addParent(segments, segmentsLink)
 
           node.segments = segmentsLink
           node.location = location
@@ -451,9 +443,6 @@ object Core {
             val moduleLink  = Link.New.Connected(node, module)
             val bindingLink = Link.New.Connected(node, binding)
 
-            CoreDef.Node.addParent(module, moduleLink)
-            CoreDef.Node.addParent(binding, bindingLink)
-
             node.module   = moduleLink
             node.binding  = bindingLink
             node.location = location
@@ -487,9 +476,6 @@ object Core {
 
           val nameLink = Link.New.Connected(node, name)
           val argsLink = Link.New.Connected(node, args)
-
-          CoreDef.Node.addParent(name, nameLink)
-          CoreDef.Node.addParent(args, argsLink)
 
           node.name     = nameLink
           node.args     = argsLink
@@ -537,10 +523,6 @@ object Core {
           val typeParamsLink = Link.New.Connected(node, typeParams)
           val bodyLink       = Link.New.Connected(node, body)
 
-          CoreDef.Node.addParent(name, nameLink)
-          CoreDef.Node.addParent(typeParams, typeParamsLink)
-          CoreDef.Node.addParent(body, bodyLink)
-
           node.name       = nameLink
           node.typeParams = typeParamsLink
           node.body       = bodyLink
@@ -575,9 +557,6 @@ object Core {
         val typedLink = Link.New.Connected(node, typed)
         val sigLink   = Link.New.Connected(node, sig)
 
-        CoreDef.Node.addParent(typed, typedLink)
-        CoreDef.Node.addParent(sig, sigLink)
-
         node.typed    = typedLink
         node.sig      = sigLink
         node.location = location
@@ -605,9 +584,6 @@ object Core {
 
         val typedLink   = Link.New.Connected(node, typed)
         val contextLink = Link.New.Connected(node, context)
-
-        CoreDef.Node.addParent(typed, typedLink)
-        CoreDef.Node.addParent(context, contextLink)
 
         node.typed    = typedLink
         node.context  = contextLink
@@ -642,10 +618,6 @@ object Core {
         val memberTypeLink = Link.New.Connected(node, memberType)
         val valueLink      = Link.New.Connected(node, value)
 
-        CoreDef.Node.addParent(label, labelLink)
-        CoreDef.Node.addParent(memberType, memberTypeLink)
-        CoreDef.Node.addParent(value, valueLink)
-
         node.label      = labelLink
         node.memberType = memberTypeLink
         node.value      = valueLink
@@ -677,9 +649,6 @@ object Core {
         val leftLink  = Link.New.Connected(node, left)
         val rightLink = Link.New.Connected(node, right)
 
-        CoreDef.Node.addParent(left, leftLink)
-        CoreDef.Node.addParent(right, rightLink)
-
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
@@ -710,9 +679,6 @@ object Core {
         val leftLink  = Link.New.Connected(node, left)
         val rightLink = Link.New.Connected(node, right)
 
-        CoreDef.Node.addParent(left, leftLink)
-        CoreDef.Node.addParent(right, rightLink)
-
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
@@ -739,9 +705,6 @@ object Core {
 
         val leftLink  = Link.New.Connected(node, left)
         val rightLink = Link.New.Connected(node, right)
-
-        CoreDef.Node.addParent(left, leftLink)
-        CoreDef.Node.addParent(right, rightLink)
 
         node.left     = leftLink
         node.right    = rightLink
@@ -770,9 +733,6 @@ object Core {
         val leftLink  = Link.New.Connected(node, left)
         val rightLink = Link.New.Connected(node, right)
 
-        CoreDef.Node.addParent(left, leftLink)
-        CoreDef.Node.addParent(right, rightLink)
-
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
@@ -800,9 +760,6 @@ object Core {
         val leftLink  = Link.New.Connected(node, left)
         val rightLink = Link.New.Connected(node, right)
 
-        CoreDef.Node.addParent(left, leftLink)
-        CoreDef.Node.addParent(right, rightLink)
-
         node.left     = leftLink
         node.right    = rightLink
         node.location = location
@@ -829,9 +786,6 @@ object Core {
 
         val leftLink  = Link.New.Connected(node, left)
         val rightLink = Link.New.Connected(node, right)
-
-        CoreDef.Node.addParent(left, leftLink)
-        CoreDef.Node.addParent(right, rightLink)
 
         node.left     = leftLink
         node.right    = rightLink
@@ -864,9 +818,6 @@ object Core {
         val argLink  = Link.New.Connected(node, arg)
         val bodyLink = Link.New.Connected(node, body)
 
-        CoreDef.Node.addParent(arg, argLink)
-        CoreDef.Node.addParent(body, bodyLink)
-
         node.arg      = argLink
         node.body     = bodyLink
         node.location = location
@@ -896,10 +847,6 @@ object Core {
           val nameLink = Link.New.Connected(node, name)
           val argsLink = Link.New.Connected(node, args)
           val bodyLink = Link.New.Connected(node, body)
-
-          CoreDef.Node.addParent(name, nameLink)
-          CoreDef.Node.addParent(args, argsLink)
-          CoreDef.Node.addParent(body, bodyLink)
 
           node.name     = nameLink
           node.args     = argsLink
@@ -944,10 +891,6 @@ object Core {
           val targetPathLink = Link.New.Connected(node, targetPath)
           val nameLink       = Link.New.Connected(node, name)
           val functionLink   = Link.New.Connected(node, function)
-
-          CoreDef.Node.addParent(targetPath, targetPathLink)
-          CoreDef.Node.addParent(name, nameLink)
-          CoreDef.Node.addParent(function, functionLink)
 
           node.targetPath = targetPathLink
           node.name       = nameLink
@@ -1010,10 +953,6 @@ object Core {
           val suspendedLink = Link.New.Connected(node, suspended)
           val defaultLink   = Link.New.Connected(node, default)
 
-          CoreDef.Node.addParent(name, nameLink)
-          CoreDef.Node.addParent(suspended, suspendedLink)
-          CoreDef.Node.addParent(default, defaultLink)
-
           node.name      = nameLink
           node.suspended = suspendedLink
           node.default   = defaultLink
@@ -1053,9 +992,6 @@ object Core {
         val functionLink = Link.New.Connected(node, function)
         val argumentLink = Link.New.Connected(node, argument)
 
-        CoreDef.Node.addParent(function, functionLink)
-        CoreDef.Node.addParent(argument, argumentLink)
-
         node.function = functionLink
         node.argument = argumentLink
         node.location = location
@@ -1086,10 +1022,6 @@ object Core {
         val operatorLink = Link.New.Connected(node, operator)
         val rightLink    = Link.New.Connected(node, right)
 
-        CoreDef.Node.addParent(left, leftLink)
-        CoreDef.Node.addParent(operator, operatorLink)
-        CoreDef.Node.addParent(right, rightLink)
-
         node.left     = leftLink
         node.operator = operatorLink
         node.right    = rightLink
@@ -1118,9 +1050,6 @@ object Core {
         val argLink      = Link.New.Connected(node, arg)
         val operatorLink = Link.New.Connected(node, operator)
 
-        CoreDef.Node.addParent(arg, argLink)
-        CoreDef.Node.addParent(operator, operatorLink)
-
         node.arg      = argLink
         node.operator = operatorLink
         node.location = location
@@ -1148,9 +1077,6 @@ object Core {
         val operatorLink = Link.New.Connected(node, operator)
         val argLink      = Link.New.Connected(node, arg)
 
-        CoreDef.Node.addParent(operator, operatorLink)
-        CoreDef.Node.addParent(arg, argLink)
-
         node.operator = operatorLink
         node.arg      = argLink
         node.location = location
@@ -1173,8 +1099,6 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.CentreSection]
 
         val operatorLink = Link.New.Connected(node, operator)
-
-        CoreDef.Node.addParent(operator, operatorLink)
 
         node.operator = operatorLink
         node.location = location
@@ -1204,8 +1128,6 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.ForcedTerm]
 
         val expressionLink = Link.New.Connected(node, expression)
-
-        CoreDef.Node.addParent(expression, expressionLink)
 
         node.expression = expressionLink
         node.location   = location
@@ -1259,9 +1181,6 @@ object Core {
         val expressionLink = Link.New.Connected(node, expression)
         val nameLink       = Link.New.Connected(node, name)
 
-        CoreDef.Node.addParent(expression, expressionLink)
-        CoreDef.Node.addParent(name, nameLink)
-
         node.expression = expressionLink
         node.name       = nameLink
         node.location   = location
@@ -1311,9 +1230,6 @@ object Core {
           val expressionsLink = Link.New.Connected(node, expressions)
           val returnValLink   = Link.New.Connected(node, returnVal)
 
-          CoreDef.Node.addParent(expressions, expressionsLink)
-          CoreDef.Node.addParent(returnVal, returnValLink)
-
           node.expressions = expressionsLink
           node.returnVal   = returnValLink
           node.location    = location
@@ -1347,9 +1263,6 @@ object Core {
         val nameLink       = Link.New.Connected(node, name)
         val expressionLink = Link.New.Connected(node, expression)
 
-        CoreDef.Node.addParent(name, nameLink)
-        CoreDef.Node.addParent(expression, expressionLink)
-
         node.name       = nameLink
         node.expression = expressionLink
         node.location   = location
@@ -1379,9 +1292,6 @@ object Core {
 
           val scrutineeLink = Link.New.Connected(node, scrutinee)
           val branchesLink  = Link.New.Connected(node, branches)
-
-          CoreDef.Node.addParent(scrutinee, scrutineeLink)
-          CoreDef.Node.addParent(branches, branchesLink)
 
           node.scrutinee = scrutineeLink
           node.branches  = branchesLink
@@ -1415,9 +1325,6 @@ object Core {
 
         val patternLink    = Link.New.Connected(node, pattern)
         val expressionLink = Link.New.Connected(node, expression)
-
-        CoreDef.Node.addParent(pattern, patternLink)
-        CoreDef.Node.addParent(expression, expressionLink)
 
         node.pattern    = patternLink
         node.expression = expressionLink
@@ -1475,8 +1382,6 @@ object Core {
 
         val matchExpressionLink = Link.New.Connected(node, matchExpression)
 
-        CoreDef.Node.addParent(matchExpression, matchExpressionLink)
-
         node.matchExpression = matchExpressionLink
         node.location        = location
         node.parents         = Vector()
@@ -1502,8 +1407,6 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.NamedPattern]
 
         val matchExpressionLink = Link.New.Connected(node, matchExpression)
-
-        CoreDef.Node.addParent(matchExpression, matchExpressionLink)
 
         node.matchExpression = matchExpressionLink
         node.location        = location
@@ -1554,9 +1457,6 @@ object Core {
         val commentedLink = Link.New.Connected(node, commented)
         val docLink       = Link.New.Connected(node, doc)
 
-        CoreDef.Node.addParent(commented, commentedLink)
-        CoreDef.Node.addParent(doc, docLink)
-
         node.commented = commentedLink
         node.doc       = docLink
         node.location  = location
@@ -1587,9 +1487,6 @@ object Core {
 
             val languageLink = Link.New.Connected(node, language)
             val codeLink     = Link.New.Connected(node, code)
-
-            CoreDef.Node.addParent(language, languageLink)
-            CoreDef.Node.addParent(code, codeLink)
 
             node.language = languageLink
             node.code     = codeLink
@@ -1652,8 +1549,6 @@ object Core {
 
         val erroneousCoreLink =
           Link.New.Connected(node, erroneousCoreList)
-
-        CoreDef.Node.addParent(erroneousCoreList, erroneousCoreLink)
 
         node.erroneousCore = erroneousCoreLink
         node.location      = location
@@ -1838,6 +1733,8 @@ object Core {
         link.source = source
         link.target = target
 
+        CoreDef.Node.addParent(target, link)
+
         link
       }
 
@@ -1855,6 +1752,8 @@ object Core {
 
         link.source = source
         link.target = emptyNode
+
+        CoreDef.Node.addParent(emptyNode, link)
 
         link
       }
