@@ -6,7 +6,6 @@ object Bare {
   import io.circe.generic.auto._
   import io.circe.syntax._
 
-  type Id = String
   sealed trait BareMessage
 
   case class Notification(method: String, params: Json)      extends BareMessage
@@ -89,6 +88,6 @@ object Bare {
     io.circe.parser.parse(a).toOption.flatMap(_.as[BareMessage].toOption)
   }
 
-  def encode(msg: BareMessage): String = msg.asJson.toString
+  def encode(msg: BareMessage): String = msg.asJson.noSpaces
 
 }

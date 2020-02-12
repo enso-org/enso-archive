@@ -1,21 +1,41 @@
 package org.enso.jsonrpcserver
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Decoder.Result
+import io.circe.{Decoder, Encoder, HCursor, Json}
+
+sealed trait Id
+case class StringId(id: String) extends Id
+case class NumberId(id: Int) extends Id
+
+object Id {
+  import io.circe.syntax._
+  import cats.syntax.functor._
+  implicit val encoder: Encoder[Id] = {
+    case StringId(id) => id.asJson
+    case NumberId(id) => id.asJson
+  }
+  implicit val decoder: Decoder[Id] = Decoder[String]
+    .map(StringId)
+    .widen[Id]
+    .or(Decoder[Int].map(NumberId).widen[Id])
+}
 
 abstract class Method(val name: String)
 
-trait DataOf[+M]
+trait PayloadOf[+M]
 
-trait ParamsOf[+M] extends DataOf[M]
-trait ResultOf[+M] extends DataOf[M]
+trait ParamsOf[+M] extends PayloadOf[M]
+trait ResultOf[+M] extends PayloadOf[M]
 
 case class Request[+M <: Method](
   tag: M,
-  id: String,
+  id: Id,
   params: ParamsOf[M]
 )
+
 case class Notification[+M <: Method](tag: M, params: ParamsOf[M])
+
 case class ResponseResult[+M <: Method](
-  id: Option[String],
+  id: Option[Id],
   data: ResultOf[M]
 )
 
@@ -30,14 +50,14 @@ case object InvalidParams  extends Error(-32602, "Invalid params")
 case class UnknownError(override val code: Int, override val message: String)
     extends Error(code, message)
 
-case class ResponseError(id: Option[String], error: Error)
+case class ResponseError(id: Option[Id], error: Error)
 
 case class Protocol(
   methods: Set[Method],
   paramsDecoders: Map[Method, Decoder[ParamsOf[Method]]],
   responseDecoders: Map[Method, Decoder[ResultOf[Method]]],
   customErrors: Map[Int, Error],
-  allStuffEncoder: Encoder[DataOf[Method]]
+  payloadsEncoder: Encoder[PayloadOf[Method]]
 ) {
   val builtinErrors: Map[Int, Error] = List(
     ParseError,

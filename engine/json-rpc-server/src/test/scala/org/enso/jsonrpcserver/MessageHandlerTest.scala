@@ -40,7 +40,7 @@ class MessageHandlerTest
     import io.circe.syntax._
     import cats.syntax.functor._
 
-    val encoder: Encoder[DataOf[Method]] = Encoder.instance {
+    val encoder: Encoder[PayloadOf[Method]] = Encoder.instance {
       case m: MyRequestParams      => m.asJson
       case m: MyRequestResult      => m.asJson
       case m: MyNotificationParams => m.asJson
@@ -111,10 +111,10 @@ class MessageHandlerTest
                                   |}
                                   |""".stripMargin)
       controller.expectMsg(
-        Request(MyRequest, "1234", MyRequestParams(30, "bar"))
+        Request(MyRequest, StringId("1234"), MyRequestParams(30, "bar"))
       )
       controller.reply(
-        ResponseResult(Some("1234"), MyRequestResult(123))
+        ResponseResult(Some(StringId("1234")), MyRequestResult(123))
       )
 
       expectJson(
@@ -184,7 +184,11 @@ class MessageHandlerTest
     }
 
     "issue a request and pass a well formed response" in {
-      handler ! Request(MyRequest, "some_id", MyRequestParams(123, "456"))
+      handler ! Request(
+        MyRequest,
+        StringId("some_id"),
+        MyRequestParams(123, "456")
+      )
       expectJson(
         out,
         json"""
@@ -202,12 +206,16 @@ class MessageHandlerTest
                                   |}
                                   |""".stripMargin)
       controller.expectMsg(
-        ResponseResult(Some("some_id"), MyRequestResult(789))
+        ResponseResult(Some(StringId("some_id")), MyRequestResult(789))
       )
     }
 
     "issue a request and pass an error response" in {
-      handler ! Request(MyRequest, "some_id", MyRequestParams(123, "456"))
+      handler ! Request(
+        MyRequest,
+        StringId("some_id"),
+        MyRequestParams(123, "456")
+      )
       expectJson(
         out,
         json"""
@@ -227,7 +235,7 @@ class MessageHandlerTest
                                   |}
                                   |""".stripMargin)
 
-      controller.expectMsg(ResponseError(Some("some_id"), MyError))
+      controller.expectMsg(ResponseError(Some(StringId("some_id")), MyError))
     }
   }
 
