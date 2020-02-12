@@ -30,12 +30,27 @@ object Bare {
       "params"  -> n.params
     )
 
-  implicit val errorDecoder: Encoder[ResponseError] = (r: ResponseError) =>
+  implicit val errorEncoder: Encoder[ResponseError] = (r: ResponseError) =>
     Json.obj(
       "jsonrpc" -> "2.0".asJson,
       "id"      -> r.id.asJson,
       "error"   -> r.error.asJson
     )
+
+  implicit val requestEncoder: Encoder[Request] = (r: Request) =>
+    Json.obj(
+      "jsonrpc" -> "2.0".asJson,
+      "id"      -> r.id.asJson,
+      "method"  -> r.method.asJson,
+      "params"  -> r.params
+    )
+
+  implicit val bareMessageEncoder: Encoder[BareMessage] = {
+    case request: Request               => request.asJson
+    case responseError: ResponseError   => responseError.asJson
+    case responseResult: ResponseResult => responseResult.asJson
+    case notification: Notification     => notification.asJson
+  }
 
   implicit val decoder: Decoder[BareMessage] = new Decoder[BareMessage] {
     val expectedNotificationKeys: Set[String] =
@@ -74,9 +89,6 @@ object Bare {
     io.circe.parser.parse(a).toOption.flatMap(_.as[BareMessage].toOption)
   }
 
-  def encode(res: ResponseResult): String = res.asJson.toString
+  def encode(msg: BareMessage): String = msg.asJson.toString
 
-  def encode(notif: Notification): String = notif.asJson.toString
-
-  def encode(res: ResponseError): String = res.asJson.toString
 }

@@ -24,10 +24,10 @@ class MessageHandlerTest
     TestKit.shutdownActorSystem(system)
   }
 
-  case object MyMethod extends Method("MyMethod")
-  case class MyMethodParams(foo: Int, bar: String)
-      extends ParamsOf[MyMethod.type]
-  case class MyMethodResponse(baz: Int) extends ResultOf[MyMethod.type]
+  case object MyRequest extends Method("RequestMethod")
+  case class MyRequestParams(foo: Int, bar: String)
+      extends ParamsOf[MyRequest.type]
+  case class MyRequestResult(baz: Int) extends ResultOf[MyRequest.type]
 
   case object MyNotification extends Method("NotificationMethod")
   case class MyNotificationParams(spam: String)
@@ -39,20 +39,20 @@ class MessageHandlerTest
     import cats.syntax.functor._
 
     val encoder: Encoder[DataOf[Method]] = Encoder.instance {
-      case m: MyMethodParams       => m.asJson
-      case m: MyMethodResponse     => m.asJson
+      case m: MyRequestParams      => m.asJson
+      case m: MyRequestResult      => m.asJson
       case m: MyNotificationParams => m.asJson
     }
 
     val protocol: Protocol =
       Protocol(
-        Set(MyMethod, MyNotification),
+        Set(MyRequest, MyNotification),
         Map(
           MyNotification -> implicitly[Decoder[MyNotificationParams]].widen,
-          MyMethod       -> implicitly[Decoder[MyMethodParams]].widen
+          MyRequest      -> implicitly[Decoder[MyRequestParams]].widen
         ),
         Map(
-          MyMethod -> implicitly[Decoder[MyMethodResponse]].widen
+          MyRequest -> implicitly[Decoder[MyRequestResult]].widen
         ),
         encoder
       )
@@ -102,16 +102,16 @@ class MessageHandlerTest
     "reply to requests" in {
       handler ! IncomingMessage("""
                                   |{ "jsonrpc": "2.0",
-                                  |  "method": "MyMethod",
+                                  |  "method": "RequestMethod",
                                   |  "params": {"foo": 30, "bar": "bar"},
                                   |  "id": "1234"
                                   |}
                                   |""".stripMargin)
       controller.expectMsg(
-        Request(MyMethod, "1234", MyMethodParams(30, "bar"))
+        Request(MyRequest, "1234", MyRequestParams(30, "bar"))
       )
       controller.reply(
-        ResponseResult(Some("1234"), MyMethodResponse(123))
+        ResponseResult(Some("1234"), MyRequestResult(123))
       )
 
       expectJson(
@@ -141,7 +141,7 @@ class MessageHandlerTest
     "reply with an error to unrecognized messages" in {
       handler ! IncomingMessage("""
                                   |{ "jsonrpc": "2.0",
-                                  |  "method": "MyMethodZZZZZ",
+                                  |  "method": "RequestMethodZZZZZ",
                                   |  "params": {"foo": 30, "bar": "bar"},
                                   |  "id": "1234"
                                   |}
@@ -162,7 +162,7 @@ class MessageHandlerTest
     "reply with an error to messages with wrong params" in {
       handler ! IncomingMessage("""
                                   |{ "jsonrpc": "2.0",
-                                  |  "method": "MyMethod",
+                                  |  "method": "RequestMethod",
                                   |  "params": {"foop": 30, "barp": "bar"},
                                   |  "id": "1234"
                                   |}
@@ -177,6 +177,29 @@ class MessageHandlerTest
                        "message": "Invalid params"
                      }
           }"""
+      )
+    }
+
+    "issue a request and pass a well formed response" in {
+      handler ! Request(MyRequest, "some_id", MyRequestParams(123, "456"))
+      expectJson(
+        out,
+        json"""
+          { "jsonrpc": "2.0",
+            "method": "RequestMethod",
+            "id": "some_id",
+            "params": { "foo": 123,
+                        "bar": "456" }
+          }"""
+      )
+      handler ! IncomingMessage("""
+                                  |{ "jsonrpc": "2.0",
+                                  |  "id": "some_id",
+                                  |  "result": {"baz": 789}
+                                  |}
+                                  |""".stripMargin)
+      controller.expectMsg(
+        ResponseResult(Some("some_id"), MyRequestResult(789))
       )
     }
   }

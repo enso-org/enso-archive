@@ -19,6 +19,8 @@ case class ResponseResult[+M <: Method](
   data: ResultOf[M]
 )
 
+case class UnknownResult(result: Json) extends ResultOf[Method]
+
 abstract class Error(val code: Int, val message: String)
 case object ParseError     extends Error(-32700, "Parse error")
 case object InvalidRequest extends Error(-32600, "Invalid Request")
@@ -42,4 +44,7 @@ case class Protocol(
     name: Method
   ): Option[Decoder[ParamsOf[Method]]] =
     paramsDecoders.get(name)
+
+  def getResultDecoder(method: Method): Option[Decoder[ResultOf[Method]]] =
+    responseDecoders.get(method)
 }
