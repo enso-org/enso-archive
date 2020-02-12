@@ -7,11 +7,7 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import scala.concurrent.duration._
 import io.circe.parser._
 import io.circe.literal._
-import org.enso.jsonrpcserver.MessageHandler.{
-  Connected,
-  IncomingMessage,
-  OutgoingMessage
-}
+import org.enso.jsonrpcserver.MessageHandler.{Connected, WebMessage}
 
 class MessageHandlerTest
     extends TestKit(ActorSystem("TestSystem"))
@@ -90,12 +86,12 @@ class MessageHandlerTest
     }
 
     "receive notifications" in {
-      handler ! IncomingMessage("""
-                                  |{ "jsonrpc": "2.0",
-                                  |  "method": "NotificationMethod",
-                                  |  "params": { "spam": "hello" }
-                                  |}
-                                  |""".stripMargin)
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "method": "NotificationMethod",
+                             |  "params": { "spam": "hello" }
+                             |}
+                             |""".stripMargin)
 
       controller.expectMsg(
         Notification(MyNotification, MyNotificationParams("hello"))
@@ -103,13 +99,13 @@ class MessageHandlerTest
     }
 
     "reply to requests" in {
-      handler ! IncomingMessage("""
-                                  |{ "jsonrpc": "2.0",
-                                  |  "method": "RequestMethod",
-                                  |  "params": {"foo": 30, "bar": "bar"},
-                                  |  "id": "1234"
-                                  |}
-                                  |""".stripMargin)
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "method": "RequestMethod",
+                             |  "params": {"foo": 30, "bar": "bar"},
+                             |  "id": "1234"
+                             |}
+                             |""".stripMargin)
       controller.expectMsg(
         Request(MyRequest, StringId("1234"), MyRequestParams(30, "bar"))
       )
@@ -128,7 +124,7 @@ class MessageHandlerTest
     }
 
     "reply with an error to malformed messages" in {
-      handler ! IncomingMessage("Is this a JSON RPC message...?")
+      handler ! WebMessage("Is this a JSON RPC message...?")
       expectJson(
         out,
         json"""
@@ -142,13 +138,13 @@ class MessageHandlerTest
     }
 
     "reply with an error to unrecognized messages" in {
-      handler ! IncomingMessage("""
-                                  |{ "jsonrpc": "2.0",
-                                  |  "method": "RequestMethodZZZZZ",
-                                  |  "params": {"foo": 30, "bar": "bar"},
-                                  |  "id": "1234"
-                                  |}
-                                  |""".stripMargin)
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "method": "RequestMethodZZZZZ",
+                             |  "params": {"foo": 30, "bar": "bar"},
+                             |  "id": "1234"
+                             |}
+                             |""".stripMargin)
 
       expectJson(
         out,
@@ -163,13 +159,13 @@ class MessageHandlerTest
     }
 
     "reply with an error to messages with wrong params" in {
-      handler ! IncomingMessage("""
-                                  |{ "jsonrpc": "2.0",
-                                  |  "method": "RequestMethod",
-                                  |  "params": {"foop": 30, "barp": "bar"},
-                                  |  "id": "1234"
-                                  |}
-                                  |""".stripMargin)
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "method": "RequestMethod",
+                             |  "params": {"foop": 30, "barp": "bar"},
+                             |  "id": "1234"
+                             |}
+                             |""".stripMargin)
 
       expectJson(
         out,
@@ -199,12 +195,12 @@ class MessageHandlerTest
                         "bar": "456" }
           }"""
       )
-      handler ! IncomingMessage("""
-                                  |{ "jsonrpc": "2.0",
-                                  |  "id": "some_id",
-                                  |  "result": {"baz": 789}
-                                  |}
-                                  |""".stripMargin)
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "id": "some_id",
+                             |  "result": {"baz": 789}
+                             |}
+                             |""".stripMargin)
       controller.expectMsg(
         ResponseResult(Some(StringId("some_id")), MyRequestResult(789))
       )
@@ -226,14 +222,14 @@ class MessageHandlerTest
                         "bar": "456" }
           }"""
       )
-      handler ! IncomingMessage("""
-                                  |{ "jsonrpc": "2.0",
-                                  |  "id": "some_id",
-                                  |  "error": { "code": 15,
-                                  |             "message": "Test error"
-                                  |           }
-                                  |}
-                                  |""".stripMargin)
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "id": "some_id",
+                             |  "error": { "code": 15,
+                             |             "message": "Test error"
+                             |           }
+                             |}
+                             |""".stripMargin)
 
       controller.expectMsg(ResponseError(Some(StringId("some_id")), MyError))
     }
@@ -241,8 +237,8 @@ class MessageHandlerTest
 
   def expectJson(probe: TestProbe, expectedJson: Json): Unit = {
     val msg = probe.receiveOne(1.seconds)
-    msg shouldBe an[OutgoingMessage]
-    val contents  = msg.asInstanceOf[OutgoingMessage].message
+    msg shouldBe an[WebMessage]
+    val contents  = msg.asInstanceOf[WebMessage].message
     val maybeJson = parse(contents)
     maybeJson shouldBe 'right
     maybeJson.right.get shouldEqual expectedJson
