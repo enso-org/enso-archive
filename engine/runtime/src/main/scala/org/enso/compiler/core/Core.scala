@@ -1,7 +1,10 @@
 package org.enso.compiler.core
 
 import cats.data.NonEmptyList
-import org.enso.core.CoreGraph.DefinitionGen.Node.{Shape => NodeShape}
+import org.enso.core.CoreGraph.DefinitionGen.Node.{
+  Shape => NodeShape,
+  LocationVal
+}
 import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{AST, Location => AstLocation}
@@ -52,7 +55,6 @@ class Core {
   implicit val nameStorage: Core.NameStorage       = CoreDef.NameStorage()
   implicit val parentStorage: Core.ParentStorage   = CoreDef.ParentStorage()
   implicit val astStorage: Core.AstStorage         = CoreDef.AstStorage()
-
 }
 object Core {
 
@@ -66,25 +68,35 @@ object Core {
   // === Useful Type Aliases ==================================================
   // ==========================================================================
 
+  // === Graph ================================================================
+
   type Graph     = CoreDef.CoreGraph
   type GraphData = PrimGraph.GraphData[Graph]
+
+  // === Components ===========================================================
 
   type Node = CoreDef.Node[Graph]
   type Link = CoreDef.Link[Graph]
   type RefinedNode[V <: CoreDef.Node.Shape] =
     PrimGraph.Component.Refined[NodeShape, V, Node]
 
+  // === Errors ===============================================================
+
   type ErrorOrRefined[Err <: CoreDef.Node.Shape, T <: CoreDef.Node.Shape] =
     Either[RefinedNode[Err], RefinedNode[T]]
   type ConsErrOr[T <: CoreDef.Node.Shape] =
     ErrorOrRefined[NodeShape.ConstructionError, T]
 
-  type Location = CoreDef.Node.LocationVal[Graph]
+  // === Opaque Storage =======================================================
 
   type LiteralStorage = CoreDef.LiteralStorage
   type NameStorage    = CoreDef.NameStorage
   type ParentStorage  = CoreDef.ParentStorage
   type AstStorage     = CoreDef.AstStorage
+
+  // === Location =============================================================
+
+  type Location = LocationVal[Graph]
 
   // ==========================================================================
   // === Node =================================================================
@@ -969,7 +981,7 @@ object Core {
         val node = CoreDef.Node.addRefined[NodeShape.IgnoredArgument]
 
         node.location = location
-        node.parents = Vector()
+        node.parents  = Vector()
 
         node
       }
@@ -991,13 +1003,7 @@ object Core {
         default: Node,
         location: Location
       )(implicit core: Core): ConsErrOr[NodeShape.DefinitionArgument] = {
-        val suspendedIsBool = suspended match {
-          case NodeShape.MetaTrue.any(_)  => true
-          case NodeShape.MetaFalse.any(_) => true
-          case _                          => false
-        }
-
-        if (suspendedIsBool) {
+        if (Utility.isBoolNode(suspended)) {
           val node = CoreDef.Node.addRefined[NodeShape.DefinitionArgument]
 
           val nameLink      = Link.New.Connected(node, name)
@@ -1668,9 +1674,7 @@ object Core {
         */
       implicit def astLocationToNodeLocation(
         location: AstLocation
-      ): CoreDef.Node.LocationVal[Graph] = {
-        CoreDef.Node.LocationVal(location.start, location.end)
-      }
+      ): Location = LocationVal(location.start, location.end)
     }
 
     /** Constants for working with nodes. */
@@ -1678,8 +1682,8 @@ object Core {
 
       /** An invalid location in the program source. */
       val invalidSourceIndex: Int = -1
-      val invalidLocation: CoreDef.Node.LocationVal[Graph] =
-        CoreDef.Node.LocationVal(invalidSourceIndex, invalidSourceIndex)
+      val invalidLocation: Location =
+        LocationVal(invalidSourceIndex, invalidSourceIndex)
     }
 
     /** Utility functions for working with nodes. */
@@ -1725,6 +1729,20 @@ object Core {
         }
 
         go(left, right)
+      }
+
+      /** Checks if the provided node is a meta-level boolean node.
+       *
+       * @param node the node to check
+       * @param core an implicit instance of core
+       * @return `true` if [[node]] is a meta boolean, `false` otherwise
+       */
+      def isBoolNode(node: Node)(implicit core: Core): Boolean = {
+        node match {
+          case NodeShape.MetaTrue.any(_) => true
+          case NodeShape.MetaFalse.any(_) => true
+          case _ => false
+        }
       }
 
       /** Checks if the provided node is a meta-level list node.

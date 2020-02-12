@@ -22,11 +22,13 @@ class SmartConstructorsTest
   import CoreDef.Node.ParentLinks._
   import CoreDef.Node.Shape._
   import PrimGraph.Component.Refined._
+  import PrimGraph.VariantCast
 
   // === Useful Constants =====================================================
+
   val constantLocationStart = 201
   val constantLocationEnd   = 1337
-  val dummyLocation: CoreDef.Node.LocationVal[Graph] =
+  val dummyLocation: Core.Location =
     CoreDef.Node.LocationVal(constantLocationStart, constantLocationEnd)
 
   // === Utilities ============================================================
@@ -34,15 +36,16 @@ class SmartConstructorsTest
   /** Embodies the notion that a given node construction should fail with a
     * provided result.
     *
+    * It allows a literate style of assertion as is familiar from ScalaTest
+    * through use of an implicit class.
+    *
     * @param maybeErr the result of the possibly-erroring node construction
     * @param core an implicit instance of core
     * @tparam T the type of the node construction when it succeeds
     */
   implicit class ShouldFailWithResult[T <: CoreDef.Node.Shape](
     maybeErr: Core.ConsErrOr[T]
-  )(
-    implicit core: Core
-  ) {
+  )(implicit core: Core) {
 
     /** Expresses that a node should fail to construct, and provide the
       * erroneous core structures in [[errList]].
@@ -1307,7 +1310,6 @@ class SmartConstructorsTest
     }
 
     "contain a meta-list if passed a single node" in {
-      import PrimGraph.VariantCast
       val input = errNode
       val err   = Node.New.ConstructionError(input, dummyLocation)
 
@@ -1347,6 +1349,20 @@ class SmartConstructorsTest
     }
   }
 
+  "Nodes for meta booleans" should {
+    implicit val core: Core = new Core()
+
+    val emptyNode = Node.New.Empty()
+    val trueNode  = Node.New.MetaTrue()
+    val falseNode = Node.New.MetaFalse()
+
+    "be correctly identified" in {
+      Utility.isBoolNode(emptyNode) shouldEqual false
+      Utility.isBoolNode(trueNode) shouldEqual true
+      Utility.isBoolNode(falseNode) shouldEqual true
+    }
+  }
+
   "Nodes for meta lists" should {
     implicit val core: Core = new Core()
     val emptyNode           = Node.New.Empty()
@@ -1362,9 +1378,10 @@ class SmartConstructorsTest
 
   "Core lists" should {
     implicit val core: Core = new Core()
-    val emptyNode1          = Node.New.Empty().wrapped
-    val emptyNode2          = Node.New.Empty().wrapped
-    val emptyNode3          = Node.New.Empty().wrapped
+
+    val emptyNode1 = Node.New.Empty().wrapped
+    val emptyNode2 = Node.New.Empty().wrapped
+    val emptyNode3 = Node.New.Empty().wrapped
 
     val listOfOne = Utility.coreListFrom(emptyNode1)
     val listOfMany = Utility
