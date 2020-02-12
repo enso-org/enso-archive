@@ -37,78 +37,109 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     awaitingResponses: Map[Id, Method]
   ): Receive = {
     case WebMessage(msg) =>
-      val bareMsg = JsonProtocol.parse(msg)
-      bareMsg match {
+      handleWebMessage(msg, webConnection, awaitingResponses)
+    case request: Request[Method] =>
+      issueRequest(request, webConnection, awaitingResponses)
+    case response: ResponseResult[Method] =>
+      issueResponseResult(response, webConnection)
+    case response: ResponseError =>
+      issueResponseError(response, webConnection)
+    case notification: Notification[Method] =>
+      issueNotification(notification, webConnection)
+  }
 
-        case None =>
-          webConnection ! WebMessage(makeError(None, Errors.ParseError))
+  private def issueResponseResult(
+    response: ResponseResult[Method],
+    webConnection: ActorRef
+  ): Unit = {
+    val responseDataJson: Json = protocol.payloadsEncoder(response.data)
+    val bareResp               = JsonProtocol.ResponseResult(response.id, responseDataJson)
+    webConnection ! WebMessage(JsonProtocol.encode(bareResp))
+  }
 
-        case Some(JsonProtocol.Request(methodName, id, params)) =>
-          val methodAndParams = resolveMethodAndParams(methodName, params)
-          methodAndParams match {
-            case Left(error) =>
-              webConnection ! WebMessage(makeError(Some(id), error))
-            case Right((method, params)) =>
-              controller ! Request(method, id, params)
-          }
+  private def issueResponseError(
+    response: ResponseError,
+    webConnection: ActorRef
+  ): Unit = {
+    val bareError =
+      JsonProtocol.ErrorData(response.error.code, response.error.message)
+    val bareResponse = JsonProtocol.ResponseError(response.id, bareError)
+    webConnection ! WebMessage(JsonProtocol.encode(bareResponse))
+  }
 
-        case Some(JsonProtocol.Notification(methodName, params)) =>
-          val notification = resolveMethodAndParams(methodName, params).map {
-            case (method, params) => Notification(method, params)
-          }
-          notification.foreach(controller ! _)
+  private def issueRequest(
+    req: Request[Method],
+    webConnection: ActorRef,
+    awaitingResponses: Map[Id, Method]
+  ): Unit = {
+    val paramsJson = protocol.payloadsEncoder(req.params)
+    val bareReq    = JsonProtocol.Request(req.method.name, req.id, paramsJson)
+    webConnection ! WebMessage(JsonProtocol.encode(bareReq))
+    context.become(
+      established(webConnection, awaitingResponses + (req.id -> req.method))
+    )
+  }
 
-        case Some(JsonProtocol.ResponseResult(mayId, result)) =>
-          val maybeDecoded: Option[ResultOf[Method]] = for {
-            id           <- mayId
-            method       <- awaitingResponses.get(id)
-            decoder      <- protocol.getResultDecoder(method)
-            parsedResult <- decoder.decodeJson(result).toOption
-          } yield parsedResult
-          val trueResult = maybeDecoded.getOrElse(UnknownResult(result))
-          controller ! ResponseResult(mayId, trueResult)
-          mayId.map(
-            id =>
-              context.become(established(webConnection, awaitingResponses - id))
-          )
+  private def issueNotification(
+    notification: Notification[Method],
+    webConnection: ActorRef
+  ): Unit = {
+    val paramsJson = protocol.payloadsEncoder(notification.params)
+    val bareNotification =
+      JsonProtocol.Notification(notification.method.name, paramsJson)
+    webConnection ! WebMessage(JsonProtocol.encode(bareNotification))
+  }
 
-        case Some(JsonProtocol.ResponseError(mayId, bareError)) =>
-          val error = protocol
-            .resolveError(bareError.code)
-            .getOrElse(Errors.UnknownError(bareError.code, bareError.message))
-          controller ! ResponseError(mayId, error)
-          mayId.map(
-            id =>
-              context.become(established(webConnection, awaitingResponses - id))
-          )
+  private def handleWebMessage(
+    msg: String,
+    webConnection: ActorRef,
+    awaitingResponses: Map[Id, Method]
+  ): Unit = {
+    val bareMsg = JsonProtocol.parse(msg)
+    bareMsg match {
+      case None =>
+        webConnection ! WebMessage(makeError(None, Errors.ParseError))
 
-      }
+      case Some(JsonProtocol.Request(methodName, id, params)) =>
+        val methodAndParams = resolveMethodAndParams(methodName, params)
+        methodAndParams match {
+          case Left(error) =>
+            webConnection ! WebMessage(makeError(Some(id), error))
+          case Right((method, params)) =>
+            controller ! Request(method, id, params)
+        }
 
-    case req: Request[Method] =>
-      val paramsJson = protocol.payloadsEncoder(req.params)
-      val bareReq    = JsonProtocol.Request(req.method.name, req.id, paramsJson)
-      webConnection ! WebMessage(JsonProtocol.encode(bareReq))
-      context.become(
-        established(webConnection, awaitingResponses + (req.id -> req.method))
-      )
+      case Some(JsonProtocol.Notification(methodName, params)) =>
+        val notification = resolveMethodAndParams(methodName, params).map {
+          case (method, params) => Notification(method, params)
+        }
+        notification.foreach(controller ! _)
 
-    case resp: ResponseResult[Method] =>
-      val responseDataJson: Json = protocol.payloadsEncoder(resp.data)
-      val bareResp               = JsonProtocol.ResponseResult(resp.id, responseDataJson)
-      webConnection ! WebMessage(JsonProtocol.encode(bareResp))
+      case Some(JsonProtocol.ResponseResult(mayId, result)) =>
+        val maybeDecoded: Option[ResultOf[Method]] = for {
+          id           <- mayId
+          method       <- awaitingResponses.get(id)
+          decoder      <- protocol.getResultDecoder(method)
+          parsedResult <- decoder.decodeJson(result).toOption
+        } yield parsedResult
+        val trueResult = maybeDecoded.getOrElse(UnknownResult(result))
+        controller ! ResponseResult(mayId, trueResult)
+        mayId.foreach(
+          id =>
+            context.become(established(webConnection, awaitingResponses - id))
+        )
 
-    case resp: ResponseError =>
-      val bareError =
-        JsonProtocol.ErrorData(resp.error.code, resp.error.message)
-      val bareResponse = JsonProtocol.ResponseError(resp.id, bareError)
-      webConnection ! WebMessage(JsonProtocol.encode(bareResponse))
+      case Some(JsonProtocol.ResponseError(mayId, bareError)) =>
+        val error = protocol
+          .resolveError(bareError.code)
+          .getOrElse(Errors.UnknownError(bareError.code, bareError.message))
+        controller ! ResponseError(mayId, error)
+        mayId.foreach(
+          id =>
+            context.become(established(webConnection, awaitingResponses - id))
+        )
 
-    case notif: Notification[Method] =>
-      val paramsJson = protocol.payloadsEncoder(notif.params)
-      val bareNotification =
-        JsonProtocol.Notification(notif.method.name, paramsJson)
-      webConnection ! WebMessage(JsonProtocol.encode(bareNotification))
-
+    }
   }
 
   private def makeError(id: Option[Id], error: Error): String = {

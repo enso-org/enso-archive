@@ -107,10 +107,10 @@ class MessageHandlerTest
                              |}
                              |""".stripMargin)
       controller.expectMsg(
-        Request(MyRequest, StringId("1234"), MyRequestParams(30, "bar"))
+        Request(MyRequest, Id.String("1234"), MyRequestParams(30, "bar"))
       )
       controller.reply(
-        ResponseResult(Some(StringId("1234")), MyRequestResult(123))
+        ResponseResult(Some(Id.String("1234")), MyRequestResult(123))
       )
 
       expectJson(
@@ -182,7 +182,7 @@ class MessageHandlerTest
     "issue a request and pass a well formed response" in {
       handler ! Request(
         MyRequest,
-        StringId("some_id"),
+        Id.String("some_id"),
         MyRequestParams(123, "456")
       )
       expectJson(
@@ -202,14 +202,14 @@ class MessageHandlerTest
                              |}
                              |""".stripMargin)
       controller.expectMsg(
-        ResponseResult(Some(StringId("some_id")), MyRequestResult(789))
+        ResponseResult(Some(Id.String("some_id")), MyRequestResult(789))
       )
     }
 
     "issue a request and pass an error response" in {
       handler ! Request(
         MyRequest,
-        StringId("some_id"),
+        Id.String("some_id"),
         MyRequestParams(123, "456")
       )
       expectJson(
@@ -231,7 +231,7 @@ class MessageHandlerTest
                              |}
                              |""".stripMargin)
 
-      controller.expectMsg(ResponseError(Some(StringId("some_id")), MyError))
+      controller.expectMsg(ResponseError(Some(Id.String("some_id")), MyError))
     }
   }
 

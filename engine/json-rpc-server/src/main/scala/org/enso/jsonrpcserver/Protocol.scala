@@ -5,23 +5,22 @@ import io.circe.{Decoder, Encoder, Json}
   * Represents valid JSON RPC request ids.
   */
 sealed trait Id
-case class StringId(id: String) extends Id
-case class NumberId(id: Int)    extends Id
 
-/**
-  * JSON support for [[Id]]
-  */
 object Id {
   import io.circe.syntax._
   import cats.syntax.functor._
+
+  case class String(id: scala.Predef.String) extends Id
+  case class Number(id: Int)                 extends Id
+
   implicit val encoder: Encoder[Id] = {
-    case StringId(id) => id.asJson
-    case NumberId(id) => id.asJson
+    case String(id) => id.asJson
+    case Number(id) => id.asJson
   }
-  implicit val decoder: Decoder[Id] = Decoder[String]
-    .map(StringId)
+  implicit val decoder: Decoder[Id] = Decoder[scala.Predef.String]
+    .map(String)
     .widen[Id]
-    .or(Decoder[Int].map(NumberId).widen[Id])
+    .or(Decoder[Int].map(Number).widen[Id])
 }
 
 /**

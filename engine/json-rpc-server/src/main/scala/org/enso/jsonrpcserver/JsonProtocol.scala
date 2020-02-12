@@ -3,8 +3,8 @@ import io.circe.Decoder.Result
 import io.circe.{Decoder, DecodingFailure, Encoder, HCursor, Json}
 
 /**
-  * An intermediate representation of JSON RPC messages,
-  * used for (de)serialization.
+  * An intermediate representation of JSON RPC messages, used for
+  * (de)serialization.
   */
 object JsonProtocol {
   import io.circe.generic.auto._
