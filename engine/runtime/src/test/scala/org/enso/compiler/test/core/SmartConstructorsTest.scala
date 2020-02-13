@@ -3,16 +3,14 @@ package org.enso.compiler.test.core
 import cats.data.NonEmptyList
 import org.enso.compiler.core.Core
 import org.enso.compiler.core.Core.Node.{Constants, Utility}
+import org.enso.compiler.test.CompilerTest
 import org.enso.core.CoreGraph.DefinitionGen.Node.{Shape => NodeShape}
 import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{AST, Location => AstLocation}
-import org.scalatest.{Assertion, BeforeAndAfterEach, Matchers, WordSpec}
+import org.scalatest.Assertion
 
-class SmartConstructorsTest
-    extends WordSpec
-    with Matchers
-    with BeforeAndAfterEach {
+class SmartConstructorsTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 

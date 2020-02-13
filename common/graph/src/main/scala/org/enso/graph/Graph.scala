@@ -13,10 +13,9 @@ import io.estatico.newtype.macros.newtype
 import shapeless.nat._
 
 /* TODO [AA, WD] The following are features that we want for this graph:
- *  - Graphviz output for visualisations.
- *  - Utilities for copying (sub-)graphs.
+ *  - `unsafeRemoveComponent` functionality.
  *  - Storage should keep a free-list and re-use space in the underlying buffers
- *    as much as possible.
+ *    as much as possible in `addComponent`.
  *  - Basic equality testing (that should be overridden as needed).
  *  - An ability to define fields that store complex data such as `String`.
  *  - Add a `Default` typeclass, and ensure that all component fields are
@@ -34,7 +33,7 @@ import shapeless.nat._
   *   custom graph structure that provides a safe API.
   */
 // ============================================================================
-// === HList generic utilities ================================================
+// === HList Generic Utilities ================================================
 // ============================================================================
 
 // ================

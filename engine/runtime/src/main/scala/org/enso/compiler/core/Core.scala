@@ -2,14 +2,15 @@ package org.enso.compiler.core
 
 import cats.data.NonEmptyList
 import org.enso.core.CoreGraph.DefinitionGen.Node.{
-  Shape => NodeShape,
-  LocationVal
+  LocationVal,
+  Shape => NodeShape
 }
 import org.enso.core.CoreGraph.{DefinitionGen => CoreDef}
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.{AST, Location => AstLocation}
 
 import scala.annotation.tailrec
+import scala.collection.mutable
 
 // TODO [AA] Detailed semantic descriptions for each node shape in future.
 // TODO [AA] Refactor over time to remove as much boilerplate as possible.
@@ -18,6 +19,7 @@ import scala.annotation.tailrec
 // TODO [AA] Need to present a nice interface
 //  - Copy subsection of graph
 //  - Check equality for subsection of graph
+//  - These need to be _very_ careful about cycles
 
 /** [[Core]] is the sophisticated internal representation supported by the
   * compiler.
@@ -1599,27 +1601,42 @@ object Core {
         left: RefinedNode[MetaList],
         right: RefinedNode[MetaList]
       )(implicit core: Core): Boolean = {
+        val visitedNodesInLeft  = mutable.ArrayBuffer[Int]()
+        val visitedNodesInRight = mutable.ArrayBuffer[Int]()
+
         @tailrec
         def go(
           left: Node,
           right: Node
         ): Boolean = {
-          left match {
-            case NodeShape.MetaNil.any(_) =>
-              right match {
-                case NodeShape.MetaNil.any(_) => true
-                case _                        => false
-              }
-            case NodeShape.MetaList.any(left1) =>
-              right match {
-                case NodeShape.MetaList.any(right1) =>
-                  (left1.head.target == right1.head.target) && go(
-                    left1.tail.target,
-                    right1.tail.target
-                  )
-                case _ => false
-              }
-            case _ => false
+          val leftIsVisited  = visitedNodesInLeft.contains(left.ix)
+          val rightIsVisited = visitedNodesInRight.contains(right.ix)
+
+          if (leftIsVisited && rightIsVisited) {
+            true
+          } else if (!leftIsVisited && !rightIsVisited) {
+            visitedNodesInLeft.append(left.ix)
+            visitedNodesInRight.append(right.ix)
+
+            left match {
+              case NodeShape.MetaNil.any(_) =>
+                right match {
+                  case NodeShape.MetaNil.any(_) => true
+                  case _                        => false
+                }
+              case NodeShape.MetaList.any(left1) =>
+                right match {
+                  case NodeShape.MetaList.any(right1) =>
+                    (left1.head.target == right1.head.target) && go(
+                      left1.tail.target,
+                      right1.tail.target
+                    )
+                  case _ => false
+                }
+              case _ => false
+            }
+          } else {
+            false
           }
         }
 
@@ -1627,16 +1644,16 @@ object Core {
       }
 
       /** Checks if the provided node is a meta-level boolean node.
-       *
-       * @param node the node to check
-       * @param core an implicit instance of core
-       * @return `true` if [[node]] is a meta boolean, `false` otherwise
-       */
+        *
+        * @param node the node to check
+        * @param core an implicit instance of core
+        * @return `true` if [[node]] is a meta boolean, `false` otherwise
+        */
       def isBoolNode(node: Node)(implicit core: Core): Boolean = {
         node match {
-          case NodeShape.MetaTrue.any(_) => true
+          case NodeShape.MetaTrue.any(_)  => true
           case NodeShape.MetaFalse.any(_) => true
-          case _ => false
+          case _                          => false
         }
       }
 

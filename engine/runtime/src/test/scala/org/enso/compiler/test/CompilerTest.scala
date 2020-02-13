@@ -1,7 +1,7 @@
 package org.enso.compiler.test
 
-import org.scalatest.{FlatSpec, Matchers}
+import org.scalatest.{Matchers, WordSpecLike}
 
 trait CompilerRunner {}
 
-trait CompilerTest extends FlatSpec with Matchers with CompilerRunner
+trait CompilerTest extends WordSpecLike with Matchers with CompilerRunner
