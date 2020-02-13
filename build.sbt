@@ -302,6 +302,9 @@ lazy val graph = (project in file("common/graph/"))
         "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
       ),
       "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
+    ),
+    addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     )
   )
 
@@ -374,8 +377,12 @@ lazy val core_definition = (project in file("engine/core-definition"))
       "org.typelevel"              %% "cats-core"    % catsVersion,
       "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
     ),
+    addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+    )
   )
   .dependsOn(graph)
+  .dependsOn(syntax.jvm)
 
 lazy val polyglot_api = project
   .in(file("engine/polyglot-api"))
@@ -394,6 +401,9 @@ lazy val polyglot_api = project
       "org.graalvm.sdk" % "polyglot-tck" % graalVersion   % "provided",
       "org.scalatest"   %% "scalatest"   % "3.2.0-M2"     % Test,
       "org.scalacheck"  %% "scalacheck"  % "1.14.3"       % Test
+    ),
+    addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
     addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
     scalacOptions ++= Seq(
@@ -476,6 +486,9 @@ lazy val runtime = (project in file("engine/runtime"))
     (Compile / javacOptions) ++= Seq(
       "-s",
       (Compile / sourceManaged).value.getAbsolutePath
+    ),
+    addCompilerPlugin(
+      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
     addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
     scalacOptions ++= Seq(
