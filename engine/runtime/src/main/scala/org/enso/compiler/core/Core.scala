@@ -1702,7 +1702,11 @@ object Core {
         // Note [Unsafety in List Construction]
         val unrefinedMetaList =
           nodesWithNil.toList.reduceRight(
-            (l, r) => New.MetaList(l, r).right.get.wrapped
+            (l, r) =>
+              New
+                .MetaList(l, r)
+                .getOrElse(throw new RuntimeException("Should never happen."))
+                .wrapped
           )
 
         PrimGraph.Component.Refined

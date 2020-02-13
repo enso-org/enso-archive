@@ -3,7 +3,9 @@ package org.enso.compiler.test.core
 import org.enso.core.CoreGraph.DefinitionGen.Node.LocationVal
 import org.enso.graph.{Graph => PrimGraph}
 import org.enso.syntax.text.AST
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 /** This file tests the primitive, low-level operations on core.
   *
@@ -13,7 +15,7 @@ import org.scalatest.{BeforeAndAfterEach, FlatSpec, Matchers}
   * PLEASE NOTE: Many of these tests will be removed once the smart constructors
   * exist.
   */
-class CorePrimTest extends FlatSpec with Matchers with BeforeAndAfterEach {
+class CorePrimTest extends AnyFlatSpec with Matchers with BeforeAndAfterEach {
 
   // === Test Setup ===========================================================
   import org.enso.core.CoreGraph.DefinitionGen.Link.Shape._

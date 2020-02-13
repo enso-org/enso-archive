@@ -53,9 +53,7 @@ class SmartConstructorsTest extends CompilerTest {
       * @return a success if [[maybeErr]] is a failure and the contained error
       *         matches [[errList]], otherwise a failure
       */
-    def shouldFailWithResult[T <: CoreDef.Node.Shape](
-      errList: RefinedNode[MetaList]
-    ): Assertion = {
+    def shouldFailWithResult(errList: RefinedNode[MetaList]): Assertion = {
       maybeErr match {
         case Left(err) =>
           err.erroneousCore.target match {
@@ -88,7 +86,8 @@ class SmartConstructorsTest extends CompilerTest {
     implicit val core: Core = new Core()
     val emptyNode           = Node.New.Empty()
     val nilNode             = Node.New.MetaNil()
-    val listNode            = Node.New.MetaList(emptyNode, nilNode).right.get
+    val listNode =
+      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail)
 
     "have valid fields" in {
       listNode.location shouldEqual Node.Constants.invalidLocation
@@ -225,7 +224,7 @@ class SmartConstructorsTest extends CompilerTest {
     val name                = Node.New.Name("MyModule", dummyLocation)
 
     val module =
-      Node.New.ModuleDef(name, importNil, defNil, dummyLocation).right.get
+      Node.New.ModuleDef(name, importNil, defNil, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       module.location shouldEqual dummyLocation
@@ -263,7 +262,7 @@ class SmartConstructorsTest extends CompilerTest {
     val segmentsNil         = Node.New.MetaNil()
     val empty               = Node.New.Empty()
     val imp =
-      Node.New.Import(segmentsNil, dummyLocation).right.get
+      Node.New.Import(segmentsNil, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       imp.location shouldEqual dummyLocation
@@ -294,7 +293,9 @@ class SmartConstructorsTest extends CompilerTest {
     val binding =
       Node.New.Binding(bindingSrc, bindingTgt, dummyLocation)
     val topLevelBinding =
-      Node.New.TopLevelBinding(emptyModule, binding, dummyLocation).right.get
+      Node.New
+        .TopLevelBinding(emptyModule, binding, dummyLocation)
+        .getOrElse(fail)
 
     "have valid fields" in {
       topLevelBinding.location shouldEqual dummyLocation
@@ -330,7 +331,7 @@ class SmartConstructorsTest extends CompilerTest {
     val argName = Node.New.Empty()
     val args    = Utility.coreListFrom(argName)
 
-    val atomDef = Node.New.AtomDef(name, args, dummyLocation).right.get
+    val atomDef = Node.New.AtomDef(name, args, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       atomDef.location shouldEqual dummyLocation
@@ -366,7 +367,8 @@ class SmartConstructorsTest extends CompilerTest {
     val bodyExpr = Node.New.Empty()
     val body     = Utility.coreListFrom(bodyExpr)
 
-    val typeDef = Node.New.TypeDef(name, tParams, body, dummyLocation).right.get
+    val typeDef =
+      Node.New.TypeDef(name, tParams, body, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       typeDef.location shouldEqual dummyLocation
@@ -674,7 +676,7 @@ class SmartConstructorsTest extends CompilerTest {
     val body = Node.New.Empty()
 
     val functionDef =
-      Node.New.FunctionDef(name, args, body, dummyLocation).right.get
+      Node.New.FunctionDef(name, args, body, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       functionDef.location shouldEqual dummyLocation
@@ -712,7 +714,9 @@ class SmartConstructorsTest extends CompilerTest {
     val function   = Node.New.Lambda(lamArg, lamBody, dummyLocation)
 
     val methodDef =
-      Node.New.MethodDef(targetPath, name, function, dummyLocation).right.get
+      Node.New
+        .MethodDef(targetPath, name, function, dummyLocation)
+        .getOrElse(fail)
 
     "have valid fields" in {
       methodDef.location shouldEqual dummyLocation
@@ -762,8 +766,7 @@ class SmartConstructorsTest extends CompilerTest {
 
     val arg = Node.New
       .DefinitionArgument(name, suspended, default, dummyLocation)
-      .right
-      .get
+      .getOrElse(fail)
 
     "have valid fields" in {
       arg.location shouldEqual dummyLocation
@@ -1003,7 +1006,8 @@ class SmartConstructorsTest extends CompilerTest {
     val expressions = Utility.coreListFrom(Node.New.Empty())
     val returnVal   = Node.New.Empty()
 
-    val block = Node.New.Block(expressions, returnVal, dummyLocation).right.get
+    val block =
+      Node.New.Block(expressions, returnVal, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       block.location shouldEqual dummyLocation
@@ -1063,7 +1067,7 @@ class SmartConstructorsTest extends CompilerTest {
     val branches  = Utility.coreListFrom(Node.New.Empty())
 
     val caseExpr =
-      Node.New.CaseExpr(scrutinee, branches, dummyLocation).right.get
+      Node.New.CaseExpr(scrutinee, branches, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       caseExpr.location shouldEqual dummyLocation
@@ -1229,7 +1233,7 @@ class SmartConstructorsTest extends CompilerTest {
       Node.New.ForeignCodeLiteral("lambda x: x + 1", dummyLocation)
 
     val foreignDefinition =
-      Node.New.ForeignDefinition(language, code, dummyLocation).right.get
+      Node.New.ForeignDefinition(language, code, dummyLocation).getOrElse(fail)
 
     "have valid fields" in {
       foreignDefinition.location shouldEqual dummyLocation
@@ -1365,7 +1369,8 @@ class SmartConstructorsTest extends CompilerTest {
     implicit val core: Core = new Core()
     val emptyNode           = Node.New.Empty()
     val nilNode             = Node.New.MetaNil()
-    val consNode            = Node.New.MetaList(emptyNode, nilNode).right.get
+    val consNode =
+      Node.New.MetaList(emptyNode, nilNode).getOrElse(fail)
 
     "be correctly identified" in {
       Utility.isListNode(emptyNode) shouldEqual false

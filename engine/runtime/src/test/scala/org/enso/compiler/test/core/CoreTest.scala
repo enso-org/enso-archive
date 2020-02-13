@@ -11,7 +11,6 @@ import org.enso.syntax.text.{AST, Location => AstLocation}
 import org.enso.compiler.test.CompilerTest
 
 // TODO [AA] Tests of the actual core usage in semi-realistic scenarios:
-//  - Diamond
 //  - Multi-level tree
 //  - Larger diamonds
 //  - Cycle
@@ -52,7 +51,8 @@ class CoreTest extends CompilerTest {
     val binding2     = Node.New.Binding(binding2Name, fnName, dummyLocation)
     val bindingsList = Utility.coreListFrom(binding1)
 
-    val block = Node.New.Block(bindingsList, binding2, dummyLocation).right.get
+    val block =
+      Node.New.Block(bindingsList, binding2, dummyLocation).getOrElse(fail)
 
     "have multiple parents for the node at the bottom of the diamond" in {
       fnName.parents.size shouldEqual 2
