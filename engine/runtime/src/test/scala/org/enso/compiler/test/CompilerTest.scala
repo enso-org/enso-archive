@@ -1,6 +1,7 @@
 package org.enso.compiler.test
 
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 trait CompilerRunner {}
 
