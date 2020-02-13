@@ -305,6 +305,13 @@ lazy val graph = (project in file("common/graph/"))
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
 
@@ -405,7 +412,7 @@ lazy val polyglot_api = project
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -490,7 +497,7 @@ lazy val runtime = (project in file("engine/runtime"))
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.0" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
