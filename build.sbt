@@ -334,6 +334,7 @@ lazy val file_manager = (project in file("common/file-manager"))
     libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.3" % Test,
     libraryDependencies += akkaTestkitTyped,
     libraryDependencies += "commons-io" % "commons-io"        % "2.6",
+    // upgrade blocked by gmethvin/directory-watcher#49
     libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
