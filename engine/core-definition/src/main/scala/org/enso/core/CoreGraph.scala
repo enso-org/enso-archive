@@ -78,7 +78,7 @@ object CoreGraph {
         * would only make sense if the link direction was reversed. Instead, it
         * holds unsafe references to the incoming link in the underlying graph.
         * These can be turned into the [[Link]]s directly by using
-        * [[PrimGraph.GraphData.componentReferenceFromIndex()]].
+        * [[PrimGraph.GraphData.componentRefFromIndex()]].
         *
         * @param parents a vector containing the raw indices of the parent links
         * @tparam G the graph type

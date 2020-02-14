@@ -504,7 +504,7 @@ object Graph {
       * @tparam C the type of the component to access
       * @return a reference to the component at `index`
       */
-    def componentReferenceFromIndex[C <: Component](index: Int)(
+    def componentRefFromIndex[C <: Component](index: Int)(
       implicit @unused ev: HasComponent[G, C]
     ): Graph.Component.Ref[G, C] = {
       Graph.Component.Ref(index)
@@ -857,5 +857,7 @@ object Graph {
         None
       }
     }
+
+    // TODO [AA] Add a utility to automatically refine variant branches
   }
 }
