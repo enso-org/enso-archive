@@ -116,9 +116,9 @@ trait HListTakeUntil[T, Items <: HList] {
 object HListTakeUntil extends HListTakeUntilDefaults {
   type Aux[T, Items <: HList, X] = HListTakeUntil[T, Items] { type Out = X }
 
-  def apply[T, Elems <: HList](
-    implicit ev: HListTakeUntil[T, Elems]
-  ): Aux[T, Elems, ev.Out] = ev
+  def apply[T, Items <: HList](
+    implicit ev: HListTakeUntil[T, Items]
+  ): Aux[T, Items, ev.Out] = ev
 
   implicit def onNil[T]: HListTakeUntil.Aux[T, HNil, HNil] =
     new HListTakeUntil[T, HNil] { type Out = HNil }
