@@ -1803,22 +1803,53 @@ object Core {
         }
 
         /* Note [Unsafety in List Construction]
-       * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-       * This makes use of internal implementation details to know that calling
-       * `right` here is always safe. The error condition for the `metaList`
-       * constructor occurs when the `tail` argument doesn't point to a valid
-       * list element, but here we construct that element directly and hence we
-       * know that it is valid.
-       *
-       * Furthermore, we can unconditionally refine the type as we know that the
-       * node we get back must be a MetaList, and we know that the input is not
-       * empty.
-       *
-       * It also bears noting that for this to be safe we _must_ use a right
-       * reduce, rather than a left reduce, otherwise the elements will not be
-       * constructed properly. This does, however, mean that this can stack
-       * overflow when provided with too many elements.
-       */
+         * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         * This makes use of internal implementation details to know that calling
+         * `right` here is always safe. The error condition for the `metaList`
+         * constructor occurs when the `tail` argument doesn't point to a valid
+         * list element, but here we construct that element directly and hence we
+         * know that it is valid.
+         *
+         * Furthermore, we can unconditionally refine the type as we know that the
+         * node we get back must be a MetaList, and we know that the input is not
+         * empty.
+         *
+         * It also bears noting that for this to be safe we _must_ use a right
+         * reduce, rather than a left reduce, otherwise the elements will not be
+         * constructed properly. This does, however, mean that this can stack
+         * overflow when provided with too many elements.
+         */
+
+        /** Generates a meta list on the core graph of length [[length]], with
+          * each cell filled with an empty node.
+          *
+          * @param length the length of the list to generate
+          * @param core an implicit instance of core
+          * @return a list of length [[length]] if `length > 0`, otherwise an
+          *         empty list.
+          */
+        def ofLength(length: Int)(implicit core: Core): Node = {
+          val nil = Node.New.MetaNil
+
+          @tailrec
+          def go(tail: Node, remainingLength: Int): Node = {
+            if (remainingLength == 0) {
+              tail
+            } else {
+              val cons = Node.New
+                .MetaList(Node.New.Empty(), tail)
+                .getOrElse(throw new RuntimeException("Should never happen"))
+
+              go(cons, remainingLength - 1)
+            }
+          }
+
+          if (length <= 0) {
+            nil
+          } else {
+            go(nil, length)
+          }
+        }
       }
 
       object BoolOps {
