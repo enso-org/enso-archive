@@ -434,6 +434,20 @@ lazy val json_rpc_server = (project in file("engine/json-rpc-server"))
     )
   )
 
+lazy val language_server2 = (project in file("engine/language-server2"))
+  .settings(
+    libraryDependencies ++= akka ++ circe ++ Seq(
+      akkaSLF4J,
+      "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "io.circe"       %% "circe-generic-extras" % "0.12.2",
+      "io.circe"       %% "circe-literal" % circeVersion,
+      akkaTestkit      % Test,
+      "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
+      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+    )
+  )
+  .dependsOn(json_rpc_server)
+
 lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ Seq(

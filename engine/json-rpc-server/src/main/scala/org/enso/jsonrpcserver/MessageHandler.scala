@@ -1,7 +1,11 @@
 package org.enso.jsonrpcserver
 import akka.actor.{Actor, ActorRef, Stash}
 import io.circe.Json
-import org.enso.jsonrpcserver.MessageHandler.{Connected, WebMessage}
+import org.enso.jsonrpcserver.MessageHandler.{
+  Connected,
+  Disconnected,
+  WebMessage
+}
 
 /**
   * An actor responsible for passing parsed massages between the web and
@@ -38,6 +42,9 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
   ): Receive = {
     case WebMessage(msg) =>
       handleWebMessage(msg, webConnection, awaitingResponses)
+    case Disconnected =>
+      controller ! Disconnected
+      context.stop(self)
     case request: Request[Method] =>
       issueRequest(request, webConnection, awaitingResponses)
     case response: ResponseResult[Method] =>
@@ -183,4 +190,6 @@ object MessageHandler {
     * @param webConnection the actor representing the web.
     */
   case class Connected(webConnection: ActorRef)
+
+  case object Disconnected
 }
