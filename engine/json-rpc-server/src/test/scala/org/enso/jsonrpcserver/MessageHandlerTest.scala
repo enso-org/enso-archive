@@ -10,6 +10,80 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
+import scala.reflect.ClassTag
+
+object Foo {
+  trait RequestParams
+
+  trait GetRequestParams[+T <: Method] {
+    type Out <: RequestParams
+    val requestMatcher = RequestMatcher[T, Out]
+  }
+  object GetRequestParams {
+    type Aux[T <: Method, X] = GetRequestParams[T] { type Out = X }
+  }
+
+  case class MyMethodRequestParams(thing: Int) extends RequestParams
+
+  case class RequestMatcher[+M <: Method, +P <: RequestParams]() {
+    def unapply(req: Request[Method, RequestParams]): Option[P] = req match {
+      case r: Request[M, P] => Some(r.params)
+      case _                => None
+    }
+  }
+
+  abstract class Method(val name: String) {
+    implicit val requestParams: GetRequestParams[Method]
+    val request = requestParams.requestMatcher
+  }
+
+  case object MyMethod extends Method("Foo") {
+    override implicit val requestParams =
+      new GetRequestParams[MyMethod.type] { type Out = MyMethodParams }
+  }
+
+  def myTestFn[M <: Method, RequestParams](
+    method: M
+  )(implicit ev: GetRequestParams.Aux[M, RequestParams]): Unit = {
+    ???
+  }
+
+  case class Request[+M <: Method, +RequestParams](
+    method: M,
+    id: Int,
+    params: RequestParams
+  )(implicit ev: GetRequestParams.Aux[M, RequestParams])
+
+  def parse(foo: Int): Request[Method, RequestParams] = {
+    if (foo == 0) {
+      Request(MyMethod, 0, )
+      MyMethodParams
+        /**EndMarker*/ (1)(1))
+    } else {
+      ???
+    }
+  }
+
+  def mkRequest(
+    method: Method,
+    params: RequestParams
+  ): Request[Method, RequestParams] = {
+    Request(method, 0, params)(???)
+  }
+
+  def checkRequest(
+    req: Request[Method, RequestParams]
+  ): Unit = {
+    req match {
+//      case Request2(MyMethod, p) => println(p.thing)
+      case MyMethod.request(p) => println(p.thing)
+      //      case x: Request[MyMethod.type, MyMethodRequestParams] =>
+      //        println(x.params.thing)
+      case _ =>
+        println("unknown request")
+    }
+  }
+}
 
 class MessageHandlerTest
     extends TestKit(ActorSystem("TestSystem"))

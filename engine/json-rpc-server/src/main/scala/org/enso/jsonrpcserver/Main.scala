@@ -1,65 +1,94 @@
 package org.enso.jsonrpcserver
-import akka.actor.{Actor, ActorRef, ActorSystem, Props, Timers}
-import akka.stream.ActorMaterializer
 
-import scala.concurrent.duration._
-import akka.pattern.ask
-import akka.util.Timeout
+import org.enso.jsonrpcserver.Foo.{MyMethod, MyMethod2, MyMethod2Params, MyMethodParams, Request}
 
-import scala.io.StdIn
+import scala.reflect.ClassTag
+
+object Foo {
+  trait RequestParams
+
+  trait GetRequestParams[+T <: Method] {
+    type Out <: RequestParams
+    val instance: T
+    lazy val requestMatcher = RequestMatcher[T, Out](instance)
+  }
+  object GetRequestParams {
+    type Aux[T <: Method, X] = GetRequestParams[T] { type Out = X }
+  }
+
+  case class RequestMatcher[+M <: Method, +P <: RequestParams](instance: Method) {
+    def unapply(req: Request[Method, RequestParams]): Option[P] = req match {
+      case r: Request[M, P] if r.method == instance => Some(r.params)
+      case _                => None
+    }
+  }
+
+  trait Method {
+    val name: String
+    implicit val requestParams: GetRequestParams[Method]
+    lazy val request = requestParams.requestMatcher
+  }
+
+  case class MyMethodParams(thing: Int) extends RequestParams
+
+  case object MyMethod extends Method {
+    val name = "Foo"
+    implicit override val requestParams =
+      new GetRequestParams[MyMethod.type] {
+        type Out = MyMethodParams
+        lazy val instance: MyMethod.type = MyMethod
+      }
+  }
+
+  case class MyMethod2Params(stuff: String) extends RequestParams
+
+  case object MyMethod2 extends Method {
+    val name = "Dupa"
+    implicit override val requestParams = new GetRequestParams[MyMethod2.type] {
+      type Out = MyMethod2Params
+      lazy val instance: MyMethod2.type = MyMethod2
+    }
+  }
+
+  case class Request[+M <: Method, +RequestParams](
+    method: M,
+    id: Int,
+    params: RequestParams
+  )(implicit ev: GetRequestParams.Aux[M, RequestParams])
+
+//  def parse(foo: Int): Request[Method, RequestParams] = {
+//    if (foo == 0) {
+//      Request(MyMethod, 0, MyMethodRequestParams(1))
+//    } else {
+//      ???
+//    }
+//  }
+
+//  def mkRequest(
+//    method: Method,
+//    params: RequestParams
+//  ): Request[Method, RequestParams] = {
+//    Request(method, 0, params)(???)
+//  }
+
+  def checkRequest(
+    req: Request[Method, RequestParams]
+  ): Unit = {
+    req match {
+      case MyMethod.request(p) => println(s"thing! ${p.thing}")
+      case MyMethod2.request(p) => println(s"stuff! ${p.stuff}")
+      case _ =>
+        println("unknown request")
+    }
+  }
+}
 
 object Main {
-
-  case class Connect(client: ActorRef)
-  case object Ping
-  case object Request
-  case object Response
-  case class DoRespond(sender: ActorRef)
-
-  class Server extends Actor with Timers {
-    override def receive: Receive = {
-
-      case Connect(client) =>
-        val uuid = java.util.UUID.randomUUID
-        timers.startPeriodicTimer(uuid, Ping, 100.milliseconds)
-        context.become(connected(client))
-    }
-
-    def connected(client: ActorRef): Receive = {
-      case Ping => client ! Ping
-      case Request =>
-        timers.startSingleTimer(new Object, DoRespond(sender), 1.second)
-      case DoRespond(s) => s ! Response
-    }
-  }
-
-  class Client(val server: ActorRef) extends Actor {
-    implicit val timeout: Timeout = Timeout(5.seconds) // needed for `?` below
-    implicit val ec: scala.concurrent.ExecutionContext =
-      scala.concurrent.ExecutionContext.global
-
-    override def receive: Receive = {
-      case Ping => println("Received ping.")
-      case Request =>
-        println("Sending request.")
-        ask(server, Request).map(r => println(s"Received response: $r"))
-    }
-  }
-
   def main(args: Array[String]): Unit = {
+    val req1 = Request(MyMethod, 0, MyMethodParams(87654))
+    val req2 = Request(MyMethod2, 1, MyMethod2Params("567"))
 
-    implicit val system       = ActorSystem()
-    implicit val materializer = ActorMaterializer()
-
-    val server = system.actorOf(Props(new Server))
-    val client = system.actorOf(Props(new Client(server)))
-
-    server ! Connect(client)
-
-    client ! Request
-
-    StdIn.readLine()
-    system.terminate()
-
+    Foo.checkRequest(req1)
+    Foo.checkRequest(req2)
   }
 }
