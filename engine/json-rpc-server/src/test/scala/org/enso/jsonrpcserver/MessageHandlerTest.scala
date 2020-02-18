@@ -3,87 +3,13 @@ import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.literal._
 import io.circe.parser._
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.Json
 import org.enso.jsonrpcserver.MessageHandler.{Connected, WebMessage}
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import scala.concurrent.duration._
-import scala.reflect.ClassTag
-
-object Foo {
-  trait RequestParams
-
-  trait GetRequestParams[+T <: Method] {
-    type Out <: RequestParams
-    val requestMatcher = RequestMatcher[T, Out]
-  }
-  object GetRequestParams {
-    type Aux[T <: Method, X] = GetRequestParams[T] { type Out = X }
-  }
-
-  case class MyMethodRequestParams(thing: Int) extends RequestParams
-
-  case class RequestMatcher[+M <: Method, +P <: RequestParams]() {
-    def unapply(req: Request[Method, RequestParams]): Option[P] = req match {
-      case r: Request[M, P] => Some(r.params)
-      case _                => None
-    }
-  }
-
-  abstract class Method(val name: String) {
-    implicit val requestParams: GetRequestParams[Method]
-    val request = requestParams.requestMatcher
-  }
-
-  case object MyMethod extends Method("Foo") {
-    override implicit val requestParams =
-      new GetRequestParams[MyMethod.type] { type Out = MyMethodParams }
-  }
-
-  def myTestFn[M <: Method, RequestParams](
-    method: M
-  )(implicit ev: GetRequestParams.Aux[M, RequestParams]): Unit = {
-    ???
-  }
-
-  case class Request[+M <: Method, +RequestParams](
-    method: M,
-    id: Int,
-    params: RequestParams
-  )(implicit ev: GetRequestParams.Aux[M, RequestParams])
-
-  def parse(foo: Int): Request[Method, RequestParams] = {
-    if (foo == 0) {
-      Request(MyMethod, 0, )
-      MyMethodParams
-        /**EndMarker*/ (1)(1))
-    } else {
-      ???
-    }
-  }
-
-  def mkRequest(
-    method: Method,
-    params: RequestParams
-  ): Request[Method, RequestParams] = {
-    Request(method, 0, params)(???)
-  }
-
-  def checkRequest(
-    req: Request[Method, RequestParams]
-  ): Unit = {
-    req match {
-//      case Request2(MyMethod, p) => println(p.thing)
-      case MyMethod.request(p) => println(p.thing)
-      //      case x: Request[MyMethod.type, MyMethodRequestParams] =>
-      //        println(x.params.thing)
-      case _ =>
-        println("unknown request")
-    }
-  }
-}
 
 class MessageHandlerTest
     extends TestKit(ActorSystem("TestSystem"))
@@ -96,49 +22,27 @@ class MessageHandlerTest
     TestKit.shutdownActorSystem(system)
   }
 
-  case object MyRequest extends Method("RequestMethod")
+  case object MyRequest extends Method("RequestMethod") {
+    implicit val instance: MyRequest.type = this
+  }
   case class MyRequestParams(foo: Int, bar: String)
       extends ParamsOf[MyRequest.type]
   case class MyRequestResult(baz: Int) extends ResultOf[MyRequest.type]
 
-  case object MyNotification extends Method("NotificationMethod")
+  case object MyNotification extends Method("NotificationMethod") {
+    implicit val instance: MyNotification.type = this
+  }
   case class MyNotificationParams(spam: String)
       extends ParamsOf[MyNotification.type]
 
   case object MyError extends Error(15, "Test error")
 
   object MyProtocol {
-    import cats.syntax.functor._
     import io.circe.generic.auto._
-    import io.circe.syntax._
-
-    val encoder: Encoder[PayloadOf[Method]] = {
-      case m: MyRequestParams      => m.asJson
-      case m: MyRequestResult      => m.asJson
-      case m: MyNotificationParams => m.asJson
-    }
-
-    val protocol2: Protocol =
-      Protocol(
-        Set(MyRequest, MyNotification),
-        Map(
-          MyNotification -> implicitly[Decoder[MyNotificationParams]].widen,
-          MyRequest      -> implicitly[Decoder[MyRequestParams]].widen
-        ),
-        Map(
-          MyRequest -> implicitly[Decoder[MyRequestResult]].widen
-        ),
-        Map(MyError.code -> MyError),
-        encoder
-      )
 
     val protocol: Protocol = Protocol.empty
-      .registerNotification[MyNotification.type, MyNotificationParams](
-        MyNotification
-      )
-      .registerRequest[MyRequest.type, MyRequestParams, MyRequestResult](
-        MyRequest
-      )
+      .registerNotification[MyNotification.type, MyNotificationParams]
+      .registerRequest[MyRequest.type, MyRequestParams, MyRequestResult]
       .registerError(MyError)
   }
 

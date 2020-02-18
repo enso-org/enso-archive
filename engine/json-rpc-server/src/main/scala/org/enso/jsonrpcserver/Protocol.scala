@@ -179,40 +179,34 @@ case class Protocol(
   def resolveError(code: Int): Option[Error] =
     builtinErrors.get(code).orElse(customErrors.get(code))
 
-  // format: off
   def registerRequest[
     M <: Method,
-    Params <: ParamsOf[M]: ClassTag,
-    Result <: ResultOf[M]: ClassTag
-  ](method: M)(
-    implicit paramsEncoder: Encoder[Params],
-    resultEncoder: Encoder[Result],
-    paramsDecoder: Decoder[Params],
-    resultDecoder: Decoder[Result]
-  ): Protocol =
+    Params <: ParamsOf[M]: ClassTag: Encoder: Decoder,
+    Result <: ResultOf[M]: ClassTag: Encoder: Decoder
+  ](implicit method: M): Protocol =
     copy(
       methods = methods + method,
-      paramsDecoders = paramsDecoders + (method -> paramsDecoder.widen),
-      resultDecoders = resultDecoders + (method -> resultDecoder.widen),
+      paramsDecoders =
+        paramsDecoders + (method -> implicitly[Decoder[Params]].widen),
+      resultDecoders =
+        resultDecoders + (method -> implicitly[Decoder[Result]].widen),
       payloadsEncoder = {
-        case params: Params => paramsEncoder(params)
-        case result: Result => resultEncoder(result)
+        case params: Params => implicitly[Encoder[Params]].apply(params)
+        case result: Result => implicitly[Encoder[Result]].apply(result)
         case other          => payloadsEncoder(other)
       }
     )
-  // format: on
 
-  def registerNotification[M <: Method, Params <: ParamsOf[M]: ClassTag](
-    method: M
-  )(
-    implicit paramsEncoder: Encoder[Params],
-    paramsDecoder: Decoder[Params]
-  ): Protocol =
+  def registerNotification[
+    M <: Method,
+    Params <: ParamsOf[M]: ClassTag: Encoder: Decoder
+  ](implicit method: M): Protocol =
     copy(
-      methods        = methods + method,
-      paramsDecoders = paramsDecoders + (method -> paramsDecoder.widen),
+      methods = methods + method,
+      paramsDecoders =
+        paramsDecoders + (method -> implicitly[Decoder[Params]].widen),
       payloadsEncoder = {
-        case params: Params => paramsEncoder(params)
+        case params: Params => implicitly[Encoder[Params]].apply(params)
         case other          => payloadsEncoder(other)
       }
     )
