@@ -1,11 +1,9 @@
 package org.enso.jsonrpcserver
 import akka.actor.{Actor, ActorRef, Stash}
 import io.circe.Json
-import org.enso.jsonrpcserver.MessageHandler.{
-  Connected,
-  Disconnected,
-  WebMessage
-}
+import org.enso.jsonrpcserver.MessageHandler.{Connected, Disconnected, WebMessage}
+
+import scala.util.Try
 
 /**
   * An actor responsible for passing parsed massages between the web and
@@ -91,7 +89,11 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     notification: Notification[Method],
     webConnection: ActorRef
   ): Unit = {
-    val paramsJson = protocol.payloadsEncoder(notification.params)
+    val paramsJsonX = Try(protocol.payloadsEncoder(notification.params))
+    println(paramsJsonX)
+    paramsJsonX.failed.foreach(_.printStackTrace())
+    val paramsJson = paramsJsonX.get
+    println(paramsJson)
     val bareNotification =
       JsonProtocol.Notification(notification.method.name, paramsJson)
     webConnection ! WebMessage(JsonProtocol.encode(bareNotification))

@@ -38,13 +38,13 @@ class MessageHandlerTest
     import io.circe.generic.auto._
     import io.circe.syntax._
 
-    val encoder: Encoder[PayloadOf[Method]] = Encoder.instance {
+    val encoder: Encoder[PayloadOf[Method]] = {
       case m: MyRequestParams      => m.asJson
       case m: MyRequestResult      => m.asJson
       case m: MyNotificationParams => m.asJson
     }
 
-    val protocol: Protocol =
+    val protocol2: Protocol =
       Protocol(
         Set(MyRequest, MyNotification),
         Map(
@@ -57,6 +57,15 @@ class MessageHandlerTest
         Map(MyError.code -> MyError),
         encoder
       )
+
+    val protocol: Protocol = Protocol.empty
+      .registerNotification[MyNotification.type, MyNotificationParams](
+        MyNotification
+      )
+      .registerRequest[MyRequest.type, MyRequestParams, MyRequestResult](
+        MyRequest
+      )
+      .registerError(MyError)
   }
 
   var out: TestProbe        = _

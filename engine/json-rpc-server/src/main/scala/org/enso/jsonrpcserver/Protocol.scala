@@ -1,5 +1,8 @@
 package org.enso.jsonrpcserver
 import io.circe.{Decoder, Encoder, Json}
+import cats.syntax.functor._
+
+import scala.reflect.ClassTag
 
 /**
   * Represents valid JSON RPC request ids.
@@ -101,6 +104,16 @@ object Errors {
       extends Error(code, message)
 }
 
+object Protocol {
+  case class InexhaustivePayloadsSerializerError(payload: PayloadOf[Method])
+      extends Exception
+
+  def empty =
+    Protocol(Set(), Map(), Map(), Map(), { payload =>
+      throw InexhaustivePayloadsSerializerError(payload)
+    })
+}
+
 /**
   * A description containing all the supported methods and ways of serializing
   * their params and results.
@@ -165,4 +178,45 @@ case class Protocol(
     */
   def resolveError(code: Int): Option[Error] =
     builtinErrors.get(code).orElse(customErrors.get(code))
+
+  // format: off
+  def registerRequest[
+    M <: Method,
+    Params <: ParamsOf[M]: ClassTag,
+    Result <: ResultOf[M]: ClassTag
+  ](method: M)(
+    implicit paramsEncoder: Encoder[Params],
+    resultEncoder: Encoder[Result],
+    paramsDecoder: Decoder[Params],
+    resultDecoder: Decoder[Result]
+  ): Protocol =
+    copy(
+      methods = methods + method,
+      paramsDecoders = paramsDecoders + (method -> paramsDecoder.widen),
+      resultDecoders = resultDecoders + (method -> resultDecoder.widen),
+      payloadsEncoder = {
+        case params: Params => paramsEncoder(params)
+        case result: Result => resultEncoder(result)
+        case other          => payloadsEncoder(other)
+      }
+    )
+  // format: on
+
+  def registerNotification[M <: Method, Params <: ParamsOf[M]: ClassTag](
+    method: M
+  )(
+    implicit paramsEncoder: Encoder[Params],
+    paramsDecoder: Decoder[Params]
+  ): Protocol =
+    copy(
+      methods        = methods + method,
+      paramsDecoders = paramsDecoders + (method -> paramsDecoder.widen),
+      payloadsEncoder = {
+        case params: Params => paramsEncoder(params)
+        case other          => payloadsEncoder(other)
+      }
+    )
+
+  def registerError(error: Error): Protocol =
+    copy(customErrors = customErrors + (error.code -> error))
 }

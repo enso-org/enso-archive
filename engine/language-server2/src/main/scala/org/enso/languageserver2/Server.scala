@@ -3,40 +3,18 @@ import java.io.File
 import java.util.UUID
 
 import akka.NotUsed
-import akka.actor.{
-  Actor,
-  ActorLogging,
-  ActorRef,
-  ActorSystem,
-  PoisonPill,
-  Props,
-  Stash
-}
+import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, PoisonPill, Props, Stash}
 import akka.event.Logging
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import org.enso.jsonrpcserver.MessageHandler
-import org.enso.jsonrpcserver.MessageHandler.{
-  Connected,
-  Disconnected,
-  WebMessage
-}
-import org.enso.languageserver2.Protocol.{
-  Client,
-  ClientId,
-  Config,
-  Connect,
-  Disconnect,
-  Env,
-  Initialize
-}
+import org.enso.jsonrpcserver.MessageHandler.{Connected, Disconnected, WebMessage}
+import org.enso.languageserver2.Protocol.{AcquireWriteLock, Client, ClientId, Config, Connect, Disconnect, Env, Initialize}
 
 import scala.concurrent.duration._
 import akka.http.scaladsl.server.Directives._
-import com.typesafe.config.ConfigFactory
-import io.circe.Encoder
 
 import scala.concurrent.Await
 import scala.io.StdIn
@@ -63,6 +41,9 @@ object Protocol {
   object Env {
     def empty: Env = Env(Map())
   }
+
+  case object ForceReleaseWriteLock
+  case class AcquireWriteLock(clientId: ClientId)
 }
 
 class Server extends Actor with Stash with ActorLogging {
@@ -81,6 +62,9 @@ class Server extends Actor with Stash with ActorLogging {
     case Disconnect(clientId) =>
       log.debug("Client disconnected [{}].", clientId)
       context.become(initialized(config, env.removeClient(clientId)))
+    case AcquireWriteLock(clientId) =>
+
+
   }
 }
 
@@ -111,8 +95,6 @@ object Server {
   def main(args: Array[String]): Unit = {
     implicit val system       = ActorSystem()
     implicit val materializer = ActorMaterializer()
-
-    println(ConfigFactory.load())
 
     val dummyProtocol: JsonProtocol = JsonProtocol(Set(), Map(), Map(), Map(), {
       json =>
