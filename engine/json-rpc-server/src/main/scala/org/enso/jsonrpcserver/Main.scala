@@ -7,54 +7,53 @@ import scala.reflect.ClassTag
 object Foo {
   trait RequestParams
 
-  trait GetRequestParams[+T <: Method] {
-    type Out <: RequestParams
-    val instance: T
-    lazy val requestMatcher = RequestMatcher[T, Out](instance)
-  }
-  object GetRequestParams {
-    type Aux[T <: Method, X] = GetRequestParams[T] { type Out = X }
-  }
+//  trait GetRequestParams[+T <: Method] {
+//    type Out <: RequestParams
+//    val instance: T
+//    lazy val requestMatcher = RequestMatcher[T, Out](instance)
+//  }
+//  object GetRequestParams {
+//    type Aux[T <: Method, X] = GetRequestParams[T] { type Out = X }
+//  }
 
-  case class RequestMatcher[+M <: Method, +P <: RequestParams](instance: Method) {
-    def unapply(req: Request[Method, RequestParams]): Option[P] = req match {
+  case class RequestMatcher[+M, +P <: RequestParams](instance: Any) {
+    def unapply(req: Request[Any, RequestParams]): Option[P] = req match {
       case r: Request[M, P] if r.method == instance => Some(r.params)
       case _                => None
     }
   }
 
-  trait Method {
+  trait Method[+T] {
+    type Out <: RequestParams
     val name: String
-    implicit val requestParams: GetRequestParams[Method]
-    lazy val request = requestParams.requestMatcher
+    lazy val request = RequestMatcher[T, Out](this)
+  }
+
+  object Method {
+    type Aux[T, X] = Method[T] { type Out = X }
   }
 
   case class MyMethodParams(thing: Int) extends RequestParams
 
-  case object MyMethod extends Method {
+  case object MyMethod extends Method[this.type] {
     val name = "Foo"
-    implicit override val requestParams =
-      new GetRequestParams[MyMethod.type] {
-        type Out = MyMethodParams
-        lazy val instance: MyMethod.type = MyMethod
-      }
+    type Out = MyMethodParams
+    lazy implicit val wtf = this
   }
 
   case class MyMethod2Params(stuff: String) extends RequestParams
 
-  case object MyMethod2 extends Method {
+  case object MyMethod2 extends Method[this.type] {
     val name = "Dupa"
-    implicit override val requestParams = new GetRequestParams[MyMethod2.type] {
-      type Out = MyMethod2Params
-      lazy val instance: MyMethod2.type = MyMethod2
-    }
+    type Out = MyMethod2Params
+    lazy implicit val wtf = this
   }
 
-  case class Request[+M <: Method, +RequestParams](
+  case class Request[+M <: Method[Any], +RequestParams](
     method: M,
     id: Int,
     params: RequestParams
-  )(implicit ev: GetRequestParams.Aux[M, RequestParams])
+  )(implicit ev: Method.Aux[M, RequestParams])
 
 //  def parse(foo: Int): Request[Method, RequestParams] = {
 //    if (foo == 0) {
@@ -72,7 +71,7 @@ object Foo {
 //  }
 
   def checkRequest(
-    req: Request[Method, RequestParams]
+    req: Request[Method[Any], RequestParams]
   ): Unit = {
     req match {
       case MyMethod.request(p) => println(s"thing! ${p.thing}")
@@ -86,7 +85,7 @@ object Foo {
 object Main {
   def main(args: Array[String]): Unit = {
     val req1 = Request(MyMethod, 0, MyMethodParams(87654))
-    val req2 = Request(MyMethod2, 1, MyMethod2Params("567"))
+    val req2 = Request(MyMethod2, 1, MyMethod2Params("jhgfds"))
 
     Foo.checkRequest(req1)
     Foo.checkRequest(req2)

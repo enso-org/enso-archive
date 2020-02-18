@@ -431,6 +431,13 @@ lazy val json_rpc_server = (project in file("engine/json-rpc-server"))
       akkaTestkit      % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
 
