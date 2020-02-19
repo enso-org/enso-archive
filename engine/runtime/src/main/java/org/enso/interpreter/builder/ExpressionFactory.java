@@ -22,11 +22,11 @@ import org.enso.compiler.core.IR.DefinitionSiteArgument;
 import org.enso.compiler.core.IR.Expression;
 import org.enso.compiler.core.IR.ForcedTerm;
 import org.enso.compiler.core.IR.Lambda;
-import org.enso.compiler.core.IR.Match;
-import org.enso.compiler.core.IR.Name;
+import org.enso.compiler.core.IR.CaseExpr;
+import org.enso.compiler.core.IR.LiteralName;
 import org.enso.compiler.core.IR.NumberLiteral;
 import org.enso.compiler.core.IR.Prefix;
-import org.enso.compiler.core.IR.StringLiteral;
+import org.enso.compiler.core.IR.TextLiteral;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
@@ -180,8 +180,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing this literal
    */
   @Override
-  public ExpressionNode visitStringLiteral(StringLiteral string) {
-    ExpressionNode node = new TextLiteralNode(string.string());
+  public ExpressionNode visitStringLiteral(TextLiteral string) {
+    ExpressionNode node = new TextLiteralNode(string.text());
     return setLocation(node, string.getLocation());
   }
 
@@ -195,7 +195,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   public ExpressionNode visitArithOp(BinaryOperator ast) {
     ExpressionNode left = ast.left().visit(this);
     ExpressionNode right = ast.right().visit(this);
-    String operator = ast.op();
+    String operator = ast.operator();
     ExpressionNode resultOp = null;
     if (operator.equals("+")) {
       resultOp = AddOperatorNodeGen.create(left, right);
@@ -237,7 +237,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @return a runtime node representing the variable
    */
   @Override
-  public ExpressionNode visitName(Name astName) {
+  public ExpressionNode visitName(LiteralName astName) {
     String name = astName.name();
     Optional<ExpressionNode> currentModuleVariable =
         name.equals(Constants.Names.CURRENT_MODULE)
@@ -363,6 +363,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     ExpressionFactory child = createChild("case_expression");
     return child.processFunctionBody(
         function.getLocation(), function.getArguments(), function.body());
+
+    // Explicitly not marked as tail
   }
 
   /**
@@ -388,7 +390,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
     ApplicationNode appNode =
         new ApplicationNode(
-            application.fun().visit(this),
+            application.function().visit(this),
             callArgs.toArray(new CallArgument[0]),
             defaultsExecutionMode);
     setLocation(appNode, application.getLocation());
@@ -405,37 +407,37 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   public ExpressionNode visitAssignment(Binding ast) {
     currentVarName = ast.name();
     FrameSlot slot = scope.createVarSlot(ast.name());
-    return setLocation(AssignmentNodeGen.create(ast.body().visit(this), slot), ast.getLocation());
+    return setLocation(AssignmentNodeGen.create(ast.expression().visit(this), slot), ast.getLocation());
   }
 
   /**
    * Creates a runtime node representing a pattern match.
    *
-   * @param match the AST to represent
+   * @param caseExpr the AST to represent
    * @return a runtime node representing a pattern match expression
    */
   @Override
-  public ExpressionNode visitMatch(Match match) {
+  public ExpressionNode visitMatch(CaseExpr caseExpr) {
     //      AstExpression target, List<AstCase> branches, Optional<AstCaseFunction> fallback) {
 
-    ExpressionNode targetNode = match.scrutinee().visit(this);
+    ExpressionNode targetNode = caseExpr.scrutinee().visit(this);
     CaseNode[] cases =
-        match.getBranches().stream()
+        caseExpr.getBranches().stream()
             .map(
                 branch ->
                     new ConstructorCaseNode(
-                        branch.cons().visit(this), branch.function().visit(this)))
+                        branch.pattern().visit(this), branch.expression().visit(this)))
             .toArray(CaseNode[]::new);
 
     // Note [Pattern Match Fallbacks]
     CaseNode fallbackNode =
-        match
+        caseExpr
             .getFallback()
             .map(fb -> (CaseNode) new FallbackNode(fb.visit(this)))
             .orElseGet(DefaultFallbackNode::new);
 
     ExpressionNode matchExpr = MatchNodeGen.create(cases, fallbackNode, targetNode);
-    return setLocation(matchExpr, match.getLocation());
+    return setLocation(matchExpr, caseExpr.getLocation());
   }
 
   /* Note [Pattern Match Fallbacks]

@@ -103,13 +103,13 @@ object AstToAstExpression {
     * @param inputAST the definition to be translated
     * @return the [[Core]] representation of `inputAST`
     */
-  def translateModuleSymbol(inputAST: AST): ModuleSymbol = {
+  def translateModuleSymbol(inputAST: AST): TopLevelSymbol = {
     inputAST match {
       case AST.Def(consName, args, body) =>
         if (body.isDefined) {
           throw new RuntimeException("Cannot support complex type defs yet!!!!")
         } else {
-          TypeDef(consName.name, args.map(translateArgumentDefinition(_)))
+          AtomDef(consName.name, args.map(translateArgumentDefinition(_)))
         }
       case AstView.MethodDefinition(targetPath, name, definition) =>
         val path = if (targetPath.nonEmpty) {
@@ -168,7 +168,7 @@ object AstToAstExpression {
             .drop(nonFallbackBranches.length)
             .headOption
             .map(translateFallbackBranch)
-        Match(
+        CaseExpr(
           inputAST.location,
           actualScrutinee,
           nonFallbackBranches,
@@ -220,7 +220,7 @@ object AstToAstExpression {
               case AST.Literal.Text.Segment.RawEsc(code) => code.repr
             }.mkString
 
-            StringLiteral(literal.location, fullString)
+            TextLiteral(literal.location, fullString)
           case AST.Literal.Text.Block.Raw(lines, _, _) =>
             val fullString = lines
               .map(
@@ -232,7 +232,7 @@ object AstToAstExpression {
               )
               .mkString("\n")
 
-            StringLiteral(literal.location, fullString)
+            TextLiteral(literal.location, fullString)
           case AST.Literal.Text.Block.Fmt(_, _, _) =>
             throw new RuntimeException("Format strings not yet supported")
           case AST.Literal.Text.Line.Fmt(_) =>
@@ -285,8 +285,8 @@ object AstToAstExpression {
     */
   def translateCallArgument(arg: AST): CallArgumentDefinition = arg match {
     case AstView.AssignedArgument(left, right) =>
-      NamedCallArgument(left.name, translateExpression(right))
-    case _ => UnnamedCallArgument(translateExpression(arg))
+      CallArgumentDefinition(Some(left.name), translateExpression(right))
+    case _ => CallArgumentDefinition(None, translateExpression(arg))
   }
 
   /** Translates an arbitrary expression that takes the form of a syntactic
@@ -326,12 +326,7 @@ object AstToAstExpression {
         val validInfixOps = List("+", "/", "-", "*", "%")
 
         if (validInfixOps.contains(fn.name)) {
-          BinaryOperator(
-            callable.location,
-            fn.name,
-            translateExpression(left),
-            translateExpression(right)
-          )
+          BinaryOperator(callable.location, translateExpression(left), fn.name, translateExpression(right))
         } else {
           throw new RuntimeException(
             s"${fn.name} is not currently a valid infix operator"
@@ -375,8 +370,8 @@ object AstToAstExpression {
     */
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
-      case AST.Ident.Var(name)  => Name(identifier.location, name)
-      case AST.Ident.Cons(name) => Name(identifier.location, name)
+      case AST.Ident.Var(name)  => LiteralName(identifier.location, name)
+      case AST.Ident.Cons(name) => LiteralName(identifier.location, name)
       case AST.Ident.Blank(_) =>
         throw new RuntimeException("Blanks not yet properly supported")
       case AST.Ident.Opr.any(_) =>
