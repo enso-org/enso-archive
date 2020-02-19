@@ -1,7 +1,12 @@
 package org.enso.jsonrpcserver
 import akka.actor.{Actor, ActorRef, Stash}
 import io.circe.Json
-import org.enso.jsonrpcserver.MessageHandler.{Connected, Disconnected, WebMessage}
+import org.enso.jsonrpcserver.Errors.InvalidParams
+import org.enso.jsonrpcserver.MessageHandler.{
+  Connected,
+  Disconnected,
+  WebMessage
+}
 
 import scala.util.Try
 
@@ -43,18 +48,18 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     case Disconnected =>
       controller ! Disconnected
       context.stop(self)
-    case request: Request[Method] =>
+    case request: Request[Method, Any] =>
       issueRequest(request, webConnection, awaitingResponses)
-    case response: ResponseResult[Method] =>
+    case response: ResponseResult[Method, Any] =>
       issueResponseResult(response, webConnection)
     case response: ResponseError =>
       issueResponseError(response, webConnection)
-    case notification: Notification[Method] =>
+    case notification: Notification[Method, Any] =>
       issueNotification(notification, webConnection)
   }
 
   private def issueResponseResult(
-    response: ResponseResult[Method],
+    response: ResponseResult[Method, Any],
     webConnection: ActorRef
   ): Unit = {
     val responseDataJson: Json = protocol.payloadsEncoder(response.data)
@@ -73,7 +78,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
   }
 
   private def issueRequest(
-    req: Request[Method],
+    req: Request[Method, Any],
     webConnection: ActorRef,
     awaitingResponses: Map[Id, Method]
   ): Unit = {
@@ -86,14 +91,10 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
   }
 
   private def issueNotification(
-    notification: Notification[Method],
+    notification: Notification[Method, Any],
     webConnection: ActorRef
   ): Unit = {
-    val paramsJsonX = Try(protocol.payloadsEncoder(notification.params))
-    println(paramsJsonX)
-    paramsJsonX.failed.foreach(_.printStackTrace())
-    val paramsJson = paramsJsonX.get
-    println(paramsJson)
+    val paramsJson = protocol.payloadsEncoder(notification.params)
     val bareNotification =
       JsonProtocol.Notification(notification.method.name, paramsJson)
     webConnection ! WebMessage(JsonProtocol.encode(bareNotification))
@@ -110,33 +111,30 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
         webConnection ! WebMessage(makeError(None, Errors.ParseError))
 
       case Some(JsonProtocol.Request(methodName, id, params)) =>
-        val methodAndParams = resolveMethodAndParams(methodName, params)
-        methodAndParams match {
+        val decoder = resolveDecoder(methodName)
+        val request =
+          decoder.flatMap(_.buildRequest(id, params).toRight(InvalidParams))
+        request match {
           case Left(error) =>
             webConnection ! WebMessage(makeError(Some(id), error))
-          case Right((method, params)) =>
-            controller ! Request(method, id, params)
+          case Right(req) =>
+            controller ! req
         }
 
       case Some(JsonProtocol.Notification(methodName, params)) =>
-        val notification = resolveMethodAndParams(methodName, params).map {
-          case (method, params) => Notification(method, params)
-        }
+        val notification = resolveDecoder(methodName).flatMap(
+          _.buildNotification(params).toRight(InvalidParams)
+        )
         notification.foreach(controller ! _)
 
-      case Some(JsonProtocol.ResponseResult(mayId, result)) =>
-        val maybeDecoded: Option[ResultOf[Method]] = for {
-          id           <- mayId
-          method       <- awaitingResponses.get(id)
-          decoder      <- protocol.getResultDecoder(method)
-          parsedResult <- decoder.decodeJson(result).toOption
-        } yield parsedResult
-        val trueResult = maybeDecoded.getOrElse(UnknownResult(result))
-        controller ! ResponseResult(mayId, trueResult)
-        mayId.foreach(
-          id =>
-            context.become(established(webConnection, awaitingResponses - id))
-        )
+      case Some(JsonProtocol.ResponseResult(id, result)) =>
+        val maybeDecoded: Option[Any] = for {
+          method   <- awaitingResponses.get(id)
+          decoder  <- protocol.getResultDecoder(method)
+          response <- decoder.buildResponse(id, result)
+        } yield response
+        maybeDecoded.foreach(controller ! _)
+        context.become(established(webConnection, awaitingResponses - id))
 
       case Some(JsonProtocol.ResponseError(mayId, bareError)) =>
         val error = protocol
@@ -157,10 +155,9 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
     JsonProtocol.encode(bareErrorResponse)
   }
 
-  private def resolveMethodAndParams(
-    methodName: String,
-    params: Json
-  ): Either[Error, (Method, ParamsOf[Method])] =
+  private def resolveDecoder(
+    methodName: String
+  ): Either[Error, ParamsDecoder[Method, Any]] =
     for {
       method <- protocol
         .resolveMethod(methodName)
@@ -168,11 +165,7 @@ class MessageHandler(val protocol: Protocol, val controller: ActorRef)
       decoder <- protocol
         .getParamsDecoder(method)
         .toRight(Errors.InvalidRequest)
-      parsedParams <- decoder
-        .decodeJson(params)
-        .left
-        .map(_ => Errors.InvalidParams)
-    } yield (method, parsedParams)
+    } yield decoder
 }
 
 /**

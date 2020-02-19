@@ -5,7 +5,7 @@ import io.circe.literal._
 import io.circe.parser._
 import io.circe.Json
 import org.enso.jsonrpcserver.MessageHandler.{Connected, WebMessage}
-import org.scalatest.BeforeAndAfterAll
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
@@ -16,24 +16,46 @@ class MessageHandlerTest
     with ImplicitSender
     with AnyWordSpecLike
     with Matchers
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with BeforeAndAfterEach {
 
   override def afterAll: Unit = {
     TestKit.shutdownActorSystem(system)
   }
 
   case object MyRequest extends Method("RequestMethod") {
-    implicit val instance: MyRequest.type = this
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = MyRequestParams
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = MyRequestResult
+    }
   }
   case class MyRequestParams(foo: Int, bar: String)
-      extends ParamsOf[MyRequest.type]
-  case class MyRequestResult(baz: Int) extends ResultOf[MyRequest.type]
+  case class MyRequestResult(baz: Int)
+
+  case object MyEmptyRequest extends Method("EmptyRequest") {
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+
+  }
 
   case object MyNotification extends Method("NotificationMethod") {
-    implicit val instance: MyNotification.type = this
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = MyNotificationParams
+    }
   }
   case class MyNotificationParams(spam: String)
-      extends ParamsOf[MyNotification.type]
+
+  case object MyEmptyNotification extends Method("EmptyNotification") {
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+  }
 
   case object MyError extends Error(15, "Test error")
 
@@ -41,8 +63,10 @@ class MessageHandlerTest
     import io.circe.generic.auto._
 
     val protocol: Protocol = Protocol.empty
-      .registerNotification[MyNotification.type, MyNotificationParams]
-      .registerRequest[MyRequest.type, MyRequestParams, MyRequestResult]
+      .registerNotification(MyNotification)
+      .registerNotification(MyEmptyNotification)
+      .registerRequest(MyRequest)
+      .registerRequest(MyEmptyRequest)
       .registerError(MyError)
   }
 
@@ -50,7 +74,7 @@ class MessageHandlerTest
   var controller: TestProbe = _
   var handler: ActorRef     = _
 
-  override def beforeAll(): Unit = {
+  override def beforeEach(): Unit = {
     out        = TestProbe()
     controller = TestProbe()
     handler = system.actorOf(
@@ -87,6 +111,18 @@ class MessageHandlerTest
       )
     }
 
+    "receive notifications without params" in {
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "method": "EmptyNotification"
+                             |}
+                             |""".stripMargin)
+
+      controller.expectMsg(
+        Notification(MyEmptyNotification, Unused)
+      )
+    }
+
     "reply to requests" in {
       handler ! WebMessage("""
                              |{ "jsonrpc": "2.0",
@@ -99,7 +135,7 @@ class MessageHandlerTest
         Request(MyRequest, Id.String("1234"), MyRequestParams(30, "bar"))
       )
       controller.reply(
-        ResponseResult(Some(Id.String("1234")), MyRequestResult(123))
+        ResponseResult(MyRequest, Id.String("1234"), MyRequestResult(123))
       )
 
       expectJson(
@@ -108,6 +144,30 @@ class MessageHandlerTest
           { "jsonrpc": "2.0",
             "id": "1234",
             "result": {"baz": 123}
+          }"""
+      )
+    }
+
+    "reply to empty requests" in {
+      handler ! WebMessage("""
+                             |{ "jsonrpc": "2.0",
+                             |  "method": "EmptyRequest",
+                             |  "id": "1234"
+                             |}
+                             |""".stripMargin)
+      controller.expectMsg(
+        Request(MyEmptyRequest, Id.String("1234"), Unused)
+      )
+      controller.reply(
+        ResponseResult(MyEmptyRequest, Id.String("1234"), Unused)
+      )
+
+      expectJson(
+        out,
+        json"""
+          { "jsonrpc": "2.0",
+            "id": "1234",
+            "result": null
           }"""
       )
     }
@@ -191,7 +251,11 @@ class MessageHandlerTest
                              |}
                              |""".stripMargin)
       controller.expectMsg(
-        ResponseResult(Some(Id.String("some_id")), MyRequestResult(789))
+        ResponseResult(
+          MyRequest,
+          Id.String("some_id"),
+          MyRequestResult(789)
+        )
       )
     }
 

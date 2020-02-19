@@ -28,7 +28,7 @@ object JsonProtocol {
   /**
     * A successful response object.
     */
-  case class ResponseResult(id: Option[Id], result: Json) extends JsonMessage
+  case class ResponseResult(id: Id, result: Json) extends JsonMessage
 
   /**
     * An error response object.
@@ -59,6 +59,13 @@ object JsonProtocol {
         Constants.params -> notification.params
       )
 
+  implicit val notificationDecoder: Decoder[Notification] = { c =>
+    for {
+      method <- c.downField(Constants.method).as[String]
+      params = c.downField(Constants.params).focus.getOrElse(Json.Null)
+    } yield Notification(method, params)
+  }
+
   implicit val responseEncoder: Encoder[ResponseResult] =
     (response: ResponseResult) =>
       Json.obj(
@@ -83,6 +90,14 @@ object JsonProtocol {
       Constants.params -> request.params
     )
 
+  implicit val requestDecoder: Decoder[Request] = { c =>
+    for {
+      id     <- c.downField(Constants.id).as[Id]
+      method <- c.downField(Constants.method).as[String]
+      params = c.downField(Constants.params).focus.getOrElse(Json.Null)
+    } yield Request(method, id, params)
+  }
+
   implicit val bareMessageEncoder: Encoder[JsonMessage] = {
     case request: Request               => request.asJson
     case responseError: ResponseError   => responseError.asJson
@@ -92,9 +107,9 @@ object JsonProtocol {
 
   implicit val decoder: Decoder[JsonMessage] = new Decoder[JsonMessage] {
     val expectedNotificationKeys: Set[String] =
-      Set(Constants.jsonrpc, Constants.method, Constants.params)
+      Set(Constants.jsonrpc, Constants.method)
     val expectedRequestKeys: Set[String] =
-      Set(Constants.jsonrpc, Constants.method, Constants.params, Constants.id)
+      Set(Constants.jsonrpc, Constants.method, Constants.id)
     val expectedResponseResultKeys: Set[String] =
       Set(Constants.jsonrpc, Constants.id, Constants.result)
     val expectedResponseErrorKeys: Set[String] =
@@ -110,9 +125,9 @@ object JsonProtocol {
         )
       }
       val fields = c.keys.getOrElse(List()).toSet
-      if (fields == expectedRequestKeys) {
+      if (expectedRequestKeys.subsetOf(fields)) {
         c.as[Request]
-      } else if (fields == expectedNotificationKeys) {
+      } else if (expectedNotificationKeys.subsetOf(fields)) {
         c.as[Notification]
       } else if (fields == expectedResponseResultKeys) {
         c.as[ResponseResult]
