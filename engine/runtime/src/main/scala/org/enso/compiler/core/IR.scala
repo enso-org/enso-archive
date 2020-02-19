@@ -56,7 +56,7 @@ object IR {
   // === Literals =============================================================
 
   /** A trait representing all Enso literals. */
-  sealed trait Literal extends Expression
+  sealed trait Literal extends Expression with IRKind.Primitive
 
   /** A numeric Enso literal.
     *
@@ -64,8 +64,7 @@ object IR {
     * @param value the textual representation of the numeric literal
     */
   sealed case class NumberLiteral(location: Option[Location], value: String)
-      extends Literal
-      with IRKind.Primitive {
+      extends Literal {
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitLong(this)
   }
@@ -76,8 +75,7 @@ object IR {
     * @param text the text of the literal
     */
   sealed case class TextLiteral(location: Option[Location], text: String)
-      extends Literal
-      with IRKind.Primitive {
+      extends Literal {
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitStringLiteral(this)
   }
@@ -93,8 +91,7 @@ object IR {
     * @param name the literal text of the name
     */
   sealed case class LiteralName(location: Option[Location], name: String)
-      extends Name
-      with IRKind.Primitive {
+      extends Name {
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitName(this)
   }
@@ -430,11 +427,11 @@ object IR {
   // === Comments =============================================================
 
   /** A documentation comment in the Enso source.
-   *
-   * @param location the source location of the comment
-   * @param commented the expression with which the comment is associated
-   * @param doc the documentation of `commented`
-   */
+    *
+    * @param location the source location of the comment
+    * @param commented the expression with which the comment is associated
+    * @param doc the documentation of `commented`
+    */
   sealed case class DocComment(
     location: Option[Location],
     commented: Expression,
@@ -446,11 +443,11 @@ object IR {
   // === Foreign ==============================================================
 
   /** A foreign code definition in Enso.
-   *
-   * @param location the source location of the foreign code definition
-   * @param lang the foreign language being written
-   * @param code the code written in `lang`
-   */
+    *
+    * @param location the source location of the foreign code definition
+    * @param lang the foreign language being written
+    * @param code the code written in `lang`
+    */
   sealed case class ForeignDefinition(
     location: Option[Location],
     lang: String,
@@ -468,9 +465,9 @@ object IR {
   object Error {
 
     /** A representation of an Enso syntax error.
-     *
-     * @param ast the erroneous AST
-     */
+      *
+      * @param ast the erroneous AST
+      */
     sealed case class Syntax(ast: AST) extends Error
   }
 
@@ -479,9 +476,9 @@ object IR {
   // ==========================================================================
 
   /** A trait representing the classification of IR nodes into either primitive
-   * (constructs which will remain after desugaring) or sugar (constructs that
-   * should be removed by the desugaring passes).
-   */
+    * (constructs which will remain after desugaring) or sugar (constructs that
+    * should be removed by the desugaring passes).
+    */
   sealed trait IRKind {}
   object IRKind       {
 
