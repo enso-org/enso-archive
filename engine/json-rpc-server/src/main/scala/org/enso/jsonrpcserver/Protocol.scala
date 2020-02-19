@@ -63,6 +63,11 @@ case class Request[+M <: Method, +Params](
   params: Params
 )(implicit ev: HasParams.Aux[M, Params])
 
+object Request2 {
+  def unapply[M <: Method, P](req: Request[M, P]): Option[(M, P)] =
+    Some((req.method, req.params))
+}
+
 /**
   * The basic JSON RPC notification type.
   */

@@ -15,15 +15,26 @@ import akka.actor.{
 import akka.event.Logging
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
+import akka.pattern.ask
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import akka.stream.scaladsl.{Flow, Sink, Source}
-import org.enso.jsonrpcserver.MessageHandler
+import org.enso.jsonrpcserver.{
+  MessageHandler,
+  Method,
+  Notification,
+  Request,
+  Request2,
+  ResponseError,
+  ResponseResult,
+  Unused,
+  Protocol => JsonProtocol
+}
 import org.enso.jsonrpcserver.MessageHandler.{
   Connected,
   Disconnected,
   WebMessage
 }
-import org.enso.languageserver2.Protocol.{
+import org.enso.languageserver2.ProtocolX.{
   AcquireWriteLock,
   Capabilities,
   Client,
@@ -39,12 +50,14 @@ import org.enso.languageserver2.Protocol.{
 
 import scala.concurrent.duration._
 import akka.http.scaladsl.server.Directives._
+import akka.util.Timeout
+import org.enso.languageserver2.JsonRpcApi.CantCompleteRequestError
 
-import scala.concurrent.Await
+import scala.concurrent.{Await, ExecutionContext}
 import scala.io.StdIn
-import org.enso.jsonrpcserver.{Protocol => JsonProtocol}
+import scala.util.{Failure, Success}
 
-object Protocol {
+object ProtocolX {
   type ClientId = UUID
   case class Initialize(config: Config)
   case class Connect(id: ClientId, client: Client)
@@ -128,13 +141,36 @@ case class WsConnect(webActor: ActorRef)
 object JsonRpcApi {
   import org.enso.jsonrpcserver._
 
-  object AcquireWriteLock extends Method("acquireWriteLock")
+  case object CantCompleteRequestError
+      extends Error(1, "Can't complete request")
+
+  case object AcquireWriteLock extends Method("acquireWriteLock") {
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object ForceReleaseWriteLock extends Method("forceReleaseWriteLock") {
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = Unused.type
+    }
+  }
+
+  val protocol: Protocol = Protocol.empty
+    .registerRequest(AcquireWriteLock)
+    .registerNotification(ForceReleaseWriteLock)
 }
 
-class Client(val id: ClientId, val server: ActorRef)
+class Client(val clientId: ClientId, val server: ActorRef)
     extends Actor
     with Stash
     with ActorLogging {
+  implicit val timeout: Timeout     = 5.seconds
+  implicit val ec: ExecutionContext = context.dispatcher
+
   override def receive: Receive = {
     case WsConnect(webActor) =>
       log.debug("WebSocket connected.")
@@ -146,8 +182,17 @@ class Client(val id: ClientId, val server: ActorRef)
   def connected(webActor: ActorRef): Receive = {
     case Disconnected =>
       log.debug("WebSocket disconnected.")
-      server ! Disconnect(id)
+      server ! Disconnect(clientId)
       context.stop(self)
+    case Request(JsonRpcApi.AcquireWriteLock, id, Unused) =>
+      (server ? AcquireWriteLock(clientId)).onComplete {
+        case Success(WriteLockAcquired) =>
+          webActor ! ResponseResult(JsonRpcApi.AcquireWriteLock, id, Unused)
+        case Failure(_) =>
+          webActor ! ResponseError(Some(id), CantCompleteRequestError)
+      }
+    case ForceReleaseWriteLock =>
+      webActor ! Notification(JsonRpcApi.ForceReleaseWriteLock, Unused)
   }
 }
 
@@ -156,11 +201,6 @@ object Server {
   def main(args: Array[String]): Unit = {
     implicit val system       = ActorSystem()
     implicit val materializer = ActorMaterializer()
-
-    val dummyProtocol: JsonProtocol = JsonProtocol(Set(), Map(), Map(), Map(), {
-      json =>
-        ???
-    })
 
     val serverActor: ActorRef = system.actorOf(Props(new Server))
 
@@ -171,7 +211,9 @@ object Server {
       val clientActor = system.actorOf(Props(new Client(clientId, serverActor)))
 
       val messageHandler =
-        system.actorOf(Props(new MessageHandler(dummyProtocol, clientActor)))
+        system.actorOf(
+          Props(new MessageHandler(JsonRpcApi.protocol, clientActor))
+        )
       clientActor ! WsConnect(messageHandler)
 
       serverActor ! Connect(clientId, Client(clientActor, Capabilities.default))
