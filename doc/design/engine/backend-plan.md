@@ -18,6 +18,8 @@
 5. Work out how we want sample projects to work (1). 
 6. Implement the sample projects system (?).
 
+It should also exit gracefully.
+
 ## Capabilities
 Extensible capability system.
 
@@ -36,19 +38,21 @@ Extensible capability system.
 ## Working with Files On Disk
 NB: Errors are not specified in the below. 'Result' is only the happy-path.
 
-| Method      | Type    | Params                                       | Result     |
-|-------------|---------|----------------------------------------------|------------|
-| file/create | R: C->S | {path:Path, kind: "file" &#124; "directory"} | ()         | 
-| file/copy   | R: C->S | {from:Path, to:Path}                         | ()         |
-| file/move   | R: C->S | {from:Path, to:Path}                         | ()         |
-| file/delete | R: C->S | {path:Path}                                  | ()         |
-| file/exists | R: C->S | {path:Path}                                  | Boolean    |
-| file/list   | R: C->S | {path:Path}                                  | [Path]     |
-| file/tree   | R: C->S | {path:Path}                                  | DirTree    |
-| file/read   | R: C->S | {path:Path}                                  | String     |
-| file/info   | R: C->S | {path:Path}                                  | Attributes |
-| file/write  | R: C->S | {path:Path, contents:String}                 | ()         |
-| file/event  | N: S->C | [{path:Path, kind:EventKind}]                | ~          |
+| Method         | Type    | Params                                       | Result     |
+|----------------|---------|----------------------------------------------|------------|
+| file/create    | R: C->S | {path:Path, kind: "file" &#124; "directory"} | ()         | 
+| file/copy      | R: C->S | {from:Path, to:Path}                         | ()         |
+| file/move      | R: C->S | {from:Path, to:Path}                         | ()         |
+| file/delete    | R: C->S | {path:Path}                                  | ()         |
+| file/exists    | R: C->S | {path:Path}                                  | Boolean    |
+| file/list      | R: C->S | {path:Path}                                  | [Path]     |
+| file/tree      | R: C->S | {path:Path}                                  | DirTree    |
+| file/read      | R: C->S | {path:Path}                                  | String     |
+| file/info      | R: C->S | {path:Path}                                  | Attributes |
+| file/write     | R: C->S | {path:Path, contents:String}                 | ()         |
+| file/event     | N: S->C | [{path:Path, kind:EventKind}]                | ~          |
+| file/addRoot   | R: C->S | {absolutePath:[String], id: UUID}            | ()         |
+| file/rootAdded | N: S->C | {absolutePath:[String], id: UUID}            | ~          |
 
 - `read` should use the in-memory state where necessary
 - `write` need not contain a path to a file that exists
@@ -63,30 +67,57 @@ NB: Errors are not specified in the below. 'Result' is only the happy-path.
 2. Implement the `receivesTreeUpdates` capability and use it to send `fileEvent`
 
 ### Path
+Paths are relative to a content root. The segments must not contain
+path separators.
+
 ```typescript
 {
+  rootId: UUID
   segments: [String]
 }
 ```
 
 ### DirTree
 
+```typescript
+interface DirTree {
+  path: Path
+  name: String
+  files: [String]
+  directories: [DirTree]
+}
+```
+
 ### Attributes
 
+```typescript
+{ 
+    creationTime: UTCTime,
+    lastAccessTime: UTCTime, 
+    lastModifiedTime: UTCTime, 
+    kind: "directory" | "file" | "symlink" | "other",
+    byteSize: u64,
+}
+```
+
 ### EventKind
+
+```typescript
+"added" | "removed"
+```
 
 ## Editing Files
 The open file state needs to be maintained on a per-client basis.
 
-| Method      | Type    | Params             | Result                                       |
-|-------------|---------|--------------------|----------------------------------------------|
-| openFile    | R: C->S | {path:Path}        | { writeCapability?: CapabilityRegistration } |
-| closeFile   | R: C->S | {path:Path}        | ()                                           |
-| saveFile    | R: C->S | {path:Path}        | ()                                           |
-| applyEdits  | R: C->S | [FileEdit]         | ()                                           |
-| didChange   | N: S->C | [FileEdit]         | ~                                            |
-| undo        | R: C->S | {requestId?: UUID} | [WorkspaceEdit]                              |
-| redo        | R: C->S | {requestId?: UUID} | [WorkspaceEdit]                              | 
+| Method      | Type    | Params                            | Result                                                             |
+|-------------|---------|-----------------------------------|--------------------------------------------------------------------|
+| openFile    | R: C->S | {path:Path}                       | { writeCapability?: CapabilityRegistration, currentVersion: UUID } |
+| closeFile   | R: C->S | {path:Path}                       | ()                                                                 |
+| saveFile    | R: C->S | {path:Path, currentVersion: UUID} | ()                                                                 |
+| applyEdits  | R: C->S | [FileEdit]                        | ()                                                                 |
+| didChange   | N: S->C | [FileEdit]                        | ~                                                                  |
+| undo        | R: C->S | {requestId?: UUID}                | [WorkspaceEdit]                                                    |
+| redo        | R: C->S | {requestId?: UUID}                | [WorkspaceEdit]                                                    | 
 
 - Files should be versioned, and edits to old versions should be rejected
   (initially) or resolved.
@@ -102,9 +133,60 @@ The open file state needs to be maintained on a per-client basis.
    multiclient.
 5. Implement undo (3), implement redo (3).
 
+### Position
+```typescript
+interface Position {
+	/**
+	 * Line position in a document (zero-based).
+	 */
+	line: number;
+
+	/**
+	 * Character offset on a line in a document (zero-based). Assuming that the line is
+	 * represented as a string, the `character` value represents the gap between the
+	 * `character` and `character + 1`.
+	 *
+	 * If the character value is greater than the line length it defaults back to the
+	 * line length.
+	 */
+	character: number;
+}
+```
+
+### Range
+```typescript
+interface Range {
+	/**
+	 * The range's start position.
+	 */
+	start: Position;
+
+	/**
+	 * The range's end position.
+	 */
+	end: Position;
+}
+```
+
 ### TextEdit
+```typescript
+{
+  range: Range;
+  text: String;  
+}
+```
+
 
 ### FileEdit
-{path:Path, edits: [TextEdit]}
+
+```typescript
+{ 
+  path: Path;
+  edits: [TextEdit];
+  oldVersion: UUID;
+  newVersion: UUID;
+}
+```
 
 ### WorkspaceEdit
+Ignore for now, only undo-redo uses it.
