@@ -4,69 +4,19 @@
 - Writing a monolith that consolidates the functionality.
 - Protocol is custom, and will need to be fully specified.
 
-## Working with Files On Disk
-Take a look [here](https://github.com/luna/ide/blob/master/lib/ide/file-manager/README.md).
+## Server Initialisation
 
-TODO Spec: Path, DirTree, Attributes
+| Method       | Type    | Params                     | Result |
+|--------------|---------|----------------------------|--------|
+| project/open | R: C->S | {path: Path, name: String} |        |
 
-| Method    | Type    | Params                                        | Result     |
-|-----------|---------|-----------------------------------------------|------------|
-| copy      | R: C->S | {from:Path, to:Path}                          | ()         |
-| move      | R: C->S | {from:Path, to:Path}                          | ()         |
-| delete    | R: C->S | {path:Path}                                   | ()         |
-| exists    | R: C->S | {path:Path}                                   | Boolean    |
-| list      | R: C->S | {path:Path}                                   | [Path]     |
-| tree      | R: C->S | {path:Path}                                   | DirTree    |
-| read      | R: C->S | {path:Path}                                   | String     |
-| info      | R: C->S | {path:Path}                                   | Attributes |
-| new       | R: C->S | {path:Path, kind: "file" &#124; "directory" } | ()         |
-| write     | R: C->S | {path:Path, contents:String}                  | ()         |
-| fileEvent | N: S->C | [{path:Path, kind:EventKind}]                 | ~          |
-
-- `read` should use the in-memory state where necessary
-- The IDE will get automatic notifications for changes to the project directory
-  tree.
-- With `tree`, we should support sending partial trees for large trees.
-- `Path` should be a domain-specific representation. It should be an object
-  encoding of a path (e.g. a list of path segments + metadata).
-- We should mediate all operations to avoid conflicts.
-
-## Editing Files
-The open file state needs to be maintained on a per-client basis.
-
-TODO Spec: TextEdit
-
-| Method      | Type    | Params                                | Result                                       |
-|-------------|---------|---------------------------------------|----------------------------------------------|
-| openFile    | R: C->S | {path:Path}                           | { writeCapability: CapabilityRegistration? } |
-| closeFile   | R: C->S | {path:Path}                           | ()                                           |
-| saveFile    | R: C->S | {path:Path}                           | ()                                           |
-| applyEdits  | R: C->S | [{path:Path, edits: [TextEdit] }]     | ()                                           |
-| didChange   | N: S->C | [{path:Path, edits: [TextEdit] }]     | ~                                            |
-| getContents | R: C->S | {path:Path}                           | String                                       |
-| undo        | R: C->S | {requestId: UUID}                     | ()                                           |
-| redo        | R: C->S | {requestId: UUID}                     | ()                                           | 
-
-- `openFile` -> different semantics regarding internal buffers
-- `closeFile` -> different semantics regarding internal buffers
-- `saveFile` -> client to server to say that they are saving the file, should 
-  require a capability to save
-- `changeFile` -> should require a capability to edit, ide to server
-- `didChange` -> server to client changes, we can use it for sync on change
-- `getContents` -> client to server for file state
-- `undo`
-- `redo`
-
-- Should saving be handled automatically?
-- Files should be versioned, and edits to old versions should be rejected
-  (initially) or resolved.
-- Stick to (r, c, r, c) for now as it is better supported by most underlying
-  structures.
-- What should our internal rep for files be like? Look into text editor theory.
-- We need internal tracking for undo/redo state (e.g. `renameSymbol` being
-  reverted).
-
-- Articles on multiclient editing for Marcin.
+1. Create a scaffolding for a new service (WebSocket, JSON-RPC). (2)
+2. Implement the functionality to open a project from disk. This involves the
+   spawn of a new language server set up for the project. (2)
+3. Implement the recent projects list (2).
+4. Implement creation and deletion of projects (2).
+5. Work out how we want sample projects to work (1). 
+6. Implement the sample projects system (?).
 
 ## Capabilities
 Extensible capability system.
@@ -78,6 +28,83 @@ Extensible capability system.
 
 - Capabilities for:
     + `canWrite` (currently exclusive)
-    + `canRead` 
-    + `canVisualise`
-    + `receivesTreeUpdates`
+
+1. Implement a proper command-line way to spawn the language server, incorporate
+   into the uberjar (1).
+2. The above spec (3), edit the existing task.
+
+## Working with Files On Disk
+NB: Errors are not specified in the below. 'Result' is only the happy-path.
+
+| Method      | Type    | Params                                       | Result     |
+|-------------|---------|----------------------------------------------|------------|
+| file/create | R: C->S | {path:Path, kind: "file" &#124; "directory"} | ()         | 
+| file/copy   | R: C->S | {from:Path, to:Path}                         | ()         |
+| file/move   | R: C->S | {from:Path, to:Path}                         | ()         |
+| file/delete | R: C->S | {path:Path}                                  | ()         |
+| file/exists | R: C->S | {path:Path}                                  | Boolean    |
+| file/list   | R: C->S | {path:Path}                                  | [Path]     |
+| file/tree   | R: C->S | {path:Path}                                  | DirTree    |
+| file/read   | R: C->S | {path:Path}                                  | String     |
+| file/info   | R: C->S | {path:Path}                                  | Attributes |
+| file/write  | R: C->S | {path:Path, contents:String}                 | ()         |
+| file/event  | N: S->C | [{path:Path, kind:EventKind}]                | ~          |
+
+- `read` should use the in-memory state where necessary
+- `write` need not contain a path to a file that exists
+- The IDE will get automatic notifications for changes to the project directory
+  tree.
+- With `tree`, we should support sending partial trees for large trees.
+- `Path` should be a domain-specific representation. It should be an object
+  encoding of a path (e.g. a list of path segments + metadata).
+- We should mediate all operations to avoid conflicts.
+
+1. A task per message above (2 then 1). Order TBC.
+2. Implement the `receivesTreeUpdates` capability and use it to send `fileEvent`
+
+### Path
+```typescript
+{
+  segments: [String]
+}
+```
+
+### DirTree
+
+### Attributes
+
+### EventKind
+
+## Editing Files
+The open file state needs to be maintained on a per-client basis.
+
+| Method      | Type    | Params             | Result                                       |
+|-------------|---------|--------------------|----------------------------------------------|
+| openFile    | R: C->S | {path:Path}        | { writeCapability?: CapabilityRegistration } |
+| closeFile   | R: C->S | {path:Path}        | ()                                           |
+| saveFile    | R: C->S | {path:Path}        | ()                                           |
+| applyEdits  | R: C->S | [FileEdit]         | ()                                           |
+| didChange   | N: S->C | [FileEdit]         | ~                                            |
+| undo        | R: C->S | {requestId?: UUID} | [WorkspaceEdit]                              |
+| redo        | R: C->S | {requestId?: UUID} | [WorkspaceEdit]                              | 
+
+- Files should be versioned, and edits to old versions should be rejected
+  (initially) or resolved.
+- Stick to (r, c, r, c) for now as it is better supported by most underlying
+  structures.
+
+1. Determine a high-performance representation to be used for the buffer (3). 
+   This should ignore conflict resolution for now.
+2. Implement the underlying representation for text buffers (3).
+3. Implement the above messages (1 day per message for the first 5). 
+4. Determine how we want undo/redo to function from both a practical perspective
+   and the UX perspective (3). Use `renameSymbol` as an example. Account for 
+   multiclient.
+5. Implement undo (3), implement redo (3).
+
+### TextEdit
+
+### FileEdit
+{path:Path, edits: [TextEdit]}
+
+### WorkspaceEdit

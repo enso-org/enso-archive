@@ -33,6 +33,10 @@ services components, as well as any open questions that may remain.
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
 - [Protocol Message Specification](#protocol-message-specification)
+  - [File Management Operations](#file-management-operations)
+  - [Text Editing Operations](#text-editing-operations)
+  - [Capability Management](#capability-management)
+  - [Errors](#errors)
 
 <!-- /MarkdownTOC -->
 
@@ -525,3 +529,11 @@ the Engine team.
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
 > - This should always be done, but may reference LSP.
+
+### File Management Operations
+
+### Text Editing Operations
+
+### Capability Management
+
+### Errors
