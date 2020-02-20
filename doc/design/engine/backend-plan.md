@@ -1,8 +1,3 @@
-# Temporary Notes for Backend Planning
-
-- Need to create a backend for the IDE
-- Writing a monolith that consolidates the functionality.
-- Protocol is custom, and will need to be fully specified.
 
 ## Server Initialisation
 

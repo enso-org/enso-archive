@@ -15,8 +15,7 @@ services components, as well as any open questions that may remain.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Architecture](#architecture)
-  - [Supervisor](#supervisor)
-  - [The Gateway](#the-gateway)
+  - [The Project Picker](#the-project-picker)
   - [Language Server](#language-server)
 - [The Protocol Itself](#the-protocol-itself)
   - [Protocol Communication Patterns](#protocol-communication-patterns)
@@ -32,7 +31,10 @@ services components, as well as any open questions that may remain.
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
-- [Protocol Message Specification](#protocol-message-specification)
+- [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
+  - [Project Management Operations](#project-management-operations)
+  - [Language Server Management](#language-server-management)
+- [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
   - [File Management Operations](#file-management-operations)
   - [Text Editing Operations](#text-editing-operations)
   - [Capability Management](#capability-management)
@@ -41,56 +43,46 @@ services components, as well as any open questions that may remain.
 <!-- /MarkdownTOC -->
 
 ## Architecture
-While it may initially seem like all of the service components that make up the
-Engine Services could be rolled into a single service, division of
-responsibility combines with plain necessity to mean that we need a _set_ of
-services instead. This section deals with the intended architecture for the
-Engine Services.
+The divisions of responsibility between the backend engine services are dictated
+purely by necessity. As multi-client editing necessitates careful
+synchronisation and conflict resolution, between the actions of multiple
+clients. This section deals with the intended architecture for the Engine
+Services.
 
-The engine services are divided into three main components:
+The engine services are divided into two main components:
 
-1. **The Supervisor Daemon:** This component is responsible for setting up and
-   tearing down the other processes, as well as restarting any of the other
-   processes correctly if they fail.
-2. **The Gateway:** This component is responsible for dealing with incoming
-   connections (including multiple clients) and handling the communication with
-   said clients over the Language Server Protocol. It is also responsible for
-   resolving conflicts between commands sent by multiple connections.
-3. **The Language Server:** This component is responsible for actually providing
-   the functionality to back the protocol requests that come in, and talking to
-   the runtime directly. It talks to the gateway via akka messages.
+1. **The Project Picker:** This component is responsible for listing and
+   managing user projects, as well as spawning the language server for a given
+   project when it is opened.
+2. **The Language Server:** This component is responsible for dealing with
+   incoming connections and resolving conflicts between multiple clients. It is
+   also responsible for servicing all of the requests from the clients.
 
-The gateway and language server will be implemented as Akka services so that we
-can defer the choice of whether to run them in a single or multiple processes
-until later. For now we intend to run them in a single process.
+Both components will be implemented as akka actors such that we can defer the
+decision as to run them in different processes until the requirements become
+more clear.
 
-### Supervisor
-The supervisor process is an orchestrator, and is responsible for setting up and
-tearing down the other services, as well as restarting them when they fail. Its
-responsibilities can be summarised as follows:
+### The Project Picker
+The project picker service is responsible for both allowing users to work with
+their projects but also the setup and teardown of the language server itself.
+Its responsibilities can be summarised as follows:
 
-- Starting up the set of services for a given project.
-- Tearing down the set of services correctly when a project is closed.
-- Restarting any of the services properly when they fail. Please note that this
-  may require the ability to kill and re-start services that haven't crashed due
-  to dependencies between services.
-
-### The Gateway
-The gateway component is responsible for managing the actual language server
-protocol usage. This means that it talks directly to clients using protocol
-messages, and then handles these messages by talking to the language server.
-
-It is responsible for the following:
-
-- Accepting connections from multiple clients while remaining compatible with
-  LSP for single client negotiation.
-- Reconciling conflicts between messages from multiple clients.
-- Servicing these requests by talking directly to the language server.
-- Optimising requests where possible (e.g. value subscription pooling).
+- Allowing users to manage their projects.
+- Starting up the language server for a given project upon user selection.
+- Notifying the language server of a pending shutdown on project exit to allow
+  it to persist any state that it needs to disk.
 
 ### Language Server
-The language server is responsible for providing the functionality to back the
-gateway's responses to clients. This includes but is not limited to:
+The language server is responsible for managing incoming connections and
+communicating with the clients, as well as resolving any potential conflicts
+between the clients. It is responsible for the following:
+
+- Negotiating and accepting connections from multiple clients.
+- Resolving conflicts between messages from multiple clients.
+- Optimising incoming requests wherever possible.
+
+It is also responsible for actually servicing all of the incoming requests,
+which includes but isn't limited to:
 
 - **Completion Information:** It should be able to provide a set of candidate
   completions for a given location in the code.
@@ -518,11 +510,39 @@ and will be expanded upon as necessary in the future.
 - **LSP Spec Completeness:** We should also support all LSP messages that are
   relevant to our language. Currently we only support a small subset thereof.
 
-## Protocol Message Specification
-This section exists to contain a specification of each of the messages the
-protocol supports. This is in order to aid the proper creation of clients, and
-to serve as an agreed-upon definition for the protocol between the IDE team and
-the Engine team.
+## Protocol Message Specification - Project Picker
+This section exists to contain a specification of each of the messages that the
+project picker supports. This is in order to aid in the proper creation of 
+clients, and to serve as an agreed-upon definition for the protocol between the
+IDE and Engine teams.
+
+> The actionables for this section are:
+>
+> - As we establish the _exact_ format for each of the messages supported by the
+>   services, record the details of each message here.
+
+### Project Management Operations
+The primary responsibility of the project pickers is to allow users to manage
+their projects.
+
+#### `project/open`
+
+#### `project/listRecent`
+
+#### `project/create`
+
+#### `project/delete`
+
+#### `project/listSample`
+
+### Language Server Management
+The project picker is 
+
+## Protocol Message Specification - Language Server
+This section exists to contain a specification of each of the messages that the
+language server supports. This is in order to aid in the proper creation of 
+clients, and to serve as an agreed-upon definition for the protocol between the
+IDE and Engine teams.
 
 > The actionables for this section are:
 >
