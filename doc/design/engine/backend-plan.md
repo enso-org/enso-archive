@@ -36,16 +36,16 @@ The open file state needs to be maintained on a per-client basis.
 
 TODO Spec: TextEdit
 
-| Method      | Type    | Params                                | Result     |
-|-------------|---------|---------------------------------------|------------|
-| openFile    | R: C->S | {path:Path}                           | ()         |
-| closeFile   | R: C->S | {path:Path}                           | ()         |
-| saveFile    | R: C->S | {path:Path}                           | ()         |
-| applyEdits  | R: C->S | [{path:Path, edits: [TextEdit] }]     | ()         |
-| didChange   | N: S->C | [{path:Path, edits: [TextEdit] }]     | ~          |
-| getContents | R: C->S | {path:Path}                           | String     |
-| undo        | R: C->S | {requestId: UUID}                     | ()         |
-| redo        | R: C->S | {requestId: UUID}                     | ()         | 
+| Method      | Type    | Params                                | Result                                       |
+|-------------|---------|---------------------------------------|----------------------------------------------|
+| openFile    | R: C->S | {path:Path}                           | { writeCapability: CapabilityRegistration? } |
+| closeFile   | R: C->S | {path:Path}                           | ()                                           |
+| saveFile    | R: C->S | {path:Path}                           | ()                                           |
+| applyEdits  | R: C->S | [{path:Path, edits: [TextEdit] }]     | ()                                           |
+| didChange   | N: S->C | [{path:Path, edits: [TextEdit] }]     | ~                                            |
+| getContents | R: C->S | {path:Path}                           | String                                       |
+| undo        | R: C->S | {requestId: UUID}                     | ()                                           |
+| redo        | R: C->S | {requestId: UUID}                     | ()                                           | 
 
 - `openFile` -> different semantics regarding internal buffers
 - `closeFile` -> different semantics regarding internal buffers
