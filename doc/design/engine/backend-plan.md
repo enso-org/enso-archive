@@ -1,10 +1,6 @@
 
 ## Server Initialisation
 
-| Method       | Type    | Params                     | Result |
-|--------------|---------|----------------------------|--------|
-| project/open | R: C->S | {path: Path, name: String} |        |
-
 1. Create a scaffolding for a new service (WebSocket, JSON-RPC). (2)
 2. Implement the functionality to open a project from disk. This involves the
    spawn of a new language server set up for the project. (2)
@@ -41,7 +37,7 @@ NB: Errors are not specified in the below. 'Result' is only the happy-path.
 | file/delete    | R: C->S | {path:Path}                                  | ()         |
 | file/exists    | R: C->S | {path:Path}                                  | Boolean    |
 | file/list      | R: C->S | {path:Path}                                  | [Path]     |
-| file/tree      | R: C->S | {path:Path}                                  | DirTree    |
+| file/tree      | R: C->S | {path:Path, depth: Int}                      | DirTree    |
 | file/read      | R: C->S | {path:Path}                                  | String     |
 | file/info      | R: C->S | {path:Path}                                  | Attributes |
 | file/write     | R: C->S | {path:Path, contents:String}                 | ()         |
@@ -60,46 +56,6 @@ NB: Errors are not specified in the below. 'Result' is only the happy-path.
 
 1. A task per message above (2 then 1). Order TBC.
 2. Implement the `receivesTreeUpdates` capability and use it to send `fileEvent`
-
-### Path
-Paths are relative to a content root. The segments must not contain
-path separators.
-
-```typescript
-{
-  rootId: UUID
-  segments: [String]
-}
-```
-
-### DirTree
-
-```typescript
-interface DirTree {
-  path: Path
-  name: String
-  files: [String]
-  directories: [DirTree]
-}
-```
-
-### Attributes
-
-```typescript
-{ 
-    creationTime: UTCTime,
-    lastAccessTime: UTCTime, 
-    lastModifiedTime: UTCTime, 
-    kind: "directory" | "file" | "symlink" | "other",
-    byteSize: u64,
-}
-```
-
-### EventKind
-
-```typescript
-"added" | "removed"
-```
 
 ## Editing Files
 The open file state needs to be maintained on a per-client basis.

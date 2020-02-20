@@ -31,11 +31,13 @@ services components, as well as any open questions that may remain.
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
+- [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Project Management Operations](#project-management-operations)
   - [Language Server Management](#language-server-management)
   - [Errors](#errors)
 - [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
+  - [Types](#types)
   - [Capability Management](#capability-management)
   - [File Management Operations](#file-management-operations)
   - [Text Editing Operations](#text-editing-operations)
@@ -511,6 +513,24 @@ and will be expanded upon as necessary in the future.
 - **LSP Spec Completeness:** We should also support all LSP messages that are
   relevant to our language. Currently we only support a small subset thereof.
 
+## Protocol Message Specification - Common Types
+There are a number of types that are shared between many of the protocol
+messages. They are specified below.
+
+#### `Path`
+A path is a representation of a path relative to a specified content root.
+
+##### Format
+
+```typescript
+interface Path {
+  rootId: UUID;
+  segments: [String];
+}
+```
+
+#### `AbsolutePath`
+
 ## Protocol Message Specification - Project Picker
 This section exists to contain a specification of each of the messages that the
 project picker supports. This is in order to aid in the proper creation of 
@@ -531,15 +551,18 @@ This message requests that the project picker open a specified project. This
 operation also includes spawning an instance of the language server open on the
 specified project.
 
-___
 - **Type:** Request
 - **Direction:** Client -> Server
 
 ##### Parameters
+TBC
 
 ##### Result
+TBC
 
 #### Request `project/close`
+This message requests that the project picker close a specified project. This
+operation includes
 
 #### Request `project/listRecent`
 
@@ -574,6 +597,62 @@ IDE and Engine teams.
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
 > - This should always be done, but may reference LSP.
+
+### Types
+There are a number of types that are used only within the language server's
+protocol messages. These are specified here.
+
+#### `File`
+A representation of a file on disk.
+
+##### Format
+
+```typescript
+interface File {
+  name: String; // Includes the file extension
+  type: String;
+}
+```
+
+#### `DirectoryTree`
+A directory tree is a recursive type used to represent tree structures of files
+and directories.
+
+##### Format
+
+```typescript
+interface DirectoryTree {
+  path: Path;
+  name: String;
+  files: [File];
+  directories: [DirectoryTree];
+}
+```
+
+#### `FileAttributes`
+A description of the attributes of a file required by the IDE. These attributes
+may be expanded in future.
+
+##### Format
+
+```typescript
+interface FileAttributes {
+  creationTime: UTCTime;
+  lastAccessTime: UTCTime;
+  lastModifiedTime: UTCTime;
+  kind: Directory | File | Symlink | Other;
+  byteSize: Size;
+}
+```
+
+#### `FileEventKind`
+The kind of event being described for a watched file.
+
+##### Format
+
+```typescript
+FileEventKind = Added | Removed | Modified
+```
 
 ### Capability Management
 
