@@ -34,11 +34,12 @@ services components, as well as any open questions that may remain.
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Project Management Operations](#project-management-operations)
   - [Language Server Management](#language-server-management)
+  - [Errors](#errors)
 - [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
+  - [Capability Management](#capability-management)
   - [File Management Operations](#file-management-operations)
   - [Text Editing Operations](#text-editing-operations)
-  - [Capability Management](#capability-management)
-  - [Errors](#errors)
+  - [Errors](#errors-1)
 
 <!-- /MarkdownTOC -->
 
@@ -525,18 +526,42 @@ IDE and Engine teams.
 The primary responsibility of the project pickers is to allow users to manage
 their projects.
 
-#### `project/open`
+#### Request `project/open`
+This message requests that the project picker open a specified project. This
+operation also includes spawning an instance of the language server open on the
+specified project.
 
-#### `project/listRecent`
+___
+- **Type:** Request
+- **Direction:** Client -> Server
 
-#### `project/create`
+##### Parameters
 
-#### `project/delete`
+##### Result
 
-#### `project/listSample`
+#### Request `project/close`
+
+#### Request `project/listRecent`
+
+#### Request `project/create`
+
+#### Request `project/delete`
+
+#### Request `project/listSample`
 
 ### Language Server Management
-The project picker is 
+The project picker is also responsible for managing the language server. This
+means that it needs to be able to spawn the process, but also tell the process
+when to shut down.
+
+> The actionables for this section are:
+> 
+> - Fill it in when we have more of an idea about exactly how this spawning
+>   relationship is going to work.
+
+### Errors
+The project picker component also has its own set of errors. This section is not
+a complete specification and will be updated as new errors are added.
 
 ## Protocol Message Specification - Language Server
 This section exists to contain a specification of each of the messages that the
@@ -550,10 +575,10 @@ IDE and Engine teams.
 >   services, record the details of each message here.
 > - This should always be done, but may reference LSP.
 
+### Capability Management
+
 ### File Management Operations
 
 ### Text Editing Operations
-
-### Capability Management
 
 ### Errors
