@@ -7,22 +7,21 @@
 ## Working with Files On Disk
 Take a look [here](https://github.com/luna/ide/blob/master/lib/ide/file-manager/README.md).
 
-| Method        | Input                        | Result     |
-|---------------|------------------------------|------------|
-| copy          | {from:Path, to:Path}         | ()         |
-| move          | {from:Path, to:Path}         | ()         |
-| delete        | {path:Path}                  | ()         |
-| exists        | {path:Path}                  | Boolean    |
-| list          | {path:Path}                  | [Path]     |
-| tree          | {path:Path}                  | [Path]     |
-| read          | {path:Path}                  | String     |
-| info          | {path:Path}                  | Attributes | (fstat)
-| new           | {path:Path}                  | ()         |
-| write         | {path:Path, contents:String} | ()         |
+TODO Spec: Path, DirTree, Attributes
 
-| Method          | Input                       | Result |
-|-----------------|-----------------------------|--------|
-| filesystemEvent | {path:Path, kind:EventKind} | N/A    |
+| Method    | Type    | Params                                        | Result     |
+|-----------|---------|-----------------------------------------------|------------|
+| copy      | R: C->S | {from:Path, to:Path}                          | ()         |
+| move      | R: C->S | {from:Path, to:Path}                          | ()         |
+| delete    | R: C->S | {path:Path}                                   | ()         |
+| exists    | R: C->S | {path:Path}                                   | Boolean    |
+| list      | R: C->S | {path:Path}                                   | [Path]     |
+| tree      | R: C->S | {path:Path}                                   | DirTree    |
+| read      | R: C->S | {path:Path}                                   | String     |
+| info      | R: C->S | {path:Path}                                   | Attributes |
+| new       | R: C->S | {path:Path, kind: "file" &#124; "directory" } | ()         |
+| write     | R: C->S | {path:Path, contents:String}                  | ()         |
+| fileEvent | N: S->C | {path:Path, kind:EventKind}                   | ~          |
 
 - `read` should use the in-memory state where necessary
 - The IDE will get automatic notifications for changes to the project directory
@@ -34,6 +33,19 @@ Take a look [here](https://github.com/luna/ide/blob/master/lib/ide/file-manager/
 
 ## Editing Files
 The open file state needs to be maintained on a per-client basis.
+
+TODO Spec: TextEdit
+
+| Method      | Type    | Params                                | Result     |
+|-------------|---------|---------------------------------------|------------|
+| openFile    | R: C->S | {path:Path}                           | ()         |
+| closeFile   | R: C->S | {path:Path}                           | ()         |
+| saveFile    | R: C->S | {path:Path}                           | ()         |
+| applyEdits  | R: C->S | {path:Path, edits: [TextEdit] }       | ()         |
+| didChange   | N: S->C | {path:Path, edits: [TextEdit] }       | ~          |
+| getContents | R: C->S | {path:Path}                           | String     |
+| undo        | R: C->S | ???                                   | ???        |
+| redo        | R: C->S | ???                                   | ???        | 
 
 - `openFile` -> different semantics regarding internal buffers
 - `closeFile` -> different semantics regarding internal buffers
