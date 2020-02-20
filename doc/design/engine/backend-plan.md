@@ -124,7 +124,7 @@ The open file state needs to be maintained on a per-client basis.
 - Stick to (r, c, r, c) for now as it is better supported by most underlying
   structures.
 
-1. Determine a high-performance representation to be used for the buffer (3). 
+1. Determine a high-performance representation to be used for the buffer (3hrs). 
    This should ignore conflict resolution for now.
 2. Implement the underlying representation for text buffers (3).
 3. Implement the above messages (1 day per message for the first 5). 
