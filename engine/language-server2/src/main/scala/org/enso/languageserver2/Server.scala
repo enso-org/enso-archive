@@ -162,6 +162,7 @@ object JsonRpcApi {
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireWriteLock)
     .registerNotification(ForceReleaseWriteLock)
+    .registerError(CantCompleteRequestError)
 }
 
 class Client(val clientId: ClientId, val server: ActorRef)
