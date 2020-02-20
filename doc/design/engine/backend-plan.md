@@ -72,8 +72,6 @@ The open file state needs to be maintained on a per-client basis.
 
 - Files should be versioned, and edits to old versions should be rejected
   (initially) or resolved.
-- Stick to (r, c, r, c) for now as it is better supported by most underlying
-  structures.
 
 1. Determine a high-performance representation to be used for the buffer (3hrs). 
    This should ignore conflict resolution for now.
@@ -83,61 +81,3 @@ The open file state needs to be maintained on a per-client basis.
    and the UX perspective (3). Use `renameSymbol` as an example. Account for 
    multiclient.
 5. Implement undo (3), implement redo (3).
-
-### Position
-```typescript
-interface Position {
-	/**
-	 * Line position in a document (zero-based).
-	 */
-	line: number;
-
-	/**
-	 * Character offset on a line in a document (zero-based). Assuming that the line is
-	 * represented as a string, the `character` value represents the gap between the
-	 * `character` and `character + 1`.
-	 *
-	 * If the character value is greater than the line length it defaults back to the
-	 * line length.
-	 */
-	character: number;
-}
-```
-
-### Range
-```typescript
-interface Range {
-	/**
-	 * The range's start position.
-	 */
-	start: Position;
-
-	/**
-	 * The range's end position.
-	 */
-	end: Position;
-}
-```
-
-### TextEdit
-```typescript
-{
-  range: Range;
-  text: String;  
-}
-```
-
-
-### FileEdit
-
-```typescript
-{ 
-  path: Path;
-  edits: [TextEdit];
-  oldVersion: UUID;
-  newVersion: UUID;
-}
-```
-
-### WorkspaceEdit
-Ignore for now, only undo-redo uses it.

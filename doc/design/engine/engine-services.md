@@ -39,8 +39,10 @@ services components, as well as any open questions that may remain.
 - [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
   - [Types](#types)
   - [Capability Management](#capability-management)
+  - [Capabilities](#capabilities)
   - [File Management Operations](#file-management-operations)
   - [Text Editing Operations](#text-editing-operations)
+  - [Workspace Operations](#workspace-operations)
   - [Errors](#errors-1)
 
 <!-- /MarkdownTOC -->
@@ -651,13 +653,150 @@ The kind of event being described for a watched file.
 ##### Format
 
 ```typescript
-FileEventKind = Added | Removed | Modified
+type FileEventKind = Added | Removed | Modified
 ```
 
+#### `Position`
+A representation of a position in a text file.
+
+##### Format
+
+```typescript
+interface Position {
+  /**
+   * Line position in a document (zero-based).
+   */
+  line: number;
+
+  /**
+   * Character offset on a line in a document (zero-based). Assuming that the line is
+   * represented as a string, the `character` value represents the gap between the
+   * `character` and `character + 1`.
+   *
+   * If the character value is greater than the line length it defaults back to the
+   * line length.
+   */
+  character: number;
+}
+```
+
+#### `Range`
+A representation of a range of text in a text file.
+
+##### Format
+
+```typescript
+interface Range {
+  /**
+   * The range's start position.
+   */
+  start: Position;
+
+  /**
+   * The range's end position.
+   */
+  end: Position;
+}
+```
+
+#### `TextEdit`
+A representation of a change to a text file at a given position.
+
+##### Format
+
+```typescript
+{
+  range: Range;
+  text: String;  
+}
+```
+
+#### `FileEdit`
+
+##### Format
+
+```typescript
+{ 
+  path: Path;
+  edits: [TextEdit];
+  oldVersion: UUID;
+  newVersion: UUID;
+}
+```
+
+#### `WorkspaceEdit`
+This is a message to be specified once we better understand the intricacies of
+undo/redo.
+
 ### Capability Management
+In order to mediate between multiple clients properly, the language server has
+a robust notion of capability management to grant and remove permissions from
+clients.
+
+#### Request `capability/acquire`
+
+#### Request `capability/release`
+
+#### Notification `capability/grant`
+
+#### Notification `capability/forceRelease`
+
+### Capabilities
+The capability management features work with the following capabilities.
+
+#### `capability/canWrite`
 
 ### File Management Operations
+The language server also provides file operations to the IDE.
+
+#### Request `file/create`
+
+#### Request `file/copy`
+
+#### Request `file/move`
+
+#### Request `file/delete`
+
+#### Request `file/exists`
+
+#### Request `file/list`
+
+#### Request `file/tree`
+
+#### Request `file/read`
+
+#### Request `file/info`
+
+#### Request `file/write`
+
+#### Notification `file/event`
+
+#### Request `file/addRoot`
+
+#### Notification `file/rootAdded`
 
 ### Text Editing Operations
+The language server also has a set of text editing operations to ensure that it
+stays in sync with the clients.
+
+#### Request `text/openFile`
+
+#### Request `text/closeFile`
+
+#### Request `text/saveFile`
+
+#### Request `text/applyEdit`
+
+#### Notification `text/didChange`
+
+### Workspace Operations
+The language server also has a set of operations useful for managing the client
+workspace.
+
+#### Request `workspace/undo`
+
+#### Request `workspace/redo`
 
 ### Errors
+The language server component also has its own set of errors. This section is 
+not a complete specification and will be updated as new errors are added.
