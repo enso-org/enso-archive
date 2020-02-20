@@ -21,7 +21,7 @@ TODO Spec: Path, DirTree, Attributes
 | info      | R: C->S | {path:Path}                                   | Attributes |
 | new       | R: C->S | {path:Path, kind: "file" &#124; "directory" } | ()         |
 | write     | R: C->S | {path:Path, contents:String}                  | ()         |
-| fileEvent | N: S->C | {path:Path, kind:EventKind}                   | ~          |
+| fileEvent | N: S->C | [{path:Path, kind:EventKind}]                 | ~          |
 
 - `read` should use the in-memory state where necessary
 - The IDE will get automatic notifications for changes to the project directory
