@@ -709,7 +709,7 @@ This message requests the creation of a new project.
 ```typescript
 interface ProjectCreateRequest {
   name: String;
-  location: Path;
+  location: SystemPath | URI;
 }
 ```
 
@@ -931,7 +931,6 @@ interface FileContents[T] {
   contents: T;
 }
 
-class BinaryFileContents extends FileContents[Base64String];
 class TextFileContents extends FileContents[String];
 ```
 
@@ -955,7 +954,7 @@ interface File {
 
 interface Symlink {
   source: Path;
-  target: Path;
+  target: Path | SystemPath;
 }
 
 interface Other;
@@ -1021,7 +1020,7 @@ capability.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1107,7 +1106,7 @@ write must fail.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1161,14 +1160,14 @@ This will fail if the specified object already exists.
 ##### Response
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
 TBC
 
 #### `file/delete`
-This request asks the file managed to delete the specified file system object.
+This request asks the file manager to delete the specified file system object.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -1184,14 +1183,14 @@ This request asks the file managed to delete the specified file system object.
 ##### Result
 
 ```
-{}
+null
 ```
 
 ##### Errors
 TBC
 
 #### `file/copy`
-This request asks the file managed to copy a specified filesystem object to
+This request asks the file manager to copy a specified filesystem object to
 another location.
 
 - **Type:** Request
@@ -1209,7 +1208,7 @@ another location.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1222,8 +1221,8 @@ another location.
 - **Type:** Request
 - **Direction:** Client -> Server
 
-The move should fail if the requested object or any child of the requested
-object is opened by a client of the language server.
+The move should be specified by filesystem events, and such notifications should
+inform the client that the currently edited file has been moved.
 
 ##### Parameters
 
@@ -1237,7 +1236,7 @@ object is opened by a client of the language server.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1284,7 +1283,7 @@ the corresponding flag should be set.
 ```typescript
 {
   path: Path;
-  depth: Int;
+  depth?: Int;
 }
 ```
 
@@ -1384,8 +1383,9 @@ This request adds a content root to the active project.
 
 When a content root is added, the language server must notify clients other than
 the one that added the root by sending a `file/rootAdded`. Additionally, all
-clients must be notified of the addition of visible files through a series of
-`file/event` notifications.
+clients must be notified with a `file/event` about the addition of the new root.
+The IDE is responsible for calling `file/tree` on that root to discover its
+structure.
 
 ##### Parameters
 
@@ -1399,7 +1399,7 @@ clients must be notified of the addition of visible files through a series of
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1413,8 +1413,8 @@ This request removes a content root from the active project.
 
 When a content root is removed, the language server must notify clients other
 than the one that added the root by sending a `file/rootRemoved`. Additionally,
-all clients must be notified of the removal of visible files through a series of
-`file/event` notifications.
+the server must send a `file/event` making the root of the new tree visible. The
+IDE is responsible for any additional discovery.
 
 ##### Parameters
 
@@ -1427,7 +1427,7 @@ all clients must be notified of the removal of visible files through a series of
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1522,7 +1522,7 @@ file.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1549,7 +1549,7 @@ that file, or if the client is requesting a save of an outdated version.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1577,7 +1577,7 @@ that some edits are applied and others are not.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1617,7 +1617,7 @@ the server process, allowing it to obtain some initial information.
 ##### Parameters
 
 ```typescript
-{}
+null
 ```
 
 ##### Result
@@ -1652,7 +1652,7 @@ server undoing that same action for all clients in the workspace.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
@@ -1679,7 +1679,7 @@ server redoing that same action for all clients in the workspace.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
