@@ -786,7 +786,7 @@ interface FileAttributes {
   creationTime: UTCDateTime;
   lastAccessTime: UTCDateTime;
   lastModifiedTime: UTCDateTime;
-  kind: Directory | File | Symlink | Other;
+  kind: FilesystemType;
   byteSize: Size;
 }
 ```
@@ -849,23 +849,64 @@ A representation of a change to a text file at a given position.
 ##### Format
 
 ```typescript
-{
+interface TextEdit {
   range: Range;
   text: String;  
 }
 ```
 
 #### `FileEdit`
+A representation of a batch of edits to a file, versioned.
 
 ##### Format
 
 ```typescript
-{ 
+interface FileEdit { 
   path: Path;
   edits: [TextEdit];
   oldVersion: UUID;
   newVersion: UUID;
 }
+```
+
+#### `FileContents`
+A representation of the contents of a file.
+
+##### Format
+
+```typescript
+interface FileContents[T] {
+  contents: T;
+}
+
+class BinaryFileContents extends FileContents[Base64String];
+class TextFileContents extends FileContents[String];
+```
+
+#### `FilesystemType`
+A representation of what kind of type a filesystem object can be.
+
+##### Format
+
+```typescript
+type FilesystemType = Directory | File | Symlink | Other;
+
+interface Directory {
+  name: String;
+  path: Path;
+}
+
+interface File {
+  name: String;
+  path: Path;
+}
+
+interface Symlink {
+  source: Path;
+  target: Path;
+}
+
+interface Other;
 ```
 
 #### `WorkspaceEdit`
@@ -878,8 +919,10 @@ a robust notion of capability management to grant and remove permissions from
 clients.
 
 #### Request `capability/acquire`
+This requests that the server grant the specified capability to the requesting
+client.
 
-#### Request `capability/release`
+#### Notification `capability/release`
 
 #### Notification `capability/grant`
 
@@ -896,12 +939,88 @@ The capability management features work with the following capabilities.
 The language server also provides file operations to the IDE.
 
 #### Request `file/write`
-can write to nonexistent files, write blocked if file open
+This requests that the file manager component write to a specified file with
+the specified contents.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request is _explicitly_ allowed to write to files that do not exist, and
+will create them under such circumstances. If a file is recorded as 'open' by
+one of the clients, and another client attempts to write to that file, the
+write must fail.
+
+##### Parameters
+
+```typescript
+interface FileWriteRequest[T] {
+  path: Path;
+  contents: FileContents[T];
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### Request `file/read`
-reads from in memory state where necessary
+This requests that the file manager component reads the contents of a specified
+file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+If the file is recorded as open by the language server, then the result will
+return the contents from the in-memory buffer rather than the file on disk.
+
+##### Parameters
+
+```typescript
+interface FileReadRequest {
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+interface FileReadResult[T] {
+  contents: FileContents[T]
+}
+```
+
+##### Errors
+TBC
 
 #### Request `file/create`
+This request asks the file manager to create the specified file system object.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This will fail if the specified object already exists.
+
+##### Parameters
+
+```typescript
+interface FileCreateRequest {
+  object: FilesystemType;
+}
+```
+
+##### Response
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### Request `file/delete`
 
