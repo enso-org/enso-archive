@@ -1,7 +1,7 @@
 package org.enso.languageserver.data
 import java.util.UUID
 
-import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
+import io.circe._
 
 sealed abstract class Capability(val method: String)
 
@@ -29,8 +29,8 @@ case class CapabilityRegistration(
 )
 
 object CapabilityRegistration {
-  import io.circe.syntax._
   import io.circe.generic.auto._
+  import io.circe.syntax._
 
   type Id = UUID
 

@@ -1,8 +1,6 @@
 package org.enso.languageserver
-import java.io.File
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
-import org.enso.languageserver.data.{CanEdit, CapabilityRegistration, Client, Config, Env}
+import org.enso.languageserver.data._
 
 object LanguageProtocol {
   case class Initialize(config: Config)

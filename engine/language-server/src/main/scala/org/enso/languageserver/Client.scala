@@ -3,8 +3,9 @@ package org.enso.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
+import org.enso.languageserver.JsonRpcApi._
+import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.jsonrpc.{
-  Error,
   HasParams,
   HasResult,
   MessageHandler,
@@ -12,29 +13,12 @@ import org.enso.languageserver.jsonrpc.{
   Notification,
   Protocol,
   Request,
-  ResponseError,
   ResponseResult,
   Unused
 }
 
-import scala.concurrent.ExecutionContext
-import akka.util.Timeout
-import org.enso.languageserver.JsonRpcApi.{
-  AcquireCapability,
-  ForceReleaseCapability,
-  GrantCapability,
-  ReleaseCapability,
-  ReleaseCapabilityParams
-}
-import org.enso.languageserver.data.{CapabilityRegistration, Client}
-
-import scala.concurrent.duration._
-
 object JsonRpcApi {
   import io.circe.generic.auto._
-
-  case object CantCompleteRequestError
-      extends Error(1, "Can't complete request")
 
   case object AcquireCapability extends Method("capability/acquire") {
     implicit val hasParams = new HasParams[this.type] {
@@ -73,7 +57,6 @@ object JsonRpcApi {
     .registerRequest(ReleaseCapability)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
-    .registerError(CantCompleteRequestError)
 
   case class WebConnect(webActor: ActorRef)
 }

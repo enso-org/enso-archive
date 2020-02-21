@@ -1,10 +1,9 @@
 package org.enso.languageserver
 
-import java.io.File
 import java.util.UUID
 
 import akka.NotUsed
-import akka.actor.{Actor, ActorLogging, ActorRef, ActorSystem, Props, Stash}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
@@ -13,8 +12,8 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.jsonrpc.MessageHandler
 
-import scala.concurrent.duration._
 import scala.concurrent.Await
+import scala.concurrent.duration._
 import scala.io.StdIn
 
 object WebSocketServer {
