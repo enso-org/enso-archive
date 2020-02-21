@@ -12,7 +12,7 @@ To that end, we need to have a well-specified idea of what the various services
 do, and how they interact. This document contains a design for the engine
 services components, as well as any open questions that may remain.
 
-<!-- MarkdownTOC levels="2,3" autolink="true" -->
+<!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
 - [Architecture](#architecture)
   - [The Project Picker](#the-project-picker)
@@ -27,24 +27,74 @@ services components, as well as any open questions that may remain.
   - [Project State Management](#project-state-management)
   - [File Management and Storage](#file-management-and-storage)
   - [Execution Management](#execution-management)
+    - [Caching](#caching)
+    - [Progress Reporting](#progress-reporting)
   - [Visualisation Support](#visualisation-support)
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
+    - [`Path`](#path)
+    - [`AbsolutePath`](#absolutepath)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Types](#types)
+    - [`ProjectMetadata`](#projectmetadata)
   - [Project Management Operations](#project-management-operations)
+    - [`project/open`](#projectopen)
+    - [`project/close`](#projectclose)
+    - [`project/listRecent`](#projectlistrecent)
+    - [`project/create`](#projectcreate)
+    - [`project/delete`](#projectdelete)
+    - [`project/listSample`](#projectlistsample)
   - [Language Server Management](#language-server-management)
-  - [Errors](#errors)
+  - [Errors - Project Manager](#errors---project-manager)
 - [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
   - [Types](#types-1)
+    - [`File`](#file)
+    - [`DirectoryTree`](#directorytree)
+    - [`FileAttributes`](#fileattributes)
+    - [`FileEventKind`](#fileeventkind)
+    - [`Position`](#position)
+    - [`Range`](#range)
+    - [`TextEdit`](#textedit)
+    - [`FileEdit`](#fileedit)
+    - [`FileContents`](#filecontents)
+    - [`FileSystemObject`](#filesystemobject)
+    - [`WorkspaceEdit`](#workspaceedit)
   - [Capability Management](#capability-management)
+    - [`capability/acquire`](#capabilityacquire)
+    - [`capability/release`](#capabilityrelease)
+    - [`capability/granted`](#capabilitygranted)
+    - [`capability/forceReleased`](#capabilityforcereleased)
   - [Capabilities](#capabilities)
+    - [`capability/canEdit`](#capabilitycanedit)
+    - [`capability/receivesTreeUpdates`](#capabilityreceivestreeupdates)
   - [File Management Operations](#file-management-operations)
+    - [`file/write`](#filewrite)
+    - [`file/read`](#fileread)
+    - [`file/create`](#filecreate)
+    - [`file/delete`](#filedelete)
+    - [`file/copy`](#filecopy)
+    - [`file/move`](#filemove)
+    - [`file/exists`](#fileexists)
+    - [`file/tree`](#filetree)
+    - [`file/list`](#filelist)
+    - [`file/info`](#fileinfo)
+    - [`file/event`](#fileevent)
+    - [`file/addRoot`](#fileaddroot)
+    - [`file/removeRoot`](#fileremoveroot)
+    - [`file/rootAdded`](#filerootadded)
+    - [`file/rootRemoved`](#filerootremoved)
   - [Text Editing Operations](#text-editing-operations)
+    - [`text/openFile`](#textopenfile)
+    - [`text/closeFile`](#textclosefile)
+    - [`text/save`](#textsave)
+    - [`text/applyEdit`](#textapplyedit)
+    - [`text/didChange`](#textdidchange)
   - [Workspace Operations](#workspace-operations)
-  - [Errors](#errors-1)
+    - [`workspace/undo`](#workspaceundo)
+    - [`workspace/redo`](#workspaceredo)
+  - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
 
@@ -536,7 +586,7 @@ interface Path {
 
 ## Protocol Message Specification - Project Picker
 This section exists to contain a specification of each of the messages that the
-project picker supports. This is in order to aid in the proper creation of 
+project picker supports. This is in order to aid in the proper creation of
 clients, and to serve as an agreed-upon definition for the protocol between the
 IDE and Engine teams.
 
@@ -671,7 +721,7 @@ interface ProjectCreateRequest {
 TBC
 
 #### `project/delete`
-This message requests the deletion of a project. 
+This message requests the deletion of a project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -724,17 +774,17 @@ means that it needs to be able to spawn the process, but also tell the process
 when to shut down.
 
 > The actionables for this section are:
-> 
+>
 > - Fill it in when we have more of an idea about exactly how this spawning
 >   relationship is going to work.
 
-### Errors
+### Errors - Project Manager
 The project picker component also has its own set of errors. This section is not
 a complete specification and will be updated as new errors are added.
 
 ## Protocol Message Specification - Language Server
 This section exists to contain a specification of each of the messages that the
-language server supports. This is in order to aid in the proper creation of 
+language server supports. This is in order to aid in the proper creation of
 clients, and to serve as an agreed-upon definition for the protocol between the
 IDE and Engine teams.
 
@@ -770,7 +820,7 @@ and directories.
 interface DirectoryTree {
   path: Path;
   name: String;
-  files: [File];
+  files: [FileSystemObject];
   directories: [DirectoryTree];
 }
 ```
@@ -786,7 +836,7 @@ interface FileAttributes {
   creationTime: UTCDateTime;
   lastAccessTime: UTCDateTime;
   lastModifiedTime: UTCDateTime;
-  kind: FilesystemType;
+  kind: FileSystemObject;
   byteSize: Size;
 }
 ```
@@ -851,7 +901,7 @@ A representation of a change to a text file at a given position.
 ```typescript
 interface TextEdit {
   range: Range;
-  text: String;  
+  text: String;
 }
 ```
 
@@ -861,7 +911,7 @@ A representation of a batch of edits to a file, versioned.
 ##### Format
 
 ```typescript
-interface FileEdit { 
+interface FileEdit {
   path: Path;
   edits: [TextEdit];
   oldVersion: UUID;
@@ -883,13 +933,13 @@ class BinaryFileContents extends FileContents[Base64String];
 class TextFileContents extends FileContents[String];
 ```
 
-#### `FilesystemType`
+#### `FileSystemObject`
 A representation of what kind of type a filesystem object can be.
 
 ##### Format
 
 ```typescript
-type FilesystemType = Directory | File | Symlink | Other;
+type FileSystemObject = Directory | File | Symlink | Other;
 
 interface Directory {
   name: String;
@@ -1018,20 +1068,20 @@ The capability management features work with the following capabilities.
 This capability states that the capability has the ability to perform both
 `text/applyEdit` and `text/save` for the specified file.
 
-- **Name:** `canEdit`
-- **Parameters:** `{path: Path;}`
+- **method:** `canEdit`
+- **registerOptions:** `{path: Path;}`
 
 #### `capability/receivesTreeUpdates`
 This capability states that the client will receive updates for any watched
 content roots in the current project.
 
-- **Name:** `receivesTreeUpdates`
-- **Parameters:** `{}`
+- **method:** `receivesTreeUpdates`
+- **registerOptions:** `{}`
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
 
-#### Request `file/write`
+#### `file/write`
 This requests that the file manager component write to a specified file with
 the specified contents.
 
@@ -1046,7 +1096,7 @@ write must fail.
 ##### Parameters
 
 ```typescript
-interface FileWriteRequest[T] {
+{
   path: Path;
   contents: FileContents[T];
 }
@@ -1061,7 +1111,7 @@ interface FileWriteRequest[T] {
 ##### Errors
 TBC
 
-#### Request `file/read`
+#### `file/read`
 This requests that the file manager component reads the contents of a specified
 file.
 
@@ -1074,7 +1124,7 @@ return the contents from the in-memory buffer rather than the file on disk.
 ##### Parameters
 
 ```typescript
-interface FileReadRequest {
+{
   path: Path;
 }
 ```
@@ -1082,7 +1132,7 @@ interface FileReadRequest {
 ##### Result
 
 ```typescript
-interface FileReadResult[T] {
+{
   contents: FileContents[T]
 }
 ```
@@ -1090,7 +1140,7 @@ interface FileReadResult[T] {
 ##### Errors
 TBC
 
-#### Request `file/create`
+#### `file/create`
 This request asks the file manager to create the specified file system object.
 
 - **Type:** Request
@@ -1101,8 +1151,8 @@ This will fail if the specified object already exists.
 ##### Parameters
 
 ```typescript
-interface FileCreateRequest {
-  object: FilesystemType;
+{
+  object: FileSystemObject;
 }
 ```
 
@@ -1115,57 +1165,330 @@ interface FileCreateRequest {
 ##### Errors
 TBC
 
-#### Request `file/delete`
+#### `file/delete`
+This request asks the file managed to delete the specified file system object.
 
-#### Request `file/copy`
+- **Type:** Request
+- **Direction:** Client -> Server
 
-#### Request `file/move`
+##### Parameters
 
-#### Request `file/exists`
+```typescript
+{
+  path: Path;
+}
+```
 
-#### Request `file/tree`
-Should be able to send partial trees for large trees
+##### Result
 
-#### Request `file/list`
+```
+{}
+```
 
-#### Request `file/info`
-Should work for both files and directories
+##### Errors
+TBC
 
-#### Notification `file/event`
-Sent whenever a file changes in a content root.
+#### `file/copy`
+This request asks the file managed to copy a specified filesystem object to
+another location.
 
-#### Request `file/addRoot`
-Needs to send a whole set of `file/event` to update things.
+- **Type:** Request
+- **Direction:** Client -> Server
 
-#### Request `file/removeRoot`
-Needs to send a whole set of `file/event` to update things.
+##### Parameters
 
-#### Notification `file/rootAdded`
+```typescript
+{
+  from: Path;
+  to: Path;
+}
+```
 
-#### Notification `file/rootRemoved`
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `file/move`
+This request asks the file managed to move a specified filesystem object to
+another location.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The move should fail if the requested object or any child of the requested
+object is opened by a client of the language server.
+
+##### Parameters
+
+```typescript
+{
+  from: Path;
+  to: Path;
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `file/exists`
+This request asks the file manager to check whether a filesystem object exists
+at the specified path.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  exists: Boolean;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/tree`
+This request asks the file manager component to generate and provide the
+directory tree starting at a given path.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+For trees that exceed the provided `depth`, the result should be truncated, and
+the corresponding flag should be set.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+  depth: Int;
+}
+```
+
+##### Result
+
+```typescript
+{
+  tree: DirectoryTree;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/list`
+This request lists the contents of a given filesystem object. For a file it will
+just return the file, while for a directory it will list the contents of the
+directory.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  paths: [FileSystemObject];
+}
+```
+
+##### Errors
+TBC
+
+#### `file/info`
+This request gets information about a specified filesystem object.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This request should work for all kinds of filesystem object.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  attributes: Attributes;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/event`
+This is a notification that is sent every time something under a watched content
+root changes. It is used to ensure that the client's filesystem representation
+stays in synchronisation with reality.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+Events should be sent from server to client for every event observed under one
+of the (possibly multiple) content roots.
+
+##### Parameters
+
+```typescript
+{
+  object: FileSystemObject;
+  kind: FileEventKind;
+}
+```
+
+##### Errors
+TBC
+
+#### `file/addRoot`
+This request adds a content root to the active project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+When a content root is added, the language server must notify clients other than
+the one that added the root by sending a `file/rootAdded`. Additionally, all
+clients must be notified of the addition of visible files through a series of
+`file/event` notifications.
+
+##### Parameters
+
+```typescript
+{
+  absolutePath: [String];
+  id: UUID; // The ID of the content root
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `file/removeRoot`
+This request removes a content root from the active project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+When a content root is removed, the language server must notify clients other
+than the one that added the root by sending a `file/rootRemoved`. Additionally,
+all clients must be notified of the removal of visible files through a series of
+`file/event` notifications.
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The content root ID
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `file/rootAdded`
+This is a notification sent to all clients other than the one performing the
+addition of the root in order to inform them of the content root's ID.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The content root ID
+}
+```
+
+##### Errors
+TBC
+
+#### `file/rootRemoved`
+This is a notification sent to all clients other than the one performing the
+removal of the content root in order to inform them of the removal of the root.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The content root ID
+}
+```
+
+##### Errors
+TBC
 
 ### Text Editing Operations
 The language server also has a set of text editing operations to ensure that it
 stays in sync with the clients.
 
-#### Request `text/openFile`
+#### `text/openFile`
 
-#### Request `text/closeFile`
+#### `text/closeFile`
 
-#### Request `text/save`
+#### `text/save`
 
-#### Request `text/applyEdit`
+#### `text/applyEdit`
 
-#### Notification `text/didChange`
+#### `text/didChange`
 
 ### Workspace Operations
 The language server also has a set of operations useful for managing the client
 workspace.
 
-#### Request `workspace/undo`
+#### `workspace/undo`
 
-#### Request `workspace/redo`
+#### `workspace/redo`
 
-### Errors
-The language server component also has its own set of errors. This section is 
+### Errors - Language Server
+The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.

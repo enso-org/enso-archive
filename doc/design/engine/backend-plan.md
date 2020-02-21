@@ -1,19 +1,4 @@
 
-## Working with Files On Disk
-
-| Method         | Type    | Params                                       | Result     |
-|----------------|---------|----------------------------------------------|------------|
-| file/copy      | R: C->S | {from:Path, to:Path}                         | ()         |
-| file/move      | R: C->S | {from:Path, to:Path}                         | ()         |
-| file/delete    | R: C->S | {path:Path}                                  | ()         |
-| file/exists    | R: C->S | {path:Path}                                  | Boolean    |
-| file/list      | R: C->S | {path:Path}                                  | [Path]     |
-| file/tree      | R: C->S | {path:Path, depth: Int}                      | DirTree    |
-| file/info      | R: C->S | {path:Path}                                  | Attributes |
-| file/event     | N: S->C | [{path:Path, kind:EventKind}]                | ~          |
-| file/addRoot   | R: C->S | {absolutePath:[String], id: UUID}            | ()         |
-| file/rootAdded | N: S->C | {absolutePath:[String], id: UUID}            | ~          |
-
 ## Editing Files
 
 | Method      | Type    | Params                            | Result                                                             |
