@@ -33,11 +33,12 @@ services components, as well as any open questions that may remain.
   - [Functionality Post 2.0](#functionality-post-20)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
+  - [Types](#types)
   - [Project Management Operations](#project-management-operations)
   - [Language Server Management](#language-server-management)
   - [Errors](#errors)
 - [Protocol Message Specification - Language Server](#protocol-message-specification---language-server)
-  - [Types](#types)
+  - [Types](#types-1)
   - [Capability Management](#capability-management)
   - [Capabilities](#capabilities)
   - [File Management Operations](#file-management-operations)
@@ -544,6 +545,25 @@ IDE and Engine teams.
 > - As we establish the _exact_ format for each of the messages supported by the
 >   services, record the details of each message here.
 
+### Types
+There are a number of types that are used only within the project server's
+protocol messages. These are specified here.
+
+#### `ProjectMetadata`
+This type represents information about a project.
+
+##### Format
+
+```typescript
+interface ProjectMetadata {
+  name: String;
+  id: UUID;
+  size: Size;
+  lastOpened: UTCDateTime;
+  path: Path | URI;
+}
+```
+
 ### Project Management Operations
 The primary responsibility of the project pickers is to allow users to manage
 their projects.
@@ -557,22 +577,146 @@ specified project.
 - **Direction:** Client -> Server
 
 ##### Parameters
-TBC
+
+```typescript
+interface ProjectOpenRequest {
+  projectId: UUID
+}
+```
 
 ##### Result
+
+```typescript
+interface ProjectOpenResult {
+  lsAddress: IPWithSocket;
+}
+```
+
+##### Errors
 TBC
 
 #### Request `project/close`
 This message requests that the project picker close a specified project. This
-operation includes
+operation includes shutting down the language server gracefully so that it can
+persist state to disk as needed.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectCloseRequest {
+  projectId: UUID
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### Request `project/listRecent`
+This message requests that the project picker lists the user's most recently
+opened projects.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectListRecentRequest {
+  numProjects: Int;
+}
+```
+
+##### Result
+
+```typescript
+interface ProjectListRecentResponse {
+  projects: [ProjectMetadata]
+}
+```
+
+##### Errors
+TBC
 
 #### Request `project/create`
+This message requests the creation of a new project.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectCreateRequest {
+  name: String;
+  location: Path;
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### Request `project/delete`
+This message requests the deletion of a project. 
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectDeleteRequest {
+  projectId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### Request `project/listSample`
+This request lists the sample projects that are available to the user.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+interface ProjectListSampleRequest {
+  numProjects: Int;
+}
+```
+
+##### Result
+
+```typescript
+interface ProjectListSampleResponse {
+  projects: [ProjectMetadata]
+}
+```
+
+##### Errors
+TBC
 
 ### Language Server Management
 The project picker is also responsible for managing the language server. This
@@ -639,9 +783,9 @@ may be expanded in future.
 
 ```typescript
 interface FileAttributes {
-  creationTime: UTCTime;
-  lastAccessTime: UTCTime;
-  lastModifiedTime: UTCTime;
+  creationTime: UTCDateTime;
+  lastAccessTime: UTCDateTime;
+  lastModifiedTime: UTCDateTime;
   kind: Directory | File | Symlink | Other;
   byteSize: Size;
 }
@@ -744,36 +888,49 @@ clients.
 ### Capabilities
 The capability management features work with the following capabilities.
 
-#### `capability/canWrite`
+#### `capability/canEdit`
+
+#### `capability/receivesTreeUpdates`
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
 
+#### Request `file/write`
+can write to nonexistent files, write blocked if file open
+
+#### Request `file/read`
+reads from in memory state where necessary
+
 #### Request `file/create`
+
+#### Request `file/delete`
 
 #### Request `file/copy`
 
 #### Request `file/move`
 
-#### Request `file/delete`
-
 #### Request `file/exists`
+
+#### Request `file/tree`
+Should be able to send partial trees for large trees
 
 #### Request `file/list`
 
-#### Request `file/tree`
-
-#### Request `file/read`
-
 #### Request `file/info`
-
-#### Request `file/write`
+Should work for both files and directories
 
 #### Notification `file/event`
+Sent whenever a file changes in a content root.
 
 #### Request `file/addRoot`
+Needs to send a whole set of `file/event` to update things.
+
+#### Request `file/removeRoot`
+Needs to send a whole set of `file/event` to update things.
 
 #### Notification `file/rootAdded`
+
+#### Notification `file/rootRemoved`
 
 ### Text Editing Operations
 The language server also has a set of text editing operations to ensure that it
@@ -783,7 +940,7 @@ stays in sync with the clients.
 
 #### Request `text/closeFile`
 
-#### Request `text/saveFile`
+#### Request `text/save`
 
 #### Request `text/applyEdit`
 
