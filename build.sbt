@@ -150,6 +150,7 @@ val akkaSLF4J        = akkaPkg("slf4j")
 val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp         = akkaHTTPPkg("http")
 val akkaSpray        = akkaHTTPPkg("http-spray-json")
+val akkaHttpTestkit  = akkaHTTPPkg("http-testkit")
 val akka             = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
 
 val jmh = Seq(
@@ -428,6 +429,7 @@ lazy val language_server = (project in file("engine/language-server"))
       "io.circe"       %% "circe-generic-extras" % "0.12.2",
       "io.circe"       %% "circe-literal" % circeVersion,
       akkaTestkit      % Test,
+      akkaHttpTestkit  % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
     )

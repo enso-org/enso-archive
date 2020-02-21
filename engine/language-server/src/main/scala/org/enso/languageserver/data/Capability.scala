@@ -48,17 +48,20 @@ object CapabilityRegistration {
   implicit val decoder: Decoder[CapabilityRegistration] = json => {
     def resolveOptions(
       method: String,
-      cursor: ACursor
+      json: Json
     ): Decoder.Result[Capability] = method match {
-      case CanEdit.methodName => cursor.as[CanEdit]
+      case CanEdit.methodName => json.as[CanEdit]
       case _ =>
         Left(DecodingFailure("Unrecognized capability method.", List()))
     }
 
     for {
-      id         <- json.downField(idField).as[Id]
-      method     <- json.downField(methodField).as[String]
-      capability <- resolveOptions(method, json.downField(optionsField))
+      id     <- json.downField(idField).as[Id]
+      method <- json.downField(methodField).as[String]
+      capability <- resolveOptions(
+        method,
+        json.downField(optionsField).focus.getOrElse(Json.Null)
+      )
     } yield CapabilityRegistration(id, capability)
   }
 }

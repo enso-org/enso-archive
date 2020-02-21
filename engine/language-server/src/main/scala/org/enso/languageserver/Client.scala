@@ -3,7 +3,7 @@ package org.enso.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
-import org.enso.languageserver.JsonRpcApi._
+import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.jsonrpc.{
   HasParams,
@@ -17,7 +17,7 @@ import org.enso.languageserver.jsonrpc.{
   Unused
 }
 
-object JsonRpcApi {
+object ClientApi {
   import io.circe.generic.auto._
 
   case object AcquireCapability extends Method("capability/acquire") {
@@ -40,13 +40,13 @@ object JsonRpcApi {
     }
   }
 
-  case object ForceReleaseCapability extends Method("capability/forceRelease") {
+  case object ForceReleaseCapability extends Method("capability/forceReleased") {
     implicit val hasParams = new HasParams[this.type] {
       type Params = ReleaseCapabilityParams
     }
   }
 
-  case object GrantCapability extends Method("capability/grant") {
+  case object GrantCapability extends Method("capability/granted") {
     implicit val hasParams = new HasParams[this.type] {
       type Params = CapabilityRegistration
     }
@@ -67,7 +67,7 @@ class Client(val clientId: Client.Id, val server: ActorRef)
     with ActorLogging {
 
   override def receive: Receive = {
-    case JsonRpcApi.WebConnect(webActor) =>
+    case ClientApi.WebConnect(webActor) =>
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()

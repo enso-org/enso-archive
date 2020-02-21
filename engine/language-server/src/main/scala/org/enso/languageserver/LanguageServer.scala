@@ -3,7 +3,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import org.enso.languageserver.data._
 
 object LanguageProtocol {
-  case class Initialize(config: Config)
+  case object Initialize
   case class Connect(clientId: Client.Id, clientActor: ActorRef)
   case class Disconnect(clientId: Client.Id)
 
@@ -19,11 +19,11 @@ object LanguageProtocol {
   case class GrantCapability(registration: CapabilityRegistration)
 }
 
-class Server extends Actor with Stash with ActorLogging {
+class LanguageServer(config: Config) extends Actor with Stash with ActorLogging {
   import LanguageProtocol._
 
   override def receive: Receive = {
-    case Initialize(config) =>
+    case Initialize =>
       log.debug("Language Server initialized.")
       unstashAll()
       context.become(initialized(config))
