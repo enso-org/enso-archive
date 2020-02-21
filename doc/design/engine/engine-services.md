@@ -568,7 +568,7 @@ interface ProjectMetadata {
 The primary responsibility of the project pickers is to allow users to manage
 their projects.
 
-#### Request `project/open`
+#### `project/open`
 This message requests that the project picker open a specified project. This
 operation also includes spawning an instance of the language server open on the
 specified project.
@@ -595,7 +595,7 @@ interface ProjectOpenResult {
 ##### Errors
 TBC
 
-#### Request `project/close`
+#### `project/close`
 This message requests that the project picker close a specified project. This
 operation includes shutting down the language server gracefully so that it can
 persist state to disk as needed.
@@ -620,7 +620,7 @@ interface ProjectCloseRequest {
 ##### Errors
 TBC
 
-#### Request `project/listRecent`
+#### `project/listRecent`
 This message requests that the project picker lists the user's most recently
 opened projects.
 
@@ -646,7 +646,7 @@ interface ProjectListRecentResponse {
 ##### Errors
 TBC
 
-#### Request `project/create`
+#### `project/create`
 This message requests the creation of a new project.
 
 - **Type:** Request
@@ -670,7 +670,7 @@ interface ProjectCreateRequest {
 ##### Errors
 TBC
 
-#### Request `project/delete`
+#### `project/delete`
 This message requests the deletion of a project. 
 
 - **Type:** Request
@@ -693,7 +693,7 @@ interface ProjectDeleteRequest {
 ##### Errors
 TBC
 
-#### Request `project/listSample`
+#### `project/listSample`
 This request lists the sample projects that are available to the user.
 
 - **Type:** Request
@@ -918,22 +918,115 @@ In order to mediate between multiple clients properly, the language server has
 a robust notion of capability management to grant and remove permissions from
 clients.
 
-#### Request `capability/acquire`
+#### `capability/acquire`
 This requests that the server grant the specified capability to the requesting
 client.
 
-#### Notification `capability/release`
+- **Type:** Request
+- **Direction:** Client -> Server
 
-#### Notification `capability/grant`
+##### Parameters
 
-#### Notification `capability/forceRelease`
+```typescript
+{
+  registration: CapabilityRegistration;
+}
+
+interface CapabilityRegistration {
+  id: UUID; // The registration ID
+  method: String;
+  registerOptions?: any;
+}
+```
+
+The `registerOptions` are determined by the `method`. The method must be listed
+in the section on [capabilities](#capabilities) below.
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `capability/release`
+This requests that the server acknowledge that the client is releasing a given
+capability.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The ID used to register the capability
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
+
+#### `capability/granted`
+This notifies the client that it has been granted a capability without any
+action on its part.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  registration: CapabilityRegistration;
+}
+```
+
+##### Errors
+TBC
+
+#### `capability/forceReleased`
+This notifies the client that a capability has been forcibly removed from its
+capability set.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+##### Parameters
+
+```typescript
+{
+  id: UUID; // The ID used to register the capability
+}
+```
+
+##### Errors
+TBC
 
 ### Capabilities
 The capability management features work with the following capabilities.
 
 #### `capability/canEdit`
+This capability states that the capability has the ability to perform both
+`text/applyEdit` and `text/save` for the specified file.
+
+- **Name:** `canEdit`
+- **Parameters:** `{path: Path;}`
 
 #### `capability/receivesTreeUpdates`
+This capability states that the client will receive updates for any watched
+content roots in the current project.
+
+- **Name:** `receivesTreeUpdates`
+- **Parameters:** `{}`
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
