@@ -7,6 +7,11 @@ import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.jsonrpc._
 
+/**
+  * The JSON RPC API provided by the language server.
+  * See [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
+  * for message specifications.
+  */
 object ClientApi {
   import io.circe.generic.auto._
 
@@ -52,6 +57,13 @@ object ClientApi {
   case class WebConnect(webActor: ActorRef)
 }
 
+/**
+  * An actor handling communications between a single client and the language
+  * server.
+  *
+  * @param clientId the internal client id.
+  * @param server the language server actor.
+  */
 class ClientController(val clientId: Client.Id, val server: ActorRef)
     extends Actor
     with Stash

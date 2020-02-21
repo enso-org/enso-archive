@@ -3,22 +3,70 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import org.enso.languageserver.data._
 
 object LanguageProtocol {
+
+  /** Initializes the Language Server. */
   case object Initialize
+
+  /**
+    * Notifies the Language Server about a new client connecting.
+    *
+    * @param clientId the internal client id.
+    * @param clientActor the actor this client is represented by.
+    */
   case class Connect(clientId: Client.Id, clientActor: ActorRef)
+
+  /**
+    * Notifies the Language Server about a client disconnecting.
+    * The client may not send any further messages after this one.
+    *
+    * @param clientId the id of the disconnecting client.
+    */
   case class Disconnect(clientId: Client.Id)
 
+  /**
+    * Requests the Language Server grant a new capability to a client.
+    *
+    * @param clientId the client to grant the capability to.
+    * @param registration the capability to grant.
+    */
   case class AcquireCapability(
     clientId: Client.Id,
     registration: CapabilityRegistration
   )
+
+  /**
+    * Notifies the Language Server about a client releasing a capability.
+    *
+    * @param clientId the client releasing the capability.
+    * @param capabilityId the capability being released.
+    */
   case class ReleaseCapability(
     clientId: Client.Id,
     capabilityId: CapabilityRegistration.Id
   )
+
+  /**
+    * A notification sent by the Language Server, notifying a client about
+    * a capability being taken away from them.
+    *
+    * @param capabilityId the capability being released.
+    */
   case class ForceReleaseCapability(capabilityId: CapabilityRegistration.Id)
+
+  /**
+    * A notification sent by the Language Server, notifying a client about a new
+    * capability being granted to them.
+    *
+    * @param registration the capability being granted.
+    */
   case class GrantCapability(registration: CapabilityRegistration)
 }
 
+/**
+  * An actor representing an instance of the Language Server.
+  *
+  * @param config the configuration used by this Language Server.
+  */
 class LanguageServer(config: Config)
     extends Actor
     with Stash

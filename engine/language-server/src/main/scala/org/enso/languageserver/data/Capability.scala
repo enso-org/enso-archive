@@ -3,10 +3,19 @@ import java.util.UUID
 
 import io.circe._
 
+/**
+  * A superclass for all capabilities in the system.
+  * @param method method name used to identify the capability.
+  */
 sealed abstract class Capability(val method: String)
 
 //TODO[MK]: Migrate to actual Path, once it is implemented.
+/**
+  * A capability allowing the user to modify a given file.
+  * @param path
+  */
 case class CanEdit(path: String) extends Capability(CanEdit.methodName)
+
 object CanEdit {
   val methodName = "canEdit"
 }
@@ -23,6 +32,12 @@ object Capability {
   implicit val decoder: Decoder[Capability] = Decoder[CanEdit].widen
 }
 
+/**
+  * A capability registration object, used to identify acquired capabilities.
+  *
+  * @param id the registration id.
+  * @param capability the registered capability.
+  */
 case class CapabilityRegistration(
   id: CapabilityRegistration.Id,
   capability: Capability

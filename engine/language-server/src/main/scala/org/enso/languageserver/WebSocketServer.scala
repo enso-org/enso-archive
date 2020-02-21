@@ -16,6 +16,11 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 
+/**
+  * Exposes a multi-client Lanugage Server instance over WebSocket connections.
+  * @param languageServer an instance of a running and initialized Language
+  *                       Server.
+  */
 class WebSocketServer(languageServer: ActorRef)(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
@@ -82,6 +87,14 @@ class WebSocketServer(languageServer: ActorRef)(
     get { handleWebSocketMessages(newUser()) }
   }
 
+  /**
+    * Binds this server instance to a given port and interface, allowing
+    * future connections.
+    *
+    * @param interface the interface to bind to.
+    * @param port the port to bind to.
+    * @return a server binding object.
+    */
   def bind(interface: String, port: Int): Future[Http.ServerBinding] =
     Http().bindAndHandle(route, interface, port)
 }
