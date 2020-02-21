@@ -16,7 +16,6 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.io.StdIn
 
-
 object WebSocketServer {
 
   def main(args: Array[String]): Unit = {
@@ -39,11 +38,7 @@ object WebSocketServer {
         )
       clientActor ! JsonRpcApi.WsConnect(messageHandler)
 
-      serverActor ! LanguageProtocol.Connect(
-        clientId,
-        LanguageProtocol
-          .Client(clientActor, LanguageProtocol.Capabilities.default)
-      )
+      serverActor ! LanguageProtocol.Connect(clientId, clientActor)
 
       val incomingMessages: Sink[Message, NotUsed] =
         Flow[Message]
