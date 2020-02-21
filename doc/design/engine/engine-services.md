@@ -1475,7 +1475,7 @@ stays in sync with the clients.
 
 #### `text/openFile`
 This request informs the language server that a client has opened the specified
-file. 
+file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -1528,7 +1528,7 @@ file.
 TBC
 
 #### `text/save`
-This requests for the language server to save the specified file. 
+This requests for the language server to save the specified file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -1545,7 +1545,7 @@ that file, or if the client is requesting a save of an outdated version.
 }
 ```
 
-##### Result 
+##### Result
 
 ```typescript
 {}
@@ -1584,7 +1584,7 @@ TBC
 
 #### `text/didChange`
 This is a notification sent from the server to the clients to inform them of any
-changes made to files that they have open. 
+changes made to files that they have open.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
