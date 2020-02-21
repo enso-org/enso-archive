@@ -18,10 +18,7 @@ import org.enso.languageserver.jsonrpc.{
 }
 
 import scala.concurrent.ExecutionContext
-import scala.util.Success
 import akka.util.Timeout
-import akka.pattern.ask
-import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, HCursor, Json}
 import org.enso.languageserver.JsonRpcApi.{
   AcquireCapability,
   ForceReleaseCapability,
@@ -29,7 +26,7 @@ import org.enso.languageserver.JsonRpcApi.{
   ReleaseCapability,
   ReleaseCapabilityParams
 }
-import org.enso.languageserver.data.CapabilityRegistration
+import org.enso.languageserver.data.{CapabilityRegistration, Client}
 
 import scala.concurrent.duration._
 
@@ -78,19 +75,16 @@ object JsonRpcApi {
     .registerNotification(GrantCapability)
     .registerError(CantCompleteRequestError)
 
-  case class WsConnect(webActor: ActorRef)
+  case class WebConnect(webActor: ActorRef)
 }
 
-class Client(val clientId: LanguageProtocol.ClientId, val server: ActorRef)
+class Client(val clientId: Client.Id, val server: ActorRef)
     extends Actor
     with Stash
     with ActorLogging {
-  implicit val timeout: Timeout     = 5.seconds
-  implicit val ec: ExecutionContext = context.dispatcher
 
   override def receive: Receive = {
-    case JsonRpcApi.WsConnect(webActor) =>
-      log.debug("WebSocket connected.")
+    case JsonRpcApi.WebConnect(webActor) =>
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()
@@ -98,7 +92,6 @@ class Client(val clientId: LanguageProtocol.ClientId, val server: ActorRef)
 
   def connected(webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
-      log.debug("WebSocket disconnected.")
       server ! LanguageProtocol.Disconnect(clientId)
       context.stop(self)
 

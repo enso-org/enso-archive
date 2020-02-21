@@ -1,5 +1,4 @@
 package org.enso.languageserver.data
-import java.io.File
 import java.util.UUID
 
 import io.circe.{ACursor, Decoder, DecodingFailure, Encoder, Json}
@@ -24,11 +23,16 @@ object Capability {
   implicit val decoder: Decoder[Capability] = Decoder[CanEdit].widen
 }
 
-case class CapabilityRegistration(id: UUID, capability: Capability)
+case class CapabilityRegistration(
+  id: CapabilityRegistration.Id,
+  capability: Capability
+)
 
 object CapabilityRegistration {
   import io.circe.syntax._
   import io.circe.generic.auto._
+
+  type Id = UUID
 
   private val idField      = "id"
   private val methodField  = "method"
@@ -48,11 +52,11 @@ object CapabilityRegistration {
     ): Decoder.Result[Capability] = method match {
       case CanEdit.methodName => cursor.as[CanEdit]
       case _ =>
-        Left(DecodingFailure("Unrecognized method.", List()))
+        Left(DecodingFailure("Unrecognized capability method.", List()))
     }
 
     for {
-      id         <- json.downField(idField).as[UUID]
+      id         <- json.downField(idField).as[Id]
       method     <- json.downField(methodField).as[String]
       capability <- resolveOptions(method, json.downField(optionsField))
     } yield CapabilityRegistration(id, capability)

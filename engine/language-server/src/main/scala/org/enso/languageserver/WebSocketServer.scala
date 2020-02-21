@@ -10,6 +10,7 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.jsonrpc.MessageHandler
 
 import scala.concurrent.duration._
@@ -25,7 +26,7 @@ object WebSocketServer {
     val serverActor: ActorRef = system.actorOf(Props(new Server))
 
     serverActor ! LanguageProtocol.Initialize(
-      LanguageProtocol.Config(List(), List())
+      Config(List(), List())
     )
 
     def newUser(): Flow[Message, Message, NotUsed] = {
@@ -36,7 +37,7 @@ object WebSocketServer {
         system.actorOf(
           Props(new MessageHandler(JsonRpcApi.protocol, clientActor))
         )
-      clientActor ! JsonRpcApi.WsConnect(messageHandler)
+      clientActor ! JsonRpcApi.WebConnect(messageHandler)
 
       serverActor ! LanguageProtocol.Connect(clientId, clientActor)
 
