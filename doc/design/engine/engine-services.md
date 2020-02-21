@@ -1215,7 +1215,7 @@ another location.
 TBC
 
 #### `file/move`
-This request asks the file managed to move a specified filesystem object to
+This request asks the file manager to move a specified filesystem object to
 another location.
 
 - **Type:** Request
