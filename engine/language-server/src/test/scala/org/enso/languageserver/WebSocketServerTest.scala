@@ -169,6 +169,53 @@ class WebSocketServerTest
           }
           """)
     }
+
+    "implement the canEdit capability on a per-file basis" in {
+      val client1       = new WsTestClient(address)
+      val client2       = new WsTestClient(address)
+      val capability1Id = UUID.randomUUID()
+      val capability2Id = UUID.randomUUID()
+
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/acquire",
+            "id": 1,
+            "params": {
+              "id": $capability1Id,
+              "method": "canEdit",
+              "registerOptions": { "path": "/Foo/bar" }
+            }
+          }
+          """)
+
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": null
+          }
+          """)
+      client2.expectNoMessage()
+
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/acquire",
+            "id": 2,
+            "params": {
+              "id": $capability2Id,
+              "method": "canEdit",
+              "registerOptions": { "path": "/Baz/spam" }
+            }
+          }
+          """)
+
+      client1.expectNoMessage()
+      client2.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+    }
   }
 
   class WsTestClient(address: String) {
