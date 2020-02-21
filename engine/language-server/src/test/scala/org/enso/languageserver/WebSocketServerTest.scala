@@ -6,30 +6,13 @@ import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, PoisonPill, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
-import akka.http.scaladsl.testkit.WSProbe
-import akka.stream.{CompletionStrategy, OverflowStrategy}
+import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import com.sun.jndi.cosnaming.IiopUrl.Address
 import io.circe.Json
 import io.circe.literal._
 import io.circe.parser._
 import org.enso.languageserver.data.Config
-import org.enso.languageserver.jsonrpc.MessageHandler.{Connected, WebMessage}
-import org.enso.languageserver.jsonrpc.{
-  Error,
-  HasParams,
-  HasResult,
-  Id,
-  MessageHandler,
-  Method,
-  Notification,
-  Protocol,
-  Request,
-  ResponseError,
-  ResponseResult,
-  Unused
-}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
@@ -50,8 +33,8 @@ class WebSocketServerTest
   }
 
   val interface = "127.0.0.1"
-  val port = 54321
-  val address = s"ws://$interface:$port"
+  val port      = 54321
+  val address   = s"ws://$interface:$port"
 
   var server: WebSocketServer     = _
   var binding: Http.ServerBinding = _
@@ -106,8 +89,8 @@ class WebSocketServerTest
     }
 
     "take canEdit capability away from clients when another client registers for it" in {
-      val client1 = new WsTestClient(address)
-      val client2 = new WsTestClient(address)
+      val client1       = new WsTestClient(address)
+      val client2       = new WsTestClient(address)
       val capability1Id = UUID.randomUUID()
       val capability2Id = UUID.randomUUID()
       client1.send(json"""

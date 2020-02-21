@@ -5,7 +5,20 @@ import io.circe.Json
 import io.circe.literal._
 import io.circe.parser._
 import org.enso.languageserver.jsonrpc.MessageHandler.{Connected, WebMessage}
-import org.enso.languageserver.jsonrpc.{Error, HasParams, HasResult, Id, MessageHandler, Method, Notification, Protocol, Request, ResponseError, ResponseResult, Unused}
+import org.enso.languageserver.jsonrpc.{
+  Error,
+  HasParams,
+  HasResult,
+  Id,
+  MessageHandler,
+  Method,
+  Notification,
+  Protocol,
+  Request,
+  ResponseError,
+  ResponseResult,
+  Unused
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}

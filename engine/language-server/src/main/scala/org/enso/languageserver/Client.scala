@@ -5,17 +5,7 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
-import org.enso.languageserver.jsonrpc.{
-  HasParams,
-  HasResult,
-  MessageHandler,
-  Method,
-  Notification,
-  Protocol,
-  Request,
-  ResponseResult,
-  Unused
-}
+import org.enso.languageserver.jsonrpc._
 
 object ClientApi {
   import io.circe.generic.auto._
@@ -40,7 +30,8 @@ object ClientApi {
     }
   }
 
-  case object ForceReleaseCapability extends Method("capability/forceReleased") {
+  case object ForceReleaseCapability
+      extends Method("capability/forceReleased") {
     implicit val hasParams = new HasParams[this.type] {
       type Params = ReleaseCapabilityParams
     }

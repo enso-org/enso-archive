@@ -19,7 +19,10 @@ object LanguageProtocol {
   case class GrantCapability(registration: CapabilityRegistration)
 }
 
-class LanguageServer(config: Config) extends Actor with Stash with ActorLogging {
+class LanguageServer(config: Config)
+    extends Actor
+    with Stash
+    with ActorLogging {
   import LanguageProtocol._
 
   override def receive: Receive = {

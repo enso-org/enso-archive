@@ -5,12 +5,12 @@ import java.util.UUID
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
-import org.enso.languageserver.jsonrpc.{MessageHandler, Protocol}
+import org.enso.languageserver.jsonrpc.MessageHandler
 
 import scala.concurrent.Future
 
