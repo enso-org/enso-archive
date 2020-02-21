@@ -14,19 +14,22 @@ import org.enso.languageserver.jsonrpc.{MessageHandler, Protocol}
 
 import scala.concurrent.Future
 
-class WebSocketServer(languageServer: ActorRef, protocol: Protocol)(
+class WebSocketServer(languageServer: ActorRef)(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
 ) {
 
-  def newUser(): Flow[Message, Message, NotUsed] = {
+  private val outgoingBufferSize: Int   = 10
+  private val newConnectionPath: String = ""
+
+  private def newUser(): Flow[Message, Message, NotUsed] = {
     val clientId = UUID.randomUUID()
     val clientActor =
       system.actorOf(Props(new Client(clientId, languageServer)))
 
     val messageHandler =
       system.actorOf(
-        Props(new MessageHandler(protocol, clientActor))
+        Props(new MessageHandler(ClientApi.protocol, clientActor))
       )
     clientActor ! ClientApi.WebConnect(messageHandler)
 
@@ -49,7 +52,12 @@ class WebSocketServer(languageServer: ActorRef, protocol: Protocol)(
 
     val outgoingMessages: Source[Message, NotUsed] =
       Source
-        .actorRef[MessageHandler.WebMessage](10, OverflowStrategy.fail)
+        .actorRef[MessageHandler.WebMessage](
+          PartialFunction.empty,
+          PartialFunction.empty,
+          outgoingBufferSize,
+          OverflowStrategy.fail
+        )
         .mapMaterializedValue { outActor =>
           messageHandler ! MessageHandler.Connected(outActor)
           NotUsed
@@ -61,7 +69,7 @@ class WebSocketServer(languageServer: ActorRef, protocol: Protocol)(
     Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
   }
 
-  val route: Route = path("") {
+  private val route: Route = path(newConnectionPath) {
     get { handleWebSocketMessages(newUser()) }
   }
 

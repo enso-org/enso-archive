@@ -1,11 +1,6 @@
 package org.enso.languageserver.data
-import java.io.File
 
-case class Config(contentRoots: List[File], languagePath: List[File])
-
-object Config {
-  def apply(): Config = Config(List(), List())
-}
+case class Config()
 
 case class Env(clients: List[Client]) {
   def addClient(client: Client): Env = {

@@ -59,7 +59,7 @@ class WebSocketServerTest
   override def beforeEach(): Unit = {
     val languageServer = system.actorOf(Props(new LanguageServer(Config())))
     languageServer ! LanguageProtocol.Initialize
-    server  = new WebSocketServer(languageServer, ClientApi.protocol)
+    server  = new WebSocketServer(languageServer)
     binding = Await.result(server.bind(interface, port), 3.seconds)
   }
 
