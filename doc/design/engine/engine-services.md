@@ -580,7 +580,7 @@ specified project.
 
 ```typescript
 interface ProjectOpenRequest {
-  projectId: UUID
+  projectId: UUID;
 }
 ```
 
@@ -607,7 +607,7 @@ persist state to disk as needed.
 
 ```typescript
 interface ProjectCloseRequest {
-  projectId: UUID
+  projectId: UUID;
 }
 ```
 
@@ -639,7 +639,7 @@ interface ProjectListRecentRequest {
 
 ```typescript
 interface ProjectListRecentResponse {
-  projects: [ProjectMetadata]
+  projects: [ProjectMetadata];
 }
 ```
 
@@ -711,7 +711,7 @@ interface ProjectListSampleRequest {
 
 ```typescript
 interface ProjectListSampleResponse {
-  projects: [ProjectMetadata]
+  projects: [ProjectMetadata];
 }
 ```
 
@@ -797,7 +797,7 @@ The kind of event being described for a watched file.
 ##### Format
 
 ```typescript
-type FileEventKind = Added | Removed | Modified
+type FileEventKind = Added | Removed | Modified;
 ```
 
 #### `Position`
