@@ -996,7 +996,7 @@ in the section on [capabilities](#capabilities) below.
 ##### Result
 
 ```typescript
-{}
+null
 ```
 
 ##### Errors
