@@ -91,8 +91,11 @@ class WebSocketServerTest
     "take canEdit capability away from clients when another client registers for it" in {
       val client1       = new WsTestClient(address)
       val client2       = new WsTestClient(address)
+      val client3       = new WsTestClient(address)
       val capability1Id = UUID.randomUUID()
       val capability2Id = UUID.randomUUID()
+      val capability3Id = UUID.randomUUID()
+
       client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "capability/acquire",
@@ -104,12 +107,16 @@ class WebSocketServerTest
             }
           }
           """)
+
       client1.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
             "result": null
           }
           """)
+      client2.expectNoMessage()
+      client3.expectNoMessage()
+
       client2.send(json"""
           { "jsonrpc": "2.0",
             "method": "capability/acquire",
@@ -121,16 +128,44 @@ class WebSocketServerTest
             }
           }
           """)
+
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/forceReleased",
+            "params": {"id": $capability1Id}
+          }
+          """)
       client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
             "result": null
           }
           """)
-      client1.expectJson(json"""
+      client3.expectNoMessage()
+
+      client3.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/acquire",
+            "id": 3,
+            "params": {
+              "id": $capability3Id,
+              "method": "canEdit",
+              "registerOptions": { "path": "/Foo/bar" }
+            }
+          }
+          """)
+
+      client1.expectNoMessage()
+      client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "method": "capability/forceReleased",
-            "params": {"id": $capability1Id}
+            "params": {"id": $capability2Id}
+          }
+          """)
+      client3.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "result": null
           }
           """)
     }
@@ -178,5 +213,7 @@ class WebSocketServerTest
       val parsed = parse(expectMessage())
       parsed shouldEqual Right(json)
     }
+
+    def expectNoMessage(): Unit = outActor.expectNoMessage()
   }
 }
