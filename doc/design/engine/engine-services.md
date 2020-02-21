@@ -575,6 +575,7 @@ messages. They are specified below.
 A path is a representation of a path relative to a specified content root.
 
 ##### Format
+Please note that segments can only be ordinary file names, `..` and `.` may not be supported.
 
 ```typescript
 interface Path {
