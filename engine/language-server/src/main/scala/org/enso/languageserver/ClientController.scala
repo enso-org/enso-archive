@@ -52,7 +52,7 @@ object ClientApi {
   case class WebConnect(webActor: ActorRef)
 }
 
-class Client(val clientId: Client.Id, val server: ActorRef)
+class ClientController(val clientId: Client.Id, val server: ActorRef)
     extends Actor
     with Stash
     with ActorLogging {

@@ -15,7 +15,7 @@ import io.circe.parser._
 import org.enso.languageserver.data.Config
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -47,7 +47,7 @@ class WebSocketServerTest
   }
 
   override def afterEach(): Unit = {
-    binding.unbind()
+    val _ = binding.unbind()
   }
 
   "Language Server" must {
@@ -174,7 +174,7 @@ class WebSocketServerTest
     def expectMessage(): String =
       outActor.expectMsgClass[String](classOf[String])
 
-    def expectJson(json: Json): Unit = {
+    def expectJson(json: Json): Assertion = {
       val parsed = parse(expectMessage())
       parsed shouldEqual Right(json)
     }

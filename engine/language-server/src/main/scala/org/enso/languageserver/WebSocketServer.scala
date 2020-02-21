@@ -5,27 +5,32 @@ import java.util.UUID
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.ws.{Message, TextMessage}
+import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{Materializer, OverflowStrategy}
 import org.enso.languageserver.jsonrpc.MessageHandler
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
 
 class WebSocketServer(languageServer: ActorRef)(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
 ) {
 
-  private val outgoingBufferSize: Int   = 10
-  private val newConnectionPath: String = ""
+  implicit val ec: ExecutionContext = system.dispatcher
+
+  private val outgoingBufferSize: Int            = 10
+  private val newConnectionPath: String          = ""
+  private val lazyMessageTimeout: FiniteDuration = 10.seconds
 
   private def newUser(): Flow[Message, Message, NotUsed] = {
     val clientId = UUID.randomUUID()
     val clientActor =
-      system.actorOf(Props(new Client(clientId, languageServer)))
+      system.actorOf(Props(new ClientController(clientId, languageServer)))
 
     val messageHandler =
       system.actorOf(
@@ -37,10 +42,14 @@ class WebSocketServer(languageServer: ActorRef)(
 
     val incomingMessages: Sink[Message, NotUsed] =
       Flow[Message]
-        .map {
-          case TextMessage.Strict(text) =>
-            MessageHandler.WebMessage(text)
-        }
+        .mapConcat({
+          case textMsg: TextMessage => textMsg :: Nil
+          case _: BinaryMessage     => Nil
+        })
+        .mapAsync(1)(
+          _.toStrict(lazyMessageTimeout)
+            .map(msg => MessageHandler.WebMessage(msg.text))
+        )
         .to(
           Sink.actorRef[MessageHandler.WebMessage](
             messageHandler,
