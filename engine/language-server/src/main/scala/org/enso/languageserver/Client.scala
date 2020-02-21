@@ -1,5 +1,7 @@
 package org.enso.languageserver
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import org.enso.languageserver.jsonrpc.{
   Error,
@@ -19,11 +21,34 @@ import scala.concurrent.ExecutionContext
 import scala.util.Success
 import akka.util.Timeout
 import akka.pattern.ask
+import io.circe.{Decoder, Encoder}
+
 import scala.concurrent.duration._
 
 object JsonRpcApi {
   case object CantCompleteRequestError
       extends Error(1, "Can't complete request")
+
+  sealed abstract class Capability(method: String)
+  case class CanEdit(path: String) extends Capability("canEdit")
+
+  object Capability {
+    import cats.syntax.functor._
+    import io.circe.generic.auto._
+    import io.circe.syntax._
+
+    implicit val encoder: Encoder[Capability] = {
+      case cap: CanEdit => cap.asJson
+    }
+
+    implicit val decoder: Decoder[Capability] = Decoder[CanEdit].widen
+  }
+
+  case class CapabilityRegistration(id: UUID, capability: Capability)
+
+//  object CapabilityRegistration {
+//    implicit val encoder: Encoder[CapabilityRegistration] = Json.
+//  }
 
   case object AcquireWriteLock extends Method("acquireWriteLock") {
     implicit val hasParams = new HasParams[this.type] {
