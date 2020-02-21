@@ -92,6 +92,7 @@ services components, as well as any open questions that may remain.
     - [`text/applyEdit`](#textapplyedit)
     - [`text/didChange`](#textdidchange)
   - [Workspace Operations](#workspace-operations)
+    - [`workspace/connect`](#workspaceconnect)
     - [`workspace/undo`](#workspaceundo)
     - [`workspace/redo`](#workspaceredo)
   - [Errors - Language Server](#errors---language-server)
@@ -1443,6 +1444,7 @@ addition of the root in order to inform them of the content root's ID.
 ```typescript
 {
   id: UUID; // The content root ID
+  absolutePath: [String]
 }
 ```
 
@@ -1472,22 +1474,215 @@ The language server also has a set of text editing operations to ensure that it
 stays in sync with the clients.
 
 #### `text/openFile`
+This request informs the language server that a client has opened the specified
+file. 
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+If no client has write lock on the opened file, the capability is granted to
+the client that sent the `text/openFile` message.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{
+  writeCapability?: CapabilityRegistration;
+  currentVersion: UUID;
+}
+```
+
+##### Errors
+TBC
 
 #### `text/closeFile`
+This request informs the language server that a client has closed the specified
+file.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### `text/save`
+This requests for the language server to save the specified file. 
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The request may fail if the requesting client does not have permission to edit
+that file, or if the client is requesting a save of an outdated version.
+
+##### Parameters
+
+```typescript
+{
+  path: Path;
+  currentVersion: UUID;
+}
+```
+
+##### Result 
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### `text/applyEdit`
+This requests that the server apply a series of edits to the project. These
+edits solely concern text files.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+This operation may fail if the requesting client does not have permission to
+edit the resources for which edits are sent. This failure _may_ be partial, in
+that some edits are applied and others are not.
+
+##### Parameters
+
+```typescript
+{
+  edits: [FileEdit];
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### `text/didChange`
+This is a notification sent from the server to the clients to inform them of any
+changes made to files that they have open. 
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+
+This notification must _only_ be sent for files that the client has open.
+
+##### Parameters
+
+```typescript
+{
+  edits: [FileEdit];
+}
+```
+
+##### Errors
+TBC
 
 ### Workspace Operations
 The language server also has a set of operations useful for managing the client
 workspace.
 
+#### `workspace/connect`
+This is a request sent from the client to the server when it first connects to
+the server process, allowing it to obtain some initial information.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+##### Parameters
+
+```typescript
+{}
+```
+
+##### Result
+
+```typescript
+{
+  contentRoots: [{id: UUID; absPath: [String]}]
+}
+```
+
+##### Errors
+TBC
+
 #### `workspace/undo`
+This request is sent from the client to the server to request that an operation
+be undone.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The exact behaviour of this message is to be determined, but it must involve the
+server undoing that same action for all clients in the workspace.
+
+##### Parameters
+
+```typescript
+{
+  requestID?: UUID; // If not specified, it undoes the latest request
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 #### `workspace/redo`
+This request is sent from the client to the server to request that an operation
+be redone.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+
+The exact behaviour of this message is to be determined, but it must involve the
+server redoing that same action for all clients in the workspace.
+
+##### Parameters
+
+```typescript
+{
+  requestID?: UUID; // If not specified, it redoes the latest request
+}
+```
+
+##### Result
+
+```typescript
+{}
+```
+
+##### Errors
+TBC
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
