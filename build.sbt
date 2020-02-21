@@ -429,6 +429,7 @@ lazy val language_server = (project in file("engine/language-server"))
       "io.circe"       %% "circe-literal" % circeVersion,
       "org.typelevel"  %% "cats-core" % "2.0.0",
       "org.typelevel"  %% "cats-effect" % "2.0.0",
+      "commons-io"     % "commons-io" % "2.6",
       akkaTestkit      % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test

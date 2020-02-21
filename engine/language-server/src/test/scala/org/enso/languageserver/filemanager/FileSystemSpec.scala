@@ -27,7 +27,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val TestDirPath = Files.createTempDirectory(null)
 
     val TestDir = TestDirPath.toFile
-//    TestDir.deleteOnExit()
+    TestDir.deleteOnExit()
 
     val objectUnderTest = new FileSystem[IO]
 

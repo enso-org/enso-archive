@@ -1,10 +1,11 @@
 package org.enso.languageserver.filemanager
 
-import java.io.IOException
+import java.io.{FileNotFoundException, IOException}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{
   Files,
   InvalidPathException,
+  NoSuchFileException,
   Path,
   Paths,
   StandardOpenOption
@@ -12,6 +13,7 @@ import java.nio.file.{
 
 import cats.effect.Sync
 import cats.implicits._
+import org.apache.commons.io.FileUtils
 import org.enso.languageserver.filemanager.failures.{
   InvalidPath,
   IoFailure,
@@ -40,13 +42,17 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
   private def write(path: Path, content: String): Either[IoFailure, Unit] =
     Either
       .catchOnly[IOException](
-        Files.write(
-          path,
-          content.getBytes(StandardCharsets.UTF_8),
-          StandardOpenOption.CREATE
-        )
+        FileUtils.write(path.toFile, content, "UTF-8")
       )
-      .leftMap(ex => IoFailure(ex.toString))
+      .leftMap {
+        case ex: NoSuchFileException =>
+          IoFailure(s"File not found: ${ex.getMessage}")
+
+        case ex: FileNotFoundException =>
+          IoFailure(s"File not found: ${ex.getMessage}")
+
+        case ex => IoFailure(ex.getMessage)
+      }
       .map(_ => ())
 
 }
