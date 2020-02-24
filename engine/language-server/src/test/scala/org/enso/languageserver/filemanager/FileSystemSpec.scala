@@ -5,7 +5,9 @@ import java.nio.file.{Files, Paths}
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
+
 import scala.io.Source
+import java.nio.file.Path
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
 
@@ -18,7 +20,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
       objectUnderTest.write(path.toString, content).unsafeRunSync()
     //then
     result shouldBe Right(())
-    Source.fromFile(path.toFile).getLines().mkString shouldBe content
+    readTxtFile(path) shouldBe content
   }
 
   it should "overwrite existing files" in new TestCtx {
@@ -30,7 +32,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     objectUnderTest.write(path.toString, existingContent).unsafeRunSync()
     objectUnderTest.write(path.toString, newContent).unsafeRunSync()
     //then
-    Source.fromFile(path.toFile).getLines().mkString shouldBe newContent
+    readTxtFile(path) shouldBe newContent
   }
 
   it should "create the parent directory if it doesn't exist" in new TestCtx {
@@ -43,7 +45,14 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
       objectUnderTest.write(path.toString, content).unsafeRunSync()
     //then
     result shouldBe Right(())
-    Source.fromFile(path.toFile).getLines().mkString shouldBe content
+    readTxtFile(path) shouldBe content
+  }
+
+  def readTxtFile(path: Path): String = {
+    val buffer  = Source.fromFile(path.toFile)
+    val content = buffer.getLines().mkString
+    buffer.close()
+    content
   }
 
   trait TestCtx {
