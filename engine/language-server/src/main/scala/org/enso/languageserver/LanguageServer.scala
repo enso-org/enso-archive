@@ -6,8 +6,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import cats.effect.IO
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
-  FileOperationResult,
-  FileWrite
+  FileWrite,
+  FileWriteResult
 }
 import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemFailure}
 
@@ -141,6 +141,6 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
           _ <- fs.write(pathString, content).unsafeRunSync()
         } yield ()
 
-      sender ! FileOperationResult(result)
+      sender ! FileWriteResult(result)
   }
 }

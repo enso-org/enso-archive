@@ -5,7 +5,8 @@ import java.util.UUID
 /**
   * The config of the running Language Server instance.
   *
-  * Currently empty, to be filled in with content roots etc.
+  * @param contentRoots a mapping between content root id and absolute path to
+  *                     the content root
   */
 case class Config(contentRoots: Map[UUID, String] = Map.empty)
 

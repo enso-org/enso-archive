@@ -11,7 +11,7 @@ import org.enso.languageserver.filemanager.FileManagerApi.{
   FileWrite,
   FileWriteParams
 }
-import org.enso.languageserver.filemanager.FileManagerProtocol.FileOperationResult
+import org.enso.languageserver.filemanager.FileManagerProtocol.FileWriteResult
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailure
@@ -120,14 +120,14 @@ class ClientController(val clientId: Client.Id, val server: ActorRef)
     case Request(FileWrite, id, params: FileWriteParams) =>
       server
         .ask(FileManagerProtocol.FileWrite(params.path, params.content))
-        .mapTo[FileOperationResult]
+        .mapTo[FileWriteResult]
         .map(_ -> id)
         .pipeTo(self)
 
-    case (FileOperationResult(Left(FileSystemFailure(reason))), id: Id) =>
+    case (FileWriteResult(Left(FileSystemFailure(reason))), id: Id) =>
       webActor ! ResponseError(Some(id), UnknownError(1000, reason))
 
-    case (FileOperationResult(Right(())), id: Id) =>
+    case (FileWriteResult(Right(())), id: Id) =>
       webActor ! ResponseResult(FileWrite, id, Unused)
   }
 
