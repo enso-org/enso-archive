@@ -127,18 +127,10 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
       )
 
     case FileWrite(path, content) =>
-      val maybeRootPath =
-        config.contentRoots
-          .get(path.rootId)
-          .toRight(FileSystemFailure("Content root not found"))
-
       val result =
         for {
-          rootPath <- maybeRootPath
-          pathString = path.segments.foldLeft(rootPath) {
-            case (prefix, segment) => prefix + File.separator + segment
-          }
-          _ <- fs.write(pathString, content).unsafeRunSync()
+          rootPath <- config.findContentRoot(path.rootId)
+          _        <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
         } yield ()
 
       sender ! FileWriteResult(result)

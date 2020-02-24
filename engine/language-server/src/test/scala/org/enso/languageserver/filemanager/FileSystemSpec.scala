@@ -17,7 +17,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val content = "123456789"
     //when
     val result =
-      objectUnderTest.write(path.toString, content).unsafeRunSync()
+      objectUnderTest.write(path.toFile, content).unsafeRunSync()
     //then
     result shouldBe Right(())
     readTxtFile(path) shouldBe content
@@ -29,8 +29,8 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val existingContent = "123456789"
     val newContent      = "abcdef"
     //when
-    objectUnderTest.write(path.toString, existingContent).unsafeRunSync()
-    objectUnderTest.write(path.toString, newContent).unsafeRunSync()
+    objectUnderTest.write(path.toFile, existingContent).unsafeRunSync()
+    objectUnderTest.write(path.toFile, newContent).unsafeRunSync()
     //then
     readTxtFile(path) shouldBe newContent
   }
@@ -42,7 +42,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     testDir.delete()
     //when
     val result =
-      objectUnderTest.write(path.toString, content).unsafeRunSync()
+      objectUnderTest.write(path.toFile, content).unsafeRunSync()
     //then
     result shouldBe Right(())
     readTxtFile(path) shouldBe content

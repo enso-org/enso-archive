@@ -1,5 +1,6 @@
 package org.enso.languageserver.filemanager
 
+import java.io.File
 import java.util.UUID
 
 /**
@@ -8,4 +9,11 @@ import java.util.UUID
   * @param rootId a content root id that the path is relative to
   * @param segments path segments
   */
-case class Path(rootId: UUID, segments: List[String])
+case class Path(rootId: UUID, segments: List[String]) {
+
+  def toFile(rootPath: File): File =
+    segments.foldLeft(rootPath) {
+      case (parent, child) => new File(parent, child)
+    }
+
+}

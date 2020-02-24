@@ -48,7 +48,7 @@ class WebSocketServerTest
   var binding: Http.ServerBinding = _
 
   override def beforeEach(): Unit = {
-    val config = Config(Map(testContentRootId -> testContentRoot.toString))
+    val config = Config(Map(testContentRootId -> testContentRoot.toFile))
     val languageServer =
       system.actorOf(Props(new LanguageServer(config, new FileSystem[IO])))
     languageServer ! LanguageProtocol.Initialize
