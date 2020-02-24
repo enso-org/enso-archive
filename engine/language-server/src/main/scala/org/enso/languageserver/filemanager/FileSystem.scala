@@ -7,15 +7,27 @@ import cats.effect.Sync
 import cats.implicits._
 import org.apache.commons.io.FileUtils
 
+/**
+  * File manipulation facility.
+  *
+  * @tparam F represents target monad
+  */
 class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
 
+  /**
+    * Writes textual content to a file.
+    *
+    * @param pathString path to the file
+    * @param content    a textual content of the file
+    * @return either FileSystemFailure or Unit
+    */
   override def write(
-    path: String,
+    pathString: String,
     content: String
   ): F[Either[FileSystemFailure, Unit]] =
     Sync[F].delay {
       for {
-        path <- convertPath(path)
+        path <- convertPath(pathString)
         _    <- writeStringToFile(path, content)
       } yield ()
     }
@@ -39,7 +51,7 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         FileUtils.write(path.toFile, content, "UTF-8")
       )
       .leftMap {
-        case _: AccessDeniedException => FileSystemFailure(s"Access denied")
+        case _: AccessDeniedException => FileSystemFailure("Access denied")
         case ex                       => FileSystemFailure(ex.getMessage)
       }
       .map(_ => ())
