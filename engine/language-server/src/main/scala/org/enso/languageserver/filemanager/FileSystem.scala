@@ -25,9 +25,7 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
     file: File,
     content: String
   ): F[Either[FileSystemFailure, Unit]] =
-    Sync[F].delay {
-      writeStringToFile(file, content)
-    }
+    Sync[F].delay { writeStringToFile(file, content) }
 
   private def writeStringToFile(
     file: File,
