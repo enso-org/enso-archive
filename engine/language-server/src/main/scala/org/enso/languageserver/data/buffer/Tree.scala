@@ -1,7 +1,10 @@
 package org.enso.languageserver.data.buffer
+import scala.annotation.tailrec
+import scala.collection.mutable
+import scala.reflect.ClassTag
 
 sealed trait NodeVal[Elem] {
-  def children: Array[Node[Elem]]
+  def dumpElements(bldr: mutable.ArrayBuffer[Elem])
 }
 
 trait TreeShape {
@@ -9,17 +12,20 @@ trait TreeShape {
   def minChildren: Int
 }
 
-case class Internal[Elem](children: Array[Node[Elem]]) extends NodeVal[Elem]
+case class Internal[Elem](children: Array[Node[Elem]]) extends NodeVal[Elem] {
+  override def dumpElements(bldr: mutable.ArrayBuffer[Elem]): Unit =
+    children.foreach(_.value.dumpElements(bldr))
+}
 
 case class Leaf[Elem](elements: Array[Elem]) extends NodeVal[Elem] {
-  override def children: Array[Node[Elem]] =
-    throw new Exception("NodeVal.children called on a Leaf.")
+  override def dumpElements(bldr: mutable.ArrayBuffer[Elem]): Unit =
+    bldr.addAll(elements)
 }
 
 case class Node[Elem](height: Int, size: Int, value: NodeVal[Elem]) {
   def unsafeChildren: Array[Node[Elem]] = value match {
-    case Leaf(_)            => throw new Exception("NodeVal.children called on a Leaf.")
     case Internal(children) => children
+    case Leaf(_)            => throw new Exception("NodeVal.children called on a Leaf.")
   }
 
   def canBecomeChild(implicit treeShape: TreeShape): Boolean = value match {
@@ -133,7 +139,15 @@ object Node {
 
 case class Rope[Elem](root: Node[Elem])(implicit treeShape: TreeShape) {
   def ++(that: Rope[Elem]): Rope[Elem] = Rope(this.root ++ that.root)
-  def apply(idx: Int): Option[Elem]    = root(idx)
+
+  def apply(idx: Int): Option[Elem] = root(idx)
+
+  def toArray(implicit ev: ClassTag[Elem]): Array[Elem] = {
+    val builder = new mutable.ArrayBuffer[Elem](root.size)
+    root.value.dumpElements(builder)
+    builder.toArray
+  }
+//  override def iterator: Iterator[Elem] = ???
 }
 
 object Rope {

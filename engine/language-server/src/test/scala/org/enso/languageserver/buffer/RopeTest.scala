@@ -10,4 +10,11 @@ class RopeTest extends AnyFlatSpec with Matchers {
     myRope(3) shouldEqual Some('3')
     myRope(8) shouldEqual Some('8')
   }
+
+  "Rope" should "be dumpable back to an Array" in {
+    val myRope = Rope("hello world") ++ (Rope(" it's a") ++
+      Rope(" pleasure") ++
+      Rope(" to meet you."))
+    myRope.toArray shouldEqual "hello world it's a pleasure to meet you.".toCharArray
+  }
 }
