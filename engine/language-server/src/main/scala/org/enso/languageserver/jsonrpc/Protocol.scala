@@ -113,6 +113,8 @@ object Errors {
   case object InvalidRequest extends Error(-32600, "Invalid Request")
   case object MethodNotFound extends Error(-32601, "Method not found")
   case object InvalidParams  extends Error(-32602, "Invalid params")
+  case class FileSystemError(override val message: String)
+      extends Error(1000, message)
   case class UnknownError(override val code: Int, override val message: String)
       extends Error(code, message)
 }

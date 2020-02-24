@@ -16,7 +16,7 @@ import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailure
 }
-import org.enso.languageserver.jsonrpc.Errors.UnknownError
+import org.enso.languageserver.jsonrpc.Errors.FileSystemError
 import org.enso.languageserver.jsonrpc._
 
 import scala.concurrent.duration._
@@ -125,7 +125,7 @@ class ClientController(val clientId: Client.Id, val server: ActorRef)
         .pipeTo(self)
 
     case (FileWriteResult(Left(FileSystemFailure(reason))), id: Id) =>
-      webActor ! ResponseError(Some(id), UnknownError(1000, reason))
+      webActor ! ResponseError(Some(id), FileSystemError(reason))
 
     case (FileWriteResult(Right(())), id: Id) =>
       webActor ! ResponseResult(FileWrite, id, Unused)
