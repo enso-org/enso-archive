@@ -1,11 +1,13 @@
 package org.enso.languageserver.data
 
+import java.util.UUID
+
 /**
   * The config of the running Language Server instance.
   *
   * Currently empty, to be filled in with content roots etc.
   */
-case class Config()
+case class Config(contentRoots: Map[UUID, String] = Map.empty)
 
 /**
   * The state of the running Language Server instance.

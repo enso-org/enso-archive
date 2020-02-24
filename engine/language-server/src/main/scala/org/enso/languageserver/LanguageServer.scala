@@ -1,6 +1,15 @@
 package org.enso.languageserver
+
+import java.io.File
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
+import cats.effect.IO
 import org.enso.languageserver.data._
+import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  FileOperationResult,
+  FileWrite
+}
+import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemFailure}
 
 object LanguageProtocol {
 
@@ -67,7 +76,7 @@ object LanguageProtocol {
   *
   * @param config the configuration used by this Language Server.
   */
-class LanguageServer(config: Config)
+class LanguageServer(config: Config, fs: FileSystemApi[IO])
     extends Actor
     with Stash
     with ActorLogging {
@@ -116,5 +125,22 @@ class LanguageServer(config: Config)
       context.become(
         initialized(config, env.releaseCapability(clientId, capabilityId))
       )
+
+    case FileWrite(path, content) =>
+      val maybeRootPath =
+        config.contentRoots
+          .get(path.rootId)
+          .toRight(FileSystemFailure("Content root not found"))
+
+      val result =
+        for {
+          rootPath <- maybeRootPath
+          pathString = path.segments.foldLeft(rootPath) {
+            case (prefix, segment) => prefix + File.separator + segment
+          }
+          _ <- fs.write(pathString, content).unsafeRunSync()
+        } yield ()
+
+      sender ! FileOperationResult(result)
   }
 }

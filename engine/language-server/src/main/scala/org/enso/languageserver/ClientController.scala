@@ -3,9 +3,23 @@ package org.enso.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
+import akka.pattern.{ask, pipe}
+import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.filemanager.FileManagerApi.{
+  FileWrite,
+  FileWriteParams
+}
+import org.enso.languageserver.filemanager.FileManagerProtocol.FileOperationResult
+import org.enso.languageserver.filemanager.{
+  FileManagerProtocol,
+  FileSystemFailure
+}
+import org.enso.languageserver.jsonrpc.Errors.UnknownError
 import org.enso.languageserver.jsonrpc._
+
+import scala.concurrent.duration._
 
 /**
   * The JSON RPC API provided by the language server.
@@ -51,6 +65,7 @@ object ClientApi {
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
+    .registerRequest(FileWrite)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
 
@@ -68,6 +83,10 @@ class ClientController(val clientId: Client.Id, val server: ActorRef)
     extends Actor
     with Stash
     with ActorLogging {
+
+  import context.dispatcher
+
+  implicit val timeout = Timeout(10.seconds)
 
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
@@ -97,5 +116,19 @@ class ClientController(val clientId: Client.Id, val server: ActorRef)
     case Request(ReleaseCapability, id, params: ReleaseCapabilityParams) =>
       server ! LanguageProtocol.ReleaseCapability(clientId, params.id)
       sender ! ResponseResult(ReleaseCapability, id, Unused)
+
+    case Request(FileWrite, id, params: FileWriteParams) =>
+      server
+        .ask(FileManagerProtocol.FileWrite(params.path, params.content))
+        .mapTo[FileOperationResult]
+        .map(_ -> id)
+        .pipeTo(self)
+
+    case (FileOperationResult(Left(FileSystemFailure(reason))), id: Id) =>
+      webActor ! ResponseError(Some(id), UnknownError(1000, reason))
+
+    case (FileOperationResult(Right(())), id: Id) =>
+      webActor ! ResponseResult(FileWrite, id, Unused)
   }
+
 }
