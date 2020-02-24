@@ -1,6 +1,6 @@
 package org.enso.languageserver.filemanager
 
-import java.io.{FileNotFoundException, IOException}
+import java.io.IOException
 import java.nio.file._
 
 import cats.effect.Sync
@@ -39,8 +39,6 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         FileUtils.write(path.toFile, content, "UTF-8")
       )
       .leftMap {
-        case _: NoSuchFileException   => FileSystemFailure(s"File not found")
-        case _: FileNotFoundException => FileSystemFailure(s"File not found")
         case _: AccessDeniedException => FileSystemFailure(s"Access denied")
         case ex                       => FileSystemFailure(ex.getMessage)
       }
