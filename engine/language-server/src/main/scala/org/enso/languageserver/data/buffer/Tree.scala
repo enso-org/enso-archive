@@ -11,7 +11,7 @@ trait TreeShape {
 
 case class Internal[Elem](children: Array[Node[Elem]]) extends NodeVal[Elem]
 
-case class Leaf[Elem](elem: Elem) extends NodeVal[Elem] {
+case class Leaf[Elem](elements: Array[Elem]) extends NodeVal[Elem] {
   override def children: Array[Node[Elem]] =
     throw new Exception("NodeVal.children called on a Leaf.")
 }
@@ -79,10 +79,28 @@ case class Node[Elem](height: Int, size: Int, value: NodeVal[Elem]) {
     }
   }
 
+  def apply(idx: Int): Option[Elem] = {
+    if (idx >= size) return None
+    value match {
+      case Leaf(elems) => Some(elems(idx))
+      case Internal(children) =>
+        var currentSize = 0
+        for {
+          child <- children
+        } {
+          if (currentSize + child.size > idx) {
+            return child(idx - currentSize)
+          } else {
+            currentSize += child.size
+          }
+        }
+        None
+    }
+  }
 }
 
 object Node {
-  private[buffer] def unsafeFromChildren[Elem](
+  def unsafeFromChildren[Elem](
     children: Array[Node[Elem]]
   ): Node[Elem] = {
     val height = children(0).height + 1
@@ -108,6 +126,23 @@ object Node {
       Node.unsafeFromChildren(parentNodes)
     }
   }
+
+  def apply[Elem](elems: Array[Elem]): Node[Elem] =
+    Node(height = 0, size = elems.length, Leaf(elems))
 }
 
-class Tree {}
+case class Rope[Elem](root: Node[Elem])(implicit treeShape: TreeShape) {
+  def ++(that: Rope[Elem]): Rope[Elem] = Rope(this.root ++ that.root)
+  def apply(idx: Int): Option[Elem]    = root(idx)
+}
+
+object Rope {
+  implicit val defaultTreeShape: TreeShape = new TreeShape {
+    override def maxChildren: Int = 8
+    override def minChildren: Int = 4
+  }
+
+  def apply[Elem](items: Array[Elem]): Rope[Elem] = Rope(Node(items))
+
+  def apply(items: String): Rope[Char] = Rope(items.toCharArray)
+}
