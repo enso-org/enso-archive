@@ -12,14 +12,14 @@ case class Config()
   *
   * @param clients the list of currently connected clients.
   */
-case class Env(clients: List[Client]) {
+case class Environment(clients: List[Client]) {
 
   /**
     * Adds a new client to this `Env`
     * @param client the client to add.
     * @return a new version of the environment with the client added.
     */
-  def addClient(client: Client): Env = {
+  def addClient(client: Client): Environment = {
     copy(clients = client :: clients)
   }
 
@@ -29,7 +29,7 @@ case class Env(clients: List[Client]) {
     * @param clientId the id of the client to remove.
     * @return a new version of the environment with the client removed.
     */
-  def removeClient(clientId: Client.Id): Env =
+  def removeClient(clientId: Client.Id): Environment =
     copy(clients = clients.filter(_.id != clientId))
 
   /**
@@ -42,7 +42,7 @@ case class Env(clients: List[Client]) {
     */
   def removeCapabilitiesBy(
     predicate: CapabilityRegistration => Boolean
-  ): (Env, List[(Client, List[CapabilityRegistration])]) = {
+  ): (Environment, List[(Client, List[CapabilityRegistration])]) = {
     val newClients = clients.map { client =>
       val (removedCapabilities, retainedCapabilities) =
         client.capabilities.partition(predicate)
@@ -63,7 +63,7 @@ case class Env(clients: List[Client]) {
   def modifyClient(
     clientId: Client.Id,
     modification: Client => Client
-  ): Env = {
+  ): Environment = {
     val newClients = clients.map { client =>
       if (client.id == clientId) {
         modification(client)
@@ -84,7 +84,7 @@ case class Env(clients: List[Client]) {
   def grantCapability(
     clientId: Client.Id,
     registration: CapabilityRegistration
-  ): Env =
+  ): Environment =
     modifyClient(clientId, { client =>
       client.copy(capabilities = registration :: client.capabilities)
     })
@@ -99,7 +99,7 @@ case class Env(clients: List[Client]) {
   def releaseCapability(
     clientId: Client.Id,
     capabilityId: CapabilityRegistration.Id
-  ): Env =
+  ): Environment =
     modifyClient(clientId, { client =>
       client.copy(
         capabilities = client.capabilities.filter(_.id != capabilityId)
@@ -107,12 +107,12 @@ case class Env(clients: List[Client]) {
     })
 }
 
-object Env {
+object Environment {
 
   /**
     * Constructs an empty env.
     *
     * @return an empty env.
     */
-  def empty: Env = Env(List())
+  def empty: Environment = Environment(List())
 }

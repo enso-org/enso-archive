@@ -16,21 +16,46 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration.FiniteDuration
 import scala.concurrent.duration._
 
+object WebSocketServer {
+
+  /**
+    * A configuration object for properties of the WebSocketServer.
+    *
+    * @param outgoingBufferSize the number of messages buffered internally
+    *                           if the downstream connection is lagging behind.
+    * @param lazyMessageTimeout the timeout for downloading the whole of a lazy
+    *                           stream message from the user.
+    */
+  case class Config(outgoingBufferSize: Int, lazyMessageTimeout: FiniteDuration)
+
+  case object Config {
+
+    /**
+      * Creates a default instance of [[Config]].
+      *
+      * @return a default config.
+      */
+    def default: Config =
+      Config(outgoingBufferSize = 10, lazyMessageTimeout = 10.seconds)
+  }
+}
+
 /**
   * Exposes a multi-client Lanugage Server instance over WebSocket connections.
   * @param languageServer an instance of a running and initialized Language
   *                       Server.
   */
-class WebSocketServer(languageServer: ActorRef)(
+class WebSocketServer(
+  languageServer: ActorRef,
+  config: WebSocketServer.Config = WebSocketServer.Config.default
+)(
   implicit val system: ActorSystem,
   implicit val materializer: Materializer
 ) {
 
   implicit val ec: ExecutionContext = system.dispatcher
 
-  private val outgoingBufferSize: Int            = 10
-  private val newConnectionPath: String          = ""
-  private val lazyMessageTimeout: FiniteDuration = 10.seconds
+  private val newConnectionPath: String = ""
 
   private def newUser(): Flow[Message, Message, NotUsed] = {
     val clientId = UUID.randomUUID()
@@ -52,7 +77,7 @@ class WebSocketServer(languageServer: ActorRef)(
           case _: BinaryMessage     => Nil
         })
         .mapAsync(1)(
-          _.toStrict(lazyMessageTimeout)
+          _.toStrict(config.lazyMessageTimeout)
             .map(msg => MessageHandler.WebMessage(msg.text))
         )
         .to(
@@ -69,7 +94,7 @@ class WebSocketServer(languageServer: ActorRef)(
         .actorRef[MessageHandler.WebMessage](
           PartialFunction.empty,
           PartialFunction.empty,
-          outgoingBufferSize,
+          config.outgoingBufferSize,
           OverflowStrategy.fail
         )
         .mapMaterializedValue { outActor =>

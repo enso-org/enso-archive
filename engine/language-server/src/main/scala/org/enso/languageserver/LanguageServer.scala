@@ -51,7 +51,7 @@ object LanguageProtocol {
     *
     * @param capabilityId the capability being released.
     */
-  case class ForceReleaseCapability(capabilityId: CapabilityRegistration.Id)
+  case class CapabilityForceReleased(capabilityId: CapabilityRegistration.Id)
 
   /**
     * A notification sent by the Language Server, notifying a client about a new
@@ -59,7 +59,7 @@ object LanguageProtocol {
     *
     * @param registration the capability being granted.
     */
-  case class GrantCapability(registration: CapabilityRegistration)
+  case class CapabilityGranted(registration: CapabilityRegistration)
 }
 
 /**
@@ -81,7 +81,10 @@ class LanguageServer(config: Config)
     case _ => stash()
   }
 
-  def initialized(config: Config, env: Env = Env.empty): Receive = {
+  def initialized(
+    config: Config,
+    env: Environment = Environment.empty
+  ): Receive = {
     case Connect(clientId, actor) =>
       log.debug("Client connected [{}].", clientId)
       context.become(
@@ -103,7 +106,7 @@ class LanguageServer(config: Config)
       releasingClients.foreach {
         case (client: Client, capabilities) =>
           capabilities.foreach { registration =>
-            client.actor ! ForceReleaseCapability(registration.id)
+            client.actor ! CapabilityForceReleased(registration.id)
           }
       }
       val newEnv = envWithoutCapability.grantCapability(clientId, reg)

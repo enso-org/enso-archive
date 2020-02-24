@@ -81,13 +81,13 @@ class ClientController(val clientId: Client.Id, val server: ActorRef)
       server ! LanguageProtocol.Disconnect(clientId)
       context.stop(self)
 
-    case LanguageProtocol.ForceReleaseCapability(id) =>
+    case LanguageProtocol.CapabilityForceReleased(id) =>
       webActor ! Notification(
         ForceReleaseCapability,
         ReleaseCapabilityParams(id)
       )
 
-    case LanguageProtocol.GrantCapability(registration) =>
+    case LanguageProtocol.CapabilityGranted(registration) =>
       webActor ! Notification(GrantCapability, registration)
 
     case Request(AcquireCapability, id, registration: CapabilityRegistration) =>
