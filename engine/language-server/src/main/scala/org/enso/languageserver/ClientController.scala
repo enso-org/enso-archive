@@ -8,6 +8,9 @@ import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.filemanager.FileManagerApi.{
+  FileRead,
+  FileReadParams,
+  FileReadResult,
   FileSystemError,
   FileWrite,
   FileWriteParams
@@ -69,6 +72,7 @@ object ClientApi {
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
     .registerRequest(FileWrite)
+    .registerRequest(FileRead)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
 
@@ -124,7 +128,7 @@ class ClientController(
       sender ! ResponseResult(ReleaseCapability, id, Unused)
 
     case Request(FileWrite, id, params: FileWriteParams) =>
-      (server ? FileManagerProtocol.FileWrite(params.path, params.content))
+      (server ? FileManagerProtocol.FileWrite(params.path, params.contents))
         .onComplete {
           case Success(FileWriteResult(Right(()))) =>
             webActor ! ResponseResult(FileWrite, id, Unused)
@@ -139,6 +143,25 @@ class ClientController(
             log.error("An exception occurred during writing to a file", th)
             webActor ! ResponseError(Some(id), ServiceError)
         }
+
+    case Request(FileRead, id, params: FileReadParams) =>
+      (server ? FileManagerProtocol.FileRead(params.path)).onComplete {
+        case Success(
+            FileManagerProtocol.FileReadResult(Right(content: String))
+            ) =>
+          webActor ! ResponseResult(FileRead, id, FileReadResult(content))
+
+        case Success(FileManagerProtocol.FileReadResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occurred during reading a file", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+
   }
 
 }

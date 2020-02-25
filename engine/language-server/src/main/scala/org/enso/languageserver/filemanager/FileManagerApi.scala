@@ -24,7 +24,20 @@ object FileManagerApi {
     }
   }
 
-  case class FileWriteParams(path: Path, content: String)
+  case class FileWriteParams(path: Path, contents: String)
+
+  case object FileRead extends Method("file/read") {
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = FileReadParams
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = FileReadResult
+    }
+  }
+
+  case class FileReadParams(path: Path)
+
+  case class FileReadResult(contents: String)
 
   case class FileSystemError(override val message: String)
       extends Error(1000, message)
@@ -33,5 +46,7 @@ object FileManagerApi {
       extends Error(1001, "Content root not found")
 
   case object AccessDeniedError extends Error(1002, "Access denied")
+
+  case object FileNotFoundError extends Error(1003, "File not found")
 
 }

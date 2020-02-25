@@ -6,6 +6,8 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import cats.effect.IO
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  FileRead,
+  FileReadResult,
   FileWrite,
   FileWriteResult
 }
@@ -134,5 +136,14 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
         } yield ()
 
       sender ! FileWriteResult(result)
+
+    case FileRead(path) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          content  <- fs.read(path.toFile(rootPath)).unsafeRunSync()
+        } yield content
+
+      sender ! FileReadResult(result)
   }
 }
