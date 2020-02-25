@@ -9,6 +9,12 @@ import org.enso.languageserver.jsonrpc.Error
 
 object FileSystemFailureMapper {
 
+  /**
+    * Maps [[FileSystemFailure]] into JSON-RPC error.
+    *
+    * @param fileSystemFailure file system specific failure
+    * @return JSON-RPC error
+    */
   def mapFailure(fileSystemFailure: FileSystemFailure): Error =
     fileSystemFailure match {
       case ContentRootNotFound              => ContentRootNotFoundError
