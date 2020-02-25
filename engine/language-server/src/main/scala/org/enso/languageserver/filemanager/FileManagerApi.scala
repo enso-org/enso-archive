@@ -1,6 +1,12 @@
 package org.enso.languageserver.filemanager
 
-import org.enso.languageserver.jsonrpc.{HasParams, HasResult, Method, Unused}
+import org.enso.languageserver.jsonrpc.{
+  Error,
+  HasParams,
+  HasResult,
+  Method,
+  Unused
+}
 
 /**
   * The file manager JSON RPC API provided by the language server.
@@ -19,5 +25,8 @@ object FileManagerApi {
   }
 
   case class FileWriteParams(path: Path, content: String)
+
+  case class FileSystemError(override val message: String)
+      extends Error(1000, message)
 
 }

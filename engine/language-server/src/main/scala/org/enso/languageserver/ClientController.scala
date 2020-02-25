@@ -3,11 +3,12 @@ package org.enso.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
-import akka.pattern.{ask, pipe}
+import akka.pattern.ask
 import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.filemanager.FileManagerApi.{
+  FileSystemError,
   FileWrite,
   FileWriteParams
 }
@@ -16,10 +17,11 @@ import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailure
 }
-import org.enso.languageserver.jsonrpc.Errors.FileSystemError
+import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 /**
   * The JSON RPC API provided by the language server.
@@ -118,17 +120,18 @@ class ClientController(val clientId: Client.Id, val server: ActorRef)
       sender ! ResponseResult(ReleaseCapability, id, Unused)
 
     case Request(FileWrite, id, params: FileWriteParams) =>
-      server
-        .ask(FileManagerProtocol.FileWrite(params.path, params.content))
-        .mapTo[FileWriteResult]
-        .map(_ -> id)
-        .pipeTo(self)
+      (server ? FileManagerProtocol.FileWrite(params.path, params.content))
+        .onComplete {
+          case Success(FileWriteResult(Right(()))) =>
+            webActor ! ResponseResult(FileWrite, id, Unused)
 
-    case (FileWriteResult(Left(FileSystemFailure(reason))), id: Id) =>
-      webActor ! ResponseError(Some(id), FileSystemError(reason))
+          case Success(FileWriteResult(Left(FileSystemFailure(reason)))) =>
+            webActor ! ResponseError(Some(id), FileSystemError(reason))
 
-    case (FileWriteResult(Right(())), id: Id) =>
-      webActor ! ResponseResult(FileWrite, id, Unused)
+          case Failure(th) =>
+            log.error("An exception occurred during writing to a file", th)
+            webActor ! ResponseError(Some(id), ServiceError)
+        }
   }
 
 }
