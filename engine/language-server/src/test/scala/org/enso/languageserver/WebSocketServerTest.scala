@@ -1,6 +1,6 @@
 package org.enso.languageserver
 
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import akka.NotUsed
@@ -22,6 +22,7 @@ import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.io.{Source => IoSource}
 
 class WebSocketServerTest
     extends TestKit(ActorSystem("TestSystem"))
@@ -250,6 +251,8 @@ class WebSocketServerTest
           }
           """)
       client.expectNoMessage()
+      val path = Paths.get(testContentRoot.toString, "foo", "bar", "baz.txt")
+      IoSource.fromFile(path.toFile).getLines().mkString shouldBe "123456789"
     }
 
     "return failure when a content root cannot be found" in {
