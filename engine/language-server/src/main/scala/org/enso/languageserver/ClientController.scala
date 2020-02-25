@@ -81,14 +81,17 @@ object ClientApi {
   * @param clientId the internal client id.
   * @param server the language server actor.
   */
-class ClientController(val clientId: Client.Id, val server: ActorRef)
-    extends Actor
+class ClientController(
+  val clientId: Client.Id,
+  val server: ActorRef,
+  requestTimeout: FiniteDuration = 10.seconds
+) extends Actor
     with Stash
     with ActorLogging {
 
   import context.dispatcher
 
-  implicit val timeout = Timeout(10.seconds)
+  implicit val timeout = Timeout(requestTimeout)
 
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
