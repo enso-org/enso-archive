@@ -120,6 +120,7 @@ case class Node[C, M](
     treeShape: TreeShape
   ): Node[C, M] = {
     value match {
+      case Empty() => this
       case Leaf(c) => Node(measureOps.take(c, offset))
       case Internal(children) =>
         val (left, mid, _) = findIndexChild(offset, measureOps, children)
@@ -141,6 +142,7 @@ case class Node[C, M](
     treeShape: TreeShape
   ): Node[C, M] = {
     value match {
+      case Empty() => this
       case Leaf(c) => Node(measureOps.drop(c, offset))
       case Internal(children) =>
         val (_, mid, right) = findIndexChild(offset, measureOps, children)
@@ -185,6 +187,7 @@ case class Node[C, M](
     treeShape: TreeShape
   ): (Node[C, M], Node[C, M]) = {
     value match {
+      case Empty() => (this, this)
       case Leaf(elements) =>
         val (leftC, rightC) = measureOps.splitAt(elements, ix)
         (Node(leftC), Node(rightC))
@@ -206,6 +209,7 @@ case class Node[C, M](
 
   def get[I](index: I, measureOps: MeasureOps[I, C, M]): measureOps.Elem = {
     value match {
+      case Empty()        => throw new ArrayIndexOutOfBoundsException
       case Leaf(elements) => measureOps.get(elements, index)
       case Internal(children) =>
         var currentIdx = index
@@ -222,28 +226,6 @@ case class Node[C, M](
 
     }
   }
-}
-
-trait MeasureOps[I, C, M] {
-  type Elem
-
-  def get(container: C, index: I): Elem
-
-  def splitAt(container: C, index: I): (C, C)
-
-  def offsetInside(index: I, measure: M): Boolean
-
-  def contains(index: I, measure: M): Boolean
-
-  def moveAfter(index: I, measure: M): I
-
-  def take(container: C, len: I): C
-
-  def drop(container: C, len: I): C
-}
-
-trait Measurable[C, M] {
-  def measure(container: C): M
 }
 
 object Node {
@@ -288,181 +270,24 @@ object Node {
     nodes.foldLeft(empty[C, M])((tree, node) => tree ++ node)
 }
 
-case class StringMeasure(utf16Size: Int, utf32Size: Int)
+trait MeasureOps[I, C, M] {
+  type Elem
 
-case object StringMeasure {
-  implicit val monoid: Monoid[StringMeasure] = new Monoid[StringMeasure] {
-    override def empty: StringMeasure = StringMeasure(0, 0)
-    override def combine(x: StringMeasure, y: StringMeasure): StringMeasure =
-      StringMeasure(x.utf16Size + y.utf16Size, x.utf32Size + y.utf32Size)
-  }
+  def get(container: C, index: I): Elem
+
+  def splitAt(container: C, index: I): (C, C)
+
+  def offsetInside(index: I, measure: M): Boolean
+
+  def contains(index: I, measure: M): Boolean
+
+  def moveAfter(index: I, measure: M): I
+
+  def take(container: C, len: I): C
+
+  def drop(container: C, len: I): C
 }
 
-object CodePointRopeOps extends MeasureOps[Int, String, StringMeasure] {
-  type Elem = Int
-
-  override def contains(
-    index: Int,
-    measure: StringMeasure
-  ): Boolean = index < measure.utf32Size
-
-  override def get(
-    container: String,
-    index: Int
-  ): Int = container.codePointAt(container.offsetByCodePoints(0, index))
-
-  override def splitAt(
-    container: String,
-    index: Int
-  ): (String, String) = {
-    val splitPoint = container.offsetByCodePoints(0, index)
-    (
-      container.substring(0, splitPoint),
-      container.substring(splitPoint, container.length)
-    )
-  }
-  override def offsetInside(
-    index: Int,
-    measure: StringMeasure
-  ): Boolean = index > 0 && index < measure.utf32Size
-  override def moveAfter(
-    index: Int,
-    measure: StringMeasure
-  ): Int = index - measure.utf32Size
-  override def take(
-    container: String,
-    len: Int
-  ): String = {
-    val splitPoint = container.offsetByCodePoints(0, len)
-    container.substring(0, splitPoint)
-  }
-  override def drop(
-    container: String,
-    len: Int
-  ): String = {
-    val splitPoint = container.offsetByCodePoints(0, len)
-    container.substring(splitPoint, container.length)
-  }
-
-}
-
-case class CodePointRope(rope: StringRope) {
-  def splitAt(ix: Int): (StringRope, StringRope) =
-    rope.splitWith(ix, CodePointRopeOps)
-
-  def take(len: Int): StringRope = rope.takeWith(len, CodePointRopeOps)
-
-  def drop(len: Int): StringRope = rope.dropWith(len, CodePointRopeOps)
-
-  def substring(startIndex: Int, endIndex: Int): StringRope =
-    take(endIndex).codePoints.drop(startIndex)
-
-  def get(index: Int): Int = rope.root.get(index, CodePointRopeOps)
-}
-
-object CharRopeOps extends MeasureOps[Int, String, StringMeasure] {
-  type Elem = Char
-
-  override def get(
-    container: String,
-    index: Int
-  ): Char = container(index)
-
-  override def contains(
-    index: Int,
-    measure: StringMeasure
-  ): Boolean = index < measure.utf16Size
-
-  override def splitAt(container: String, index: Int): (String, String) =
-    container.splitAt(index)
-
-  override def offsetInside(index: Int, measure: StringMeasure): Boolean =
-    index > 0 && index < measure.utf16Size
-
-  override def moveAfter(index: Int, measure: StringMeasure): Int =
-    index - measure.utf16Size
-
-  override def take(
-    container: String,
-    len: Int
-  ): String = container.substring(0, len)
-
-  override def drop(
-    container: String,
-    len: Int
-  ): String = container.substring(len, container.length)
-
-}
-
-case class CharRope(rope: StringRope) extends CharSequence {
-  def splitAt(ix: Int): (StringRope, StringRope) =
-    rope.splitWith(ix, CharRopeOps)
-
-  def take(len: Int): StringRope = rope.takeWith(len, CharRopeOps)
-
-  def drop(len: Int): StringRope = rope.dropWith(len, CharRopeOps)
-
-  def substring(startIndex: Int, endIndex: Int): StringRope =
-    take(endIndex).characters.drop(startIndex)
-
-  override def length: Int = rope.root.measure.utf16Size
-
-  override def charAt(index: Int): Char = rope.getWith(index, CharRopeOps)
-
-  override def subSequence(
-    start: Int,
-    end: Int
-  ): CharSequence = CharRope(substring(start, end))
-}
-
-case class StringRope(root: Node[String, StringMeasure]) {
-  import StringRope._
-
-  def ++(that: StringRope): StringRope = StringRope(this.root ++ that.root)
-
-  override def toString: String = {
-    val sb = new StringBuilder(root.measure.utf16Size)
-    root.value.foreach(sb.append(_: String))
-    sb.toString()
-  }
-
-  def splitWith(
-    ix: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
-  ): (StringRope, StringRope) = {
-    val (lNode, rNode) = root.splitAt(ix, ops)
-    (StringRope(lNode), StringRope(rNode))
-  }
-
-  def takeWith(
-    len: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
-  ): StringRope = StringRope(root.take(len, ops))
-
-  def dropWith(
-    len: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
-  ): StringRope = StringRope(root.drop(len, ops))
-
-  def getWith(
-    index: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
-  ): ops.Elem = root.get(index, ops)
-
-  def codePoints: CodePointRope = CodePointRope(this)
-
-  def characters: CharRope = CharRope(this)
-}
-
-object StringRope {
-  implicit val treeShape: TreeShape = new TreeShape {
-    override def maxChildren: Int = 8
-    override def minChildren: Int = 4
-  }
-
-  implicit val measurable: Measurable[String, StringMeasure] =
-    (str: String) =>
-      StringMeasure(str.length, str.codePointCount(0, str.length))
-
-  def apply(str: String): StringRope = StringRope(Node(str))
+trait Measurable[C, M] {
+  def measure(container: C): M
 }

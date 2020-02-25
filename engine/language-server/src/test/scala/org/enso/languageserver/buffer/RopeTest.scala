@@ -1,20 +1,18 @@
 package org.enso.languageserver.buffer
-import java.util.stream.Collectors
 
-import org.enso.languageserver.data.buffer.StringRope
+import org.enso.languageserver.data.buffer.Rope
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import scala.jdk.CollectionConverters._
 
 class RopeTest extends AnyFlatSpec with Matchers {
   "StringRope" should "correctly concat strings" in {
-    val rope = StringRope("hello world") ++ (StringRope(" it's a") ++
-      StringRope(" pleasure") ++
-      StringRope(" to meet you."))
+    val rope = Rope("hello world") ++ (Rope(" it's a") ++ Rope(" pleasure") ++
+      Rope(" to meet you."))
     rope.toString shouldEqual "hello world it's a pleasure to meet you."
   }
 
-  val rope = StringRope("𠜎a") ++ StringRope("𠜱bcą") ++ StringRope("ś𠝹łęk")
+  val rope = Rope("𠜎a") ++ Rope("𠜱bcą") ++ Rope("ś𠝹łęk")
 
   "StringRope" should "allow splitting by code points" in {
     val (left, right) = rope.codePoints.splitAt(4)
