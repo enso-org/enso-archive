@@ -36,8 +36,8 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         FileUtils.write(file, content, "UTF-8")
       )
       .leftMap {
-        case _: AccessDeniedException => FileSystemFailure("Access denied")
-        case ex                       => FileSystemFailure(ex.getMessage)
+        case _: AccessDeniedException => AccessDenied
+        case ex                       => GenericFileSystemFailure(ex.getMessage)
       }
       .map(_ => ())
 

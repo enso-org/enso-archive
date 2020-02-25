@@ -29,4 +29,9 @@ object FileManagerApi {
   case class FileSystemError(override val message: String)
       extends Error(1000, message)
 
+  case object ContentRootNotFoundError
+      extends Error(1001, "Content root not found")
+
+  case object AccessDeniedError extends Error(1002, "Access denied")
+
 }

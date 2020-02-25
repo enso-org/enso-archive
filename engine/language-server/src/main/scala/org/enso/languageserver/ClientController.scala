@@ -15,7 +15,8 @@ import org.enso.languageserver.filemanager.FileManagerApi.{
 import org.enso.languageserver.filemanager.FileManagerProtocol.FileWriteResult
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
-  FileSystemFailure
+  FileSystemFailure,
+  FileSystemFailureMapper
 }
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
@@ -128,8 +129,11 @@ class ClientController(
           case Success(FileWriteResult(Right(()))) =>
             webActor ! ResponseResult(FileWrite, id, Unused)
 
-          case Success(FileWriteResult(Left(FileSystemFailure(reason)))) =>
-            webActor ! ResponseError(Some(id), FileSystemError(reason))
+          case Success(FileWriteResult(Left(failure))) =>
+            webActor ! ResponseError(
+              Some(id),
+              FileSystemFailureMapper.mapFailure(failure)
+            )
 
           case Failure(th) =>
             log.error("An exception occurred during writing to a file", th)

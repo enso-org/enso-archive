@@ -252,6 +252,34 @@ class WebSocketServerTest
       client.expectNoMessage()
     }
 
+    "return failure when a content root cannot be found" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 3,
+            "params": {
+              "path": {
+                "rootId": ${UUID.randomUUID()},
+                "segments": [ "foo", "bar", "baz.txt" ]
+              },
+              "content": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 3,
+            "error" : {
+              "code" : 1001,
+              "message" : "Content root not found"
+            }
+          }
+          """)
+      client.expectNoMessage()
+    }
+
   }
 
   class WsTestClient(address: String) {
