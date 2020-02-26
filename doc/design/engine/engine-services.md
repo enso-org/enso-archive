@@ -1111,7 +1111,7 @@ null
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror)
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error. 
 - [`ContentRootNotFoundError`](#contentrootnotfounderror)
 - [`AccessDeniedError`](#accessdeniederror)
 
