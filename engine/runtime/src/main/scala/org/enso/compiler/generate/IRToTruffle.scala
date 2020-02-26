@@ -1,23 +1,22 @@
 package org.enso.compiler.generate
 
-import java.util
-
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionSiteArgument
-import org.enso.interpreter.{Constants, Language}
 import org.enso.interpreter.builder.{ArgDefinitionFactory, ExpressionFactory}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
-import org.enso.interpreter.runtime.callable.function.{
-  Function => RuntimeFunction
-}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
-import org.enso.interpreter.runtime.callable.function.FunctionSchema
+import org.enso.interpreter.runtime.callable.function.{
+  FunctionSchema,
+  Function => RuntimeFunction
+}
 import org.enso.interpreter.runtime.error.VariableDoesNotExistException
-import org.enso.interpreter.runtime.scope.ModuleScope
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.Location
+import shapeless.HList
 
 import scala.jdk.CollectionConverters._
 
@@ -43,7 +42,7 @@ class IRToTruffle(
   // === IR Processing Functions ==============================================
   // ==========================================================================
 
-  def processModule(module: IR.Module): Unit = {
+  private def processModule(module: IR.Module): Unit = {
     val context: Context = language.getCurrentContext
 
     val imports = module.imports
@@ -124,7 +123,7 @@ class IRToTruffle(
     })
   }
 
-  def processError(error: IR.Error): Unit = {
+  private def processError(error: IR.Error): Unit = {
     ??? // TODO [AA] Any remaining errors should be reported
   }
 
@@ -160,5 +159,54 @@ class IRToTruffle(
       expr.setSourceLocation(loc.start, loc.length)
     }
     expr
+  }
+
+  // ==========================================================================
+  // === Expression Processor =================================================
+  // ==========================================================================
+
+  private case class ExpressionProcessor(
+    scope: LocalScope,
+    scopeName: String
+  ) {
+
+    // === Construction =======================================================
+
+    def this(scopeName: String) = {
+      this(new LocalScope(), scopeName)
+    }
+
+    def createChild(name: String): ExpressionProcessor = {
+      this.copy(scope = this.scope.createChild(), name)
+    }
+
+    // === Runner =============================================================
+
+    // TODO [AA] Better error handling here
+    def run(ir: IR): RuntimeExpression = {
+      val expression: RuntimeExpression = ir match {
+        case literal: IR.Literal => ???
+        case _                   =>
+          throw new RuntimeException("Unhandled entity.")
+      }
+
+      expression.markNotTail()
+      expression
+    }
+
+    def run[T <: HList](ir: IR, tagData: Option[T])
+
+    // === Processing =========================================================
+
+    def processLiteral[T](
+      literal: IR,
+      tagData: Option[T]
+    ): RuntimeExpression = {
+      ???
+    }
+  }
+}
+object IRToTruffle {
+  object Tag {
   }
 }

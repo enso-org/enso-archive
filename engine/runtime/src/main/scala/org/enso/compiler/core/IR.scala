@@ -113,24 +113,7 @@ object IR {
     imports: List[AstImport],
     bindings: List[TopLevelSymbol]
   ) extends IR
-      with IRKind.Primitive {
-
-    def visit[T](visitor: AstModuleScopeVisitor[T]): Unit = {
-      val types = new java.util.ArrayList[AtomDef]()
-      val defs  = new java.util.ArrayList[MethodDef]()
-
-      bindings.foreach {
-        case assignment: MethodDef => defs.add(assignment)
-        case typeDef: AtomDef      => types.add(typeDef)
-      }
-
-      visitor.visitModuleScope(
-        imports.asJava,
-        types,
-        defs
-      )
-    }
-  }
+      with IRKind.Primitive
 
   // === Top-Level Symbols ====================================================
 
@@ -536,20 +519,6 @@ trait AstExpressionVisitor[+T] {
     retValue: Expression,
     suspended: Boolean
   ): T
-}
-
-/** The visitor pattern for the [[AstModuleScope]] types.
-  *
-  * @tparam T the type resultant from the visitor
-  */
-trait AstModuleScopeVisitor[T] {
-
-  @throws(classOf[Exception])
-  def visitModuleScope(
-    imports: java.util.List[AstImport],
-    typeDefs: java.util.List[AtomDef],
-    bindings: java.util.List[MethodDef]
-  ): Unit
 }
 
 /** The visitor pattern for the [[DefinitionSiteArgument]] types.
