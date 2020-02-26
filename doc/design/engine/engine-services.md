@@ -1111,9 +1111,9 @@ null
 
 ##### Errors
 
-- **FileSystemError(errorCode=1000)** This error signals generic file system errors.
-- **ContentRootNotFoundError(errorCode=1001)** The error informs that the requested content root cannot be found.
-- **AccessDeniedError(errorCode=1002)** It signals that a user doesn't have access to a resource.
+- [`FileSystemError`](#filesystemerror)
+- [`ContentRootNotFoundError`](#contentrootnotfounderror)
+- [`AccessDeniedError`](#accessdeniederror)
 
 #### `file/read`
 This requests that the file manager component reads the contents of a specified
@@ -1143,10 +1143,10 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ##### Errors
 
-- **FileSystemError(errorCode=1000)** This error signals generic file system errors.
-- **ContentRootNotFoundError(errorCode=1001)** The error informs that the requested content root cannot be found.
-- **AccessDeniedError(errorCode=1002)** It signals that a user doesn't have access to a resource.
-- **FileNotFound(errorCode=1003)** It signals that requested file doesn't exist.
+- [`FileSystemError`](#filesystemerror)
+- [`ContentRootNotFoundError`](#contentrootnotfounderror)
+- [`AccessDeniedError`](#accessdeniederror)
+- [`FileNotFound`](#filenotfound)
 
 #### `file/create`
 This request asks the file manager to create the specified file system object.
@@ -1696,3 +1696,43 @@ TBC
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
+
+##### `FileSystemError`
+This error signals generic file system errors.
+
+```typescript
+"error" : {
+  "code" : 1000,
+  "message" : "File '/foo/bar' exists but is a directory"
+}
+```
+
+##### `ContentRootNotFoundError`
+The error informs that the requested content root cannot be found.
+
+```typescript
+"error" : {
+  "code" : 1001,
+  "message" : "Content root not found"
+}
+```
+
+##### `AccessDeniedError`
+It signals that a user doesn't have access to a resource.
+
+```typescript
+"error" : {
+  "code" : 1002,
+  "message" : "Access denied"
+}
+```
+
+##### `FileNotFound`
+It signals that requested file doesn't exist.
+
+```typescript
+"error" : {
+  "code" : 1003,
+  "message" : "File not found"
+}
+```
