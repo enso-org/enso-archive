@@ -1142,7 +1142,11 @@ return the contents from the in-memory buffer rather than the file on disk.
 ```
 
 ##### Errors
-TBC
+
+- **FileSystemError(errorCode=1000)** This error signals generic file system errors.
+- **ContentRootNotFoundError(errorCode=1001)** The error informs that the requested content root cannot be found.
+- **AccessDeniedError(errorCode=1002)** It signals that a user doesn't have access to a resource.
+- **FileNotFound(errorCode=1003)** It signals that requested file doesn't exist.
 
 #### `file/create`
 This request asks the file manager to create the specified file system object.
