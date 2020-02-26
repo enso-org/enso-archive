@@ -44,14 +44,21 @@ object CodePointRopeOps extends MeasureOps[Int, String, StringMeasure] {
       container.substring(splitPoint, container.length)
     )
   }
-  override def offsetInside(
+  override def isOffsetBeforeEnd(
     index: Int,
     measure: StringMeasure
-  ): Boolean = index > 0 && index < measure.utf32Size
+  ): Boolean = index < measure.utf32Size
+
+  override def isOffsetAfterBegin(
+    index: Int,
+    measure: StringMeasure
+  ): Boolean = index > 0
+
   override def moveAfter(
     index: Int,
     measure: StringMeasure
   ): Int = index - measure.utf32Size
+
   override def take(
     container: String,
     len: Int
@@ -98,8 +105,13 @@ object CharRopeOps extends MeasureOps[Int, String, StringMeasure] {
   override def splitAt(container: String, index: Int): (String, String) =
     container.splitAt(index)
 
-  override def offsetInside(index: Int, measure: StringMeasure): Boolean =
-    index > 0 && index < measure.utf16Size
+  override def isOffsetBeforeEnd(index: Int, measure: StringMeasure): Boolean =
+    index < measure.utf16Size
+
+  override def isOffsetAfterBegin(
+    index: Int,
+    measure: StringMeasure
+  ): Boolean = index > 0
 
   override def moveAfter(index: Int, measure: StringMeasure): Int =
     index - measure.utf16Size
@@ -136,6 +148,12 @@ case class CharRope(rope: Rope) extends CharSequence {
   ): CharSequence = CharRope(substring(start, end))
 }
 
+case class LineRope(rope: Rope) {
+  def take(len: Int): Rope = rope.takeWith(len, LineRopeOps)
+
+  def drop(len: Int): Rope = rope.dropWith(len, LineRopeOps)
+}
+
 object LineRopeOps extends MeasureOps[Int, String, StringMeasure] {
   override type Elem = Rope
 
@@ -147,13 +165,18 @@ object LineRopeOps extends MeasureOps[Int, String, StringMeasure] {
   override def splitAt(
     container: String,
     index: Int
-  ): (String, String) = ???
+  ): (String, String) = if (index == 0) ("", container) else (container, "")
 
-  override def offsetInside(
+  override def isOffsetBeforeEnd(
     index: Int,
     measure: StringMeasure
   ): Boolean =
-    index > 0 && (index < measure.fullLines || (index == measure.fullLines && !measure.endsInNewLine))
+    (index < measure.fullLines || (index == measure.fullLines && !measure.endsInNewLine))
+
+  override def isOffsetAfterBegin(
+    index: Int,
+    measure: StringMeasure
+  ): Boolean = index > 0
 
   override def contains(
     index: Int,
@@ -168,12 +191,12 @@ object LineRopeOps extends MeasureOps[Int, String, StringMeasure] {
   override def take(
     container: String,
     len: Int
-  ): String = ???
+  ): String = if (len == 0) "" else container
 
   override def drop(
     container: String,
     len: Int
-  ): String = ???
+  ): String = if (len == 0) container else ""
 }
 
 case class Rope(root: Node[String, StringMeasure]) {
@@ -216,7 +239,7 @@ case class Rope(root: Node[String, StringMeasure]) {
 
   def characters: CharRope = CharRope(this)
 
-  def takeLines(len: Int): Rope = Rope(root.take(len, LineRopeOps))
+  def lines: LineRope = LineRope(this)
 }
 
 object Rope {
@@ -228,8 +251,6 @@ object Rope {
   implicit val measurable: Measurable[String, StringMeasure] =
     (str: String) =>
       StringMeasure(str.length, str.codePointCount(0, str.length), 0, false)
-
-  def apply(str: String): Rope = Rope(Node(str))
 
   def strLines(str: String): (List[String], Option[String]) = {
     var nextSubstr          = 0
@@ -249,7 +270,7 @@ object Rope {
     )
   }
 
-  def makeLikeAHumanBeing(str: String): Rope = {
+  def apply(str: String): Rope = {
     val (fullLines, mayLastLine) = strLines(str)
     val fullNodes = fullLines.map(
       line =>
@@ -279,4 +300,6 @@ object Rope {
     )
     Rope(Node.mergeTrees(fullNodes ++ maybeLastNode))
   }
+
+  def empty: Rope = Rope(Node.empty[String, StringMeasure])
 }

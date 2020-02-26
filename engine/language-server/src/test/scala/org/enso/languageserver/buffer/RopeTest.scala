@@ -3,85 +3,25 @@ package org.enso.languageserver.buffer
 import org.enso.languageserver.data.buffer.Rope
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import scala.jdk.CollectionConverters._
 
 class RopeTest extends AnyFlatSpec with Matchers {
-  "StringRope" should "correctly concat strings" in {
-    val rope = Rope("hello world") ++ (Rope(" it's a") ++ Rope(" pleasure") ++
-      Rope(" to meet you."))
-    rope.toString shouldEqual "hello world it's a pleasure to meet you."
-  }
+  "Rope" should "allow taking and dropping lines" in {
+    val r1 = Rope("\nHello World.\n")
+    val r2 = Rope("The line starts here")
+    val r3 = Rope(" but ends here.\nAnd then another starts.\nWow")
+    val r4 = Rope(", that is indeed tricky.")
 
-  val rope = Rope("𠜎a") ++ Rope("𠜱bcą") ++ Rope("ś𠝹łęk")
+    val rope = (r1 ++ r2) ++ (r3 ++ r4)
 
-  "StringRope" should "allow splitting by code points" in {
-    val (left, right) = rope.codePoints.splitAt(4)
+    rope.lines.take(3).toString shouldEqual
+    """
+      |Hello World.
+      |The line starts here but ends here.
+      |""".stripMargin
 
-    left.toString shouldEqual "𠜎a𠜱b"
-    right.toString shouldEqual "cąś𠝹łęk"
-  }
-
-  "StringRope" should "allow taking substrings by code points" in {
-    rope.codePoints.substring(1, 8).toString shouldEqual "a𠜱bcąś𠝹"
-    println("========= THIS TAKE =========")
-    rope.codePoints.take(2).toString shouldEqual "𠜎a"
-    println("========= THIS TAKE END =========")
-
-
-  }
-
-  "StringRope" should "allow indexing by code points" in {
-    rope.codePoints.get(7) shouldEqual "𠝹".codePointAt(0)
-  }
-
-  "StringRope" should "allow splitting by characters" in {
-    val (left, right) = rope.characters.splitAt(6)
-
-    left.toString shouldEqual "𠜎a𠜱b"
-    right.toString shouldEqual "cąś𠝹łęk"
-  }
-
-  "StringRope" should "allow taking substrings by characters" in {
-    rope.characters.substring(2, 11).toString shouldEqual "a𠜱bcąś𠝹"
-  }
-
-  "StringRope" should "allow indexing by characters" in {
-    rope.characters.charAt(11) shouldEqual 'ł'
-  }
-
-  "CharRope" should "constitute a valid Java CharSequence" in {
-    val codePointsViaRope =
-      rope.characters.codePoints().iterator().asScala.toList
-
-    val hardcodedPoints =
-      "𠜎a𠜱bcąś𠝹łęk".codePoints().iterator().asScala.toList
-
-    codePointsViaRope shouldEqual hardcodedPoints
-  }
-
-  "Rope" should "allow taking lines" in {
-    val r1 = Rope.makeLikeAHumanBeing("""
-                                        |Hello
-                                        |It's me
-                                        |""".stripMargin)
-    val r2 = Rope.makeLikeAHumanBeing("""
-                                        |
-                                        |Long time
-                                        |no see
-                                        |""".stripMargin)
-    val r3 = Rope.makeLikeAHumanBeing("""
-                                        |Hmmmmm
-                                        |???
-                                        |""".stripMargin)
-
-    val rope = r1 ++ r2 ++ r3
-
-    println("========= ROPE ===========")
-    println(rope.root)
-    println("========= R1 =============")
-    println(r1.root)
-
-    println("=========== STUFF ==========")
-    println(rope.takeLines(2).toString)
+    rope.lines.drop(2).toString shouldEqual
+    """|The line starts here but ends here.
+       |And then another starts.
+       |Wow, that is indeed tricky.""".stripMargin
   }
 }

@@ -129,15 +129,15 @@ case class Node[C, M](
       case Leaf(c) => Node(measureOps.take(c, offset))
 
       case Internal(children) =>
-        println("==== take ====")
-        println(this)
-        println("== idx ==")
-        println(offset)
+//        println("==== take ====")
+//        println(this)
+//        println("== idx ==")
+//        println(offset)
         val (left, mid, _) = findIndexChild(offset, measureOps, children)
-        println("== left ==")
-        println(left)
-        println("== mid ==")
-        println(mid)
+//        println("== left ==")
+//        println(left)
+//        println("== mid ==")
+//        println(mid)
 
         mid match {
           case Some((newOffset, mid)) =>
@@ -178,7 +178,8 @@ case class Node[C, M](
     val children  = childrenArray.toList
     var currentIx = ix
     val leftChildren = children.takeWhile { node =>
-      if (!measureOps.offsetInside(currentIx, node.measure)) {
+      // Left children are all the children wholly contained inside offset
+      if (!measureOps.isOffsetBeforeEnd(currentIx, node.measure)) {
         currentIx = measureOps.moveAfter(currentIx, node.measure)
         true
       } else false
@@ -187,7 +188,8 @@ case class Node[C, M](
     leftoverChildren match {
       case Nil => (leftChildren, None, Nil)
       case midChild :: rightChildren =>
-        if (measureOps.offsetInside(currentIx, midChild.measure))
+        // midChild is only relevant if the offset actually cuts it
+        if (measureOps.isOffsetAfterBegin(currentIx, midChild.measure))
           (leftChildren, Some((currentIx, midChild)), rightChildren)
         else (leftChildren, None, leftoverChildren)
     }
@@ -221,7 +223,6 @@ case class Node[C, M](
         }
     }
   }
-
   def get[I](index: I, measureOps: MeasureOps[I, C, M]): measureOps.Elem = {
     value match {
       case Empty()        => throw new ArrayIndexOutOfBoundsException
@@ -292,7 +293,9 @@ trait MeasureOps[I, C, M] {
 
   def splitAt(container: C, index: I): (C, C)
 
-  def offsetInside(index: I, measure: M): Boolean
+  def isOffsetBeforeEnd(index: I, measure: M): Boolean
+
+  def isOffsetAfterBegin(index: I, measure: M): Boolean
 
   def contains(index: I, measure: M): Boolean
 
