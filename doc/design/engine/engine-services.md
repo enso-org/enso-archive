@@ -1112,8 +1112,8 @@ null
 ##### Errors
 
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error. 
-- [`ContentRootNotFoundError`](#contentrootnotfounderror)
-- [`AccessDeniedError`](#accessdeniederror)
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found. 
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
 
 #### `file/read`
 This requests that the file manager component reads the contents of a specified
@@ -1143,10 +1143,10 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror)
-- [`ContentRootNotFoundError`](#contentrootnotfounderror)
-- [`AccessDeniedError`](#accessdeniederror)
-- [`FileNotFound`](#filenotfound)
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error. 
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found. 
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 #### `file/create`
 This request asks the file manager to create the specified file system object.
