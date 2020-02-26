@@ -149,6 +149,7 @@ object IR {
     arguments: List[DefinitionSiteArgument]
   ) extends TopLevelSymbol
       with IRKind.Primitive {
+    // TODO [AA] Shouldn't be a java array
     def getArguments: java.util.List[DefinitionSiteArgument] = arguments.asJava
   }
 
@@ -469,6 +470,8 @@ object IR {
       * @param ast the erroneous AST
       */
     sealed case class Syntax(ast: AST) extends Error
+
+    sealed case class InvalidIR(ir: IR) extends Error
   }
 
   // ==========================================================================

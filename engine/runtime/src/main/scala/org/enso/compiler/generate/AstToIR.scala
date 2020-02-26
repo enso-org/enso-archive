@@ -18,7 +18,7 @@ import org.enso.syntax.text.{AST, Location}
   * [[Core]] becomes implemented. Most function docs will refer to [[Core]]
   * now, as this will become true soon.
   */
-object AstToAstExpression {
+object AstToIR {
 
   /** Translates a program represented in the parser [[AST]] to the compiler's
     * [[Core]] internal representation.
