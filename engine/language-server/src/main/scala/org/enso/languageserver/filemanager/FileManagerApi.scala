@@ -27,17 +27,18 @@ object FileManagerApi {
   case class FileWriteParams(path: Path, contents: String)
 
   case object FileRead extends Method("file/read") {
+
+    case class Params(path: Path)
+
+    case class Result(contents: String)
+
     implicit val hasParams = new HasParams[this.type] {
-      type Params = FileReadParams
+      type Params = FileRead.Params
     }
     implicit val hasResult = new HasResult[this.type] {
-      type Result = FileReadResult
+      type Result = FileRead.Result
     }
   }
-
-  case class FileReadParams(path: Path)
-
-  case class FileReadResult(contents: String)
 
   case class FileSystemError(override val message: String)
       extends Error(1000, message)

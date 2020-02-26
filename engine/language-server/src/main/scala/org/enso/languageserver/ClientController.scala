@@ -7,18 +7,10 @@ import akka.pattern.ask
 import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
-import org.enso.languageserver.filemanager.FileManagerApi.{
-  FileRead,
-  FileReadParams,
-  FileReadResult,
-  FileSystemError,
-  FileWrite,
-  FileWriteParams
-}
+import org.enso.languageserver.filemanager.FileManagerApi.{FileRead, _}
 import org.enso.languageserver.filemanager.FileManagerProtocol.FileWriteResult
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
-  FileSystemFailure,
   FileSystemFailureMapper
 }
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
@@ -144,12 +136,12 @@ class ClientController(
             webActor ! ResponseError(Some(id), ServiceError)
         }
 
-    case Request(FileRead, id, params: FileReadParams) =>
+    case Request(FileRead, id, params: FileRead.Params) =>
       (server ? FileManagerProtocol.FileRead(params.path)).onComplete {
         case Success(
             FileManagerProtocol.FileReadResult(Right(content: String))
             ) =>
-          webActor ! ResponseResult(FileRead, id, FileReadResult(content))
+          webActor ! ResponseResult(FileRead, id, FileRead.Result(content))
 
         case Success(FileManagerProtocol.FileReadResult(Left(failure))) =>
           webActor ! ResponseError(
