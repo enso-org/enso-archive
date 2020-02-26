@@ -16,15 +16,16 @@ import org.enso.languageserver.jsonrpc.{
 object FileManagerApi {
 
   case object FileWrite extends Method("file/write") {
+
+    case class Params(path: Path, contents: String)
+
     implicit val hasParams = new HasParams[this.type] {
-      type Params = FileWriteParams
+      type Params = FileWrite.Params
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type
     }
   }
-
-  case class FileWriteParams(path: Path, contents: String)
 
   case object FileRead extends Method("file/read") {
 

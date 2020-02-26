@@ -119,7 +119,7 @@ class ClientController(
       server ! LanguageProtocol.ReleaseCapability(clientId, params.id)
       sender ! ResponseResult(ReleaseCapability, id, Unused)
 
-    case Request(FileWrite, id, params: FileWriteParams) =>
+    case Request(FileWrite, id, params: FileWrite.Params) =>
       (server ? FileManagerProtocol.FileWrite(params.path, params.contents))
         .onComplete {
           case Success(FileWriteResult(Right(()))) =>
