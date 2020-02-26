@@ -132,9 +132,7 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
       val result =
         for {
           rootPath <- config.findContentRoot(path.rootId)
-          //it invokes side-effecting function, all exceptions are caught and
-          //explicitly returned as left side of disjunction
-          _ <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
+          _        <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
         } yield ()
 
       sender ! FileWriteResult(result)
@@ -143,11 +141,14 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
       val result =
         for {
           rootPath <- config.findContentRoot(path.rootId)
-          //it invokes side-effecting function, all exceptions are caught and
-          //explicitly returned as left side of disjunction
-          content <- fs.read(path.toFile(rootPath)).unsafeRunSync()
+          content  <- fs.read(path.toFile(rootPath)).unsafeRunSync()
         } yield content
 
       sender ! FileReadResult(result)
   }
+  /* Note [Usage of unsafe methods]
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     It invokes side-effecting function, all exceptions are caught and
+     explicitly returned as left side of disjunction.
+ */
 }
