@@ -16,7 +16,7 @@ case object ContentRootNotFound extends FileSystemFailure
 case object AccessDenied extends FileSystemFailure
 
 /**
-  * Signals that the file cannot be found to open it.
+  * Signals that the file cannot be found.
   */
 case object FileNotFound extends FileSystemFailure
 
