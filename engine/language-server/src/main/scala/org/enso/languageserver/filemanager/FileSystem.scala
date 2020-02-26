@@ -31,7 +31,6 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
           FileUtils.write(file, content, "UTF-8")
         }
         .leftMap(errorHandling)
-        .map(_ => ())
     }
 
   /**
