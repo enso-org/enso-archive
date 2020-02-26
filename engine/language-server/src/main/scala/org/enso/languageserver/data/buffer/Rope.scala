@@ -1,13 +1,23 @@
 package org.enso.languageserver.data.buffer
 import cats.kernel.Monoid
 
-case class StringMeasure(utf16Size: Int, utf32Size: Int)
+case class StringMeasure(
+  utf16Size: Int,
+  utf32Size: Int,
+  fullLines: Int,
+  endsInNewLine: Boolean
+)
 
 case object StringMeasure {
   implicit val monoid: Monoid[StringMeasure] = new Monoid[StringMeasure] {
-    override def empty: StringMeasure = StringMeasure(0, 0)
+    override def empty: StringMeasure = StringMeasure(0, 0, 0, false)
     override def combine(x: StringMeasure, y: StringMeasure): StringMeasure =
-      StringMeasure(x.utf16Size + y.utf16Size, x.utf32Size + y.utf32Size)
+      StringMeasure(
+        x.utf16Size + y.utf16Size,
+        x.utf32Size + y.utf32Size,
+        x.fullLines + y.fullLines,
+        y.endsInNewLine
+      )
   }
 }
 
@@ -56,7 +66,6 @@ object CodePointRopeOps extends MeasureOps[Int, String, StringMeasure] {
     val splitPoint = container.offsetByCodePoints(0, len)
     container.substring(splitPoint, container.length)
   }
-
 }
 
 case class CodePointRope(rope: Rope) {
@@ -104,7 +113,6 @@ object CharRopeOps extends MeasureOps[Int, String, StringMeasure] {
     container: String,
     len: Int
   ): String = container.substring(len, container.length)
-
 }
 
 case class CharRope(rope: Rope) extends CharSequence {
@@ -128,6 +136,46 @@ case class CharRope(rope: Rope) extends CharSequence {
   ): CharSequence = CharRope(substring(start, end))
 }
 
+object LineRopeOps extends MeasureOps[Int, String, StringMeasure] {
+  override type Elem = Rope
+
+  override def get(
+    container: String,
+    index: Int
+  ): Rope = ???
+
+  override def splitAt(
+    container: String,
+    index: Int
+  ): (String, String) = ???
+
+  override def offsetInside(
+    index: Int,
+    measure: StringMeasure
+  ): Boolean =
+    index > 0 && (index < measure.fullLines || (index == measure.fullLines && !measure.endsInNewLine))
+
+  override def contains(
+    index: Int,
+    measure: StringMeasure
+  ): Boolean = ???
+
+  override def moveAfter(
+    index: Int,
+    measure: StringMeasure
+  ): Int = index - measure.fullLines
+
+  override def take(
+    container: String,
+    len: Int
+  ): String = ???
+
+  override def drop(
+    container: String,
+    len: Int
+  ): String = ???
+}
+
 case class Rope(root: Node[String, StringMeasure]) {
   import Rope._
 
@@ -135,7 +183,9 @@ case class Rope(root: Node[String, StringMeasure]) {
 
   override def toString: String = {
     val sb = new StringBuilder(root.measure.utf16Size)
-    root.value.foreach { str => val _ = sb.append(str) }
+    root.value.foreach { str =>
+      val _ = sb.append(str)
+    }
     sb.toString()
   }
 
@@ -165,6 +215,8 @@ case class Rope(root: Node[String, StringMeasure]) {
   def codePoints: CodePointRope = CodePointRope(this)
 
   def characters: CharRope = CharRope(this)
+
+  def takeLines(len: Int): Rope = Rope(root.take(len, LineRopeOps))
 }
 
 object Rope {
@@ -175,7 +227,56 @@ object Rope {
 
   implicit val measurable: Measurable[String, StringMeasure] =
     (str: String) =>
-      StringMeasure(str.length, str.codePointCount(0, str.length))
+      StringMeasure(str.length, str.codePointCount(0, str.length), 0, false)
 
   def apply(str: String): Rope = Rope(Node(str))
+
+  def strLines(str: String): (List[String], Option[String]) = {
+    var nextSubstr          = 0
+    var curIdx              = 0
+    var lines: List[String] = List()
+    while (curIdx < str.length) {
+      if (str.charAt(curIdx) == '\n') {
+        lines      = str.substring(nextSubstr, curIdx + 1) :: lines
+        nextSubstr = curIdx + 1
+      }
+      curIdx += 1
+    }
+    (
+      lines.reverse,
+      if (nextSubstr < str.length) Some(str.substring(nextSubstr, str.length))
+      else None
+    )
+  }
+
+  def makeLikeAHumanBeing(str: String): Rope = {
+    val (fullLines, mayLastLine) = strLines(str)
+    val fullNodes = fullLines.map(
+      line =>
+        Node(
+          0,
+          StringMeasure(
+            line.length,
+            line.codePointCount(0, line.length),
+            1,
+            true
+          ),
+          Leaf[String, StringMeasure](line)
+        )
+    )
+    val maybeLastNode = mayLastLine.map(
+      line =>
+        Node(
+          0,
+          StringMeasure(
+            line.length,
+            line.codePointCount(0, line.length),
+            0,
+            false
+          ),
+          Leaf[String, StringMeasure](line)
+        )
+    )
+    Rope(Node.mergeTrees(fullNodes ++ maybeLastNode))
+  }
 }

@@ -1,4 +1,6 @@
 package org.enso.languageserver.data.buffer
+import java.util
+
 import cats.kernel.Monoid
 
 sealed trait NodeVal[C, M] {
@@ -19,6 +21,9 @@ case class Internal[C, M](
 ) extends NodeVal[C, M] {
   override def foreach(f: C => Unit): Unit =
     children.foreach(_.value.foreach(f))
+
+  override def toString: String =
+    s"Internal(${util.Arrays.toString(children.asInstanceOf[Array[Object]])})"
 }
 
 case class Leaf[C, M](
@@ -122,8 +127,18 @@ case class Node[C, M](
     value match {
       case Empty() => this
       case Leaf(c) => Node(measureOps.take(c, offset))
+
       case Internal(children) =>
+        println("==== take ====")
+        println(this)
+        println("== idx ==")
+        println(offset)
         val (left, mid, _) = findIndexChild(offset, measureOps, children)
+        println("== left ==")
+        println(left)
+        println("== mid ==")
+        println(mid)
+
         mid match {
           case Some((newOffset, mid)) =>
             val tail = mid.take(newOffset, measureOps)

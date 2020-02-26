@@ -23,6 +23,11 @@ class RopeTest extends AnyFlatSpec with Matchers {
 
   "StringRope" should "allow taking substrings by code points" in {
     rope.codePoints.substring(1, 8).toString shouldEqual "a𠜱bcąś𠝹"
+    println("========= THIS TAKE =========")
+    rope.codePoints.take(2).toString shouldEqual "𠜎a"
+    println("========= THIS TAKE END =========")
+
+
   }
 
   "StringRope" should "allow indexing by code points" in {
@@ -54,4 +59,29 @@ class RopeTest extends AnyFlatSpec with Matchers {
     codePointsViaRope shouldEqual hardcodedPoints
   }
 
+  "Rope" should "allow taking lines" in {
+    val r1 = Rope.makeLikeAHumanBeing("""
+                                        |Hello
+                                        |It's me
+                                        |""".stripMargin)
+    val r2 = Rope.makeLikeAHumanBeing("""
+                                        |
+                                        |Long time
+                                        |no see
+                                        |""".stripMargin)
+    val r3 = Rope.makeLikeAHumanBeing("""
+                                        |Hmmmmm
+                                        |???
+                                        |""".stripMargin)
+
+    val rope = r1 ++ r2 ++ r3
+
+    println("========= ROPE ===========")
+    println(rope.root)
+    println("========= R1 =============")
+    println(r1.root)
+
+    println("=========== STUFF ==========")
+    println(rope.takeLines(2).toString)
+  }
 }
