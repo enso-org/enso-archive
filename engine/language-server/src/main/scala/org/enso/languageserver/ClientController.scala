@@ -120,40 +120,56 @@ class ClientController(
       sender ! ResponseResult(ReleaseCapability, id, Unused)
 
     case Request(FileWrite, id, params: FileWrite.Params) =>
-      (server ? FileManagerProtocol.FileWrite(params.path, params.contents))
-        .onComplete {
-          case Success(FileWriteResult(Right(()))) =>
-            webActor ! ResponseResult(FileWrite, id, Unused)
-
-          case Success(FileWriteResult(Left(failure))) =>
-            webActor ! ResponseError(
-              Some(id),
-              FileSystemFailureMapper.mapFailure(failure)
-            )
-
-          case Failure(th) =>
-            log.error("An exception occurred during writing to a file", th)
-            webActor ! ResponseError(Some(id), ServiceError)
-        }
+      writeFile(webActor, id, params)
 
     case Request(FileRead, id, params: FileRead.Params) =>
-      (server ? FileManagerProtocol.FileRead(params.path)).onComplete {
-        case Success(
-            FileManagerProtocol.FileReadResult(Right(content: String))
-            ) =>
-          webActor ! ResponseResult(FileRead, id, FileRead.Result(content))
+      readFile(webActor, id, params)
 
-        case Success(FileManagerProtocol.FileReadResult(Left(failure))) =>
+  }
+
+  private def readFile(
+    webActor: ActorRef,
+    id: Id,
+    params: FileRead.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.FileRead(params.path)).onComplete {
+      case Success(
+          FileManagerProtocol.FileReadResult(Right(content: String))
+          ) =>
+        webActor ! ResponseResult(FileRead, id, FileRead.Result(content))
+
+      case Success(FileManagerProtocol.FileReadResult(Left(failure))) =>
+        webActor ! ResponseError(
+          Some(id),
+          FileSystemFailureMapper.mapFailure(failure)
+        )
+
+      case Failure(th) =>
+        log.error("An exception occurred during reading a file", th)
+        webActor ! ResponseError(Some(id), ServiceError)
+    }
+  }
+
+  private def writeFile(
+    webActor: ActorRef,
+    id: Id,
+    params: FileWrite.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.FileWrite(params.path, params.contents))
+      .onComplete {
+        case Success(FileWriteResult(Right(()))) =>
+          webActor ! ResponseResult(FileWrite, id, Unused)
+
+        case Success(FileWriteResult(Left(failure))) =>
           webActor ! ResponseError(
             Some(id),
             FileSystemFailureMapper.mapFailure(failure)
           )
 
         case Failure(th) =>
-          log.error("An exception occurred during reading a file", th)
+          log.error("An exception occurred during writing to a file", th)
           webActor ! ResponseError(Some(id), ServiceError)
       }
-
   }
 
 }
