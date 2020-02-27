@@ -15,9 +15,12 @@ object RopeSpecification extends Properties("Rope") {
   private def normalizeIndex(index: Int, length: Int): Int =
     (index % length).abs
 
-  property("constructor does not modify the string") = forAll(Generators.newLinedString) { string =>
-    Rope(string).toString == string
-  }
+  // Rope
+
+  property("constructor does not modify the string") =
+    forAll(Generators.newLinedString) { string =>
+      Rope(string).toString == string
+    }
 
   property("++ is consistent with strings") = forAll { strings: List[String] =>
     val fromRope = ropeFromStrings(strings).toString

@@ -17,6 +17,7 @@ case class StringMeasure(
 
   /**
     * Number of lines measured, including the possibly non-terminated last line.
+    *
     * @return the number of lines.
     */
   def linesCount: Int = fullLines + (if (endsInNewLine) 0 else 1)
