@@ -4,38 +4,23 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionSiteArgument
-import org.enso.interpreter.builder.{ArgDefinitionFactory, ExpressionFactory}
+import org.enso.interpreter.builder.{ArgDefinitionFactory, CallArgFactory, ExpressionFactory}
+import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
-import org.enso.interpreter.node.callable.function.{
-  BlockNode,
-  CreateFunctionNode
-}
-import org.enso.interpreter.node.expression.constant.{
-  ConstructorNode,
-  DynamicSymbolNode
-}
-import org.enso.interpreter.node.expression.literal.{
-  IntegerLiteralNode,
-  TextLiteralNode
-}
+import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
+import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
+import org.enso.interpreter.node.controlflow.{CaseNode, ConstructorCaseNode, DefaultFallbackNode, FallbackNode, MatchNode}
+import org.enso.interpreter.node.expression.constant.{ConstructorNode, DynamicSymbolNode}
+import org.enso.interpreter.node.expression.literal.{IntegerLiteralNode, TextLiteralNode}
 import org.enso.interpreter.node.expression.operator._
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
-import org.enso.interpreter.node.{
-  ClosureRootNode,
-  ExpressionNode => RuntimeExpression
-}
+import org.enso.interpreter.node.{ClosureRootNode, ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol
-import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
+import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition, CallArgument}
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
-import org.enso.interpreter.runtime.callable.function.{
-  FunctionSchema,
-  Function => RuntimeFunction
-}
-import org.enso.interpreter.runtime.error.{
-  DuplicateArgumentNameException,
-  VariableDoesNotExistException
-}
+import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
+import org.enso.interpreter.runtime.error.{DuplicateArgumentNameException, VariableDoesNotExistException}
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.Location
@@ -194,6 +179,8 @@ class IRToTruffle(
     scopeName: String
   ) {
 
+    private var currentVarName = "anonymous";
+
     // === Construction =======================================================
 
     def this(scopeName: String) = {
@@ -210,10 +197,14 @@ class IRToTruffle(
     //  reported before codegen
     def run(ir: IR): RuntimeExpression = {
       val expression: RuntimeExpression = ir match {
-        case IR.Tagged(ir, _, _) => run(ir)
-        case literal: IR.Literal => processLiteral(literal)
-        case app: IR.Application => processApplication(app)
-        case name: IR.Name       => processName(name)
+        case IR.Tagged(ir, _, _)   => run(ir)
+        case block: IR.Block       => processBlock(block)
+        case literal: IR.Literal   => processLiteral(literal)
+        case app: IR.Application   => processApplication(app)
+        case name: IR.Name         => processName(name)
+        case function: IR.Function => processFunction(function)
+        case binding: IR.Binding   => processBinding(binding)
+        case caseExpr: IR.Case     => processCase(caseExpr)
         case IR.ForeignDefinition(_, _, _, _) =>
           throw new RuntimeException("Foreign expressions not yet implemented.")
         case _ => ???
@@ -224,6 +215,92 @@ class IRToTruffle(
     }
 
     // === Processing =========================================================
+
+    def processBlock(block: IR.Block): RuntimeExpression = {
+      if (block.suspended) {
+        val childFactory = this.createChild("suspended-block")
+        val childScope   = childFactory.scope
+
+        val blockNode = childFactory.processBlock(block.copy(suspended = false))
+
+        val defaultRootNode = ClosureRootNode.build(
+          language,
+          childScope,
+          moduleScope,
+          blockNode,
+          null,
+          s"default::$scopeName"
+        )
+
+        val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
+        setLocation(CreateThunkNode.build(callTarget), block.location)
+      } else {
+        val statementExprs = block.expressions.map(this.run(_)).toArray
+        val retExpr        = this.run(block.returnValue)
+
+        val blockNode = BlockNode.build(statementExprs, retExpr)
+        setLocation(blockNode, block.location)
+      }
+    }
+
+    def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
+      case IR.CaseExpr(scrutinee, branches, fallback, location, _) =>
+        val targetNode = this.run(scrutinee)
+
+        val cases = branches
+          .map(
+            branch =>
+              ConstructorCaseNode
+                .build(this.run(branch.pattern), this.run(branch.expression))
+          )
+          .toArray[CaseNode]
+
+        // Note [Pattern Match Fallbacks]
+        val fallbackNode = fallback
+          .map(fb => FallbackNode.build(this.run(fb)))
+          .getOrElse(DefaultFallbackNode.build())
+
+        val matchExpr = MatchNode.build(cases, fallbackNode, targetNode)
+        setLocation(matchExpr, location)
+      case IR.CaseBranch(_, _, _, _) =>
+        throw new RuntimeException("A CaseBranch should never occur here.")
+    }
+
+    /* Note [Pattern Match Fallbacks]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * Enso in its current state has no coverage checking for constructors on
+     * pattern matches as it has no sense of what constructors contribute to
+     * make a 'type'. This means that, in absence of a user-provided fallback or
+     * catch-all case in a pattern match, the interpreter has to ensure that
+     * it has one to catch that error.
+     */
+
+    def processBinding(binding: IR.Binding): RuntimeExpression = {
+      currentVarName = binding.name
+
+      val slot = scope.createVarSlot(currentVarName)
+
+      setLocation(
+        AssignmentNode.build(this.run(binding.expression), slot),
+        binding.location
+      )
+    }
+
+    def processFunction(function: IR.Function): RuntimeExpression = {
+      val (scopeName, isTail, args, body, location) = function match {
+        case IR.Lambda(arguments, body, location, _) =>
+          ("anonymous", true, arguments, body, location)
+        case IR.CaseFunction(arguments, body, location, _) =>
+          ("case_expression", false, arguments, body, location)
+      }
+
+      val child = this.createChild(scopeName)
+
+      val fn = child.processFunctionBody(args, body, location)
+      fn.setTail(isTail)
+
+      fn
+    }
 
     def processName(name: IR.Name): RuntimeExpression = name match {
       case IR.LiteralName(name, location, _) =>
@@ -253,7 +330,31 @@ class IRToTruffle(
 
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
-        case IR.Prefix(fn, args, hasDefaultsSuspended, location, _) => ???
+        case IR.Prefix(fn, args, hasDefaultsSuspended, location, _) =>
+          val callArgFactory =
+            new CallArgFactory(scope, language, source, scopeName, moduleScope)
+
+          val arguments = args
+          val callArgs  = new ArrayBuffer[CallArgument]()
+
+          for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
+            val arg = unprocessedArg.visit(callArgFactory, position)
+            callArgs.append(arg)
+          }
+
+          val defaultsExecutionMode = if (hasDefaultsSuspended) {
+            InvokeCallableNode.DefaultsExecutionMode.IGNORE
+          } else {
+            InvokeCallableNode.DefaultsExecutionMode.EXECUTE
+          }
+
+          val appNode = ApplicationNode.build(
+            this.run(fn),
+            callArgs.toArray,
+            defaultsExecutionMode
+          )
+
+          setLocation(appNode, location)
         case IR.BinaryOperator(left, operator, right, location, _) =>
           val leftExpr  = this.run(left)
           val rightExpr = this.run(right)
@@ -276,7 +377,8 @@ class IRToTruffle(
           }
 
           setLocation(opExpr, location)
-        case IR.ForcedTerm(expr, location, _) => ???
+        case IR.ForcedTerm(expr, location, _) =>
+          setLocation(ForceNode.build(this.run(expr)), location)
       }
 
     def processFunctionBody(

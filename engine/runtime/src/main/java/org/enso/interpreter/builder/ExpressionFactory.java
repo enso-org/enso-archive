@@ -407,7 +407,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     currentVarName = ast.name();
     FrameSlot slot = scope.createVarSlot(ast.name());
     return setLocation(
-        AssignmentNodeGen.create(ast.expression().visit(this), slot), ast.getLocation());
+        AssignmentNode.build(ast.expression().visit(this), slot), ast.getLocation());
   }
 
   /**

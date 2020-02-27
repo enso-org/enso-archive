@@ -452,6 +452,9 @@ object IR {
 
   // === Case Expression ======================================================
 
+  // TODO [AA] Should extend IR
+  sealed trait Case extends IR
+
   /** The Enso case expression.
     *
     * @param location the source location of the case expression
@@ -466,6 +469,7 @@ object IR {
     override val location: Option[Location],
     override val passData: Seq[Meta] = Seq()
   ) extends Expression
+      with Case
       with IRKind.Primitive {
     override def addPassData(newData: Seq[Meta]): CaseExpr = {
       copy(passData = this.passData ++ newData)
@@ -488,8 +492,13 @@ object IR {
   sealed case class CaseBranch(
     location: Option[Location],
     pattern: Expression,
-    expression: CaseFunction
-  ) extends IRKind.Primitive
+    expression: CaseFunction,
+    override val passData: Seq[Meta] = Seq()
+  ) extends Case with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): IR = {
+      copy(passData = this.passData ++ newData)
+    }
+  }
 
   // TODO [AA] Get rid of case function as ExpressionFactory is moved across.
   /** A representation of the expression body of a case branch.
@@ -506,7 +515,7 @@ object IR {
     body: Expression,
     override val location: Option[Location],
     override val passData: Seq[Meta] = Seq()
-  ) extends Expression
+  ) extends Function
       with IRKind.Primitive {
     override def addPassData(newData: Seq[Meta]): CaseFunction = {
       copy(passData = this.passData ++ newData)
