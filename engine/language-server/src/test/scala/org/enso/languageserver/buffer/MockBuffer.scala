@@ -10,7 +10,7 @@ case class MockBuffer(lines: List[String]) {
 
 case object MockBuffer {
   def apply(str: String): MockBuffer = {
-    val (lines, lastLine) = StringUtils.getLines(str)
-    MockBuffer(lines ++ lastLine)
+    val lines = StringUtils.getLines(str)
+    MockBuffer(lines)
   }
 }

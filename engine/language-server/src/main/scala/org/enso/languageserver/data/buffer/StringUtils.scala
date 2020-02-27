@@ -2,7 +2,7 @@ package org.enso.languageserver.data.buffer
 import scala.collection.mutable.ArrayBuffer
 
 object StringUtils {
-  def getLines(string: String): (List[String], Option[String]) = {
+  def getLines(string: String): List[String] = {
     var substringStart = 0
     var curIdx         = 0
 
@@ -31,7 +31,7 @@ object StringUtils {
         Some(string.substring(substringStart, string.length))
       else None
 
-    (lines.toList, lastLine)
+    lines.toList ++ lastLine
   }
 
   private def endsInWindowsStyleNewline(string: String): Boolean = {
