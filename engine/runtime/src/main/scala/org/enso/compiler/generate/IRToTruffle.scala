@@ -4,23 +4,54 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionSiteArgument
-import org.enso.interpreter.builder.{ArgDefinitionFactory, CallArgFactory, ExpressionFactory}
+import org.enso.interpreter.builder.{
+  ArgDefinitionFactory,
+  CallArgFactory,
+  ExpressionFactory
+}
 import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
-import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
+import org.enso.interpreter.node.callable.function.{
+  BlockNode,
+  CreateFunctionNode
+}
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
-import org.enso.interpreter.node.controlflow.{CaseNode, ConstructorCaseNode, DefaultFallbackNode, FallbackNode, MatchNode}
-import org.enso.interpreter.node.expression.constant.{ConstructorNode, DynamicSymbolNode}
-import org.enso.interpreter.node.expression.literal.{IntegerLiteralNode, TextLiteralNode}
+import org.enso.interpreter.node.controlflow.{
+  CaseNode,
+  ConstructorCaseNode,
+  DefaultFallbackNode,
+  FallbackNode,
+  MatchNode
+}
+import org.enso.interpreter.node.expression.constant.{
+  ConstructorNode,
+  DynamicSymbolNode
+}
+import org.enso.interpreter.node.expression.literal.{
+  IntegerLiteralNode,
+  TextLiteralNode
+}
 import org.enso.interpreter.node.expression.operator._
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
-import org.enso.interpreter.node.{ClosureRootNode, ExpressionNode => RuntimeExpression}
+import org.enso.interpreter.node.{
+  ClosureRootNode,
+  ExpressionNode => RuntimeExpression
+}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol
-import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition, CallArgument}
+import org.enso.interpreter.runtime.callable.argument.{
+  ArgumentDefinition,
+  CallArgument
+}
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
-import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
-import org.enso.interpreter.runtime.error.{DuplicateArgumentNameException, VariableDoesNotExistException}
+import org.enso.interpreter.runtime.callable.function.{
+  FunctionSchema,
+  Function => RuntimeFunction
+}
+import org.enso.interpreter.runtime.error.{
+  DuplicateArgumentNameException,
+  VariableDoesNotExistException
+}
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.Location
@@ -92,7 +123,7 @@ class IRToTruffle(
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
       val thisArgument =
-        new DefinitionSiteArgument(Constants.Names.THIS_ARGUMENT, None, false)
+        DefinitionSiteArgument(Constants.Names.THIS_ARGUMENT, None, false)
 
       val typeName = if (methodDef.typeName == Constants.Names.CURRENT_MODULE) {
         moduleScope.getAssociatedType.getName
@@ -100,17 +131,14 @@ class IRToTruffle(
         methodDef.typeName
       }
 
-      val expressionFactory = new ExpressionFactory(
-        language,
-        source,
-        typeName + Constants.SCOPE_SEPARATOR + methodDef.methodName,
-        moduleScope
+      val expressionFactory = new ExpressionProcessor(
+        typeName + Constants.SCOPE_SEPARATOR + methodDef.methodName
       )
 
       val funNode = expressionFactory.processFunctionBody(
-        methodDef.function.getLocation,
-        (List(thisArgument) ++ methodDef.function.getArguments.asScala).asJava,
-        methodDef.function.body
+        List(thisArgument) ++ methodDef.function.getArguments.asScala,
+        methodDef.function.body,
+        methodDef.function.getLocation.toScala
       )
       funNode.markTail()
 
@@ -385,7 +413,7 @@ class IRToTruffle(
       arguments: List[IR.DefinitionSiteArgument],
       body: IR.Expression,
       location: Option[Location]
-    ): RuntimeExpression = {
+    ): CreateFunctionNode = {
       val argFactory = new ArgDefinitionFactory(
         scope,
         language,
