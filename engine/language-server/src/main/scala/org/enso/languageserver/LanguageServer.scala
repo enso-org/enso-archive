@@ -8,10 +8,10 @@ import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
   CreateFile,
   CreateFileResult,
-  FileRead,
-  FileReadResult,
-  FileWrite,
-  FileWriteResult
+  ReadFile,
+  ReadFileResult,
+  WriteFile,
+  WriteFileResult
 }
 import org.enso.languageserver.filemanager.{
   FileSystemApi,
@@ -134,23 +134,23 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
         initialized(config, env.releaseCapability(clientId, capabilityId))
       )
 
-    case FileWrite(path, content) =>
+    case WriteFile(path, content) =>
       val result =
         for {
           rootPath <- config.findContentRoot(path.rootId)
           _        <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
         } yield ()
 
-      sender ! FileWriteResult(result)
+      sender ! WriteFileResult(result)
 
-    case FileRead(path) =>
+    case ReadFile(path) =>
       val result =
         for {
           rootPath <- config.findContentRoot(path.rootId)
           content  <- fs.read(path.toFile(rootPath)).unsafeRunSync()
         } yield content
 
-      sender ! FileReadResult(result)
+      sender ! ReadFileResult(result)
 
     case CreateFile(fsObject) =>
       fsObject match {

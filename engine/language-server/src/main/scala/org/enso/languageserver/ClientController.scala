@@ -7,10 +7,10 @@ import akka.pattern.ask
 import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
-import org.enso.languageserver.filemanager.FileManagerApi.{FileRead, _}
+import org.enso.languageserver.filemanager.FileManagerApi.{ReadFile, _}
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
   CreateFileResult,
-  FileWriteResult
+  WriteFileResult
 }
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
@@ -66,8 +66,8 @@ object ClientApi {
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
-    .registerRequest(FileWrite)
-    .registerRequest(FileRead)
+    .registerRequest(WriteFile)
+    .registerRequest(ReadFile)
     .registerRequest(CreateFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
@@ -123,10 +123,10 @@ class ClientController(
       server ! LanguageProtocol.ReleaseCapability(clientId, params.id)
       sender ! ResponseResult(ReleaseCapability, id, Unused)
 
-    case Request(FileWrite, id, params: FileWrite.Params) =>
+    case Request(WriteFile, id, params: WriteFile.Params) =>
       writeFile(webActor, id, params)
 
-    case Request(FileRead, id, params: FileRead.Params) =>
+    case Request(ReadFile, id, params: ReadFile.Params) =>
       readFile(webActor, id, params)
 
     case Request(CreateFile, id, params: CreateFile.Params) =>
@@ -136,15 +136,15 @@ class ClientController(
   private def readFile(
     webActor: ActorRef,
     id: Id,
-    params: FileRead.Params
+    params: ReadFile.Params
   ): Unit = {
-    (server ? FileManagerProtocol.FileRead(params.path)).onComplete {
+    (server ? FileManagerProtocol.ReadFile(params.path)).onComplete {
       case Success(
-          FileManagerProtocol.FileReadResult(Right(content: String))
+          FileManagerProtocol.ReadFileResult(Right(content: String))
           ) =>
-        webActor ! ResponseResult(FileRead, id, FileRead.Result(content))
+        webActor ! ResponseResult(ReadFile, id, ReadFile.Result(content))
 
-      case Success(FileManagerProtocol.FileReadResult(Left(failure))) =>
+      case Success(FileManagerProtocol.ReadFileResult(Left(failure))) =>
         webActor ! ResponseError(
           Some(id),
           FileSystemFailureMapper.mapFailure(failure)
@@ -159,14 +159,14 @@ class ClientController(
   private def writeFile(
     webActor: ActorRef,
     id: Id,
-    params: FileWrite.Params
+    params: WriteFile.Params
   ): Unit = {
-    (server ? FileManagerProtocol.FileWrite(params.path, params.contents))
+    (server ? FileManagerProtocol.WriteFile(params.path, params.contents))
       .onComplete {
-        case Success(FileWriteResult(Right(()))) =>
-          webActor ! ResponseResult(FileWrite, id, Unused)
+        case Success(WriteFileResult(Right(()))) =>
+          webActor ! ResponseResult(WriteFile, id, Unused)
 
-        case Success(FileWriteResult(Left(failure))) =>
+        case Success(WriteFileResult(Left(failure))) =>
           webActor ! ResponseError(
             Some(id),
             FileSystemFailureMapper.mapFailure(failure)
