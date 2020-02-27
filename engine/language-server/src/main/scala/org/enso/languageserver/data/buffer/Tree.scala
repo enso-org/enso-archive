@@ -3,35 +3,77 @@ import java.util
 
 import cats.kernel.Monoid
 
+/**
+  * A super class of nodes stored in the tree.
+  *
+  * @tparam C the container for leaf elements.
+  * @tparam M the monoid used for sizing subtrees.
+  */
 sealed trait NodeVal[C, M] {
+
+  /**
+    * Iterates through all leaves, passing their contents to the specified
+    * consumer function.
+    *
+    * @param f the consumer function.
+    */
   def foreach(f: C => Unit): Unit
 }
 
-trait TreeShape {
-  def maxChildren: Int
-  def minChildren: Int
-}
-
+/**
+  * An empty leaf of the tree.
+  *
+  * @tparam C the container for leaf elements.
+  * @tparam M the monoid used for sizing subtrees.
+  */
 case class Empty[C, M]() extends NodeVal[C, M] {
   override def foreach(f: C => Unit): Unit = ()
 }
 
+/**
+  * An internal node of the tree, storing children nodes.
+  *
+  * @param children the children nodes.
+  * @tparam C the container for leaf elements.
+  * @tparam M the monoid used for sizing subtrees.
+  */
 case class Internal[C, M](
   children: Array[Node[C, M]]
 ) extends NodeVal[C, M] {
   override def foreach(f: C => Unit): Unit =
     children.foreach(_.value.foreach(f))
-
-  override def toString: String =
-    s"Internal(${util.Arrays.toString(children.asInstanceOf[Array[Object]])})"
 }
 
+/**
+  * A leaf node, storing a collection of type `C`.
+  *
+  * @param elements the collection stored in this leaf.
+  * @tparam C the container for leaf elements.
+  * @tparam M the monoid used for sizing subtrees.
+  */
 case class Leaf[C, M](
   elements: C
 ) extends NodeVal[C, M] {
   override def foreach(f: C => Unit): Unit = f(elements)
 }
 
+/**
+  * A B-Tree node.
+  *
+  * A node must satisfy the following invariants to be considered valid:
+  * 1. All leaves appear at the same depth (i.e. for each node, the height of
+  *    all its children must be equal);
+  * 2. All `Internal` nodes except for the root have between `minChildren` and
+  *    `maxChildren` (both inclusive) children, as specified by the relevant
+  *    [[TreeShape]];
+  * 3. A root node has at least 2 children.
+  *
+  * @param height the height of this node.
+  * @param measure the "size", as measured by some monoid.
+  * @param value the [[NodeVal]] stored in this node.
+  * @tparam C the type of containers stored in the leaves.
+  * @tparam M the type of measuring monoid.
+  */
 case class Node[C, M](
   height: Int,
   measure: M,
@@ -57,6 +99,15 @@ case class Node[C, M](
       case Empty()            => false
     }
 
+  /**
+    * Concatenates two trees, attaching `that` after `this`, ensuring the
+    * result is a valid node.
+    *
+    * @param that the node to attach at the end of `this`.
+    * @param treeShape the tree shape specification for this tree.
+    * @param measureMonoid the monoid instance for the measure type.
+    * @return a tree resulting from concatenating `this` and `that`.
+    */
   def ++(
     that: Node[C, M]
   )(implicit treeShape: TreeShape, measureMonoid: Monoid[M]): Node[C, M] = {
@@ -72,7 +123,7 @@ case class Node[C, M](
       if (height == that.height - 1 && canBecomeChild) {
         // `this` would be the same height as any of `thatChildren`, so they
         // form a valid children list together.
-        Node.mergeChildren(Array(this), thatChildren)
+        Node.unsafeMergeChildren(Array(this), thatChildren)
       } else {
         // Either `this` is inserted lower into the tree, preserving the height
         // of the first child or a new tree was formed, increasing the height
@@ -82,11 +133,11 @@ case class Node[C, M](
         if (newNode.height == that.height - 1) {
           // `newNode` has the same height as any of `thatChildren`, so they
           // can be made children of a new node together.
-          Node.mergeChildren(Array(newNode), remainingChildren)
+          Node.unsafeMergeChildren(Array(newNode), remainingChildren)
         } else {
           // all children of `newNode` are the same height as children of
           // `that`. That also means `newNode` definitely has children.
-          Node.mergeChildren(newNode.unsafeChildren, remainingChildren)
+          Node.unsafeMergeChildren(newNode.unsafeChildren, remainingChildren)
         }
       }
     } else if (height == that.height) {
@@ -96,26 +147,38 @@ case class Node[C, M](
       } else {
         // Both nodes are Internal, because otherwise they could become
         // children, so they definitely have children.
-        Node.mergeChildren(this.unsafeChildren, that.unsafeChildren)
+        Node.unsafeMergeChildren(this.unsafeChildren, that.unsafeChildren)
       }
     } else {
       // This case is exactly symmetric to the first one.
       val thisChildren = unsafeChildren
       if (that.height == height - 1 && that.canBecomeChild) {
-        Node.mergeChildren(thisChildren, Array(that))
+        Node.unsafeMergeChildren(thisChildren, Array(that))
       } else {
         val lastChildIdx      = thisChildren.length - 1
         val newNode           = thisChildren(lastChildIdx) ++ that
         val remainingChildren = thisChildren.take(lastChildIdx)
         if (newNode.height == this.height - 1) {
-          Node.mergeChildren(remainingChildren, Array(newNode))
+          Node.unsafeMergeChildren(remainingChildren, Array(newNode))
         } else {
-          Node.mergeChildren(remainingChildren, newNode.unsafeChildren)
+          Node.unsafeMergeChildren(remainingChildren, newNode.unsafeChildren)
         }
       }
     }
   }
 
+  /**
+    * Constructs a subtree consisting of an initial subset of elements.
+    *
+    * @param offset the length of the subsequence to construct.
+    * @param measureOps operations to interpret this tree's measure.
+    * @param measureMonoid the monoid instance for the measure.
+    * @param measurable measuring operations for leaves.
+    * @param treeShape the shape constraints for this tree.
+    * @tparam I the type of indices used for this operation.
+    * @return an initial subsequence of size `offset` according to specific
+    *         measure interpretation.
+    */
   def take[I](
     offset: I,
     measureOps: RangeOps[I, C, M]
@@ -129,15 +192,7 @@ case class Node[C, M](
       case Leaf(c) => Node(measureOps.take(c, offset))
 
       case Internal(children) =>
-//        println("==== take ====")
-//        println(this)
-//        println("== idx ==")
-//        println(offset)
         val (left, mid, _) = findIndexChild(offset, measureOps, children)
-//        println("== left ==")
-//        println(left)
-//        println("== mid ==")
-//        println(mid)
 
         mid match {
           case Some((newOffset, mid)) =>
@@ -148,6 +203,18 @@ case class Node[C, M](
     }
   }
 
+  /**
+    * Constructs a subtree by removing the first `offset` elements.
+    *
+    * @param offset the number of elements to drop.
+    * @param measureOps operations to interpret this tree's measure.
+    * @param measureMonoid the monoid instance for the measure.
+    * @param measurable measuring operations for leaves.
+    * @param treeShape the shape constraints for this tree.
+    * @tparam I the type of indices used for this operation.
+    * @return a subsequence created by dropping `offset` elements, according
+    *         to specific measure interpretation.
+    */
   def drop[I](
     offset: I,
     measureOps: RangeOps[I, C, M]
@@ -195,8 +262,20 @@ case class Node[C, M](
     }
   }
 
+  /**
+    * Splits the tree into 2 subtrees, semantically equivalent to
+    * `(this.take(offset, measureOps), this.drop(offset, measureOps)`.
+    *
+    * @param offset the number of elements to take and drop.
+    * @param measureOps operations to interpret this tree's measure.
+    * @param measureMonoid the monoid instance for the measure.
+    * @param measurable measuring operations for leaves.
+    * @param treeShape the shape constraints for this tree.
+    * @tparam I the type of indices used for this operation.
+    * @return a pair of results of both taking and dropping `offset` elements.
+    */
   def splitAt[I](
-    ix: I,
+    offset: I,
     measureOps: RangeOps[I, C, M]
   )(
     implicit measureMonoid: Monoid[M],
@@ -206,11 +285,12 @@ case class Node[C, M](
     value match {
       case Empty() => (this, this)
       case Leaf(elements) =>
-        val (leftC, rightC) = measureOps.splitAt(elements, ix)
-        (Node(leftC), Node(rightC))
+        val left  = measureOps.take(elements, offset)
+        val right = measureOps.drop(elements, offset)
+        (Node(left), Node(right))
       case Internal(children) =>
         val (leftChildren, splitChild, rightChildren) =
-          findIndexChild(ix, measureOps, children)
+          findIndexChild(offset, measureOps, children)
         splitChild match {
           case Some((newIx, child)) =>
             val (leftSplit, rightSplit) = child.splitAt(newIx, measureOps)
@@ -224,6 +304,14 @@ case class Node[C, M](
     }
   }
 
+  /**
+    * Gets an element at a specified index.
+    *
+    * @param index the index to get an element at.
+    * @param elemOps interpretation of indexes and elements in this tree type.
+    * @tparam I the type of indices for this operation.
+    * @return the element at `index`.
+    */
   def get[I](
     index: I,
     elemOps: ElemOps[I, C, M]
@@ -248,9 +336,27 @@ case class Node[C, M](
 }
 
 object Node {
+
+  /**
+    * Creates a new leaf node with provided elements.
+    *
+    * @param elems the elements to store.
+    * @param measurable the operations for measuring the collection.
+    * @tparam C the type of `elems` container.
+    * @tparam M the type of measuring monoid for this tree.
+    * @return a leaf node containing `elems`.
+    */
   def apply[C, M](elems: C)(implicit measurable: Measurable[C, M]): Node[C, M] =
     Node(0, measurable.measure(elems), Leaf[C, M](elems))
 
+  /**
+    * An unsafe operation, creating a node with given children, without
+    * checking the invariants. Should only be used if the invariants are
+    * checked externally.
+    *
+    * @param children the children to include in the new node.
+    * @return a new node containing `children`.
+    */
   def unsafeFromChildren[C, M](
     children: Array[Node[C, M]]
   )(implicit measureMonoid: Monoid[M]): Node[C, M] = {
@@ -261,7 +367,16 @@ object Node {
     Node(height, size, Internal(children))
   }
 
-  def mergeChildren[C, M](
+  /**
+    * An unsafe operation, creating a new node from two collections of children.
+    * It does check the size invariants, but height invariants must be checked
+    * externally.
+    *
+    * @param leftChildren the first children collection.
+    * @param rightChildren the second children collection.
+    * @return a tree containing both `leftChildren` and `rightChildren`
+    */
+  def unsafeMergeChildren[C, M](
     leftChildren: Array[Node[C, M]],
     rightChildren: Array[Node[C, M]]
   )(implicit treeShape: TreeShape, measureMonoid: Monoid[M]): Node[C, M] = {
@@ -280,37 +395,156 @@ object Node {
     }
   }
 
+  /**
+    * Creates an empty tree.
+    *
+    * @return an empty tree.
+    */
   def empty[C, M](implicit measureMonoid: Monoid[M]): Node[C, M] =
     Node(0, measureMonoid.empty, Empty())
 
+  /**
+    * A safe operation for concatenating multliple valid trees into one.
+    *
+    * @param nodes the nodes to merge into a tree.
+    * @return a new tree representing a concatenation of all the supplied
+    *         trees.
+    */
   def mergeTrees[C, M](
     nodes: List[Node[C, M]]
   )(implicit treeShape: TreeShape, measureMonoid: Monoid[M]): Node[C, M] =
     nodes.foldLeft(empty[C, M])((tree, node) => tree ++ node)
 }
 
+/**
+  * Encodes element-level operation on a tree.
+  *
+  * @tparam I the type of indices.
+  * @tparam C the type of leaf nodes contents.
+  * @tparam M the type of measuring monoid.
+  */
 trait ElemOps[I, C, M] extends RangeOps[I, C, M] {
+
+  /**
+    * the type of elements associated with this interpretation of indexing.
+    */
   type Elem
 
+  /**
+    * Gets an element at `index` from the `container`.
+    *
+    * @param container the container to look up index in.
+    * @param index the index look up.
+    * @return the element of `container` at `index`
+    */
   def get(container: C, index: I): Elem
 
+  /**
+    * Bounds check for the index.
+    *
+    * @param index the index to check.
+    * @param measure the size of the container according to specific measure.
+    * @return whether the index is in bounds or not.
+    */
   def contains(index: I, measure: M): Boolean
 }
 
+/**
+  * Encodes slicing operations on a container with respect to a specific
+  * measure.
+  * @tparam I the type of indices.
+  * @tparam C the type of leaf nodes contents.
+  * @tparam M the type of measuring monoid.
+  */
 trait RangeOps[I, C, M] {
-  def splitAt(container: C, offset: I): (C, C)
 
+  /**
+    * Is the offset strictly before the end of a container of a given measure?
+    * e.g. if measure is the length of an array, this operation would be just
+    * `offset < measure`.
+    *
+    * @param offset the offset to check.
+    * @param measure the measure of the container.
+    * @return `true` if the offset is strictly before the end of the container.
+    */
   def isOffsetBeforeEnd(offset: I, measure: M): Boolean
 
+  /**
+    * Is the offset strictly after the beginning of a container of a given
+    * measure?
+    * e.g. if measure is the length of an array, this operation would be just
+    * `offset > 0`.
+    *
+    * @param offset the offset to check.
+    * @param measure the measure of the container.
+    * @return `true` if the offset is strictly after the beginning of the
+    *        container.
+    */
   def isOffsetAfterBegin(offset: I, measure: M): Boolean
 
+  /**
+    * Moves the offset by a given measure. I.e. if we have a container
+    * `c = c1 ++ c2`, where `c1` and `c2` have measures `m1` and `m2`
+    * respectively and an offset `off` inside `c`, then `shiftLeft(off, m1)`
+    * would be the offset of `off` inside `c2` alone.
+    *
+    * @param offset the offset to shift.
+    * @param measure the measure to shift offset by.
+    * @return the shifted offset.
+    */
   def shiftLeft(offset: I, measure: M): I
 
+  /**
+    * Takes `len` elements from the start of `container`.
+    *
+    * @param container the container to take the prefix of.
+    * @param len the length of the prefix.
+    * @return the prefix of length `len`.
+    */
   def take(container: C, len: I): C
 
+  /**
+    * Drops `len` elements from the start of `container`.
+    *
+    * @param container the container to take the suffix of.
+    * @param len the length of the dropped prefix.
+    * @return the suffix of `container` resulting from removing the first `len`
+    *         elements.
+    */
   def drop(container: C, len: I): C
 }
 
+/**
+  * Encodes the act of measuring a container with respect to a specific
+  * measure.
+  *
+  * @tparam C the type of measured containers.
+  * @tparam M the type of measure.
+  */
 trait Measurable[C, M] {
+
+  /**
+    * Measures a container with respect to measure `M`.
+    * @param container the container to measure.
+    * @return the measure of the container.
+    */
   def measure(container: C): M
+}
+
+/**
+  * The tree shape constants, used to regulate the depth and width of B-Trees.
+  */
+trait TreeShape {
+
+  /**
+    * The maximum number of children a node can have.
+    * @return the max number of children.
+    */
+  def maxChildren: Int
+
+  /**
+    * The minimum number of children a node can have.
+    *  @return the min number of children.
+    */
+  def minChildren: Int
 }
