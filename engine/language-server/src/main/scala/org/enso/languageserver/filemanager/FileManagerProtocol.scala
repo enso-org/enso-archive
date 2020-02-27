@@ -31,8 +31,18 @@ object FileManagerProtocol {
     */
   case class FileReadResult(result: Either[FileSystemFailure, String])
 
+  /**
+    * Requests the Language Server create a file system object.
+    *
+    * @param `object` a file system object
+    */
   case class CreateFile(`object`: FileSystemObject)
 
+  /**
+    * Returns a result of creating a file system object.
+    *
+    * @param result either file system failure or unit representing success
+    */
   case class CreateFileResult(result: Either[FileSystemFailure, Unit])
 
 }

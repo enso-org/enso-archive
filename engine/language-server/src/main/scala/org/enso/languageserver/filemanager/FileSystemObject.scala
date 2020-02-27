@@ -3,12 +3,27 @@ package org.enso.languageserver.filemanager
 import io.circe.Decoder
 import io.circe.generic.auto._
 
+/**
+  * A representation of filesystem object.
+  */
 sealed trait FileSystemObject
 
 object FileSystemObject {
 
+  /**
+    * Represents a directory.
+    *
+    * @param name a name of the directory
+    * @param path a path to the directory
+    */
   case class Directory(name: String, path: Path) extends FileSystemObject
 
+  /**
+    * Represents a file.
+    *
+    * @param name a name of the file
+    * @param path a path to the file
+    */
   case class File(name: String, path: Path) extends FileSystemObject
 
   private val TypeField = "type"
