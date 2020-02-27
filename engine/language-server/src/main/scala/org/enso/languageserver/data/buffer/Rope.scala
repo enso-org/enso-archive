@@ -51,16 +51,6 @@ object CodePointView {
       index: Int
     ): Int = container.codePointAt(container.offsetByCodePoints(0, index))
 
-    override def splitAt(
-      container: String,
-      index: Int
-    ): (String, String) = {
-      val splitPoint = container.offsetByCodePoints(0, index)
-      (
-        container.substring(0, splitPoint),
-        container.substring(splitPoint, container.length)
-      )
-    }
     override def isOffsetBeforeEnd(
       index: Int,
       measure: StringMeasure
@@ -167,9 +157,6 @@ object CharView {
       index: Int,
       measure: StringMeasure
     ): Boolean = index < measure.utf16Size
-
-    override def splitAt(container: String, index: Int): (String, String) =
-      container.splitAt(index)
 
     override def isOffsetBeforeEnd(
       index: Int,
@@ -312,11 +299,6 @@ case class LineRope(rope: Rope) {
 
 object LineView {
   object Ops extends RangeOps[Int, String, StringMeasure] {
-    override def splitAt(
-      container: String,
-      index: Int
-    ): (String, String) = if (index == 0) ("", container) else (container, "")
-
     override def isOffsetBeforeEnd(
       index: Int,
       measure: StringMeasure

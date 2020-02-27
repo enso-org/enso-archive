@@ -2,6 +2,13 @@ package org.enso.languageserver.data.buffer
 import scala.collection.mutable.ArrayBuffer
 
 object StringUtils {
+
+  /** Splits a string into lines. Both `\r\n` and `\n` are considered line
+    * breaks.
+    *
+    * @param string the string to split.
+    * @return the list of lines in `string`
+    */
   def getLines(string: String): List[String] = {
     var substringStart = 0
     var curIdx         = 0
@@ -44,10 +51,21 @@ object StringUtils {
     string.length > 0 && string.charAt(string.length - 1) == '\n'
   }
 
+  /** Checks if a string ends in a newline.
+    *
+    * @param string the string to check.
+    * @return `true` if the string ends in a newline, false otherwise.
+    */
   def endsInNewline(string: String): Boolean = {
     endsInSimpleNewline(string) || endsInWindowsStyleNewline(string)
   }
 
+  /** Strips a trailing new line from the end of a string.
+    *
+    * @param string the string to strip a newline from.
+    * @return the string resulting from removing a single newline group
+    *         from the end of `string`
+    */
   def stripNewline(string: String): String = {
     if (endsInWindowsStyleNewline(string)) {
       string.substring(0, string.length - 2)
