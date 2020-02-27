@@ -1,6 +1,5 @@
 package org.enso.languageserver
 
-import java.io.File
 import java.nio.file.{Files, Paths}
 import java.util.UUID
 
@@ -361,7 +360,7 @@ class WebSocketServerTest
             "id": 7,
             "params": {
               "object": {
-                "kind": "File",
+                "type": "File",
                 "name": "bar.txt",
                 "path": {
                   "rootId": $testContentRootId,
@@ -391,7 +390,7 @@ class WebSocketServerTest
             "id": 7,
             "params": {
               "object": {
-                "kind": "Directory",
+                "type": "Directory",
                 "name": "baz",
                 "path": {
                   "rootId": $testContentRootId,

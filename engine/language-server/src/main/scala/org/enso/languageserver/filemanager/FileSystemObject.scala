@@ -11,7 +11,7 @@ object FileSystemObject {
 
   case class File(name: String, path: Path) extends FileSystemObject
 
-  private val KindField = "kind"
+  private val TypeField = "type"
 
   private val NameField = "name"
 
@@ -19,7 +19,7 @@ object FileSystemObject {
 
   implicit val fsoDecoder: Decoder[FileSystemObject] =
     Decoder.instance { cursor =>
-      cursor.downField(KindField).as[String].flatMap {
+      cursor.downField(TypeField).as[String].flatMap {
         case "File" =>
           for {
             name <- cursor.downField(NameField).as[String]
