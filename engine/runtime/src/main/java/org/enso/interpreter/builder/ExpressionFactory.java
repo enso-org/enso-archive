@@ -141,7 +141,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    * @param expr the expression to make executable
    * @return a node representing the provided computation
    */
-  public ExpressionNode run(Expression expr) {
+  public ExpressionNode runInline(Expression expr) {
     ExpressionNode result = expr.visit(this);
     result.markNotTail();
     return result;

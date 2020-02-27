@@ -8,7 +8,6 @@ import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.generate.{AstToIR, IRToTruffle}
 import org.enso.flexer.Reader
 import org.enso.interpreter.Language
-import org.enso.interpreter.builder.ExpressionFactory
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
@@ -111,13 +110,8 @@ class Compiler(
 
     translateInline(parsed).flatMap { ast =>
       Some(
-        new ExpressionFactory(
-          language,
-          source,
-          localScope,
-          "<inline_source>",
-          moduleScope
-        ).run(ast)
+        new IRToTruffle(language, source, moduleScope)
+          .runInline(ast, localScope, "<inline_source>")
       )
     }
   }

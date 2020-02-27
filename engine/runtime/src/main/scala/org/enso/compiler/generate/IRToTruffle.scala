@@ -4,25 +4,15 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionSiteArgument
-import org.enso.interpreter.builder.{
-  ArgDefinitionFactory,
-  CallArgFactory,
-  ExpressionFactory
-}
-import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode}
+import org.enso.interpreter.builder.{ArgDefinitionFactory, CallArgFactory}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
   CreateFunctionNode
 }
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
-import org.enso.interpreter.node.controlflow.{
-  CaseNode,
-  ConstructorCaseNode,
-  DefaultFallbackNode,
-  FallbackNode,
-  MatchNode
-}
+import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode}
+import org.enso.interpreter.node.controlflow._
 import org.enso.interpreter.node.expression.constant.{
   ConstructorNode,
   DynamicSymbolNode
@@ -56,6 +46,7 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.Location
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
@@ -76,7 +67,13 @@ class IRToTruffle(
     case _                        => processError(IR.Error.InvalidIR(ir))
   }
 
-  def runInline(ir: IR): Unit = ???
+  def runInline(
+    ir: IR.Expression,
+    localScope: LocalScope,
+    scopeName: String
+  ): RuntimeExpression = {
+    ExpressionProcessor(localScope, scopeName).runInline(ir)
+  }
 
   // ==========================================================================
   // === IR Processing Functions ==============================================
@@ -123,7 +120,11 @@ class IRToTruffle(
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
       val thisArgument =
-        DefinitionSiteArgument(Constants.Names.THIS_ARGUMENT, None, false)
+        DefinitionSiteArgument(
+          Constants.Names.THIS_ARGUMENT,
+          None,
+          suspended = false
+        )
 
       val typeName = if (methodDef.typeName == Constants.Names.CURRENT_MODULE) {
         moduleScope.getAssociatedType.getName
@@ -131,11 +132,11 @@ class IRToTruffle(
         methodDef.typeName
       }
 
-      val expressionFactory = new ExpressionProcessor(
+      val expressionProcessor = new ExpressionProcessor(
         typeName + Constants.SCOPE_SEPARATOR + methodDef.methodName
       )
 
-      val funNode = expressionFactory.processFunctionBody(
+      val funNode = expressionProcessor.processFunctionBody(
         List(thisArgument) ++ methodDef.function.getArguments.asScala,
         methodDef.function.body,
         methodDef.function.getLocation.toScala
@@ -223,21 +224,22 @@ class IRToTruffle(
 
     // TODO [AA] Better error handling here, but really all errors should be
     //  reported before codegen
-    def run(ir: IR): RuntimeExpression = {
-      val expression: RuntimeExpression = ir match {
-        case IR.Tagged(ir, _, _)   => run(ir)
-        case block: IR.Block       => processBlock(block)
-        case literal: IR.Literal   => processLiteral(literal)
-        case app: IR.Application   => processApplication(app)
-        case name: IR.Name         => processName(name)
-        case function: IR.Function => processFunction(function)
-        case binding: IR.Binding   => processBinding(binding)
-        case caseExpr: IR.Case     => processCase(caseExpr)
-        case IR.ForeignDefinition(_, _, _, _) =>
-          throw new RuntimeException("Foreign expressions not yet implemented.")
-        case _ => ???
-      }
+    def run(ir: IR): RuntimeExpression = ir match {
+      case IR.Tagged(ir, _, _)   => run(ir)
+      case block: IR.Block       => processBlock(block)
+      case literal: IR.Literal   => processLiteral(literal)
+      case app: IR.Application   => processApplication(app)
+      case name: IR.Name         => processName(name)
+      case function: IR.Function => processFunction(function)
+      case binding: IR.Binding   => processBinding(binding)
+      case caseExpr: IR.Case     => processCase(caseExpr)
+      case IR.ForeignDefinition(_, _, _, _) =>
+        throw new RuntimeException("Foreign expressions not yet implemented.")
+      case _ => ???
+    }
 
+    def runInline(ir: IR.Expression): RuntimeExpression = {
+      val expression = run(ir)
       expression.markNotTail()
       expression
     }
@@ -317,7 +319,7 @@ class IRToTruffle(
     def processFunction(function: IR.Function): RuntimeExpression = {
       val (scopeName, isTail, args, body, location) = function match {
         case IR.Lambda(arguments, body, location, _) =>
-          ("anonymous", true, arguments, body, location)
+          (currentVarName, true, arguments, body, location)
         case IR.CaseFunction(arguments, body, location, _) =>
           ("case_expression", false, arguments, body, location)
       }
@@ -424,7 +426,7 @@ class IRToTruffle(
 
       val argDefinitions = new Array[ArgumentDefinition](arguments.size)
       val argExpressions = new ArrayBuffer[RuntimeExpression]
-      val seenArgNames   = Set[String]()
+      val seenArgNames   = mutable.Set[String]()
 
       // Note [Rewriting Arguments]
       for ((unprocessedArg, idx) <- arguments.view.zipWithIndex) {
@@ -442,7 +444,7 @@ class IRToTruffle(
 
         if (seenArgNames contains argName) {
           throw new DuplicateArgumentNameException(argName)
-        } else seenArgNames + argName
+        } else seenArgNames.add(argName)
       }
 
       val bodyExpr = this.run(body)
