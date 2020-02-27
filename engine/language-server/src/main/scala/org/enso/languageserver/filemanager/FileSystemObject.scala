@@ -32,16 +32,20 @@ object FileSystemObject {
 
   private val PathField = "path"
 
+  private val FileType = "File"
+
+  private val DirectoryType = "Directory"
+
   implicit val fsoDecoder: Decoder[FileSystemObject] =
     Decoder.instance { cursor =>
       cursor.downField(TypeField).as[String].flatMap {
-        case "File" =>
+        case FileType =>
           for {
             name <- cursor.downField(NameField).as[String]
             path <- cursor.downField(PathField).as[Path]
           } yield File(name, path)
 
-        case "Directory" =>
+        case DirectoryType =>
           for {
             name <- cursor.downField(NameField).as[String]
             path <- cursor.downField(PathField).as[Path]

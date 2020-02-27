@@ -1,23 +1,10 @@
 package org.enso.languageserver
 
-import java.io.File
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import cats.effect.IO
 import org.enso.languageserver.data._
-import org.enso.languageserver.filemanager.FileManagerProtocol.{
-  CreateFile,
-  CreateFileResult,
-  ReadFile,
-  ReadFileResult,
-  WriteFile,
-  WriteFileResult
-}
-import org.enso.languageserver.filemanager.{
-  FileSystemApi,
-  FileSystemFailure,
-  FileSystemObject
-}
+import org.enso.languageserver.filemanager.FileManagerProtocol._
+import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemObject}
 
 object LanguageProtocol {
 
