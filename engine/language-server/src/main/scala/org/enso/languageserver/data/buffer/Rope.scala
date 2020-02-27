@@ -88,7 +88,7 @@ case class CodePointRope(rope: Rope) {
   def substring(startIndex: Int, endIndex: Int): Rope =
     take(endIndex).codePoints.drop(startIndex)
 
-  def get(index: Int): Int = rope.root.get(index, CodePointRopeOps)
+  def at(index: Int): Int = rope.root.get(index, CodePointRopeOps)
 }
 
 object CharRopeOps

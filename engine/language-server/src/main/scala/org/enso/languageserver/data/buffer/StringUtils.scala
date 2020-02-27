@@ -41,9 +41,7 @@ object StringUtils {
   }
 
   private def endsInSimpleNewline(string: String): Boolean = {
-    string.length > 0 &&
-    (string.charAt(string.length - 1) == '\n' ||
-    string.charAt(string.length - 1) == '\r')
+    string.length > 0 && string.charAt(string.length - 1) == '\n'
   }
 
   def endsInNewline(string: String): Boolean = {

@@ -9,7 +9,7 @@ object Generators {
       inclNewLine <- arbitrary[Boolean]
       codePointsLen = str.codePointCount(0, str.length)
       newLinePos <- Gen.choose(0, codePointsLen)
-      newLine    <- Gen.oneOf("\n", "\r", "\r\n")
+      newLine    <- Gen.oneOf("\n", "\r\n")
     } yield
       if (inclNewLine) {
         val newLinePosUtf = str.offsetByCodePoints(0, newLinePos)

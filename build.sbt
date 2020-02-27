@@ -430,7 +430,9 @@ lazy val language_server = (project in file("engine/language-server"))
       akkaTestkit      % Test,
       "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
       "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
-    )
+    ),
+    testOptions in Test += Tests
+      .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")
   )
 
 lazy val runtime = (project in file("engine/runtime"))
