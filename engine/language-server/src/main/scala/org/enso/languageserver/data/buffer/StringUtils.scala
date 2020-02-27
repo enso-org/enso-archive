@@ -18,8 +18,8 @@ object StringUtils {
       if (currentChar == '\r') {
         if (curIdx + 1 < string.length && string.charAt(curIdx + 1) == '\n') {
           curIdx += 1
+          pushString()
         }
-        pushString()
       } else if (currentChar == '\n') {
         pushString()
       }

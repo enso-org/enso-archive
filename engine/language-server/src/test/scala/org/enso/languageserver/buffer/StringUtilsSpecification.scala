@@ -23,8 +23,6 @@ class StringUtilsSpecification extends Properties("StringUtils") {
     forAll(Generators.newLinedString) { str =>
       val (lines, lastLine)    = StringUtils.getLines(str)
       val linesWithoutNewlines = lines.map(StringUtils.stripNewline)
-      (linesWithoutNewlines ++ lastLine).forall(
-        str => str.indexOf('\n') == -1 && str.indexOf('\r') == -1
-      )
+      (linesWithoutNewlines ++ lastLine).forall(_.indexOf('\n') == -1)
     }
 }

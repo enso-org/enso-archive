@@ -6,7 +6,9 @@ case class StringMeasure(
   utf32Size: Int,
   fullLines: Int,
   endsInNewLine: Boolean
-)
+) {
+  def linesCount: Int = fullLines + (if (endsInNewLine) 0 else 1)
+}
 
 case object StringMeasure {
   implicit val monoid: Monoid[StringMeasure] = new Monoid[StringMeasure] {
@@ -89,6 +91,8 @@ case class CodePointRope(rope: Rope) {
     take(endIndex).codePoints.drop(startIndex)
 
   def at(index: Int): Int = rope.root.get(index, CodePointRopeOps)
+
+  def length: Int = rope.measure.utf32Size
 }
 
 object CharRopeOps
@@ -158,6 +162,8 @@ case class LineRope(rope: Rope) {
   def drop(len: Int): Rope = rope.dropWith(len, LineRopeOps)
 
   def splitAt(offset: Int): (Rope, Rope) = rope.splitWith(offset, LineRopeOps)
+
+  def length: Int = rope.measure.linesCount
 }
 
 object LineRopeOps extends RangeOps[Int, String, StringMeasure] {
@@ -234,6 +240,8 @@ case class Rope(root: Node[String, StringMeasure]) {
   def characters: CharRope = CharRope(this)
 
   def lines: LineRope = LineRope(this)
+
+  def measure: StringMeasure = root.measure
 }
 
 object Rope {
