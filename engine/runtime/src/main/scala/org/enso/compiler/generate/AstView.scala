@@ -415,7 +415,7 @@ object AstView {
           lhs match {
             case MethodReference(targetPath, name) =>
               Some((targetPath, name, rhs))
-            case AST.Ident.Var.any(name)  => Some((List(), name, rhs))
+            case AST.Ident.Var.any(name) => Some((List(), name, rhs))
             case _ =>
               None
           }

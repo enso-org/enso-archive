@@ -17,6 +17,8 @@ import scala.jdk.OptionConverters._
 //  necessary.
 // TODO [AA] Have more things fall into the expression hierarchy as the visitor
 //  goes away.
+// TODO [AA] Add locations to everything, and appropriate `override val`
+// TODO [AA] Update doc comments
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
   * format for Enso programs.
@@ -28,17 +30,24 @@ import scala.jdk.OptionConverters._
   *
   * In time, it will be replaced by [[Core]], but expediency dictates that we
   * retain and evolve this representation for the near future.
-  *
-  * PLEASE NOTE: None of the visitor functions are documented as they are slated
-  * for removal as part of the next task.
   */
-sealed trait IR
+sealed trait IR {
+  val passData: Seq[IR.Meta]
+
+  def addPassData(newData: Seq[IR.Meta]): IR
+}
 object IR {
 
   // === Basic Shapes =========================================================
 
   /** An IR node representing an empty construct. */
-  sealed case class Empty() extends IR with IRKind.Primitive
+  sealed case class Empty(override val passData: Seq[Meta] = Seq())
+      extends IR
+      with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): Empty = {
+      copy(passData = this.passData ++ newData)
+    }
+  }
 
   /** Allows for the tagging of [[IR]] nodes with arbitrary [[data]].
     *
@@ -49,9 +58,16 @@ object IR {
     * @param data the data to associated with [[ir]]
     * @tparam T the type of the arbitrary data
     */
-  sealed case class Tagged[T <: HList](ir: IR, data: T)
-      extends IR
-      with IRKind.Primitive
+  sealed case class Tagged[T <: HList](
+    ir: IR,
+    data: T,
+    override val passData: Seq[Meta] = Seq()
+  ) extends IR
+      with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): Tagged[T] = {
+      copy(passData = this.passData ++ newData)
+    }
+  }
 
   // === Literals =============================================================
 
@@ -63,8 +79,15 @@ object IR {
     * @param location the source location of the literal
     * @param value the textual representation of the numeric literal
     */
-  sealed case class NumberLiteral(location: Option[Location], value: String)
-      extends Literal {
+  sealed case class NumberLiteral(
+    value: String,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
+  ) extends Literal {
+    override def addPassData(newData: Seq[Meta]): NumberLiteral = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitLong(this)
   }
@@ -74,8 +97,15 @@ object IR {
     * @param location the source location of the literal
     * @param text the text of the literal
     */
-  sealed case class TextLiteral(location: Option[Location], text: String)
-      extends Literal {
+  sealed case class TextLiteral(
+    text: String,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
+  ) extends Literal {
+    override def addPassData(newData: Seq[Meta]): TextLiteral = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitStringLiteral(this)
   }
@@ -90,8 +120,15 @@ object IR {
     * @param location the source location of tha name occurrence.
     * @param name the literal text of the name
     */
-  sealed case class LiteralName(location: Option[Location], name: String)
-      extends Name {
+  sealed case class LiteralName(
+    name: String,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
+  ) extends Name {
+    override def addPassData(newData: Seq[Meta]): LiteralName = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitName(this)
   }
@@ -111,9 +148,14 @@ object IR {
     */
   sealed case class Module(
     imports: List[AstImport],
-    bindings: List[TopLevelSymbol]
+    bindings: List[TopLevelSymbol],
+    override val passData: Seq[Meta] = Seq()
   ) extends IR
-      with IRKind.Primitive
+      with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): Module = {
+      copy(passData = this.passData ++ newData)
+    }
+  }
 
   // === Top-Level Symbols ====================================================
 
@@ -129,9 +171,14 @@ object IR {
     */
   sealed case class AtomDef(
     name: String,
-    arguments: List[DefinitionSiteArgument]
+    arguments: List[DefinitionSiteArgument],
+    override val passData: Seq[Meta] = Seq()
   ) extends TopLevelSymbol
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): AtomDef = {
+      copy(passData = this.passData ++ newData)
+    }
+
     // TODO [AA] Shouldn't be a java array
     def getArguments: java.util.List[DefinitionSiteArgument] = arguments.asJava
   }
@@ -145,15 +192,28 @@ object IR {
   sealed case class MethodDef(
     typeName: String,
     methodName: String,
-    function: Lambda
+    function: Lambda,
+    override val passData: Seq[Meta] = Seq()
   ) extends TopLevelSymbol
-      with IRKind.Primitive
+      with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): MethodDef = {
+      copy(passData = this.passData ++ newData)
+    }
+  }
 
   /** An import statement.
     *
     * @param name the full `.`-separated path representing the import
     */
-  sealed case class AstImport(name: String) extends IR with IRKind.Primitive
+  sealed case class AstImport(
+    name: String,
+    override val passData: Seq[Meta] = Seq()
+  ) extends IR
+      with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): AstImport = {
+      copy(passData = this.passData ++ newData)
+    }
+  }
 
   // === Expression ===========================================================
 
@@ -170,6 +230,7 @@ object IR {
       *
       * @return the location, if it exists, otherwise `null`
       */
+    // TODO [AA] Should use scala option, can be removed entirely
     def getLocation: Optional[Location] = Optional.ofNullable(location.orNull)
 
     def visit[T](visitor: AstExpressionVisitor[T]): T
@@ -198,11 +259,16 @@ object IR {
     * @param body the body of the lambda
     */
   case class Lambda(
-    location: Option[Location],
     arguments: List[DefinitionSiteArgument],
-    body: Expression
+    body: Expression,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
   ) extends Function
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): Lambda = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitLambda(this)
 
@@ -221,9 +287,13 @@ object IR {
   sealed case class DefinitionSiteArgument(
     name: String,
     defaultValue: Option[Expression],
-    suspended: Boolean
+    suspended: Boolean,
+    override val passData: Seq[Meta] = Seq()
   ) extends IR
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): DefinitionSiteArgument = {
+      copy(passData = this.passData ++ newData)
+    }
 
     def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
       visitor.visitArg(
@@ -250,12 +320,17 @@ object IR {
     *                             argument defaults in `function` suspended
     */
   sealed case class Prefix(
-    location: Option[Location],
     function: Expression,
     arguments: List[CallArgumentDefinition],
-    hasDefaultsSuspended: Boolean
+    hasDefaultsSuspended: Boolean,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
   ) extends Application
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): Prefix = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitFunctionApplication(this)
     def getArgs: java.util.List[CallArgumentDefinition] = arguments.asJava
@@ -269,12 +344,17 @@ object IR {
     * @param right the right operand to `operator`
     */
   sealed case class BinaryOperator(
-    location: Option[Location],
     left: Expression,
     operator: String,
-    right: Expression
+    right: Expression,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
   ) extends Application
       with IRKind.Sugar {
+    override def addPassData(newData: Seq[Meta]): BinaryOperator = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitArithOp(this)
   }
@@ -284,9 +364,16 @@ object IR {
     * @param location the source location of the force
     * @param target the expression being forced
     */
-  sealed case class ForcedTerm(location: Option[Location], target: Expression)
-      extends Application
+  sealed case class ForcedTerm(
+    target: Expression,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
+  ) extends Application
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): ForcedTerm = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitForce(this)
   }
@@ -302,9 +389,14 @@ object IR {
     */
   sealed case class CallArgumentDefinition(
     name: Option[String],
-    value: Expression
+    value: Expression,
+    override val passData: Seq[Meta] = Seq()
   ) extends IR
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): CallArgumentDefinition = {
+      copy(passData = this.passData ++ newData)
+    }
+
     def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
       visitor.visitCallArg(name.toJava, value, position)
   }
@@ -322,12 +414,17 @@ object IR {
     * @param suspended whether or not the block is suspended
     */
   sealed case class Block(
-    location: Option[Location],
     expressions: List[Expression],
     returnValue: Expression,
-    suspended: Boolean = false
+    override val location: Option[Location],
+    suspended: Boolean               = false,
+    override val passData: Seq[Meta] = Seq()
   ) extends Expression
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): Block = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitBlock(expressions.asJava, returnValue, suspended)
   }
@@ -339,11 +436,16 @@ object IR {
     * @param expression the expression being bound to `name`
     */
   case class Binding(
-    location: Option[Location],
     name: String,
-    expression: Expression
+    expression: Expression,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
   ) extends Expression
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): Binding = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitAssignment(this)
   }
@@ -358,12 +460,17 @@ object IR {
     * @param fallback a fallback branch, if provided explicitly
     */
   sealed case class CaseExpr(
-    location: Option[Location],
     scrutinee: Expression,
     branches: Seq[CaseBranch],
-    fallback: Option[CaseFunction]
+    fallback: Option[CaseFunction],
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
   ) extends Expression
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): CaseExpr = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitMatch(this)
     def getBranches: java.util.List[CaseBranch] = branches.asJava
@@ -371,7 +478,7 @@ object IR {
       Optional.ofNullable(fallback.orNull)
   }
 
-  // TODO [AA] Should become an expression
+  // TODO [AA] Should become an expression, with attendant info
   /** A branch in a case statement.
     *
     * @param location the source location of the case branch
@@ -395,11 +502,16 @@ object IR {
     * @param body the body of the function
     */
   case class CaseFunction(
-    location: Option[Location],
     arguments: List[DefinitionSiteArgument],
-    body: Expression
+    body: Expression,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
   ) extends Expression
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): CaseFunction = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitCaseFunction(this)
 
@@ -417,9 +529,9 @@ object IR {
     * @param doc the documentation of `commented`
     */
   sealed case class DocComment(
-    location: Option[Location],
     commented: Expression,
-    doc: String
+    doc: String,
+    location: Option[Location]
   ) extends IRKind.Primitive
 
   // TODO [AA] The above needs to extend `Expression` once the visitor is gone.
@@ -433,11 +545,16 @@ object IR {
     * @param code the code written in `lang`
     */
   sealed case class ForeignDefinition(
-    location: Option[Location],
     lang: String,
-    code: String
+    code: String,
+    override val location: Option[Location],
+    override val passData: Seq[Meta] = Seq()
   ) extends Expression
       with IRKind.Primitive {
+    override def addPassData(newData: Seq[Meta]): ForeignDefinition = {
+      copy(passData = this.passData ++ newData)
+    }
+
     override def visit[T](visitor: AstExpressionVisitor[T]): T =
       visitor.visitForeign(lang, code)
   }
@@ -452,9 +569,21 @@ object IR {
       *
       * @param ast the erroneous AST
       */
-    sealed case class Syntax(ast: AST) extends Error
+    sealed case class Syntax(ast: AST, override val passData: Seq[Meta] = Seq())
+        extends Error {
+      override def addPassData(newData: Seq[Meta]): Syntax = {
+        copy(passData = this.passData ++ newData)
+      }
+    }
 
-    sealed case class InvalidIR(ir: IR) extends Error
+    sealed case class InvalidIR(
+      ir: IR,
+      override val passData: Seq[Meta] = Seq()
+    ) extends Error {
+      override def addPassData(newData: Seq[Meta]): InvalidIR = {
+        copy(passData = this.passData ++ newData)
+      }
+    }
   }
 
   // ==========================================================================
@@ -481,6 +610,15 @@ object IR {
       */
     sealed trait Sugar extends IRKind
   }
+
+  // ==========================================================================
+  // === Pass Metadata ========================================================
+  // ==========================================================================
+
+  /** This trait should be implemented by all metadata elements generated by
+    * passes such that it can be stored in each IR node.
+    */
+  trait Meta {}
 }
 
 // ============================================================================

@@ -17,12 +17,12 @@ import org.enso.compiler.core.AstExpressionVisitor;
 import org.enso.compiler.core.IR.BinaryOperator;
 import org.enso.compiler.core.IR.Binding;
 import org.enso.compiler.core.IR.CallArgumentDefinition;
+import org.enso.compiler.core.IR.CaseExpr;
 import org.enso.compiler.core.IR.CaseFunction;
 import org.enso.compiler.core.IR.DefinitionSiteArgument;
 import org.enso.compiler.core.IR.Expression;
 import org.enso.compiler.core.IR.ForcedTerm;
 import org.enso.compiler.core.IR.Lambda;
-import org.enso.compiler.core.IR.CaseExpr;
 import org.enso.compiler.core.IR.LiteralName;
 import org.enso.compiler.core.IR.NumberLiteral;
 import org.enso.compiler.core.IR.Prefix;
@@ -38,24 +38,23 @@ import org.enso.interpreter.node.callable.function.BlockNode;
 import org.enso.interpreter.node.callable.function.CreateFunctionNode;
 import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
 import org.enso.interpreter.node.callable.thunk.ForceNode;
-import org.enso.interpreter.node.callable.thunk.ForceNodeGen;
 import org.enso.interpreter.node.controlflow.CaseNode;
 import org.enso.interpreter.node.controlflow.ConstructorCaseNode;
 import org.enso.interpreter.node.controlflow.DefaultFallbackNode;
 import org.enso.interpreter.node.controlflow.FallbackNode;
-import org.enso.interpreter.node.controlflow.MatchNodeGen;
+import org.enso.interpreter.node.controlflow.MatchNode;
 import org.enso.interpreter.node.expression.constant.ConstructorNode;
 import org.enso.interpreter.node.expression.constant.DynamicSymbolNode;
 import org.enso.interpreter.node.expression.literal.IntegerLiteralNode;
 import org.enso.interpreter.node.expression.literal.TextLiteralNode;
-import org.enso.interpreter.node.expression.operator.AddOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.DivideOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.ModOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.MultiplyOperatorNodeGen;
-import org.enso.interpreter.node.expression.operator.SubtractOperatorNodeGen;
+import org.enso.interpreter.node.expression.operator.AddOperatorNode;
+import org.enso.interpreter.node.expression.operator.DivideOperatorNode;
+import org.enso.interpreter.node.expression.operator.ModOperatorNode;
+import org.enso.interpreter.node.expression.operator.MultiplyOperatorNode;
+import org.enso.interpreter.node.expression.operator.SubtractOperatorNode;
 import org.enso.interpreter.node.scope.AssignmentNode;
 import org.enso.interpreter.node.scope.AssignmentNodeGen;
-import org.enso.interpreter.node.scope.ReadLocalTargetNodeGen;
+import org.enso.interpreter.node.scope.ReadLocalTargetNode;
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
@@ -170,7 +169,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitLong(NumberLiteral l) {
-    return setLocation(new IntegerLiteralNode(Long.parseLong(l.value())), l.getLocation());
+    return setLocation(IntegerLiteralNode.build(Long.parseLong(l.value())), l.getLocation());
   }
 
   /**
@@ -181,7 +180,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitStringLiteral(TextLiteral string) {
-    ExpressionNode node = new TextLiteralNode(string.text());
+    ExpressionNode node = TextLiteralNode.build(string.text());
     return setLocation(node, string.getLocation());
   }
 
@@ -198,19 +197,19 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     String operator = ast.operator();
     ExpressionNode resultOp = null;
     if (operator.equals("+")) {
-      resultOp = AddOperatorNodeGen.create(left, right);
+      resultOp = AddOperatorNode.build(left, right);
     }
     if (operator.equals("-")) {
-      resultOp = SubtractOperatorNodeGen.create(left, right);
+      resultOp = SubtractOperatorNode.build(left, right);
     }
     if (operator.equals("*")) {
-      resultOp = MultiplyOperatorNodeGen.create(left, right);
+      resultOp = MultiplyOperatorNode.build(left, right);
     }
     if (operator.equals("/")) {
-      resultOp = DivideOperatorNodeGen.create(left, right);
+      resultOp = DivideOperatorNode.build(left, right);
     }
     if (operator.equals("%")) {
-      resultOp = ModOperatorNodeGen.create(left, right);
+      resultOp = ModOperatorNode.build(left, right);
     }
     return setLocation(resultOp, ast.getLocation());
   }
@@ -241,12 +240,12 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     String name = astName.name();
     Optional<ExpressionNode> currentModuleVariable =
         name.equals(Constants.Names.CURRENT_MODULE)
-            ? Optional.of(new ConstructorNode(moduleScope.getAssociatedType()))
+            ? Optional.of(ConstructorNode.build(moduleScope.getAssociatedType()))
             : Optional.empty();
     Supplier<Optional<ExpressionNode>> localVariableNode =
-        () -> scope.getSlot(name).map(ReadLocalTargetNodeGen::create);
+        () -> scope.getSlot(name).map(ReadLocalTargetNode::build);
     Supplier<Optional<ExpressionNode>> constructorNode =
-        () -> moduleScope.getConstructor(name).map(ConstructorNode::new);
+        () -> moduleScope.getConstructor(name).map(ConstructorNode::build);
 
     ExpressionNode variableRead =
         Stream.of(() -> currentModuleVariable, localVariableNode, constructorNode)
@@ -254,7 +253,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
             .filter(Optional::isPresent)
             .map(Optional::get)
             .findFirst()
-            .orElseGet(() -> new DynamicSymbolNode(new UnresolvedSymbol(name, moduleScope)));
+            .orElseGet(() -> DynamicSymbolNode.build(UnresolvedSymbol.build(name, moduleScope)));
     return setLocation(variableRead, astName.getLocation());
   }
 
@@ -282,7 +281,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       ArgumentDefinition arg = arguments.get(i).visit(argFactory, i);
       argDefinitions[i] = arg;
       FrameSlot slot = scope.createVarSlot(arg.getName());
-      ReadArgumentNode readArg = new ReadArgumentNode(i, arg.getDefaultValue().orElse(null));
+      ReadArgumentNode readArg = ReadArgumentNode.build(i, arg.getDefaultValue().orElse(null));
       AssignmentNode assignArg = AssignmentNodeGen.create(readArg, slot);
       argExpressions.add(assignArg);
 
@@ -297,13 +296,13 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
 
     ExpressionNode bodyExpr = body.visit(this);
 
-    BlockNode fnBodyNode = new BlockNode(argExpressions.toArray(new ExpressionNode[0]), bodyExpr);
+    BlockNode fnBodyNode = BlockNode.build(argExpressions.toArray(new ExpressionNode[0]), bodyExpr);
     RootNode fnRootNode =
-        new ClosureRootNode(
+        ClosureRootNode.build(
             language, scope, moduleScope, fnBodyNode, makeSection(location), scopeName);
     RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(fnRootNode);
 
-    CreateFunctionNode expr = new CreateFunctionNode(callTarget, argDefinitions);
+    CreateFunctionNode expr = CreateFunctionNode.build(callTarget, argDefinitions);
     return setLocation(expr, location);
   }
 
@@ -389,7 +388,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
             : InvokeCallableNode.DefaultsExecutionMode.EXECUTE;
 
     ApplicationNode appNode =
-        new ApplicationNode(
+        ApplicationNode.build(
             application.function().visit(this),
             callArgs.toArray(new CallArgument[0]),
             defaultsExecutionMode);
@@ -407,7 +406,8 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
   public ExpressionNode visitAssignment(Binding ast) {
     currentVarName = ast.name();
     FrameSlot slot = scope.createVarSlot(ast.name());
-    return setLocation(AssignmentNodeGen.create(ast.expression().visit(this), slot), ast.getLocation());
+    return setLocation(
+        AssignmentNodeGen.create(ast.expression().visit(this), slot), ast.getLocation());
   }
 
   /**
@@ -418,14 +418,12 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitMatch(CaseExpr caseExpr) {
-    //      AstExpression target, List<AstCase> branches, Optional<AstCaseFunction> fallback) {
-
     ExpressionNode targetNode = caseExpr.scrutinee().visit(this);
     CaseNode[] cases =
         caseExpr.getBranches().stream()
             .map(
                 branch ->
-                    new ConstructorCaseNode(
+                    ConstructorCaseNode.build(
                         branch.pattern().visit(this), branch.expression().visit(this)))
             .toArray(CaseNode[]::new);
 
@@ -433,10 +431,10 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
     CaseNode fallbackNode =
         caseExpr
             .getFallback()
-            .map(fb -> (CaseNode) new FallbackNode(fb.visit(this)))
-            .orElseGet(DefaultFallbackNode::new);
+            .map(fb -> (CaseNode) FallbackNode.build(fb.visit(this)))
+            .orElseGet(DefaultFallbackNode::build);
 
-    ExpressionNode matchExpr = MatchNodeGen.create(cases, fallbackNode, targetNode);
+    ExpressionNode matchExpr = MatchNode.build(cases, fallbackNode, targetNode);
     return setLocation(matchExpr, caseExpr.getLocation());
   }
 
@@ -456,7 +454,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
    */
   @Override
   public ExpressionNode visitForce(ForcedTerm forcedTerm) {
-    ForceNode node = ForceNodeGen.create(forcedTerm.target().visit(this));
+    ForceNode node = ForceNode.build(forcedTerm.target().visit(this));
     return setLocation(node, forcedTerm.getLocation());
   }
 
@@ -477,7 +475,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
       ExpressionNode block = childFactory.visitBlock(statements, retValue, false);
 
       RootNode defaultRootNode =
-          new ClosureRootNode(
+          ClosureRootNode.build(
               language, childScope, moduleScope, block, null, "default::" + scopeName);
       RootCallTarget callTarget = Truffle.getRuntime().createCallTarget(defaultRootNode);
 
@@ -487,7 +485,7 @@ public class ExpressionFactory implements AstExpressionVisitor<ExpressionNode> {
           statements.stream().map(expr -> expr.visit(this)).toArray(ExpressionNode[]::new);
       ExpressionNode retExpr = retValue.visit(this);
 
-      return new BlockNode(statementExprs, retExpr);
+      return BlockNode.build(statementExprs, retExpr);
     }
   }
 }

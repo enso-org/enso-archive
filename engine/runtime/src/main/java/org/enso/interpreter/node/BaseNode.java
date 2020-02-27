@@ -14,6 +14,17 @@ public class BaseNode extends Node {
   private @CompilationFinal boolean isTail = false;
   private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
 
+  protected BaseNode() {}
+
+  /**
+   * Creates an instance of this node.
+   *
+   * @return a raw instance of a {@link BaseNode}
+   */
+  public static BaseNode build() {
+    return new BaseNode();
+  }
+
   /**
    * Obtains the frame slot containing state variable for this node.
    *

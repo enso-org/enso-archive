@@ -2,11 +2,11 @@ package org.enso.interpreter.builder;
 
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
+import com.oracle.truffle.api.source.Source;
+import com.oracle.truffle.api.source.SourceSection;
+import java.util.Optional;
 import org.enso.compiler.core.AstCallArgVisitor;
 import org.enso.compiler.core.IR.Expression;
-import com.oracle.truffle.api.source.Source;
-
-import com.oracle.truffle.api.source.SourceSection;
 import org.enso.compiler.core.IR.ForcedTerm;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
@@ -15,8 +15,6 @@ import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
 import org.enso.interpreter.runtime.callable.argument.CallArgument;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-
-import java.util.Optional;
 
 /**
  * A {@code CallArgFactory} is responsible for converting arguments passed to a function call into
@@ -68,7 +66,8 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
     ExpressionNode result;
 
     if (value instanceof ForcedTerm) {
-      ExpressionFactory factory = new ExpressionFactory(language, source, scope, scopeName, moduleScope);
+      ExpressionFactory factory =
+          new ExpressionFactory(language, source, scope, scopeName, moduleScope);
       result = ((ForcedTerm) value).target().visit(factory);
     } else {
       LocalScope childScope = new LocalScope(scope);
@@ -86,7 +85,8 @@ public class CallArgFactory implements AstCallArgVisitor<CallArgument> {
       RootCallTarget callTarget =
           Truffle.getRuntime()
               .createCallTarget(
-                  new ClosureRootNode(language, childScope, moduleScope, expr, section, displayName));
+                  ClosureRootNode.build(
+                      language, childScope, moduleScope, expr, section, displayName));
       result = CreateThunkNode.build(callTarget);
     }
 

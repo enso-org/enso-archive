@@ -1,24 +1,48 @@
 package org.enso.compiler.generate
 
+import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionSiteArgument
 import org.enso.interpreter.builder.{ArgDefinitionFactory, ExpressionFactory}
-import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
+import org.enso.interpreter.node.callable.argument.ReadArgumentNode
+import org.enso.interpreter.node.callable.function.{
+  BlockNode,
+  CreateFunctionNode
+}
+import org.enso.interpreter.node.expression.constant.{
+  ConstructorNode,
+  DynamicSymbolNode
+}
+import org.enso.interpreter.node.expression.literal.{
+  IntegerLiteralNode,
+  TextLiteralNode
+}
+import org.enso.interpreter.node.expression.operator._
+import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
+import org.enso.interpreter.node.{
+  ClosureRootNode,
+  ExpressionNode => RuntimeExpression
+}
 import org.enso.interpreter.runtime.Context
+import org.enso.interpreter.runtime.callable.UnresolvedSymbol
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.{
   FunctionSchema,
   Function => RuntimeFunction
 }
-import org.enso.interpreter.runtime.error.VariableDoesNotExistException
+import org.enso.interpreter.runtime.error.{
+  DuplicateArgumentNameException,
+  VariableDoesNotExistException
+}
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 import org.enso.syntax.text.Location
-import shapeless.HList
 
+import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters._
+import scala.jdk.OptionConverters._
 
 class IRToTruffle(
   val language: Language,
@@ -31,9 +55,9 @@ class IRToTruffle(
   // ==========================================================================
 
   def run(ir: IR): Unit = ir match {
-    case mod @ IR.Module(_, _) => processModule(mod)
-    case err: IR.Error         => processError(err)
-    case _                     => processError(IR.Error.InvalidIR(ir))
+    case mod @ IR.Module(_, _, _) => processModule(mod)
+    case err: IR.Error            => processError(err)
+    case _                        => processError(IR.Error.InvalidIR(ir))
   }
 
   def runInline(ir: IR): Unit = ???
@@ -182,31 +206,155 @@ class IRToTruffle(
 
     // === Runner =============================================================
 
-    // TODO [AA] Better error handling here
+    // TODO [AA] Better error handling here, but really all errors should be
+    //  reported before codegen
     def run(ir: IR): RuntimeExpression = {
       val expression: RuntimeExpression = ir match {
-        case literal: IR.Literal => ???
-        case _                   =>
-          throw new RuntimeException("Unhandled entity.")
+        case IR.Tagged(ir, _, _) => run(ir)
+        case literal: IR.Literal => processLiteral(literal)
+        case app: IR.Application => processApplication(app)
+        case name: IR.Name       => processName(name)
+        case IR.ForeignDefinition(_, _, _, _) =>
+          throw new RuntimeException("Foreign expressions not yet implemented.")
+        case _ => ???
       }
 
       expression.markNotTail()
       expression
     }
 
-    def run[T <: HList](ir: IR, tagData: Option[T])
-
     // === Processing =========================================================
 
-    def processLiteral[T](
-      literal: IR,
-      tagData: Option[T]
-    ): RuntimeExpression = {
-      ???
+    def processName(name: IR.Name): RuntimeExpression = name match {
+      case IR.LiteralName(name, location, _) =>
+        val slot     = scope.getSlot(name).toScala
+        val atomCons = moduleScope.getConstructor(name).toScala
+
+        val variableRead = if (name == Constants.Names.CURRENT_MODULE) {
+          ConstructorNode.build(moduleScope.getAssociatedType)
+        } else if (slot.isDefined) {
+          ReadLocalTargetNode.build(slot.get)
+        } else if (atomCons.isDefined) {
+          ConstructorNode.build(atomCons.get)
+        } else {
+          DynamicSymbolNode.build(UnresolvedSymbol.build(name, moduleScope))
+        }
+
+        setLocation(variableRead, location)
     }
-  }
-}
-object IRToTruffle {
-  object Tag {
+
+    def processLiteral[T](literal: IR.Literal): RuntimeExpression =
+      literal match {
+        case IR.NumberLiteral(value, location, _) =>
+          setLocation(IntegerLiteralNode.build(value.toLong), location)
+        case IR.TextLiteral(text, location, _) =>
+          setLocation(TextLiteralNode.build(text), location)
+      }
+
+    def processApplication(application: IR.Application): RuntimeExpression =
+      application match {
+        case IR.Prefix(fn, args, hasDefaultsSuspended, location, _) => ???
+        case IR.BinaryOperator(left, operator, right, location, _) =>
+          val leftExpr  = this.run(left)
+          val rightExpr = this.run(right)
+
+          // This will be refactored away once operator desugaring exists
+          val opExpr = if (operator == "+") {
+            AddOperatorNode.build(leftExpr, rightExpr)
+          } else if (operator == "-") {
+            SubtractOperatorNode.build(leftExpr, rightExpr)
+          } else if (operator == "*") {
+            MultiplyOperatorNode.build(leftExpr, rightExpr)
+          } else if (operator == "/") {
+            DivideOperatorNode.build(leftExpr, rightExpr)
+          } else if (operator == "%") {
+            ModOperatorNode.build(leftExpr, rightExpr)
+          } else {
+            throw new RuntimeException(
+              s"Unsupported operator $operator at codegen time."
+            )
+          }
+
+          setLocation(opExpr, location)
+        case IR.ForcedTerm(expr, location, _) => ???
+      }
+
+    def processFunctionBody(
+      arguments: List[IR.DefinitionSiteArgument],
+      body: IR.Expression,
+      location: Option[Location]
+    ): RuntimeExpression = {
+      val argFactory = new ArgDefinitionFactory(
+        scope,
+        language,
+        source,
+        scopeName,
+        moduleScope
+      )
+
+      val argDefinitions = new Array[ArgumentDefinition](arguments.size)
+      val argExpressions = new ArrayBuffer[RuntimeExpression]
+      val seenArgNames   = Set[String]()
+
+      // Note [Rewriting Arguments]
+      for ((unprocessedArg, idx) <- arguments.view.zipWithIndex) {
+        val arg = unprocessedArg.visit(argFactory, idx)
+        argDefinitions(idx) = arg
+
+        val slot = scope.createVarSlot(arg.getName)
+        val readArg =
+          ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+        val assignArg = AssignmentNode.build(readArg, slot)
+
+        argExpressions.append(assignArg)
+
+        val argName = arg.getName
+
+        if (seenArgNames contains argName) {
+          throw new DuplicateArgumentNameException(argName)
+        } else seenArgNames + argName
+      }
+
+      val bodyExpr = this.run(body)
+
+      val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
+      val fnRootNode = ClosureRootNode.build(
+        language,
+        scope,
+        moduleScope,
+        fnBodyNode,
+        makeSection(location),
+        scopeName
+      )
+      val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
+
+      val expr = CreateFunctionNode.build(callTarget, argDefinitions)
+
+      setLocation(expr, location)
+    }
+
+    /* Note [Rewriting Arguments]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * While it would be tempting to handle function arguments as a special case
+   * of a lookup, it is instead far simpler to rewrite them such that they
+   * just become bindings in the function local scope. This occurs for both
+   * explicitly passed argument values, and those that have been defaulted.
+   *
+   * For each argument, the following algorithm is executed:
+   *
+   * 1. Argument Conversion: Arguments are converted into their definitions so
+   *    as to provide a compact representation of all known information about
+   *    that argument.
+   * 2. Frame Conversion: A variable slot is created in the function's local
+   *    frame to contain the value of the function argument.
+   * 3. Read Provision: A `ReadArgumentNode` is generated to allow that
+   *    function argument to be treated purely as a local variable access. See
+   *    Note [Handling Argument Defaults] for more information on how this
+   *    works.
+   * 4. Value Assignment: A `AssignmentNode` is created to connect the
+   *    argument value to the frame slot created in Step 2.
+   * 5. Body Rewriting: The expression representing the argument is written
+   *    into the function body, thus allowing it to be read simply.
+   */
   }
 }

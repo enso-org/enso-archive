@@ -60,9 +60,9 @@ object AstToIR {
           case _ =>
             Some(
               Block(
-                Foldable[List].foldMap(expressions)(_.location),
                 expressions.dropRight(1),
-                expressions.last
+                expressions.last,
+                location = Foldable[List].foldMap(expressions)(_.location)
               )
             )
         }
@@ -121,7 +121,7 @@ object AstToIR {
         val defExpression = translateExpression(definition)
         val defExpr: Lambda = defExpression match {
           case fun: Lambda => fun
-          case expr        => Lambda(expr.location, List(), expr)
+          case expr        => Lambda(List(), expr, expr.location)
         }
         MethodDef(path, nameStr, defExpr)
       case _ =>
@@ -139,23 +139,23 @@ object AstToIR {
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Binding(
-          inputAST.location,
           name.name,
           Block(
-            block.location,
             lines.map(translateExpression),
             translateExpression(lastLine),
+            block.location,
             suspended = true
-          )
+          ),
+          inputAST.location
         )
       case AstView.Assignment(name, expr) =>
         translateBinding(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>
         Prefix(
-          inputAST.location,
           translateExpression(name),
           (target :: args).map(translateCallArgument),
-          false
+          false,
+          inputAST.location
         )
       case AstView.CaseExpression(scrutinee, branches) =>
         val actualScrutinee = translateExpression(scrutinee)
@@ -169,10 +169,10 @@ object AstToIR {
             .headOption
             .map(translateFallbackBranch)
         CaseExpr(
-          inputAST.location,
           actualScrutinee,
           nonFallbackBranches,
-          potentialFallback
+          potentialFallback,
+          inputAST.location
         )
       case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
       case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
@@ -182,9 +182,9 @@ object AstToIR {
       case AST.Ident.any(inputAST) => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
         Block(
-          inputAST.location,
           lines.map(translateExpression),
-          translateExpression(retLine)
+          translateExpression(retLine),
+          location = inputAST.location
         )
       case AST.Comment.any(inputAST) => translateComment(inputAST)
       case AST.Invalid.any(inputAST) => translateInvalid(inputAST)
@@ -210,7 +210,7 @@ object AstToIR {
           throw new RuntimeException("Only base 10 is currently supported")
         }
 
-        NumberLiteral(literal.location, number)
+        NumberLiteral(number, literal.location)
       }
       case AST.Literal.Text.any(literal) =>
         literal.shape match {
@@ -220,7 +220,7 @@ object AstToIR {
               case AST.Literal.Text.Segment.RawEsc(code) => code.repr
             }.mkString
 
-            TextLiteral(literal.location, fullString)
+            TextLiteral(fullString, literal.location)
           case AST.Literal.Text.Block.Raw(lines, _, _) =>
             val fullString = lines
               .map(
@@ -232,7 +232,7 @@ object AstToIR {
               )
               .mkString("\n")
 
-            TextLiteral(literal.location, fullString)
+            TextLiteral(fullString, literal.location)
           case AST.Literal.Text.Block.Fmt(_, _, _) =>
             throw new RuntimeException("Format strings not yet supported")
           case AST.Literal.Text.Line.Fmt(_) =>
@@ -298,7 +298,7 @@ object AstToIR {
   def translateApplicationLike(callable: AST): Expression = {
     callable match {
       case AstView.ForcedTerm(term) =>
-        ForcedTerm(callable.location, translateExpression(term))
+        ForcedTerm(translateExpression(term), callable.location)
       case AstView.Application(name, args) =>
         val validArguments = args.filter {
           case AstView.SuspendDefaultsOperator(_) => false
@@ -312,21 +312,26 @@ object AstToIR {
         val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
 
         Prefix(
-          callable.location,
           translateExpression(name),
           validArguments.map(translateCallArgument),
-          hasDefaultsSuspended
+          hasDefaultsSuspended,
+          callable.location
         )
       case AstView.Lambda(args, body) =>
         val realArgs = args.map(translateArgumentDefinition(_))
         val realBody = translateExpression(body)
-        Lambda(callable.location, realArgs, realBody)
+        Lambda(realArgs, realBody, callable.location)
       case AST.App.Infix(left, fn, right) =>
         // TODO [AA] We should accept all ops when translating to core
         val validInfixOps = List("+", "/", "-", "*", "%")
 
         if (validInfixOps.contains(fn.name)) {
-          BinaryOperator(callable.location, translateExpression(left), fn.name, translateExpression(right))
+          BinaryOperator(
+            translateExpression(left),
+            fn.name,
+            translateExpression(right),
+            callable.location
+          )
         } else {
           throw new RuntimeException(
             s"${fn.name} is not currently a valid infix operator"
@@ -353,10 +358,10 @@ object AstToIR {
           AST.Ident.Var(realNameSegments.map(_.name).mkString("_"))
 
         Prefix(
-          callable.location,
           translateExpression(functionName),
           args.map(translateCallArgument).toList,
-          false
+          false,
+          callable.location
         )
       case _ => throw new UnhandledEntity(callable, "translateCallable")
     }
@@ -370,8 +375,8 @@ object AstToIR {
     */
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
-      case AST.Ident.Var(name)  => LiteralName(identifier.location, name)
-      case AST.Ident.Cons(name) => LiteralName(identifier.location, name)
+      case AST.Ident.Var(name)  => LiteralName(name, identifier.location)
+      case AST.Ident.Cons(name) => LiteralName(name, identifier.location)
       case AST.Ident.Blank(_) =>
         throw new RuntimeException("Blanks not yet properly supported")
       case AST.Ident.Opr.any(_) =>
@@ -400,7 +405,7 @@ object AstToIR {
   ): Binding = {
     name match {
       case AST.Ident.Var(name) =>
-        Binding(location, name, translateExpression(expr))
+        Binding(name, translateExpression(expr), location)
       case _ =>
         throw new UnhandledEntity(name, "translateAssignment")
     }
@@ -419,9 +424,9 @@ object AstToIR {
           branch.location,
           translateExpression(cons),
           CaseFunction(
-            body.location,
             args.map(translateArgumentDefinition(_)),
-            translateExpression(body)
+            translateExpression(body),
+            body.location
           )
         )
 
@@ -438,7 +443,7 @@ object AstToIR {
   def translateFallbackBranch(branch: AST): CaseFunction = {
     branch match {
       case AstView.FallbackCaseBranch(body) =>
-        CaseFunction(body.location, List(), translateExpression(body))
+        CaseFunction(List(), translateExpression(body), body.location)
       case _ => throw new UnhandledEntity(branch, "translateFallbackBranch")
     }
   }

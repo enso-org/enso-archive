@@ -3,9 +3,10 @@ package org.enso.interpreter.builder;
 import com.oracle.truffle.api.RootCallTarget;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.nodes.RootNode;
+import com.oracle.truffle.api.source.Source;
+import java.util.Optional;
 import org.enso.compiler.core.AstArgDefinitionVisitor;
 import org.enso.compiler.core.IR.Expression;
-import com.oracle.truffle.api.source.Source;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.node.ClosureRootNode;
 import org.enso.interpreter.node.ExpressionNode;
@@ -13,8 +14,6 @@ import org.enso.interpreter.node.callable.thunk.CreateThunkNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
-
-import java.util.Optional;
 
 /**
  * An {@code ArgDefinitionFactory} is responsible for converting argument definitions in the Enso
@@ -100,7 +99,7 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
     // Note [Handling Suspended Defaults]
     if (suspended && defExpression != null) {
       RootNode defaultRootNode =
-          new ClosureRootNode(
+          ClosureRootNode.build(
               language,
               scope,
               moduleScope,
@@ -123,10 +122,10 @@ public class ArgDefinitionFactory implements AstArgDefinitionVisitor<ArgumentDef
   /* Note [Handling Suspended Defaults]
    * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    * Suspended defaults need to be wrapped in a thunk to ensure that they behave properly with
-   * regards to the expected semantics of lazy arguments. 
-   * 
+   * regards to the expected semantics of lazy arguments.
+   *
    * Were they not wrapped in a thunk, they would be evaluated eagerly, and hence the point at
    * which the default would be evaluated would differ from the point at which a passed-in argument
-   * would be evaluated. 
+   * would be evaluated.
    */
 }
