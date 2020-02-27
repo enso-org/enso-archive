@@ -152,28 +152,23 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
 
       sender ! ReadFileResult(result)
 
-    case CreateFile(fsObject) =>
-      fsObject match {
-        case FileSystemObject.File(name, path) =>
-          val result =
-            for {
-              rootPath <- config.findContentRoot(path.rootId)
-              _        <- fs.createFile(path.toFile(rootPath, name)).unsafeRunSync()
-            } yield ()
+    case CreateFile(FileSystemObject.File(name, path)) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          _        <- fs.createFile(path.toFile(rootPath, name)).unsafeRunSync()
+        } yield ()
 
-          sender ! CreateFileResult(result)
+      sender ! CreateFileResult(result)
 
-        case FileSystemObject.Directory(name, path) =>
-          val result =
-            for {
-              rootPath <- config.findContentRoot(path.rootId)
-              _ <- fs
-                .createDirectory(path.toFile(rootPath, name))
-                .unsafeRunSync()
-            } yield ()
+    case CreateFile(FileSystemObject.Directory(name, path)) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          _        <- fs.createDirectory(path.toFile(rootPath, name)).unsafeRunSync()
+        } yield ()
 
-          sender ! CreateFileResult(result)
-      }
+      sender ! CreateFileResult(result)
 
   }
   /* Note [Usage of unsafe methods]
