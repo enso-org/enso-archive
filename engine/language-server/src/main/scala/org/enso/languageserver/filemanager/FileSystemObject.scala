@@ -1,7 +1,8 @@
 package org.enso.languageserver.filemanager
 
-import io.circe.Decoder
 import io.circe.generic.auto._
+import io.circe.syntax._
+import io.circe.{Decoder, Encoder, Json}
 
 /**
   * A representation of filesystem object.
@@ -51,6 +52,23 @@ object FileSystemObject {
             path <- cursor.downField(PathField).as[Path]
           } yield Directory(name, path)
       }
+    }
+
+  implicit val fsoEncoder: Encoder[FileSystemObject] =
+    Encoder.instance[FileSystemObject] {
+      case Directory(name, path) =>
+        Json.obj(
+          TypeField -> DirectoryType.asJson,
+          NameField -> name.asJson,
+          PathField -> path.asJson
+        )
+
+      case File(name, path) =>
+        Json.obj(
+          TypeField -> FileType.asJson,
+          NameField -> name.asJson,
+          PathField -> path.asJson
+        )
     }
 
 }
