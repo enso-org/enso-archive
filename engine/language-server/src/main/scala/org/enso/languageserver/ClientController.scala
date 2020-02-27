@@ -7,7 +7,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
-import org.enso.languageserver.filemanager.FileManagerApi.{ReadFile, _}
+import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
   CreateFileResult,
   WriteFileResult
