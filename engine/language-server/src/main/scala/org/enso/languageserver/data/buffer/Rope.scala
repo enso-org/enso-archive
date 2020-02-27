@@ -21,7 +21,9 @@ case object StringMeasure {
   }
 }
 
-object CodePointRopeOps extends MeasureOps[Int, String, StringMeasure] {
+object CodePointRopeOps
+    extends RangeOps[Int, String, StringMeasure]
+    with ElemOps[Int, String, StringMeasure] {
   type Elem = Int
 
   override def contains(
@@ -54,7 +56,7 @@ object CodePointRopeOps extends MeasureOps[Int, String, StringMeasure] {
     measure: StringMeasure
   ): Boolean = index > 0
 
-  override def moveAfter(
+  override def shiftLeft(
     index: Int,
     measure: StringMeasure
   ): Int = index - measure.utf32Size
@@ -89,7 +91,9 @@ case class CodePointRope(rope: Rope) {
   def get(index: Int): Int = rope.root.get(index, CodePointRopeOps)
 }
 
-object CharRopeOps extends MeasureOps[Int, String, StringMeasure] {
+object CharRopeOps
+    extends RangeOps[Int, String, StringMeasure]
+    with ElemOps[Int, String, StringMeasure] {
   type Elem = Char
 
   override def get(
@@ -113,7 +117,7 @@ object CharRopeOps extends MeasureOps[Int, String, StringMeasure] {
     measure: StringMeasure
   ): Boolean = index > 0
 
-  override def moveAfter(index: Int, measure: StringMeasure): Int =
+  override def shiftLeft(index: Int, measure: StringMeasure): Int =
     index - measure.utf16Size
 
   override def take(
@@ -152,16 +156,11 @@ case class LineRope(rope: Rope) {
   def take(len: Int): Rope = rope.takeWith(len, LineRopeOps)
 
   def drop(len: Int): Rope = rope.dropWith(len, LineRopeOps)
+
+  def splitAt(offset: Int): (Rope, Rope) = rope.splitWith(offset, LineRopeOps)
 }
 
-object LineRopeOps extends MeasureOps[Int, String, StringMeasure] {
-  override type Elem = Rope
-
-  override def get(
-    container: String,
-    index: Int
-  ): Rope = ???
-
+object LineRopeOps extends RangeOps[Int, String, StringMeasure] {
   override def splitAt(
     container: String,
     index: Int
@@ -178,12 +177,7 @@ object LineRopeOps extends MeasureOps[Int, String, StringMeasure] {
     measure: StringMeasure
   ): Boolean = index > 0
 
-  override def contains(
-    index: Int,
-    measure: StringMeasure
-  ): Boolean = ???
-
-  override def moveAfter(
+  override def shiftLeft(
     index: Int,
     measure: StringMeasure
   ): Int = index - measure.fullLines
@@ -214,7 +208,7 @@ case class Rope(root: Node[String, StringMeasure]) {
 
   def splitWith(
     ix: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
+    ops: RangeOps[Int, String, StringMeasure]
   ): (Rope, Rope) = {
     val (lNode, rNode) = root.splitAt(ix, ops)
     (Rope(lNode), Rope(rNode))
@@ -222,18 +216,18 @@ case class Rope(root: Node[String, StringMeasure]) {
 
   def takeWith(
     len: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
+    ops: RangeOps[Int, String, StringMeasure]
   ): Rope = Rope(root.take(len, ops))
 
   def dropWith(
     len: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
+    ops: RangeOps[Int, String, StringMeasure]
   ): Rope = Rope(root.drop(len, ops))
 
   def getWith(
     index: Int,
-    ops: MeasureOps[Int, String, StringMeasure]
-  ): ops.Elem = root.get(index, ops)
+    elemOps: ElemOps[Int, String, StringMeasure]
+  ): elemOps.Elem = root.get(index, elemOps)
 
   def codePoints: CodePointRope = CodePointRope(this)
 
@@ -252,26 +246,8 @@ object Rope {
     (str: String) =>
       StringMeasure(str.length, str.codePointCount(0, str.length), 0, false)
 
-  def strLines(str: String): (List[String], Option[String]) = {
-    var nextSubstr          = 0
-    var curIdx              = 0
-    var lines: List[String] = List()
-    while (curIdx < str.length) {
-      if (str.charAt(curIdx) == '\n') {
-        lines      = str.substring(nextSubstr, curIdx + 1) :: lines
-        nextSubstr = curIdx + 1
-      }
-      curIdx += 1
-    }
-    (
-      lines.reverse,
-      if (nextSubstr < str.length) Some(str.substring(nextSubstr, str.length))
-      else None
-    )
-  }
-
   def apply(str: String): Rope = {
-    val (fullLines, mayLastLine) = strLines(str)
+    val (fullLines, mayLastLine) = StringUtils.getLines(str)
     val fullNodes = fullLines.map(
       line =>
         Node(

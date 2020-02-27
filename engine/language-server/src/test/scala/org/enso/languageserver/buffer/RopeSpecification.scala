@@ -5,25 +5,6 @@ import org.scalacheck.{Gen, Properties}
 import org.scalacheck.Arbitrary._
 
 object RopeSpecification extends Properties("Rope") {
-  private val newlinedStrings: Gen[List[String]] = {
-    val stringWithNewline: Gen[String] = for {
-      str         <- arbitrary[String]
-      inclNewLine <- arbitrary[Boolean]
-      codePointsLen = str.codePointCount(0, str.length)
-      newLinePos <- Gen.choose(0, codePointsLen)
-      newLine    <- Gen.oneOf("\n", "\r", "\r\n")
-    } yield
-      if (inclNewLine) {
-        val newLinePosUtf = str.offsetByCodePoints(0, newLinePos)
-        str.substring(0, newLinePosUtf) + newLine + str.substring(
-          newLinePosUtf,
-          str.length
-        )
-      } else {
-        str
-      }
-    Gen.listOf(stringWithNewline)
-  }
 
   private def ropeFromStrings(strings: List[String]): Rope =
     strings.foldLeft(Rope.empty)((rope, string) => rope ++ Rope(string))

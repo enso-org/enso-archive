@@ -118,7 +118,7 @@ case class Node[C, M](
 
   def take[I](
     offset: I,
-    measureOps: MeasureOps[I, C, M]
+    measureOps: RangeOps[I, C, M]
   )(
     implicit measureMonoid: Monoid[M],
     measurable: Measurable[C, M],
@@ -150,7 +150,7 @@ case class Node[C, M](
 
   def drop[I](
     offset: I,
-    measureOps: MeasureOps[I, C, M]
+    measureOps: RangeOps[I, C, M]
   )(
     implicit measureMonoid: Monoid[M],
     measurable: Measurable[C, M],
@@ -172,7 +172,7 @@ case class Node[C, M](
 
   private def findIndexChild[I](
     ix: I,
-    measureOps: MeasureOps[I, C, M],
+    measureOps: RangeOps[I, C, M],
     childrenArray: Array[Node[C, M]]
   ): (List[Node[C, M]], Option[(I, Node[C, M])], List[Node[C, M]]) = {
     val children  = childrenArray.toList
@@ -180,13 +180,13 @@ case class Node[C, M](
     val leftChildren = children.takeWhile { node =>
       // Left children are all the children wholly contained inside offset
       if (!measureOps.isOffsetBeforeEnd(currentIx, node.measure)) {
-        currentIx = measureOps.moveAfter(currentIx, node.measure)
+        currentIx = measureOps.shiftLeft(currentIx, node.measure)
         true
       } else false
     }
     val leftoverChildren = children.drop(leftChildren.length)
     leftoverChildren match {
-      case Nil => (leftChildren, None, Nil)
+      case Nil                       => (leftChildren, None, Nil)
       case midChild :: rightChildren =>
         // midChild is only relevant if the offset actually cuts it
         if (measureOps.isOffsetAfterBegin(currentIx, midChild.measure))
@@ -197,7 +197,7 @@ case class Node[C, M](
 
   def splitAt[I](
     ix: I,
-    measureOps: MeasureOps[I, C, M]
+    measureOps: RangeOps[I, C, M]
   )(
     implicit measureMonoid: Monoid[M],
     measurable: Measurable[C, M],
@@ -223,23 +223,26 @@ case class Node[C, M](
         }
     }
   }
-  def get[I](index: I, measureOps: MeasureOps[I, C, M]): measureOps.Elem = {
+
+  def get[I](
+    index: I,
+    elemOps: ElemOps[I, C, M]
+  ): elemOps.Elem = {
     value match {
       case Empty()        => throw new ArrayIndexOutOfBoundsException
-      case Leaf(elements) => measureOps.get(elements, index)
+      case Leaf(elements) => elemOps.get(elements, index)
       case Internal(children) =>
         var currentIdx = index
         children
           .find { node =>
-            if (measureOps.contains(currentIdx, node.measure)) true
+            if (elemOps.contains(currentIdx, node.measure)) true
             else {
-              currentIdx = measureOps.moveAfter(currentIdx, node.measure)
+              currentIdx = elemOps.shiftLeft(currentIdx, node.measure)
               false
             }
           }
           .getOrElse(throw new ArrayIndexOutOfBoundsException)
-          .get(currentIdx, measureOps)
-
+          .get(currentIdx, elemOps)
     }
   }
 }
@@ -286,20 +289,22 @@ object Node {
     nodes.foldLeft(empty[C, M])((tree, node) => tree ++ node)
 }
 
-trait MeasureOps[I, C, M] {
+trait ElemOps[I, C, M] extends RangeOps[I, C, M] {
   type Elem
 
   def get(container: C, index: I): Elem
 
-  def splitAt(container: C, index: I): (C, C)
-
-  def isOffsetBeforeEnd(index: I, measure: M): Boolean
-
-  def isOffsetAfterBegin(index: I, measure: M): Boolean
-
   def contains(index: I, measure: M): Boolean
+}
 
-  def moveAfter(index: I, measure: M): I
+trait RangeOps[I, C, M] {
+  def splitAt(container: C, offset: I): (C, C)
+
+  def isOffsetBeforeEnd(offset: I, measure: M): Boolean
+
+  def isOffsetAfterBegin(offset: I, measure: M): Boolean
+
+  def shiftLeft(offset: I, measure: M): I
 
   def take(container: C, len: I): C
 

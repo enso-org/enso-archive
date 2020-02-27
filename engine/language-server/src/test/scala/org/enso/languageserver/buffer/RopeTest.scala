@@ -24,4 +24,6 @@ class RopeTest extends AnyFlatSpec with Matchers {
        |And then another starts.
        |Wow, that is indeed tricky.""".stripMargin
   }
+
+  "Rope" should "allow "
 }
