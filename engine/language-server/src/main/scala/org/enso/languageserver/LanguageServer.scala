@@ -1,6 +1,17 @@
 package org.enso.languageserver
+
+import java.io.File
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
+import cats.effect.IO
 import org.enso.languageserver.data._
+import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  FileRead,
+  FileReadResult,
+  FileWrite,
+  FileWriteResult
+}
+import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemFailure}
 
 object LanguageProtocol {
 
@@ -67,7 +78,7 @@ object LanguageProtocol {
   *
   * @param config the configuration used by this Language Server.
   */
-class LanguageServer(config: Config)
+class LanguageServer(config: Config, fs: FileSystemApi[IO])
     extends Actor
     with Stash
     with ActorLogging {
@@ -116,5 +127,28 @@ class LanguageServer(config: Config)
       context.become(
         initialized(config, env.releaseCapability(clientId, capabilityId))
       )
+
+    case FileWrite(path, content) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          _        <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
+        } yield ()
+
+      sender ! FileWriteResult(result)
+
+    case FileRead(path) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          content  <- fs.read(path.toFile(rootPath)).unsafeRunSync()
+        } yield content
+
+      sender ! FileReadResult(result)
   }
+  /* Note [Usage of unsafe methods]
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     It invokes side-effecting function, all exceptions are caught and
+     explicitly returned as left side of disjunction.
+ */
 }
