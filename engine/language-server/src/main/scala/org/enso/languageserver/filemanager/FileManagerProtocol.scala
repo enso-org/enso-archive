@@ -31,4 +31,8 @@ object FileManagerProtocol {
     */
   case class FileReadResult(result: Either[FileSystemFailure, String])
 
+  case class CreateFile(`object`: FileSystemObject)
+
+  case class CreateFileResult(result: Either[FileSystemFailure, Unit])
+
 }

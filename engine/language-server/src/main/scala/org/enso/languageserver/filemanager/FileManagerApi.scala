@@ -41,6 +41,18 @@ object FileManagerApi {
     }
   }
 
+  case object CreateFile extends Method("file/create") {
+
+    case class Params(`object`: FileSystemObject)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = CreateFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case class FileSystemError(override val message: String)
       extends Error(1000, message)
 

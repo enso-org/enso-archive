@@ -6,12 +6,18 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import cats.effect.IO
 import org.enso.languageserver.data._
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  CreateFile,
+  CreateFileResult,
   FileRead,
   FileReadResult,
   FileWrite,
   FileWriteResult
 }
-import org.enso.languageserver.filemanager.{FileSystemApi, FileSystemFailure}
+import org.enso.languageserver.filemanager.{
+  FileSystemApi,
+  FileSystemFailure,
+  FileSystemObject
+}
 
 object LanguageProtocol {
 
@@ -145,6 +151,30 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
         } yield content
 
       sender ! FileReadResult(result)
+
+    case CreateFile(fsObject) =>
+      fsObject match {
+        case FileSystemObject.File(name, path) =>
+          val result =
+            for {
+              rootPath <- config.findContentRoot(path.rootId)
+              _        <- fs.createFile(path.toFile(rootPath, name)).unsafeRunSync()
+            } yield ()
+
+          sender ! CreateFileResult(result)
+
+        case FileSystemObject.Directory(name, path) =>
+          val result =
+            for {
+              rootPath <- config.findContentRoot(path.rootId)
+              _ <- fs
+                .createDirectory(path.toFile(rootPath, name))
+                .unsafeRunSync()
+            } yield ()
+
+          sender ! CreateFileResult(result)
+      }
+
   }
   /* Note [Usage of unsafe methods]
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
