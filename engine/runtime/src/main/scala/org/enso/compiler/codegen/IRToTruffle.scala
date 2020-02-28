@@ -3,6 +3,7 @@ package org.enso.compiler.codegen
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -70,12 +71,23 @@ class IRToTruffle(
   // === Top-Level Runners ====================================================
   // ==========================================================================
 
-  def run(ir: IR): Unit = ir match {
-    case mod: IR.Module => processModule(mod)
-    case err: IR.Error  => processError(err)
-    case _              => processError(IR.Error.InvalidIR(ir))
-  }
+  /** Executes the codegen pass on the input [[IR]].
+    *
+    * Please note that the IR passed to this function should not contain _any_
+    * errors (members of [[IR.Error]]). These must be dealt with and reported
+    * before codegen runs, as they will cause a compiler error.
+    *
+    * @param ir the IR to generate code for
+    */
+  def run(ir: IR.Module): Unit = processModule(ir)
 
+  /** Executes the codegen pass on an inline input.
+    *
+    * @param ir the IR to generate code for
+    * @param localScope the scope in which the inline input exists
+    * @param scopeName the name of `localScope`
+    * @return an truffle expression representing `ir`
+    */
   def runInline(
     ir: IR.Expression,
     localScope: LocalScope,
@@ -88,6 +100,14 @@ class IRToTruffle(
   // === IR Processing Functions ==============================================
   // ==========================================================================
 
+  /** Generates truffle nodes from the top-level definitions of an Enso module
+    * and registers these definitions in scope in the compiler.
+    *
+    * It does not directly return any constructs, but instead registers these
+    * constructs for later access in the compiler and language context.
+    *
+    * @param module the module for which code should be generated
+    */
   private def processModule(module: IR.Module): Unit = {
     val context: Context = language.getCurrentContext
 
@@ -170,10 +190,6 @@ class IRToTruffle(
     })
   }
 
-  private def processError(error: IR.Error): Unit = {
-    ??? // TODO [AA] Any remaining errors should be reported
-  }
-
   // ==========================================================================
   // === Utility Functions ====================================================
   // ==========================================================================
@@ -212,6 +228,12 @@ class IRToTruffle(
   // === Expression Processor =================================================
   // ==========================================================================
 
+  /** This class is responsible for performing codegen of [[IR]] constructs that
+    * are Enso program expressions.
+    *
+    * @param scope the scope in which the code generation is occurring
+    * @param scopeName the name of `scope`
+    */
   sealed private class ExpressionProcessor(
     val scope: LocalScope,
     val scopeName: String
@@ -221,18 +243,32 @@ class IRToTruffle(
 
     // === Construction =======================================================
 
+    /** Constructs an [[ExpressionProcessor]] instance with a defaulted local
+      * scope.
+      *
+      * @param scopeName the name to attribute to the default local scope.
+      */
     def this(scopeName: String) = {
       this(new LocalScope(), scopeName)
     }
 
+    /** Creates an instance of [[ExpressionProcessor]] that operates in a child
+      * scope of `this`.
+      *
+      * @param name the name of the child scope
+      * @return an expression processor operating on a child scope
+      */
     def createChild(name: String): ExpressionProcessor = {
       new ExpressionProcessor(this.scope.createChild(), name)
     }
 
     // === Runner =============================================================
 
-    // TODO [AA] Better error handling here, but really all errors should be
-    //  reported before codegen
+    /** Runs the code generation process on the provided piece of [[IR]].
+      *
+      * @param ir the IR to generate code for
+      * @return a truffle expression that represents the same program as `ir`
+      */
     def run(ir: IR): RuntimeExpression = ir match {
       case IR.Tagged(ir, _, _, _)         => run(ir)
       case block: IR.Expression.Block     => processBlock(block)
@@ -243,11 +279,24 @@ class IRToTruffle(
       case binding: IR.Expression.Binding => processBinding(binding)
       case caseExpr: IR.Case              => processCase(caseExpr)
       case comment: IR.Comment            => processComment(comment)
+      case err: IR.Error =>
+        throw new CompilerError(
+          s"No errors should remain by the point of truffle codegen, but " +
+          s"found $err."
+        )
       case IR.Foreign.Definition(_, _, _, _) =>
-        throw new RuntimeException("Foreign expressions not yet implemented.")
-      case _ => throw new RuntimeException("Unhandled entity.")
+        throw new CompilerError(
+          s"Foreign expressions not yet implemented: $ir."
+        )
+      case _ => throw new UnhandledEntity(ir, "run")
     }
 
+    /** Executes the expression processor on a piece of code that has been
+      * written inline.
+      *
+      * @param ir the IR to generate code for
+      * @return a truffle expression that represents the same program as `ir`
+      */
     def runInline(ir: IR.Expression): RuntimeExpression = {
       val expression = run(ir)
       expression.markNotTail()
@@ -256,9 +305,23 @@ class IRToTruffle(
 
     // === Processing =========================================================
 
+    /** Performs code generation for any comments left in the Enso [[IR]].
+      *
+      * Comments do not exist at execution time as they cannot be reflected upon,
+      * and so this code generation pass just generetes code for the associated
+      * expression.
+      *
+      * @param comment the comment node to generate code for
+      * @return the truffle nodes corresponding to `comment`
+      */
     def processComment(comment: IR.Comment): RuntimeExpression =
       this.run(comment.commented)
 
+    /** Performs code generation for an Enso block expression.
+      *
+      * @param block the block to generate code for
+      * @return the truffle nodes corresponding to `block`
+      */
     def processBlock(block: IR.Expression.Block): RuntimeExpression = {
       if (block.suspended) {
         val childFactory = this.createChild("suspended-block")
@@ -286,6 +349,11 @@ class IRToTruffle(
       }
     }
 
+    /** Performs code generation for Enso case expression.
+      *
+      * @param caseExpr the case expression to generate code for
+      * @return the truffle nodes corresponding to `caseExpr`
+      */
     def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
       case IR.Case.Expr(scrutinee, branches, fallback, location, _) =>
         val targetNode = this.run(scrutinee)
@@ -318,6 +386,11 @@ class IRToTruffle(
      * it has one to catch that error.
      */
 
+    /** Generates code for an Enso binding expression.
+      *
+      * @param binding the binding to generate code for
+      * @return the truffle nodes corresponding to `binding`
+      */
     def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
       currentVarName = binding.name
 
@@ -329,6 +402,11 @@ class IRToTruffle(
       )
     }
 
+    /** Generates code for an Enso function.
+      *
+      * @param function the function to generate code for
+      * @return the truffle nodes corresponding to `function`
+      */
     def processFunction(function: IR.Function): RuntimeExpression = {
       val scopeName = if (function.canBeTCO) {
         currentVarName
@@ -348,6 +426,11 @@ class IRToTruffle(
       fn
     }
 
+    /** Generates code for an Enso name.
+      *
+      * @param name the name to generate code for
+      * @return the truffle nodes corresponding to `name`
+      */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
         case IR.Name.Literal(name, _, _) =>
@@ -372,7 +455,12 @@ class IRToTruffle(
       setLocation(nameExpr, name.location)
     }
 
-    def processLiteral[T](literal: IR.Literal): RuntimeExpression =
+    /** Generates code for an Enso literal.
+      *
+      * @param literal the literal to generate code for
+      * @return the truffle nodes corresponding to `literal`
+      */
+    def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
         case IR.Literal.Number(value, location, _) =>
           setLocation(IntegerLiteralNode.build(value.toLong), location)
@@ -380,6 +468,90 @@ class IRToTruffle(
           setLocation(TextLiteralNode.build(text), location)
       }
 
+    /** Generates code for an Enso function body.
+      *
+      * @param arguments the arguments to the function
+      * @param body the body of the function
+      * @param location the location at which the function exists in the source
+      * @return a truffle node representing the described function
+      */
+    def processFunctionBody(
+      arguments: List[IR.DefinitionArgument.Specified],
+      body: IR.Expression,
+      location: Option[Location]
+    ): CreateFunctionNode = {
+      val argFactory = new DefinitionArgumentProcessor(scope, scopeName)
+
+      val argDefinitions = new Array[ArgumentDefinition](arguments.size)
+      val argExpressions = new ArrayBuffer[RuntimeExpression]
+      val seenArgNames   = mutable.Set[String]()
+
+      // Note [Rewriting Arguments]
+      for ((unprocessedArg, idx) <- arguments.view.zipWithIndex) {
+        val arg = argFactory.run(unprocessedArg, idx)
+        argDefinitions(idx) = arg
+
+        val slot = scope.createVarSlot(arg.getName)
+        val readArg =
+          ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
+        val assignArg = AssignmentNode.build(readArg, slot)
+
+        argExpressions.append(assignArg)
+
+        val argName = arg.getName
+
+        if (seenArgNames contains argName) {
+          throw new DuplicateArgumentNameException(argName)
+        } else seenArgNames.add(argName)
+      }
+
+      val bodyExpr = this.run(body)
+
+      val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
+      val fnRootNode = ClosureRootNode.build(
+        language,
+        scope,
+        moduleScope,
+        fnBodyNode,
+        makeSection(location),
+        scopeName
+      )
+      val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
+
+      val expr = CreateFunctionNode.build(callTarget, argDefinitions)
+
+      setLocation(expr, location)
+    }
+
+    /* Note [Rewriting Arguments]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * While it would be tempting to handle function arguments as a special case
+     * of a lookup, it is instead far simpler to rewrite them such that they
+     * just become bindings in the function local scope. This occurs for both
+     * explicitly passed argument values, and those that have been defaulted.
+     *
+     * For each argument, the following algorithm is executed:
+     *
+     * 1. Argument Conversion: Arguments are converted into their definitions so
+     *    as to provide a compact representation of all known information about
+     *    that argument.
+     * 2. Frame Conversion: A variable slot is created in the function's local
+     *    frame to contain the value of the function argument.
+     * 3. Read Provision: A `ReadArgumentNode` is generated to allow that
+     *    function argument to be treated purely as a local variable access. See
+     *    Note [Handling Argument Defaults] for more information on how this
+     *    works.
+     * 4. Value Assignment: A `AssignmentNode` is created to connect the
+     *    argument value to the frame slot created in Step 2.
+     * 5. Body Rewriting: The expression representing the argument is written
+     *    into the function body, thus allowing it to be read simply.
+     */
+
+    /** Generates code for an Enso function application.
+      *
+      * @param application the function application to generate code for
+      * @return the truffle nodes corresponding to `application`
+      */
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
         case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =>
@@ -431,84 +603,17 @@ class IRToTruffle(
         case IR.Application.Force(expr, location, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
       }
-
-    def processFunctionBody(
-      arguments: List[IR.DefinitionArgument.Specified],
-      body: IR.Expression,
-      location: Option[Location]
-    ): CreateFunctionNode = {
-      val argFactory = new DefinitionArgumentProcessor(scope, scopeName)
-
-      val argDefinitions = new Array[ArgumentDefinition](arguments.size)
-      val argExpressions = new ArrayBuffer[RuntimeExpression]
-      val seenArgNames   = mutable.Set[String]()
-
-      // Note [Rewriting Arguments]
-      for ((unprocessedArg, idx) <- arguments.view.zipWithIndex) {
-        val arg = argFactory.run(unprocessedArg, idx)
-        argDefinitions(idx) = arg
-
-        val slot = scope.createVarSlot(arg.getName)
-        val readArg =
-          ReadArgumentNode.build(idx, arg.getDefaultValue.orElse(null))
-        val assignArg = AssignmentNode.build(readArg, slot)
-
-        argExpressions.append(assignArg)
-
-        val argName = arg.getName
-
-        if (seenArgNames contains argName) {
-          throw new DuplicateArgumentNameException(argName)
-        } else seenArgNames.add(argName)
-      }
-
-      val bodyExpr = this.run(body)
-
-      val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
-      val fnRootNode = ClosureRootNode.build(
-        language,
-        scope,
-        moduleScope,
-        fnBodyNode,
-        makeSection(location),
-        scopeName
-      )
-      val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
-
-      val expr = CreateFunctionNode.build(callTarget, argDefinitions)
-
-      setLocation(expr, location)
-    }
-
-    /* Note [Rewriting Arguments]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * While it would be tempting to handle function arguments as a special case
-   * of a lookup, it is instead far simpler to rewrite them such that they
-   * just become bindings in the function local scope. This occurs for both
-   * explicitly passed argument values, and those that have been defaulted.
-   *
-   * For each argument, the following algorithm is executed:
-   *
-   * 1. Argument Conversion: Arguments are converted into their definitions so
-   *    as to provide a compact representation of all known information about
-   *    that argument.
-   * 2. Frame Conversion: A variable slot is created in the function's local
-   *    frame to contain the value of the function argument.
-   * 3. Read Provision: A `ReadArgumentNode` is generated to allow that
-   *    function argument to be treated purely as a local variable access. See
-   *    Note [Handling Argument Defaults] for more information on how this
-   *    works.
-   * 4. Value Assignment: A `AssignmentNode` is created to connect the
-   *    argument value to the frame slot created in Step 2.
-   * 5. Body Rewriting: The expression representing the argument is written
-   *    into the function body, thus allowing it to be read simply.
-   */
   }
 
   // ==========================================================================
   // === Call Argument Processor ==============================================
   // ==========================================================================
 
+  /** Performs codegen for call-site arguments in Enso.
+    *
+    * @param scope the scope in which the function call exists
+    * @param scopeName the name of `scope`
+    */
   sealed private class CallArgumentProcessor(
     val scope: LocalScope,
     val scopeName: String
@@ -516,6 +621,13 @@ class IRToTruffle(
 
     // === Runner =============================================================
 
+    /** Executes codegen on the call-site argument.
+      *
+      * @param arg the argument definition
+      * @param position the position of the argument at the call site
+      * @return a truffle construct corresponding to the argument definition
+      *         `arg`
+      */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
       case IR.CallArgument.Specified(name, value, _, _) =>
         val result = value match {
@@ -556,6 +668,11 @@ class IRToTruffle(
   // === Definition Argument Processor ========================================
   // ==========================================================================
 
+  /** Performs codegen for definition-site arguments in Enso.
+    *
+    * @param scope the scope in which the function is defined
+    * @param scopeName the name of `scope`
+    */
   sealed private class DefinitionArgumentProcessor(
     val scope: LocalScope,
     val scopeName: String
@@ -563,16 +680,38 @@ class IRToTruffle(
 
     // === Construction =======================================================
 
+    /** Constructs the code generator with a defaulted local scope.
+      *
+      * @param scopeName the name to attribute to that scope.
+      */
     def this(scopeName: String) {
       this(new LocalScope(), scopeName)
     }
 
+    /** Constructs the code generator in a defaulted scope named `<root>`. */
     def this() {
       this("<root>")
     }
 
     // === Runner =============================================================
 
+    /* Note [Handling Suspended Defaults]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * Suspended defaults need to be wrapped in a thunk to ensure that they
+     * behave properly with regards to the expected semantics of lazy arguments.
+     *
+     * Were they not wrapped in a thunk, they would be evaluated eagerly, and
+     * hence the point at which the default would be evaluated would differ from
+     * the point at which a passed-in argument would be evaluated.
+     */
+
+    /** Executes the code generator on the provided definition-site argument.
+      *
+      * @param arg the argument to generate code for
+      * @param position the position of `arg` at the function definition site
+      * @return a truffle entity corresponding to the definition of `arg` for a
+      *         given function
+      */
     def run(
       arg: IR.DefinitionArgument.Specified,
       position: Int
@@ -607,15 +746,5 @@ class IRToTruffle(
 
       new ArgumentDefinition(position, arg.name, defaultedValue, executionMode)
     }
-
-    /* Note [Handling Suspended Defaults]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * Suspended defaults need to be wrapped in a thunk to ensure that they
-   * behave properly with regards to the expected semantics of lazy arguments.
-   *
-   * Were they not wrapped in a thunk, they would be evaluated eagerly, and
-   * hence the point at which the default would be evaluated would differ from
-   * the point at which a passed-in argument would be evaluated.
-   */
   }
 }

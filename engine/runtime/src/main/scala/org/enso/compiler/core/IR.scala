@@ -622,7 +622,7 @@ object IR {
   // === Errors ===============================================================
 
   /** A trait for all errors in Enso's IR. */
-  sealed trait Error extends IR
+  sealed trait Error extends Expression
   object Error {
 
     /** A representation of an Enso syntax error.
