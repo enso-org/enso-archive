@@ -4,7 +4,6 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionSiteArgument
-import org.enso.interpreter.builder.{ArgDefinitionFactory, CallArgFactory}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -72,7 +71,7 @@ class IRToTruffle(
     localScope: LocalScope,
     scopeName: String
   ): RuntimeExpression = {
-    ExpressionProcessor(localScope, scopeName).runInline(ir)
+    new ExpressionProcessor(localScope, scopeName).runInline(ir)
   }
 
   // ==========================================================================
@@ -104,13 +103,12 @@ class IRToTruffle(
       .zip(atomDefs)
       .foreach {
         case (atomCons, atomDefn) => {
-          val argFactory =
-            new ArgDefinitionFactory(language, source, moduleScope)
+          val argFactory = new DefinitionArgumentProcessor()
           val argDefs =
             new Array[ArgumentDefinition](atomDefn.getArguments.size)
 
           for (idx <- Range(0, atomDefn.getArguments.size)) {
-            argDefs(idx) = atomDefn.getArguments.get(idx).visit(argFactory, idx)
+            argDefs(idx) = argFactory.run(atomDefn.getArguments.get(idx), idx)
           }
 
           atomCons.initializeFields(argDefs: _*)
@@ -203,9 +201,9 @@ class IRToTruffle(
   // === Expression Processor =================================================
   // ==========================================================================
 
-  private case class ExpressionProcessor(
-    scope: LocalScope,
-    scopeName: String
+  sealed private class ExpressionProcessor(
+    val scope: LocalScope,
+    val scopeName: String
   ) {
 
     private var currentVarName = "anonymous";
@@ -217,7 +215,7 @@ class IRToTruffle(
     }
 
     def createChild(name: String): ExpressionProcessor = {
-      this.copy(scope = this.scope.createChild(), name)
+      new ExpressionProcessor(this.scope.createChild(), name)
     }
 
     // === Runner =============================================================
@@ -235,7 +233,7 @@ class IRToTruffle(
       case caseExpr: IR.Case     => processCase(caseExpr)
       case IR.ForeignDefinition(_, _, _, _) =>
         throw new RuntimeException("Foreign expressions not yet implemented.")
-      case _ => ???
+      case _ => throw new RuntimeException("Unhandled entity.")
     }
 
     def runInline(ir: IR.Expression): RuntimeExpression = {
@@ -361,14 +359,13 @@ class IRToTruffle(
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
         case IR.Prefix(fn, args, hasDefaultsSuspended, location, _) =>
-          val callArgFactory =
-            new CallArgFactory(scope, language, source, scopeName, moduleScope)
+          val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
           val arguments = args
           val callArgs  = new ArrayBuffer[CallArgument]()
 
           for ((unprocessedArg, position) <- arguments.view.zipWithIndex) {
-            val arg = unprocessedArg.visit(callArgFactory, position)
+            val arg = callArgFactory.run(unprocessedArg, position)
             callArgs.append(arg)
           }
 
@@ -416,13 +413,7 @@ class IRToTruffle(
       body: IR.Expression,
       location: Option[Location]
     ): CreateFunctionNode = {
-      val argFactory = new ArgDefinitionFactory(
-        scope,
-        language,
-        source,
-        scopeName,
-        moduleScope
-      )
+      val argFactory = new DefinitionArgumentProcessor(scope, scopeName)
 
       val argDefinitions = new Array[ArgumentDefinition](arguments.size)
       val argExpressions = new ArrayBuffer[RuntimeExpression]
@@ -430,7 +421,7 @@ class IRToTruffle(
 
       // Note [Rewriting Arguments]
       for ((unprocessedArg, idx) <- arguments.view.zipWithIndex) {
-        val arg = unprocessedArg.visit(argFactory, idx)
+        val arg = argFactory.run(unprocessedArg, idx)
         argDefinitions(idx) = arg
 
         val slot = scope.createVarSlot(arg.getName)
@@ -487,6 +478,119 @@ class IRToTruffle(
    *    argument value to the frame slot created in Step 2.
    * 5. Body Rewriting: The expression representing the argument is written
    *    into the function body, thus allowing it to be read simply.
+   */
+  }
+
+  // ==========================================================================
+  // === Call Argument Processor ==============================================
+  // ==========================================================================
+
+  sealed private class CallArgumentProcessor(
+    val scope: LocalScope,
+    val scopeName: String
+  ) {
+
+    // === Runner =============================================================
+
+    def run(arg: IR.CallArgumentDefinition, position: Int): CallArgument = {
+      val result = arg.value match {
+        case term: IR.ForcedTerm =>
+          new ExpressionProcessor(scope, scopeName).run(term.target)
+        case _ =>
+          val childScope = scope.createChild()
+          val argumentExpression =
+            new ExpressionProcessor(childScope, scopeName).run(arg.value)
+          argumentExpression.markTail()
+
+          val displayName =
+            s"call_argument<${arg.name.getOrElse(String.valueOf(position))}>"
+
+          val section = arg.value.getLocation.toScala
+            .map(loc => source.createSection(loc.start, loc.end))
+            .orNull
+
+          val callTarget = Truffle.getRuntime.createCallTarget(
+            ClosureRootNode.build(
+              language,
+              childScope,
+              moduleScope,
+              argumentExpression,
+              section,
+              displayName
+            )
+          )
+
+          CreateThunkNode.build(callTarget)
+      }
+
+      new CallArgument(arg.name.orNull, result)
+    }
+  }
+
+  // ==========================================================================
+  // === Definition Argument Processor ========================================
+  // ==========================================================================
+
+  sealed private class DefinitionArgumentProcessor(
+    val scope: LocalScope,
+    val scopeName: String
+  ) {
+
+    // === Construction =======================================================
+
+    def this(scopeName: String) {
+      this(new LocalScope(), scopeName)
+    }
+
+    def this() {
+      this("<root>")
+    }
+
+    // === Runner =============================================================
+
+    def run(
+      arg: IR.DefinitionSiteArgument,
+      position: Int
+    ): ArgumentDefinition = {
+      val defaultExpression = arg.defaultValue
+        .map(new ExpressionProcessor(scope, scopeName).run(_))
+        .orNull
+
+      // Note [Handling Suspended Defaults]
+      val defaultedValue = if (arg.suspended && defaultExpression != null) {
+        val defaultRootNode = ClosureRootNode.build(
+          language,
+          scope,
+          moduleScope,
+          defaultExpression,
+          null,
+          s"default::$scopeName::${arg.name}"
+        )
+
+        CreateThunkNode.build(
+          Truffle.getRuntime.createCallTarget(defaultRootNode)
+        )
+      } else {
+        defaultExpression
+      }
+
+      val executionMode = if (arg.suspended) {
+        ArgumentDefinition.ExecutionMode.PASS_THUNK
+      } else {
+        ArgumentDefinition.ExecutionMode.EXECUTE
+      }
+
+      new ArgumentDefinition(position, arg.name, defaultedValue, executionMode)
+    }
+
+    /* Note [Handling Suspended Defaults]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * Suspended defaults need to be wrapped in a thunk to ensure that they
+   * behave properly with regards to the expected semantics of lazy arguments.
+   *
+   * Were they not wrapped in a thunk, they would be evaluated eagerly, and
+   * hence the point at which the default would be evaluated would differ from
+   * the point at which a passed-in argument would be evaluated.
    */
   }
 }

@@ -1,4 +1,4 @@
-package org.enso.interpreter.builder;
+package org.enso.interpreter.util;
 
 import com.oracle.truffle.api.TruffleFile;
 import com.oracle.truffle.api.TruffleFile.FileTypeDetector;
