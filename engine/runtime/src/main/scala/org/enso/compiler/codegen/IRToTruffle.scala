@@ -1,9 +1,8 @@
-package org.enso.compiler.generate
+package org.enso.compiler.codegen
 
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.DefinitionSiteArgument
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -49,6 +48,18 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
 
+/** This is an implementation of a codegeneration pass that lowers the Enso
+  * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
+  * are actually executed.
+  *
+  * It should be noted that, as is, there is no support for cross-module links,
+  * with each lowering pass operating solely on a single module.
+  *
+  * @param language the language instance for which this is executing
+  * @param source the source code that corresponds to the text for which code
+  *               is being generated
+  * @param moduleScope the scope of the module for which code is being generated
+  */
 class IRToTruffle(
   val language: Language,
   val source: Source,
@@ -60,9 +71,9 @@ class IRToTruffle(
   // ==========================================================================
 
   def run(ir: IR): Unit = ir match {
-    case mod @ IR.Module(_, _, _) => processModule(mod)
-    case err: IR.Error            => processError(err)
-    case _                        => processError(IR.Error.InvalidIR(ir))
+    case mod: IR.Module => processModule(mod)
+    case err: IR.Error  => processError(err)
+    case _              => processError(IR.Error.InvalidIR(ir))
   }
 
   def runInline(
@@ -82,10 +93,10 @@ class IRToTruffle(
 
     val imports = module.imports
     val atomDefs = module.bindings.collect {
-      case atom: IR.AtomDef => atom
+      case atom: IR.ModuleScope.Definition.Atom => atom
     }
     val methodDefs = module.bindings.collect {
-      case method: IR.MethodDef => method
+      case method: IR.ModuleScope.Definition.Method => method
     }
 
     // Register the imports in scope
@@ -117,10 +128,11 @@ class IRToTruffle(
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
       val thisArgument =
-        DefinitionSiteArgument(
+        IR.DefinitionArgument.Specified(
           Constants.Names.THIS_ARGUMENT,
           None,
-          suspended = false
+          suspended = false,
+          None
         )
 
       val typeName = if (methodDef.typeName == Constants.Names.CURRENT_MODULE) {
@@ -222,15 +234,16 @@ class IRToTruffle(
     // TODO [AA] Better error handling here, but really all errors should be
     //  reported before codegen
     def run(ir: IR): RuntimeExpression = ir match {
-      case IR.Tagged(ir, _, _)   => run(ir)
-      case block: IR.Block       => processBlock(block)
-      case literal: IR.Literal   => processLiteral(literal)
-      case app: IR.Application   => processApplication(app)
-      case name: IR.Name         => processName(name)
-      case function: IR.Function => processFunction(function)
-      case binding: IR.Binding   => processBinding(binding)
-      case caseExpr: IR.Case     => processCase(caseExpr)
-      case IR.ForeignDefinition(_, _, _, _) =>
+      case IR.Tagged(ir, _, _, _)         => run(ir)
+      case block: IR.Expression.Block     => processBlock(block)
+      case literal: IR.Literal            => processLiteral(literal)
+      case app: IR.Application            => processApplication(app)
+      case name: IR.Name                  => processName(name)
+      case function: IR.Function          => processFunction(function)
+      case binding: IR.Expression.Binding => processBinding(binding)
+      case caseExpr: IR.Case              => processCase(caseExpr)
+      case comment: IR.Comment            => processComment(comment)
+      case IR.Foreign.Definition(_, _, _, _) =>
         throw new RuntimeException("Foreign expressions not yet implemented.")
       case _ => throw new RuntimeException("Unhandled entity.")
     }
@@ -243,7 +256,10 @@ class IRToTruffle(
 
     // === Processing =========================================================
 
-    def processBlock(block: IR.Block): RuntimeExpression = {
+    def processComment(comment: IR.Comment): RuntimeExpression =
+      this.run(comment.commented)
+
+    def processBlock(block: IR.Expression.Block): RuntimeExpression = {
       if (block.suspended) {
         val childFactory = this.createChild("suspended-block")
         val childScope   = childFactory.scope
@@ -271,7 +287,7 @@ class IRToTruffle(
     }
 
     def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
-      case IR.CaseExpr(scrutinee, branches, fallback, location, _) =>
+      case IR.Case.Expr(scrutinee, branches, fallback, location, _) =>
         val targetNode = this.run(scrutinee)
 
         val cases = branches
@@ -289,7 +305,7 @@ class IRToTruffle(
 
         val matchExpr = MatchNode.build(cases, fallbackNode, targetNode)
         setLocation(matchExpr, location)
-      case IR.CaseBranch(_, _, _, _) =>
+      case IR.Case.Branch(_, _, _, _) =>
         throw new RuntimeException("A CaseBranch should never occur here.")
     }
 
@@ -302,7 +318,7 @@ class IRToTruffle(
      * it has one to catch that error.
      */
 
-    def processBinding(binding: IR.Binding): RuntimeExpression = {
+    def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
       currentVarName = binding.name
 
       val slot = scope.createVarSlot(currentVarName)
@@ -314,37 +330,46 @@ class IRToTruffle(
     }
 
     def processFunction(function: IR.Function): RuntimeExpression = {
-      val (scopeName, isTail, args, body, location) = function match {
-        case IR.Lambda(arguments, body, location, _) =>
-          (currentVarName, true, arguments, body, location)
-        case IR.CaseFunction(arguments, body, location, _) =>
-          ("case_expression", false, arguments, body, location)
+      val scopeName = if (function.canBeTCO) {
+        currentVarName
+      } else {
+        "case_expression"
       }
 
       val child = this.createChild(scopeName)
 
-      val fn = child.processFunctionBody(args, body, location)
-      fn.setTail(isTail)
+      val fn = child.processFunctionBody(
+        function.arguments,
+        function.body,
+        function.location
+      )
+      fn.setTail(function.canBeTCO)
 
       fn
     }
 
-    def processName(name: IR.Name): RuntimeExpression = name match {
-      case IR.Name.Literal(name, location, _) =>
-        val slot     = scope.getSlot(name).toScala
-        val atomCons = moduleScope.getConstructor(name).toScala
+    def processName(name: IR.Name): RuntimeExpression = {
+      val nameExpr = name match {
+        case IR.Name.Literal(name, _, _) =>
+          val slot     = scope.getSlot(name).toScala
+          val atomCons = moduleScope.getConstructor(name).toScala
 
-        val variableRead = if (name == Constants.Names.CURRENT_MODULE) {
+          if (name == Constants.Names.CURRENT_MODULE) {
+            ConstructorNode.build(moduleScope.getAssociatedType)
+          } else if (slot.isDefined) {
+            ReadLocalTargetNode.build(slot.get)
+          } else if (atomCons.isDefined) {
+            ConstructorNode.build(atomCons.get)
+          } else {
+            DynamicSymbolNode.build(UnresolvedSymbol.build(name, moduleScope))
+          }
+        case IR.Name.Here(_, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
-        } else if (slot.isDefined) {
-          ReadLocalTargetNode.build(slot.get)
-        } else if (atomCons.isDefined) {
-          ConstructorNode.build(atomCons.get)
-        } else {
-          DynamicSymbolNode.build(UnresolvedSymbol.build(name, moduleScope))
-        }
+        case IR.Name.This(location, passData) =>
+          processName(IR.Name.Literal("this", location, passData))
+      }
 
-        setLocation(variableRead, location)
+      setLocation(nameExpr, name.location)
     }
 
     def processLiteral[T](literal: IR.Literal): RuntimeExpression =
@@ -357,7 +382,7 @@ class IRToTruffle(
 
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
-        case IR.Prefix(fn, args, hasDefaultsSuspended, location, _) =>
+        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =>
           val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
           val arguments = args
@@ -380,8 +405,8 @@ class IRToTruffle(
             defaultsExecutionMode
           )
 
-          setLocation(appNode, location)
-        case IR.BinaryOperator(left, operator, right, location, _) =>
+          setLocation(appNode, loc)
+        case IR.Application.Operator.Binary(left, operator, right, loc, _) =>
           val leftExpr  = this.run(left)
           val rightExpr = this.run(right)
 
@@ -402,13 +427,13 @@ class IRToTruffle(
             )
           }
 
-          setLocation(opExpr, location)
-        case IR.ForcedTerm(expr, location, _) =>
+          setLocation(opExpr, loc)
+        case IR.Application.Force(expr, location, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
       }
 
     def processFunctionBody(
-      arguments: List[IR.DefinitionSiteArgument],
+      arguments: List[IR.DefinitionArgument.Specified],
       body: IR.Expression,
       location: Option[Location]
     ): CreateFunctionNode = {
@@ -491,38 +516,39 @@ class IRToTruffle(
 
     // === Runner =============================================================
 
-    def run(arg: IR.CallArgumentDefinition, position: Int): CallArgument = {
-      val result = arg.value match {
-        case term: IR.ForcedTerm =>
-          new ExpressionProcessor(scope, scopeName).run(term.target)
-        case _ =>
-          val childScope = scope.createChild()
-          val argumentExpression =
-            new ExpressionProcessor(childScope, scopeName).run(arg.value)
-          argumentExpression.markTail()
+    def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
+      case IR.CallArgument.Specified(name, value, _, _) =>
+        val result = value match {
+          case term: IR.Application.Force =>
+            new ExpressionProcessor(scope, scopeName).run(term.target)
+          case _ =>
+            val childScope = scope.createChild()
+            val argumentExpression =
+              new ExpressionProcessor(childScope, scopeName).run(value)
+            argumentExpression.markTail()
 
-          val displayName =
-            s"call_argument<${arg.name.getOrElse(String.valueOf(position))}>"
+            val displayName =
+              s"call_argument<${name.getOrElse(String.valueOf(position))}>"
 
-          val section = arg.value.location
-            .map(loc => source.createSection(loc.start, loc.end))
-            .orNull
+            val section = value.location
+              .map(loc => source.createSection(loc.start, loc.end))
+              .orNull
 
-          val callTarget = Truffle.getRuntime.createCallTarget(
-            ClosureRootNode.build(
-              language,
-              childScope,
-              moduleScope,
-              argumentExpression,
-              section,
-              displayName
+            val callTarget = Truffle.getRuntime.createCallTarget(
+              ClosureRootNode.build(
+                language,
+                childScope,
+                moduleScope,
+                argumentExpression,
+                section,
+                displayName
+              )
             )
-          )
 
-          CreateThunkNode.build(callTarget)
-      }
+            CreateThunkNode.build(callTarget)
+        }
 
-      new CallArgument(arg.name.orNull, result)
+        new CallArgument(name.orNull, result)
     }
   }
 
@@ -548,7 +574,7 @@ class IRToTruffle(
     // === Runner =============================================================
 
     def run(
-      arg: IR.DefinitionSiteArgument,
+      arg: IR.DefinitionArgument.Specified,
       position: Int
     ): ArgumentDefinition = {
       val defaultExpression = arg.defaultValue

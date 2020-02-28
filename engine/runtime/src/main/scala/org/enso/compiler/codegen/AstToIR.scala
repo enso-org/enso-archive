@@ -1,4 +1,4 @@
-package org.enso.compiler.generate
+package org.enso.compiler.codegen
 
 import cats.Foldable
 import cats.implicits._
@@ -59,7 +59,7 @@ object AstToIR {
           case List(expr) => Some(expr)
           case _ =>
             Some(
-              Block(
+              Expression.Block(
                 expressions.dropRight(1),
                 expressions.last,
                 location = Foldable[List].foldMap(expressions)(_.location)
@@ -92,7 +92,7 @@ object AstToIR {
         }
 
         val statements = nonImportBlocks.map(translateModuleSymbol)
-        Module(imports, statements)
+        Module(imports, statements, module.location)
       }
     }
   }
@@ -103,13 +103,18 @@ object AstToIR {
     * @param inputAST the definition to be translated
     * @return the [[Core]] representation of `inputAST`
     */
-  def translateModuleSymbol(inputAST: AST): TopLevelSymbol = {
+  def translateModuleSymbol(inputAST: AST): ModuleScope.Definition = {
     inputAST match {
       case AST.Def(consName, args, body) =>
         if (body.isDefined) {
           throw new RuntimeException("Cannot support complex type defs yet!!!!")
         } else {
-          AtomDef(consName.name, args.map(translateArgumentDefinition(_)))
+          ModuleScope.Definition
+            .Atom(
+              consName.name,
+              args.map(translateArgumentDefinition(_)),
+              inputAST.location
+            )
         }
       case AstView.MethodDefinition(targetPath, name, definition) =>
         val path = if (targetPath.nonEmpty) {
@@ -119,11 +124,12 @@ object AstToIR {
         }
         val nameStr       = name match { case AST.Ident.Var(name) => name }
         val defExpression = translateExpression(definition)
-        val defExpr: Lambda = defExpression match {
-          case fun: Lambda => fun
-          case expr        => Lambda(List(), expr, expr.location)
+        val defExpr: Function.Lambda = defExpression match {
+          case fun: Function.Lambda => fun
+          case expr =>
+            Function.Lambda(List(), expr, expr.location)
         }
-        MethodDef(path, nameStr, defExpr)
+        ModuleScope.Definition.Method(path, nameStr, defExpr, inputAST.location)
       case _ =>
         throw new UnhandledEntity(inputAST, "translateModuleSymbol")
     }
@@ -138,9 +144,9 @@ object AstToIR {
     inputAST match {
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
-        Binding(
+        Expression.Binding(
           name.name,
-          Block(
+          Expression.Block(
             lines.map(translateExpression),
             translateExpression(lastLine),
             block.location,
@@ -151,7 +157,7 @@ object AstToIR {
       case AstView.Assignment(name, expr) =>
         translateBinding(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>
-        Prefix(
+        Application.Prefix(
           translateExpression(name),
           (target :: args).map(translateCallArgument),
           false,
@@ -168,7 +174,7 @@ object AstToIR {
             .drop(nonFallbackBranches.length)
             .headOption
             .map(translateFallbackBranch)
-        CaseExpr(
+        Case.Expr(
           actualScrutinee,
           nonFallbackBranches,
           potentialFallback,
@@ -181,7 +187,7 @@ object AstToIR {
         translateGroup(inputAST, translateExpression)
       case AST.Ident.any(inputAST) => translateIdent(inputAST)
       case AstView.Block(lines, retLine) =>
-        Block(
+        Expression.Block(
           lines.map(translateExpression),
           translateExpression(retLine),
           location = inputAST.location
@@ -254,23 +260,25 @@ object AstToIR {
   def translateArgumentDefinition(
     arg: AST,
     isSuspended: Boolean = false
-  ): DefinitionSiteArgument = {
+  ): DefinitionArgument.Specified = {
     arg match {
       case AstView.LazyAssignedArgumentDefinition(name, value) =>
-        DefinitionSiteArgument(
+        DefinitionArgument.Specified(
           name.name,
           Some(translateExpression(value)),
-          true
+          true,
+          arg.location
         )
       case AstView.LazyArgument(arg) =>
         translateArgumentDefinition(arg, isSuspended = true)
       case AstView.DefinitionArgument(arg) =>
-        DefinitionSiteArgument(arg.name, None, isSuspended)
+        DefinitionArgument.Specified(arg.name, None, isSuspended, arg.location)
       case AstView.AssignedArgument(name, value) =>
-        DefinitionSiteArgument(
+        DefinitionArgument.Specified(
           name.name,
           Some(translateExpression(value)),
-          isSuspended
+          isSuspended,
+          arg.location
         )
       case _ =>
         throw new UnhandledEntity(arg, "translateArgumentDefinition")
@@ -283,10 +291,12 @@ object AstToIR {
     * @param arg the argument to translate
     * @return the [[Core]] representation of `arg`
     */
-  def translateCallArgument(arg: AST): CallArgumentDefinition = arg match {
+  def translateCallArgument(arg: AST): CallArgument.Specified = arg match {
     case AstView.AssignedArgument(left, right) =>
-      CallArgumentDefinition(Some(left.name), translateExpression(right))
-    case _ => CallArgumentDefinition(None, translateExpression(arg))
+      CallArgument
+        .Specified(Some(left.name), translateExpression(right), arg.location)
+    case _ =>
+      CallArgument.Specified(None, translateExpression(arg), arg.location)
   }
 
   /** Translates an arbitrary expression that takes the form of a syntactic
@@ -298,7 +308,7 @@ object AstToIR {
   def translateApplicationLike(callable: AST): Expression = {
     callable match {
       case AstView.ForcedTerm(term) =>
-        ForcedTerm(translateExpression(term), callable.location)
+        Application.Force(translateExpression(term), callable.location)
       case AstView.Application(name, args) =>
         val validArguments = args.filter {
           case AstView.SuspendDefaultsOperator(_) => false
@@ -311,7 +321,7 @@ object AstToIR {
 
         val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
 
-        Prefix(
+        Application.Prefix(
           translateExpression(name),
           validArguments.map(translateCallArgument),
           hasDefaultsSuspended,
@@ -320,13 +330,13 @@ object AstToIR {
       case AstView.Lambda(args, body) =>
         val realArgs = args.map(translateArgumentDefinition(_))
         val realBody = translateExpression(body)
-        Lambda(realArgs, realBody, callable.location)
+        Function.Lambda(realArgs, realBody, callable.location)
       case AST.App.Infix(left, fn, right) =>
         // TODO [AA] We should accept all ops when translating to core
         val validInfixOps = List("+", "/", "-", "*", "%")
 
         if (validInfixOps.contains(fn.name)) {
-          BinaryOperator(
+          Application.Operator.Binary(
             translateExpression(left),
             fn.name,
             translateExpression(right),
@@ -357,7 +367,7 @@ object AstToIR {
         val functionName =
           AST.Ident.Var(realNameSegments.map(_.name).mkString("_"))
 
-        Prefix(
+        Application.Prefix(
           translateExpression(functionName),
           args.map(translateCallArgument).toList,
           false,
@@ -375,7 +385,14 @@ object AstToIR {
     */
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
-      case AST.Ident.Var(name)  => Name.Literal(name, identifier.location)
+      case AST.Ident.Var(name) =>
+        if (name == "this") {
+          Name.This(identifier.location)
+        } else if (name == "here") {
+          Name.Here(identifier.location)
+        } else {
+          Name.Literal(name, identifier.location)
+        }
       case AST.Ident.Cons(name) => Name.Literal(name, identifier.location)
       case AST.Ident.Blank(_) =>
         throw new RuntimeException("Blanks not yet properly supported")
@@ -402,10 +419,10 @@ object AstToIR {
     location: Option[Location],
     name: AST,
     expr: AST
-  ): Binding = {
+  ): Expression.Binding = {
     name match {
       case AST.Ident.Var(name) =>
-        Binding(name, translateExpression(expr), location)
+        Expression.Binding(name, translateExpression(expr), location)
       case _ =>
         throw new UnhandledEntity(name, "translateAssignment")
     }
@@ -417,17 +434,18 @@ object AstToIR {
     * @param branch the case branch to translate
     * @return the [[Core]] representation of `branch`
     */
-  def translateCaseBranch(branch: AST): CaseBranch = {
+  def translateCaseBranch(branch: AST): Case.Branch = {
     branch match {
       case AstView.ConsCaseBranch(cons, args, body) =>
-        CaseBranch(
-          branch.location,
+        Case.Branch(
           translateExpression(cons),
-          CaseFunction(
+          Function.Lambda(
             args.map(translateArgumentDefinition(_)),
             translateExpression(body),
-            body.location
-          )
+            body.location,
+            canBeTCO = false
+          ),
+          branch.location
         )
 
       case _ => throw new UnhandledEntity(branch, "translateCaseBranch")
@@ -440,10 +458,15 @@ object AstToIR {
     * @param branch the fallback branch to translate
     * @return the [[Core]] representation of `branch`
     */
-  def translateFallbackBranch(branch: AST): CaseFunction = {
+  def translateFallbackBranch(branch: AST): Function = {
     branch match {
       case AstView.FallbackCaseBranch(body) =>
-        CaseFunction(List(), translateExpression(body), body.location)
+        Function.Lambda(
+          List(),
+          translateExpression(body),
+          body.location,
+          canBeTCO = false
+        )
       case _ => throw new UnhandledEntity(branch, "translateFallbackBranch")
     }
   }
@@ -474,8 +497,11 @@ object AstToIR {
     * @param imp the import to translate
     * @return the [[Core]] representation of `imp`
     */
-  def translateImport(imp: AST.Import): AstImport = {
-    AstImport(imp.path.map(t => t.name).reduceLeft((l, r) => l + "." + r))
+  def translateImport(imp: AST.Import): ModuleScope.Import = {
+    ModuleScope.Import(
+      imp.path.map(t => t.name).reduceLeft((l, r) => l + "." + r),
+      imp.location
+    )
   }
 
   /** Translates an arbitrary invalid expression from the [[AST]] representation
@@ -524,7 +550,8 @@ object AstToIR {
         throw new RuntimeException(
           "Enso does not yet support comments properly"
         )
-      case AST.Documented(_, _, ast) => translateExpression(ast)
+      case AST.Documented(doc, _, ast) =>
+        Comment.Documentation(translateExpression(ast), doc, comment.location)
       case _ =>
         throw new UnhandledEntity(comment, "processComment")
     }

@@ -5,7 +5,7 @@ import java.io.StringReader
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.core.IR.{Expression, Module}
-import org.enso.compiler.generate.{AstToIR, IRToTruffle}
+import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.flexer.Reader
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.ExpressionNode

@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 trait IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
-  type Metadata <: IR.Meta
+  type Metadata <: IR.Metadata
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.

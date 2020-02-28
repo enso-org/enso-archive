@@ -1,4 +1,4 @@
-package org.enso.compiler.generate
+package org.enso.compiler.codegen
 
 import org.enso.data
 import org.enso.syntax.text.AST
