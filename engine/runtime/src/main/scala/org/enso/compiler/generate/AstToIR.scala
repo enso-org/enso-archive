@@ -210,7 +210,7 @@ object AstToIR {
           throw new RuntimeException("Only base 10 is currently supported")
         }
 
-        NumberLiteral(number, literal.location)
+        Literal.Number(number, literal.location)
       }
       case AST.Literal.Text.any(literal) =>
         literal.shape match {
@@ -220,7 +220,7 @@ object AstToIR {
               case AST.Literal.Text.Segment.RawEsc(code) => code.repr
             }.mkString
 
-            TextLiteral(fullString, literal.location)
+            Literal.Text(fullString, literal.location)
           case AST.Literal.Text.Block.Raw(lines, _, _) =>
             val fullString = lines
               .map(
@@ -232,7 +232,7 @@ object AstToIR {
               )
               .mkString("\n")
 
-            TextLiteral(fullString, literal.location)
+            Literal.Text(fullString, literal.location)
           case AST.Literal.Text.Block.Fmt(_, _, _) =>
             throw new RuntimeException("Format strings not yet supported")
           case AST.Literal.Text.Line.Fmt(_) =>
@@ -375,8 +375,8 @@ object AstToIR {
     */
   def translateIdent(identifier: AST.Ident): Expression = {
     identifier match {
-      case AST.Ident.Var(name)  => LiteralName(name, identifier.location)
-      case AST.Ident.Cons(name) => LiteralName(name, identifier.location)
+      case AST.Ident.Var(name)  => Name.Literal(name, identifier.location)
+      case AST.Ident.Cons(name) => Name.Literal(name, identifier.location)
       case AST.Ident.Blank(_) =>
         throw new RuntimeException("Blanks not yet properly supported")
       case AST.Ident.Opr.any(_) =>

@@ -47,7 +47,6 @@ import org.enso.syntax.text.Location
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.jdk.CollectionConverters._
 import scala.jdk.OptionConverters._
 
 class IRToTruffle(
@@ -105,10 +104,10 @@ class IRToTruffle(
         case (atomCons, atomDefn) => {
           val argFactory = new DefinitionArgumentProcessor()
           val argDefs =
-            new Array[ArgumentDefinition](atomDefn.getArguments.size)
+            new Array[ArgumentDefinition](atomDefn.arguments.size)
 
-          for (idx <- Range(0, atomDefn.getArguments.size)) {
-            argDefs(idx) = argFactory.run(atomDefn.getArguments.get(idx), idx)
+          for (idx <- atomDefn.arguments.indices) {
+            argDefs(idx) = argFactory.run(atomDefn.arguments(idx), idx)
           }
 
           atomCons.initializeFields(argDefs: _*)
@@ -135,9 +134,9 @@ class IRToTruffle(
       )
 
       val funNode = expressionProcessor.processFunctionBody(
-        List(thisArgument) ++ methodDef.function.getArguments.asScala,
+        List(thisArgument) ++ methodDef.function.arguments,
         methodDef.function.body,
-        methodDef.function.getLocation.toScala
+        methodDef.function.location
       )
       funNode.markTail()
 
@@ -331,7 +330,7 @@ class IRToTruffle(
     }
 
     def processName(name: IR.Name): RuntimeExpression = name match {
-      case IR.LiteralName(name, location, _) =>
+      case IR.Name.Literal(name, location, _) =>
         val slot     = scope.getSlot(name).toScala
         val atomCons = moduleScope.getConstructor(name).toScala
 
@@ -350,9 +349,9 @@ class IRToTruffle(
 
     def processLiteral[T](literal: IR.Literal): RuntimeExpression =
       literal match {
-        case IR.NumberLiteral(value, location, _) =>
+        case IR.Literal.Number(value, location, _) =>
           setLocation(IntegerLiteralNode.build(value.toLong), location)
-        case IR.TextLiteral(text, location, _) =>
+        case IR.Literal.Text(text, location, _) =>
           setLocation(TextLiteralNode.build(text), location)
       }
 
@@ -505,7 +504,7 @@ class IRToTruffle(
           val displayName =
             s"call_argument<${arg.name.getOrElse(String.valueOf(position))}>"
 
-          val section = arg.value.getLocation.toScala
+          val section = arg.value.location
             .map(loc => source.createSection(loc.start, loc.end))
             .orNull
 

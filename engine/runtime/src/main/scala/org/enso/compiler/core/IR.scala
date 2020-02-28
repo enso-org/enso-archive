@@ -71,34 +71,36 @@ object IR {
 
   /** A trait representing all Enso literals. */
   sealed trait Literal extends Expression with IRKind.Primitive
+  object Literal {
 
-  /** A numeric Enso literal.
-    *
-    * @param location the source location of the literal
-    * @param value the textual representation of the numeric literal
-    */
-  sealed case class NumberLiteral(
-    value: String,
-    override val location: Option[Location],
-    override val passData: Seq[Meta] = Seq()
-  ) extends Literal {
-    override def addPassData(newData: Seq[Meta]): NumberLiteral = {
-      copy(passData = this.passData ++ newData)
+    /** A numeric Enso literal.
+      *
+      * @param location the source location of the literal
+      * @param value the textual representation of the numeric literal
+      */
+    sealed case class Number(
+      value: String,
+      override val location: Option[Location],
+      override val passData: Seq[Meta] = Seq()
+    ) extends Literal {
+      override def addPassData(newData: Seq[Meta]): Number = {
+        copy(passData = this.passData ++ newData)
+      }
     }
-  }
 
-  /** A textual Enso literal.
-    *
-    * @param location the source location of the literal
-    * @param text the text of the literal
-    */
-  sealed case class TextLiteral(
-    text: String,
-    override val location: Option[Location],
-    override val passData: Seq[Meta] = Seq()
-  ) extends Literal {
-    override def addPassData(newData: Seq[Meta]): TextLiteral = {
-      copy(passData = this.passData ++ newData)
+    /** A textual Enso literal.
+      *
+      * @param location the source location of the literal
+      * @param text the text of the literal
+      */
+    sealed case class Text(
+      text: String,
+      override val location: Option[Location],
+      override val passData: Seq[Meta] = Seq()
+    ) extends Literal {
+      override def addPassData(newData: Seq[Meta]): Text = {
+        copy(passData = this.passData ++ newData)
+      }
     }
   }
 
@@ -106,19 +108,21 @@ object IR {
 
   /** A trait representing all kinds of name in Enso. */
   sealed trait Name extends Expression with IRKind.Primitive
+  object Name {
 
-  /** The representation of a literal name.
-    *
-    * @param location the source location of tha name occurrence.
-    * @param name the literal text of the name
-    */
-  sealed case class LiteralName(
-    name: String,
-    override val location: Option[Location],
-    override val passData: Seq[Meta] = Seq()
-  ) extends Name {
-    override def addPassData(newData: Seq[Meta]): LiteralName = {
-      copy(passData = this.passData ++ newData)
+    /** The representation of a literal name.
+      *
+      * @param location the source location of tha name occurrence.
+      * @param name the literal text of the name
+      */
+    sealed case class Literal(
+      name: String,
+      override val location: Option[Location],
+      override val passData: Seq[Meta] = Seq()
+    ) extends Name {
+      override def addPassData(newData: Seq[Meta]): Name.Literal = {
+        copy(passData = this.passData ++ newData)
+      }
     }
   }
 
@@ -126,7 +130,6 @@ object IR {
 
   // === Module ===============================================================
 
-  // TODO [AA] Need to add a `name` field to the module
   /** A representation of a top-level Enso module.
     *
     * Modules may only contain imports and top-level bindings, with no top-level
@@ -167,9 +170,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): AtomDef = {
       copy(passData = this.passData ++ newData)
     }
-
-    // TODO [AA] Shouldn't be a java array
-    def getArguments: java.util.List[DefinitionSiteArgument] = arguments.asJava
   }
 
   /** The definition of a method for a given constructor [[typeName]].
@@ -214,13 +214,6 @@ object IR {
       * @return the expression's source location
       */
     def location: Option[Location]
-
-    /** Gets the location from the expression.
-      *
-      * @return the location, if it exists, otherwise `null`
-      */
-    // TODO [AA] Should use scala option, can be removed entirely
-    def getLocation: Optional[Location] = Optional.ofNullable(location.orNull)
   }
 
   // === Typing ===============================================================
@@ -255,9 +248,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): Lambda = {
       copy(passData = this.passData ++ newData)
     }
-
-    // TODO [AA] Should not be java
-    def getArguments: java.util.List[DefinitionSiteArgument] = arguments.asJava
   }
 
   // === Definition-Site Arguments ============================================
@@ -307,9 +297,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): Prefix = {
       copy(passData = this.passData ++ newData)
     }
-
-    // TODO [AA] Should not be java
-    def getArgs: java.util.List[CallArgumentDefinition] = arguments.asJava
   }
 
   /** A representation of a generic binary operator in Enso.
@@ -435,11 +422,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): CaseExpr = {
       copy(passData = this.passData ++ newData)
     }
-
-    // TODO [AA] Should not be java
-    def getBranches: java.util.List[CaseBranch] = branches.asJava
-    def getFallback: Optional[CaseFunction] =
-      Optional.ofNullable(fallback.orNull)
   }
 
   // TODO [AA] Should become an expression, with attendant info
@@ -481,9 +463,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): CaseFunction = {
       copy(passData = this.passData ++ newData)
     }
-
-    // TODO [AA] Should not be Java
-    def getArguments: java.util.List[DefinitionSiteArgument] = arguments.asJava
   }
 
   // TODO [AA] Better differentiate the types of patterns that can occur
@@ -541,6 +520,11 @@ object IR {
       }
     }
 
+    /** A representation of an invalid piece of IR.
+     *
+     * @param ir the IR that is invalid
+     * @param passData any annotations from compiler passes
+     */
     sealed case class InvalidIR(
       ir: IR,
       override val passData: Seq[Meta] = Seq()
