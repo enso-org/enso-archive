@@ -15,7 +15,7 @@ class StringUtilsSpecification extends Properties("StringUtils") {
   ) = forAll(Generators.newLinedString) { str =>
     val allLines = StringUtils.getLines(str)
     val lines    = allLines.take(allLines.length - 1)
-    lines.forall(StringUtils.endsInNewline)
+    lines.forall(StringUtils.endsWithNewLine)
   }
 
   property("getLines result has no newlines except for line ends") =

@@ -41,13 +41,13 @@ object StringUtils {
     lines.toList ++ lastLine
   }
 
-  private def endsInWindowsStyleNewline(string: String): Boolean = {
+  private def endsWithCrLf(string: String): Boolean = {
     string.length > 1 &&
     string.charAt(string.length - 2) == '\r' &&
     string.charAt(string.length - 1) == '\n'
   }
 
-  private def endsInSimpleNewline(string: String): Boolean = {
+  private def endsWithLf(string: String): Boolean = {
     string.length > 0 && string.charAt(string.length - 1) == '\n'
   }
 
@@ -56,8 +56,8 @@ object StringUtils {
     * @param string the string to check.
     * @return `true` if the string ends in a newline, false otherwise.
     */
-  def endsInNewline(string: String): Boolean = {
-    endsInSimpleNewline(string) || endsInWindowsStyleNewline(string)
+  def endsWithNewLine(string: String): Boolean = {
+    endsWithLf(string) || endsWithCrLf(string)
   }
 
   /** Strips a trailing new line from the end of a string.
@@ -67,9 +67,9 @@ object StringUtils {
     *         from the end of `string`
     */
   def stripNewline(string: String): String = {
-    if (endsInWindowsStyleNewline(string)) {
+    if (endsWithCrLf(string)) {
       string.substring(0, string.length - 2)
-    } else if (endsInSimpleNewline(string)) {
+    } else if (endsWithLf(string)) {
       string.substring(0, string.length - 1)
     } else string
   }

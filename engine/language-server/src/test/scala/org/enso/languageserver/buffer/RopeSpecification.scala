@@ -15,7 +15,7 @@ object RopeSpecification extends Properties("Rope") {
   private def normalizeIndex(index: Int, length: Int): Int =
     (index % length).abs
 
-  // Rope
+  // === Rope ================================================================
 
   property("constructor does not modify the string") =
     forAll(Generators.newLinedString) { string =>
@@ -28,7 +28,7 @@ object RopeSpecification extends Properties("Rope") {
     fromRope == naive
   }
 
-  // Characters
+  // === Characters ==========================================================
 
   property("characters.take is consistent with strings") = forAll {
     (strings: List[String], count: Int) =>
@@ -72,7 +72,7 @@ object RopeSpecification extends Properties("Rope") {
       } else true
   }
 
-  // CodePoints
+  // === CodePoints ==========================================================
 
   property("codePoints.take is consistent with strings") = forAll {
     (strings: List[String], count: Int) =>
@@ -127,7 +127,7 @@ object RopeSpecification extends Properties("Rope") {
       } else true
   }
 
-  // Lines
+  // === Lines ===============================================================
 
   property("lines.take is consistent with list-based operations") =
     forAll(Generators.newLinedStrings, arbitrary[Int]) { (str, len) =>
