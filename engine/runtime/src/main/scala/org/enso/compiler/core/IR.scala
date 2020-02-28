@@ -2,12 +2,10 @@ package org.enso.compiler.core
 
 import java.util.Optional
 
-import org.enso.compiler.core.IR._
 import org.enso.syntax.text.{AST, Location}
 import shapeless.HList
 
 import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
 
 // TODO [AA] Refactor into a proper nested hierarchy once all clients are
 //  written in scala.
@@ -87,9 +85,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): NumberLiteral = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitLong(this)
   }
 
   /** A textual Enso literal.
@@ -105,9 +100,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): TextLiteral = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitStringLiteral(this)
   }
 
   // === Names ================================================================
@@ -128,9 +120,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): LiteralName = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitName(this)
   }
 
   // TODO [AA] Add `this` and `here` as names.
@@ -232,8 +221,6 @@ object IR {
       */
     // TODO [AA] Should use scala option, can be removed entirely
     def getLocation: Optional[Location] = Optional.ofNullable(location.orNull)
-
-    def visit[T](visitor: AstExpressionVisitor[T]): T
   }
 
   // === Typing ===============================================================
@@ -269,9 +256,7 @@ object IR {
       copy(passData = this.passData ++ newData)
     }
 
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitLambda(this)
-
+    // TODO [AA] Should not be java
     def getArguments: java.util.List[DefinitionSiteArgument] = arguments.asJava
   }
 
@@ -294,14 +279,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): DefinitionSiteArgument = {
       copy(passData = this.passData ++ newData)
     }
-
-    def visit[T](visitor: AstArgDefinitionVisitor[T], position: Int): T =
-      visitor.visitArg(
-        name,
-        Optional.ofNullable(defaultValue.orNull),
-        suspended,
-        position
-      )
   }
 
   // TODO [AA] Add support for `_` ignored arguments.
@@ -331,8 +308,7 @@ object IR {
       copy(passData = this.passData ++ newData)
     }
 
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitFunctionApplication(this)
+    // TODO [AA] Should not be java
     def getArgs: java.util.List[CallArgumentDefinition] = arguments.asJava
   }
 
@@ -354,9 +330,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): BinaryOperator = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitArithOp(this)
   }
 
   /** A representation of a term that is explicitly forced.
@@ -373,9 +346,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): ForcedTerm = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitForce(this)
   }
 
   // TODO [AA] Add support for left, right, and centre sections
@@ -396,9 +366,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): CallArgumentDefinition = {
       copy(passData = this.passData ++ newData)
     }
-
-    def visit[T](visitor: AstCallArgVisitor[T], position: Int): T =
-      visitor.visitCallArg(name.toJava, value, position)
   }
 
   // TODO [AA] Add support for the `_` lambda shorthand argument.
@@ -424,9 +391,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): Block = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitBlock(expressions.asJava, returnValue, suspended)
   }
 
   /** A binding expression of the form `name = expr`
@@ -445,9 +409,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): Binding = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitAssignment(this)
   }
 
   // === Case Expression ======================================================
@@ -475,8 +436,7 @@ object IR {
       copy(passData = this.passData ++ newData)
     }
 
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitMatch(this)
+    // TODO [AA] Should not be java
     def getBranches: java.util.List[CaseBranch] = branches.asJava
     def getFallback: Optional[CaseFunction] =
       Optional.ofNullable(fallback.orNull)
@@ -494,7 +454,8 @@ object IR {
     pattern: Expression,
     expression: CaseFunction,
     override val passData: Seq[Meta] = Seq()
-  ) extends Case with IRKind.Primitive {
+  ) extends Case
+      with IRKind.Primitive {
     override def addPassData(newData: Seq[Meta]): IR = {
       copy(passData = this.passData ++ newData)
     }
@@ -521,9 +482,7 @@ object IR {
       copy(passData = this.passData ++ newData)
     }
 
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitCaseFunction(this)
-
+    // TODO [AA] Should not be Java
     def getArguments: java.util.List[DefinitionSiteArgument] = arguments.asJava
   }
 
@@ -563,9 +522,6 @@ object IR {
     override def addPassData(newData: Seq[Meta]): ForeignDefinition = {
       copy(passData = this.passData ++ newData)
     }
-
-    override def visit[T](visitor: AstExpressionVisitor[T]): T =
-      visitor.visitForeign(lang, code)
   }
 
   // === Errors ===============================================================
@@ -628,69 +584,4 @@ object IR {
     * passes such that it can be stored in each IR node.
     */
   trait Meta {}
-}
-
-// ============================================================================
-// === Visitors ===============================================================
-// ============================================================================
-
-/** The visitor pattern for the [[Expression]] types.
-  *
-  * @tparam T the type resultant from the visitor
-  */
-trait AstExpressionVisitor[+T] {
-  def visitLong(l: NumberLiteral): T
-
-  def visitArithOp(astArithOp: BinaryOperator): T
-
-  def visitForeign(lang: String, code: String): T
-
-  def visitName(astName: LiteralName): T
-
-  def visitLambda(function: Lambda): T
-
-  def visitCaseFunction(function: CaseFunction): T
-
-  def visitFunctionApplication(application: Prefix): T
-
-  def visitAssignment(assignment: Binding): T
-
-  def visitMatch(astMatch: CaseExpr): T
-
-  def visitForce(target: ForcedTerm): T
-
-  def visitStringLiteral(string: TextLiteral): T
-
-  def visitBlock(
-    statements: java.util.List[Expression],
-    retValue: Expression,
-    suspended: Boolean
-  ): T
-}
-
-/** The visitor pattern for the [[DefinitionSiteArgument]] types.
-  *
-  * @tparam T the type resultant from the visitor
-  */
-trait AstArgDefinitionVisitor[+T] {
-
-  def visitArg(
-    name: String,
-    value: Optional[Expression],
-    suspended: Boolean,
-    position: Int
-  ): T
-}
-
-/** The visitor pattern for the [[CallArgumentDefinition]] types.
-  *
-  * @tparam T the type resultant from the visitor
-  */
-trait AstCallArgVisitor[+T] {
-
-  def visitCallArg(
-    name: Optional[String],
-    value: Expression,
-    position: Int
-  ): T
 }

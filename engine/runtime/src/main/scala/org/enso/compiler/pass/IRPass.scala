@@ -1,4 +1,4 @@
-package org.enso.compiler
+package org.enso.compiler.pass
 
 import org.enso.compiler.core.IR
 
