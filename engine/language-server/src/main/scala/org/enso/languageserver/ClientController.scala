@@ -7,15 +7,13 @@ import akka.pattern.ask
 import akka.util.Timeout
 import org.enso.languageserver.ClientApi._
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
-import org.enso.languageserver.filemanager.FileManagerApi.{
-  FileSystemError,
-  FileWrite,
-  FileWriteParams
+import org.enso.languageserver.filemanager.FileManagerApi._
+import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  CreateFileResult,
+  WriteFileResult
 }
-import org.enso.languageserver.filemanager.FileManagerProtocol.FileWriteResult
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
-  FileSystemFailure,
   FileSystemFailureMapper
 }
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
@@ -68,7 +66,9 @@ object ClientApi {
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)
-    .registerRequest(FileWrite)
+    .registerRequest(WriteFile)
+    .registerRequest(ReadFile)
+    .registerRequest(CreateFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
 
@@ -123,22 +123,81 @@ class ClientController(
       server ! LanguageProtocol.ReleaseCapability(clientId, params.id)
       sender ! ResponseResult(ReleaseCapability, id, Unused)
 
-    case Request(FileWrite, id, params: FileWriteParams) =>
-      (server ? FileManagerProtocol.FileWrite(params.path, params.content))
-        .onComplete {
-          case Success(FileWriteResult(Right(()))) =>
-            webActor ! ResponseResult(FileWrite, id, Unused)
+    case Request(WriteFile, id, params: WriteFile.Params) =>
+      writeFile(webActor, id, params)
 
-          case Success(FileWriteResult(Left(failure))) =>
-            webActor ! ResponseError(
-              Some(id),
-              FileSystemFailureMapper.mapFailure(failure)
-            )
+    case Request(ReadFile, id, params: ReadFile.Params) =>
+      readFile(webActor, id, params)
 
-          case Failure(th) =>
-            log.error("An exception occurred during writing to a file", th)
-            webActor ! ResponseError(Some(id), ServiceError)
-        }
+    case Request(CreateFile, id, params: CreateFile.Params) =>
+      createFile(webActor, id, params)
+  }
+
+  private def readFile(
+    webActor: ActorRef,
+    id: Id,
+    params: ReadFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.ReadFile(params.path)).onComplete {
+      case Success(
+          FileManagerProtocol.ReadFileResult(Right(content: String))
+          ) =>
+        webActor ! ResponseResult(ReadFile, id, ReadFile.Result(content))
+
+      case Success(FileManagerProtocol.ReadFileResult(Left(failure))) =>
+        webActor ! ResponseError(
+          Some(id),
+          FileSystemFailureMapper.mapFailure(failure)
+        )
+
+      case Failure(th) =>
+        log.error("An exception occurred during reading a file", th)
+        webActor ! ResponseError(Some(id), ServiceError)
+    }
+  }
+
+  private def writeFile(
+    webActor: ActorRef,
+    id: Id,
+    params: WriteFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.WriteFile(params.path, params.contents))
+      .onComplete {
+        case Success(WriteFileResult(Right(()))) =>
+          webActor ! ResponseResult(WriteFile, id, Unused)
+
+        case Success(WriteFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occurred during writing to a file", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
+
+  private def createFile(
+    webActor: ActorRef,
+    id: Id,
+    params: CreateFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.CreateFile(params.`object`))
+      .onComplete {
+        case Success(CreateFileResult(Right(()))) =>
+          webActor ! ResponseResult(CreateFile, id, Unused)
+
+        case Success(CreateFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occurred during creating a file", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
   }
 
 }

@@ -48,6 +48,47 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     readTxtFile(path) shouldBe content
   }
 
+  it should "return FileNotFound failure if the file doesn't exist" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo.txt")
+    //when
+    val result = objectUnderTest.read(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
+  }
+
+  it should "read a file content" in new TestCtx {
+    //given
+    val path    = Paths.get(testDirPath.toString, "foo.txt")
+    val content = "123456789"
+    objectUnderTest.write(path.toFile, content).unsafeRunSync()
+    //when
+    val result = objectUnderTest.read(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(content)
+  }
+
+  it should "create a directory" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo", "bar")
+    //when
+    val result = objectUnderTest.createDirectory(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(())
+    path.toFile.isDirectory shouldBe true
+  }
+
+  it should "create an empty file" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo", "bar", "baz.txt")
+    //when
+    val result = objectUnderTest.createFile(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(())
+    path.toFile.getParentFile.isDirectory shouldBe true
+    path.toFile.isFile shouldBe true
+  }
+
   def readTxtFile(path: Path): String = {
     val buffer  = Source.fromFile(path.toFile)
     val content = buffer.getLines().mkString
