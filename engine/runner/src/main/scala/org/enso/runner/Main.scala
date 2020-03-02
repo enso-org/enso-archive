@@ -205,6 +205,11 @@ object Main {
     exitSuccess()
   }
 
+  /**
+    * Handles `--language-server` CLI option
+    *
+    * @param line a CLI line
+    */
   private def runLanguageServer(line: CommandLine): Unit = {
     // format: off
     val maybeConfig =
