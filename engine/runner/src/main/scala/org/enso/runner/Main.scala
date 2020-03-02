@@ -19,7 +19,7 @@ object Main {
   private val NEW_OPTION             = "new"
   private val REPL_OPTION            = "repl"
   private val JUPYTER_OPTION         = "jupyter-kernel"
-  private val LANGUAGE_SERVER_OPTION = "language-server"
+  private val LANGUAGE_SERVER_OPTION = "server"
   private val INTERFACE_OPTION       = "i"
   private val PORT_OPTION            = "p"
   private val ROOT_ID_OPTION         = "root-id"
@@ -211,29 +211,7 @@ object Main {
     * @param line a CLI line
     */
   private def runLanguageServer(line: CommandLine): Unit = {
-    // format: off
-    val maybeConfig =
-      for {
-        interface <- Option(line.getOptionValue(INTERFACE_OPTION))
-                       .toRight("Interface must be provided")
-        port      <- Option(line.getOptionValue(PORT_OPTION))
-                       .toRight("Port must be provided")
-                       .flatMap { portString =>
-                         Either
-                           .catchNonFatal(portString.toInt)
-                           .leftMap(_ => "Port must be integer")
-                       }
-        rootId    <- Option(line.getOptionValue(ROOT_ID_OPTION))
-                       .toRight("Root id must be provided")
-                       .flatMap { id =>
-                         Either
-                           .catchNonFatal(UUID.fromString(id))
-                           .leftMap(_ => "Root must be UUID")
-                       }
-        rootPath  <- Option(line.getOptionValue(ROOT_PATH_OPTION))
-                       .toRight("Root path must be provided")
-      } yield LanguageServerConfig(interface, port, rootId, rootPath)
-    // format: on
+    val maybeConfig = parseSeverOptions(line)
 
     maybeConfig match {
       case Left(errorMsg) =>
@@ -244,6 +222,32 @@ object Main {
         exitSuccess()
     }
   }
+
+  private def parseSeverOptions(
+    line: CommandLine
+  ): Either[String, LanguageServerConfig] =
+    // format: off
+    for {
+      interface <- Option(line.getOptionValue(INTERFACE_OPTION))
+                     .toRight("Interface must be provided")
+      port      <- Option(line.getOptionValue(PORT_OPTION))
+                     .toRight("Port must be provided")
+                     .flatMap { portString =>
+                       Either
+                         .catchNonFatal(portString.toInt)
+                         .leftMap(_ => "Port must be integer")
+                     }
+      rootId    <- Option(line.getOptionValue(ROOT_ID_OPTION))
+                     .toRight("Root id must be provided")
+                     .flatMap { id =>
+                       Either
+                         .catchNonFatal(UUID.fromString(id))
+                         .leftMap(_ => "Root must be UUID")
+                     }
+      rootPath  <- Option(line.getOptionValue(ROOT_PATH_OPTION))
+                     .toRight("Root path must be provided")
+    } yield LanguageServerConfig(interface, port, rootId, rootPath)
+    // format: on
 
   /**
     * Main entry point for the CLI program.
