@@ -77,6 +77,10 @@ class IRToTruffle(
     * errors (members of [[IR.Error]]). These must be dealt with and reported
     * before codegen runs, as they will cause a compiler error.
     *
+    * In future, this restriction will be relaxed to admit errors that are
+    * members of [[IR.Error.Kind.Interactive]], such that we can display these
+    * to users during interactive execution.
+    *
     * @param ir the IR to generate code for
     */
   def run(ir: IR.Module): Unit = processModule(ir)
@@ -480,7 +484,7 @@ class IRToTruffle(
       body: IR.Expression,
       location: Option[Location]
     ): CreateFunctionNode = {
-      val argFactory = new DefinitionArgumentProcessor(scope, scopeName)
+      val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
 
       val argDefinitions = new Array[ArgumentDefinition](arguments.size)
       val argExpressions = new ArrayBuffer[RuntimeExpression]
@@ -674,24 +678,9 @@ class IRToTruffle(
     * @param scopeName the name of `scope`
     */
   sealed private class DefinitionArgumentProcessor(
-    val scope: LocalScope,
-    val scopeName: String
+    val scopeName: String = "<root>",
+    val scope: LocalScope = new LocalScope()
   ) {
-
-    // === Construction =======================================================
-
-    /** Constructs the code generator with a defaulted local scope.
-      *
-      * @param scopeName the name to attribute to that scope.
-      */
-    def this(scopeName: String) {
-      this(new LocalScope(), scopeName)
-    }
-
-    /** Constructs the code generator in a defaulted scope named `<root>`. */
-    def this() {
-      this("<root>")
-    }
 
     // === Runner =============================================================
 

@@ -625,15 +625,31 @@ object IR {
   sealed trait Error extends Expression
   object Error {
 
+    /** Represents the various kinds of errors in the IR. */
+    sealed trait Kind
+    object Kind {
+
+      /** Errors that should be reported during the static compilation phase of
+        * execution.
+        */
+      sealed trait Static extends Kind
+
+      /** Errors that should remain at runtime for display during interactive
+        * execution.
+        */
+      sealed trait Interactive extends Kind
+    }
+
     /** A representation of an Enso syntax error.
-     *
-     * @param ast the erroneous AST
-     * @param passData the pass metadata associated with this node
-     */
+      *
+      * @param ast the erroneous AST
+      * @param passData the pass metadata associated with this node
+      */
     sealed case class Syntax(
       ast: AST,
       override val passData: Set[Metadata] = Set()
     ) extends Error
+        with Kind.Static
         with IRKind.Primitive {
       override val location: Option[Location] = ast.location
 
@@ -651,6 +667,7 @@ object IR {
       ir: IR,
       override val passData: Set[Metadata] = Set()
     ) extends Error
+        with Kind.Static
         with IRKind.Primitive {
       override val location: Option[Location] = ir.location
 
