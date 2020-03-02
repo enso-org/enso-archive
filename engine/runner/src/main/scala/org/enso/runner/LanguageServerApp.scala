@@ -3,7 +3,7 @@ package org.enso.runner
 import java.io.File
 
 import akka.actor.{ActorSystem, Props}
-import akka.stream.ActorMaterializer
+import akka.stream.{ActorMaterializer, SystemMaterializer}
 import cats.effect.IO
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.filemanager.FileSystem
@@ -30,7 +30,7 @@ object LanguageServerApp {
   def run(config: LanguageServerConfig): Unit = {
     println("Starting Language Server...")
     implicit val system       = ActorSystem()
-    implicit val materializer = ActorMaterializer()
+    implicit val materializer = SystemMaterializer.get(system)
     val languageServerConfig = Config(
       Map(config.contentRootUuid -> new File(config.contentRootPath))
     )
