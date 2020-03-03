@@ -444,8 +444,7 @@ lazy val language_server = (project in file("engine/language-server"))
     libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.19" % "bench",
     testFrameworks ++= List(
       new TestFramework("org.scalameter.ScalaMeterFramework")
-    ),
-    parallelExecution in Test := false
+    )
   )
 
 lazy val runtime = (project in file("engine/runtime"))
