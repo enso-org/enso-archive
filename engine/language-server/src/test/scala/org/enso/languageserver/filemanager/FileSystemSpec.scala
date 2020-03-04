@@ -178,21 +178,21 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val result = objectUnderTest.copy(path.toFile, to.toFile).unsafeRunSync()
     //then
     result shouldBe Left(FileNotFound)
-    path.toFile.isFile shouldBe false
-    to.toFile.isFile shouldBe false
+    path.toFile.exists shouldBe false
+    to.toFile.exists shouldBe false
   }
 
   it should "reutrn FileNotFound when copy nonexistent directory" in new TestCtx {
     //given
     val path = Paths.get(testDirPath.toString, "copy_nonexistent")
     val to   = Paths.get(testDirPath.toString, "copy_file")
-    path.toFile.isDirectory shouldBe false
+    path.toFile.exists shouldBe false
     //when
     val result = objectUnderTest.copy(path.toFile, to.toFile).unsafeRunSync()
     //then
     result shouldBe Left(FileNotFound)
-    path.toFile.isDirectory shouldBe false
-    to.toFile.isDirectory shouldBe false
+    path.toFile.exists shouldBe false
+    to.toFile.exists shouldBe false
   }
 
   def readTxtFile(path: Path): String = {
