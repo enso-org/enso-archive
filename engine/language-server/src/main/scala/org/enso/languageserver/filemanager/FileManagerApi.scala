@@ -65,6 +65,18 @@ object FileManagerApi {
     }
   }
 
+  case object CopyFile extends Method("file/copy") {
+
+    case class Params(from: Path, to: Path)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = CreateFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   // Errors
 
   case class FileSystemError(override val message: String)
