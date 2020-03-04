@@ -166,5 +166,9 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
 
       sender ! DeleteFileResult(result)
   }
-
+  /* Note [Usage of unsafe methods]
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     It invokes side-effecting function, all exceptions are caught and
+     explicitly returned as left side of disjunction.
+ */
 }
