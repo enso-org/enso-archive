@@ -28,7 +28,7 @@ jobs:
   - job: Linux
     timeoutInMinutes: 90
     pool:
-      vmImage: 'Ubuntu-16.04'
+      vmImage: 'Ubuntu-18.04'
     container:
       image: oracle/graalvm-ce:$(graalVersion)-java8
       options: "--name ci-container -v /usr/bin/docker:/tmp/docker:ro"
