@@ -85,7 +85,7 @@ jobs:
   - job: macOS
     timeoutInMinutes: 90
     pool:
-      vmImage: macOS-10.13
+      vmImage: macOS-10.15
     steps:
       - script: |
           curl -fSL -o graal.tar.gz $(graalReleasesUrl)/vm-$(graalVersion)/$(graalDistributionName)-darwin-amd64-$(graalVersion).tar.gz
