@@ -368,7 +368,7 @@ class FileManagerTest extends WebSocketServerTest {
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
-            "id": 12,
+            "id": 14,
             "params": {
               "object": {
                 "type": "File",
@@ -383,7 +383,7 @@ class FileManagerTest extends WebSocketServerTest {
           """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 12,
+            "id": 14,
             "result": null
           }
           """)
@@ -394,7 +394,7 @@ class FileManagerTest extends WebSocketServerTest {
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/copy",
-            "id": 13,
+            "id": 15,
             "params": {
               "from": {
                 "rootId": $testContentRootId,
@@ -409,7 +409,7 @@ class FileManagerTest extends WebSocketServerTest {
       """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 13,
+            "id": 15,
             "result": null
           }
           """)
@@ -425,7 +425,7 @@ class FileManagerTest extends WebSocketServerTest {
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
-            "id": 14,
+            "id": 16,
             "params": {
               "object": {
                 "type": "File",
@@ -440,7 +440,7 @@ class FileManagerTest extends WebSocketServerTest {
           """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 14,
+            "id": 16,
             "result": null
           }
           """)
@@ -451,7 +451,7 @@ class FileManagerTest extends WebSocketServerTest {
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/copy",
-            "id": 15,
+            "id": 17,
             "params": {
               "from": {
                 "rootId": $testContentRootId,
@@ -466,7 +466,7 @@ class FileManagerTest extends WebSocketServerTest {
       """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 15,
+            "id": 17,
             "result": null
           }
           """)
@@ -481,7 +481,7 @@ class FileManagerTest extends WebSocketServerTest {
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/copy",
-            "id": 16,
+            "id": 18,
             "params": {
               "from": {
                 "rootId": $testContentRootId,
@@ -496,7 +496,7 @@ class FileManagerTest extends WebSocketServerTest {
       """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "id": 16,
+            "id": 18,
             "error": {
               "code": 1003,
               "message": "File not found"
