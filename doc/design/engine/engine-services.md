@@ -1224,7 +1224,9 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 #### `file/move`
 This request asks the file manager to move a specified filesystem object to
