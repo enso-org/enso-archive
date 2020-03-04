@@ -1096,14 +1096,14 @@ context, including modifying the execution stack, invalidating caches, or
 destroying the context.
 
 - **method:** `executionContext/canModify`
-- **registerOptions:** `{id: UUID}`
+- **registerOptions:** `{  contextId: ContextId; }`
 
 #### `executionContext/receiveUpdates`
 This capability states that the client receives expression value updates from
 a given execution context.
 
 - **method:** `executionContext/receiveUpdates`
-- **registerOptions:** `{id: UUID}`
+- **registerOptions:** `{  contextId: ContextId; }`
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
@@ -1733,25 +1733,36 @@ An identifier used for Enso expressions.
 type ExpressionId = UUID;
 ```
 
+##### `ContextId`
+An identifier used for execution contexts.
+
+```typescript
+type ContextId = UUID;
+```
+
 ##### `StackItem`
 A representation of an executable position in code, used by the execution APIs.
 
 `MethodCall` is a call performed at the top of the stack, to initialize the
 context with first execution.
+The `thisArgumentsPosition` field can be omitted, in which case the context
+will try to infer the argument on a best-effort basis. E.g. for a module-level
+method, or a method defined on a parameter-less atom type, `this` will be
+substituted for the unambiguous singleton instance.
 
 `LocalCall` is a call corresponding to "entering a function call".
 
 ```typescript
-type StackItem = ExplicitCall | ContextCall
+type StackItem = ExplicitCall | LocalCall
 
 interface ExplicitCall {
   methodPointer: MethodPointer;
   thisArgumentExpression?: String;
-  positionalArgumentsExpressions?: String[];
+  positionalArgumentsExpressions: String[];
 }
 
 interface LocalCall {
-  expressionId: UUID;
+  expressionId: ExpressionId;
 }
 ```
 
@@ -1783,7 +1794,7 @@ Sent from the client to the server to create a new execution context.
 ##### Parameters
 ```typescript
 {
-  id: UUID;
+  contextId: ContextId;
 }
 ```
 
@@ -1805,7 +1816,7 @@ resources.
 ##### Parameters
 ```typescript
 {
-  id: UUID;
+  contextId: ContextId;
 }
 ```
 
@@ -1824,14 +1835,17 @@ an independent copy, containing all the data precomputed in the first one.
 ##### Parameters
 ```typescript
 {
-  id: UUID;
-  newId: UUID;
+  contextId: ContextId;
+  newContextId: ContextId;
 }
 ```
 
 ##### Result
 ```typescript
-null
+{
+  canModify: CapabilityRegistration;
+  receivesEvents: CapabilityRegistration;
+}
 ```
 
 ##### Errors
@@ -1844,7 +1858,7 @@ deeper down the stack.
 ##### Parameters
 ```typescript
 {
-  id: UUID;
+  contextId: ContextId;
   stackItem: StackItem;
 }
 ```
@@ -1866,7 +1880,7 @@ corresponding to the client clicking out of the current breadcrumb.
 ##### Parameters
 ```typescript
 {
-  id: UUID;
+  contextId: ContextId;
 }
 ```
 
@@ -1885,7 +1899,7 @@ May include a list of expressions for which caches should be invalidated.
 ##### Parameters
 ```typescript
 {
-  id: UUID;
+  contextId: ContextId;
   invalidatedExpressions?: "all" | ExpressionId[]
 }
 ```
@@ -1905,7 +1919,7 @@ expressions becoming available.
 ##### Parameters
 ```typescript
 {
-  id: UUID;
+  contextId: ContextId;
   updates: ExpressionValueUpdate[]
 }
 ```
