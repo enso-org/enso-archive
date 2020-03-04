@@ -107,8 +107,6 @@ services components, as well as any open questions that may remain.
     - [`executionContext/recompute`](#executioncontextrecompute)
     - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
   - [Errors - Language Server](#errors---language-server)
-    - [File system errors.](#file-system-errors)
-    - [Execution contexts errors.](#execution-contexts-errors)
 
 <!-- /MarkdownTOC -->
 
@@ -1817,12 +1815,11 @@ null
 ```
 
 ##### Errors
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the `CanModify` capability for this context.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the `executionContext/canModify` capability for this context.
 
 #### `executionContext/fork`
-Sent from the client to duplicate an execution context, creating two
-independent copies, the new copy containing all the data precomputed in the
-firt one.
+Sent from the client to the server to duplicate an execution context, creating
+an independent copy, containing all the data precomputed in the first one.
 
 ##### Parameters
 ```typescript
@@ -1859,6 +1856,8 @@ null
 
 ##### Errors
 - [`StackItemNotFoundError`](#stackitemnotfounderror) when the request stack item could not be found.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the `executionContext/canModify` capability for this context.
+
 
 #### `executionContext/pop`
 Sent from the client to the server move the execution context up the stack,
@@ -1877,7 +1876,7 @@ null
 ```
 
 ##### Errors
-No known errors.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the `executionContext/canModify` capability for this context.
 
 #### `executionContext/recompute`
 Sent from the client to the server to force recomputation of current position.
@@ -1911,22 +1910,10 @@ expressions becoming available.
 }
 ```
 
-##### Result
-```typescript
-null
-```
-
-##### Errors
-No known errors.
-
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
-
-#### File system errors.
-
-The space of codes from 1000 to 1999 is reserved for file system errors.
 
 ##### `FileSystemError`
 This error signals generic file system errors.
@@ -1967,10 +1954,6 @@ It signals that requested file doesn't exist.
   "message" : "File not found"
 }
 ```
-
-#### Execution contexts errors.
-
-The space of codes from 2000 to 2999 is reserved for execution context errors.
 
 ##### `StackItemNotFoundError`
 ```typescript
