@@ -108,14 +108,15 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     createEmptyFile(path)
     path.toFile.isFile shouldBe true
     //when
-    val result = objectUnderTest.delete(path.toFile.getParentFile).unsafeRunSync()
+    val result =
+      objectUnderTest.delete(path.toFile.getParentFile).unsafeRunSync()
     //then
     result shouldBe Right(())
     path.toFile.isFile shouldBe false
     path.toFile.getParentFile.isDirectory shouldBe false
   }
 
-  it should "delete nonexistent file" in new TestCtx {
+  it should "return NotFoundError when deleting nonexistent file" in new TestCtx {
     //given
     val path = Paths.get(testDirPath.toString, "foo", "bar.txt")
     //when
@@ -126,11 +127,12 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     path.toFile.getParentFile.isDirectory shouldBe false
   }
 
-  it should "delete nonexistent directory" in new TestCtx {
+  it should "return NotFoundError when deleting nonexistent directory" in new TestCtx {
     //given
     val path = Paths.get(testDirPath.toString, "foo", "bar.txt")
     //when
-    val result = objectUnderTest.delete(path.toFile.getParentFile).unsafeRunSync()
+    val result =
+      objectUnderTest.delete(path.toFile.getParentFile).unsafeRunSync()
     //then
     result shouldBe Left(FileNotFound)
     path.toFile.isFile shouldBe false
