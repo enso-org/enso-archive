@@ -61,15 +61,16 @@ services components, as well as any open questions that may remain.
     - [`FileContents`](#filecontents)
     - [`FileSystemObject`](#filesystemobject)
     - [`WorkspaceEdit`](#workspaceedit)
-    - [`ExpressionId`](#expressionid)
   - [Capability Management](#capability-management)
     - [`capability/acquire`](#capabilityacquire)
     - [`capability/release`](#capabilityrelease)
     - [`capability/granted`](#capabilitygranted)
     - [`capability/forceReleased`](#capabilityforcereleased)
   - [Capabilities](#capabilities)
-    - [`capability/canEdit`](#capabilitycanedit)
-    - [`capability/receivesTreeUpdates`](#capabilityreceivestreeupdates)
+    - [`text/canEdit`](#textcanedit)
+    - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
+    - [`executionContext/canModify`](#executioncontextcanmodify)
+    - [`executionContext/receiveUpdates`](#executioncontextreceiveupdates)
   - [File Management Operations](#file-management-operations)
     - [`file/write`](#filewrite)
     - [`file/read`](#fileread)
@@ -103,8 +104,11 @@ services components, as well as any open questions that may remain.
     - [`executionContext/fork`](#executioncontextfork)
     - [`executionContext/push`](#executioncontextpush)
     - [`executionContext/pop`](#executioncontextpop)
-  - [Execution Management](#execution-management-2)
+    - [`executionContext/recompute`](#executioncontextrecompute)
+    - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
   - [Errors - Language Server](#errors---language-server)
+    - [File system errors.](#file-system-errors)
+    - [Execution contexts errors.](#execution-contexts-errors)
 
 <!-- /MarkdownTOC -->
 
@@ -973,14 +977,6 @@ interface Other;
 This is a message to be specified once we better understand the intricacies of
 undo/redo.
 
-#### `ExpressionId`
-An identifier used for Enso expressions.
-
-###### Format
-```typescript
-type ExpressionId = UUID;
-```
-
 ### Capability Management
 In order to mediate between multiple clients properly, the language server has
 a robust notion of capability management to grant and remove permissions from
@@ -1082,19 +1078,34 @@ TBC
 ### Capabilities
 The capability management features work with the following capabilities.
 
-#### `capability/canEdit`
+#### `text/canEdit`
 This capability states that the capability has the ability to perform both
 `text/applyEdit` and `text/save` for the specified file.
 
-- **method:** `canEdit`
+- **method:** `text/canEdit`
 - **registerOptions:** `{path: Path;}`
 
-#### `capability/receivesTreeUpdates`
+#### `file/receivesTreeUpdates`
 This capability states that the client will receive updates for any watched
 content roots in the current project.
 
-- **method:** `receivesTreeUpdates`
+- **method:** `file/receivesTreeUpdates`
 - **registerOptions:** `{}`
+
+#### `executionContext/canModify`
+This capability states that the client has the ability to modify an execution
+context, including modifying the execution stack, invalidating caches, or
+destroying the context.
+
+- **method:** `executionContext/canModify`
+- **registerOptions:** `{id: UUID}`
+
+#### `executionContext/receiveUpdates`
+This capability states that the client receives expression value updates from
+a given execution context.
+
+- **method:** `executionContext/receiveUpdates`
+- **registerOptions:** `{id: UUID}`
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
@@ -1717,6 +1728,13 @@ TBC
 
 #### Types
 
+##### `ExpressionId`
+An identifier used for Enso expressions.
+
+```typescript
+type ExpressionId = UUID;
+```
+
 ##### `StackItem`
 A representation of an executable position in code, used by the execution APIs.
 
@@ -1729,14 +1747,35 @@ context with first execution.
 type StackItem = ExplicitCall | ContextCall
 
 interface ExplicitCall {
-  file: Path;
-  thisArgumentExpression: String;
-  methodName: String;
-  positionalArgumentsExpressions: String[];
+  methodPointer: MethodPointer;
+  thisArgumentExpression?: String;
+  positionalArgumentsExpressions?: String[];
 }
 
 interface LocalCall {
   expressionId: UUID;
+}
+```
+
+##### `MethodPointer`
+Points to a method definition.
+
+```typescript
+{
+  file: Path;
+  definedOnType: String;
+  name: String;
+}
+```
+
+##### `ExpressionValueUpdate`
+
+```typescript
+{
+  id: ExpressionId;
+  type?: String;
+  shortValue?: String;
+  methodCall?: MethodPointer;
 }
 ```
 
@@ -1840,52 +1879,54 @@ null
 ##### Errors
 No known errors.
 
+#### `executionContext/recompute`
+Sent from the client to the server to force recomputation of current position.
+May include a list of expressions for which caches should be invalidated.
 
-### Execution Management
-The language server process will need to be able to respond to requests for
-various kinds of execution of Enso code. Furthermore, it needs to be able to
-respond to requests to 'listen' to the execution of various portions of code.
-This implies that the following functionalities are needed:
+##### Parameters
+```typescript
+{
+  id: UUID;
+  invalidatedExpressions?: "all" | ExpressionId[]
+}
+```
 
-- Execution of a function with provided arguments.
-- Execution of a function from a given call site (stack position and code
-  position).
-- Attach an execution listener to an arbitrary code span.
-- Detach an execution listener by ID.
-- Implement heartbeat messages for execution listeners. If a heartbeat response
-  isn't received before some time-out, the language server should detach the
-  listener.
-- Force cache invalidation for arbitrary code spans.
-- Attach an automatic execution request.
-- Detach an automatic execution request.
-- Redirect `stdout`/`stdin`/`stderr` to and from the IDE.
+##### Result
+```typescript
+null
+```
 
-All of these functionalities will need to take the form of custom extensions to
-the LSP, as they do not fit well into any of the available extension points. To
-that end, these extensions should fit well with the LSP.
+##### Errors
+No known errors.
 
-A subscription (execution listener) is applied to an arbitrary span of code at a
-given position in the call stack.
+#### `executionContext/expressionValuesComputed`
+Sent from the server to the client to inform about new information for certain
+expressions becoming available.
 
-- A subscription may encompass multiple nodes or a single node. Information is
-  received for _all_ nodes covered by the provided span.
-- A subscription will ensure that the client receives information on changes in:
-  + Execution state (whether the node is being computed or is cached)
-  + Profiling information
-  + Values
-  + Types
-  + Where we are in the call stack (useful for recursive execution)
-- Such subscriptions _must_ be accompanied by heartbeat messages in order to
-  allow the language server to cull unused subscriptions.
-- Additionally, it will be important for each subscription to be able to
-  configure a _rate limit_, such that the update messages do not overwhelm the
-  client. If unspecified this should be set to a sensible default.
+##### Parameters
+```typescript
+{
+  id: UUID;
+  updates: ExpressionValueUpdate[]
+}
+```
 
+##### Result
+```typescript
+null
+```
+
+##### Errors
+No known errors.
 
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
 not a complete specification and will be updated as new errors are added.
+
+#### File system errors.
+
+The space of codes from 1000 to 1999 is reserved for file system errors.
 
 ##### `FileSystemError`
 This error signals generic file system errors.
@@ -1893,7 +1934,7 @@ This error signals generic file system errors.
 ```typescript
 "error" : {
   "code" : 1000,
-  "message" : "File '/foo/bar' exists but is a directory"
+  "message" : String
 }
 ```
 
@@ -1926,3 +1967,16 @@ It signals that requested file doesn't exist.
   "message" : "File not found"
 }
 ```
+
+#### Execution contexts errors.
+
+The space of codes from 2000 to 2999 is reserved for execution context errors.
+
+##### `StackItemNotFoundError`
+```typescript
+"error" : {
+  "code" : 2001,
+  "message" : "Stack item not found."
+}
+```
+
