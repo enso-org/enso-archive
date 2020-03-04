@@ -241,7 +241,7 @@ class FileManagerTest extends WebSocketServerTest {
           }
           """)
 
-      file.isFile shouldBe false
+      file.exists shouldBe false
       file.getParentFile.isDirectory shouldBe true
     }
 
@@ -295,7 +295,7 @@ class FileManagerTest extends WebSocketServerTest {
           }
           """)
 
-      file.isDirectory shouldBe false
+      file.exists shouldBe false
       file.getParentFile.isDirectory shouldBe true
     }
 
@@ -326,7 +326,7 @@ class FileManagerTest extends WebSocketServerTest {
           }
           """)
 
-      file.isFile shouldBe false
+      file.exists shouldBe false
       file.getParentFile.isDirectory shouldBe true
     }
 
@@ -357,7 +357,7 @@ class FileManagerTest extends WebSocketServerTest {
           }
           """)
 
-      file.isDirectory shouldBe false
+      file.exists shouldBe false
       file.getParentFile.isDirectory shouldBe true
     }
   }
