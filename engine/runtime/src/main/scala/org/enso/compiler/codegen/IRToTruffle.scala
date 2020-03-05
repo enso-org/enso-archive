@@ -20,7 +20,6 @@ import org.enso.interpreter.node.expression.literal.{
   IntegerLiteralNode,
   TextLiteralNode
 }
-import org.enso.interpreter.node.expression.operator._
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
 import org.enso.interpreter.node.{
   ClosureRootNode,
@@ -599,30 +598,37 @@ class IRToTruffle(
           )
 
           setLocation(appNode, loc)
-        case IR.Application.Operator.Binary(left, operator, right, loc, _) =>
-          val leftExpr  = this.run(left)
-          val rightExpr = this.run(right)
 
-          // This will be refactored away once operator desugaring exists
-          val opExpr = if (operator.name == "+") {
-            AddOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator.name == "-") {
-            SubtractOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator.name == "*") {
-            MultiplyOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator.name == "/") {
-            DivideOperatorNode.build(leftExpr, rightExpr)
-          } else if (operator.name == "%") {
-            ModOperatorNode.build(leftExpr, rightExpr)
-          } else {
-            throw new RuntimeException(
-              s"Unsupported operator $operator at codegen time."
-            )
-          }
-
-          setLocation(opExpr, loc)
+          // TODO [AA] Have an extensible system for fully saturated operator
+          //  optimisation (a map of maps (arity and name)
+//        case IR.Application.Operator.Binary(left, operator, right, loc, _) =>
+//          val leftExpr  = this.run(left)
+//          val rightExpr = this.run(right)
+//
+//          // This will be refactored away once operator desugaring exists
+//          val opExpr = if (operator.name == "+") {
+//            AddOperatorNode.build(leftExpr, rightExpr)
+//          } else if (operator.name == "-") {
+//            SubtractOperatorNode.build(leftExpr, rightExpr)
+//          } else if (operator.name == "*") {
+//            MultiplyOperatorNode.build(leftExpr, rightExpr)
+//          } else if (operator.name == "/") {
+//            DivideOperatorNode.build(leftExpr, rightExpr)
+//          } else if (operator.name == "%") {
+//            ModOperatorNode.build(leftExpr, rightExpr)
+//          } else {
+//            throw new RuntimeException(
+//              s"Unsupported operator $operator at codegen time."
+//            )
+//          }
+//
+//          setLocation(opExpr, loc)
         case IR.Application.Force(expr, location, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
+        case op: IR.Application.Operator.Binary =>
+          throw new CompilerError(
+            s"Explicit operators not supported during codegen but $op found"
+          )
       }
   }
 

@@ -15,7 +15,8 @@ case class OperatorToFunction() extends IRPass {
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
-  override def runModule(ir: IR.Module): IR.Module = ir
+  override def runModule(ir: IR.Module): IR.Module =
+    ir.transformExpressions({ case x => runExpression(x) })
 
   /** Executes the conversion pass in an inline context.
     *
@@ -23,8 +24,18 @@ case class OperatorToFunction() extends IRPass {
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
-  override def runExpression(ir: IR.Expression): IR.Expression = ir
-//    ir.transformExpressions {
-//      case IR.Application.Operator.Binary(l, op, r, loc, passData) => ???
-//    }
+  override def runExpression(ir: IR.Expression): IR.Expression =
+    ir.transformExpressions {
+      case IR.Application.Operator.Binary(l, op, r, loc, passData) =>
+        IR.Application.Prefix(
+          op,
+          List(
+            IR.CallArgument.Specified(None, runExpression(l), l.location),
+            IR.CallArgument.Specified(None, runExpression(r), r.location)
+          ),
+          hasDefaultsSuspended = false,
+          loc,
+          passData
+        )
+    }
 }
