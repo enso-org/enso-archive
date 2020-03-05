@@ -185,7 +185,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
   def line(s: String, empty: Int*) =
     Shape.TextBlockLine(empty.toList, List(txtFromString[AST](s)))
   def line(segment: AST.Text.Segment.Fmt, empty: Int*) =
-     Shape.TextBlockLine(empty.toList, List(segment))
+    Shape.TextBlockLine(empty.toList, List(segment))
 
   "'"    ?= Text.Unclosed()
   "''"   ?= Text()
@@ -220,7 +220,7 @@ class ParserTest extends AnyFlatSpec with Matchers {
 
   //// Escapes ////
 
-  val Esc = Text.Segment.Escape
+  val Esc                                  = Text.Segment.Escape
   def escape(code: Text.Segment.Escape)    = Shape.SegmentEscape[AST](code)
   def escape(code: Text.Segment.RawEscape) = Shape.SegmentRawEscape[AST](code)
 
@@ -449,7 +449,6 @@ class ParserTest extends AnyFlatSpec with Matchers {
   "\t" ??= Module(OptLine(4))
   "\r" ??= Module(OptLine(), OptLine())
   "\r\n" ??= Module(OptLine(), OptLine())
-
 }
 ////////////////////////////////////////////////////////////////////////////
 // TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO TODO  //

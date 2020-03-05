@@ -160,12 +160,14 @@ class Parser {
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
     val spanned     = tokenStream.map(attachModuleLocations)
-    spanned.map(Macro.run) match {
+    val resolved = spanned.map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
         resolveMacros(mod2).asInstanceOf[AST.Module]
       case _ => throw ParsingFailed
     }
+    val withExpressionIda = fillExpressionIds(resolved)
+    withExpressionIda
   }
 
   /**
@@ -292,6 +294,73 @@ class Parser {
       case _ => ast.map(resolveMacros)
     }
 
+  /** All [[AST]] elements that are top-level expressions (i.e. can be nodes in
+    * IDE and are potentially worth of visualizing.
+    */
+  def fillExpressionIds(module: AST.Module): AST.Module = {
+    sealed trait Context
+    final case object Block extends Context
+    final case object Other extends Context
+
+    /** Goes over AST and for Assignments (either infix or section right) that
+      * are within [[AST.Block]] or [[AST.Module]] node, assigns IDs to the
+      * right hand side. Any other expression in the block gets ID on its root
+      * AST. All other nodes are returned as-is.
+      */
+    def go[T[_]](ast: AST.ASTOf[T], context: Context): AST.ASTOf[T] = {
+      ast match {
+        case AST.Block.any(block) => block.map(ast => go(ast, Block))
+        case AST.App.Infix.any(infix) if context == Block =>
+          val newShape = infix.shape.copy(
+            larg = go(infix.larg, Other),
+            opr  = go(infix.opr, Other),
+            rarg = go(infix.rarg, Other).withNewIDIfMissing()
+          )
+          infix.copy(shape = newShape)
+        case AST.App.Section.Right.any(right) if context == Block =>
+          val newShape = right.shape.copy(
+            arg = go(right.arg, Other),
+            opr = go(right.opr, Other)
+          )
+          right.copy(shape = newShape)
+        case otherAst if context == Block =>
+          go(otherAst, Other).withNewIDIfMissing()
+        case _ => ast.map(ast => go(ast, Other))
+      }
+    }
+
+    module.map(ast => go(ast, Block))
+  }
+//  def addMissingIds(ast: AST): AST = {
+//    sealed trait Scope
+//    object Scope {
+//      trait RequiringIds extends Scope
+//      object Module      extends RequiringIds
+//      object Block       extends RequiringIds
+//      object Other       extends Scope
+//    }
+//
+//    def introducedScope(ast: AST): Scope = ast match {
+//      case AST.Module.any(_) => Scope.Module
+//      case AST.Block.any(_)  => Scope.Block
+//      case _                 => Scope.Other
+//    }
+//
+//    def go(ast: AST, scope: Scope): AST = {
+//      val needsId = scope.isInstanceOf[Scope.RequiringIds]
+//      // TODO also check for other cases of AST requiring IDs -- basically all
+//      //  cases other than being a node, i.e. detect enterable definitions
+//
+//      val withFixedChildren = ast.map(child => go(child, introducedScope(ast)))
+//      if (needsId && withFixedChildren.id.isEmpty)
+//        withFixedChildren.withNewID()
+//      else
+//        withFixedChildren
+//    }
+//
+//    go(ast, Scope.Other)
+//  }
+
   /**
     * Automatically derives source location for an AST node, based on its
     * children's locations
@@ -380,98 +449,14 @@ object Main extends scala.App {
 
   val parser = new Parser()
 
-  val in_def_maybe =
-    """## Foo bar baz
-      |   bax
-      |def Maybe a
-      |    ## test
-      |    def Just val:a
-      |    def Nothing
-    """.stripMargin
-
-  val in_arr1 = "a = b -> c d"
-
-  val in3  = "(a) b = c"
-  val in4  = "if a then (b)"
-  val in2  = "(a) b = c]"
-  val inp2 = "a (b (c)) x"
-
   val inp =
-    """
-      |##
-      |  DEPRECATED
-      |  REMOVED - replaced by Foo Bar
-      |  ADDED
-      |  MODIFIED
-      |  UPCOMING
-      |  ALAMAKOTA a kot ma Ale
-      |  This is a test of Enso Documentation Parser. This is a short synopsis.
+    """foo = 2 + 2
       |
-      |  Here you can write the body of documentation. On top you can see tags
-      |  added to this piece of code. You can customise your text with _Italic_
-      |  ~Strikethrough~ or *Bold*. ~_*Combined*_~ is funny
-      |
-      |
-      |  There are 3 kinds of sections
-      |    - Important
-      |    - Info
-      |    - Example
-      |      * You can use example to add multiline code to your documentation
-      |
-      |  ! Important
-      |    Here is a small test of Important Section
-      |
-      |  ? Info
-      |    Here is a small test of Info Section
-      |
-      |  > Example
-      |    Here is a small test of Example Section
-      |        Import Foo
-      |        def Bar a
-      |type Maybe a
-      |    ## test attached to Just
-      |    type Just val:a
-      |    ##DEPRECATED
-      |      foo bar baz
-      |    type Nothing
-      |
-      |    ## The pow function calculates power of integers.
-      |    pow x y = x ** y
-      |""".stripMargin
-  val inC =
-    """
-      |## DEPRECATED
-      |  REMOVED - replaced by Foo Bar
-      |  ADDED
-      |  MODIFIED
-      |  UPCOMING
-      |  ALAMAKOTA a kot ma Ale
-      |  Optional values.
-      |
-      |   Type `Option` represents an optional value: every `Option` is either `Some`
-      |   and contains a value, or `None`, and does not. Option types are very common
-      |   in Enso code, as they have a number of uses:
-      |      - Initial values.
-      |      - Return values for functions that are not defined over their entire input range (partial functions).
-      |      - Return value for otherwise reporting simple errors, where `None` is returned on error.
-      |      - Optional struct fields.
-      |      - Optional function arguments.
-      |   `Option`s are commonly paired with pattern matching to query the presence of
-      |   a value and take action, always accounting for the None case.
-      |
-      |type Option a
-      |    ## The `Some` type indicates a presence of a value.
-      |    type Some a
-      |
-      |    ## The `None` type indicates a lack of a value.
-      |
-      |     It is a very common type and is used by such types as `Maybe` or `List`.
-      |     Also, `None` is the return value of functions which do not return an
-      |     explicit value.
-      |    type None
-      |
-      |    ## The pow function calculates power of integers.
-      |    pow x y = x ** y
+      |main = 
+      |    foo = x + 9
+      |	   = g
+      |    print "hello"
+      |	
       |""".stripMargin
 
   println("--- PARSING ---")
@@ -481,37 +466,7 @@ object Main extends scala.App {
   println(Debug.pretty(mod.toString))
 
   println("=========================")
-  println(Debug.pretty(parser.dropMacroMeta(mod).toString))
-  val rmod = parser.resolveMacros(mod)
-  if (mod != rmod) {
-    println("\n---\n")
-    println(Debug.pretty(rmod.toString))
-  }
-
-  println("------")
-  println(mod.show() == inC)
-  println("------")
   println(mod.show())
   println("------")
-
-  /** Invoking the Enso Documentation Parser */
-  println("===== DOCUMENTATION =====")
-  val droppedMeta   = parser.dropMacroMeta(mod)
-  val documentation = DocParserRunner.createDocs(droppedMeta)
-  val htmlPath      = "target/"
-  val cssFileName   = "style.css"
-
-  println(Debug.pretty(documentation.toString))
-  println("------")
-  println(documentation.show())
-  println("=========================")
-  DocParserHTMLGenerator.generateHTMLForEveryDocumented(
-    documentation,
-    htmlPath,
-    cssFileName
-  )
-  println()
-
-  AST.main()
 
 }

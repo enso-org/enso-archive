@@ -1361,7 +1361,11 @@ object AST {
     override def hashCode(): Int = shape.hashCode()
 
     def setID(newID: ID): ASTOf[T] = copy(id = Some(newID))
-    def withNewID(): ASTOf[T]      = copy(id = Some(UUID.randomUUID()))
+    def withNewID():      ASTOf[T] = copy(id = Some(UUID.randomUUID()))
+    def withNewIDIfMissing(): ASTOf[T] = id match {
+      case Some(id) => this
+      case None     => this.withNewID()
+    }
     def setLocation(newLocation: Option[Location]): ASTOf[T] =
       copy(location = newLocation)
     def setLocation(newLocation: Location): ASTOf[T] =
