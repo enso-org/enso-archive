@@ -1757,6 +1757,8 @@ the language server. This is incredibly important for enabling the high levels
 of interactivity required by Enso Studio.
 
 #### Types
+The execution management API exposes a set of common types used by many of its 
+messages.
 
 ##### `ExpressionId`
 An identifier used for Enso expressions.
