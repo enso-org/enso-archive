@@ -169,6 +169,44 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     to.resolve(path.getFileName).toFile.isFile shouldBe true
   }
 
+  it should "copy a file to existing directory" in new TestCtx {
+    //given
+    val from = Paths.get(testDirPath.toString, "copy_dir", "a.txt")
+    val resultCreateFile =
+      objectUnderTest.createFile(from.toFile).unsafeRunSync()
+    resultCreateFile shouldBe Right(())
+    val to = Paths.get(testDirPath.toString, "copy_dir", "to")
+    val resultCreateDirectory =
+      objectUnderTest.createDirectory(to.toFile).unsafeRunSync()
+    resultCreateDirectory shouldBe Right(())
+    to.toFile.isDirectory shouldBe true
+    //when
+    val result = objectUnderTest.copy(from.toFile, to.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(())
+    from.toFile.isFile shouldBe true
+    to.resolve(from.getFileName).toFile.isFile shouldBe true
+  }
+
+  it should "return FileExists error when copying directory to existing file" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "copy_dir", "a.txt")
+    val resultCreateFile =
+      objectUnderTest.createFile(path.toFile).unsafeRunSync()
+    resultCreateFile shouldBe Right(())
+    val from = path.getParent()
+    val to   = Paths.get(testDirPath.toString, "copy_to", "b.txt")
+    val resultCreateDirectory =
+      objectUnderTest.createFile(to.toFile).unsafeRunSync()
+    resultCreateDirectory shouldBe Right(())
+    //when
+    val result = objectUnderTest.copy(from.toFile, to.toFile).unsafeRunSync()
+    //then
+    result shouldBe Left(FileExists)
+    path.toFile.isFile shouldBe true
+    to.toFile.isFile shouldBe true
+  }
+
   it should "return FileNotFound when copy nonexistent file" in new TestCtx {
     //given
     val path = Paths.get(testDirPath.toString, "copy_nonexistent", "a.txt")

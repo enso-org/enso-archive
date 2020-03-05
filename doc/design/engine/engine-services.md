@@ -1200,6 +1200,7 @@ null
 - [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
+- [`FileExists`](#fileexists) informs that file already exists
 
 #### `file/copy`
 This request asks the file manager to copy a specified filesystem object to
@@ -1741,5 +1742,15 @@ It signals that requested file doesn't exist.
 "error" : {
   "code" : 1003,
   "message" : "File not found"
+}
+```
+
+##### `FileExists`
+It signals that file already exists.
+
+```typescript
+"error" : {
+  "code" : 1004,
+  "message" : "File already exists"
 }
 ```

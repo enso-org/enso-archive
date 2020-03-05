@@ -126,15 +126,21 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
     to: File
   ): F[Either[FileSystemFailure, Unit]] =
     Sync[F].delay {
-      Either
-        .catchOnly[IOException] {
-          if (from.isDirectory) {
-            FileUtils.copyDirectory(from, to)
-          } else {
-            FileUtils.copyFile(from, to)
+      if (from.isDirectory && to.isFile) {
+        Left(FileExists)
+      } else {
+        Either
+          .catchOnly[IOException] {
+            if (from.isFile && to.isDirectory) {
+              FileUtils.copyFileToDirectory(from, to)
+            } else if (from.isDirectory) {
+              FileUtils.copyDirectory(from, to)
+            } else {
+              FileUtils.copyFile(from, to)
+            }
           }
-        }
-        .leftMap(errorHandling)
+          .leftMap(errorHandling)
+      }
     }
 
   private val errorHandling: IOException => FileSystemFailure = {
