@@ -1751,6 +1751,10 @@ null
 TBC
 
 ### Execution Management
+The execution management portion of the language server API deals with exposing
+fine-grained control over program and expression execution to the clients of
+the language server. This is incredibly important for enabling the high levels
+of interactivity required by Enso Studio.
 
 #### Types
 
@@ -2008,4 +2012,3 @@ It signals that requested file doesn't exist.
   "message" : "Stack item not found."
 }
 ```
-
