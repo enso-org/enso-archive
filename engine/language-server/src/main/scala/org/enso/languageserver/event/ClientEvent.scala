@@ -2,6 +2,9 @@ package org.enso.languageserver.event
 
 import org.enso.languageserver.data.Client
 
+/**
+  * Base trait for all client events.
+  */
 sealed trait ClientEvent extends Event
 
 /**

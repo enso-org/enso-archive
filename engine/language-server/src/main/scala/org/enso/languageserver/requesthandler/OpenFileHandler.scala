@@ -19,6 +19,13 @@ import org.enso.languageserver.text.TextProtocol.{
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `text/openFile` commands.
+  *
+  * @param bufferRegistry a router that dispatches text editing requests
+  * @param timeout a request timeout
+  * @param client an object representing a client connected to the language server
+  */
 class OpenFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
@@ -64,6 +71,14 @@ class OpenFileHandler(
 
 object OpenFileHandler {
 
+  /**
+    * Creates a configuration object used to create a [[OpenFileHandler]]
+    *
+    * @param bufferRegistry a router that dispatches text editing requests
+    * @param requestTimeout a request timeout
+    * @param client an object representing a client connected to the language server
+    * @return a configuration object
+    */
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,

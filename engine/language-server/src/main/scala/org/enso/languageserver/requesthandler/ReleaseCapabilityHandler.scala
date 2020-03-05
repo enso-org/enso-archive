@@ -13,6 +13,13 @@ import org.enso.languageserver.jsonrpc._
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `capability/release` commands.
+  *
+  * @param capabilityRouter a router that dispatches capability requests
+  * @param timeout a request timeout
+  * @param client an object representing a client connected to the language server
+  */
 class ReleaseCapabilityHandler(
   capabilityRouter: ActorRef,
   timeout: FiniteDuration,
@@ -48,6 +55,14 @@ class ReleaseCapabilityHandler(
 
 object ReleaseCapabilityHandler {
 
+  /**
+    * Creates a configuration object used to create a [[ReleaseCapabilityHandler]]
+    *
+    * @param capabilityRouter a router that dispatches capability requests
+    * @param requestTimeout a request timeout
+    * @param client an object representing a client connected to the language server
+    * @return a configuration object
+    */
   def props(
     capabilityRouter: ActorRef,
     requestTimeout: FiniteDuration,

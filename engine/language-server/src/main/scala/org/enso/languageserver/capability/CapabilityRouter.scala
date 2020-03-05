@@ -7,6 +7,12 @@ import org.enso.languageserver.LanguageProtocol.{
 }
 import org.enso.languageserver.data.{CanEdit, CapabilityRegistration}
 
+/**
+  * A content based router that routes each capability request to the
+  * correct recipient based on the capability object.
+  *
+  * @param bufferRegistry the recipient of buffer capability requests
+  */
 class CapabilityRouter(bufferRegistry: ActorRef) extends Actor {
 
   override def receive: Receive = {
@@ -21,6 +27,12 @@ class CapabilityRouter(bufferRegistry: ActorRef) extends Actor {
 
 object CapabilityRouter {
 
+  /**
+    * Creates a configuration object used to create a [[CapabilityRouter]]
+    *
+    * @param bufferRegistry a buffer registry ref
+    * @return a configuration object
+    */
   def props(bufferRegistry: ActorRef): Props =
     Props(new CapabilityRouter(bufferRegistry))
 

@@ -18,7 +18,7 @@ object Buffer {
     * Creates a new buffer with a freshly generated version.
     *
     * @param contents the contents of this buffer.
-    * @param idGenerator a random generator for version initialization.
+    * @param digest a digest calculator for content based versioning.
     * @return a new buffer instance.
     */
   def apply(contents: Rope)(implicit digest: ContentDigest): Buffer =
@@ -28,7 +28,7 @@ object Buffer {
     * Creates a new buffer with a freshly generated version.
     *
     * @param contents the contents of this buffer.
-    * @param idGenerator a random generator for version initialization.
+    * @param digest a digest calculator for content based versioning.
     * @return a new buffer instance.
     */
   def apply(contents: String)(implicit digest: ContentDigest): Buffer =

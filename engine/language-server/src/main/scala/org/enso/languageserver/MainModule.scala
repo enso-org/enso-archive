@@ -10,6 +10,11 @@ import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.data.{Config, ContentDigest, Sha3Digest}
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
 
+/**
+  * A main module containing all components of th server.
+  *
+  * @param serverConfig a server config
+  */
 class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServerConfig = Config(

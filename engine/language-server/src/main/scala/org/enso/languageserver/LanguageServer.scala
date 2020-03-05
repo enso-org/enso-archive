@@ -27,8 +27,19 @@ object LanguageProtocol {
     registration: CapabilityRegistration
   )
 
+  /**
+    * Signals capability acquisition status.
+    */
   sealed trait AcquireCapabilityResponse
-  case object CapabilityAcquired              extends AcquireCapabilityResponse
+
+  /**
+    * Confirms client that capability has been acquired.
+    */
+  case object CapabilityAcquired extends AcquireCapabilityResponse
+
+  /**
+    * Signals that capability acquisition request cannot be processed.
+    */
   case object CapabilityAcquisitionBadRequest extends AcquireCapabilityResponse
 
   /**
@@ -42,8 +53,19 @@ object LanguageProtocol {
     capability: CapabilityRegistration
   )
 
+  /**
+    * Signals capability release status.
+    */
   sealed trait ReleaseCapabilityResponse
-  case object CapabilityReleased          extends ReleaseCapabilityResponse
+
+  /**
+    * Confirms client that capability has been released.
+    */
+  case object CapabilityReleased extends ReleaseCapabilityResponse
+
+  /**
+    * Signals that capability release request cannot be processed.
+    */
   case object CapabilityReleaseBadRequest extends ReleaseCapabilityResponse
 
   /**

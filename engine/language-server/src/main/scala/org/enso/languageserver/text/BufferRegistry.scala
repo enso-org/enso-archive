@@ -15,6 +15,13 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.filemanager.Path
 
+/**
+  * An actor that routes request regarding text editing to the right buffer.
+  * It creates a buffer actor, if a buffer doesn't exists.
+  *
+  * @param fileManager a file manager
+  * @param contentDigest a content based version calculator
+  */
 class BufferRegistry(fileManager: ActorRef)(
   implicit contentDigest: ContentDigest
 ) extends Actor {
@@ -55,6 +62,13 @@ class BufferRegistry(fileManager: ActorRef)(
 
 object BufferRegistry {
 
+  /**
+    * Creates a configuration object used to create a [[BufferRegistry]]
+    *
+    * @param fileManager a file manager actor
+    * @param contentDigest a content based version calculator
+    * @return a configuration object
+    */
   def props(
     fileManager: ActorRef
   )(implicit contentDigest: ContentDigest): Props =

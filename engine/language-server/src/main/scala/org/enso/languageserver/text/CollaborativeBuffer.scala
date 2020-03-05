@@ -30,6 +30,13 @@ import org.enso.languageserver.text.TextProtocol.{
 import scala.concurrent.duration._
 import scala.language.postfixOps
 
+/**
+  * An actor enabling multiple users edit collaboratively a file.
+  *
+  * @param bufferPath a path to a file
+  * @param fileManager a file manger actor
+  * @param contentDigest a content based version calculator
+  */
 class CollaborativeBuffer(bufferPath: Path, fileManager: ActorRef)(
   implicit contentDigest: ContentDigest
 ) extends Actor
@@ -180,6 +187,14 @@ object CollaborativeBuffer {
 
   case object FileReadingTimeout
 
+  /**
+    * Creates a configuration object used to create a [[CollaborativeBuffer]]
+    *
+    * @param bufferPath a path to a file
+    * @param fileManager a file manager actor
+    * @param contentDigest a content based version calculator
+    * @return a configuration object
+    */
   def props(
     bufferPath: Path,
     fileManager: ActorRef

@@ -4,6 +4,11 @@ import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.jsonrpc.{HasParams, HasResult, Method}
 
+/**
+  * The text editing JSON RPC API provided by the language server.
+  * See [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
+  * for message specifications.
+  */
 object TextApi {
 
   case object OpenFile extends Method("text/openFile") {

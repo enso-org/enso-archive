@@ -13,6 +13,13 @@ import org.enso.languageserver.jsonrpc._
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `capability/acquire` commands.
+  *
+  * @param capabilityRouter a router that dispatches capability requests
+  * @param timeout a request timeout
+  * @param client an object representing a client connected to the language server
+  */
 class AcquireCapabilityHandler(
   capabilityRouter: ActorRef,
   timeout: FiniteDuration,
@@ -53,6 +60,14 @@ class AcquireCapabilityHandler(
 
 object AcquireCapabilityHandler {
 
+  /**
+    * Creates a configuration object used to create a [[AcquireCapabilityHandler]]
+    *
+    * @param capabilityRouter a router that dispatches capability requests
+    * @param requestTimeout a request timeout
+    * @param client an object representing a client connected to the language server
+    * @return a configuration object
+    */
   def props(
     capabilityRouter: ActorRef,
     requestTimeout: FiniteDuration,
