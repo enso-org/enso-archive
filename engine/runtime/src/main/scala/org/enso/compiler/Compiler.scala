@@ -9,6 +9,7 @@ import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.optimise.KnownFullySaturatedFunctions
 import org.enso.flexer.Reader
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -32,7 +33,8 @@ class Compiler(
   /** A list of the compiler phases, in the order they should be run. */
   val compilerPhaseOrdering: List[IRPass] = List(
     LiftSpecialOperators(),
-    OperatorToFunction()
+    OperatorToFunction(),
+    KnownFullySaturatedFunctions(KnownFullySaturatedFunctions.Default.Config)
   )
 
   /**

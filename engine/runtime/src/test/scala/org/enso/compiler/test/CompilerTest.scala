@@ -2,23 +2,51 @@ package org.enso.compiler.test
 
 import org.enso.compiler.codegen.AstToIR
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.IRPass
 import org.enso.flexer.Reader
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
+trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner
 trait CompilerRunner {
+
+  // === IR Utilities =========================================================
+
+  /** Converts program text to IR.
+    *
+    * @param source the source code
+    * @return the [[IR]] representing `source`
+    */
   def toIR(source: String): IR = {
     val parser: Parser = Parser()
     val unresolvedAST: AST.Module =
       parser.run(new Reader(source))
     val resolvedAST: AST.Module = parser.dropMacroMeta(unresolvedAST)
 
-    AstToIR.translate(resolvedAST)
-  }
-}
+    val mExpr = AstToIR.translateInline(resolvedAST)
 
-trait CompilerTest extends AnyWordSpecLike with Matchers with CompilerRunner {
+    mExpr match {
+      case Some(expr) => expr
+      case None       => AstToIR.translate(resolvedAST)
+    }
+  }
+
+  /** Executes the specified list of passes in order on the provided [[IR]].
+   *
+   * @param ir the ir to run the passes on
+   * @param passes the passes to run
+   * @return the result of executing `passes` in sequence on `ir`
+   */
+  def runPasses(ir: IR, passes: List[IRPass]): IR = ir match {
+    case expr: IR.Expression =>
+      passes.foldLeft(expr)(
+        (intermediate, pass) => pass.runExpression(intermediate)
+      )
+    case mod: IR.Module =>
+      passes.foldLeft(mod)((intermediate, pass) => pass.runModule(intermediate))
+    case _ => throw new RuntimeException(s"Cannot run passes on $ir.")
+  }
 
   // === IR Testing Utils =====================================================
 

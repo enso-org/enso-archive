@@ -120,6 +120,7 @@ object IR {
       * module scope
       */
     sealed trait Scope extends IR {
+      override def addMetadata(newData: Metadata): Scope
       override def mapExpressions(fn: Expression => Expression): Scope
     }
     object Scope {
@@ -145,6 +146,7 @@ object IR {
 
       /** A representation of top-level definitions. */
       sealed trait Definition extends Scope {
+        override def addMetadata(newData: Metadata): Definition
         override def mapExpressions(fn: Expression => Expression): Definition
       }
       object Definition {
@@ -222,6 +224,7 @@ object IR {
     }
 
     override def mapExpressions(fn: Expression => Expression): Expression
+    override def addMetadata(newData: Metadata): Expression
   }
   object Expression {
 
@@ -238,7 +241,7 @@ object IR {
       expressions: List[Expression],
       returnValue: Expression,
       override val location: Option[Location],
-      suspended: Boolean                   = false,
+      suspended: Boolean                    = false,
       override val passData: ISet[Metadata] = ISet()
     ) extends Expression
         with IRKind.Primitive {
@@ -699,7 +702,7 @@ object IR {
       override val arguments: List[DefinitionArgument],
       override val body: Expression,
       override val location: Option[Location],
-      override val canBeTCO: Boolean       = true,
+      override val canBeTCO: Boolean        = true,
       override val passData: ISet[Metadata] = ISet()
     ) extends Function
         with IRKind.Primitive {
@@ -759,6 +762,13 @@ object IR {
     override def mapExpressions(fn: Expression => Expression): Application
   }
   object Application {
+
+    sealed trait Saturation
+    object Saturation {
+      sealed case class Full()              extends Saturation
+      sealed case class Partial(count: Int) extends Saturation
+      sealed case class Unknown()           extends Saturation
+    }
 
     /** A standard prefix function application.
       *
@@ -928,7 +938,7 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Case
         with IRKind.Primitive {
-      override def addMetadata(newData: Metadata): IR = {
+      override def addMetadata(newData: Metadata): Branch = {
         copy(passData = this.passData + newData)
       }
 
@@ -1101,6 +1111,11 @@ object IR {
       * constructs as soon as possible.
       */
     sealed trait Sugar extends IRKind
+
+    /** This trait encodes that a given piece of [[IR]] is used to represent an
+      * optimisation on the IR in Enso.
+      */
+    sealed trait Optimisation extends IRKind
   }
 
   // ==========================================================================
