@@ -35,9 +35,14 @@ import scala.language.postfixOps
   *
   * @param bufferPath a path to a file
   * @param fileManager a file manger actor
+  * @param timeout a request timeout
   * @param contentDigest a content based version calculator
   */
-class CollaborativeBuffer(bufferPath: Path, fileManager: ActorRef)(
+class CollaborativeBuffer(
+  bufferPath: Path,
+  fileManager: ActorRef,
+  timeout: FiniteDuration
+)(
   implicit contentDigest: ContentDigest
 ) extends Actor
     with Stash
@@ -56,7 +61,7 @@ class CollaborativeBuffer(bufferPath: Path, fileManager: ActorRef)(
       context.system.eventStream.publish(BufferCreated(path))
       fileManager ! FileManagerProtocol.ReadFile(path)
       context.system.scheduler
-        .scheduleOnce(10 seconds, self, FileReadingTimeout)
+        .scheduleOnce(timeout, self, FileReadingTimeout)
       context.become(reading(client, sender()))
       log.info(s"Buffer $path opened for ${client.id}")
   }
@@ -88,15 +93,7 @@ class CollaborativeBuffer(bufferPath: Path, fileManager: ActorRef)(
     maybeWriteLock: Option[Client]
   ): Receive = {
     case OpenFile(client, _) =>
-      val writeCapability =
-        if (maybeWriteLock.isEmpty)
-          Some(CapabilityRegistration(CanEdit(bufferPath)))
-        else
-          None
-      sender ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
-      context.become(
-        editing(buffer, clients + (client.id -> client), maybeWriteLock)
-      )
+      openFile(buffer, clients, maybeWriteLock, client)
 
     case AcquireCapability(clientId, CapabilityRegistration(CanEdit(path))) =>
       acquireWriteLock(buffer, clients, maybeWriteLock, clientId, path)
@@ -109,6 +106,23 @@ class CollaborativeBuffer(bufferPath: Path, fileManager: ActorRef)(
         removeClient(buffer, clients, maybeWriteLock, clientId)
       }
 
+  }
+
+  private def openFile(
+    buffer: Buffer,
+    clients: Map[Id, Client],
+    maybeWriteLock: Option[Client],
+    client: Client
+  ): Unit = {
+    val writeCapability =
+      if (maybeWriteLock.isEmpty)
+        Some(CapabilityRegistration(CanEdit(bufferPath)))
+      else
+        None
+    sender ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
+    context.become(
+      editing(buffer, clients + (client.id -> client), maybeWriteLock)
+    )
   }
 
   private def removeClient(
@@ -192,13 +206,15 @@ object CollaborativeBuffer {
     *
     * @param bufferPath a path to a file
     * @param fileManager a file manager actor
+    * @param timeout a request timeout
     * @param contentDigest a content based version calculator
     * @return a configuration object
     */
   def props(
     bufferPath: Path,
-    fileManager: ActorRef
+    fileManager: ActorRef,
+    timeout: FiniteDuration = 10 seconds
   )(implicit contentDigest: ContentDigest): Props =
-    Props(new CollaborativeBuffer(bufferPath, fileManager))
+    Props(new CollaborativeBuffer(bufferPath, fileManager, timeout))
 
 }
