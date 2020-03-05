@@ -1083,12 +1083,25 @@ This capability states that the capability has the ability to perform both
 - **method:** `text/canEdit`
 - **registerOptions:** `{path: Path;}`
 
+##### Enables
+- `text/applyEdit`
+- `text/save`
+
+##### Disables
+None
+
 #### `file/receivesTreeUpdates`
 This capability states that the client will receive updates for any watched
 content roots in the current project.
 
 - **method:** `file/receivesTreeUpdates`
 - **registerOptions:** `{}`
+
+##### Enables
+- `file/event`
+
+##### Disables
+None
 
 #### `executionContext/canModify`
 This capability states that the client has the ability to modify an execution
@@ -1098,12 +1111,27 @@ destroying the context.
 - **method:** `executionContext/canModify`
 - **registerOptions:** `{  contextId: ContextId; }`
 
+##### Enables
+- `executionContext/destroy`
+- `executionContext/recompute`
+- `executionContext/push`
+- `executionContext/pop`
+
+##### Disables
+None
+
 #### `executionContext/receiveUpdates`
 This capability states that the client receives expression value updates from
 a given execution context.
 
 - **method:** `executionContext/receiveUpdates`
 - **registerOptions:** `{  contextId: ContextId; }`
+
+##### Enables
+- `executionContext/expressionValuesComputed`
+
+##### Disables
+None
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
@@ -1826,7 +1854,8 @@ null
 ```
 
 ##### Errors
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the `executionContext/canModify` capability for this context.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
 
 #### `executionContext/fork`
 Sent from the client to the server to duplicate an execution context, creating
@@ -1869,8 +1898,10 @@ null
 ```
 
 ##### Errors
-- [`StackItemNotFoundError`](#stackitemnotfounderror) when the request stack item could not be found.
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the `executionContext/canModify` capability for this context.
+- [`StackItemNotFoundError`](#stackitemnotfounderror) when the request stack
+  item could not be found.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
 
 
 #### `executionContext/pop`
@@ -1890,7 +1921,8 @@ null
 ```
 
 ##### Errors
-- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the `executionContext/canModify` capability for this context.
+- [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
+  `executionContext/canModify` capability for this context.
 
 #### `executionContext/recompute`
 Sent from the client to the server to force recomputation of current position.
