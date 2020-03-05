@@ -1771,7 +1771,7 @@ type ContextId = UUID;
 ##### `StackItem`
 A representation of an executable position in code, used by the execution APIs.
 
-`MethodCall` is a call performed at the top of the stack, to initialize the
+`ExplicitCall` is a call performed at the top of the stack, to initialize the
 context with first execution.
 The `thisArgumentsPosition` field can be omitted, in which case the context
 will try to infer the argument on a best-effort basis. E.g. for a module-level
