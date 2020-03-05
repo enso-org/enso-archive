@@ -1165,8 +1165,8 @@ null
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error. 
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found. 
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
 - [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
 
 #### `file/read`
@@ -1197,8 +1197,8 @@ return the contents from the in-memory buffer rather than the file on disk.
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error. 
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found. 
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
 - [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
 - [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
@@ -1226,8 +1226,8 @@ null
 
 ##### Errors
 
-- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error. 
-- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found. 
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
 - [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
 
 #### `file/delete`
@@ -1251,7 +1251,9 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
 
 #### `file/copy`
 This request asks the file manager to copy a specified filesystem object to
