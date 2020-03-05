@@ -995,7 +995,6 @@ client.
 }
 
 interface CapabilityRegistration {
-  id: UUID; // The registration ID
   method: String;
   registerOptions?: any;
 }
@@ -1024,7 +1023,7 @@ capability.
 
 ```typescript
 {
-  id: UUID; // The ID used to register the capability
+  registration: CapabilityRegistration;
 }
 ```
 
@@ -1066,7 +1065,7 @@ capability set.
 
 ```typescript
 {
-  id: UUID; // The ID used to register the capability
+  registration: CapabilityRegistration;
 }
 ```
 
@@ -2019,6 +2018,16 @@ It signals that file already exists.
 "error" : {
   "code" : 1004,
   "message" : "File already exists"
+}
+```
+
+##### `OperationTimeoutError`
+It signals that IO operation timed out.
+
+```typescript
+"error" : {
+  "code" : 1005,
+  "message" : "IO operation timeout"
 }
 ```
 
