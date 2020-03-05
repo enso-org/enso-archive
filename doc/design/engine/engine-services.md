@@ -1335,7 +1335,7 @@ at the specified path.
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
 
 #### `file/tree`
 This request asks the file manager component to generate and provide the
