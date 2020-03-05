@@ -355,9 +355,9 @@ lazy val project_manager = (project in file("common/project-manager"))
 //////////////////////
 
 val truffleRunOptions = Seq(
-  "-Dgraal.TruffleIterativePartialEscape=true",
+  "-Dpolyglot.engine.IterativePartialEscape=true",
   "-XX:-UseJVMCIClassLoader",
-  "-Dgraal.TruffleBackgroundCompilation=false",
+  "-Dpolyglot.engine.BackgroundCompilation=false",
   "-Dgraalvm.locatorDisabled=true"
 )
 
@@ -553,6 +553,7 @@ lazy val runner = project
           )
         )
       ),
+    commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
