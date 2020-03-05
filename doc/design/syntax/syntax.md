@@ -46,7 +46,7 @@ dependently-typed world, they are just values.
   - [Code Blocks](#code-blocks)
   - [Operators](#operators)
   - [Mixfix Functions](#mixfix-functions)
-- [Function Argumens](#function-argumens)
+- [Function Arguments](#function-arguments)
   - [Positional Arguments](#positional-arguments)
   - [Named Arguments](#named-arguments)
   - [Defaulted Arguments](#defaulted-arguments)
@@ -821,7 +821,7 @@ if foo == bar then frob else
     thing2
 ```
 
-## Function Argumens
+## Function Arguments
 One of the biggest usability innovations of Enso is the set of argument types
 that it supports. The combination of named and defaulted arguments with a
 curried language creates a tool in which it is very clear to express even
