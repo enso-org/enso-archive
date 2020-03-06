@@ -67,6 +67,9 @@ class OpenFileHandler(
       context.stop(self)
   }
 
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
+
 }
 
 object OpenFileHandler {

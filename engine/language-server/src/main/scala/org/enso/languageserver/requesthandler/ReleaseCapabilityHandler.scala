@@ -51,6 +51,9 @@ class ReleaseCapabilityHandler(
       context.stop(self)
   }
 
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
+
 }
 
 object ReleaseCapabilityHandler {
