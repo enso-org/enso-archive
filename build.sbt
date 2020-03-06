@@ -546,8 +546,18 @@ lazy val runner = project
     test in assembly := {},
     assemblyOutputPath in assembly := file("enso.jar"),
     assemblyMergeStrategy in assembly := {
-      case PathList("META-INF", xs @ _*) => MergeStrategy.discard
-      case x                             => MergeStrategy.first
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case "application.conf" =>
+        MergeStrategy.concat
+      case "reference.conf" =>
+        MergeStrategy.concat
+      case x =>
+        MergeStrategy.first
     },
     assemblyOption in assembly := (assemblyOption in assembly).value
       .copy(
