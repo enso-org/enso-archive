@@ -927,8 +927,8 @@ A representation of a batch of edits to a file, versioned.
 interface FileEdit {
   path: Path;
   edits: [TextEdit];
-  oldVersion: UUID;
-  newVersion: UUID;
+  oldVersion: SHA3-224;
+  newVersion: SHA3-224;
 }
 ```
 
@@ -1566,7 +1566,7 @@ the client that sent the `text/openFile` message.
 {
   writeCapability?: CapabilityRegistration;
   content: String;
-  currentVersion: UUID;
+  currentVersion: SHA3-224;
 }
 ```
 
@@ -1611,7 +1611,7 @@ that file, or if the client is requesting a save of an outdated version.
 ```typescript
 {
   path: Path;
-  currentVersion: UUID;
+  currentVersion: SHA3-224;
 }
 ```
 
