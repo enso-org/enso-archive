@@ -3,7 +3,12 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Metadata
 import org.enso.compiler.pass.analyse.ApplicationSaturation
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, FunctionSpec, PassConfiguration}
+import org.enso.compiler.pass.analyse.ApplicationSaturation.{
+  CallSaturation,
+  FunctionSpec,
+  PassConfiguration
+}
+import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.argument.CallArgument
@@ -148,7 +153,7 @@ class ApplicationSaturationTest extends CompilerTest {
     )
 
     implicit class InnerMeta(ir: IR.Expression) {
-      def getInnerMetadata[T <: Metadata : ClassTag]: Option[T] = {
+      def getInnerMetadata[T <: Metadata: ClassTag]: Option[T] = {
         ir.asInstanceOf[IR.Application.Prefix]
           .arguments
           .head
@@ -229,7 +234,37 @@ class ApplicationSaturationTest extends CompilerTest {
   }
 
   "Shadowed known functions" should {
-    "not be tagged as if they are known" in {}
+    val passes = List(
+      LiftSpecialOperators(),
+      OperatorToFunction()
+    )
+
+    val rawIR = toIR("""
+                       |main =
+                       |  foo = x y z -> x + y + z
+                       |
+                       |  foo a b c
+                       |""".stripMargin)
+
+    val inputIR = runPasses(rawIR, passes).asInstanceOf[IR.Expression]
+
+    val result = ApplicationSaturation(knownFunctions)
+      .runExpression(inputIR)
+      .asInstanceOf[IR.Expression.Binding]
+
+    "be tagged as unknown even if their name is known" in {
+      // Needs alias analysis to work
+      pending
+
+      result.expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .getMetadata[CallSaturation]
+        .foreach {
+          case _: CallSaturation.Unknown => succeed
+          case _                         => fail
+        }
+    }
   }
 
 }
