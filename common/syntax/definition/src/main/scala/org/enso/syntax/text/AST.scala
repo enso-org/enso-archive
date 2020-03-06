@@ -1381,7 +1381,7 @@ object AST {
     override def equals(rhs: Any): Boolean = {
       rhs match {
         case rhs: ASTOf[_] =>
-          this.shape == rhs.shape && this.id == rhs.id
+          this.shape == rhs.shape
         case _ => false
       }
     }

@@ -2,7 +2,7 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import cats.Foldable
+import cats.{Foldable, Functor}
 import org.enso.data.List1
 import org.enso.data.Span
 import org.enso.flexer
@@ -12,6 +12,7 @@ import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST.Macro.Match.SegmentOps
 import org.enso.syntax.text.AST.App
 import org.enso.syntax.text.ast.meta.Builtin
+import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
@@ -299,7 +300,11 @@ class Parser {
     */
   def fillExpressionIds(module: AST.Module): AST.Module = {
     sealed trait Context
+
+    /** A module block or nested block (e.g. method body). */
     final case object Block extends Context
+
+    /** Any non-block context */
     final case object Other extends Context
 
     /** Goes over AST and for Assignments (either infix or section right) that
@@ -307,59 +312,47 @@ class Parser {
       * right hand side. Any other expression in the block gets ID on its root
       * AST. All other nodes are returned as-is.
       */
-    def go[T[_]](ast: AST.ASTOf[T], context: Context): AST.ASTOf[T] = {
-      ast match {
-        case AST.Block.any(block) => block.map(ast => go(ast, Block))
-        case AST.App.Infix.any(infix) if context == Block =>
-          val newShape = infix.shape.copy(
-            larg = go(infix.larg, Other),
-            opr  = go(infix.opr, Other),
-            rarg = go(infix.rarg, Other).withNewIDIfMissing()
-          )
-          infix.copy(shape = newShape)
-        case AST.App.Section.Right.any(right) if context == Block =>
-          val newShape = right.shape.copy(
-            arg = go(right.arg, Other),
-            opr = go(right.opr, Other)
-          )
-          right.copy(shape = newShape)
-        case otherAst if context == Block =>
-          go(otherAst, Other).withNewIDIfMissing()
-        case _ => ast.map(ast => go(ast, Other))
-      }
+    implicit class Processor[T[S] <: Shape[S]](ast: AST.ASTOf[T])(
+      implicit
+      functor: Functor[T],
+      fold: Foldable[T],
+      repr: Repr[T[AST]],
+      ozip: OffsetZip[T, AST]
+    ) {
+      def process(context: Context): AST.ASTOf[T] = {
+        ast match {
+          case AST.Module.any(block) => block.map(_.process(Block))
+          case AST.Block.any(block)  => block.map(_.process(Block))
+          case AST.App.Infix.any(infix) if context == Block =>
+            val newShape = infix.shape.copy(
+              larg = infix.larg.process(Other),
+              opr  = infix.opr.process(Other),
+              rarg = infix.rarg.process(Other).withNewIDIfMissing()
+            )
+            infix.copy(shape = newShape)
+          case AST.App.Section.Right.any(right) if context == Block =>
+            val newShape = right.shape.copy(
+              arg = right.arg.process(Other),
+              opr = right.opr.process(Other)
+            )
+            right.copy(shape = newShape)
+          case otherAst if context == Block =>
+            otherAst.process(Other).withNewIDIfMissing()
+          case _ => ast.map(_.process(Other))
+        }
+      }.asInstanceOf[AST.ASTOf[T]] // Note: [Type safety]
     }
-
-    module.map(ast => go(ast, Block))
+    module.process(Other)
   }
-//  def addMissingIds(ast: AST): AST = {
-//    sealed trait Scope
-//    object Scope {
-//      trait RequiringIds extends Scope
-//      object Module      extends RequiringIds
-//      object Block       extends RequiringIds
-//      object Other       extends Scope
-//    }
-//
-//    def introducedScope(ast: AST): Scope = ast match {
-//      case AST.Module.any(_) => Scope.Module
-//      case AST.Block.any(_)  => Scope.Block
-//      case _                 => Scope.Other
-//    }
-//
-//    def go(ast: AST, scope: Scope): AST = {
-//      val needsId = scope.isInstanceOf[Scope.RequiringIds]
-//      // TODO also check for other cases of AST requiring IDs -- basically all
-//      //  cases other than being a node, i.e. detect enterable definitions
-//
-//      val withFixedChildren = ast.map(child => go(child, introducedScope(ast)))
-//      if (needsId && withFixedChildren.id.isEmpty)
-//        withFixedChildren.withNewID()
-//      else
-//        withFixedChildren
-//    }
-//
-//    go(ast, Scope.Other)
-//  }
+
+  /* Note: [Type safety]
+   * ~~~~~~~~~~~~~~~~~~~
+   * This function promises to return AST with the same shape as it
+   * received, however compiler cannot verify this due to type erasure.
+   *
+   * As we are only using copy/map function and never change shape to use
+   * different variants, we can say it is safe and coerce the types.
+   */
 
   /**
     * Automatically derives source location for an AST node, based on its
@@ -456,7 +449,6 @@ object Main extends scala.App {
       |    foo = x + 9
       |	   = g
       |    print "hello"
-      |	
       |""".stripMargin
 
   println("--- PARSING ---")
