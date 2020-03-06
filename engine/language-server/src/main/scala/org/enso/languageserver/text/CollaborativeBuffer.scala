@@ -100,7 +100,7 @@ class CollaborativeBuffer(
     case CloseFile(clientId, _) =>
       if (clients.contains(clientId)) {
         removeClient(buffer, clients, lockHolder, clientId)
-        sender() ! TextProtocol.FileClosed
+        sender() ! FileClosed
       } else {
         sender() ! ClientDidNotOpenFile
       }
