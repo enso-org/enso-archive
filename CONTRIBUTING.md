@@ -23,7 +23,7 @@ As part of your first contribution to this repository, you need to accept the
 Contributor License Agreement. You will automatically be asked to sign the CLA
 when you make your first pull request.
 
-Any work intentionally submitted for inclusion in Luna shall be licensed under
+Any work intentionally submitted for inclusion in Enso shall be licensed under
 this CLA.
 
 The CLA you sign applies to all repositories associated with the Enso project,
