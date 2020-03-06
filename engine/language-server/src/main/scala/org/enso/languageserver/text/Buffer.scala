@@ -1,6 +1,6 @@
 package org.enso.languageserver.text
 
-import org.enso.languageserver.data.ContentDigest
+import org.enso.languageserver.data.ContentBasedVersioning
 import org.enso.languageserver.data.buffer.Rope
 
 /**
@@ -18,11 +18,13 @@ object Buffer {
     * Creates a new buffer with a freshly generated version.
     *
     * @param contents the contents of this buffer.
-    * @param digest a digest calculator for content based versioning.
+    * @param versionCalculator a digest calculator for content based versioning.
     * @return a new buffer instance.
     */
-  def apply(contents: Rope)(implicit digest: ContentDigest): Buffer =
-    Buffer(contents, digest.digest(contents.toString))
+  def apply(
+    contents: Rope
+  )(implicit versionCalculator: ContentBasedVersioning): Buffer =
+    Buffer(contents, versionCalculator.evalVersion(contents.toString))
 
   /**
     * Creates a new buffer with a freshly generated version.
@@ -31,6 +33,6 @@ object Buffer {
     * @param digest a digest calculator for content based versioning.
     * @return a new buffer instance.
     */
-  def apply(contents: String)(implicit digest: ContentDigest): Buffer =
+  def apply(contents: String)(implicit digest: ContentBasedVersioning): Buffer =
     Buffer(Rope(contents))
 }

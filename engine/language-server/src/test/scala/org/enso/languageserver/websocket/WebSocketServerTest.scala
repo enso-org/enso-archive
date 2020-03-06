@@ -13,7 +13,7 @@ import cats.effect.IO
 import io.circe.Json
 import io.circe.parser.parse
 import org.enso.languageserver.capability.CapabilityRouter
-import org.enso.languageserver.data.{Config, Sha3Digest}
+import org.enso.languageserver.data.{Config, Sha3_224VersionCalculator}
 import org.enso.languageserver.{
   LanguageProtocol,
   LanguageServer,
@@ -59,7 +59,9 @@ abstract class WebSocketServerTest
       )
     languageServer ! LanguageProtocol.Initialize
     val bufferRegistry =
-      system.actorOf(BufferRegistry.props(languageServer)(Sha3Digest))
+      system.actorOf(
+        BufferRegistry.props(languageServer)(Sha3_224VersionCalculator)
+      )
 
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry))

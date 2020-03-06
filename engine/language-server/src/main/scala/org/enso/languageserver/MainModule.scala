@@ -6,9 +6,13 @@ import akka.actor.{ActorSystem, Props}
 import akka.stream.SystemMaterializer
 import cats.effect.IO
 import org.enso.languageserver.capability.CapabilityRouter
-import org.enso.languageserver.text.BufferRegistry
-import org.enso.languageserver.data.{Config, ContentDigest, Sha3Digest}
+import org.enso.languageserver.data.{
+  Config,
+  ContentBasedVersioning,
+  Sha3_224VersionCalculator
+}
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
+import org.enso.languageserver.text.BufferRegistry
 
 /**
   * A main module containing all components of th server.
@@ -23,7 +27,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val fileSystem: FileSystemApi[IO] = new FileSystem[IO]
 
-  implicit val contentDigest: ContentDigest = Sha3Digest
+  implicit val versionCalculator: ContentBasedVersioning =
+    Sha3_224VersionCalculator
 
   implicit val system = ActorSystem()
 

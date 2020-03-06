@@ -10,7 +10,7 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
 import org.enso.languageserver.data.{
   CanEdit,
   CapabilityRegistration,
-  ContentDigest
+  ContentBasedVersioning
 }
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.text.TextProtocol.OpenFile
@@ -20,10 +20,10 @@ import org.enso.languageserver.text.TextProtocol.OpenFile
   * It creates a buffer actor, if a buffer doesn't exists.
   *
   * @param fileManager a file manager
-  * @param contentDigest a content based version calculator
+  * @param versionCalculator a content based version calculator
   */
 class BufferRegistry(fileManager: ActorRef)(
-  implicit contentDigest: ContentDigest
+  implicit versionCalculator: ContentBasedVersioning
 ) extends Actor {
 
   override def receive: Receive = running(Map.empty)
@@ -66,12 +66,12 @@ object BufferRegistry {
     * Creates a configuration object used to create a [[BufferRegistry]]
     *
     * @param fileManager a file manager actor
-    * @param contentDigest a content based version calculator
+    * @param versionCalculator a content based version calculator
     * @return a configuration object
     */
   def props(
     fileManager: ActorRef
-  )(implicit contentDigest: ContentDigest): Props =
+  )(implicit versionCalculator: ContentBasedVersioning): Props =
     Props(new BufferRegistry(fileManager))
 
 }

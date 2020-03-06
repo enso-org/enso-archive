@@ -7,7 +7,7 @@ import org.enso.languageserver.data.{
   CanEdit,
   CapabilityRegistration,
   Client,
-  ContentDigest
+  ContentBasedVersioning
 }
 import org.enso.languageserver.event.{
   ClientDisconnected,
@@ -36,14 +36,14 @@ import scala.language.postfixOps
   * @param bufferPath a path to a file
   * @param fileManager a file manger actor
   * @param timeout a request timeout
-  * @param contentDigest a content based version calculator
+  * @param versionCalculator a content based version calculator
   */
 class CollaborativeBuffer(
   bufferPath: Path,
   fileManager: ActorRef,
   timeout: FiniteDuration
 )(
-  implicit contentDigest: ContentDigest
+  implicit versionCalculator: ContentBasedVersioning
 ) extends Actor
     with Stash
     with ActorLogging {
@@ -224,14 +224,14 @@ object CollaborativeBuffer {
     * @param bufferPath a path to a file
     * @param fileManager a file manager actor
     * @param timeout a request timeout
-    * @param contentDigest a content based version calculator
+    * @param versionCalculator a content based version calculator
     * @return a configuration object
     */
   def props(
     bufferPath: Path,
     fileManager: ActorRef,
     timeout: FiniteDuration = 10 seconds
-  )(implicit contentDigest: ContentDigest): Props =
+  )(implicit versionCalculator: ContentBasedVersioning): Props =
     Props(new CollaborativeBuffer(bufferPath, fileManager, timeout))
 
 }
