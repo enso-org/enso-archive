@@ -21,11 +21,7 @@ import org.enso.languageserver.filemanager.{
   Path
 }
 import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
-import org.enso.languageserver.text.TextProtocol.{
-  OpenFile,
-  OpenFileResponse,
-  OpenFileResult
-}
+import org.enso.languageserver.text.TextProtocol._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -101,6 +97,13 @@ class CollaborativeBuffer(
         removeClient(buffer, clients, lockHolder, clientId)
       }
 
+    case CloseFile(clientId, _) =>
+      if (clients.contains(clientId)) {
+        removeClient(buffer, clients, lockHolder, clientId)
+        sender() ! TextProtocol.FileClosed
+      } else {
+        sender() ! ClientDidNotOpenFile
+      }
   }
 
   private def readFile(client: Client, path: Path): Unit = {
