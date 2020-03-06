@@ -235,8 +235,8 @@ class ApplicationSaturationTest extends CompilerTest {
 
   "Shadowed known functions" should {
     val passes = List(
-      LiftSpecialOperators(),
-      OperatorToFunction()
+      LiftSpecialOperators,
+      OperatorToFunction
     )
 
     val rawIR = toIR("""

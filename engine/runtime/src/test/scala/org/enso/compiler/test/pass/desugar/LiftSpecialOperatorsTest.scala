@@ -41,7 +41,7 @@ class LiftSpecialOperatorsTest extends CompilerTest {
     )
 
     "be lifted by the pass in an inline context" in {
-      LiftSpecialOperators()
+      LiftSpecialOperators
         .runExpression(expressionIR) shouldEqual outputExpressionIR
     }
 
@@ -49,7 +49,7 @@ class LiftSpecialOperatorsTest extends CompilerTest {
       val moduleInput  = moduleDefsFrom(expressionIR)
       val moduleOutput = moduleDefsFrom(outputExpressionIR)
 
-      LiftSpecialOperators().runModule(moduleInput) shouldEqual moduleOutput
+      LiftSpecialOperators.runModule(moduleInput) shouldEqual moduleOutput
     }
 
     "work recursively where necessary" in {
@@ -61,7 +61,7 @@ class LiftSpecialOperatorsTest extends CompilerTest {
         None
       )
 
-      LiftSpecialOperators()
+      LiftSpecialOperators
         .runExpression(recursiveIR) shouldEqual recursiveIROutput
     }
   }

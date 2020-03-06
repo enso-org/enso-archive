@@ -47,14 +47,14 @@ class OperatorToFunctionTest extends CompilerTest {
     val (operator, operatorFn) = genOprAndFn(opName, left, right)
 
     "be translated to functions" in {
-      OperatorToFunction().runExpression(operator) shouldEqual operatorFn
+      OperatorToFunction.runExpression(operator) shouldEqual operatorFn
     }
 
     "be translated in module contexts" in {
       val moduleInput  = moduleDefsFrom(operator)
       val moduleOutput = moduleDefsFrom(operatorFn)
 
-      OperatorToFunction().runModule(moduleInput) shouldEqual moduleOutput
+      OperatorToFunction.runModule(moduleInput) shouldEqual moduleOutput
     }
 
     "be translated recursively" in {
@@ -70,7 +70,7 @@ class OperatorToFunctionTest extends CompilerTest {
         None
       )
 
-      OperatorToFunction().runExpression(recursiveIR) shouldEqual recursiveIRResult
+      OperatorToFunction.runExpression(recursiveIR) shouldEqual recursiveIRResult
     }
   }
 }
