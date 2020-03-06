@@ -10,9 +10,9 @@ import org.enso.languageserver.data.{
   ContentDigest
 }
 import org.enso.languageserver.event.{
-  BufferClosed,
-  BufferCreated,
-  ClientDisconnected
+  ClientDisconnected,
+  FileClosed,
+  FileOpened
 }
 import org.enso.languageserver.filemanager.FileManagerProtocol.ReadFileResult
 import org.enso.languageserver.filemanager.{
@@ -58,7 +58,7 @@ class CollaborativeBuffer(
 
   private def uninitialized: Receive = {
     case OpenFile(client, path) =>
-      context.system.eventStream.publish(BufferCreated(path))
+      context.system.eventStream.publish(FileOpened(path))
       log.info(s"Buffer opened for $path [client:${client.id}]")
       readFile(client, path)
   }
@@ -208,7 +208,7 @@ class CollaborativeBuffer(
   }
 
   def stop(): Unit = {
-    context.system.eventStream.publish(BufferClosed(bufferPath))
+    context.system.eventStream.publish(FileClosed(bufferPath))
     context.stop(self)
   }
 
