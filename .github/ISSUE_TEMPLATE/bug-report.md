@@ -50,4 +50,9 @@ Please list the reproduction steps for your bug. For example:
 ### Luna Version
 <!--
 - Please include the output of `enso --version`.
+
+For example:
+```
+
+```
 -->

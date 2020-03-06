@@ -15,6 +15,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 val scalacVersion = "2.13.1"
 val graalVersion  = "20.0.0"
 val circeVersion  = "0.13.0"
+val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
 
@@ -593,6 +594,36 @@ lazy val runner = project
       }
       .dependsOn(Compile / compile)
       .value
+  )
+  .settings(
+    Compile / sourceGenerators += Def.task {
+      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      val gitHash = ("git rev-parse HEAD" !!).trim
+      val gitBranch = ("git rev-parse --abbrev-ref HEAD" !!).trim
+      val isDirty = !("git status --porcelain" !!).trim.isEmpty
+      val dirtyCommitCount = ("git rev-list --count master.." !!).trim
+
+      val fileContents =
+        s"""
+          |package buildinfo
+          |
+          |object Info {
+          |
+          |  // Versions
+          |  val ensoVersion   = "$ensoVersion"
+          |  val scalacVersion = "$scalacVersion"
+          |  val graalVersion  = "$graalVersion"
+          |
+          |  // Git Info
+          |  val commit  = "$gitHash"
+          |  val branch  = "$gitBranch"
+          |  val isDirty = $isDirty
+          |  val dirtyCommitCount = "$dirtyCommitCount"
+          |}
+          |""".stripMargin
+      IO.write(file, fileContents)
+      Seq(file)
+    }.taskValue
   )
   .dependsOn(runtime)
   .dependsOn(pkg)

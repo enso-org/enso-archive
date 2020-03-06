@@ -3,6 +3,7 @@ package org.enso.runner
 import java.io.File
 import java.util.UUID
 
+import buildinfo.Info
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver
@@ -11,6 +12,7 @@ import org.enso.pkg.Package
 import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
 import org.graalvm.polyglot.Value
 
+import scala.annotation.unused
 import scala.util.Try
 
 /** The main CLI entry point class. */
@@ -26,6 +28,7 @@ object Main {
   private val PORT_OPTION            = "port"
   private val ROOT_ID_OPTION         = "root-id"
   private val ROOT_PATH_OPTION       = "path"
+  private val VERSION_OPTION         = "version"
 
   /**
     * Builds the [[Options]] object representing the CLI syntax.
@@ -95,6 +98,10 @@ object Main {
       .longOpt(ROOT_PATH_OPTION)
       .desc("Path to the content root.")
       .build()
+    val version = CliOption.builder
+      .longOpt(VERSION_OPTION)
+      .desc("Checks the version of the Enso executable.")
+      .build
 
     val options = new Options
     options
@@ -108,6 +115,7 @@ object Main {
       .addOption(portOption)
       .addOption(uuidOption)
       .addOption(pathOption)
+      .addOption(version)
 
     options
   }
@@ -249,6 +257,29 @@ object Main {
     } yield languageserver.LanguageServerConfig(interface, port, rootId, rootPath)
     // format: on
 
+  /** Prints the version of the enso executable.
+    *
+    * @param options A description of the CLI options syntax
+    */
+  def displayVersion(@unused options: Options): Unit = {
+    val dirtyStr = if (Info.isDirty) {
+      "Dirty"
+    } else {
+      "Clean"
+    }
+
+    val versionOutput =
+      s"""
+        |Enso Compiler and Runtime
+        |Version: ${Info.ensoVersion}
+        |Built from: ${Info.branch}@${Info.commit}${dirtyStr}
+        |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
+        |Running on:
+        |""".stripMargin
+
+    println(versionOutput)
+  }
+
   /**
     * Main entry point for the CLI program.
     *
@@ -264,6 +295,10 @@ object Main {
     }
     if (line.hasOption(HELP_OPTION)) {
       printHelp(options)
+      exitSuccess()
+    }
+    if (line.hasOption(VERSION_OPTION)) {
+      displayVersion(options)
       exitSuccess()
     }
     if (line.hasOption(NEW_OPTION)) {
