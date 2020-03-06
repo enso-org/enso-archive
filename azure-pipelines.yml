@@ -71,7 +71,7 @@ jobs:
         displayName: Build the Uberjar
         continueOnError: true
       - script: |
-          ./enso.jar --run ci/Main.enso
+          ./enso.jar --run ci/Test.enso
         displayName: Test the Uberjar
       - task: CopyFiles@2
         inputs:
