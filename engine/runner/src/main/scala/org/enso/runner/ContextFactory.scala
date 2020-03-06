@@ -28,7 +28,7 @@ class ContextFactory {
     repl: Repl
   ): ExecutionContext = {
     val context = Context
-      .newBuilder("NotEnso")
+      .newBuilder(LanguageInfo.ID)
       .allowExperimentalOptions(true)
       .allowAllAccess(true)
       .option(RuntimeOptions.getPackagesPathOption, packagesPath)
