@@ -529,7 +529,7 @@ class TextOperationsTest extends WebSocketServerTest {
       client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
-            "error": { "code": 3002, "message": "Cannot close a file that the client didn't open" }
+            "error": { "code": 3001, "message": "File not opened" }
           }
           """)
     }
@@ -572,7 +572,7 @@ class TextOperationsTest extends WebSocketServerTest {
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
-            "error": { "code": 3001, "message": "Cannot close a file that is not opened" }
+            "error": { "code": 3001, "message": "File not opened" }
           }
           """)
     }

@@ -102,7 +102,7 @@ class CollaborativeBuffer(
         removeClient(buffer, clients, lockHolder, clientId)
         sender() ! FileClosed
       } else {
-        sender() ! ClientDidNotOpenFile
+        sender() ! FileNotOpened
       }
   }
 

@@ -4,17 +4,9 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
-import org.enso.languageserver.text.TextApi.{
-  ClientDidNotOpenFileError,
-  CloseFile,
-  FileNotOpenedError
-}
+import org.enso.languageserver.text.TextApi.{CloseFile, FileNotOpenedError}
 import org.enso.languageserver.text.TextProtocol
-import org.enso.languageserver.text.TextProtocol.{
-  ClientDidNotOpenFile,
-  FileClosed,
-  FileNotOpened
-}
+import org.enso.languageserver.text.TextProtocol.{FileClosed, FileNotOpened}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -55,10 +47,6 @@ class CloseFileHandler(
 
     case FileNotOpened =>
       replyTo ! ResponseError(Some(id), FileNotOpenedError)
-      context.stop(self)
-
-    case ClientDidNotOpenFile =>
-      replyTo ! ResponseError(Some(id), ClientDidNotOpenFileError)
       context.stop(self)
   }
 

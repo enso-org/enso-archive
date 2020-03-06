@@ -42,10 +42,6 @@ object TextApi {
     }
   }
 
-  case object FileNotOpenedError
-      extends Error(3001, "Cannot close a file that is not opened")
-
-  case object ClientDidNotOpenFileError
-      extends Error(3002, "Cannot close a file that the client didn't open")
+  case object FileNotOpenedError extends Error(3001, "File not opened")
 
 }

@@ -1599,8 +1599,8 @@ null
 ```
 
 ##### Errors
-- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't opened.
-- [`ClientDidNotOpenFileError`](#clientdidnotopenfileerror) to signal that a client didn't open the file.
+- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't 
+opened.
 
 #### `text/save`
 This requests for the language server to save the specified file.
@@ -2049,16 +2049,6 @@ Signals that a file wasn't opened.
 ```typescript
 "error" : {
   "code" : 3001,
-  "message" : "Cannot close file that is not opened"
-}
-```
-
-##### `ClientDidNotOpenFileError`
-Signals that a client didn't open the file.
-
-```typescript
-"error" : {
-  "code" : 3002,
-  "message" : "Cannot close file that the client didn't open"
+  "message" : "File not opened"
 }
 ```
