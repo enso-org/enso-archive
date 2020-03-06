@@ -48,7 +48,7 @@ build Enso.
 
 ## Enso's Design
 If you would like to gain a better understanding of the principles on which Enso
-is based, or just delve into the why's and what's of Luna's design, please take
+is based, or just delve into the why's and what's of Enso's design, please take
 a look in the [`doc/design/` folder](./doc/design).
 
 This documentation will evolve as Enso does, both to help newcomers to the
