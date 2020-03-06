@@ -1,8 +1,9 @@
 package org.enso.languageserver.websocket
 
-import java.util.UUID
-
+import akka.testkit.{TestKit, TestProbe}
 import io.circe.literal._
+import org.enso.languageserver.event.BufferClosed
+import org.enso.languageserver.filemanager.Path
 
 class TextOperationsTest extends WebSocketServerTest {
 
@@ -651,6 +652,131 @@ class TextOperationsTest extends WebSocketServerTest {
             "result": null
           }
           """)
+    }
+
+    "close buffer when all participants close it" in {
+      val eventProbe = TestProbe()
+      system.eventStream.subscribe(eventProbe.ref, classOf[BufferClosed])
+      val client1 = new WsTestClient(address)
+      val client2 = new WsTestClient(address)
+
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : {
+                "method" : "canEdit",
+                "registerOptions" : {
+                  "path" : {
+                    "rootId" : $testContentRootId,
+                    "segments" : [
+                      "foo.txt"
+                    ]
+                  }
+                }
+              },
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/openFile",
+            "id": 1,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "writeCapability" : null,
+              "content" : "123456789",
+              "currentVersion" : "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522"
+            }
+          }
+          """)
+      client1.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/closeFile",
+            "id": 2,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+      eventProbe.expectNoMessage()
+      client2.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/closeFile",
+            "id": 2,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              }
+            }
+          }
+          """)
+      client2.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
+          }
+          """)
+      eventProbe.expectMsg(
+        BufferClosed(Path(testContentRootId, List("foo.txt")))
+      )
     }
 
   }
