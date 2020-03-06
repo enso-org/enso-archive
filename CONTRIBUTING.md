@@ -4,6 +4,20 @@ through community involvement can Enso be the best it can be! There are a whole
 host of ways to contribute, and every single one is appreciated. The major
 sections of this document are linked below:
 
+## The Contributor License Agreement
+As part of your first contribution to this repository, you need to accept the
+Contributor License Agreement. You will automatically be asked to sign the CLA
+when you make your first pull request.
+
+Any work intentionally submitted for inclusion in Enso shall be licensed under
+this CLA.
+
+The CLA you sign applies to all repositories associated with the Enso project,
+so you will only have to sign it once at the start of your contributions.
+
+All contributions to Enso should be in keeping with our
+[Code of Conduct](https://github.com/luna/luna/blob/CODE_OF_CONDUCT.md).
+
 <!-- MarkdownTOC levels="2" autolink="true" -->
 
 - [Issues](#issues)
@@ -17,20 +31,6 @@ sections of this document are linked below:
 - [Helpful Documentation and Links](#helpful-documentation-and-links)
 
 <!-- /MarkdownTOC -->
-
-### The Contributor License Agreement
-As part of your first contribution to this repository, you need to accept the
-Contributor License Agreement. You will automatically be asked to sign the CLA
-when you make your first pull request.
-
-Any work intentionally submitted for inclusion in Enso shall be licensed under
-this CLA.
-
-The CLA you sign applies to all repositories associated with the Enso project,
-so you will only have to sign it once at the start of your contributions.
-
-All contributions to Enso should be in keeping with our
-[Code of Conduct](https://github.com/luna/luna/blob/CODE_OF_CONDUCT.md).
 
 ## Issues
 If you are looking for somewhere to start, check out the `Help Wanted` tag in
