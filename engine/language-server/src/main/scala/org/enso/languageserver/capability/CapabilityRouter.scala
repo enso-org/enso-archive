@@ -1,7 +1,7 @@
 package org.enso.languageserver.capability
 
 import akka.actor.{Actor, ActorRef, Props}
-import org.enso.languageserver.LanguageProtocol.{
+import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   ReleaseCapability
 }

@@ -3,8 +3,14 @@ package org.enso.languageserver
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import akka.pattern.ask
 import akka.util.Timeout
-import org.enso.languageserver.ClientApi._
-import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.capability.CapabilityApi.{
+  AcquireCapability,
+  ForceReleaseCapability,
+  GrantCapability,
+  ReleaseCapability
+}
+import org.enso.languageserver.capability.CapabilityProtocol
+import org.enso.languageserver.data.Client
 import org.enso.languageserver.event.ClientDisconnected
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
@@ -34,37 +40,6 @@ import scala.util.{Failure, Success}
   */
 object ClientApi {
   import io.circe.generic.auto._
-
-  case object AcquireCapability extends Method("capability/acquire") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
-  }
-
-  case object ReleaseCapability extends Method("capability/release") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-    implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
-    }
-  }
-
-  case object ForceReleaseCapability
-      extends Method("capability/forceReleased") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-  }
-
-  case object GrantCapability extends Method("capability/granted") {
-    implicit val hasParams = new HasParams[this.type] {
-      type Params = CapabilityRegistration
-    }
-  }
 
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireCapability)
@@ -125,10 +100,10 @@ class ClientController(
       context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 
-    case LanguageProtocol.CapabilityForceReleased(registration) =>
+    case CapabilityProtocol.CapabilityForceReleased(registration) =>
       webActor ! Notification(ForceReleaseCapability, registration)
 
-    case LanguageProtocol.CapabilityGranted(registration) =>
+    case CapabilityProtocol.CapabilityGranted(registration) =>
       webActor ! Notification(GrantCapability, registration)
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>

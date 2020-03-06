@@ -1,19 +1,19 @@
 package org.enso.languageserver.text
 
 import akka.actor.{Actor, ActorRef, Props, Terminated}
-import org.enso.languageserver.LanguageProtocol.{
+import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquisitionBadRequest,
   CapabilityReleaseBadRequest,
   ReleaseCapability
 }
-import org.enso.languageserver.text.TextProtocol.OpenFile
 import org.enso.languageserver.data.{
   CanEdit,
   CapabilityRegistration,
   ContentDigest
 }
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.text.TextProtocol.OpenFile
 
 /**
   * An actor that routes request regarding text editing to the right buffer.

@@ -1,7 +1,7 @@
 package org.enso.languageserver.text
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
-import org.enso.languageserver.LanguageProtocol._
+import org.enso.languageserver.capability.CapabilityProtocol._
 import org.enso.languageserver.data.Client.Id
 import org.enso.languageserver.data.{
   CanEdit,

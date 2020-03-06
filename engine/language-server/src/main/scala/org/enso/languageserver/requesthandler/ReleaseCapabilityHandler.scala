@@ -1,9 +1,9 @@
 package org.enso.languageserver.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.ClientApi.ReleaseCapability
-import org.enso.languageserver.LanguageProtocol
-import org.enso.languageserver.LanguageProtocol.{
+import org.enso.languageserver.capability.CapabilityApi.ReleaseCapability
+import org.enso.languageserver.capability.CapabilityProtocol
+import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityReleaseBadRequest,
   CapabilityReleased
 }
@@ -32,7 +32,7 @@ class ReleaseCapabilityHandler(
 
   private def requestStage: Receive = {
     case Request(ReleaseCapability, id, params: CapabilityRegistration) =>
-      capabilityRouter ! LanguageProtocol.ReleaseCapability(client.id, params)
+      capabilityRouter ! CapabilityProtocol.ReleaseCapability(client.id, params)
       context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender()))
   }

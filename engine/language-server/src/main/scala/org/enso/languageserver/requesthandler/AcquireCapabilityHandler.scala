@@ -1,9 +1,9 @@
 package org.enso.languageserver.requesthandler
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.ClientApi.AcquireCapability
-import org.enso.languageserver.LanguageProtocol
-import org.enso.languageserver.LanguageProtocol.{
+import org.enso.languageserver.capability.CapabilityApi.AcquireCapability
+import org.enso.languageserver.capability.CapabilityProtocol
+import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquired,
   CapabilityAcquisitionBadRequest
 }
@@ -33,7 +33,7 @@ class AcquireCapabilityHandler(
 
   private def requestStage: Receive = {
     case Request(AcquireCapability, id, registration: CapabilityRegistration) =>
-      capabilityRouter ! LanguageProtocol.AcquireCapability(
+      capabilityRouter ! CapabilityProtocol.AcquireCapability(
         client,
         registration
       )
