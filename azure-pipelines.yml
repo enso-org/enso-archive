@@ -41,12 +41,37 @@ jobs:
           tar -x -z -C ~ -f sbt.tgz
           echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
         displayName: Install SBT
+#      - script: |
+#          sbt -no-colors syntaxJS/fullOptJS
+#        displayName: Generate target/scala-parser.js
+#        continueOnError: true
+#      - task: PublishPipelineArtifact@1
+#        inputs:
+#          targetPath: '$(Pipeline.Workspace)/s/target/scala-parser.js'
+#          artifact: 'parser-js'
+#          publishLocation: 'pipeline'
+#      - script: |
+#          sbt -no-colors test
+#        displayName: Test SBT
+#        continueOnError: true
+#      - script: |
+#          sbt -no-colors syntax/bench
+#        displayName: Benchmark the Parser
+#        continueOnError: true
+#      - script: |
+#          sbt -no-colors runtime/Benchmark/compile
+#        displayName: Check Runtime Benchmarks Compile
+#        continueOnError: true
+#      - task: PublishTestResults@2
+#        inputs:
+#          testResultsFormat: 'JUnit'
+#          testResultsFiles: '**/TEST-*.xml'
       - script: |
           sbt runner/assembly
         displayName: Build the Uberjar
         continueOnError: true
       - script: |
-          ./enso.jar --run ci/Test.enso
+          ./enso.jar --run ci/Main.enso
         displayName: Test the Uberjar
       - task: CopyFiles@2
         inputs:
@@ -146,3 +171,89 @@ jobs:
           echo "##vso[task.complete result=Failed;]DONE"
         condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
         displayName: Fail on Issues
+#  - job: macOS
+#    timeoutInMinutes: 90
+#    pool:
+#      vmImage: macOS-10.15
+#    steps:
+#      - script: |
+#          curl -fSL -o graal.tar.gz $(graalReleasesUrl)/vm-$(graalVersion)/$(graalDistributionName)-darwin-amd64-$(graalVersion).tar.gz
+#          tar -x -z -C ~ -f graal.tar.gz
+#          ls ~/$(graalDistributionName)-$(graalVersion)
+#          sudo mv ~/$(graalDistributionName)-$(graalVersion) /Library/Java/JavaVirtualMachines
+#          echo "##vso[task.setvariable variable=JAVA_HOME]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home"
+#          echo "##vso[task.setvariable variable=PATH]/Library/Java/JavaVirtualMachines/$(graalDistributionName)-$(graalVersion)/Contents/Home/bin:$PATH"
+#        displayName: Install GraalVM
+#      - script: |
+#          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+#          tar -x -z -C ~ -f sbt.tgz
+#          echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
+#        displayName: Install SBT
+#      - script: |
+#          sbt -no-colors syntaxJS/fullOptJS
+#        displayName: Generate target/scala-parser.js
+#        continueOnError: true
+#      - script: |
+#          sbt -no-colors test
+#        displayName: Test SBT
+#        continueOnError: true
+#      - script: |
+#          sbt -no-colors syntax/bench
+#        displayName: Benchmark the Parser
+#        continueOnError: true
+#      - script: |
+#          sbt -no-colors runtime/Benchmark/compile
+#        displayName: Check Runtime Benchmarks Compile
+#        continueOnError: true
+#      - task: PublishTestResults@2
+#        inputs:
+#          testResultsFormat: 'JUnit'
+#          testResultsFiles: '**/TEST-*.xml'
+#      - script: |
+#          echo "##vso[task.complete result=Failed;]DONE"
+#        condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+#        displayName: Fail on Issues
+#  - job: Windows
+#    timeoutInMinutes: 90
+#    pool:
+#      vmImage: windows-2019
+#    steps:
+#      - script: |
+#          curl -fSL -o graal.zip $(graalReleasesUrl)/vm-$(graalVersion)/$(graalDistributionName)-windows-amd64-$(graalVersion).zip
+#          7z x -y -oC:\ graal.zip
+#        displayName: Install GraalVM
+#      - script: |
+#          curl -fSL -o sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+#          tar -x -z -C %USERPROFILE% -f sbt.tgz
+#        displayName: Install SBT
+#      - script: |
+#          call refreshenv
+#          echo ##vso[task.setvariable variable=JAVA_HOME]C:\$(graalDistributionName)-$(graalVersion)
+#          echo ##vso[task.setvariable variable=PATH]C:\$(graalDistributionName)-$(graalVersion)\bin;%PATH%
+#          echo ##vso[task.setvariable variable=PATH]%USERPROFILE%\sbt\bin\;%PATH%
+#        displayName: Adjust Environment Variables
+#      - script: |
+#          sbt -no-colors syntaxJS/fullOptJS
+#        displayName: Generate target/scala-parser.js
+#        continueOnError: true
+#      - script: |
+#          sbt test
+#        displayName: Test SBT
+#        continueOnError: true
+#      - script: |
+#          sbt syntax/bench
+#        displayName: Benchmark the Parser
+#        continueOnError: true
+#      - script: |
+#          sbt runtime/Benchmark/compile
+#        displayName: Check Runtime Benchmarks Compile
+#        continueOnError: true
+#      - task: PublishTestResults@2
+#        inputs:
+#          testResultsFormat: 'JUnit'
+#          testResultsFiles: '**/TEST-*.xml'
+#      - script: |
+#          echo "##vso[task.complete result=Failed;]DONE"
+#        condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
+#        displayName: Fail on Issues
+#
