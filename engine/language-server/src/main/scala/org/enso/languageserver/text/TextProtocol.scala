@@ -52,7 +52,7 @@ object TextProtocol {
   case object FileNotOpened extends CloseFileResult
 
   /**
-    * Signals that cannot close a file that wasn't opened before.
+    * Signals that a client didn't open the file.
     */
   case object ClientDidNotOpenFile extends CloseFileResult
 

@@ -1571,7 +1571,11 @@ the client that sent the `text/openFile` message.
 ```
 
 ##### Errors
-TBC
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
+
 
 #### `text/closeFile`
 This request informs the language server that a client has closed the specified
@@ -1595,7 +1599,8 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't opened.
+- [`ClientDidNotOpenFileError`](#clientdidnotopenfileerror) to signal that a client didn't open the file.
 
 #### `text/save`
 This requests for the language server to save the specified file.
@@ -2036,5 +2041,24 @@ It signals that IO operation timed out.
 "error" : {
   "code" : 2001,
   "message" : "Stack item not found."
+}
+```
+##### `FileNotOpenedError`
+Signals that a file wasn't opened.
+
+```typescript
+"error" : {
+  "code" : 3001,
+  "message" : "Cannot close file that is not opened"
+}
+```
+
+##### `ClientDidNotOpenFileError`
+Signals that a client didn't open the file.
+
+```typescript
+"error" : {
+  "code" : 3002,
+  "message" : "Cannot close file that the client didn't open"
 }
 ```
