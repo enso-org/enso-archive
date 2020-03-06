@@ -262,20 +262,34 @@ object Main {
     * @param options A description of the CLI options syntax
     */
   def displayVersion(@unused options: Options): Unit = {
+    // Running platform information
+    val vmName = System.getProperty("java.vm.name")
+    val jreVersion = System.getProperty("java.runtime.version")
+    val osArch = System.getProperty("os.arch")
+    val osName = System.getProperty("os.name")
+    val osVersion = System.getProperty("os.version")
+
     val dirtyStr = if (Info.isDirty) {
-      "Dirty"
+      "Uncommitted changes, "
     } else {
-      "Clean"
+      ""
+    }
+    val commitStr = if (Info.branchCommitCount == "1") {
+      "commit"
+    } else {
+      "commits"
     }
 
     val versionOutput =
       s"""
-        |Enso Compiler and Runtime
-        |Version: ${Info.ensoVersion}
-        |Built from: ${Info.branch}@${Info.commit}${dirtyStr}
-        |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
-        |Running on:
-        |""".stripMargin
+         |Enso Compiler and Runtime
+         |Version:    ${Info.ensoVersion}
+         |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
+         |Built from: ${Info.branch} @ ${Info.commit}
+         |            ${dirtyStr} ${Info.branchCommitCount} $commitStr on branch
+         |Running on: $vmName, JDK $jreVersion
+         |            $osName $osVersion ($osArch)
+         |""".stripMargin
 
     println(versionOutput)
   }

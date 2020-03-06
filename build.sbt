@@ -602,6 +602,7 @@ lazy val runner = project
       val gitBranch = ("git rev-parse --abbrev-ref HEAD" !!).trim
       val isDirty = !("git status --porcelain" !!).trim.isEmpty
       val dirtyCommitCount = ("git rev-list --count master.." !!).trim
+      val latestCommitDate = ("git log HEAD -1 --format=%cd" !!).trim
 
       val fileContents =
         s"""
@@ -615,10 +616,11 @@ lazy val runner = project
           |  val graalVersion  = "$graalVersion"
           |
           |  // Git Info
-          |  val commit  = "$gitHash"
-          |  val branch  = "$gitBranch"
-          |  val isDirty = $isDirty
-          |  val dirtyCommitCount = "$dirtyCommitCount"
+          |  val commit            = "$gitHash"
+          |  val branch            = "$gitBranch"
+          |  val isDirty           = $isDirty
+          |  val branchCommitCount = "$dirtyCommitCount"
+          |  val latestCommitDate  = "$latestCommitDate"
           |}
           |""".stripMargin
       IO.write(file, fileContents)
