@@ -54,32 +54,35 @@ class CollaborativeBuffer(
     context.system.eventStream.subscribe(self, classOf[ClientDisconnected])
   }
 
-  override def receive: Receive = waiting
+  override def receive: Receive = uninitialized
 
-  private def waiting: Receive = {
+  private def uninitialized: Receive = {
     case OpenFile(client, path) =>
       context.system.eventStream.publish(BufferCreated(path))
       log.info(s"Buffer opened for $path [client:${client.id}]")
       readFile(client, path)
   }
 
-  private def reading(client: Client, originalSender: ActorRef): Receive = {
+  private def waitingForFileContent(
+    client: Client,
+    replyTo: ActorRef
+  ): Receive = {
     case ReadFileResult(Right(content)) =>
-      handleFileContent(client, originalSender, content)
+      handleFileContent(client, replyTo, content)
       unstashAll()
 
     case ReadFileResult(Left(failure)) =>
-      originalSender ! OpenFileResponse(Left(failure))
+      replyTo ! OpenFileResponse(Left(failure))
       stop()
 
     case FileReadingTimeout =>
-      originalSender ! OpenFileResponse(Left(OperationTimeout))
+      replyTo ! OpenFileResponse(Left(OperationTimeout))
       stop()
 
     case _ => stash()
   }
 
-  private def editing(
+  private def collaborativeEditing(
     buffer: Buffer,
     clients: Map[Client.Id, Client],
     lockHolder: Option[Client]
@@ -104,7 +107,7 @@ class CollaborativeBuffer(
     fileManager ! FileManagerProtocol.ReadFile(path)
     context.system.scheduler
       .scheduleOnce(timeout, self, FileReadingTimeout)
-    context.become(reading(client, sender()))
+    context.become(waitingForFileContent(client, sender()))
   }
 
   private def handleFileContent(
@@ -117,7 +120,9 @@ class CollaborativeBuffer(
     originalSender ! OpenFileResponse(
       Right(OpenFileResult(buffer, Some(cap)))
     )
-    context.become(editing(buffer, Map(client.id -> client), Some(client)))
+    context.become(
+      collaborativeEditing(buffer, Map(client.id -> client), Some(client))
+    )
   }
 
   private def openFile(
@@ -133,7 +138,7 @@ class CollaborativeBuffer(
         None
     sender ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
     context.become(
-      editing(buffer, clients + (client.id -> client), lockHolder)
+      collaborativeEditing(buffer, clients + (client.id -> client), lockHolder)
     )
   }
 
@@ -152,7 +157,7 @@ class CollaborativeBuffer(
     if (newClientMap.isEmpty) {
       stop()
     } else {
-      context.become(editing(buffer, newClientMap, newLock))
+      context.become(collaborativeEditing(buffer, newClientMap, newLock))
     }
   }
 
@@ -165,15 +170,15 @@ class CollaborativeBuffer(
     lockHolder match {
       case None =>
         sender() ! CapabilityReleaseBadRequest
-        context.become(editing(buffer, clients, lockHolder))
+        context.become(collaborativeEditing(buffer, clients, lockHolder))
 
       case Some(holder) if holder.id != clientId =>
         sender() ! CapabilityReleaseBadRequest
-        context.become(editing(buffer, clients, lockHolder))
+        context.become(collaborativeEditing(buffer, clients, lockHolder))
 
       case Some(holder) if holder.id == clientId =>
         sender() ! CapabilityReleased
-        context.become(editing(buffer, clients, None))
+        context.become(collaborativeEditing(buffer, clients, None))
     }
   }
 
@@ -187,18 +192,18 @@ class CollaborativeBuffer(
     lockHolder match {
       case None =>
         sender() ! CapabilityAcquired
-        context.become(editing(buffer, clients, Some(clientId)))
+        context.become(collaborativeEditing(buffer, clients, Some(clientId)))
 
       case Some(holder) if holder == clientId =>
         sender() ! CapabilityAcquisitionBadRequest
-        context.become(editing(buffer, clients, lockHolder))
+        context.become(collaborativeEditing(buffer, clients, lockHolder))
 
       case Some(holder) if holder != clientId =>
         sender() ! CapabilityAcquired
         holder.actor ! CapabilityForceReleased(
           CapabilityRegistration(CanEdit(path))
         )
-        context.become(editing(buffer, clients, Some(clientId)))
+        context.become(collaborativeEditing(buffer, clients, Some(clientId)))
     }
   }
 
