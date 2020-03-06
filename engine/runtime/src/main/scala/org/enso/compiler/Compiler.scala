@@ -4,12 +4,12 @@ import java.io.StringReader
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.ApplicationSaturation
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
-import org.enso.compiler.pass.optimise.KnownFullySaturatedFunctions
 import org.enso.flexer.Reader
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -34,7 +34,7 @@ class Compiler(
   val compilerPhaseOrdering: List[IRPass] = List(
     LiftSpecialOperators(),
     OperatorToFunction(),
-    KnownFullySaturatedFunctions(KnownFullySaturatedFunctions.Default.Config)
+    ApplicationSaturation()
   )
 
   /**
@@ -193,10 +193,10 @@ class Compiler(
   }
 
   /** Runs the various compiler passes in an inline context.
-   *
-   * @param ir the compiler intermediate representation to transform
-   * @return the output result of the
-   */
+    *
+    * @param ir the compiler intermediate representation to transform
+    * @return the output result of the
+    */
   def runCompilerPhasesInline(ir: IR.Expression): IR.Expression = {
     compilerPhaseOrdering.foldLeft(ir)(
       (intermediateIR, pass) => pass.runExpression(intermediateIR)

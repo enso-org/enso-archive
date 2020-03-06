@@ -111,18 +111,36 @@ object AstToIR {
         } else {
           Module.Scope.Definition
             .Atom(
-              consName.name,
+              Name.Literal(consName.name, consName.location),
               args.map(translateArgumentDefinition(_)),
               inputAST.location
             )
         }
       case AstView.MethodDefinition(targetPath, name, definition) =>
-        val path = if (targetPath.nonEmpty) {
-          targetPath.collect { case AST.Ident.Cons(name) => name }.mkString(".")
+        val (path, pathLoc) = if (targetPath.nonEmpty) {
+          val pathSegments = targetPath.collect {
+            case AST.Ident.Cons.any(c) => c
+          }
+
+          val pathStr = pathSegments.map(_.name).mkString(".")
+          val loc = pathSegments.headOption
+            .flatMap(_.location)
+            .flatMap(
+              locationStart =>
+                pathSegments.lastOption
+                  .flatMap(_.location)
+                  .flatMap(
+                    locationEnd =>
+                      Some(locationStart.copy(end = locationEnd.end))
+                  )
+            )
+
+          (pathStr, loc)
         } else {
-          Constants.Names.CURRENT_MODULE
+          (Constants.Names.CURRENT_MODULE, None)
         }
-        val nameStr       = name match { case AST.Ident.Var(name) => name }
+
+        val nameStr       = name match { case AST.Ident.Var.any(name) => name }
         val defExpression = translateExpression(definition)
         val defExpr: Function.Lambda = defExpression match {
           case fun: Function.Lambda => fun
@@ -130,8 +148,8 @@ object AstToIR {
             Function.Lambda(List(), expr, expr.location)
         }
         Module.Scope.Definition.Method(
-          path,
-          nameStr,
+          Name.Literal(path, pathLoc),
+          Name.Literal(nameStr.name, nameStr.location),
           defExpr,
           inputAST.location
         )
@@ -150,7 +168,7 @@ object AstToIR {
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
         Expression.Binding(
-          name.name,
+          Name.Literal(name.name, name.location),
           Expression.Block(
             lines.map(translateExpression),
             translateExpression(lastLine),
@@ -269,7 +287,7 @@ object AstToIR {
     arg match {
       case AstView.LazyAssignedArgumentDefinition(name, value) =>
         DefinitionArgument.Specified(
-          name.name,
+          Name.Literal(name.name, name.location),
           Some(translateExpression(value)),
           true,
           arg.location
@@ -277,10 +295,15 @@ object AstToIR {
       case AstView.LazyArgument(arg) =>
         translateArgumentDefinition(arg, isSuspended = true)
       case AstView.DefinitionArgument(arg) =>
-        DefinitionArgument.Specified(arg.name, None, isSuspended, arg.location)
+        DefinitionArgument.Specified(
+          Name.Literal(arg.name, arg.location),
+          None,
+          isSuspended,
+          arg.location
+        )
       case AstView.AssignedArgument(name, value) =>
         DefinitionArgument.Specified(
-          name.name,
+          Name.Literal(name.name, name.location),
           Some(translateExpression(value)),
           isSuspended,
           arg.location
@@ -299,7 +322,11 @@ object AstToIR {
   def translateCallArgument(arg: AST): CallArgument.Specified = arg match {
     case AstView.AssignedArgument(left, right) =>
       CallArgument
-        .Specified(Some(left.name), translateExpression(right), arg.location)
+        .Specified(
+          Some(Name.Literal(left.name, left.location)),
+          translateExpression(right),
+          arg.location
+        )
     case _ =>
       CallArgument.Specified(None, translateExpression(arg), arg.location)
   }
@@ -423,8 +450,12 @@ object AstToIR {
     expr: AST
   ): Expression.Binding = {
     name match {
-      case AST.Ident.Var(name) =>
-        Expression.Binding(name, translateExpression(expr), location)
+      case v @ AST.Ident.Var(name) =>
+        Expression.Binding(
+          Name.Literal(name, v.location),
+          translateExpression(expr),
+          location
+        )
       case _ =>
         throw new UnhandledEntity(name, "translateAssignment")
     }

@@ -4,6 +4,7 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
+import org.enso.compiler.pass.analyse.ApplicationSaturation
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -132,7 +133,7 @@ class IRToTruffle(
 
     // Register the atoms and their constructors in scope
     val atomConstructors =
-      atomDefs.map(t => new AtomConstructor(t.name, moduleScope))
+      atomDefs.map(t => new AtomConstructor(t.name.name, moduleScope))
     atomConstructors.foreach(moduleScope.registerConstructor)
 
     atomConstructors
@@ -155,20 +156,21 @@ class IRToTruffle(
     methodDefs.foreach(methodDef => {
       val thisArgument =
         IR.DefinitionArgument.Specified(
-          Constants.Names.THIS_ARGUMENT,
+          IR.Name.This(None),
           None,
           suspended = false,
           None
         )
 
-      val typeName = if (methodDef.typeName == Constants.Names.CURRENT_MODULE) {
-        moduleScope.getAssociatedType.getName
-      } else {
-        methodDef.typeName
-      }
+      val typeName =
+        if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
+          moduleScope.getAssociatedType.getName
+        } else {
+          methodDef.typeName.name
+        }
 
       val expressionProcessor = new ExpressionProcessor(
-        typeName + Constants.SCOPE_SEPARATOR + methodDef.methodName
+        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
       )
 
       val funNode = methodDef.body match {
@@ -200,9 +202,9 @@ class IRToTruffle(
       val cons = moduleScope
         .getConstructor(typeName)
         .orElseThrow(
-          () => new VariableDoesNotExistException(methodDef.typeName)
+          () => new VariableDoesNotExistException(methodDef.typeName.name)
         )
-      moduleScope.registerMethod(cons, methodDef.methodName, function)
+      moduleScope.registerMethod(cons, methodDef.methodName.name, function)
     })
   }
 
@@ -407,7 +409,7 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `binding`
       */
     def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
-      currentVarName = binding.name
+      currentVarName = binding.name.name
 
       val slot = scope.createVarSlot(currentVarName)
 
@@ -464,7 +466,9 @@ class IRToTruffle(
         case IR.Name.Here(_, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
         case IR.Name.This(location, passData) =>
-          processName(IR.Name.Literal("this", location, passData))
+          processName(
+            IR.Name.Literal(Constants.Names.THIS_ARGUMENT, location, passData)
+          )
       }
 
       setLocation(nameExpr, name.location)
@@ -586,11 +590,19 @@ class IRToTruffle(
             InvokeCallableNode.DefaultsExecutionMode.EXECUTE
           }
 
-          val appNode = ApplicationNode.build(
-            this.run(fn),
-            callArgs.toArray,
-            defaultsExecutionMode
-          )
+          val appNode = application
+            .getMetadata[ApplicationSaturation.CallSaturation] match {
+            case Some(
+                ApplicationSaturation.CallSaturation.Exact(createOptimised)
+                ) =>
+              createOptimised(callArgs.toList)
+            case _ =>
+              ApplicationNode.build(
+                this.run(fn),
+                callArgs.toArray,
+                defaultsExecutionMode
+              )
+          }
 
           setLocation(appNode, loc)
         case IR.Application.Force(expr, location, _) =>
@@ -657,7 +669,7 @@ class IRToTruffle(
             CreateThunkNode.build(callTarget)
         }
 
-        new CallArgument(name.orNull, result)
+        new CallArgument(name.map(_.name).orNull, result)
     }
   }
 
@@ -729,7 +741,7 @@ class IRToTruffle(
 
         new ArgumentDefinition(
           position,
-          arg.name,
+          arg.name.name,
           defaultedValue,
           executionMode
         )

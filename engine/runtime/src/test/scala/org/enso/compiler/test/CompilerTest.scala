@@ -33,11 +33,11 @@ trait CompilerRunner {
   }
 
   /** Executes the specified list of passes in order on the provided [[IR]].
-   *
-   * @param ir the ir to run the passes on
-   * @param passes the passes to run
-   * @return the result of executing `passes` in sequence on `ir`
-   */
+    *
+    * @param ir the ir to run the passes on
+    * @param passes the passes to run
+    * @return the result of executing `passes` in sequence on `ir`
+    */
   def runPasses(ir: IR, passes: List[IRPass]): IR = ir match {
     case expr: IR.Expression =>
       passes.foldLeft(expr)(
@@ -51,39 +51,50 @@ trait CompilerRunner {
   // === IR Testing Utils =====================================================
 
   /** Hoists the provided expression into the body of a method.
-   *
-   * @param ir the expression to hoist
-   * @return a method containing `ir` as its body
-   */
+    *
+    * @param ir the expression to hoist
+    * @return a method containing `ir` as its body
+    */
   def asMethod(ir: IR.Expression): IR.Module.Scope.Definition.Method = {
-    IR.Module.Scope.Definition.Method("TestType", "testMethod", ir, None)
+    IR.Module.Scope.Definition
+      .Method(
+        IR.Name.Literal("TestType", None),
+        IR.Name.Literal("testMethod", None),
+        ir,
+        None
+      )
   }
 
   /** Hoists the provided expression as the default value of an atom argument.
-   *
-   * @param ir the expression to hoist
-   * @return an atom with one argument `arg` with default value `ir`
-   */
+    *
+    * @param ir the expression to hoist
+    * @return an atom with one argument `arg` with default value `ir`
+    */
   def asAtomDefaultArg(ir: IR.Expression): IR.Module.Scope.Definition.Atom = {
     IR.Module.Scope.Definition.Atom(
-      "TestAtom",
+      IR.Name.Literal("TestAtom", None),
       List(
         IR.DefinitionArgument
-          .Specified("arg", Some(ir), suspended = false, None)
+          .Specified(
+            IR.Name.Literal("arg", None),
+            Some(ir),
+            suspended = false,
+            None
+          )
       ),
       None
     )
   }
 
   /** Creates a module containing both an atom and a method that use the
-   * provided expression.
-   *
-   * The expression is used in the default for an atom argument, as in
-   * [[asAtomDefaultArg()]], and in the body of a method, as in [[asMethod()]].
-   *
-   * @param expr the expression
-   * @return a module containing an atom def and method def using `expr`
-   */
+    * provided expression.
+    *
+    * The expression is used in the default for an atom argument, as in
+    * [[asAtomDefaultArg()]], and in the body of a method, as in [[asMethod()]].
+    *
+    * @param expr the expression
+    * @return a module containing an atom def and method def using `expr`
+    */
   def moduleDefsFrom(expr: IR.Expression): IR.Module = {
     IR.Module(List(), List(asAtomDefaultArg(expr), asMethod(expr)), None)
   }

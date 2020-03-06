@@ -120,7 +120,7 @@ object IR {
       * module scope
       */
     sealed trait Scope extends IR {
-      override def addMetadata(newData: Metadata): Scope
+      override def addMetadata(newData: Metadata):               Scope
       override def mapExpressions(fn: Expression => Expression): Scope
     }
     object Scope {
@@ -146,7 +146,7 @@ object IR {
 
       /** A representation of top-level definitions. */
       sealed trait Definition extends Scope {
-        override def addMetadata(newData: Metadata): Definition
+        override def addMetadata(newData: Metadata):               Definition
         override def mapExpressions(fn: Expression => Expression): Definition
       }
       object Definition {
@@ -159,7 +159,7 @@ object IR {
           * @param passData the pass metadata associated with this node
           */
         sealed case class Atom(
-          name: String,
+          name: IR.Name,
           arguments: List[DefinitionArgument],
           override val location: Option[Location],
           override val passData: ISet[Metadata] = ISet()
@@ -170,7 +170,10 @@ object IR {
           }
 
           override def mapExpressions(fn: Expression => Expression): Atom = {
-            copy(arguments = arguments.map(_.mapExpressions(fn)))
+            copy(
+              name      = name.mapExpressions(fn),
+              arguments = arguments.map(_.mapExpressions(fn))
+            )
           }
         }
 
@@ -184,8 +187,8 @@ object IR {
           * @param passData the pass metadata associated with this node
           */
         sealed case class Method(
-          typeName: String,
-          methodName: String,
+          typeName: IR.Name,
+          methodName: IR.Name,
           body: Expression,
           override val location: Option[Location],
           override val passData: ISet[Metadata] = ISet()
@@ -196,7 +199,11 @@ object IR {
           }
 
           override def mapExpressions(fn: Expression => Expression): Method = {
-            copy(body = fn(body))
+            copy(
+              typeName   = typeName.mapExpressions(fn),
+              methodName = methodName.mapExpressions(fn),
+              body       = fn(body)
+            )
           }
         }
       }
@@ -224,7 +231,7 @@ object IR {
     }
 
     override def mapExpressions(fn: Expression => Expression): Expression
-    override def addMetadata(newData: Metadata): Expression
+    override def addMetadata(newData: Metadata):               Expression
   }
   object Expression {
 
@@ -265,7 +272,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class Binding(
-      name: String,
+      name: IR.Name,
       expression: Expression,
       override val location: Option[Location],
       override val passData: ISet[Metadata] = ISet()
@@ -276,7 +283,7 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): Binding = {
-        copy(expression = fn(expression))
+        copy(name = name.mapExpressions(fn), expression = fn(expression))
       }
     }
   }
@@ -286,6 +293,7 @@ object IR {
   /** Enso literals. */
   sealed trait Literal extends Expression with IRKind.Primitive {
     override def mapExpressions(fn: Expression => Expression): Literal
+    override def addMetadata(newData: Metadata):               Literal
   }
   object Literal {
 
@@ -333,6 +341,7 @@ object IR {
     val name: String
 
     override def mapExpressions(fn: Expression => Expression): Name
+    override def addMetadata(newData: Metadata):               Name
   }
   object Name {
 
@@ -397,6 +406,7 @@ object IR {
   /** Constructs that operate on types. */
   sealed trait Type extends Expression {
     override def mapExpressions(fn: Expression => Expression): Type
+    override def addMetadata(newData: Metadata):               Type
   }
   object Type {
 
@@ -461,6 +471,7 @@ object IR {
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
       override def mapExpressions(fn: Expression => Expression): Set
+      override def addMetadata(newData: Metadata):               Set
     }
     object Set {
 
@@ -683,6 +694,7 @@ object IR {
     val canBeTCO: Boolean
 
     override def mapExpressions(fn: Expression => Expression): Function
+    override def addMetadata(newData: Metadata):               Function
   }
   object Function {
 
@@ -723,6 +735,8 @@ object IR {
     override def mapExpressions(
       fn: Expression => Expression
     ): DefinitionArgument
+
+    override def addMetadata(newData: Metadata): DefinitionArgument
   }
   object DefinitionArgument {
 
@@ -736,7 +750,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class Specified(
-      name: String,
+      name: IR.Name,
       defaultValue: Option[Expression],
       suspended: Boolean,
       override val location: Option[Location],
@@ -748,7 +762,10 @@ object IR {
       }
 
       def mapExpressions(fn: Expression => Expression): Specified = {
-        copy(defaultValue = defaultValue.map(fn))
+        copy(
+          name         = name.mapExpressions(fn),
+          defaultValue = defaultValue.map(fn)
+        )
       }
     }
 
@@ -760,15 +777,9 @@ object IR {
   /** All function applications in Enso. */
   sealed trait Application extends Expression {
     override def mapExpressions(fn: Expression => Expression): Application
+    override def addMetadata(newData: Metadata):               Application
   }
   object Application {
-
-    sealed trait Saturation
-    object Saturation {
-      sealed case class Full()              extends Saturation
-      sealed case class Partial(count: Int) extends Saturation
-      sealed case class Unknown()           extends Saturation
-    }
 
     /** A standard prefix function application.
       *
@@ -820,6 +831,7 @@ object IR {
     /** Operator applications in Enso. */
     sealed trait Operator extends Application {
       override def mapExpressions(fn: Expression => Expression): Operator
+      override def addMetadata(newData: Metadata):               Operator
     }
     object Operator {
 
@@ -856,7 +868,12 @@ object IR {
 
   /** Call-site arguments in Enso. */
   sealed trait CallArgument extends IR {
+
+    /** The name of the argument, if present. */
+    val name: Option[IR.Name]
+
     override def mapExpressions(fn: Expression => Expression): CallArgument
+    override def addMetadata(newData: Metadata):               CallArgument
   }
   object CallArgument {
 
@@ -868,7 +885,7 @@ object IR {
       * @param passData the pass metadata associated with this node
       */
     sealed case class Specified(
-      name: Option[String],
+      override val name: Option[IR.Name],
       value: Expression,
       override val location: Option[Location],
       override val passData: ISet[Metadata] = ISet()
@@ -879,7 +896,7 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): Specified = {
-        copy(value = fn(value))
+        copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
       }
     }
 
@@ -892,6 +909,7 @@ object IR {
   /** The Enso case expression. */
   sealed trait Case extends Expression {
     override def mapExpressions(fn: Expression => Expression): Case
+    override def addMetadata(newData: Metadata):               Case
   }
   object Case {
 
@@ -950,6 +968,7 @@ object IR {
     /** The different types of patterns that can occur in a match. */
     sealed trait Pattern extends IR {
       override def mapExpressions(fn: Expression => Expression): Pattern
+      override def addMetadata(newData: Metadata):               Pattern
     }
     object Pattern {
       // TODO [AA] Better differentiate the types of patterns that can occur
@@ -961,7 +980,9 @@ object IR {
   /** Enso comment entities. */
   sealed trait Comment extends Expression {
     override def mapExpressions(fn: Expression => Expression): Comment
+    override def addMetadata(newData: Metadata):               Comment
 
+    /** The expression being commented. */
     val commented: Expression
   }
   object Comment {
@@ -997,6 +1018,7 @@ object IR {
   /** Foreign code entities. */
   sealed trait Foreign extends Expression {
     override def mapExpressions(fn: Expression => Expression): Foreign
+    override def addMetadata(newData: Metadata):               Foreign
   }
   object Foreign {
 
@@ -1028,6 +1050,7 @@ object IR {
   /** A trait for all errors in Enso's IR. */
   sealed trait Error extends Expression {
     override def mapExpressions(fn: Expression => Expression): Error
+    override def addMetadata(newData: Metadata):               Error
   }
   object Error {
 
