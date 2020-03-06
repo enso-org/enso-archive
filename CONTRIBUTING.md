@@ -4,6 +4,21 @@ through community involvement can Enso be the best it can be! There are a whole
 host of ways to contribute, and every single one is appreciated. The major
 sections of this document are linked below:
 
+<!-- MarkdownTOC levels="2" autolink="true" -->
+
+- [The Contributor License Agreement](#the-contributor-license-agreement)
+- [Issues](#issues)
+- [Feature Enhancements](#feature-enhancements)
+- [Bug Reports](#bug-reports)
+- [Hacking on Enso](#hacking-on-enso)
+- [Pull Requests](#pull-requests)
+- [Documentation](#documentation)
+- [Issue Triage](#issue-triage)
+- [Out-of-Tree Contributions](#out-of-tree-contributions)
+- [Helpful Documentation and Links](#helpful-documentation-and-links)
+
+<!-- /MarkdownTOC -->
+
 ## The Contributor License Agreement
 As part of your first contribution to this repository, you need to accept the
 Contributor License Agreement. You will automatically be asked to sign the CLA
@@ -17,20 +32,6 @@ so you will only have to sign it once at the start of your contributions.
 
 All contributions to Enso should be in keeping with our
 [Code of Conduct](https://github.com/luna/luna/blob/CODE_OF_CONDUCT.md).
-
-<!-- MarkdownTOC levels="2" autolink="true" -->
-
-- [Issues](#issues)
-- [Feature Enhancements](#feature-enhancements)
-- [Bug Reports](#bug-reports)
-- [Hacking on Enso](#hacking-on-enso)
-- [Pull Requests](#pull-requests)
-- [Documentation](#documentation)
-- [Issue Triage](#issue-triage)
-- [Out-of-Tree Contributions](#out-of-tree-contributions)
-- [Helpful Documentation and Links](#helpful-documentation-and-links)
-
-<!-- /MarkdownTOC -->
 
 ## Issues
 If you are looking for somewhere to start, check out the `Help Wanted` tag in
