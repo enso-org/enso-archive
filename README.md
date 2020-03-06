@@ -79,6 +79,6 @@ this CLA.
 The CLA you sign applies to all repositories associated with the Enso project,
 so you will only have to sign it once at the start of your contributions.
 
-<a href="https://github.com/luna/ide/graphs/contributors">
+<a href="https://github.com/luna/enso/graphs/contributors">
   <img src="https://contributors-img.firebaseapp.com/image?repo=luna/enso" />
 </a>
