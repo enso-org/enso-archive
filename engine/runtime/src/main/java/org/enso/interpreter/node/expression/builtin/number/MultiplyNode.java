@@ -26,7 +26,8 @@ public class MultiplyNode extends NumberBinaryOpMethod {
         new ArgumentDefinition(1, "that", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
-  /** Multiplies this method's two operands.
+  /**
+   * Multiplies this method's two operands.
    *
    * @param thisArg the left operand (this)
    * @param thatArg the right operand (that)
@@ -37,7 +38,8 @@ public class MultiplyNode extends NumberBinaryOpMethod {
     return thisArg * thatArg;
   }
 
-  /** Returns a language-specific name for this node.
+  /**
+   * Returns a language-specific name for this node.
    *
    * @return the name of this node
    */

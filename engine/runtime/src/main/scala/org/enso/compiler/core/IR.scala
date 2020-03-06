@@ -5,7 +5,6 @@ import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Location}
 
 import scala.collection.immutable.{Set => ISet}
-
 import scala.reflect.ClassTag
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation

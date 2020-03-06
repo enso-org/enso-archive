@@ -27,7 +27,8 @@ public class AddNode extends NumberBinaryOpMethod {
         new ArgumentDefinition(1, "that", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
-  /** Adds the two operands to this method.
+  /**
+   * Adds the two operands to this method.
    *
    * @param thisArg the left operand (this)
    * @param thatArg the right operand (that)
