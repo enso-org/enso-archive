@@ -30,9 +30,11 @@ object Buffer {
     * Creates a new buffer with a freshly generated version.
     *
     * @param contents the contents of this buffer.
-    * @param digest a digest calculator for content based versioning.
+    * @param versionCalculator a digest calculator for content based versioning.
     * @return a new buffer instance.
     */
-  def apply(contents: String)(implicit digest: ContentBasedVersioning): Buffer =
+  def apply(
+    contents: String
+  )(implicit versionCalculator: ContentBasedVersioning): Buffer =
     Buffer(Rope(contents))
 }
