@@ -270,7 +270,7 @@ object Main {
     val osVersion = System.getProperty("os.version")
 
     val dirtyStr = if (Info.isDirty) {
-      "Uncommitted changes, "
+      "Uncommitted changes,"
     } else {
       ""
     }
