@@ -49,9 +49,6 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.OptionConverters._
 
-// TODO [AA] Generate specialised nodes where possible for applications (e.g.
-//  "+" could resolve to an AddOperatorNode instead of an ApplicationNode)
-
 /** This is an implementation of a codegeneration pass that lowers the Enso
   * [[IR]] into the truffle [[org.enso.compiler.core.Core.Node]] structures that
   * are actually executed.

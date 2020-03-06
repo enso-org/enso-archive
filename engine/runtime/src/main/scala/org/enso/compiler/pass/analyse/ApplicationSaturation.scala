@@ -116,11 +116,11 @@ object ApplicationSaturation {
   /** Describes the saturation state of a function application. */
   sealed trait CallSaturation extends IR.Metadata
   object CallSaturation {
-    sealed case class Over(remaining: Int)         extends CallSaturation
-    sealed case class Exact(helper: CodegenHelper) extends CallSaturation
-    sealed case class ExactButByName()             extends CallSaturation
-    sealed case class Partial(unapplied: Int)      extends CallSaturation
-    sealed case class Unknown()                    extends CallSaturation
+    sealed case class Over(additionalArgCount: Int)   extends CallSaturation
+    sealed case class Exact(helper: CodegenHelper)    extends CallSaturation
+    sealed case class ExactButByName()                extends CallSaturation
+    sealed case class Partial(unappliedArgCount: Int) extends CallSaturation
+    sealed case class Unknown()                       extends CallSaturation
   }
 
   /** A description of a known function
