@@ -59,22 +59,14 @@ class CollaborativeBuffer(
   private def waiting: Receive = {
     case OpenFile(client, path) =>
       context.system.eventStream.publish(BufferCreated(path))
-      fileManager ! FileManagerProtocol.ReadFile(path)
-      context.system.scheduler
-        .scheduleOnce(timeout, self, FileReadingTimeout)
-      context.become(reading(client, sender()))
-      log.info(s"Buffer $path opened for ${client.id}")
+      log.info(s"Buffer opened for $path [client:${client.id}]")
+      readFile(client, path)
   }
 
   private def reading(client: Client, originalSender: ActorRef): Receive = {
     case ReadFileResult(Right(content)) =>
-      val buffer = Buffer(content)
-      val cap    = CapabilityRegistration(CanEdit(bufferPath))
-      originalSender ! OpenFileResponse(
-        Right(OpenFileResult(buffer, Some(cap)))
-      )
+      handleFileContent(client, originalSender, content)
       unstashAll()
-      context.become(editing(buffer, Map(client.id -> client), Some(client)))
 
     case ReadFileResult(Left(failure)) =>
       originalSender ! OpenFileResponse(Left(failure))
@@ -90,49 +82,69 @@ class CollaborativeBuffer(
   private def editing(
     buffer: Buffer,
     clients: Map[Client.Id, Client],
-    maybeWriteLock: Option[Client]
+    lockHolder: Option[Client]
   ): Receive = {
     case OpenFile(client, _) =>
-      openFile(buffer, clients, maybeWriteLock, client)
+      openFile(buffer, clients, lockHolder, client)
 
     case AcquireCapability(clientId, CapabilityRegistration(CanEdit(path))) =>
-      acquireWriteLock(buffer, clients, maybeWriteLock, clientId, path)
+      acquireWriteLock(buffer, clients, lockHolder, clientId, path)
 
     case ReleaseCapability(clientId, CapabilityRegistration(CanEdit(_))) =>
-      releaseWriteLock(buffer, clients, maybeWriteLock, clientId)
+      releaseWriteLock(buffer, clients, lockHolder, clientId)
 
     case ClientDisconnected(clientId) =>
       if (clients.contains(clientId)) {
-        removeClient(buffer, clients, maybeWriteLock, clientId)
+        removeClient(buffer, clients, lockHolder, clientId)
       }
 
+  }
+
+  private def readFile(client: Client, path: Path): Unit = {
+    fileManager ! FileManagerProtocol.ReadFile(path)
+    context.system.scheduler
+      .scheduleOnce(timeout, self, FileReadingTimeout)
+    context.become(reading(client, sender()))
+  }
+
+  private def handleFileContent(
+    client: Client,
+    originalSender: ActorRef,
+    content: String
+  ): Unit = {
+    val buffer = Buffer(content)
+    val cap    = CapabilityRegistration(CanEdit(bufferPath))
+    originalSender ! OpenFileResponse(
+      Right(OpenFileResult(buffer, Some(cap)))
+    )
+    context.become(editing(buffer, Map(client.id -> client), Some(client)))
   }
 
   private def openFile(
     buffer: Buffer,
     clients: Map[Id, Client],
-    maybeWriteLock: Option[Client],
+    lockHolder: Option[Client],
     client: Client
   ): Unit = {
     val writeCapability =
-      if (maybeWriteLock.isEmpty)
+      if (lockHolder.isEmpty)
         Some(CapabilityRegistration(CanEdit(bufferPath)))
       else
         None
     sender ! OpenFileResponse(Right(OpenFileResult(buffer, writeCapability)))
     context.become(
-      editing(buffer, clients + (client.id -> client), maybeWriteLock)
+      editing(buffer, clients + (client.id -> client), lockHolder)
     )
   }
 
   private def removeClient(
     buffer: Buffer,
     clients: Map[Id, Client],
-    maybeWriteLock: Option[Client],
+    lockHolder: Option[Client],
     clientId: Id
   ): Unit = {
     val newLock =
-      maybeWriteLock.flatMap {
+      lockHolder.flatMap {
         case holder if (holder.id == clientId) => None
         case holder                            => Some(holder)
       }
@@ -147,17 +159,17 @@ class CollaborativeBuffer(
   private def releaseWriteLock(
     buffer: Buffer,
     clients: Map[Client.Id, Client],
-    maybeWriteLock: Option[Client],
+    lockHolder: Option[Client],
     clientId: Id
   ): Unit = {
-    maybeWriteLock match {
+    lockHolder match {
       case None =>
         sender() ! CapabilityReleaseBadRequest
-        context.become(editing(buffer, clients, maybeWriteLock))
+        context.become(editing(buffer, clients, lockHolder))
 
       case Some(holder) if holder.id != clientId =>
         sender() ! CapabilityReleaseBadRequest
-        context.become(editing(buffer, clients, maybeWriteLock))
+        context.become(editing(buffer, clients, lockHolder))
 
       case Some(holder) if holder.id == clientId =>
         sender() ! CapabilityReleased
@@ -168,18 +180,18 @@ class CollaborativeBuffer(
   private def acquireWriteLock(
     buffer: Buffer,
     clients: Map[Client.Id, Client],
-    maybeWriteLock: Option[Client],
+    lockHolder: Option[Client],
     clientId: Client,
     path: Path
   ): Unit = {
-    maybeWriteLock match {
+    lockHolder match {
       case None =>
         sender() ! CapabilityAcquired
         context.become(editing(buffer, clients, Some(clientId)))
 
       case Some(holder) if holder == clientId =>
         sender() ! CapabilityAcquisitionBadRequest
-        context.become(editing(buffer, clients, maybeWriteLock))
+        context.become(editing(buffer, clients, lockHolder))
 
       case Some(holder) if holder != clientId =>
         sender() ! CapabilityAcquired
