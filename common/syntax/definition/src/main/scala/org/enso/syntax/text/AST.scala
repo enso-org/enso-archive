@@ -1378,8 +1378,8 @@ object AST {
       * intermediary cache used by some components that are aware of its
       * caveats.
       *
-      * ID serves just to be able to attach external information to AST nodes
-      * and as such also does not really represents "node value".
+      * ID also does not should be treated as part of node contents, it is used
+      * e.g. to map external data onto AST.
       */
     override def equals(rhs: Any): Boolean = {
       rhs match {
