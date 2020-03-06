@@ -11,7 +11,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 }
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Client
-import org.enso.languageserver.event.ClientDisconnected
+import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.FileManagerProtocol.{
   CreateFileResult,
@@ -90,6 +90,8 @@ class ClientController(
 
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
+      context.system.eventStream
+        .publish(ClientConnected(Client(clientId, self)))
       unstashAll()
       context.become(connected(webActor))
     case _ => stash()
