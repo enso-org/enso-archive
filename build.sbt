@@ -597,32 +597,32 @@ lazy val runner = project
   )
   .settings(
     Compile / sourceGenerators += Def.task {
-      val file = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
-      val gitHash = ("git rev-parse HEAD" !!).trim
-      val gitBranch = ("git rev-parse --abbrev-ref HEAD" !!).trim
-      val isDirty = !("git status --porcelain" !!).trim.isEmpty
+      val file             = (Compile / sourceManaged).value / "buildinfo" / "Info.scala"
+      val gitHash          = ("git rev-parse HEAD" !!).trim
+      val gitBranch        = ("git rev-parse --abbrev-ref HEAD" !!).trim
+      val isDirty          = !("git status --porcelain" !!).trim.isEmpty
       val dirtyCommitCount = ("git rev-list --count master.." !!).trim
       val latestCommitDate = ("git log HEAD -1 --format=%cd" !!).trim
 
       val fileContents =
         s"""
-          |package buildinfo
-          |
-          |object Info {
-          |
-          |  // Versions
-          |  val ensoVersion   = "$ensoVersion"
-          |  val scalacVersion = "$scalacVersion"
-          |  val graalVersion  = "$graalVersion"
-          |
-          |  // Git Info
-          |  val commit            = "$gitHash"
-          |  val branch            = "$gitBranch"
-          |  val isDirty           = $isDirty
-          |  val branchCommitCount = "$dirtyCommitCount"
-          |  val latestCommitDate  = "$latestCommitDate"
-          |}
-          |""".stripMargin
+           |package buildinfo
+           |
+           |object Info {
+           |
+           |  // Versions
+           |  val ensoVersion   = "$ensoVersion"
+           |  val scalacVersion = "$scalacVersion"
+           |  val graalVersion  = "$graalVersion"
+           |
+           |  // Git Info
+           |  val commit            = "$gitHash"
+           |  val branch            = "$gitBranch"
+           |  val isDirty           = $isDirty
+           |  val branchCommitCount = "$dirtyCommitCount"
+           |  val latestCommitDate  = "$latestCommitDate"
+           |}
+           |""".stripMargin
       IO.write(file, fileContents)
       Seq(file)
     }.taskValue
