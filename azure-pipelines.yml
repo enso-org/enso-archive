@@ -42,36 +42,11 @@ jobs:
           echo "##vso[task.setvariable variable=PATH]~/sbt/bin/:$PATH"
         displayName: Install SBT
       - script: |
-          sbt -no-colors syntaxJS/fullOptJS
-        displayName: Generate target/scala-parser.js
-        continueOnError: true
-      - task: PublishPipelineArtifact@1
-        inputs:
-          targetPath: '$(Pipeline.Workspace)/s/target/scala-parser.js'
-          artifact: 'parser-js'
-          publishLocation: 'pipeline'
-      - script: |
-          sbt -no-colors test
-        displayName: Test SBT
-        continueOnError: true
-      - script: |
-          sbt -no-colors syntax/bench
-        displayName: Benchmark the Parser
-        continueOnError: true
-      - script: |
-          sbt -no-colors runtime/Benchmark/compile
-        displayName: Check Runtime Benchmarks Compile
-        continueOnError: true
-      - task: PublishTestResults@2
-        inputs:
-          testResultsFormat: 'JUnit'
-          testResultsFiles: '**/TEST-*.xml'
-      - script: |
           sbt runner/assembly
         displayName: Build the Uberjar
         continueOnError: true
       - script: |
-          ./enso.jar --run ci/Main.enso
+          ./enso.jar --run ci/Test.enso
         displayName: Test the Uberjar
       - task: CopyFiles@2
         inputs:
@@ -171,4 +146,3 @@ jobs:
           echo "##vso[task.complete result=Failed;]DONE"
         condition: eq(variables['Agent.JobStatus'], 'SucceededWithIssues')
         displayName: Fail on Issues
-
