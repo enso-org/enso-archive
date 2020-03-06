@@ -11,6 +11,8 @@ import java.nio.file.Path
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
 
+  import FileSystemApi._
+
   "A file system interpreter" should "write textual content to file" in new TestCtx {
     //given
     val path    = Paths.get(testDirPath.toString, "foo.txt")
@@ -351,6 +353,81 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val result = objectUnderTest.exists(path.toFile).unsafeRunSync()
     //then
     result shouldBe Right(false)
+  }
+
+  it should "tree directory contents" in new TestCtx {
+    //given
+    val path          = Paths.get(testDirPath.toString, "dir")
+    val subdir        = Paths.get(testDirPath.toString, "dir", "subdir")
+    val fileA         = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
+    val fileB         = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
+    val subdirSymlink = Paths.get(testDirPath.toString, "dir", "symlink")
+    createEmptyFile(fileA)
+    createEmptyFile(fileB)
+    Files.createSymbolicLink(subdirSymlink, subdir)
+    val entry = DirectoryEntry(
+      path,
+      Set(
+        DirectoryEntry(
+          subdir,
+          Set(
+            FileEntry(fileA),
+            FileEntry(fileB)
+          )
+        ),
+        SymbolicLinkEntry(subdirSymlink, subdir)
+      )
+    )
+    //when
+    val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
+    //then
+    result shouldBe Right(entry)
+  }
+
+  it should "tree directory contents and limit depth" in new TestCtx {
+    //given
+    val path          = Paths.get(testDirPath.toString, "dir")
+    val subdir        = Paths.get(testDirPath.toString, "dir", "subdir")
+    val fileA         = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
+    val fileB         = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
+    val subdirSymlink = Paths.get(testDirPath.toString, "dir", "symlink")
+    createEmptyFile(fileA)
+    createEmptyFile(fileB)
+    Files.createSymbolicLink(subdirSymlink, subdir)
+    val entry = DirectoryEntry(
+      path,
+      Set(
+        DirectoryEntry(subdir, Set()),
+        SymbolicLinkEntry(subdirSymlink, subdir)
+      )
+    )
+    //when
+    val result =
+      objectUnderTest.tree(path.toFile, depth = Some(1)).unsafeRunSync()
+    //then
+    result shouldBe Right(entry)
+  }
+
+  it should "return FileNotFound when tree path is not a directory" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "dir", "a.txt")
+    createEmptyFile(path)
+    //when
+    val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
+  }
+
+  it should "return FileNotFound when tree depth <= 0" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "dir", "a.txt")
+    createEmptyFile(path)
+    //when
+    val result = objectUnderTest
+      .tree(path.getParent.toFile, depth = Some(0))
+      .unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
   }
 
   def readTxtFile(path: Path): String = {

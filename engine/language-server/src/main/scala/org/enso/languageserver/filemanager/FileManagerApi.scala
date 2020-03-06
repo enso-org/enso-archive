@@ -103,6 +103,20 @@ object FileManagerApi {
     }
   }
 
+  case object TreeFile extends Method("file/tree") {
+
+    case class Params(path: Path, depth: Option[Int])
+
+    case class Result(tree: DirectoryTree)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = TreeFile.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = TreeFile.Result
+    }
+  }
+
   // Errors
 
   case class FileSystemError(override val message: String)

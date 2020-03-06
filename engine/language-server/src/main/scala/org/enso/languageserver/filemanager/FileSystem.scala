@@ -15,6 +15,8 @@ import org.apache.commons.io.{FileExistsException, FileUtils}
   */
 class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
 
+  import FileSystemApi._
+
   /**
     * Writes textual content to a file.
     *
@@ -183,12 +185,100 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         .leftMap(errorHandling)
     }
 
+  /**
+    * Returns contents of a given path.
+    *
+    * @param path to the file system object
+    * @param depth maximum depth of a directory tree
+    * @return either [[FileSystemFailure]] or directory structure
+    */
+  override def tree(
+    path: File,
+    depth: Option[Int]
+  ): F[Either[FileSystemFailure, Entry]] = {
+    Sync[F].delay {
+      val limit = FileSystem.Depth(depth)
+      if (path.isDirectory && limit.canGoDeeper) {
+        Either
+          .catchOnly[IOException] {
+            FileSystem.readDirectoryEntry(path.toPath, limit.goDeeper)
+          }
+          .leftMap(errorHandling)
+      } else {
+        Left(FileNotFound)
+      }
+    }
+  }
+
   private val errorHandling: IOException => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound
     case _: FileExistsException   => FileExists
     case _: AccessDeniedException => AccessDenied
     case ex                       => GenericFileSystemFailure(ex.getMessage)
+  }
+
+}
+
+object FileSystem {
+
+  import FileSystemApi._
+
+  sealed private trait Depth {
+
+    def canGoDeeper: Boolean
+
+    def goDeeper: Depth
+  }
+
+  private object Depth {
+
+    def apply(depth: Option[Int]): Depth =
+      depth.fold[Depth](UnlimitedDepth)(LimitedDepth)
+  }
+
+  private case class LimitedDepth(limit: Int) extends Depth {
+
+    override def canGoDeeper: Boolean =
+      limit > 0
+
+    override def goDeeper: Depth =
+      LimitedDepth(limit - 1)
+  }
+
+  private case object UnlimitedDepth extends Depth {
+
+    override def canGoDeeper: Boolean =
+      true
+
+    override def goDeeper: Depth =
+      UnlimitedDepth
+  }
+
+  private def readDirectoryEntry(path: Path, level: Depth): DirectoryEntry = {
+    def readEntry(path: Path): Entry =
+      if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+        DirectoryEntry.empty(path)
+      } else if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+        FileEntry(path)
+      } else if (Files.isSymbolicLink(path)) {
+        SymbolicLinkEntry(path, Files.readSymbolicLink(path))
+      } else {
+        OtherEntry(path)
+      }
+    def accumulator(entry: DirectoryEntry, path: Path): DirectoryEntry =
+      if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) && level.canGoDeeper) {
+        entry.copy(
+          children = entry.children + readDirectoryEntry(path, level.goDeeper)
+        )
+      } else {
+        entry.copy(children = entry.children + readEntry(path))
+      }
+    def combiner(a: DirectoryEntry, b: DirectoryEntry): DirectoryEntry =
+      a.copy(children = a.children ++ b.children)
+    Files
+      .list(path)
+      .reduce(DirectoryEntry.empty(path), accumulator, combiner)
   }
 
 }

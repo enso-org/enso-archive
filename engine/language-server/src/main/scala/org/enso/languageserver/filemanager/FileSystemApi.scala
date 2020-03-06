@@ -9,6 +9,8 @@ import java.io.File
   */
 trait FileSystemApi[F[_]] {
 
+  import FileSystemApi._
+
   /**
     * Writes textual content to a file.
     *
@@ -85,5 +87,38 @@ trait FileSystemApi[F[_]] {
     * @return either [[FileSystemFailure]] or file existence flag
     */
   def exists(file: File): F[Either[FileSystemFailure, Boolean]]
+
+  /**
+    * Returns contents of a given path.
+    *
+    * @param path to the file system object
+    * @param depth maximum depth of a directory tree
+    * @return either [[FileSystemFailure]] or directory structure
+    */
+  def tree(
+    path: File,
+    depth: Option[Int]
+  ): F[Either[FileSystemFailure, Entry]]
+}
+
+object FileSystemApi {
+
+  import java.nio.file.Path
+
+  sealed trait Entry
+
+  case class DirectoryEntry(path: Path, children: Set[Entry]) extends Entry
+
+  object DirectoryEntry {
+
+    def empty(path: Path): DirectoryEntry =
+      DirectoryEntry(path, Set.empty)
+  }
+
+  case class FileEntry(path: Path) extends Entry
+
+  case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
+
+  case class OtherEntry(path: Path) extends Entry
 
 }

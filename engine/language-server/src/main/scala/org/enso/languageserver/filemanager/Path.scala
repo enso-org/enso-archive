@@ -21,4 +21,6 @@ case class Path(rootId: UUID, segments: List[String]) {
     new File(parentDir, fileName)
   }
 
+  def getName: String =
+    segments.lastOption.getOrElse("")
 }
