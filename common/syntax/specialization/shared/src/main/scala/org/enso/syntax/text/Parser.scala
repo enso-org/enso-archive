@@ -167,8 +167,8 @@ class Parser {
         resolveMacros(mod2).asInstanceOf[AST.Module]
       case _ => throw ParsingFailed
     }
-    val withExpressionIda = fillExpressionIds(resolved)
-    withExpressionIda
+    val withExpressionIds = fillExpressionIds(resolved)
+    withExpressionIds
   }
 
   /**
