@@ -1,46 +1,15 @@
 package org.enso.interpreter.node.expression.builtin.number;
 
-import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.NodeInfo;
-import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Language;
-import org.enso.interpreter.node.expression.builtin.BuiltinRootNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
-import org.enso.interpreter.runtime.error.TypeError;
-import org.enso.interpreter.runtime.state.Stateful;
-import org.enso.interpreter.runtime.type.TypesGen;
 
 @NodeInfo(shortName = "Number.%", description = "Mod for numbers.")
-public class ModNode extends BuiltinRootNode {
-  private BranchProfile thatOpBadTypeProfile = BranchProfile.create();
-
+public class ModNode extends NumberBinaryOpMethod {
   private ModNode(Language language) {
     super(language);
-  }
-
-  /**
-   * Executes this node.
-   *
-   * @param frame current execution frame
-   * @return the remainder when dividing the left operand by the right
-   */
-  @Override
-  public Stateful execute(VirtualFrame frame) {
-    long left = (long) Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];
-
-    Object right = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
-
-    if (TypesGen.isLong(right)) {
-      long longRight = TypesGen.asLong(right);
-      Object state = Function.ArgumentsHelper.getState(frame.getArguments());
-
-      return new Stateful(state, left % longRight);
-    } else {
-      thatOpBadTypeProfile.enter();
-      throw new TypeError("Unexpected type for `that` operand in " + getName(), this);
-    }
   }
 
   /**
@@ -55,6 +24,18 @@ public class ModNode extends BuiltinRootNode {
         CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "that", ArgumentDefinition.ExecutionMode.EXECUTE));
+  }
+
+  /**
+   * Calculates the remainder from dividing the node's operands.
+   *
+   * @param thisArg the left operand (this)
+   * @param thatArg the right operand (that)
+   * @return the remainder when dividing {@code thisArg} by {@code thatArg}
+   */
+  @Override
+  protected long op(long thisArg, long thatArg) {
+    return thisArg % thatArg;
   }
 
   /**

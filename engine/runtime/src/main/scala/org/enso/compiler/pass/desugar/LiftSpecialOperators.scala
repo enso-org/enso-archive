@@ -6,7 +6,7 @@ import org.enso.compiler.pass.IRPass
 /** This pass lifts any special operators (ones reserved by the language
   * implementation) into their own special IR constructs.
   */
-case class LiftSpecialOperators() extends IRPass {
+case object LiftSpecialOperators extends IRPass {
 
   /** A desugaring pass does not output any data. */
   override type Metadata = IR.Metadata.Empty

@@ -32,8 +32,8 @@ class Compiler(
 
   /** A list of the compiler phases, in the order they should be run. */
   val compilerPhaseOrdering: List[IRPass] = List(
-    LiftSpecialOperators(),
-    OperatorToFunction(),
+    LiftSpecialOperators,
+    OperatorToFunction,
     ApplicationSaturation()
   )
 

@@ -4,7 +4,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
 /** This pass converts usages of operators to calls to standard functions. */
-case class OperatorToFunction() extends IRPass {
+case object OperatorToFunction extends IRPass {
 
   /** A purely desugaring pass has no analysis output. */
   override type Metadata = IR.Metadata.Empty
