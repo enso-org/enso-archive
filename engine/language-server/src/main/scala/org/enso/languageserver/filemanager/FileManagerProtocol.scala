@@ -80,7 +80,7 @@ object FileManagerProtocol {
     * @param from a path to the source
     * @param to a path to the destination
     */
-  case class MoveFile(from: Path, to: Path)
+  case class MoveFile(from: RelativePath, to: RelativePath)
 
   /**
     * Returns a result of moving a file system object.
@@ -94,7 +94,7 @@ object FileManagerProtocol {
     *
     * @param path a path to a file
     */
-  case class ExistsFile(path: Path)
+  case class ExistsFile(path: RelativePath)
 
   /**
     * Returns a result of checking the existence of file system object.

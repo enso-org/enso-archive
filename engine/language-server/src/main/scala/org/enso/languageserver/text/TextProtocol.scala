@@ -1,7 +1,7 @@
 package org.enso.languageserver.text
 
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
-import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.languageserver.filemanager.{FileSystemFailure, RelativePath}
 
 object TextProtocol {
 
@@ -10,7 +10,7 @@ object TextProtocol {
     * @param client the client opening the file.
     * @param path the file path.
     */
-  case class OpenFile(client: Client, path: Path)
+  case class OpenFile(client: Client, path: RelativePath)
 
   /** Sent by the server in response to [[OpenFile]]
     *
@@ -34,7 +34,7 @@ object TextProtocol {
     * @param clientId the client closing the file.
     * @param path the file path.
     */
-  case class CloseFile(clientId: Client.Id, path: Path)
+  case class CloseFile(clientId: Client.Id, path: RelativePath)
 
   /**
     * Signals file close status.

@@ -1,7 +1,7 @@
 package org.enso.languageserver.text
 
 import org.enso.languageserver.data.CapabilityRegistration
-import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.filemanager.RelativePath
 import org.enso.languageserver.jsonrpc.{
   Error,
   HasParams,
@@ -18,7 +18,7 @@ import org.enso.languageserver.jsonrpc.{
 object TextApi {
 
   case object OpenFile extends Method("text/openFile") {
-    case class Params(path: Path)
+    case class Params(path: RelativePath)
     case class Result(
       writeCapability: Option[CapabilityRegistration],
       content: String,
@@ -33,7 +33,7 @@ object TextApi {
   }
 
   case object CloseFile extends Method("text/closeFile") {
-    case class Params(path: Path)
+    case class Params(path: RelativePath)
     implicit val hasParams = new HasParams[this.type] {
       type Params = CloseFile.Params
     }

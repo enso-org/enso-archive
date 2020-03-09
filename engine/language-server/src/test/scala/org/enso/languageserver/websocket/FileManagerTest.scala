@@ -749,7 +749,6 @@ class FileManagerTest extends WebSocketServerTest {
       to.toFile.isFile shouldBe true
     }
 
-
     "check file existence" in {
       val client = new WsTestClient(address)
       val path   = Paths.get(testContentRoot.toString, "nonexistent.txt")

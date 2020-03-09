@@ -79,7 +79,7 @@ object FileManagerApi {
 
   case object MoveFile extends Method("file/move") {
 
-    case class Params(from: Path, to: Path)
+    case class Params(from: RelativePath, to: RelativePath)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = MoveFile.Params
@@ -91,7 +91,7 @@ object FileManagerApi {
 
   case object ExistsFile extends Method("file/exists") {
 
-    case class Params(path: Path)
+    case class Params(path: RelativePath)
 
     case class Result(exists: Boolean)
 
