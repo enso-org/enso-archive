@@ -927,8 +927,8 @@ A representation of a batch of edits to a file, versioned.
 interface FileEdit {
   path: Path;
   edits: [TextEdit];
-  oldVersion: UUID;
-  newVersion: UUID;
+  oldVersion: SHA3-224;
+  newVersion: SHA3-224;
 }
 ```
 
@@ -995,7 +995,6 @@ client.
 }
 
 interface CapabilityRegistration {
-  id: UUID; // The registration ID
   method: String;
   registerOptions?: any;
 }
@@ -1024,7 +1023,7 @@ capability.
 
 ```typescript
 {
-  id: UUID; // The ID used to register the capability
+  registration: CapabilityRegistration;
 }
 ```
 
@@ -1066,7 +1065,7 @@ capability set.
 
 ```typescript
 {
-  id: UUID; // The ID used to register the capability
+  registration: CapabilityRegistration;
 }
 ```
 
@@ -1570,12 +1569,16 @@ the client that sent the `text/openFile` message.
 {
   writeCapability?: CapabilityRegistration;
   content: String;
-  currentVersion: UUID;
+  currentVersion: SHA3-224;
 }
 ```
 
 ##### Errors
-TBC
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
+
 
 #### `text/closeFile`
 This request informs the language server that a client has closed the specified
@@ -1599,7 +1602,8 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't 
+opened.
 
 #### `text/save`
 This requests for the language server to save the specified file.
@@ -1615,7 +1619,7 @@ that file, or if the client is requesting a save of an outdated version.
 ```typescript
 {
   path: Path;
-  currentVersion: UUID;
+  currentVersion: SHA3-224;
 }
 ```
 
@@ -2025,10 +2029,29 @@ It signals that file already exists.
 }
 ```
 
+##### `OperationTimeoutError`
+It signals that IO operation timed out.
+
+```typescript
+"error" : {
+  "code" : 1005,
+  "message" : "IO operation timeout"
+}
+```
+
 ##### `StackItemNotFoundError`
 ```typescript
 "error" : {
   "code" : 2001,
   "message" : "Stack item not found."
+}
+```
+##### `FileNotOpenedError`
+Signals that a file wasn't opened.
+
+```typescript
+"error" : {
+  "code" : 3001,
+  "message" : "File not opened"
 }
 ```

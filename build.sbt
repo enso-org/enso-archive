@@ -13,7 +13,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 //////////////////////////////
 
 val scalacVersion = "2.13.1"
-val graalVersion  = "19.3.1"
+val graalVersion  = "20.0.0"
 val circeVersion  = "0.13.0"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
@@ -355,9 +355,9 @@ lazy val project_manager = (project in file("common/project-manager"))
 //////////////////////
 
 val truffleRunOptions = Seq(
-  "-Dgraal.TruffleIterativePartialEscape=true",
+  "-Dpolyglot.engine.IterativePartialEscape=true",
   "-XX:-UseJVMCIClassLoader",
-  "-Dgraal.TruffleBackgroundCompilation=false",
+  "-Dpolyglot.engine.BackgroundCompilation=false",
   "-Dgraalvm.locatorDisabled=true"
 )
 
@@ -424,15 +424,16 @@ lazy val polyglot_api = project
 lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "ch.qos.logback" % "logback-classic" % "1.2.3",
-      "io.circe"       %% "circe-generic-extras" % "0.12.2",
-      "io.circe"       %% "circe-literal" % circeVersion,
-      "org.typelevel"  %% "cats-core" % "2.0.0",
-      "org.typelevel"  %% "cats-effect" % "2.0.0",
-      "commons-io"     % "commons-io" % "2.6",
-      akkaTestkit      % Test,
-      "org.scalatest"  %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+      "ch.qos.logback"   % "logback-classic" % "1.2.3",
+      "io.circe"         %% "circe-generic-extras" % "0.12.2",
+      "io.circe"         %% "circe-literal" % circeVersion,
+      "org.typelevel"    %% "cats-core" % "2.0.0",
+      "org.typelevel"    %% "cats-effect" % "2.0.0",
+      "org.bouncycastle" % "bcpkix-jdk15on" % "1.64",
+      "commons-io"       % "commons-io" % "2.6",
+      akkaTestkit        % Test,
+      "org.scalatest"    %% "scalatest" % "3.2.0-M2" % Test,
+      "org.scalacheck"   %% "scalacheck" % "1.14.0" % Test
     ),
     testOptions in Test += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")
@@ -544,6 +545,20 @@ lazy val runner = project
     assemblyJarName in assembly := "enso.jar",
     test in assembly := {},
     assemblyOutputPath in assembly := file("enso.jar"),
+    assemblyMergeStrategy in assembly := {
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".DSA") =>
+        MergeStrategy.discard
+      case PathList("META-INF", file, xs @ _*) if file.endsWith(".SF") =>
+        MergeStrategy.discard
+      case PathList("META-INF", "MANIFEST.MF", xs @ _*) =>
+        MergeStrategy.discard
+      case "application.conf" =>
+        MergeStrategy.concat
+      case "reference.conf" =>
+        MergeStrategy.concat
+      case x =>
+        MergeStrategy.first
+    },
     assemblyOption in assembly := (assemblyOption in assembly).value
       .copy(
         prependShellScript = Some(
@@ -553,6 +568,7 @@ lazy val runner = project
           )
         )
       ),
+    commands += WithDebugCommand.withDebug,
     inConfig(Compile)(truffleRunOptionsSettings),
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
