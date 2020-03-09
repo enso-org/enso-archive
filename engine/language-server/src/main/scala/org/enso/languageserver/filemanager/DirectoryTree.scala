@@ -1,7 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-import java.nio.file.{Path, Paths}
+import java.nio.file.Path
 
 /**
   * A representation of tree structures of files and directories.
@@ -26,7 +26,7 @@ object DirectoryTree {
     directory: FileSystemApi.DirectoryEntry
   ): DirectoryTree =
     DirectoryTree(
-      path        = relativizeEntryPath(root, base, getParent(directory.path)),
+      path        = mkRelativeParent(root, base, directory.path),
       name        = directory.path.getFileName.toString,
       files       = directory.children.map(toFileSystemObject(root, base, _)),
       directories = directory.children.flatMap(fromEntry(root, base, _))
@@ -43,58 +43,57 @@ object DirectoryTree {
       case _ => None
     }
 
-  private def relativizeEntryPath(
-    root: File,
-    base: RelativePath,
-    file: java.nio.file.Path
-  ): RelativePath =
-    RelativePath(base.rootId, root.toPath.relativize(file))
-
-  private def relativizeSymlinkEntryPath(
-    root: File,
-    base: RelativePath,
-    file: java.nio.file.Path
-  ): Segments = {
-    if (file.startsWith(root.toPath)) {
-      relativizeEntryPath(root, base, file)
-    } else {
-      AbsolutePath(file)
-    }
-  }
-
-  private def getParent(path: java.nio.file.Path): java.nio.file.Path =
-    Option(path.getParent()).getOrElse(Paths.get(""))
-
   private def toFileSystemObject(
     root: File,
     base: RelativePath,
     entry: FileSystemApi.Entry
-  ): FileSystemObject = {
-    def getRelativeParent(path: Path): RelativePath =
-      relativizeEntryPath(root, base, getParent(path))
+  ): FileSystemObject =
     entry match {
       case FileSystemApi.DirectoryEntry(path, _) =>
         FileSystemObject.Directory(
           path.getFileName.toString,
-          getRelativeParent(path)
+          mkRelativeParent(root, base, path)
         )
 
       case FileSystemApi.FileEntry(path) =>
         FileSystemObject.File(
           path.getFileName.toString,
-          getRelativeParent(path)
+          mkRelativeParent(root, base, path)
         )
 
       case FileSystemApi.SymbolicLinkEntry(path, target) =>
         FileSystemObject.Symlink(
-          relativizeEntryPath(root, base, path),
-          relativizeSymlinkEntryPath(root, base, target)
+          mkRelativePath(root, base, path),
+          mkSymlinkTargetPath(root, base, target)
         )
 
       case FileSystemApi.OtherEntry(_) =>
         FileSystemObject.Other
     }
 
-  }
+  private def mkRelativePath(
+    root: File,
+    base: RelativePath,
+    path: Path
+  ): RelativePath =
+    RelativePath(base.rootId, root.toPath.relativize(path))
+
+  private def mkRelativeParent(
+    root: File,
+    base: RelativePath,
+    path: Path
+  ): RelativePath =
+    mkRelativePath(root, base, path.getParent())
+
+  private def mkSymlinkTargetPath(
+    root: File,
+    base: RelativePath,
+    path: Path
+  ): SystemPath =
+    if (path.startsWith(root.toPath)) {
+      mkRelativePath(root, base, path)
+    } else {
+      AbsolutePath(path)
+    }
 
 }

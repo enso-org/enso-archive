@@ -34,7 +34,7 @@ object FileSystemObject {
     * @param source a link path
     * @param target a destination of the link
     */
-  case class Symlink(source: RelativePath, target: Segments)
+  case class Symlink(source: RelativePath, target: SystemPath)
       extends FileSystemObject
 
   /**
@@ -49,8 +49,6 @@ object FileSystemObject {
     val Name = "name"
 
     val RelativePath = "path"
-
-    val AbsolutePath = "absolute-path"
 
     val Source = "source"
 
@@ -68,7 +66,7 @@ object FileSystemObject {
     val Other = "Other"
   }
 
-  implicit val fsoDecoder: Decoder[FileSystemObject] =
+  implicit val decoder: Decoder[FileSystemObject] =
     Decoder.instance { cursor =>
       cursor.downField(CodecField.Type).as[String].flatMap {
         case CodecType.File =>
@@ -97,7 +95,7 @@ object FileSystemObject {
       }
     }
 
-  implicit val fsoEncoder: Encoder[FileSystemObject] =
+  implicit val encoder: Encoder[FileSystemObject] =
     Encoder.instance[FileSystemObject] {
       case Directory(name, path) =>
         Json.obj(
@@ -113,14 +111,7 @@ object FileSystemObject {
           CodecField.RelativePath -> path.asJson
         )
 
-      case Symlink(source, target: RelativePath) =>
-        Json.obj(
-          CodecField.Type   -> CodecType.Symlink.asJson,
-          CodecField.Source -> source.asJson,
-          CodecField.Target -> target.asJson
-        )
-
-      case Symlink(source, target: AbsolutePath) =>
+      case Symlink(source, target) =>
         Json.obj(
           CodecField.Type   -> CodecType.Symlink.asJson,
           CodecField.Source -> source.asJson,

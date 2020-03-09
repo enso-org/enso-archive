@@ -853,78 +853,78 @@ class FileManagerTest extends WebSocketServerTest {
           { "jsonrpc": "2.0",
             "id": 30,
             "result": {
-              "tree" : {
-                "path" : {
-                  "rootId" : $testContentRootId,
-                  "segments" : [
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
                     ".."
                   ]
                 },
-                "name" : ${testContentRoot.getFileName.toString},
-                "files" : [
+                "name": ${testContentRoot.getFileName.toString},
+                "files": [
                   {
-                    "type" : "Directory",
-                    "name" : "base",
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "type": "Directory",
+                    "name": "base",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                       ]
                     }
                   }
                 ],
-                "directories" : [
+                "directories": [
                   {
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                       ]
                     },
-                    "name" : "base",
-                    "files" : [
+                    "name": "base",
+                    "files": [
                       {
-                        "type" : "Directory",
-                        "name" : "subdir",
-                        "path" : {
-                          "rootId" : $testContentRootId,
-                          "segments" : [
+                        "type": "Directory",
+                        "name": "subdir",
+                        "path": {
+                          "rootId": $testContentRootId,
+                          "segments": [
                             "base"
                           ]
                         }
                       },
                       {
-                        "type" : "File",
-                        "name" : "a.txt",
-                        "path" : {
-                          "rootId" : $testContentRootId,
-                          "segments" : [
+                        "type": "File",
+                        "name": "a.txt",
+                        "path": {
+                          "rootId": $testContentRootId,
+                          "segments": [
                             "base"
                           ]
                         }
                       }
                     ],
-                    "directories" : [
+                    "directories": [
                       {
                         "path" : {
                           "rootId" : $testContentRootId,
-                          "segments" : [
+                          "segments": [
                             "base"
                           ]
                         },
-                        "name" : "subdir",
-                        "files" : [
+                        "name": "subdir",
+                        "files": [
                           {
-                            "type" : "File",
-                            "name" : "b.txt",
-                            "path" : {
-                              "rootId" : $testContentRootId,
-                              "segments" : [
+                            "type": "File",
+                            "name": "b.txt",
+                            "path": {
+                              "rootId": $testContentRootId,
+                              "segments": [
                                 "base",
                                 "subdir"
                               ]
                             }
                           }
                         ],
-                        "directories" : [
+                        "directories": [
                         ]
                       }
                     ]
@@ -1010,58 +1010,58 @@ class FileManagerTest extends WebSocketServerTest {
           { "jsonrpc": "2.0",
             "id": 33,
             "result": {
-              "tree" : {
-                "path" : {
-                  "rootId" : $testContentRootId,
-                  "segments" : [
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
                   ]
                 },
-                "name" : "base",
-                "files" : [
+                "name": "base",
+                "files": [
                   {
-                    "type" : "Directory",
-                    "name" : "subdir",
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "type": "Directory",
+                    "name": "subdir",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base"
                       ]
                     }
                   },
                   {
-                    "type" : "File",
-                    "name" : "a.txt",
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "type": "File",
+                    "name": "a.txt",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base"
                       ]
                     }
                   }
                 ],
-                "directories" : [
+                "directories": [
                   {
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base"
                       ]
                     },
-                    "name" : "subdir",
-                    "files" : [
+                    "name": "subdir",
+                    "files": [
                       {
-                        "type" : "File",
-                        "name" : "b.txt",
-                        "path" : {
-                          "rootId" : $testContentRootId,
-                          "segments" : [
+                        "type": "File",
+                        "name": "b.txt",
+                        "path": {
+                          "rootId": $testContentRootId,
+                          "segments": [
                             "base",
                             "subdir"
                           ]
                         }
                       }
                     ],
-                    "directories" : [
+                    "directories": [
                     ]
                   }
                 ]
@@ -1143,28 +1143,28 @@ class FileManagerTest extends WebSocketServerTest {
           { "jsonrpc": "2.0",
             "id": 36,
             "result": {
-              "tree" : {
-                "path" : {
-                  "rootId" : $testContentRootId,
-                  "segments" : [
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
                     "base"
                   ]
                 },
-                "name" : "subdir",
-                "files" : [
+                "name": "subdir",
+                "files": [
                   {
-                    "type" : "File",
-                    "name" : "b.txt",
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "type": "File",
+                    "name": "b.txt",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base",
                         "subdir"
                       ]
                     }
                   }
                 ],
-                "directories" : [
+                "directories": [
                 ]
               }
             }
@@ -1228,65 +1228,66 @@ class FileManagerTest extends WebSocketServerTest {
           { "jsonrpc": "2.0",
             "id": 38,
             "result": {
-              "tree" : {
-                "path" : {
-                  "rootId" : $testContentRootId,
-                  "segments" : [
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
                   ]
                 },
-                "name" : "base",
-                "files" : [
+                "name": "base",
+                "files": [
                   {
-                    "type" : "Symlink",
-                    "source" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "type": "Symlink",
+                    "source": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base",
                         "link"
                       ]
                     },
-                    "target" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "target": {
+                      "type": "Relative",
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base",
                         "subdir"
                       ]
                     }
                   },
                   {
-                    "type" : "Directory",
-                    "name" : "subdir",
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "type": "Directory",
+                    "name": "subdir",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base"
                       ]
                     }
                   }
                 ],
-                "directories" : [
+                "directories": [
                   {
-                    "path" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base"
                       ]
                     },
-                    "name" : "subdir",
-                    "files" : [
+                    "name": "subdir",
+                    "files": [
                       {
-                        "type" : "File",
-                        "name" : "b.txt",
-                        "path" : {
-                          "rootId" : $testContentRootId,
-                          "segments" : [
+                        "type": "File",
+                        "name": "b.txt",
+                        "path": {
+                          "rootId": $testContentRootId,
+                          "segments": [
                             "base",
                             "subdir"
                           ]
                         }
                       }
                     ],
-                    "directories" : [
+                    "directories": [
                     ]
                   }
                 ]
@@ -1350,33 +1351,33 @@ class FileManagerTest extends WebSocketServerTest {
           { "jsonrpc": "2.0",
             "id": 40,
             "result": {
-              "tree" : {
-                "path" : {
-                  "rootId" : $testContentRootId,
-                  "segments" : [
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
                   ]
                 },
-                "name" : "base",
-                "files" : [
+                "name": "base",
+                "files": [
                   {
-                    "type" : "Symlink",
-                    "source" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "type": "Symlink",
+                    "source": {
+                      "rootId": $testContentRootId,
+                      "segments": [
                         "base",
                         "link"
                       ]
                     },
-                    "target" : {
-                      "rootId" : $testContentRootId,
-                      "segments" : [
+                    "target": {
+                      "type": "Absolute",
+                      "segments": [
                         "tmp",
                         ${testOtherRoot.getFileName.toString}
                       ]
                     }
                   }
                 ],
-                "directories" : [
+                "directories": [
                 ]
               }
             }
