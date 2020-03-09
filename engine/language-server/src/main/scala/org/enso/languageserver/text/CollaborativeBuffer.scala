@@ -3,6 +3,7 @@ package org.enso.languageserver.text
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.languageserver.capability.CapabilityProtocol._
 import org.enso.languageserver.data.Client.Id
+import org.enso.languageserver.data.buffer.Rope
 import org.enso.languageserver.data.{
   CanEdit,
   CapabilityRegistration,
@@ -20,8 +21,10 @@ import org.enso.languageserver.filemanager.{
   OperationTimeout,
   Path
 }
+import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
 import org.enso.languageserver.text.TextProtocol._
+import org.enso.languageserver.text.model.FileEdit
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -104,6 +107,39 @@ class CollaborativeBuffer(
       } else {
         sender() ! FileNotOpened
       }
+
+    case ApplyEdit(clientId, change) =>
+      applyEdit(buffer, clients, lockHolder, clientId, change)
+
+  }
+
+  private def applyEdit(
+    buffer: Buffer,
+    clients: Map[Id, Client],
+    lockHolder: Option[Client],
+    clientId: Id,
+    change: FileEdit
+  ): Unit = {
+    val hasLock = lockHolder.exists(_.id == clientId)
+    if (hasLock) {
+      if (buffer.version == change.oldVersion) {
+        val newRope    = TextEditor[Rope].applyEdits(buffer.contents, change.edits)
+        val newVersion = versionCalculator.evalVersion(newRope.toString)
+        val newBuffer  = Buffer(newRope, newVersion)
+        if (change.newVersion == newVersion) {
+          sender() ! ApplyEditSuccess
+          val subscribers = clients.filterNot(_._1 == clientId).values
+          subscribers foreach { _.actor ! TextDidChange(List(change)) }
+          context.become(collaborativeEditing(newBuffer, clients, lockHolder))
+        } else {
+          sender() ! VersionConflictAfterEdit
+        }
+      } else {
+        sender() ! VersionConflictBeforeEdit(buffer.version)
+      }
+    } else {
+      sender() ! WriteDenied
+    }
   }
 
   private def readFile(client: Client, path: Path): Unit = {

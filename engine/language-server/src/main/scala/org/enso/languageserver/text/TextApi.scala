@@ -9,6 +9,7 @@ import org.enso.languageserver.jsonrpc.{
   Method,
   Unused
 }
+import org.enso.languageserver.text.model.{FileEdit, TextEdit}
 
 /**
   * The text editing JSON RPC API provided by the language server.
@@ -39,6 +40,23 @@ object TextApi {
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type
+    }
+  }
+
+  case object ApplyEdit extends Method("text/applyEdit") {
+    case class Params(edit: FileEdit)
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ApplyEdit.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
+  case object TextDidChange extends Method("text/didChange") {
+    case class Params(edits: List[FileEdit])
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = TextDidChange.Params
     }
   }
 

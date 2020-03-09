@@ -2,6 +2,7 @@ package org.enso.languageserver.text
 
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
 import org.enso.languageserver.filemanager.{FileSystemFailure, Path}
+import org.enso.languageserver.text.model.FileEdit
 
 object TextProtocol {
 
@@ -49,6 +50,18 @@ object TextProtocol {
   /**
     * Signals that a file wasn't opened.
     */
-  case object FileNotOpened extends CloseFileResult
+  case object FileNotOpened
+
+  case class ApplyEdit(clientId: Client.Id, edit: FileEdit)
+
+  sealed trait ApplyEditResult
+  case object ApplyEditSuccess extends ApplyEditResult
+  case object WriteDenied      extends ApplyEditResult
+  case class VersionConflictBeforeEdit(currentVersion: Buffer.Version)
+      extends ApplyEditResult
+  case class VersionConflictAfterEdit(modifiedFileVersion: Buffer.Version)
+      extends ApplyEditResult
+
+  case class TextDidChange(changes: List[FileEdit])
 
 }
