@@ -270,14 +270,9 @@ object Main {
     val osVersion = System.getProperty("os.version")
 
     val dirtyStr = if (Info.isDirty) {
-      "Uncommitted changes,"
+      "*"
     } else {
       ""
-    }
-    val commitStr = if (Info.branchCommitCount == "1") {
-      "commit"
-    } else {
-      "commits"
     }
 
     val versionOutput =
@@ -285,8 +280,7 @@ object Main {
          |Enso Compiler and Runtime
          |Version:    ${Info.ensoVersion}
          |Built with: scala-${Info.scalacVersion} for GraalVM ${Info.graalVersion}
-         |Built from: ${Info.branch} @ ${Info.commit}
-         |            ${dirtyStr} ${Info.branchCommitCount} $commitStr on branch
+         |Built from: ${Info.branch}$dirtyStr @ ${Info.commit}
          |Running on: $vmName, JDK $jreVersion
          |            $osName $osVersion ($osArch)
          |""".stripMargin

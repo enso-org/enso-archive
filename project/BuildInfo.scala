@@ -12,7 +12,6 @@ object BuildInfo {
     val gitHash          = ("git rev-parse HEAD" !!).trim
     val gitBranch        = ("git rev-parse --abbrev-ref HEAD" !!).trim
     val isDirty          = !("git status --porcelain" !!).trim.isEmpty
-    val dirtyCommitCount = ("git rev-list --count master..HEAD" !!).trim
     val latestCommitDate = ("git log HEAD -1 --format=%cd" !!).trim
 
     val fileContents =
@@ -30,7 +29,6 @@ object BuildInfo {
          |  val commit            = "$gitHash"
          |  val branch            = "$gitBranch"
          |  val isDirty           = $isDirty
-         |  val branchCommitCount = "$dirtyCommitCount"
          |  val latestCommitDate  = "$latestCommitDate"
          |}
          |""".stripMargin
