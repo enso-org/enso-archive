@@ -320,17 +320,21 @@ class Parser {
       ozip: OffsetZip[T, AST]
     ) {
       def process(context: Context): AST.ASTOf[T] = {
+        def assignmentInBlock(opr: AST.Opr): Boolean =
+          context == Block & opr.name == '='
+
         ast match {
           case AST.Module.any(block) => block.map(_.process(Block))
           case AST.Block.any(block)  => block.map(_.process(Block))
-          case AST.App.Infix.any(infix) if context == Block =>
+          case AST.App.Infix.any(infix) if assignmentInBlock(infix.opr) =>
             val newShape = infix.shape.copy(
               larg = infix.larg.process(Other),
               opr  = infix.opr.process(Other),
               rarg = infix.rarg.process(Other).withNewIDIfMissing()
             )
             infix.copy(shape = newShape)
-          case AST.App.Section.Right.any(right) if context == Block =>
+          case AST.App.Section.Right.any(right)
+              if assignmentInBlock(right.opr) =>
             val newShape = right.shape.copy(
               arg = right.arg.process(Other),
               opr = right.opr.process(Other)
