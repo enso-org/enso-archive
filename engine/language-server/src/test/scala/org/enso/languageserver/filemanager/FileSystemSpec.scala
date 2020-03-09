@@ -332,6 +332,27 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     to.toFile.isFile shouldBe true
   }
 
+  it should "check file existence" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "foo", "bar.txt")
+    createEmptyFile(path)
+    path.toFile.isFile shouldBe true
+    //when
+    val result = objectUnderTest.exists(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(true)
+  }
+
+  it should "check file non-existence" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "nonexistent.txt")
+    path.toFile.exists shouldBe false
+    //when
+    val result = objectUnderTest.exists(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(false)
+  }
+
   def readTxtFile(path: Path): String = {
     val buffer  = Source.fromFile(path.toFile)
     val content = buffer.getLines().mkString

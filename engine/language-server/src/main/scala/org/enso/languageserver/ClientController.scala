@@ -53,6 +53,7 @@ object ClientApi {
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
     .registerRequest(MoveFile)
+    .registerRequest(ExistsFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
 
@@ -134,6 +135,9 @@ class ClientController(
 
     case Request(MoveFile, id, params: MoveFile.Params) =>
       moveFile(webActor, id, params)
+
+    case Request(ExistsFile, id, params: ExistsFile.Params) =>
+      existsFile(webActor, id, params)
   }
 
   private def readFile(
@@ -269,4 +273,25 @@ class ClientController(
       }
   }
 
+  private def existsFile(
+    webActor: ActorRef,
+    id: Id,
+    params: ExistsFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.ExistsFile(params.path))
+      .onComplete {
+        case Success(FileManagerProtocol.ExistsFileResult(Right(exists))) =>
+          webActor ! ResponseResult(ExistsFile, id, ExistsFile.Result(exists))
+
+        case Success(FileManagerProtocol.ExistsFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occurred during exists file command", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
 }

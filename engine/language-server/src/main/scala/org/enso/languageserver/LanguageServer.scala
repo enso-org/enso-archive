@@ -123,6 +123,15 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
         } yield ()
 
       sender ! MoveFileResult(result)
+
+    case ExistsFile(path) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          exists   <- fs.exists(path.toFile(rootPath)).unsafeRunSync()
+        } yield exists
+
+      sender ! ExistsFileResult(result)
   }
   /* Note [Usage of unsafe methods]
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
