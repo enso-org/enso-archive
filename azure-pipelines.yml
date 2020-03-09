@@ -53,6 +53,9 @@ jobs:
 #          artifact: 'parser-js'
 #          publishLocation: 'pipeline'
       - script: |
+          cd s/
+        displayName: Change to Checkout Directory
+      - script: |
           sbt -no-colors test
         displayName: Test SBT
         continueOnError: true
