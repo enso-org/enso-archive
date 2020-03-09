@@ -17,7 +17,8 @@ object FileSystemObject {
     * @param name a name of the directory
     * @param path a path to the directory
     */
-  case class Directory(name: String, path: RelativePath) extends FileSystemObject
+  case class Directory(name: String, path: RelativePath)
+      extends FileSystemObject
 
   /**
     * Represents a file.
@@ -33,7 +34,8 @@ object FileSystemObject {
     * @param source a link path
     * @param target a destination of the link
     */
-  case class Symlink(source: RelativePath, target: RelativePath) extends FileSystemObject
+  case class Symlink(source: RelativePath, target: Segments)
+      extends FileSystemObject
 
   /**
     * Represents unrecognized object.
@@ -47,6 +49,8 @@ object FileSystemObject {
     val Name = "name"
 
     val RelativePath = "path"
+
+    val AbsolutePath = "absolute-path"
 
     val Source = "source"
 
@@ -82,7 +86,10 @@ object FileSystemObject {
         case CodecType.Symlink =>
           for {
             source <- cursor.downField(CodecField.Source).as[RelativePath]
-            target <- cursor.downField(CodecField.Target).as[RelativePath]
+            target <- cursor
+              .downField(CodecField.Target)
+              .as[RelativePath]
+              .orElse(cursor.downField(CodecField.Target).as[AbsolutePath])
           } yield Symlink(source, target)
 
         case CodecType.Other =>
@@ -94,19 +101,26 @@ object FileSystemObject {
     Encoder.instance[FileSystemObject] {
       case Directory(name, path) =>
         Json.obj(
-          CodecField.Type -> CodecType.Directory.asJson,
-          CodecField.Name -> name.asJson,
+          CodecField.Type         -> CodecType.Directory.asJson,
+          CodecField.Name         -> name.asJson,
           CodecField.RelativePath -> path.asJson
         )
 
       case File(name, path) =>
         Json.obj(
-          CodecField.Type -> CodecType.File.asJson,
-          CodecField.Name -> name.asJson,
+          CodecField.Type         -> CodecType.File.asJson,
+          CodecField.Name         -> name.asJson,
           CodecField.RelativePath -> path.asJson
         )
 
-      case Symlink(source, target) =>
+      case Symlink(source, target: RelativePath) =>
+        Json.obj(
+          CodecField.Type   -> CodecType.Symlink.asJson,
+          CodecField.Source -> source.asJson,
+          CodecField.Target -> target.asJson
+        )
+
+      case Symlink(source, target: AbsolutePath) =>
         Json.obj(
           CodecField.Type   -> CodecType.Symlink.asJson,
           CodecField.Source -> source.asJson,

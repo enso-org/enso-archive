@@ -11,6 +11,15 @@ sealed trait Segments {
   def segments: List[String]
 }
 
+object Segments {
+
+  def fromPath(path: Path): List[String] = {
+    val b = List.newBuilder[String]
+    path.forEach(p => b += p.toString())
+    b.result().filter(_.nonEmpty)
+  }
+}
+
 /**
   * A representation of a path relative to a specified content root.
   *
@@ -35,11 +44,8 @@ case class RelativePath(rootId: UUID, segments: List[String]) extends Segments {
 
 object RelativePath {
 
-  def apply(rootId: UUID, path: Path): RelativePath = {
-    val b = List.newBuilder[String]
-    path.forEach(p => b += p.toString())
-    new RelativePath(rootId, b.result().filter(_.nonEmpty))
-  }
+  def apply(rootId: UUID, path: Path): RelativePath =
+    new RelativePath(rootId, Segments.fromPath(path))
 }
 
 /**
@@ -48,3 +54,9 @@ object RelativePath {
   * @param segments path segments
   */
 case class AbsolutePath(segments: List[String]) extends Segments
+
+object AbsolutePath {
+
+  def apply(path: Path): AbsolutePath =
+    AbsolutePath(Segments.fromPath(path))
+}
