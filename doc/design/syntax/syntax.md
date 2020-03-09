@@ -1088,8 +1088,111 @@ main =
 Enso supports a variety of types of comments:
 
 - **Disable Comments:** TODO
-- **Documentation Comments:** TODO
-
 > The actionables for this section are:
 >
-> - Solidify exactly how each kind of comment behaves.
+> - Solidify exactly how it behaves.
+- **Documentation Comments:**
+Aside from language parser, Enso contains built-in Documentation Parser,
+which is a really powerful tool for generating code documentation from comments 
+written above appropriate code sections. Imagine creating a new `type Foo` - you
+know what it is, and you want everyone to use it, so you can write what it does,
+why and how in a comment above it, which will be automatically connected to this
+element, and the documentation parser will generate for you a nice page to share
+with users of your library.
+
+It is a error-sensitive tool, but if user will make a mistake, it can still try to assign 
+those elements properly, but will show that something seems wrong with red color in generated file.
+Doc Parser is also indent sensitive, so every wrong indentation, for example in lists will be rendered as you
+have written, but with invalid annotation, in other places, every indentation from base is expected to be multiline code block.
+
+#### Tags
+Starting from the top of the file, you can add tags.
+There are 5 available tags : 
+- DEPRECATED
+- MODIFIED
+- ADDED
+- UPCOMING
+- REMOVED
+
+But if you make a mistake or type in unknown tag, parser will still run fine, producing
+undefined tag called just like you've called it, ex. ALAMAKOTA
+
+Furthermore you can add details to each tag by writing them right after tag declaration
+with one space.
+
+So if you want to declare tags, simply write them in uppercase on top of the file, before parser begins creation 
+of other sections.
+
+#### Sections
+Every time you create 2 newlines, parser will start a new text section and close the previous one. 
+The first segment you'll write will go to the `Synopsis` part of the document, rest will be in the `Body`.
+Synopsis is there to write a small note for coder about what this function/library etc. does, body is to 
+provide details.
+There are 5 possible types of sections in Doc Parser:
+ - Raw - which is just a text block
+ - Important - To provide important details about functionality, known errors etc.
+ - Info - Just what name suggests
+ - Example - Placement for your usage examples, great place to add inline/multiline code 
+
+And this is how you invoke them
+ - Raw - created automatically after two newlines
+ - Important - Just add `!` before the section title
+ - Info - Just add `?` before the section title
+ - Example - Just add `>` before the section title
+
+#### Section titles
+When you want to add title to Raw section, just add before raw one more newline, that is, instead of normal double-newline to end
+section and start a new, use triple-newline
+In other sections first line (until newline) is parsed as a section title.
+
+#### Links
+There are two kinds of links:
+- normal URL's - Created with this syntax : `[Link name](URL)`
+- Image links - Created with this syntax : `![Image name](URL)`
+Images are rendered in generated document, as expected, the inline url will look just as you expect - Link name inline with rest 
+of the text, and on click will get you to expected page.
+
+#### Lists
+There are two kinds of lists:
+- unordered - created by text indentation of 2 spaces with `-` marker
+- ordered - created by text indentation of 2 spaces with `*` marker
+You can also nest lists one in another, just by adding 2-char indent with list marker in next line
+
+#### Inline & Multiline code
+To create inline code just enclose it in `` ` ``
+To create multiline code just make an indentation from base indent of current section
+
+#### Text formatters
+Doc Parser currently supports 3 text formatters
+- Italic - created by enclosing text with `_` mark, ex `_Foo_`
+- Bold - created by enclosing text with `*` mark, ex `*Foo*`
+- Strikeout - created by enclosing text with `~` mark, ex `~Foo~`
+You can also combine those formatters. For user-friendliness, you can choose how you close your text, either in HTML-Style, that is `_*~Foo~*_` or totally scrambled. But if you wont close your formatters, parser will create from it invalid AST and render it in red color
+
+And that is all you should know about syntax of Documentation Parser. For more complex info, please check `Doc.scala` file - the declaration of Doc Parser's AST.
+
+#### TL;DR - Documentation syntactic cheatsheet
+- Tags - Created by typing
+   - DEPRECATED
+   - MODIFIED
+   - ADDED
+   - UPCOMING
+   - REMOVED
+- Sections
+   - Raw - created automatically after two newlines, first line becomes title when used triple-newline instead of double.
+   - Important - Just add `!` before the section title
+   - Info - Just add `?` before the section title
+   - Example - Just add `>` before the section title
+- Links
+   - normal URL's - Created with this syntax : `[Link name](URL)`
+   - Image links - Created with this syntax : `![Image name](URL)`
+- Lists - nestable by indentation
+   - unordered - created by text indentation of 2 spaces with `-` marker
+   - ordered - created by text indentation of 2 spaces with `*` marker
+- Inline & Multiline code
+   - inline code - enclose code in `` ` ``
+   - multiline code - make an indentation from base indent of current section
+- Text formatters - can be combined
+   - Italic - created by enclosing text with `_` mark, ex `_Foo_`
+   - Bold - created by enclosing text with `*` mark, ex `*Foo*`
+   - Strikeout - created by enclosing text with `~` mark, ex `~Foo~`
