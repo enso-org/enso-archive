@@ -35,15 +35,16 @@ case class ParserService() extends Server with Protocol {
 
   def serializeAst(ast: AST.Module): String = ast.toJson().noSpaces
 
-  def runParser(program: String, ids: Parser.IDMap): AST.Module =
-    new Parser().run(new Reader(program), ids)
-
   def handleRequest(request: Request): Response = {
     request match {
       case ParseRequest(program, ids) =>
-        val ast  = runParser(program, ids)
+        val ast  = new Parser().run(new Reader(program), ids)
         val json = serializeAst(ast)
-        Protocol.Success(json)
+        Protocol.Success(json, "")
+      case ParseFileRequest(content) =>
+        val (ast, metadata)  = new Parser().run(content)
+        val json             = serializeAst(ast)
+        Protocol.Success(json, metadata)
       case _ =>
         throw new Exception(f"unimplemented request: $request")
     }

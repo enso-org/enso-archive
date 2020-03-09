@@ -155,7 +155,20 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(input: Reader): AST.Module = run(input, Nil)
+  def run(fileContent: String): (AST.Module, Metadata) = {
+    fileContent.split("\n# [idmap]") match {
+      case Array(input)  => (run(new Reader(input), Nil), "")
+      case Array(input, rest) =>
+        val meta     = rest.split("\n# [metadata]")
+        val metadata = if (meta.size < 2) "" else meta(1)
+        val idmap    = idMapFromJson(meta(0)).getOrElse {
+          throw new Exception("Could not decode IDMap from json.")
+        }
+
+        (run(new Reader(input), idmap), metadata)
+    }
+  }
+
 
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
@@ -348,7 +361,8 @@ class Parser {
 
 object Parser {
 
-  type IDMap = Seq[(Span, AST.ID)]
+  type IDMap    = Seq[(Span, AST.ID)]
+  type Metadata = String
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 
@@ -476,7 +490,7 @@ object Main extends scala.App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inp))
+  val mod = parser.run(new Reader(inp), Nil)
 
   println(Debug.pretty(mod.toString))
 

@@ -12,11 +12,13 @@ import org.enso.syntax.text.Parser
 object Protocol {
   sealed trait Request
   final case class ParseRequest(program: String, ids: Parser.IDMap)
-      extends Request
+    extends Request
+  final case class ParseFileRequest(content: String)
+    extends Request
 
   sealed trait Response
-  final case class Success(ast_json: String) extends Response
-  final case class Error(message: String)    extends Response
+  final case class Success(ast_json: String, metadata: String) extends Response
+  final case class Error(message: String)                      extends Response
 }
 
 /** Helper for implementing protocol over text-based transport.
