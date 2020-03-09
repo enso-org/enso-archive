@@ -43,6 +43,7 @@ jobs:
         displayName: Install SBT
       - checkout: self
         persistCredentials: true
+        path: repo
 #      - script: |
 #          sbt -no-colors syntaxJS/fullOptJS
 #        displayName: Generate target/scala-parser.js
@@ -53,7 +54,7 @@ jobs:
 #          artifact: 'parser-js'
 #          publishLocation: 'pipeline'
       - script: |
-          cd s/
+          cd repo
         displayName: Change to Checkout Directory
       - script: |
           sbt -no-colors test
