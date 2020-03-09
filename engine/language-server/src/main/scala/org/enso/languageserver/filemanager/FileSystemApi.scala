@@ -104,8 +104,17 @@ trait FileSystemApi[F[_]] {
 
 object FileSystemApi {
 
+  /**
+    * An object representing abstract file system entry.
+    */
   sealed trait Entry
 
+  /**
+    * An entry representing a directory.
+    *
+    * @param path to the directory
+    * @children a paths to the children entries
+    */
   case class DirectoryEntry(path: Path, children: Set[Entry]) extends Entry
 
   object DirectoryEntry {
@@ -114,10 +123,24 @@ object FileSystemApi {
       DirectoryEntry(path, Set.empty)
   }
 
+  /**
+    * An entry representing a file.
+    *
+    * @param path to the file
+    */
   case class FileEntry(path: Path) extends Entry
 
+  /**
+    * An entry representing a symbolic link.
+    *
+    * @param path a path to the symbolic link
+    * @param target path of the symbolic link
+    */
   case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
 
+  /**
+    * Unrecognized file system entry.
+    */
   case class OtherEntry(path: Path) extends Entry
 
 }

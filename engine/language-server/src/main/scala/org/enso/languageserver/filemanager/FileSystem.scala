@@ -224,6 +224,9 @@ object FileSystem {
 
   import FileSystemApi._
 
+  /**
+    * Represent a depth limit when recursively traversing a directory.
+    */
   sealed private trait Depth {
 
     def canGoDeeper: Boolean
@@ -255,6 +258,14 @@ object FileSystem {
       UnlimitedDepth
   }
 
+  /**
+    * Return a [[DirectoryEntry]] tree representation of the directory, where
+    * the directory depth is limited with the [[Depth]] level.
+    *
+    * @param path a path to the directory
+    * @param level a maximum depth of the directory tree
+    * @return a [[DirectoryEntry]] tree representation of the directory
+    */
   private def readDirectoryEntry(path: Path, level: Depth): DirectoryEntry = {
     def readEntry(path: Path): Entry =
       if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {

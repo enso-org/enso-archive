@@ -20,6 +20,15 @@ case class DirectoryTree(
 
 object DirectoryTree {
 
+  /**
+    * Create [[DirectoryTree]] from [[FileSystemApi.DirectoryEntry]]
+    * converting absolute pathes to ones relative to project root.
+    *
+    * @param root path to the project root
+    * @param base path to the required directory
+    * @param directory a [[FileSystemApi]] representation of a directory
+    * @return a directory tree with paths relative to project root
+    */
   def fromDirectoryEntry(
     root: File,
     base: RelativePath,
@@ -28,7 +37,7 @@ object DirectoryTree {
     DirectoryTree(
       path        = mkRelativeParent(root, base, directory.path),
       name        = directory.path.getFileName.toString,
-      files       = directory.children.map(toFileSystemObject(root, base, _)),
+      files       = directory.children.map(mkFileSystemObject(root, base, _)),
       directories = directory.children.flatMap(fromEntry(root, base, _))
     )
 
@@ -43,7 +52,7 @@ object DirectoryTree {
       case _ => None
     }
 
-  private def toFileSystemObject(
+  private def mkFileSystemObject(
     root: File,
     base: RelativePath,
     entry: FileSystemApi.Entry
