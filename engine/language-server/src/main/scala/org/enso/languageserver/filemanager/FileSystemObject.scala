@@ -17,7 +17,7 @@ object FileSystemObject {
     * @param name a name of the directory
     * @param path a path to the directory
     */
-  case class Directory(name: String, path: Path) extends FileSystemObject
+  case class Directory(name: String, path: RelativePath) extends FileSystemObject
 
   /**
     * Represents a file.
@@ -25,7 +25,7 @@ object FileSystemObject {
     * @param name a name of the file
     * @param path a path to the file
     */
-  case class File(name: String, path: Path) extends FileSystemObject
+  case class File(name: String, path: RelativePath) extends FileSystemObject
 
   /**
     * Represents a symbolic link.
@@ -33,7 +33,7 @@ object FileSystemObject {
     * @param source a link path
     * @param target a destination of the link
     */
-  case class Symlink(source: Path, target: Path) extends FileSystemObject
+  case class Symlink(source: RelativePath, target: RelativePath) extends FileSystemObject
 
   /**
     * Represents unrecognized object.
@@ -46,7 +46,7 @@ object FileSystemObject {
 
     val Name = "name"
 
-    val Path = "path"
+    val RelativePath = "path"
 
     val Source = "source"
 
@@ -70,19 +70,19 @@ object FileSystemObject {
         case CodecType.File =>
           for {
             name <- cursor.downField(CodecField.Name).as[String]
-            path <- cursor.downField(CodecField.Path).as[Path]
+            path <- cursor.downField(CodecField.RelativePath).as[RelativePath]
           } yield File(name, path)
 
         case CodecType.Directory =>
           for {
             name <- cursor.downField(CodecField.Name).as[String]
-            path <- cursor.downField(CodecField.Path).as[Path]
+            path <- cursor.downField(CodecField.RelativePath).as[RelativePath]
           } yield Directory(name, path)
 
         case CodecType.Symlink =>
           for {
-            source <- cursor.downField(CodecField.Source).as[Path]
-            target <- cursor.downField(CodecField.Target).as[Path]
+            source <- cursor.downField(CodecField.Source).as[RelativePath]
+            target <- cursor.downField(CodecField.Target).as[RelativePath]
           } yield Symlink(source, target)
 
         case CodecType.Other =>
@@ -96,14 +96,14 @@ object FileSystemObject {
         Json.obj(
           CodecField.Type -> CodecType.Directory.asJson,
           CodecField.Name -> name.asJson,
-          CodecField.Path -> path.asJson
+          CodecField.RelativePath -> path.asJson
         )
 
       case File(name, path) =>
         Json.obj(
           CodecField.Type -> CodecType.File.asJson,
           CodecField.Name -> name.asJson,
-          CodecField.Path -> path.asJson
+          CodecField.RelativePath -> path.asJson
         )
 
       case Symlink(source, target) =>

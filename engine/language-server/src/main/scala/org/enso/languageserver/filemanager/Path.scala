@@ -1,13 +1,15 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-import java.nio.file.Paths
+import java.nio.file.{Path, Paths}
 import java.util.UUID
 
 /**
   * A representation of a path.
   */
-sealed trait FilePath
+sealed trait Segments {
+  def segments: List[String]
+}
 
 /**
   * A representation of a path relative to a specified content root.
@@ -15,7 +17,7 @@ sealed trait FilePath
   * @param rootId a content root id that the path is relative to
   * @param segments path segments
   */
-case class Path(rootId: UUID, segments: List[String]) {
+case class RelativePath(rootId: UUID, segments: List[String]) extends Segments {
 
   def toFile(rootPath: File): File =
     segments.foldLeft(rootPath) {
@@ -31,12 +33,12 @@ case class Path(rootId: UUID, segments: List[String]) {
     Paths.get("", segments: _*).toFile
 }
 
-object Path {
+object RelativePath {
 
-  def apply(rootId: UUID, path: java.nio.file.Path): Path = {
+  def apply(rootId: UUID, path: Path): RelativePath = {
     val b = List.newBuilder[String]
     path.forEach(p => b += p.toString())
-    new Path(rootId, b.result().filter(_.nonEmpty))
+    new RelativePath(rootId, b.result().filter(_.nonEmpty))
   }
 }
 
@@ -45,4 +47,4 @@ object Path {
   *
   * @param segments path segments
   */
-case class SystemPath(segments: List[String])
+case class AbsolutePath(segments: List[String]) extends Segments

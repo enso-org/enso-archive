@@ -12,7 +12,7 @@ import java.nio.file.Paths
   * @param directories contents of the directory
   */
 case class DirectoryTree(
-  path: Path,
+  path: RelativePath,
   name: String,
   files: Set[FileSystemObject],
   directories: Set[DirectoryTree]
@@ -22,12 +22,12 @@ object DirectoryTree {
 
   def fromDirectoryEntry(
     root: File,
-    base: Path,
+    base: RelativePath,
     directory: FileSystemApi.DirectoryEntry
   ): DirectoryTree =
     DirectoryTree(
       path =
-        Path(base.rootId, relativizeEntryPath(root, getParent(directory.path))),
+        RelativePath(base.rootId, relativizeEntryPath(root, getParent(directory.path))),
       name        = directory.path.getFileName.toString,
       files       = directory.children.map(toFileSystemObject(root, base, _)),
       directories = directory.children.flatMap(fromEntry(root, base, _))
@@ -35,7 +35,7 @@ object DirectoryTree {
 
   private def fromEntry(
     root: File,
-    base: Path,
+    base: RelativePath,
     entry: FileSystemApi.Entry
   ): Option[DirectoryTree] =
     entry match {
@@ -66,7 +66,7 @@ object DirectoryTree {
 
   private def toFileSystemObject(
     root: File,
-    base: Path,
+    base: RelativePath,
     entry: FileSystemApi.Entry
   ): FileSystemObject = {
     def getRelativeParent(path: java.nio.file.Path): java.nio.file.Path =
@@ -76,19 +76,19 @@ object DirectoryTree {
       case FileSystemApi.DirectoryEntry(path, _) =>
         FileSystemObject.Directory(
           path.getFileName.toString,
-          Path(base.rootId, getRelativeParent(path))
+          RelativePath(base.rootId, getRelativeParent(path))
         )
 
       case FileSystemApi.FileEntry(path) =>
         FileSystemObject.File(
           path.getFileName.toString,
-          Path(base.rootId, getRelativeParent(path))
+          RelativePath(base.rootId, getRelativeParent(path))
         )
 
       case FileSystemApi.SymbolicLinkEntry(path, target) =>
         FileSystemObject.Symlink(
-          Path(base.rootId, relativizeSymlinkEntryPath(root, path)),
-          Path(base.rootId, relativizeSymlinkEntryPath(root, target))
+          RelativePath(base.rootId, relativizeSymlinkEntryPath(root, path)),
+          RelativePath(base.rootId, relativizeSymlinkEntryPath(root, target))
         )
 
       case FileSystemApi.OtherEntry(_) =>

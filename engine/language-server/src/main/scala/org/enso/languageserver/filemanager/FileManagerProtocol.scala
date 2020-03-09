@@ -8,7 +8,7 @@ object FileManagerProtocol {
     * @param path a path to a file
     * @param content a textual content
     */
-  case class WriteFile(path: Path, content: String)
+  case class WriteFile(path: RelativePath, content: String)
 
   /**
     * Signals file manipulation status.
@@ -22,7 +22,7 @@ object FileManagerProtocol {
     *
     * @param path a path to a file
     */
-  case class ReadFile(path: Path)
+  case class ReadFile(path: RelativePath)
 
   /**
     * Returns a result of reading a file.
@@ -50,7 +50,7 @@ object FileManagerProtocol {
     *
     * @param path a path to a file
     */
-  case class DeleteFile(path: Path)
+  case class DeleteFile(path: RelativePath)
 
   /**
     * Returns a result of deleting a file system object.
@@ -65,7 +65,7 @@ object FileManagerProtocol {
     * @param from a path to the source
     * @param to a path to the destination
     */
-  case class CopyFile(from: Path, to: Path)
+  case class CopyFile(from: RelativePath, to: RelativePath)
 
   /**
     * Returns a result of copying a file system object.
@@ -108,7 +108,7 @@ object FileManagerProtocol {
     *
     * @param path to the file system object
     */
-  case class TreeFile(path: Path, depth: Option[Int])
+  case class TreeFile(path: RelativePath, depth: Option[Int])
 
   /**
     * Returns a tree representation of a file system object.

@@ -1,6 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
+import java.nio.file.Path
 
 /**
   * File manipulation API.
@@ -102,8 +103,6 @@ trait FileSystemApi[F[_]] {
 }
 
 object FileSystemApi {
-
-  import java.nio.file.Path
 
   sealed trait Entry
 
