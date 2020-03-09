@@ -47,7 +47,7 @@ Please list the reproduction steps for your bug. For example:
 - Please include any error output if relevant.
 -->
 
-### Luna Version
+### Enso Version
 <!--
 - Please include the output of `enso --version`.
 
