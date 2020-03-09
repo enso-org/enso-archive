@@ -3,6 +3,8 @@ package org.enso.languageserver.filemanager
 import java.io.File
 import java.nio.file.Path
 
+import scala.collection.immutable.TreeSet
+
 /**
   * A representation of tree structures of files and directories.
   *
@@ -14,11 +16,14 @@ import java.nio.file.Path
 case class DirectoryTree(
   path: RelativePath,
   name: String,
-  files: Set[FileSystemObject],
-  directories: Set[DirectoryTree]
+  files: TreeSet[FileSystemObject],
+  directories: TreeSet[DirectoryTree]
 )
 
 object DirectoryTree {
+
+  implicit def ordering: Ordering[DirectoryTree] =
+    Ordering.by(_.name)
 
   /**
     * Create [[DirectoryTree]] from [[FileSystemApi.DirectoryEntry]]

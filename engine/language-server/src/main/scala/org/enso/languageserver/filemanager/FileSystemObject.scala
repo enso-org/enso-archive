@@ -123,4 +123,12 @@ object FileSystemObject {
           CodecField.Type -> CodecType.Other.asJson
         )
     }
+
+  implicit def ordering: Ordering[FileSystemObject] =
+    Ordering.by {
+      case Directory(name, path) => new java.io.File(path.toFile, name)
+      case File(name, path)      => new java.io.File(path.toFile, name)
+      case Symlink(source, _)    => source.toFile
+      case Other                 => new java.io.File("/")
+    }
 }

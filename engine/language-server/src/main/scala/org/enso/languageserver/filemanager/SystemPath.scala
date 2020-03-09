@@ -105,7 +105,11 @@ object RelativePath {
   *
   * @param segments path segments
   */
-case class AbsolutePath(segments: List[String]) extends SystemPath
+case class AbsolutePath(segments: List[String]) extends SystemPath {
+
+  def toFile: File =
+    Paths.get("", segments: _*).toFile
+}
 
 object AbsolutePath {
 

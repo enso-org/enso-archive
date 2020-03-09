@@ -881,8 +881,8 @@ class FileManagerTest extends WebSocketServerTest {
                     "name": "base",
                     "files": [
                       {
-                        "type": "Directory",
-                        "name": "subdir",
+                        "type": "File",
+                        "name": "a.txt",
                         "path": {
                           "rootId": $testContentRootId,
                           "segments": [
@@ -891,8 +891,8 @@ class FileManagerTest extends WebSocketServerTest {
                         }
                       },
                       {
-                        "type": "File",
-                        "name": "a.txt",
+                        "type": "Directory",
+                        "name": "subdir",
                         "path": {
                           "rootId": $testContentRootId,
                           "segments": [
@@ -1018,8 +1018,8 @@ class FileManagerTest extends WebSocketServerTest {
                 "name": "base",
                 "files": [
                   {
-                    "type": "Directory",
-                    "name": "subdir",
+                    "type": "File",
+                    "name": "a.txt",
                     "path": {
                       "rootId": $testContentRootId,
                       "segments": [
@@ -1028,8 +1028,8 @@ class FileManagerTest extends WebSocketServerTest {
                     }
                   },
                   {
-                    "type": "File",
-                    "name": "a.txt",
+                    "type": "Directory",
+                    "name": "subdir",
                     "path": {
                       "rootId": $testContentRootId,
                       "segments": [

@@ -3,6 +3,8 @@ package org.enso.languageserver.filemanager
 import java.io.File
 import java.nio.file.Path
 
+import scala.collection.immutable.TreeSet
+
 /**
   * File manipulation API.
   *
@@ -109,18 +111,28 @@ object FileSystemApi {
     */
   sealed trait Entry
 
+  object Entry {
+    implicit def ordering: Ordering[Entry] =
+      Ordering.by {
+        case DirectoryEntry(path, _)    => path
+        case FileEntry(path)            => path
+        case SymbolicLinkEntry(path, _) => path
+        case OtherEntry(path)           => path
+      }
+  }
+
   /**
     * An entry representing a directory.
     *
     * @param path to the directory
     * @children a paths to the children entries
     */
-  case class DirectoryEntry(path: Path, children: Set[Entry]) extends Entry
+  case class DirectoryEntry(path: Path, children: TreeSet[Entry]) extends Entry
 
   object DirectoryEntry {
 
     def empty(path: Path): DirectoryEntry =
-      DirectoryEntry(path, Set.empty)
+      DirectoryEntry(path, TreeSet.empty)
   }
 
   /**

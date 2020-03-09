@@ -1,13 +1,13 @@
 package org.enso.languageserver.filemanager
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 
 import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.collection.immutable.TreeSet
 import scala.io.Source
-import java.nio.file.Path
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
 
@@ -367,10 +367,10 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(subdirSymlink, subdir)
     val entry = DirectoryEntry(
       path,
-      Set(
+      TreeSet(
         DirectoryEntry(
           subdir,
-          Set(
+          TreeSet(
             FileEntry(fileA),
             FileEntry(fileB)
           )
@@ -396,8 +396,8 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(subdirSymlink, subdir)
     val entry = DirectoryEntry(
       path,
-      Set(
-        DirectoryEntry(subdir, Set()),
+      TreeSet(
+        DirectoryEntry(subdir, TreeSet()),
         SymbolicLinkEntry(subdirSymlink, subdir)
       )
     )
