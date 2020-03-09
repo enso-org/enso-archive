@@ -98,7 +98,7 @@ trait FileSystemApi[F[_]] {
   def tree(
     path: File,
     depth: Option[Int]
-  ): F[Either[FileSystemFailure, Entry]]
+  ): F[Either[FileSystemFailure, DirectoryEntry]]
 }
 
 object FileSystemApi {

@@ -1,5 +1,8 @@
 package org.enso.languageserver.filemanager
 
+import java.io.File
+import java.nio.file.Paths
+
 /**
   * A representation of tree structures of files and directories.
   *
@@ -11,24 +14,87 @@ package org.enso.languageserver.filemanager
 case class DirectoryTree(
   path: Path,
   name: String,
-  files: Vector[FileSystemObject],
-  directories: Vector[DirectoryTree]
+  files: Set[FileSystemObject],
+  directories: Set[DirectoryTree]
 )
 
 object DirectoryTree {
 
-  def empty(path: Path): DirectoryTree =
+  def fromDirectoryEntry(
+    root: File,
+    base: Path,
+    directory: FileSystemApi.DirectoryEntry
+  ): DirectoryTree =
     DirectoryTree(
-      path        = path,
-      name        = path.getName,
-      files       = Vector.empty,
-      directories = Vector.empty
+      path =
+        Path(base.rootId, relativizeEntryPath(root, getParent(directory.path))),
+      name        = directory.path.getFileName.toString,
+      files       = directory.children.map(toFileSystemObject(root, base, _)),
+      directories = directory.children.flatMap(fromEntry(root, base, _))
     )
 
-  def fromEntry(
-    path: Path,
+  private def fromEntry(
+    root: File,
+    base: Path,
     entry: FileSystemApi.Entry
-  ): Either[FileSystemFailure, DirectoryTree] =
-    ???
+  ): Option[DirectoryTree] =
+    entry match {
+      case dir: FileSystemApi.DirectoryEntry =>
+        Some(fromDirectoryEntry(root, base, dir))
+      case _ => None
+    }
+
+  private def relativizeEntryPath(
+    root: File,
+    file: java.nio.file.Path
+  ): java.nio.file.Path =
+    root.toPath.relativize(file)
+
+  private def relativizeSymlinkEntryPath(
+    root: File,
+    file: java.nio.file.Path
+  ): java.nio.file.Path = {
+    if (file.startsWith(root.toPath)) {
+      relativizeEntryPath(root, file)
+    } else {
+      file
+    }
+  }
+
+  private def getParent(path: java.nio.file.Path): java.nio.file.Path =
+    Option(path.getParent()).getOrElse(Paths.get(""))
+
+  private def toFileSystemObject(
+    root: File,
+    base: Path,
+    entry: FileSystemApi.Entry
+  ): FileSystemObject = {
+    def getRelativeParent(path: java.nio.file.Path): java.nio.file.Path =
+      // getParent(relativizeEntryPath(root, path))
+      relativizeEntryPath(root, getParent(path))
+    entry match {
+      case FileSystemApi.DirectoryEntry(path, _) =>
+        FileSystemObject.Directory(
+          path.getFileName.toString,
+          Path(base.rootId, getRelativeParent(path))
+        )
+
+      case FileSystemApi.FileEntry(path) =>
+        FileSystemObject.File(
+          path.getFileName.toString,
+          Path(base.rootId, getRelativeParent(path))
+        )
+
+      case FileSystemApi.SymbolicLinkEntry(path, target) =>
+        FileSystemObject.Symlink(
+          Path(base.rootId, relativizeSymlinkEntryPath(root, path)),
+          Path(base.rootId, relativizeSymlinkEntryPath(root, target))
+        )
+
+      case FileSystemApi.OtherEntry(_) =>
+        FileSystemObject.Other
+    }
+
+  }
 
 }

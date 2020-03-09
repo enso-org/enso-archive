@@ -140,10 +140,9 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
     case TreeFile(path, depth) =>
       val result =
         for {
-          rootPath <- config.findContentRoot(path.rootId)
-          entry    <- fs.tree(path.toFile(rootPath), depth).unsafeRunSync()
-          tree     <- DirectoryTree.fromEntry(path, entry)
-        } yield tree
+          rootPath  <- config.findContentRoot(path.rootId)
+          directory <- fs.tree(path.toFile(rootPath), depth).unsafeRunSync()
+        } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
 
       sender ! TreeFileResult(result)
   }

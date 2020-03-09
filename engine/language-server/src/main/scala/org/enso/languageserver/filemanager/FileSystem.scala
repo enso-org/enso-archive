@@ -195,7 +195,7 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
   override def tree(
     path: File,
     depth: Option[Int]
-  ): F[Either[FileSystemFailure, Entry]] = {
+  ): F[Either[FileSystemFailure, DirectoryEntry]] = {
     Sync[F].delay {
       val limit = FileSystem.Depth(depth)
       if (path.isDirectory && limit.canGoDeeper) {
