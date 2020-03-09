@@ -56,40 +56,22 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .newBuilder("enso")
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
-    .option("enso-language-server.enable", "yes")
-    .serverTransport(new MessageTransport {
-      override def open(
-        uri: URI,
-        peerEndpoint: MessageEndpoint
-      ): MessageEndpoint = {
-        println("OPENING CONNECTION")
+    .option("enso-language-server.enable", "")
+    .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
+      if (uri.getScheme == "local") {
+        new MessageEndpoint {
+          override def sendText(text: String): Unit = {}
 
-        if (uri.getScheme == "local") {
-          new MessageEndpoint {
-            override def sendText(text: String): Unit = {
-              println(s"RECV: $text")
-              peerEndpoint.sendBinary(
-                ServerApiSerialization
-                  .serialize(CreateContext("54321"))//UUID.randomUUID()))
-              )
-              peerEndpoint.sendBinary(
-                ServerApiSerialization
-                  .serialize(DestroyContext("12354"))//UUID.randomUUID()))
-              )
-              peerEndpoint.sendBinary(ByteBuffer.wrap(Array[Byte](0, 1, 2)))
-            }
+          override def sendBinary(data: ByteBuffer): Unit = ???
 
-            override def sendBinary(data: ByteBuffer): Unit = ???
+          override def sendPing(data: ByteBuffer): Unit =
+            peerEndpoint.sendPong(data)
 
-            override def sendPing(data: ByteBuffer): Unit =
-              peerEndpoint.sendPong(data)
+          override def sendPong(data: ByteBuffer): Unit = ???
 
-            override def sendPong(data: ByteBuffer): Unit = ???
-
-            override def sendClose(): Unit = ???
-          }
-        } else null
-      }
+          override def sendClose(): Unit = ???
+        }
+      } else null
     })
     .build()
 

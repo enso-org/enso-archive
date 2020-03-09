@@ -28,12 +28,12 @@ import scala.util.Try
 )
 sealed trait ServerApi
 
-case class CreateContext(id: String)  extends ServerApi
-case class DestroyContext(id: String) extends ServerApi
+case class CreateContext(id: UUID)  extends ServerApi
+case class DestroyContext(id: UUID) extends ServerApi
 
 object ServerApiSerialization {
-  lazy val factory = new CBORFactory()
-  lazy val mapper = {
+  private lazy val factory = new CBORFactory()
+  private lazy val mapper = {
     val mapper = new ObjectMapper(factory) with ScalaObjectMapper
     mapper.registerModule(DefaultScalaModule)
   }
@@ -41,7 +41,7 @@ object ServerApiSerialization {
   def serialize(serverApi: ServerApi): ByteBuffer =
     ByteBuffer.wrap(mapper.writeValueAsBytes(serverApi))
 
-  def deserialize(bytes: ByteBuffer): ServerApi =
-    Try(mapper.readValue(bytes.array(), classOf[ServerApi])).getOrElse(null)
+  def deserialize(bytes: ByteBuffer): Option[ServerApi] =
+    Try(mapper.readValue(bytes.array(), classOf[ServerApi])).toOption
 
 }

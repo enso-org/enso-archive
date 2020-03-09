@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
+import org.enso.languageserver.Handler;
 import org.enso.polyglot.*;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -18,44 +19,18 @@ import java.util.Collections;
     services = LanguageServerInstrument.class)
 public class LanguageServerInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = LanguageInfo.ID + "-language-server";
+  private Handler handler;
 
   @Override
   protected void onCreate(Env env) {
-    env.registerService(this);
-    System.out.println("CREATE SERVER");
     try {
-      MessageEndpoint server =
-          env.startServer(
-              URI.create("local://foo"),
-              new MessageEndpoint() {
-                @Override
-                public void sendText(String text) {}
-
-                @Override
-                public void sendBinary(ByteBuffer data) {
-                  System.out.println("RECV BINARY");
-                  ServerApi request = ServerApiSerialization.deserialize(data);
-                  if (request instanceof CreateContext) {
-                    System.out.println("Got create context: " + ((CreateContext) request).id());
-                  } else if (request instanceof DestroyContext) {
-                    System.out.println("Got destroy context: " + ((DestroyContext) request).id());
-                  } else {
-                    System.out.println("Got unknown: " + request);
-                  }
-                }
-
-                @Override
-                public void sendPing(ByteBuffer data) {}
-
-                @Override
-                public void sendPong(ByteBuffer data) {}
-
-                @Override
-                public void sendClose() throws IOException {}
-              });
-      server.sendText("foo from runtime");
+      Handler handler = new Handler();
+      MessageEndpoint client = env.startServer(URI.create("local://local"), handler.endpoint());
+      handler.endpoint().setClient(client);
+      this.handler = handler;
+      env.registerService(this);
     } catch (MessageTransport.VetoException | IOException e) {
-
+      this.handler = null;
     }
   }
 
