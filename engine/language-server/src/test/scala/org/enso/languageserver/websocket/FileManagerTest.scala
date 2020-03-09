@@ -8,8 +8,6 @@ import io.circe.syntax._
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.filemanager.SystemPath
 
-import scala.io.{Source => IoSource}
-
 class FileManagerTest extends WebSocketServerTest {
   "File Server" must {
 
@@ -35,9 +33,9 @@ class FileManagerTest extends WebSocketServerTest {
             "result": null
           }
           """)
-      client.expectNoMessage()
+
       val path = Paths.get(testContentRoot.toString, "foo", "bar", "baz.txt")
-      IoSource.fromFile(path.toFile).getLines().mkString shouldBe "123456789"
+      Files.readAllLines(path).get(0) shouldBe "123456789"
     }
 
     "return failure when a content root cannot be found" in {
@@ -65,7 +63,6 @@ class FileManagerTest extends WebSocketServerTest {
             }
           }
           """)
-      client.expectNoMessage()
     }
 
     "read a file content" in {
