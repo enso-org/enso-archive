@@ -4,7 +4,9 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import io.circe.literal._
+import io.circe.syntax._
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.filemanager.SystemPath
 
 import scala.io.{Source => IoSource}
 
@@ -1369,10 +1371,7 @@ class FileManagerTest extends WebSocketServerTest {
                     },
                     "target": {
                       "type": "AbsolutePath",
-                      "segments": [
-                        "tmp",
-                        ${testOtherRoot.getFileName.toString}
-                      ]
+                      "segments": ${SystemPath.segments(testOtherRoot).asJson}
                     }
                   }
                 ],
@@ -1387,9 +1386,7 @@ class FileManagerTest extends WebSocketServerTest {
   }
 
   def withCleanRoot[T](test: => T): T = {
-    Files
-      .list(testContentRoot)
-      .forEach(path => FileUtils.forceDelete(path.toFile))
+    FileUtils.cleanDirectory(testContentRoot.toFile)
     test
   }
 
