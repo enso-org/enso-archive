@@ -22,7 +22,7 @@ case class DirectoryTree(
 
 object DirectoryTree {
 
-  implicit def ordering: Ordering[DirectoryTree] =
+  implicit val ordering: Ordering[DirectoryTree] =
     Ordering.by(_.name)
 
   /**

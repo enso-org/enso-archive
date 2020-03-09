@@ -112,7 +112,7 @@ object FileSystemApi {
   sealed trait Entry
 
   object Entry {
-    implicit def ordering: Ordering[Entry] =
+    implicit val ordering: Ordering[Entry] =
       Ordering.by {
         case DirectoryEntry(path, _)    => path
         case FileEntry(path)            => path

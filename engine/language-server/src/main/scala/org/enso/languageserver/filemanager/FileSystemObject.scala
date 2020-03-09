@@ -84,10 +84,7 @@ object FileSystemObject {
         case CodecType.Symlink =>
           for {
             source <- cursor.downField(CodecField.Source).as[RelativePath]
-            target <- cursor
-              .downField(CodecField.Target)
-              .as[RelativePath]
-              .orElse(cursor.downField(CodecField.Target).as[AbsolutePath])
+            target <- cursor.downField(CodecField.Target).as[SystemPath]
           } yield Symlink(source, target)
 
         case CodecType.Other =>
@@ -124,7 +121,7 @@ object FileSystemObject {
         )
     }
 
-  implicit def ordering: Ordering[FileSystemObject] =
+  implicit val ordering: Ordering[FileSystemObject] =
     Ordering.by {
       case Directory(name, path) => new java.io.File(path.toFile, name)
       case File(name, path)      => new java.io.File(path.toFile, name)
