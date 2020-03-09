@@ -111,6 +111,27 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
         } yield ()
 
       sender ! CopyFileResult(result)
+
+    case MoveFile(from, to) =>
+      val result =
+        for {
+          rootPathFrom <- config.findContentRoot(from.rootId)
+          rootPathTo   <- config.findContentRoot(to.rootId)
+          _ <- fs
+            .move(from.toFile(rootPathFrom), to.toFile(rootPathTo))
+            .unsafeRunSync()
+        } yield ()
+
+      sender ! MoveFileResult(result)
+
+    case ExistsFile(path) =>
+      val result =
+        for {
+          rootPath <- config.findContentRoot(path.rootId)
+          exists   <- fs.exists(path.toFile(rootPath)).unsafeRunSync()
+        } yield exists
+
+      sender ! ExistsFileResult(result)
   }
   /* Note [Usage of unsafe methods]
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

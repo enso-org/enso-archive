@@ -1308,7 +1308,10 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
+- [`FileExists`](#fileexists) informs that target file already exists.
 
 #### `file/exists`
 This request asks the file manager to check whether a filesystem object exists
@@ -1334,7 +1337,8 @@ at the specified path.
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
 
 #### `file/tree`
 This request asks the file manager component to generate and provide the
@@ -1571,7 +1575,11 @@ the client that sent the `text/openFile` message.
 ```
 
 ##### Errors
-TBC
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
+- [`FileNotFound`](#filenotfound) informs that file cannot be found.
+
 
 #### `text/closeFile`
 This request informs the language server that a client has closed the specified
@@ -1595,7 +1603,8 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't
+opened.
 
 #### `text/save`
 This requests for the language server to save the specified file.
@@ -1761,7 +1770,7 @@ the language server. This is incredibly important for enabling the high levels
 of interactivity required by Enso Studio.
 
 #### Types
-The execution management API exposes a set of common types used by many of its 
+The execution management API exposes a set of common types used by many of its
 messages.
 
 ##### `ExpressionId`
@@ -2036,5 +2045,14 @@ It signals that IO operation timed out.
 "error" : {
   "code" : 2001,
   "message" : "Stack item not found."
+}
+```
+##### `FileNotOpenedError`
+Signals that a file wasn't opened.
+
+```typescript
+"error" : {
+  "code" : 3001,
+  "message" : "File not opened"
 }
 ```
