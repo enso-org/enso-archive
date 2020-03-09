@@ -33,9 +33,9 @@ object SystemPath {
 
   private object CodecType {
 
-    val RelativePath = "Relative"
+    val RelativePath = "Path"
 
-    val AbsolutePath = "Absolute"
+    val AbsolutePath = "AbsolutePath"
   }
 
   implicit val encoder: Encoder[SystemPath] =

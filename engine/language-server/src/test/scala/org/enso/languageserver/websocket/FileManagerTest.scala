@@ -1245,7 +1245,7 @@ class FileManagerTest extends WebSocketServerTest {
                       ]
                     },
                     "target": {
-                      "type": "Relative",
+                      "type": "Path",
                       "rootId": $testContentRootId,
                       "segments": [
                         "base",
@@ -1368,7 +1368,7 @@ class FileManagerTest extends WebSocketServerTest {
                       ]
                     },
                     "target": {
-                      "type": "Absolute",
+                      "type": "AbsolutePath",
                       "segments": [
                         "tmp",
                         ${testOtherRoot.getFileName.toString}

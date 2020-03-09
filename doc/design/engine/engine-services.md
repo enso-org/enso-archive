@@ -596,6 +596,25 @@ interface Path {
 ```
 
 #### `AbsolutePath`
+Represents absolute path.
+
+##### Format
+
+``` typescript
+interface AbsolutePath {
+  segments: [String];
+}
+```
+
+#### `SystemPath`
+Represents either a relative [`Path`](#path) or an absolute
+[`AbsolutePath`](#absolutepath).
+
+##### Format
+
+``` typescript
+type SystemPath = Path | AbstractPath
+```
 
 ## Protocol Message Specification - Project Picker
 This section exists to contain a specification of each of the messages that the
@@ -965,7 +984,7 @@ interface File {
 
 interface Symlink {
   source: Path;
-  target: Path | SystemPath;
+  target: SystemPath;
 }
 
 interface Other;
@@ -1368,7 +1387,10 @@ the corresponding flag should be set.
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that requested directory cannot be
+  found.
 
 #### `file/list`
 This request lists the contents of a given filesystem object. For a file it will
