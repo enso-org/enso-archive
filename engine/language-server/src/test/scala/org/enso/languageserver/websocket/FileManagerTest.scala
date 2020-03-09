@@ -934,7 +934,7 @@ class FileManagerTest extends WebSocketServerTest {
           """)
     }
 
-    "get a directory tree" in withCleanRoot {
+    "get a directory tree" in {
       val client = new WsTestClient(address)
 
       // create base/a.txt
@@ -1069,7 +1069,7 @@ class FileManagerTest extends WebSocketServerTest {
           """)
     }
 
-    "get a subdirectory tree" in withCleanRoot {
+    "get a subdirectory tree" in {
       val client = new WsTestClient(address)
 
       // create base/a.txt
@@ -1170,10 +1170,10 @@ class FileManagerTest extends WebSocketServerTest {
           """)
     }
 
-    "get a directory tree with symlink" in withCleanRoot {
+    "get a directory tree with symlink" in {
       val client = new WsTestClient(address)
 
-      // create base/subdir/b.txt
+      // create base2/subdir/b.txt
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
@@ -1184,7 +1184,7 @@ class FileManagerTest extends WebSocketServerTest {
                 "name": "b.txt",
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "base", "subdir" ]
+                  "segments": [ "base2", "subdir" ]
                 }
               }
             }
@@ -1198,8 +1198,8 @@ class FileManagerTest extends WebSocketServerTest {
           """)
 
       // create symlink base/link -> base/subdir
-      val symlink = Paths.get(testContentRoot.toString, "base", "link")
-      val subdir  = Paths.get(testContentRoot.toString, "base", "subdir")
+      val symlink = Paths.get(testContentRoot.toString, "base2", "link")
+      val subdir  = Paths.get(testContentRoot.toString, "base2", "subdir")
       Files.createSymbolicLink(symlink, subdir)
       Files.isSymbolicLink(symlink) shouldBe true
 
@@ -1211,14 +1211,14 @@ class FileManagerTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "base" ]
+                "segments": [ "base2" ]
               }
             }
           }
       """)
       // expect:
       //
-      // base
+      // base2
       // ├── link
       // └── subdir
       //     └── b.txt
@@ -1232,14 +1232,14 @@ class FileManagerTest extends WebSocketServerTest {
                   "segments": [
                   ]
                 },
-                "name": "base",
+                "name": "base2",
                 "files": [
                   {
                     "type": "Symlink",
                     "source": {
                       "rootId": $testContentRootId,
                       "segments": [
-                        "base",
+                        "base2",
                         "link"
                       ]
                     },
@@ -1247,7 +1247,7 @@ class FileManagerTest extends WebSocketServerTest {
                       "type": "Path",
                       "rootId": $testContentRootId,
                       "segments": [
-                        "base",
+                        "base2",
                         "subdir"
                       ]
                     }
@@ -1258,7 +1258,7 @@ class FileManagerTest extends WebSocketServerTest {
                     "path": {
                       "rootId": $testContentRootId,
                       "segments": [
-                        "base"
+                        "base2"
                       ]
                     }
                   }
@@ -1268,7 +1268,7 @@ class FileManagerTest extends WebSocketServerTest {
                     "path": {
                       "rootId": $testContentRootId,
                       "segments": [
-                        "base"
+                        "base2"
                       ]
                     },
                     "name": "subdir",
@@ -1279,7 +1279,7 @@ class FileManagerTest extends WebSocketServerTest {
                         "path": {
                           "rootId": $testContentRootId,
                           "segments": [
-                            "base",
+                            "base2",
                             "subdir"
                           ]
                         }
@@ -1295,10 +1295,10 @@ class FileManagerTest extends WebSocketServerTest {
           """)
     }
 
-    "get a directory tree with symlink outside of root" in withCleanRoot {
+    "get a directory tree with symlink outside of root" in {
       val client = new WsTestClient(address)
 
-      // create base
+      // create base3
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
@@ -1306,7 +1306,7 @@ class FileManagerTest extends WebSocketServerTest {
             "params": {
               "object": {
                 "type": "Directory",
-                "name": "base",
+                "name": "base3",
                 "path": {
                   "rootId": $testContentRootId,
                   "segments": [ ]
@@ -1322,13 +1322,13 @@ class FileManagerTest extends WebSocketServerTest {
           }
           """)
 
-      // create symlink base/link -> $testOtherRoot
+      // create symlink base3/link -> $testOtherRoot
       val testOtherRoot = Files.createTempDirectory(null)
-      val symlink       = Paths.get(testContentRoot.toString, "base", "link")
+      val symlink       = Paths.get(testContentRoot.toString, "base3", "link")
       Files.createSymbolicLink(symlink, testOtherRoot)
       Files.isSymbolicLink(symlink) shouldBe true
 
-      // get a tree of 'base'
+      // get a tree of 'base3'
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/tree",
@@ -1336,14 +1336,14 @@ class FileManagerTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "base" ]
+                "segments": [ "base3" ]
               }
             }
           }
       """)
       // expect:
       //
-      // base
+      // base3
       // └── link
       client.expectJson(json"""
           { "jsonrpc": "2.0",
@@ -1355,14 +1355,14 @@ class FileManagerTest extends WebSocketServerTest {
                   "segments": [
                   ]
                 },
-                "name": "base",
+                "name": "base3",
                 "files": [
                   {
                     "type": "Symlink",
                     "source": {
                       "rootId": $testContentRootId,
                       "segments": [
-                        "base",
+                        "base3",
                         "link"
                       ]
                     },
