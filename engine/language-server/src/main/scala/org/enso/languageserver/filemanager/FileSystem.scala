@@ -6,7 +6,7 @@ import java.nio.file._
 import cats.data.EitherT
 import cats.effect.Sync
 import cats.implicits._
-import org.apache.commons.io.FileUtils
+import org.apache.commons.io.{FileExistsException, FileUtils}
 
 /**
   * File manipulation facility.
@@ -139,13 +139,54 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
               FileUtils.copyFile(from, to)
             }
           }
-          .leftMap(errorHandling)
-      }
+      }.leftMap(errorHandling)
+    }
+
+  /**
+    * Move a file or directory recursively
+    *
+    * @param from a path to the source
+    * @param to a path to the destination
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  override def move(
+    from: File,
+    to: File
+  ): F[Either[FileSystemFailure, Unit]] =
+    Sync[F].delay {
+      Either
+        .catchOnly[IOException] {
+          if (to.isDirectory) {
+            val createDestDir = false
+            FileUtils.moveToDirectory(from, to, createDestDir)
+          } else if (from.isDirectory) {
+            FileUtils.moveDirectory(from, to)
+          } else {
+            FileUtils.moveFile(from, to)
+          }
+        }
+        .leftMap(errorHandling)
+    }
+
+  /**
+    * Checks if the specified file exists.
+    *
+    * @param file path to the file or directory
+    * @return either [[FileSystemFailure]] or file existence flag
+    */
+  override def exists(file: File): F[Either[FileSystemFailure, Boolean]] =
+    Sync[F].delay {
+      Either
+        .catchOnly[IOException] {
+          Files.exists(file.toPath)
+        }
+        .leftMap(errorHandling)
     }
 
   private val errorHandling: IOException => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound
+    case _: FileExistsException   => FileExists
     case _: AccessDeniedException => AccessDenied
     case ex                       => GenericFileSystemFailure(ex.getMessage)
   }
