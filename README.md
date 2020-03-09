@@ -1,10 +1,29 @@
+<p align="center">
+  <br/>
+  <a href="http://luna-lang.org">
+      <img 
+          src="https://user-images.githubusercontent.com/1623053/75657359-50c92300-5c66-11ea-9cb8-61da8ee34df1.png" 
+          alt="Enso Studio" 
+          width="128"
+      />
+  </a>
+  <br/>
+  <br/>
+  <a href="http://luna-lang.org">
+      <img 
+          src="https://user-images.githubusercontent.com/1623053/75661125-05664300-5c6d-11ea-9bd3-8a5355db9609.png" 
+          alt="Enso Language" 
+          width="240"
+      />
+  </a>
+  <br/>
+  <br/>
+  <br/>
+</p>
+
+### Overview
 [![Build Status](https://dev.azure.com/luna-lang/luna/_apis/build/status/luna.enso?branchName=master)](https://dev.azure.com/luna-lang/luna/_build/latest?definitionId=10&branchName=master)
 
-<p align="center">
-<img src="https://github.com/luna/luna-studio/raw/master/resources/logo.ico" 
-style="margin: 0 auto;">
-</p>
-<h1 align="center">Enso Programming Language</h1>
 <h3 align="center">
 Visual and textual functional programming language with a focus on productivity,
 collaboration and development ergonomics.
@@ -21,22 +40,16 @@ This repository contains [Enso Engine](engine/) (its compiler,
 interpreter, runtime, and language server). Its cloud-ready IDE can be found in
 a [separate repository](https://github.com/luna/ide/).
 
-## Contributing to Enso
-If you are interested in contributing to the development of Enso, please read
-the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file. It describes all the ways in
-which you can help the project, as well as provides instructions for how to
-build Enso.
-
-## Enso's Design
+### Enso's Design
 If you would like to gain a better understanding of the principles on which Enso
-is based, or just delve into the why's and what's of Luna's design, please take
+is based, or just delve into the why's and what's of Enso's design, please take
 a look in the [`doc/design/` folder](./doc/design).
 
 This documentation will evolve as Enso does, both to help newcomers to the
 project understand the reasoning behind the code, but also to act as a record of
 the decisions that have been made through Enso's evolution.
 
-## License
+### License
 This repository is licensed under the
 [Apache 2.0](https://opensource.org/licenses/apache-2.0), as specified in the
 [LICENSE](https://github.com/luna/luna/blob/master/LICENSE) file.
@@ -49,13 +62,12 @@ products.
 If these terms are unacceptable to you, please do not contribute to the
 repository.
 
-### The Contributor License Agreement
-As part of your first contribution to this repository, you need to accept the
-Contributor License Agreement. You will automatically be asked to sign the CLA
-when you make your first pull request.
+### Contributing to Enso
+If you are interested in contributing to the development of Enso, please read
+the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file. It describes all the ways in
+which you can help the project, as well as provides instructions for how to
+build Enso.
 
-Any work intentionally submitted for inclusion in Luna shall be licensed under
-this CLA.
-
-The CLA you sign applies to all repositories associated with the Enso project,
-so you will only have to sign it once at the start of your contributions.
+<a href="https://github.com/luna/enso/graphs/contributors">
+  <img src="https://contributors-img.firebaseapp.com/image?repo=luna/enso" />
+</a>
