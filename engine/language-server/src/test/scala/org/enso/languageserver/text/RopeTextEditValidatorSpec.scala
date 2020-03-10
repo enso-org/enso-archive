@@ -29,6 +29,17 @@ class RopeTextEditValidatorSpec extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "fail if position is outside of buffer" in {
+    val diff1 = TextEdit(Range(Position(0, 3), Position(10, 2)), "a")
+    RopeTextEditValidator.validate(buffer, diff1) mustBe Left(
+      PositionNotFound(Position(10, 2))
+    )
+    val diff2 = TextEdit(Range(Position(0, 10), Position(1, 2)), "a")
+    RopeTextEditValidator.validate(buffer, diff2) mustBe Left(
+      PositionNotFound(Position(0, 10))
+    )
+  }
+
   lazy val buffer = Rope("1234567\nabcdefg")
 
 }

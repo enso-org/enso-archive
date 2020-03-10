@@ -13,6 +13,8 @@ object RopeTextEditValidator extends TextEditValidator[Rope] {
       _ <- checkIfEndIsAfterStart(textEdit)
       _ <- checkPosition(textEdit.range.start)
       _ <- checkPosition(textEdit.range.end)
+      _ <- checkIfInsideBuffer(buffer, textEdit.range.start)
+      _ <- checkIfInsideBuffer(buffer, textEdit.range.end)
     } yield ()
   }
 
@@ -36,4 +38,20 @@ object RopeTextEditValidator extends TextEditValidator[Rope] {
     if (coord >= 0) Right(())
     else Left(NegativeCoordinateInPosition)
 
+  def checkIfInsideBuffer(
+    buffer: Rope,
+    position: model.Position
+  ): Either[TextEditValidationFailure, Unit] = {
+    if (position.line >= buffer.lines.length) {
+      Left(PositionNotFound(position))
+    } else {
+      val tail = buffer.lines.drop(position.line)
+      val line = tail.lines.take(1)
+      if (position.character > line.toString.length) {
+        Left(PositionNotFound(position))
+      } else {
+        Right(())
+      }
+    }
+  }
 }
