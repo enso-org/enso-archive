@@ -42,6 +42,24 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |""".stripMargin
   }
 
+  it should "replace a multiline substring" in {
+    //given
+    val resultPosition    = Range(Position(5, 4), Position(6, 10))
+    val change            = "sum = plusOne 5\n    sum"
+    val resultReplacement = TextEdit(resultPosition, change)
+    //when
+    val result = RopeTextEditor.edit(rope, resultReplacement)
+    //then
+    result.toString mustBe """
+                             |main =
+                             |    apply = v f -> f v
+                             |    adder = a b -> a + b
+                             |    plusOne = apply (f = adder 1)
+                             |    sum = plusOne 5
+                             |    sum
+                             |""".stripMargin
+  }
+
 }
 
 object RopeTextEditorSpec {
