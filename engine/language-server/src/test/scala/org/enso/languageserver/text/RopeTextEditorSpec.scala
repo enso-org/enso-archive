@@ -93,6 +93,19 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |    result""".stripMargin
   }
 
+  it should "support code points above 0xFFFF" in {
+    //given
+    //0x0001F4AF
+    val utf32Text          = Rope("unicode: \ud83d\udcaf end")
+    val positionInCodUnits = Range(Position(0, 9), Position(0, 10))
+    //0x0001F449
+    val diff = TextEdit(positionInCodUnits, "\ud83d\udc49")
+    //when
+    val result = RopeTextEditor.edit(utf32Text, diff)
+    //then
+    result.toString mustBe "unicode: \ud83d\udc49 end"
+  }
+
 }
 
 object RopeTextEditorSpec {

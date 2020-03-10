@@ -23,7 +23,7 @@ object RopeTextEditor extends TextEditor[Rope] {
       if (diff.range.start.character > 0)
         buffer.lines
           .drop(diff.range.start.line)
-          .characters
+          .codePoints
           .take(diff.range.start.character)
       else
         Rope.empty
@@ -34,7 +34,7 @@ object RopeTextEditor extends TextEditor[Rope] {
   def cutOutTail(buffer: Rope, diff: TextEdit): Rope = {
     buffer.lines
       .drop(diff.range.end.line)
-      .characters
+      .codePoints
       .drop(diff.range.end.character)
 
   }
