@@ -29,15 +29,6 @@ object FileSystemObject {
   case class File(name: String, path: RelativePath) extends FileSystemObject
 
   /**
-    * Represents a symbolic link.
-    *
-    * @param source a link path
-    * @param target a destination of the link
-    */
-  case class Symlink(source: RelativePath, target: SystemPath)
-      extends FileSystemObject
-
-  /**
     * Represents unrecognized object.
     */
   case object Other extends FileSystemObject
@@ -49,10 +40,6 @@ object FileSystemObject {
     val Name = "name"
 
     val RelativePath = "path"
-
-    val Source = "source"
-
-    val Target = "target"
   }
 
   private object CodecType {
@@ -60,8 +47,6 @@ object FileSystemObject {
     val File = "File"
 
     val Directory = "Directory"
-
-    val Symlink = "Symlink"
 
     val Other = "Other"
   }
@@ -80,12 +65,6 @@ object FileSystemObject {
             name <- cursor.downField(CodecField.Name).as[String]
             path <- cursor.downField(CodecField.RelativePath).as[RelativePath]
           } yield Directory(name, path)
-
-        case CodecType.Symlink =>
-          for {
-            source <- cursor.downField(CodecField.Source).as[RelativePath]
-            target <- cursor.downField(CodecField.Target).as[SystemPath]
-          } yield Symlink(source, target)
 
         case CodecType.Other =>
           Right(Other)
@@ -108,13 +87,6 @@ object FileSystemObject {
           CodecField.RelativePath -> path.asJson
         )
 
-      case Symlink(source, target) =>
-        Json.obj(
-          CodecField.Type   -> CodecType.Symlink.asJson,
-          CodecField.Source -> source.asJson,
-          CodecField.Target -> target.asJson
-        )
-
       case Other =>
         Json.obj(
           CodecField.Type -> CodecType.Other.asJson
@@ -125,7 +97,6 @@ object FileSystemObject {
     Ordering.by {
       case Directory(name, path) => new java.io.File(path.toFile, name)
       case File(name, path)      => new java.io.File(path.toFile, name)
-      case Symlink(source, _)    => source.toFile
       case Other                 => new java.io.File("/")
     }
 }

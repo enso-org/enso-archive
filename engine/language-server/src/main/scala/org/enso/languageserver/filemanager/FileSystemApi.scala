@@ -116,7 +116,6 @@ object FileSystemApi {
       Ordering.by {
         case DirectoryEntry(path, _)    => path
         case FileEntry(path)            => path
-        case SymbolicLinkEntry(path, _) => path
         case OtherEntry(path)           => path
       }
   }
@@ -141,14 +140,6 @@ object FileSystemApi {
     * @param path to the file
     */
   case class FileEntry(path: Path) extends Entry
-
-  /**
-    * An entry representing a symbolic link.
-    *
-    * @param path a path to the symbolic link
-    * @param target path of the symbolic link
-    */
-  case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
 
   /**
     * Unrecognized file system entry.

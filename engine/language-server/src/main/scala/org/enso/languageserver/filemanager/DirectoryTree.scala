@@ -75,12 +75,6 @@ object DirectoryTree {
           mkRelativeParent(root, base, path)
         )
 
-      case FileSystemApi.SymbolicLinkEntry(path, target) =>
-        FileSystemObject.Symlink(
-          mkRelativePath(root, base, path),
-          mkSymlinkTargetPath(root, base, target)
-        )
-
       case FileSystemApi.OtherEntry(_) =>
         FileSystemObject.Other
     }
@@ -98,16 +92,5 @@ object DirectoryTree {
     path: Path
   ): RelativePath =
     mkRelativePath(root, base, path.getParent())
-
-  private def mkSymlinkTargetPath(
-    root: File,
-    base: RelativePath,
-    path: Path
-  ): SystemPath =
-    if (path.startsWith(root.toPath)) {
-      mkRelativePath(root, base, path)
-    } else {
-      AbsolutePath(path)
-    }
 
 }

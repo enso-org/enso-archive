@@ -201,7 +201,11 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
       if (path.isDirectory && limit.canGoDeeper) {
         Either
           .catchOnly[IOException] {
-            FileSystem.readDirectoryEntry(path.toPath, limit.goDeeper)
+            FileSystem.readDirectoryEntry(
+              path.toPath,
+              limit.goDeeper,
+              Set(path.toPath)
+            )
           }
           .leftMap(errorHandling)
       } else {
@@ -266,22 +270,26 @@ object FileSystem {
     * @param level a maximum depth of the directory tree
     * @return a [[DirectoryEntry]] tree representation of the directory
     */
-  private def readDirectoryEntry(path: Path, level: Depth): DirectoryEntry = {
+  private def readDirectoryEntry(
+    path: Path,
+    level: Depth,
+    visited: Set[Path]
+  ): DirectoryEntry = {
+    def isVisited(path: Path): Boolean =
+      visited.contains(path)
     def readEntry(path: Path): Entry =
-      if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+      if (Files.isDirectory(path)) {
         DirectoryEntry.empty(path)
-      } else if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+      } else if (Files.isRegularFile(path)) {
         FileEntry(path)
-      } else if (Files.isSymbolicLink(path)) {
-        SymbolicLinkEntry(path, Files.readSymbolicLink(path))
       } else {
         OtherEntry(path)
       }
     def accumulator(entry: DirectoryEntry, path: Path): DirectoryEntry =
-      if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS) && level.canGoDeeper) {
-        entry.copy(
-          children = entry.children + readDirectoryEntry(path, level.goDeeper)
-        )
+      if (Files.isDirectory(path) && level.canGoDeeper && !isVisited(path)) {
+        val directoryEntry =
+          readDirectoryEntry(path, level.goDeeper, visited + path)
+        entry.copy(children = entry.children + directoryEntry)
       } else {
         entry.copy(children = entry.children + readEntry(path))
       }

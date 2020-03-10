@@ -361,10 +361,10 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val subdir        = Paths.get(testDirPath.toString, "dir", "subdir")
     val fileA         = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
     val fileB         = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
-    val subdirSymlink = Paths.get(testDirPath.toString, "dir", "symlink")
+    val symlink = Paths.get(testDirPath.toString, "dir", "symlink")
     createEmptyFile(fileA)
     createEmptyFile(fileB)
-    Files.createSymbolicLink(subdirSymlink, subdir)
+    Files.createSymbolicLink(symlink, subdir)
     val entry = DirectoryEntry(
       path,
       TreeSet(
@@ -375,7 +375,13 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
             FileEntry(fileB)
           )
         ),
-        SymbolicLinkEntry(subdirSymlink, subdir)
+        DirectoryEntry(
+          symlink,
+          TreeSet(
+            FileEntry(fileA),
+            FileEntry(fileB)
+          )
+        )
       )
     )
     //when
@@ -390,15 +396,15 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val subdir        = Paths.get(testDirPath.toString, "dir", "subdir")
     val fileA         = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
     val fileB         = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
-    val subdirSymlink = Paths.get(testDirPath.toString, "dir", "symlink")
+    val symlink = Paths.get(testDirPath.toString, "dir", "symlink")
     createEmptyFile(fileA)
     createEmptyFile(fileB)
-    Files.createSymbolicLink(subdirSymlink, subdir)
+    Files.createSymbolicLink(symlink, subdir)
     val entry = DirectoryEntry(
       path,
       TreeSet(
         DirectoryEntry(subdir, TreeSet()),
-        SymbolicLinkEntry(subdirSymlink, subdir)
+        DirectoryEntry(symlink, TreeSet())
       )
     )
     //when
