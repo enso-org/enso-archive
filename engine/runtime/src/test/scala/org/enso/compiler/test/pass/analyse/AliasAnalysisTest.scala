@@ -37,7 +37,7 @@ class AliasAnalysisTest extends CompilerTest {
         |""".stripMargin.preprocess
 
     "do the thing" in {
-      AliasAnalysis.runModule(ir)
+      println(AliasAnalysis.runModule(ir).bindings.map(_.getMetadata[AliasAnalysis.Info].get))
     }
 
   }
