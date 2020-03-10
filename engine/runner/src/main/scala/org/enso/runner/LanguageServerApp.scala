@@ -35,8 +35,6 @@ object LanguageServerApp {
     println("Starting Language Server...")
     val mainModule = new MainModule(config)
 
-    println(mainModule.context)
-
     mainModule.languageServer ! LanguageProtocol.Initialize
 
     val binding =

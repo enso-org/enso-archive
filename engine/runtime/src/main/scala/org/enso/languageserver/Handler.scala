@@ -3,8 +3,6 @@ package org.enso.languageserver
 import java.nio.ByteBuffer
 
 import org.enso.polyglot.{
-  CreateContext,
-  DestroyContext,
   ServerApi,
   ServerApiSerialization
 }
@@ -34,7 +32,7 @@ class Handler {
   val endpoint = new Endpoint(this)
 
   def onMessage(msg: ServerApi): Unit = msg match {
-    case CreateContext(id)  => println(s"create context $id")
-    case DestroyContext(id) => println(s"destroy context $id")
+    case ServerApi.CreateContext(id)  => println(s"create context $id")
+    case ServerApi.DestroyContext(id) => println(s"destroy context $id")
   }
 }

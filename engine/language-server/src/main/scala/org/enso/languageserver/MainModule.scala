@@ -15,8 +15,9 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
+import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.polyglot.{CreateContext, DestroyContext, ServerApiSerialization}
+import org.enso.polyglot.ServerApiSerialization
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.{MessageEndpoint, MessageTransport}
 
@@ -52,17 +53,23 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val capabilityRouter =
     system.actorOf(CapabilityRouter.props(bufferRegistry), "capability-router")
 
-  lazy val context = Context
+  lazy val runtimeConnector =
+    system.actorOf(RuntimeConnector.props, "runtime-connector")
+
+  val context = Context
     .newBuilder("enso")
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
     .option("enso-language-server.enable", "")
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.getScheme == "local") {
-        new MessageEndpoint {
+        val connection = new MessageEndpoint {
           override def sendText(text: String): Unit = {}
 
-          override def sendBinary(data: ByteBuffer): Unit = ???
+          override def sendBinary(data: ByteBuffer): Unit =
+            ServerApiSerialization
+              .deserialize(data)
+              .foreach(runtimeConnector ! _)
 
           override def sendPing(data: ByteBuffer): Unit =
             peerEndpoint.sendPong(data)
@@ -71,6 +78,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
           override def sendClose(): Unit = ???
         }
+        runtimeConnector ! RuntimeConnector.Initialize(connection)
+        connection
       } else null
     })
     .build()

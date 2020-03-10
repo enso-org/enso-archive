@@ -17,19 +17,21 @@ import scala.util.Try
 @JsonSubTypes(
   Array(
     new JsonSubTypes.Type(
-      value = classOf[CreateContext],
+      value = classOf[ServerApi.CreateContext],
       name  = "createContext"
     ),
     new JsonSubTypes.Type(
-      value = classOf[DestroyContext],
+      value = classOf[ServerApi.CreateContext],
       name  = "destroyContext"
     )
   )
 )
 sealed trait ServerApi
 
-case class CreateContext(id: UUID)  extends ServerApi
-case class DestroyContext(id: UUID) extends ServerApi
+object ServerApi {
+  case class CreateContext(id: UUID)  extends ServerApi
+  case class DestroyContext(id: UUID) extends ServerApi
+}
 
 object ServerApiSerialization {
   private lazy val factory = new CBORFactory()

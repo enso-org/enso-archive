@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.UUID;
 
 @TruffleInstrument.Registration(
     id = LanguageServerInstrument.INSTRUMENT_ID,
@@ -28,6 +29,7 @@ public class LanguageServerInstrument extends TruffleInstrument {
       MessageEndpoint client = env.startServer(URI.create("local://local"), handler.endpoint());
       handler.endpoint().setClient(client);
       this.handler = handler;
+      handler.endpoint().sendToClient(new ServerApi.CreateContext(UUID.randomUUID()));
       env.registerService(this);
     } catch (MessageTransport.VetoException | IOException e) {
       this.handler = null;
