@@ -1,7 +1,8 @@
-package org.enso.languageserver.text
+package org.enso.languageserver.text.editing
 
 import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.model.TextEdit
+import org.enso.languageserver.text.TextEditor
+import org.enso.languageserver.text.editing.model.TextEdit
 
 object RopeTextEditor extends TextEditor[Rope] {
 

@@ -1,6 +1,6 @@
 package org.enso.languageserver.text
 
-import org.enso.languageserver.text.model.TextEdit
+import org.enso.languageserver.text.editing.model.TextEdit
 
 trait TextEditor[A] {
 

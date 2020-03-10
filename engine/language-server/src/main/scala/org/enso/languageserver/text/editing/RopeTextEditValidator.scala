@@ -1,7 +1,7 @@
-package org.enso.languageserver.text
+package org.enso.languageserver.text.editing
 
-import org.enso.languageserver.data.buffer.Rope
 import cats.implicits._
+import org.enso.languageserver.data.buffer.Rope
 
 object RopeTextEditValidator extends TextEditValidator[Rope] {
 

@@ -9,7 +9,7 @@ import org.enso.languageserver.jsonrpc.{
   Method,
   Unused
 }
-import org.enso.languageserver.text.model.{FileEdit, TextEdit}
+import org.enso.languageserver.text.editing.model.FileEdit
 
 /**
   * The text editing JSON RPC API provided by the language server.

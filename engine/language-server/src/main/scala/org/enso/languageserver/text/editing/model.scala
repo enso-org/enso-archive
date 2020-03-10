@@ -1,6 +1,7 @@
-package org.enso.languageserver.text
+package org.enso.languageserver.text.editing
 
 import org.enso.languageserver.filemanager.Path
+import org.enso.languageserver.text.Buffer
 
 object model {
 

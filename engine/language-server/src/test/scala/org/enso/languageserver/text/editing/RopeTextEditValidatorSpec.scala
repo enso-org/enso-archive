@@ -1,7 +1,7 @@
-package org.enso.languageserver.text
+package org.enso.languageserver.text.editing
 
 import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.model._
+import org.enso.languageserver.text.editing.model._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 

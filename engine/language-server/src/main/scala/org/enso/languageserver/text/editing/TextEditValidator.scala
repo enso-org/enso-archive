@@ -1,6 +1,6 @@
-package org.enso.languageserver.text
+package org.enso.languageserver.text.editing
 
-import org.enso.languageserver.text.model.TextEdit
+import org.enso.languageserver.text.editing.model.TextEdit
 
 trait TextEditValidator[A] {
 

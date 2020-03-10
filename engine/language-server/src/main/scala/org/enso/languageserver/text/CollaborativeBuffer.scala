@@ -21,10 +21,9 @@ import org.enso.languageserver.filemanager.{
   OperationTimeout,
   Path
 }
-import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
 import org.enso.languageserver.text.TextProtocol._
-import org.enso.languageserver.text.model.FileEdit
+import org.enso.languageserver.text.editing.model.FileEdit
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

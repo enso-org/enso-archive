@@ -1,6 +1,6 @@
-package org.enso.languageserver.text
+package org.enso.languageserver.text.editing
 
-import org.enso.languageserver.text.model.Position
+import org.enso.languageserver.text.editing.model.Position
 
 sealed trait TextEditValidationFailure
 case object EndPositionBeforeStartPosition extends TextEditValidationFailure
