@@ -74,6 +74,25 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |    return result""".stripMargin
   }
 
+  it should "be able to apply multiple diffs" in {
+    //given
+    val signaturePosition = Range(Position(2, 12), Position(2, 13))
+    val signatureDiff     = TextEdit(signaturePosition, "arg")
+    val bodyPosition      = Range(Position(2, 23), Position(2, 24))
+    val bodyDiff          = TextEdit(bodyPosition, "arg")
+    val diffs             = List(signatureDiff, bodyDiff)
+    //when
+    val result = RopeTextEditor.applyEdits(rope, diffs)
+    //then
+    result.toString mustBe """
+                             |main =
+                             |    apply = arg f -> f arg
+                             |    adder = a b -> a + b
+                             |    plusOne = apply (f = adder 1)
+                             |    result = plusOne 10
+                             |    result""".stripMargin
+  }
+
 }
 
 object RopeTextEditorSpec {
