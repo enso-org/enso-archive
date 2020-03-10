@@ -16,6 +16,8 @@ import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
 import io.circe
+import io.circe.Encoder
+import io.circe.Json
 import io.circe.generic.auto._
 import io.circe.parser._
 
@@ -151,24 +153,45 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
+
+
+case class ModuleWithMetadata(ast: AST, metadata: Json)
+
+object ModuleWithMetadata {
+  val IDTAG   = "\n# [idmap] "
+  val METATAG = "\n# [metadata]"
+
+  implicit def MWMEncoder: Encoder[ModuleWithMetadata] = module =>
+    Json.obj("ast" -> module.ast.toJson(), "metadata" -> module.metadata)
+}
+
+
 class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(fileContent: String): (AST.Module, Metadata) = {
-    fileContent.split("\n# [idmap]") match {
-      case Array(input)  => (run(new Reader(input), Nil), "")
-      case Array(input, rest) =>
-        val meta     = rest.split("\n# [metadata]")
-        val metadata = if (meta.size < 2) "" else meta(1)
-        val idmap    = idMapFromJson(meta(0)).getOrElse {
-          throw new Exception("Could not decode IDMap from json.")
-        }
+  def run_with_metadata(program: String): ModuleWithMetadata = {
+    import ModuleWithMetadata._
 
-        (run(new Reader(input), idmap), metadata)
+    program.split(IDTAG) match {
+      case Array(input)  => ModuleWithMetadata(run(input), Json.Null)
+      case Array(input, rest) =>
+        val meta     = rest.split(METATAG)
+        if (meta.size < 2) {
+          throw new ParserError(s"Expected `$METATAG ..`\n after `$IDTAG ..`.")
+        }
+        val idmap    = idMapFromJson(meta(0)).left.map { error =>
+          throw new ParserError("Could not deserialize idmap.", error)
+        }.merge
+        val metadata = decode[Json](meta(1)).left.map { error =>
+          throw new ParserError("Could not deserialize metadata.", error)
+        }.merge
+
+        ModuleWithMetadata(run(new Reader(input), idmap), metadata)
     }
   }
 
+  def run(input: String): AST.Module = run(new Reader(input), Nil)
 
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)

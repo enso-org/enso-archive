@@ -4,6 +4,7 @@ import io.circe.parser._
 import io.circe.generic.auto._
 import io.circe.syntax._
 import org.enso.syntax.text.Parser
+import org.enso.syntax.text.ModuleWithMetadata
 
 /** Types implementing parser server protocol.
   *
@@ -17,8 +18,8 @@ object Protocol {
     extends Request
 
   sealed trait Response
-  final case class Success(ast_json: String, metadata: String) extends Response
-  final case class Error(message: String)                      extends Response
+  final case class Success(module: ModuleWithMetadata) extends Response
+  final case class Error(message: String)              extends Response
 }
 
 /** Helper for implementing protocol over text-based transport.
@@ -40,7 +41,7 @@ trait Protocol {
     try {
       decode[Request](input) match {
         case Left(err)      => throw err
-        case Right(request) => handleRequest(request).asJson.toString()
+        case Right(request) => handleRequest(request).asJson.noSpaces
       }
     } catch {
       case e: Throwable => (Error(e.toString): Response).asJson.noSpaces

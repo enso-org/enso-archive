@@ -1,5 +1,6 @@
 package org.enso.syntax.text
 
+import io.circe.syntax._
 import org.enso.flexer.Reader
 
 import scala.scalajs.js.annotation._
@@ -19,11 +20,10 @@ object Parse {
       case e: Throwable => throw js.JavaScriptException(e.getMessage)
     }
   }
-  @JSExportTopLevel("parse_file")
-  def parse_file(content: String): (String, String) = {
+  @JSExportTopLevel("parse_as_module")
+  def parse_as_module(program: String): String = {
     try {
-      val (ast, metadata) = new Parser().run(content)
-      (ast.toJson().noSpacesSortKeys, metadata)
+      new Parser().run_with_metadata(program).asJson.noSpacesSortKeys
     } catch {
       // FIXME We wrap the error message in JavaScriptException, so that javascript
       //  can display it. This is no longer needed in scalajs 1.0
