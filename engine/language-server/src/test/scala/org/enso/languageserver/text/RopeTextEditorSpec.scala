@@ -13,7 +13,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     val beforeMain          = Range(Position(1, 0), Position(1, 0))
     val insertionBeforeMain = TextEdit(beforeMain, "ultra_")
     //when
-    val result = RopeTextEditor.edit(rope, insertionBeforeMain)
+    val result = RopeTextEditor.edit(testSnippet, insertionBeforeMain)
     //then
     result.toString mustBe """
                              |ultra_main =
@@ -29,7 +29,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     val mainPosition    = Range(Position(1, 0), Position(1, 4))
     val mainReplacement = TextEdit(mainPosition, "run")
     //when
-    val result = RopeTextEditor.edit(rope, mainReplacement)
+    val result = RopeTextEditor.edit(testSnippet, mainReplacement)
     //then
     result.toString mustBe """
                              |run =
@@ -46,7 +46,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     val change            = "sum = plusOne 5\n    sum"
     val resultReplacement = TextEdit(resultPosition, change)
     //when
-    val result = RopeTextEditor.edit(rope, resultReplacement)
+    val result = RopeTextEditor.edit(testSnippet, resultReplacement)
     //then
     result.toString mustBe """
                              |main =
@@ -62,7 +62,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     val eof       = Range(Position(6, 10), Position(6, 10))
     val insertion = TextEdit(eof, "\n    return result")
     //when
-    val result = RopeTextEditor.edit(rope, insertion)
+    val result = RopeTextEditor.edit(testSnippet, insertion)
     //then
     result.toString mustBe """
                              |main =
@@ -82,7 +82,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     val bodyDiff          = TextEdit(bodyPosition, "arg")
     val diffs             = List(signatureDiff, bodyDiff)
     //when
-    val result = RopeTextEditor.applyEdits(rope, diffs)
+    val result = RopeTextEditor.applyEdits(testSnippet, diffs)
     //then
     result.toString mustBe """
                              |main =
@@ -106,6 +106,6 @@ object RopeTextEditorSpec {
       |    result = plusOne 10
       |    result""".stripMargin
 
-  val rope = Rope(code)
+  val testSnippet = Rope(code)
 
 }
