@@ -1,7 +1,6 @@
 package org.enso.languageserver.text.editing
 
 import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.TextEditor
 import org.enso.languageserver.text.editing.model.TextEdit
 
 object RopeTextEditor extends TextEditor[Rope] {
@@ -38,4 +37,11 @@ object RopeTextEditor extends TextEditor[Rope] {
       .codePoints
       .drop(diff.range.end.character)
 
+  override def getLineCount(buffer: Rope): Int = buffer.lines.length
+
+  override def getLine(buffer: Rope, lineNumber: Int): String = {
+    val tail = buffer.lines.drop(lineNumber)
+    val line = tail.lines.take(1)
+    line.toString
+  }
 }

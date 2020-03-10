@@ -23,6 +23,7 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
 import org.enso.languageserver.text.TextProtocol._
+import org.enso.languageserver.text.editing.EditorOps
 import org.enso.languageserver.text.editing.model.FileEdit
 
 import scala.concurrent.duration._
@@ -122,17 +123,17 @@ class CollaborativeBuffer(
     val hasLock = lockHolder.exists(_.id == clientId)
     if (hasLock) {
       if (buffer.version == change.oldVersion) {
-        val newRope    = TextEditor[Rope].applyEdits(buffer.contents, change.edits)
-        val newVersion = versionCalculator.evalVersion(newRope.toString)
-        val newBuffer  = Buffer(newRope, newVersion)
-        if (change.newVersion == newVersion) {
-          sender() ! ApplyEditSuccess
-          val subscribers = clients.filterNot(_._1 == clientId).values
-          subscribers foreach { _.actor ! TextDidChange(List(change)) }
-          context.become(collaborativeEditing(newBuffer, clients, lockHolder))
-        } else {
-          sender() ! VersionConflictAfterEdit
-        }
+        val newRope = EditorOps.applyEdits(buffer.contents, change.edits)
+//        val newVersion = versionCalculator.evalVersion(newRope.toString)
+//        val newBuffer  = Buffer(newRope, newVersion)
+//        if (change.newVersion == newVersion) {
+//          sender() ! ApplyEditSuccess
+//          val subscribers = clients.filterNot(_._1 == clientId).values
+//          subscribers foreach { _.actor ! TextDidChange(List(change)) }
+//          context.become(collaborativeEditing(newBuffer, clients, lockHolder))
+//        } else {
+//          sender() ! VersionConflictAfterEdit
+//        }
       } else {
         sender() ! VersionConflictBeforeEdit(buffer.version)
       }

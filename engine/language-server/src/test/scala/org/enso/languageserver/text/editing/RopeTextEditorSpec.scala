@@ -1,7 +1,7 @@
 package org.enso.languageserver.text.editing
 
 import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.editing.RopeTextEditorSpec._
+import org.enso.languageserver.text.editing.TestData._
 import org.enso.languageserver.text.editing.model.{Position, Range, TextEdit}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
@@ -74,25 +74,6 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |    return result""".stripMargin
   }
 
-  it should "be able to apply multiple diffs" in {
-    //given
-    val signaturePosition = Range(Position(2, 12), Position(2, 13))
-    val signatureDiff     = TextEdit(signaturePosition, "arg")
-    val bodyPosition      = Range(Position(2, 23), Position(2, 24))
-    val bodyDiff          = TextEdit(bodyPosition, "arg")
-    val diffs             = List(signatureDiff, bodyDiff)
-    //when
-    val result = RopeTextEditor.applyEdits(testSnippet, diffs)
-    //then
-    result.toString mustBe """
-                             |main =
-                             |    apply = arg f -> f arg
-                             |    adder = a b -> a + b
-                             |    plusOne = apply (f = adder 1)
-                             |    result = plusOne 10
-                             |    result""".stripMargin
-  }
-
   it should "support code points above 0xFFFF" in {
     //given
     //0x0001F4AF
@@ -105,20 +86,5 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
     //then
     result.toString mustBe "unicode: \ud83d\udc49 end"
   }
-
-}
-
-object RopeTextEditorSpec {
-
-  val code =
-    """
-      |main =
-      |    apply = v f -> f v
-      |    adder = a b -> a + b
-      |    plusOne = apply (f = adder 1)
-      |    result = plusOne 10
-      |    result""".stripMargin
-
-  val testSnippet = Rope(code)
 
 }

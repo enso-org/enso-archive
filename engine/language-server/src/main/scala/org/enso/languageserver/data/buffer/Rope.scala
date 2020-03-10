@@ -1,7 +1,5 @@
 package org.enso.languageserver.data.buffer
 import cats.kernel.Monoid
-import org.enso.languageserver.text.TextEditor
-import org.enso.languageserver.text.editing.RopeTextEditor
 
 /**
   * The measure used for storing strings in the b-tree.
@@ -136,8 +134,6 @@ object Rope {
         endsWithNewLine
       )
     }
-
-  implicit val textEditor: TextEditor[Rope] = RopeTextEditor
 
   /**
     * Creates a new Rope from a given string.
