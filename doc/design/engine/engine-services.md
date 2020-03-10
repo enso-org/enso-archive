@@ -613,7 +613,7 @@ Represents either a relative [`Path`](#path) or an absolute
 ##### Format
 
 ``` typescript
-type SystemPath = Path | AbstractPath;
+type SystemPath = Path | AbsolutePath;
 ```
 
 ## Protocol Message Specification - Project Picker
