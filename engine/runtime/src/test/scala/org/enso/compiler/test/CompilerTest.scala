@@ -32,6 +32,19 @@ trait CompilerRunner {
     }
   }
 
+  /** Converts program text to a top-level Enso module.
+   *
+   * @param source the source code
+   * @return the [[IR]] representing `source`
+   */
+  def toIRModule(source: String): IR.Module = {
+    val parser: Parser = Parser()
+    val unresolvedAST = parser.run(new Reader(source))
+    val resolvedAST = parser.dropMacroMeta(unresolvedAST)
+
+    AstToIR.translate(resolvedAST)
+  }
+
   /** Executes the specified list of passes in order on the provided [[IR]].
     *
     * @param ir the ir to run the passes on
