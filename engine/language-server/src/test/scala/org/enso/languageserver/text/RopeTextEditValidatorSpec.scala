@@ -40,6 +40,11 @@ class RopeTextEditValidatorSpec extends AnyFlatSpec with Matchers {
     )
   }
 
+  it should "succeed when character coordinate is equal to line length" in {
+    val diff1 = TextEdit(Range(Position(0, 7), Position(0, 7)), "a")
+    RopeTextEditValidator.validate(buffer, diff1) mustBe Right(())
+  }
+
   lazy val buffer = Rope("1234567\nabcdefg")
 
 }
