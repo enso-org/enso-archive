@@ -10,6 +10,8 @@ case object AliasAnalysis extends IRPass {
   override def runModule(ir: IR.Module): IR.Module = {
     val bindings = ir.bindings
 
+    bindings.foreach(println)
+
     ir
   }
 

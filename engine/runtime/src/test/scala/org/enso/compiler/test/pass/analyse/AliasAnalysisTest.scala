@@ -10,21 +10,23 @@ class AliasAnalysisTest extends CompilerTest {
 
   // === Utilities ============================================================
 
-  val precursorPasses: List[IRPass] = List(
-    LiftSpecialOperators,
-    OperatorToFunction
-  )
-
   // TODO [AA] Wrap these functions as extensions
-  def preprocess(source: String): IR.Module = {
-    val ir = toIRModule(source)
-    runPasses(ir, precursorPasses).asInstanceOf[IR.Module]
+  implicit class Preprocess(source: String) {
+    val precursorPasses: List[IRPass] = List(
+      LiftSpecialOperators,
+      OperatorToFunction
+    )
+
+    def preprocess: IR.Module = {
+      val ir=toIRModule(source)
+      runPasses(ir, precursorPasses).asInstanceOf[IR.Module]
+    }
   }
 
   // === The Tests ============================================================
 
   "Alias analysis" should {
-    val source =
+    val ir =
       """
         |main =
         |    a = 2 + 2
@@ -32,9 +34,7 @@ class AliasAnalysisTest extends CompilerTest {
         |    c = a -> a + b
         |
         |    IO.println 2.c
-        |""".stripMargin
-
-    val ir = preprocess(source)
+        |""".stripMargin.preprocess
 
     "do the thing" in {
       AliasAnalysis.runModule(ir)
