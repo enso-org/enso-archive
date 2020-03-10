@@ -21,8 +21,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |    adder = a b -> a + b
                              |    plusOne = apply (f = adder 1)
                              |    result = plusOne 10
-                             |    result
-                             |""".stripMargin
+                             |    result""".stripMargin
   }
 
   it should "replace a substring" in {
@@ -38,8 +37,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |    adder = a b -> a + b
                              |    plusOne = apply (f = adder 1)
                              |    result = plusOne 10
-                             |    result
-                             |""".stripMargin
+                             |    result""".stripMargin
   }
 
   it should "replace a multiline substring" in {
@@ -56,8 +54,24 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
                              |    adder = a b -> a + b
                              |    plusOne = apply (f = adder 1)
                              |    sum = plusOne 5
-                             |    sum
-                             |""".stripMargin
+                             |    sum""".stripMargin
+  }
+
+  it should "be able to insert change at the end of file" in {
+    //given
+    val eof       = Range(Position(6, 10), Position(6, 10))
+    val insertion = TextEdit(eof, "\n    return result")
+    //when
+    val result = RopeTextEditor.edit(rope, insertion)
+    //then
+    result.toString mustBe """
+                             |main =
+                             |    apply = v f -> f v
+                             |    adder = a b -> a + b
+                             |    plusOne = apply (f = adder 1)
+                             |    result = plusOne 10
+                             |    result
+                             |    return result""".stripMargin
   }
 
 }
@@ -71,8 +85,7 @@ object RopeTextEditorSpec {
       |    adder = a b -> a + b
       |    plusOne = apply (f = adder 1)
       |    result = plusOne 10
-      |    result
-      |""".stripMargin
+      |    result""".stripMargin
 
   val rope = Rope(code)
 
