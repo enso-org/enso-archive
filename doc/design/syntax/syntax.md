@@ -59,6 +59,7 @@ dependently-typed world, they are just values.
   - [Pattern Matching](#pattern-matching)
   - [Projections / Lenses](#projections--lenses)
 - [Comments](#comments)
+  - [Documentation Comments](#documentation-comments)
 
 <!-- /MarkdownTOC -->
 
@@ -1088,111 +1089,124 @@ main =
 Enso supports a variety of types of comments:
 
 - **Disable Comments:** TODO
+- **Documentation Comments:** Documentation comments allow users to attach
+  documentation to language constructs. This documentation can later be rendered
+  to produce user-accessible HTML documentation, similar to tools included with
+  most programming languages.
+
 > The actionables for this section are:
 >
-> - Solidify exactly how it behaves.
-- **Documentation Comments:**
-Aside from language parser, Enso contains built-in Documentation Parser,
-which is a really powerful tool for generating code documentation from comments 
-written above appropriate code sections. Imagine creating a new `type Foo` - you
-know what it is, and you want everyone to use it, so you can write what it does,
-why and how in a comment above it, which will be automatically connected to this
-element, and the documentation parser will generate for you a nice page to share
-with users of your library.
+> - Solidify exactly how each type of comment should behave.
 
-It is a error-sensitive tool, but if user will make a mistake, it can still try to assign 
-those elements properly, but will show that something seems wrong with red color in generated file.
-Doc Parser is also indent sensitive, so every wrong indentation, for example in lists will be rendered as you
-have written, but with invalid annotation, in other places, every indentation from base is expected to be multiline code block.
+### Documentation Comments
+Documentation comments allow users to attach documentation to Enso language
+constructs that can later be displayed in a rich format for users of the API.
+Such comments are automatically connected to the language construct, and can be
+used both for displaying static documentation as well as providing dynamic help
+to the user in Enso Studio itself.
+
+The tool that generates this documentation aims to be fairly robust, and tries
+to assign produce sensible results even if the user makes a mistake. Such
+mistakes will be highlighted to the user.
+
+The documentation syntax is broken down into the following elements.
 
 #### Tags
-Starting from the top of the file, you can add tags.
-There are 5 available tags : 
-- DEPRECATED
-- MODIFIED
-- ADDED
-- UPCOMING
-- REMOVED
+Tags allow users to annotate their construct with information about its usage
+state. The documentation syntax supports the following tags:
 
-But if you make a mistake or type in unknown tag, parser will still run fine, producing
-undefined tag called just like you've called it, ex. ALAMAKOTA
+- `DEPRECATED`: Used for constructs that should no longer be used and that may
+  be removed in the future.
+- `MODIFIED`: Used for constructs that have had their behaviour change after a
+  certain version of the library.
+- `ADDED`: Used to describe when a given construct was added to the library.
+- `UPCOMING`: Used to describe constructs that will be added in future versions
+  of the library.
+- `REMOVED`: Used to describe constructs that have been removed and are no
+  longer functional.
 
-Furthermore you can add details to each tag by writing them right after tag declaration
-with one space.
+Tags are added at the _top_ of the documentation block, and may also be
+accompanied by a description. This description directly follows the tag
+declaration with one space.
 
-So if you want to declare tags, simply write them in uppercase on top of the file, before parser begins creation 
-of other sections.
+```ruby
+# DEPRECATED Use `seeFoo` instead
+```
+
+If the user provides an unknown tag the documentation will contain that tag, but
+it will be undefined.
 
 #### Sections
-Every time you create 2 newlines, parser will start a new text section and close the previous one. 
-The first segment you'll write will go to the `Synopsis` part of the document, rest will be in the `Body`.
-Synopsis is there to write a small note for coder about what this function/library etc. does, body is to 
-provide details.
-There are 5 possible types of sections in Doc Parser:
- - Raw - which is just a text block
- - Important - To provide important details about functionality, known errors etc.
- - Info - Just what name suggests
- - Example - Placement for your usage examples, great place to add inline/multiline code 
+Documentation comments can be broken up into sections, with each section
+delineated by significant whitespace.
 
-And this is how you invoke them
- - Raw - created automatically after two newlines
- - Important - Just add `!` before the section title
- - Info - Just add `?` before the section title
- - Example - Just add `>` before the section title
+The first section that the user writes will be attributed to the 'synopsis' part
+of the documentation, and the second section becomes the 'body'. They should be
+used as follows:
 
-#### Section titles
-When you want to add title to Raw section, just add before raw one more newline, that is, instead of normal double-newline to end
-section and start a new, use triple-newline
-In other sections first line (until newline) is parsed as a section title.
+- **Synopsis:** A brief summary of the function's behaviour.
+- **Body:** More in-depth documentation where details of usage can be provided.
+
+Sections may also have a title. If the whitespace before the section is _three_
+newlines instead of _two_, then the first line of the section will be understood
+to be a title.
+
+The body can be broken down into multiple sections, with support for four
+different types of section:
+
+- **Raw:** A block of text, delineated purely by two blank lines before it.
+- **Important:** A block of text describing important details about the
+  functionality of the construct. To create an important section, prefix the
+  title with `!`.
+- **Info:** An information section that should be used to provide non-crucial
+  details about the construct's usage. To create an info section, prefix the
+  title with `?`.
+- **Example:** For providing usage examples to the user. To create an example
+  section, prefix the title with `>`.
 
 #### Links
-There are two kinds of links:
-- normal URL's - Created with this syntax : `[Link name](URL)`
-- Image links - Created with this syntax : `![Image name](URL)`
-Images are rendered in generated document, as expected, the inline url will look just as you expect - Link name inline with rest 
-of the text, and on click will get you to expected page.
+Users are able to embed links and images into their documentation. These links
+can serve to provide access to external resources or demonstrations, and also
+link between various program constructs.
+
+- **URLs:** `[Link title](URI)`
+- **Images:** `![Image name](URI)`
+
+Linked images are rendered in the generated documentation, and URLs will be
+displayed like standard hyperlinks.
+
+> The actionables for this section are:
+>
+> - We probably want a construct that lets you reference other API constructs.
 
 #### Lists
-There are two kinds of lists:
-- unordered - created by text indentation of 2 spaces with `-` marker
-- ordered - created by text indentation of 2 spaces with `*` marker
-You can also nest lists one in another, just by adding 2-char indent with list marker in next line
+The Enso documentation syntax also supports ordered and unordered lists. These
+can be nested, and the nesting may swap the types. Both list types must be
+intended some multiple of 2 spaces from the left margin of the documentation
+comment.
 
-#### Inline & Multiline code
-To create inline code just enclose it in `` ` ``
-To create multiline code just make an indentation from base indent of current section
+- **Unordered:** List items are indicated by the `-` character.
+- **Ordered:** List items are indicated by the `*` character.
 
-#### Text formatters
-Doc Parser currently supports 3 text formatters
-- Italic - created by enclosing text with `_` mark, ex `_Foo_`
-- Bold - created by enclosing text with `*` mark, ex `*Foo*`
-- Strikeout - created by enclosing text with `~` mark, ex `~Foo~`
-You can also combine those formatters. For user-friendliness, you can choose how you close your text, either in HTML-Style, that is `_*~Foo~*_` or totally scrambled. But if you wont close your formatters, parser will create from it invalid AST and render it in red color
+To nest a list inside another list, add another 2-character indent to the nested
+list.
 
-And that is all you should know about syntax of Documentation Parser. For more complex info, please check `Doc.scala` file - the declaration of Doc Parser's AST.
+#### Code
+The Enso documentation syntax allows users to write code that will be displayed
+as code rather than prose. It supports two types of code.
 
-#### TL;DR - Documentation syntactic cheatsheet
-- Tags - Created by typing
-   - DEPRECATED
-   - MODIFIED
-   - ADDED
-   - UPCOMING
-   - REMOVED
-- Sections
-   - Raw - created automatically after two newlines, first line becomes title when used triple-newline instead of double.
-   - Important - Just add `!` before the section title
-   - Info - Just add `?` before the section title
-   - Example - Just add `>` before the section title
-- Links
-   - normal URL's - Created with this syntax : `[Link name](URL)`
-   - Image links - Created with this syntax : `![Image name](URL)`
-- Lists - nestable by indentation
-   - unordered - created by text indentation of 2 spaces with `-` marker
-   - ordered - created by text indentation of 2 spaces with `*` marker
-- Inline & Multiline code
-   - inline code - enclose code in `` ` ``
-   - multiline code - make an indentation from base indent of current section
-- Text formatters - can be combined
-   - Italic - created by enclosing text with `_` mark, ex `_Foo_`
-   - Bold - created by enclosing text with `*` mark, ex `*Foo*`
-   - Strikeout - created by enclosing text with `~` mark, ex `~Foo~`
+- **Inline Code:** Text enclosed in `` ` `` will be formatted as inline code.
+- **Multi-Line Code:** A block that is indented from the baseline of the current
+  section will be formatted as a code block.
+
+#### Text Formatting
+Enso's documentation syntax also supports some basic syntax for adding rich
+text formatting to the documentation.
+
+- **Italics:** Enclosing text in `_` (e.g. `_Italics_`).
+- **Bold:** Enclosing text in `*` (e.g. `*Bold*`).
+- **Strikethrough:** Enclosing text in `~` (e.g. `~Strikethrough~`).
+
+These syntaxes may be combined, and the order of opening need not equal the
+order of closing. However, if the formatting syntaxes are not closed, this will
+result in an error.
