@@ -5,7 +5,7 @@ import org.enso.languageserver.text.editing.TextEditValidator.validate
 import org.enso.languageserver.text.editing.model.TextEdit
 
 /**
-  * Auxiliary operations that edit a buffer validating diff before applying it.
+  * Auxiliary operations that edit a buffer validating diffs before applying it.
   */
 object EditorOps {
 
