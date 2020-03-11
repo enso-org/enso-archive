@@ -23,7 +23,7 @@ import org.enso.languageserver.text.TextProtocol.{
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `text/apply` commands.
+  * A request handler for `text/applyEdit` commands.
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout

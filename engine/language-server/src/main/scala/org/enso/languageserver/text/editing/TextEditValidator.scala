@@ -3,16 +3,27 @@ package org.enso.languageserver.text.editing
 import org.enso.languageserver.text.editing.model.TextEdit
 import cats.implicits._
 
+/**
+  * A validator of [[TextEdit]] object.
+  */
 object TextEditValidator {
 
+  /**
+    * Validates [[TextEdit]] object against the provided buffer.
+    *
+    * @param buffer a text buffer
+    * @param textEdit a change to the buffer
+    * @tparam A a buffer type
+    * @return
+    */
   def validate[A: TextEditor](
     buffer: A,
     textEdit: TextEdit
   ): Either[TextEditValidationFailure, Unit] = {
     for {
       _ <- checkIfEndIsAfterStart(textEdit)
-      _ <- checkPosition(textEdit.range.start)
-      _ <- checkPosition(textEdit.range.end)
+      _ <- checkIfNonNegativeCoords(textEdit.range.start)
+      _ <- checkIfNonNegativeCoords(textEdit.range.end)
       _ <- checkIfInsideBuffer(buffer, textEdit.range.start)
       _ <- checkIfInsideBuffer(buffer, textEdit.range.end)
     } yield ()
@@ -27,7 +38,7 @@ object TextEditValidator {
       Right(())
     }
 
-  private def checkPosition(
+  private def checkIfNonNegativeCoords(
     start: model.Position
   ): Either[TextEditValidationFailure, Unit] =
     checkIfNotNegative(start.line) >> checkIfNotNegative(start.character)
@@ -38,7 +49,7 @@ object TextEditValidator {
     if (coord >= 0) Right(())
     else Left(NegativeCoordinateInPosition)
 
-  def checkIfInsideBuffer[A: TextEditor](
+  private def checkIfInsideBuffer[A: TextEditor](
     buffer: A,
     position: model.Position
   ): Either[TextEditValidationFailure, Unit] = {
