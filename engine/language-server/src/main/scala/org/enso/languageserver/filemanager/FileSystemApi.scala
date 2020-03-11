@@ -122,9 +122,16 @@ object FileSystemApi {
       * with the same path. To address this we append the node name to the path.
       */
     implicit val ordering: Ordering[Entry] =
-      Ordering.by {
-        case DirectoryEntry(path, _) =>
-          Paths.get(path.toString, "DirectoryEntry")
+      Ordering.by(orderingPath)
+
+    private def orderingPath(entry: Entry): Path =
+      entry match {
+        case DirectoryEntry(path, children) =>
+          val hd = Paths.get(path.toString, "DirectoryEntry")
+          Paths.get(
+            hd.toString,
+            children.map(orderingPath).map(_.toString).toSeq: _*
+          )
         case DirectoryEntryTruncated(path) =>
           Paths.get(path.toString, "DirectoryEntryTruncated")
         case SymbolicLinkLoop(path) =>
@@ -158,7 +165,7 @@ object FileSystemApi {
   case class DirectoryEntryTruncated(path: Path) extends Entry
 
   /**
-    * An entry representing the symbolic link that creates an infinite loop.
+    * An entry representing the symbolic link that creates a loop.
     *
     * When a symlink loop is detected, instead of returning the
     * [[DirectoryEntry]] node, this entry is returned to break the loop.
@@ -175,7 +182,7 @@ object FileSystemApi {
   case class FileEntry(path: Path) extends Entry
 
   /**
-    * Unrecognized file system entry.
+    * Unrecognized file system entry. Example is a broken symlink.
     */
   case class OtherEntry(path: Path) extends Entry
 

@@ -4,9 +4,7 @@ import java.nio.file.{Files, Paths}
 import java.util.UUID
 
 import io.circe.literal._
-import io.circe.syntax._
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.filemanager.Path
 
 class FileManagerTest extends WebSocketServerTest {
   "File Server" must {
@@ -1173,6 +1171,13 @@ class FileManagerTest extends WebSocketServerTest {
     "get a directory tree with symlink" in {
       val client = new WsTestClient(address)
 
+      // create:
+      //
+      // base2
+      // ├── link -> subdir
+      // └── subdir
+      //     └── b.txt
+
       // create base2/subdir/b.txt
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1219,7 +1224,8 @@ class FileManagerTest extends WebSocketServerTest {
       // expect:
       //
       // base2
-      // ├── link
+      // └── link
+      //     └── b.txt
       // └── subdir
       //     └── b.txt
       client.expectJson(json"""
@@ -1235,20 +1241,12 @@ class FileManagerTest extends WebSocketServerTest {
                 "name": "base2",
                 "files": [
                   {
-                    "type": "Symlink",
-                    "source": {
+                    "type": "Directory",
+                    "name": "link",
+                    "path": {
                       "rootId": $testContentRootId,
                       "segments": [
-                        "base2",
-                        "link"
-                      ]
-                    },
-                    "target": {
-                      "type": "Path",
-                      "rootId": $testContentRootId,
-                      "segments": [
-                        "base2",
-                        "subdir"
+                        "base2"
                       ]
                     }
                   },
@@ -1264,6 +1262,30 @@ class FileManagerTest extends WebSocketServerTest {
                   }
                 ],
                 "directories": [
+                  {
+                    "path" : {
+                      "rootId" : $testContentRootId,
+                      "segments" : [
+                        "base2"
+                      ]
+                    },
+                    "name" : "link",
+                    "files" : [
+                      {
+                        "type" : "File",
+                        "name" : "b.txt",
+                        "path" : {
+                          "rootId" : $testContentRootId,
+                          "segments" : [
+                            "base2",
+                            "link"
+                          ]
+                        }
+                      }
+                    ],
+                    "directories" : [
+                    ]
+                  },
                   {
                     "path": {
                       "rootId": $testContentRootId,
@@ -1358,21 +1380,30 @@ class FileManagerTest extends WebSocketServerTest {
                 "name": "base3",
                 "files": [
                   {
-                    "type": "Symlink",
-                    "source": {
+                    "type": "Directory",
+                    "name": "link",
+                    "path": {
                       "rootId": $testContentRootId,
                       "segments": [
-                        "base3",
-                        "link"
+                        "base3"
                       ]
-                    },
-                    "target": {
-                      "type": "AbsolutePath",
-                      "segments": ${Path.segments(testOtherRoot).asJson}
                     }
                   }
                 ],
                 "directories": [
+                  {
+                    "path" : {
+                      "rootId" : $testContentRootId,
+                      "segments" : [
+                        "base3"
+                      ]
+                    },
+                    "name" : "link",
+                    "files" : [
+                    ],
+                    "directories" : [
+                    ]
+                  }
                 ]
               }
             }

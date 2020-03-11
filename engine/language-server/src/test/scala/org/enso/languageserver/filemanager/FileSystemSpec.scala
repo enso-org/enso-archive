@@ -357,11 +357,13 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
 
   it should "tree directory contents" in new TestCtx {
     //given
-    val path    = Paths.get(testDirPath.toString, "dir")
-    val subdir  = Paths.get(testDirPath.toString, "dir", "subdir")
-    val fileA   = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
-    val fileB   = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
-    val symlink = Paths.get(testDirPath.toString, "dir", "symlink")
+    val path     = Paths.get(testDirPath.toString, "dir")
+    val subdir   = Paths.get(testDirPath.toString, "dir", "subdir")
+    val fileA    = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
+    val fileB    = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
+    val symlink  = Paths.get(testDirPath.toString, "dir", "symlink")
+    val symFileA = Paths.get(testDirPath.toString, "dir", "symlink", "a.txt")
+    val symFileB = Paths.get(testDirPath.toString, "dir", "symlink", "b.txt")
     createEmptyFile(fileA)
     createEmptyFile(fileB)
     Files.createSymbolicLink(symlink, subdir)
@@ -378,8 +380,8 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
         DirectoryEntry(
           symlink,
           TreeSet(
-            FileEntry(fileA),
-            FileEntry(fileB)
+            FileEntry(symFileA),
+            FileEntry(symFileB)
           )
         )
       )
@@ -425,39 +427,49 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createDirectories(dirB)
     Files.createSymbolicLink(symlinkB, dirB)
     Files.createSymbolicLink(symlinkA, dirA)
-    val entry = DirectoryEntry(
-      path,
-      TreeSet(
-        DirectoryEntry(
-          dirA,
-          TreeSet(
-            DirectoryEntry(
-              symlinkB,
-              TreeSet(
-                DirectoryEntry(
-                  symlinkA,
-                  TreeSet(SymbolicLinkLoop(symlinkB))
+
+    val entry =
+      DirectoryEntry(
+        path,
+        TreeSet(
+          DirectoryEntry(
+            dirA,
+            TreeSet(
+              DirectoryEntry(
+                symlinkB,
+                TreeSet(
+                  DirectoryEntry(
+                    Paths.get(symlinkB.toString, "symlink_a"),
+                    TreeSet(
+                      SymbolicLinkLoop(
+                        Paths.get(symlinkB.toString, "symlink_a", "symlink_b")
+                      )
+                    )
+                  )
                 )
               )
             )
-          )
-        ),
-        DirectoryEntry(
-          dirB,
-          TreeSet(
-            DirectoryEntry(
-              symlinkA,
-              TreeSet(
-                DirectoryEntry(
-                  symlinkB,
-                  TreeSet(SymbolicLinkLoop(symlinkA))
+          ),
+          DirectoryEntry(
+            dirB,
+            TreeSet(
+              DirectoryEntry(
+                symlinkA,
+                TreeSet(
+                  DirectoryEntry(
+                    Paths.get(symlinkA.toString, "symlink_b"),
+                    TreeSet(
+                      SymbolicLinkLoop(
+                        Paths.get(symlinkA.toString, "symlink_b", "symlink_a")
+                      )
+                    )
+                  )
                 )
               )
             )
           )
         )
       )
-    )
     //when
     val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
     //then
@@ -529,35 +541,3 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
   }
 
 }
-
-/*
-DirectoryEntry(
-  /tmp/6837467075952233588/dir,
-  TreeSet(
-    DirectoryEntry(
-      /tmp/6837467075952233588/dir/a,
-      TreeSet(
-        DirectoryEntry(
-          /tmp/6837467075952233588/dir/a/symlink_b,TreeSet()
-        )
-      )
-    ),
-    DirectoryEntry(
-      /tmp/6837467075952233588/dir/b,
-      TreeSet(
-        DirectoryEntry(
-          /tmp/6837467075952233588/dir/b/b.txt,TreeSet()
-        ),
-        DirectoryEntry(
-          /tmp/6837467075952233588/dir/b/symlink_a,
-          TreeSet(
-            DirectoryEntry(
-              /tmp/6837467075952233588/dir/a/symlink_b,TreeSet()
-            )
-          )
-        )
-      )
-    )
-  )
-)
- */

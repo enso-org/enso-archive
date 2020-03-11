@@ -69,6 +69,18 @@ object DirectoryTree {
           mkRelativeParent(root, base, path)
         )
 
+      case FileSystemApi.DirectoryEntryTruncated(path) =>
+        FileSystemObject.DirectoryTruncated(
+          path.getFileName.toString,
+          mkRelativeParent(root, base, path)
+        )
+
+      case FileSystemApi.SymbolicLinkLoop(path) =>
+        FileSystemObject.SymlinkLoop(
+          path.getFileName.toString,
+          mkRelativeParent(root, base, path)
+        )
+
       case FileSystemApi.FileEntry(path) =>
         FileSystemObject.File(
           path.getFileName.toString,
