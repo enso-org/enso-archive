@@ -4,6 +4,7 @@ import java.io.File
 import java.nio.file.{Path, Paths}
 
 import scala.collection.immutable.TreeSet
+import scala.util.Try
 
 /**
   * File manipulation API.
@@ -130,19 +131,23 @@ object FileSystemApi {
         entry match {
           case DirectoryEntry(path, children) =>
             val entryPath = Paths.get(path.toString, "DirectoryEntry")
-            Paths.get(
-              entryPath.toString,
-              children.map(Order.by).map(_.toString).toSeq: _*
+            relativize(
+              Paths.get(
+                entryPath.toString,
+                children.map(Order.by).map(_.toString).toSeq: _*
+              )
             )
           case DirectoryEntryTruncated(path) =>
-            Paths.get(path.toString, "DirectoryEntryTruncated")
+            relativize(Paths.get(path.toString, "DirectoryEntryTruncated"))
           case SymbolicLinkLoop(path) =>
-            Paths.get(path.toString, "SymbolicLinkLoop")
+            relativize(Paths.get(path.toString, "SymbolicLinkLoop"))
           case FileEntry(path) =>
-            Paths.get(path.toString, "FileEntry")
+            relativize(Paths.get(path.toString, "FileEntry"))
           case OtherEntry(path) =>
-            Paths.get(path.toString, "OtherEntry")
+            relativize(Paths.get(path.toString, "OtherEntry"))
         }
+      private def relativize(path: Path): Path =
+        Try(path.getRoot.relativize(path)).getOrElse(path)
     }
   }
 

@@ -5,6 +5,7 @@ import java.nio
 import java.nio.file.Paths
 
 import scala.collection.immutable.TreeSet
+import scala.util.Try
 
 /**
   * A representation of tree structures of files and directories.
@@ -29,11 +30,15 @@ object DirectoryTree {
   object Order {
     def by(tree: DirectoryTree): nio.file.Path = {
       val path = Paths.get(tree.path.toString, tree.name)
-      Paths.get(
-        path.toString,
-        tree.files.map(FileSystemObject.Order.by).map(_.toString).toSeq: _*
+      relativize(
+        Paths.get(
+          path.toString,
+          tree.files.map(FileSystemObject.Order.by).map(_.toString).toSeq: _*
+        )
       )
     }
+    private def relativize(path: nio.file.Path): nio.file.Path =
+      Try(path.getRoot.relativize(path)).getOrElse(path)
   }
 
   /**
