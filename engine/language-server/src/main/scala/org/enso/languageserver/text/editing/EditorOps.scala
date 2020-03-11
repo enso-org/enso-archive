@@ -6,17 +6,13 @@ import org.enso.languageserver.text.editing.model.TextEdit
 
 object EditorOps {
 
-  def edit[A: TextEditor](
-    buffer: A,
-    diff: TextEdit
-  ): Either[TextEditValidationFailure, A] =
+  type EditorOp[A] = Either[TextEditValidationFailure, A]
+
+  def edit[A: TextEditor](buffer: A, diff: TextEdit): EditorOp[A] =
     validate(buffer, diff).map(_ => TextEditor[A].edit(buffer, diff))
 
-  def applyEdits[A: TextEditor](
-    buffer: A,
-    diffs: Seq[TextEdit]
-  ): Either[TextEditValidationFailure, A] =
-    diffs.foldLeft[Either[TextEditValidationFailure, A]](Right(buffer)) {
+  def applyEdits[A: TextEditor](buffer: A, diffs: Seq[TextEdit]): EditorOp[A] =
+    diffs.foldLeft[EditorOp[A]](Right(buffer)) {
       case (maybeBuffer, diff) => maybeBuffer >>= (edit(_, diff))
     }
 
