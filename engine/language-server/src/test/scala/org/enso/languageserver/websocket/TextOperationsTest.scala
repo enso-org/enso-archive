@@ -781,4 +781,62 @@ class TextOperationsTest extends WebSocketServerTest {
 
   }
 
+  "text/openFile" must {
+    "fail when a file wasn't opened first" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/write",
+            "id": 0,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "foo.txt" ]
+              },
+              "contents": "123456789"
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 0,
+            "result": null
+          }
+          """)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "text/applyEdit",
+            "id": 1,
+            "params": {
+              "edit": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "foo.txt" ]
+                },
+                "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
+                "newVersion": "",
+                "edits": [
+                  {
+                    "range": {
+                      "start": { "line": 0, "character": 0 },
+                      "end": { "line": 0, "character": 0 }
+                    },
+                    "text": "bar"
+                  }
+                ]
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": { "code": 3001, "message": "File not opened" }
+          }
+          """)
+    }
+  }
+
 }

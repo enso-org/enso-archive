@@ -6,6 +6,7 @@ import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.text.TextApi.{
   ApplyEdit,
+  FileNotOpenedError,
   InvalidVersionError,
   TextEditValidationError,
   WriteDeniedError
@@ -13,6 +14,7 @@ import org.enso.languageserver.text.TextApi.{
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{
   ApplyEditSuccess,
+  FileNotOpened,
   InvalidVersion,
   TextEditValidationFailed,
   WriteDenied
@@ -68,6 +70,10 @@ class ApplyEditHandler(
 
     case WriteDenied =>
       replyTo ! ResponseError(Some(id), WriteDeniedError)
+      context.stop(self)
+
+    case FileNotOpened =>
+      replyTo ! ResponseError(Some(id), FileNotOpenedError)
       context.stop(self)
   }
 

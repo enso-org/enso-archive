@@ -25,11 +25,12 @@ import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.requesthandler.{
   AcquireCapabilityHandler,
+  ApplyEditHandler,
   CloseFileHandler,
   OpenFileHandler,
   ReleaseCapabilityHandler
 }
-import org.enso.languageserver.text.TextApi.{CloseFile, OpenFile}
+import org.enso.languageserver.text.TextApi.{ApplyEdit, CloseFile, OpenFile}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -50,6 +51,7 @@ object ClientApi {
     .registerRequest(CreateFile)
     .registerRequest(OpenFile)
     .registerRequest(CloseFile)
+    .registerRequest(ApplyEdit)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
     .registerRequest(MoveFile)
@@ -91,8 +93,13 @@ class ClientController(
         .props(capabilityRouter, requestTimeout, client),
       OpenFile -> OpenFileHandler.props(bufferRegistry, requestTimeout, client),
       CloseFile -> CloseFileHandler
+        .props(bufferRegistry, requestTimeout, client),
+      ApplyEdit -> ApplyEditHandler
         .props(bufferRegistry, requestTimeout, client)
     )
+
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
 
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
