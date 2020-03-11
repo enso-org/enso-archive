@@ -155,13 +155,13 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   */
 
 
-case class ModuleWithMetadata(ast: AST, metadata: Json)
+case class SourceFile(ast: AST, metadata: Json)
 
-object ModuleWithMetadata {
+object SourceFile {
   val IDTAG   = "\n# [idmap] "
   val METATAG = "\n# [metadata]"
 
-  implicit def MWMEncoder: Encoder[ModuleWithMetadata] = module =>
+  implicit def MWMEncoder: Encoder[SourceFile] = module =>
     Json.obj("ast" -> module.ast.toJson(), "metadata" -> module.metadata)
 }
 
@@ -170,11 +170,14 @@ class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run_with_metadata(program: String): ModuleWithMetadata = {
-    import ModuleWithMetadata._
+  /** Parse contents of the program source file,
+    * where program code may be followed by idmap and metadata.
+    */
+  def run_with_metadata(program: String): SourceFile = {
+    import SourceFile._
 
     program.split(IDTAG) match {
-      case Array(input)  => ModuleWithMetadata(run(input), Json.Null)
+      case Array(input)  => SourceFile(run(input), Json.Null)
       case Array(input, rest) =>
         val meta     = rest.split(METATAG)
         if (meta.size < 2) {
@@ -187,12 +190,14 @@ class Parser {
           throw new ParserError("Could not deserialize metadata.", error)
         }.merge
 
-        ModuleWithMetadata(run(new Reader(input), idmap), metadata)
+        SourceFile(run(new Reader(input), idmap), metadata)
     }
   }
 
+  /** Parse simple string with empty IdMap into AST. */
   def run(input: String): AST.Module = run(new Reader(input), Nil)
 
+  /** Parse input with provided IdMap into AST */
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
     val spanned     = tokenStream.map(attachModuleLocations)
@@ -513,7 +518,7 @@ object Main extends scala.App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inp), Nil)
+  val mod = parser.run(inp)
 
   println(Debug.pretty(mod.toString))
 

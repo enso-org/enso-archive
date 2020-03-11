@@ -20,8 +20,8 @@ object Parse {
       case e: Throwable => throw js.JavaScriptException(e.getMessage)
     }
   }
-  @JSExportTopLevel("parse_as_module")
-  def parse_as_module(program: String): String = {
+  @JSExportTopLevel("parse_with_metadata")
+  def parse_with_metadata(program: String): String = {
     try {
       new Parser().run_with_metadata(program).asJson.noSpacesSortKeys
     } catch {

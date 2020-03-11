@@ -5,7 +5,7 @@ import org.enso.flexer.Reader
 import org.enso.parserservice.Protocol
 import org.enso.parserservice.Server
 import org.enso.syntax.text.AST
-import org.enso.syntax.text.ModuleWithMetadata
+import org.enso.syntax.text.SourceFile
 import org.enso.syntax.text.Parser
 
 import scala.util.Try
@@ -41,8 +41,8 @@ case class ParserService() extends Server with Protocol {
     request match {
       case ParseRequest(program, ids) =>
         val ast     = new Parser().run(new Reader(program), ids)
-        Protocol.Success(ModuleWithMetadata(ast, Json.Null))
-      case ParseFileRequest(content) =>
+        Protocol.Success(SourceFile(ast, Json.Null))
+      case ParseWithMetadataRequest(content) =>
         val module  = new Parser().run_with_metadata(content)
         Protocol.Success(module)
       case _ =>
