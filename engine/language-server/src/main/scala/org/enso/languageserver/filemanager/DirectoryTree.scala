@@ -2,6 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 import java.nio
+import java.nio.file.Paths
 
 import scala.collection.immutable.TreeSet
 
@@ -24,6 +25,16 @@ object DirectoryTree {
 
   implicit val ordering: Ordering[DirectoryTree] =
     Ordering.by(_.name)
+
+  object Order {
+    def by(tree: DirectoryTree): nio.file.Path = {
+      val path = Paths.get(tree.path.toString, tree.name)
+      Paths.get(
+        path.toString,
+        tree.files.map(FileSystemObject.Order.by).map(_.toString).toSeq: _*
+      )
+    }
+  }
 
   /**
     * Create [[DirectoryTree]] from [[FileSystemApi.DirectoryEntry]]
@@ -87,8 +98,11 @@ object DirectoryTree {
           mkRelativeParent(root, base, path)
         )
 
-      case FileSystemApi.OtherEntry(_) =>
-        FileSystemObject.Other
+      case FileSystemApi.OtherEntry(path) =>
+        FileSystemObject.Other(
+          path.getFileName.toString,
+          mkRelativeParent(root, base, path)
+        )
     }
 
   private def mkRelativePath(

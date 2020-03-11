@@ -267,7 +267,11 @@ object FileSystem {
     * @param visited symlinked directories
     * @return a [[DirectoryEntry]] tree representation of the directory
     */
-  private def readDirectoryEntry(path: Path, level: Depth, visited: Set[Path]): DirectoryEntry = {
+  private def readDirectoryEntry(
+    path: Path,
+    level: Depth,
+    visited: Set[Path]
+  ): DirectoryEntry = {
     def isVisited(path: Path): Boolean =
       visited.contains(path)
     def readEntry(
@@ -302,7 +306,11 @@ object FileSystem {
     }
     def accumulator(entry: DirectoryEntry, path: Path): DirectoryEntry =
       entry.copy(
-        children = entry.children + readEntry(path, visited, Seq(LinkOption.NOFOLLOW_LINKS))
+        children = entry.children + readEntry(
+            path,
+            visited,
+            Seq(LinkOption.NOFOLLOW_LINKS)
+          )
       )
     def combiner(a: DirectoryEntry, b: DirectoryEntry): DirectoryEntry =
       a.copy(children = a.children ++ b.children)

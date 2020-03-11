@@ -1,5 +1,6 @@
 package org.enso.languageserver.filemanager
 
+import java.nio
 import java.nio.file.Paths
 
 import io.circe.generic.auto._
@@ -47,9 +48,9 @@ object FileSystemObject {
   case class File(name: String, path: Path) extends FileSystemObject
 
   /**
-    * Represents unrecognized object.
+    * Represents unrecognized object. Example is a broken symlink.
     */
-  case object Other extends FileSystemObject
+  case class Other(name: String, path: Path) extends FileSystemObject
 
   private object CodecField {
 
@@ -101,7 +102,10 @@ object FileSystemObject {
           } yield SymlinkLoop(name, path)
 
         case CodecType.Other =>
-          Right(Other)
+          for {
+            name <- cursor.downField(CodecField.Name).as[String]
+            path <- cursor.downField(CodecField.Path).as[Path]
+          } yield Other(name, path)
       }
     }
 
@@ -135,23 +139,30 @@ object FileSystemObject {
           CodecField.Path -> path.asJson
         )
 
-      case Other =>
+      case Other(name, path) =>
         Json.obj(
-          CodecField.Type -> CodecType.Other.asJson
+          CodecField.Type -> CodecType.Other.asJson,
+          CodecField.Name -> name.asJson,
+          CodecField.Path -> path.asJson
         )
     }
 
   implicit val ordering: Ordering[FileSystemObject] =
-    Ordering.by {
-      case Directory(name, path) =>
-        Paths.get("", path.segments :+ name :+ "Directory": _*)
-      case DirectoryTruncated(name, path) =>
-        Paths.get("", path.segments :+ name :+ "DirectoryTruncated": _*)
-      case SymlinkLoop(name, path) =>
-        Paths.get("", path.segments :+ name :+ "SymlinkLoop": _*)
-      case File(name, path) =>
-        Paths.get("", path.segments :+ name :+ "File": _*)
-      case Other =>
-        Paths.get("Other")
-    }
+    Ordering.by(FileSystemObject.Order.by)
+
+  object Order {
+    def by(obj: FileSystemObject): nio.file.Path =
+      obj match {
+        case Directory(name, path) =>
+          Paths.get("", path.segments :+ name :+ "Directory": _*)
+        case DirectoryTruncated(name, path) =>
+          Paths.get("", path.segments :+ name :+ "DirectoryTruncated": _*)
+        case SymlinkLoop(name, path) =>
+          Paths.get("", path.segments :+ name :+ "SymlinkLoop": _*)
+        case File(name, path) =>
+          Paths.get("", path.segments :+ name :+ "File": _*)
+        case Other(name, path) =>
+          Paths.get("", path.segments :+ name :+ "Other": _*)
+      }
+  }
 }

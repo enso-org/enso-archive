@@ -1001,9 +1001,13 @@ interface File {
 }
 
 /**
- * Represents unrecognized object. Example is a broken symbolic link.
+ * Represents unrecognized object.
+ * Example is a broken symbolic link.
  */
-interface Other;
+interface Other {
+  name: String;
+  path: Path;
+;
 ```
 
 #### `WorkspaceEdit`

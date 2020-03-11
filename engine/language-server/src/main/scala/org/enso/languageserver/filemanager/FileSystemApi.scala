@@ -117,30 +117,33 @@ object FileSystemApi {
       * An ordering for an Entry.
       *
       * @note scala/bug#10741. [[Ordering]] instance is used not only for
-      * ordering the elements, but also for an equality testing. If we just
-      * return the path, we would not be able to distinguish between the nodes
-      * with the same path. To address this we append the node name to the path.
+      * ordering the elements in sets, but also for an equality testing. If we
+      * just return the path, we would not be able to distinguish between
+      * different nodes with the same path in the [[TreeSet]]. To address this
+      * we append the node name to the path.
       */
     implicit val ordering: Ordering[Entry] =
-      Ordering.by(orderingPath)
+      Ordering.by(Entry.Order.by)
 
-    private def orderingPath(entry: Entry): Path =
-      entry match {
-        case DirectoryEntry(path, children) =>
-          val hd = Paths.get(path.toString, "DirectoryEntry")
-          Paths.get(
-            hd.toString,
-            children.map(orderingPath).map(_.toString).toSeq: _*
-          )
-        case DirectoryEntryTruncated(path) =>
-          Paths.get(path.toString, "DirectoryEntryTruncated")
-        case SymbolicLinkLoop(path) =>
-          Paths.get(path.toString, "SymbolicLinkLoop")
-        case FileEntry(path) =>
-          Paths.get(path.toString, "FileEntry")
-        case OtherEntry(path) =>
-          Paths.get(path.toString, "OtherEntry")
-      }
+    object Order {
+      def by(entry: Entry): Path =
+        entry match {
+          case DirectoryEntry(path, children) =>
+            val entryPath = Paths.get(path.toString, "DirectoryEntry")
+            Paths.get(
+              entryPath.toString,
+              children.map(Order.by).map(_.toString).toSeq: _*
+            )
+          case DirectoryEntryTruncated(path) =>
+            Paths.get(path.toString, "DirectoryEntryTruncated")
+          case SymbolicLinkLoop(path) =>
+            Paths.get(path.toString, "SymbolicLinkLoop")
+          case FileEntry(path) =>
+            Paths.get(path.toString, "FileEntry")
+          case OtherEntry(path) =>
+            Paths.get(path.toString, "OtherEntry")
+        }
+    }
   }
 
   /**
