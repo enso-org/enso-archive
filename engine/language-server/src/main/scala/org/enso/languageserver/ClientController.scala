@@ -25,11 +25,18 @@ import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.requesthandler.{
   AcquireCapabilityHandler,
+  ApplyEditHandler,
   CloseFileHandler,
   OpenFileHandler,
   ReleaseCapabilityHandler
 }
-import org.enso.languageserver.text.TextApi.{CloseFile, OpenFile}
+import org.enso.languageserver.text.TextApi.{
+  ApplyEdit,
+  CloseFile,
+  OpenFile,
+  TextDidChange
+}
+import org.enso.languageserver.text.TextProtocol
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -50,10 +57,14 @@ object ClientApi {
     .registerRequest(CreateFile)
     .registerRequest(OpenFile)
     .registerRequest(CloseFile)
+    .registerRequest(ApplyEdit)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
+    .registerRequest(MoveFile)
+    .registerRequest(ExistsFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
+    .registerNotification(TextDidChange)
 
   case class WebConnect(webActor: ActorRef)
 }
@@ -89,8 +100,13 @@ class ClientController(
         .props(capabilityRouter, requestTimeout, client),
       OpenFile -> OpenFileHandler.props(bufferRegistry, requestTimeout, client),
       CloseFile -> CloseFileHandler
+        .props(bufferRegistry, requestTimeout, client),
+      ApplyEdit -> ApplyEditHandler
         .props(bufferRegistry, requestTimeout, client)
     )
+
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
 
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
@@ -112,6 +128,9 @@ class ClientController(
     case CapabilityProtocol.CapabilityGranted(registration) =>
       webActor ! Notification(GrantCapability, registration)
 
+    case TextProtocol.TextDidChange(changes) =>
+      webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
+
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))
       handler.forward(r)
@@ -130,6 +149,12 @@ class ClientController(
 
     case Request(CopyFile, id, params: CopyFile.Params) =>
       copyFile(webActor, id, params)
+
+    case Request(MoveFile, id, params: MoveFile.Params) =>
+      moveFile(webActor, id, params)
+
+    case Request(ExistsFile, id, params: ExistsFile.Params) =>
+      existsFile(webActor, id, params)
   }
 
   private def readFile(
@@ -243,4 +268,47 @@ class ClientController(
       }
   }
 
+  private def moveFile(
+    webActor: ActorRef,
+    id: Id,
+    params: MoveFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.MoveFile(params.from, params.to))
+      .onComplete {
+        case Success(FileManagerProtocol.MoveFileResult(Right(()))) =>
+          webActor ! ResponseResult(MoveFile, id, Unused)
+
+        case Success(FileManagerProtocol.MoveFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occured during moving a file", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
+
+  private def existsFile(
+    webActor: ActorRef,
+    id: Id,
+    params: ExistsFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.ExistsFile(params.path))
+      .onComplete {
+        case Success(FileManagerProtocol.ExistsFileResult(Right(exists))) =>
+          webActor ! ResponseResult(ExistsFile, id, ExistsFile.Result(exists))
+
+        case Success(FileManagerProtocol.ExistsFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occurred during exists file command", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
 }
