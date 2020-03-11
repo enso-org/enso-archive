@@ -792,7 +792,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-1.txt" ]
+                "segments": [ "foo.txt" ]
               },
               "contents": "123456789"
             }
@@ -813,7 +813,7 @@ class TextOperationsTest extends WebSocketServerTest {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "text-edit-1.txt" ]
+                  "segments": [ "foo.txt" ]
                 },
                 "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                 "newVersion": "7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5",
@@ -848,7 +848,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               },
               "contents": "123456789"
             }
@@ -867,7 +867,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -883,7 +883,7 @@ class TextOperationsTest extends WebSocketServerTest {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "text-edit-2.txt"
+                      "foo.txt"
                     ]
                   }
                 }
@@ -902,7 +902,7 @@ class TextOperationsTest extends WebSocketServerTest {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "text-edit-2.txt" ]
+                  "segments": [ "foo.txt" ]
                 },
                 "oldVersion": "wrong_version",
                 "newVersion": "7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5",
@@ -940,7 +940,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               },
               "contents": "123456789"
             }
@@ -959,7 +959,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -975,7 +975,7 @@ class TextOperationsTest extends WebSocketServerTest {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "text-edit-2.txt"
+                      "foo.txt"
                     ]
                   }
                 }
@@ -994,7 +994,7 @@ class TextOperationsTest extends WebSocketServerTest {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "text-edit-2.txt" ]
+                  "segments": [ "foo.txt" ]
                 },
                 "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                 "newVersion": "wrong_version",
@@ -1032,7 +1032,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               },
               "contents": "123456789"
             }
@@ -1051,7 +1051,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -1067,7 +1067,7 @@ class TextOperationsTest extends WebSocketServerTest {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "text-edit-2.txt"
+                      "foo.txt"
                     ]
                   }
                 }
@@ -1086,7 +1086,7 @@ class TextOperationsTest extends WebSocketServerTest {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "text-edit-2.txt" ]
+                  "segments": [ "foo.txt" ]
                 },
                 "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                 "newVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
@@ -1125,7 +1125,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-3.txt" ]
+                "segments": [ "foo.txt" ]
               },
               "contents": "123456789"
             }
@@ -1144,7 +1144,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-3.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -1160,7 +1160,7 @@ class TextOperationsTest extends WebSocketServerTest {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "text-edit-3.txt"
+                      "foo.txt"
                     ]
                   }
                 }
@@ -1177,7 +1177,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-3.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -1202,7 +1202,7 @@ class TextOperationsTest extends WebSocketServerTest {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "text-edit-3.txt" ]
+                  "segments": [ "foo.txt" ]
                 },
                 "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                 "newVersion": "7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5",
@@ -1240,7 +1240,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               },
               "contents": "123456789"
             }
@@ -1259,7 +1259,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -1275,7 +1275,7 @@ class TextOperationsTest extends WebSocketServerTest {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "text-edit-2.txt"
+                      "foo.txt"
                     ]
                   }
                 }
@@ -1294,7 +1294,7 @@ class TextOperationsTest extends WebSocketServerTest {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "text-edit-2.txt" ]
+                  "segments": [ "foo.txt" ]
                 },
                 "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                 "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
@@ -1337,7 +1337,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               },
               "contents": "123456789"
             }
@@ -1356,7 +1356,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -1372,7 +1372,7 @@ class TextOperationsTest extends WebSocketServerTest {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "text-edit-2.txt"
+                      "foo.txt"
                     ]
                   }
                 }
@@ -1390,7 +1390,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "text-edit-2.txt" ]
+                "segments": [ "foo.txt" ]
               }
             }
           }
@@ -1415,7 +1415,7 @@ class TextOperationsTest extends WebSocketServerTest {
               "edit": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ "text-edit-2.txt" ]
+                  "segments": [ "foo.txt" ]
                 },
                 "oldVersion": "5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522",
                 "newVersion": "ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3",
@@ -1455,7 +1455,7 @@ class TextOperationsTest extends WebSocketServerTest {
                   "path" : {
                     "rootId" : $testContentRootId,
                     "segments" : [
-                      "text-edit-2.txt"
+                      "foo.txt"
                     ]
                   },
                   "edits" : [
