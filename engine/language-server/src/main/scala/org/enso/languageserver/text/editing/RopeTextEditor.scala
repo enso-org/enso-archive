@@ -23,11 +23,7 @@ object RopeTextEditor extends TextEditor[Rope] {
   }
 
   private def cutOutHead(buffer: Rope, diff: TextEdit): Rope = {
-    val fullLines =
-      if (diff.range.start.line > 0)
-        buffer.lines.take(diff.range.start.line)
-      else
-        Rope.empty
+    val fullLines = buffer.lines.take(diff.range.start.line)
 
     val rest =
       if (diff.range.start.character > 0)
