@@ -357,10 +357,10 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
 
   it should "tree directory contents" in new TestCtx {
     //given
-    val path          = Paths.get(testDirPath.toString, "dir")
-    val subdir        = Paths.get(testDirPath.toString, "dir", "subdir")
-    val fileA         = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
-    val fileB         = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
+    val path    = Paths.get(testDirPath.toString, "dir")
+    val subdir  = Paths.get(testDirPath.toString, "dir", "subdir")
+    val fileA   = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
+    val fileB   = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
     val symlink = Paths.get(testDirPath.toString, "dir", "symlink")
     createEmptyFile(fileA)
     createEmptyFile(fileB)
@@ -390,12 +390,12 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     result shouldBe Right(entry)
   }
 
-  it should "tree directory contents and limit depth" in new TestCtx {
+  it should "tree directory and limit depth" in new TestCtx {
     //given
-    val path          = Paths.get(testDirPath.toString, "dir")
-    val subdir        = Paths.get(testDirPath.toString, "dir", "subdir")
-    val fileA         = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
-    val fileB         = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
+    val path    = Paths.get(testDirPath.toString, "dir")
+    val subdir  = Paths.get(testDirPath.toString, "dir", "subdir")
+    val fileA   = Paths.get(testDirPath.toString, "dir", "subdir", "a.txt")
+    val fileB   = Paths.get(testDirPath.toString, "dir", "subdir", "b.txt")
     val symlink = Paths.get(testDirPath.toString, "dir", "symlink")
     createEmptyFile(fileA)
     createEmptyFile(fileB)
@@ -403,13 +403,82 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val entry = DirectoryEntry(
       path,
       TreeSet(
-        DirectoryEntry(subdir, TreeSet()),
-        DirectoryEntry(symlink, TreeSet())
+        DirectoryEntryTruncated(subdir),
+        DirectoryEntryTruncated(symlink)
       )
     )
     //when
     val result =
       objectUnderTest.tree(path.toFile, depth = Some(1)).unsafeRunSync()
+    //then
+    result shouldBe Right(entry)
+  }
+
+  it should "tree directory and detect symlink loops" in new TestCtx {
+    //given
+    val path     = Paths.get(testDirPath.toString, "dir")
+    val dirA     = Paths.get(testDirPath.toString, "dir", "a")
+    val symlinkB = Paths.get(testDirPath.toString, "dir", "a", "symlink_b")
+    val dirB     = Paths.get(testDirPath.toString, "dir", "b")
+    val symlinkA = Paths.get(testDirPath.toString, "dir", "b", "symlink_a")
+    Files.createDirectories(dirA)
+    Files.createDirectories(dirB)
+    Files.createSymbolicLink(symlinkB, dirB)
+    Files.createSymbolicLink(symlinkA, dirA)
+    val entry = DirectoryEntry(
+      path,
+      TreeSet(
+        DirectoryEntry(
+          dirA,
+          TreeSet(
+            DirectoryEntry(
+              symlinkB,
+              TreeSet(
+                DirectoryEntry(
+                  symlinkA,
+                  TreeSet(SymbolicLinkLoop(symlinkB))
+                )
+              )
+            )
+          )
+        ),
+        DirectoryEntry(
+          dirB,
+          TreeSet(
+            DirectoryEntry(
+              symlinkA,
+              TreeSet(
+                DirectoryEntry(
+                  symlinkB,
+                  TreeSet(SymbolicLinkLoop(symlinkA))
+                )
+              )
+            )
+          )
+        )
+      )
+    )
+    //when
+    val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
+    //then
+    result shouldBe Right(entry)
+  }
+
+  it should "tree directory with broken symlinks" in new TestCtx {
+    //given
+    val path    = Paths.get(testDirPath.toString, "dir")
+    val fileA   = Paths.get(testDirPath.toString, "dir", "a.txt")
+    val symlink = Paths.get(testDirPath.toString, "dir", "symlink")
+    Files.createDirectories(path)
+    Files.createSymbolicLink(symlink, fileA)
+    val entry = DirectoryEntry(
+      path,
+      TreeSet(
+        OtherEntry(symlink)
+      )
+    )
+    //when
+    val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
     //then
     result shouldBe Right(entry)
   }
@@ -460,3 +529,35 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
   }
 
 }
+
+/*
+DirectoryEntry(
+  /tmp/6837467075952233588/dir,
+  TreeSet(
+    DirectoryEntry(
+      /tmp/6837467075952233588/dir/a,
+      TreeSet(
+        DirectoryEntry(
+          /tmp/6837467075952233588/dir/a/symlink_b,TreeSet()
+        )
+      )
+    ),
+    DirectoryEntry(
+      /tmp/6837467075952233588/dir/b,
+      TreeSet(
+        DirectoryEntry(
+          /tmp/6837467075952233588/dir/b/b.txt,TreeSet()
+        ),
+        DirectoryEntry(
+          /tmp/6837467075952233588/dir/b/symlink_a,
+          TreeSet(
+            DirectoryEntry(
+              /tmp/6837467075952233588/dir/a/symlink_b,TreeSet()
+            )
+          )
+        )
+      )
+    )
+  )
+)
+ */

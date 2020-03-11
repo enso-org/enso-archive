@@ -1,7 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-import java.nio.file.Path
+import java.nio.file.{Path, Paths}
 
 import scala.collection.immutable.TreeSet
 
@@ -112,11 +112,27 @@ object FileSystemApi {
   sealed trait Entry
 
   object Entry {
+
+    /**
+      * An ordering for an Entry.
+      *
+      * @note scala/bug#10741. [[Ordering]] instance is used not only for
+      * ordering the elements, but also for an equality testing. If we just
+      * return the path, we would not be able to distinguish between the nodes
+      * with the same path. To address this we append the node name to the path.
+      */
     implicit val ordering: Ordering[Entry] =
       Ordering.by {
-        case DirectoryEntry(path, _)    => path
-        case FileEntry(path)            => path
-        case OtherEntry(path)           => path
+        case DirectoryEntry(path, _) =>
+          Paths.get(path.toString, "DirectoryEntry")
+        case DirectoryEntryTruncated(path) =>
+          Paths.get(path.toString, "DirectoryEntryTruncated")
+        case SymbolicLinkLoop(path) =>
+          Paths.get(path.toString, "SymbolicLinkLoop")
+        case FileEntry(path) =>
+          Paths.get(path.toString, "FileEntry")
+        case OtherEntry(path) =>
+          Paths.get(path.toString, "OtherEntry")
       }
   }
 
@@ -131,8 +147,25 @@ object FileSystemApi {
   object DirectoryEntry {
 
     def empty(path: Path): DirectoryEntry =
-      DirectoryEntry(path, TreeSet.empty)
+      DirectoryEntry(path, TreeSet.empty[Entry])
   }
+
+  /**
+    * An entry representing a directory with contents truncated.
+    *
+    * @param path to the directory
+    */
+  case class DirectoryEntryTruncated(path: Path) extends Entry
+
+  /**
+    * An entry representing the symbolic link that creates an infinite loop.
+    *
+    * When a symlink loop is detected, instead of returning the
+    * [[DirectoryEntry]] node, this entry is returned to break the loop.
+    *
+    * @param path to the symlink
+    */
+  case class SymbolicLinkLoop(path: Path) extends Entry
 
   /**
     * An entry representing a file.

@@ -29,7 +29,7 @@ object FileSystemObject {
   case class File(name: String, path: RelativePath) extends FileSystemObject
 
   /**
-    * Represents unrecognized object.
+    * Represents unrecognized object. Example is a broken symlink.
     */
   case object Other extends FileSystemObject
 
