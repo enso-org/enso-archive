@@ -27,4 +27,18 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
                                           |    result""".stripMargin)
   }
 
+  it should "take into account applied so far edits when validate next diff" in {
+    //given
+    val firstBlock = Range(Position(2, 0), Position(5, 0))
+    val diff1      = TextEdit(firstBlock, "foo")
+    val nonExistingPositionAfterFirstEdit =
+      Range(Position(5, 4), Position(5, 10))
+    val diff2 = TextEdit(nonExistingPositionAfterFirstEdit, "bar")
+    val diffs = List(diff1, diff2)
+    //when
+    val result = EditorOps.applyEdits(testSnippet, diffs)
+    //then
+    result mustBe Left(PositionNotFound(Position(5, 4)))
+  }
+
 }
