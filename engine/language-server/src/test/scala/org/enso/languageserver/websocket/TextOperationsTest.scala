@@ -1108,7 +1108,7 @@ class TextOperationsTest extends WebSocketServerTest {
             "id": 2,
             "error": { 
               "code": 3002, 
-              "message": "Negative coordinate in position object" 
+              "message": "Negative coordinate in a position object" 
             }
           }
           """)

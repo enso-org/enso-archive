@@ -179,9 +179,9 @@ class CollaborativeBuffer(
 
   private val toEditFailure: TextEditValidationFailure => ApplyEditFailure = {
     case EndPositionBeforeStartPosition =>
-      TextEditValidationFailed("The start position is after end position")
+      TextEditValidationFailed("The start position is after the end position")
     case NegativeCoordinateInPosition =>
-      TextEditValidationFailed("Negative coordinate in position object")
+      TextEditValidationFailed("Negative coordinate in a position object")
     case InvalidPosition(position) =>
       TextEditValidationFailed(s"Invalid position: $position")
   }
