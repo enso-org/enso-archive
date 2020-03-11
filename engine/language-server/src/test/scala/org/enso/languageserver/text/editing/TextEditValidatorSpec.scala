@@ -24,9 +24,9 @@ class TextEditValidatorSpec extends AnyFlatSpec with Matchers {
 
   it should "fail if position is outside of buffer" in {
     val diff1 = TextEdit(Range(Position(0, 3), Position(10, 2)), "a")
-    validate(buffer, diff1) mustBe Left(PositionNotFound(Position(10, 2)))
+    validate(buffer, diff1) mustBe Left(InvalidPosition(Position(10, 2)))
     val diff2 = TextEdit(Range(Position(0, 10), Position(1, 2)), "a")
-    validate(buffer, diff2) mustBe Left(PositionNotFound(Position(0, 10)))
+    validate(buffer, diff2) mustBe Left(InvalidPosition(Position(0, 10)))
   }
 
   it should "succeed when character coordinate is equal to line length" in {

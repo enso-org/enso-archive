@@ -55,12 +55,14 @@ object TextProtocol {
   case class ApplyEdit(clientId: Client.Id, edit: FileEdit)
 
   sealed trait ApplyEditResult
-  case object ApplyEditSuccess extends ApplyEditResult
-  case object WriteDenied      extends ApplyEditResult
-  case class VersionConflictBeforeEdit(currentVersion: Buffer.Version)
-      extends ApplyEditResult
-  case class VersionConflictAfterEdit(modifiedFileVersion: Buffer.Version)
-      extends ApplyEditResult
+  case object ApplyEditSuccess                     extends ApplyEditResult
+  sealed trait ApplyEditFailure                    extends ApplyEditResult
+  case object WriteDenied                          extends ApplyEditFailure
+  case class TextEditValidationFailed(msg: String) extends ApplyEditFailure
+  case class InvalidVersion(
+    clientVersion: Buffer.Version,
+    serverVersion: Buffer.Version
+  ) extends ApplyEditFailure
 
   case class TextDidChange(changes: List[FileEdit])
 

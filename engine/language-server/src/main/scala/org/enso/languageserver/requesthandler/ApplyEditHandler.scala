@@ -4,12 +4,17 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
-import org.enso.languageserver.text.TextApi.ApplyEdit
+import org.enso.languageserver.text.TextApi.{
+  ApplyEdit,
+  InvalidVersionError,
+  TextEditValidationError,
+  WriteDeniedError
+}
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{
   ApplyEditSuccess,
-  VersionConflictAfterEdit,
-  VersionConflictBeforeEdit,
+  InvalidVersion,
+  TextEditValidationFailed,
   WriteDenied
 }
 
@@ -50,16 +55,19 @@ class ApplyEditHandler(
       replyTo ! ResponseResult(ApplyEdit, id, Unused)
       context.stop(self)
 
-    case VersionConflictBeforeEdit(version) =>
-      replyTo ! ResponseError(Some(id), ServiceError) //todo define error
+    case TextEditValidationFailed(msg) =>
+      replyTo ! ResponseError(Some(id), TextEditValidationError(msg))
       context.stop(self)
 
-    case VersionConflictAfterEdit(version) =>
-      replyTo ! ResponseError(Some(id), ServiceError) //todo define error
+    case InvalidVersion(clientVersion, serverVersion) =>
+      replyTo ! ResponseError(
+        Some(id),
+        InvalidVersionError(clientVersion, serverVersion)
+      )
       context.stop(self)
 
     case WriteDenied =>
-      replyTo ! ResponseError(Some(id), ServiceError) //todo define error
+      replyTo ! ResponseError(Some(id), WriteDeniedError)
       context.stop(self)
   }
 

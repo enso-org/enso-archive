@@ -10,12 +10,15 @@ object model {
     override def compare(that: Position): Int = {
       if (this == that) {
         0
-      } else if (this.line < that.line || (this.line == that.line && this.character < that.character)) {
+      } else if (isThisBefore(that)) {
         -1
       } else {
         1
       }
     }
+
+    private def isThisBefore(that: Position) =
+      this.line < that.line || (this.line == that.line && this.character < that.character)
 
   }
 

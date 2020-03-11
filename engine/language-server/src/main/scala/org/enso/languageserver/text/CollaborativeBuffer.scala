@@ -23,8 +23,15 @@ import org.enso.languageserver.filemanager.{
 }
 import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
 import org.enso.languageserver.text.TextProtocol._
-import org.enso.languageserver.text.editing.EditorOps
-import org.enso.languageserver.text.editing.model.FileEdit
+import org.enso.languageserver.text.editing.{
+  EditorOps,
+  EndPositionBeforeStartPosition,
+  InvalidPosition,
+  NegativeCoordinateInPosition,
+  TextEditValidationFailure
+}
+import org.enso.languageserver.text.editing.model.{FileEdit, Position, TextEdit}
+import cats.implicits._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -109,37 +116,74 @@ class CollaborativeBuffer(
       }
 
     case ApplyEdit(clientId, change) =>
-      applyEdit(buffer, clients, lockHolder, clientId, change)
+      applyEdits(buffer, lockHolder, clientId, change) match {
+        case Left(failure) =>
+          sender() ! failure
+
+        case Right(modifiedBuffer) =>
+          sender() ! ApplyEditSuccess
+          val subscribers = clients.filterNot(_._1 == clientId).values
+          subscribers foreach { _.actor ! TextDidChange(List(change)) }
+          context.become(
+            collaborativeEditing(modifiedBuffer, clients, lockHolder)
+          )
+      }
 
   }
 
-  private def applyEdit(
+  private def applyEdits(
     buffer: Buffer,
-    clients: Map[Id, Client],
     lockHolder: Option[Client],
     clientId: Id,
     change: FileEdit
-  ): Unit = {
+  ): Either[ApplyEditFailure, Buffer] =
+    for {
+      _              <- validateAccess(lockHolder, clientId)
+      _              <- validateVersions(change.oldVersion, buffer.version)
+      modifiedBuffer <- doEdit(buffer, change.edits)
+      _              <- validateVersions(change.newVersion, modifiedBuffer.version)
+    } yield modifiedBuffer
+
+  private def validateVersions(
+    clientVersion: Buffer.Version,
+    serverVersion: Buffer.Version
+  ): Either[ApplyEditFailure, Unit] = {
+    if (clientVersion == serverVersion) {
+      Right(())
+    } else {
+      Left(InvalidVersion(clientVersion, serverVersion))
+    }
+  }
+
+  private def validateAccess(
+    lockHolder: Option[Client],
+    clientId: Id
+  ): Either[ApplyEditFailure, Unit] = {
     val hasLock = lockHolder.exists(_.id == clientId)
     if (hasLock) {
-      if (buffer.version == change.oldVersion) {
-        val newRope = EditorOps.applyEdits(buffer.contents, change.edits)
-//        val newVersion = versionCalculator.evalVersion(newRope.toString)
-//        val newBuffer  = Buffer(newRope, newVersion)
-//        if (change.newVersion == newVersion) {
-//          sender() ! ApplyEditSuccess
-//          val subscribers = clients.filterNot(_._1 == clientId).values
-//          subscribers foreach { _.actor ! TextDidChange(List(change)) }
-//          context.become(collaborativeEditing(newBuffer, clients, lockHolder))
-//        } else {
-//          sender() ! VersionConflictAfterEdit
-//        }
-      } else {
-        sender() ! VersionConflictBeforeEdit(buffer.version)
-      }
+      Right(())
     } else {
-      sender() ! WriteDenied
+      Left(WriteDenied)
     }
+  }
+
+  private def doEdit(
+    buffer: Buffer,
+    edits: List[TextEdit]
+  ): Either[ApplyEditFailure, Buffer] = {
+    EditorOps
+      .applyEdits(buffer.contents, edits)
+      .leftMap(toEditFailure)
+      .map(rope => Buffer(rope, versionCalculator.evalVersion(rope.toString)))
+  }
+
+  private val toEditFailure: TextEditValidationFailure => ApplyEditFailure = {
+    case EndPositionBeforeStartPosition =>
+      TextEditValidationFailed("The start position is after end position")
+    case NegativeCoordinateInPosition =>
+      TextEditValidationFailed("Negative coordinate in position object")
+    case InvalidPosition(position) =>
+      TextEditValidationFailed(s"Invalid position: $position")
   }
 
   private def readFile(client: Client, path: Path): Unit = {

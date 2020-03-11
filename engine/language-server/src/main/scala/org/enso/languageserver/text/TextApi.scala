@@ -62,4 +62,14 @@ object TextApi {
 
   case object FileNotOpenedError extends Error(3001, "File not opened")
 
+  case class TextEditValidationError(msg: String) extends Error(3002, msg)
+  case class InvalidVersionError(
+    clientVersion: Buffer.Version,
+    serverVersion: Buffer.Version
+  ) extends Error(
+        3003,
+        s"Invalid version [client version: $clientVersion, server version: $serverVersion]"
+      )
+  case object WriteDeniedError extends Error(3004, "Write denied")
+
 }

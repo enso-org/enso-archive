@@ -38,7 +38,7 @@ class EditorOpsSpec extends AnyFlatSpec with Matchers with EitherValues {
     //when
     val result = EditorOps.applyEdits(testSnippet, diffs)
     //then
-    result mustBe Left(PositionNotFound(Position(5, 4)))
+    result mustBe Left(InvalidPosition(Position(5, 4)))
   }
 
 }

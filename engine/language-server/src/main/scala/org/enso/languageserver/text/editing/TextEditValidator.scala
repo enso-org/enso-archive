@@ -44,11 +44,11 @@ object TextEditValidator {
   ): Either[TextEditValidationFailure, Unit] = {
     val lineCount = TextEditor[A].getLineCount(buffer)
     if (position.line >= lineCount) {
-      Left(PositionNotFound(position))
+      Left(InvalidPosition(position))
     } else {
       val line = TextEditor[A].getLine(buffer, position.line)
       if (position.character > line.length) {
-        Left(PositionNotFound(position))
+        Left(InvalidPosition(position))
       } else {
         Right(())
       }
