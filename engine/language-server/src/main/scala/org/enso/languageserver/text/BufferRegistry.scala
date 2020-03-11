@@ -12,7 +12,7 @@ import org.enso.languageserver.data.{
   CapabilityRegistration,
   ContentBasedVersioning
 }
-import org.enso.languageserver.filemanager.RelativePath
+import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.text.TextProtocol.{
   CloseFile,
   FileNotOpened,
@@ -32,7 +32,7 @@ class BufferRegistry(fileManager: ActorRef)(
 
   override def receive: Receive = running(Map.empty)
 
-  private def running(registry: Map[RelativePath, ActorRef]): Receive = {
+  private def running(registry: Map[Path, ActorRef]): Receive = {
     case msg @ OpenFile(_, path) =>
       if (registry.contains(path)) {
         registry(path).forward(msg)

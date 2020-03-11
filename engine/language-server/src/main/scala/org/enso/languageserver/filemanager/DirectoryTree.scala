@@ -1,7 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-import java.nio.file.Path
+import java.nio
 
 import scala.collection.immutable.TreeSet
 
@@ -14,7 +14,7 @@ import scala.collection.immutable.TreeSet
   * @param directories contents of the directory
   */
 case class DirectoryTree(
-  path: RelativePath,
+  path: Path,
   name: String,
   files: TreeSet[FileSystemObject],
   directories: TreeSet[DirectoryTree]
@@ -36,7 +36,7 @@ object DirectoryTree {
     */
   def fromDirectoryEntry(
     root: File,
-    base: RelativePath,
+    base: Path,
     directory: FileSystemApi.DirectoryEntry
   ): DirectoryTree =
     DirectoryTree(
@@ -48,7 +48,7 @@ object DirectoryTree {
 
   private def fromEntry(
     root: File,
-    base: RelativePath,
+    base: Path,
     entry: FileSystemApi.Entry
   ): Option[DirectoryTree] =
     entry match {
@@ -59,7 +59,7 @@ object DirectoryTree {
 
   private def mkFileSystemObject(
     root: File,
-    base: RelativePath,
+    base: Path,
     entry: FileSystemApi.Entry
   ): FileSystemObject =
     entry match {
@@ -81,16 +81,15 @@ object DirectoryTree {
 
   private def mkRelativePath(
     root: File,
-    base: RelativePath,
-    path: Path
-  ): RelativePath =
-    RelativePath(base.rootId, root.toPath.relativize(path))
+    base: Path,
+    path: nio.file.Path
+  ): Path =
+    Path(base.rootId, root.toPath.relativize(path))
 
   private def mkRelativeParent(
     root: File,
-    base: RelativePath,
-    path: Path
-  ): RelativePath =
+    base: Path,
+    path: nio.file.Path
+  ): Path =
     mkRelativePath(root, base, path.getParent())
-
 }

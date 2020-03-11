@@ -17,7 +17,7 @@ object FileManagerApi {
 
   case object WriteFile extends Method("file/write") {
 
-    case class Params(path: RelativePath, contents: String)
+    case class Params(path: Path, contents: String)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = WriteFile.Params
@@ -29,7 +29,7 @@ object FileManagerApi {
 
   case object ReadFile extends Method("file/read") {
 
-    case class Params(path: RelativePath)
+    case class Params(path: Path)
 
     case class Result(contents: String)
 
@@ -55,7 +55,7 @@ object FileManagerApi {
 
   case object DeleteFile extends Method("file/delete") {
 
-    case class Params(path: RelativePath)
+    case class Params(path: Path)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = DeleteFile.Params
@@ -67,7 +67,7 @@ object FileManagerApi {
 
   case object CopyFile extends Method("file/copy") {
 
-    case class Params(from: RelativePath, to: RelativePath)
+    case class Params(from: Path, to: Path)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = CopyFile.Params
@@ -79,7 +79,7 @@ object FileManagerApi {
 
   case object MoveFile extends Method("file/move") {
 
-    case class Params(from: RelativePath, to: RelativePath)
+    case class Params(from: Path, to: Path)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = MoveFile.Params
@@ -91,7 +91,7 @@ object FileManagerApi {
 
   case object ExistsFile extends Method("file/exists") {
 
-    case class Params(path: RelativePath)
+    case class Params(path: Path)
 
     case class Result(exists: Boolean)
 
@@ -105,7 +105,7 @@ object FileManagerApi {
 
   case object TreeFile extends Method("file/tree") {
 
-    case class Params(path: RelativePath, depth: Option[Int])
+    case class Params(path: Path, depth: Option[Int])
 
     case class Result(tree: DirectoryTree)
 

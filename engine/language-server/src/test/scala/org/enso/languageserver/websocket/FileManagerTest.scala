@@ -6,7 +6,7 @@ import java.util.UUID
 import io.circe.literal._
 import io.circe.syntax._
 import org.apache.commons.io.FileUtils
-import org.enso.languageserver.filemanager.SystemPath
+import org.enso.languageserver.filemanager.Path
 
 class FileManagerTest extends WebSocketServerTest {
   "File Server" must {
@@ -1368,7 +1368,7 @@ class FileManagerTest extends WebSocketServerTest {
                     },
                     "target": {
                       "type": "AbsolutePath",
-                      "segments": ${SystemPath.segments(testOtherRoot).asJson}
+                      "segments": ${Path.segments(testOtherRoot).asJson}
                     }
                   }
                 ],

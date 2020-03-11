@@ -1,5 +1,7 @@
 package org.enso.languageserver.filemanager
 
+import java.nio.file.Paths
+
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
@@ -17,8 +19,7 @@ object FileSystemObject {
     * @param name a name of the directory
     * @param path a path to the directory
     */
-  case class Directory(name: String, path: RelativePath)
-      extends FileSystemObject
+  case class Directory(name: String, path: Path) extends FileSystemObject
 
   /**
     * Represents a file.
@@ -26,7 +27,7 @@ object FileSystemObject {
     * @param name a name of the file
     * @param path a path to the file
     */
-  case class File(name: String, path: RelativePath) extends FileSystemObject
+  case class File(name: String, path: Path) extends FileSystemObject
 
   /**
     * Represents unrecognized object. Example is a broken symlink.
@@ -39,7 +40,7 @@ object FileSystemObject {
 
     val Name = "name"
 
-    val RelativePath = "path"
+    val Path = "path"
   }
 
   private object CodecType {
@@ -57,13 +58,13 @@ object FileSystemObject {
         case CodecType.File =>
           for {
             name <- cursor.downField(CodecField.Name).as[String]
-            path <- cursor.downField(CodecField.RelativePath).as[RelativePath]
+            path <- cursor.downField(CodecField.Path).as[Path]
           } yield File(name, path)
 
         case CodecType.Directory =>
           for {
             name <- cursor.downField(CodecField.Name).as[String]
-            path <- cursor.downField(CodecField.RelativePath).as[RelativePath]
+            path <- cursor.downField(CodecField.Path).as[Path]
           } yield Directory(name, path)
 
         case CodecType.Other =>
@@ -75,16 +76,16 @@ object FileSystemObject {
     Encoder.instance[FileSystemObject] {
       case Directory(name, path) =>
         Json.obj(
-          CodecField.Type         -> CodecType.Directory.asJson,
-          CodecField.Name         -> name.asJson,
-          CodecField.RelativePath -> path.asJson
+          CodecField.Type -> CodecType.Directory.asJson,
+          CodecField.Name -> name.asJson,
+          CodecField.Path -> path.asJson
         )
 
       case File(name, path) =>
         Json.obj(
-          CodecField.Type         -> CodecType.File.asJson,
-          CodecField.Name         -> name.asJson,
-          CodecField.RelativePath -> path.asJson
+          CodecField.Type -> CodecType.File.asJson,
+          CodecField.Name -> name.asJson,
+          CodecField.Path -> path.asJson
         )
 
       case Other =>
@@ -95,8 +96,11 @@ object FileSystemObject {
 
   implicit val ordering: Ordering[FileSystemObject] =
     Ordering.by {
-      case Directory(name, path) => new java.io.File(path.toFile, name)
-      case File(name, path)      => new java.io.File(path.toFile, name)
-      case Other                 => new java.io.File("/")
+      case Directory(name, path) =>
+        Paths.get("", path.segments :+ name :+ "Directory": _*)
+      case File(name, path) =>
+        Paths.get("", path.segments :+ name :+ "File": _*)
+      case Other =>
+        Paths.get("Other")
     }
 }

@@ -2,7 +2,7 @@ package org.enso.languageserver.data
 import java.util.UUID
 
 import io.circe._
-import org.enso.languageserver.filemanager.RelativePath
+import org.enso.languageserver.filemanager.Path
 
 /**
   * A superclass for all capabilities in the system.
@@ -15,7 +15,7 @@ sealed abstract class Capability(val method: String)
   * A capability allowing the user to modify a given file.
   * @param path the file path this capability is granted for.
   */
-case class CanEdit(path: RelativePath) extends Capability(CanEdit.methodName)
+case class CanEdit(path: Path) extends Capability(CanEdit.methodName)
 
 object CanEdit {
   val methodName = "canEdit"

@@ -1,9 +1,9 @@
 package org.enso.languageserver.websocket
 
-import akka.testkit.{TestKit, TestProbe}
+import akka.testkit.TestProbe
 import io.circe.literal._
 import org.enso.languageserver.event.BufferClosed
-import org.enso.languageserver.filemanager.RelativePath
+import org.enso.languageserver.filemanager.Path
 
 class TextOperationsTest extends WebSocketServerTest {
 
@@ -775,7 +775,7 @@ class TextOperationsTest extends WebSocketServerTest {
           }
           """)
       eventProbe.expectMsg(
-        BufferClosed(RelativePath(testContentRootId, List("foo.txt")))
+        BufferClosed(Path(testContentRootId, Vector("foo.txt")))
       )
     }
 

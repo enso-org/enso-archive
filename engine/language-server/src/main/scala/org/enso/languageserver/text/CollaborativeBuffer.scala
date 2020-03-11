@@ -18,7 +18,7 @@ import org.enso.languageserver.filemanager.FileManagerProtocol.ReadFileResult
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   OperationTimeout,
-  RelativePath
+  Path
 }
 import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
 import org.enso.languageserver.text.TextProtocol._
@@ -35,7 +35,7 @@ import scala.language.postfixOps
   * @param versionCalculator a content based version calculator
   */
 class CollaborativeBuffer(
-  bufferPath: RelativePath,
+  bufferPath: Path,
   fileManager: ActorRef,
   timeout: FiniteDuration
 )(
@@ -106,7 +106,7 @@ class CollaborativeBuffer(
       }
   }
 
-  private def readFile(client: Client, path: RelativePath): Unit = {
+  private def readFile(client: Client, path: Path): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
     context.system.scheduler
       .scheduleOnce(timeout, self, FileReadingTimeout)
@@ -190,7 +190,7 @@ class CollaborativeBuffer(
     clients: Map[Client.Id, Client],
     lockHolder: Option[Client],
     clientId: Client,
-    path: RelativePath
+    path: Path
   ): Unit = {
     lockHolder match {
       case None =>
@@ -231,7 +231,7 @@ object CollaborativeBuffer {
     * @return a configuration object
     */
   def props(
-    bufferPath: RelativePath,
+    bufferPath: Path,
     fileManager: ActorRef,
     timeout: FiniteDuration = 10 seconds
   )(implicit versionCalculator: ContentBasedVersioning): Props =
