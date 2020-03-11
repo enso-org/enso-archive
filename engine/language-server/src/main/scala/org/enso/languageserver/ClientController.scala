@@ -30,7 +30,13 @@ import org.enso.languageserver.requesthandler.{
   OpenFileHandler,
   ReleaseCapabilityHandler
 }
-import org.enso.languageserver.text.TextApi.{ApplyEdit, CloseFile, OpenFile}
+import org.enso.languageserver.text.TextApi.{
+  ApplyEdit,
+  CloseFile,
+  OpenFile,
+  TextDidChange
+}
+import org.enso.languageserver.text.TextProtocol
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -58,6 +64,7 @@ object ClientApi {
     .registerRequest(ExistsFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
+    .registerNotification(TextDidChange)
 
   case class WebConnect(webActor: ActorRef)
 }
@@ -120,6 +127,9 @@ class ClientController(
 
     case CapabilityProtocol.CapabilityGranted(registration) =>
       webActor ! Notification(GrantCapability, registration)
+
+    case TextProtocol.TextDidChange(changes) =>
+      webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))
