@@ -15,13 +15,16 @@ import org.enso.languageserver.event.{
   BufferOpened,
   ClientDisconnected
 }
-import org.enso.languageserver.filemanager.FileManagerProtocol.ReadFileResult
+import org.enso.languageserver.filemanager.FileManagerProtocol.{
+  ReadFileResult,
+  WriteFileResult
+}
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   OperationTimeout,
   Path
 }
-import org.enso.languageserver.text.CollaborativeBuffer.FileReadingTimeout
+import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
 import org.enso.languageserver.text.editing.{
   EditorOps,
@@ -81,7 +84,7 @@ class CollaborativeBuffer(
       replyTo ! OpenFileResponse(Left(failure))
       stop()
 
-    case FileReadingTimeout =>
+    case IOTimeout =>
       replyTo ! OpenFileResponse(Left(OperationTimeout))
       stop()
 
@@ -129,6 +132,47 @@ class CollaborativeBuffer(
           )
       }
 
+    case SaveFile(clientId, _, clientVersion) =>
+      val hasLock = lockHolder.exists(_.id == clientId)
+      if (hasLock) {
+        if (clientVersion == buffer.version) {
+          fileManager ! FileManagerProtocol.WriteFile(
+            bufferPath,
+            buffer.contents.toString
+          )
+          context.system.scheduler
+            .scheduleOnce(timeout, self, IOTimeout) //todo cancel timeout
+          context.become(saving(buffer, clients, lockHolder, sender()))
+        } else {
+          sender() ! SaveFileInvalidVersion(clientVersion, buffer.version)
+        }
+      } else {
+        sender() ! SaveDenied
+      }
+  }
+
+  private def saving(
+    buffer: Buffer,
+    clients: Map[Client.Id, Client],
+    lockHolder: Option[Client],
+    replyTo: ActorRef
+  ): Receive = {
+    case IOTimeout =>
+      replyTo ! SaveFailed(OperationTimeout)
+      unstashAll()
+      context.become(collaborativeEditing(buffer, clients, lockHolder))
+
+    case WriteFileResult(Left(failure)) =>
+      replyTo ! SaveFailed(failure)
+      unstashAll()
+      context.become(collaborativeEditing(buffer, clients, lockHolder))
+
+    case WriteFileResult(Right(())) =>
+      replyTo ! FileSaved
+      unstashAll()
+      context.become(collaborativeEditing(buffer, clients, lockHolder))
+
+    case _ => stash()
   }
 
   private def applyEdits(
@@ -151,7 +195,7 @@ class CollaborativeBuffer(
     if (clientVersion == serverVersion) {
       Right(())
     } else {
-      Left(InvalidVersion(clientVersion, serverVersion))
+      Left(TextEditInvalidVersion(clientVersion, serverVersion))
     }
   }
 
@@ -189,7 +233,7 @@ class CollaborativeBuffer(
   private def readFile(client: Client, path: Path): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
     context.system.scheduler
-      .scheduleOnce(timeout, self, FileReadingTimeout)
+      .scheduleOnce(timeout, self, IOTimeout)
     context.become(waitingForFileContent(client, sender()))
   }
 
@@ -299,7 +343,7 @@ class CollaborativeBuffer(
 
 object CollaborativeBuffer {
 
-  case object FileReadingTimeout
+  case object IOTimeout
 
   /**
     * Creates a configuration object used to create a [[CollaborativeBuffer]]

@@ -94,7 +94,7 @@ object TextProtocol {
     * @param clientVersion a version send by the client
     * @param serverVersion a version computed by the server
     */
-  case class InvalidVersion(
+  case class TextEditInvalidVersion(
     clientVersion: Buffer.Version,
     serverVersion: Buffer.Version
   ) extends ApplyEditFailure
@@ -106,5 +106,20 @@ object TextProtocol {
     * @param changes a series of edits
     */
   case class TextDidChange(changes: List[FileEdit])
+
+  case class SaveFile(
+    clientId: Client.Id,
+    path: Path,
+    currentVersion: Buffer.Version
+  )
+
+  sealed trait SaveFileResult
+  case object FileSaved  extends SaveFileResult
+  case object SaveDenied extends SaveFileResult
+  case class SaveFileInvalidVersion(
+    clientVersion: Buffer.Version,
+    serverVersion: Buffer.Version
+  ) extends SaveFileResult
+  case class SaveFailed(fsFailure: FileSystemFailure) extends SaveFileResult
 
 }
