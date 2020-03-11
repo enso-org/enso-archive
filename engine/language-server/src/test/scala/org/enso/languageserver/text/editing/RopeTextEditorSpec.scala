@@ -43,7 +43,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
   it should "replace a multiline substring" in {
     //given
     val resultPosition    = Range(Position(5, 4), Position(6, 10))
-    val change            = "sum = plusOne 5\n    sum"
+    val change            = s"sum = plusOne 5${System.lineSeparator()}    sum"
     val resultReplacement = TextEdit(resultPosition, change)
     //when
     val result = RopeTextEditor.edit(testSnippet, resultReplacement)
@@ -60,7 +60,7 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
   it should "be able to insert change at the end of file" in {
     //given
     val eof       = Range(Position(6, 10), Position(6, 10))
-    val insertion = TextEdit(eof, "\n    return result")
+    val insertion = TextEdit(eof, s"${System.lineSeparator()}    return result")
     //when
     val result = RopeTextEditor.edit(testSnippet, insertion)
     //then
@@ -77,10 +77,10 @@ class RopeTextEditorSpec extends AnyFlatSpec with Matchers {
   it should "support code points above 0xFFFF" in {
     //given
     //0x0001F4AF
-    val utf32Text          = Rope("unicode: \ud83d\udcaf end")
-    val positionInCodUnits = Range(Position(0, 9), Position(0, 10))
+    val utf32Text           = Rope("unicode: \ud83d\udcaf end")
+    val positionInCodeUnits = Range(Position(0, 9), Position(0, 10))
     //0x0001F449
-    val diff = TextEdit(positionInCodUnits, "\ud83d\udc49")
+    val diff = TextEdit(positionInCodeUnits, "\ud83d\udc49")
     //when
     val result = RopeTextEditor.edit(utf32Text, diff)
     //then
