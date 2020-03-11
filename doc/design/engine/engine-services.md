@@ -595,27 +595,6 @@ interface Path {
 }
 ```
 
-#### `AbsolutePath`
-Represents absolute path.
-
-##### Format
-
-``` typescript
-interface AbsolutePath {
-  segments: [String];
-}
-```
-
-#### `SystemPath`
-Represents either a relative [`Path`](#path) or an absolute
-[`AbsolutePath`](#absolutepath).
-
-##### Format
-
-``` typescript
-type SystemPath = Path | AbsolutePath;
-```
-
 ## Protocol Message Specification - Project Picker
 This section exists to contain a specification of each of the messages that the
 project picker supports. This is in order to aid in the proper creation of
@@ -970,23 +949,60 @@ A representation of what kind of type a filesystem object can be.
 ##### Format
 
 ```typescript
-type FileSystemObject = Directory | File | Symlink | Other;
+type FileSystemObject
+  = Directory
+  | DirectoryTruncated
+  | SymlinkLoop
+  | File
+  | Other;
 
+/**
+ * Represents a directory.
+ *
+ * @param name a name of the directory
+ * @param path a path to the directory
+ */
 interface Directory {
   name: String;
   path: Path;
 }
 
+/**
+ * Represents a directory which contents have been truncated.
+ *
+ * @param name a name of the directory
+ * @param path a path to the directory
+ */
+interface DirectoryTruncated {
+  name: String;
+  path: Path;
+}
+
+/**
+ * Represents a symbolic link that creates a loop.
+ *
+ * @param name a name of the symlink
+ * @param path a path to the symlink
+ */
+interface SymlinkLoop {
+  name: String;
+  path: Path;
+}
+
+/**
+ * Represents a file.
+ *
+ * @param name a name of the file
+ * @param path a path to the file
+ */
 interface File {
   name: String;
   path: Path;
 }
 
-interface Symlink {
-  source: Path;
-  target: SystemPath;
-}
-
+/**
+ * Represents unrecognized object. Example is a broken symbolic link.
+ */
 interface Other;
 ```
 
@@ -1390,7 +1406,7 @@ the corresponding flag should be set.
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
 - [`FileNotFound`](#filenotfound) informs that requested directory cannot be
-  found.
+  found or provided depth argument is <= 0
 
 #### `file/list`
 This request lists the contents of a given filesystem object. For a file it will

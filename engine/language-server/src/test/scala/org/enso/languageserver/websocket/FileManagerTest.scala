@@ -777,6 +777,13 @@ class FileManagerTest extends WebSocketServerTest {
     "get a root tree" in withCleanRoot {
       val client = new WsTestClient(address)
 
+      // create:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      //     └── b.txt
+
       // create base/a.txt
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -935,6 +942,13 @@ class FileManagerTest extends WebSocketServerTest {
     "get a directory tree" in {
       val client = new WsTestClient(address)
 
+      // create:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      //     └── b.txt
+
       // create base/a.txt
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1060,6 +1074,124 @@ class FileManagerTest extends WebSocketServerTest {
                     "directories": [
                     ]
                   }
+                ]
+              }
+            }
+          }
+          """)
+    }
+
+    "get a truncated directory tree" in {
+      val client = new WsTestClient(address)
+
+      // create:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      //     └── b.txt
+
+      // create base/a.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 31,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "a.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 31,
+            "result": null
+          }
+          """)
+
+      // create base/subdir/b.txt
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/create",
+            "id": 32,
+            "params": {
+              "object": {
+                "type": "File",
+                "name": "b.txt",
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ "base", "subdir" ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 32,
+            "result": null
+          }
+          """)
+
+      // get a tree of 'base'
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/tree",
+            "id": 33,
+            "params": {
+              "path": {
+                "rootId": $testContentRootId,
+                "segments": [ "base" ]
+              },
+              "depth": 1
+            }
+          }
+      """)
+      // expect:
+      //
+      // base
+      // ├── a.txt
+      // └── subdir
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 33,
+            "result": {
+              "tree": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [
+                  ]
+                },
+                "name": "base",
+                "files": [
+                  {
+                    "type": "File",
+                    "name": "a.txt",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base"
+                      ]
+                    }
+                  },
+                  {
+                    "type": "DirectoryTruncated",
+                    "name": "subdir",
+                    "path": {
+                      "rootId": $testContentRootId,
+                      "segments": [
+                        "base"
+                      ]
+                    }
+                  }
+                ],
+                "directories": [
                 ]
               }
             }
