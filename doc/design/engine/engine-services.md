@@ -1631,7 +1631,14 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that a file wasn't
+opened.
+- [`InvalidVersionError`](#invalidversionerror) to signal that version provided by a client doesn't match to the version
+computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock to the buffer.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that a user doesn't have access to a resource.
 
 #### `text/applyEdit`
 This requests that the server apply a series of edits to the project. These
