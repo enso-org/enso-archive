@@ -18,7 +18,7 @@ import org.enso.languageserver.data.{
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.polyglot.{LanguageApi, LanguageInfo, LanguageServerConnection}
+import org.enso.polyglot.{RuntimeApi, LanguageInfo, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -61,9 +61,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
-    .option(LanguageServerConnection.ENABLE_OPTION, "true")
+    .option(RuntimeServerInfo.ENABLE_OPTION, "true")
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
-      if (uri.toString == LanguageServerConnection.URI) {
+      if (uri.toString == RuntimeServerInfo.URI) {
         val connection = new RuntimeConnector.Endpoint(
           runtimeConnector,
           peerEndpoint

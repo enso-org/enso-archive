@@ -1,7 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.instrumentation.TruffleInstrument;
-import org.enso.languageserver.Handler;
+import org.enso.interpeter.instrument.Handler;
 import org.enso.polyglot.*;
 import org.graalvm.options.OptionDescriptor;
 import org.graalvm.options.OptionDescriptors;
@@ -13,10 +13,18 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
 
+/**
+ * An instrument exposing a server for other services to connect to, in order to control the current
+ * language context and request executions.
+ *
+ * <p>This architecture ensures class path separation, where the polyglot clients do not depend on
+ * this instrument directly, but rather use message passing to interact with it. This is the
+ * officially recommended way of handling such interactions in the Truffle framework.
+ */
 @TruffleInstrument.Registration(
-    id = LanguageServerConnection.INSTRUMENT_NAME,
-    services = LanguageServerInstrument.class)
-public class LanguageServerInstrument extends TruffleInstrument {
+    id = RuntimeServerInfo.INSTRUMENT_NAME,
+    services = RuntimeServerInstrument.class)
+public class RuntimeServerInstrument extends TruffleInstrument {
   private Handler handler;
 
   @Override
@@ -25,7 +33,7 @@ public class LanguageServerInstrument extends TruffleInstrument {
     try {
       Handler handler = new Handler();
       MessageEndpoint client =
-          env.startServer(URI.create(LanguageServerConnection.URI), handler.endpoint());
+          env.startServer(URI.create(RuntimeServerInfo.URI), handler.endpoint());
       if (client != null) {
         handler.endpoint().setClient(client);
         this.handler = handler;
@@ -49,7 +57,7 @@ public class LanguageServerInstrument extends TruffleInstrument {
   protected OptionDescriptors getOptionDescriptors() {
     return OptionDescriptors.create(
         Collections.singletonList(
-            OptionDescriptor.newBuilder(new OptionKey<>(""), LanguageServerConnection.ENABLE_OPTION)
+            OptionDescriptor.newBuilder(new OptionKey<>(""), RuntimeServerInfo.ENABLE_OPTION)
                 .build()));
   }
 }
