@@ -1,10 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-import java.nio.file.{Path, Paths}
-
-import scala.collection.immutable.TreeSet
-import scala.util.Try
+import java.nio.file.Path
 
 /**
   * File manipulation API.
@@ -110,45 +107,8 @@ object FileSystemApi {
   /**
     * An object representing abstract file system entry.
     */
-  sealed trait Entry
-
-  object Entry {
-
-    /**
-      * An ordering for an Entry.
-      *
-      * @note scala/bug#10741. [[Ordering]] instance is used not only for
-      * ordering the elements in sets, but also for an equality testing. If we
-      * just return the path, we would not be able to distinguish between
-      * different nodes with the same path in the [[TreeSet]]. To address this
-      * we append the node name to the path.
-      */
-    implicit val ordering: Ordering[Entry] =
-      Ordering.by(Entry.Order.by)
-
-    object Order {
-      def by(entry: Entry): Path =
-        entry match {
-          case DirectoryEntry(path, children) =>
-            val entryPath = Paths.get(path.toString, "DirectoryEntry")
-            relativize(
-              Paths.get(
-                entryPath.toString,
-                children.map(Order.by).map(_.toString).toSeq: _*
-              )
-            )
-          case DirectoryEntryTruncated(path) =>
-            relativize(Paths.get(path.toString, "DirectoryEntryTruncated"))
-          case SymbolicLinkLoop(path) =>
-            relativize(Paths.get(path.toString, "SymbolicLinkLoop"))
-          case FileEntry(path) =>
-            relativize(Paths.get(path.toString, "FileEntry"))
-          case OtherEntry(path) =>
-            relativize(Paths.get(path.toString, "OtherEntry"))
-        }
-      private def relativize(path: Path): Path =
-        Try(path.getRoot.relativize(path)).getOrElse(path)
-    }
+  sealed trait Entry {
+    def path: Path
   }
 
   /**
@@ -157,12 +117,12 @@ object FileSystemApi {
     * @param path to the directory
     * @children a paths to the children entries
     */
-  case class DirectoryEntry(path: Path, children: TreeSet[Entry]) extends Entry
+  case class DirectoryEntry(path: Path, children: Vector[Entry]) extends Entry
 
   object DirectoryEntry {
 
     def empty(path: Path): DirectoryEntry =
-      DirectoryEntry(path, TreeSet.empty[Entry])
+      DirectoryEntry(path, Vector())
   }
 
   /**

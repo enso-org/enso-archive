@@ -6,7 +6,6 @@ import cats.effect.IO
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
-import scala.collection.immutable.TreeSet
 import scala.io.Source
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
@@ -369,17 +368,17 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(symlink, subdir)
     val entry = DirectoryEntry(
       path,
-      TreeSet(
+      Vector(
         DirectoryEntry(
           subdir,
-          TreeSet(
+          Vector(
             FileEntry(fileA),
             FileEntry(fileB)
           )
         ),
         DirectoryEntry(
           symlink,
-          TreeSet(
+          Vector(
             FileEntry(symFileA),
             FileEntry(symFileB)
           )
@@ -404,7 +403,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(symlink, subdir)
     val entry = DirectoryEntry(
       path,
-      TreeSet(
+      Vector(
         DirectoryEntryTruncated(subdir),
         DirectoryEntryTruncated(symlink)
       )
@@ -431,16 +430,16 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val entry =
       DirectoryEntry(
         path,
-        TreeSet(
+        Vector(
           DirectoryEntry(
             dirA,
-            TreeSet(
+            Vector(
               DirectoryEntry(
                 symlinkB,
-                TreeSet(
+                Vector(
                   DirectoryEntry(
                     Paths.get(symlinkB.toString, "symlink_a"),
-                    TreeSet(
+                    Vector(
                       SymbolicLinkLoop(
                         Paths.get(symlinkB.toString, "symlink_a", "symlink_b")
                       )
@@ -452,13 +451,13 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
           ),
           DirectoryEntry(
             dirB,
-            TreeSet(
+            Vector(
               DirectoryEntry(
                 symlinkA,
-                TreeSet(
+                Vector(
                   DirectoryEntry(
                     Paths.get(symlinkA.toString, "symlink_b"),
-                    TreeSet(
+                    Vector(
                       SymbolicLinkLoop(
                         Paths.get(symlinkA.toString, "symlink_b", "symlink_a")
                       )
@@ -485,7 +484,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(symlink, fileA)
     val entry = DirectoryEntry(
       path,
-      TreeSet(
+      Vector(
         OtherEntry(symlink)
       )
     )

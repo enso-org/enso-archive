@@ -1,8 +1,5 @@
 package org.enso.languageserver.filemanager
 
-import java.nio
-import java.nio.file.Paths
-
 import io.circe.generic.auto._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
@@ -147,22 +144,4 @@ object FileSystemObject {
         )
     }
 
-  implicit val ordering: Ordering[FileSystemObject] =
-    Ordering.by(FileSystemObject.Order.by)
-
-  object Order {
-    def by(obj: FileSystemObject): nio.file.Path =
-      obj match {
-        case Directory(name, path) =>
-          Paths.get("", path.segments :+ name :+ "Directory": _*)
-        case DirectoryTruncated(name, path) =>
-          Paths.get("", path.segments :+ name :+ "DirectoryTruncated": _*)
-        case SymlinkLoop(name, path) =>
-          Paths.get("", path.segments :+ name :+ "SymlinkLoop": _*)
-        case File(name, path) =>
-          Paths.get("", path.segments :+ name :+ "File": _*)
-        case Other(name, path) =>
-          Paths.get("", path.segments :+ name :+ "Other": _*)
-      }
-  }
 }

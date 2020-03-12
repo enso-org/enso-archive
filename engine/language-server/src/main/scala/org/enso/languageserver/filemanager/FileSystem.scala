@@ -306,17 +306,14 @@ object FileSystem {
     }
     def accumulator(entry: DirectoryEntry, path: Path): DirectoryEntry =
       entry.copy(
-        children = entry.children + readEntry(
-            path,
-            visited,
-            Seq(LinkOption.NOFOLLOW_LINKS)
-          )
+        children = entry.children :+ readEntry(path, visited, Seq(LinkOption.NOFOLLOW_LINKS))
       )
     def combiner(a: DirectoryEntry, b: DirectoryEntry): DirectoryEntry =
       a.copy(children = a.children ++ b.children)
-    Files
+    val entry = Files
       .list(path)
       .reduce(DirectoryEntry.empty(path), accumulator, combiner)
+    entry.copy(children = entry.children.sortBy(_.path))
   }
 
 }

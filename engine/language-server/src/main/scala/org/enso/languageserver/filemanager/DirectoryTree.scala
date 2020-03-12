@@ -2,10 +2,6 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 import java.nio
-import java.nio.file.Paths
-
-import scala.collection.immutable.TreeSet
-import scala.util.Try
 
 /**
   * A representation of tree structures of files and directories.
@@ -18,28 +14,11 @@ import scala.util.Try
 case class DirectoryTree(
   path: Path,
   name: String,
-  files: TreeSet[FileSystemObject],
-  directories: TreeSet[DirectoryTree]
+  files: Vector[FileSystemObject],
+  directories: Vector[DirectoryTree]
 )
 
 object DirectoryTree {
-
-  implicit val ordering: Ordering[DirectoryTree] =
-    Ordering.by(_.name)
-
-  object Order {
-    def by(tree: DirectoryTree): nio.file.Path = {
-      val path = Paths.get(tree.path.toString, tree.name)
-      relativize(
-        Paths.get(
-          path.toString,
-          tree.files.map(FileSystemObject.Order.by).map(_.toString).toSeq: _*
-        )
-      )
-    }
-    private def relativize(path: nio.file.Path): nio.file.Path =
-      Try(path.getRoot.relativize(path)).getOrElse(path)
-  }
 
   /**
     * Create [[DirectoryTree]] from [[FileSystemApi.DirectoryEntry]]
