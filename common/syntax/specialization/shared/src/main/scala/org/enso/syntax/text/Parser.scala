@@ -2,7 +2,7 @@ package org.enso.syntax.text
 
 import java.util.UUID
 
-import cats.Foldable
+import cats.{Foldable, Functor}
 import org.enso.data.List1
 import org.enso.data.Span
 import org.enso.flexer
@@ -12,10 +12,13 @@ import org.enso.syntax.text.AST.Block.OptLine
 import org.enso.syntax.text.AST.Macro.Match.SegmentOps
 import org.enso.syntax.text.AST.App
 import org.enso.syntax.text.ast.meta.Builtin
+import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.prec.Macro
 import org.enso.syntax.text.spec.ParserDef
 import cats.implicits._
 import io.circe
+import io.circe.Encoder
+import io.circe.Json
 import io.circe.generic.auto._
 import io.circe.parser._
 
@@ -151,21 +154,62 @@ class InternalError(reason: String, cause: Throwable = None.orNull)
   * applies [[AST.Macro.Definition.Resolver]] to each [[AST.Macro.Match]] found
   * in the AST, while loosing a lot of positional information.
   */
+
+
+case class SourceFile(ast: AST, metadata: Json)
+
+object SourceFile {
+  val IDTAG   = "\n# [idmap] "
+  val METATAG = "\n# [metadata]"
+
+  implicit def MWMEncoder: Encoder[SourceFile] = module =>
+    Json.obj("ast" -> module.ast.toJson(), "metadata" -> module.metadata)
+}
+
+
 class Parser {
   import Parser._
   private val engine = newEngine()
 
-  def run(input: Reader): AST.Module = run(input, Nil)
+  /** Parse contents of the program source file,
+    * where program code may be followed by idmap and metadata.
+    */
+  def run_with_metadata(program: String): SourceFile = {
+    import SourceFile._
 
+    program.split(IDTAG) match {
+      case Array(input)  => SourceFile(run(input), Json.Null)
+      case Array(input, rest) =>
+        val meta     = rest.split(METATAG)
+        if (meta.size < 2) {
+          throw new ParserError(s"Expected `$METATAG ..`\n after `$IDTAG ..`.")
+        }
+        val idmap    = idMapFromJson(meta(0)).left.map { error =>
+          throw new ParserError("Could not deserialize idmap.", error)
+        }.merge
+        val metadata = decode[Json](meta(1)).left.map { error =>
+          throw new ParserError("Could not deserialize metadata.", error)
+        }.merge
+
+        SourceFile(run(new Reader(input), idmap), metadata)
+    }
+  }
+
+  /** Parse simple string with empty IdMap into AST. */
+  def run(input: String): AST.Module = run(new Reader(input), Nil)
+
+  /** Parse input with provided IdMap into AST */
   def run(input: Reader, idMap: IDMap): AST.Module = {
     val tokenStream = engine.run(input)
     val spanned     = tokenStream.map(attachModuleLocations)
-    spanned.map(Macro.run) match {
+    val resolved = spanned.map(Macro.run) match {
       case flexer.Parser.Result(_, flexer.Parser.Result.Success(mod)) =>
         val mod2 = annotateModule(idMap, mod)
         resolveMacros(mod2).asInstanceOf[AST.Module]
       case _ => throw ParsingFailed
     }
+    val withExpressionIds = fillExpressionIds(resolved)
+    withExpressionIds
   }
 
   /**
@@ -292,6 +336,69 @@ class Parser {
       case _ => ast.map(resolveMacros)
     }
 
+  /** All [[AST]] elements that are top-level expressions (i.e. can be nodes in
+    * IDE and are potentially worth of visualizing.
+    */
+  def fillExpressionIds(module: AST.Module): AST.Module = {
+    sealed trait Context
+
+    /** A module block or nested block (e.g. method body). */
+    final case object Block extends Context
+
+    /** Any non-block context */
+    final case object Other extends Context
+
+    /** Goes over AST and for Assignments (either infix or section right) that
+      * are within [[AST.Block]] or [[AST.Module]] node, assigns IDs to the
+      * right hand side. Any other expression in the block gets ID on its root
+      * AST. All other nodes are returned as-is.
+      */
+    implicit class Processor[T[S] <: Shape[S]](ast: AST.ASTOf[T])(
+      implicit
+      functor: Functor[T],
+      fold: Foldable[T],
+      repr: Repr[T[AST]],
+      ozip: OffsetZip[T, AST]
+    ) {
+      def process(context: Context): AST.ASTOf[T] = {
+        def assignmentInBlock(opr: AST.Opr): Boolean =
+          context == Block & opr.name == '='
+
+        ast match {
+          case AST.Module.any(block) => block.map(_.process(Block))
+          case AST.Block.any(block)  => block.map(_.process(Block))
+          case AST.App.Infix.any(infix) if assignmentInBlock(infix.opr) =>
+            val newShape = infix.shape.copy(
+              larg = infix.larg.process(Other),
+              opr  = infix.opr.process(Other),
+              rarg = infix.rarg.process(Other).withNewIDIfMissing()
+            )
+            infix.copy(shape = newShape)
+          case AST.App.Section.Right.any(right)
+              if assignmentInBlock(right.opr) =>
+            val newShape = right.shape.copy(
+              arg = right.arg.process(Other),
+              opr = right.opr.process(Other)
+            )
+            right.copy(shape = newShape)
+          case otherAst if context == Block =>
+            otherAst.process(Other).withNewIDIfMissing()
+          case _ => ast.map(_.process(Other))
+        }
+      }.asInstanceOf[AST.ASTOf[T]] // Note: [Type safety]
+    }
+    module.process(Other)
+  }
+
+  /* Note: [Type safety]
+   * ~~~~~~~~~~~~~~~~~~~
+   * This function promises to return AST with the same shape as it
+   * received, however compiler cannot verify this due to type erasure.
+   *
+   * As we are only using copy/map function and never change shape to use
+   * different variants, we can say it is safe and coerce the types.
+   */
+
   /**
     * Automatically derives source location for an AST node, based on its
     * children's locations
@@ -348,7 +455,8 @@ class Parser {
 
 object Parser {
 
-  type IDMap = Seq[(Span, AST.ID)]
+  type IDMap    = Seq[(Span, AST.ID)]
+  type Metadata = String
 
   private val newEngine = flexer.Parser.compile(ParserDef())
 
@@ -476,7 +584,7 @@ object Main extends scala.App {
 
   println("--- PARSING ---")
 
-  val mod = parser.run(new Reader(inp))
+  val mod = parser.run(inp)
 
   println(Debug.pretty(mod.toString))
 

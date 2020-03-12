@@ -66,4 +66,24 @@ trait FileSystemApi[F[_]] {
     to: File
   ): F[Either[FileSystemFailure, Unit]]
 
+  /**
+    * Move a file or directory recursively
+    *
+    * @param from a path to the source
+    * @param to a path to the destination
+    * @return either [[FileSystemFailure]] or Unit
+    */
+  def move(
+    from: File,
+    to: File
+  ): F[Either[FileSystemFailure, Unit]]
+
+  /**
+    * Checks if the specified file exists.
+    *
+    * @param file path to the file or directory
+    * @return either [[FileSystemFailure]] or file existence flag
+    */
+  def exists(file: File): F[Either[FileSystemFailure, Boolean]]
+
 }
