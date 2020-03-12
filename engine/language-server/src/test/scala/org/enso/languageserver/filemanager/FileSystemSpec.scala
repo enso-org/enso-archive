@@ -494,14 +494,14 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     result shouldBe Right(expectedEntry)
   }
 
-  it should "return FileNotFound when tree path is not a directory" in new TestCtx {
+  it should "return NotDirectory when tree path is not a directory" in new TestCtx {
     //given
     val path = Paths.get(testDirPath.toString, "dir", "a.txt")
     createEmptyFile(path)
     //when
     val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
     //then
-    result shouldBe Left(FileNotFound)
+    result shouldBe Left(NotDirectory)
   }
 
   it should "return FileNotFound when tree depth <= 0" in new TestCtx {

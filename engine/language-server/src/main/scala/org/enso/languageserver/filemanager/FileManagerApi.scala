@@ -133,4 +133,6 @@ object FileManagerApi {
 
   case object OperationTimeoutError extends Error(1005, "IO operation timeout")
 
+  case object NotDirectoryError extends Error(1006, "Path is not a directory")
+
 }

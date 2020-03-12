@@ -1409,8 +1409,10 @@ the corresponding flag should be set.
 ##### Errors
 - [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
   requested content root cannot be found.
-- [`FileNotFound`](#filenotfound) informs that requested directory cannot be
-  found or provided depth argument is <= 0
+- [`FileNotFound`](#filenotfound) informs that requested path does not exist or
+  provided depth argument is <= 0.
+- [`NotDirectory`](#notdirectory) informs that requested path is not a
+  directory.
 
 #### `file/list`
 This request lists the contents of a given filesystem object. For a file it will
@@ -2079,6 +2081,16 @@ It signals that IO operation timed out.
 "error" : {
   "code" : 1005,
   "message" : "IO operation timeout"
+}
+```
+
+##### `NotDirectory`
+It signals that provided path is not a directory.
+
+```typescript
+"error" : {
+  "code" : 1006,
+  "message" : "Path is not a directory"
 }
 ```
 

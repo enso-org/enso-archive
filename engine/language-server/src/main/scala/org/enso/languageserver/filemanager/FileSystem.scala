@@ -198,12 +198,16 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
   ): F[Either[FileSystemFailure, DirectoryEntry]] = {
     Sync[F].delay {
       val limit = FileSystem.Depth(depth)
-      if (path.isDirectory && limit.canGoDeeper) {
-        Either
-          .catchOnly[IOException] {
-            FileSystem.readDirectoryEntry(path.toPath, limit.goDeeper, Set())
-          }
-          .leftMap(errorHandling)
+      if (path.exists && limit.canGoDeeper) {
+        if (path.isDirectory) {
+          Either
+            .catchOnly[IOException] {
+              FileSystem.readDirectoryEntry(path.toPath, limit.goDeeper, Set())
+            }
+            .leftMap(errorHandling)
+        } else {
+          Left(NotDirectory)
+        }
       } else {
         Left(FileNotFound)
       }
