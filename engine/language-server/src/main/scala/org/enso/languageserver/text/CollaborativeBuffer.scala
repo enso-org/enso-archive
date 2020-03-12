@@ -35,6 +35,7 @@ import org.enso.languageserver.text.editing.{
 }
 import org.enso.languageserver.text.editing.model.{FileEdit, Position, TextEdit}
 import cats.implicits._
+import org.enso.languageserver.text.Buffer.Version
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -139,25 +140,7 @@ class CollaborativeBuffer(
       }
 
     case SaveFile(clientId, _, clientVersion) =>
-      val hasLock = lockHolder.exists(_.id == clientId)
-      if (hasLock) {
-        if (clientVersion == buffer.version) {
-          fileManager ! FileManagerProtocol.WriteFile(
-            bufferPath,
-            buffer.contents.toString
-          )
-
-          val timeoutCancellable = context.system.scheduler
-            .scheduleOnce(timeout, self, IOTimeout)
-          context.become(
-            saving(buffer, clients, lockHolder, sender(), timeoutCancellable)
-          )
-        } else {
-          sender() ! SaveFileInvalidVersion(clientVersion, buffer.version)
-        }
-      } else {
-        sender() ! SaveDenied
-      }
+      saveFile(buffer, clients, lockHolder, clientId, clientVersion)
   }
 
   private def saving(
@@ -185,6 +168,34 @@ class CollaborativeBuffer(
       context.become(collaborativeEditing(buffer, clients, lockHolder))
 
     case _ => stash()
+  }
+
+  private def saveFile(
+    buffer: Buffer,
+    clients: Map[Id, Client],
+    lockHolder: Option[Client],
+    clientId: Id,
+    clientVersion: Version
+  ): Unit = {
+    val hasLock = lockHolder.exists(_.id == clientId)
+    if (hasLock) {
+      if (clientVersion == buffer.version) {
+        fileManager ! FileManagerProtocol.WriteFile(
+          bufferPath,
+          buffer.contents.toString
+        )
+
+        val timeoutCancellable = context.system.scheduler
+          .scheduleOnce(timeout, self, IOTimeout)
+        context.become(
+          saving(buffer, clients, lockHolder, sender(), timeoutCancellable)
+        )
+      } else {
+        sender() ! SaveFileInvalidVersion(clientVersion, buffer.version)
+      }
+    } else {
+      sender() ! SaveDenied
+    }
   }
 
   private def applyEdits(
