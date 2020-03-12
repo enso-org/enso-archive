@@ -92,7 +92,7 @@ class SaveFileHandler(
 object SaveFileHandler {
 
   /**
-    * Creates a configuration object used to create a [[SaveFileHandler]]
+    * Creates a configuration object used to create a [[SaveFileHandler]].
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout

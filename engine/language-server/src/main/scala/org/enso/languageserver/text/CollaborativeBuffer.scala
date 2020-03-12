@@ -27,8 +27,8 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
-import org.enso.languageserver.text.editing.model.{FileEdit, TextEdit}
 import org.enso.languageserver.text.editing._
+import org.enso.languageserver.text.editing.model.{FileEdit, TextEdit}
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
