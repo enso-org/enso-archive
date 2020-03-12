@@ -35,11 +35,19 @@ object DirectoryTree {
     directory: FileSystemApi.DirectoryEntry
   ): DirectoryTree =
     DirectoryTree(
-      path        = mkRelativeParent(root, base, directory.path),
-      name        = directory.path.getFileName.toString,
-      files       = directory.children.map(mkFileSystemObject(root, base, _)),
+      path = mkRelativeParent(root, base, directory.path),
+      name = directory.path.getFileName.toString,
+      files = directory.children
+        .filterNot(isDirectoryEntry)
+        .map(mkFileSystemObject(root, base, _)),
       directories = directory.children.flatMap(fromEntry(root, base, _))
     )
+
+  private def isDirectoryEntry(entry: FileSystemApi.Entry): Boolean =
+    entry match {
+      case _: FileSystemApi.DirectoryEntry => true
+      case _                               => false
+    }
 
   private def fromEntry(
     root: File,

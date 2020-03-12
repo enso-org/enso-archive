@@ -366,7 +366,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     createEmptyFile(fileA)
     createEmptyFile(fileB)
     Files.createSymbolicLink(symlink, subdir)
-    val entry = DirectoryEntry(
+    val expectedEntry = DirectoryEntry(
       path,
       Vector(
         DirectoryEntry(
@@ -388,7 +388,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     //when
     val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
     //then
-    result shouldBe Right(entry)
+    result shouldBe Right(expectedEntry)
   }
 
   it should "tree directory and limit depth" in new TestCtx {
@@ -401,7 +401,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     createEmptyFile(fileA)
     createEmptyFile(fileB)
     Files.createSymbolicLink(symlink, subdir)
-    val entry = DirectoryEntry(
+    val expectedEntry = DirectoryEntry(
       path,
       Vector(
         DirectoryEntryTruncated(subdir),
@@ -412,7 +412,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val result =
       objectUnderTest.tree(path.toFile, depth = Some(1)).unsafeRunSync()
     //then
-    result shouldBe Right(entry)
+    result shouldBe Right(expectedEntry)
   }
 
   it should "tree directory and detect symlink loops" in new TestCtx {
@@ -427,7 +427,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(symlinkB, dirB)
     Files.createSymbolicLink(symlinkA, dirA)
 
-    val entry =
+    val expectedEntry =
       DirectoryEntry(
         path,
         Vector(
@@ -472,7 +472,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     //when
     val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
     //then
-    result shouldBe Right(entry)
+    result shouldBe Right(expectedEntry)
   }
 
   it should "tree directory with broken symlinks" in new TestCtx {
@@ -482,7 +482,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val symlink = Paths.get(testDirPath.toString, "dir", "symlink")
     Files.createDirectories(path)
     Files.createSymbolicLink(symlink, fileA)
-    val entry = DirectoryEntry(
+    val expectedEntry = DirectoryEntry(
       path,
       Vector(
         OtherEntry(symlink)
@@ -491,7 +491,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     //when
     val result = objectUnderTest.tree(path.toFile, depth = None).unsafeRunSync()
     //then
-    result shouldBe Right(entry)
+    result shouldBe Right(expectedEntry)
   }
 
   it should "return FileNotFound when tree path is not a directory" in new TestCtx {

@@ -865,15 +865,6 @@ class FileManagerTest extends WebSocketServerTest {
                 },
                 "name": ${testContentRoot.getFileName.toString},
                 "files": [
-                  {
-                    "type": "Directory",
-                    "name": "base",
-                    "path": {
-                      "rootId": $testContentRootId,
-                      "segments": [
-                      ]
-                    }
-                  }
                 ],
                 "directories": [
                   {
@@ -887,16 +878,6 @@ class FileManagerTest extends WebSocketServerTest {
                       {
                         "type": "File",
                         "name": "a.txt",
-                        "path": {
-                          "rootId": $testContentRootId,
-                          "segments": [
-                            "base"
-                          ]
-                        }
-                      },
-                      {
-                        "type": "Directory",
-                        "name": "subdir",
                         "path": {
                           "rootId": $testContentRootId,
                           "segments": [
@@ -1031,16 +1012,6 @@ class FileManagerTest extends WebSocketServerTest {
                   {
                     "type": "File",
                     "name": "a.txt",
-                    "path": {
-                      "rootId": $testContentRootId,
-                      "segments": [
-                        "base"
-                      ]
-                    }
-                  },
-                  {
-                    "type": "Directory",
-                    "name": "subdir",
                     "path": {
                       "rootId": $testContentRootId,
                       "segments": [
@@ -1372,26 +1343,6 @@ class FileManagerTest extends WebSocketServerTest {
                 },
                 "name": "base2",
                 "files": [
-                  {
-                    "type": "Directory",
-                    "name": "link",
-                    "path": {
-                      "rootId": $testContentRootId,
-                      "segments": [
-                        "base2"
-                      ]
-                    }
-                  },
-                  {
-                    "type": "Directory",
-                    "name": "subdir",
-                    "path": {
-                      "rootId": $testContentRootId,
-                      "segments": [
-                        "base2"
-                      ]
-                    }
-                  }
                 ],
                 "directories": [
                   {
@@ -1511,16 +1462,6 @@ class FileManagerTest extends WebSocketServerTest {
                 },
                 "name": "base3",
                 "files": [
-                  {
-                    "type": "Directory",
-                    "name": "link",
-                    "path": {
-                      "rootId": $testContentRootId,
-                      "segments": [
-                        "base3"
-                      ]
-                    }
-                  }
                 ],
                 "directories": [
                   {
