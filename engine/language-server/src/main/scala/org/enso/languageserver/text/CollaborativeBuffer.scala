@@ -1,9 +1,9 @@
 package org.enso.languageserver.text
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
+import cats.implicits._
 import org.enso.languageserver.capability.CapabilityProtocol._
 import org.enso.languageserver.data.Client.Id
-import org.enso.languageserver.data.buffer.Rope
 import org.enso.languageserver.data.{
   CanEdit,
   CapabilityRegistration,
@@ -24,18 +24,11 @@ import org.enso.languageserver.filemanager.{
   OperationTimeout,
   Path
 }
+import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
-import org.enso.languageserver.text.editing.{
-  EditorOps,
-  EndPositionBeforeStartPosition,
-  InvalidPosition,
-  NegativeCoordinateInPosition,
-  TextEditValidationFailure
-}
-import org.enso.languageserver.text.editing.model.{FileEdit, Position, TextEdit}
-import cats.implicits._
-import org.enso.languageserver.text.Buffer.Version
+import org.enso.languageserver.text.editing.model.{FileEdit, TextEdit}
+import org.enso.languageserver.text.editing._
 
 import scala.concurrent.duration._
 import scala.language.postfixOps
@@ -126,18 +119,7 @@ class CollaborativeBuffer(
       }
 
     case ApplyEdit(clientId, change) =>
-      applyEdits(buffer, lockHolder, clientId, change) match {
-        case Left(failure) =>
-          sender() ! failure
-
-        case Right(modifiedBuffer) =>
-          sender() ! ApplyEditSuccess
-          val subscribers = clients.filterNot(_._1 == clientId).values
-          subscribers foreach { _.actor ! TextDidChange(List(change)) }
-          context.become(
-            collaborativeEditing(modifiedBuffer, clients, lockHolder)
-          )
-      }
+      edit(buffer, clients, lockHolder, clientId, change)
 
     case SaveFile(clientId, _, clientVersion) =>
       saveFile(buffer, clients, lockHolder, clientId, clientVersion)
@@ -195,6 +177,27 @@ class CollaborativeBuffer(
       }
     } else {
       sender() ! SaveDenied
+    }
+  }
+
+  private def edit(
+    buffer: Buffer,
+    clients: Map[Id, Client],
+    lockHolder: Option[Client],
+    clientId: Id,
+    change: FileEdit
+  ) = {
+    applyEdits(buffer, lockHolder, clientId, change) match {
+      case Left(failure) =>
+        sender() ! failure
+
+      case Right(modifiedBuffer) =>
+        sender() ! ApplyEditSuccess
+        val subscribers = clients.filterNot(_._1 == clientId).values
+        subscribers foreach { _.actor ! TextDidChange(List(change)) }
+        context.become(
+          collaborativeEditing(modifiedBuffer, clients, lockHolder)
+        )
     }
   }
 
