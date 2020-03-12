@@ -45,4 +45,6 @@ object LanguageApi {
 
   def deserialize(bytes: ByteBuffer): Option[LanguageApi] =
     Try(mapper.readValue(bytes.array(), classOf[LanguageApi])).toOption
+
+  final val uriScheme: String = "language"
 }

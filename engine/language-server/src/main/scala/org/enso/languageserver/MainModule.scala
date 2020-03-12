@@ -5,9 +5,10 @@ import java.net.URI
 import java.nio.ByteBuffer
 import java.util.UUID
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.SystemMaterializer
 import cats.effect.IO
+import org.enso.languageserver
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
@@ -17,7 +18,7 @@ import org.enso.languageserver.data.{
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.polyglot.LanguageApi
+import org.enso.polyglot.{LanguageApi, LanguageInfo, LanguageServerConnection}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -57,28 +58,16 @@ class MainModule(serverConfig: LanguageServerConfig) {
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
   val context = Context
-    .newBuilder("enso")
+    .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
-    .option("enso-language-server.enable", "true")
+    .option(LanguageServerConnection.ENABLE_OPTION, "true")
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
-      if (uri.getScheme == "local") {
-        val connection = new MessageEndpoint {
-          override def sendText(text: String): Unit = {}
-
-          override def sendBinary(data: ByteBuffer): Unit =
-            LanguageApi
-              .deserialize(data)
-              .foreach(runtimeConnector ! _)
-
-          override def sendPing(data: ByteBuffer): Unit =
-            peerEndpoint.sendPong(data)
-
-          override def sendPong(data: ByteBuffer): Unit = {}
-
-          override def sendClose(): Unit =
-            runtimeConnector ! RuntimeConnector.Destroy
-        }
+      if (uri.toString == LanguageServerConnection.URI) {
+        val connection = new RuntimeConnector.Endpoint(
+          runtimeConnector,
+          peerEndpoint
+        )
         runtimeConnector ! RuntimeConnector.Initialize(peerEndpoint)
         connection
       } else null
@@ -86,6 +75,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .build()
 
   lazy val server =
-    new WebSocketServer(languageServer, bufferRegistry, capabilityRouter)
-
+    new WebSocketServer(
+      languageServer,
+      bufferRegistry,
+      capabilityRouter,
+      runtimeConnector
+    )
 }

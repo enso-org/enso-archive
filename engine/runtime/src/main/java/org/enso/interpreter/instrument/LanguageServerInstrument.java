@@ -11,15 +11,12 @@ import org.graalvm.polyglot.io.MessageTransport;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.ByteBuffer;
 import java.util.Collections;
-import java.util.UUID;
 
 @TruffleInstrument.Registration(
-    id = LanguageServerInstrument.INSTRUMENT_ID,
+    id = LanguageServerConnection.INSTRUMENT_NAME,
     services = LanguageServerInstrument.class)
 public class LanguageServerInstrument extends TruffleInstrument {
-  public static final String INSTRUMENT_ID = LanguageInfo.ID + "-language-server";
   private Handler handler;
 
   @Override
@@ -27,20 +24,32 @@ public class LanguageServerInstrument extends TruffleInstrument {
     env.registerService(this);
     try {
       Handler handler = new Handler();
-      MessageEndpoint client = env.startServer(URI.create("local://local"), handler.endpoint());
+      MessageEndpoint client =
+          env.startServer(URI.create(LanguageServerConnection.URI), handler.endpoint());
       if (client != null) {
         handler.endpoint().setClient(client);
         this.handler = handler;
       }
-    } catch (MessageTransport.VetoException | IOException e) {
-      this.handler = null;
+    } catch (MessageTransport.VetoException | IOException ignored) {
     }
+  }
+
+  @Override
+  protected void onDispose(Env env) {
+    if (handler != null) {
+      try {
+        handler.endpoint().client().sendClose();
+      } catch (IOException ignored) {
+      }
+    }
+    super.onDispose(env);
   }
 
   @Override
   protected OptionDescriptors getOptionDescriptors() {
     return OptionDescriptors.create(
         Collections.singletonList(
-            OptionDescriptor.newBuilder(new OptionKey<>(""), INSTRUMENT_ID + ".enable").build()));
+            OptionDescriptor.newBuilder(new OptionKey<>(""), LanguageServerConnection.ENABLE_OPTION)
+                .build()));
   }
 }
