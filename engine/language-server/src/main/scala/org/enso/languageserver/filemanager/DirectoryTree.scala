@@ -78,10 +78,11 @@ object DirectoryTree {
           mkRelativeParent(root, base, path)
         )
 
-      case FileSystemApi.SymbolicLinkLoop(path) =>
+      case FileSystemApi.SymbolicLinkEntry(path, target) =>
         FileSystemObject.SymlinkLoop(
           path.getFileName.toString,
-          mkRelativeParent(root, base, path)
+          mkRelativeParent(root, base, path),
+          mkRelativeParent(root, base, target)
         )
 
       case FileSystemApi.FileEntry(path) =>

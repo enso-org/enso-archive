@@ -141,14 +141,12 @@ object FileSystemApi {
   case class DirectoryEntryTruncated(path: Path) extends Entry
 
   /**
-    * An entry representing the symbolic link that creates a loop.
-    *
-    * When a symlink loop is detected, instead of returning the
-    * [[DirectoryEntry]] node, this entry is returned to break the loop.
+    * An entry representing a symbolic link.
     *
     * @param path to the symlink
+    * @param target of the symlink.
     */
-  case class SymbolicLinkLoop(path: Path) extends Entry
+  case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
 
   /**
     * An entry representing a file.
@@ -156,8 +154,6 @@ object FileSystemApi {
     * @param path to the file
     */
   case class FileEntry(path: Path) extends Entry
-
-  case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
 
   /**
     * Unrecognized file system entry. Example is a broken symlink.

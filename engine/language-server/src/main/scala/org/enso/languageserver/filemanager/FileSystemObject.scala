@@ -33,8 +33,11 @@ object FileSystemObject {
     *
     * @param name a name of the symlink
     * @param path a path to the symlink
+    * @param target a target of the symlink. Since it is a loop,
+    * target is a subpath of the symlink
     */
-  case class SymlinkLoop(name: String, path: Path) extends FileSystemObject
+  case class SymlinkLoop(name: String, path: Path, target: Path)
+      extends FileSystemObject
 
   /**
     * Represents a file.
@@ -56,6 +59,8 @@ object FileSystemObject {
     val Name = "name"
 
     val Path = "path"
+
+    val Target = "target"
   }
 
   private object CodecType {
@@ -94,9 +99,10 @@ object FileSystemObject {
 
         case CodecType.SymlinkLoop =>
           for {
-            name <- cursor.downField(CodecField.Name).as[String]
-            path <- cursor.downField(CodecField.Path).as[Path]
-          } yield SymlinkLoop(name, path)
+            name   <- cursor.downField(CodecField.Name).as[String]
+            path   <- cursor.downField(CodecField.Path).as[Path]
+            target <- cursor.downField(CodecField.Target).as[Path]
+          } yield SymlinkLoop(name, path, target)
 
         case CodecType.Other =>
           for {
@@ -122,11 +128,12 @@ object FileSystemObject {
           CodecField.Path -> path.asJson
         )
 
-      case SymlinkLoop(name, path) =>
+      case SymlinkLoop(name, path, target) =>
         Json.obj(
-          CodecField.Type -> CodecType.SymlinkLoop.asJson,
-          CodecField.Name -> name.asJson,
-          CodecField.Path -> path.asJson
+          CodecField.Type   -> CodecType.SymlinkLoop.asJson,
+          CodecField.Name   -> name.asJson,
+          CodecField.Path   -> path.asJson,
+          CodecField.Target -> target.asJson
         )
 
       case File(name, path) =>

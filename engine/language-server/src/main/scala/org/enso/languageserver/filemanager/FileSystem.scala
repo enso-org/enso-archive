@@ -225,7 +225,11 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         if (path.isDirectory) {
           Either
             .catchOnly[IOException] {
-              FileSystem.readDirectoryEntry(path.toPath, limit.goDeeper, Set())
+              FileSystem.readDirectoryEntry(
+                path.toPath,
+                limit.goDeeper,
+                Vector()
+              )
             }
             .leftMap(errorHandling)
         } else {
@@ -312,6 +316,11 @@ object FileSystem {
     }
   }
 
+  /**
+    * Returns the entries of the provided path. Symlinks are not resolved.
+    *
+    * @param path to the directory
+    */
   private def list(path: Path): Vector[Entry] = {
     def accumulator(acc: Vector[Entry], path: Path): Vector[Entry] =
       acc :+ readEntry(path)
@@ -323,12 +332,25 @@ object FileSystem {
       .sortBy(_.path)
   }
 
+  /**
+    * Return a [[DirectoryEntry]] tree representation of the directory.
+    * Symlinks are resolved. Returned [[SymbolicLinkEntry]] indicates a loop.
+    *
+    * @param path a path to the directory
+    * @param level a maximum depth of the directory tree
+    * @param visited symlinked directories
+    * @return a [[DirectoryEntry]] tree representation of the directory
+    */
   private def readDirectoryEntry(
     path: Path,
     level: Depth,
-    visited: Set[Path]
+    visited: Vector[SymbolicLinkEntry]
   ): DirectoryEntry = {
-    def analyze(level: Depth, visited: Set[Path], child: Entry): Entry =
+    def readEntry(
+      level: Depth,
+      visited: Vector[SymbolicLinkEntry],
+      child: Entry
+    ): Entry =
       child match {
         case DirectoryEntryTruncated(path) =>
           if (level.canGoDeeper) {
@@ -336,84 +358,22 @@ object FileSystem {
           } else {
             DirectoryEntryTruncated(path)
           }
-        case SymbolicLinkEntry(path, target) =>
+        case symlink @ SymbolicLinkEntry(path, target) =>
           if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
-            if (visited.contains(target)) {
-              SymbolicLinkLoop(path)
-            } else {
-              analyze(level, visited + target, readSymbolicLink(path))
+            visited.find(_.target == target) match {
+              case Some(SymbolicLinkEntry(visitedPath, _)) =>
+                SymbolicLinkEntry(path, visitedPath)
+              case None =>
+                readEntry(level, visited :+ symlink, readSymbolicLink(path))
             }
           } else {
-            analyze(level, visited, readSymbolicLink(path))
+            readEntry(level, visited, readSymbolicLink(path))
           }
         case entry => entry
 
       }
     def accumulator(entry: DirectoryEntry, child: Entry): DirectoryEntry =
-      entry.copy(children = entry.children :+ analyze(level, visited, child))
+      entry.copy(children = entry.children :+ readEntry(level, visited, child))
     list(path).foldLeft(DirectoryEntry.empty(path))(accumulator)
   }
-
-  /**
-    * Return a [[DirectoryEntry]] tree representation of the directory, where
-    * the directory depth is limited with the [[Depth]] level.
-    *
-    * @param path a path to the directory
-    * @param level a maximum depth of the directory tree
-    * @param visited symlinked directories
-    * @return a [[DirectoryEntry]] tree representation of the directory
-    */
-  private def readDirectoryEntry0(
-    path: Path,
-    level: Depth,
-    visited: Set[Path]
-  ): DirectoryEntry = {
-    def isVisited(path: Path): Boolean =
-      visited.contains(path)
-    def readEntry(
-      path: Path,
-      visited: Set[Path],
-      opts: Seq[LinkOption]
-    ): Entry = {
-      if (Files.isRegularFile(path, opts: _*)) {
-        FileEntry(path)
-      } else if (Files.isDirectory(path, opts: _*)) {
-        if (level.canGoDeeper) {
-          readDirectoryEntry(path, level.goDeeper, visited)
-        } else {
-          DirectoryEntryTruncated(path)
-        }
-      } else if (Files.isSymbolicLink(path)) {
-        val target = Files.readSymbolicLink(path)
-        if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
-          if (isVisited(target)) {
-            SymbolicLinkLoop(path)
-          } else {
-            readEntry(path, visited + target, Seq())
-          }
-        } else if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
-          readEntry(path, visited, Seq())
-        } else {
-          OtherEntry(path)
-        }
-      } else {
-        OtherEntry(path)
-      }
-    }
-    def accumulator(entry: DirectoryEntry, path: Path): DirectoryEntry =
-      entry.copy(
-        children = entry.children :+ readEntry(
-            path,
-            visited,
-            Seq(LinkOption.NOFOLLOW_LINKS)
-          )
-      )
-    def combiner(a: DirectoryEntry, b: DirectoryEntry): DirectoryEntry =
-      a.copy(children = a.children ++ b.children)
-    val entry = Files
-      .list(path)
-      .reduce(DirectoryEntry.empty(path), accumulator, combiner)
-    entry.copy(children = entry.children.sortBy(_.path))
-  }
-
 }

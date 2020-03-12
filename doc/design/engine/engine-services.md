@@ -983,10 +983,13 @@ interface DirectoryTruncated {
  *
  * @param name a name of the symlink
  * @param path a path to the symlink
+ * @param target a target of the symlink. Since it is a loop,
+ * target is a subpath of the symlink
  */
 interface SymlinkLoop {
   name: String;
   path: Path;
+  target: Path;
 }
 
 /**

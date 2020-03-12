@@ -440,8 +440,9 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
                   DirectoryEntry(
                     Paths.get(symlinkB.toString, "symlink_a"),
                     Vector(
-                      SymbolicLinkLoop(
-                        Paths.get(symlinkB.toString, "symlink_a", "symlink_b")
+                      SymbolicLinkEntry(
+                        Paths.get(symlinkB.toString, "symlink_a", "symlink_b"),
+                        symlinkB
                       )
                     )
                   )
@@ -458,8 +459,9 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
                   DirectoryEntry(
                     Paths.get(symlinkA.toString, "symlink_b"),
                     Vector(
-                      SymbolicLinkLoop(
-                        Paths.get(symlinkA.toString, "symlink_b", "symlink_a")
+                      SymbolicLinkEntry(
+                        Paths.get(symlinkA.toString, "symlink_b", "symlink_a"),
+                        symlinkA
                       )
                     )
                   )
