@@ -186,7 +186,7 @@ class CollaborativeBuffer(
     lockHolder: Option[Client],
     clientId: Id,
     change: FileEdit
-  ) = {
+  ): Unit = {
     applyEdits(buffer, lockHolder, clientId, change) match {
       case Left(failure) =>
         sender() ! failure
