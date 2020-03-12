@@ -52,6 +52,44 @@ object FileSystemObject {
     */
   case class Other(name: String, path: Path) extends FileSystemObject
 
+  def fromEntry(
+    root: java.io.File,
+    base: Path,
+    entry: FileSystemApi.Entry
+  ): FileSystemObject =
+    entry match {
+      case FileSystemApi.DirectoryEntry(path, _) =>
+        FileSystemObject.Directory(
+          path.getFileName.toString,
+          Path.getRelativeParent(root, base, path)
+        )
+
+      case FileSystemApi.DirectoryEntryTruncated(path) =>
+        FileSystemObject.DirectoryTruncated(
+          path.getFileName.toString,
+          Path.getRelativeParent(root, base, path)
+        )
+
+      case FileSystemApi.SymbolicLinkEntry(path, target) =>
+        FileSystemObject.SymlinkLoop(
+          path.getFileName.toString,
+          Path.getRelativeParent(root, base, path),
+          Path.getRelativeParent(root, base, target)
+        )
+
+      case FileSystemApi.FileEntry(path) =>
+        FileSystemObject.File(
+          path.getFileName.toString,
+          Path.getRelativeParent(root, base, path)
+        )
+
+      case FileSystemApi.OtherEntry(path) =>
+        FileSystemObject.Other(
+          path.getFileName.toString,
+          Path.getRelativeParent(root, base, path)
+        )
+    }
+
   private object CodecField {
 
     val Type = "type"

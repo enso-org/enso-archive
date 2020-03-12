@@ -37,4 +37,11 @@ object Path {
     path.forEach(p => b += p.toString())
     b.result().filter(_.nonEmpty)
   }
+
+  def getRelativePath(root: File, base: Path, path: nio.file.Path): Path =
+    Path(base.rootId, root.toPath.relativize(path))
+
+  def getRelativeParent(root: File, base: Path, path: nio.file.Path): Path =
+    getRelativePath(root, base, path.getParent())
+
 }

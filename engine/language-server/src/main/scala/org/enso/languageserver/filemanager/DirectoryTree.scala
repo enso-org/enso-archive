@@ -1,7 +1,6 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
-import java.nio
 
 /**
   * A representation of tree structures of files and directories.
@@ -35,21 +34,13 @@ object DirectoryTree {
     directory: FileSystemApi.DirectoryEntry
   ): DirectoryTree =
     DirectoryTree(
-      path = mkRelativeParent(root, base, directory.path),
-      name = directory.path.getFileName.toString,
-      files = directory.children
-        .filterNot(isDirectoryEntry)
-        .map(mkFileSystemObject(root, base, _)),
-      directories = directory.children.flatMap(fromEntry(root, base, _))
+      path        = Path.getRelativeParent(root, base, directory.path),
+      name        = directory.path.getFileName.toString,
+      files       = directory.children.flatMap(toFile(root, base, _)),
+      directories = directory.children.flatMap(toDirectory(root, base, _))
     )
 
-  private def isDirectoryEntry(entry: FileSystemApi.Entry): Boolean =
-    entry match {
-      case _: FileSystemApi.DirectoryEntry => true
-      case _                               => false
-    }
-
-  private def fromEntry(
+  private def toDirectory(
     root: File,
     base: Path,
     entry: FileSystemApi.Entry
@@ -57,58 +48,19 @@ object DirectoryTree {
     entry match {
       case dir: FileSystemApi.DirectoryEntry =>
         Some(fromDirectoryEntry(root, base, dir))
-      case _ => None
+      case _ =>
+        None
     }
 
-  private def mkFileSystemObject(
+  private def toFile(
     root: File,
     base: Path,
     entry: FileSystemApi.Entry
-  ): FileSystemObject =
+  ): Option[FileSystemObject] =
     entry match {
-      case FileSystemApi.DirectoryEntry(path, _) =>
-        FileSystemObject.Directory(
-          path.getFileName.toString,
-          mkRelativeParent(root, base, path)
-        )
-
-      case FileSystemApi.DirectoryEntryTruncated(path) =>
-        FileSystemObject.DirectoryTruncated(
-          path.getFileName.toString,
-          mkRelativeParent(root, base, path)
-        )
-
-      case FileSystemApi.SymbolicLinkEntry(path, target) =>
-        FileSystemObject.SymlinkLoop(
-          path.getFileName.toString,
-          mkRelativeParent(root, base, path),
-          mkRelativeParent(root, base, target)
-        )
-
-      case FileSystemApi.FileEntry(path) =>
-        FileSystemObject.File(
-          path.getFileName.toString,
-          mkRelativeParent(root, base, path)
-        )
-
-      case FileSystemApi.OtherEntry(path) =>
-        FileSystemObject.Other(
-          path.getFileName.toString,
-          mkRelativeParent(root, base, path)
-        )
+      case _: FileSystemApi.DirectoryEntry =>
+        None
+      case entry =>
+        Some(FileSystemObject.fromEntry(root, base, entry))
     }
-
-  private def mkRelativePath(
-    root: File,
-    base: Path,
-    path: nio.file.Path
-  ): Path =
-    Path(base.rootId, root.toPath.relativize(path))
-
-  private def mkRelativeParent(
-    root: File,
-    base: Path,
-    path: nio.file.Path
-  ): Path =
-    mkRelativePath(root, base, path.getParent())
 }
