@@ -2,10 +2,7 @@ package org.enso.languageserver
 
 import java.nio.ByteBuffer
 
-import org.enso.polyglot.{
-  LanguageApi,
-  ServerApiSerialization
-}
+import org.enso.polyglot.LanguageApi
 import org.graalvm.polyglot.io.MessageEndpoint
 
 class Endpoint(handler: Handler) extends MessageEndpoint {
@@ -32,7 +29,7 @@ class Handler {
   val endpoint = new Endpoint(this)
 
   def onMessage(msg: LanguageApi): Unit = msg match {
-    case LanguageApi.CreateContext(id)  => println(s"create context $id")
-    case LanguageApi.DestroyContext(id) => println(s"destroy context $id")
+    case LanguageApi.CreateContextRequest(id) =>
+      endpoint.sendToClient(LanguageApi.CreateContextResponse(id))
   }
 }

@@ -24,12 +24,14 @@ public class LanguageServerInstrument extends TruffleInstrument {
 
   @Override
   protected void onCreate(Env env) {
+    env.registerService(this);
     try {
       Handler handler = new Handler();
       MessageEndpoint client = env.startServer(URI.create("local://local"), handler.endpoint());
-      handler.endpoint().setClient(client);
-      this.handler = handler;
-      env.registerService(this);
+      if (client != null) {
+        handler.endpoint().setClient(client);
+        this.handler = handler;
+      }
     } catch (MessageTransport.VetoException | IOException e) {
       this.handler = null;
     }

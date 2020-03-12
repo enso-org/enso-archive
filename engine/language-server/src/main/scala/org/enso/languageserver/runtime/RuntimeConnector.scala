@@ -1,7 +1,10 @@
 package org.enso.languageserver.runtime
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorLogging, Props, Stash}
 import org.enso.languageserver.runtime.RuntimeConnector.Destroy
+import org.enso.polyglot.LanguageApi
 import org.graalvm.polyglot.io.MessageEndpoint
 
 class RuntimeConnector extends Actor with ActorLogging with Stash {
@@ -16,6 +19,7 @@ class RuntimeConnector extends Actor with ActorLogging with Stash {
 
   def initialized(engineConnection: MessageEndpoint): Receive = {
     case Destroy => context.stop(self)
+    case LanguageApi.CreateContextResponse(uid) => log.info("Context created {}.", uid)
   }
 }
 
