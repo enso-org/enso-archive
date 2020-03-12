@@ -38,7 +38,8 @@ public class RuntimeServerInstrument extends TruffleInstrument {
         handler.endpoint().setClient(client);
         this.handler = handler;
       }
-    } catch (MessageTransport.VetoException | IOException ignored) {
+    } catch (MessageTransport.VetoException | IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -47,7 +48,9 @@ public class RuntimeServerInstrument extends TruffleInstrument {
     if (handler != null) {
       try {
         handler.endpoint().client().sendClose();
-      } catch (IOException ignored) {
+      } catch (IOException e) {
+        env.getLogger(RuntimeServerInstrument.class)
+            .warning("Sending close message to the client failed, because of: " + e.getMessage());
       }
     }
     super.onDispose(env);
