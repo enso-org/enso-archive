@@ -185,6 +185,29 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         .leftMap(errorHandling)
     }
 
+  override def list(path: File): F[Either[FileSystemFailure, Vector[Entry]]] =
+    Sync[F].delay {
+      if (path.exists) {
+        if (path.isDirectory) {
+          Either
+            .catchOnly[IOException] {
+              FileSystem
+                .list(path.toPath)
+                .map {
+                  case SymbolicLinkEntry(path, _) =>
+                    FileSystem.readSymbolicLink(path)
+                  case entry => entry
+                }
+            }
+            .leftMap(errorHandling)
+        } else {
+          Left(NotDirectory)
+        }
+      } else {
+        Left(FileNotFound)
+      }
+    }
+
   /**
     * Returns contents of a given path.
     *
@@ -262,6 +285,75 @@ object FileSystem {
       UnlimitedDepth
   }
 
+  private def readEntry(path: Path): Entry = {
+    if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
+      FileEntry(path)
+    } else if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+      DirectoryEntryTruncated(path)
+    } else if (Files.isSymbolicLink(path)) {
+      val target = Files.readSymbolicLink(path)
+      if (Files.exists(target)) {
+        SymbolicLinkEntry(path, target)
+      } else {
+        OtherEntry(path)
+      }
+    } else {
+      OtherEntry(path)
+    }
+  }
+
+  private def readSymbolicLink(path: Path): Entry = {
+    if (Files.isRegularFile(path)) {
+      FileEntry(path)
+    } else if (Files.isDirectory(path)) {
+      DirectoryEntryTruncated(path)
+    } else {
+      OtherEntry(path)
+    }
+  }
+
+  private def list(path: Path): Vector[Entry] = {
+    def accumulator(acc: Vector[Entry], path: Path): Vector[Entry] =
+      acc :+ readEntry(path)
+    def combiner(as: Vector[Entry], bs: Vector[Entry]): Vector[Entry] =
+      as ++ bs
+    Files
+      .list(path)
+      .reduce(Vector(), accumulator, combiner)
+      .sortBy(_.path)
+  }
+
+  private def readDirectoryEntry(
+    path: Path,
+    level: Depth,
+    visited: Set[Path]
+  ): DirectoryEntry = {
+    def analyze(level: Depth, visited: Set[Path], child: Entry): Entry =
+      child match {
+        case DirectoryEntryTruncated(path) =>
+          if (level.canGoDeeper) {
+            readDirectoryEntry(path, level.goDeeper, visited)
+          } else {
+            DirectoryEntryTruncated(path)
+          }
+        case SymbolicLinkEntry(path, target) =>
+          if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
+            if (visited.contains(target)) {
+              SymbolicLinkLoop(path)
+            } else {
+              analyze(level, visited + target, readSymbolicLink(path))
+            }
+          } else {
+            analyze(level, visited, readSymbolicLink(path))
+          }
+        case entry => entry
+
+      }
+    def accumulator(entry: DirectoryEntry, child: Entry): DirectoryEntry =
+      entry.copy(children = entry.children :+ analyze(level, visited, child))
+    list(path).foldLeft(DirectoryEntry.empty(path))(accumulator)
+  }
+
   /**
     * Return a [[DirectoryEntry]] tree representation of the directory, where
     * the directory depth is limited with the [[Depth]] level.
@@ -271,7 +363,7 @@ object FileSystem {
     * @param visited symlinked directories
     * @return a [[DirectoryEntry]] tree representation of the directory
     */
-  private def readDirectoryEntry(
+  private def readDirectoryEntry0(
     path: Path,
     level: Depth,
     visited: Set[Path]

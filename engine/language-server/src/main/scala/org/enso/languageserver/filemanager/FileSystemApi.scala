@@ -90,6 +90,14 @@ trait FileSystemApi[F[_]] {
   def exists(file: File): F[Either[FileSystemFailure, Boolean]]
 
   /**
+    * List contents of a given path.
+    *
+    * @param path to the file system object
+    * @return either [[FileSystemFailure]] or list of entries
+    */
+  def list(path: File): F[Either[FileSystemFailure, Vector[Entry]]]
+
+  /**
     * Returns contents of a given path.
     *
     * @param path to the file system object
@@ -148,6 +156,8 @@ object FileSystemApi {
     * @param path to the file
     */
   case class FileEntry(path: Path) extends Entry
+
+  case class SymbolicLinkEntry(path: Path, target: Path) extends Entry
 
   /**
     * Unrecognized file system entry. Example is a broken symlink.
