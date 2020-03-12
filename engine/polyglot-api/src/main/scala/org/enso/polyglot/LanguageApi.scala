@@ -17,33 +17,32 @@ import scala.util.Try
 @JsonSubTypes(
   Array(
     new JsonSubTypes.Type(
-      value = classOf[ServerApi.CreateContext],
-      name  = "createContext"
+      value = classOf[LanguageApi.CreateContextRequest],
+      name  = "createContextRequest"
     ),
     new JsonSubTypes.Type(
-      value = classOf[ServerApi.CreateContext],
-      name  = "destroyContext"
+      value = classOf[LanguageApi.CreateContextResponse],
+      name  = "createContextResponse"
     )
   )
 )
-sealed trait ServerApi
+sealed trait LanguageApi
 
-object ServerApi {
-  case class CreateContext(id: UUID)  extends ServerApi
-  case class DestroyContext(id: UUID) extends ServerApi
-}
+object LanguageApi {
+  type ContextId = UUID
 
-object ServerApiSerialization {
+  case class CreateContextRequest(id: ContextId)  extends LanguageApi
+  case class CreateContextResponse(id: ContextId) extends LanguageApi
+
   private lazy val factory = new CBORFactory()
   private lazy val mapper = {
     val mapper = new ObjectMapper(factory) with ScalaObjectMapper
     mapper.registerModule(DefaultScalaModule)
   }
 
-  def serialize(serverApi: ServerApi): ByteBuffer =
+  def serialize(serverApi: LanguageApi): ByteBuffer =
     ByteBuffer.wrap(mapper.writeValueAsBytes(serverApi))
 
-  def deserialize(bytes: ByteBuffer): Option[ServerApi] =
-    Try(mapper.readValue(bytes.array(), classOf[ServerApi])).toOption
-
+  def deserialize(bytes: ByteBuffer): Option[LanguageApi] =
+    Try(mapper.readValue(bytes.array(), classOf[LanguageApi])).toOption
 }

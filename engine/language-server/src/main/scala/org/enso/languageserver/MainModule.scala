@@ -17,9 +17,9 @@ import org.enso.languageserver.data.{
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.polyglot.ServerApiSerialization
+import org.enso.polyglot.LanguageApi
 import org.graalvm.polyglot.Context
-import org.graalvm.polyglot.io.{MessageEndpoint, MessageTransport}
+import org.graalvm.polyglot.io.MessageEndpoint
 
 /**
   * A main module containing all components of th server.
@@ -60,25 +60,26 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .newBuilder("enso")
     .allowAllAccess(true)
     .allowExperimentalOptions(true)
-    .option("enso-language-server.enable", "")
+    .option("enso-language-server.enable", "true")
     .serverTransport((uri: URI, peerEndpoint: MessageEndpoint) => {
       if (uri.getScheme == "local") {
         val connection = new MessageEndpoint {
           override def sendText(text: String): Unit = {}
 
           override def sendBinary(data: ByteBuffer): Unit =
-            ServerApiSerialization
+            LanguageApi
               .deserialize(data)
               .foreach(runtimeConnector ! _)
 
           override def sendPing(data: ByteBuffer): Unit =
             peerEndpoint.sendPong(data)
 
-          override def sendPong(data: ByteBuffer): Unit = ???
+          override def sendPong(data: ByteBuffer): Unit = {}
 
-          override def sendClose(): Unit = ???
+          override def sendClose(): Unit =
+            runtimeConnector ! RuntimeConnector.Destroy
         }
-        runtimeConnector ! RuntimeConnector.Initialize(connection)
+        runtimeConnector ! RuntimeConnector.Initialize(peerEndpoint)
         connection
       } else null
     })

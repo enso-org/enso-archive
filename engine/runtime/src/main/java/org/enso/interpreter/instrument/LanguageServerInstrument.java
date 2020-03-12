@@ -29,7 +29,6 @@ public class LanguageServerInstrument extends TruffleInstrument {
       MessageEndpoint client = env.startServer(URI.create("local://local"), handler.endpoint());
       handler.endpoint().setClient(client);
       this.handler = handler;
-      handler.endpoint().sendToClient(new ServerApi.CreateContext(UUID.randomUUID()));
       env.registerService(this);
     } catch (MessageTransport.VetoException | IOException e) {
       this.handler = null;

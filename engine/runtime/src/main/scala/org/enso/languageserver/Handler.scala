@@ -3,7 +3,7 @@ package org.enso.languageserver
 import java.nio.ByteBuffer
 
 import org.enso.polyglot.{
-  ServerApi,
+  LanguageApi,
   ServerApiSerialization
 }
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -13,13 +13,13 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
 
   def setClient(ep: MessageEndpoint): Unit = client = ep
 
-  def sendToClient(msg: ServerApi): Unit =
-    client.sendBinary(ServerApiSerialization.serialize(msg))
+  def sendToClient(msg: LanguageApi): Unit =
+    client.sendBinary(LanguageApi.serialize(msg))
 
   override def sendText(text: String): Unit = {}
 
   override def sendBinary(data: ByteBuffer): Unit =
-    ServerApiSerialization.deserialize(data).foreach(handler.onMessage)
+    LanguageApi.deserialize(data).foreach(handler.onMessage)
 
   override def sendPing(data: ByteBuffer): Unit = client.sendPong(data)
 
@@ -31,8 +31,8 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
 class Handler {
   val endpoint = new Endpoint(this)
 
-  def onMessage(msg: ServerApi): Unit = msg match {
-    case ServerApi.CreateContext(id)  => println(s"create context $id")
-    case ServerApi.DestroyContext(id) => println(s"destroy context $id")
+  def onMessage(msg: LanguageApi): Unit = msg match {
+    case LanguageApi.CreateContext(id)  => println(s"create context $id")
+    case LanguageApi.DestroyContext(id) => println(s"destroy context $id")
   }
 }
