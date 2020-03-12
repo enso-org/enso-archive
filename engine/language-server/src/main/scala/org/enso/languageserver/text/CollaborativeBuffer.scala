@@ -1,6 +1,6 @@
 package org.enso.languageserver.text
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Stash}
 import org.enso.languageserver.capability.CapabilityProtocol._
 import org.enso.languageserver.data.Client.Id
 import org.enso.languageserver.data.buffer.Rope
@@ -65,6 +65,9 @@ class CollaborativeBuffer(
 
   override def receive: Receive = uninitialized
 
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
+
   private def uninitialized: Receive = {
     case OpenFile(client, path) =>
       context.system.eventStream.publish(BufferOpened(path))
@@ -74,14 +77,17 @@ class CollaborativeBuffer(
 
   private def waitingForFileContent(
     client: Client,
-    replyTo: ActorRef
+    replyTo: ActorRef,
+    timeoutCancellable: Cancellable
   ): Receive = {
     case ReadFileResult(Right(content)) =>
       handleFileContent(client, replyTo, content)
       unstashAll()
+      timeoutCancellable.cancel()
 
     case ReadFileResult(Left(failure)) =>
       replyTo ! OpenFileResponse(Left(failure))
+      timeoutCancellable.cancel()
       stop()
 
     case IOTimeout =>
@@ -140,9 +146,12 @@ class CollaborativeBuffer(
             bufferPath,
             buffer.contents.toString
           )
-          context.system.scheduler
-            .scheduleOnce(timeout, self, IOTimeout) //todo cancel timeout
-          context.become(saving(buffer, clients, lockHolder, sender()))
+
+          val timeoutCancellable = context.system.scheduler
+            .scheduleOnce(timeout, self, IOTimeout)
+          context.become(
+            saving(buffer, clients, lockHolder, sender(), timeoutCancellable)
+          )
         } else {
           sender() ! SaveFileInvalidVersion(clientVersion, buffer.version)
         }
@@ -155,7 +164,8 @@ class CollaborativeBuffer(
     buffer: Buffer,
     clients: Map[Client.Id, Client],
     lockHolder: Option[Client],
-    replyTo: ActorRef
+    replyTo: ActorRef,
+    timeoutCancellable: Cancellable
   ): Receive = {
     case IOTimeout =>
       replyTo ! SaveFailed(OperationTimeout)
@@ -165,11 +175,13 @@ class CollaborativeBuffer(
     case WriteFileResult(Left(failure)) =>
       replyTo ! SaveFailed(failure)
       unstashAll()
+      timeoutCancellable.cancel()
       context.become(collaborativeEditing(buffer, clients, lockHolder))
 
     case WriteFileResult(Right(())) =>
       replyTo ! FileSaved
       unstashAll()
+      timeoutCancellable.cancel()
       context.become(collaborativeEditing(buffer, clients, lockHolder))
 
     case _ => stash()
@@ -232,9 +244,9 @@ class CollaborativeBuffer(
 
   private def readFile(client: Client, path: Path): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
-    context.system.scheduler
+    val timeoutCancellable = context.system.scheduler
       .scheduleOnce(timeout, self, IOTimeout)
-    context.become(waitingForFileContent(client, sender()))
+    context.become(waitingForFileContent(client, sender(), timeoutCancellable))
   }
 
   private def handleFileContent(
