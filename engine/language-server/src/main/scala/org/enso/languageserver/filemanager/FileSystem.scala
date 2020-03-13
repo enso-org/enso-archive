@@ -370,13 +370,9 @@ object FileSystem {
     subdirQueue: mutable.Queue[Subdir]
   ): Unit = {
     if (entryQueue.isEmpty) {
-      if (subdirQueue.isEmpty) {
-        // we're all done, sort children and return
-        directory.children.sortInPlaceBy(_.path)
-        ()
-      } else {
-        // done with the current directory, sort children and go to the next one
-        directory.children.sortInPlaceBy(_.path)
+      // done with the current directory, sort children and go to the next one
+      directory.children.sortInPlaceBy(_.path)
+      if (subdirQueue.nonEmpty) {
         val subdir = subdirQueue.dequeue()
         readDirectoryEntry(
           subdir.entry,
