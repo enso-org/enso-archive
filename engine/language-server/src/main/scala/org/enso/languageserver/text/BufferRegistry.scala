@@ -14,10 +14,13 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.text.TextProtocol.{
+  ApplyEdit,
   CloseFile,
   FileNotOpened,
-  OpenFile
+  OpenFile,
+  SaveFile
 }
+import org.enso.languageserver.text.editing.model.FileEdit
 
 /**
   * An actor that routes request regarding text editing to the right buffer.
@@ -66,6 +69,20 @@ class BufferRegistry(fileManager: ActorRef)(
         registry(path).forward(msg)
       } else {
         sender() ! CapabilityReleaseBadRequest
+      }
+
+    case msg @ ApplyEdit(_, FileEdit(path, _, _, _)) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! FileNotOpened
+      }
+
+    case msg @ SaveFile(_, path, _) =>
+      if (registry.contains(path)) {
+        registry(path).forward(msg)
+      } else {
+        sender() ! FileNotOpened
       }
   }
 
