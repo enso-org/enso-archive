@@ -34,10 +34,11 @@ object DirectoryTree {
     directory: FileSystemApi.DirectoryEntry
   ): DirectoryTree =
     DirectoryTree(
-      path        = Path.getRelativeParent(root, base, directory.path),
-      name        = directory.path.getFileName.toString,
-      files       = directory.children.flatMap(toFile(root, base, _)),
-      directories = directory.children.flatMap(toDirectory(root, base, _))
+      path  = Path.getRelativeParent(root, base, directory.path),
+      name  = directory.path.getFileName.toString,
+      files = directory.children.flatMap(toFile(root, base, _)).toVector,
+      directories =
+        directory.children.flatMap(toDirectory(root, base, _)).toVector
     )
 
   private def toDirectory(

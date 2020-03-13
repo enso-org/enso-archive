@@ -3,6 +3,8 @@ package org.enso.languageserver.filemanager
 import java.io.File
 import java.nio.file.Path
 
+import scala.collection.mutable.ArrayBuffer
+
 /**
   * File manipulation API.
   *
@@ -125,12 +127,13 @@ object FileSystemApi {
     * @param path to the directory
     * @children a paths to the children entries
     */
-  case class DirectoryEntry(path: Path, children: Vector[Entry]) extends Entry
+  case class DirectoryEntry(path: Path, children: ArrayBuffer[Entry])
+      extends Entry
 
   object DirectoryEntry {
 
     def empty(path: Path): DirectoryEntry =
-      DirectoryEntry(path, Vector())
+      DirectoryEntry(path, ArrayBuffer())
   }
 
   /**

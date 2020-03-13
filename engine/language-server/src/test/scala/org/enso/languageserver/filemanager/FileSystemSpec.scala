@@ -7,6 +7,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
+import scala.collection.mutable.ArrayBuffer
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
 
@@ -368,17 +369,17 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(symlink, subdir)
     val expectedEntry = DirectoryEntry(
       path,
-      Vector(
+      ArrayBuffer(
         DirectoryEntry(
           subdir,
-          Vector(
+          ArrayBuffer(
             FileEntry(fileA),
             FileEntry(fileB)
           )
         ),
         DirectoryEntry(
           symlink,
-          Vector(
+          ArrayBuffer(
             FileEntry(symFileA),
             FileEntry(symFileB)
           )
@@ -403,7 +404,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(symlink, subdir)
     val expectedEntry = DirectoryEntry(
       path,
-      Vector(
+      ArrayBuffer(
         DirectoryEntryTruncated(subdir),
         DirectoryEntryTruncated(symlink)
       )
@@ -430,16 +431,16 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val expectedEntry =
       DirectoryEntry(
         path,
-        Vector(
+        ArrayBuffer(
           DirectoryEntry(
             dirA,
-            Vector(
+            ArrayBuffer(
               DirectoryEntry(
                 symlinkB,
-                Vector(
+                ArrayBuffer(
                   DirectoryEntry(
                     Paths.get(symlinkB.toString, "symlink_a"),
-                    Vector(
+                    ArrayBuffer(
                       SymbolicLinkEntry(
                         Paths.get(symlinkB.toString, "symlink_a", "symlink_b"),
                         symlinkB
@@ -452,13 +453,13 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
           ),
           DirectoryEntry(
             dirB,
-            Vector(
+            ArrayBuffer(
               DirectoryEntry(
                 symlinkA,
-                Vector(
+                ArrayBuffer(
                   DirectoryEntry(
                     Paths.get(symlinkA.toString, "symlink_b"),
-                    Vector(
+                    ArrayBuffer(
                       SymbolicLinkEntry(
                         Paths.get(symlinkA.toString, "symlink_b", "symlink_a"),
                         symlinkA
@@ -486,7 +487,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     Files.createSymbolicLink(symlink, fileA)
     val expectedEntry = DirectoryEntry(
       path,
-      Vector(
+      ArrayBuffer(
         OtherEntry(symlink)
       )
     )

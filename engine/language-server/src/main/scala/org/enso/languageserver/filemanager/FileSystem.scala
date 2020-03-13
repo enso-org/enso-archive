@@ -8,6 +8,8 @@ import cats.effect.Sync
 import cats.implicits._
 import org.apache.commons.io.{FileExistsException, FileUtils}
 
+import scala.collection.mutable
+
 /**
   * File manipulation facility.
   *
@@ -225,11 +227,16 @@ class FileSystem[F[_]: Sync] extends FileSystemApi[F] {
         if (path.isDirectory) {
           Either
             .catchOnly[IOException] {
+              val directory = DirectoryEntry.empty(path.toPath)
               FileSystem.readDirectoryEntry(
                 path.toPath,
                 limit.goDeeper,
-                Vector()
+                Vector(),
+                directory,
+                mutable.Queue().appendAll(FileSystem.list(path.toPath)),
+                mutable.Queue()
               )
+              directory
             }
             .leftMap(errorHandling)
         } else {
@@ -332,6 +339,12 @@ object FileSystem {
       .sortBy(_.path)
   }
 
+  private case class Subdir(
+    entry: DirectoryEntry,
+    depth: Depth,
+    visited: Vector[SymbolicLinkEntry]
+  )
+
   /**
     * Return a [[DirectoryEntry]] tree representation of the directory.
     * Symlinks are resolved. Returned [[SymbolicLinkEntry]] indicates a loop.
@@ -341,39 +354,112 @@ object FileSystem {
     * @param visited symlinked directories
     * @return a [[DirectoryEntry]] tree representation of the directory
     */
+  @scala.annotation.tailrec
   private def readDirectoryEntry(
     path: Path,
     level: Depth,
-    visited: Vector[SymbolicLinkEntry]
-  ): DirectoryEntry = {
-    def readEntry(
-      level: Depth,
-      visited: Vector[SymbolicLinkEntry],
-      child: Entry
-    ): Entry =
-      child match {
+    visited: Vector[SymbolicLinkEntry],
+    acc: DirectoryEntry,
+    childrenQueue: mutable.Queue[Entry],
+    directoryQueue: mutable.Queue[
+      (DirectoryEntry, Depth, Vector[SymbolicLinkEntry])
+    ]
+  ): Unit = {
+    if (childrenQueue.isEmpty) {
+      if (directoryQueue.isEmpty) {
+        // we're all done, sort children and return
+        acc.children.sortInPlaceBy(_.path)
+        ()
+      } else {
+        // done with the current directory, sort children and go to the next one
+        acc.children.sortInPlaceBy(_.path)
+        val (dir, level, visited) = directoryQueue.dequeue()
+        val q                     = mutable.Queue.empty[Entry]
+        q.appendAll(list(dir.path))
+        readDirectoryEntry(
+          dir.path,
+          level,
+          visited,
+          dir,
+          q,
+          directoryQueue
+        )
+      }
+    } else {
+      childrenQueue.dequeue() match {
         case DirectoryEntryTruncated(path) =>
           if (level.canGoDeeper) {
-            readDirectoryEntry(path, level.goDeeper, visited)
+            val dir = DirectoryEntry.empty(path)
+            acc.children.append(dir)
+            directoryQueue.append((dir, level.goDeeper, visited))
+            readDirectoryEntry(
+              path,
+              level,
+              visited,
+              acc,
+              childrenQueue,
+              directoryQueue
+            )
           } else {
-            DirectoryEntryTruncated(path)
+            acc.children.append(DirectoryEntryTruncated(path))
+            readDirectoryEntry(
+              path,
+              level,
+              visited,
+              acc,
+              childrenQueue,
+              directoryQueue
+            )
           }
         case symlink @ SymbolicLinkEntry(path, target) =>
           if (Files.isDirectory(target, LinkOption.NOFOLLOW_LINKS)) {
             visited.find(_.target == target) match {
               case Some(SymbolicLinkEntry(visitedPath, _)) =>
-                SymbolicLinkEntry(path, visitedPath)
+                acc.children.append(SymbolicLinkEntry(path, visitedPath))
+                readDirectoryEntry(
+                  path,
+                  level,
+                  visited,
+                  acc,
+                  childrenQueue,
+                  directoryQueue
+                )
               case None =>
-                readEntry(level, visited :+ symlink, readSymbolicLink(path))
+                //readEntry(level, visited :+ symlink, readSymbolicLink(path))
+                val entry = readSymbolicLink(path)
+                childrenQueue.append(entry)
+                readDirectoryEntry(
+                  path,
+                  level,
+                  visited :+ symlink,
+                  acc,
+                  childrenQueue,
+                  directoryQueue
+                )
             }
           } else {
-            readEntry(level, visited, readSymbolicLink(path))
+            //readEntry(level, visited, readSymbolicLink(path))
+            childrenQueue.append(readSymbolicLink(path))
+            readDirectoryEntry(
+              path,
+              level,
+              visited,
+              acc,
+              childrenQueue,
+              directoryQueue
+            )
           }
-        case entry => entry
-
+        case entry =>
+          acc.children.append(entry)
+          readDirectoryEntry(
+            path,
+            level,
+            visited,
+            acc,
+            childrenQueue,
+            directoryQueue
+          )
       }
-    def accumulator(entry: DirectoryEntry, child: Entry): DirectoryEntry =
-      entry.copy(children = entry.children :+ readEntry(level, visited, child))
-    list(path).foldLeft(DirectoryEntry.empty(path))(accumulator)
+    }
   }
 }
