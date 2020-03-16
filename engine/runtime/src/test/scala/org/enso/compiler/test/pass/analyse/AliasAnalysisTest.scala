@@ -18,7 +18,7 @@ class AliasAnalysisTest extends CompilerTest {
     )
 
     def preprocess: IR.Module = {
-      val ir=toIRModule(source)
+      val ir = toIRModule(source)
       runPasses(ir, precursorPasses).asInstanceOf[IR.Module]
     }
   }
@@ -37,8 +37,26 @@ class AliasAnalysisTest extends CompilerTest {
         |""".stripMargin.preprocess
 
     "do the thing" in {
-      println(AliasAnalysis.runModule(ir).bindings.map(_.getMetadata[AliasAnalysis.Info].get))
+      println(
+        AliasAnalysis
+          .runModule(ir)
+          .bindings
+          .map(_.getMetadata[AliasAnalysis.Info].get)
+      )
     }
 
+    val ir2 =
+      """
+        |type MyAtom a b=c (c = a + b)
+        |""".stripMargin.preprocess
+
+    "do the other thing" in {
+      println(
+        AliasAnalysis
+          .runModule(ir2)
+          .bindings
+          .map(_.getMetadata[AliasAnalysis.Info].get)
+      )
+    }
   }
 }

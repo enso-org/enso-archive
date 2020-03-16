@@ -731,6 +731,8 @@ object IR {
 
   /** Definition-site arguments in Enso. */
   sealed trait DefinitionArgument extends IR {
+    val defaultValue: Option[Expression]
+
     override def mapExpressions(
       fn: Expression => Expression
     ): DefinitionArgument
@@ -750,7 +752,7 @@ object IR {
       */
     sealed case class Specified(
       name: IR.Name,
-      defaultValue: Option[Expression],
+      override val defaultValue: Option[Expression],
       suspended: Boolean,
       override val location: Option[Location],
       override val passData: ISet[Metadata] = ISet()
