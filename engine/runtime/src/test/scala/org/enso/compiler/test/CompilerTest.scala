@@ -3,7 +3,6 @@ package org.enso.compiler.test
 import org.enso.compiler.codegen.AstToIR
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.flexer.Reader
 import org.enso.syntax.text.{AST, Parser}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -33,14 +32,14 @@ trait CompilerRunner {
   }
 
   /** Converts program text to a top-level Enso module.
-   *
-   * @param source the source code
-   * @return the [[IR]] representing `source`
-   */
+    *
+    * @param source the source code
+    * @return the [[IR]] representing `source`
+    */
   def toIRModule(source: String): IR.Module = {
     val parser: Parser = Parser()
-    val unresolvedAST = parser.run(new Reader(source))
-    val resolvedAST = parser.dropMacroMeta(unresolvedAST)
+    val unresolvedAST  = parser.run(source)
+    val resolvedAST    = parser.dropMacroMeta(unresolvedAST)
 
     AstToIR.translate(resolvedAST)
   }
