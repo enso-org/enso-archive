@@ -595,8 +595,6 @@ interface Path {
 }
 ```
 
-#### `AbsolutePath`
-
 ## Protocol Message Specification - Project Picker
 This section exists to contain a specification of each of the messages that the
 project picker supports. This is in order to aid in the proper creation of
@@ -951,24 +949,68 @@ A representation of what kind of type a filesystem object can be.
 ##### Format
 
 ```typescript
-type FileSystemObject = Directory | File | Symlink | Other;
+type FileSystemObject
+  = Directory
+  | DirectoryTruncated
+  | SymlinkLoop
+  | File
+  | Other;
 
+/**
+ * Represents a directory.
+ *
+ * @param name a name of the directory
+ * @param path a path to the directory
+ */
 interface Directory {
   name: String;
   path: Path;
 }
 
+/**
+ * Represents a directory which contents have been truncated.
+ *
+ * @param name a name of the directory
+ * @param path a path to the directory
+ */
+interface DirectoryTruncated {
+  name: String;
+  path: Path;
+}
+
+/**
+ * Represents a symbolic link that creates a loop.
+ *
+ * @param name a name of the symlink
+ * @param path a path to the symlink
+ * @param target a target of the symlink. Since it is a loop,
+ * target is a subpath of the symlink
+ */
+interface SymlinkLoop {
+  name: String;
+  path: Path;
+  target: Path;
+}
+
+/**
+ * Represents a file.
+ *
+ * @param name a name of the file
+ * @param path a path to the file
+ */
 interface File {
   name: String;
   path: Path;
 }
 
-interface Symlink {
-  source: Path;
-  target: Path | SystemPath;
-}
-
-interface Other;
+/**
+ * Represents unrecognized object.
+ * Example is a broken symbolic link.
+ */
+interface Other {
+  name: String;
+  path: Path;
+;
 ```
 
 #### `WorkspaceEdit`
@@ -1368,7 +1410,12 @@ the corresponding flag should be set.
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that requested path does not exist or
+  provided depth argument is <= 0.
+- [`NotDirectory`](#notdirectory) informs that requested path is not a
+  directory.
 
 #### `file/list`
 This request lists the contents of a given filesystem object. For a file it will
@@ -1631,7 +1678,14 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
+open.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version provided by the client doesn't match the version
+computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock for the buffer.
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable file-system error.
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the requested content root cannot be found.
+- [`AccessDeniedError`](#accessdeniederror) to signal that the user doesn't have access to a resource.
 
 #### `text/applyEdit`
 This requests that the server apply a series of edits to the project. These
@@ -1648,7 +1702,7 @@ that some edits are applied and others are not.
 
 ```typescript
 {
-  edits: [FileEdit];
+  edit: FileEdit;
 }
 ```
 
@@ -1659,7 +1713,12 @@ null
 ```
 
 ##### Errors
-TBC
+- [`FileNotOpenedError`](#filenotopenederror) to signal that the file isn't
+open.
+- [`TextEditValidationError`](#texteditvalidationerror) to signal that validation has failed for a series of edits.
+- [`InvalidVersionError`](#invalidversionerror) to signal that the version provided by the client doesn't match the version
+computed by the server.
+- [`WriteDeniedError`](#writedeniederror) to signal that the client doesn't hold write lock for the buffer.
 
 #### `text/didChange`
 This is a notification sent from the server to the clients to inform them of any
@@ -1679,7 +1738,9 @@ This notification must _only_ be sent for files that the client has open.
 ```
 
 ##### Errors
-TBC
+```typescript
+null
+```
 
 ### Workspace Operations
 The language server also has a set of operations useful for managing the client
@@ -2040,6 +2101,16 @@ It signals that IO operation timed out.
 }
 ```
 
+##### `NotDirectory`
+It signals that provided path is not a directory.
+
+```typescript
+"error" : {
+  "code" : 1006,
+  "message" : "Path is not a directory"
+}
+```
+
 ##### `StackItemNotFoundError`
 ```typescript
 "error" : {
@@ -2054,5 +2125,36 @@ Signals that a file wasn't opened.
 "error" : {
   "code" : 3001,
   "message" : "File not opened"
+}
+```
+
+##### `TextEditValidationError`
+Signals that validation has failed for a series of edits.
+
+```typescript
+"error" : {
+  "code" : 3002,
+  "message" : "The start position is after the end position"
+}
+```
+
+##### `InvalidVersionError`
+Signals that version provided by a client doesn't match to the version
+computed by the server.
+
+```typescript
+"error" : {
+  "code" : 3003,
+  "message" : "Invalid version [client version: ade2967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5, server version: 7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5]"
+}
+```
+
+##### `WriteDeniedError`
+Signals that the client doesn't hold write lock to the buffer.
+
+```typescript
+"error" : {
+  "code" : 3004,
+  "message" : "Write denied"
 }
 ```

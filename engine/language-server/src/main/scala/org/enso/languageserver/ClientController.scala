@@ -25,11 +25,20 @@ import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.requesthandler.{
   AcquireCapabilityHandler,
+  ApplyEditHandler,
   CloseFileHandler,
   OpenFileHandler,
-  ReleaseCapabilityHandler
+  ReleaseCapabilityHandler,
+  SaveFileHandler
 }
-import org.enso.languageserver.text.TextApi.{CloseFile, OpenFile}
+import org.enso.languageserver.text.TextApi.{
+  ApplyEdit,
+  CloseFile,
+  OpenFile,
+  SaveFile,
+  TextDidChange
+}
+import org.enso.languageserver.text.TextProtocol
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success}
@@ -50,12 +59,16 @@ object ClientApi {
     .registerRequest(CreateFile)
     .registerRequest(OpenFile)
     .registerRequest(CloseFile)
+    .registerRequest(SaveFile)
+    .registerRequest(ApplyEdit)
     .registerRequest(DeleteFile)
     .registerRequest(CopyFile)
     .registerRequest(MoveFile)
     .registerRequest(ExistsFile)
+    .registerRequest(TreeFile)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
+    .registerNotification(TextDidChange)
 
   case class WebConnect(webActor: ActorRef)
 }
@@ -91,8 +104,14 @@ class ClientController(
         .props(capabilityRouter, requestTimeout, client),
       OpenFile -> OpenFileHandler.props(bufferRegistry, requestTimeout, client),
       CloseFile -> CloseFileHandler
-        .props(bufferRegistry, requestTimeout, client)
+        .props(bufferRegistry, requestTimeout, client),
+      ApplyEdit -> ApplyEditHandler
+        .props(bufferRegistry, requestTimeout, client),
+      SaveFile -> SaveFileHandler.props(bufferRegistry, requestTimeout, client)
     )
+
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
 
   override def receive: Receive = {
     case ClientApi.WebConnect(webActor) =>
@@ -113,6 +132,9 @@ class ClientController(
 
     case CapabilityProtocol.CapabilityGranted(registration) =>
       webActor ! Notification(GrantCapability, registration)
+
+    case TextProtocol.TextDidChange(changes) =>
+      webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))
@@ -138,6 +160,9 @@ class ClientController(
 
     case Request(ExistsFile, id, params: ExistsFile.Params) =>
       existsFile(webActor, id, params)
+
+    case Request(TreeFile, id, params: TreeFile.Params) =>
+      treeFile(webActor, id, params)
   }
 
   private def readFile(
@@ -294,4 +319,27 @@ class ClientController(
           webActor ! ResponseError(Some(id), ServiceError)
       }
   }
+
+  private def treeFile(
+    webActor: ActorRef,
+    id: Id,
+    params: TreeFile.Params
+  ): Unit = {
+    (server ? FileManagerProtocol.TreeFile(params.path, params.depth))
+      .onComplete {
+        case Success(FileManagerProtocol.TreeFileResult(Right(tree))) =>
+          webActor ! ResponseResult(TreeFile, id, TreeFile.Result(tree))
+
+        case Success(FileManagerProtocol.TreeFileResult(Left(failure))) =>
+          webActor ! ResponseError(
+            Some(id),
+            FileSystemFailureMapper.mapFailure(failure)
+          )
+
+        case Failure(th) =>
+          log.error("An exception occured during a tree operation", th)
+          webActor ! ResponseError(Some(id), ServiceError)
+      }
+  }
+
 }
