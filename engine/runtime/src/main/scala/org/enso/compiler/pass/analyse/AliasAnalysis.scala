@@ -16,7 +16,7 @@ case object AliasAnalysis extends IRPass {
   /** Alias information for the IR. */
   override type Metadata = Info
 
-  /** Executes the pass on a module.
+  /** Performs alias analysis on a module.
     *
     * @param ir the Enso IR to process
     * @return `ir`, possibly having made transformations or annotations to that
@@ -26,6 +26,15 @@ case object AliasAnalysis extends IRPass {
     ir.copy(bindings = ir.bindings.map(analyseModuleDefinition))
   }
 
+  /** Performs alias analysis on an inline expression, starting from the
+    * provided scope.
+    *
+    * @param ir the Enso IR to process
+    * @param localScope the local scope in which the expression is executed
+    * @param moduleScope the module scope in which the expression is executed
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
   // TODO [AA] What is a sensible way to do this?
   override def runExpression(
     ir: IR.Expression,
@@ -44,7 +53,8 @@ case object AliasAnalysis extends IRPass {
             body = analyseExpression(
               body,
               topLevelGraph,
-              topLevelGraph.rootScope
+              topLevelGraph.rootScope,
+              reuseScope = true
             )
           )
           .addMetadata(Info.RootScope(topLevelGraph))
@@ -74,33 +84,48 @@ case object AliasAnalysis extends IRPass {
           .copy(
             defaultValue = value
               .map(
-                (ir: IR.Expression) => analyseExpression(ir, graph, parentScope)
+                (ir: IR.Expression) =>
+                  analyseExpression(ir, graph, parentScope, reuseScope = true)
               )
           )
           .addMetadata(Info.Child(graph, id))
     }
   }
 
+  // TODO [AA] Don't know how to get the scoping right....
+  def analyseExpression(
+    expression: IR.Expression,
+    graph: Graph,
+    parentScope: Scope,
+    reuseScope: Boolean = false
+  ): IR.Expression = {
+    val currentScope = if (reuseScope) parentScope else parentScope.addChild()
+
+    expression match {
+      case block @ IR.Expression.Block(_, _, _, _, _) => block
+      case IR.Expression.Binding(_, _, _, _)          => expression
+      case x =>
+        x.mapExpressions(
+          analyseExpression(_, graph, currentScope, reuseScope = true)
+        )
+    }
+  }
+
   // TODO [AA] Re-write from analyseExpression, get head around scope reuse
   //  new scopes should probably be injected rather than constructed inside
-  def analyseExpression(
+  def analyseExpression2(
     ir: IR.Expression,
     graph: Graph,
     parentScope: Scope,
-    reuseScope: Boolean = true
+    reuseScope: Boolean = false
   ): IR.Expression = {
-    val currentScope =
-      if (reuseScope) {
-        parentScope
-      } else {
-        parentScope.createChild()
-      }
+    val currentScope = if (reuseScope) parentScope else parentScope.addChild()
 
     ir match {
       // TODO [AA] Should function arguments be in the same scope as the body?
       case lambda @ IR.Function.Lambda(arguments, body, _, _, _) =>
         lambda.copy(
-          body      = analyseExpression(body, graph, currentScope),
+          body      = analyseExpression(body, graph, currentScope, reuseScope = true),
           arguments = analyseArgumentDefs(arguments, graph, currentScope)
         )
 
@@ -112,31 +137,29 @@ case object AliasAnalysis extends IRPass {
           returnValue = analyseExpression(
             returnValue,
             graph,
-            currentScope,
-            reuseScope = false
+            currentScope
           )
         )
 
       case assignment @ IR.Expression.Binding(name, expression, _, _) =>
-        parentScope.addOccurrence(
+        currentScope.addOccurrence(
           Graph.Occurrence.Def(graph.nextId(), name.name)
         )
         assignment.copy(
-          expression = analyseExpression(expression, graph, parentScope)
+          expression = analyseExpression(expression, graph, currentScope)
         )
 
       case ir @ IR.Name.Literal(n, _, _) =>
         val id   = graph.nextId()
         val node = Graph.Occurrence.Use(id, n)
-        parentScope.addOccurrence(node)
-        parentScope.resolveUsages(node).foreach(graph.links += _)
+        currentScope.addOccurrence(node)
+        currentScope.resolveUsages(node).foreach(graph.links += _)
         ir.addMetadata(Info.Child(graph, id))
 
       // TODO [AA] This cannot
       case x =>
         x.mapExpressions(
-          (ir: IR.Expression) =>
-            analyseExpression(ir, graph, parentScope, reuseScope = false)
+          (ir: IR.Expression) => analyseExpression(ir, graph, currentScope)
         )
     }
   }
@@ -273,7 +296,7 @@ case object AliasAnalysis extends IRPass {
         *
         * @return a scope that is a child of `this`
         */
-      def createChild(): Scope = {
+      def addChild(): Scope = {
         val scope = new Scope()
         scope.parent = Some(this)
         childScopes ::= scope
@@ -281,6 +304,10 @@ case object AliasAnalysis extends IRPass {
         scope
       }
 
+      /** Adds the specified symbol occurrence to this scope.
+       *
+       * @param occurrence the occurrence to add
+       */
       def addOccurrence(occurrence: Occurrence): Unit = {
         occurrences += occurrence
       }

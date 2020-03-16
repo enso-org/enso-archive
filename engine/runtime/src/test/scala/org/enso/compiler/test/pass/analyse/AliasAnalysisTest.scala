@@ -4,6 +4,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
+import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.Occurrence
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 
@@ -37,12 +38,34 @@ class AliasAnalysisTest extends CompilerTest {
   "The alias scope" should {
     val flatScope = new Graph.Scope()
 
+    val complexScope        = new Graph.Scope()
+    val child1              = complexScope.addChild()
+    val child2              = complexScope.addChild()
+    val childOfChild        = child1.addChild()
+    val childOfChildOfChild = childOfChild.addChild()
+
     "Have a number of scopes of 1 without children" in {
       flatScope.numScopes shouldEqual 1
     }
 
     "Have a nesting level of 1 without children" in {
       flatScope.nesting shouldEqual 1
+    }
+
+    "Have the correct number of scopes with children" in {
+      complexScope.numScopes shouldEqual 5
+    }
+
+    "Have the correct nesting depth with children" in {
+      complexScope.nesting shouldEqual 4
+    }
+
+    "Should allow correctly getting the n-th parent" in {
+      childOfChildOfChild.nThParent(2) shouldEqual Some(child1)
+    }
+
+    "Should return `None` for nonexistent parents" in {
+      childOfChildOfChild.nThParent(10) shouldEqual None
     }
   }
 
