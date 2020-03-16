@@ -462,6 +462,7 @@ lazy val language_server = (project in file("engine/language-server"))
     )
   )
   .dependsOn(polyglot_api)
+  .dependsOn(`json-rpc-server`)
 
 lazy val runtime = (project in file("engine/runtime"))
   .configs(Benchmark)

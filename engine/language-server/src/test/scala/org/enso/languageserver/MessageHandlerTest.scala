@@ -4,8 +4,8 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.Json
 import io.circe.literal._
 import io.circe.parser._
-import org.enso.languageserver.jsonrpc.MessageHandler.{Connected, WebMessage}
-import org.enso.languageserver.jsonrpc.{
+import org.enso.jsonrpc.MessageHandler.{Connected, WebMessage}
+import org.enso.jsonrpc.{
   Error,
   HasParams,
   HasResult,

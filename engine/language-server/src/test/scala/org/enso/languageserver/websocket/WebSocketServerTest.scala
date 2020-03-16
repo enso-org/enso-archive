@@ -12,19 +12,16 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import cats.effect.IO
 import io.circe.Json
 import io.circe.parser.parse
+import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{Config, Sha3_224VersionCalculator}
-import org.enso.languageserver.{
-  LanguageProtocol,
-  LanguageServer,
-  WebSocketServer
-}
 import org.enso.languageserver.filemanager.FileSystem
-import org.enso.languageserver.runtime.RuntimeConnector
+import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.text.BufferRegistry
-import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
+import org.enso.languageserver.{LanguageProtocol, LanguageServer}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -50,7 +47,7 @@ abstract class WebSocketServerTest
 
   testContentRoot.toFile.deleteOnExit()
 
-  var server: WebSocketServer     = _
+  var server: JsonRpcServer       = _
   var binding: Http.ServerBinding = _
 
   override def beforeEach(): Unit = {
@@ -67,14 +64,13 @@ abstract class WebSocketServerTest
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry))
 
-    lazy val runtimeConnector = system.actorOf(RuntimeConnector.props)
-
-    server = new WebSocketServer(
+    lazy val clientFactory = new ServerClientControllerFactory(
       languageServer,
       bufferRegistry,
-      capabilityRouter,
-      runtimeConnector
+      capabilityRouter
     )
+
+    server  = new JsonRpcServer(JsonRpc.protocol, clientFactory)
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"
   }
