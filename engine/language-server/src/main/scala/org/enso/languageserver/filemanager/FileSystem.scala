@@ -339,6 +339,7 @@ object FileSystem {
     * Returns the entries of the provided path. Symlinks are not resolved.
     *
     * @param path to the directory
+    * @return list of entries
     */
   private def list(path: Path): Vector[Entry] = {
     def accumulator(acc: Vector[Entry], path: Path): Vector[Entry] =
