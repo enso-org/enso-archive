@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 
@@ -10,20 +11,42 @@ class AliasAnalysisTest extends CompilerTest {
 
   // === Utilities ============================================================
 
-  // TODO [AA] Wrap these functions as extensions
+  /** Adds an extension method to preprocess the source as IR.
+    *
+    * @param source the source code to preprocess
+    */
   implicit class Preprocess(source: String) {
     val precursorPasses: List[IRPass] = List(
       LiftSpecialOperators,
       OperatorToFunction
     )
 
+    /** Translates the source code into appropriate IR for testing this pass.
+      *
+      * @return IR appropriate for testing the alias analysis pass
+      */
     def preprocess: IR.Module = {
-      val ir = toIRModule(source)
-      runPasses(ir, precursorPasses).asInstanceOf[IR.Module]
+      source.toIRModule.runPasses(precursorPasses).asInstanceOf[IR.Module]
     }
   }
 
   // === The Tests ============================================================
+
+  // TODO [AA] Some property-based testing using ScalaCheck
+
+  "The alias scope" should {
+    val scope = new Graph.Scope(None)
+
+    "Have a number of scopes of 1 without children" in {
+      scope.numScopes shouldEqual 1
+    }
+
+    "Have a nesting level of 1 without children" in {
+      scope.nesting shouldEqual 1
+    }
+  }
+
+  "The alias graph" should {}
 
   "Alias analysis" should {
     val ir =
@@ -37,12 +60,12 @@ class AliasAnalysisTest extends CompilerTest {
         |""".stripMargin.preprocess
 
     "do the thing" in {
-      println(
-        AliasAnalysis
-          .runModule(ir)
-          .bindings
-          .map(_.getMetadata[AliasAnalysis.Info].get)
-      )
+//      println(
+//        AliasAnalysis
+//          .runModule(ir)
+//          .bindings
+//          .map(_.getMetadata[AliasAnalysis.Info].get)
+//      )
     }
 
     val ir2 =
@@ -51,12 +74,12 @@ class AliasAnalysisTest extends CompilerTest {
         |""".stripMargin.preprocess
 
     "do the other thing" in {
-      println(
-        AliasAnalysis
-          .runModule(ir2)
-          .bindings
-          .map(_.getMetadata[AliasAnalysis.Info].get)
-      )
+//      println(
+//        AliasAnalysis
+//          .runModule(ir2)
+//          .bindings
+//          .map(_.getMetadata[AliasAnalysis.Info].get)
+//      )
     }
   }
 }

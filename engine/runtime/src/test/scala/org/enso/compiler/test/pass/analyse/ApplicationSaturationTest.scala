@@ -239,14 +239,15 @@ class ApplicationSaturationTest extends CompilerTest {
       OperatorToFunction
     )
 
-    val rawIR = toIR("""
-                       |main =
-                       |  foo = x y z -> x + y + z
-                       |
-                       |  foo a b c
-                       |""".stripMargin)
+    val rawIR =
+      """
+        |main =
+        |    foo = x y z -> x + y + z
+        |
+        |    foo a b c
+        |""".stripMargin.toIR
 
-    val inputIR = runPasses(rawIR, passes).asInstanceOf[IR.Expression]
+    val inputIR = rawIR.runPasses(passes).asInstanceOf[IR.Expression]
 
     val result = ApplicationSaturation(knownFunctions)
       .runExpression(inputIR)
