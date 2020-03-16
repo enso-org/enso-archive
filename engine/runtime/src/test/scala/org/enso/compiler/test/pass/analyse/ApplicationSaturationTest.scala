@@ -177,9 +177,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "have fully saturated applications tagged correctly" in {
       val result =
-        ApplicationSaturation(knownFunctions).runExpression(
-          outerPlus(knownPlus)
-        )
+        ApplicationSaturation(knownFunctions).runExpression(outerPlus(knownPlus))
 
       // The outer should be reported as fully saturated
       result.getMetadata[CallSaturation].foreach {
@@ -196,9 +194,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "have non-fully saturated applications tagged correctly" in {
       val result =
-        ApplicationSaturation(knownFunctions).runExpression(
-          outerPlus(undersaturatedPlus)
-        )
+        ApplicationSaturation(knownFunctions).runExpression(outerPlus(undersaturatedPlus))
       val expectedInnerMeta = CallSaturation.Partial(1)
 
       // The outer should be reported as fully saturated
@@ -215,9 +211,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "have a mixture of application saturations tagged correctly" in {
       val result =
-        ApplicationSaturation(knownFunctions).runExpression(
-          outerPlus(oversaturatedPlus)
-        )
+        ApplicationSaturation(knownFunctions).runExpression(outerPlus(oversaturatedPlus))
       val expectedInnerMeta = CallSaturation.Over(1)
 
       // The outer should be reported as fully saturated

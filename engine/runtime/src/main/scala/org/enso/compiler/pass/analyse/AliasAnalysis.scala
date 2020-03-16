@@ -4,20 +4,31 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 import scala.reflect.ClassTag
 
 case object AliasAnalysis extends IRPass {
 
-  val invalidID: Graph.Id = -1
-
+  /** Alias information for the IR. */
   override type Metadata = Info
 
+  /** Executes the pass on a module.
+    *
+    * @param ir the Enso IR to process
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
   override def runModule(ir: IR.Module): IR.Module = {
     ir.copy(bindings = ir.bindings.map(analyseModuleDefinition))
   }
 
-  override def runExpression(ir: IR.Expression): IR.Expression = ir
+  // TODO [AA] What is a sensible way to do this?
+  override def runExpression(
+    ir: IR.Expression,
+    localScope: Option[LocalScope] = None,
+    moduleScope: Option[ModuleScope] = None
+  ): IR.Expression = ir
 
   def analyseModuleDefinition(
     ir: IR.Module.Scope.Definition
@@ -81,7 +92,7 @@ case object AliasAnalysis extends IRPass {
       if (reuseScope) {
         parentScope
       } else {
-        val newScope = new Scope(Some(parentScope))
+        val newScope = new Scope(parent = Some(parentScope))
         parentScope.childScopes ::= newScope
         newScope
       }
@@ -253,7 +264,7 @@ case object AliasAnalysis extends IRPass {
           scope =>
             scope.occurrence(id).flatMap {
               case d: Occurrence.Def => Some(d)
-              case _ => None
+              case _                 => None
             }
         )
         .isDefined
@@ -264,9 +275,11 @@ case object AliasAnalysis extends IRPass {
     /** The type of identifiers on the graph. */
     type Id = Int
 
-    sealed class Scope(val parent: Option[Scope] = None) {
-      var childScopes: List[Scope]     = List()
-      var occurrences: Set[Occurrence] = Set()
+    sealed class Scope(
+      var childScopes: List[Scope]     = List(),
+      var occurrences: Set[Occurrence] = Set(),
+      val parent: Option[Scope]        = None
+    ) {
 
       /** Creates a string representation of the scope.
         *

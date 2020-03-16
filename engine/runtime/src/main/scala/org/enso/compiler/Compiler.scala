@@ -15,7 +15,11 @@ import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
+import org.enso.interpreter.runtime.scope.{
+  LocalScope,
+  ModuleScope,
+  TopLevelScope
+}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.{AST, Parser}
 
@@ -117,7 +121,8 @@ class Compiler(
 
     generateIRInline(parsed).flatMap { ir =>
       Some({
-        val compilerOutput = runCompilerPhasesInline(ir)
+        val compilerOutput =
+          runCompilerPhasesInline(ir, localScope, moduleScope)
 
         truffleCodegenInline(
           compilerOutput,
@@ -198,9 +203,14 @@ class Compiler(
     * @param ir the compiler intermediate representation to transform
     * @return the output result of the
     */
-  def runCompilerPhasesInline(ir: IR.Expression): IR.Expression = {
+  def runCompilerPhasesInline(
+    ir: IR.Expression,
+    localScope: LocalScope,
+    moduleScope: ModuleScope
+  ): IR.Expression = {
     compilerPhaseOrdering.foldLeft(ir)(
-      (intermediateIR, pass) => pass.runExpression(intermediateIR)
+      (intermediateIR, pass) =>
+        pass.runExpression(intermediateIR, Some(localScope), Some(moduleScope))
     )
   }
 

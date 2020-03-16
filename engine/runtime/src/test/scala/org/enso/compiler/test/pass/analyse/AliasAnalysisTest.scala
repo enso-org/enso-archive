@@ -35,14 +35,15 @@ class AliasAnalysisTest extends CompilerTest {
   // TODO [AA] Some property-based testing using ScalaCheck
 
   "The alias scope" should {
-    val scope = new Graph.Scope(None)
+    val flatScope = new Graph.Scope()
+    val nestedScope = new Graph.Scope()
 
     "Have a number of scopes of 1 without children" in {
-      scope.numScopes shouldEqual 1
+      flatScope.numScopes shouldEqual 1
     }
 
     "Have a nesting level of 1 without children" in {
-      scope.nesting shouldEqual 1
+      flatScope.nesting shouldEqual 1
     }
   }
 

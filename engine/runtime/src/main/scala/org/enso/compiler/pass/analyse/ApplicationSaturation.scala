@@ -10,6 +10,7 @@ import org.enso.compiler.pass.analyse.ApplicationSaturation.{
 }
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
@@ -49,7 +50,11 @@ case class ApplicationSaturation(
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
-  override def runExpression(ir: IR.Expression): IR.Expression = {
+  override def runExpression(
+    ir: IR.Expression,
+    localScope: Option[LocalScope] = None,
+    moduleScope: Option[ModuleScope] = None
+  ): IR.Expression = {
     ir.transformExpressions {
       case func @ IR.Application.Prefix(fn, args, _, _, meta) =>
         fn match {
@@ -68,18 +73,24 @@ case class ApplicationSaturation(
                   }
 
                   func.copy(
-                    arguments = args.map(_.mapExpressions(runExpression)),
-                    passData  = meta + saturationInfo
+                    arguments = args.map(
+                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
+                    ),
+                    passData = meta + saturationInfo
                   )
 
                 } else if (args.length > arity) {
                   func.copy(
-                    arguments = args.map(_.mapExpressions(runExpression)),
-                    passData  = meta + CallSaturation.Over(args.length - arity)
+                    arguments = args.map(
+                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
+                    ),
+                    passData = meta + CallSaturation.Over(args.length - arity)
                   )
                 } else {
                   func.copy(
-                    arguments = args.map(_.mapExpressions(runExpression)),
+                    arguments = args.map(
+                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
+                    ),
                     passData = meta + CallSaturation.Partial(
                         arity - args.length
                       )
@@ -87,15 +98,19 @@ case class ApplicationSaturation(
                 }
               case None =>
                 func.copy(
-                  arguments = args.map(_.mapExpressions(runExpression)),
-                  passData  = meta + CallSaturation.Unknown()
+                  arguments = args.map(
+                    _.mapExpressions((ir: IR.Expression) => runExpression(ir))
+                  ),
+                  passData = meta + CallSaturation.Unknown()
                 )
             }
           case _ =>
             func.copy(
-              function  = runExpression(fn),
-              arguments = args.map(_.mapExpressions(runExpression)),
-              passData  = meta + CallSaturation.Unknown()
+              function = runExpression(fn),
+              arguments = args.map(
+                _.mapExpressions((ir: IR.Expression) => runExpression(ir))
+              ),
+              passData = meta + CallSaturation.Unknown()
             )
         }
     }
