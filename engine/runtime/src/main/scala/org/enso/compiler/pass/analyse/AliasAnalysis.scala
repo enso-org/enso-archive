@@ -8,6 +8,9 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 import scala.reflect.ClassTag
 
+/** This pass performs scope identification and analysis, as well as symbol
+  * resolution where it is possible to do so statically.
+  */
 case object AliasAnalysis extends IRPass {
 
   /** Alias information for the IR. */
@@ -26,7 +29,7 @@ case object AliasAnalysis extends IRPass {
   // TODO [AA] What is a sensible way to do this?
   override def runExpression(
     ir: IR.Expression,
-    localScope: Option[LocalScope] = None,
+    localScope: Option[LocalScope]   = None,
     moduleScope: Option[ModuleScope] = None
   ): IR.Expression = ir
 
@@ -60,8 +63,7 @@ case object AliasAnalysis extends IRPass {
   def analyseArgumentDefs(
     args: List[IR.DefinitionArgument],
     graph: Graph,
-    parentScope: Scope,
-    reuseScope: Boolean = true
+    parentScope: Scope
   ): List[IR.DefinitionArgument] = {
     args.map {
       case arg @ IR.DefinitionArgument.Specified(name, value, _, _, _) =>
@@ -72,8 +74,7 @@ case object AliasAnalysis extends IRPass {
           .copy(
             defaultValue = value
               .map(
-                (ir: IR.Expression) =>
-                  analyseExpression(ir, graph, parentScope, reuseScope)
+                (ir: IR.Expression) => analyseExpression(ir, graph, parentScope)
               )
           )
           .addMetadata(Info.Child(graph, id))
@@ -141,20 +142,30 @@ case object AliasAnalysis extends IRPass {
     }
   }
 
+  /** Resolves usages of symbols into links where possible, creating an edge
+    * from the usage site to the definition site.
+    *
+    * @param occurrence the symbol usage
+    * @param scope the scope in which the usage is occurring
+    * @param parentCounter the number of scopes that the link has traversed
+    * @return the link from `occurrence` to the definition of that symbol, if it
+    *         exists
+    */
   def resolveUsages(
-    node: Graph.Occurrence.Use,
+    occurrence: Graph.Occurrence.Use,
     scope: Scope,
     parentCounter: Int = 0
   ): Option[Graph.Link] = {
     val definition = scope.occurrences.find {
-      case Graph.Occurrence.Def(_, n) => n == node.name
+      case Graph.Occurrence.Def(_, n) => n == occurrence.symbol
       case _                          => false
     }
 
     definition match {
       case None =>
-        scope.parent.flatMap(resolveUsages(node, _, parentCounter + 1))
-      case Some(target) => Some(Graph.Link(node.id, parentCounter, target.id))
+        scope.parent.flatMap(resolveUsages(occurrence, _, parentCounter + 1))
+      case Some(target) =>
+        Some(Graph.Link(occurrence.id, parentCounter, target.id))
     }
   }
 
@@ -177,7 +188,7 @@ case object AliasAnalysis extends IRPass {
       * [[RootScope]].
       *
       * @param graph the graph in which this IR node can be found
-      * @param id the iodentifier of this IR node in `graph`
+      * @param id the identifier of this IR node in `graph`
       */
     sealed case class Child(graph: Graph, id: Graph.Id) extends Info
   }
@@ -191,7 +202,7 @@ case object AliasAnalysis extends IRPass {
 
     /** Generates a new identifier for a node in the graph.
       *
-      * @return
+      * @return a unique identifier for this graph
       */
     def nextId(): Graph.Id = {
       val nextId = nextIdCounter
@@ -208,7 +219,7 @@ case object AliasAnalysis extends IRPass {
 
     /** Gets all links in which the provided `id` is a participant.
       *
-      * @param id the identifier for the name
+      * @param id the identifier for the symbol
       * @return a list of links in which `id` occurs
       */
     def linksForId(id: Graph.Id): Set[Graph.Link] = {
@@ -226,14 +237,14 @@ case object AliasAnalysis extends IRPass {
 
     /** Finds the scopes in which a name occurs with a given role.
       *
-      * @param name the name
-      * @tparam T the role in which `name` occurs
-      * @return all the scopes where `name` occurs with role `T`
+      * @param symbol the symbol
+      * @tparam T the role in which `symbol` occurs
+      * @return all the scopes where `symbol` occurs with role `T`
       */
     def scopesForName[T <: Graph.Occurrence: ClassTag](
-      name: String
+      symbol: String
     ): List[Graph.Scope] = {
-      rootScope.scopesForName[T](name)
+      rootScope.scopesForName[T](symbol)
     }
 
     /** Counts the number of scopes in this scope.
@@ -275,6 +286,12 @@ case object AliasAnalysis extends IRPass {
     /** The type of identifiers on the graph. */
     type Id = Int
 
+    /** A representation of a local scope in Enso.
+      *
+      * @param childScopes all scopes that are _direct_ children of `this`
+      * @param occurrences all symbol occurrences in `this` scope
+      * @param parent the parent scope, if present
+      */
     sealed class Scope(
       var childScopes: List[Scope]     = List(),
       var occurrences: Set[Occurrence] = Set(),
@@ -341,21 +358,21 @@ case object AliasAnalysis extends IRPass {
         if (n == 0) Some(this) else this.parent.flatMap(_.nThParent(n - 1))
       }
 
-      /** Finds the scopes in which a name occurs with a given role.
+      /** Finds the scopes in which a symbol occurs with a given role.
         *
-        * @param name the name
+        * @param symbol the symbol
         * @tparam T the role in which `name` occurs
         * @return all the scopes where `name` occurs with role `T`
         */
       def scopesForName[T <: Graph.Occurrence: ClassTag](
-        name: String
+        symbol: String
       ): List[Scope] = {
         val occursInThisScope = occurrences.collect {
-          case nm: T if nm.name == name => nm
+          case nm: T if nm.symbol == symbol => nm
         }.nonEmpty
 
         val occurrencesInChildScopes =
-          childScopes.flatMap(_.scopesForName[T](name))
+          childScopes.flatMap(_.scopesForName[T](symbol))
 
         if (occursInThisScope) {
           this +: occurrencesInChildScopes
@@ -374,14 +391,14 @@ case object AliasAnalysis extends IRPass {
         occurrences.find(o => o.id == id)
       }
 
-      /** Finds an occurrence for the provided name in the current scope, if it
-        * exists.
+      /** Finds an occurrence for the provided symbol in the current scope, if
+        * it exists.
         *
-        * @param name the name of the occurrence
+        * @param symbol the symbol of the occurrence
         * @return the occurrence for `name`, if it exists
         */
-      def occurrence(name: String): Option[Occurrence] = {
-        occurrences.find(o => o.name == name)
+      def occurrence(symbol: String): Option[Occurrence] = {
+        occurrences.find(o => o.symbol == symbol)
       }
     }
 
@@ -396,30 +413,30 @@ case object AliasAnalysis extends IRPass {
       */
     sealed case class Link(source: Id, scopeCount: Int, target: Id)
 
-    /** An occurrence of a given name in the aliasing graph. */
+    /** An occurrence of a given symbol in the aliasing graph. */
     sealed trait Occurrence {
       val id: Id
-      val name: String
+      val symbol: String
     }
     object Occurrence {
 
-      /** The definition of a name in the aliasing graph.
+      /** The definition of a symbol in the aliasing graph.
         *
         * @param id the identifier of the name in the graph
-        * @param name the text of the name
+        * @param symbol the text of the name
         */
-      sealed case class Def(id: Id, name: String) extends Occurrence
+      sealed case class Def(id: Id, symbol: String) extends Occurrence
 
-      /** A usage of a name in the aliasing graph
+      /** A usage of a symbol in the aliasing graph
         *
         * Name usages _need not_ correspond to name definitions, as dynamic
         * symbol resolution means that a name used at runtime _may not_ be
         * statically visible in the scope.
         *
         * @param id the identifier of the name in the graph
-        * @param name the text of the name
+        * @param symbol the text of the name
         */
-      sealed case class Use(id: Id, name: String) extends Occurrence
+      sealed case class Use(id: Id, symbol: String) extends Occurrence
     }
   }
 }
