@@ -347,9 +347,18 @@ lazy val project_manager = (project in file("common/project-manager"))
   )
   .settings(
     libraryDependencies ++= akka,
-    libraryDependencies ++= circe
+    libraryDependencies ++= circe,
+    libraryDependencies ++= Seq(
+      // config
+      "com.typesafe"          % "config"      % "1.4.0",
+      "com.github.pureconfig" %% "pureconfig" % "0.12.2",
+      // logging
+      "ch.qos.logback"             % "logback-classic" % "1.2.3",
+      "com.typesafe.scala-logging" %% "scala-logging"  % "3.9.2"
+    )
   )
   .dependsOn(pkg)
+  .dependsOn(`json-rpc-server`)
 
 //////////////////////
 //// Sub Projects ////
@@ -611,3 +620,10 @@ lazy val runner = project
   .dependsOn(pkg)
   .dependsOn(language_server)
   .dependsOn(polyglot_api)
+
+lazy val `json-rpc-server` = project
+  .in(file("common/json-rpc-server"))
+  .settings(
+    libraryDependencies ++= akka,
+    libraryDependencies ++= circe
+  )
