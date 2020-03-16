@@ -36,7 +36,6 @@ class AliasAnalysisTest extends CompilerTest {
 
   "The alias scope" should {
     val flatScope = new Graph.Scope()
-    val nestedScope = new Graph.Scope()
 
     "Have a number of scopes of 1 without children" in {
       flatScope.numScopes shouldEqual 1

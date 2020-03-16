@@ -68,7 +68,7 @@ case object AliasAnalysis extends IRPass {
     args.map {
       case arg @ IR.DefinitionArgument.Specified(name, value, _, _, _) =>
         val id = graph.nextId()
-        parentScope.occurrences += Graph.Occurrence.Def(id, name.name)
+        parentScope.addOccurrence(Graph.Occurrence.Def(id, name.name))
 
         arg
           .copy(
@@ -93,9 +93,7 @@ case object AliasAnalysis extends IRPass {
       if (reuseScope) {
         parentScope
       } else {
-        val newScope = new Scope(parent = Some(parentScope))
-        parentScope.childScopes ::= newScope
-        newScope
+        parentScope.createChild()
       }
 
     ir match {
@@ -120,8 +118,9 @@ case object AliasAnalysis extends IRPass {
         )
 
       case assignment @ IR.Expression.Binding(name, expression, _, _) =>
-        parentScope.occurrences += Graph.Occurrence
-          .Def(graph.nextId(), name.name)
+        parentScope.addOccurrence(
+          Graph.Occurrence.Def(graph.nextId(), name.name)
+        )
         assignment.copy(
           expression = analyseExpression(expression, graph, parentScope)
         )
@@ -129,8 +128,8 @@ case object AliasAnalysis extends IRPass {
       case ir @ IR.Name.Literal(n, _, _) =>
         val id   = graph.nextId()
         val node = Graph.Occurrence.Use(id, n)
-        parentScope.occurrences += node
-        resolveUsages(node, parentScope).foreach(graph.links += _)
+        parentScope.addOccurrence(node)
+        parentScope.resolveUsages(node).foreach(graph.links += _)
         ir.addMetadata(Info.Child(graph, id))
 
       // TODO [AA] This cannot
@@ -139,33 +138,6 @@ case object AliasAnalysis extends IRPass {
           (ir: IR.Expression) =>
             analyseExpression(ir, graph, parentScope, reuseScope = false)
         )
-    }
-  }
-
-  /** Resolves usages of symbols into links where possible, creating an edge
-    * from the usage site to the definition site.
-    *
-    * @param occurrence the symbol usage
-    * @param scope the scope in which the usage is occurring
-    * @param parentCounter the number of scopes that the link has traversed
-    * @return the link from `occurrence` to the definition of that symbol, if it
-    *         exists
-    */
-  def resolveUsages(
-    occurrence: Graph.Occurrence.Use,
-    scope: Scope,
-    parentCounter: Int = 0
-  ): Option[Graph.Link] = {
-    val definition = scope.occurrences.find {
-      case Graph.Occurrence.Def(_, n) => n == occurrence.symbol
-      case _                          => false
-    }
-
-    definition match {
-      case None =>
-        scope.parent.flatMap(resolveUsages(occurrence, _, parentCounter + 1))
-      case Some(target) =>
-        Some(Graph.Link(occurrence.id, parentCounter, target.id))
     }
   }
 
@@ -290,13 +262,73 @@ case object AliasAnalysis extends IRPass {
       *
       * @param childScopes all scopes that are _direct_ children of `this`
       * @param occurrences all symbol occurrences in `this` scope
-      * @param parent the parent scope, if present
       */
     sealed class Scope(
-      var childScopes: List[Scope]     = List(),
-      var occurrences: Set[Occurrence] = Set(),
-      val parent: Option[Scope]        = None
+      private var childScopes: List[Scope]     = List(),
+      private var occurrences: Set[Occurrence] = Set()
     ) {
+      private var parent: Option[Scope] = None
+
+      /** Creates and returns a scope that is a child of this one.
+        *
+        * @return a scope that is a child of `this`
+        */
+      def createChild(): Scope = {
+        val scope = new Scope()
+        scope.parent = Some(this)
+        childScopes ::= scope
+
+        scope
+      }
+
+      def addOccurrence(occurrence: Occurrence): Unit = {
+        occurrences += occurrence
+      }
+
+      /** Finds an occurrence for the provided ID in the current scope, if it
+        * exists.
+        *
+        * @param id the occurrence identifier
+        * @return the occurrence for `id`, if it exists
+        */
+      def occurrence(id: Graph.Id): Option[Occurrence] = {
+        occurrences.find(o => o.id == id)
+      }
+
+      /** Finds an occurrence for the provided symbol in the current scope, if
+        * it exists.
+        *
+        * @param symbol the symbol of the occurrence
+        * @return the occurrence for `name`, if it exists
+        */
+      def occurrence(symbol: String): Option[Occurrence] = {
+        occurrences.find(o => o.symbol == symbol)
+      }
+
+      /** Resolves usages of symbols into links where possible, creating an edge
+        * from the usage site to the definition site.
+        *
+        * @param occurrence the symbol usage
+        * @param parentCounter the number of scopes that the link has traversed
+        * @return the link from `occurrence` to the definition of that symbol, if it
+        *         exists
+        */
+      def resolveUsages(
+        occurrence: Graph.Occurrence.Use,
+        parentCounter: Int = 0
+      ): Option[Graph.Link] = {
+        val definition = occurrences.find {
+          case Graph.Occurrence.Def(_, n) => n == occurrence.symbol
+          case _                          => false
+        }
+
+        definition match {
+          case None =>
+            parent.flatMap(_.resolveUsages(occurrence, parentCounter + 1))
+          case Some(target) =>
+            Some(Graph.Link(occurrence.id, parentCounter, target.id))
+        }
+      }
 
       /** Creates a string representation of the scope.
         *
@@ -379,26 +411,6 @@ case object AliasAnalysis extends IRPass {
         } else {
           occurrencesInChildScopes
         }
-      }
-
-      /** Finds an occurrence for the provided ID in the current scope, if it
-        * exists.
-        *
-        * @param id the occurrence identifier
-        * @return the occurrence for `id`, if it exists
-        */
-      def occurrence(id: Graph.Id): Option[Occurrence] = {
-        occurrences.find(o => o.id == id)
-      }
-
-      /** Finds an occurrence for the provided symbol in the current scope, if
-        * it exists.
-        *
-        * @param symbol the symbol of the occurrence
-        * @return the occurrence for `name`, if it exists
-        */
-      def occurrence(symbol: String): Option[Occurrence] = {
-        occurrences.find(o => o.symbol == symbol)
       }
     }
 
