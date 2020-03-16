@@ -153,7 +153,7 @@ case object AliasAnalysis extends IRPass {
         val id   = graph.nextId()
         val node = Graph.Occurrence.Use(id, n)
         currentScope.addOccurrence(node)
-        currentScope.resolveUsages(node).foreach(graph.links += _)
+        graph.resolveUsage(node, currentScope).foreach(graph.links += _)
         ir.addMetadata(Info.Child(graph, id))
 
       // TODO [AA] This cannot
@@ -191,7 +191,7 @@ case object AliasAnalysis extends IRPass {
   /** A graph containing aliasing information for a given root scope in Enso. */
   sealed class Graph {
     var links: Set[Graph.Link] = Set()
-    var rootScope: Graph.Scope = new Graph.Scope
+    var rootScope: Graph.Scope = new Graph.Scope()
 
     private var nextIdCounter = 0
 
@@ -203,6 +203,24 @@ case object AliasAnalysis extends IRPass {
       val nextId = nextIdCounter
       nextIdCounter += 1
       nextId
+    }
+
+    /** Resolves any links for the given usage of a symbol.
+      *
+      * @param occurrence the symbol usage
+      * @param scope the scope in which the symbol is used
+      * @return the link, if it exists
+      */
+    def resolveUsage(
+      occurrence: Graph.Occurrence.Use,
+      scope: Scope
+    ): Option[Graph.Link] = {
+      scope
+        .resolveUsage(occurrence)
+        .flatMap(link => {
+          links += link
+          Some(link)
+        })
     }
 
     /** Returns a string representation of the graph.
@@ -239,7 +257,7 @@ case object AliasAnalysis extends IRPass {
     def scopesForName[T <: Graph.Occurrence: ClassTag](
       symbol: String
     ): List[Graph.Scope] = {
-      rootScope.scopesForName[T](symbol)
+      rootScope.scopesForSymbol[T](symbol)
     }
 
     /** Counts the number of scopes in this scope.
@@ -305,9 +323,9 @@ case object AliasAnalysis extends IRPass {
       }
 
       /** Adds the specified symbol occurrence to this scope.
-       *
-       * @param occurrence the occurrence to add
-       */
+        *
+        * @param occurrence the occurrence to add
+        */
       def addOccurrence(occurrence: Occurrence): Unit = {
         occurrences += occurrence
       }
@@ -340,7 +358,7 @@ case object AliasAnalysis extends IRPass {
         * @return the link from `occurrence` to the definition of that symbol, if it
         *         exists
         */
-      def resolveUsages(
+      def resolveUsage(
         occurrence: Graph.Occurrence.Use,
         parentCounter: Int = 0
       ): Option[Graph.Link] = {
@@ -351,7 +369,7 @@ case object AliasAnalysis extends IRPass {
 
         definition match {
           case None =>
-            parent.flatMap(_.resolveUsages(occurrence, parentCounter + 1))
+            parent.flatMap(_.resolveUsage(occurrence, parentCounter + 1))
           case Some(target) =>
             Some(Graph.Link(occurrence.id, parentCounter, target.id))
         }
@@ -419,11 +437,14 @@ case object AliasAnalysis extends IRPass {
 
       /** Finds the scopes in which a symbol occurs with a given role.
         *
+        * Users of this function _must_ explicitly specify `T`, otherwise the
+        * results will be unpredictable.
+        *
         * @param symbol the symbol
         * @tparam T the role in which `name` occurs
         * @return all the scopes where `name` occurs with role `T`
         */
-      def scopesForName[T <: Graph.Occurrence: ClassTag](
+      def scopesForSymbol[T <: Occurrence: ClassTag](
         symbol: String
       ): List[Scope] = {
         val occursInThisScope = occurrences.collect {
@@ -431,7 +452,7 @@ case object AliasAnalysis extends IRPass {
         }.nonEmpty
 
         val occurrencesInChildScopes =
-          childScopes.flatMap(_.scopesForName[T](symbol))
+          childScopes.flatMap(_.scopesForSymbol[T](symbol))
 
         if (occursInThisScope) {
           this +: occurrencesInChildScopes
