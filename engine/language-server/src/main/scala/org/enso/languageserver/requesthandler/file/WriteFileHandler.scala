@@ -3,14 +3,19 @@ package org.enso.languageserver.requesthandler.file
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileManagerApi.WriteFile
-import org.enso.languageserver.filemanager.{FileManagerProtocol, FileSystemFailureMapper}
+import org.enso.languageserver.filemanager.{
+  FileManagerProtocol,
+  FileSystemFailureMapper
+}
 import org.enso.languageserver.jsonrpc.Errors.ServiceError
 import org.enso.languageserver.jsonrpc._
 import org.enso.languageserver.requesthandler.RequestTimeout
 
 import scala.concurrent.duration.FiniteDuration
 
-class WriteFileHandler(fsActor: ActorRef, timeout: FiniteDuration) extends Actor with ActorLogging {
+class WriteFileHandler(fsActor: ActorRef, timeout: FiniteDuration)
+    extends Actor
+    with ActorLogging {
 
   import context.dispatcher
 
@@ -30,7 +35,10 @@ class WriteFileHandler(fsActor: ActorRef, timeout: FiniteDuration) extends Actor
       context.stop(self)
 
     case FileManagerProtocol.WriteFileResult(Left(failure)) =>
-      replyTo ! ResponseError(Some(id), FileSystemFailureMapper.mapFailure(failure))
+      replyTo ! ResponseError(
+        Some(id),
+        FileSystemFailureMapper.mapFailure(failure)
+      )
 
     case FileManagerProtocol.WriteFileResult(Right(())) =>
       replyTo ! ResponseResult(WriteFile, id, Unused)
@@ -45,7 +53,7 @@ object WriteFileHandler {
 
   def props(
     fsActor: ActorRef,
-    requestTimeout: FiniteDuration,
+    requestTimeout: FiniteDuration
   ): Props = Props(new WriteFileHandler(fsActor, requestTimeout))
 
 }

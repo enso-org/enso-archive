@@ -29,9 +29,12 @@ class FileSystemHandler(
           _        <- fs.write(path.toFile(rootPath), content)
         } yield ()
 
-      runIO(write, timeout).foreach { result =>
-        sender ! FileManagerProtocol.WriteFileResult(result)
-      }
+      runAsync(write)({
+        case Some(result) =>
+          sender ! FileManagerProtocol.WriteFileResult(result)
+        case None =>
+          sender ! RequestTimeout
+      })
   }
 
   private def fromCause(cause: Cause[FileSystemFailure]): FileSystemFailure =
@@ -44,13 +47,16 @@ class FileSystemHandler(
         GenericFileSystemFailure(cause.defects.mkString(","))
     }
 
-  private def runIO[A](
-    io: FileSystem.BlockingIO[A],
-    timeout: Duration
-  ): Option[Either[FileSystemFailure, A]] =
+  private def runAsync[A](
+    io: FileSystem.BlockingIO[A]
+  )(onComplete: Option[Either[FileSystemFailure, A]] => Unit): Unit =
     runtime
-      .unsafeRunSync(io.timeout(zio.duration.Duration.fromScala(timeout)))
-      .fold(p => Some(Left(fromCause(p))), _.map(Right(_)))
+      .unsafeRunAsync(io.timeout(zio.duration.Duration.fromScala(timeout)))({
+        exit =>
+          val resultOpt =
+            exit.fold(p => Some(Left(fromCause(p))), _.map(Right(_)))
+          onComplete(resultOpt)
+      })
 }
 
 object FileSystemHandler {
@@ -59,7 +65,7 @@ object FileSystemHandler {
     config: Config,
     fs: FileSystem,
     runtime: Runtime[zio.ZEnv] = zio.Runtime.default,
-    timeout: FiniteDuration = 3.seconds
+    timeout: FiniteDuration    = 3.seconds
   ): Props = Props(new FileSystemHandler(config, fs, runtime, timeout))
 
 }

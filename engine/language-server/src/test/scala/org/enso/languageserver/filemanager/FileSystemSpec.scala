@@ -20,7 +20,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val result =
       objectUnderTest.write(path.toFile, content).unsafeRunSync()
     //then
-    result shouldBe Right(())
+    result shouldBe ()
     readTxtFile(path) shouldBe content
   }
 
