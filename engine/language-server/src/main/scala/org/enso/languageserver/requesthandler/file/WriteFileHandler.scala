@@ -1,7 +1,6 @@
 package org.enso.languageserver.requesthandler.file
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.data.Client
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
 import org.enso.languageserver.filemanager.FileManagerApi.WriteFile
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
@@ -13,7 +12,7 @@ import org.enso.languageserver.requesthandler.RequestTimeout
 
 import scala.concurrent.duration.FiniteDuration
 
-class WriteFileHandler(fsManager: ActorRef, timeout: FiniteDuration)
+class WriteFileHandler(timeout: FiniteDuration, fsManager: ActorRef)
     extends Actor
     with ActorLogging {
 
@@ -25,12 +24,18 @@ class WriteFileHandler(fsManager: ActorRef, timeout: FiniteDuration)
     case Request(WriteFile, id, params: WriteFile.Params) =>
       fsManager ! FileManagerProtocol.WriteFile(params.path, params.contents)
       context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+
       context.become(responseStage(id, sender()))
   }
 
   private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+    case Status.Failure(ex) =>
+      log.error(s"Failure during write operation:", ex)
+      replyTo ! ResponseError(Some(id), ServiceError)
+      context.stop(self)
+
     case RequestTimeout =>
-      log.error(s"Writing file for request#$id timed out")
+      log.error(s"Request#$id timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -43,17 +48,11 @@ class WriteFileHandler(fsManager: ActorRef, timeout: FiniteDuration)
     case FileManagerProtocol.WriteFileResult(Right(())) =>
       replyTo ! ResponseResult(WriteFile, id, Unused)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
-
 }
 
 object WriteFileHandler {
 
-  def props(
-    fsManager: ActorRef,
-    requestTimeout: FiniteDuration
-  ): Props = Props(new WriteFileHandler(fsManager, requestTimeout))
+  def props(timeout: FiniteDuration, fsManager: ActorRef): Props =
+    Props(new WriteFileHandler(timeout, fsManager))
 
 }

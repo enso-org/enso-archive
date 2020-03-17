@@ -111,7 +111,7 @@ class ClientController(
         .props(bufferRegistry, requestTimeout, client),
       SaveFile -> SaveFileHandler.props(bufferRegistry, requestTimeout, client),
       WriteFile -> requesthandler.file.WriteFileHandler
-        .props(fsManager, requestTimeout)
+        .props(requestTimeout, fsManager)
     )
 
   override def unhandled(message: Any): Unit =

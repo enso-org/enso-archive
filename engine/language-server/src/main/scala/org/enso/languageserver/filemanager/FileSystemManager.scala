@@ -1,16 +1,16 @@
 package org.enso.languageserver.filemanager
 
+import akka.pattern.pipe
 import akka.actor.{Actor, ActorLogging, Props}
+import org.enso.languageserver.ZioExec
 import org.enso.languageserver.data.Config
-import org.enso.languageserver.requesthandler.RequestTimeout
 import zio._
 
-class FileSystemManager(
-  config: Config,
-  fs: FileSystem,
-  runtime: Runtime[zio.ZEnv]
-) extends Actor
+class FileSystemManager(config: Config, fs: FileSystem)
+    extends Actor
     with ActorLogging {
+
+  import context.dispatcher
 
   override def receive: Receive = {
     case FileManagerProtocol.WriteFile(path, content) =>
@@ -20,43 +20,17 @@ class FileSystemManager(
           _        <- fs.write(path.toFile(rootPath), content)
         } yield ()
 
-      runAsync(write)({
-        case Some(result) =>
-          sender ! FileManagerProtocol.WriteFileResult(result)
-        case None =>
-          sender ! RequestTimeout
-      })
+      ZioExec()
+        .execTimed(config.timeouts.io, write)
+        .pipeTo(sender())
   }
-
-  private def runAsync[A](
-    io: FileSystem.BlockingIO[A]
-  )(onComplete: Option[Either[FileSystemFailure, A]] => Unit): Unit = {
-    val duration = zio.duration.Duration.fromScala(config.timeouts.io)
-    runtime.unsafeRunAsync(io.timeout(duration))({ exit =>
-      val resultOpt =
-        exit.fold(p => Some(Left(fromCause(p))), _.map(Right(_)))
-      onComplete(resultOpt)
-    })
-  }
-
-  private def fromCause(cause: Cause[FileSystemFailure]): FileSystemFailure =
-    cause.failureOption match {
-      case Some(failure) => failure
-      case None =>
-        cause.defects.foreach { t =>
-          log.error("Failure during FileSystem operation:", t)
-        }
-        GenericFileSystemFailure(cause.defects.mkString(","))
-    }
-
 }
 
 object FileSystemManager {
 
   def props(
     config: Config,
-    fs: FileSystem,
-    runtime: Runtime[zio.ZEnv] = zio.Runtime.default
-  ): Props = Props(new FileSystemManager(config, fs, runtime))
+    fs: FileSystem
+  ): Props = Props(new FileSystemManager(config, fs))
 
 }
