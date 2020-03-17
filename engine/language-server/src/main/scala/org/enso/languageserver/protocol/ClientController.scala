@@ -37,7 +37,10 @@ import scala.util.{Failure, Success}
   * server.
   *
   * @param clientId the internal client id.
-  * @param server the language server actor.
+  * @param server the language server actor ref.
+  * @param bufferRegistry a router that dispatches text editing requests
+  * @param capabilityRouter a router that dispatches capability requests
+  * @param requestTimeout a request timeout
   */
 class ClientController(
   val clientId: Client.Id,
@@ -305,8 +308,18 @@ class ClientController(
 
 object ClientController {
 
+  /**
+    * Creates a configuration object used to create a [[ClientController]].
+    *
+    * @param clientId the internal client id.
+    * @param server the language server actor ref.
+    * @param bufferRegistry a router that dispatches text editing requests
+    * @param capabilityRouter a router that dispatches capability requests
+    * @param requestTimeout a request timeout
+    * @return a configuration object
+    */
   def props(
-    clienId: UUID,
+    clientId: UUID,
     server: ActorRef,
     bufferRegistry: ActorRef,
     capabilityRouter: ActorRef,
@@ -314,7 +327,7 @@ object ClientController {
   ): Props =
     Props(
       new ClientController(
-        clienId,
+        clientId,
         server,
         bufferRegistry,
         capabilityRouter,
