@@ -1,9 +1,7 @@
 package org.enso.compiler.test.pass.analyse
 
-import com.sun.corba.se.impl.orbutil.ObjectStreamClassUtil_1_3
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
@@ -64,59 +62,59 @@ class AliasAnalysisTest extends CompilerTest {
 
     // Add occurrences to the scopes
     complexScope.addOccurrence(aDef)
-    child1.addOccurrence(cUse)
+    child2.addOccurrence(cUse)
     childOfChild.addOccurrence(bDef)
     childOfChild.addOccurrence(bUse)
     childOfChildOfChild.addOccurrence(aUse)
 
-    "Have a number of scopes of 1 without children" in {
+    "have a number of scopes of 1 without children" in {
       flatScope.numScopes shouldEqual 1
     }
 
-    "Have a nesting level of 1 without children" in {
+    "have a nesting level of 1 without children" in {
       flatScope.nesting shouldEqual 1
     }
 
-    "Have the correct number of scopes with children" in {
+    "have the correct number of scopes with children" in {
       complexScope.numScopes shouldEqual 5
     }
 
-    "Have the correct nesting depth with children" in {
+    "have the correct nesting depth with children" in {
       complexScope.nesting shouldEqual 4
     }
 
-    "Allow correctly getting the n-th parent" in {
+    "allow correctly getting the n-th parent" in {
       childOfChildOfChild.nThParent(2) shouldEqual Some(child1)
     }
 
-    "Return `None` for nonexistent parents" in {
+    "return `None` for nonexistent parents" in {
       childOfChildOfChild.nThParent(10) shouldEqual None
     }
 
-    "Find the occurrence for an ID in the current scope if it exists" in {
-      complexScope.occurrence(aDefId) shouldEqual Some(aDef)
+    "find the occurrence for an ID in the current scope if it exists" in {
+      complexScope.occursInThisScope(aDefId) shouldEqual Some(aDef)
     }
 
-    "Find the occurrence for an name in the current scope if it exists" in {
-      complexScope.occurrence(aDef.symbol) shouldEqual Some(aDef)
+    "find the occurrence for an name in the current scope if it exists" in {
+      complexScope.occursInThisScope(aDef.symbol) shouldEqual Some(aDef)
     }
 
-    "Find no occurrences if they do not exist" in {
-      complexScope.occurrence(cUseId) shouldEqual None
+    "find no occurrences if they do not exist" in {
+      complexScope.occursInThisScope(cUseId) shouldEqual None
     }
 
-    "Correctly resolve usage links where they exist" in {
+    "correctly resolve usage links where they exist" in {
       childOfChild.resolveUsage(bUse) shouldEqual Some(Link(bUseId, 0, bDefId))
       childOfChildOfChild.resolveUsage(aUse) shouldEqual Some(
         Link(aUseId, 3, aDefId)
       )
     }
 
-    "Correctly find the scope where a given ID occurs" in {
+    "correctly find the scope where a given ID occurs" in {
       complexScope.scopeForId(aUseId) shouldEqual Some(childOfChildOfChild)
     }
 
-    "Correctly find the scopes in which a given symbol occurs" in {
+    "correctly find the scopes in which a given symbol occurs" in {
       complexScope.scopesForSymbol[Occurrence.Def]("a").length shouldEqual 1
       complexScope.scopesForSymbol[Occurrence.Use]("a").length shouldEqual 1
 
@@ -126,6 +124,123 @@ class AliasAnalysisTest extends CompilerTest {
         complexScope,
         childOfChildOfChild
       )
+    }
+  }
+
+  "The Aliasing graph" should {
+    val graph = new Graph()
+
+    val rootScope  = graph.rootScope
+    val childScope = rootScope.addChild()
+
+    val aDefId = graph.nextId()
+    val aDef   = Occurrence.Def(aDefId, "a")
+
+    val bDefId = graph.nextId()
+    val bDef   = Occurrence.Def(bDefId, "b")
+
+    val aUse1Id = graph.nextId()
+    val aUse1   = Occurrence.Use(aUse1Id, "a")
+
+    val aUse2Id = graph.nextId()
+    val aUse2   = Occurrence.Use(aUse2Id, "a")
+
+    val cUseId = graph.nextId()
+    val cUse   = Occurrence.Use(cUseId, "c")
+
+    rootScope.addOccurrence(aDef)
+    rootScope.addOccurrence(aUse1)
+    rootScope.addOccurrence(bDef)
+
+    childScope.addOccurrence(aUse2)
+    childScope.addOccurrence(cUse)
+
+    val use1Link = graph.resolveUsage(aUse1)
+    val use2Link = graph.resolveUsage(aUse2)
+    val cUseLink = graph.resolveUsage(cUse)
+
+    "generate monotonically increasing identifiers" in {
+      val ids       = List.fill(100)(graph.nextId())
+      var currentId = ids.head - 1
+
+      ids.forall(id => {
+        currentId += 1
+        currentId == id
+      }) shouldEqual true
+    }
+
+    "correctly resolve usages where possible" in {
+      use1Link shouldBe defined
+      use2Link shouldBe defined
+      cUseLink shouldBe empty
+
+      use1Link.foreach { link =>
+        {
+          link.source shouldEqual aUse1Id
+          link.target shouldEqual aDefId
+          link.scopeCount shouldEqual 0
+        }
+      }
+
+      use2Link.foreach { link =>
+        {
+          link.source shouldEqual aUse2Id
+          link.target shouldEqual aDefId
+          link.scopeCount shouldEqual 1
+        }
+      }
+    }
+
+    "gather all links for a given ID correctly" in {
+      val linksForA = graph.linksFor(aDefId)
+      val linksForC = graph.linksFor(cUseId)
+
+      linksForA.size shouldEqual 2
+      linksForC shouldBe empty
+
+      linksForA should contain(use1Link.get)
+      linksForA should contain(use2Link.get)
+    }
+
+    "find the scope where a given ID is defined" in {
+      val scopeForA       = graph.scopeFor(aDefId)
+      val scopeForUndefId = graph.scopeFor(100)
+
+      scopeForA shouldBe defined
+      scopeForUndefId shouldBe empty
+
+      scopeForA shouldEqual Some(rootScope)
+    }
+
+    "find all scopes where a given symbol occurs" in {
+      val aDefs = graph.scopesFor[Occurrence.Def]("a")
+      val aUses = graph.scopesFor[Occurrence.Use]("a")
+      val aOccs = graph.scopesFor[Occurrence]("a")
+      val dOccs = graph.scopesFor[Occurrence]("d")
+
+      aDefs.length shouldEqual 1
+      aUses.length shouldEqual 2
+      aOccs.length shouldEqual 2
+      dOccs.length shouldEqual 0
+
+      aDefs shouldEqual List(rootScope)
+      aUses shouldEqual List(rootScope, childScope)
+      aOccs shouldEqual List(rootScope, childScope)
+    }
+
+    "correctly determine the number of scopes in the graph" in {
+      graph.numScopes shouldEqual 2
+    }
+
+    "correctly determine the maximum level of nesting in the graph" in {
+      graph.nesting shouldEqual 2
+    }
+
+    "correctly determines whether an occurrence shadows other bindings" in {
+      graph.shadows(aDefId) shouldEqual true
+      graph.shadows("a") shouldEqual true
+      graph.shadows(aUse1Id) shouldEqual false
+      graph.shadows("c") shouldEqual false
     }
   }
 

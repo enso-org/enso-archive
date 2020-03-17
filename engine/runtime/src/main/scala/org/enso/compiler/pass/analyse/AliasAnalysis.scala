@@ -8,6 +8,7 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 import scala.reflect.ClassTag
 
+// TODO [AA] How do you generate fresh names in the context of dynamic symbols?
 /** This pass performs scope identification and analysis, as well as symbol
   * resolution where it is possible to do so statically.
   */
@@ -153,10 +154,9 @@ case object AliasAnalysis extends IRPass {
         val id   = graph.nextId()
         val node = Graph.Occurrence.Use(id, n)
         currentScope.addOccurrence(node)
-        graph.resolveUsage(node, currentScope).foreach(graph.links += _)
+        graph.resolveUsage(node).foreach(graph.links += _)
         ir.addMetadata(Info.Child(graph, id))
 
-      // TODO [AA] This cannot
       case x =>
         x.mapExpressions(
           (ir: IR.Expression) => analyseExpression(ir, graph, currentScope)
@@ -208,19 +208,20 @@ case object AliasAnalysis extends IRPass {
     /** Resolves any links for the given usage of a symbol.
       *
       * @param occurrence the symbol usage
-      * @param scope the scope in which the symbol is used
       * @return the link, if it exists
       */
     def resolveUsage(
-      occurrence: Graph.Occurrence.Use,
-      scope: Scope
+      occurrence: Graph.Occurrence.Use
     ): Option[Graph.Link] = {
-      scope
-        .resolveUsage(occurrence)
-        .flatMap(link => {
-          links += link
-          Some(link)
-        })
+      val scope = scopeFor(occurrence.id)
+
+      scope.flatMap {
+        _.resolveUsage(occurrence)
+          .flatMap(link => {
+            links += link
+            Some(link)
+          })
+      }
     }
 
     /** Returns a string representation of the graph.
@@ -235,7 +236,7 @@ case object AliasAnalysis extends IRPass {
       * @param id the identifier for the symbol
       * @return a list of links in which `id` occurs
       */
-    def linksForId(id: Graph.Id): Set[Graph.Link] = {
+    def linksFor(id: Graph.Id): Set[Graph.Link] = {
       links.filter(l => l.source == id || l.target == id)
     }
 
@@ -244,7 +245,7 @@ case object AliasAnalysis extends IRPass {
       * @param id the id to find the scope for
       * @return the scope where `id` occurs
       */
-    def scopeForId(id: Graph.Id): Option[Graph.Scope] = {
+    def scopeFor(id: Graph.Id): Option[Graph.Scope] = {
       rootScope.scopeForId(id)
     }
 
@@ -254,7 +255,7 @@ case object AliasAnalysis extends IRPass {
       * @tparam T the role in which `symbol` occurs
       * @return all the scopes where `symbol` occurs with role `T`
       */
-    def scopesForName[T <: Graph.Occurrence: ClassTag](
+    def scopesFor[T <: Graph.Occurrence: ClassTag](
       symbol: String
     ): List[Graph.Scope] = {
       rootScope.scopesForSymbol[T](symbol)
@@ -283,15 +284,23 @@ case object AliasAnalysis extends IRPass {
       * @return `true` if `id` shadows other bindings, otherwise `false`
       */
     def shadows(id: Graph.Id): Boolean = {
-      scopeForId(id)
+      scopeFor(id)
         .flatMap(
-          scope =>
-            scope.occurrence(id).flatMap {
-              case d: Occurrence.Def => Some(d)
-              case _                 => None
-            }
+          _.occursInThisScope(id).flatMap {
+            case d: Occurrence.Def => Some(d)
+            case _                 => None
+          }
         )
         .isDefined
+    }
+
+    /** Determines if the provided symbol shadows any other bindings.
+     *
+     * @param symbol the symbol
+     * @return `true` if `symbol` shadows other bindings, otherwise `false`
+     */
+    def shadows(symbol: String): Boolean = {
+      scopesFor[Occurrence.Def](symbol).nonEmpty
     }
   }
   object Graph {
@@ -336,7 +345,7 @@ case object AliasAnalysis extends IRPass {
         * @param id the occurrence identifier
         * @return the occurrence for `id`, if it exists
         */
-      def occurrence(id: Graph.Id): Option[Occurrence] = {
+      def occursInThisScope(id: Graph.Id): Option[Occurrence] = {
         occurrences.find(o => o.id == id)
       }
 
@@ -346,7 +355,7 @@ case object AliasAnalysis extends IRPass {
         * @param symbol the symbol of the occurrence
         * @return the occurrence for `name`, if it exists
         */
-      def occurrence(symbol: String): Option[Occurrence] = {
+      def occursInThisScope(symbol: String): Option[Occurrence] = {
         occurrences.find(o => o.symbol == symbol)
       }
 
