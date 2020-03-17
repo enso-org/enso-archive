@@ -14,6 +14,15 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
 
+/**
+  * Exposes a multi-client JSON RPC Server instance over WebSocket connections.
+  *
+  * @param protocol a protocol supported be the server
+  * @param clientControllerFactory a factory used to create a client controller
+  * @param config a server config
+  * @param system an actor system
+  * @param materializer a materializer
+  */
 class JsonRpcServer(
   protocol: Protocol,
   clientControllerFactory: ClientControllerFactory,

@@ -626,5 +626,10 @@ lazy val `json-rpc-server` = project
   .in(file("common/json-rpc-server"))
   .settings(
     libraryDependencies ++= akka,
-    libraryDependencies ++= circe
+    libraryDependencies ++= circe,
+    libraryDependencies ++= Seq(
+      "io.circe"      %% "circe-literal" % circeVersion,
+      akkaTestkit     % Test,
+      "org.scalatest" %% "scalatest" % "3.2.0-M2" % Test
+    )
   )
