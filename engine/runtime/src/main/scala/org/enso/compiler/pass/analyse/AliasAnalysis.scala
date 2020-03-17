@@ -438,7 +438,7 @@ case object AliasAnalysis extends IRPass {
       /** Finds the scopes in which a symbol occurs with a given role.
         *
         * Users of this function _must_ explicitly specify `T`, otherwise the
-        * results will be unpredictable.
+        * results will be an empty list.
         *
         * @param symbol the symbol
         * @tparam T the role in which `name` occurs
