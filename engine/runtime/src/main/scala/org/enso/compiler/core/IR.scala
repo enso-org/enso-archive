@@ -483,7 +483,7 @@ object IR {
         * @param passData the pass metadata associated with this node
         */
       sealed case class Member(
-        label: Name.Literal,
+        label: Name,
         memberType: Expression,
         value: Expression,
         override val location: Option[Location],

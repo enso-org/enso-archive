@@ -2,6 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
@@ -31,8 +32,6 @@ class AliasAnalysisTest extends CompilerTest {
   }
 
   // === The Tests ============================================================
-
-  // TODO [AA] Some property-based testing using ScalaCheck?
 
   "The analysis scope" should {
     val graph = new Graph()
@@ -258,9 +257,6 @@ class AliasAnalysisTest extends CompilerTest {
         |main =
         |    a = 2 + 2
         |    b = a * a
-        |    c = a -> a + b
-        |
-        |    IO.println 2.c
         |""".stripMargin.preprocess
 
     "do the thing" in {
@@ -272,18 +268,37 @@ class AliasAnalysisTest extends CompilerTest {
 //      )
     }
 
-    val ir2 =
-      """
-        |type MyAtom a b=c (c = a + b)
-        |""".stripMargin.preprocess
-
-    "do the other thing" in {
+//    val ir =
+//      """
+//        |main =
+//        |    a = 2 + 2
+//        |    b = a * a
+//        |    c = a -> a + b
+//        |
+//        |    IO.println 2.c
+//        |""".stripMargin.preprocess
+//
+//    "do the thing" in {
+//      println(
+//        AliasAnalysis
+//          .runModule(ir)
+//          .bindings
+//          .map(_.getMetadata[AliasAnalysis.Info].get)
+//      )
+//    }
+//
+//    val ir2 =
+//      """
+//        |type MyAtom a b=c (c = a + b)
+//        |""".stripMargin.preprocess
+//
+//    "do the other thing" in {
 //      println(
 //        AliasAnalysis
 //          .runModule(ir2)
 //          .bindings
 //          .map(_.getMetadata[AliasAnalysis.Info].get)
 //      )
-    }
+//    }
   }
 }
