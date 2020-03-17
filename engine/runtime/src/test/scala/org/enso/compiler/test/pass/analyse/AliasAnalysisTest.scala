@@ -2,7 +2,6 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
@@ -60,26 +59,26 @@ class AliasAnalysisTest extends CompilerTest {
     val cUse   = Occurrence.Use(cUseId, "c")
 
     // Add occurrences to the scopes
-    complexScope.addOccurrence(aDef)
-    child2.addOccurrence(cUse)
-    childOfChild.addOccurrence(bDef)
-    childOfChild.addOccurrence(bUse)
-    childOfChildOfChild.addOccurrence(aUse)
+    complexScope.add(aDef)
+    child2.add(cUse)
+    childOfChild.add(bDef)
+    childOfChild.add(bUse)
+    childOfChildOfChild.add(aUse)
 
     "have a number of scopes of 1 without children" in {
-      flatScope.numScopes shouldEqual 1
+      flatScope.scopeCount shouldEqual 1
     }
 
     "have a nesting level of 1 without children" in {
-      flatScope.nesting shouldEqual 1
+      flatScope.maxNesting shouldEqual 1
     }
 
     "have the correct number of scopes with children" in {
-      complexScope.numScopes shouldEqual 5
+      complexScope.scopeCount shouldEqual 5
     }
 
     "have the correct nesting depth with children" in {
-      complexScope.nesting shouldEqual 4
+      complexScope.maxNesting shouldEqual 4
     }
 
     "allow correctly getting the n-th parent" in {
@@ -91,15 +90,15 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "find the occurrence for an ID in the current scope if it exists" in {
-      complexScope.occursInThisScope(aDefId) shouldEqual Some(aDef)
+      complexScope.getOccurrence(aDefId) shouldEqual Some(aDef)
     }
 
     "find the occurrence for an name in the current scope if it exists" in {
-      complexScope.occursInThisScope(aDef.symbol) shouldEqual Set(aDef)
+      complexScope.getOccurrences(aDef.symbol) shouldEqual Set(aDef)
     }
 
     "find no occurrences if they do not exist" in {
-      complexScope.occursInThisScope(cUseId) shouldEqual None
+      complexScope.getOccurrence(cUseId) shouldEqual None
     }
 
     "correctly resolve usage links where they exist" in {
@@ -110,7 +109,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "correctly find the scope where a given ID occurs" in {
-      complexScope.scopeForId(aUseId) shouldEqual Some(childOfChildOfChild)
+      complexScope.findScope(aUseId) shouldEqual Some(childOfChildOfChild)
     }
 
     "correctly find the scopes in which a given symbol occurs" in {
@@ -127,6 +126,11 @@ class AliasAnalysisTest extends CompilerTest {
 
     "return the correct set of symbols" in {
       complexScope.symbols shouldEqual Set("a", "b", "c")
+    }
+
+    "check correctly for specified occurrences of a symbol" in {
+      complexScope.hasSymbolOccurrenceAs[Occurrence.Def]("a") shouldEqual true
+      complexScope.hasSymbolOccurrenceAs[Occurrence]("b") shouldEqual false
     }
   }
 
@@ -151,12 +155,12 @@ class AliasAnalysisTest extends CompilerTest {
     val cUseId = graph.nextId()
     val cUse   = Occurrence.Use(cUseId, "c")
 
-    rootScope.addOccurrence(aDef)
-    rootScope.addOccurrence(aUse1)
-    rootScope.addOccurrence(bDef)
+    rootScope.add(aDef)
+    rootScope.add(aUse1)
+    rootScope.add(bDef)
 
-    childScope.addOccurrence(aUse2)
-    childScope.addOccurrence(cUse)
+    childScope.add(aUse2)
+    childScope.add(cUse)
 
     val use1Link = graph.resolveUsage(aUse1)
     val use2Link = graph.resolveUsage(aUse2)

@@ -742,6 +742,11 @@ class IRToTruffle(
           defaultedValue,
           executionMode
         )
+      case err: IR.Error.Redefined.Argument =>
+        throw new CompilerError(
+          s"Argument redefinition errors should not be present during " +
+            s"codegen, but found $err."
+        )
     }
   }
 }
