@@ -17,6 +17,9 @@ import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
+/**
+  * Test kit for testing JSON RPC servers.
+  */
 abstract class JsonRpcServerTestKit
     extends TestKit(ActorSystem("TestSystem"))
     with ImplicitSender
