@@ -9,7 +9,6 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
-import cats.effect.IO
 import io.circe.Json
 import io.circe.parser.parse
 import org.enso.languageserver.capability.CapabilityRouter
@@ -20,6 +19,7 @@ import org.enso.languageserver.{
   WebSocketServer
 }
 import org.enso.languageserver.filemanager.FileSystem
+import org.enso.languageserver.requesthandler.FileSystemHandler
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
@@ -56,7 +56,7 @@ abstract class WebSocketServerTest
   override def beforeEach(): Unit = {
     val languageServer =
       system.actorOf(
-        Props(new LanguageServer(config, new FileSystem[IO]))
+        Props(new LanguageServer(config, new FileSystem))
       )
     languageServer ! LanguageProtocol.Initialize
     val bufferRegistry =
@@ -69,11 +69,14 @@ abstract class WebSocketServerTest
 
     lazy val runtimeConnector = system.actorOf(RuntimeConnector.props)
 
+    lazy val fsActor = system.actorOf(FileSystemHandler.props(config, new FileSystem))
+
     server = new WebSocketServer(
       languageServer,
       bufferRegistry,
       capabilityRouter,
-      runtimeConnector
+      runtimeConnector,
+      fsActor
     )
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"

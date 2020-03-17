@@ -3,7 +3,10 @@ package org.enso.languageserver.data
 import java.io.File
 import java.util.UUID
 
-import org.enso.languageserver.filemanager.{ContentRootNotFound, FileSystemFailure}
+import org.enso.languageserver.filemanager.{
+  ContentRootNotFound,
+  FileSystemFailure
+}
 
 /**
   * The config of the running Language Server instance.

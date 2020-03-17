@@ -11,7 +11,7 @@ import org.enso.languageserver.event.{
 import org.enso.languageserver.filemanager.FileManagerProtocol._
 import org.enso.languageserver.filemanager.{
   DirectoryTree,
-  FileSystemApi,
+  FileSystem,
   FileSystemObject
 }
 
@@ -27,7 +27,7 @@ object LanguageProtocol {
   *
   * @param config the configuration used by this Language Server.
   */
-class LanguageServer(config: Config, fs: FileSystemApi[IO])
+class LanguageServer(config: Config, fs: FileSystem)
     extends Actor
     with Stash
     with ActorLogging {
@@ -59,92 +59,92 @@ class LanguageServer(config: Config, fs: FileSystemApi[IO])
       log.info("Client disconnected [{}].", clientId)
       context.become(initialized(config, env.removeClient(clientId)))
 
-    case WriteFile(path, content) =>
-      val result =
-        for {
-          rootPath <- config.findContentRoot(path.rootId)
-          _        <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
-        } yield ()
+    // case WriteFile(path, content) =>
+    //   val result =
+    //     for {
+    //       rootPath <- config.findContentRoot(path.rootId)
+    //       _        <- fs.write(path.toFile(rootPath), content).unsafeRunSync()
+    //     } yield ()
 
-      sender ! WriteFileResult(result)
+    //   sender ! WriteFileResult(result)
 
-    case ReadFile(path) =>
-      val result =
-        for {
-          rootPath <- config.findContentRoot(path.rootId)
-          content  <- fs.read(path.toFile(rootPath)).unsafeRunSync()
-        } yield content
+    // case ReadFile(path) =>
+    //   val result =
+    //     for {
+    //       rootPath <- config.findContentRoot(path.rootId)
+    //       content  <- fs.read(path.toFile(rootPath)).unsafeRunSync()
+    //     } yield content
 
-      sender ! ReadFileResult(result)
+    //   sender ! ReadFileResult(result)
 
-    case CreateFile(FileSystemObject.File(name, path)) =>
-      val result =
-        for {
-          rootPath <- config.findContentRoot(path.rootId)
-          _        <- fs.createFile(path.toFile(rootPath, name)).unsafeRunSync()
-        } yield ()
+    // case CreateFile(FileSystemObject.File(name, path)) =>
+    //   val result =
+    //     for {
+    //       rootPath <- config.findContentRoot(path.rootId)
+    //       _        <- fs.createFile(path.toFile(rootPath, name)).unsafeRunSync()
+    //     } yield ()
 
-      sender ! CreateFileResult(result)
+    //   sender ! CreateFileResult(result)
 
-    case CreateFile(FileSystemObject.Directory(name, path)) =>
-      val result =
-        for {
-          rootPath <- config.findContentRoot(path.rootId)
-          _        <- fs.createDirectory(path.toFile(rootPath, name)).unsafeRunSync()
-        } yield ()
+    // case CreateFile(FileSystemObject.Directory(name, path)) =>
+    //   val result =
+    //     for {
+    //       rootPath <- config.findContentRoot(path.rootId)
+    //       _        <- fs.createDirectory(path.toFile(rootPath, name)).unsafeRunSync()
+    //     } yield ()
 
-      sender ! CreateFileResult(result)
+    //   sender ! CreateFileResult(result)
 
-    case DeleteFile(path) =>
-      val result =
-        for {
-          rootPath <- config.findContentRoot(path.rootId)
-          _        <- fs.delete(path.toFile(rootPath)).unsafeRunSync()
-        } yield ()
+    // case DeleteFile(path) =>
+    //   val result =
+    //     for {
+    //       rootPath <- config.findContentRoot(path.rootId)
+    //       _        <- fs.delete(path.toFile(rootPath)).unsafeRunSync()
+    //     } yield ()
 
-      sender ! DeleteFileResult(result)
+    //   sender ! DeleteFileResult(result)
 
-    case CopyFile(from, to) =>
-      val result =
-        for {
-          rootPathFrom <- config.findContentRoot(from.rootId)
-          rootPathTo   <- config.findContentRoot(to.rootId)
-          _ <- fs
-            .copy(from.toFile(rootPathFrom), to.toFile(rootPathTo))
-            .unsafeRunSync()
-        } yield ()
+    // case CopyFile(from, to) =>
+    //   val result =
+    //     for {
+    //       rootPathFrom <- config.findContentRoot(from.rootId)
+    //       rootPathTo   <- config.findContentRoot(to.rootId)
+    //       _ <- fs
+    //         .copy(from.toFile(rootPathFrom), to.toFile(rootPathTo))
+    //         .unsafeRunSync()
+    //     } yield ()
 
-      sender ! CopyFileResult(result)
+    //   sender ! CopyFileResult(result)
 
-    case MoveFile(from, to) =>
-      val result =
-        for {
-          rootPathFrom <- config.findContentRoot(from.rootId)
-          rootPathTo   <- config.findContentRoot(to.rootId)
-          _ <- fs
-            .move(from.toFile(rootPathFrom), to.toFile(rootPathTo))
-            .unsafeRunSync()
-        } yield ()
+    // case MoveFile(from, to) =>
+    //   val result =
+    //     for {
+    //       rootPathFrom <- config.findContentRoot(from.rootId)
+    //       rootPathTo   <- config.findContentRoot(to.rootId)
+    //       _ <- fs
+    //         .move(from.toFile(rootPathFrom), to.toFile(rootPathTo))
+    //         .unsafeRunSync()
+    //     } yield ()
 
-      sender ! MoveFileResult(result)
+    //   sender ! MoveFileResult(result)
 
-    case ExistsFile(path) =>
-      val result =
-        for {
-          rootPath <- config.findContentRoot(path.rootId)
-          exists   <- fs.exists(path.toFile(rootPath)).unsafeRunSync()
-        } yield exists
+    // case ExistsFile(path) =>
+    //   val result =
+    //     for {
+    //       rootPath <- config.findContentRoot(path.rootId)
+    //       exists   <- fs.exists(path.toFile(rootPath)).unsafeRunSync()
+    //     } yield exists
 
-      sender ! ExistsFileResult(result)
+    //   sender ! ExistsFileResult(result)
 
-    case TreeFile(path, depth) =>
-      val result =
-        for {
-          rootPath  <- config.findContentRoot(path.rootId)
-          directory <- fs.tree(path.toFile(rootPath), depth).unsafeRunSync()
-        } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
+    // case TreeFile(path, depth) =>
+    //   val result =
+    //     for {
+    //       rootPath  <- config.findContentRoot(path.rootId)
+    //       directory <- fs.tree(path.toFile(rootPath), depth).unsafeRunSync()
+    //     } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
 
-      sender ! TreeFileResult(result)
+    //   sender ! TreeFileResult(result)
   }
   /* Note [Usage of unsafe methods]
      ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

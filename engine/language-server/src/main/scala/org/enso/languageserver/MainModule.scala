@@ -7,8 +7,6 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.stream.SystemMaterializer
-import cats.effect.IO
-import org.enso.languageserver
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
@@ -16,9 +14,10 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
+import org.enso.languageserver.requesthandler.FileSystemHandler
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.polyglot.{RuntimeApi, LanguageInfo, RuntimeServerInfo}
+import org.enso.polyglot.{LanguageInfo, RuntimeApi, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 
@@ -33,7 +32,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath))
   )
 
-  lazy val fileSystem: FileSystemApi[IO] = new FileSystem[IO]
+  lazy val fileSystem: FileSystem = new FileSystem
 
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
@@ -57,6 +56,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
+  lazy val fsActor =
+    system.actorOf(FileSystemHandler.props(languageServerConfig, fileSystem))
+
   val context = Context
     .newBuilder(LanguageInfo.ID)
     .allowAllAccess(true)
@@ -79,6 +81,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
       languageServer,
       bufferRegistry,
       capabilityRouter,
-      runtimeConnector
+      runtimeConnector,
+      fsActor
     )
 }
