@@ -12,14 +12,17 @@ import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.Json
 import io.circe.parser.parse
 import org.enso.languageserver.capability.CapabilityRouter
-import org.enso.languageserver.data.{Config, Sha3_224VersionCalculator}
+import org.enso.languageserver.data.{
+  Config,
+  Sha3_224VersionCalculator,
+  Timeouts
+}
 import org.enso.languageserver.{
   LanguageProtocol,
   LanguageServer,
   WebSocketServer
 }
-import org.enso.languageserver.filemanager.FileSystem
-import org.enso.languageserver.requesthandler.FileSystemHandler
+import org.enso.languageserver.filemanager.{FileSystem, FileSystemManager}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
@@ -46,7 +49,10 @@ abstract class WebSocketServerTest
 
   val testContentRoot   = Files.createTempDirectory(null)
   val testContentRootId = UUID.randomUUID()
-  val config            = Config(Map(testContentRootId -> testContentRoot.toFile))
+  val config = Config(
+    Map(testContentRootId -> testContentRoot.toFile),
+    Timeouts(request = 5.seconds, io = 3.seconds)
+  )
 
   testContentRoot.toFile.deleteOnExit()
 
@@ -69,14 +75,15 @@ abstract class WebSocketServerTest
 
     lazy val runtimeConnector = system.actorOf(RuntimeConnector.props)
 
-    lazy val fsActor = system.actorOf(FileSystemHandler.props(config, new FileSystem))
+    lazy val fsManager =
+      system.actorOf(FileSystemManager.props(config, new FileSystem))
 
     server = new WebSocketServer(
       languageServer,
       bufferRegistry,
       capabilityRouter,
       runtimeConnector,
-      fsActor
+      fsManager
     )
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"

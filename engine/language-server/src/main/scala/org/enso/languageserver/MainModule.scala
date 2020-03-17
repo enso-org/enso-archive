@@ -14,8 +14,7 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator,
   Timeouts
 }
-import org.enso.languageserver.filemanager.FileSystem
-import org.enso.languageserver.requesthandler.FileSystemHandler
+import org.enso.languageserver.filemanager.{FileSystem, FileSystemManager}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.{LanguageInfo, RuntimeApi, RuntimeServerInfo}
@@ -60,8 +59,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
-  lazy val fsActor =
-    system.actorOf(FileSystemHandler.props(languageServerConfig, fileSystem))
+  lazy val fsManager =
+    system.actorOf(FileSystemManager.props(languageServerConfig, fileSystem))
 
   val context = Context
     .newBuilder(LanguageInfo.ID)
@@ -86,6 +85,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
       bufferRegistry,
       capabilityRouter,
       runtimeConnector,
-      fsActor
+      fsManager
     )
 }

@@ -86,7 +86,7 @@ class ClientController(
   val server: ActorRef,
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
-  val fsActor: ActorRef,
+  val fsManager: ActorRef,
   requestTimeout: FiniteDuration = 10.seconds
 ) extends Actor
     with Stash
@@ -111,7 +111,7 @@ class ClientController(
         .props(bufferRegistry, requestTimeout, client),
       SaveFile -> SaveFileHandler.props(bufferRegistry, requestTimeout, client),
       WriteFile -> requesthandler.file.WriteFileHandler
-        .props(fsActor, requestTimeout)
+        .props(fsManager, requestTimeout)
     )
 
   override def unhandled(message: Any): Unit =

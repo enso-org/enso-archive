@@ -1,17 +1,11 @@
-package org.enso.languageserver.requesthandler
+package org.enso.languageserver.filemanager
 
 import akka.actor.{Actor, ActorLogging, Props}
+import org.enso.languageserver.data.Config
+import org.enso.languageserver.requesthandler.RequestTimeout
 import zio._
 
-import org.enso.languageserver.data.Config
-import org.enso.languageserver.filemanager.{
-  FileManagerProtocol,
-  FileSystem,
-  FileSystemFailure,
-  GenericFileSystemFailure
-}
-
-class FileSystemHandler(
+class FileSystemManager(
   config: Config,
   fs: FileSystem,
   runtime: Runtime[zio.ZEnv]
@@ -57,12 +51,12 @@ class FileSystemHandler(
 
 }
 
-object FileSystemHandler {
+object FileSystemManager {
 
   def props(
     config: Config,
     fs: FileSystem,
     runtime: Runtime[zio.ZEnv] = zio.Runtime.default
-  ): Props = Props(new FileSystemHandler(config, fs, runtime))
+  ): Props = Props(new FileSystemManager(config, fs, runtime))
 
 }
