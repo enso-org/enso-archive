@@ -6,15 +6,16 @@ import akka.actor.ActorRef
 
 /**
   * Classes implementing this trait are responsible for creating client
-  * controllers upon a new connection.
+  * controllers upon a new connection. An client controller handles
+  * communications between a single client and the JSON RPC server.
   */
 trait ClientControllerFactory {
 
   /**
     * Creates a client controller actor.
     *
-    * @param clientId a client identifier
-    * @return
+    * @param clientId the internal client id.
+    * @return an actor ref to the client controller
     */
   def createClientController(clientId: UUID): ActorRef
 

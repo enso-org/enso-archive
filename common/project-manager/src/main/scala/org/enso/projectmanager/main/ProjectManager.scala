@@ -9,6 +9,9 @@ import scala.io.StdIn
 import scala.concurrent.duration._
 import pureconfig.generic.auto._
 
+/**
+  * Project manager runner containing the main method.
+  */
 object ProjectManager extends App with LazyLogging {
 
   logger.info("Starting Language Server...")
@@ -32,5 +35,7 @@ object ProjectManager extends App with LazyLogging {
     s"Started server at ${config.server.host}:${config.server.port}, press enter to kill server"
   )
   StdIn.readLine()
+
+  binding.terminate(10.seconds)
 
 }

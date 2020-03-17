@@ -13,6 +13,9 @@ import org.enso.languageserver.text.TextApi._
 
 object JsonRpc {
 
+  /**
+    * A description of supported JSON RPC messages.
+    */
   val protocol: Protocol = Protocol.empty
     .registerRequest(AcquireCapability)
     .registerRequest(ReleaseCapability)

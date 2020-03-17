@@ -101,7 +101,7 @@ class JsonRpcServer(
 object JsonRpcServer {
 
   /**
-    * A configuration object for properties of the WebSocketServer.
+    * A configuration object for properties of the JsonRpcServer.
     *
     * @param outgoingBufferSize the number of messages buffered internally
     *                           if the downstream connection is lagging behind.
