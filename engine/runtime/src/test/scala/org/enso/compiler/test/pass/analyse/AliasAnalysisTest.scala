@@ -96,7 +96,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "find the occurrence for an name in the current scope if it exists" in {
-      complexScope.occursInThisScope(aDef.symbol) shouldEqual Some(aDef)
+      complexScope.occursInThisScope(aDef.symbol) shouldEqual Set(aDef)
     }
 
     "find no occurrences if they do not exist" in {
@@ -124,6 +124,10 @@ class AliasAnalysisTest extends CompilerTest {
         complexScope,
         childOfChildOfChild
       )
+    }
+
+    "return the correct set of symbols" in {
+      complexScope.symbols shouldEqual Set("a", "b", "c")
     }
   }
 
@@ -241,6 +245,10 @@ class AliasAnalysisTest extends CompilerTest {
       graph.shadows("a") shouldEqual true
       graph.shadows(aUse1Id) shouldEqual false
       graph.shadows("c") shouldEqual false
+    }
+
+    "correctly determine all symbols that occur in the graph" in {
+      graph.symbols shouldEqual Set("a", "b", "c")
     }
   }
 

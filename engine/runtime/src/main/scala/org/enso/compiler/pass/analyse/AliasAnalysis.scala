@@ -295,12 +295,20 @@ case object AliasAnalysis extends IRPass {
     }
 
     /** Determines if the provided symbol shadows any other bindings.
-     *
-     * @param symbol the symbol
-     * @return `true` if `symbol` shadows other bindings, otherwise `false`
-     */
+      *
+      * @param symbol the symbol
+      * @return `true` if `symbol` shadows other bindings, otherwise `false`
+      */
     def shadows(symbol: String): Boolean = {
       scopesFor[Occurrence.Def](symbol).nonEmpty
+    }
+
+    /** Gets all symbols defined in the graph.
+      *
+      * @return the set of symbols defined in this graph
+      */
+    def symbols: Set[String] = {
+      rootScope.symbols
     }
   }
   object Graph {
@@ -349,14 +357,26 @@ case object AliasAnalysis extends IRPass {
         occurrences.find(o => o.id == id)
       }
 
-      /** Finds an occurrence for the provided symbol in the current scope, if
+      /** Finds any occurrences for the provided symbol in the current scope, if
         * it exists.
         *
         * @param symbol the symbol of the occurrence
-        * @return the occurrence for `name`, if it exists
+        * @return the occurrences for `name`, if they exist
         */
-      def occursInThisScope(symbol: String): Option[Occurrence] = {
-        occurrences.find(o => o.symbol == symbol)
+      def occursInThisScope(symbol: String): Set[Occurrence] = {
+        occurrences.filter(o => o.symbol == symbol)
+      }
+
+      /** Unsafely gets the occurrence for the provided ID in the current scope.
+        *
+        * Please note that this will crash if the ID is not defined in this
+        * scope.
+        *
+        * @param id the occurrence identifier
+        * @return the occurrence for `id`
+        */
+      def unsafeGetOccurrence(id: Graph.Id): Occurrence = {
+        occursInThisScope(id).get
       }
 
       /** Resolves usages of symbols into links where possible, creating an edge
@@ -468,6 +488,17 @@ case object AliasAnalysis extends IRPass {
         } else {
           occurrencesInChildScopes
         }
+      }
+
+      /** Gets the set of all symbols in this scope and its children.
+       *
+       * @return the set of symbols
+       */
+      def symbols: Set[String] = {
+        val symbolsInThis = occurrences.map(_.symbol)
+        val symbolsInChildScopes = childScopes.flatMap(_.symbols)
+
+        symbolsInThis ++ symbolsInChildScopes
       }
     }
 
