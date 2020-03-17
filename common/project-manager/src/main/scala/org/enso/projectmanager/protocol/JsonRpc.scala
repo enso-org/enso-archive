@@ -1,5 +1,6 @@
 package org.enso.projectmanager.protocol
 
+import io.circe.generic.auto._
 import org.enso.jsonrpc.Protocol
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
 

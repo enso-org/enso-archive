@@ -35,7 +35,9 @@ object ProjectManager extends App with LazyLogging {
     s"Started server at ${config.server.host}:${config.server.port}, press enter to kill server"
   )
   StdIn.readLine()
+  logger.info("Stopping server...")
 
-  binding.terminate(10.seconds)
+  binding.unbind()
+  mainModule.system.terminate()
 
 }
