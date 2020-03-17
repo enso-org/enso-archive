@@ -11,13 +11,10 @@ import org.enso.languageserver.filemanager.{
   GenericFileSystemFailure
 }
 
-import scala.concurrent.duration._
-
 class FileSystemHandler(
   config: Config,
   fs: FileSystem,
-  runtime: Runtime[zio.ZEnv],
-  timeout: FiniteDuration
+  runtime: Runtime[zio.ZEnv]
 ) extends Actor
     with ActorLogging {
 
@@ -37,6 +34,17 @@ class FileSystemHandler(
       })
   }
 
+  private def runAsync[A](
+    io: FileSystem.BlockingIO[A]
+  )(onComplete: Option[Either[FileSystemFailure, A]] => Unit): Unit = {
+    val duration = zio.duration.Duration.fromScala(config.timeouts.io)
+    runtime.unsafeRunAsync(io.timeout(duration))({ exit =>
+      val resultOpt =
+        exit.fold(p => Some(Left(fromCause(p))), _.map(Right(_)))
+      onComplete(resultOpt)
+    })
+  }
+
   private def fromCause(cause: Cause[FileSystemFailure]): FileSystemFailure =
     cause.failureOption match {
       case Some(failure) => failure
@@ -47,16 +55,6 @@ class FileSystemHandler(
         GenericFileSystemFailure(cause.defects.mkString(","))
     }
 
-  private def runAsync[A](
-    io: FileSystem.BlockingIO[A]
-  )(onComplete: Option[Either[FileSystemFailure, A]] => Unit): Unit =
-    runtime
-      .unsafeRunAsync(io.timeout(zio.duration.Duration.fromScala(timeout)))({
-        exit =>
-          val resultOpt =
-            exit.fold(p => Some(Left(fromCause(p))), _.map(Right(_)))
-          onComplete(resultOpt)
-      })
 }
 
 object FileSystemHandler {
@@ -64,8 +62,7 @@ object FileSystemHandler {
   def props(
     config: Config,
     fs: FileSystem,
-    runtime: Runtime[zio.ZEnv] = zio.Runtime.default,
-    timeout: FiniteDuration    = 3.seconds
-  ): Props = Props(new FileSystemHandler(config, fs, runtime, timeout))
+    runtime: Runtime[zio.ZEnv] = zio.Runtime.default
+  ): Props = Props(new FileSystemHandler(config, fs, runtime))
 
 }

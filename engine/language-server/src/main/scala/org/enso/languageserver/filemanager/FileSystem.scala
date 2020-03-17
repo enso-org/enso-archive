@@ -233,7 +233,7 @@ class FileSystem extends FileSystemApi[FileSystem.BlockingIO] {
   //   }
   // }
 
-  private val errorHandling: Throwable => FileSystemFailure = {
+  private val errorHandling: IOException => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound
     case _: FileExistsException   => FileExists

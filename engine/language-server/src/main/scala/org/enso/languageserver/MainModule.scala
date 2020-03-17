@@ -11,15 +11,18 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
   ContentBasedVersioning,
-  Sha3_224VersionCalculator
+  Sha3_224VersionCalculator,
+  Timeouts
 }
-import org.enso.languageserver.filemanager.{FileSystem, FileSystemApi}
+import org.enso.languageserver.filemanager.FileSystem
 import org.enso.languageserver.requesthandler.FileSystemHandler
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.{LanguageInfo, RuntimeApi, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
+
+import scala.concurrent.duration._
 
 /**
   * A main module containing all components of th server.
@@ -29,7 +32,8 @@ import org.graalvm.polyglot.io.MessageEndpoint
 class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServerConfig = Config(
-    Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath))
+    Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
+    Timeouts(request = 10.seconds, io = 3.seconds)
   )
 
   lazy val fileSystem: FileSystem = new FileSystem
