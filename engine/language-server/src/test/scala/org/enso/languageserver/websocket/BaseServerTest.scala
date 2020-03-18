@@ -31,11 +31,11 @@ class BaseServerTest extends JsonRpcServerTestKit {
   override def clientControllerFactory: ClientControllerFactory = {
     val languageServer = system.actorOf(Props(new LanguageServer(config)))
     languageServer ! LanguageProtocol.Initialize
+    val fileManager = system.actorOf(FileManager.props(config, new FileSystem))
     val bufferRegistry =
       system.actorOf(
-        BufferRegistry.props(languageServer)(Sha3_224VersionCalculator)
+        BufferRegistry.props(fileManager)(Sha3_224VersionCalculator)
       )
-    val fileManager = system.actorOf(FileManager.props(config, new FileSystem))
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry))
 

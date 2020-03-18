@@ -50,19 +50,19 @@ class MainModule(serverConfig: LanguageServerConfig) {
       "server"
     )
 
+  lazy val fileManager = system.actorOf(
+    FileManager.props(languageServerConfig, fileSystem),
+    "file-manager"
+  )
+
   lazy val bufferRegistry =
-    system.actorOf(BufferRegistry.props(languageServer), "buffer-registry")
+    system.actorOf(BufferRegistry.props(fileManager), "buffer-registry")
 
   lazy val capabilityRouter =
     system.actorOf(CapabilityRouter.props(bufferRegistry), "capability-router")
 
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
-
-  lazy val fileManager = system.actorOf(
-    FileManager.props(languageServerConfig, fileSystem),
-    "file-manager"
-  )
 
   val context = Context
     .newBuilder(LanguageInfo.ID)
