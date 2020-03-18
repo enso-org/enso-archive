@@ -8,6 +8,13 @@ import org.enso.languageserver.data.Config
 import zio._
 import zio.blocking.blocking
 
+/**
+  * Handles the [[FileManagerProtocol]] messages, executes the [[FileSystem]]
+  * effects and forms the responses.
+  *
+  * @param config configuration
+  * @param fs an instance of a [[FileSyste]] that creates the effects
+  */
 class FileManager(config: Config, fs: FileSystem) extends Actor {
 
   import context.dispatcher

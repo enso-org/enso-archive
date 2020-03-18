@@ -7,14 +7,28 @@ import zio._
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * Abstract entity that executes effects F.
+  */
 trait Exec[F[_, _]] {
 
   def exec[E, A](op: F[E, A]): Future[Either[E, A]]
 }
 
+/**
+  * Executor of [[ZIO]] effects.
+  *
+  * @param runtime zio runtime
+  */
 case class ZioExec(runtime: Runtime[ZEnv] = Runtime.default)
     extends Exec[ZioExec.IO] {
 
+  /**
+    * Execute Zio effect.
+    *
+    * @param op effect to execute
+    * @return a future containing either a failure or a result
+    */
   override def exec[E, A](op: ZIO[ZEnv, E, A]): Future[Either[E, A]] = {
     val promise = Promise[Either[E, A]]
     runtime.unsafeRunAsync(op) {
@@ -26,6 +40,14 @@ case class ZioExec(runtime: Runtime[ZEnv] = Runtime.default)
     promise.future
   }
 
+  /**
+    * Execute Zio effect with timeout.
+    *
+    * @param timeout execution timeout
+    * @param op effect to execute
+    * @return a future. On timeout future is failed with [[TimeoutException]].
+    * Otherwise future contains either a failure or a result.
+    */
   def execTimed[E, A](
     timeout: FiniteDuration,
     op: ZIO[ZEnv, E, A]
