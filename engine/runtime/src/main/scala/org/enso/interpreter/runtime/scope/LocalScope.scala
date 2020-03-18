@@ -61,7 +61,8 @@ class LocalScope(
   ): Map[Graph.Symbol, FramePointer] = {
     var parentResult: Map[Graph.Symbol, FramePointer] = scope.parent match {
       case Some(parent) =>
-        new LocalScope(aliasingGraph, parent).flattenWithLevel(level + 1)
+        new LocalScope(aliasingGraph, parent, frameSlots = frameSlots)
+          .flattenWithLevel(level + 1)
       case _ => Map()
     }
     scope.occurrences.foreach {
