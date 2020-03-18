@@ -1,18 +1,11 @@
 package org.enso.languageserver
 
 import akka.actor.{Actor, ActorLogging, Stash}
-import cats.effect.IO
 import org.enso.languageserver.data._
 import org.enso.languageserver.event.{
   ClientConnected,
   ClientDisconnected,
   ClientEvent
-}
-import org.enso.languageserver.filemanager.FileManagerProtocol._
-import org.enso.languageserver.filemanager.{
-  DirectoryTree,
-  FileSystem,
-  FileSystemObject
 }
 
 object LanguageProtocol {
@@ -27,14 +20,14 @@ object LanguageProtocol {
   *
   * @param config the configuration used by this Language Server.
   */
-class LanguageServer(config: Config, fs: FileSystem)
+class LanguageServer(config: Config)
     extends Actor
     with Stash
     with ActorLogging {
   import LanguageProtocol._
 
   override def preStart(): Unit = {
-    context.system.eventStream.subscribe(self, classOf[ClientEvent])
+    context.system.eventStream.subscribe(self, classOf[ClientEvent]): Unit
   }
 
   override def receive: Receive = {

@@ -101,24 +101,24 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
         .pipeTo(sender())
       ()
 
-      case FileManagerProtocol.ExistsFile(path) =>
-        val result =
-          for {
-            rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
-            exists   <- fs.exists(path.toFile(rootPath))
-          } yield exists
+    case FileManagerProtocol.ExistsFile(path) =>
+      val result =
+        for {
+          rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
+          exists   <- fs.exists(path.toFile(rootPath))
+        } yield exists
       ZioExec()
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.ExistsFileResult)
         .pipeTo(sender())
       ()
 
-      case FileManagerProtocol.TreeFile(path, depth) =>
-        val result =
-          for {
-            rootPath  <- IO.fromEither(config.findContentRoot(path.rootId))
-            directory <- fs.tree(path.toFile(rootPath), depth)
-          } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
+    case FileManagerProtocol.TreeFile(path, depth) =>
+      val result =
+        for {
+          rootPath  <- IO.fromEither(config.findContentRoot(path.rootId))
+          directory <- fs.tree(path.toFile(rootPath), depth)
+        } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
       ZioExec()
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.TreeFileResult)

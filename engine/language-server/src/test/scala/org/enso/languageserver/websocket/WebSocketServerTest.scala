@@ -60,10 +60,7 @@ abstract class WebSocketServerTest
   var binding: Http.ServerBinding = _
 
   override def beforeEach(): Unit = {
-    val languageServer =
-      system.actorOf(
-        Props(new LanguageServer(config, new FileSystem))
-      )
+    val languageServer = system.actorOf(Props(new LanguageServer(config)))
     languageServer ! LanguageProtocol.Initialize
     val bufferRegistry =
       system.actorOf(
