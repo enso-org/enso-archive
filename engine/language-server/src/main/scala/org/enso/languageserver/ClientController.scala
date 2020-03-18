@@ -111,6 +111,8 @@ class ClientController(
         .props(bufferRegistry, requestTimeout, client),
       SaveFile -> SaveFileHandler.props(bufferRegistry, requestTimeout, client),
       WriteFile -> requesthandler.file.WriteFileHandler
+        .props(requestTimeout, fsManager),
+      ReadFile -> requesthandler.file.ReadFileHandler
         .props(requestTimeout, fsManager)
     )
 
