@@ -9,7 +9,7 @@ import org.apache.commons.cli.{Option => CliOption, _}
 import org.enso.languageserver
 import org.enso.languageserver.LanguageServerConfig
 import org.enso.pkg.Package
-import org.enso.polyglot.{ExecutionContext, LanguageInfo, Module}
+import org.enso.polyglot.{PolyglotContext, LanguageInfo, Module}
 import org.graalvm.polyglot.Value
 
 import scala.annotation.unused
@@ -182,15 +182,15 @@ object Main {
   }
 
   private def runPackage(
-    context: ExecutionContext,
-    mainModuleName: String
+                          context: PolyglotContext,
+                          mainModuleName: String
   ): Unit = {
     val topScope   = context.getTopScope
     val mainModule = topScope.getModule(mainModuleName)
     runMain(mainModule): Unit
   }
 
-  private def runSingleFile(context: ExecutionContext, file: File): Unit = {
+  private def runSingleFile(context: PolyglotContext, file: File): Unit = {
     val mainModule = context.evalModule(file)
     runMain(mainModule): Unit
   }

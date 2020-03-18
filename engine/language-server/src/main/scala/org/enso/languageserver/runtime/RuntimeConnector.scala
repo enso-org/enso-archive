@@ -5,7 +5,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.languageserver.runtime.RuntimeConnector.Destroy
-import org.enso.polyglot.RuntimeApi
+import org.enso.polyglot.runtime.RuntimeApi
 import org.graalvm.polyglot.io.MessageEndpoint
 
 /**
