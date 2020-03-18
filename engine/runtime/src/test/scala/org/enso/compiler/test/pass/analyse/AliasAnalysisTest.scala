@@ -1,8 +1,10 @@
 package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
+import org.enso.compiler.pass.analyse.AliasAnalysis
+import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
@@ -23,10 +25,51 @@ class AliasAnalysisTest extends CompilerTest {
 
     /** Translates the source code into appropriate IR for testing this pass.
       *
-      * @return IR appropriate for testing the alias analysis pass
+      * @return IR appropriate for testing the alias analysis pass as a module
       */
-    def preprocess: IR.Module = {
-      source.toIRModule.runPasses(precursorPasses).asInstanceOf[IR.Module]
+    def preprocessModule: IR.Module = {
+      source.toIrModule.runPasses(precursorPasses).asInstanceOf[IR.Module]
+    }
+
+    /** Translates the source code into appropriate IR for testing this pass
+      *
+      * @return IR appropriate for testing the alias analysis pass as an
+      *         expression
+      */
+    def preprocessExpression: Option[IR.Expression] = {
+      source.toIrExpression.map(
+        _.runPasses(precursorPasses).asInstanceOf[IR.Expression]
+      )
+    }
+  }
+
+  /** Adds an extension method to run alias analysis on an [[IR.Module]].
+    *
+    * @param ir the module to run alias analysis on
+    */
+  implicit class AnalyseModule(ir: IR.Module) {
+
+    /** Runs alias analysis on a module.
+      *
+      * @return [[ir]], with attached aliasing information
+      */
+    def analyse: IR.Module = {
+      AliasAnalysis.runModule(ir)
+    }
+  }
+
+  /** Adds an extension method to run alias analusis on an [[IR.Expression]].
+    *
+    * @param ir the expression to run alias analysis on
+    */
+  implicit class AnalyseExpression(ir: IR.Expression) {
+
+    /** Runs alias analysis on an expression.
+      *
+      * @return [[ir]], with attached aliasing information
+      */
+    def analyse: IR.Expression = {
+      AliasAnalysis.runExpression(ir)
     }
   }
 
@@ -94,7 +137,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "find the occurrence for an name in the current scope if it exists" in {
-      complexScope.getOccurrences(aDef.symbol) shouldEqual Set(aDef)
+      complexScope.getOccurrences[Occurrence](aDef.symbol) shouldEqual Set(aDef)
     }
 
     "find no occurrences if they do not exist" in {
@@ -109,7 +152,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "correctly find the scope where a given ID occurs" in {
-      complexScope.findScope(aUseId) shouldEqual Some(childOfChildOfChild)
+      complexScope.scopeFor(aUseId) shouldEqual Some(childOfChildOfChild)
     }
 
     "correctly find the scopes in which a given symbol occurs" in {
@@ -131,6 +174,23 @@ class AliasAnalysisTest extends CompilerTest {
     "check correctly for specified occurrences of a symbol" in {
       complexScope.hasSymbolOccurrenceAs[Occurrence.Def]("a") shouldEqual true
       complexScope.hasSymbolOccurrenceAs[Occurrence]("b") shouldEqual false
+    }
+
+    "be able to convert from a symbol to identifiers that use it" in {
+      complexScope.symbolToIds[Occurrence]("a") shouldEqual List(aDefId, aUseId)
+    }
+
+    "be able to convert from an identifier to the associated symbol" in {
+      complexScope.idToSymbol(aDefId) shouldEqual Some("a")
+    }
+
+    "be able to check if a provided scope is a child of the current scope" in {
+      pending
+      child1.isChildOf(complexScope) shouldEqual true
+      child2.isChildOf(complexScope) shouldEqual true
+      childOfChild.isChildOf(complexScope) shouldEqual true
+
+      complexScope.isChildOf(child1) shouldEqual false
     }
   }
 
@@ -253,56 +313,247 @@ class AliasAnalysisTest extends CompilerTest {
     "correctly determine all symbols that occur in the graph" in {
       graph.symbols shouldEqual Set("a", "b", "c")
     }
+
+    "correctly return all links for a given symbol" in {
+      graph.linksFor[Occurrence]("a") shouldEqual Set(
+        use1Link.get,
+        use2Link.get
+      )
+    }
   }
 
-  "Alias analysis" should {
-    val ir =
+  "Alias analysis for atom definitions" should {
+    val goodAtom =
       """
-        |main =
-        |    a = 2 + 2
-        |    b = a * a
-        |""".stripMargin.preprocess
+        |type MyAtom a b (c=a)
+        |""".stripMargin.preprocessModule.analyse.bindings.head
+        .asInstanceOf[Atom]
+    val goodMeta  = goodAtom.getMetadata[AliasAnalysis.Info.Scope.Root]
+    val goodGraph = goodMeta.get.graph
 
-    "do the thing" in {
-//      println(
-//        AliasAnalysis
-//          .runModule(ir)
-//          .bindings
-//          .map(_.getMetadata[AliasAnalysis.Info].get)
-//      )
+    val badAtom =
+      """
+        |type MyAtom a=b b
+        |""".stripMargin.preprocessModule.analyse.bindings.head
+        .asInstanceOf[Atom]
+    val badMeta  = badAtom.getMetadata[AliasAnalysis.Info.Scope.Root]
+    val badGraph = badMeta.get.graph
+
+    "assign Info.Scope.Root metadata to the atom" in {
+      goodMeta shouldBe defined
+      goodMeta.get shouldBe a[Info.Scope.Root]
     }
 
-//    val ir =
-//      """
-//        |main =
-//        |    a = 2 + 2
-//        |    b = a * a
-//        |    c = a -> a + b
-//        |
-//        |    IO.println 2.c
-//        |""".stripMargin.preprocess
-//
-//    "do the thing" in {
-//      println(
-//        AliasAnalysis
-//          .runModule(ir)
-//          .bindings
-//          .map(_.getMetadata[AliasAnalysis.Info].get)
-//      )
-//    }
-//
-//    val ir2 =
-//      """
-//        |type MyAtom a b=c (c = a + b)
-//        |""".stripMargin.preprocess
-//
-//    "do the other thing" in {
-//      println(
-//        AliasAnalysis
-//          .runModule(ir2)
-//          .bindings
-//          .map(_.getMetadata[AliasAnalysis.Info].get)
-//      )
-//    }
+    "create definition occurrences in the atom's scope" in {
+      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Def]("a")
+      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Def]("b")
+      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Def]("c")
+    }
+
+    "create defaults in the same scope as the argument" in {
+      goodGraph.nesting shouldEqual 1
+      goodGraph.rootScope.hasSymbolOccurrenceAs[Occurrence.Use]("a")
+    }
+
+    "create usage links where valid" in {
+      val aDefId = goodAtom
+        .arguments(0)
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+      val aUseId = goodAtom
+        .arguments(2)
+        .defaultValue
+        .get
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+
+      goodGraph.links should contain(Link(aUseId, 0, aDefId))
+    }
+
+    "enforce the ordering scope constraint on function arguments" in {
+      badGraph.links shouldBe empty
+    }
+  }
+
+  "Alias analysis on function methods" should {
+    val methodWithLambda =
+      """
+        |Bar.foo = a b c ->
+        |   d = a b -> a b
+        |   g =
+        |     1 + 1
+        |   d c (a + b)
+        |""".stripMargin.preprocessModule.analyse.bindings.head
+        .asInstanceOf[Method]
+    val methodWithLambdaGraph =
+      methodWithLambda.getMetadata[Info.Scope.Root].get.graph
+
+    "assign Info.Scope.Root metadata to the method" in {
+      val meta = methodWithLambda.getMetadata[AliasAnalysis.Metadata]
+
+      meta shouldBe defined
+      meta.get shouldBe a[Info.Scope.Root]
+    }
+
+    "assign Info.Scope.Child to all child scopes" in {
+      methodWithLambda.body
+        .asInstanceOf[IR.Function.Lambda]
+        .getMetadata[Info.Scope.Child]
+        .get shouldBe an[Info.Scope.Child]
+
+      methodWithLambda.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+        .getMetadata[Info.Scope.Child]
+        .get shouldBe an[Info.Scope.Child]
+    }
+
+    "not allocate additional scopes unnecessarily" in {
+      methodWithLambdaGraph.nesting shouldEqual 2
+      methodWithLambdaGraph.numScopes shouldEqual 3
+
+      val blockChildLambdaScope =
+        methodWithLambda.body
+          .asInstanceOf[IR.Function.Lambda]
+          .getMetadata[Info.Scope.Child]
+          .get
+          .scope
+      val blockChildBlockScope =
+        methodWithLambda.body
+          .asInstanceOf[IR.Function.Lambda]
+          .body
+          .asInstanceOf[IR.Expression.Block]
+          .getMetadata[Info.Scope.Child]
+          .get
+          .scope
+
+      blockChildBlockScope shouldEqual methodWithLambdaGraph.rootScope
+      blockChildLambdaScope shouldEqual methodWithLambdaGraph.rootScope
+    }
+
+    "allocate new scopes where necessary" in {
+      pending
+    }
+
+    "assign Info.Occurrence to definitions and usages of symbols" in {
+      pending
+    }
+
+    "create the correct usage links for resolvable entities" in {
+      pending
+    }
+
+    "not resolve links for unknwon symbols" in {
+      pending
+    }
+  }
+
+  "Alias analysis on block methods" should {
+    val methodWithBlock =
+      """
+        |Bar.foo =
+        |  a = 2 + 2
+        |  b = a * a
+        |
+        |  IO.println b
+        |""".stripMargin.preprocessModule.analyse.bindings.head
+        .asInstanceOf[Method]
+    val methodWithBlockGraph =
+      methodWithBlock.getMetadata[Info.Scope.Root].get.graph
+
+    "assign Info.Scope.Root metadata to the method" in {
+      val meta1 = methodWithBlock.getMetadata[AliasAnalysis.Metadata]
+
+      meta1 shouldBe defined
+      meta1.get shouldBe a[Info.Scope.Root]
+    }
+
+    "assign Info.Scope.Child to all child scopes" in {
+      methodWithBlock.body
+        .asInstanceOf[IR.Function.Lambda]
+        .getMetadata[Info.Scope.Child]
+        .get shouldBe an[Info.Scope.Child]
+
+      methodWithBlock.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+        .getMetadata[Info.Scope.Child]
+        .get shouldBe an[Info.Scope.Child]
+    }
+
+    "not allocate additional scopes unnecessarily" in {
+      methodWithBlockGraph.nesting shouldEqual 1
+      methodWithBlockGraph.numScopes shouldEqual 1
+
+      val blockChildLambdaScope =
+        methodWithBlock.body
+          .asInstanceOf[IR.Function.Lambda]
+          .getMetadata[Info.Scope.Child]
+          .get
+          .scope
+      val blockChildBlockScope =
+        methodWithBlock.body
+          .asInstanceOf[IR.Function.Lambda]
+          .body
+          .asInstanceOf[IR.Expression.Block]
+          .getMetadata[Info.Scope.Child]
+          .get
+          .scope
+
+      blockChildBlockScope shouldEqual methodWithBlockGraph.rootScope
+      blockChildLambdaScope shouldEqual methodWithBlockGraph.rootScope
+    }
+
+    "assign Info.Occurrence to definitions and usages of symbols" in {
+      pending
+    }
+
+    "create the correct usage links for resolvable entities" in {
+      pending
+    }
+
+    "not resolve links for unknwon symbols" in {
+      pending
+    }
+  }
+
+  "Alias analysis on case expressions" should {}
+
+  "Redefinitions" should {
+    "be caught for argument lists" in {
+      val atom =
+        """
+          |type MyAtom a b a
+          |""".stripMargin.preprocessModule.analyse.bindings.head
+          .asInstanceOf[Atom]
+
+      atom.arguments(2) shouldBe an[IR.Error.Redefined.Argument]
+      atLeast(1, atom.arguments) shouldBe an[IR.Error.Redefined.Argument]
+    }
+
+    "be caught for bindings" in {
+      val method =
+        """
+          |main =
+          |    a = 1 + 1
+          |    b = a * 10
+          |    a = b + 1
+          |
+          |    IO.println a
+          |""".stripMargin.preprocessModule.analyse.bindings.head
+          .asInstanceOf[Method]
+      val block =
+        method.body
+          .asInstanceOf[IR.Function.Lambda]
+          .body
+          .asInstanceOf[IR.Expression.Block]
+
+      block.expressions(2) shouldBe an[IR.Error.Redefined.Binding]
+      atLeast(1, block.expressions) shouldBe an[IR.Error.Redefined.Binding]
+    }
   }
 }

@@ -1111,6 +1111,9 @@ object IR {
         this
     }
 
+    /** Errors pertaining to the redefinition of language constructs that are
+      * not allowed to be.
+      */
     sealed trait Redefined extends Error
     object Redefined {
 
@@ -1138,13 +1141,21 @@ object IR {
         ): Argument = this
       }
 
+      /** An error representing the redefinition of a binding in a given scope.
+        *
+        * While bindings in child scopes are allowed to _shadow_ bindings in
+        * parent scopes, a binding cannot be redefined within a given scope.
+        *
+        * @param invalidBinding the invalid binding
+        * @param passData the pass metadata for the error
+        */
       sealed case class Binding(
         invalidBinding: IR.Expression.Binding,
         override val passData: ISet[Metadata] = ISet()
       ) extends Redefined
           with Kind.Static
           with IRKind.Primitive {
-        override val location: Option[Location]       = invalidBinding.location
+        override val location: Option[Location] = invalidBinding.location
 
         override def addMetadata(newData: Metadata): Binding = {
           copy(passData = this.passData + newData)

@@ -49,12 +49,32 @@ trait CompilerRunner {
       *
       * @return the [[IR]] representing [[source]]
       */
-    def toIRModule: IR.Module = {
+    def toIrModule: IR.Module = {
       val parser: Parser = Parser()
       val unresolvedAST  = parser.run(source)
       val resolvedAST    = parser.dropMacroMeta(unresolvedAST)
 
       AstToIR.translate(resolvedAST)
+    }
+  }
+
+  /** An extension method to allow converting string source code to IR as an
+    * expression.
+    *
+    * @param source the source code to convert
+    */
+  implicit class ToIrExpression(source: String) {
+
+    /** Converts the program text to an Enso expression.
+      *
+      * @return the [[IR]] representing [[source]], if it is a valid expression
+      */
+    def toIrExpression: Option[IR.Expression] = {
+      val parser: Parser = Parser()
+      val unresolvedAST  = parser.run(source)
+      val resolvedAST    = parser.dropMacroMeta(unresolvedAST)
+
+      AstToIR.translateInline(resolvedAST)
     }
   }
 
@@ -86,15 +106,15 @@ trait CompilerRunner {
   // === IR Testing Utils =====================================================
 
   /** A variety of extension methods on IR expressions to aid testing.
-   *
-   * @param ir the expression to add extension methods to
-   */
+    *
+    * @param ir the expression to add extension methods to
+    */
   implicit class ExpressionAs(ir: IR.Expression) {
 
     /** Hoists the provided expression into the body of a method.
-     *
-     * @return a method containing `ir` as its body
-     */
+      *
+      * @return a method containing `ir` as its body
+      */
     def asMethod: IR.Module.Scope.Definition.Method = {
       IR.Module.Scope.Definition
         .Method(
@@ -106,9 +126,9 @@ trait CompilerRunner {
     }
 
     /** Hoists the provided expression as the default value of an atom argument.
-     *
-     * @return an atom with one argument `arg` with default value `ir`
-     */
+      *
+      * @return an atom with one argument `arg` with default value `ir`
+      */
     def asAtomDefaultArg: IR.Module.Scope.Definition.Atom = {
       IR.Module.Scope.Definition.Atom(
         IR.Name.Literal("TestAtom", None),
@@ -126,13 +146,13 @@ trait CompilerRunner {
     }
 
     /** Creates a module containing both an atom and a method that use the
-     * provided expression.
-     *
-     * The expression is used in the default for an atom argument, as in
-     * [[asAtomDefaultArg()]], and in the body of a method, as in [[asMethod()]].
-     *
-     * @return a module containing an atom def and method def using `expr`
-     */
+      * provided expression.
+      *
+      * The expression is used in the default for an atom argument, as in
+      * [[asAtomDefaultArg()]], and in the body of a method, as in [[asMethod()]].
+      *
+      * @return a module containing an atom def and method def using `expr`
+      */
     def asModuleDefs: IR.Module = {
       IR.Module(List(), List(ir.asAtomDefaultArg, ir.asMethod), None)
     }
