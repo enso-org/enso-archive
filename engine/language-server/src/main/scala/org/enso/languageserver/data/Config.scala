@@ -10,7 +10,16 @@ import org.enso.languageserver.filemanager.{
 
 import scala.concurrent.duration.FiniteDuration
 
-case class Timeouts(request: FiniteDuration, io: FiniteDuration)
+case class FileManagerConfig(timeout: FiniteDuration, parallelism: Int)
+
+object FileManagerConfig {
+
+  def apply(timeout: FiniteDuration): FileManagerConfig =
+    FileManagerConfig(
+      timeout = timeout,
+      parallelism = Runtime.getRuntime().availableProcessors()
+    )
+}
 
 /**
   * The config of the running Language Server instance.
@@ -18,7 +27,7 @@ case class Timeouts(request: FiniteDuration, io: FiniteDuration)
   * @param contentRoots a mapping between content root id and absolute path to
   *                     the content root
   */
-case class Config(contentRoots: Map[UUID, File], timeouts: Timeouts) {
+case class Config(contentRoots: Map[UUID, File], fileManager: FileManagerConfig) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
     contentRoots

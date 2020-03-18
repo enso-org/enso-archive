@@ -10,11 +10,11 @@ import akka.stream.SystemMaterializer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
+  FileManagerConfig,
   ContentBasedVersioning,
-  Sha3_224VersionCalculator,
-  Timeouts
+  Sha3_224VersionCalculator
 }
-import org.enso.languageserver.filemanager.{FileSystem, FileSystemManager}
+import org.enso.languageserver.filemanager.{FileManager, FileSystem}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.{LanguageInfo, RuntimeApi, RuntimeServerInfo}
@@ -32,7 +32,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
-    Timeouts(request = 10.seconds, io = 3.seconds)
+    FileManagerConfig(timeout = 3.seconds)
   )
 
   lazy val fileSystem: FileSystem = new FileSystem
@@ -59,8 +59,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
-  lazy val fsManager =
-    system.actorOf(FileSystemManager.props(languageServerConfig, fileSystem))
+  lazy val fileManager = system.actorOf(FileManager.props(languageServerConfig, fileSystem), "file-manager")
 
   val context = Context
     .newBuilder(LanguageInfo.ID)
@@ -85,6 +84,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
       bufferRegistry,
       capabilityRouter,
       runtimeConnector,
-      fsManager
+      fileManager
     )
 }

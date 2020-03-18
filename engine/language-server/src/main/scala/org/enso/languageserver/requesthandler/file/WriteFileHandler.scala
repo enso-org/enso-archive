@@ -12,7 +12,7 @@ import org.enso.languageserver.requesthandler.RequestTimeout
 
 import scala.concurrent.duration.FiniteDuration
 
-class WriteFileHandler(timeout: FiniteDuration, fsManager: ActorRef)
+class WriteFileHandler(timeout: FiniteDuration, fileManager: ActorRef)
     extends Actor
     with ActorLogging {
 
@@ -22,7 +22,7 @@ class WriteFileHandler(timeout: FiniteDuration, fsManager: ActorRef)
 
   private def requestStage: Receive = {
     case Request(WriteFile, id, params: WriteFile.Params) =>
-      fsManager ! FileManagerProtocol.WriteFile(params.path, params.contents)
+      fileManager ! FileManagerProtocol.WriteFile(params.path, params.contents)
       context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
 
       context.become(responseStage(id, sender()))
@@ -52,7 +52,7 @@ class WriteFileHandler(timeout: FiniteDuration, fsManager: ActorRef)
 
 object WriteFileHandler {
 
-  def props(timeout: FiniteDuration, fsManager: ActorRef): Props =
-    Props(new WriteFileHandler(timeout, fsManager))
+  def props(timeout: FiniteDuration, fileManager: ActorRef): Props =
+    Props(new WriteFileHandler(timeout, fileManager))
 
 }

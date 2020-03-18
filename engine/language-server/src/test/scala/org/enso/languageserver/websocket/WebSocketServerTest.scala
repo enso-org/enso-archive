@@ -14,15 +14,15 @@ import io.circe.parser.parse
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
-  Sha3_224VersionCalculator,
-  Timeouts
+  FileManagerConfig,
+  Sha3_224VersionCalculator
 }
 import org.enso.languageserver.{
   LanguageProtocol,
   LanguageServer,
   WebSocketServer
 }
-import org.enso.languageserver.filemanager.{FileSystem, FileSystemManager}
+import org.enso.languageserver.filemanager.{FileSystem, FileManager}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
@@ -51,7 +51,7 @@ abstract class WebSocketServerTest
   val testContentRootId = UUID.randomUUID()
   val config = Config(
     Map(testContentRootId -> testContentRoot.toFile),
-    Timeouts(request = 5.seconds, io = 3.seconds)
+    FileManagerConfig(timeout = 3.seconds)
   )
 
   testContentRoot.toFile.deleteOnExit()
@@ -75,15 +75,15 @@ abstract class WebSocketServerTest
 
     lazy val runtimeConnector = system.actorOf(RuntimeConnector.props)
 
-    lazy val fsManager =
-      system.actorOf(FileSystemManager.props(config, new FileSystem))
+    lazy val fileManager =
+      system.actorOf(FileManager.props(config, new FileSystem))
 
     server = new WebSocketServer(
       languageServer,
       bufferRegistry,
       capabilityRouter,
       runtimeConnector,
-      fsManager
+      fileManager
     )
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"

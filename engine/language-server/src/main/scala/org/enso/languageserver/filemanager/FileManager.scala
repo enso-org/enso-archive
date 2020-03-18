@@ -1,12 +1,13 @@
 package org.enso.languageserver.filemanager
 
-import akka.pattern.pipe
 import akka.actor.{Actor, ActorLogging, Props}
+import akka.routing.SmallestMailboxPool
+import akka.pattern.pipe
 import org.enso.languageserver.ZioExec
 import org.enso.languageserver.data.Config
 import zio._
 
-class FileSystemManager(config: Config, fs: FileSystem)
+class FileManager(config: Config, fs: FileSystem)
     extends Actor
     with ActorLogging {
 
@@ -21,16 +22,18 @@ class FileSystemManager(config: Config, fs: FileSystem)
         } yield ()
 
       ZioExec()
-        .execTimed(config.timeouts.io, write)
+        .execTimed(config.fileManager.timeout, write)
         .pipeTo(sender())
   }
 }
 
-object FileSystemManager {
+object FileManager {
 
   def props(
     config: Config,
     fs: FileSystem
-  ): Props = Props(new FileSystemManager(config, fs))
+  ): Props =
+    SmallestMailboxPool(config.fileManager.parallelism).props(Props(new FileManager(config, fs)))
+    //Props(new FileManager(config, fs))
 
 }
