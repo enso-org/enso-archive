@@ -441,8 +441,6 @@ lazy val language_server = (project in file("engine/language-server"))
       "ch.qos.logback"   % "logback-classic"       % "1.2.3",
       "io.circe"         %% "circe-generic-extras" % "0.12.2",
       "io.circe"         %% "circe-literal"        % circeVersion,
-      "org.typelevel"    %% "cats-core"            % "2.0.0",
-      "org.typelevel"    %% "cats-effect"          % "2.0.0",
       "org.bouncycastle" % "bcpkix-jdk15on"        % "1.64",
       "dev.zio"          %% "zio"                  % "1.0.0-RC18-2",
       akkaTestkit        % Test,
