@@ -82,12 +82,14 @@ case object AliasAnalysis extends IRPass {
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
         // FIXME
         val bodyFun = body.asInstanceOf[IR.Function.Lambda]
-        val withNewArg = bodyFun.copy(arguments =  IR.DefinitionArgument.Specified(
-          IR.Name.This(None),
-          None,
-          suspended = false,
-          None
-        ) :: bodyFun.arguments)
+        val withNewArg = bodyFun.copy(
+          arguments = IR.DefinitionArgument.Specified(
+              IR.Name.This(None),
+              None,
+              suspended = false,
+              None
+            ) :: bodyFun.arguments
+        )
         m.copy(
             body = analyseExpression(
               withNewArg,
@@ -136,7 +138,7 @@ case object AliasAnalysis extends IRPass {
         analyseFunction(fn, graph, parentScope, lambdaReuseScope)
       case name: IR.Name => analyseName(name, graph, parentScope)
       case cse: IR.Case =>
-        analyseCase(cse, graph, parentScope, blockReuseScope)
+        analyseCase(cse, graph, parentScope)
       case block @ IR.Expression.Block(expressions, retVal, _, _, _) =>
         val currentScope =
           if (blockReuseScope) parentScope else parentScope.addChild()
@@ -269,6 +271,7 @@ case object AliasAnalysis extends IRPass {
     scope: AliasAnalysis.Graph.Scope
   ): List[IR.CallArgument] = {
     args.map {
+      // FIXME[AA] Don't allocate new scopes for literal args.
       case arg @ IR.CallArgument.Specified(_, expr, _, _) =>
         val childScope = scope.addChild()
         arg
@@ -344,46 +347,22 @@ case object AliasAnalysis extends IRPass {
   def analyseCase(
     ir: IR.Case,
     graph: Graph,
-    parentScope: Scope,
-    caseReuseScope: Boolean = false
+    parentScope: Scope
   ): IR.Case = {
     ir match {
       case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _) =>
-        val currentScope =
-          if (caseReuseScope) parentScope else parentScope.addChild()
-
-        caseExpr
-          .copy(
-            scrutinee = analyseExpression(
-              scrutinee,
-              graph,
-              currentScope,
-              caseReuseScope
-            ),
-            branches = branches.map(branch => {
+        caseExpr.copy(
+          scrutinee = analyseExpression(scrutinee, graph, parentScope),
+          branches = branches.map(
+            branch =>
               branch.copy(
-                pattern = analyseExpression(
-                  branch.pattern,
-                  graph,
-                  currentScope
-                ),
-                expression = analyseExpression(
-                  branch.expression,
-                  graph,
-                  currentScope
-                )
+                pattern = analyseExpression(branch.pattern, graph, parentScope),
+                expression =
+                  analyseExpression(branch.expression, graph, parentScope)
               )
-            }),
-            fallback = fallback.map(
-              (expression: IR.Expression) =>
-                analyseExpression(
-                  expression,
-                  graph,
-                  currentScope
-                )
-            )
-          )
-          .addMetadata(Info.Scope.Child(graph, currentScope))
+          ),
+          fallback = fallback.map(analyseExpression(_, graph, parentScope))
+        )//.addMetadata(Info.Scope.Child(graph, currentScope))
       case _ => throw new CompilerError("Case branch in `analyseCase`.")
     }
   }
@@ -495,12 +474,18 @@ case object AliasAnalysis extends IRPass {
       )
     }
 
+    def getOccurrence(id: Graph.Id): Option[Occurrence] =
+      scopeFor(id).flatMap(_.getOccurrence(id))
+
     def defLinkFor(id: Graph.Id): Option[Graph.Link] = {
       linksFor(id).find { edge =>
-        val occ = rootScope.getOccurrence(edge.target)
+        val occ = getOccurrence(edge.target)
         occ match {
           case Some(Occurrence.Def(_, _)) => true
-          case _                          => false
+          case Some(x) =>
+            println("I want a Def, but it's a: " + x)
+            false
+          case _ => false
         }
       }
     }
@@ -717,7 +702,7 @@ case object AliasAnalysis extends IRPass {
         * @return a string representation of `this`
         */
       override def toString: String =
-        s"Scope(childScopes = $childScopes, occurrences = $occurrences)"
+        s"Scope(occurrences = $occurrences, childScopes = $childScopes)"
 
       /** Counts the number of scopes in this scope.
         *

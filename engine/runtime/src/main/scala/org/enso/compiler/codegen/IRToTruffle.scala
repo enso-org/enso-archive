@@ -169,17 +169,8 @@ class IRToTruffle(
         )
 
       if (methodDef.methodName.name == "main") {
-        println(scopeInfo.graph.pprint)
+//        println(scopeInfo.graph.pprint)
       }
-
-//      // TODO[FIXME]
-//      val thisArgument =
-//        IR.DefinitionArgument.Specified(
-//          IR.Name.This(None),
-//          None,
-//          suspended = false,
-//          None
-//        ).addMetadata(AliasAnalysis.Info.Occurrence(scopeInfo.graph, -1))
 
       val typeName =
         if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
@@ -498,6 +489,9 @@ class IRToTruffle(
             )
 
           val slot     = scope.getFramePointer(useInfo.id)
+//          println(name.name)
+//          println(useInfo.id)
+//          println(slot)
           val atomCons = moduleScope.getConstructor(nameStr).toScala
           if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
@@ -694,15 +688,16 @@ class IRToTruffle(
       */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
       case IR.CallArgument.Specified(name, value, _, _) =>
+        val scopeInfo = arg
+          .getMetadata[AliasAnalysis.Info.Scope.Child]
+          .getOrElse(
+            throw new CompilerError("No scope attached to a call argument.")
+          )
         val result = value match {
           case term: IR.Application.Force =>
-            new ExpressionProcessor(scope, scopeName).run(term.target)
+            val childScope = scope.createChild(scopeInfo.scope, flattenToParent = true)
+            new ExpressionProcessor(childScope, scopeName).run(term.target)
           case _ =>
-            val scopeInfo = arg
-              .getMetadata[AliasAnalysis.Info.Scope.Child]
-              .getOrElse(
-                throw new CompilerError("No scope attached to a call argument.")
-              )
             val childScope = scope.createChild(scopeInfo.scope)
             val argumentExpression =
               new ExpressionProcessor(childScope, scopeName).run(value)

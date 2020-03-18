@@ -11,6 +11,7 @@ import scala.collection.mutable
 class LocalScope(
   val aliasingGraph: AliasAnalysis.Graph,
   val scope: AliasAnalysis.Graph.Scope,
+  val flattenToParent: Boolean                     = false,
   val frameSlots: mutable.Map[Graph.Id, FrameSlot] = mutable.Map()
 ) {
   val frameDescriptor: FrameDescriptor = new FrameDescriptor()
@@ -20,8 +21,11 @@ class LocalScope(
     FrameSlotKind.Object
   )
 
-  def createChild(childScope: AliasScope): LocalScope = {
-    new LocalScope(aliasingGraph, childScope, frameSlots)
+  def createChild(
+    childScope: AliasScope,
+    flattenToParent: Boolean = false
+  ): LocalScope = {
+    new LocalScope(aliasingGraph, childScope, flattenToParent, frameSlots)
   }
 
   def createVarSlot(id: Graph.Id): FrameSlot = {
@@ -32,9 +36,15 @@ class LocalScope(
 
   def getFramePointer(id: Graph.Id): Option[FramePointer] = {
     aliasingGraph.defLinkFor(id).flatMap { link =>
+//    println(s"LINK FOR $id: $link")
       val slot = frameSlots.get(link.target)
 
-      slot.map(new FramePointer(link.scopeCount, _))
+      slot.map(
+        new FramePointer(
+          if (flattenToParent) link.scopeCount - 1 else link.scopeCount,
+          _
+        )
+      )
     }
   }
 }
