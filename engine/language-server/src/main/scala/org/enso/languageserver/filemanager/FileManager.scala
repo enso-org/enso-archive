@@ -31,10 +31,7 @@ class FileManager(config: Config, fs: FileSystem)
 
 object FileManager {
 
-  def props(
-    config: Config,
-    fs: FileSystem
-  ): Props =
+  def props(config: Config, fs: FileSystem): Props =
     SmallestMailboxPool(config.fileManager.parallelism)
       .props(Props(new FileManager(config, fs)))
 

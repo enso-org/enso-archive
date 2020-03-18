@@ -1,9 +1,8 @@
 package org.enso.languageserver.filemanager
 
-import java.io.{File, FileNotFoundException, IOException}
+import java.io.{File, FileNotFoundException}
 import java.nio.file._
 
-import cats.data.EitherT
 import org.apache.commons.io.{FileExistsException, FileUtils}
 import zio._
 
@@ -16,17 +15,17 @@ import scala.collection.mutable
   */
 class FileSystem extends FileSystemApi[IO] {
 
-  import FileSystem._, FileSystemApi._
+  import FileSystemApi._
 
   /**
     * Writes textual content to a file.
     *
     * @param file path to the file
-    * @param content    a textual content of the file
+    * @param content a textual content of the file
     * @return either FileSystemFailure or Unit
     */
   override def write(file: File, content: String): IO[FileSystemFailure, Unit] =
-    ZIO(FileUtils.write(file, content, "UTF-8"))
+    IO(FileUtils.write(file, content, "UTF-8"))
       .mapError(errorHandling)
 
   /**
@@ -35,14 +34,9 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file
     * @return either [[FileSystemFailure]] or the content of a file as a String
     */
-  override def read(file: File): IO[FileSystemFailure, String] = ???
-  // Sync[F].delay {
-  //   Either
-  //     .catchOnly[IOException] {
-  //       FileUtils.readFileToString(file, "UTF-8")
-  //     }
-  //     .leftMap(errorHandling)
-  // }
+  override def read(file: File): IO[FileSystemFailure, String] =
+    IO(FileUtils.readFileToString(file, "UTF-8"))
+      .mapError(errorHandling)
 
   /**
     * Deletes the specified file or directory recursively.
@@ -50,18 +44,14 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or Unit
     */
-  def delete(file: File): IO[FileSystemFailure, Unit] = ???
-  // Sync[F].delay {
-  //   Either
-  //     .catchOnly[IOException] {
-  //       if (file.isDirectory) {
-  //         FileUtils.deleteDirectory(file)
-  //       } else {
-  //         Files.delete(file.toPath)
-  //       }
-  //     }
-  //     .leftMap(errorHandling)
-  // }
+  def delete(file: File): IO[FileSystemFailure, Unit] =
+    IO({
+      if (file.isDirectory) {
+        FileUtils.deleteDirectory(file)
+      } else {
+        Files.delete(file.toPath)
+      }
+    }).mapError(errorHandling)
 
   /**
     * Creates an empty file with parent directory.
@@ -69,26 +59,15 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file
     * @return
     */
-  override def createFile(file: File): IO[FileSystemFailure, Unit] = ???
-  // {
-  //   val op =
-  //     for {
-  //       _ <- EitherT { createDirectory(file.getParentFile) }
-  //       _ <- EitherT { createEmptyFile(file)               }
-  //     } yield ()
+  override def createFile(file: File): IO[FileSystemFailure, Unit] =
+    for {
+      _ <- createDirectory(file.getParentFile)
+      _ <- createEmptyFile(file)
+    } yield ()
 
-  //   op.value
-  // }
-
-  private def createEmptyFile(file: File): IO[FileSystemFailure, Unit] = ???
-  // Sync[F].delay {
-  //   Either
-  //     .catchOnly[IOException] {
-  //       file.createNewFile()
-  //     }
-  //     .leftMap(errorHandling)
-  //     .map(_ => ())
-  // }
+  private def createEmptyFile(file: File): IO[FileSystemFailure, Unit] =
+    IO(file.createNewFile(): Unit)
+      .mapError(errorHandling)
 
   /**
     * Creates a directory, including any necessary but nonexistent parent
@@ -97,14 +76,9 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file
     * @return
     */
-  override def createDirectory(file: File): IO[FileSystemFailure, Unit] = ???
-  // Sync[F].delay {
-  //   Either
-  //     .catchOnly[IOException] {
-  //       FileUtils.forceMkdir(file)
-  //     }
-  //     .leftMap(errorHandling)
-  // }
+  override def createDirectory(file: File): IO[FileSystemFailure, Unit] =
+    IO(FileUtils.forceMkdir(file))
+      .mapError(errorHandling)
 
   /**
     * Copy a file or directory recursively.
@@ -115,23 +89,16 @@ class FileSystem extends FileSystemApi[IO] {
     * be a directory.
     * @return either [[FileSystemFailure]] or Unit
     */
-  override def copy(from: File, to: File): IO[FileSystemFailure, Unit] = ???
-  // Sync[F].delay {
-  //   if (from.isDirectory && to.isFile) {
-  //     Left(FileExists)
-  //   } else {
-  //     Either
-  //       .catchOnly[IOException] {
-  //         if (from.isFile && to.isDirectory) {
-  //           FileUtils.copyFileToDirectory(from, to)
-  //         } else if (from.isDirectory) {
-  //           FileUtils.copyDirectory(from, to)
-  //         } else {
-  //           FileUtils.copyFile(from, to)
-  //         }
-  //       }
-  //   }.leftMap(errorHandling)
-  // }
+  override def copy(from: File, to: File): IO[FileSystemFailure, Unit] =
+    IO({
+      if (from.isFile && to.isDirectory) {
+        FileUtils.copyFileToDirectory(from, to)
+      } else if (from.isDirectory) {
+        FileUtils.copyDirectory(from, to)
+      } else {
+        FileUtils.copyFile(from, to)
+      }
+    }).mapError(errorHandling)
 
   /**
     * Move a file or directory recursively
@@ -140,21 +107,17 @@ class FileSystem extends FileSystemApi[IO] {
     * @param to a path to the destination
     * @return either [[FileSystemFailure]] or Unit
     */
-  override def move(from: File, to: File): IO[FileSystemFailure, Unit] = ???
-  // Sync[F].delay {
-  //   Either
-  //     .catchOnly[IOException] {
-  //       if (to.isDirectory) {
-  //         val createDestDir = false
-  //         FileUtils.moveToDirectory(from, to, createDestDir)
-  //       } else if (from.isDirectory) {
-  //         FileUtils.moveDirectory(from, to)
-  //       } else {
-  //         FileUtils.moveFile(from, to)
-  //       }
-  //     }
-  //     .leftMap(errorHandling)
-  // }
+  override def move(from: File, to: File): IO[FileSystemFailure, Unit] =
+    IO({
+      if (to.isDirectory) {
+        val createDestDir = false
+        FileUtils.moveToDirectory(from, to, createDestDir)
+      } else if (from.isDirectory) {
+        FileUtils.moveDirectory(from, to)
+      } else {
+        FileUtils.moveFile(from, to)
+      }
+    }).mapError(errorHandling)
 
   /**
     * Checks if the specified file exists.
@@ -162,37 +125,28 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or file existence flag
     */
-  override def exists(file: File): IO[FileSystemFailure, Boolean] = ???
-  // Sync[F].delay {
-  //   Either
-  //     .catchOnly[IOException] {
-  //       Files.exists(file.toPath)
-  //     }
-  //     .leftMap(errorHandling)
-  // }
+  override def exists(file: File): IO[FileSystemFailure, Boolean] =
+    IO(Files.exists(file.toPath))
+      .mapError(errorHandling)
 
-  override def list(path: File): IO[FileSystemFailure, Vector[Entry]] = ???
-  // Sync[F].delay {
-  //   if (path.exists) {
-  //     if (path.isDirectory) {
-  //       Either
-  //         .catchOnly[IOException] {
-  //           FileSystem
-  //             .list(path.toPath)
-  //             .map {
-  //               case SymbolicLinkEntry(path, _) =>
-  //                 FileSystem.readSymbolicLink(path)
-  //               case entry => entry
-  //             }
-  //         }
-  //         .leftMap(errorHandling)
-  //     } else {
-  //       Left(NotDirectory)
-  //     }
-  //   } else {
-  //     Left(FileNotFound)
-  //   }
-  // }
+  override def list(path: File): IO[FileSystemFailure, Vector[Entry]] =
+    if (path.exists) {
+      if (path.isDirectory) {
+        IO({
+          FileSystem
+            .list(path.toPath)
+            .map {
+              case SymbolicLinkEntry(path, _) =>
+                FileSystem.readSymbolicLink(path)
+              case entry => entry
+            }
+        }).mapError(errorHandling)
+      } else {
+        IO.fail(NotDirectory)
+      }
+    } else {
+      IO.fail(FileNotFound)
+    }
 
   /**
     * Returns tree of a given path.
@@ -204,33 +158,28 @@ class FileSystem extends FileSystemApi[IO] {
   override def tree(
     path: File,
     depth: Option[Int]
-  ): IO[FileSystemFailure, DirectoryEntry] = ???
-  // {
-  //   Sync[F].delay {
-  //     val limit = FileSystem.Depth(depth)
-  //     if (path.exists && limit.canGoDeeper) {
-  //       if (path.isDirectory) {
-  //         Either
-  //           .catchOnly[IOException] {
-  //             val directory = DirectoryEntry.empty(path.toPath)
-  //             FileSystem.readDirectoryEntry(
-  //               directory,
-  //               limit.goDeeper,
-  //               Vector(),
-  //               mutable.Queue().appendAll(FileSystem.list(path.toPath)),
-  //               mutable.Queue()
-  //             )
-  //             directory
-  //           }
-  //           .leftMap(errorHandling)
-  //       } else {
-  //         Left(NotDirectory)
-  //       }
-  //     } else {
-  //       Left(FileNotFound)
-  //     }
-  //   }
-  // }
+  ): IO[FileSystemFailure, DirectoryEntry] = {
+    val limit = FileSystem.Depth(depth)
+    if (path.exists && limit.canGoDeeper) {
+      if (path.isDirectory) {
+        IO({
+          val directory = DirectoryEntry.empty(path.toPath)
+          FileSystem.readDirectoryEntry(
+            directory,
+            limit.goDeeper,
+            Vector(),
+            mutable.Queue().appendAll(FileSystem.list(path.toPath)),
+            mutable.Queue()
+          )
+          directory
+        }).mapError(errorHandling)
+      } else {
+        IO.fail(NotDirectory)
+      }
+    } else {
+      IO.fail(FileNotFound)
+    }
+  }
 
   private val errorHandling: Throwable => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
@@ -295,6 +244,9 @@ object FileSystem {
     visited: Vector[SymbolicLinkEntry]
   )
 
+  /**
+    * Read an entry without following the symlinks.
+    */
   private def readEntry(path: Path): Entry = {
     if (Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS)) {
       FileEntry(path)
@@ -312,6 +264,9 @@ object FileSystem {
     }
   }
 
+  /**
+    * Read the target of a symlink.
+    */
   private def readSymbolicLink(path: Path): Entry = {
     if (Files.isRegularFile(path)) {
       FileEntry(path)
