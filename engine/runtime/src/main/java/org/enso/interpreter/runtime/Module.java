@@ -175,19 +175,18 @@ public class Module implements TruffleObject {
     private static Object evalExpression(
         ModuleScope scope, Object[] args, Context context, CallOptimiserNode callOptimiserNode)
         throws ArityException, UnsupportedTypeException {
-      return null;
-//      String expr = Types.extractArguments(args, String.class);
-//      AtomConstructor debug = context.getBuiltins().debug();
-//      Function eval =
-//          context
-//              .getBuiltins()
-//              .getScope()
-//              .lookupMethodDefinition(debug, Builtins.MethodNames.Debug.EVAL);
-//      CallerInfo callerInfo = new CallerInfo(null, new LocalScope(), scope);
-//      Object state = context.getBuiltins().unit().newInstance();
-//      return callOptimiserNode
-//          .executeDispatch(eval, callerInfo, state, new Object[] {debug, expr})
-//          .getValue();
+      String expr = Types.extractArguments(args, String.class);
+      AtomConstructor debug = context.getBuiltins().debug();
+      Function eval =
+          context
+              .getBuiltins()
+              .getScope()
+              .lookupMethodDefinition(debug, Builtins.MethodNames.Debug.EVAL);
+      CallerInfo callerInfo = new CallerInfo(null, LocalScope.root(), scope);
+      Object state = context.getBuiltins().unit().newInstance();
+      return callOptimiserNode
+          .executeDispatch(eval, callerInfo, state, new Object[] {debug, expr})
+          .getValue();
     }
 
     @Specialization

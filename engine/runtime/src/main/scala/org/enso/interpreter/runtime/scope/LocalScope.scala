@@ -1,9 +1,15 @@
 package org.enso.interpreter.runtime.scope
 
+import java.util
+
 import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlot, FrameSlotKind}
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
-import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
+import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
+  Occurrence,
+  Scope => AliasScope
+}
+import scala.jdk.CollectionConverters._
 
 import scala.collection.mutable
 
@@ -21,6 +27,8 @@ class LocalScope(
     FrameSlotKind.Object
   )
 
+  def createChild(): LocalScope = createChild(scope.addChild())
+
   def createChild(
     childScope: AliasScope,
     flattenToParent: Boolean = false
@@ -36,9 +44,7 @@ class LocalScope(
 
   def getFramePointer(id: Graph.Id): Option[FramePointer] = {
     aliasingGraph.defLinkFor(id).flatMap { link =>
-//    println(s"LINK FOR $id: $link")
       val slot = frameSlots.get(link.target)
-
       slot.map(
         new FramePointer(
           if (flattenToParent) link.scopeCount - 1 else link.scopeCount,
@@ -46,5 +52,33 @@ class LocalScope(
         )
       )
     }
+  }
+
+  def flatten: java.util.Map[String, FramePointer] = flattenWithLevel(0).asJava
+
+  private def flattenWithLevel(
+    level: Int
+  ): Map[Graph.Symbol, FramePointer] = {
+    var parentResult: Map[Graph.Symbol, FramePointer] = scope.parent match {
+      case Some(parent) =>
+        new LocalScope(aliasingGraph, parent).flattenWithLevel(level + 1)
+      case _ => Map()
+    }
+    scope.occurrences.foreach {
+      case x: Occurrence.Def =>
+        parentResult += x.symbol -> new FramePointer(
+          level,
+          frameSlots(x.id)
+        )
+      case _ =>
+    }
+    parentResult
+  }
+}
+
+object LocalScope {
+  def root(): LocalScope = {
+    val graph = new AliasAnalysis.Graph
+    new LocalScope(graph, graph.rootScope)
   }
 }

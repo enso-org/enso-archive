@@ -62,7 +62,18 @@ case object AliasAnalysis extends IRPass {
     ir: IR.Expression,
     localScope: Option[LocalScope]   = None,
     moduleScope: Option[ModuleScope] = None
-  ): IR.Expression = ir
+  ): IR.Expression =
+    localScope
+      .map { localScope =>
+        val scope = localScope.scope
+        val graph = localScope.aliasingGraph
+        analyseExpression(ir, graph, scope)
+      }
+      .getOrElse(
+        throw new CompilerError(
+          "Local scope must be provided for alias analysis."
+        )
+      )
 
   /** Performs alias analysis on the module-level definitions.
     *
@@ -362,7 +373,7 @@ case object AliasAnalysis extends IRPass {
               )
           ),
           fallback = fallback.map(analyseExpression(_, graph, parentScope))
-        )//.addMetadata(Info.Scope.Child(graph, currentScope))
+        ) //.addMetadata(Info.Scope.Child(graph, currentScope))
       case _ => throw new CompilerError("Case branch in `analyseCase`.")
     }
   }
@@ -597,10 +608,10 @@ case object AliasAnalysis extends IRPass {
       * @param occurrences all symbol occurrences in `this` scope
       */
     sealed class Scope(
-      private var childScopes: List[Scope]     = List(),
-      private var occurrences: Set[Occurrence] = Set()
+      var childScopes: List[Scope]     = List(),
+      var occurrences: Set[Occurrence] = Set()
     ) {
-      private var parent: Option[Scope] = None
+      var parent: Option[Scope] = None
 
       /** Creates and returns a scope that is a child of this one.
         *
