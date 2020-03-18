@@ -1,13 +1,13 @@
 package org.enso.languageserver.requesthandler.file
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Status}
-import org.enso.languageserver.filemanager.FileManagerApi.ReadFile
+import org.enso.jsonrpc.Errors.ServiceError
+import org.enso.jsonrpc._
 import org.enso.languageserver.filemanager.{
   FileManagerProtocol,
   FileSystemFailureMapper
 }
-import org.enso.languageserver.jsonrpc.Errors.ServiceError
-import org.enso.languageserver.jsonrpc._
+import org.enso.languageserver.filemanager.FileManagerApi.ReadFile
 import org.enso.languageserver.requesthandler.RequestTimeout
 
 import scala.concurrent.duration.FiniteDuration

@@ -5,6 +5,7 @@ import java.net.URI
 
 import akka.actor.{ActorSystem, Props}
 import akka.stream.SystemMaterializer
+import org.enso.jsonrpc.JsonRpcServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
@@ -13,6 +14,7 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.filemanager.{FileManager, FileSystem}
+import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.polyglot.{LanguageInfo, RuntimeServerInfo}
@@ -79,12 +81,14 @@ class MainModule(serverConfig: LanguageServerConfig) {
     })
     .build()
 
+  lazy val clientControllerFactory = new ServerClientControllerFactory(
+    languageServer,
+    bufferRegistry,
+    capabilityRouter,
+    fileManager
+  )
+
   lazy val server =
-    new WebSocketServer(
-      languageServer,
-      bufferRegistry,
-      capabilityRouter,
-      runtimeConnector,
-      fileManager
-    )
+    new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
+
 }

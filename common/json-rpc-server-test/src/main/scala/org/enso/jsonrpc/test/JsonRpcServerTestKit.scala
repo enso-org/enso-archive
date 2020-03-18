@@ -1,9 +1,7 @@
-package org.enso.languageserver.websocket
-import java.nio.file.Files
-import java.util.UUID
+package org.enso.jsonrpc.test
 
 import akka.NotUsed
-import akka.actor.{ActorRef, ActorSystem, PoisonPill, Props}
+import akka.actor.{ActorRef, ActorSystem, PoisonPill}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws.{Message, TextMessage, WebSocketRequest}
 import akka.stream.OverflowStrategy
@@ -11,28 +9,18 @@ import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import io.circe.Json
 import io.circe.parser.parse
-import org.enso.languageserver.capability.CapabilityRouter
-import org.enso.languageserver.data.{
-  Config,
-  FileManagerConfig,
-  Sha3_224VersionCalculator
-}
-import org.enso.languageserver.{
-  LanguageProtocol,
-  LanguageServer,
-  WebSocketServer
-}
-import org.enso.languageserver.filemanager.{FileSystem, FileManager}
-import org.enso.languageserver.runtime.RuntimeConnector
-import org.enso.languageserver.text.BufferRegistry
-import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
+import org.enso.jsonrpc.{ClientControllerFactory, JsonRpcServer, Protocol}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-abstract class WebSocketServerTest
+/**
+  * Test kit for testing JSON RPC servers.
+  */
+abstract class JsonRpcServerTestKit
     extends TestKit(ActorSystem("TestSystem"))
     with ImplicitSender
     with AnyWordSpecLike
@@ -47,41 +35,16 @@ abstract class WebSocketServerTest
   val interface       = "127.0.0.1"
   var address: String = _
 
-  val testContentRoot   = Files.createTempDirectory(null)
-  val testContentRootId = UUID.randomUUID()
-  val config = Config(
-    Map(testContentRootId -> testContentRoot.toFile),
-    FileManagerConfig(timeout = 3.seconds)
-  )
-
-  testContentRoot.toFile.deleteOnExit()
-
-  var server: WebSocketServer     = _
+  var server: JsonRpcServer       = _
   var binding: Http.ServerBinding = _
 
+  def protocol: Protocol
+
+  def clientControllerFactory: ClientControllerFactory
+
   override def beforeEach(): Unit = {
-    val languageServer = system.actorOf(Props(new LanguageServer(config)))
-    languageServer ! LanguageProtocol.Initialize
-    val bufferRegistry =
-      system.actorOf(
-        BufferRegistry.props(languageServer)(Sha3_224VersionCalculator)
-      )
 
-    lazy val capabilityRouter =
-      system.actorOf(CapabilityRouter.props(bufferRegistry))
-
-    lazy val runtimeConnector = system.actorOf(RuntimeConnector.props)
-
-    lazy val fileManager =
-      system.actorOf(FileManager.props(config, new FileSystem))
-
-    server = new WebSocketServer(
-      languageServer,
-      bufferRegistry,
-      capabilityRouter,
-      runtimeConnector,
-      fileManager
-    )
+    server  = new JsonRpcServer(protocol, clientControllerFactory)
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)
     address = s"ws://$interface:${binding.localAddress.getPort}"
   }

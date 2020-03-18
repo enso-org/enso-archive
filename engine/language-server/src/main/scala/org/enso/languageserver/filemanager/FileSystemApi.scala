@@ -3,8 +3,6 @@ package org.enso.languageserver.filemanager
 import java.io.File
 import java.nio.file.Path
 
-import zio._
-
 import scala.collection.mutable.ArrayBuffer
 
 /**
