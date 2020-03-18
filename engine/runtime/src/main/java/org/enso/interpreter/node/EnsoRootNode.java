@@ -36,7 +36,7 @@ public abstract class EnsoRootNode extends RootNode {
       ModuleScope moduleScope,
       String name,
       SourceSection sourceSection) {
-    super(language, localScope.getFrameDescriptor());
+    super(language, localScope.frameDescriptor());
     this.name = name;
     this.localScope = localScope;
     this.moduleScope = moduleScope;
@@ -90,7 +90,7 @@ public abstract class EnsoRootNode extends RootNode {
    * @return the state frame slot
    */
   public FrameSlot getStateFrameSlot() {
-    return localScope.getStateFrameSlot();
+    return localScope.stateFrameSlot();
   }
 
   /**

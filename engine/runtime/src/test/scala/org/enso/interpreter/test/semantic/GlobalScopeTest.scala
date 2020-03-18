@@ -34,9 +34,7 @@ class GlobalScopeTest extends InterpreterTest {
         |
         |main =
         |    fn = multiply ->
-        |        res = adder Unit 1 2
-        |        doubled = res * multiply
-        |        doubled
+        |        multiply * 5
         |    fn 2
     """.stripMargin
 

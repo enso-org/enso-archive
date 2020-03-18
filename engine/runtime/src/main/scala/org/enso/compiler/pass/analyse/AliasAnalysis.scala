@@ -5,6 +5,7 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+import org.enso.syntax.text.Debug
 
 import scala.reflect.ClassTag
 
@@ -79,9 +80,17 @@ case object AliasAnalysis extends IRPass {
 
     ir match {
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
+        // FIXME
+        val bodyFun = body.asInstanceOf[IR.Function.Lambda]
+        val withNewArg = bodyFun.copy(arguments =  IR.DefinitionArgument.Specified(
+          IR.Name.This(None),
+          None,
+          suspended = false,
+          None
+        ) :: bodyFun.arguments)
         m.copy(
             body = analyseExpression(
-              body,
+              withNewArg,
               topLevelGraph,
               topLevelGraph.rootScope,
               lambdaReuseScope = true,
@@ -168,6 +177,8 @@ case object AliasAnalysis extends IRPass {
         } else {
           IR.Error.Redefined.Binding(binding)
         }
+      case app: IR.Application =>
+        analyseApplication(app, graph, parentScope)
       case x =>
         x.mapExpressions(
           (expression: IR.Expression) =>
@@ -228,6 +239,41 @@ case object AliasAnalysis extends IRPass {
           IR.Error.Redefined.Argument(arg)
         }
       case err: IR.Error.Redefined.Argument => err
+    }
+  }
+
+  def analyseApplication(
+    application: IR.Application,
+    graph: AliasAnalysis.Graph,
+    scope: AliasAnalysis.Graph.Scope
+  ): IR.Application = {
+    application match {
+      case app @ IR.Application.Prefix(fun, arguments, _, _, _) =>
+        app.copy(
+          function  = analyseExpression(fun, graph, scope),
+          arguments = analyseCallArguments(arguments, graph, scope)
+        )
+      case app @ IR.Application.Force(expr, _, _) =>
+        app.copy(target = analyseExpression(expr, graph, scope))
+      case _: IR.Application.Operator.Binary =>
+        throw new CompilerError(
+          "Binary operator occurred during Alias Analysis."
+        )
+
+    }
+  }
+
+  def analyseCallArguments(
+    args: List[IR.CallArgument],
+    graph: AliasAnalysis.Graph,
+    scope: AliasAnalysis.Graph.Scope
+  ): List[IR.CallArgument] = {
+    args.map {
+      case arg @ IR.CallArgument.Specified(_, expr, _, _) =>
+        val childScope = scope.addChild()
+        arg
+          .copy(value = analyseExpression(expr, graph, childScope))
+          .addMetadata(Info.Scope.Child(graph, childScope))
     }
   }
 
@@ -418,6 +464,11 @@ case object AliasAnalysis extends IRPass {
     override def toString: String =
       s"Graph(links = $links, rootScope = $rootScope)"
 
+    def pprint: String = {
+      val original = toString
+      Debug.pretty(original)
+    }
+
     /** Gets all links in which the provided `id` is a participant.
       *
       * @param id the identifier for the symbol
@@ -442,6 +493,16 @@ case object AliasAnalysis extends IRPass {
       links.filter(
         l => idsForSym.contains(l.source) || idsForSym.contains(l.target)
       )
+    }
+
+    def defLinkFor(id: Graph.Id): Option[Graph.Link] = {
+      linksFor(id).find { edge =>
+        val occ = rootScope.getOccurrence(edge.target)
+        occ match {
+          case Some(Occurrence.Def(_, _)) => true
+          case _                          => false
+        }
+      }
     }
 
     /** Gets the scope where a given ID is defined in the graph.
