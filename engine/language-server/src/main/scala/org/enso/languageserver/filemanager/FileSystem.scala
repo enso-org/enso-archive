@@ -14,7 +14,7 @@ import scala.collection.mutable
   *
   * @tparam F represents target monad
   */
-class FileSystem extends FileSystemApi[FileSystem.BlockingIO] {
+class FileSystem extends FileSystemApi[IO] {
 
   import FileSystem._, FileSystemApi._
 
@@ -25,9 +25,8 @@ class FileSystem extends FileSystemApi[FileSystem.BlockingIO] {
     * @param content    a textual content of the file
     * @return either FileSystemFailure or Unit
     */
-  override def write(file: File, content: String): BlockingIO[Unit] =
-    zio.blocking
-      .effectBlockingIO(FileUtils.write(file, content, "UTF-8"))
+  override def write(file: File, content: String): IO[FileSystemFailure, Unit] =
+    ZIO(FileUtils.write(file, content, "UTF-8"))
       .mapError(errorHandling)
 
   /**
@@ -233,12 +232,12 @@ class FileSystem extends FileSystemApi[FileSystem.BlockingIO] {
   //   }
   // }
 
-  private val errorHandling: IOException => FileSystemFailure = {
+  private val errorHandling: Throwable => FileSystemFailure = {
     case _: FileNotFoundException => FileNotFound
     case _: NoSuchFileException   => FileNotFound
     case _: FileExistsException   => FileExists
     case _: AccessDeniedException => AccessDenied
-    case ex                       => GenericFileSystemFailure(ex.getMessage)
+    case ex: Throwable            => GenericFileSystemFailure(ex.getMessage)
   }
 
 }
@@ -247,7 +246,7 @@ object FileSystem {
 
   import FileSystemApi._
 
-  type BlockingIO[A] = ZIO[zio.blocking.Blocking, FileSystemFailure, A]
+  type BlockingIO[E, A] = ZIO[zio.blocking.Blocking, E, A]
 
   /**
     * Represent a depth limit when recursively traversing a directory.

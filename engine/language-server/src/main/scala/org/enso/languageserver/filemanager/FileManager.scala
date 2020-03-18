@@ -6,6 +6,7 @@ import akka.pattern.pipe
 import org.enso.languageserver.ZioExec
 import org.enso.languageserver.data.Config
 import zio._
+import zio.blocking.blocking
 
 class FileManager(config: Config, fs: FileSystem)
     extends Actor
@@ -22,7 +23,7 @@ class FileManager(config: Config, fs: FileSystem)
         } yield ()
 
       ZioExec()
-        .execTimed(config.fileManager.timeout, write)
+        .execTimed(config.fileManager.timeout, blocking(write))
         .map(FileManagerProtocol.WriteFileResult)
         .pipeTo(sender())
   }
