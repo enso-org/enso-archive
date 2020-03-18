@@ -10,8 +10,8 @@ import akka.stream.SystemMaterializer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
-  FileManagerConfig,
   ContentBasedVersioning,
+  FileManagerConfig,
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.filemanager.{FileManager, FileSystem}
@@ -59,7 +59,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
-  lazy val fileManager = system.actorOf(FileManager.props(languageServerConfig, fileSystem), "file-manager")
+  lazy val fileManager = system.actorOf(
+    FileManager.props(languageServerConfig, fileSystem),
+    "file-manager"
+  )
 
   val context = Context
     .newBuilder(LanguageInfo.ID)

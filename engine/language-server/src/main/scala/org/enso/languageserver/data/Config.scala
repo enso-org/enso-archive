@@ -16,7 +16,7 @@ object FileManagerConfig {
 
   def apply(timeout: FiniteDuration): FileManagerConfig =
     FileManagerConfig(
-      timeout = timeout,
+      timeout     = timeout,
       parallelism = Runtime.getRuntime().availableProcessors()
     )
 }
@@ -27,7 +27,10 @@ object FileManagerConfig {
   * @param contentRoots a mapping between content root id and absolute path to
   *                     the content root
   */
-case class Config(contentRoots: Map[UUID, File], fileManager: FileManagerConfig) {
+case class Config(
+  contentRoots: Map[UUID, File],
+  fileManager: FileManagerConfig
+) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
     contentRoots
