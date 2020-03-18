@@ -8,7 +8,7 @@ import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * Abstract entity that executes effects F.
+  * Abstract entity that executes effects `F`.
   */
 trait Exec[F[_, _]] {
 
