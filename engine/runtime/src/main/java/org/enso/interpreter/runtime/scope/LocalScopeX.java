@@ -13,14 +13,14 @@ import org.enso.interpreter.runtime.error.VariableRedefinitionException;
  * between the interpreter's concept of stack frames and the guest language's concept of stack
  * frames.
  */
-public class LocalScope {
+public class LocalScopeX {
   private final FrameDescriptor frameDescriptor;
-  private final LocalScope parent;
+  private final LocalScopeX parent;
   private final Map<String, FrameSlot> items;
   private final FrameSlot stateFrameSlot;
 
   /** Creates a root local scope. */
-  public LocalScope() {
+  public LocalScopeX() {
     this(null);
   }
 
@@ -29,7 +29,7 @@ public class LocalScope {
    *
    * @param parent the parent scope
    */
-  public LocalScope(LocalScope parent) {
+  public LocalScopeX(LocalScopeX parent) {
     this.items = new HashMap<>();
     this.frameDescriptor = new FrameDescriptor();
     this.parent = parent;
@@ -54,7 +54,7 @@ public class LocalScope {
    *
    * @return the parent scope
    */
-  public LocalScope getParent() {
+  public LocalScopeX getParent() {
     return parent;
   }
 
@@ -63,8 +63,8 @@ public class LocalScope {
    *
    * @return a new scope with {@code this} as its parent
    */
-  public LocalScope createChild() {
-    return new LocalScope(this);
+  public LocalScopeX createChild() {
+    return new LocalScopeX(this);
   }
 
   /**
@@ -88,7 +88,7 @@ public class LocalScope {
    * @return a handle to the variable, otherwise {@link Optional#empty()}
    */
   public Optional<FramePointer> getSlot(String name) {
-    LocalScope scope = this;
+    LocalScopeX scope = this;
     int parentCounter = 0;
     while (scope != null) {
       FrameSlot slot = scope.items.get(name);

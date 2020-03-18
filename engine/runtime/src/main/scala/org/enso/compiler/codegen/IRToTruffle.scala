@@ -4,7 +4,9 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
-import org.enso.compiler.pass.analyse.ApplicationSaturation
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
+import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
+import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
 import org.enso.interpreter.node.callable.function.{
   BlockNode,
@@ -151,6 +153,12 @@ class IRToTruffle(
 
     // Register the method definitions in scope
     methodDefs.foreach(methodDef => {
+      val scopeInfo = methodDef
+        .getMetadata[AliasAnalysis.Info.Scope.Root]
+        .getOrElse(
+          throw new CompilerError(("Missing scope information for method."))
+        )
+
       val thisArgument =
         IR.DefinitionArgument.Specified(
           IR.Name.This(None),
@@ -167,7 +175,9 @@ class IRToTruffle(
         }
 
       val expressionProcessor = new ExpressionProcessor(
-        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name
+        typeName ++ Constants.SCOPE_SEPARATOR ++ methodDef.methodName.name,
+        scopeInfo.graph,
+        scopeInfo.graph.rootScope
       )
 
       val funNode = methodDef.body match {
@@ -263,8 +273,8 @@ class IRToTruffle(
       *
       * @param scopeName the name to attribute to the default local scope.
       */
-    def this(scopeName: String) = {
-      this(new LocalScope(), scopeName)
+    def this(scopeName: String, graph: AliasGraph, scope: AliasScope) = {
+      this(new LocalScope(graph, scope, mutable.Map()), scopeName)
     }
 
     /** Creates an instance of [[ExpressionProcessor]] that operates in a child
@@ -273,8 +283,11 @@ class IRToTruffle(
       * @param name the name of the child scope
       * @return an expression processor operating on a child scope
       */
-    def createChild(name: String): ExpressionProcessor = {
-      new ExpressionProcessor(this.scope.createChild(), name)
+    def createChild(
+      name: String,
+      scope: AliasScope
+    ): ExpressionProcessor = {
+      new ExpressionProcessor(this.scope.createChild(scope), name)
     }
 
     // === Runner =============================================================
@@ -338,7 +351,11 @@ class IRToTruffle(
       */
     def processBlock(block: IR.Expression.Block): RuntimeExpression = {
       if (block.suspended) {
-        val childFactory = this.createChild("suspended-block")
+        val scopeInfo = block
+          .getMetadata[AliasAnalysis.Info.Scope.Child]
+          .getOrElse(throw new CompilerError("Missing scope data on block."))
+
+        val childFactory = this.createChild("suspended-block", scopeInfo.scope)
         val childScope   = childFactory.scope
 
         val blockNode = childFactory.processBlock(block.copy(suspended = false))
@@ -406,9 +423,17 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `binding`
       */
     def processBinding(binding: IR.Expression.Binding): RuntimeExpression = {
+      val occInfo = binding
+        .getMetadata[AliasAnalysis.Info.Occurrence]
+        .getOrElse(
+          throw new CompilerError(
+            "Binding with missing occurrence information."
+          )
+        )
+
       currentVarName = binding.name.name
 
-      val slot = scope.createVarSlot(currentVarName)
+      val slot = scope.createVarSlot(occInfo.id)
 
       setLocation(
         AssignmentNode.build(this.run(binding.expression), slot),
@@ -422,13 +447,17 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `function`
       */
     def processFunction(function: IR.Function): RuntimeExpression = {
+      val scopeInfo = function
+        .getMetadata[AliasAnalysis.Info.Scope.Child]
+        .getOrElse(throw new CompilerError("No scope info on a function."))
+
       val scopeName = if (function.canBeTCO) {
         currentVarName
       } else {
         "case_expression"
       }
 
-      val child = this.createChild(scopeName)
+      val child = this.createChild(scopeName, scopeInfo.scope)
 
       val fn = child.processFunctionBody(
         function.arguments,
@@ -745,7 +774,7 @@ class IRToTruffle(
       case err: IR.Error.Redefined.Argument =>
         throw new CompilerError(
           s"Argument redefinition errors should not be present during " +
-            s"codegen, but found $err."
+          s"codegen, but found $err."
         )
     }
   }

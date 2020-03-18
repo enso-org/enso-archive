@@ -514,6 +514,28 @@ case object AliasAnalysis extends IRPass {
     def symbols: Set[Graph.Symbol] = {
       rootScope.symbols
     }
+
+    /** Goes from a symbol to all identifiers that relate to that symbol in
+      * the role specified by `T`.
+      *
+      * @param symbol the symbol to find identifiers for
+      * @tparam T the role in which `symbol` should occur
+      * @return a list of identifiers for that symbol
+      */
+    def symbolToIds[T <: Occurrence: ClassTag](
+      symbol: Graph.Symbol
+    ): List[Graph.Id] = {
+      rootScope.symbolToIds[T](symbol)
+    }
+
+    /** Goes from an identifier to the associated symbol.
+      *
+      * @param id the identifier of an occurrence
+      * @return the symbol associated with `id`, if it exists
+      */
+    def idToSymbol(id: Graph.Id): Option[Graph.Symbol] = {
+      rootScope.idToSymbol(id)
+    }
   }
   object Graph {
 
@@ -749,10 +771,10 @@ case object AliasAnalysis extends IRPass {
       }
 
       /** Checks if `this` scope is a child of the provided `scope`.
-       *
-       * @param scope the potential parent scope
-       * @return `true` if `this` is a child of `scope`, otherwise `false`
-       */
+        *
+        * @param scope the potential parent scope
+        * @return `true` if `this` is a child of `scope`, otherwise `false`
+        */
       def isChildOf(scope: Scope): Boolean = {
         ???
       }
