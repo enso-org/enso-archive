@@ -90,15 +90,19 @@ class FileSystem extends FileSystemApi[IO] {
     * @return either [[FileSystemFailure]] or Unit
     */
   override def copy(from: File, to: File): IO[FileSystemFailure, Unit] =
-    IO({
-      if (from.isFile && to.isDirectory) {
-        FileUtils.copyFileToDirectory(from, to)
-      } else if (from.isDirectory) {
-        FileUtils.copyDirectory(from, to)
-      } else {
-        FileUtils.copyFile(from, to)
-      }
-    }).mapError(errorHandling)
+    if (from.isDirectory && to.isFile) {
+      IO.fail(FileExists)
+    } else {
+      IO({
+        if (from.isFile && to.isDirectory) {
+          FileUtils.copyFileToDirectory(from, to)
+        } else if (from.isDirectory) {
+          FileUtils.copyDirectory(from, to)
+        } else {
+          FileUtils.copyFile(from, to)
+        }
+      }).mapError(errorHandling)
+    }
 
   /**
     * Move a file or directory recursively
@@ -186,7 +190,7 @@ class FileSystem extends FileSystemApi[IO] {
     case _: NoSuchFileException   => FileNotFound
     case _: FileExistsException   => FileExists
     case _: AccessDeniedException => AccessDenied
-    case ex: Throwable            => GenericFileSystemFailure(ex.getMessage)
+    case ex                       => GenericFileSystemFailure(ex.getMessage)
   }
 
 }
@@ -194,8 +198,6 @@ class FileSystem extends FileSystemApi[IO] {
 object FileSystem {
 
   import FileSystemApi._
-
-  type BlockingIO[E, A] = ZIO[zio.blocking.Blocking, E, A]
 
   /**
     * Represent a depth limit when recursively traversing a directory.

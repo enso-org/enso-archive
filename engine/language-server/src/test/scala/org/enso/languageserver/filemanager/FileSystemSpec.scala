@@ -2,11 +2,14 @@ package org.enso.languageserver.filemanager
 
 import java.nio.file.{Files, Path, Paths}
 
+import org.enso.languageserver.ZioExec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
 
@@ -20,7 +23,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val result =
       objectUnderTest.write(path.toFile, content).unsafeRunSync()
     //then
-    result shouldBe ()
+    result shouldBe Right(())
     readTxtFile(path) shouldBe content
   }
 
@@ -542,7 +545,7 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
   }
 
   implicit final class UnsafeRunZio[E, A](io: zio.ZIO[zio.ZEnv, E, A]) {
-    def unsafeRunSync(): A =
-      zio.Runtime.default.unsafeRun(io)
+    def unsafeRunSync(): Either[E, A] =
+      Await.result(ZioExec().exec(io), 3.seconds)
   }
 }

@@ -70,15 +70,15 @@ class ClientController(
         .props(bufferRegistry, requestTimeout, client),
       ApplyEdit -> ApplyEditHandler
         .props(bufferRegistry, requestTimeout, client),
-      SaveFile -> SaveFileHandler.props(bufferRegistry, requestTimeout, client),
-      WriteFile -> file.WriteFileHandler.props(requestTimeout, fileManager),
-      ReadFile -> file.ReadFileHandler.props(requestTimeout, fileManager),
+      SaveFile   -> SaveFileHandler.props(bufferRegistry, requestTimeout, client),
+      WriteFile  -> file.WriteFileHandler.props(requestTimeout, fileManager),
+      ReadFile   -> file.ReadFileHandler.props(requestTimeout, fileManager),
       CreateFile -> file.CreateFileHandler.props(requestTimeout, fileManager),
       DeleteFile -> file.DeleteFileHandler.props(requestTimeout, fileManager),
-      CopyFile -> file.CopyFileHandler.props(requestTimeout, fileManager),
-      MoveFile -> file.MoveFileHandler.props(requestTimeout, fileManager),
+      CopyFile   -> file.CopyFileHandler.props(requestTimeout, fileManager),
+      MoveFile   -> file.MoveFileHandler.props(requestTimeout, fileManager),
       ExistsFile -> file.ExistsFileHandler.props(requestTimeout, fileManager),
-      TreeFile -> file.TreeFileHandler.props(requestTimeout, fileManager)
+      TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager)
     )
 
   override def unhandled(message: Any): Unit =
