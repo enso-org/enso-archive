@@ -141,7 +141,9 @@ class FileManager(
 object FileManager {
 
   def props(config: Config, fs: FileSystem, exec: Exec[BlockingIO]): Props =
-    SmallestMailboxPool(config.fileManager.parallelism)
-      .props(Props(new FileManager(config, fs, exec)))
+    Props(new FileManager(config, fs, exec))
 
+  def pool(config: Config, fs: FileSystem, exec: Exec[BlockingIO]): Props =
+    SmallestMailboxPool(config.fileManager.parallelism)
+      .props(props(config, fs, exec))
 }

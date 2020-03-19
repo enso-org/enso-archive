@@ -54,7 +54,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     )
 
   lazy val fileManager = system.actorOf(
-    FileManager.props(languageServerConfig, fileSystem, zioExec),
+    FileManager.pool(languageServerConfig, fileSystem, zioExec),
     "file-manager"
   )
 
