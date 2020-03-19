@@ -1,7 +1,5 @@
 package org.enso.interpreter.runtime.scope
 
-import java.util
-
 import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlot, FrameSlotKind}
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
@@ -9,11 +7,25 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
   Occurrence,
   Scope => AliasScope
 }
-import scala.jdk.CollectionConverters._
 
 import scala.collection.mutable
+import scala.jdk.CollectionConverters._
 
-// TODO [AA] Doc this
+/** A representation of an Enso local scope.
+  *
+  * Enso local scopes may be arbitrarily nested, and are used to maintain a
+  * mapping between the interpreter's concept of stack frames and the guest
+  * language's concept of stack frames.
+  *
+  * @param aliasingGraph the graph containing aliasing information for the tree
+  *                      of scopes within which this local scope exists
+  * @param scope the particular scope in `aliasingGraph` represented by this
+  *              [[LocalScope]].
+  * @param flattenToParent whether or not the frame should be flattened into its
+  *                        parent
+  * @param frameSlots a mapping from symbol definition identifiers to slots in
+  *                   the Enso frame
+  */
 class LocalScope(
   val aliasingGraph: AliasAnalysis.Graph,
   val scope: AliasAnalysis.Graph.Scope,
@@ -54,15 +66,16 @@ class LocalScope(
     }
   }
 
-  def flatten: java.util.Map[String, FramePointer] = flattenWithLevel(0).asJava
+  def flattenBindings: java.util.Map[String, FramePointer] =
+    flattenBindingsWithLevel(0).asJava
 
-  private def flattenWithLevel(
+  private def flattenBindingsWithLevel(
     level: Int
   ): Map[Graph.Symbol, FramePointer] = {
     var parentResult: Map[Graph.Symbol, FramePointer] = scope.parent match {
       case Some(parent) =>
         new LocalScope(aliasingGraph, parent, frameSlots = frameSlots)
-          .flattenWithLevel(level + 1)
+          .flattenBindingsWithLevel(level + 1)
       case _ => Map()
     }
     scope.occurrences.foreach {
@@ -76,9 +89,14 @@ class LocalScope(
     parentResult
   }
 }
-
 object LocalScope {
-  def root(): LocalScope = {
+
+  /** Constructs a local scope for an
+    * [[org.enso.interpreter.node.EnsoRootNode]].
+    *
+    * @return a defaulted local scope
+    */
+  def root: LocalScope = {
     val graph = new AliasAnalysis.Graph
     new LocalScope(graph, graph.rootScope)
   }

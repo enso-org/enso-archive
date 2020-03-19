@@ -135,7 +135,7 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
      * @return a map, where keys are variable names and values are current values of variables.
      */
     public Map<String, Object> listBindings() {
-      Map<String, FramePointer> flatScope = lastScope.getLocalScope().flatten();
+      Map<String, FramePointer> flatScope = lastScope.getLocalScope().flattenBindings();
       Map<String, Object> result = new HashMap<>();
       for (Map.Entry<String, FramePointer> entry : flatScope.entrySet()) {
         result.put(entry.getKey(), getValue(lastScope.getFrame(), entry.getValue()));
