@@ -20,6 +20,7 @@ public abstract class EnsoRootNode extends RootNode {
   private final ModuleScope moduleScope;
   private @CompilerDirectives.CompilationFinal TruffleLanguage.ContextReference<Context>
       contextReference;
+  private @CompilerDirectives.CompilationFinal FrameSlot stateFrameSlot;
 
   /**
    * Constructs the root node.
@@ -90,7 +91,11 @@ public abstract class EnsoRootNode extends RootNode {
    * @return the state frame slot
    */
   public FrameSlot getStateFrameSlot() {
-    return localScope.stateFrameSlot();
+    if (stateFrameSlot == null) {
+      CompilerDirectives.transferToInterpreterAndInvalidate();
+      stateFrameSlot = localScope.stateFrameSlot();
+    }
+    return stateFrameSlot;
   }
 
   /**

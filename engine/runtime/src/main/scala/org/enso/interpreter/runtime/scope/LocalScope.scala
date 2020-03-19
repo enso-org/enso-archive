@@ -31,18 +31,18 @@ import scala.jdk.CollectionConverters._
   *                   the Enso frame
   */
 class LocalScope(
-  val parentScope: Option[LocalScope],
-  val aliasingGraph: AliasAnalysis.Graph,
-  val scope: AliasAnalysis.Graph.Scope,
-  val flattenToParent: Boolean                     = false,
-  val frameSlots: mutable.Map[Graph.Id, FrameSlot] = mutable.Map()
+  final val parentScope: Option[LocalScope],
+  final val aliasingGraph: AliasAnalysis.Graph,
+  final val scope: AliasAnalysis.Graph.Scope,
+  final val flattenToParent: Boolean                     = false,
+  final val frameSlots: mutable.Map[Graph.Id, FrameSlot] = mutable.Map()
 ) {
 
   /** A descriptor for this frame. */
-  val frameDescriptor: FrameDescriptor = new FrameDescriptor()
+  final val frameDescriptor: FrameDescriptor = new FrameDescriptor()
 
   /** The frame slot that contains the frame's state. */
-  val stateFrameSlot: FrameSlot = frameDescriptor.findOrAddFrameSlot(
+  final val stateFrameSlot: FrameSlot = frameDescriptor.findOrAddFrameSlot(
     "<<monadic_state>>",
     FrameSlotKind.Object
   )
