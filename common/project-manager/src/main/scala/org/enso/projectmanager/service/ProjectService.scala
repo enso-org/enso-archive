@@ -37,7 +37,7 @@ class ProjectService(
     for {
       _            <- log.debug(s"Creating project $name.")
       _            <- validateName(name)
-//      _            <- validateExists(name)
+      _            <- validateExists(name)
       creationTime <- clock.nowInUtc()
       projectId     = UUID.randomUUID()
       project       = ProjectEntity(projectId, name, creationTime, None)
@@ -54,8 +54,8 @@ class ProjectService(
       .exists(name)
       .mapError(toServiceFailure)
       .flatMap { exists =>
-        if (exists) ZIO.unit
-        else ZIO.fail(ProjectExists)
+        if (exists) ZIO.fail(ProjectExists)
+        else ZIO.unit
       }
 
   private val toServiceFailure
