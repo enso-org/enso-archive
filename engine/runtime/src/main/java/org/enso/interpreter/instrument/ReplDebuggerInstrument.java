@@ -185,9 +185,16 @@ public class ReplDebuggerInstrument extends TruffleInstrument {
     protected void onEnter(VirtualFrame frame) {
       lastScope = Function.ArgumentsHelper.getCallerInfo(frame.getArguments());
       lastReturn = lookupContextReference(Language.class).get().getUnit().newInstance();
-      lastState = lastScope.getFrame().getValue(lastScope.getLocalScope().stateFrameSlot());
+      // Note [Safe Access to State in the Debugger Instrument]
+      lastState = Function.ArgumentsHelper.getState(frame.getArguments());
       sessionManagerReference.get().startSession(this);
     }
+
+    /* Note [Safe Access to State in the Debugger Instrument]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * This is safe to do as we ensure that the instrument's `onEnter` is always called as the
+     * first instruction of the function that it's observing.
+     */
 
     /**
      * Called by Truffle whenever an unwind {@see {@link EventContext#createUnwind(Object)}} was

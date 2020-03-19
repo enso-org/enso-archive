@@ -1,6 +1,6 @@
 package org.enso.interpreter.runtime.scope
 
-import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlot, FrameSlotKind}
+import com.oracle.truffle.api.frame.{FrameDescriptor, FrameSlot}
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{
@@ -39,13 +39,7 @@ class LocalScope(
 ) {
 
   /** A descriptor for this frame. */
-  final val frameDescriptor: FrameDescriptor = new FrameDescriptor()
-
-  /** The frame slot that contains the frame's state. */
-  final val stateFrameSlot: FrameSlot = frameDescriptor.findOrAddFrameSlot(
-    "<<monadic_state>>",
-    FrameSlotKind.Object
-  )
+  val frameDescriptor: FrameDescriptor = new FrameDescriptor()
 
   /** Creates a new child with a new aliasing scope.
     *
