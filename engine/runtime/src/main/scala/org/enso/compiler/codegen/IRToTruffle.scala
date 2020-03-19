@@ -169,10 +169,6 @@ class IRToTruffle(
           throw new CompilerError(("Missing scope information for method."))
         )
 
-      if (methodDef.methodName.name == "main") {
-//        println(scopeInfo.graph.pprint)
-      }
-
       val typeName =
         if (methodDef.typeName.name == Constants.Names.CURRENT_MODULE) {
           moduleScope.getAssociatedType.getName
@@ -490,9 +486,6 @@ class IRToTruffle(
             )
 
           val slot = scope.getFramePointer(useInfo.id)
-//          println(name.name)
-//          println(useInfo.id)
-//          println(slot)
           val atomCons = moduleScope.getConstructor(nameStr).toScala
           if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
