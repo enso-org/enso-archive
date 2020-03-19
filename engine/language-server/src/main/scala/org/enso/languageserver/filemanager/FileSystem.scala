@@ -4,7 +4,9 @@ import java.io.{File, FileNotFoundException}
 import java.nio.file._
 
 import org.apache.commons.io.{FileExistsException, FileUtils}
+import org.enso.languageserver.effect.BlockingIO
 import zio._
+import zio.blocking.effectBlocking
 
 import scala.collection.mutable
 
@@ -13,7 +15,7 @@ import scala.collection.mutable
   *
   * @tparam F represents target monad
   */
-class FileSystem extends FileSystemApi[IO] {
+class FileSystem extends FileSystemApi[BlockingIO] {
 
   import FileSystemApi._
 
@@ -24,8 +26,11 @@ class FileSystem extends FileSystemApi[IO] {
     * @param content a textual content of the file
     * @return either FileSystemFailure or Unit
     */
-  override def write(file: File, content: String): IO[FileSystemFailure, Unit] =
-    IO(FileUtils.write(file, content, "UTF-8"))
+  override def write(
+    file: File,
+    content: String
+  ): BlockingIO[FileSystemFailure, Unit] =
+    effectBlocking(FileUtils.write(file, content, "UTF-8"))
       .mapError(errorHandling)
 
   /**
@@ -34,8 +39,8 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file
     * @return either [[FileSystemFailure]] or the content of a file as a String
     */
-  override def read(file: File): IO[FileSystemFailure, String] =
-    IO(FileUtils.readFileToString(file, "UTF-8"))
+  override def read(file: File): BlockingIO[FileSystemFailure, String] =
+    effectBlocking(FileUtils.readFileToString(file, "UTF-8"))
       .mapError(errorHandling)
 
   /**
@@ -44,8 +49,8 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or Unit
     */
-  def delete(file: File): IO[FileSystemFailure, Unit] =
-    IO({
+  def delete(file: File): BlockingIO[FileSystemFailure, Unit] =
+    effectBlocking({
       if (file.isDirectory) {
         FileUtils.deleteDirectory(file)
       } else {
@@ -59,14 +64,14 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file
     * @return
     */
-  override def createFile(file: File): IO[FileSystemFailure, Unit] =
+  override def createFile(file: File): BlockingIO[FileSystemFailure, Unit] =
     for {
       _ <- createDirectory(file.getParentFile)
       _ <- createEmptyFile(file)
     } yield ()
 
-  private def createEmptyFile(file: File): IO[FileSystemFailure, Unit] =
-    IO(file.createNewFile(): Unit)
+  private def createEmptyFile(file: File): BlockingIO[FileSystemFailure, Unit] =
+    effectBlocking(file.createNewFile(): Unit)
       .mapError(errorHandling)
 
   /**
@@ -76,8 +81,10 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file
     * @return
     */
-  override def createDirectory(file: File): IO[FileSystemFailure, Unit] =
-    IO(FileUtils.forceMkdir(file))
+  override def createDirectory(
+    file: File
+  ): BlockingIO[FileSystemFailure, Unit] =
+    effectBlocking(FileUtils.forceMkdir(file))
       .mapError(errorHandling)
 
   /**
@@ -89,11 +96,11 @@ class FileSystem extends FileSystemApi[IO] {
     * be a directory.
     * @return either [[FileSystemFailure]] or Unit
     */
-  override def copy(from: File, to: File): IO[FileSystemFailure, Unit] =
+  override def copy(from: File, to: File): BlockingIO[FileSystemFailure, Unit] =
     if (from.isDirectory && to.isFile) {
       IO.fail(FileExists)
     } else {
-      IO({
+      effectBlocking({
         if (from.isFile && to.isDirectory) {
           FileUtils.copyFileToDirectory(from, to)
         } else if (from.isDirectory) {
@@ -111,8 +118,8 @@ class FileSystem extends FileSystemApi[IO] {
     * @param to a path to the destination
     * @return either [[FileSystemFailure]] or Unit
     */
-  override def move(from: File, to: File): IO[FileSystemFailure, Unit] =
-    IO({
+  override def move(from: File, to: File): BlockingIO[FileSystemFailure, Unit] =
+    effectBlocking({
       if (to.isDirectory) {
         val createDestDir = false
         FileUtils.moveToDirectory(from, to, createDestDir)
@@ -129,14 +136,14 @@ class FileSystem extends FileSystemApi[IO] {
     * @param file path to the file or directory
     * @return either [[FileSystemFailure]] or file existence flag
     */
-  override def exists(file: File): IO[FileSystemFailure, Boolean] =
-    IO(Files.exists(file.toPath))
+  override def exists(file: File): BlockingIO[FileSystemFailure, Boolean] =
+    effectBlocking(Files.exists(file.toPath))
       .mapError(errorHandling)
 
-  override def list(path: File): IO[FileSystemFailure, Vector[Entry]] =
+  override def list(path: File): BlockingIO[FileSystemFailure, Vector[Entry]] =
     if (path.exists) {
       if (path.isDirectory) {
-        IO({
+        effectBlocking({
           FileSystem
             .list(path.toPath)
             .map {
@@ -162,11 +169,11 @@ class FileSystem extends FileSystemApi[IO] {
   override def tree(
     path: File,
     depth: Option[Int]
-  ): IO[FileSystemFailure, DirectoryEntry] = {
+  ): BlockingIO[FileSystemFailure, DirectoryEntry] = {
     val limit = FileSystem.Depth(depth)
     if (path.exists && limit.canGoDeeper) {
       if (path.isDirectory) {
-        IO({
+        effectBlocking({
           val directory = DirectoryEntry.empty(path.toPath)
           FileSystem.readDirectoryEntry(
             directory,

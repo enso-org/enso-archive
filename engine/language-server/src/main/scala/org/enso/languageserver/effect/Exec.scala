@@ -12,8 +12,21 @@ import scala.concurrent.duration.FiniteDuration
   */
 trait Exec[-F[_, _]] {
 
+  /**
+    * Execute Zio effect.
+    *
+    * @param op effect to execute
+    * @return a future containing either a failure or a result
+    */
   def exec[E, A](op: F[E, A]): Future[Either[E, A]]
 
+  /**
+    * Execute Zio effect with timeout.
+    *
+    * @param timeout execution timeout
+    * @param op effect to execute
+    * @return a future
+    */
   def execTimed[E, A](
     timeout: FiniteDuration,
     op: ZIO[ZEnv, E, A]

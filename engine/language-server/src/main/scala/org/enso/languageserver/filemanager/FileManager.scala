@@ -6,7 +6,6 @@ import akka.pattern.pipe
 import org.enso.languageserver.effect._
 import org.enso.languageserver.data.Config
 import zio._
-import zio.blocking.blocking
 
 /**
   * Handles the [[FileManagerProtocol]] messages, executes the [[FileSystem]]
@@ -16,8 +15,11 @@ import zio.blocking.blocking
   * @param fs an instance of a [[FileSyste]] that creates the effects
   * @param exec effects executor
   */
-class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
-    extends Actor {
+class FileManager(
+  config: Config,
+  fs: FileSystemApi[BlockingIO],
+  exec: Exec[BlockingIO]
+) extends Actor {
 
   import context.dispatcher
 
@@ -29,7 +31,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           _        <- fs.write(path.toFile(rootPath), content)
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.WriteFileResult)
         .pipeTo(sender())
       ()
@@ -41,7 +43,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           content  <- fs.read(path.toFile(rootPath))
         } yield content
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.ReadFileResult)
         .pipeTo(sender())
       ()
@@ -53,7 +55,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           _        <- fs.createFile(path.toFile(rootPath, name))
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.CreateFileResult)
         .pipeTo(sender())
       ()
@@ -67,7 +69,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           _        <- fs.createDirectory(path.toFile(rootPath, name))
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.CreateFileResult)
         .pipeTo(sender())
       ()
@@ -79,7 +81,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           _        <- fs.delete(path.toFile(rootPath))
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.DeleteFileResult)
         .pipeTo(sender())
       ()
@@ -92,7 +94,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           _            <- fs.copy(from.toFile(rootPathFrom), to.toFile(rootPathTo))
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.CopyFileResult)
         .pipeTo(sender())
       ()
@@ -105,7 +107,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           _            <- fs.move(from.toFile(rootPathFrom), to.toFile(rootPathTo))
         } yield ()
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.MoveFileResult)
         .pipeTo(sender())
       ()
@@ -117,7 +119,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           exists   <- fs.exists(path.toFile(rootPath))
         } yield exists
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.ExistsFileResult)
         .pipeTo(sender())
       ()
@@ -129,7 +131,7 @@ class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
           directory <- fs.tree(path.toFile(rootPath), depth)
         } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
       exec
-        .execTimed(config.fileManager.timeout, blocking(result))
+        .execTimed(config.fileManager.timeout, result)
         .map(FileManagerProtocol.TreeFileResult)
         .pipeTo(sender())
       ()
