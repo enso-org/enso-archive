@@ -3,15 +3,12 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{
-  CallSaturation,
-  Default,
-  FunctionSpec,
-  PassConfiguration
-}
+import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, Default, FunctionSpec, PassConfiguration}
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.callable.argument.CallArgument
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
+
+import scala.annotation.unused
 
 /** This optimisation pass recognises fully-saturated applications of known
   * functions and writes analysis data that allows optimisation of them to
@@ -53,8 +50,8 @@ case class ApplicationSaturation(
     */
   override def runExpression(
     ir: IR.Expression,
-    localScope: Option[LocalScope]   = None,
-    moduleScope: Option[ModuleScope] = None
+    @unused localScope: Option[LocalScope]   = None,
+    @unused moduleScope: Option[ModuleScope] = None
   ): IR.Expression = {
     ir.transformExpressions {
       case func @ IR.Application.Prefix(fn, args, _, _, meta) =>

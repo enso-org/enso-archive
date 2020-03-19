@@ -391,10 +391,10 @@ class AliasAnalysisTest extends CompilerTest {
     val methodWithLambda =
       """
         |Bar.foo = a b c ->
-        |   d = a b -> a b
-        |   g =
-        |     1 + 1
-        |   d c (a + b)
+        |    d = a b -> a b
+        |    g =
+        |        1 + 1
+        |    d c (a + b)
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
     val methodWithLambdaGraph =
@@ -601,10 +601,10 @@ class AliasAnalysisTest extends CompilerTest {
     val methodWithBlock =
       """
         |Bar.foo =
-        |  a = 2 + 2
-        |  b = a * a
+        |    a = 2 + 2
+        |    b = a * a
         |
-        |  IO.println b
+        |    IO.println b
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
     val methodWithBlockGraph =
@@ -660,8 +660,8 @@ class AliasAnalysisTest extends CompilerTest {
       """
         |List.sum = a -> case a of
         |    Cons a b -> a + b
-        |    Nil -> 0
-        |    _ -> 0
+        |    Nil      -> 0
+        |    _        -> 0
         |""".stripMargin.preprocessModule.analyse.bindings.head
         .asInstanceOf[Method]
     val lambda   = methodWithCase.body.asInstanceOf[IR.Function.Lambda]

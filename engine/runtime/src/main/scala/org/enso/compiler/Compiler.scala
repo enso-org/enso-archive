@@ -33,7 +33,12 @@ class Compiler(
   val context: Context
 ) {
 
-  /** A list of the compiler phases, in the order they should be run. */
+  /** A list of the compiler phases, in the order they should be run.
+    *
+    * Please note that these passes _must_ be run in this order. While we
+    * currently can't account for the dependencies between passes in the types,
+    * they nevertheless exist.
+    */
   val compilerPhaseOrdering: List[IRPass] = List(
     LiftSpecialOperators,
     OperatorToFunction,

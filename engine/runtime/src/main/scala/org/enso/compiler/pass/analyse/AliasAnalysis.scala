@@ -209,7 +209,8 @@ case object AliasAnalysis extends IRPass {
   }
 
   // TODO [AA] Argument redefinition errors shouldn't work like this. Consider
-  //  the fact that multi-argument lambdas don't actually exist.
+  //  the fact that multi-argument lambdas don't actually exist, so something
+  //  like `a b a -> a + b` is actually `a -> b -> a -> a + b`.
   /** Performs alias analysis on the argument definitions for a function.
     *
     * Care is taken during this analysis to ensure that spurious resolutions do
