@@ -84,8 +84,8 @@ object Runtime {
       */
     case class ContextDoesNotExistError()
 
-    private lazy val factory = new CBORFactory()
     private lazy val mapper = {
+      val factory = new CBORFactory()
       val mapper = new ObjectMapper(factory) with ScalaObjectMapper
       mapper.registerModule(DefaultScalaModule)
     }
