@@ -16,7 +16,7 @@ import zio.blocking.blocking
   * @param fs an instance of a [[FileSyste]] that creates the effects
   * @param exec effects executor
   */
-class FileManager(config: Config, fs: FileSystem, exec: Exec[BlockingIO])
+class FileManager(config: Config, fs: FileSystemApi[IO], exec: Exec[BlockingIO])
     extends Actor {
 
   import context.dispatcher
