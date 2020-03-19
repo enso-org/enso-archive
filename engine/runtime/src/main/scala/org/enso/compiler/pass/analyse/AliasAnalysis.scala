@@ -260,12 +260,12 @@ case object AliasAnalysis extends IRPass {
   }
 
   /** Performs alias analysis on a function application.
-   *
-   * @param application the function application to analyse
-   * @param graph the graph in which the analysis is taking place
-   * @param scope the scope in which the application is happening
-   * @return `application`, possibly with aliasing information attached
-   */
+    *
+    * @param application the function application to analyse
+    * @param graph the graph in which the analysis is taking place
+    * @param scope the scope in which the application is happening
+    * @return `application`, possibly with aliasing information attached
+    */
   def analyseApplication(
     application: IR.Application,
     graph: AliasAnalysis.Graph,
@@ -288,12 +288,12 @@ case object AliasAnalysis extends IRPass {
   }
 
   /** Performs alias analysis on function call arguments.
-   *
-   * @param args the list of arguments to analyse
-   * @param graph the graph in which the analysis is taking place
-   * @param parentScope the scope in which the arguments are defined
-   * @return `args`, with aliasing information attached to each argument
-   */
+    *
+    * @param args the list of arguments to analyse
+    * @param graph the graph in which the analysis is taking place
+    * @param parentScope the scope in which the arguments are defined
+    * @return `args`, with aliasing information attached to each argument
+    */
   def analyseCallArguments(
     args: List[IR.CallArgument],
     graph: AliasAnalysis.Graph,
@@ -533,8 +533,6 @@ case object AliasAnalysis extends IRPass {
       }
     }
 
-
-
     /* Note [Safety in Occurrences]
      * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
      * The construction here is safe as the only position in an aliasing link in
@@ -604,6 +602,17 @@ case object AliasAnalysis extends IRPass {
       */
     def shadows(symbol: Graph.Symbol): Boolean = {
       scopesFor[Occurrence.Def](symbol).nonEmpty
+    }
+
+    /** Determines if the provided id is linked to a binding that shadows
+      * another binding.
+      *
+      * @param id the identifier to check
+      * @return `true` if the definition of the symbol for `id` shadows another
+      *        binding for the same symbol, `false`, otherwise
+      */
+    def linkedToShadowingBinding(id: Graph.Id): Boolean = {
+      defLinkFor(id).isDefined
     }
 
     /** Gets all symbols defined in the graph.

@@ -1,6 +1,7 @@
 package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.ApplicationSaturation.{
   CallSaturation,
@@ -52,64 +53,84 @@ case class ApplicationSaturation(
     */
   override def runExpression(
     ir: IR.Expression,
-    localScope: Option[LocalScope] = None,
+    localScope: Option[LocalScope]   = None,
     moduleScope: Option[ModuleScope] = None
   ): IR.Expression = {
     ir.transformExpressions {
       case func @ IR.Application.Prefix(fn, args, _, _, meta) =>
         fn match {
           case name: IR.Name =>
-            knownFunctions.get(name.name) match {
-              case Some(FunctionSpec(arity, codegenHelper)) =>
-                if (args.length == arity) {
-                  val argsArePositional = args.forall(arg => arg.name.isEmpty)
-
-                  // TODO [AA] In future this should work regardless of the
-                  //  application style. Needs interpreter changes.
-                  val saturationInfo = if (argsArePositional) {
-                    CallSaturation.Exact(codegenHelper)
-                  } else {
-                    CallSaturation.ExactButByName()
-                  }
-
-                  func.copy(
-                    arguments = args.map(
-                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
-                    ),
-                    passData = meta + saturationInfo
-                  )
-
-                } else if (args.length > arity) {
-                  func.copy(
-                    arguments = args.map(
-                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
-                    ),
-                    passData = meta + CallSaturation.Over(args.length - arity)
-                  )
-                } else {
-                  func.copy(
-                    arguments = args.map(
-                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
-                    ),
-                    passData = meta + CallSaturation.Partial(
-                        arity - args.length
-                      )
-                  )
-                }
-              case None =>
-                func.copy(
-                  arguments = args.map(
-                    _.mapExpressions((ir: IR.Expression) => runExpression(ir))
-                  ),
-                  passData = meta + CallSaturation.Unknown()
+            val aliasInfo = name
+              .getMetadata[AliasAnalysis.Info.Occurrence]
+              .getOrElse(
+                throw new CompilerError(
+                  "Name occurrence with missing alias information."
                 )
+              )
+
+            if (!aliasInfo.graph.linkedToShadowingBinding(aliasInfo.id)) {
+              knownFunctions.get(name.name) match {
+                case Some(FunctionSpec(arity, codegenHelper)) =>
+                  if (args.length == arity) {
+                    val argsArePositional = args.forall(arg => arg.name.isEmpty)
+
+                    // TODO [AA] In future this should work regardless of the
+                    //  application style. Needs interpreter changes.
+                    val saturationInfo = if (argsArePositional) {
+                      CallSaturation.Exact(codegenHelper)
+                    } else {
+                      CallSaturation.ExactButByName()
+                    }
+
+                    func.copy(
+                      arguments = args.map(
+                        _.mapExpressions(
+                          (ir: IR.Expression) => runExpression(ir)
+                        )
+                      ),
+                      passData = meta + saturationInfo
+                    )
+
+                  } else if (args.length > arity) {
+                    func.copy(
+                      arguments = args.map(
+                        _.mapExpressions(
+                          (ir: IR.Expression) => runExpression(ir)
+                        )
+                      ),
+                      passData = meta + CallSaturation.Over(args.length - arity)
+                    )
+                  } else {
+                    func.copy(
+                      arguments = args.map(
+                        _.mapExpressions(
+                          (ir: IR.Expression) => runExpression(ir)
+                        )
+                      ),
+                      passData = meta + CallSaturation.Partial(
+                          arity - args.length
+                        )
+                    )
+                  }
+                case None =>
+                  func.copy(
+                    arguments = args.map(
+                      _.mapExpressions((ir: IR.Expression) => runExpression(ir))
+                    ),
+                    passData = meta + CallSaturation.Unknown()
+                  )
+              }
+            } else {
+              func.copy(
+                function = runExpression(fn),
+                arguments = args.map(_.mapExpressions(runExpression(_))),
+                passData = meta + CallSaturation.Unknown()
+              )
             }
           case _ =>
             func.copy(
               function = runExpression(fn),
-              arguments = args.map(
-                _.mapExpressions((ir: IR.Expression) => runExpression(ir))
-              ),
+              arguments = args.map(_.mapExpressions(runExpression(_))),
               passData = meta + CallSaturation.Unknown()
             )
         }
