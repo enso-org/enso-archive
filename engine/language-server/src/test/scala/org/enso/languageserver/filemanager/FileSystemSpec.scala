@@ -2,7 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.nio.file.{Files, Path, Paths}
 
-import org.enso.languageserver.ZioExec
+import org.enso.languageserver.effect.ZioExec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
@@ -546,6 +546,6 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
 
   implicit final class UnsafeRunZio[E, A](io: zio.ZIO[zio.ZEnv, E, A]) {
     def unsafeRunSync(): Either[E, A] =
-      Await.result(ZioExec().exec(io), 3.seconds)
+      Await.result(ZioExec(zio.Runtime.default).exec(io), 3.seconds)
   }
 }

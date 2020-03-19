@@ -1,4 +1,4 @@
-package org.enso.languageserver
+package org.enso.languageserver.effect
 
 import java.util.concurrent.{ExecutionException, TimeoutException}
 
@@ -10,9 +10,14 @@ import scala.concurrent.duration.FiniteDuration
 /**
   * Abstract entity that executes effects `F`.
   */
-trait Exec[F[_, _]] {
+trait Exec[-F[_, _]] {
 
   def exec[E, A](op: F[E, A]): Future[Either[E, A]]
+
+  def execTimed[E, A](
+    timeout: FiniteDuration,
+    op: ZIO[ZEnv, E, A]
+  ): Future[Either[E, A]]
 }
 
 /**
@@ -20,8 +25,7 @@ trait Exec[F[_, _]] {
   *
   * @param runtime zio runtime
   */
-case class ZioExec(runtime: Runtime[ZEnv] = Runtime.default)
-    extends Exec[ZioExec.IO] {
+case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
 
   /**
     * Execute Zio effect.
@@ -48,7 +52,7 @@ case class ZioExec(runtime: Runtime[ZEnv] = Runtime.default)
     * @return a future. On timeout future is failed with [[TimeoutException]].
     * Otherwise future contains either a failure or a result.
     */
-  def execTimed[E, A](
+  override def execTimed[E, A](
     timeout: FiniteDuration,
     op: ZIO[ZEnv, E, A]
   ): Future[Either[E, A]] = {
@@ -69,7 +73,7 @@ case class ZioExec(runtime: Runtime[ZEnv] = Runtime.default)
 
 object ZioExec {
 
-  type IO[E, A] = ZIO[ZEnv, E, A]
+  type IO[+E, +A] = ZIO[ZEnv, E, A]
 
   object ZioExecutionException extends ExecutionException
 

@@ -3,7 +3,7 @@ package org.enso.languageserver.filemanager
 import akka.actor.{Actor, Props}
 import akka.routing.SmallestMailboxPool
 import akka.pattern.pipe
-import org.enso.languageserver.ZioExec
+import org.enso.languageserver.effect._
 import org.enso.languageserver.data.Config
 import zio._
 import zio.blocking.blocking
@@ -14,8 +14,10 @@ import zio.blocking.blocking
   *
   * @param config configuration
   * @param fs an instance of a [[FileSyste]] that creates the effects
+  * @param exec effects executor
   */
-class FileManager(config: Config, fs: FileSystem) extends Actor {
+class FileManager(config: Config, fs: FileSystem, exec: Exec[BlockingIO])
+    extends Actor {
 
   import context.dispatcher
 
@@ -26,7 +28,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
           _        <- fs.write(path.toFile(rootPath), content)
         } yield ()
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.WriteFileResult)
         .pipeTo(sender())
@@ -38,7 +40,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
           content  <- fs.read(path.toFile(rootPath))
         } yield content
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.ReadFileResult)
         .pipeTo(sender())
@@ -50,7 +52,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
           _        <- fs.createFile(path.toFile(rootPath, name))
         } yield ()
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.CreateFileResult)
         .pipeTo(sender())
@@ -64,7 +66,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
           _        <- fs.createDirectory(path.toFile(rootPath, name))
         } yield ()
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.CreateFileResult)
         .pipeTo(sender())
@@ -76,7 +78,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
           _        <- fs.delete(path.toFile(rootPath))
         } yield ()
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.DeleteFileResult)
         .pipeTo(sender())
@@ -89,7 +91,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPathTo   <- IO.fromEither(config.findContentRoot(to.rootId))
           _            <- fs.copy(from.toFile(rootPathFrom), to.toFile(rootPathTo))
         } yield ()
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.CopyFileResult)
         .pipeTo(sender())
@@ -102,7 +104,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPathTo   <- IO.fromEither(config.findContentRoot(to.rootId))
           _            <- fs.move(from.toFile(rootPathFrom), to.toFile(rootPathTo))
         } yield ()
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.MoveFileResult)
         .pipeTo(sender())
@@ -114,7 +116,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
           exists   <- fs.exists(path.toFile(rootPath))
         } yield exists
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.ExistsFileResult)
         .pipeTo(sender())
@@ -126,7 +128,7 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
           rootPath  <- IO.fromEither(config.findContentRoot(path.rootId))
           directory <- fs.tree(path.toFile(rootPath), depth)
         } yield DirectoryTree.fromDirectoryEntry(rootPath, path, directory)
-      ZioExec()
+      exec
         .execTimed(config.fileManager.timeout, blocking(result))
         .map(FileManagerProtocol.TreeFileResult)
         .pipeTo(sender())
@@ -136,8 +138,8 @@ class FileManager(config: Config, fs: FileSystem) extends Actor {
 
 object FileManager {
 
-  def props(config: Config, fs: FileSystem): Props =
+  def props(config: Config, fs: FileSystem, exec: Exec[BlockingIO]): Props =
     SmallestMailboxPool(config.fileManager.parallelism)
-      .props(Props(new FileManager(config, fs)))
+      .props(Props(new FileManager(config, fs, exec)))
 
 }

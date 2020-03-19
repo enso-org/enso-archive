@@ -13,6 +13,7 @@ import org.enso.languageserver.data.{
   FileManagerConfig,
   Sha3_224VersionCalculator
 }
+import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{FileManager, FileSystem}
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
@@ -35,6 +36,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
     FileManagerConfig(timeout = 3.seconds)
   )
 
+  val zioExec = ZioExec(zio.Runtime.default)
+
   lazy val fileSystem: FileSystem = new FileSystem
 
   implicit val versionCalculator: ContentBasedVersioning =
@@ -51,7 +54,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     )
 
   lazy val fileManager = system.actorOf(
-    FileManager.props(languageServerConfig, fileSystem),
+    FileManager.props(languageServerConfig, fileSystem, zioExec),
     "file-manager"
   )
 
