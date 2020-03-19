@@ -65,7 +65,7 @@ case class ApplicationSaturation(
                   val argsArePositional = args.forall(arg => arg.name.isEmpty)
 
                   // TODO [AA] In future this should work regardless of the
-                  //  application style.
+                  //  application style. Needs interpreter changes.
                   val saturationInfo = if (argsArePositional) {
                     CallSaturation.Exact(codegenHelper)
                   } else {

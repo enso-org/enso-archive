@@ -57,7 +57,6 @@ case object AliasAnalysis extends IRPass {
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
-  // TODO [AA] What is a sensible way to do this?
   override def runExpression(
     ir: IR.Expression,
     localScope: Option[LocalScope]   = None,
@@ -91,19 +90,24 @@ case object AliasAnalysis extends IRPass {
 
     ir match {
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
-        // FIXME
-        val bodyFun = body.asInstanceOf[IR.Function.Lambda]
-        val withNewArg = bodyFun.copy(
-          arguments = IR.DefinitionArgument.Specified(
-              IR.Name.This(None),
-              None,
-              suspended = false,
-              None
-            ) :: bodyFun.arguments
-        )
+        val bodyWithThisArg = body match {
+          case lam @ IR.Function.Lambda(args, _, _, _, _) =>
+            lam.copy(
+              arguments = IR.DefinitionArgument.Specified(
+                  IR.Name.This(None),
+                  None,
+                  suspended = false,
+                  None
+                ) :: args
+            )
+          case _ =>
+            throw new CompilerError(
+              "The body of a method should always be a lambda by."
+            )
+        }
         m.copy(
             body = analyseExpression(
-              withNewArg,
+              bodyWithThisArg,
               topLevelGraph,
               topLevelGraph.rootScope,
               lambdaReuseScope = true,
@@ -255,6 +259,13 @@ case object AliasAnalysis extends IRPass {
     }
   }
 
+  /** Performs alias analysis on a function application.
+   *
+   * @param application the function application to analyse
+   * @param graph the graph in which the analysis is taking place
+   * @param scope the scope in which the application is happening
+   * @return `application`, possibly with aliasing information attached
+   */
   def analyseApplication(
     application: IR.Application,
     graph: AliasAnalysis.Graph,
@@ -276,18 +287,28 @@ case object AliasAnalysis extends IRPass {
     }
   }
 
+  /** Performs alias analysis on function call arguments.
+   *
+   * @param args the list of arguments to analyse
+   * @param graph the graph in which the analysis is taking place
+   * @param parentScope the scope in which the arguments are defined
+   * @return `args`, with aliasing information attached to each argument
+   */
   def analyseCallArguments(
     args: List[IR.CallArgument],
     graph: AliasAnalysis.Graph,
-    scope: AliasAnalysis.Graph.Scope
+    parentScope: AliasAnalysis.Graph.Scope
   ): List[IR.CallArgument] = {
     args.map {
-      // FIXME[AA] Don't allocate new scopes for literal args.
       case arg @ IR.CallArgument.Specified(_, expr, _, _) =>
-        val childScope = scope.addChild()
+        val currentScope = expr match {
+          case _: IR.Literal => parentScope
+          case _             => parentScope.addChild()
+        }
+
         arg
-          .copy(value = analyseExpression(expr, graph, childScope))
-          .addMetadata(Info.Scope.Child(graph, childScope))
+          .copy(value = analyseExpression(expr, graph, currentScope))
+          .addMetadata(Info.Scope.Child(graph, currentScope))
     }
   }
 
@@ -351,8 +372,6 @@ case object AliasAnalysis extends IRPass {
     * @param ir the case expression to analyse
     * @param graph the graph in which the analysis is taking place
     * @param parentScope the scope in which the case expression occurs
-    * @param caseReuseScope whether or not the case expression should reuse the
-    *                       parent scope or allocate a child of it
     * @return `ir`, possibly with alias analysis information attached
     */
   def analyseCase(
@@ -454,6 +473,10 @@ case object AliasAnalysis extends IRPass {
     override def toString: String =
       s"Graph(links = $links, rootScope = $rootScope)"
 
+    /** Pretty prints the graph.
+      *
+      * @return a pretty-printed string representation of the graph
+      */
     def pprint: String = {
       val original = toString
       Debug.pretty(original)
@@ -485,21 +508,40 @@ case object AliasAnalysis extends IRPass {
       )
     }
 
+    /** Obtains the occurrence for a given ID, from whichever scope in which it
+      * occurs.
+      *
+      * @param id the occurrence identifier
+      * @return the occurrence for `id`, if it exists
+      */
     def getOccurrence(id: Graph.Id): Option[Occurrence] =
       scopeFor(id).flatMap(_.getOccurrence(id))
 
+    /** Gets the link from an id to the definition of the symbol it represents.
+      *
+      * @param id the identifier to find the definition link for
+      * @return the definition link for `id` if it exists
+      */
     def defLinkFor(id: Graph.Id): Option[Graph.Link] = {
       linksFor(id).find { edge =>
+        // Note [Safety in Occurrences]
         val occ = getOccurrence(edge.target)
         occ match {
           case Some(Occurrence.Def(_, _)) => true
-          case Some(x) =>
-            println("I want a Def, but it's a: " + x)
-            false
-          case _ => false
+          case _                          => false
         }
       }
     }
+
+
+
+    /* Note [Safety in Occurrences]
+     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     * The construction here is safe as the only position in an aliasing link in
+     * which a `Occurrence.Def` can occur is as the target. If it occurs in any
+     * other position, the graph has been constructed incorrectly and this
+     * should be a fatal error.
+     */
 
     /** Gets the scope where a given ID is defined in the graph.
       *

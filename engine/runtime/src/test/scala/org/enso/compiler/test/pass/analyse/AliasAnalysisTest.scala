@@ -320,6 +320,17 @@ class AliasAnalysisTest extends CompilerTest {
         use2Link.get
       )
     }
+
+    "correctly finds the occurrence for a provided ID" in {
+      graph.getOccurrence(aDefId) shouldEqual Some(aDef)
+      graph.getOccurrence(aUse1Id) shouldEqual Some(aUse1)
+      graph.getOccurrence(cUseId) shouldEqual Some(cUse)
+    }
+
+    "correctly finds the definition link for a provided id" in {
+      graph.defLinkFor(aUse1Id) shouldEqual use1Link
+      graph.defLinkFor(aUse2Id) shouldEqual use2Link
+    }
   }
 
   "Alias analysis for atom definitions" should {
@@ -398,7 +409,6 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "assign Info.Scope.Child to all child scopes" in {
-      pending
       methodWithLambda.body
         .asInstanceOf[IR.Function.Lambda]
         .getMetadata[Info.Scope.Child]
@@ -413,9 +423,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "not allocate additional scopes unnecessarily" in {
-      pending
-      methodWithLambdaGraph.nesting shouldEqual 2
-      methodWithLambdaGraph.numScopes shouldEqual 3
+      methodWithLambdaGraph.nesting shouldEqual 3
+      methodWithLambdaGraph.numScopes shouldEqual 8
 
       val blockChildLambdaScope =
         methodWithLambda.body
@@ -488,9 +497,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "not allocate additional scopes unnecessarily" in {
-      pending
-      methodWithBlockGraph.nesting shouldEqual 1
-      methodWithBlockGraph.numScopes shouldEqual 1
+      methodWithBlockGraph.nesting shouldEqual 2
+      methodWithBlockGraph.numScopes shouldEqual 5
 
       val blockChildLambdaScope =
         methodWithBlock.body
