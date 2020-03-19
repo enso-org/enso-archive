@@ -367,8 +367,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "create usage links where valid" in {
-      val aDefId = goodAtom
-        .arguments(0)
+      val aDefId = goodAtom.arguments.head
         .getMetadata[Info.Occurrence]
         .get
         .id
@@ -400,6 +399,17 @@ class AliasAnalysisTest extends CompilerTest {
         .asInstanceOf[Method]
     val methodWithLambdaGraph =
       methodWithLambda.getMetadata[Info.Scope.Root].get.graph
+
+    val graphLinks = methodWithLambdaGraph.links
+
+    val topLambda     = methodWithLambda.body.asInstanceOf[IR.Function.Lambda]
+    val topLambdaBody = topLambda.body.asInstanceOf[IR.Expression.Block]
+    val childLambda =
+      topLambdaBody.expressions.head
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
+        .asInstanceOf[IR.Function.Lambda]
+    val childLambdaBody = childLambda.body.asInstanceOf[IR.Application.Prefix]
 
     "assign Info.Scope.Root metadata to the method" in {
       val meta = methodWithLambda.getMetadata[AliasAnalysis.Metadata]
@@ -446,19 +456,144 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "allocate new scopes where necessary" in {
-      pending
+      val topScope =
+        methodWithLambda.body
+          .asInstanceOf[IR.Function.Lambda]
+          .getMetadata[Info.Scope.Child]
+          .get
+          .scope
+
+      val dLambdaScope = methodWithLambda.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+        .expressions
+        .head
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
+        .getMetadata[Info.Scope.Child]
+        .get
+        .scope
+
+      val gBlockScope = methodWithLambda.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+        .expressions(1)
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
+        .getMetadata[Info.Scope.Child]
+        .get
+        .scope
+
+      val cUseScope = methodWithLambda.body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments
+        .head
+        .getMetadata[Info.Scope.Child]
+        .get
+        .scope
+
+      topScope.childScopes should contain(dLambdaScope)
+      topScope.childScopes should contain(gBlockScope)
+
+      topScope.childScopes should contain(cUseScope)
     }
 
     "assign Info.Occurrence to definitions and usages of symbols" in {
-      pending
+      topLambda.arguments.foreach(
+        arg => arg.getMetadata[Info.Occurrence] shouldBe defined
+      )
+
+      topLambdaBody.expressions.foreach(
+        _.asInstanceOf[IR.Expression.Binding]
+          .getMetadata[Info.Occurrence] shouldBe defined
+      )
+
+      childLambda.arguments.foreach(
+        arg => arg.getMetadata[Info.Occurrence] shouldBe defined
+      )
+
+      childLambdaBody.function.getMetadata[Info.Occurrence] shouldBe defined
+      childLambdaBody.arguments.foreach(
+        _.getMetadata[Info.Scope.Child] shouldBe defined
+      )
     }
 
     "create the correct usage links for resolvable entities" in {
-      pending
+      val topLambdaCDefId =
+        topLambda.arguments(3).getMetadata[Info.Occurrence].get.id
+
+      val nestedLambdaADefId =
+        childLambda.arguments.head.getMetadata[Info.Occurrence].get.id
+      val nestedLambdaBDefId =
+        childLambda.arguments(1).getMetadata[Info.Occurrence].get.id
+
+      val nestedLambdaAUseId = childLambdaBody
+        .asInstanceOf[IR.Application.Prefix]
+        .function
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+      val nestedLambdaBUseId = childLambdaBody
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments
+        .head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+
+      val dDefId = topLambdaBody.expressions.head
+        .asInstanceOf[IR.Expression.Binding]
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+      val dUseId = topLambdaBody.returnValue
+        .asInstanceOf[IR.Application.Prefix]
+        .function
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+      val dDefCUseId = topLambdaBody.returnValue
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments
+        .head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+
+      graphLinks should contain(Link(nestedLambdaAUseId, 0, nestedLambdaADefId))
+      graphLinks should contain(Link(nestedLambdaBUseId, 1, nestedLambdaBDefId))
+
+      graphLinks should contain(Link(dUseId, 0, dDefId))
+      graphLinks should contain(Link(dDefCUseId, 1, topLambdaCDefId))
     }
 
-    "not resolve links for unknwon symbols" in {
-      pending
+    "not resolve links for unknown symbols" in {
+      val unknownPlusId = topLambdaBody
+        .expressions(1)
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
+        .asInstanceOf[IR.Expression.Block]
+        .returnValue
+        .asInstanceOf[IR.Application.Prefix]
+        .function
+        .getMetadata[Info.Occurrence]
+        .get
+        .id
+
+      methodWithLambdaGraph.linksFor(unknownPlusId) shouldBe empty
+      methodWithLambdaGraph
+        .getOccurrence(unknownPlusId)
+        .get shouldBe an[Occurrence.Use]
     }
   }
 
@@ -518,21 +653,51 @@ class AliasAnalysisTest extends CompilerTest {
       blockChildBlockScope shouldEqual methodWithBlockGraph.rootScope
       blockChildLambdaScope shouldEqual methodWithBlockGraph.rootScope
     }
-
-    "assign Info.Occurrence to definitions and usages of symbols" in {
-      pending
-    }
-
-    "create the correct usage links for resolvable entities" in {
-      pending
-    }
-
-    "not resolve links for unknwon symbols" in {
-      pending
-    }
   }
 
-  "Alias analysis on case expressions" should {}
+  "Alias analysis on case expressions" should {
+    val methodWithCase =
+      """
+        |List.sum = a -> case a of
+        |    Cons a b -> a + b
+        |    Nil -> 0
+        |    _ -> 0
+        |""".stripMargin.preprocessModule.analyse.bindings.head
+        .asInstanceOf[Method]
+    val lambda   = methodWithCase.body.asInstanceOf[IR.Function.Lambda]
+    val caseExpr = lambda.body.asInstanceOf[IR.Case.Expr]
+
+    val graph = methodWithCase.getMetadata[Info.Scope.Root].get.graph
+
+    "expose the scrutinee in the parent scope" in {
+      val scrutineeId = caseExpr.scrutinee.getMetadata[Info.Occurrence].get.id
+      graph.rootScope.getOccurrence(scrutineeId) shouldBe defined
+
+      val aDefId = lambda.arguments(1).getMetadata[Info.Occurrence].get.id
+
+      graph.links should contain(Link(scrutineeId, 0, aDefId))
+    }
+
+    "create child scopes for the branch function" in {
+      val consBranchScope = caseExpr.branches.head.expression
+        .getMetadata[Info.Scope.Child]
+        .get
+        .scope
+      val nilBranchScope =
+        caseExpr.branches(1).expression.getMetadata[Info.Scope.Child].get.scope
+      val fallbackBranchScope =
+        caseExpr.fallback.get
+          .getMetadata[Info.Scope.Child]
+          .get
+          .scope
+
+      val rootScope = graph.rootScope
+
+      rootScope.childScopes should contain(consBranchScope)
+      rootScope.childScopes should contain(nilBranchScope)
+      rootScope.childScopes should contain(fallbackBranchScope)
+    }
+  }
 
   "Redefinitions" should {
     "be caught for argument lists" in {
