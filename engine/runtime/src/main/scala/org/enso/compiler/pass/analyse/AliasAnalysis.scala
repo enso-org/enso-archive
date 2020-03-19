@@ -525,7 +525,6 @@ case object AliasAnalysis extends IRPass {
       */
     def defLinkFor(id: Graph.Id): Option[Graph.Link] = {
       linksFor(id).find { edge =>
-        // Note [Safety in Occurrences]
         val occ = getOccurrence(edge.target)
         occ match {
           case Some(Occurrence.Def(_, _)) => true
@@ -533,14 +532,6 @@ case object AliasAnalysis extends IRPass {
         }
       }
     }
-
-    /* Note [Safety in Occurrences]
-     * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     * The construction here is safe as the only position in an aliasing link in
-     * which a `Occurrence.Def` can occur is as the target. If it occurs in any
-     * other position, the graph has been constructed incorrectly and this
-     * should be a fatal error.
-     */
 
     /** Gets the scope where a given ID is defined in the graph.
       *
@@ -885,7 +876,13 @@ case object AliasAnalysis extends IRPass {
         * @return `true` if `this` is a child of `scope`, otherwise `false`
         */
       def isChildOf(scope: Scope): Boolean = {
-        ???
+        val isDirectChildOf = scope.childScopes.contains(this)
+
+        val isChildOfChildren = scope.childScopes
+          .map(scope => this.isChildOf(scope))
+          .foldLeft(false)(_ || _)
+
+        isDirectChildOf || isChildOfChildren
       }
     }
 

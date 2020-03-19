@@ -185,7 +185,6 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "be able to check if a provided scope is a child of the current scope" in {
-      pending
       child1.isChildOf(complexScope) shouldEqual true
       child2.isChildOf(complexScope) shouldEqual true
       childOfChild.isChildOf(complexScope) shouldEqual true
