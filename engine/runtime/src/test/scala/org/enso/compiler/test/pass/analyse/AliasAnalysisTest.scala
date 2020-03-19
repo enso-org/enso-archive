@@ -413,6 +413,7 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "not allocate additional scopes unnecessarily" in {
+      pending
       methodWithLambdaGraph.nesting shouldEqual 2
       methodWithLambdaGraph.numScopes shouldEqual 3
 

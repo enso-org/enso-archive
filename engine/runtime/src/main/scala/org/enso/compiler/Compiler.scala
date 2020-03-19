@@ -10,7 +10,6 @@ import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
-import org.enso.flexer.Reader
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context

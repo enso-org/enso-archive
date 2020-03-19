@@ -17,6 +17,10 @@ import scala.jdk.CollectionConverters._
   * mapping between the interpreter's concept of stack frames and the guest
   * language's concept of stack frames.
   *
+  * Please note that `flattenToParent` is a _hack_ and will be removed once we
+  * have demand analysis.
+  *
+  * @param parentScope the parent local scope for this scope, if it exists
   * @param aliasingGraph the graph containing aliasing information for the tree
   *                      of scopes within which this local scope exists
   * @param scope the particular scope in `aliasingGraph` represented by this
@@ -27,33 +31,66 @@ import scala.jdk.CollectionConverters._
   *                   the Enso frame
   */
 class LocalScope(
+  val parentScope: Option[LocalScope],
   val aliasingGraph: AliasAnalysis.Graph,
   val scope: AliasAnalysis.Graph.Scope,
   val flattenToParent: Boolean                     = false,
   val frameSlots: mutable.Map[Graph.Id, FrameSlot] = mutable.Map()
 ) {
+
+  /** A descriptor for this frame. */
   val frameDescriptor: FrameDescriptor = new FrameDescriptor()
 
+  /** The frame slot that contains the frame's state. */
   val stateFrameSlot: FrameSlot = frameDescriptor.findOrAddFrameSlot(
     "<<monadic_state>>",
     FrameSlotKind.Object
   )
 
+  /** Creates a new child with a new aliasing scope.
+    *
+    * @return a child of this scope
+    */
   def createChild(): LocalScope = createChild(scope.addChild())
 
+  /** Creates a child using a known aliasing scope.
+    *
+    * @param childScope the known child
+    * @param flattenToParent whether or not the child scope should be flattened
+    *                        with its parent
+    * @return a child of this scope
+    */
   def createChild(
     childScope: AliasScope,
     flattenToParent: Boolean = false
   ): LocalScope = {
-    new LocalScope(aliasingGraph, childScope, flattenToParent, frameSlots)
+    new LocalScope(
+      Some(this),
+      aliasingGraph,
+      childScope,
+      flattenToParent,
+      frameSlots
+    )
   }
 
+  /** Creates a frame slot for a given identifier.
+    *
+    * @param id the identifier of a variable definition occurrence from alias
+    *           analysis
+    * @return a new frame slot for `id`
+    */
   def createVarSlot(id: Graph.Id): FrameSlot = {
     val slot = frameDescriptor.addFrameSlot(aliasingGraph.idToSymbol(id))
     frameSlots(id) = slot
     slot
   }
 
+  /** Obtains the frame pointer for a given identifier.
+    *
+    * @param id the identifier of a variable usage occurrence from alias
+    *           analysis
+    * @return the frame pointer for `id`, if it exists
+    */
   def getFramePointer(id: Graph.Id): Option[FramePointer] = {
     aliasingGraph.defLinkFor(id).flatMap { link =>
       val slot = frameSlots.get(link.target)
@@ -66,18 +103,26 @@ class LocalScope(
     }
   }
 
+  /** Collects all the bindings in the current stack of scopes, accounting for
+    * shadowing.
+    *
+    * @return a map of binding names to their associated frame pointers
+    */
   def flattenBindings: java.util.Map[String, FramePointer] =
     flattenBindingsWithLevel(0).asJava
 
+  /** Flatten bindings from a given set of levels, accounting for shadowing.
+    *
+    * @param level the level to which to flatten
+    * @return a map of binding names to their associated frame pointers
+    */
   private def flattenBindingsWithLevel(
     level: Int
   ): Map[Graph.Symbol, FramePointer] = {
-    var parentResult: Map[Graph.Symbol, FramePointer] = scope.parent match {
-      case Some(parent) =>
-        new LocalScope(aliasingGraph, parent, frameSlots = frameSlots)
-          .flattenBindingsWithLevel(level + 1)
-      case _ => Map()
-    }
+    var parentResult: Map[Graph.Symbol, FramePointer] = parentScope
+      .flatMap(scope => Some(scope.flattenBindingsWithLevel(level + 1)))
+      .getOrElse(Map())
+
     scope.occurrences.foreach {
       case x: Occurrence.Def =>
         parentResult += x.symbol -> new FramePointer(
@@ -98,6 +143,6 @@ object LocalScope {
     */
   def root: LocalScope = {
     val graph = new AliasAnalysis.Graph
-    new LocalScope(graph, graph.rootScope)
+    new LocalScope(None, graph, graph.rootScope)
   }
 }

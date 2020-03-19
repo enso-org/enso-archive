@@ -146,7 +146,8 @@ class IRToTruffle(
             )
           val argFactory =
             new DefinitionArgumentProcessor(
-              scope = new LocalScope(scopeInfo.graph, scopeInfo.graph.rootScope)
+              scope =
+                new LocalScope(None, scopeInfo.graph, scopeInfo.graph.rootScope)
             )
           val argDefs =
             new Array[ArgumentDefinition](atomDefn.arguments.size)
@@ -279,7 +280,7 @@ class IRToTruffle(
       * @param scopeName the name to attribute to the default local scope.
       */
     def this(scopeName: String, graph: AliasGraph, scope: AliasScope) = {
-      this(new LocalScope(graph, scope), scopeName)
+      this(new LocalScope(None, graph, scope), scopeName)
     }
 
     /** Creates an instance of [[ExpressionProcessor]] that operates in a child
@@ -488,7 +489,7 @@ class IRToTruffle(
               throw new CompilerError("No occurence on variable usage.")
             )
 
-          val slot     = scope.getFramePointer(useInfo.id)
+          val slot = scope.getFramePointer(useInfo.id)
 //          println(name.name)
 //          println(useInfo.id)
 //          println(slot)
@@ -695,7 +696,8 @@ class IRToTruffle(
           )
         val result = value match {
           case term: IR.Application.Force =>
-            val childScope = scope.createChild(scopeInfo.scope, flattenToParent = true)
+            val childScope =
+              scope.createChild(scopeInfo.scope, flattenToParent = true)
             new ExpressionProcessor(childScope, scopeName).run(term.target)
           case _ =>
             val childScope = scope.createChild(scopeInfo.scope)
