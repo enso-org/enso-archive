@@ -16,7 +16,7 @@ import org.enso.projectmanager.infrastructure.repo.ProjectRepositoryFailure.{
   StorageFailure
 }
 import org.enso.projectmanager.main.configuration.StorageConfig
-import org.enso.projectmanager.model.ProjectMetadata
+import org.enso.projectmanager.model.Project
 import zio.blocking._
 import zio.{Semaphore, ZEnv, ZIO}
 
@@ -32,7 +32,7 @@ class FileBasedProjectRepository(
     loadIndex().map(_.exists(name))
 
   override def createUserProject(
-    project: ProjectMetadata
+    project: Project
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)
     val projectWithPath = project.copy(path = Some(projectPath.toString))
@@ -45,7 +45,7 @@ class FileBasedProjectRepository(
   }
 
   private def createProjectStructure(
-    project: ProjectMetadata,
+    project: Project,
     projectPath: File
   ): ZIO[Blocking, StorageFailure, Package] =
     effectBlocking { Package.create(projectPath, project.name) }
