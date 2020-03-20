@@ -6,7 +6,7 @@ object ValidationFailure {
 
   case object EmptyName extends ValidationFailure
 
-  case class NameContainsForbiddenCharacter(char: Char)
+  case class NameContainsForbiddenCharacter(characters: Set[Char])
       extends ValidationFailure
 
 }

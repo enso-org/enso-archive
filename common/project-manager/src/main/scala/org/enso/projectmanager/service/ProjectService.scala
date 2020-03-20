@@ -24,10 +24,10 @@ import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
   NameContainsForbiddenCharacter
 }
-import zio.{ZEnv, ZIO}
+import zio.{IO, ZEnv, ZIO}
 
 class ProjectService(
-  validator: ProjectValidatorApi,
+  validator: ProjectValidator[IO],
   repo: ProjectRepository[ZIO[ZEnv, *, *]],
   log: Logging,
   clock: Clock
@@ -90,9 +90,9 @@ class ProjectService(
           ProjectServiceFailure.ValidationFailure(
             "Cannot create project with empty name"
           )
-        case NameContainsForbiddenCharacter(char) =>
+        case NameContainsForbiddenCharacter(chars) =>
           ProjectServiceFailure.ValidationFailure(
-            "Forbidden characters in the project name"
+            s"Project name contains forbidden characters: ${chars.mkString(",")}"
           )
       }
 

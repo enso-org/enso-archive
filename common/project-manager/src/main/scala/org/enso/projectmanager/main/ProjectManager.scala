@@ -4,12 +4,24 @@ import java.io.IOException
 
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
+import org.enso.projectmanager.main.Globals.{
+  ConfigFilename,
+  ConfigNamespace,
+  FailureExitCode,
+  SuccessExitCode
+}
+import org.enso.projectmanager.main.configuration.ProjectManagerConfig
+import pureconfig.ConfigSource
 import zio.ZIO.effectTotal
 import zio._
 import zio.console._
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
+import pureconfig.ConfigSource
+import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
+import pureconfig._
+import pureconfig.generic.auto._
 
 /**
   * Project manager runner containing the main method.
@@ -18,15 +30,22 @@ object ProjectManager extends App with LazyLogging {
 
   logger.info("Starting Language Server...")
 
+  val config: ProjectManagerConfig =
+    ConfigSource
+      .resources(ConfigFilename)
+      .withFallback(ConfigSource.systemProperties)
+      .at(ConfigNamespace)
+      .loadOrThrow[ProjectManagerConfig]
+
   lazy val runtime = Runtime.default
 
   lazy val mainProcess: ZIO[ZEnv, IOException, Unit] =
     // format: off
     for {
       storageSemaphore <- Semaphore.make(1)
-      mainModule        = new MainModule(runtime, storageSemaphore)
+      mainModule        = new MainModule(config, runtime, storageSemaphore)
       binding          <- bindServer(mainModule)
-      _                <- logServerStartup(mainModule)
+      _                <- logServerStartup()
       _                <- getStrLn
       _                <- effectTotal { logger.info("Stopping server...") }
       _                <- effectTotal { binding.unbind() }
@@ -35,20 +54,19 @@ object ProjectManager extends App with LazyLogging {
     // format: on
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
-    mainProcess.fold(_ => ExitCodes.FailureCode, _ => ExitCodes.SuccessCode)
+    mainProcess.fold(_ => FailureExitCode, _ => SuccessExitCode)
 
-  private def logServerStartup(mainModule: MainModule): UIO[Unit] =
+  private def logServerStartup(): UIO[Unit] =
     effectTotal {
       logger.info(
-        s"Started server at ${mainModule.config.server.host}:${mainModule.config.server.port}, press enter to kill server"
+        s"Started server at ${config.server.host}:${config.server.port}, press enter to kill server"
       )
     }
 
-  private def bindServer(mainModule: MainModule): UIO[Http.ServerBinding] =
+  private def bindServer(module: MainModule): UIO[Http.ServerBinding] =
     effectTotal {
       Await.result(
-        mainModule.server
-          .bind(mainModule.config.server.host, mainModule.config.server.port),
+        module.server.bind(config.server.host, config.server.port),
         3.seconds
       )
     }

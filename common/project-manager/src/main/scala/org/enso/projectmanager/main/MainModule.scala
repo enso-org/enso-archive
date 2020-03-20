@@ -13,28 +13,18 @@ import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
-import org.enso.projectmanager.service.{ProjectService, ProjectValidator}
-import pureconfig.ConfigSource
+import org.enso.projectmanager.service.{ProjectService, ZioProjectValidator}
 import zio._
-import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
-import pureconfig._
-import pureconfig.generic.auto._
 
 /**
   * A main module containing all components of the project manager.
   *
   */
 class MainModule(
+  config: ProjectManagerConfig,
   runtime: Runtime[ZEnv],
   storageSemaphore: Semaphore
 ) {
-
-  val config: ProjectManagerConfig =
-    ConfigSource
-      .resources("application.conf")
-      .withFallback(ConfigSource.systemProperties)
-      .at("project-manager")
-      .loadOrThrow[ProjectManagerConfig]
 
   implicit val system = ActorSystem()
 
@@ -52,7 +42,7 @@ class MainModule(
     new FileBasedProjectRepository(config.storage, fileSystem, storageSemaphore)
 
   lazy val projectService =
-    new ProjectService(ProjectValidator, projectRepository, logging, clock)
+    new ProjectService(ZioProjectValidator, projectRepository, logging, clock)
 
   lazy val clientControllerFactory = new ManagerClientControllerFactory(
     system,
