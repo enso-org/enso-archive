@@ -51,6 +51,47 @@ class ProjectManagementApiSpec extends BaseServerTest {
           """)
     }
 
+    "fail when the project with the same name exists" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 1,
+              "params": {
+                "name": "foo"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "projectId" : $TestUUID
+            }
+          }
+          """)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 2,
+              "params": {
+                "name": "foo"
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":2,
+            "error":{
+              "code":4003,
+              "message":"Project with the provided name exists"
+            }
+          }
+          """)
+    }
+
     "create project structure" in {
       val projectName = "luna_test-project1"
       val projectDir  = new File(userProjectDir, projectName)
