@@ -2,6 +2,7 @@ package org.enso.projectmanager.protocol
 
 import java.io.File
 import java.nio.file.Files
+import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
@@ -9,19 +10,22 @@ import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
-import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repo.FileBasedProjectRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.StorageConfig
 import org.enso.projectmanager.service.{ProjectService, ZioProjectValidator}
-import org.enso.projectmanager.test.ConstGenerator
+import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
 import zio.{Runtime, Semaphore}
 
 import scala.concurrent.duration._
 
-class BaseServerTest extends JsonRpcServerTestKit {
+class BaseServerSpec extends JsonRpcServerTestKit {
 
   override def protocol: Protocol = JsonRpc.protocol
+
+  val TestNow = OffsetDateTime.now(ZoneOffset.UTC)
+
+  val testClock = new StoppedClock(TestNow)
 
   val TestUUID = UUID.randomUUID()
 
@@ -39,8 +43,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
     projectMetadataPath = indexFile,
     userProjectsPath    = userProjectDir
   )
-  lazy val logging = Slf4jLogging
-
   lazy val clock = RealClock
 
   lazy val exec = new ZioEnvExec(Runtime.default)
@@ -61,7 +63,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
     new ProjectService(
       ZioProjectValidator,
       projectRepository,
-      logging,
+      NopLogging,
       clock,
       gen
     )

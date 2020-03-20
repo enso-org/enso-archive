@@ -5,7 +5,7 @@ import java.nio.file.Paths
 
 import io.circe.literal._
 
-class ProjectManagementApiSpec extends BaseServerTest {
+class ProjectManagementApiSpec extends BaseServerSpec {
 
   "project/create" must {
 
