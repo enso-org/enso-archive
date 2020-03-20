@@ -45,7 +45,7 @@ class MainModule(
   lazy val projectRepository =
     new FileBasedProjectRepository(config.storage, fileSystem, storageSemaphore)
 
-  lazy val gen: Generator = SystemGenerator
+  lazy val gen = SystemGenerator
 
   lazy val projectService =
     new ProjectService(

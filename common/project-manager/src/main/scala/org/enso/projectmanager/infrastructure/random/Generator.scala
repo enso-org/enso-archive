@@ -2,8 +2,8 @@ package org.enso.projectmanager.infrastructure.random
 
 import java.util.UUID
 
-trait Generator {
+trait Generator[F[_, _]] {
 
-  def randomUUID(): UUID
+  def randomUUID(): F[Nothing, UUID]
 
 }

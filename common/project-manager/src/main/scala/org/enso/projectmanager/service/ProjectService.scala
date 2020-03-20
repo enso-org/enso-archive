@@ -30,9 +30,9 @@ import zio.{IO, ZEnv, ZIO}
 class ProjectService(
   validator: ProjectValidator[IO],
   repo: ProjectRepository[ZIO[ZEnv, *, *]],
-  log: Logging,
-  clock: Clock,
-  gen: Generator
+  log: Logging[IO],
+  clock: Clock[IO],
+  gen: Generator[IO]
 ) extends ProjectServiceApi[ZIO[ZEnv, *, *]] {
 
   override def createUserProject(
@@ -44,7 +44,7 @@ class ProjectService(
       _            <- validateName(name)
       _            <- validateExists(name)
       creationTime <- clock.nowInUtc()
-      projectId     = gen.randomUUID()
+      projectId    <- gen.randomUUID()
       project       = Project(projectId, name, creationTime)
       _            <- repo.createUserProject(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")

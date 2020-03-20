@@ -3,7 +3,7 @@ import java.time.{OffsetDateTime, ZoneOffset}
 
 import zio.IO
 
-object RealClock extends Clock {
+object RealClock extends Clock[IO] {
 
   override def now(): IO[Nothing, OffsetDateTime] =
     IO.effectTotal(OffsetDateTime.now())

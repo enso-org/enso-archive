@@ -14,7 +14,7 @@ import org.enso.projectmanager.infrastructure.repo.FileBasedProjectRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.StorageConfig
 import org.enso.projectmanager.service.{ProjectService, ZioProjectValidator}
-import org.enso.projectmanager.test.TestGenerator
+import org.enso.projectmanager.test.ConstGenerator
 import zio.{Runtime, Semaphore}
 
 import scala.concurrent.duration._
@@ -25,7 +25,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
 
   val TestUUID = UUID.randomUUID()
 
-  lazy val gen: Generator = new TestGenerator(TestUUID)
+  lazy val gen = new ConstGenerator(TestUUID)
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   testProjectsRoot.deleteOnExit()

@@ -3,7 +3,6 @@ package org.enso.projectmanager.protocol
 import java.io.File
 import java.nio.file.Paths
 
-import akka.testkit.TestProbe
 import io.circe.literal._
 
 class ProjectManagementApiSpec extends BaseServerTest {
