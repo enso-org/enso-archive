@@ -15,13 +15,25 @@ object ProjectManagementApi {
 
     case class Params(name: String)
 
-    case class Result(id: UUID)
+    case class Result(projectId: UUID)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectCreate.Params
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = ProjectCreate.Result
+    }
+  }
+
+  case object ProjectDelete extends Method("project/delete") {
+
+    case class Params(projectId: UUID)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ProjectDelete.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
     }
   }
 

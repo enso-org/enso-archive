@@ -4,7 +4,9 @@ import java.util.UUID
 
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.repo.ProjectRepositoryFailure.{
-  CannotLoadMetadata,
+  CannotLoadIndex,
+  InconsistentStorage,
+  ProjectNotFoundInIndex,
   StorageFailure
 }
 import org.enso.projectmanager.infrastructure.repo.{
@@ -13,9 +15,10 @@ import org.enso.projectmanager.infrastructure.repo.{
 }
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.ProjectMetadata
-import org.enso.projectmanager.service.CreateProjectFailure.{
+import org.enso.projectmanager.service.ProjectServiceFailure.{
   DataStoreFailure,
-  ProjectExists
+  ProjectExists,
+  ProjectNotFound
 }
 import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
@@ -25,14 +28,14 @@ import zio.{ZEnv, ZIO}
 
 class ProjectService(
   validator: ProjectValidatorApi,
-  repo: ProjectRepository,
+  repo: ProjectRepository[ZIO[ZEnv, *, *]],
   log: Logging,
   clock: Clock
 ) extends ProjectServiceApi[ZIO[ZEnv, *, *]] {
 
   override def createUserProject(
     name: String
-  ): ZIO[ZEnv, CreateProjectFailure, UUID] = {
+  ): ZIO[ZEnv, ProjectServiceFailure, UUID] = {
     // format: off
     for {
       _            <- log.debug(s"Creating project $name.")
@@ -47,9 +50,14 @@ class ProjectService(
     // format: on
   }
 
+  override def deleteUserProject(
+    projectId: UUID
+  ): ZIO[ZEnv, ProjectServiceFailure, Unit] =
+    repo.deleteUserProject(projectId).mapError(toServiceFailure)
+
   private def validateExists(
     name: String
-  ): ZIO[ZEnv, CreateProjectFailure, Unit] =
+  ): ZIO[ZEnv, ProjectServiceFailure, Unit] =
     repo
       .exists(name)
       .mapError(toServiceFailure)
@@ -59,23 +67,29 @@ class ProjectService(
       }
 
   private val toServiceFailure
-    : ProjectRepositoryFailure => CreateProjectFailure = {
-    case CannotLoadMetadata(msg) => DataStoreFailure(msg)
-    case StorageFailure(msg)     => DataStoreFailure(msg)
+    : ProjectRepositoryFailure => ProjectServiceFailure = {
+    case CannotLoadIndex(msg) =>
+      DataStoreFailure(s"Cannot load project index [$msg]")
+    case StorageFailure(msg) =>
+      DataStoreFailure(s"Storage failure [$msg]")
+    case ProjectNotFoundInIndex =>
+      ProjectNotFound
+    case InconsistentStorage(msg) =>
+      DataStoreFailure(s"Project repository inconsistency detected [$msg]")
   }
 
   private def validateName(
     name: String
-  ): ZIO[ZEnv, CreateProjectFailure, Unit] =
+  ): ZIO[ZEnv, ProjectServiceFailure, Unit] =
     validator
       .validateName(name)
       .mapError {
         case EmptyName =>
-          CreateProjectFailure.ValidationFailure(
+          ProjectServiceFailure.ValidationFailure(
             "Cannot create project with empty name"
           )
         case NameContainsForbiddenCharacter(char) =>
-          CreateProjectFailure.ValidationFailure(
+          ProjectServiceFailure.ValidationFailure(
             "Forbidden characters in the project name"
           )
       }

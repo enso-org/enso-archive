@@ -1,51 +1,16 @@
 package org.enso.projectmanager.infrastructure.file
-import java.io.{File, FileNotFoundException}
-import java.nio.file.{AccessDeniedException, NoSuchFileException}
 
-import org.apache.commons.io.{FileExistsException, FileUtils}
-import org.enso.projectmanager.infrastructure.file.FileSystem.Encoding
-import org.enso.projectmanager.infrastructure.file.FileSystemFailure.{
-  AccessDenied,
-  FileExists,
-  FileNotFound,
-  GenericFileSystemFailure,
-  OperationTimeout
-}
-import zio.blocking._
-import zio.duration.Duration
-import zio.{ZEnv, ZIO}
+import java.io.File
 
-import scala.concurrent.duration.FiniteDuration
+trait FileSystem[F[_, _]] {
 
-class FileSystem(operationTimeout: FiniteDuration) extends FileSystemApi {
+  def readFile(file: File): F[FileSystemFailure, String]
 
-  private val ioTimeout = Duration.fromScala(operationTimeout)
-
-  override def readFile(file: File): ZIO[ZEnv, FileSystemFailure, String] =
-    effectBlocking(FileUtils.readFileToString(file, Encoding))
-      .mapError(toFsFailure)
-      .timeoutFail(OperationTimeout)(ioTimeout)
-
-  override def overwriteFile(
+  def overwriteFile(
     file: File,
     contents: String
-  ): ZIO[ZEnv, FileSystemFailure, Unit] =
-    effectBlocking(FileUtils.write(file, contents, Encoding))
-      .mapError(toFsFailure)
-      .timeoutFail(OperationTimeout)(ioTimeout)
+  ): F[FileSystemFailure, Unit]
 
-  private val toFsFailure: Throwable => FileSystemFailure = {
-    case _: FileNotFoundException => FileNotFound
-    case _: NoSuchFileException   => FileNotFound
-    case _: FileExistsException   => FileExists
-    case _: AccessDeniedException => AccessDenied
-    case ex                       => GenericFileSystemFailure(ex.getMessage)
-  }
-
-}
-
-object FileSystem {
-
-  val Encoding = "UTF-8"
+  def removeDir(path: File): F[FileSystemFailure, Unit]
 
 }

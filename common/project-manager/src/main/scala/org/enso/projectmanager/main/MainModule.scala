@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
-import org.enso.projectmanager.infrastructure.file.FileSystem
+import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.repo.FileBasedProjectRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
@@ -46,7 +46,7 @@ class MainModule(
 
   lazy val exec = new ZioEnvExec(runtime)
 
-  lazy val fileSystem = new FileSystem(config.timeout.ioTimeout)
+  lazy val fileSystem = new BlockingFileSystem(config.timeout.ioTimeout)
 
   lazy val projectRepository =
     new FileBasedProjectRepository(config.storage, fileSystem, storageSemaphore)

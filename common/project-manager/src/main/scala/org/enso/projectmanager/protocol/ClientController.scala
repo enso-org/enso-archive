@@ -5,8 +5,14 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.infrastructure.execution.Exec
-import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
-import org.enso.projectmanager.requesthandler.ProjectCreateHandler
+import org.enso.projectmanager.protocol.ProjectManagementApi.{
+  ProjectCreate,
+  ProjectDelete
+}
+import org.enso.projectmanager.requesthandler.{
+  ProjectCreateHandler,
+  ProjectDeleteHandler
+}
 import org.enso.projectmanager.service.ProjectServiceApi
 import zio._
 
@@ -29,7 +35,9 @@ class ClientController(
 
   private val requestHandlers: Map[Method, Props] =
     Map(
-      ProjectCreate -> ProjectCreateHandler.props(projectService, exec, timeout)
+      ProjectCreate -> ProjectCreateHandler
+        .props(projectService, exec, timeout),
+      ProjectDelete -> ProjectDeleteHandler.props(projectService, exec, timeout)
     )
 
   override def unhandled(message: Any): Unit =

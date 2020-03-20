@@ -10,16 +10,14 @@ case class ProjectIndex(
   temporaryProjects: Map[UUID, ProjectMetadata] = Map.empty
 ) {
 
-  def updateProject[E](projectId: UUID)(
-    f: Option[ProjectMetadata] => Either[E, ProjectMetadata]
-  ): Either[E, ProjectIndex] = {
-    val maybeProject = userProjects.get(projectId)
-    val maybeUpdate  = f(maybeProject)
-    maybeUpdate.map { project =>
-      val updatedProjects = userProjects + (projectId -> project)
-      ProjectIndex(updatedProjects)
-    }
-  }
+  def addUserProject(project: ProjectMetadata): ProjectIndex =
+    ProjectIndex(userProjects + (project.id -> project))
+
+  def removeUserProject(projectId: UUID): ProjectIndex =
+    ProjectIndex(userProjects - projectId)
+
+  def findUserProject(projectId: UUID): Option[ProjectMetadata] =
+    userProjects.get(projectId)
 
   def exists(name: String): Boolean = userProjects.values.exists(_.name == name)
 

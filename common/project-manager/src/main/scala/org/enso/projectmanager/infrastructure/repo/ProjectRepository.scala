@@ -1,14 +1,17 @@
 package org.enso.projectmanager.infrastructure.repo
 
+import java.util.UUID
+
 import org.enso.projectmanager.model.ProjectMetadata
-import zio.{ZEnv, ZIO}
 
-trait ProjectRepository {
+trait ProjectRepository[F[_, _]] {
 
-  def exists(name: String): ZIO[ZEnv, ProjectRepositoryFailure, Boolean]
+  def exists(name: String): F[ProjectRepositoryFailure, Boolean]
 
   def createUserProject(
     project: ProjectMetadata
-  ): ZIO[ZEnv, ProjectRepositoryFailure, Unit]
+  ): F[ProjectRepositoryFailure, Unit]
+
+  def deleteUserProject(projectId: UUID): F[ProjectRepositoryFailure, Unit]
 
 }

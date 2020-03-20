@@ -7,10 +7,12 @@ import io.circe.generic.auto._
 import io.circe.parser._
 import io.circe.syntax._
 import org.enso.pkg.Package
-import org.enso.projectmanager.infrastructure.file.FileSystemApi
+import org.enso.projectmanager.infrastructure.file.FileSystem
 import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
 import org.enso.projectmanager.infrastructure.repo.ProjectRepositoryFailure.{
-  CannotLoadMetadata,
+  CannotLoadIndex,
+  InconsistentStorage,
+  ProjectNotFoundInIndex,
   StorageFailure
 }
 import org.enso.projectmanager.main.configuration.StorageConfig
@@ -20,9 +22,9 @@ import zio.{Semaphore, ZEnv, ZIO}
 
 class FileBasedProjectRepository(
   storageConfig: StorageConfig,
-  fileSystem: FileSystemApi,
+  fileSystem: FileSystem[ZIO[ZEnv, *, *]],
   semaphore: Semaphore
-) extends ProjectRepository {
+) extends ProjectRepository[ZIO[ZEnv, *, *]] {
 
   override def exists(
     name: String
@@ -34,11 +36,11 @@ class FileBasedProjectRepository(
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)
     val projectWithPath = project.copy(path = Some(projectPath.toString))
+
     createProjectStructure(project, projectPath) *>
-    compareAndSetMetadata(project.id) {
-      case None    => Right(projectWithPath)
-      case Some(_) => throw new RuntimeException("UUID collision")
-      //it is impossible
+    modifyIndex { index =>
+      val updated = index.addUserProject(projectWithPath)
+      (updated, ())
     }
   }
 
@@ -46,22 +48,49 @@ class FileBasedProjectRepository(
     project: ProjectMetadata,
     projectPath: File
   ): ZIO[Blocking, StorageFailure, Package] =
-    effectBlocking(Package.create(projectPath, project.name))
+    effectBlocking { Package.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
-  private def compareAndSetMetadata[E](projectId: UUID)(
-    f: Option[ProjectMetadata] => Either[
-      ProjectRepositoryFailure,
-      ProjectMetadata
-    ]
-  ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] = {
+  override def deleteUserProject(
+    projectId: UUID
+  ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] =
+    modifyIndex { index =>
+      val maybeProject = index.findUserProject(projectId)
+      index.removeUserProject(projectId) -> maybeProject
+    } flatMap {
+      case None =>
+        ZIO.fail(ProjectNotFoundInIndex)
+
+      case Some(project) if project.path.isEmpty =>
+        ZIO.fail(
+          InconsistentStorage(
+            "Index cannot contain a user project without path"
+          )
+        )
+
+      case Some(project) =>
+        removeProjectStructure(project.path.get)
+    }
+
+  private def removeProjectStructure(
+    projectPath: String
+  ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] =
+    fileSystem
+      .removeDir(new File(projectPath))
+      .mapError[ProjectRepositoryFailure](
+        failure => StorageFailure(failure.toString)
+      )
+
+  private def modifyIndex[A](
+    f: ProjectIndex => (ProjectIndex, A)
+  ): ZIO[ZEnv, ProjectRepositoryFailure, A] = {
     semaphore.withPermit {
       // format: off
       for {
-        metadata      <- loadIndex()
-        maybeUpdated   = metadata.updateProject(projectId)(f)
-        _             <- maybeUpdated.fold(ZIO.fail[ProjectRepositoryFailure](_), persistIndex)
-      } yield ()
+        index             <- loadIndex()
+        (updated, output)  = f(index)
+        _                 <- persistIndex(updated)
+      } yield output
       // format: on
     }
   }
@@ -71,7 +100,7 @@ class FileBasedProjectRepository(
       .readFile(storageConfig.projectMetadataPath)
       .flatMap { contents =>
         decode[ProjectIndex](contents).fold(
-          failure => ZIO.fail(CannotLoadMetadata(failure.getMessage)),
+          failure => ZIO.fail(CannotLoadIndex(failure.getMessage)),
           ZIO.succeed(_)
         )
       }
