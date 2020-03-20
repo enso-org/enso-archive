@@ -52,7 +52,7 @@ case object TailCall extends IRPass {
         method.copy(
           body = analyseExpression(body, isInTailPosition = true)
         )
-      case atom@ IR.Module.Scope.Definition.Atom(_, args, _, _) =>
+      case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _) =>
         atom.copy(
           arguments = args.map(analyseDefArgument)
         )
@@ -75,7 +75,10 @@ case object TailCall extends IRPass {
       case caseExpr: IR.Case     => analyseCase(caseExpr, isInTailPosition)
       case typ: IR.Type          => analyseType(typ, isInTailPosition)
       case app: IR.Application   => analyseApplication(app, isInTailPosition)
+      case name: IR.Name         => analyseName(name, isInTailPosition)
       case foreign: IR.Foreign   => foreign.addMetadata(TailPosition.NotTail)
+      case literal: IR.Literal   => analyseLiteral(literal, isInTailPosition)
+      case comment: IR.Comment   => analyseComment(comment, isInTailPosition)
       case block @ IR.Expression.Block(expressions, returnValue, _, _, _) =>
         block
           .copy(
@@ -90,10 +93,50 @@ case object TailCall extends IRPass {
             expression = analyseExpression(expression, isInTailPosition)
           )
           .addMetadata(TailPosition.fromBool(isInTailPosition))
-      case x =>
-        x.addMetadata(TailPosition.fromBool(isInTailPosition))
-          .mapExpressions(analyseExpression(_, isInTailPosition))
+      case err: IR.Error => err
     }
+  }
+
+  /** Performs tail call analysis on an occurrence of a name.
+    *
+    * @param name the name to analyse
+    * @param isInTailPosition whether the name occurs in tail position or not
+    * @return `name`, annotated with tail position metadata
+    */
+  def analyseName(name: IR.Name, isInTailPosition: Boolean): IR.Name = {
+    name.addMetadata(TailPosition.fromBool(isInTailPosition))
+  }
+
+  /** Performs tail call analysis on a comment occurrence.
+    *
+    * @param comment the comment to analyse
+    * @param isInTailPosition whether the comment occurs in tail position or not
+    * @return `comment`, annotated with tail position metadata
+    */
+  def analyseComment(
+    comment: IR.Comment,
+    isInTailPosition: Boolean
+  ): IR.Comment = {
+    comment match {
+      case doc @ IR.Comment.Documentation(expr, _, _, _) =>
+        doc
+          .copy(commented = analyseExpression(expr, isInTailPosition))
+          .addMetadata(TailPosition.fromBool(isInTailPosition))
+    }
+  }
+
+  /** Performs tail call analysis on a literal.
+    *
+    * @param literal the literal to analyse
+    * @param isInTailPosition whether or not the literal occurs in tail position
+    *                         or not
+    * @return `literal`, annotated with tail position metdata
+    */
+  def analyseLiteral(
+    literal: IR.Literal,
+    isInTailPosition: Boolean
+  ): IR.Literal = {
+    literal.addMetadata(TailPosition.fromBool(isInTailPosition))
   }
 
   /** Performs tail call analysis on an application.
@@ -109,14 +152,18 @@ case object TailCall extends IRPass {
   ): IR.Application = {
     application match {
       case app @ IR.Application.Prefix(fn, args, _, _, _) =>
-        app.copy(
-          function  = analyseExpression(fn, isInTailPosition = false),
-          arguments = args.map(analyseCallArg)
-        )
+        app
+          .copy(
+            function  = analyseExpression(fn, isInTailPosition = false),
+            arguments = args.map(analyseCallArg)
+          )
+          .addMetadata(TailPosition.fromBool(isInTailPosition))
       case force @ IR.Application.Force(target, _, _) =>
-        force.copy(
-          target = analyseExpression(target, isInTailPosition)
-        )
+        force
+          .copy(
+            target = analyseExpression(target, isInTailPosition)
+          )
+          .addMetadata(TailPosition.fromBool(isInTailPosition))
       case _: IR.Application.Operator =>
         throw new CompilerError("Unexpected binary operator.")
     }
@@ -161,12 +208,14 @@ case object TailCall extends IRPass {
   def analyseCase(caseExpr: IR.Case, isInTailPosition: Boolean): IR.Case = {
     caseExpr match {
       case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _) =>
-        caseExpr.copy(
-          scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
-          // Note [Analysing Branches in Case Expressions]
-          branches = branches.map(analyseCaseBranch(_, isInTailPosition)),
-          fallback = fallback.map(analyseExpression(_, isInTailPosition))
-        )
+        caseExpr
+          .copy(
+            scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
+            // Note [Analysing Branches in Case Expressions]
+            branches = branches.map(analyseCaseBranch(_, isInTailPosition)),
+            fallback = fallback.map(analyseExpression(_, isInTailPosition))
+          )
+          .addMetadata(TailPosition.fromBool(isInTailPosition))
       case _: IR.Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
@@ -194,10 +243,12 @@ case object TailCall extends IRPass {
     branch: IR.Case.Branch,
     isInTailPosition: Boolean
   ): IR.Case.Branch = {
-    branch.copy(
-      pattern    = analyseExpression(branch.pattern, isInTailPosition = false),
-      expression = analyseExpression(branch.expression, isInTailPosition)
-    )
+    branch
+      .copy(
+        pattern    = analyseExpression(branch.pattern, isInTailPosition = false),
+        expression = analyseExpression(branch.expression, isInTailPosition)
+      )
+      .addMetadata(TailPosition.fromBool(isInTailPosition))
   }
 
   /** Performs tail call analysis on a function definition.
@@ -226,16 +277,20 @@ case object TailCall extends IRPass {
   }
 
   /** Performs tail call analysis on a function definition argument.
-   *
-   * @param arg the argument definition to analyse
-   * @return `arg`, annotated with tail position metadata
-   */
+    *
+    * @param arg the argument definition to analyse
+    * @return `arg`, annotated with tail position metadata
+    */
   def analyseDefArgument(arg: IR.DefinitionArgument): IR.DefinitionArgument = {
     arg match {
       case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _) =>
         arg
           .copy(
-            defaultValue = default.map(x => x.addMetadata(TailPosition.NotTail))
+            defaultValue = default.map(
+              x =>
+                analyseExpression(x, isInTailPosition = false)
+                  .addMetadata(TailPosition.NotTail)
+            )
           )
           .addMetadata(TailPosition.NotTail)
       case err: IR.Error.Redefined.Argument => err

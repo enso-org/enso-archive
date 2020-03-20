@@ -1043,7 +1043,7 @@ object IR {
       code: String,
       override val location: Option[Location],
       override val passData: ISet[Metadata] = ISet()
-    ) extends Expression
+    ) extends Foreign
         with IRKind.Primitive {
       override def addMetadata(newData: Metadata): Definition = {
         copy(passData = this.passData + newData)

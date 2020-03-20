@@ -4,7 +4,11 @@ import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  ApplicationSaturation,
+  TailCall
+}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
@@ -297,25 +301,33 @@ class IRToTruffle(
       * @param ir the IR to generate code for
       * @return a truffle expression that represents the same program as `ir`
       */
-    def run(ir: IR): RuntimeExpression = ir match {
-      case block: IR.Expression.Block     => processBlock(block)
-      case literal: IR.Literal            => processLiteral(literal)
-      case app: IR.Application            => processApplication(app)
-      case name: IR.Name                  => processName(name)
-      case function: IR.Function          => processFunction(function)
-      case binding: IR.Expression.Binding => processBinding(binding)
-      case caseExpr: IR.Case              => processCase(caseExpr)
-      case comment: IR.Comment            => processComment(comment)
-      case err: IR.Error =>
-        throw new CompilerError(
-          s"No errors should remain by the point of truffle codegen, but " +
-          s"found $err."
+    def run(ir: IR): RuntimeExpression = {
+      val tailMeta = ir
+        .getMetadata[TailCall.Metadata]
+        .getOrElse(
+          throw new CompilerError(s"Missing tail call metadata for $ir")
         )
-      case IR.Foreign.Definition(_, _, _, _) =>
-        throw new CompilerError(
-          s"Foreign expressions not yet implemented: $ir."
-        )
-      case _ => throw new UnhandledEntity(ir, "run")
+
+      ir match {
+        case block: IR.Expression.Block     => processBlock(block)
+        case literal: IR.Literal            => processLiteral(literal)
+        case app: IR.Application            => processApplication(app)
+        case name: IR.Name                  => processName(name)
+        case function: IR.Function          => processFunction(function)
+        case binding: IR.Expression.Binding => processBinding(binding)
+        case caseExpr: IR.Case              => processCase(caseExpr)
+        case comment: IR.Comment            => processComment(comment)
+        case err: IR.Error =>
+          throw new CompilerError(
+            s"No errors should remain by the point of truffle codegen, but " +
+            s"found $err."
+          )
+        case IR.Foreign.Definition(_, _, _, _) =>
+          throw new CompilerError(
+            s"Foreign expressions not yet implemented: $ir."
+          )
+        case _ => throw new UnhandledEntity(ir, "run")
+      }
     }
 
     /** Executes the expression processor on a piece of code that has been
