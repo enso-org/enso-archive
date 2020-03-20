@@ -29,7 +29,7 @@ class FileBasedProjectRepository(
   ): ZIO[ZEnv, ProjectRepositoryFailure, Boolean] =
     loadIndex().map(_.exists(name))
 
-  override def createProject(
+  override def createUserProject(
     project: ProjectMetadata
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)

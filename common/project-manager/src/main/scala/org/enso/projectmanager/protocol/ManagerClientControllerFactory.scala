@@ -17,7 +17,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 class ManagerClientControllerFactory(
   system: ActorSystem,
-  projectService: ProjectServiceApi,
+  projectService: ProjectServiceApi[ZIO[ZEnv, *, *]],
   exec: Exec[ZIO[ZEnv, *, *]],
   requestTimeout: FiniteDuration
 ) extends ClientControllerFactory {

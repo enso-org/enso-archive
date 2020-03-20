@@ -20,7 +20,7 @@ import scala.concurrent.duration.FiniteDuration
   */
 class ClientController(
   clientId: UUID,
-  projectService: ProjectServiceApi,
+  projectService: ProjectServiceApi[ZIO[ZEnv, *, *]],
   exec: Exec[ZIO[ZEnv, *, *]],
   timeout: FiniteDuration
 ) extends Actor
@@ -63,7 +63,7 @@ object ClientController {
     */
   def props(
     clientId: UUID,
-    projectService: ProjectServiceApi,
+    projectService: ProjectServiceApi[ZIO[ZEnv, *, *]],
     exec: Exec[ZIO[ZEnv, *, *]],
     timeout: FiniteDuration
   ): Props =

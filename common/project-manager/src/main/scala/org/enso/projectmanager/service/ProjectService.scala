@@ -28,11 +28,11 @@ class ProjectService(
   repo: ProjectRepository,
   log: Logging,
   clock: Clock
-) extends ProjectServiceApi {
+) extends ProjectServiceApi[ZIO[ZEnv, *, *]] {
 
-  override def createProject(
+  override def createUserProject(
     name: String
-  ): ZIO[ZEnv, CreateProjectFailure, Unit] = {
+  ): ZIO[ZEnv, CreateProjectFailure, UUID] = {
     // format: off
     for {
       _            <- log.debug(s"Creating project $name.")
@@ -41,9 +41,9 @@ class ProjectService(
       creationTime <- clock.nowInUtc()
       projectId     = UUID.randomUUID()
       project       = ProjectMetadata(projectId, name, creationTime)
-      _            <- repo.createProject(project).mapError(toServiceFailure)
+      _            <- repo.createUserProject(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
-    } yield ()
+    } yield projectId
     // format: on
   }
 

@@ -1,9 +1,9 @@
 package org.enso.projectmanager.service
 
-import zio.{ZEnv, ZIO}
+import java.util.UUID
 
-trait ProjectServiceApi {
+trait ProjectServiceApi[F[_, _]] {
 
-  def createProject(name: String): ZIO[ZEnv, CreateProjectFailure, Unit]
+  def createUserProject(name: String): F[CreateProjectFailure, UUID]
 
 }

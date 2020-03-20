@@ -7,7 +7,7 @@ trait ProjectRepository {
 
   def exists(name: String): ZIO[ZEnv, ProjectRepositoryFailure, Boolean]
 
-  def createProject(
+  def createUserProject(
     project: ProjectMetadata
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit]
 

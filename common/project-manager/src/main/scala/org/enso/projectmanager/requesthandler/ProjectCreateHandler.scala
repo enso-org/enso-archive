@@ -1,5 +1,7 @@
 package org.enso.projectmanager.requesthandler
 
+import java.util.UUID
+
 import akka.actor._
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
@@ -12,7 +14,7 @@ import zio._
 import scala.concurrent.duration.FiniteDuration
 
 class ProjectCreateHandler(
-  service: ProjectServiceApi,
+  service: ProjectServiceApi[ZIO[ZEnv, *, *]],
   exec: Exec[ZIO[ZEnv, *, *]],
   requestTimeout: FiniteDuration
 ) extends Actor
@@ -23,7 +25,7 @@ class ProjectCreateHandler(
 
   private def requestStage: Receive = {
     case Request(ProjectCreate, id, params: ProjectCreate.Params) =>
-      exec.exec(service.createProject(params.name)).pipeTo(self)
+      exec.exec(service.createUserProject(params.name)).pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
@@ -42,7 +44,7 @@ class ProjectCreateHandler(
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $id timed out")
+      log.error(s"Request $ProjectCreate with $id timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -52,8 +54,12 @@ class ProjectCreateHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case Right(()) =>
-      replyTo ! ResponseResult(ProjectCreate, id, Unused)
+    case Right(projectId: UUID) =>
+      replyTo ! ResponseResult(
+        ProjectCreate,
+        id,
+        ProjectCreate.Result(projectId)
+      )
       cancellable.cancel()
       context.stop(self)
   }
@@ -63,7 +69,7 @@ class ProjectCreateHandler(
 object ProjectCreateHandler {
 
   def props(
-    service: ProjectServiceApi,
+    service: ProjectServiceApi[ZIO[ZEnv, *, *]],
     exec: Exec[ZIO[ZEnv, *, *]],
     requestTimeout: FiniteDuration
   ): Props =

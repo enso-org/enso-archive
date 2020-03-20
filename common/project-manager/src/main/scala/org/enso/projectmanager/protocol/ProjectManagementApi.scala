@@ -1,5 +1,7 @@
 package org.enso.projectmanager.protocol
 
+import java.util.UUID
+
 import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 
 /**
@@ -13,11 +15,13 @@ object ProjectManagementApi {
 
     case class Params(name: String)
 
+    case class Result(id: UUID)
+
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectCreate.Params
     }
     implicit val hasResult = new HasResult[this.type] {
-      type Result = Unused.type
+      type Result = ProjectCreate.Result
     }
   }
 
