@@ -3,6 +3,7 @@ package org.enso.projectmanager.service
 import java.util.UUID
 
 import org.enso.projectmanager.infrastructure.log.Logging
+import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repo.ProjectRepositoryFailure.{
   CannotLoadIndex,
   InconsistentStorage,
@@ -30,7 +31,8 @@ class ProjectService(
   validator: ProjectValidator[IO],
   repo: ProjectRepository[ZIO[ZEnv, *, *]],
   log: Logging,
-  clock: Clock
+  clock: Clock,
+  gen: Generator
 ) extends ProjectServiceApi[ZIO[ZEnv, *, *]] {
 
   override def createUserProject(
@@ -42,7 +44,7 @@ class ProjectService(
       _            <- validateName(name)
       _            <- validateExists(name)
       creationTime <- clock.nowInUtc()
-      projectId     = UUID.randomUUID()
+      projectId     = gen.randomUUID()
       project       = Project(projectId, name, creationTime)
       _            <- repo.createUserProject(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")

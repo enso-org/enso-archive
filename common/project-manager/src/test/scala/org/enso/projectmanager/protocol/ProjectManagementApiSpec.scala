@@ -1,5 +1,8 @@
 package org.enso.projectmanager.protocol
 
+import java.io.File
+import java.nio.file.Paths
+
 import akka.testkit.TestProbe
 import io.circe.literal._
 
@@ -48,6 +51,34 @@ class ProjectManagementApiSpec extends BaseServerTest {
           """)
     }
 
+    "create project structure" in {
+      val projectName = "luna_test-project1"
+      val projectDir  = new File(userProjectDir, projectName)
+      val packageFile = new File(projectDir, "package.yaml")
+      val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
+
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 1,
+              "params": {
+                "name": $projectName
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 1,
+            "result" : {
+              "projectId" : $TestUUID
+            }
+          }
+          """)
+      packageFile shouldBe 'file
+      mainEnso shouldBe 'file
+    }
   }
 
 }

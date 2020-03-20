@@ -6,6 +6,10 @@ import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
+import org.enso.projectmanager.infrastructure.random.{
+  Generator,
+  SystemGenerator
+}
 import org.enso.projectmanager.infrastructure.repo.FileBasedProjectRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.ProjectManagerConfig
@@ -41,8 +45,16 @@ class MainModule(
   lazy val projectRepository =
     new FileBasedProjectRepository(config.storage, fileSystem, storageSemaphore)
 
+  lazy val gen: Generator = SystemGenerator
+
   lazy val projectService =
-    new ProjectService(ZioProjectValidator, projectRepository, logging, clock)
+    new ProjectService(
+      ZioProjectValidator,
+      projectRepository,
+      logging,
+      clock,
+      gen
+    )
 
   lazy val clientControllerFactory = new ManagerClientControllerFactory(
     system,
