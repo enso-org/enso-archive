@@ -317,13 +317,22 @@ case object TailCall extends IRPass {
       override def bool: Boolean = false
     }
 
-    /** Converts a boolean to a [[TailPosition]] value.
+    /** Implicitly converts a boolean to a [[TailPosition]] value.
       *
       * @param isTail the boolean
       * @return the tail position value corresponding to `bool`
       */
-    def fromBool(isTail: Boolean): TailPosition = {
+    implicit def fromBool(isTail: Boolean): TailPosition = {
       if (isTail) TailPosition.Tail else TailPosition.NotTail
+    }
+
+    /** Implicitly converts the tail position data into a boolean.
+     *
+     * @param tailPosition the tail position value
+     * @return the boolean value corresponding to `tailPosition`
+     */
+    implicit def toBool(tailPosition: TailPosition): Boolean = {
+      tailPosition.bool
     }
   }
 }
