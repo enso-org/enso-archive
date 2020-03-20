@@ -8,7 +8,7 @@ import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation, TailCall}
 import org.enso.compiler.pass.desugar.{GenMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -40,7 +40,8 @@ class Compiler(
     LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,
-    ApplicationSaturation()
+    ApplicationSaturation(),
+    TailCall
   )
 
   /**
