@@ -6,7 +6,7 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
-import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.desugar.{GenMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 
 class AliasAnalysisTest extends CompilerTest {
@@ -19,6 +19,7 @@ class AliasAnalysisTest extends CompilerTest {
     */
   implicit class Preprocess(source: String) {
     val precursorPasses: List[IRPass] = List(
+      GenMethodBodies,
       LiftSpecialOperators,
       OperatorToFunction
     )

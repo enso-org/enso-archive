@@ -5,7 +5,7 @@ import cats.implicits._
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
-import org.enso.syntax.text.{AST, Debug, Location}
+import org.enso.syntax.text.{AST, Location}
 
 // FIXME [AA] All places where we currently throw a `RuntimeException` should
 //  generate informative and useful nodes in core.
@@ -140,17 +140,11 @@ object AstToIR {
           (Constants.Names.CURRENT_MODULE, None)
         }
 
-        val nameStr       = name match { case AST.Ident.Var.any(name) => name }
-        val defExpression = translateExpression(definition)
-        val defExpr: Function.Lambda = defExpression match {
-          case fun: Function.Lambda => fun
-          case expr =>
-            Function.Lambda(List(), expr, expr.location)
-        }
+        val nameStr = name match { case AST.Ident.Var.any(name) => name }
         Module.Scope.Definition.Method(
           Name.Literal(path, pathLoc),
           Name.Literal(nameStr.name, nameStr.location),
-          defExpr,
+          translateExpression(definition),
           inputAST.location
         )
       case _ =>
@@ -334,6 +328,13 @@ object AstToIR {
       CallArgument.Specified(None, translateExpression(arg), arg.location)
   }
 
+  /** Calculates whether a set of arguments has its defaults suspended, and
+    * processes the argument list to remove that operator.
+    *
+    * @param args the list of arguments
+    * @return the list of arguments with the suspension operator removed, and
+    *         whether or not the defaults are suspended
+    */
   def calculateDefaultsSuspension(args: List[AST]): (List[AST], Boolean) = {
     val validArguments = args.filter {
       case AstView.SuspendDefaultsOperator(_) => false

@@ -90,31 +90,22 @@ case object AliasAnalysis extends IRPass {
 
     ir match {
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
-        val bodyWithThisArg = body match {
-          case lam @ IR.Function.Lambda(args, _, _, _, _) =>
-            lam.copy(
-              arguments = IR.DefinitionArgument.Specified(
-                  IR.Name.This(None),
-                  None,
-                  suspended = false,
-                  None
-                ) :: args
-            )
+        body match {
+          case _: IR.Function =>
+            m.copy(
+              body = analyseExpression(
+                body,
+                topLevelGraph,
+                topLevelGraph.rootScope,
+                lambdaReuseScope = true,
+                blockReuseScope  = true
+              )
+            ).addMetadata(Info.Scope.Root(topLevelGraph))
           case _ =>
             throw new CompilerError(
-              "The body of a method should always be a lambda by."
+              "The body of a method should always be a function."
             )
         }
-        m.copy(
-            body = analyseExpression(
-              bodyWithThisArg,
-              topLevelGraph,
-              topLevelGraph.rootScope,
-              lambdaReuseScope = true,
-              blockReuseScope  = true
-            )
-          )
-          .addMetadata(Info.Scope.Root(topLevelGraph))
       case a @ IR.Module.Scope.Definition.Atom(_, args, _, _) =>
         a.copy(
             arguments =

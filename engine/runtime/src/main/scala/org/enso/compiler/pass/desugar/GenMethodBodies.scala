@@ -4,8 +4,6 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
-// TODO [AA] Should only insert `this` if it doesn't already exist in the args
-//  list.
 /** This pass is responsible for ensuring that method bodies are in the correct
   * format.
   *
@@ -13,7 +11,7 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
   * is as follows:
   *
   * - The body is a function (lambda)
-  * - The body has `this` in its argument list
+  * - The body has `this` at the start of its argument list.
   */
 case object GenMethodBodies extends IRPass {
 
@@ -44,7 +42,55 @@ case object GenMethodBodies extends IRPass {
   def processMethodDef(
     ir: IR.Module.Scope.Definition.Method
   ): IR.Module.Scope.Definition.Method = {
-    ir
+    ir.copy(
+      body = ir.body match {
+        case fun: IR.Function => processBodyFunction(fun)
+        case expression       => processBodyExpression(expression)
+      }
+    )
+  }
+
+  /** Processes the method body if it's a function.
+   *
+   * This is solely responsible for prepending the `this` argument to the list
+   * of arguments.
+   *
+   * @param fun the body function
+   * @return the body function with the `this` argument
+   */
+  def processBodyFunction(fun: IR.Function): IR.Function = {
+    fun match {
+      case lam @ IR.Function.Lambda(args, _, _, _, _) =>
+        lam.copy(
+          arguments = genThisArgument :: args
+        )
+    }
+  }
+
+  /** Processes the method body if it's an expression.
+   *
+   * @param expr the body expression
+   * @return `expr` converted to a function taking the `this` argument
+   */
+  def processBodyExpression(expr: IR.Expression): IR.Expression = {
+    IR.Function.Lambda(
+      arguments = List(genThisArgument),
+      body = expr,
+      location = expr.location
+    )
+  }
+
+  /** Generates a definition of the `this` argument for method definitions.
+   *
+   * @return the `this` argument
+   */
+  def genThisArgument: IR.DefinitionArgument.Specified = {
+    IR.DefinitionArgument.Specified(
+      IR.Name.This(None),
+      None,
+      suspended = false,
+      None
+    )
   }
 
   /** Executes the pass on an expression.

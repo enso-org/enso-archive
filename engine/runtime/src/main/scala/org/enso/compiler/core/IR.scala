@@ -2,7 +2,7 @@ package org.enso.compiler.core
 
 import org.enso.compiler.core.IR.Expression
 import org.enso.syntax.text.ast.Doc
-import org.enso.syntax.text.{AST, Location}
+import org.enso.syntax.text.{AST, Debug, Location}
 
 import scala.collection.immutable.{Set => ISet}
 import scala.reflect.ClassTag
@@ -51,6 +51,12 @@ sealed trait IR {
     * @return `this`, potentially having had its children transformed by `fn`
     */
   def mapExpressions(fn: Expression => Expression): IR
+
+  /** Pretty prints the IR.
+   *
+   * @return a pretty-printed representation of the IR
+   */
+  def pretty: String = Debug.pretty(this.toString)
 }
 object IR {
 
