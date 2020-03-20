@@ -5,7 +5,7 @@ import akka.stream.SystemMaterializer
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.FileSystem
-import org.enso.projectmanager.infrastructure.log.SimpleLogging
+import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.repo.FileBasedProjectRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.ProjectManagerConfig
@@ -40,7 +40,7 @@ class MainModule(
 
   implicit val materializer = SystemMaterializer.get(system)
 
-  lazy val logging = SimpleLogging
+  lazy val logging = Slf4jLogging
 
   lazy val clock = RealClock
 

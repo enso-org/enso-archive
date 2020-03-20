@@ -2,18 +2,20 @@ package org.enso.projectmanager.infrastructure.repo
 
 import java.util.UUID
 
-case class ProjectStorage(
-  userProjects: Map[UUID, ProjectMetadata] = Map.empty
+case class ProjectIndex(
+  userProjects: Map[UUID, ProjectMetadata]      = Map.empty,
+  sampleProjects: List[ProjectMetadata]         = List.empty,
+  temporaryProjects: Map[UUID, ProjectMetadata] = Map.empty
 ) {
 
   def updateProject[E](projectId: UUID)(
     f: Option[ProjectMetadata] => Either[E, ProjectMetadata]
-  ): Either[E, ProjectStorage] = {
+  ): Either[E, ProjectIndex] = {
     val maybeProject = userProjects.get(projectId)
     val maybeUpdate  = f(maybeProject)
     maybeUpdate.map { project =>
       val updatedProjects = userProjects + (projectId -> project)
-      ProjectStorage(updatedProjects)
+      ProjectIndex(updatedProjects)
     }
   }
 
@@ -21,8 +23,8 @@ case class ProjectStorage(
 
 }
 
-object ProjectStorage {
+object ProjectIndex {
 
-  val Empty = ProjectStorage()
+  val Empty = ProjectIndex()
 
 }

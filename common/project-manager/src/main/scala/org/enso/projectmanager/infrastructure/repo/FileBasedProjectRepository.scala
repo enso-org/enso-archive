@@ -27,7 +27,7 @@ class FileBasedProjectRepository(
   override def exists(
     name: String
   ): ZIO[ZEnv, ProjectRepositoryFailure, Boolean] =
-    loadMetadata().map(_.exists(name))
+    loadIndex().map(_.exists(name))
 
   override def createProject(
     project: ProjectEntity
@@ -67,34 +67,33 @@ class FileBasedProjectRepository(
     semaphore.withPermit {
       // format: off
       for {
-        metadata      <- loadMetadata()
+        metadata      <- loadIndex()
         maybeUpdated   = metadata.updateProject(projectId)(f)
-        _             <- maybeUpdated.fold(ZIO.fail[ProjectRepositoryFailure](_), persistMetadata)
+        _             <- maybeUpdated.fold(ZIO.fail[ProjectRepositoryFailure](_), persistIndex)
       } yield ()
       // format: on
     }
   }
 
-  private def loadMetadata()
-    : ZIO[ZEnv, ProjectRepositoryFailure, ProjectStorage] =
+  private def loadIndex(): ZIO[ZEnv, ProjectRepositoryFailure, ProjectIndex] =
     fileSystem
       .readFile(storageConfig.projectMetadataPath)
       .flatMap { contents =>
-        decode[ProjectStorage](contents).fold(
+        decode[ProjectIndex](contents).fold(
           failure => ZIO.fail(CannotLoadMetadata(failure.getMessage)),
           ZIO.succeed(_)
         )
       }
       .foldM(
         failure = {
-          case FileNotFound => ZIO.succeed(ProjectStorage.Empty)
+          case FileNotFound => ZIO.succeed(ProjectIndex.Empty)
           case other        => ZIO.fail(StorageFailure(other.toString))
         },
         success = ZIO.succeed(_)
       )
 
-  private def persistMetadata(
-    projectsMetadata: ProjectStorage
+  private def persistIndex(
+    projectsMetadata: ProjectIndex
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] =
     fileSystem
       .overwriteFile(

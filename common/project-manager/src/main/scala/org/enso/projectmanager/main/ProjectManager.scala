@@ -21,24 +21,28 @@ object ProjectManager extends App with LazyLogging {
   lazy val runtime = Runtime.default
 
   lazy val mainProcess: ZIO[ZEnv, IOException, Unit] =
+    // format: off
     for {
       storageSemaphore <- Semaphore.make(1)
-      mainModule = new MainModule(runtime, storageSemaphore)
-      _       <- putStrLn(mainModule.config.toString)
-      binding <- bindServer(mainModule)
-      _ <- effectTotal {
-        logger.info(
-          s"Started server at ${mainModule.config.server.host}:${mainModule.config.server.port}, press enter to kill server"
-        )
-      }
-      _ <- getStrLn
-      _ <- effectTotal { logger.info("Stopping server...") }
-      _ <- effectTotal { binding.unbind() }
-      _ <- effectTotal { mainModule.system.terminate() }
+      mainModule        = new MainModule(runtime, storageSemaphore)
+      binding          <- bindServer(mainModule)
+      _                <- logServerStartup(mainModule)
+      _                <- getStrLn
+      _                <- effectTotal { logger.info("Stopping server...") }
+      _                <- effectTotal { binding.unbind() }
+      _                <- effectTotal { mainModule.system.terminate() }
     } yield ()
+    // format: on
 
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
     mainProcess.fold(_ => ExitCodes.FailureCode, _ => ExitCodes.SuccessCode)
+
+  private def logServerStartup(mainModule: MainModule): UIO[Unit] =
+    effectTotal {
+      logger.info(
+        s"Started server at ${mainModule.config.server.host}:${mainModule.config.server.port}, press enter to kill server"
+      )
+    }
 
   private def bindServer(mainModule: MainModule): UIO[Http.ServerBinding] =
     effectTotal {
