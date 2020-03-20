@@ -60,9 +60,6 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[IR.Application.Prefix]
         .arguments
         .head
-
-//      println(tmp)
-//      println(tmp.getMetadata[TailCall.Metadata])
     }
   }
 }
