@@ -185,6 +185,8 @@ object IR {
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           */
+        // TODO [AA] Separate Method into Method.Binding and Method.Explicit to
+        //  account for syntax sugar later.
         sealed case class Method(
           typeName: IR.Name,
           methodName: IR.Name,

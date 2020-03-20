@@ -9,16 +9,12 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
-import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.desugar.{GenMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{
-  LocalScope,
-  ModuleScope,
-  TopLevelScope
-}
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.{AST, Parser}
 
@@ -40,6 +36,7 @@ class Compiler(
     * they nevertheless exist.
     */
   val compilerPhaseOrdering: List[IRPass] = List(
+    GenMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,

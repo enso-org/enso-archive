@@ -5,7 +5,7 @@ import cats.implicits._
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
-import org.enso.syntax.text.{AST, Location}
+import org.enso.syntax.text.{AST, Debug, Location}
 
 // FIXME [AA] All places where we currently throw a `RuntimeException` should
 //  generate informative and useful nodes in core.
@@ -180,10 +180,13 @@ object AstToIR {
       case AstView.Assignment(name, expr) =>
         translateBinding(inputAST.location, name, expr)
       case AstView.MethodCall(target, name, args) =>
+        val (validArguments, hasDefaultsSuspended) =
+          calculateDefaultsSuspension(args)
+
         Application.Prefix(
           translateExpression(name),
-          (target :: args).map(translateCallArgument),
-          false,
+          (target :: validArguments).map(translateCallArgument),
+          hasDefaultsSuspended = hasDefaultsSuspended,
           inputAST.location
         )
       case AstView.CaseExpression(scrutinee, branches) =>
@@ -289,7 +292,7 @@ object AstToIR {
         DefinitionArgument.Specified(
           Name.Literal(name.name, name.location),
           Some(translateExpression(value)),
-          true,
+          suspended = true,
           arg.location
         )
       case AstView.LazyArgument(arg) =>
@@ -331,6 +334,21 @@ object AstToIR {
       CallArgument.Specified(None, translateExpression(arg), arg.location)
   }
 
+  def calculateDefaultsSuspension(args: List[AST]): (List[AST], Boolean) = {
+    val validArguments = args.filter {
+      case AstView.SuspendDefaultsOperator(_) => false
+      case _                                  => true
+    }
+
+    val suspendPositions = args.zipWithIndex.collect {
+      case (AstView.SuspendDefaultsOperator(_), ix) => ix
+    }
+
+    val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
+
+    (validArguments, hasDefaultsSuspended)
+  }
+
   /** Translates an arbitrary expression that takes the form of a syntactic
     * application from its [[AST]] representation into [[Core]].
     *
@@ -348,16 +366,8 @@ object AstToIR {
       case AstView.ForcedTerm(term) =>
         Application.Force(translateExpression(term), callable.location)
       case AstView.Application(name, args) =>
-        val validArguments = args.filter {
-          case AstView.SuspendDefaultsOperator(_) => false
-          case _                                  => true
-        }
-
-        val suspendPositions = args.zipWithIndex.collect {
-          case (AstView.SuspendDefaultsOperator(_), ix) => ix
-        }
-
-        val hasDefaultsSuspended = suspendPositions.contains(args.length - 1)
+        val (validArguments, hasDefaultsSuspended) =
+          calculateDefaultsSuspension(args)
 
         Application.Prefix(
           translateExpression(name),

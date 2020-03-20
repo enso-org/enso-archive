@@ -147,4 +147,8 @@ class MethodsTest extends InterpreterTest {
 
     eval(code) shouldEqual 6
   }
+
+  "Methods with suspended defaults" should "work as expected" in {
+    pending
+  }
 }
