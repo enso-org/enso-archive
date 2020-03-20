@@ -858,7 +858,7 @@ object IR {
         right: Expression,
         override val location: Option[Location],
         override val passData: ISet[Metadata] = ISet()
-      ) extends Application
+      ) extends Operator
           with IRKind.Sugar {
         override def addMetadata(newData: Metadata): Binary = {
           copy(passData = this.passData + newData)

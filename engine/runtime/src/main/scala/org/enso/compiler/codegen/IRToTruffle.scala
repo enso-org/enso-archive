@@ -190,10 +190,8 @@ class IRToTruffle(
             fn.location
           )
         case _ =>
-          expressionProcessor.processFunctionBody(
-            List(),
-            methodDef.body,
-            methodDef.body.location
+          throw new CompilerError(
+            "Method bodies must be functions at the point of codegen."
           )
       }
 
@@ -485,7 +483,7 @@ class IRToTruffle(
               throw new CompilerError("No occurence on variable usage.")
             )
 
-          val slot = scope.getFramePointer(useInfo.id)
+          val slot     = scope.getFramePointer(useInfo.id)
           val atomCons = moduleScope.getConstructor(nameStr).toScala
           if (nameStr == Constants.Names.CURRENT_MODULE) {
             ConstructorNode.build(moduleScope.getAssociatedType)
