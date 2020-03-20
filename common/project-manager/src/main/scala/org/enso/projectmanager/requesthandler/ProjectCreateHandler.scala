@@ -8,7 +8,11 @@ import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.projectmanager.infrastructure.execution.Exec
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectCreate
-import org.enso.projectmanager.service.ProjectServiceApi
+import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
+import org.enso.projectmanager.service.{
+  ProjectServiceApi,
+  ProjectServiceFailure
+}
 import zio._
 
 import scala.concurrent.duration.FiniteDuration
@@ -48,9 +52,9 @@ class ProjectCreateHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case Left(failure) =>
+    case Left(failure: ProjectServiceFailure) =>
       log.error(s"Request $id failed due to $failure")
-      replyTo ! ResponseError(Some(id), ServiceError) //todo
+      replyTo ! ResponseError(Some(id), mapFailure(failure))
       cancellable.cancel()
       context.stop(self)
 

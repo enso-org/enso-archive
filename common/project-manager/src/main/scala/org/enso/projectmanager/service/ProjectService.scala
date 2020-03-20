@@ -53,7 +53,9 @@ class ProjectService(
   override def deleteUserProject(
     projectId: UUID
   ): ZIO[ZEnv, ProjectServiceFailure, Unit] =
-    repo.deleteUserProject(projectId).mapError(toServiceFailure)
+    log.debug(s"Deleting project $projectId.") *>
+    repo.deleteUserProject(projectId).mapError(toServiceFailure) *>
+    log.info(s"Project $projectId deleted.")
 
   private def validateExists(
     name: String

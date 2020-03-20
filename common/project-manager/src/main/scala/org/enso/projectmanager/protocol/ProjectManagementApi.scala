@@ -2,7 +2,7 @@ package org.enso.projectmanager.protocol
 
 import java.util.UUID
 
-import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 
 /**
   * The project management JSON RPC API provided by the project manager.
@@ -36,5 +36,15 @@ object ProjectManagementApi {
       type Result = Unused.type
     }
   }
+
+  case class ProjectNameValidationError(msg: String) extends Error(4001, msg)
+
+  case class ProjectDataStoreError(msg: String) extends Error(4002, msg)
+
+  case object ProjectExistsError
+      extends Error(4003, "Project with the provided name exists")
+
+  case object ProjectNotFoundError
+      extends Error(4004, "Project with the provided id does not exist")
 
 }
