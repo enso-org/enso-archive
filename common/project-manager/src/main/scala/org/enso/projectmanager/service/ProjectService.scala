@@ -12,7 +12,7 @@ import org.enso.projectmanager.infrastructure.repo.{
   ProjectRepositoryFailure
 }
 import org.enso.projectmanager.infrastructure.time.Clock
-import org.enso.projectmanager.model.ProjectEntity
+import org.enso.projectmanager.model.ProjectMetadata
 import org.enso.projectmanager.service.CreateProjectFailure.{
   DataStoreFailure,
   ProjectExists
@@ -40,7 +40,7 @@ class ProjectService(
       _            <- validateExists(name)
       creationTime <- clock.nowInUtc()
       projectId     = UUID.randomUUID()
-      project       = ProjectEntity(projectId, name, creationTime, None)
+      project       = ProjectMetadata(projectId, name, creationTime)
       _            <- repo.createProject(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield ()

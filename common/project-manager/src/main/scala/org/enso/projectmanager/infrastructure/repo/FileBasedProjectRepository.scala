@@ -14,7 +14,7 @@ import org.enso.projectmanager.infrastructure.repo.ProjectRepositoryFailure.{
   StorageFailure
 }
 import org.enso.projectmanager.main.configuration.StorageConfig
-import org.enso.projectmanager.model.ProjectEntity
+import org.enso.projectmanager.model.ProjectMetadata
 import zio.blocking._
 import zio.{Semaphore, ZEnv, ZIO}
 
@@ -30,29 +30,20 @@ class FileBasedProjectRepository(
     loadIndex().map(_.exists(name))
 
   override def createProject(
-    project: ProjectEntity
+    project: ProjectMetadata
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] = {
-    val projectPath = new File(storageConfig.userProjectsPath, project.name)
+    val projectPath     = new File(storageConfig.userProjectsPath, project.name)
+    val projectWithPath = project.copy(path = Some(projectPath.toString))
     createProjectStructure(project, projectPath) *>
     compareAndSetMetadata(project.id) {
-      case None =>
-        val metadata =
-          ProjectMetadata(
-            id         = project.id,
-            name       = project.name,
-            path       = projectPath.toString,
-            created    = project.created,
-            lastOpened = None
-          )
-        Right(metadata)
-
-      case Some(_) =>
-        throw new RuntimeException("UUID collision") //it is impossible
+      case None    => Right(projectWithPath)
+      case Some(_) => throw new RuntimeException("UUID collision")
+      //it is impossible
     }
   }
 
   private def createProjectStructure(
-    project: ProjectEntity,
+    project: ProjectMetadata,
     projectPath: File
   ): ZIO[Blocking, StorageFailure, Package] =
     effectBlocking(Package.create(projectPath, project.name))

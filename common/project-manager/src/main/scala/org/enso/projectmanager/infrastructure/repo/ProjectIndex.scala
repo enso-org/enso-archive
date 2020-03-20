@@ -2,6 +2,8 @@ package org.enso.projectmanager.infrastructure.repo
 
 import java.util.UUID
 
+import org.enso.projectmanager.model.ProjectMetadata
+
 case class ProjectIndex(
   userProjects: Map[UUID, ProjectMetadata]      = Map.empty,
   sampleProjects: List[ProjectMetadata]         = List.empty,

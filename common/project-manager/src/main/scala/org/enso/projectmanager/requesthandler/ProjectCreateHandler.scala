@@ -24,15 +24,21 @@ class ProjectCreateHandler(
   private def requestStage: Receive = {
     case Request(ProjectCreate, id, params: ProjectCreate.Params) =>
       exec.exec(service.createProject(params.name)).pipeTo(self)
-      context.system.scheduler
-        .scheduleOnce(requestTimeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      val cancellable =
+        context.system.scheduler
+          .scheduleOnce(requestTimeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable))
   }
 
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case Status.Failure(ex) =>
       log.error(s"Failure during $ProjectCreate operation:", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
+      cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
@@ -43,10 +49,12 @@ class ProjectCreateHandler(
     case Left(failure) =>
       log.error(s"Request $id failed due to $failure")
       replyTo ! ResponseError(Some(id), ServiceError) //todo
+      cancellable.cancel()
       context.stop(self)
 
     case Right(()) =>
       replyTo ! ResponseResult(ProjectCreate, id, Unused)
+      cancellable.cancel()
       context.stop(self)
   }
 

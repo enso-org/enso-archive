@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.repo
 
-import org.enso.projectmanager.model.ProjectEntity
+import org.enso.projectmanager.model.ProjectMetadata
 import zio.{ZEnv, ZIO}
 
 trait ProjectRepository {
@@ -8,7 +8,7 @@ trait ProjectRepository {
   def exists(name: String): ZIO[ZEnv, ProjectRepositoryFailure, Boolean]
 
   def createProject(
-    project: ProjectEntity
+    project: ProjectMetadata
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit]
 
 }
