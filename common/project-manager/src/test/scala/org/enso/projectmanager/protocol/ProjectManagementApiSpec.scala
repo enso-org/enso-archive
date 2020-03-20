@@ -2,6 +2,7 @@ package org.enso.projectmanager.protocol
 
 import java.io.File
 import java.nio.file.Paths
+import java.util.UUID
 
 import io.circe.literal._
 
@@ -119,6 +120,78 @@ class ProjectManagementApiSpec extends BaseServerSpec {
       packageFile shouldBe 'file
       mainEnso shouldBe 'file
     }
+  }
+
+  "project/delete" must {
+
+    "fail when project doesn't exist" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 1,
+              "params": {
+                "projectId": ${UUID.randomUUID()}
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":1,
+            "error":{
+              "code":4004,
+              "message":"Project with the provided id does not exist"
+            }
+          }
+          """)
+
+    }
+
+    "remove project structure" in {
+      val projectName = "to-remove"
+      val projectDir  = new File(userProjectDir, projectName)
+
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": $projectName
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 0,
+            "result" : {
+              "projectId" : $TestUUID
+            }
+          }
+          """)
+      projectDir shouldBe 'directory
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 1,
+              "params": {
+                "projectId": $TestUUID
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":1,
+            "result": null
+          }
+          """)
+
+      projectDir.exists() shouldBe false
+    }
+
   }
 
 }
