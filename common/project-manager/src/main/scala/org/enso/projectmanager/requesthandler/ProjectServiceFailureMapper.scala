@@ -12,6 +12,9 @@ import org.enso.projectmanager.service.ProjectServiceFailure.{
 
 object ProjectServiceFailureMapper {
 
+  /**
+    * Maps project service failures to JSON RPC errors.
+    */
   val mapFailure: ProjectServiceFailure => Error = {
     case ValidationFailure(msg) => ProjectNameValidationError(msg)
     case DataStoreFailure(msg)  => ProjectDataStoreError(msg)

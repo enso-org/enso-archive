@@ -1,5 +1,8 @@
 package org.enso.projectmanager.main
 
+/**
+  * Constants manager for app constants.
+  */
 object Globals {
 
   val FailureExitCode = 1

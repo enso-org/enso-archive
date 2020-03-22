@@ -27,6 +27,15 @@ import org.enso.projectmanager.service.ValidationFailure.{
 }
 import zio.{IO, ZEnv, ZIO}
 
+/**
+  * Implementation of business logic for project management.
+  *
+  * @param validator a project validator
+  * @param repo a project repository
+  * @param log a logging facility
+  * @param clock a clock
+  * @param gen a random generator
+  */
 class ProjectService(
   validator: ProjectValidator[IO],
   repo: ProjectRepository[ZIO[ZEnv, *, *]],
@@ -35,6 +44,12 @@ class ProjectService(
   gen: Generator[IO]
 ) extends ProjectServiceApi[ZIO[ZEnv, *, *]] {
 
+  /**
+    * Creates a user project.
+    *
+    * @param name the name of th project
+    * @return projectId
+    */
   override def createUserProject(
     name: String
   ): ZIO[ZEnv, ProjectServiceFailure, UUID] = {
@@ -46,12 +61,18 @@ class ProjectService(
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, creationTime)
-      _            <- repo.createUserProject(project).mapError(toServiceFailure)
+      _            <- repo.insertUserProject(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
   }
 
+  /**
+    * Deletes a user project.
+    *
+    * @param projectId the project id
+    * @return either failure or unit representing success
+    */
   override def deleteUserProject(
     projectId: UUID
   ): ZIO[ZEnv, ProjectServiceFailure, Unit] =

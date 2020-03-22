@@ -31,6 +31,12 @@ object configuration {
     userProjectsPath: File
   )
 
+  /**
+    * A configuration object for timeout proeperties.
+    *
+    * @param ioTimeout a timeout for IO operations
+    * @param requestTimeout a timeout for JSON RPC request timeout
+    */
   case class TimeoutConfig(
     ioTimeout: FiniteDuration,
     requestTimeout: FiniteDuration

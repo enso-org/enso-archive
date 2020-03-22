@@ -4,6 +4,11 @@ import zio._
 
 import scala.concurrent.{Future, Promise}
 
+/**
+  * ZIO executor.
+  *
+  * @param runtime a ZIO runtime
+  */
 class ZioEnvExec(runtime: Runtime[ZEnv]) extends Exec[ZIO[ZEnv, *, *]] {
 
   override def exec[E, A](op: ZIO[ZEnv, E, A]): Future[Either[E, A]] = {

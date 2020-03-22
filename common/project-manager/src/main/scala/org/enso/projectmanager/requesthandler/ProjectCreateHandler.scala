@@ -17,6 +17,13 @@ import zio._
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `project/create` commands.
+  *
+  * @param service a project service
+  * @param exec an zio executor
+  * @param requestTimeout a request timeout
+  */
 class ProjectCreateHandler(
   service: ProjectServiceApi[ZIO[ZEnv, *, *]],
   exec: Exec[ZIO[ZEnv, *, *]],
@@ -72,6 +79,14 @@ class ProjectCreateHandler(
 
 object ProjectCreateHandler {
 
+  /**
+    * Creates a configuration object used to create a [[ProjectCreateHandler]].
+    *
+    * @param service a project service
+    * @param exec an zio executor
+    * @param requestTimeout a request timeout
+    * @return a configuration object
+    */
   def props(
     service: ProjectServiceApi[ZIO[ZEnv, *, *]],
     exec: Exec[ZIO[ZEnv, *, *]],

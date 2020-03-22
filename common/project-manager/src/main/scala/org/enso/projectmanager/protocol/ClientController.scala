@@ -23,6 +23,9 @@ import scala.concurrent.duration.FiniteDuration
   * manager.
   *
   * @param clientId the internal client id.
+  * @param projectService a project service
+  * @param exec a zio executor
+  * @param timeout a request timeout
   */
 class ClientController(
   clientId: UUID,

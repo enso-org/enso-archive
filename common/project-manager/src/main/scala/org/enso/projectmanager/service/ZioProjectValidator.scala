@@ -6,12 +6,21 @@ import org.enso.projectmanager.service.ValidationFailure.{
 }
 import zio.IO
 
+/**
+  * ZIO implementation of the project validator.
+  */
 object ZioProjectValidator extends ProjectValidator[IO] {
 
   private val validCharSpec: Char => Boolean = { char =>
     char.isLetterOrDigit || char == '_' || char == '-'
   }
 
+  /**
+    * Validates a project name.
+    *
+    * @param name the project name
+    * @return either validation failure or success
+    */
   override def validateName(name: String): IO[ValidationFailure, Unit] =
     checkIfNonEmptyName(name) *> checkCharacters(name)
 

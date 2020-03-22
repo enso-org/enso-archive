@@ -30,6 +30,9 @@ object ProjectManager extends App with LazyLogging {
 
   logger.info("Starting Language Server...")
 
+  /**
+    * A configuration of the project manager.
+    */
   val config: ProjectManagerConfig =
     ConfigSource
       .resources(ConfigFilename)
@@ -37,8 +40,14 @@ object ProjectManager extends App with LazyLogging {
       .at(ConfigNamespace)
       .loadOrThrow[ProjectManagerConfig]
 
+  /**
+    * ZIO runtime.
+    */
   lazy val runtime = Runtime.default
 
+  /**
+    * Main process starting up the server.
+    */
   lazy val mainProcess: ZIO[ZEnv, IOException, Unit] =
     // format: off
     for {
@@ -53,6 +62,10 @@ object ProjectManager extends App with LazyLogging {
     } yield ()
     // format: on
 
+  /**
+    * The main function of the application, which will be passed the command-line
+    * arguments to the program and has to return an `IO` with the errors fully handled.
+    */
   override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
     mainProcess.fold(_ => FailureExitCode, _ => SuccessExitCode)
 

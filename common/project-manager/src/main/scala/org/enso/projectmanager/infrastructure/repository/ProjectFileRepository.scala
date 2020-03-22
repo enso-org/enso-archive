@@ -15,12 +15,25 @@ import org.enso.projectmanager.model.Project
 import zio.blocking._
 import zio.{ZEnv, ZIO}
 
+/**
+  * File based implementation of the project repository.
+  *
+  * @param storageConfig a storage config
+  * @param fileSystem a file system abstraction
+  * @param indexStorage an index storage
+  */
 class ProjectFileRepository(
   storageConfig: StorageConfig,
   fileSystem: FileSystem[ZIO[ZEnv, *, *]],
   indexStorage: FileStorage[ProjectIndex, ZIO[ZEnv, *, *]]
 ) extends ProjectRepository[ZIO[ZEnv, *, *]] {
 
+  /**
+    * Tests if project is present in the data storage.
+    *
+    * @param name a project name
+    * @return true if project exists
+    */
   override def exists(
     name: String
   ): ZIO[ZEnv, ProjectRepositoryFailure, Boolean] =
@@ -29,7 +42,13 @@ class ProjectFileRepository(
       .map(_.exists(name))
       .mapError(_.fold(convertFileStorageFailure))
 
-  override def createUserProject(
+  /**
+    * Inserts the provided user project to the storage.
+    *
+    * @param project the project to insert
+    * @return
+    */
+  override def insertUserProject(
     project: Project
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)
@@ -51,6 +70,12 @@ class ProjectFileRepository(
     effectBlocking { Package.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
+  /**
+    * Removes the provided project from the storage.
+    *
+    * @param projectId the project id to remove
+    * @return either failure or success
+    */
   override def deleteUserProject(
     projectId: UUID
   ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] =
