@@ -20,7 +20,7 @@ import org.enso.projectmanager.model.Project
 import zio.blocking._
 import zio.{Semaphore, ZEnv, ZIO}
 
-class FileBasedProjectRepository(
+class ProjectFileRepository(
   storageConfig: StorageConfig,
   fileSystem: FileSystem[ZIO[ZEnv, *, *]],
   semaphore: Semaphore

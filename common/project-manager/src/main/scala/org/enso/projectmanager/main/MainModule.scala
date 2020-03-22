@@ -10,7 +10,7 @@ import org.enso.projectmanager.infrastructure.random.{
   Generator,
   SystemGenerator
 }
-import org.enso.projectmanager.infrastructure.repo.FileBasedProjectRepository
+import org.enso.projectmanager.infrastructure.repo.ProjectFileRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.ProjectManagerConfig
 import org.enso.projectmanager.protocol.{
@@ -43,7 +43,7 @@ class MainModule(
   lazy val fileSystem = new BlockingFileSystem(config.timeout.ioTimeout)
 
   lazy val projectRepository =
-    new FileBasedProjectRepository(config.storage, fileSystem, storageSemaphore)
+    new ProjectFileRepository(config.storage, fileSystem, storageSemaphore)
 
   lazy val gen = SystemGenerator
 

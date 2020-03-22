@@ -10,7 +10,7 @@ import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
-import org.enso.projectmanager.infrastructure.repo.FileBasedProjectRepository
+import org.enso.projectmanager.infrastructure.repo.ProjectFileRepository
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.StorageConfig
 import org.enso.projectmanager.service.{ProjectService, ZioProjectValidator}
@@ -53,7 +53,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     Runtime.default.unsafeRun(Semaphore.make(1))
 
   lazy val projectRepository =
-    new FileBasedProjectRepository(
+    new ProjectFileRepository(
       testStorageConfig,
       fileSystem,
       storageSemaphore
