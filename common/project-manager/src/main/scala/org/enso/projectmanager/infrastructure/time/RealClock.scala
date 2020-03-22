@@ -1,12 +1,12 @@
 package org.enso.projectmanager.infrastructure.time
 import java.time.{OffsetDateTime, ZoneOffset}
 
-import zio.IO
+import zio.{IO, ZIO}
 
 /**
   * A system clock.
   */
-object RealClock extends Clock[IO] {
+class RealClock[R] extends Clock[ZIO[R, *, *]] {
 
   /**
     * Obtains the current date-time from the system clock in the default time-zone.

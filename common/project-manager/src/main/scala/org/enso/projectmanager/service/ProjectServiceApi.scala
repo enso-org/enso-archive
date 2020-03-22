@@ -7,7 +7,7 @@ import java.util.UUID
   *
   * @tparam F target bifunctor
   */
-trait ProjectServiceApi[F[_, _]] {
+trait ProjectServiceApi[F[+_, +_]] {
 
   /**
     * Creates a user project.

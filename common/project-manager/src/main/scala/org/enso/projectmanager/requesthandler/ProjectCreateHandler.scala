@@ -25,7 +25,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param requestTimeout a request timeout
   */
 class ProjectCreateHandler(
-  service: ProjectServiceApi[ZIO[ZEnv, *, *]],
+  service: ProjectServiceApi[({ type T[+A, +B] = ZIO[ZEnv, A, B] })#T],
   exec: Exec[ZIO[ZEnv, *, *]],
   requestTimeout: FiniteDuration
 ) extends Actor
@@ -88,7 +88,7 @@ object ProjectCreateHandler {
     * @return a configuration object
     */
   def props(
-    service: ProjectServiceApi[ZIO[ZEnv, *, *]],
+    service: ProjectServiceApi[({ type T[+A, +B] = ZIO[ZEnv, A, B] })#T],
     exec: Exec[ZIO[ZEnv, *, *]],
     requestTimeout: FiniteDuration
   ): Props =

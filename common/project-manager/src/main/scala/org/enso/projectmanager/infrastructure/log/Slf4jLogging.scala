@@ -1,11 +1,11 @@
 package org.enso.projectmanager.infrastructure.log
 import com.typesafe.scalalogging.LazyLogging
-import zio.IO
+import zio.{IO, ZIO}
 
 /**
   * Slf4j logging interpreter.
   */
-object Slf4jLogging extends Logging[IO] with LazyLogging {
+class Slf4jLogging[R] extends Logging[ZIO[R, *, *]] with LazyLogging {
 
   override def debug(msg: String): IO[Nothing, Unit] =
     IO.effectTotal(logger.debug(msg))

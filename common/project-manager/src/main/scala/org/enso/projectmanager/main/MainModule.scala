@@ -39,9 +39,9 @@ class MainModule(
 
   implicit val materializer = SystemMaterializer.get(system)
 
-  lazy val logging = Slf4jLogging
+  lazy val logging = new Slf4jLogging[ZEnv]
 
-  lazy val clock = RealClock
+  lazy val clock = new RealClock[ZEnv]
 
   lazy val exec = new ZioEnvExec(runtime)
 
@@ -56,12 +56,12 @@ class MainModule(
   lazy val projectRepository =
     new ProjectFileRepository(config.storage, fileSystem, indexStorage)
 
-  lazy val gen = SystemGenerator
+  lazy val gen = new SystemGenerator[ZEnv]
 
-  lazy val projectValidator = new MtlProjectValidator[IO]()
+  lazy val projectValidator = new MtlProjectValidator[ZIO[ZEnv, *, *]]()
 
   lazy val projectService =
-    new ProjectService(
+    new ProjectService[({ type T[+A, +B] = ZIO[ZEnv, A, B] })#T](
       projectValidator,
       projectRepository,
       logging,

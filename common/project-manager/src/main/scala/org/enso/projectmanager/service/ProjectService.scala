@@ -2,6 +2,8 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
+import cats.{Bifunctor, MonadError}
+import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
@@ -25,7 +27,8 @@ import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
   NameContainsForbiddenCharacter
 }
-import zio.{IO, ZEnv, ZIO}
+import org.enso.projectmanager.control.core.syntax._
+import cats.implicits._
 
 /**
   * Implementation of business logic for project management.
@@ -36,13 +39,16 @@ import zio.{IO, ZEnv, ZIO}
   * @param clock a clock
   * @param gen a random generator
   */
-class ProjectService(
-  validator: ProjectValidator[IO],
-  repo: ProjectRepository[ZIO[ZEnv, *, *]],
-  log: Logging[IO],
-  clock: Clock[IO],
-  gen: Generator[IO]
-) extends ProjectServiceApi[ZIO[ZEnv, *, *]] {
+class ProjectService[F[+_, +_]: Bifunctor: CovariantFlatMap](
+  validator: ProjectValidator[F],
+  repo: ProjectRepository[F],
+  log: Logging[F],
+  clock: Clock[F],
+  gen: Generator[F]
+)(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
+    extends ProjectServiceApi[F] {
+
+  import E._
 
   /**
     * Creates a user project.
@@ -52,7 +58,7 @@ class ProjectService(
     */
   override def createUserProject(
     name: String
-  ): ZIO[ZEnv, ProjectServiceFailure, UUID] = {
+  ): F[ProjectServiceFailure, UUID] = {
     // format: off
     for {
       _            <- log.debug(s"Creating project $name.")
@@ -61,7 +67,7 @@ class ProjectService(
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, creationTime)
-      _            <- repo.insertUserProject(project).mapError(toServiceFailure)
+      _            <- repo.insertUserProject(project).leftMap(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
@@ -75,20 +81,20 @@ class ProjectService(
     */
   override def deleteUserProject(
     projectId: UUID
-  ): ZIO[ZEnv, ProjectServiceFailure, Unit] =
+  ): F[ProjectServiceFailure, Unit] =
     log.debug(s"Deleting project $projectId.") *>
-    repo.deleteUserProject(projectId).mapError(toServiceFailure) *>
+    repo.deleteUserProject(projectId).leftMap(toServiceFailure) *>
     log.info(s"Project $projectId deleted.")
 
   private def validateExists(
     name: String
-  ): ZIO[ZEnv, ProjectServiceFailure, Unit] =
+  ): F[ProjectServiceFailure, Unit] =
     repo
       .exists(name)
-      .mapError(toServiceFailure)
+      .leftMap(toServiceFailure)
       .flatMap { exists =>
-        if (exists) ZIO.fail(ProjectExists)
-        else ZIO.unit
+        if (exists) raiseError(ProjectExists)
+        else unit
       }
 
   private val toServiceFailure
@@ -105,10 +111,10 @@ class ProjectService(
 
   private def validateName(
     name: String
-  ): ZIO[ZEnv, ProjectServiceFailure, Unit] =
+  ): F[ProjectServiceFailure, Unit] =
     validator
       .validateName(name)
-      .mapError {
+      .leftMap {
         case EmptyName =>
           ProjectServiceFailure.ValidationFailure(
             "Cannot create project with empty name"

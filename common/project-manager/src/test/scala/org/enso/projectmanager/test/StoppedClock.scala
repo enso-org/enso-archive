@@ -3,9 +3,9 @@ package org.enso.projectmanager.test
 import java.time.{OffsetDateTime, ZoneOffset}
 
 import org.enso.projectmanager.infrastructure.time.Clock
-import zio.IO
+import zio.{IO, ZIO}
 
-class StoppedClock(now: OffsetDateTime) extends Clock[IO] {
+class StoppedClock[R](now: OffsetDateTime) extends Clock[ZIO[R, *, *]] {
 
   override def now(): IO[Nothing, OffsetDateTime] = IO.succeed(now)
 

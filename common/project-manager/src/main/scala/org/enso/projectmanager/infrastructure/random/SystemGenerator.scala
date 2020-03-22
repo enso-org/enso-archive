@@ -1,12 +1,12 @@
 package org.enso.projectmanager.infrastructure.random
 import java.util.UUID
 
-import zio.IO
+import zio.{IO, ZIO}
 
 /**
   * A system pseudo-random numbers generator.
   */
-object SystemGenerator extends Generator[IO] {
+class SystemGenerator[R] extends Generator[ZIO[R, *, *]] {
 
   /**
     * Returns random UUID in version 4.

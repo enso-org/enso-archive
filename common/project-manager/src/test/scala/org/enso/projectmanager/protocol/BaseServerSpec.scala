@@ -17,12 +17,11 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.StorageConfig
 import org.enso.projectmanager.service.{MtlProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
 import zio.interop.catz.core._
-import zio.{IO, Runtime, Semaphore}
+import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
 import scala.concurrent.duration._
 
@@ -32,11 +31,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   val TestNow = OffsetDateTime.now(ZoneOffset.UTC)
 
-  val testClock = new StoppedClock(TestNow)
+  val testClock = new StoppedClock[ZEnv](TestNow)
 
   val TestUUID = UUID.randomUUID()
 
-  lazy val gen = new ConstGenerator(TestUUID)
+  lazy val gen = new ConstGenerator[ZEnv](TestUUID)
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   testProjectsRoot.deleteOnExit()
@@ -50,7 +49,6 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     projectMetadataPath = indexFile,
     userProjectsPath    = userProjectDir
   )
-  lazy val clock = RealClock
 
   lazy val exec = new ZioEnvExec(Runtime.default)
 
@@ -72,14 +70,14 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       indexStorage
     )
 
-  lazy val projectValidator = new MtlProjectValidator[IO]()
+  lazy val projectValidator = new MtlProjectValidator[ZIO[ZEnv, *, *]]()
 
   lazy val projectService =
-    new ProjectService(
+    new ProjectService[({ type T[+A, +B] = ZIO[ZEnv, A, B] })#T](
       projectValidator,
       projectRepository,
-      NopLogging,
-      clock,
+      new NopLogging[ZEnv],
+      testClock,
       gen
     )
 
