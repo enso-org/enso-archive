@@ -2,15 +2,19 @@ package org.enso.projectmanager.main
 
 import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
+import io.circe.generic.auto._
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
-import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
-import org.enso.projectmanager.infrastructure.log.Slf4jLogging
-import org.enso.projectmanager.infrastructure.random.{
-  Generator,
-  SystemGenerator
+import org.enso.projectmanager.infrastructure.file.{
+  BlockingFileSystem,
+  ZioFileStorage
 }
-import org.enso.projectmanager.infrastructure.repo.ProjectFileRepository
+import org.enso.projectmanager.infrastructure.log.Slf4jLogging
+import org.enso.projectmanager.infrastructure.random.SystemGenerator
+import org.enso.projectmanager.infrastructure.repository.{
+  ProjectFileRepository,
+  ProjectIndex
+}
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.ProjectManagerConfig
 import org.enso.projectmanager.protocol.{
@@ -42,8 +46,14 @@ class MainModule(
 
   lazy val fileSystem = new BlockingFileSystem(config.timeout.ioTimeout)
 
+  lazy val indexStorage = new ZioFileStorage[ProjectIndex](
+    config.storage.projectMetadataPath,
+    fileSystem,
+    storageSemaphore
+  )
+
   lazy val projectRepository =
-    new ProjectFileRepository(config.storage, fileSystem, storageSemaphore)
+    new ProjectFileRepository(config.storage, fileSystem, indexStorage)
 
   lazy val gen = SystemGenerator
 

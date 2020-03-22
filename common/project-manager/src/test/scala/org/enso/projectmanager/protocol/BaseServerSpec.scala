@@ -8,14 +8,20 @@ import java.util.UUID
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
-import org.enso.projectmanager.infrastructure.file.BlockingFileSystem
-import org.enso.projectmanager.infrastructure.log.Slf4jLogging
-import org.enso.projectmanager.infrastructure.repo.ProjectFileRepository
+import org.enso.projectmanager.infrastructure.file.{
+  BlockingFileSystem,
+  ZioFileStorage
+}
+import org.enso.projectmanager.infrastructure.repository.{
+  ProjectFileRepository,
+  ProjectIndex
+}
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.StorageConfig
 import org.enso.projectmanager.service.{ProjectService, ZioProjectValidator}
 import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
 import zio.{Runtime, Semaphore}
+import io.circe.generic.auto._
 
 import scala.concurrent.duration._
 
@@ -52,11 +58,17 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val storageSemaphore =
     Runtime.default.unsafeRun(Semaphore.make(1))
 
+  lazy val indexStorage = new ZioFileStorage[ProjectIndex](
+    testStorageConfig.projectMetadataPath,
+    fileSystem,
+    storageSemaphore
+  )
+
   lazy val projectRepository =
     new ProjectFileRepository(
       testStorageConfig,
       fileSystem,
-      storageSemaphore
+      indexStorage
     )
 
   lazy val projectService =

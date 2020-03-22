@@ -4,13 +4,13 @@ import java.util.UUID
 
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.random.Generator
-import org.enso.projectmanager.infrastructure.repo.ProjectRepositoryFailure.{
+import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
   CannotLoadIndex,
   InconsistentStorage,
   ProjectNotFoundInIndex,
   StorageFailure
 }
-import org.enso.projectmanager.infrastructure.repo.{
+import org.enso.projectmanager.infrastructure.repository.{
   ProjectRepository,
   ProjectRepositoryFailure
 }

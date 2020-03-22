@@ -1,7 +1,8 @@
-package org.enso.projectmanager.infrastructure.repo
+package org.enso.projectmanager.infrastructure.repository
 
 import java.util.UUID
 
+import org.enso.projectmanager.data.Default
 import org.enso.projectmanager.model.Project
 
 case class ProjectIndex(
@@ -26,5 +27,7 @@ case class ProjectIndex(
 object ProjectIndex {
 
   val Empty = ProjectIndex()
+
+  implicit val indexDefault: Default[ProjectIndex] = Default.Val(Empty)
 
 }

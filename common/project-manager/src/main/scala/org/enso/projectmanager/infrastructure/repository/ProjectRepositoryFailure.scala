@@ -1,4 +1,4 @@
-package org.enso.projectmanager.infrastructure.repo
+package org.enso.projectmanager.infrastructure.repository
 
 sealed trait ProjectRepositoryFailure
 
