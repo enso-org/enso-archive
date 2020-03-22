@@ -17,13 +17,12 @@ object CovariantFlatMap {
   ): CovariantFlatMap[F] =
     covariantFlatMap
 
-  implicit def zioFlatMap[R]
-    : CovariantFlatMap[({ type T[+A, +B] = ZIO[R, A, B] })#T] =
+  implicit def zioFlatMap[R]: CovariantFlatMap[ZIO[R, +*, +*]] =
     zioFlatMapInstance
-      .asInstanceOf[CovariantFlatMap[({ type T[+A, +B] = ZIO[R, A, B] })#T]]
+      .asInstanceOf[CovariantFlatMap[ZIO[R, +*, +*]]]
 
   final private[this] val zioFlatMapInstance
-    : CovariantFlatMap[({ type T[+A, +B] = ZIO[Any, A, B] })#T] =
+    : CovariantFlatMap[ZIO[Any, +*, +*]] =
     new ZioCovariantFlatMap[Any]
 
 }
