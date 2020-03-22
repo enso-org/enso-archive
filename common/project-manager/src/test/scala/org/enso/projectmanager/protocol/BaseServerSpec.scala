@@ -73,7 +73,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val projectValidator = new MtlProjectValidator[ZIO[ZEnv, *, *]]()
 
   lazy val projectService =
-    new ProjectService[({ type T[+A, +B] = ZIO[ZEnv, A, B] })#T](
+    new ProjectService[ZIO[ZEnv, +*, +*]](
       projectValidator,
       projectRepository,
       new NopLogging[ZEnv],
