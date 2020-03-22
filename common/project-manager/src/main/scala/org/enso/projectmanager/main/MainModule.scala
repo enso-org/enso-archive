@@ -21,8 +21,9 @@ import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
-import org.enso.projectmanager.service.{ProjectService, ZioProjectValidator}
+import org.enso.projectmanager.service.{MtlProjectValidator, ProjectService}
 import zio._
+import zio.interop.catz.core._
 
 /**
   * A main module containing all components of the project manager.
@@ -57,9 +58,11 @@ class MainModule(
 
   lazy val gen = SystemGenerator
 
+  lazy val projectValidator = new MtlProjectValidator[IO]()
+
   lazy val projectService =
     new ProjectService(
-      ZioProjectValidator,
+      projectValidator,
       projectRepository,
       logging,
       clock,

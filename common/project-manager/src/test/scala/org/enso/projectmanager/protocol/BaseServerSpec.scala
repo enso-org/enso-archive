@@ -5,6 +5,7 @@ import java.nio.file.Files
 import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
+import io.circe.generic.auto._
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
@@ -18,10 +19,10 @@ import org.enso.projectmanager.infrastructure.repository.{
 }
 import org.enso.projectmanager.infrastructure.time.RealClock
 import org.enso.projectmanager.main.configuration.StorageConfig
-import org.enso.projectmanager.service.{ProjectService, ZioProjectValidator}
+import org.enso.projectmanager.service.{MtlProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
-import zio.{Runtime, Semaphore}
-import io.circe.generic.auto._
+import zio.interop.catz.core._
+import zio.{IO, Runtime, Semaphore}
 
 import scala.concurrent.duration._
 
@@ -71,9 +72,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       indexStorage
     )
 
+  lazy val projectValidator = new MtlProjectValidator[IO]()
+
   lazy val projectService =
     new ProjectService(
-      ZioProjectValidator,
+      projectValidator,
       projectRepository,
       NopLogging,
       clock,
