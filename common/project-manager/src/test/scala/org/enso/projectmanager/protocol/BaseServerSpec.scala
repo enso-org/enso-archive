@@ -50,7 +50,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     userProjectsPath    = userProjectDir
   )
 
-  lazy val exec = new ZioEnvExec(Runtime.default)
+  implicit val exec = new ZioEnvExec(Runtime.default)
 
   lazy val fileSystem = new BlockingFileSystem(5.seconds)
 
@@ -82,7 +82,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     )
 
   override def clientControllerFactory: ClientControllerFactory = {
-    new ManagerClientControllerFactory(system, projectService, exec, 10.seconds)
+    new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
+      system,
+      projectService,
+      10.seconds
+    )
   }
 
 }

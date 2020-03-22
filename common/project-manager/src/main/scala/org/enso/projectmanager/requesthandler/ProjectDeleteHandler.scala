@@ -11,7 +11,6 @@ import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
-import zio._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -19,12 +18,10 @@ import scala.concurrent.duration.FiniteDuration
   * A request handler for `project/delete` commands.
   *
   * @param service a project service
-  * @param exec an zio executor
   * @param requestTimeout a request timeout
   */
-class ProjectDeleteHandler(
-  service: ProjectServiceApi[ZIO[ZEnv, +*, +*]],
-  exec: Exec[ZIO[ZEnv, *, *]],
+class ProjectDeleteHandler[F[+_, +_]: Exec](
+  service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
     with ActorLogging {
@@ -34,7 +31,7 @@ class ProjectDeleteHandler(
 
   private def requestStage: Receive = {
     case Request(ProjectDelete, id, params: ProjectDelete.Params) =>
-      exec.exec(service.deleteUserProject(params.projectId)).pipeTo(self)
+      Exec[F].exec(service.deleteUserProject(params.projectId)).pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
@@ -77,15 +74,13 @@ object ProjectDeleteHandler {
     * Creates a configuration object used to create a [[ProjectDeleteHandler]].
     *
     * @param service a project service
-    * @param exec an zio executor
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
-  def props(
-    service: ProjectServiceApi[ZIO[ZEnv, +*, +*]],
-    exec: Exec[ZIO[ZEnv, *, *]],
+  def props[F[+_, +_]: Exec](
+    service: ProjectServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props =
-    Props(new ProjectDeleteHandler(service, exec, requestTimeout))
+    Props(new ProjectDeleteHandler[F](service, requestTimeout))
 
 }

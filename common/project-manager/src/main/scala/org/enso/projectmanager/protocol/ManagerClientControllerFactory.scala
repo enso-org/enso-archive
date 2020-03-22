@@ -6,7 +6,6 @@ import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
 import org.enso.projectmanager.infrastructure.execution.Exec
 import org.enso.projectmanager.service.ProjectServiceApi
-import zio.{ZEnv, ZIO}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -15,10 +14,9 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param system the actor system
   */
-class ManagerClientControllerFactory(
+class ManagerClientControllerFactory[F[+_, +_]: Exec](
   system: ActorSystem,
-  projectService: ProjectServiceApi[ZIO[ZEnv, +*, +*]],
-  exec: Exec[ZIO[ZEnv, *, *]],
+  projectService: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends ClientControllerFactory {
 
@@ -30,7 +28,7 @@ class ManagerClientControllerFactory(
     */
   override def createClientController(clientId: UUID): ActorRef =
     system.actorOf(
-      ClientController.props(clientId, projectService, exec, requestTimeout)
+      ClientController.props[F](clientId, projectService, requestTimeout)
     )
 
 }

@@ -43,7 +43,7 @@ class MainModule(
 
   lazy val clock = new RealClock[ZEnv]
 
-  lazy val exec = new ZioEnvExec(runtime)
+  implicit val exec = new ZioEnvExec(runtime)
 
   lazy val fileSystem = new BlockingFileSystem(config.timeout.ioTimeout)
 
@@ -69,12 +69,12 @@ class MainModule(
       gen
     )
 
-  lazy val clientControllerFactory = new ManagerClientControllerFactory(
-    system,
-    projectService,
-    exec,
-    config.timeout.requestTimeout
-  )
+  lazy val clientControllerFactory =
+    new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
+      system,
+      projectService,
+      config.timeout.requestTimeout
+    )
 
   lazy val server = new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
 

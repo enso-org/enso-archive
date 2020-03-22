@@ -14,7 +14,6 @@ import org.enso.projectmanager.requesthandler.{
   ProjectDeleteHandler
 }
 import org.enso.projectmanager.service.ProjectServiceApi
-import zio._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -24,13 +23,11 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param clientId the internal client id.
   * @param projectService a project service
-  * @param exec a zio executor
   * @param timeout a request timeout
   */
-class ClientController(
+class ClientController[F[+_, +_]: Exec](
   clientId: UUID,
-  projectService: ProjectServiceApi[ZIO[ZEnv, +*, +*]],
-  exec: Exec[ZIO[ZEnv, *, *]],
+  projectService: ProjectServiceApi[F],
   timeout: FiniteDuration
 ) extends Actor
     with Stash
@@ -38,9 +35,8 @@ class ClientController(
 
   private val requestHandlers: Map[Method, Props] =
     Map(
-      ProjectCreate -> ProjectCreateHandler
-        .props(projectService, exec, timeout),
-      ProjectDelete -> ProjectDeleteHandler.props(projectService, exec, timeout)
+      ProjectCreate -> ProjectCreateHandler.props[F](projectService, timeout),
+      ProjectDelete -> ProjectDeleteHandler.props[F](projectService, timeout)
     )
 
   override def unhandled(message: Any): Unit =
@@ -72,12 +68,11 @@ object ClientController {
     * @param clientId the internal client id.
     * @return a configuration object
     */
-  def props(
+  def props[F[+_, +_]: Exec](
     clientId: UUID,
-    projectService: ProjectServiceApi[ZIO[ZEnv, +*, +*]],
-    exec: Exec[ZIO[ZEnv, *, *]],
+    projectService: ProjectServiceApi[F],
     timeout: FiniteDuration
   ): Props =
-    Props(new ClientController(clientId, projectService, exec, timeout))
+    Props(new ClientController(clientId, projectService, timeout))
 
 }

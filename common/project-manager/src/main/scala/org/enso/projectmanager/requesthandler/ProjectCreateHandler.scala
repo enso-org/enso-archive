@@ -13,7 +13,6 @@ import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
-import zio._
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -21,12 +20,10 @@ import scala.concurrent.duration.FiniteDuration
   * A request handler for `project/create` commands.
   *
   * @param service a project service
-  * @param exec an zio executor
   * @param requestTimeout a request timeout
   */
-class ProjectCreateHandler(
-  service: ProjectServiceApi[ZIO[ZEnv, +*, +*]],
-  exec: Exec[ZIO[ZEnv, *, *]],
+class ProjectCreateHandler[F[+_, +_]: Exec](
+  service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
     with ActorLogging {
@@ -36,7 +33,7 @@ class ProjectCreateHandler(
 
   private def requestStage: Receive = {
     case Request(ProjectCreate, id, params: ProjectCreate.Params) =>
-      exec.exec(service.createUserProject(params.name)).pipeTo(self)
+      Exec[F].exec(service.createUserProject(params.name)).pipeTo(self)
       val cancellable =
         context.system.scheduler
           .scheduleOnce(requestTimeout, self, RequestTimeout)
@@ -83,15 +80,13 @@ object ProjectCreateHandler {
     * Creates a configuration object used to create a [[ProjectCreateHandler]].
     *
     * @param service a project service
-    * @param exec an zio executor
     * @param requestTimeout a request timeout
     * @return a configuration object
     */
-  def props(
-    service: ProjectServiceApi[ZIO[ZEnv, +*, +*]],
-    exec: Exec[ZIO[ZEnv, *, *]],
+  def props[F[+_, +_]: Exec](
+    service: ProjectServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props =
-    Props(new ProjectCreateHandler(service, exec, requestTimeout))
+    Props(new ProjectCreateHandler(service, requestTimeout))
 
 }
