@@ -64,6 +64,7 @@ public class ApplicationNode extends ExpressionNode {
    */
   @Override
   public void setTail(boolean isTail) {
+    System.out.println(this.argExpressions.length + " " + isTail);
     super.setTail(isTail);
     invokeCallableNode.setTail(isTail);
   }

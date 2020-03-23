@@ -610,6 +610,7 @@ class IRToTruffle(
 
       val bodyExpr = this.run(body)
 
+      // TODO [AA] Should this unconditionally wrap things in a block?
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
       val fnRootNode = ClosureRootNode.build(
         language,
@@ -623,9 +624,7 @@ class IRToTruffle(
 
       val expr = CreateFunctionNode.build(callTarget, argDefinitions)
 
-      bodyExpr.setTail(bodyIsTail)
       fnBodyNode.setTail(bodyIsTail)
-      fnRootNode.setTail(funIsTail)
 
       setLocation(expr, location)
     }

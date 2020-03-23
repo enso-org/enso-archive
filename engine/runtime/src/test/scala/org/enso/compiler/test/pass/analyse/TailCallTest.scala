@@ -49,22 +49,35 @@ class TailCallTest extends CompilerTest {
 
     val resultIR       = TailCall.runModule(ir)
     val resultIRMethod = resultIR.bindings.head.asInstanceOf[Method]
+    val resultIRBlock = resultIRMethod.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Expression.Block]
 
     "be associated with every expression" in {
-      val tmp = resultIRMethod.body
+      val ifTestBodyIsTail = resultIRBlock.expressions.head
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .asInstanceOf[IR.Expression.Block]
-        .returnValue
+        .asInstanceOf[IR.Application.Prefix]
         .getMetadata[TailCall.Metadata]
-//        .expressions(0)
-//        .asInstanceOf[IR.Expression.Binding]
-//        .expression
-//        .asInstanceOf[IR.Function.Lambda]
-//        .body
-//        .getMetadata[TailCall.Metadata]
+        .get
 
-//      println(tmp)
+      println(s"ifTestBodyIsTail: $ifTestBodyIsTail")
+
+      val sumBodyIsTail = resultIRBlock
+        .expressions(1)
+        .asInstanceOf[IR.Expression.Binding]
+        .expression
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Application.Prefix]
+        .getMetadata[TailCall.Metadata]
+        .get
+
+      println(s"sumBodyIsTail: $sumBodyIsTail")
+
     }
   }
 }

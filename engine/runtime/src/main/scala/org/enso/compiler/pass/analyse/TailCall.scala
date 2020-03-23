@@ -262,7 +262,7 @@ case object TailCall extends IRPass {
     isInTailPosition: Boolean
   ): IR.Function = {
     val canBeTCO   = function.canBeTCO
-    val markAsTail = !canBeTCO && isInTailPosition
+    val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
 
     val resultFunction = function match {
       case lambda @ IR.Function.Lambda(args, body, _, _, _) =>
@@ -273,7 +273,7 @@ case object TailCall extends IRPass {
     }
 
     resultFunction.addMetadata(
-      TailPosition.fromBool(markAsTail)
+      TailPosition.NotTail
     )
   }
 
