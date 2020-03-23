@@ -183,11 +183,35 @@ case object TailCall extends IRPass {
       case arg @ IR.CallArgument.Specified(_, expr, _, _) =>
         arg
           .copy(
+            // Note [Call Argument Tail Position]
             value = analyseExpression(expr, isInTailPosition = true)
           )
           .addMetadata(TailPosition.Tail)
     }
   }
+
+  /* Note [Call Argument Tail Position]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * In order to efficiently deal with Enso's ability to suspend function
+   * arguments, we behave as if all arguments to a function are passed as
+   * thunks. This means that the _function_ becomes responsible for deciding
+   * when to evaluate its arguments.
+   *
+   * Conceptually, this results in a desugaring as follows:
+   *
+   * ```
+   * foo a b c
+   * ```
+   *
+   * Becomes:
+   *
+   * ```
+   * foo ({} -> a) ({} -> b) ({} -> c)
+   * ```
+   *
+   * Quite obviously, the arguments `a`, `b` and `c` are in tail position in
+   * these closures, and hence should be marked as tail.
+   */
 
   /** Performs tail call analysis on an expression involving type operators.
     *

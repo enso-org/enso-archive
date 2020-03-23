@@ -4,8 +4,16 @@ import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation, TailCall}
-import org.enso.compiler.pass.desugar.{GenMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  ApplicationSaturation,
+  TailCall
+}
+import org.enso.compiler.pass.desugar.{
+  GenMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
@@ -33,6 +41,21 @@ class TailCallTest extends CompilerTest {
 
   // === The Tests ============================================================
 
+  "Tail call analysis on methods" should {}
+
+  "Tail call analysis on functions" should {}
+
+  "Tail call analysis on case expressions" should {}
+
+  "Tail call analysis on function call arguments" should {}
+
+  "Tail call analysis on blocks" should {
+
+    "mark the bodies of bound functions as tail properly" in {
+      pending
+    }
+  }
+
   "Tail call analysis" should {
     val ir =
       """
@@ -59,8 +82,6 @@ class TailCallTest extends CompilerTest {
         .getMetadata[TailCall.Metadata]
         .get
 
-      println(s"ifTestBodyIsTail: $ifTestBodyIsTail")
-
       val sumBodyIsTail = resultIRBlock
         .expressions(1)
         .asInstanceOf[IR.Expression.Binding]
@@ -70,8 +91,6 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[IR.Application.Prefix]
         .getMetadata[TailCall.Metadata]
         .get
-
-      println(s"sumBodyIsTail: $sumBodyIsTail")
 
     }
   }

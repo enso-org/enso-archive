@@ -605,7 +605,6 @@ class IRToTruffle(
 
       val bodyExpr = this.run(body)
 
-      // TODO [AA] Do this conditionally
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
       val fnRootNode = ClosureRootNode.build(
         language,
