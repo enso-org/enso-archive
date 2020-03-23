@@ -130,11 +130,8 @@ class Compiler(
     val parsed: AST = parse(source)
 
     generateIRInline(parsed).flatMap { ir =>
-      Some({
-        val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
-
-        truffleCodegenInline(compilerOutput, source, inlineContext)
-      })
+      val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
+      Some(truffleCodegenInline(compilerOutput, source, inlineContext))
     }
   }
 
@@ -147,7 +144,7 @@ class Compiler(
     * @param qualifiedName the qualified name of the module
     * @return the scope containing all definitions in the requested module
     */
-  def requestProcess(qualifiedName: String): ModuleScope = {
+  def processImport(qualifiedName: String): ModuleScope = {
     val module = topScope.getModule(qualifiedName)
     if (module.isPresent) {
       module.get().getScope(context)
