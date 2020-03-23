@@ -728,9 +728,12 @@ interface ProjectCreateRequest {
 ```
 
 ##### Errors
-- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal validation failures.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with underlying data store.
-- [`ProjectExistsError`](#projectexistserror) to signal that the project already exists.
+- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal 
+validation failures.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+underlying data store.
+- [`ProjectExistsError`](#projectexistserror) to signal that the project 
+already exists.
 
 
 #### `project/delete`
@@ -754,8 +757,10 @@ interface ProjectDeleteRequest {
 ```
 
 ##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with underlying data store.
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project doesn't exist.
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+underlying data store.
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+doesn't exist.
 
 
 #### `project/listSample`

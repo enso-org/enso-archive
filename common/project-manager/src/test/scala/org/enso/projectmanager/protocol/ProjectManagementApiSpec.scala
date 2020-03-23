@@ -117,8 +117,8 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             }
           }
           """)
-      packageFile shouldBe 'file
-      mainEnso shouldBe 'file
+      packageFile shouldBe Symbol("file")
+      mainEnso shouldBe Symbol("file")
     }
   }
 

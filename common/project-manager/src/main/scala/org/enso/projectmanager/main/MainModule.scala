@@ -24,7 +24,7 @@ import org.enso.projectmanager.protocol.{
   ManagerClientControllerFactory
 }
 import org.enso.projectmanager.service.{
-  MtlProjectValidator,
+  MonadicProjectValidator,
   ProjectService,
   ProjectServiceFailure,
   ValidationFailure
@@ -66,7 +66,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Bifuncto
 
   lazy val gen = new SystemGenerator[F]
 
-  lazy val projectValidator = new MtlProjectValidator[F]()
+  lazy val projectValidator = new MonadicProjectValidator[F]()
 
   lazy val projectService =
     new ProjectService[F](

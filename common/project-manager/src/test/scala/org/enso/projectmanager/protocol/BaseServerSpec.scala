@@ -18,7 +18,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectIndex
 }
 import org.enso.projectmanager.main.configuration.StorageConfig
-import org.enso.projectmanager.service.{MtlProjectValidator, ProjectService}
+import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
@@ -70,7 +70,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       indexStorage
     )
 
-  lazy val projectValidator = new MtlProjectValidator[ZIO[ZEnv, *, *]]()
+  lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
 
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](

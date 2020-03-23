@@ -90,10 +90,10 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError(_.fold(convertFileStorageFailure))
       .flatMap {
         case None =>
-          ErrorChannel[F].fail[ProjectRepositoryFailure](ProjectNotFoundInIndex)
+          ErrorChannel[F].fail(ProjectNotFoundInIndex)
 
         case Some(project) if project.path.isEmpty =>
-          ErrorChannel[F].fail[ProjectRepositoryFailure](
+          ErrorChannel[F].fail(
             InconsistentStorage(
               "Index cannot contain a user project without path"
             )

@@ -10,7 +10,7 @@ import org.enso.projectmanager.service.ValidationFailure.{
 /**
   * MTL implementation of the project validator.
   */
-class MtlProjectValidator[F[_, _]](
+class MonadicProjectValidator[F[_, _]](
   implicit M: MonadError[F[ValidationFailure, *], ValidationFailure]
 ) extends ProjectValidator[F] {
 

@@ -3,9 +3,10 @@ package org.enso.projectmanager.control.core
 import zio._
 
 /**
-  * A class for covariant bifunctors used to chain computations.
+  * A class for covariant effects containing error channel used to chain
+  * computations.
   *
-  * @tparam F a monadic context
+  * @tparam F a effectful context
   */
 trait CovariantFlatMap[F[+_, +_]] {
 
