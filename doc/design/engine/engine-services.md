@@ -842,13 +842,39 @@ may be expanded in future.
 
 ##### Format
 
+/**
+ * A representation of the attributes of a file.
+ *
+ * @param creationTime creation time
+ * @param lastAccessTime last access time
+ * @param lastModifiedTime last modified time
+ * @param kind type of [[FileSystemObject]], can be:
+ * `DirectoryTruncated`, `File`, `Other`
+ * @param byteSize size in bytes
+ */
 ```typescript
 interface FileAttributes {
   creationTime: UTCDateTime;
   lastAccessTime: UTCDateTime;
   lastModifiedTime: UTCDateTime;
   kind: FileSystemObject;
-  byteSize: Size;
+  byteSize: number;
+}
+```
+
+#### `UTCDateTime`
+Time in UTC time zone.
+
+##### Format
+
+```typescript
+/**
+ * Time in UTC time zone.
+ *
+ * @param millis time from Unix epoch in millis
+ */
+interface UTCDateTime {
+  millis: number;
 }
 ```
 
@@ -1468,12 +1494,14 @@ This request should work for all kinds of filesystem object.
 
 ```typescript
 {
-  attributes: Attributes;
+  attributes: FileAttributes;
 }
 ```
 
 ##### Errors
-TBC
+- [`ContentRootNotFoundError`](#contentrootnotfounderror) to signal that the
+  requested content root cannot be found.
+- [`FileNotFound`](#filenotfound) informs that requested path does not exist.
 
 #### `file/event`
 This is a notification that is sent every time something under a watched content

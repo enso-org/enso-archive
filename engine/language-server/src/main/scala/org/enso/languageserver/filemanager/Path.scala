@@ -44,4 +44,6 @@ object Path {
   def getRelativeParent(root: File, base: Path, path: nio.file.Path): Path =
     getRelativePath(root, base, path.getParent())
 
+  def getRelativeParent(root: File, path: Path): Path =
+    getRelativePath(root, path, path.toFile.toPath)
 }

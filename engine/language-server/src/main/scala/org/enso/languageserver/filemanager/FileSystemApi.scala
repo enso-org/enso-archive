@@ -2,6 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 import java.nio.file.Path
+import java.nio.file.attribute.BasicFileAttributes
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -110,6 +111,14 @@ trait FileSystemApi[F[_, _]] {
     path: File,
     depth: Option[Int]
   ): F[FileSystemFailure, DirectoryEntry]
+
+  /**
+    * Returns attributes of a given path.
+    *
+    * @param path to the file system object
+    * @return either [[FileSystemFailure]] or file attributes
+    */
+  def info(path: File): F[FileSystemFailure, Attributes]
 }
 
 object FileSystemApi {
@@ -119,6 +128,18 @@ object FileSystemApi {
     */
   sealed trait Entry {
     def path: Path
+  }
+
+  object Entry {
+
+    def fromBasicAttributes(path: Path, attrs: BasicFileAttributes): Entry =
+      if (attrs.isDirectory) {
+        DirectoryEntryTruncated(path)
+      } else if (attrs.isRegularFile) {
+        FileEntry(path)
+      } else {
+        OtherEntry(path)
+      }
   }
 
   /**
@@ -163,4 +184,35 @@ object FileSystemApi {
     */
   case class OtherEntry(path: Path) extends Entry
 
+  /**
+    * Basic attributes of an [[Entry]].
+    *
+    * @param creationTime creation time in millis
+    * @param lastAccessTime last access time in millis
+    * @param lastModifiedtime last modified time in millis
+    * @param kind either [[DirectoryEntryTruncated]] or [[FileEntry]] or [[OtherEntry]]
+    * @param byteSize size of entry in bytes
+    */
+  case class Attributes(
+    creationTime: Long,
+    lastAccessTime: Long,
+    lastModifiedTime: Long,
+    kind: Entry,
+    byteSize: Long
+  )
+
+  object Attributes {
+
+    def fromBasicAttributes(
+      path: Path,
+      basic: BasicFileAttributes
+    ): Attributes =
+      Attributes(
+        creationTime     = basic.creationTime.toMillis(),
+        lastAccessTime   = basic.lastAccessTime.toMillis(),
+        lastModifiedTime = basic.lastModifiedTime.toMillis(),
+        kind             = Entry.fromBasicAttributes(path, basic),
+        byteSize         = basic.size()
+      )
+  }
 }
