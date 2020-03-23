@@ -7,17 +7,44 @@ import zio.{ZEnv, ZIO}
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * synchronous effect that does blocking IO into a pure value
-  * @tparam F
+  * A class for synchronous effects that blocks threads.
+  *
+  * @tparam F an effectful context
   */
 trait Sync[F[+_, +_]] {
 
+  /**
+    * Lifts a total synchronous effect into a pure `F` context.
+    *
+    * @param effect an effect
+    * @return
+    */
   def effect[A](effect: => A): F[Nothing, A]
 
+  /**
+    * Lifts a blocking operation into a pure `F` context.
+    *
+    * @param effect an effect
+    * @return
+    */
   def blockingOp[A](effect: => A): F[Throwable, A]
 
+  /**
+    * Lifts a blocking IO operation into a pure `F` context.
+    *
+    * @param effect an effect
+    * @return
+    */
   def blockingIO[A](effect: => A): F[IOException, A]
 
+  /**
+    * Returns an effect that will timeout `fa` effect.
+    *
+    * @param fa an effectful computation
+    * @param e a timeout error
+    * @param timeout a timeout
+    * @return
+    */
   def timeoutFail[E, E1 >: E, A](fa: F[E, A])(e: E1)(
     timeout: FiniteDuration
   ): F[E1, A]

@@ -88,6 +88,7 @@ object ErrorChannel {
   def apply[F[+_, +_]](implicit except: ErrorChannel[F]): ErrorChannel[F] =
     except
 
-  implicit def zioExcept[R]: ErrorChannel[ZIO[R, +*, +*]] = new ZioExcept[R]
+  implicit def zioExcept[R]: ErrorChannel[ZIO[R, +*, +*]] =
+    new ZioErrorChannel[R]
 
 }
