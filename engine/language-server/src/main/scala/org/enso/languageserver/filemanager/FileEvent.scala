@@ -3,6 +3,7 @@ package org.enso.languageserver.filemanager
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 
+// TODO: move to event and extend Event trait
 /**
   * A representation of filesystem event.
   *

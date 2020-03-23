@@ -139,6 +139,15 @@ object FileManagerApi {
     }
   }
 
+  case object EventFile extends Method("file/event") {
+
+    case class Result(event: FileEvent)
+
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = EventFile.Result
+    }
+  }
+
   // Errors
 
   case class FileSystemError(override val message: String)

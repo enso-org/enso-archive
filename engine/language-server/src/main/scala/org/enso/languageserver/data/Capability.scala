@@ -21,6 +21,9 @@ object CanEdit {
   val methodName = "canEdit"
 }
 
+case class ReceivesTreeUpdates(path: Path)
+    extends Capability("receivesTreeUpdates")
+
 object Capability {
   import cats.syntax.functor._
   import io.circe.generic.auto._

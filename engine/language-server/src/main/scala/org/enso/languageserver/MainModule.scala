@@ -14,7 +14,11 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.filemanager.{FileManager, FileSystem}
+import org.enso.languageserver.filemanager.{
+  FileEventRegistry,
+  FileManager,
+  FileSystem
+}
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
 import org.enso.languageserver.text.BufferRegistry
@@ -61,8 +65,17 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val bufferRegistry =
     system.actorOf(BufferRegistry.props(fileManager), "buffer-registry")
 
+  lazy val fileEventRegistry =
+    system.actorOf(
+      FileEventRegistry.props(languageServerConfig, fileSystem, zioExec),
+      "file-event-registry"
+    )
+
   lazy val capabilityRouter =
-    system.actorOf(CapabilityRouter.props(bufferRegistry), "capability-router")
+    system.actorOf(
+      CapabilityRouter.props(bufferRegistry, fileEventRegistry),
+      "capability-router"
+    )
 
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
