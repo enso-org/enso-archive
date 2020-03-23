@@ -2,12 +2,14 @@ package org.enso.languageserver.filemanager
 
 import java.nio.file.{Files, Path, Paths}
 
-import cats.effect.IO
+import org.enso.languageserver.effect.ZioExec
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.io.Source
 import scala.collection.mutable.ArrayBuffer
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 class FileSystemSpec extends AnyFlatSpec with Matchers {
 
@@ -355,6 +357,47 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     result shouldBe Right(false)
   }
 
+  it should "list directory contents" in new TestCtx {
+    //given
+    val path    = Paths.get(testDirPath.toString, "list")
+    val fileA   = Paths.get(testDirPath.toString, "list", "a.txt")
+    val symlink = Paths.get(testDirPath.toString, "list", "b.symlink")
+    val subdir  = Paths.get(testDirPath.toString, "list", "subdir")
+    val fileB   = Paths.get(testDirPath.toString, "list", "subdir", "b.txt")
+    createEmptyFile(fileA)
+    createEmptyFile(fileB)
+    Files.createSymbolicLink(symlink, fileA)
+    //when
+    val result = objectUnderTest.list(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(
+      Vector(
+        FileEntry(fileA),
+        FileEntry(symlink),
+        DirectoryEntryTruncated(subdir)
+      )
+    )
+  }
+
+  it should "return FileNotFound error when listing nonexistent path" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "nonexistent")
+    //when
+    val result = objectUnderTest.list(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Left(FileNotFound)
+  }
+
+  it should "return NotDirectory error when listing a file" in new TestCtx {
+    //given
+    val path = Paths.get(testDirPath.toString, "a.txt")
+    createEmptyFile(path)
+    //when
+    val result = objectUnderTest.list(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Left(NotDirectory)
+  }
+
   it should "tree directory contents" in new TestCtx {
     //given
     val path     = Paths.get(testDirPath.toString, "dir")
@@ -538,8 +581,12 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val testDir = testDirPath.toFile
     testDir.deleteOnExit()
 
-    val objectUnderTest = new FileSystem[IO]
+    val objectUnderTest = new FileSystem
 
   }
 
+  implicit final class UnsafeRunZio[E, A](io: zio.ZIO[zio.ZEnv, E, A]) {
+    def unsafeRunSync(): Either[E, A] =
+      Await.result(ZioExec(zio.Runtime.default).exec(io), 3.seconds)
+  }
 }

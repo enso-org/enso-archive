@@ -5,6 +5,7 @@ import sbt.Keys.scalacOptions
 import scala.sys.process._
 import org.enso.build.BenchTasks._
 import org.enso.build.WithDebugCommand
+import sbt.addCompilerPlugin
 import sbtassembly.AssemblyPlugin.defaultUniversalScript
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
@@ -403,6 +404,13 @@ lazy val core_definition = (project in file("engine/core-definition"))
     ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+    ),
+    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    scalacOptions ++= Seq(
+      "-P:splain:infix:true",
+      "-P:splain:foundreq:true",
+      "-P:splain:implicits:true",
+      "-P:splain:tree:true"
     )
   )
   .dependsOn(graph)
@@ -445,17 +453,16 @@ lazy val polyglot_api = project
 lazy val language_server = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "ch.qos.logback"   % "logback-classic" % "1.2.3",
+      "ch.qos.logback"   % "logback-classic"       % "1.2.3",
       "io.circe"         %% "circe-generic-extras" % "0.12.2",
-      "io.circe"         %% "circe-literal" % circeVersion,
-      "org.typelevel"    %% "cats-core" % "2.0.0",
-      "org.typelevel"    %% "cats-effect" % "2.0.0",
-      "org.bouncycastle" % "bcpkix-jdk15on" % "1.64",
-      "commons-io"       % "commons-io" % "2.6",
+      "io.circe"         %% "circe-literal"        % circeVersion,
+      "org.bouncycastle" % "bcpkix-jdk15on"        % "1.64",
+      "dev.zio"          %% "zio"                  % "1.0.0-RC18-2",
       akkaTestkit        % Test,
-      "org.scalatest"    %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck"   %% "scalacheck" % "1.14.0" % Test,
-      "org.graalvm.sdk"  % "polyglot-tck" % graalVersion % "provided"
+      "commons-io"       % "commons-io"            % "2.6",
+      "org.scalatest"    %% "scalatest"            % "3.2.0-M2" % Test,
+      "org.scalacheck"   %% "scalacheck"           % "1.14.0" % Test,
+      "org.graalvm.sdk"  % "polyglot-tck"          % graalVersion % "provided"
     ),
     testOptions in Test += Tests
       .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")
@@ -483,6 +490,7 @@ lazy val runtime = (project in file("engine/runtime"))
     parallelExecution in Test := false,
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
+    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= jmh ++ Seq(
       "com.chuusai"         %% "shapeless"            % "2.3.3",
       "org.apache.commons"  % "commons-lang3"         % "3.9",

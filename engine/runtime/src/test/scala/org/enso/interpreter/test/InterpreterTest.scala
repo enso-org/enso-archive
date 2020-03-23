@@ -10,7 +10,7 @@ import org.enso.interpreter.instrument.{
   ValueOverrideInstrument
 }
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
-import org.enso.polyglot.{ExecutionContext, Function, LanguageInfo}
+import org.enso.polyglot.{PolyglotContext, Function, LanguageInfo}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
 import org.scalatest.flatspec.AnyFlatSpec
@@ -48,7 +48,7 @@ trait InterpreterRunner {
   }
   val output           = new ByteArrayOutputStream()
   val ctx              = Context.newBuilder(LanguageInfo.ID).allowExperimentalOptions(true).out(output).build()
-  val executionContext = new ExecutionContext(ctx)
+  val executionContext = new PolyglotContext(ctx)
 
   def withLocationsInstrumenter(test: LocationsInstrumenter => Unit): Unit = {
     val instrument = ctx.getEngine.getInstruments
@@ -80,10 +80,10 @@ trait InterpreterRunner {
   def eval(
     code: String
   ): Value = {
-    val main = getMain(code)
-    InterpreterException.rethrowPolyglot(
+    InterpreterException.rethrowPolyglot {
+      val main = getMain(code)
       main.mainFunction.execute(main.mainConstructor)
-    )
+    }
   }
 
   def consumeOut: List[String] = {
