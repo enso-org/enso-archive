@@ -142,7 +142,7 @@ class IRToTruffle(
     atomConstructors
       .zip(atomDefs)
       .foreach {
-        case (atomCons, atomDefn) => {
+        case (atomCons, atomDefn) =>
           val scopeInfo = atomDefn
             .getMetadata[AliasAnalysis.Info.Scope.Root]
             .getOrElse(
@@ -161,7 +161,6 @@ class IRToTruffle(
           }
 
           atomCons.initializeFields(argDefs: _*)
-        }
       }
 
     // Register the method definitions in scope
@@ -170,7 +169,7 @@ class IRToTruffle(
       val scopeInfo = methodDef
         .getMetadata[AliasAnalysis.Info.Scope.Root]
         .getOrElse(
-          throw new CompilerError(("Missing scope information for method."))
+          throw new CompilerError("Missing scope information for method.")
         )
 
       val typeName =
@@ -197,8 +196,7 @@ class IRToTruffle(
           expressionProcessor.processFunctionBody(
             fn.arguments,
             fn.body,
-            fn.location,
-            methodFunIsTail
+            fn.location
           )
         case _ =>
           throw new CompilerError(
@@ -275,7 +273,7 @@ class IRToTruffle(
     val scopeName: String
   ) {
 
-    private var currentVarName = "anonymous";
+    private var currentVarName = "anonymous"
 
     // === Construction =======================================================
 
@@ -348,7 +346,6 @@ class IRToTruffle(
       */
     def runInline(ir: IR.Expression): RuntimeExpression = {
       val expression = run(ir)
-      expression.markNotTail() // TODO [AA] Remove
       expression
     }
 
@@ -496,8 +493,7 @@ class IRToTruffle(
       val fn = child.processFunctionBody(
         function.arguments,
         function.body,
-        function.location,
-        false
+        function.location
       )
 
       fn
@@ -564,8 +560,7 @@ class IRToTruffle(
     def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
-      location: Option[Location],
-      funIsTail: Boolean
+      location: Option[Location]
     ): CreateFunctionNode = {
       val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
 
@@ -610,7 +605,7 @@ class IRToTruffle(
 
       val bodyExpr = this.run(body)
 
-      // TODO [AA] Should this unconditionally wrap things in a block?
+      // TODO [AA] Do this conditionally
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
       val fnRootNode = ClosureRootNode.build(
         language,

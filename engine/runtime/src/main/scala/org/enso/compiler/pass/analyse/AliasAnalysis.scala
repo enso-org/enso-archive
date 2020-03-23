@@ -1,10 +1,10 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.syntax.text.Debug
 
 import scala.reflect.ClassTag
@@ -52,17 +52,16 @@ case object AliasAnalysis extends IRPass {
     * provided scope.
     *
     * @param ir the Enso IR to process
-    * @param localScope the local scope in which the expression is executed
-    * @param moduleScope the module scope in which the expression is executed
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   override def runExpression(
     ir: IR.Expression,
-    localScope: Option[LocalScope]   = None,
-    moduleScope: Option[ModuleScope] = None
+    inlineContext: InlineContext
   ): IR.Expression =
-    localScope
+    inlineContext.localScope
       .map { localScope =>
         val scope = localScope.scope
         val graph = localScope.aliasingGraph
@@ -93,14 +92,15 @@ case object AliasAnalysis extends IRPass {
         body match {
           case _: IR.Function =>
             m.copy(
-              body = analyseExpression(
-                body,
-                topLevelGraph,
-                topLevelGraph.rootScope,
-                lambdaReuseScope = true,
-                blockReuseScope  = true
+                body = analyseExpression(
+                  body,
+                  topLevelGraph,
+                  topLevelGraph.rootScope,
+                  lambdaReuseScope = true,
+                  blockReuseScope  = true
+                )
               )
-            ).addMetadata(Info.Scope.Root(topLevelGraph))
+              .addMetadata(Info.Scope.Root(topLevelGraph))
           case _ =>
             throw new CompilerError(
               "The body of a method should always be a function."

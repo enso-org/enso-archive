@@ -1,11 +1,11 @@
 package org.enso.compiler.pass.analyse
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
-// TODO [AA] Dpc it
+// TODO [AA] Doc it
 case object TailCall extends IRPass {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
@@ -24,16 +24,24 @@ case object TailCall extends IRPass {
   /** Analyses tail call state for an arbitrary expression.
     *
     * @param ir the Enso IR to process
-    * @param localScope the local scope in which the expression is executed
-    * @param moduleScope the module scope in which the expression is executed
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   override def runExpression(
     ir: IR.Expression,
-    localScope: Option[LocalScope],
-    moduleScope: Option[ModuleScope]
-  ): IR.Expression = analyseExpression(ir, isInTailPosition = false)
+    inlineContext: InlineContext
+  ): IR.Expression =
+    analyseExpression(
+      ir,
+      inlineContext.isInTailPosition.getOrElse(
+        throw new CompilerError(
+          "Information about the tail position for an inline expression " +
+            "must be known by the point of tail call analysis."
+        )
+      )
+    )
 
   /** Performs tail call analysis on a top-level definition in a module.
     *
@@ -175,9 +183,9 @@ case object TailCall extends IRPass {
       case arg @ IR.CallArgument.Specified(_, expr, _, _) =>
         arg
           .copy(
-            value = analyseExpression(expr, isInTailPosition = false)
+            value = analyseExpression(expr, isInTailPosition = true)
           )
-          .addMetadata(TailPosition.NotTail)
+          .addMetadata(TailPosition.Tail)
     }
   }
 
@@ -244,7 +252,7 @@ case object TailCall extends IRPass {
         pattern = analyseExpression(branch.pattern, isInTailPosition = false),
         expression = analyseExpression(
           branch.expression,
-          isInTailPosition,
+          isInTailPosition
         )
       )
       .addMetadata(TailPosition.fromBool(isInTailPosition))

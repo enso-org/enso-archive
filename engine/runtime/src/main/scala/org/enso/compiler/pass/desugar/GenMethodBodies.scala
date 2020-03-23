@@ -1,8 +1,8 @@
 package org.enso.compiler.pass.desugar
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** This pass is responsible for ensuring that method bodies are in the correct
   * format.
@@ -51,13 +51,13 @@ case object GenMethodBodies extends IRPass {
   }
 
   /** Processes the method body if it's a function.
-   *
-   * This is solely responsible for prepending the `this` argument to the list
-   * of arguments.
-   *
-   * @param fun the body function
-   * @return the body function with the `this` argument
-   */
+    *
+    * This is solely responsible for prepending the `this` argument to the list
+    * of arguments.
+    *
+    * @param fun the body function
+    * @return the body function with the `this` argument
+    */
   def processBodyFunction(fun: IR.Function): IR.Function = {
     fun match {
       case lam @ IR.Function.Lambda(args, _, _, _, _) =>
@@ -68,22 +68,22 @@ case object GenMethodBodies extends IRPass {
   }
 
   /** Processes the method body if it's an expression.
-   *
-   * @param expr the body expression
-   * @return `expr` converted to a function taking the `this` argument
-   */
+    *
+    * @param expr the body expression
+    * @return `expr` converted to a function taking the `this` argument
+    */
   def processBodyExpression(expr: IR.Expression): IR.Expression = {
     IR.Function.Lambda(
       arguments = List(genThisArgument),
-      body = expr,
-      location = expr.location
+      body      = expr,
+      location  = expr.location
     )
   }
 
   /** Generates a definition of the `this` argument for method definitions.
-   *
-   * @return the `this` argument
-   */
+    *
+    * @return the `this` argument
+    */
   def genThisArgument: IR.DefinitionArgument.Specified = {
     IR.DefinitionArgument.Specified(
       IR.Name.This(None),
@@ -99,14 +99,13 @@ case object GenMethodBodies extends IRPass {
     * expressions.
     *
     * @param ir the Enso IR to process
-    * @param localScope the local scope in which the expression is executed
-    * @param moduleScope the module scope in which the expression is executed
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
   override def runExpression(
     ir: IR.Expression,
-    localScope: Option[LocalScope],
-    moduleScope: Option[ModuleScope]
+    inlineContext: InlineContext
   ): IR.Expression = ir
 }

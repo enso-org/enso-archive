@@ -7,14 +7,23 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation, TailCall}
-import org.enso.compiler.pass.desugar.{GenMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  ApplicationSaturation,
+  TailCall
+}
+import org.enso.compiler.pass.desugar.{
+  GenMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
+import org.enso.interpreter.runtime.scope.{ModuleScope, TopLevelScope}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.{AST, Parser}
 
@@ -103,14 +112,13 @@ class Compiler(
     * Processes the source in the context of given local and module scopes.
     *
     * @param srcString string representing the expression to process
-    * @param localScope local scope to process the source in
-    * @param moduleScope module scope to process the source in
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return an expression node representing the parsed and analyzed source
     */
   def runInline(
     srcString: String,
-    localScope: LocalScope,
-    moduleScope: ModuleScope
+    inlineContext: InlineContext
   ): Option[RuntimeExpression] = {
     val source = Source
       .newBuilder(
@@ -123,15 +131,9 @@ class Compiler(
 
     generateIRInline(parsed).flatMap { ir =>
       Some({
-        val compilerOutput =
-          runCompilerPhasesInline(ir, localScope, moduleScope)
+        val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
 
-        truffleCodegenInline(
-          compilerOutput,
-          source,
-          moduleScope,
-          localScope
-        )
+        truffleCodegenInline(compilerOutput, source, inlineContext)
       })
     }
   }
@@ -203,16 +205,17 @@ class Compiler(
   /** Runs the various compiler passes in an inline context.
     *
     * @param ir the compiler intermediate representation to transform
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return the output result of the
     */
   def runCompilerPhasesInline(
     ir: IR.Expression,
-    localScope: LocalScope,
-    moduleScope: ModuleScope
+    inlineContext: InlineContext
   ): IR.Expression = {
     compilerPhaseOrdering.foldLeft(ir)(
       (intermediateIR, pass) =>
-        pass.runExpression(intermediateIR, Some(localScope), Some(moduleScope))
+        pass.runExpression(intermediateIR, inlineContext)
     )
   }
 
@@ -234,18 +237,31 @@ class Compiler(
     *
     * @param ir the prorgam to translate
     * @param source the source code of the program represented by `ir`
-    * @param moduleScope the module scope in which the code is to be generated
-    * @param localScope the local scope in which the inline code is to be
-    *                   located
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return the runtime representation of the program represented by `ir`
     */
   def truffleCodegenInline(
     ir: IR.Expression,
     source: Source,
-    moduleScope: ModuleScope,
-    localScope: LocalScope
+    inlineContext: InlineContext
   ): RuntimeExpression = {
-    new IRToTruffle(this.language, source, moduleScope)
-      .runInline(ir, localScope, "<inline_source>")
+    new IRToTruffle(
+      this.language,
+      source,
+      inlineContext.moduleScope.getOrElse(
+        throw new CompilerError(
+          "Cannot perform inline codegen with a missing module scope."
+        )
+      )
+    ).runInline(
+      ir,
+      inlineContext.localScope.getOrElse(
+        throw new CompilerError(
+          "Cannot perform inline codegen with a missing local scope."
+        )
+      ),
+      "<inline_source>"
+    )
   }
 }

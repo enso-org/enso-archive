@@ -1,24 +1,19 @@
 package org.enso.compiler.test.pass.analyse
 
+import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  ApplicationSaturation,
-  TailCall
-}
-import org.enso.compiler.pass.desugar.{
-  GenMethodBodies,
-  LiftSpecialOperators,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation, TailCall}
+import org.enso.compiler.pass.desugar.{GenMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
 class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
+
+  val ctx = InlineContext(Some(LocalScope.root))
 
   val precursorPasses: List[IRPass] = List(
     GenMethodBodies,
@@ -31,7 +26,7 @@ class TailCallTest extends CompilerTest {
   implicit class PreprocessModule(code: String) {
     def preprocessModule: IR.Module = {
       code.toIrModule
-        .runPasses(precursorPasses, Some(LocalScope.root))
+        .runPasses(precursorPasses, ctx)
         .asInstanceOf[IR.Module]
     }
   }
