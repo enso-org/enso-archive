@@ -60,11 +60,11 @@ case object TailCall extends IRPass {
       case method @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
         method.copy(
           body = analyseExpression(body, isInTailPosition = true)
-        )
+        ).addMetadata(TailPosition.Tail)
       case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _) =>
         atom.copy(
           arguments = args.map(analyseDefArgument)
-        )
+        ).addMetadata(TailPosition.Tail)
     }
   }
 
@@ -310,7 +310,7 @@ case object TailCall extends IRPass {
     }
 
     resultFunction.addMetadata(
-      TailPosition.NotTail
+      TailPosition.fromBool(isInTailPosition)
     )
   }
 
