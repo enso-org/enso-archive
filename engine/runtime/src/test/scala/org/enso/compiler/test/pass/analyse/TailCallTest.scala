@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -31,7 +32,16 @@ class TailCallTest extends CompilerTest {
     ApplicationSaturation()
   )
 
+  /** Adds an extension method to preprocess source code as an Enso module.
+    *
+    * @param code the source code to preprocess
+    */
   implicit class PreprocessModule(code: String) {
+
+    /** Preprocesses the provided source code into an [[IR.Module]].
+      *
+      * @return the IR representation of [[code]]
+      */
     def preprocessModule: IR.Module = {
       code.toIrModule
         .runPasses(precursorPasses, ctx)
@@ -39,9 +49,31 @@ class TailCallTest extends CompilerTest {
     }
   }
 
+  /** Adds an extension method to preprocess source code as an Enso expression.
+   *
+   * @param code the source code to preprocess
+   */
+  implicit class PreprocessExpression(code: String) {
+
+    /** Preprocesses the provided source code into an [[IR.Expression]].
+     *
+     * @return the IR representation of [[code]]
+     */
+    def preprocessExpression: IR.Expression = {
+      code.toIrExpression
+        .getOrElse(
+          throw new CompilerError("Code was not a valid expression.")
+        )
+        .runPasses(precursorPasses, ctx)
+        .asInstanceOf[IR.Expression]
+    }
+  }
+
   // === The Tests ============================================================
 
-  "Tail call analysis on methods" should {}
+  "Tail call analysis on modules" should {}
+
+  "Tail call analysis on expressions" should {}
 
   "Tail call analysis on functions" should {}
 

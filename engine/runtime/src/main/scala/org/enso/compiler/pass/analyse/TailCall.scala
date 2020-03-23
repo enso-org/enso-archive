@@ -5,7 +5,12 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
-// TODO [AA] Doc it
+/** This pass performs tail call analysis on the Enso IR.
+ *
+ * It is responsible for marking every single expression with whether it is in
+ * tail position or not. This allows the code generator to correctly create the
+ * Truffle nodes.
+ */
 case object TailCall extends IRPass {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
