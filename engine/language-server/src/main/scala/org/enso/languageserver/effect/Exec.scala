@@ -29,8 +29,15 @@ trait Exec[-F[_, _]] {
     */
   def execTimed[E, A](
     timeout: FiniteDuration,
-    op: ZIO[ZEnv, E, A]
+    op: F[E, A]
   ): Future[Either[E, A]]
+
+  /**
+    * Execute long running task in background.
+    *
+    * @param op effect to execute
+    */
+  def exec_[E, A](op: F[E, A]): Unit
 }
 
 /**
@@ -82,6 +89,14 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     }
     promise.future
   }
+
+  /**
+    * Execute long running task in background.
+    *
+    * @param op effect to execute
+    */
+  override def exec_[E, A](op: ZIO[ZEnv, E, A]): Unit =
+    runtime.unsafeRunAsync_(op)
 }
 
 object ZioExec {
