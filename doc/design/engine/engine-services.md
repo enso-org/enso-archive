@@ -842,6 +842,7 @@ may be expanded in future.
 
 ##### Format
 
+```typescript
 /**
  * A representation of the attributes of a file.
  *
@@ -852,7 +853,6 @@ may be expanded in future.
  * `DirectoryTruncated`, `File`, `Other`
  * @param byteSize size in bytes
  */
-```typescript
 interface FileAttributes {
   creationTime: UTCDateTime;
   lastAccessTime: UTCDateTime;
