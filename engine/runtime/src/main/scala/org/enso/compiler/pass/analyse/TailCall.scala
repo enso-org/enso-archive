@@ -5,11 +5,7 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
-// TODO [AA] Remove `canBeTCO` from IR.Function as it is no longer needed
-// TODO [AA] Remember the gotcha about case
-// TODO [AA] Remove non-trivial tail call logic from nodes (where one node
-//  calls setTail on a child we have access to during codegen) e.g. CaseNode,
-//  BlockNode
+// TODO [AA] Dpc it
 case object TailCall extends IRPass {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
@@ -245,8 +241,11 @@ case object TailCall extends IRPass {
   ): IR.Case.Branch = {
     branch
       .copy(
-        pattern    = analyseExpression(branch.pattern, isInTailPosition = false),
-        expression = analyseExpression(branch.expression, isInTailPosition)
+        pattern = analyseExpression(branch.pattern, isInTailPosition = false),
+        expression = analyseExpression(
+          branch.expression,
+          isInTailPosition,
+        )
       )
       .addMetadata(TailPosition.fromBool(isInTailPosition))
   }
@@ -262,17 +261,19 @@ case object TailCall extends IRPass {
     function: IR.Function,
     isInTailPosition: Boolean
   ): IR.Function = {
-    val canBeTCO = function.canBeTCO
+    val canBeTCO   = function.canBeTCO
+    val markAsTail = !canBeTCO && isInTailPosition
+
     val resultFunction = function match {
       case lambda @ IR.Function.Lambda(args, body, _, _, _) =>
         lambda.copy(
           arguments = args.map(analyseDefArgument),
-          body      = analyseExpression(body, isInTailPosition = true)
+          body      = analyseExpression(body, isInTailPosition = markAsTail)
         )
     }
 
     resultFunction.addMetadata(
-      TailPosition.fromBool(isInTailPosition && canBeTCO)
+      TailPosition.fromBool(markAsTail)
     )
   }
 
@@ -327,10 +328,10 @@ case object TailCall extends IRPass {
     }
 
     /** Implicitly converts the tail position data into a boolean.
-     *
-     * @param tailPosition the tail position value
-     * @return the boolean value corresponding to `tailPosition`
-     */
+      *
+      * @param tailPosition the tail position value
+      * @return the boolean value corresponding to `tailPosition`
+      */
     implicit def toBool(tailPosition: TailPosition): Boolean = {
       tailPosition.bool
     }

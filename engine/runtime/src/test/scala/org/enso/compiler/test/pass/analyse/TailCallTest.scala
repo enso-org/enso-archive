@@ -64,7 +64,7 @@ class TailCallTest extends CompilerTest {
 //        .body
 //        .getMetadata[TailCall.Metadata]
 
-      println(tmp)
+//      println(tmp)
     }
   }
 }

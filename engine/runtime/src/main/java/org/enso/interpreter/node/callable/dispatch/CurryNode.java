@@ -127,6 +127,8 @@ public class CurryNode extends BaseNode {
 
   private Stateful doCall(
       Function function, CallerInfo callerInfo, Object state, Object[] arguments) {
+    System.out.println("Tail " + isTail());
+    System.out.println(function.getCallTarget().getRootNode().getName());
     if (preApplicationSchema.getCallStrategy().shouldCallDirect(isTail())) {
       return directCall.executeCall(function, callerInfo, state, arguments);
     } else if (isTail()) {
