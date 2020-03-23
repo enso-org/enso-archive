@@ -7,7 +7,7 @@ import java.util.UUID
   *
   * @tparam F a monadic context
   */
-trait Generator[F[_, _]] {
+trait Generator[F[+_, +_]] {
 
   /**
     * Returns random UUID in version 4.

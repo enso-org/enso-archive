@@ -22,9 +22,9 @@ import zio._
   */
 class ZioFileStorage[A: Encoder: Decoder: Default](
   path: File,
-  fileSystem: FileSystem[ZIO[ZEnv, *, *]],
+  fileSystem: FileSystem[ZIO[ZEnv, +*, +*]],
   semaphore: Semaphore
-) extends FileStorage[A, ZIO[ZEnv, *, *]] {
+) extends FileStorage[A, ZIO[ZEnv, +*, +*]] {
 
   /**
     * Loads the serialized object from the file.

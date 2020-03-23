@@ -5,7 +5,7 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import org.enso.projectmanager.infrastructure.time.Clock
 import zio.{IO, ZIO}
 
-class StoppedClock[R](now: OffsetDateTime) extends Clock[ZIO[R, *, *]] {
+class StoppedClock[R](now: OffsetDateTime) extends Clock[ZIO[R, +*, +*]] {
 
   override def now(): IO[Nothing, OffsetDateTime] = IO.succeed(now)
 

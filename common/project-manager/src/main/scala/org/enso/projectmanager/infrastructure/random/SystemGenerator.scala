@@ -1,18 +1,18 @@
 package org.enso.projectmanager.infrastructure.random
 import java.util.UUID
 
-import zio.{IO, ZIO}
+import org.enso.projectmanager.control.effect.Sync
 
 /**
   * A system pseudo-random numbers generator.
   */
-class SystemGenerator[R] extends Generator[ZIO[R, *, *]] {
+class SystemGenerator[F[+_, +_]: Sync] extends Generator[F] {
 
   /**
     * Returns random UUID in version 4.
     *
     * @return a UUID
     */
-  override def randomUUID(): IO[Nothing, UUID] =
-    IO.effectTotal(UUID.randomUUID())
+  override def randomUUID(): F[Nothing, UUID] =
+    Sync[F].effectTotal(UUID.randomUUID())
 }

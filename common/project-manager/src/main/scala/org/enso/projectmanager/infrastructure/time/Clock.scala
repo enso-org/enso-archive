@@ -8,7 +8,7 @@ import java.time.OffsetDateTime
   *
   * @tparam F monadic context
   */
-trait Clock[F[_, _]] {
+trait Clock[F[+_, +_]] {
 
   /**
     * Obtains the current date-time from the system clock in the default time-zone.

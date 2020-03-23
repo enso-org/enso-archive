@@ -9,7 +9,7 @@ import shapeless._
   * @tparam A a datatype to store
   * @tparam F a monadic context
   */
-trait FileStorage[A, F[_, _]] {
+trait FileStorage[A, F[+_, +_]] {
 
   /**
     * Loads the serialized object from the file.

@@ -5,7 +5,7 @@ package org.enso.projectmanager.infrastructure.log
   *
   * @tparam F a monadic context
   */
-trait Logging[F[_, _]] {
+trait Logging[F[+_, +_]] {
 
   def debug(msg: String): F[Nothing, Unit]
 

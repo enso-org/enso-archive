@@ -4,6 +4,10 @@ import java.io.File
 import java.util.UUID
 
 import org.enso.pkg.Package
+import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.syntax._
+import org.enso.projectmanager.control.effect.syntax._
+import org.enso.projectmanager.control.effect.{Except, Sync}
 import org.enso.projectmanager.infrastructure.file.{FileStorage, FileSystem}
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
   InconsistentStorage,
@@ -12,8 +16,6 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
 }
 import org.enso.projectmanager.main.configuration.StorageConfig
 import org.enso.projectmanager.model.Project
-import zio.blocking._
-import zio.{ZEnv, ZIO}
 
 /**
   * File based implementation of the project repository.
@@ -22,11 +24,11 @@ import zio.{ZEnv, ZIO}
   * @param fileSystem a file system abstraction
   * @param indexStorage an index storage
   */
-class ProjectFileRepository(
+class ProjectFileRepository[F[+_, +_]: Sync: Except: CovariantFlatMap](
   storageConfig: StorageConfig,
-  fileSystem: FileSystem[ZIO[ZEnv, *, *]],
-  indexStorage: FileStorage[ProjectIndex, ZIO[ZEnv, *, *]]
-) extends ProjectRepository[ZIO[ZEnv, *, *]] {
+  fileSystem: FileSystem[F],
+  indexStorage: FileStorage[ProjectIndex, F]
+) extends ProjectRepository[F] {
 
   /**
     * Tests if project is present in the data storage.
@@ -36,7 +38,7 @@ class ProjectFileRepository(
     */
   override def exists(
     name: String
-  ): ZIO[ZEnv, ProjectRepositoryFailure, Boolean] =
+  ): F[ProjectRepositoryFailure, Boolean] =
     indexStorage
       .load()
       .map(_.exists(name))
@@ -50,7 +52,7 @@ class ProjectFileRepository(
     */
   override def insertUserProject(
     project: Project
-  ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] = {
+  ): F[ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)
     val projectWithPath = project.copy(path = Some(projectPath.toString))
 
@@ -66,8 +68,9 @@ class ProjectFileRepository(
   private def createProjectStructure(
     project: Project,
     projectPath: File
-  ): ZIO[Blocking, StorageFailure, Package] =
-    effectBlocking { Package.create(projectPath, project.name) }
+  ): F[StorageFailure, Package] =
+    Sync[F]
+      .effectBlocking { Package.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
   /**
@@ -78,7 +81,7 @@ class ProjectFileRepository(
     */
   override def deleteUserProject(
     projectId: UUID
-  ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] =
+  ): F[ProjectRepositoryFailure, Unit] =
     indexStorage
       .modify { index =>
         val maybeProject = index.findUserProject(projectId)
@@ -87,10 +90,10 @@ class ProjectFileRepository(
       .mapError(_.fold(convertFileStorageFailure))
       .flatMap {
         case None =>
-          ZIO.fail(ProjectNotFoundInIndex)
+          Except[F].fail[ProjectRepositoryFailure](ProjectNotFoundInIndex)
 
         case Some(project) if project.path.isEmpty =>
-          ZIO.fail(
+          Except[F].fail[ProjectRepositoryFailure](
             InconsistentStorage(
               "Index cannot contain a user project without path"
             )
@@ -102,7 +105,7 @@ class ProjectFileRepository(
 
   private def removeProjectStructure(
     projectPath: String
-  ): ZIO[ZEnv, ProjectRepositoryFailure, Unit] =
+  ): F[ProjectRepositoryFailure, Unit] =
     fileSystem
       .removeDir(new File(projectPath))
       .mapError[ProjectRepositoryFailure](

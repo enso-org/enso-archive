@@ -7,7 +7,7 @@ import java.io.File
   *
   * @tparam F target bifunctor
   */
-trait FileSystem[F[_, _]] {
+trait FileSystem[F[+_, +_]] {
 
   /**
     * Reads the contents of a textual file.

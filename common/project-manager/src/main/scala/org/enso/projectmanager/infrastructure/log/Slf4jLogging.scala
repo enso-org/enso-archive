@@ -1,19 +1,19 @@
 package org.enso.projectmanager.infrastructure.log
 import com.typesafe.scalalogging.LazyLogging
-import zio.{IO, ZIO}
+import org.enso.projectmanager.control.effect.Sync
 
 /**
   * Slf4j logging interpreter.
   */
-class Slf4jLogging[R] extends Logging[ZIO[R, *, *]] with LazyLogging {
+class Slf4jLogging[F[+_, +_]: Sync] extends Logging[F] with LazyLogging {
 
-  override def debug(msg: String): IO[Nothing, Unit] =
-    IO.effectTotal(logger.debug(msg))
+  override def debug(msg: String): F[Nothing, Unit] =
+    Sync[F].effectTotal(logger.debug(msg))
 
-  override def info(msg: String): IO[Nothing, Unit] =
-    IO.effectTotal(logger.info(msg))
+  override def info(msg: String): F[Nothing, Unit] =
+    Sync[F].effectTotal(logger.info(msg))
 
-  override def error(msg: String): IO[Nothing, Unit] =
-    IO.effectTotal(logger.error(msg))
+  override def error(msg: String): F[Nothing, Unit] =
+    Sync[F].effectTotal(logger.error(msg))
 
 }

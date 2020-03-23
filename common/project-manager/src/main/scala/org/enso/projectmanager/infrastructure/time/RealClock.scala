@@ -1,27 +1,27 @@
 package org.enso.projectmanager.infrastructure.time
 import java.time.{OffsetDateTime, ZoneOffset}
 
-import zio.{IO, ZIO}
+import org.enso.projectmanager.control.effect.Sync
 
 /**
   * A system clock.
   */
-class RealClock[R] extends Clock[ZIO[R, *, *]] {
+class RealClock[F[+_, +_]: Sync] extends Clock[F] {
 
   /**
     * Obtains the current date-time from the system clock in the default time-zone.
     *
     * @return a date time
     */
-  override def now(): IO[Nothing, OffsetDateTime] =
-    IO.effectTotal(OffsetDateTime.now())
+  override def now(): F[Nothing, OffsetDateTime] =
+    Sync[F].effectTotal(OffsetDateTime.now())
 
   /**
     * Obtains the current date-time from the system clock in the UTC time-zone.
     *
     * @return a date time
     */
-  override def nowInUtc(): IO[Nothing, OffsetDateTime] =
-    IO.effectTotal(OffsetDateTime.now(ZoneOffset.UTC))
+  override def nowInUtc(): F[Nothing, OffsetDateTime] =
+    Sync[F].effectTotal(OffsetDateTime.now(ZoneOffset.UTC))
 
 }

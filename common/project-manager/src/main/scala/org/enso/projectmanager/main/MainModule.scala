@@ -39,13 +39,14 @@ class MainModule(
 
   implicit val materializer = SystemMaterializer.get(system)
 
-  lazy val logging = new Slf4jLogging[ZEnv]
+  lazy val logging = new Slf4jLogging[ZIO[ZEnv, +*, +*]]
 
-  lazy val clock = new RealClock[ZEnv]
+  lazy val clock = new RealClock[ZIO[ZEnv, +*, +*]]
 
   implicit val exec = new ZioEnvExec(runtime)
 
-  lazy val fileSystem = new BlockingFileSystem(config.timeout.ioTimeout)
+  lazy val fileSystem =
+    new BlockingFileSystem[ZIO[ZEnv, +*, +*]](config.timeout.ioTimeout)
 
   lazy val indexStorage = new ZioFileStorage[ProjectIndex](
     config.storage.projectMetadataPath,
@@ -54,11 +55,15 @@ class MainModule(
   )
 
   lazy val projectRepository =
-    new ProjectFileRepository(config.storage, fileSystem, indexStorage)
+    new ProjectFileRepository[ZIO[ZEnv, +*, +*]](
+      config.storage,
+      fileSystem,
+      indexStorage
+    )
 
-  lazy val gen = new SystemGenerator[ZEnv]
+  lazy val gen = new SystemGenerator[ZIO[ZEnv, +*, +*]]
 
-  lazy val projectValidator = new MtlProjectValidator[ZIO[ZEnv, *, *]]()
+  lazy val projectValidator = new MtlProjectValidator[ZIO[ZEnv, +*, +*]]()
 
   lazy val projectService =
     new ProjectService[ZIO[ZEnv, +*, +*]](

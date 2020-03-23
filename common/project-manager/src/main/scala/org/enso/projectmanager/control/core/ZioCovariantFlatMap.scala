@@ -3,7 +3,7 @@ package org.enso.projectmanager.control.core
 import zio.ZIO
 
 private[core] class ZioCovariantFlatMap[R]
-    extends CovariantFlatMap[({ type T[+A, +B] = ZIO[R, A, B] })#T] {
+    extends CovariantFlatMap[ZIO[R, +*, +*]] {
 
   override def pure[A](value: A): ZIO[R, Nothing, A] = ZIO.succeed(value)
 

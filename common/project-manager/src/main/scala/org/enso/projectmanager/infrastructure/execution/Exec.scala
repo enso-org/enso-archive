@@ -15,7 +15,7 @@ trait Exec[F[_, _]] {
     * @param op an effect
     * @tparam E error type
     * @tparam A returned type
-    * @return a result of the effectfull computation
+    * @return a result of the effectful computation
     */
   def exec[E, A](op: F[E, A]): Future[Either[E, A]]
 

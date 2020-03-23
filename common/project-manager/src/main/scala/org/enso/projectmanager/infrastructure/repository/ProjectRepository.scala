@@ -9,7 +9,7 @@ import org.enso.projectmanager.model.Project
   *
   * @tparam F a monadic context
   */
-trait ProjectRepository[F[_, _]] {
+trait ProjectRepository[F[+_, +_]] {
 
   /**
     * Tests if project is present in the data storage.
