@@ -13,7 +13,7 @@ import org.enso.compiler.pass.IRPass
   * - The body is a function (lambda)
   * - The body has `this` at the start of its argument list.
   */
-case object GenMethodBodies extends IRPass {
+case object GenerateMethodBodies extends IRPass {
 
   /** This is a desugaring pass and performs no analysis */
   override type Metadata = IR.Metadata.Empty

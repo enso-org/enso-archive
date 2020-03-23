@@ -702,8 +702,7 @@ when calling it. To that end, Enso supports what is known as Uniform Call Syntax
 
 The rules for the uniform syntax call translation in Enso are as follows:
 
-1. For an expression `t.fn <args>`, this is equivalent to `fn t <args>`. As it
-   has to work for both functions and methods, this cannot be applied by name.
+1. For an expression `t.fn <args>`, this is equivalent to `fn t <args>`.
 2. For an expression `fn t <args>`, this is equivalent to `t.fn <args>`.
 
 ### Code Blocks

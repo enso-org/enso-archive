@@ -6,11 +6,11 @@ import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
 /** This pass performs tail call analysis on the Enso IR.
- *
- * It is responsible for marking every single expression with whether it is in
- * tail position or not. This allows the code generator to correctly create the
- * Truffle nodes.
- */
+  *
+  * It is responsible for marking every single expression with whether it is in
+  * tail position or not. This allows the code generator to correctly create the
+  * Truffle nodes.
+  */
 case object TailCall extends IRPass {
 
   /** The annotation metadata type associated with IR nodes by this pass. */
@@ -43,7 +43,7 @@ case object TailCall extends IRPass {
       inlineContext.isInTailPosition.getOrElse(
         throw new CompilerError(
           "Information about the tail position for an inline expression " +
-            "must be known by the point of tail call analysis."
+          "must be known by the point of tail call analysis."
         )
       )
     )
@@ -58,13 +58,17 @@ case object TailCall extends IRPass {
   ): IR.Module.Scope.Definition = {
     definition match {
       case method @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
-        method.copy(
-          body = analyseExpression(body, isInTailPosition = true)
-        ).addMetadata(TailPosition.Tail)
+        method
+          .copy(
+            body = analyseExpression(body, isInTailPosition = true)
+          )
+          .addMetadata(TailPosition.Tail)
       case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _) =>
-        atom.copy(
-          arguments = args.map(analyseDefArgument)
-        ).addMetadata(TailPosition.Tail)
+        atom
+          .copy(
+            arguments = args.map(analyseDefArgument)
+          )
+          .addMetadata(TailPosition.Tail)
     }
   }
 
@@ -339,20 +343,20 @@ case object TailCall extends IRPass {
   sealed trait TailPosition extends IR.Metadata {
 
     /** A boolean representation of the expression's tail state. */
-    def bool: Boolean
+    def isTail: Boolean
   }
   object TailPosition {
 
     /** The expression is in a tail position and can be tail call optimised. */
     final case object Tail extends TailPosition {
-      override def bool: Boolean = true
+      override def isTail: Boolean = true
     }
 
     /** The expression is not in a tail position and cannot be tail call
       * optimised.
       */
     final case object NotTail extends TailPosition {
-      override def bool: Boolean = false
+      override def isTail: Boolean = false
     }
 
     /** Implicitly converts a boolean to a [[TailPosition]] value.
@@ -370,7 +374,7 @@ case object TailCall extends IRPass {
       * @return the boolean value corresponding to `tailPosition`
       */
     implicit def toBool(tailPosition: TailPosition): Boolean = {
-      tailPosition.bool
+      tailPosition.isTail
     }
   }
 }

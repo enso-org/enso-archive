@@ -12,7 +12,7 @@ import org.enso.compiler.pass.analyse.{
   TailCall
 }
 import org.enso.compiler.pass.desugar.{
-  GenMethodBodies,
+  GenerateMethodBodies,
   LiftSpecialOperators,
   OperatorToFunction
 }
@@ -34,7 +34,7 @@ class TailCallTest extends CompilerTest {
   )
 
   val precursorPasses: List[IRPass] = List(
-    GenMethodBodies,
+    GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,

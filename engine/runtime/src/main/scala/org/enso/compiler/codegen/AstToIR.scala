@@ -177,6 +177,7 @@ object AstToIR {
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)
 
+        // Note [Uniform Call Syntax Translation]
         Application.Prefix(
           translateExpression(name),
           (target :: validArguments).map(translateCallArgument),
@@ -222,6 +223,16 @@ object AstToIR {
         throw new UnhandledEntity(inputAST, "translateExpression")
     }
   }
+
+  /* Note [Uniform Call Syntax Translation]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * As the uniform call syntax must work for both methods and functions, the
+   * conversion can't take advantage of any by-name application semantics at the
+   * current time.
+   *
+   * This means that it is a purely _positional_ conversion on the first
+   * argument and cannot be performed any other way.
+   */
 
   /** Translates a program literal from its [[AST]] representation into
     * [[Core]].

@@ -17,13 +17,6 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument
   * functions and writes analysis data that allows optimisation of them to
   * specific nodes at codegen time.
   *
-  * PLEASE NOTE: This implementation is _incomplete_ as the analysis it performs
-  * is _unconditional_ at this stage. This means that, until we have alias
-  * analysis information,
-  *
-  * PLEASE NOTE: This implementation is _incomplete_ as the analysis it performs
-  * only operates for functions where the arguments are applied positionally.
-  *
   * @param knownFunctions a mapping from known function names to information
   *                       about that function that can be used for optimisation
   */
