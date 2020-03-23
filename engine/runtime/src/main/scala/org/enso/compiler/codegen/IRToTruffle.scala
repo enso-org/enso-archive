@@ -186,12 +186,19 @@ class IRToTruffle(
         scopeInfo.graph.rootScope
       )
 
+      val methodFunIsTail = methodDef.body
+        .getMetadata[TailCall.Metadata]
+        .getOrElse(
+          throw new CompilerError("Method body missing tail call info.")
+        )
+
       val funNode = methodDef.body match {
         case fn: IR.Function =>
           expressionProcessor.processFunctionBody(
             fn.arguments,
             fn.body,
-            fn.location
+            fn.location,
+            methodFunIsTail
           )
         case _ =>
           throw new CompilerError(
@@ -199,7 +206,7 @@ class IRToTruffle(
           )
       }
 
-      funNode.markTail()
+      funNode.setTail(methodFunIsTail)
 
       val function = new RuntimeFunction(
         funNode.getCallTarget,
@@ -308,7 +315,7 @@ class IRToTruffle(
           throw new CompilerError(s"Missing tail call metadata for $ir")
         )
 
-      ir match {
+      val runtimeExpression = ir match {
         case block: IR.Expression.Block     => processBlock(block)
         case literal: IR.Literal            => processLiteral(literal)
         case app: IR.Application            => processApplication(app)
@@ -328,6 +335,9 @@ class IRToTruffle(
           )
         case _ => throw new UnhandledEntity(ir, "run")
       }
+
+      runtimeExpression.setTail(tailMeta)
+      runtimeExpression
     }
 
     /** Executes the expression processor on a piece of code that has been
@@ -338,7 +348,7 @@ class IRToTruffle(
       */
     def runInline(ir: IR.Expression): RuntimeExpression = {
       val expression = run(ir)
-      expression.markNotTail()
+      expression.markNotTail() // TODO [AA] Remove
       expression
     }
 
@@ -403,9 +413,21 @@ class IRToTruffle(
 
         val cases = branches
           .map(
-            branch =>
-              ConstructorCaseNode
+            branch => {
+              val caseIsTail = branch
+                .getMetadata[TailCall.Metadata]
+                .getOrElse(
+                  throw new CompilerError(
+                    "Case branch missing tail position information."
+                  )
+                )
+
+              val caseNode = ConstructorCaseNode
                 .build(this.run(branch.pattern), this.run(branch.expression))
+              caseNode.setTail(caseIsTail)
+
+              caseNode
+            }
           )
           .toArray[CaseNode]
 
@@ -474,9 +496,9 @@ class IRToTruffle(
       val fn = child.processFunctionBody(
         function.arguments,
         function.body,
-        function.location
+        function.location,
+        false
       )
-      fn.setTail(function.canBeTCO)
 
       fn
     }
@@ -542,7 +564,8 @@ class IRToTruffle(
     def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
-      location: Option[Location]
+      location: Option[Location],
+      funIsTail: Boolean
     ): CreateFunctionNode = {
       val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
 
@@ -577,6 +600,14 @@ class IRToTruffle(
         } else seenArgNames.add(argName)
       }
 
+      val bodyIsTail = body
+        .getMetadata[TailCall.Metadata]
+        .getOrElse(
+          throw new CompilerError(
+            "Function body missing tail call information."
+          )
+        )
+
       val bodyExpr = this.run(body)
 
       val fnBodyNode = BlockNode.build(argExpressions.toArray, bodyExpr)
@@ -591,6 +622,10 @@ class IRToTruffle(
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
       val expr = CreateFunctionNode.build(callTarget, argDefinitions)
+
+      bodyExpr.setTail(bodyIsTail)
+      fnBodyNode.setTail(bodyIsTail)
+      fnRootNode.setTail(funIsTail)
 
       setLocation(expr, location)
     }
@@ -706,7 +741,16 @@ class IRToTruffle(
             val childScope = scope.createChild(scopeInfo.scope)
             val argumentExpression =
               new ExpressionProcessor(childScope, scopeName).run(value)
-            argumentExpression.markTail()
+
+            val argExpressionIsTail = value
+              .getMetadata[TailCall.Metadata]
+              .getOrElse(
+                throw new CompilerError(
+                  "Argument with missing tail call information."
+                )
+              )
+
+            argumentExpression.setTail(argExpressionIsTail)
 
             val displayName =
               s"call_argument<${name.getOrElse(String.valueOf(position))}>"
