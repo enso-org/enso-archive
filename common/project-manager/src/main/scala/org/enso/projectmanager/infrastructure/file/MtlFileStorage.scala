@@ -5,52 +5,54 @@ import java.io.File
 import io.circe.parser._
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder}
+import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.syntax._
+import org.enso.projectmanager.control.effect.syntax._
+import org.enso.projectmanager.control.effect.{Except, Semaphore, Sync}
 import org.enso.projectmanager.data.Default
 import org.enso.projectmanager.infrastructure.file.FileStorage._
 import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
 import shapeless.{:+:, CNil, _}
-import zio._
 
 /**
   * ZIO implementation of [[FileStorage]]. It uses circe [[Encoder]] and
-  * [[Decoder]] to encode/decode object.
+  * [[Decoder]] to encode/decode objects.
   *
   * @param path a path to a file that stores serialized object
   * @param fileSystem a filesystem algebra
-  * @param semaphore a semaphore to synchronize access to the file
   * @tparam A a datatype to store
   */
-class ZioFileStorage[A: Encoder: Decoder: Default](
+class MtlFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: Except: CovariantFlatMap](
   path: File,
-  fileSystem: FileSystem[ZIO[ZEnv, +*, +*]],
-  semaphore: Semaphore
-) extends FileStorage[A, ZIO[ZEnv, +*, +*]] {
+  fileSystem: FileSystem[F]
+) extends FileStorage[A, F] {
+
+  private val semaphore = Semaphore.unsafeMake[F](1)
 
   /**
     * Loads the serialized object from the file.
     *
     * @return either [[LoadFailure]] or the object
     */
-  override def load(): ZIO[ZEnv, LoadFailure, A] =
+  override def load(): F[LoadFailure, A] =
     fileSystem
       .readFile(path)
       .mapError(Coproduct[LoadFailure](_))
-      .flatMap { contents =>
-        decode[A](contents).fold(
-          failure =>
-            ZIO.fail(
-              Coproduct[LoadFailure](CannotDecodeData(failure.getMessage))
-            ),
-          ZIO.succeed(_)
-        )
+      .flatMap(tryDecodeFileContents)
+      .recover {
+        case Inr(Inl(FileNotFound)) => Default[A].value
       }
-      .foldM(
-        failure = {
-          case Inr(Inl(FileNotFound)) => ZIO.succeed(Default[A].value)
-          case other                  => ZIO.fail(other)
-        },
-        success = ZIO.succeed(_)
-      )
+
+  private def tryDecodeFileContents(contents: String): F[LoadFailure, A] = {
+    decode[A](contents) match {
+      case Left(failure) =>
+        Except[F].fail(
+          Coproduct[LoadFailure](CannotDecodeData(failure.getMessage))
+        )
+
+      case Right(value) => CovariantFlatMap[F].pure(value)
+    }
+  }
 
   /**
     * Persists the provided object on the disk.
@@ -58,7 +60,7 @@ class ZioFileStorage[A: Encoder: Decoder: Default](
     * @param data a data object
     * @return either [[FileSystemFailure]] or success
     */
-  override def persist(data: A): ZIO[ZEnv, FileSystemFailure, Unit] =
+  override def persist(data: A): F[FileSystemFailure, Unit] =
     fileSystem.overwriteFile(path, data.asJson.spaces2)
 
   /**
@@ -72,7 +74,7 @@ class ZioFileStorage[A: Encoder: Decoder: Default](
     */
   override def modify[B](
     f: A => (A, B)
-  ): ZIO[ZEnv, CannotDecodeData :+: FileSystemFailure :+: CNil, B] =
+  ): F[CannotDecodeData :+: FileSystemFailure :+: CNil, B] =
     // format: off
     semaphore.withPermit {
       for {

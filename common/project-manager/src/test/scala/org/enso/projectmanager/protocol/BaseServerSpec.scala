@@ -8,10 +8,10 @@ import java.util.UUID
 import io.circe.generic.auto._
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
-import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
+import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
-  ZioFileStorage
+  MtlFileStorage
 }
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
@@ -57,10 +57,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val storageSemaphore =
     Runtime.default.unsafeRun(Semaphore.make(1))
 
-  lazy val indexStorage = new ZioFileStorage[ProjectIndex](
+  lazy val indexStorage = new MtlFileStorage[ProjectIndex, ZIO[ZEnv, +*, +*]](
     testStorageConfig.projectMetadataPath,
-    fileSystem,
-    storageSemaphore
+    fileSystem
   )
 
   lazy val projectRepository =

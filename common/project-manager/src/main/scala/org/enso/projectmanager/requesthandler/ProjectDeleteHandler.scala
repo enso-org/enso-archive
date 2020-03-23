@@ -4,7 +4,7 @@ import akka.actor._
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.projectmanager.infrastructure.execution.Exec
+import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectDelete
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{

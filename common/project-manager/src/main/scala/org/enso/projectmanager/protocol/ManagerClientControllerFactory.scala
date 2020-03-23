@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{ActorRef, ActorSystem}
 import org.enso.jsonrpc.ClientControllerFactory
-import org.enso.projectmanager.infrastructure.execution.Exec
+import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.service.ProjectServiceApi
 
 import scala.concurrent.duration.FiniteDuration

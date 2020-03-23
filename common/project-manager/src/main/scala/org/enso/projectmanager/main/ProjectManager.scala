@@ -22,6 +22,8 @@ import pureconfig.ConfigSource
 import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
 import pureconfig._
 import pureconfig.generic.auto._
+import zio._
+import zio.interop.catz.core._
 
 /**
   * Project manager runner containing the main method.
@@ -43,30 +45,28 @@ object ProjectManager extends App with LazyLogging {
   /**
     * ZIO runtime.
     */
-  lazy val runtime = Runtime.default
+  implicit val runtime = Runtime.default
 
   /**
     * Main process starting up the server.
     */
-  lazy val mainProcess: ZIO[ZEnv, IOException, Unit] =
-    // format: off
+  lazy val mainProcess: ZIO[ZEnv, IOException, Unit] = {
+    val mainModule = new MainModule[ZIO[ZEnv, +*, +*]](config)
     for {
-      storageSemaphore <- Semaphore.make(1)
-      mainModule        = new MainModule(config, runtime, storageSemaphore)
-      binding          <- bindServer(mainModule)
-      _                <- logServerStartup()
-      _                <- getStrLn
-      _                <- effectTotal { logger.info("Stopping server...") }
-      _                <- effectTotal { binding.unbind() }
-      _                <- effectTotal { mainModule.system.terminate() }
+      binding <- bindServer(mainModule)
+      _       <- logServerStartup()
+      _       <- getStrLn
+      _       <- effectTotal { logger.info("Stopping server...") }
+      _       <- effectTotal { binding.unbind() }
+      _       <- effectTotal { mainModule.system.terminate() }
     } yield ()
-    // format: on
+  }
 
   /**
     * The main function of the application, which will be passed the command-line
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
-  override def run(args: List[String]): ZIO[zio.ZEnv, Nothing, Int] =
+  override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
     mainProcess.fold(_ => FailureExitCode, _ => SuccessExitCode)
 
   private def logServerStartup(): UIO[Unit] =
@@ -76,7 +76,9 @@ object ProjectManager extends App with LazyLogging {
       )
     }
 
-  private def bindServer(module: MainModule): UIO[Http.ServerBinding] =
+  private def bindServer(
+    module: MainModule[ZIO[ZEnv, +*, +*]]
+  ): UIO[Http.ServerBinding] =
     effectTotal {
       Await.result(
         module.server.bind(config.server.host, config.server.port),

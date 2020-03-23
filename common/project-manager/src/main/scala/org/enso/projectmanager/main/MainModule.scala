@@ -2,12 +2,14 @@ package org.enso.projectmanager.main
 
 import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
+import cats.{Bifunctor, MonadError}
 import io.circe.generic.auto._
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.projectmanager.infrastructure.execution.ZioEnvExec
+import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.effect.{Except, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
-  ZioFileStorage
+  MtlFileStorage
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
@@ -21,52 +23,53 @@ import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
 }
-import org.enso.projectmanager.service.{MtlProjectValidator, ProjectService}
-import zio._
-import zio.interop.catz.core._
+import org.enso.projectmanager.service.{
+  MtlProjectValidator,
+  ProjectService,
+  ProjectServiceFailure,
+  ValidationFailure
+}
 
 /**
   * A main module containing all components of the project manager.
   *
   */
-class MainModule(
-  config: ProjectManagerConfig,
-  runtime: Runtime[ZEnv],
-  storageSemaphore: Semaphore
+class MainModule[F[+_, +_]: Sync: Except: Exec: CovariantFlatMap: Bifunctor](
+  config: ProjectManagerConfig
+)(
+  implicit E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
+  E2: MonadError[F[ValidationFailure, *], ValidationFailure]
 ) {
 
   implicit val system = ActorSystem()
 
   implicit val materializer = SystemMaterializer.get(system)
 
-  lazy val logging = new Slf4jLogging[ZIO[ZEnv, +*, +*]]
+  lazy val logging = new Slf4jLogging[F]
 
-  lazy val clock = new RealClock[ZIO[ZEnv, +*, +*]]
-
-  implicit val exec = new ZioEnvExec(runtime)
+  lazy val clock = new RealClock[F]
 
   lazy val fileSystem =
-    new BlockingFileSystem[ZIO[ZEnv, +*, +*]](config.timeout.ioTimeout)
+    new BlockingFileSystem[F](config.timeout.ioTimeout)
 
-  lazy val indexStorage = new ZioFileStorage[ProjectIndex](
+  lazy val indexStorage = new MtlFileStorage[ProjectIndex, F](
     config.storage.projectMetadataPath,
-    fileSystem,
-    storageSemaphore
+    fileSystem
   )
 
   lazy val projectRepository =
-    new ProjectFileRepository[ZIO[ZEnv, +*, +*]](
+    new ProjectFileRepository[F](
       config.storage,
       fileSystem,
       indexStorage
     )
 
-  lazy val gen = new SystemGenerator[ZIO[ZEnv, +*, +*]]
+  lazy val gen = new SystemGenerator[F]
 
-  lazy val projectValidator = new MtlProjectValidator[ZIO[ZEnv, +*, +*]]()
+  lazy val projectValidator = new MtlProjectValidator[F]()
 
   lazy val projectService =
-    new ProjectService[ZIO[ZEnv, +*, +*]](
+    new ProjectService[F](
       projectValidator,
       projectRepository,
       logging,
@@ -75,7 +78,7 @@ class MainModule(
     )
 
   lazy val clientControllerFactory =
-    new ManagerClientControllerFactory[ZIO[ZEnv, +*, +*]](
+    new ManagerClientControllerFactory[F](
       system,
       projectService,
       config.timeout.requestTimeout

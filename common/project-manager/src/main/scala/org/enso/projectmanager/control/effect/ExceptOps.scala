@@ -15,4 +15,10 @@ class ExceptOps[F[+_, +_]: Except, E, A](fa: F[E, A]) {
   def mapError[E1](f: E => E1)(implicit ev: E =:!= Nothing): F[E1, A] =
     Except[F].mapError(fa)(f)
 
+  def onError(cleanUp: PartialFunction[E, F[Nothing, Unit]]): F[E, A] =
+    Except[F].onError(fa)(cleanUp)
+
+  def onDie(cleanUp: PartialFunction[Throwable, F[Nothing, Unit]]): F[E, A] =
+    Except[F].onDie(fa)(cleanUp)
+
 }

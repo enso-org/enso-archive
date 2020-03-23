@@ -32,4 +32,31 @@ class ZioExcept[R] extends Except[ZIO[R, +*, +*]] {
     fa.mapError(f)
 
   override def fail[E](error: => E): ZIO[R, E, Nothing] = ZIO.fail(error)
+
+  override def onError[E, A](
+    fa: ZIO[R, E, A]
+  )(cleanUp: PartialFunction[E, ZIO[R, Nothing, Unit]]): ZIO[R, E, A] =
+    fa.onError { cause =>
+      if (cause.failed) {
+        val failure = cause.failureOption.get
+        if (cleanUp.isDefinedAt(failure)) cleanUp(failure)
+        else ZIO.unit
+      } else {
+        ZIO.unit
+      }
+    }
+
+  override def onDie[E, A](
+    fa: ZIO[R, E, A]
+  )(cleanUp: PartialFunction[Throwable, ZIO[R, Nothing, Unit]]): ZIO[R, E, A] =
+    fa.onError { cause =>
+      if (cause.died) {
+        val throwable = cause.dieOption.get
+        if (cleanUp.isDefinedAt(throwable)) cleanUp(throwable)
+        else ZIO.unit
+      } else {
+        ZIO.unit
+      }
+    }
+
 }

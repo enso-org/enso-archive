@@ -1,4 +1,4 @@
-package org.enso.projectmanager.infrastructure.execution
+package org.enso.projectmanager.control.effect
 
 import zio._
 

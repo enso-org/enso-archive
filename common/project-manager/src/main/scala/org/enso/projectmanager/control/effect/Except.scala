@@ -21,6 +21,14 @@ trait Except[F[+_, +_]] {
 
   def fail[E](error: => E): F[E, Nothing]
 
+  def onError[E, A](fa: F[E, A])(
+    cleanUp: PartialFunction[E, F[Nothing, Unit]]
+  ): F[E, A]
+
+  def onDie[E, A](fa: F[E, A])(
+    cleanUp: PartialFunction[Throwable, F[Nothing, Unit]]
+  ): F[E, A]
+
 }
 
 object Except {

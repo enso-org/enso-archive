@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
-import org.enso.projectmanager.infrastructure.execution.Exec
+import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.protocol.ProjectManagementApi.{
   ProjectCreate,
   ProjectDelete
