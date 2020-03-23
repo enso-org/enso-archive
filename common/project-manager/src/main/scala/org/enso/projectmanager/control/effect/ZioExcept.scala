@@ -3,7 +3,7 @@ package org.enso.projectmanager.control.effect
 import shapeless.=:!=
 import zio.{CanFail, ZIO}
 
-class ZioExcept[R] extends Except[ZIO[R, +*, +*]] {
+class ZioExcept[R] extends ErrorChannel[ZIO[R, +*, +*]] {
 
   implicit def canFailEv[E](implicit ev: E =:!= Nothing): CanFail[E] = CanFail
 

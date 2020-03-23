@@ -12,11 +12,11 @@ import scala.concurrent.duration.FiniteDuration
   */
 trait Sync[F[+_, +_]] {
 
-  def effectTotal[A](effect: => A): F[Nothing, A]
+  def effect[A](effect: => A): F[Nothing, A]
 
-  def effectBlocking[A](effect: => A): F[Throwable, A]
+  def blockingOp[A](effect: => A): F[Throwable, A]
 
-  def effectBlockingIO[A](effect: => A): F[IOException, A]
+  def blockingIO[A](effect: => A): F[IOException, A]
 
   def timeoutFail[E, E1 >: E, A](fa: F[E, A])(e: E1)(
     timeout: FiniteDuration

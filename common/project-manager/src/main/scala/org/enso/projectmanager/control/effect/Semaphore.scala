@@ -14,7 +14,7 @@ trait Semaphore[F[+_, +_]] {
 
 object Semaphore {
 
-  def unsafeMake[F[+_, +_]: Sync: Except: CovariantFlatMap](
+  def unsafeMake[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     permits: Int
   ): Semaphore[F] =
     new JvmSemaphore(permits)

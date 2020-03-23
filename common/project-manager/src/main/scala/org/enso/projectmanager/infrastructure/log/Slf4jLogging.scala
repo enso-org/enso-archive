@@ -8,12 +8,12 @@ import org.enso.projectmanager.control.effect.Sync
 class Slf4jLogging[F[+_, +_]: Sync] extends Logging[F] with LazyLogging {
 
   override def debug(msg: String): F[Nothing, Unit] =
-    Sync[F].effectTotal(logger.debug(msg))
+    Sync[F].effect(logger.debug(msg))
 
   override def info(msg: String): F[Nothing, Unit] =
-    Sync[F].effectTotal(logger.info(msg))
+    Sync[F].effect(logger.info(msg))
 
   override def error(msg: String): F[Nothing, Unit] =
-    Sync[F].effectTotal(logger.error(msg))
+    Sync[F].effect(logger.error(msg))
 
 }

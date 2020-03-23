@@ -11,7 +11,7 @@ import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
-  MtlFileStorage
+  SynchronizedFileStorage
 }
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
@@ -57,10 +57,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val storageSemaphore =
     Runtime.default.unsafeRun(Semaphore.make(1))
 
-  lazy val indexStorage = new MtlFileStorage[ProjectIndex, ZIO[ZEnv, +*, +*]](
-    testStorageConfig.projectMetadataPath,
-    fileSystem
-  )
+  lazy val indexStorage =
+    new SynchronizedFileStorage[ProjectIndex, ZIO[ZEnv, +*, +*]](
+      testStorageConfig.projectMetadataPath,
+      fileSystem
+    )
 
   lazy val projectRepository =
     new ProjectFileRepository(

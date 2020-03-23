@@ -2,23 +2,23 @@ package org.enso.projectmanager.control.effect
 
 import shapeless.=:!=
 
-class ExceptOps[F[+_, +_]: Except, E, A](fa: F[E, A]) {
+class ErrorChannelOps[F[+_, +_]: ErrorChannel, E, A](fa: F[E, A]) {
 
   def recover[B >: A](recovery: PartialFunction[E, B]): F[E, B] =
-    Except[F].recover[E, A, B](fa)(recovery)
+    ErrorChannel[F].recover[E, A, B](fa)(recovery)
 
   def recoverWith[B >: A, E1 >: E](
     recovery: PartialFunction[E, F[E1, B]]
   ): F[E1, B] =
-    Except[F].recoverWith[E, A, B, E1](fa)(recovery)
+    ErrorChannel[F].recoverWith[E, A, B, E1](fa)(recovery)
 
   def mapError[E1](f: E => E1)(implicit ev: E =:!= Nothing): F[E1, A] =
-    Except[F].mapError(fa)(f)
+    ErrorChannel[F].mapError(fa)(f)
 
   def onError(cleanUp: PartialFunction[E, F[Nothing, Unit]]): F[E, A] =
-    Except[F].onError(fa)(cleanUp)
+    ErrorChannel[F].onError(fa)(cleanUp)
 
   def onDie(cleanUp: PartialFunction[Throwable, F[Nothing, Unit]]): F[E, A] =
-    Except[F].onDie(fa)(cleanUp)
+    ErrorChannel[F].onDie(fa)(cleanUp)
 
 }

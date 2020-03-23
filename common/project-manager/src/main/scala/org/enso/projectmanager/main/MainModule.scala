@@ -6,10 +6,10 @@ import cats.{Bifunctor, MonadError}
 import io.circe.generic.auto._
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.control.core.CovariantFlatMap
-import org.enso.projectmanager.control.effect.{Except, Exec, Sync}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
-  MtlFileStorage
+  SynchronizedFileStorage
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
@@ -34,7 +34,7 @@ import org.enso.projectmanager.service.{
   * A main module containing all components of the project manager.
   *
   */
-class MainModule[F[+_, +_]: Sync: Except: Exec: CovariantFlatMap: Bifunctor](
+class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Bifunctor](
   config: ProjectManagerConfig
 )(
   implicit E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
@@ -52,7 +52,7 @@ class MainModule[F[+_, +_]: Sync: Except: Exec: CovariantFlatMap: Bifunctor](
   lazy val fileSystem =
     new BlockingFileSystem[F](config.timeout.ioTimeout)
 
-  lazy val indexStorage = new MtlFileStorage[ProjectIndex, F](
+  lazy val indexStorage = new SynchronizedFileStorage[ProjectIndex, F](
     config.storage.projectMetadataPath,
     fileSystem
   )

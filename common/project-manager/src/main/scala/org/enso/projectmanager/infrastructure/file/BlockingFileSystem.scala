@@ -4,7 +4,7 @@ import java.nio.file.{AccessDeniedException, NoSuchFileException}
 
 import org.apache.commons.io.{FileExistsException, FileUtils}
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{Except, Sync}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.BlockingFileSystem.Encoding
 import org.enso.projectmanager.infrastructure.file.FileSystemFailure._
 
@@ -16,7 +16,7 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param ioTimeout a timeout for IO operations
   */
-class BlockingFileSystem[F[+_, +_]: Sync: Except](
+class BlockingFileSystem[F[+_, +_]: Sync: ErrorChannel](
   ioTimeout: FiniteDuration
 ) extends FileSystem[F] {
 
@@ -28,7 +28,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: Except](
     */
   override def readFile(file: File): F[FileSystemFailure, String] =
     Sync[F]
-      .effectBlocking { FileUtils.readFileToString(file, Encoding) }
+      .blockingOp { FileUtils.readFileToString(file, Encoding) }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
@@ -44,7 +44,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: Except](
     contents: String
   ): F[FileSystemFailure, Unit] =
     Sync[F]
-      .effectBlocking { FileUtils.write(file, contents, Encoding) }
+      .blockingOp { FileUtils.write(file, contents, Encoding) }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 
@@ -56,7 +56,7 @@ class BlockingFileSystem[F[+_, +_]: Sync: Except](
     */
   override def removeDir(path: File): F[FileSystemFailure, Unit] =
     Sync[F]
-      .effectBlocking { FileUtils.deleteDirectory(path) }
+      .blockingOp { FileUtils.deleteDirectory(path) }
       .mapError(toFsFailure)
       .timeoutFail(OperationTimeout)(ioTimeout)
 

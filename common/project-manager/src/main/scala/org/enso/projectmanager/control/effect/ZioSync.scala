@@ -10,13 +10,13 @@ import scala.concurrent.duration.FiniteDuration
 
 object ZioSync extends Sync[ZIO[ZEnv, +*, +*]] {
 
-  override def effectTotal[A](effect: => A): ZIO[ZEnv, Nothing, A] =
+  override def effect[A](effect: => A): ZIO[ZEnv, Nothing, A] =
     ZIO.effectTotal(effect)
 
-  override def effectBlocking[A](effect: => A): ZIO[ZEnv, Throwable, A] =
+  override def blockingOp[A](effect: => A): ZIO[ZEnv, Throwable, A] =
     blocking.effectBlocking(effect)
 
-  override def effectBlockingIO[A](effect: => A): ZIO[ZEnv, IOException, A] =
+  override def blockingIO[A](effect: => A): ZIO[ZEnv, IOException, A] =
     blocking.effectBlockingIO(effect)
 
   override def timeoutFail[E, E1 >: E, A](fa: ZIO[ZEnv, E, A])(e: E1)(

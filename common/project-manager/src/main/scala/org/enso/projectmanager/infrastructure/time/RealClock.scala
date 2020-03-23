@@ -14,7 +14,7 @@ class RealClock[F[+_, +_]: Sync] extends Clock[F] {
     * @return a date time
     */
   override def now(): F[Nothing, OffsetDateTime] =
-    Sync[F].effectTotal(OffsetDateTime.now())
+    Sync[F].effect(OffsetDateTime.now())
 
   /**
     * Obtains the current date-time from the system clock in the UTC time-zone.
@@ -22,6 +22,6 @@ class RealClock[F[+_, +_]: Sync] extends Clock[F] {
     * @return a date time
     */
   override def nowInUtc(): F[Nothing, OffsetDateTime] =
-    Sync[F].effectTotal(OffsetDateTime.now(ZoneOffset.UTC))
+    Sync[F].effect(OffsetDateTime.now(ZoneOffset.UTC))
 
 }

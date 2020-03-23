@@ -8,7 +8,7 @@ import io.circe.{Decoder, Encoder}
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{Except, Semaphore, Sync}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Semaphore, Sync}
 import org.enso.projectmanager.data.Default
 import org.enso.projectmanager.infrastructure.file.FileStorage._
 import org.enso.projectmanager.infrastructure.file.FileSystemFailure.FileNotFound
@@ -22,7 +22,7 @@ import shapeless.{:+:, CNil, _}
   * @param fileSystem a filesystem algebra
   * @tparam A a datatype to store
   */
-class MtlFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: Except: CovariantFlatMap](
+class SynchronizedFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   path: File,
   fileSystem: FileSystem[F]
 ) extends FileStorage[A, F] {
@@ -46,7 +46,7 @@ class MtlFileStorage[A: Encoder: Decoder: Default, F[+_, +_]: Sync: Except: Cova
   private def tryDecodeFileContents(contents: String): F[LoadFailure, A] = {
     decode[A](contents) match {
       case Left(failure) =>
-        Except[F].fail(
+        ErrorChannel[F].fail(
           Coproduct[LoadFailure](CannotDecodeData(failure.getMessage))
         )
 

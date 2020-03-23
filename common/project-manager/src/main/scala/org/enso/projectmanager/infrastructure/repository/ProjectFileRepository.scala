@@ -7,7 +7,7 @@ import org.enso.pkg.Package
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.control.effect.{Except, Sync}
+import org.enso.projectmanager.control.effect.{ErrorChannel, Sync}
 import org.enso.projectmanager.infrastructure.file.{FileStorage, FileSystem}
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
   InconsistentStorage,
@@ -24,7 +24,7 @@ import org.enso.projectmanager.model.Project
   * @param fileSystem a file system abstraction
   * @param indexStorage an index storage
   */
-class ProjectFileRepository[F[+_, +_]: Sync: Except: CovariantFlatMap](
+class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   storageConfig: StorageConfig,
   fileSystem: FileSystem[F],
   indexStorage: FileStorage[ProjectIndex, F]
@@ -70,7 +70,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: Except: CovariantFlatMap](
     projectPath: File
   ): F[StorageFailure, Package] =
     Sync[F]
-      .effectBlocking { Package.create(projectPath, project.name) }
+      .blockingOp { Package.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
   /**
@@ -90,10 +90,10 @@ class ProjectFileRepository[F[+_, +_]: Sync: Except: CovariantFlatMap](
       .mapError(_.fold(convertFileStorageFailure))
       .flatMap {
         case None =>
-          Except[F].fail[ProjectRepositoryFailure](ProjectNotFoundInIndex)
+          ErrorChannel[F].fail[ProjectRepositoryFailure](ProjectNotFoundInIndex)
 
         case Some(project) if project.path.isEmpty =>
-          Except[F].fail[ProjectRepositoryFailure](
+          ErrorChannel[F].fail[ProjectRepositoryFailure](
             InconsistentStorage(
               "Index cannot contain a user project without path"
             )

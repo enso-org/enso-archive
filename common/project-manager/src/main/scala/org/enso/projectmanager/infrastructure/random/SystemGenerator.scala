@@ -14,5 +14,5 @@ class SystemGenerator[F[+_, +_]: Sync] extends Generator[F] {
     * @return a UUID
     */
   override def randomUUID(): F[Nothing, UUID] =
-    Sync[F].effectTotal(UUID.randomUUID())
+    Sync[F].effect(UUID.randomUUID())
 }
