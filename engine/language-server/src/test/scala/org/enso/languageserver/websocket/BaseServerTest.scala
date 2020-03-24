@@ -65,8 +65,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
     // Windows. And it's always the first one that fails. I assume it happens
     // due to a cold Zio executor. Here we send a few messages to warm up the
     // FileManager.
-    val result = fileManager ? FileManagerProtocol.ExistsFile(
-      Path(testContentRootId, Vector())
+    val result = fileManager ? FileManagerProtocol.WriteFile(
+      Path(testContentRootId, Vector("hello_windows.txt")),
+      "Hello, Windows!"
     )
     Await.ready(result, Duration.Inf)
     fileManager
