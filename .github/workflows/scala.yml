@@ -36,3 +36,4 @@ jobs:
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
         graalvm-version: 20.0.0.java8
+    - run: java -version
