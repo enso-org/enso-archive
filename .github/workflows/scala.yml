@@ -49,7 +49,7 @@ jobs:
     - name: CD to Code Directory
       run: cd ./enso/
     - name: Test Enso
-      run: sbt -no-colors test
+      run: sbt test
 #     - name: Benchmark the Parser
 #       run: sbt -no-colors syntax/bench
 #     - name: Check Runtime Benchmark Compilation
