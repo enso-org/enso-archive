@@ -9,6 +9,7 @@ class TextOperationsTest extends BaseServerTest {
 
   "text/openFile" must {
     "fail opening a file if it does not exist" in {
+      pending
       // Interaction:
       // 1. Client tries to open a non-existent file.
       // 2. Client receives an error message.
