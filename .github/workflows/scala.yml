@@ -46,10 +46,11 @@ jobs:
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         tar -xzf sbt.tgz
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
-    - name: CD to Code Directory
-      run: cd ./enso/
     - name: Test Enso
-      run: sbt test
+      run: |
+        cd enso
+        pwd
+        sbt test
 #     - name: Benchmark the Parser
 #       run: sbt -no-colors syntax/bench
 #     - name: Check Runtime Benchmark Compilation
