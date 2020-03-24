@@ -33,6 +33,8 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
+      with: 
+        path:  
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
@@ -42,7 +44,7 @@ jobs:
       with:
         file-url: https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         file-name: sbt.tgz
-        location: ${{ env.HOME }}
+        location: ${{ env.GITHUB_WORKSPACE }}
       
 
   build: 
