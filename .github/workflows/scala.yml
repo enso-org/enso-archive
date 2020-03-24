@@ -92,6 +92,7 @@ jobs:
     - name: Upload Parser JS Bundle to S3
       run: |
         echo s3://packages-luna/parser-js/nightly/$GITHUB_SHA
+        aws s3 sync ./parser_upload s3://packages-luna/ --profile s3-upload 
 #        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/$GITHUB_SHA --profile s3-upload --acl public-read --dryrun --delete 
     - name: Teardown AWS Session
       run: |
