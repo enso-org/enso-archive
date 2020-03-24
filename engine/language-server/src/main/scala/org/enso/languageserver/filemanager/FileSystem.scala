@@ -209,11 +209,11 @@ class FileSystem extends FileSystemApi[BlockingIO] {
     path: File
   ): BlockingIO[FileSystemFailure, Attributes] =
     if (path.exists) {
-      effectBlocking({
+      effectBlocking {
         val attrs =
           Files.readAttributes(path.toPath, classOf[BasicFileAttributes])
         Attributes.fromBasicAttributes(path.toPath, attrs)
-      }).mapError(errorHandling)
+      }.mapError(errorHandling)
     } else {
       IO.fail(FileNotFound)
     }

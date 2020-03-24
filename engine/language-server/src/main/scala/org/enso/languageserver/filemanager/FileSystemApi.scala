@@ -3,7 +3,7 @@ package org.enso.languageserver.filemanager
 import java.io.File
 import java.nio.file.Path
 import java.nio.file.attribute.{BasicFileAttributes, FileTime}
-import java.time.{OffsetDateTime, ZoneId}
+import java.time.{OffsetDateTime, ZoneOffset}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -256,6 +256,6 @@ object FileSystemApi {
       )
 
     private def utcTime(time: FileTime): OffsetDateTime =
-      OffsetDateTime.ofInstant(time.toInstant, ZoneId.of("UTC"))
+      OffsetDateTime.ofInstant(time.toInstant, ZoneOffset.UTC)
   }
 }

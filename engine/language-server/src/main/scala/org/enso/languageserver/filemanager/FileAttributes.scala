@@ -25,6 +25,14 @@ case class FileAttributes(
 
 object FileAttributes {
 
+  /**
+    * Create attributes from filesystem attributes [[FileSystemApi.Attributes]].
+    *
+    * @param root a root path
+    * @param path a path to the file system object
+    * @param attra file system attributes
+    * @return file attributes
+    */
   def fromFileSystemAttributes(
     root: File,
     path: Path,
