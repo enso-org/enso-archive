@@ -27,22 +27,23 @@ jobs:
   test:
     name: Test
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
       fail-fast: false
     steps:
-    - uses: actions/checkout@v2
-    - name: Setup GraalVM Environment
-      uses: DeLaGuardo/setup-graalvm@2.0
-      with:
-        graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Download SBT
-      uses: carlosperate/download-file-action@v1.0.0
-      with:
-        file-url: https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-        file-name: sbt.tgz
-        location: ${{ env.HOME }}/work/enso
+#     - uses: actions/checkout@v2
+#     - name: Setup GraalVM Environment
+#       uses: DeLaGuardo/setup-graalvm@2.0
+#       with:
+#         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+#     - name: Download SBT
+#       uses: carlosperate/download-file-action@v1.0.0
+#       with:
+#         file-url: https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+#         file-name: sbt.tgz
+#         location: ${{ env.HOME }}/work/enso
     - name: Check Things
       if: matrix.os == 'ubuntu-latest'
       run: ls -la $HOME/work/enso
