@@ -77,20 +77,24 @@ jobs:
 #       with:
 #         name: Parser JS Bundle
 #         path: ./target/scala-parser.js
-    - name: Upload Parser JS Bundle to S3
+    - name: Prepare Parser JS Bundle for Upload
       run: |
         mkdir parser_upload
-        cp ./README.md parser_upload/README.md
-        
+        cp ./README.md parser_upload
+    - name: Prepare AWS Session
+      run: |
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
         ${{ secrets.PARSER_S3_ACCESS_KEY_ID }}
         ${{ secrets.PARSER_S3_SECRET_ACCESS_KEY }}
         us-west-2
         text
         EOF
-
-        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/$GITHUB_SHA --profile s3-upload --acl public-read --dryrun --delete 
-        
+    - name: Upload Parser JS Bundle to S3
+      run: |
+        echo s3://packages-luna/parser-js/nightly/$GITHUB_SHA
+#        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/$GITHUB_SHA --profile s3-upload --acl public-read --dryrun --delete 
+    - name: Teardown AWS Session
+      run: |
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
         null
         null
