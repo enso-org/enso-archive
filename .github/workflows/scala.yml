@@ -76,5 +76,5 @@ jobs:
     - name: Publish the Uberjar
       uses: actions/upload-artifact@v1.0.0
       with:
-        name: enso.jar
-        path: .
+        name: Enso CLI
+        path: ./enso.jar
