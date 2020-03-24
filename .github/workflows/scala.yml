@@ -24,7 +24,8 @@ env:
 
 jobs:
   build:
-
+    name: Enso CI
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
