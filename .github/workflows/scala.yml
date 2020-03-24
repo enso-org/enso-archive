@@ -45,7 +45,9 @@ jobs:
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         tar -xzf sbt.tgz
+        echo "::add-path::${{env.GITHUB_WORKSPACE}}/sbt/bin/" 
         ls -la
+        echo $PATH
       
 
   build: 
