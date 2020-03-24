@@ -5,7 +5,7 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-    paths-ignore:
+    paths-ignore: 
       - .github/*
       - doc/*
       - .gitignore
@@ -34,6 +34,8 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
+      with:
+        fetch-depth: 5
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
@@ -42,7 +44,7 @@ jobs:
 #       run: |
 #         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
 #         tar -xzf sbt.tgz
-#         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+#         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
 #     - name: Test Enso
 #       run: sbt --no-colors test
 #     - name: Benchmark the Parser
@@ -53,9 +55,9 @@ jobs:
 #       run: sbt -no-colors runner/assembly
 #     - name: Test the Uberjar
 #       run: ./enso.jar --run ci/Test.enso
+      
 
-
-  build:
+  build: 
     name: Build
 #     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
@@ -69,7 +71,7 @@ jobs:
 #       run: |
 #         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
 #         tar -xzf sbt.tgz
-#         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+#         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
 #     - name: Build the Parser JS Bundle
 #       run: sbt -no-colors syntaxJS/fullOptJS
 #     - name: Publish the Parser JS Bundle
@@ -91,7 +93,7 @@ jobs:
         EOF
     - name: Upload Parser JS Bundle to S3
       run: |
-        echo s3://packages-luna/parser-js/nightly/`git rev-parse $GITHUB_REF`
+        echo s3://packages-luna/parser-js/nightly/`git rev-parse HEAD`
         aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/$GITHUB_SHA --profile s3-upload --acl public-read --delete
     - name: Teardown AWS Session
       run: |
@@ -101,7 +103,7 @@ jobs:
         null
         text
         EOF
-
+        
 
 #     - name: Build the Uberjar
 #       run: sbt --no-colors runner/assembly
@@ -110,4 +112,4 @@ jobs:
 #       with:
 #         name: Enso CLI
 #         path: ./enso.jar
-
+      
