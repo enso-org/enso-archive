@@ -16,6 +16,7 @@ import org.enso.languageserver.data.{
   * correct recipient based on the capability object.
   *
   * @param bufferRegistry the recipient of buffer capability requests
+  * @param fileEventRegistry [[FileEventRegistry]] actor
   */
 class CapabilityRouter(bufferRegistry: ActorRef, fileEventRegistry: ActorRef)
     extends Actor {

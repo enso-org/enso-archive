@@ -7,15 +7,14 @@ import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
   CapabilityAcquisitionBadRequest,
-  CapabilityReleased,
   CapabilityReleaseBadRequest,
+  CapabilityReleased,
   ReleaseCapability
 }
 import org.enso.languageserver.data.{
   CapabilityRegistration,
   ReceivesTreeUpdates
 }
-
 
 /**
   * FileEvent Registry
@@ -28,13 +27,13 @@ import org.enso.languageserver.data.{
   *              |      Client       |
   *              +-------------------+
   *                    ^      ^ CapabilityResponse
-  *          FileEvent |      |
+  *   EventFile.Result |      |
   *                    |      v Acquire/ReleaseCapability
   *              +-------------------+
   *              | FileEventRegistry |
   *              +-------------------+
   *                    ^      ^ Watch/UnwatchPathResult
-  *    FileEventResult |      |
+  *          FileEvent |      |
   *                    |      v Watch/UnwatchPath
   *              +-------------------+
   *              | FileEventManager  |
@@ -48,11 +47,9 @@ import org.enso.languageserver.data.{
   *
   * }}}
   */
-final class FileEventRegistry(
-  config: Config,
-  fs: FileSystemApi[BlockingIO],
-  exec: Exec[BlockingIO]
-) extends Actor with ActorLogging {
+final class FileEventRegistry(config: Config, exec: Exec[BlockingIO])
+    extends Actor
+    with ActorLogging {
 
   import FileEventRegistry._
 
@@ -65,26 +62,27 @@ final class FileEventRegistry(
     case AcquireCapability(
         client,
         CapabilityRegistration(ReceivesTreeUpdates(path))
-        )  =>
+        ) =>
       if (watcherRegistry.contains(RegisteredClient(client.id, path))) {
         sender() ! CapabilityAcquisitionBadRequest
       } else {
         val eventManager =
-          context.actorOf(FileEventManager.props(config, fs, exec))
+          context.actorOf(FileEventManager.props(config, exec))
         eventManager ! FileEventManagerProtocol.WatchPath(path)
         val newWatcherRegistry = watcherRegistry
           .updated(RegisteredClient(client.id, path), eventManager)
         val newClientRegistry = clientRegistry
           .updated(eventManager, client.actor)
         context.become(withRegistry(newWatcherRegistry, newClientRegistry))
-    }
+      }
 
     case ReleaseCapability(
         clientId,
         CapabilityRegistration(ReceivesTreeUpdates(path))
-        ) =>
-      if (watcherRegistry.contains(RegisteredClient(clientId, path))) {
-        val eventManager = watcherRegistry(RegisteredClient(clientId, path))
+    ) =>
+      val client = RegisteredClient(clientId, path)
+      if (watcherRegistry.contains(client)) {
+        val eventManager = watcherRegistry(client)
         eventManager ! FileEventManagerProtocol.UnwatchPath
         val newWatcherRegistry =
           watcherRegistry - RegisteredClient(clientId, path)
@@ -126,16 +124,10 @@ final class FileEventRegistry(
       }
       context.stop(sender())
 
-    case msg @ FileEventManagerProtocol.FileEventResult(result) =>
+    case msg @ FileEventManagerProtocol.FileEventResult(event) =>
       if (clientRegistry.contains(sender())) {
         val clientRef = clientRegistry(sender())
-        result match {
-          case Right(event) =>
-            // TODO: Notification
-            clientRef ! FileManagerApi.EventFile.Result(event)
-          case Left(error) =>
-            log.error(s"Failed to process file event: $error")
-        }
+        clientRef ! FileManagerApi.EventFile.Result(event)
       } else {
         log.error(s"Unable to find a client for $msg")
         sender() ! FileEventManagerProtocol.UnwatchPath
@@ -151,10 +143,6 @@ object FileEventRegistry {
 
   private case class RegisteredClient(clientId: Client.Id, path: Path)
 
-  def props(
-    config: Config,
-    fs: FileSystemApi[BlockingIO],
-    exec: Exec[BlockingIO]
-  ): Props =
-    Props(new FileEventRegistry(config, fs, exec))
+  def props(config: Config, exec: Exec[BlockingIO]): Props =
+    Props(new FileEventRegistry(config, exec))
 }

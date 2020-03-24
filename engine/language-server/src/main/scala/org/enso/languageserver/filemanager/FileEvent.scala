@@ -1,20 +1,29 @@
 package org.enso.languageserver.filemanager
 
+import java.io.File
+
 import io.circe.syntax._
 import io.circe.{Decoder, Encoder, Json}
 
-// TODO: move to event and extend Event trait
 /**
   * A representation of filesystem event.
   *
   * @param object filesystem object
   * @param kind type of filesystem event
   */
-case class FileEvent(`object`: FileSystemObject, kind: FileEventKind)
+case class FileEvent(path: Path, kind: FileEventKind)
 
 object FileEvent {
 
-  def fromWatcherEvent(event: FileEventWatcherApi.WatcherEvent): FileEvent = ???
+  def fromWatcherEvent(
+    root: File,
+    base: Path,
+    event: FileEventWatcherApi.WatcherEvent
+  ): FileEvent =
+    FileEvent(
+      Path.getRelativePath(root, base, event.path),
+      FileEventKind(event.eventType)
+    )
 }
 
 sealed trait FileEventKind

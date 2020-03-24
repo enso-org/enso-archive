@@ -67,7 +67,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val fileEventRegistry =
     system.actorOf(
-      FileEventRegistry.props(languageServerConfig, fileSystem, zioExec),
+      FileEventRegistry.props(languageServerConfig, zioExec),
       "file-event-registry"
     )
 

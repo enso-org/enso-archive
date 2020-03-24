@@ -1520,13 +1520,13 @@ of the (possibly multiple) content roots.
 
 ```typescript
 {
-  object: FileSystemObject;
+  path: Path;
   kind: FileEventKind;
 }
 ```
 
 ##### Errors
-TBC
+None
 
 #### `file/addRoot`
 This request adds a content root to the active project.

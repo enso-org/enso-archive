@@ -3,10 +3,8 @@ package org.enso.languageserver.filemanager
 import java.io.File
 
 import akka.actor.{Actor, ActorRef, Props}
-import akka.pattern.pipe
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.effect._
-import zio.ZIO
 import zio.blocking.effectBlocking
 
 import scala.util.Try
@@ -19,13 +17,10 @@ import scala.util.Try
   * @param fs file system api
   * @param exec executor of file system effects
   */
-final class FileEventManager(
-  config: Config,
-  fs: FileSystemApi[BlockingIO],
-  exec: Exec[BlockingIO]
-) extends Actor {
+final class FileEventManager(config: Config, exec: Exec[BlockingIO])
+    extends Actor {
 
-  import context.dispatcher, FileEventManagerProtocol._
+  import FileEventManagerProtocol._
 
   override def receive: Receive = uninitializedStage
 
@@ -47,7 +42,7 @@ final class FileEventManager(
 
   private def initializedStage(
     root: File,
-    path: Path,
+    base: Path,
     watcher: FileEventWatcher,
     replyTo: ActorRef
   ): Receive = {
@@ -56,43 +51,10 @@ final class FileEventManager(
       sender() ! UnwatchPathResult(result)
       context.unbecome()
 
-    case event: FileEventWatcherApi.WatcherEvent =>
-      exec
-        .execTimed(config.fileManager.timeout, readFileEvent(root, path, event))
-        .map(FileEventResult)
-        .pipeTo(replyTo)
-      ()
+    case e: FileEventWatcherApi.WatcherEvent =>
+      val event = FileEvent.fromWatcherEvent(root, base, e)
+      replyTo ! FileEventResult(event)
   }
-
-  /**
-    * Conversion from system events.
-    *
-    * @param event system event
-    * @return watcher events
-    */
-  private def readFileEvent(
-    root: File,
-    path: Path,
-    event: FileEventWatcherApi.WatcherEvent
-  ): BlockingIO[FileSystemFailure, FileEvent] =
-    readEventEntry(event.path)
-      .map({ entry =>
-        FileEvent(
-          FileSystemObject.fromEntry(root, path, entry),
-          FileEventKind(event.eventType)
-        )
-      })
-
-  private def readEventEntry(
-    path: java.nio.file.Path
-  ): BlockingIO[FileSystemFailure, FileSystemApi.Entry] =
-    fs.readEntry(path)
-      .flatMap({
-        case FileSystemApi.SymbolicLinkEntry(path, _) =>
-          fs.readSymbolicLinkEntry(path)
-        case entry =>
-          ZIO.succeed(entry)
-      })
 
   private def resultSuccess[A](value: A): Either[FileSystemFailure, A] =
     Right(value)
@@ -103,12 +65,8 @@ final class FileEventManager(
 
 object FileEventManager {
 
-  def props(
-    config: Config,
-    fs: FileSystemApi[BlockingIO],
-    exec: Exec[BlockingIO]
-  ): Props =
-    Props(new FileEventManager(config, fs, exec))
+  def props(config: Config, exec: Exec[BlockingIO]): Props =
+    Props(new FileEventManager(config, exec))
 }
 
 object FileEventManagerProtocol {
@@ -121,5 +79,5 @@ object FileEventManagerProtocol {
 
   case class UnwatchPathResult(result: Either[FileSystemFailure, Unit])
 
-  case class FileEventResult(result: Either[FileSystemFailure, FileEvent])
+  case class FileEventResult(result: FileEvent)
 }
