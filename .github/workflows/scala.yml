@@ -35,6 +35,6 @@ jobs:
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
-        graalvm-version: $graalVersion
+        graalvm-version: 20.0.0.java8
     - name: Setup SBT 
-      run: java -version
+      run: echo $graalVersion
