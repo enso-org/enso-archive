@@ -48,6 +48,8 @@ jobs:
         ls -la
         echo $GITHUB_WORKSPACE/sbt/bin/
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+    - name: Test
+      run: echo $PATH
       
 
   build: 
