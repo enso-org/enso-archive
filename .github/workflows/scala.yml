@@ -70,7 +70,9 @@ jobs:
         text
         EOF
         
-        aws s3 sync --acl public-read --dry-run --delete ./target/scala-parser.js S3://packages-luna/parser-js/nightly/${{env.GITHUB_SHA}}/scala-parser.js
+        aws s3 sync --acl public-read --dryrun --delete\
+            ./target/scala-parser.js\
+            S3://packages-luna/parser-js/nightly/${{env.GITHUB_SHA}}/scala-parser.js
         
 #     - name: Setup GraalVM Environment
 #       uses: DeLaGuardo/setup-graalvm@2.0
