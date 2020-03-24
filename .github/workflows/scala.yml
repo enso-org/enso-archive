@@ -33,14 +33,13 @@ jobs:
         os: [windows-latest, macOS-latest, ubuntu-latest]
       fail-fast: false
     steps:
-#     - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
+      with:
+        path: enso
 #     - name: Setup GraalVM Environment
 #       uses: DeLaGuardo/setup-graalvm@2.0
 #       with:
 #         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Check Things
-      if: matrix.os == 'ubuntu-latest'
-      run: ls -la $HOME/work/enso
     - name: Download SBT
       uses: carlosperate/download-file-action@v1.0.0
       with:
