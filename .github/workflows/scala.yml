@@ -37,15 +37,15 @@ jobs:
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Download SBT
-      uses: carlosperate/download-file-action@v1.0.0
-      with:
-        file-url: https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-        file-name: sbt.tgz
-        location: ${{ env.GITHUB_WORKSPACE }}
+#     - name: Download SBT
+#       uses: carlosperate/download-file-action@v1.0.0
+#       with:
+#         file-url: https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+#         file-name: sbt.tgz
+#         location: ${{ env.GITHUB_WORKSPACE }}
     - name: Check Things
       if: matrix.os == 'ubuntu-latest'
-      run: ls -la
+      run: ls -la $GITHUB_WORKSPACE
       
 
   build: 
