@@ -35,8 +35,6 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
-      with:
-        path: enso
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
@@ -47,18 +45,15 @@ jobs:
         tar -xzf sbt.tgz
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
     - name: Test Enso
-      run: |
-        cd enso
-        pwd
-        sbt test
-#     - name: Benchmark the Parser
-#       run: sbt -no-colors syntax/bench
-#     - name: Check Runtime Benchmark Compilation
-#       run: sbt -no-colors runtime/Benchmark/compile
-#     - name: Build the Uberjar
-#       run: sbt -no-colors runner/assembly
-#     - name: Test the Uberjar
-#       run: ./enso.jar --run ci/Test.enso
+      run: sbt --no-colors test
+    - name: Benchmark the Parser
+      run: sbt -no-colors syntax/bench
+    - name: Check Runtime Benchmark Compilation
+      run: sbt -no-colors runtime/Benchmark/compile
+    - name: Build the Uberjar
+      run: sbt -no-colors runner/assembly
+    - name: Test the Uberjar
+      run: ./enso.jar --run ci/Test.enso
       
 
   build: 
