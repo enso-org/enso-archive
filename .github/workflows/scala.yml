@@ -46,10 +46,10 @@ jobs:
       with:
         file-url: https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         file-name: sbt.tgz
-        location: ${{ env.HOME }}
+        location: .
     - name: Check Things
       if: matrix.os == 'ubuntu-latest'
-      run: ls -la $HOME/
+      run: ls -la $GITHUB_WORKSPACE/
       
 
   build: 
