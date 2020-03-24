@@ -871,10 +871,10 @@ Time in UTC time zone.
 /**
  * Time in UTC time zone.
  *
- * @param millis time from Unix epoch in millis
+ * @param time ISO-8601 string
  */
 interface UTCDateTime {
-  millis: number;
+  time: String;
 }
 ```
 

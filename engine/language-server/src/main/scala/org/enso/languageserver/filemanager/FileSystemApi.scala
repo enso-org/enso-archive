@@ -2,7 +2,8 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.{BasicFileAttributes, FileTime}
+import java.time.{OffsetDateTime, ZoneId}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -187,32 +188,50 @@ object FileSystemApi {
   /**
     * Basic attributes of an [[Entry]].
     *
-    * @param creationTime creation time in millis
-    * @param lastAccessTime last access time in millis
-    * @param lastModifiedtime last modified time in millis
+    * @param creationTime creation time
+    * @param lastAccessTime last access time
+    * @param lastModifiedtime last modified time
     * @param kind either [[DirectoryEntryTruncated]] or [[FileEntry]] or [[OtherEntry]]
     * @param byteSize size of entry in bytes
     */
   case class Attributes(
-    creationTime: Long,
-    lastAccessTime: Long,
-    lastModifiedTime: Long,
+    creationTime: OffsetDateTime,
+    lastAccessTime: OffsetDateTime,
+    lastModifiedTime: OffsetDateTime,
     kind: Entry,
     byteSize: Long
   )
 
   object Attributes {
 
+    def apply(
+      creationTime: FileTime,
+      lastAccessTime: FileTime,
+      lastModifiedTime: FileTime,
+      kind: Entry,
+      byteSize: Long
+    ): Attributes =
+      Attributes(
+        creationTime     = utcTime(creationTime),
+        lastAccessTime   = utcTime(lastAccessTime),
+        lastModifiedTime = utcTime(lastModifiedTime),
+        kind             = kind,
+        byteSize         = byteSize
+      )
+
     def fromBasicAttributes(
       path: Path,
       basic: BasicFileAttributes
     ): Attributes =
       Attributes(
-        creationTime     = basic.creationTime.toMillis(),
-        lastAccessTime   = basic.lastAccessTime.toMillis(),
-        lastModifiedTime = basic.lastModifiedTime.toMillis(),
+        creationTime     = basic.creationTime(),
+        lastAccessTime   = basic.lastAccessTime(),
+        lastModifiedTime = basic.lastModifiedTime(),
         kind             = Entry.fromBasicAttributes(path, basic),
         byteSize         = basic.size()
       )
+
+    private def utcTime(time: FileTime): OffsetDateTime =
+      OffsetDateTime.ofInstant(time.toInstant, ZoneId.of("UTC"))
   }
 }

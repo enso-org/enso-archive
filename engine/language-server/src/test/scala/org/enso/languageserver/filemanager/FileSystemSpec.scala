@@ -572,9 +572,9 @@ class FileSystemSpec extends AnyFlatSpec with Matchers {
     val result = objectUnderTest.info(path.toFile).unsafeRunSync()
     //then
     val expectedAttrs = Attributes(
-      creationTime     = attrs.creationTime.toMillis(),
-      lastAccessTime   = attrs.lastAccessTime.toMillis(),
-      lastModifiedTime = attrs.lastModifiedTime.toMillis(),
+      creationTime     = attrs.creationTime,
+      lastAccessTime   = attrs.lastAccessTime,
+      lastModifiedTime = attrs.lastModifiedTime,
       kind             = FileEntry(path),
       byteSize         = 0
     )

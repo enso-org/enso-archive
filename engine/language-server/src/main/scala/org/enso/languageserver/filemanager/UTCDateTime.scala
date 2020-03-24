@@ -1,8 +1,10 @@
 package org.enso.languageserver.filemanager
 
+import java.time.OffsetDateTime
+
 /**
   * A representation of UTC time.
   *
-  * @param millis time from Unix epoch in millis
+  * @param time ISO-8601 string
   */
-case class UTCDateTime(millis: Long)
+case class UTCDateTime(time: OffsetDateTime)

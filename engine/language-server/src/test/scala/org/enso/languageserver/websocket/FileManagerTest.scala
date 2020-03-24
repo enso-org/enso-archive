@@ -1601,13 +1601,13 @@ class FileManagerTest extends BaseServerTest {
             "result" : {
               "attributes" : {
                 "creationTime" : {
-                  "millis" : ${attrs.creationTime.toMillis()}
+                  "time" : ${attrs.creationTime.toString()}
                 },
                 "lastAccessTime" : {
-                  "millis" : ${attrs.lastAccessTime.toMillis()}
+                  "time" : ${attrs.lastAccessTime.toString()}
                 },
                 "lastModifiedTime" : {
-                  "millis" : ${attrs.lastModifiedTime.toMillis()}
+                  "time" : ${attrs.lastModifiedTime.toString()}
                 },
                 "kind" : {
                   "type" : "File",
