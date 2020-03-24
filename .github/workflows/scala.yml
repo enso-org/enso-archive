@@ -61,24 +61,27 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup GraalVM Environment
-      uses: DeLaGuardo/setup-graalvm@2.0
-      with:
-        graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Set Up SBT
-      run: |
-        curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-        tar -xzf sbt.tgz
-        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
-    - name: Build the Parser JS Bundle
-      run: sbt -no-colors syntaxJS/fullOptJS
-    - name: Publish the Parser JS Bundle
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: Parser JS Bundle
-        path: ./target/scala-parser.js
+#     - name: Setup GraalVM Environment
+#       uses: DeLaGuardo/setup-graalvm@2.0
+#       with:
+#         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+#     - name: Set Up SBT
+#       run: |
+#         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+#         tar -xzf sbt.tgz
+#         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+#     - name: Build the Parser JS Bundle
+#       run: sbt -no-colors syntaxJS/fullOptJS
+#     - name: Publish the Parser JS Bundle
+#       uses: actions/upload-artifact@v1.0.0
+#       with:
+#         name: Parser JS Bundle
+#         path: ./target/scala-parser.js
     - name: Upload Parser JS Bundle to S3
       run: |
+        mkdir parser_upload
+        cp .README.md parser_upload/README.md
+        
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
         ${{ secrets.PARSER_S3_ACCESS_KEY_ID }}
         ${{ secrets.PARSER_S3_SECRET_ACCESS_KEY }}
@@ -86,7 +89,7 @@ jobs:
         text
         EOF
 
-        aws s3 sync ./target/scala-parser.js S3://packages-luna/parser-js/nightly/${{env.GITHUB_SHA}}/scala-parser.js --acl public-read --dryrun --delete 
+        aws s3 sync ./parser_upload S3://packages-luna/parser-js/nightly/${{env.GITHUB_SHA}} --profile s3-upload --acl public-read --dryrun --delete 
         
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
         null
