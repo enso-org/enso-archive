@@ -23,7 +23,7 @@ env:
   sbtVersion: 1.3.3
 
 jobs:
-  build:
+  test:
     name: Enso CI
     runs-on: ${{ matrix.os }}
     strategy:
@@ -35,6 +35,6 @@ jobs:
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
-        graalvm-version: 20.0.0.java8
+        graalvm-version: ${{ env.graalVersion }}
     - name: Setup SBT 
       run: echo $graalVersion
