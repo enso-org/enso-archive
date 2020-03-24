@@ -37,13 +37,14 @@ jobs:
     - uses: actions/checkout@v2
       with:
         path: enso
-    - name: Setup GraalVM Environment
-      uses: DeLaGuardo/setup-graalvm@2.0
-      with:
-        graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+#     - name: Setup GraalVM Environment
+#       uses: DeLaGuardo/setup-graalvm@2.0
+#       with:
+#         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
     - name: Set Up SBT
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+        tar -xzf sbt.tgz
         ls -la
       
 
