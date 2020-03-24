@@ -1,4 +1,4 @@
-name: Enso CI (MacOS, Linux, Windows)
+name: Enso CI
 
 on:
   push:
@@ -23,8 +23,9 @@ env:
   sbtVersion: 1.3.3
 
 jobs:
+
   test:
-    name: Enso CI
+    name: Test
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -36,12 +37,14 @@ jobs:
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Setup SBT 
-      run: java -version
-  
+    - name: Setup SBT (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+          pwd
+          ls -la
 
   build: 
-    name: Enso Packaging
+    name: Build
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     steps:
