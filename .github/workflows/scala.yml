@@ -47,9 +47,8 @@ jobs:
         file-name: sbt.tgz
         location: .
     - name: Extract SBT
-      uses: brunoborges/justextract@v1
-      with:
-        file: ./sbt.tgz
+      run: |
+        tar -x -z -C ${{ env.GITHUB_WORKSPACE }} -f sbt.tgz
       
 
   build: 
