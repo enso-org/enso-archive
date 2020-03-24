@@ -30,7 +30,8 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
+#         os: [windows-latest, macOS-latest, ubuntu-latest]
+        os: [ubuntu-latest]
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
@@ -40,14 +41,9 @@ jobs:
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Download SBT
-      uses: carlosperate/download-file-action@v1.0.0
-      with:
-        file-url: https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-        file-name: sbt.tgz
-        location: .
-    - name: Extract SBT
+    - name: Set Up SBT
       run: |
+        curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{sbtVersion}}.tgz
         tar -x -z -C ${{ env.GITHUB_WORKSPACE }} -f sbt.tgz
       
 
