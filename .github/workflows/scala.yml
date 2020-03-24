@@ -31,7 +31,6 @@ jobs:
     strategy:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
-#         os: [ubuntu-latest]
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
@@ -39,21 +38,21 @@ jobs:
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Set Up SBT
-      run: |
-        curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-        tar -xzf sbt.tgz
-        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
-    - name: Test Enso
-      run: sbt --no-colors test
-    - name: Benchmark the Parser
-      run: sbt -no-colors syntax/bench
-    - name: Check Runtime Benchmark Compilation
-      run: sbt -no-colors runtime/Benchmark/compile
-    - name: Build the Uberjar
-      run: sbt -no-colors runner/assembly
-    - name: Test the Uberjar
-      run: ./enso.jar --run ci/Test.enso
+#     - name: Set Up SBT
+#       run: |
+#         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+#         tar -xzf sbt.tgz
+#         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+#     - name: Test Enso
+#       run: sbt --no-colors test
+#     - name: Benchmark the Parser
+#       run: sbt -no-colors syntax/bench
+#     - name: Check Runtime Benchmark Compilation
+#       run: sbt -no-colors runtime/Benchmark/compile
+#     - name: Build the Uberjar
+#       run: sbt -no-colors runner/assembly
+#     - name: Test the Uberjar
+#       run: ./enso.jar --run ci/Test.enso
       
 
   build: 
@@ -62,27 +61,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-    - name: Setup GraalVM Environment
-      uses: DeLaGuardo/setup-graalvm@2.0
-      with:
-        graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Set Up SBT
+    - name: Upload Parser JS Bundle to S3
       run: |
-        curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-        tar -xzf sbt.tgz
-        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
-    - name: Build the Uberjar
-      run: sbt --no-colors runner/assembly
-    - name: Publish the Uberjar
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: Enso CLI
-        path: ./enso.jar
-    - name: Build the Parser JS Bundle
-      run: sbt -no-colors syntaxJS/fullOptJS
-    - name: Publish the Parser JS Bundle
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: Parser JS Bundle
-        path: ./target/scala-parser.js
+        aws help
+#     - name: Setup GraalVM Environment
+#       uses: DeLaGuardo/setup-graalvm@2.0
+#       with:
+#         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+#     - name: Set Up SBT
+#       run: |
+#         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+#         tar -xzf sbt.tgz
+#         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/ 
+#     - name: Build the Uberjar
+#       run: sbt --no-colors runner/assembly
+#     - name: Publish the Uberjar
+#       uses: actions/upload-artifact@v1.0.0
+#       with:
+#         name: Enso CLI
+#         path: ./enso.jar
+#     - name: Build the Parser JS Bundle
+#       run: sbt -no-colors syntaxJS/fullOptJS
+#     - name: Publish the Parser JS Bundle
+#       uses: actions/upload-artifact@v1.0.0
+#       with:
+#         name: Parser JS Bundle
+#         path: ./target/scala-parser.js
       
