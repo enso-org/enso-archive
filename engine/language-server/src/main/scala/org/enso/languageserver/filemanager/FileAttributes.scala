@@ -1,6 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.io.File
+import java.time.OffsetDateTime
 
 /**
   * A representation of the attributes of a file.
@@ -15,9 +16,9 @@ import java.io.File
   * @param byteSize size in bytes
   */
 case class FileAttributes(
-  creationTime: UTCDateTime,
-  lastAccessTime: UTCDateTime,
-  lastModifiedTime: UTCDateTime,
+  creationTime: OffsetDateTime,
+  lastAccessTime: OffsetDateTime,
+  lastModifiedTime: OffsetDateTime,
   kind: FileSystemObject,
   byteSize: Long
 )
@@ -30,9 +31,9 @@ object FileAttributes {
     attrs: FileSystemApi.Attributes
   ): FileAttributes =
     FileAttributes(
-      creationTime     = UTCDateTime(attrs.creationTime),
-      lastAccessTime   = UTCDateTime(attrs.lastAccessTime),
-      lastModifiedTime = UTCDateTime(attrs.lastModifiedTime),
+      creationTime     = attrs.creationTime,
+      lastAccessTime   = attrs.lastAccessTime,
+      lastModifiedTime = attrs.lastModifiedTime,
       kind             = FileSystemObject.fromEntry(root, path, attrs.kind),
       byteSize         = attrs.byteSize
     )

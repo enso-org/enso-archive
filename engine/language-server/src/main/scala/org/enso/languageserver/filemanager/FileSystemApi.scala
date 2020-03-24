@@ -133,6 +133,13 @@ object FileSystemApi {
 
   object Entry {
 
+    /**
+      * Creates [[Entry]] from file system attributes.
+      *
+      * @param path a path to the file system object
+      * @param attrs a file system attributes
+      * @return an entry
+      */
     def fromBasicAttributes(path: Path, attrs: BasicFileAttributes): Entry =
       if (attrs.isDirectory) {
         DirectoryEntryTruncated(path)
@@ -204,6 +211,16 @@ object FileSystemApi {
 
   object Attributes {
 
+    /**
+      * Creates attributes using the [[FileTime]] time.
+      *
+      * @param creationTime creation time
+      * @param lastAccessTime last access time
+      * @param lastModifiedtime last modified time
+      * @param kind a type of the file system object
+      * @param byteSize size of an entry in bytes
+      * @return file attributes
+      */
     def apply(
       creationTime: FileTime,
       lastAccessTime: FileTime,
@@ -219,6 +236,13 @@ object FileSystemApi {
         byteSize         = byteSize
       )
 
+    /**
+      * Creates [[Attributes]] from file system attributes
+      *
+      * @param path to the file system object
+      * @param attributes of a file system object
+      * @return file attributes
+      */
     def fromBasicAttributes(
       path: Path,
       basic: BasicFileAttributes
