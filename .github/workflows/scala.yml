@@ -89,7 +89,7 @@ jobs:
         text
         EOF
 
-        aws s3 sync ./parser_upload S3://packages-luna/parser-js/nightly/${{env.GITHUB_SHA}} --profile s3-upload --acl public-read --dryrun --delete 
+        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/$GITHUB_SHA --profile s3-upload --acl public-read --dryrun --delete 
         
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
         null
