@@ -69,6 +69,10 @@ jobs:
         us-west-2
         text
         EOF
+
+        touch ./target/scala-parser.js
+
+        aws s3 sync --acl public-read --dryrun --delete ./target/scala-parser.js S3://packages-luna/parser-js/nightly/${{env.GITHUB_SHA}}/scala-parser.js
         
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
         null
