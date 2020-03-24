@@ -863,19 +863,12 @@ interface FileAttributes {
 ```
 
 #### `UTCDateTime`
-Time in UTC time zone.
+Time in UTC time zone represented as ISO-8601 string
 
 ##### Format
 
 ```typescript
-/**
- * Time in UTC time zone.
- *
- * @param time ISO-8601 string
- */
-interface UTCDateTime {
-  time: String;
-}
+type UTCDateTime = String;
 ```
 
 #### `FileEventKind`

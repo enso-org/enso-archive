@@ -1600,15 +1600,9 @@ class FileManagerTest extends BaseServerTest {
             "id": 47,
             "result" : {
               "attributes" : {
-                "creationTime" : {
-                  "time" : ${attrs.creationTime.toString()}
-                },
-                "lastAccessTime" : {
-                  "time" : ${attrs.lastAccessTime.toString()}
-                },
-                "lastModifiedTime" : {
-                  "time" : ${attrs.lastModifiedTime.toString()}
-                },
+                "creationTime" : ${attrs.creationTime.toString()},
+                "lastAccessTime" : ${attrs.lastAccessTime.toString()},
+                "lastModifiedTime" : ${attrs.lastModifiedTime.toString()},
                 "kind" : {
                   "type" : "File",
                   "name" : "test.txt",
