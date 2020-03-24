@@ -19,7 +19,7 @@ class FileManagerTest extends BaseServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "foo", "bar", "baz.txt" ]
+                "segments": [ "foo", "bar", "01.txt" ]
               },
               "contents": "123456789"
             }
@@ -32,7 +32,7 @@ class FileManagerTest extends BaseServerTest {
           }
           """)
 
-      val path = Paths.get(testContentRoot.toString, "foo", "bar", "baz.txt")
+      val path = Paths.get(testContentRoot.toString, "foo", "bar", "01.txt")
       Files.readAllLines(path).get(0) shouldBe "123456789"
     }
 

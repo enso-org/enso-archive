@@ -22,7 +22,7 @@ class TextOperationsTest extends BaseServerTest {
             "params": {
               "path": {
                 "rootId": $testContentRootId,
-                "segments": [ "foo.txt" ]
+                "segments": [ "02.txt" ]
               }
             }
           }
@@ -922,9 +922,9 @@ class TextOperationsTest extends BaseServerTest {
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
-            "error": { 
-              "code": 3003, 
-              "message": "Invalid version [client version: wrong_version, server version: 5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522]" 
+            "error": {
+              "code": 3003,
+              "message": "Invalid version [client version: wrong_version, server version: 5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522]"
             }
           }
           """)
@@ -1014,9 +1014,9 @@ class TextOperationsTest extends BaseServerTest {
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
-            "error": { 
-              "code": 3003, 
-              "message": "Invalid version [client version: wrong_version, server version: 7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5]" 
+            "error": {
+              "code": 3003,
+              "message": "Invalid version [client version: wrong_version, server version: 7602967cab172183d1a67ea40cb8e92e23218764bc9934c3795fcea5]"
             }
           }
           """)
@@ -1106,9 +1106,9 @@ class TextOperationsTest extends BaseServerTest {
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
-            "error": { 
-              "code": 3002, 
-              "message": "Negative coordinate in a position object" 
+            "error": {
+              "code": 3002,
+              "message": "Negative coordinate in a position object"
             }
           }
           """)
@@ -1222,9 +1222,9 @@ class TextOperationsTest extends BaseServerTest {
       client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 2,
-            "error": { 
-              "code": 3004, 
-              "message": "Write denied" 
+            "error": {
+              "code": 3004,
+              "message": "Write denied"
             }
           }
           """)
@@ -1620,9 +1620,9 @@ class TextOperationsTest extends BaseServerTest {
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 3,
-            "error": { 
-              "code": 3003, 
-              "message": "Invalid version [client version: ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3, server version: 5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522]" 
+            "error": {
+              "code": 3003,
+              "message": "Invalid version [client version: ebe55342f9c8b86857402797dd723fb4a2174e0b56d6ace0a6929ec3, server version: 5795c3d628fd638c9835a4c79a55809f265068c88729a1a3fcdf8522]"
             }
           }
           """)
@@ -1723,9 +1723,9 @@ class TextOperationsTest extends BaseServerTest {
       client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 3,
-            "error": { 
-              "code": 3004, 
-              "message": "Write denied" 
+            "error": {
+              "code": 3004,
+              "message": "Write denied"
             }
           }
           """)
