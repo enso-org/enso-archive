@@ -61,6 +61,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+    - name: Build the Parser JS Bundle
+      run: sbt -no-colors syntaxJS/fullOptJS
+    - name: Publish the Parser JS Bundle
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: Parser JS Bundle
+        path: ./target/scala-parser.js
     - name: Upload Parser JS Bundle to S3
       run: |
         aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
@@ -69,8 +76,6 @@ jobs:
         us-west-2
         text
         EOF
-
-        touch ./target/scala-parser.js
 
         aws s3 sync --acl public-read --dryrun --delete ./target/scala-parser.js S3://packages-luna/parser-js/nightly/${{env.GITHUB_SHA}}/scala-parser.js
         
@@ -97,11 +102,4 @@ jobs:
 #       with:
 #         name: Enso CLI
 #         path: ./enso.jar
-#     - name: Build the Parser JS Bundle
-#       run: sbt -no-colors syntaxJS/fullOptJS
-#     - name: Publish the Parser JS Bundle
-#       uses: actions/upload-artifact@v1.0.0
-#       with:
-#         name: Parser JS Bundle
-#         path: ./target/scala-parser.js
       
