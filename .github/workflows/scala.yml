@@ -30,8 +30,8 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
-#         os: [windows-latest, macOS-latest, ubuntu-latest]
-        os: [ubuntu-latest]
+        os: [windows-latest, macOS-latest, ubuntu-latest]
+#         os: [ubuntu-latest]
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
@@ -53,7 +53,7 @@ jobs:
     - name: Build the Uberjar
       run: sbt -no-colors runner/assembly
     - name: Test the Uberjar
-      run: java -jar enso.jar --run ci/Test.enso
+      run: ./enso.jar --run ci/Test.enso
       
 
   build: 
@@ -78,3 +78,11 @@ jobs:
       with:
         name: Enso CLI
         path: ./enso.jar
+    - name: Build the Parser JS Bundle
+      run: sbt -no-colors syntaxJS/fullOptJS
+    - name: Publish the Parser JS Bundle
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: Parser JS Bundle
+        path: ./target/scala-parser.js
+      
