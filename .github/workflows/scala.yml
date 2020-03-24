@@ -40,8 +40,11 @@ jobs:
     - name: Setup SBT (Linux)
       if: matrix.os == 'ubuntu-latest'
       run: |
-          pwd
-          ls -la
+        curl -fSL -o ~/sbt.tgz https://piccolo.link/sbt-$(sbtVersion).tgz
+        tar -x -z -C ~ -f sbt.tgz
+        echo "::add-path::~/sbt/bin"
+        sbt about
+      
 
   build: 
     name: Build
