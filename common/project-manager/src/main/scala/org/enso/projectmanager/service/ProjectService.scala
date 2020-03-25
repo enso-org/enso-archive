@@ -32,6 +32,10 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  ServerBootFailed,
+  ServerBootTimedOut
+}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 
 /**
@@ -96,10 +100,19 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     projectId: UUID
   ): F[ProjectServiceFailure, SocketData] = {
     for {
+      _       <- log.debug(s"Opening project $projectId")
       project <- getUserProject(projectId)
       socket <- languageServerService
         .start(clientId, project)
-        .mapError(e => LanguageServerStartupFailed(e.toString))
+        .mapError {
+          case ServerBootTimedOut =>
+            LanguageServerStartupFailed("Language server boot timed out")
+
+          case ServerBootFailed(th) =>
+            LanguageServerStartupFailed(
+              s"Language server boot failed: ${th.getMessage}"
+            )
+        }
     } yield socket
   }
 

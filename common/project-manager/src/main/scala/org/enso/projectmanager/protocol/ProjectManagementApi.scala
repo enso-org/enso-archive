@@ -62,4 +62,6 @@ object ProjectManagementApi {
   case object ProjectNotFoundError
       extends Error(4004, "Project with the provided id does not exist")
 
+  case class LanguageServerStartupError(msg: String) extends Error(4005, msg)
+
 }

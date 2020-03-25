@@ -22,7 +22,7 @@ object ProjectServiceFailureMapper {
     case DataStoreFailure(msg)            => ProjectDataStoreError(msg)
     case ProjectExists                    => ProjectExistsError
     case ProjectNotFound                  => ProjectNotFoundError
-    case LanguageServerStartupFailed(msg) => ServiceError //todo
+    case LanguageServerStartupFailed(msg) => LanguageServerStartupError(msg)
   }
 
 }

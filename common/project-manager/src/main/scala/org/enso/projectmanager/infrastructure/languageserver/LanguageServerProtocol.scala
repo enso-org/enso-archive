@@ -5,7 +5,7 @@ import java.util.UUID
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.model.Project
 
-private[languageserver] object LanguageServerProtocol {
+object LanguageServerProtocol {
 
   case class StartServer(clientId: UUID, project: Project)
 
