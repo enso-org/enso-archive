@@ -6,10 +6,14 @@ import cats.{Bifunctor, MonadError}
 import io.circe.generic.auto._
 import org.enso.jsonrpc.JsonRpcServer
 import org.enso.projectmanager.control.core.CovariantFlatMap
-import org.enso.projectmanager.control.effect.{ErrorChannel, Exec, Sync}
+import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
   SynchronizedFileStorage
+}
+import org.enso.projectmanager.infrastructure.languageserver.{
+  LanguageServerController,
+  LanguageServerControllerProxy
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
@@ -34,7 +38,7 @@ import org.enso.projectmanager.service.{
   * A main module containing all components of the project manager.
   *
   */
-class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Bifunctor](
+class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
   config: ProjectManagerConfig
 )(
   implicit E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
@@ -68,13 +72,27 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Bifuncto
 
   lazy val projectValidator = new MonadicProjectValidator[F]()
 
+  lazy val languageServerController =
+    system.actorOf(
+      LanguageServerController.props(config.network),
+      "language-server-controller"
+    )
+
+  import scala.concurrent.ExecutionContext.Implicits.global
+
+  lazy val languageServerService = new LanguageServerControllerProxy[F](
+    languageServerController,
+    config.timeout
+  )
+
   lazy val projectService =
     new ProjectService[F](
       projectValidator,
       projectRepository,
       logging,
       clock,
-      gen
+      gen,
+      languageServerService
     )
 
   lazy val clientControllerFactory =

@@ -44,6 +44,14 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.exists(name))
       .mapError(_.fold(convertFileStorageFailure))
 
+  override def findUserProject(
+    projectId: UUID
+  ): F[ProjectRepositoryFailure, Option[Project]] =
+    indexStorage
+      .load()
+      .map(_.userProjects.get(projectId))
+      .mapError(_.fold(convertFileStorageFailure))
+
   /**
     * Inserts the provided user project to the storage.
     *

@@ -3,6 +3,7 @@ package org.enso.projectmanager.protocol
 import java.util.UUID
 
 import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
+import org.enso.projectmanager.data.SocketData
 
 /**
   * The project management JSON RPC API provided by the project manager.
@@ -34,6 +35,20 @@ object ProjectManagementApi {
     }
     implicit val hasResult = new HasResult[this.type] {
       type Result = Unused.type
+    }
+  }
+
+  case object ProjectOpen extends Method("project/open") {
+
+    case class Params(projectId: UUID)
+
+    case class Result(lsAddress: SocketData)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ProjectOpen.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = ProjectOpen.Result
     }
   }
 

@@ -14,7 +14,8 @@ object configuration {
   case class ProjectManagerConfig(
     server: ServerConfig,
     storage: StorageConfig,
-    timeout: TimeoutConfig
+    timeout: TimeoutConfig,
+    network: NetworkConfig
   )
 
   /**
@@ -39,7 +40,10 @@ object configuration {
     */
   case class TimeoutConfig(
     ioTimeout: FiniteDuration,
-    requestTimeout: FiniteDuration
+    requestTimeout: FiniteDuration,
+    bootTimeout: FiniteDuration
   )
+
+  case class NetworkConfig(interface: String, minPort: Int, maxPort: Int)
 
 }

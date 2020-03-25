@@ -13,6 +13,7 @@ import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
   SynchronizedFileStorage
 }
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
@@ -78,7 +79,8 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       projectRepository,
       new NopLogging[ZEnv],
       testClock,
-      gen
+      gen,
+      ().asInstanceOf[LanguageServerService[ZIO[ZEnv, +*, +*]]]
     )
 
   override def clientControllerFactory: ClientControllerFactory = {

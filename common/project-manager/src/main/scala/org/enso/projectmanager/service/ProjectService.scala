@@ -20,6 +20,7 @@ import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.service.ProjectServiceFailure.{
   DataStoreFailure,
+  LanguageServerStartupFailed,
   ProjectExists,
   ProjectNotFound
 }
@@ -28,7 +29,10 @@ import org.enso.projectmanager.service.ValidationFailure.{
   NameContainsForbiddenCharacter
 }
 import org.enso.projectmanager.control.core.syntax._
-import cats.implicits._
+import org.enso.projectmanager.control.effect.ErrorChannel
+import org.enso.projectmanager.control.effect.syntax._
+import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 
 /**
   * Implementation of business logic for project management.
@@ -39,12 +43,13 @@ import cats.implicits._
   * @param clock a clock
   * @param gen a random generator
   */
-class ProjectService[F[+_, +_]: Bifunctor: CovariantFlatMap](
+class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
   validator: ProjectValidator[F],
   repo: ProjectRepository[F],
   log: Logging[F],
   clock: Clock[F],
-  gen: Generator[F]
+  gen: Generator[F],
+  languageServerService: LanguageServerService[F]
 )(implicit E: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure])
     extends ProjectServiceApi[F] {
 
@@ -67,7 +72,7 @@ class ProjectService[F[+_, +_]: Bifunctor: CovariantFlatMap](
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, creationTime)
-      _            <- repo.insertUserProject(project).leftMap(toServiceFailure)
+      _            <- repo.insertUserProject(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
@@ -83,15 +88,38 @@ class ProjectService[F[+_, +_]: Bifunctor: CovariantFlatMap](
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
     log.debug(s"Deleting project $projectId.") *>
-    repo.deleteUserProject(projectId).leftMap(toServiceFailure) *>
+    repo.deleteUserProject(projectId).mapError(toServiceFailure) *>
     log.info(s"Project $projectId deleted.")
+
+  override def openProject(
+    clientId: UUID,
+    projectId: UUID
+  ): F[ProjectServiceFailure, SocketData] = {
+    for {
+      project <- getUserProject(projectId)
+      socket <- languageServerService
+        .start(clientId, project)
+        .mapError(e => LanguageServerStartupFailed(e.toString))
+    } yield socket
+  }
+
+  private def getUserProject(
+    projectId: UUID
+  ): F[ProjectServiceFailure, Project] =
+    repo
+      .findUserProject(projectId)
+      .mapError(toServiceFailure)
+      .flatMap {
+        case None          => ErrorChannel[F].fail(ProjectNotFound)
+        case Some(project) => CovariantFlatMap[F].pure(project)
+      }
 
   private def validateExists(
     name: String
   ): F[ProjectServiceFailure, Unit] =
     repo
       .exists(name)
-      .leftMap(toServiceFailure)
+      .mapError(toServiceFailure)
       .flatMap { exists =>
         if (exists) raiseError(ProjectExists)
         else unit
@@ -114,7 +142,7 @@ class ProjectService[F[+_, +_]: Bifunctor: CovariantFlatMap](
   ): F[ProjectServiceFailure, Unit] =
     validator
       .validateName(name)
-      .leftMap {
+      .mapError {
         case EmptyName =>
           ProjectServiceFailure.ValidationFailure(
             "Cannot create project with empty name"

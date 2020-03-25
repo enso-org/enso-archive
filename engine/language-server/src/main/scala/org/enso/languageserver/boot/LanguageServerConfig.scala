@@ -1,4 +1,4 @@
-package org.enso.languageserver
+package org.enso.languageserver.boot
 
 import java.util.UUID
 

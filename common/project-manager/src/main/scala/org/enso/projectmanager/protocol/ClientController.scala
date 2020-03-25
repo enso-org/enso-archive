@@ -7,11 +7,13 @@ import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.protocol.ProjectManagementApi.{
   ProjectCreate,
-  ProjectDelete
+  ProjectDelete,
+  ProjectOpen
 }
 import org.enso.projectmanager.requesthandler.{
   ProjectCreateHandler,
-  ProjectDeleteHandler
+  ProjectDeleteHandler,
+  ProjectOpenHandler
 }
 import org.enso.projectmanager.service.ProjectServiceApi
 
@@ -36,7 +38,9 @@ class ClientController[F[+_, +_]: Exec](
   private val requestHandlers: Map[Method, Props] =
     Map(
       ProjectCreate -> ProjectCreateHandler.props[F](projectService, timeout),
-      ProjectDelete -> ProjectDeleteHandler.props[F](projectService, timeout)
+      ProjectDelete -> ProjectDeleteHandler.props[F](projectService, timeout),
+      ProjectOpen -> ProjectOpenHandler
+        .props[F](clientId, projectService, timeout)
     )
 
   override def unhandled(message: Any): Unit =

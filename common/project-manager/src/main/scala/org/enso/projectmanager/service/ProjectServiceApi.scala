@@ -2,6 +2,8 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
+import org.enso.projectmanager.data.SocketData
+
 /**
   * A contract for the Project Service.
   *
@@ -24,5 +26,10 @@ trait ProjectServiceApi[F[+_, +_]] {
     * @return either failure or unit representing success
     */
   def deleteUserProject(projectId: UUID): F[ProjectServiceFailure, Unit]
+
+  def openProject(
+    clientId: UUID,
+    projectId: UUID
+  ): F[ProjectServiceFailure, SocketData]
 
 }
