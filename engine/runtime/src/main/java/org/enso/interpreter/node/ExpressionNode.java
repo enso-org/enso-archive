@@ -17,6 +17,8 @@ import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.type.TypesGen;
 
+import java.util.UUID;
+
 /**
  * A base class for all Enso expressions.
  *
@@ -30,9 +32,12 @@ import org.enso.interpreter.runtime.type.TypesGen;
 @NodeInfo(shortName = "EnsoExpression", description = "The base node for all enso expressions.")
 @GenerateWrapper
 public abstract class ExpressionNode extends BaseNode implements InstrumentableNode {
+  public static final class IdentifiedTag extends Tag {}
+
   private static final int NO_SOURCE = -1;
   private @CompilerDirectives.CompilationFinal int sourceStartIndex;
   private @CompilerDirectives.CompilationFinal int sourceLength;
+  private @CompilerDirectives.CompilationFinal UUID id = null;
 
   /** Creates a new instance of this node. */
   public ExpressionNode() {
@@ -71,6 +76,15 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
       return null;
     }
     return rootSourceSection.getSource().createSection(sourceStartIndex, sourceLength);
+  }
+
+  public UUID getId() {
+    return id;
+  }
+
+  public void setId(UUID id) {
+    CompilerDirectives.transferToInterpreterAndInvalidate();
+    this.id = id;
   }
 
   /**
@@ -157,7 +171,7 @@ public abstract class ExpressionNode extends BaseNode implements InstrumentableN
    */
   @Override
   public boolean hasTag(Class<? extends Tag> tag) {
-    return tag == StandardTags.ExpressionTag.class;
+    return tag == StandardTags.ExpressionTag.class || (tag == IdentifiedTag.class && id != null);
   }
 
   /**

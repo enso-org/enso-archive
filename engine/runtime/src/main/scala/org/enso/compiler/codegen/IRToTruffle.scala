@@ -3,6 +3,7 @@ package org.enso.compiler.codegen
 import com.oracle.truffle.api.Truffle
 import com.oracle.truffle.api.source.{Source, SourceSection}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.IdentifiedLocation
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -233,7 +234,9 @@ class IRToTruffle(
     * @param location the location to turn into a section
     * @return the source section corresponding to `location`
     */
-  private def makeSection(location: Option[Location]): SourceSection = {
+  private def makeSection(
+    location: Option[IdentifiedLocation]
+  ): SourceSection = {
     location
       .map(loc => source.createSection(loc.start, loc.length))
       .getOrElse(source.createUnavailableSection())
@@ -249,11 +252,11 @@ class IRToTruffle(
     */
   private def setLocation[T <: RuntimeExpression](
     expr: T,
-    location: Option[Location]
+    location: Option[IdentifiedLocation]
   ): T = {
-    if (location.isDefined) {
-      val loc = location.get
-      expr.setSourceLocation(loc.start, loc.length)
+    location.foreach { loc =>
+      expr.setSourceLocation(loc.start, loc.end)
+      loc.id.foreach(expr.setId)
     }
     expr
   }
@@ -560,7 +563,7 @@ class IRToTruffle(
     def processFunctionBody(
       arguments: List[IR.DefinitionArgument],
       body: IR.Expression,
-      location: Option[Location]
+      location: Option[IdentifiedLocation]
     ): CreateFunctionNode = {
       val argFactory = new DefinitionArgumentProcessor(scopeName, scope)
 

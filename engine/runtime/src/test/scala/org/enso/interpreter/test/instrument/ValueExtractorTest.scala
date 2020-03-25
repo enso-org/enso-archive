@@ -1,5 +1,8 @@
 package org.enso.interpreter.test.instrument
+import java.util.UUID
+
 import org.enso.interpreter.test.InterpreterTest
+import org.enso.syntax.text.{AST, Debug, Parser}
 
 import scala.collection.mutable
 
@@ -17,15 +20,45 @@ class ValueExtractorTest extends InterpreterTest {
     results shouldEqual Map((7, 5) -> 4)
   }
 
+  case class Item(start: Int, len: Int, id: UUID) {
+    def toJsonString: String =
+      s"""[{"index": {"value": $start}, "size": {"value": $len}}, "$id"]"""
+  }
+
+  class Metadata {
+    var items: List[Item] = List()
+    def addItem(start: Int, len: Int): UUID = {
+      val id = UUID.randomUUID();
+      items ::= Item(start, len, id)
+      id
+    }
+    def toJsonString: String =
+      "[" + items.map(_.toJsonString).mkString(",") + "]"
+  }
+
   subject should "work for multiple callbacks" in {
+    val metadata = new Metadata
+    val id2      = metadata.addItem(39, 5)
+    val id1      = metadata.addItem(23, 7)
+    val str      = metadata.toJsonString
     val code =
-      """
-        |main = arg ->
-        |    x = arg + 5
-        |    y = x * 5
-        |    z = y + 5
-        |    z
-        |""".stripMargin
+      s"""
+         |main = arg ->
+         |    x = arg + 5
+         |    y = x * 5
+         |    z = y + 5
+         |    z
+         |
+         |
+         |
+         |#### METADATA ####
+         |$str
+         |[]
+         |""".stripMargin
+    println(code)
+    val parser = Parser()
+    val foo    = parser.runWithIds(code)
+    println(Debug.pretty(foo.toString))
     val results      = mutable.HashMap[String, Any]()
     val instrumenter = getValueExtractorInstrument
     instrumenter.bindTo("Test.main", 23, 7, { x =>

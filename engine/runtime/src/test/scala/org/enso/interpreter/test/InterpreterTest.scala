@@ -1,16 +1,13 @@
 package org.enso.interpreter.test
 
 import java.io.ByteArrayOutputStream
+import java.util.UUID
 
 import com.oracle.truffle.api.instrumentation.EventBinding
-import org.enso.interpreter.instrument.{
-  FunctionCallExtractorInstrument,
-  ReplDebuggerInstrument,
-  ValueExtractorInstrument,
-  ValueOverrideInstrument
-}
+import org.enso.interpreter.instrument.{FunctionCallExtractorInstrument, ReplDebuggerInstrument, ValueExtractorInstrument, ValueOverrideInstrument}
+import org.enso.interpreter.test.CodeIdsTestInstrument.IdEventListener
 import org.enso.interpreter.test.CodeLocationsTestInstrument.LocationsEventListener
-import org.enso.polyglot.{PolyglotContext, Function, LanguageInfo}
+import org.enso.polyglot.{Function, LanguageInfo, PolyglotContext}
 import org.graalvm.polyglot.{Context, Value}
 import org.scalatest.Assertions
 import org.scalatest.flatspec.AnyFlatSpec
@@ -38,6 +35,28 @@ case class LocationsInstrumenter(instrument: CodeLocationsTestInstrument) {
   }
 }
 
+case class IdsInstrumenter(instrument: CodeIdsTestInstrument) {
+  var bindings: List[EventBinding[IdEventListener]] = List()
+
+  def assertNodeExists(id: UUID, result: Object): Unit =
+    bindings ::= instrument.bindTo(id, result)
+
+  def verifyResults(): Unit = {
+    bindings.foreach { binding =>
+      val listener = binding.getElement
+      if (!listener.isSuccessful) {
+        Assertions.fail(
+          s"Node with id ${listener.getId} does not exist or did not return the correct value."
+        )
+      }
+    }
+  }
+
+  def close(): Unit = {
+    bindings.foreach(_.dispose)
+  }
+}
+
 trait InterpreterRunner {
 
   implicit class RichValue(value: Value) {
@@ -55,6 +74,16 @@ trait InterpreterRunner {
       .get(CodeLocationsTestInstrument.INSTRUMENT_ID)
       .lookup(classOf[CodeLocationsTestInstrument])
     val instrumenter = LocationsInstrumenter(instrument)
+    test(instrumenter)
+    instrumenter.verifyResults()
+    instrumenter.close()
+  }
+
+  def withIdsInstrumenter(test: LocationsInstrumenter => Unit): Unit = {
+    val instrument = ctx.getEngine.getInstruments
+      .get(CodeIdsTestInstrument.INSTRUMENT_ID)
+      .lookup(classOf[CodeIdsTestInstrument])
+    val instrumenter = IdsInstrumenter(instrument)
     test(instrumenter)
     instrumenter.verifyResults()
     instrumenter.close()
