@@ -10,9 +10,9 @@ import com.oracle.truffle.api.instrumentation.StandardTags;
 import com.oracle.truffle.api.nodes.RootNode;
 import java.util.Collections;
 
-import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.ProgramRootNode;
 import org.enso.interpreter.runtime.Context;
+import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.util.FileDetector;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.RuntimeOptions;
@@ -42,7 +42,7 @@ import org.graalvm.options.OptionDescriptors;
   StandardTags.ExpressionTag.class,
   StandardTags.RootTag.class,
   StandardTags.TryBlockTag.class,
-  ExpressionNode.IdentifiedTag.class
+  IdentifiedTag.class
 })
 public final class Language extends TruffleLanguage<Context> {
   /**

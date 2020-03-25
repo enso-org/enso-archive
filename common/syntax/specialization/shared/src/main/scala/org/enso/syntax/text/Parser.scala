@@ -195,6 +195,13 @@ class Parser {
     SourceFile(run(new Reader(input), idmap), metadata)
   }
 
+  /**
+   * Parse contents of the program source file, attaching any IDs defined
+   * in the metadata section and dropping macros resolution data.
+   *
+   * @param input the code parse.
+   * @return the AST resulting from parsing input.
+   */
   def runWithIds(input: String): AST.Module = {
     val (code, idmap, _) = splitMeta(input)
     val ast              = run(code)

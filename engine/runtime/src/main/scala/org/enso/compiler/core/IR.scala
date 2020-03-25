@@ -60,13 +60,38 @@ sealed trait IR {
 }
 object IR {
 
+  /**
+    * Couples a location with a possible source identifier.
+    *
+    * @param location the code location.
+    * @param id the identifier for the location.
+    */
   case class IdentifiedLocation(location: Location, id: Option[AST.ID]) {
-    def start: Int  = location.start
-    def end: Int    = location.end
+
+    /**
+      * @return the character index of the start of this source location.
+      */
+    def start: Int = location.start
+
+    /**
+      * @return the character index of the end of this source location.
+      */
+    def end: Int = location.end
+
+    /**
+      * @return the length in characters of this location.
+      */
     def length: Int = location.length
   }
 
   object IdentifiedLocation {
+
+    /**
+      * Utility constructor, building a location without an ID.
+      *
+      * @param location the code location.
+      * @return an [[IdentifiedLocation]] corresponding to the input location.
+      */
     def apply(location: Location): IdentifiedLocation =
       IdentifiedLocation(location, None)
   }
@@ -136,7 +161,7 @@ object IR {
       * module scope
       */
     sealed trait Scope extends IR {
-      override def addMetadata(newData: Metadata):               Scope
+      override def addMetadata(newData: Metadata): Scope
       override def mapExpressions(fn: Expression => Expression): Scope
     }
     object Scope {
@@ -162,7 +187,7 @@ object IR {
 
       /** A representation of top-level definitions. */
       sealed trait Definition extends Scope {
-        override def addMetadata(newData: Metadata):               Definition
+        override def addMetadata(newData: Metadata): Definition
         override def mapExpressions(fn: Expression => Expression): Definition
       }
       object Definition {
@@ -249,7 +274,7 @@ object IR {
     }
 
     override def mapExpressions(fn: Expression => Expression): Expression
-    override def addMetadata(newData: Metadata):               Expression
+    override def addMetadata(newData: Metadata): Expression
   }
   object Expression {
 
@@ -311,7 +336,7 @@ object IR {
   /** Enso literals. */
   sealed trait Literal extends Expression with IRKind.Primitive {
     override def mapExpressions(fn: Expression => Expression): Literal
-    override def addMetadata(newData: Metadata):               Literal
+    override def addMetadata(newData: Metadata): Literal
   }
   object Literal {
 
@@ -359,7 +384,7 @@ object IR {
     val name: String
 
     override def mapExpressions(fn: Expression => Expression): Name
-    override def addMetadata(newData: Metadata):               Name
+    override def addMetadata(newData: Metadata): Name
   }
   object Name {
 
@@ -424,7 +449,7 @@ object IR {
   /** Constructs that operate on types. */
   sealed trait Type extends Expression {
     override def mapExpressions(fn: Expression => Expression): Type
-    override def addMetadata(newData: Metadata):               Type
+    override def addMetadata(newData: Metadata): Type
   }
   object Type {
 
@@ -489,7 +514,7 @@ object IR {
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
       override def mapExpressions(fn: Expression => Expression): Set
-      override def addMetadata(newData: Metadata):               Set
+      override def addMetadata(newData: Metadata): Set
     }
     object Set {
 
@@ -712,7 +737,7 @@ object IR {
     val canBeTCO: Boolean
 
     override def mapExpressions(fn: Expression => Expression): Function
-    override def addMetadata(newData: Metadata):               Function
+    override def addMetadata(newData: Metadata): Function
   }
   object Function {
 
@@ -797,7 +822,7 @@ object IR {
   /** All function applications in Enso. */
   sealed trait Application extends Expression {
     override def mapExpressions(fn: Expression => Expression): Application
-    override def addMetadata(newData: Metadata):               Application
+    override def addMetadata(newData: Metadata): Application
   }
   object Application {
 
@@ -851,7 +876,7 @@ object IR {
     /** Operator applications in Enso. */
     sealed trait Operator extends Application {
       override def mapExpressions(fn: Expression => Expression): Operator
-      override def addMetadata(newData: Metadata):               Operator
+      override def addMetadata(newData: Metadata): Operator
     }
     object Operator {
 
@@ -893,7 +918,7 @@ object IR {
     val name: Option[IR.Name]
 
     override def mapExpressions(fn: Expression => Expression): CallArgument
-    override def addMetadata(newData: Metadata):               CallArgument
+    override def addMetadata(newData: Metadata): CallArgument
   }
   object CallArgument {
 
@@ -929,7 +954,7 @@ object IR {
   /** The Enso case expression. */
   sealed trait Case extends Expression {
     override def mapExpressions(fn: Expression => Expression): Case
-    override def addMetadata(newData: Metadata):               Case
+    override def addMetadata(newData: Metadata): Case
   }
   object Case {
 
@@ -988,7 +1013,7 @@ object IR {
     /** The different types of patterns that can occur in a match. */
     sealed trait Pattern extends IR {
       override def mapExpressions(fn: Expression => Expression): Pattern
-      override def addMetadata(newData: Metadata):               Pattern
+      override def addMetadata(newData: Metadata): Pattern
     }
     object Pattern {
       // TODO [AA] Better differentiate the types of patterns that can occur
@@ -1000,7 +1025,7 @@ object IR {
   /** Enso comment entities. */
   sealed trait Comment extends Expression {
     override def mapExpressions(fn: Expression => Expression): Comment
-    override def addMetadata(newData: Metadata):               Comment
+    override def addMetadata(newData: Metadata): Comment
 
     /** The expression being commented. */
     val commented: Expression
@@ -1038,7 +1063,7 @@ object IR {
   /** Foreign code entities. */
   sealed trait Foreign extends Expression {
     override def mapExpressions(fn: Expression => Expression): Foreign
-    override def addMetadata(newData: Metadata):               Foreign
+    override def addMetadata(newData: Metadata): Foreign
   }
   object Foreign {
 
@@ -1070,7 +1095,7 @@ object IR {
   /** A trait for all errors in Enso's IR. */
   sealed trait Error extends Expression {
     override def mapExpressions(fn: Expression => Expression): Error
-    override def addMetadata(newData: Metadata):               Error
+    override def addMetadata(newData: Metadata): Error
   }
   object Error {
 
