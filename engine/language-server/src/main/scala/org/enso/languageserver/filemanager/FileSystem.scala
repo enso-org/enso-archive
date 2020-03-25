@@ -20,16 +20,6 @@ class FileSystem extends FileSystemApi[BlockingIO] {
 
   import FileSystemApi._
 
-  override def readEntry(path: Path): BlockingIO[FileSystemFailure, Entry] =
-    effectBlocking(FileSystem.readEntry(path))
-      .mapError(errorHandling)
-
-  override def readSymbolicLinkEntry(
-    path: Path
-  ): BlockingIO[FileSystemFailure, Entry] =
-    effectBlocking(FileSystem.readSymbolicLink(path))
-      .mapError(errorHandling)
-
   /**
     * Writes textual content to a file.
     *

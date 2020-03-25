@@ -17,9 +17,13 @@ import org.enso.languageserver.data.{
 }
 
 /**
-  * FileEvent Registry
+  * FileEvent registry handles [[ReceivesTreeUpdates]] capabilities, starts
+  * [[FileEventManager]], handles errors, and sends file events to the
+  * [[ClientController]]
   *
-  * ==Scheme==
+  * ==Implementation==
+  *
+  * Scheme of interaction between file-event actors:
   *
   * {{{
   *
@@ -46,6 +50,9 @@ import org.enso.languageserver.data.{
   *             +-------------------+
   *
   * }}}
+  *
+  * @param config configuration
+  * @param exec executor of file system events
   */
 final class FileEventRegistry(config: Config, exec: Exec[BlockingIO])
     extends Actor
@@ -144,6 +151,12 @@ object FileEventRegistry {
 
   private case class RegisteredClient(actor: ActorRef, path: Path)
 
+  /**
+    * Creates a configuration object used to create a [[FileEventRegistry]].
+    *
+    * @param config configuration
+    * @param exec executor of file system events
+    */
   def props(config: Config, exec: Exec[BlockingIO]): Props =
     Props(new FileEventRegistry(config, exec))
 }

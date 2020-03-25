@@ -728,11 +728,11 @@ interface ProjectCreateRequest {
 ```
 
 ##### Errors
-- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal 
+- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
 validation failures.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
-- [`ProjectExistsError`](#projectexistserror) to signal that the project 
+- [`ProjectExistsError`](#projectexistserror) to signal that the project
 already exists.
 
 
@@ -757,9 +757,9 @@ interface ProjectDeleteRequest {
 ```
 
 ##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
 doesn't exist.
 
 
@@ -1164,7 +1164,7 @@ This capability states that the client will receive updates for any watched
 content roots in the current project.
 
 - **method:** `file/receivesTreeUpdates`
-- **registerOptions:** `{}`
+- **registerOptions:** `{ path: Path; }`
 
 ##### Enables
 - `file/event`
@@ -2232,4 +2232,3 @@ Signals that the project doesn't exist.
   "message" : "Project with the provided id does not exist"
 }
 ```
-

@@ -15,6 +15,14 @@ case class FileEvent(path: Path, kind: FileEventKind)
 
 object FileEvent {
 
+  /**
+    * Conversion from file system event.
+    *
+    * @param root a project root
+    * @param base a watched path
+    * @param event a file system event
+    * @return file event
+    */
   def fromWatcherEvent(
     root: File,
     base: Path,
@@ -26,6 +34,9 @@ object FileEvent {
     )
 }
 
+/**
+  * Type of a file event.
+  */
 sealed trait FileEventKind
 
 object FileEventKind {
@@ -45,6 +56,12 @@ object FileEventKind {
     */
   case object Modified extends FileEventKind
 
+  /**
+    * Create [[FileEventKind]] from [[FileEventWatcherApi.EventType]].
+    *
+    * @param eventType file system event type
+    * @return file event kind
+    */
   def apply(eventType: FileEventWatcherApi.EventType): FileEventKind =
     eventType match {
       case FileEventWatcherApi.EventTypeCreate => FileEventKind.Added

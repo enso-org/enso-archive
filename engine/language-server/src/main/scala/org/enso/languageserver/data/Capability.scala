@@ -21,6 +21,11 @@ object CanEdit {
   val methodName = "canEdit"
 }
 
+/**
+  * A capability allowing user to receive file events.
+  *
+  * @param path path to watch.
+  */
 case class ReceivesTreeUpdates(path: Path)
     extends Capability(ReceivesTreeUpdates.methodName)
 

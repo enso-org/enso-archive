@@ -17,22 +17,6 @@ trait FileSystemApi[F[_, _]] {
   import FileSystemApi._
 
   /**
-    * Read an entry without following the symlinks.
-    *
-    * @param path path to the file system object
-    * @return either [[FileSystemFailure]] or and entry
-    */
-  def readEntry(path: Path): F[FileSystemFailure, Entry]
-
-  /**
-    * Read the target of a symlink.
-    *
-    * @param path path to the symlink
-    * @return either [[FileSystemFailure]] or and entry
-    */
-  def readSymbolicLinkEntry(path: Path): F[FileSystemFailure, Entry]
-
-  /**
     * Writes textual content to a file.
     *
     * @param file path to the file

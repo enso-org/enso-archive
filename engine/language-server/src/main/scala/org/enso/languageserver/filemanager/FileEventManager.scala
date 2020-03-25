@@ -11,10 +11,9 @@ import scala.util.Try
 
 /**
   * Event manager starts [[FileEventWatcher]], handles errors, converts and
-  * sends [[FileEvent]]'s to subscriber.
+  * sends [[FileEvent]]'s to [[FileEventRegistry]].
   *
   * @param config configuration
-  * @param fs file system api
   * @param exec executor of file system effects
   */
 final class FileEventManager(config: Config, exec: Exec[BlockingIO])
@@ -74,22 +73,12 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
 
 object FileEventManager {
 
+  /**
+    * Creates a configuration object used to create a [[FileEventManager]].
+    *
+    * @param config configuration
+    * @param exec executor of file system effects
+    */
   def props(config: Config, exec: Exec[BlockingIO]): Props =
     Props(new FileEventManager(config, exec))
-}
-
-object FileEventManagerProtocol {
-
-  case class WatchPath(path: Path)
-
-  case class WatchPathResult(result: Either[FileSystemFailure, Unit])
-
-  case class UnwatchPath(handler: ActorRef)
-
-  case class UnwatchPathResult(
-    handler: ActorRef,
-    result: Either[FileSystemFailure, Unit]
-  )
-
-  case class FileEventResult(result: FileEvent)
 }
