@@ -3,14 +3,11 @@ package org.enso.languageserver.websocket
 import java.nio.file.Files
 import java.util.UUID
 
-import akka.actor.{ActorRef, Props}
-import akka.pattern.ask
-import akka.util.Timeout
+import akka.actor.Props
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.languageserver.{LanguageProtocol, LanguageServer}
 import org.enso.languageserver.effect.ZioExec
-import org.enso.languageserver.filemanager.{FileManagerProtocol, Path}
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
@@ -25,7 +22,6 @@ import org.enso.languageserver.filemanager.{
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.text.BufferRegistry
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
 class BaseServerTest extends JsonRpcServerTestKit {

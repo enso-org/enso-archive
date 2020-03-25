@@ -40,11 +40,11 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
           val watcherResult =
             Try(FileEventWatcher.build(pathToWatch, self ! _))
               .fold(resultFailure, resultSuccess)
-          watcherResult.foreach { watcher =>
-            fileWatcher = watcher
-            exec.exec_(effectBlocking(watcher.start()))
-          }
-          sender() ! WatchPathResult(watcherResult.map(_ => ()))
+              .map { watcher =>
+                fileWatcher = watcher
+                exec.exec_(effectBlocking(watcher.start()))
+              }
+          sender() ! WatchPathResult(watcherResult)
           context.become(initializedStage(rootPath, path, sender()))
 
         case Left(err) =>
