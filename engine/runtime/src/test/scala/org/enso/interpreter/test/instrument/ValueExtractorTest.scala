@@ -1,8 +1,5 @@
 package org.enso.interpreter.test.instrument
-import java.util.UUID
-
 import org.enso.interpreter.test.InterpreterTest
-import org.enso.syntax.text.{AST, Debug, Parser}
 
 import scala.collection.mutable
 
@@ -23,13 +20,13 @@ class ValueExtractorTest extends InterpreterTest {
   subject should "work for multiple callbacks" in {
 
     val code =
-      s"""
-         |main = arg ->
-         |    x = arg + 5
-         |    y = x * 5
-         |    z = y + 5
-         |    z
-         |""".stripMargin
+      """
+        |main = arg ->
+        |    x = arg + 5
+        |    y = x * 5
+        |    z = y + 5
+        |    z
+        |""".stripMargin
     val results      = mutable.HashMap[String, Any]()
     val instrumenter = getValueExtractorInstrument
     instrumenter.bindTo("Test.main", 23, 7, { x =>
