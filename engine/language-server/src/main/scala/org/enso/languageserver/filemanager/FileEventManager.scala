@@ -37,11 +37,14 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
       config.findContentRoot(path.rootId) match {
         case Right(rootPath) =>
           val pathToWatch = path.toFile(rootPath).toPath
-          val watcher     = new FileEventWatcher(pathToWatch, self ! _)
-          val result = Try(exec.exec_(effectBlocking(watcher.start())))
-            .fold(resultFailure, resultSuccess)
-          sender() ! WatchPathResult(result)
-          fileWatcher = watcher
+          val watcherResult =
+            Try(FileEventWatcher.build(pathToWatch, self ! _))
+              .fold(resultFailure, resultSuccess)
+          watcherResult.foreach { watcher =>
+            fileWatcher = watcher
+            exec.exec_(effectBlocking(watcher.start()))
+          }
+          sender() ! WatchPathResult(watcherResult.map(_ => ()))
           context.become(initializedStage(rootPath, path, sender()))
 
         case Left(err) =>
@@ -54,9 +57,9 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
     base: Path,
     replyTo: ActorRef
   ): Receive = {
-    case UnwatchPath(handler) =>
+    case UnwatchPath =>
       val result = Try(fileWatcher.stop()).fold(resultFailure, resultSuccess)
-      sender() ! UnwatchPathResult(handler, result)
+      sender() ! UnwatchPathResult(result)
       context.become(uninitializedStage)
 
     case e: FileEventWatcherApi.WatcherEvent =>

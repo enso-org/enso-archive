@@ -28,15 +28,36 @@ class FileEventRegistryTest extends BaseServerTest {
           """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "method": "capability/granted",
+            "id": 1,
+            "result": null
+          }
+          """)
+    }
+
+    "fail to acquire capability if directory doesn't exist" in {
+      val client = new WsTestClient(address)
+
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/acquire",
+            "id": 1,
             "params": {
               "method": "receivesTreeUpdates",
               "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,
-                  "segments": [ ]
+                  "segments": [ "inexistent" ]
                 }
               }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "error": {
+              "code": 1,
+              "message": "Service error"
             }
           }
           """)
@@ -92,16 +113,8 @@ class FileEventRegistryTest extends BaseServerTest {
           """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "method": "capability/granted",
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
+            "id": 1,
+            "result": null
           }
           """)
 
@@ -150,16 +163,8 @@ class FileEventRegistryTest extends BaseServerTest {
           """)
       client.expectJson(json"""
           { "jsonrpc": "2.0",
-            "method": "capability/granted",
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
+            "id": 1,
+            "result": null
           }
           """)
 

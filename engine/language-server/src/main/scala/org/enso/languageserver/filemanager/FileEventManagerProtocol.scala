@@ -1,7 +1,5 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.ActorRef
-
 object FileEventManagerProtocol {
 
   /**
@@ -20,21 +18,15 @@ object FileEventManagerProtocol {
 
   /**
     * Requests event manager to stop watching.
-    *
-    * @param handler reference to the request handler
     */
-  case class UnwatchPath(handler: ActorRef)
+  case object UnwatchPath
 
   /**
     * Returns the result of a [[UnwatchPath]] request.
     *
-    * @param handler reference to the request handler
     * @param result either file system failure or unit representing success
     */
-  case class UnwatchPathResult(
-    handler: ActorRef,
-    result: Either[FileSystemFailure, Unit]
-  )
+  case class UnwatchPathResult(result: Either[FileSystemFailure, Unit])
 
   /**
     * Returns a file event result.

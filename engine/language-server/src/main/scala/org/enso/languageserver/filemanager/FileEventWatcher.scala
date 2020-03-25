@@ -44,3 +44,9 @@ final class FileEventWatcher(
       .foreach(callback)
   }
 }
+
+object FileEventWatcher {
+
+  def build(root: Path, callback: FileEventWatcherApi.WatcherEvent => Unit): FileEventWatcher =
+    new FileEventWatcher(root, callback)
+}
