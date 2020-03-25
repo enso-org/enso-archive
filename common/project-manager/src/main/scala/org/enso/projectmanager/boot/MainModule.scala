@@ -1,4 +1,4 @@
-package org.enso.projectmanager.main
+package org.enso.projectmanager.boot
 
 import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
@@ -22,7 +22,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectIndex
 }
 import org.enso.projectmanager.infrastructure.time.RealClock
-import org.enso.projectmanager.main.configuration.ProjectManagerConfig
+import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
@@ -34,18 +34,22 @@ import org.enso.projectmanager.service.{
   ValidationFailure
 }
 
+import scala.concurrent.ExecutionContext
+
 /**
   * A main module containing all components of the project manager.
   *
   */
 class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
-  config: ProjectManagerConfig
+  config: ProjectManagerConfig,
+  computeExecutionContext: ExecutionContext
 )(
   implicit E1: MonadError[F[ProjectServiceFailure, *], ProjectServiceFailure],
   E2: MonadError[F[ValidationFailure, *], ValidationFailure]
 ) {
 
-  implicit val system = ActorSystem()
+  implicit val system =
+    ActorSystem("project-manager", None, None, Some(computeExecutionContext))
 
   implicit val materializer = SystemMaterializer.get(system)
 

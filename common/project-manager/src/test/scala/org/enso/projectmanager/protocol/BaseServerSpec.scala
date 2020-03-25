@@ -18,7 +18,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.main.configuration.StorageConfig
+import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
 import zio.interop.catz.core._

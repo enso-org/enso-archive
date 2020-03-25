@@ -11,7 +11,7 @@ import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel}
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
-import org.enso.projectmanager.main.configuration.TimeoutConfig
+import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.model.Project
 
 import scala.concurrent.ExecutionContext

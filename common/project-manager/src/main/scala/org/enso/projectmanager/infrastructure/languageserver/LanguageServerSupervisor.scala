@@ -28,7 +28,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSuper
   Boot,
   BootTimeout
 }
-import org.enso.projectmanager.main.configuration.NetworkConfig
+import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.model.Project
 
 import scala.concurrent.duration._

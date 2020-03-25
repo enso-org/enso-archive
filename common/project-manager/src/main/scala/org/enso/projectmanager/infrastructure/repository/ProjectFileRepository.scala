@@ -14,7 +14,7 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
   ProjectNotFoundInIndex,
   StorageFailure
 }
-import org.enso.projectmanager.main.configuration.StorageConfig
+import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.model.Project
 
 /**

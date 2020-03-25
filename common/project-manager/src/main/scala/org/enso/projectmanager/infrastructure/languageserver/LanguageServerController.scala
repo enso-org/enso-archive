@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.StartServer
-import org.enso.projectmanager.main.configuration.NetworkConfig
+import org.enso.projectmanager.boot.configuration.NetworkConfig
 
 class LanguageServerController(networkConfig: NetworkConfig)
     extends Actor

@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import org.enso.projectmanager.main.configuration.NetworkConfig
+import org.enso.projectmanager.boot.configuration.NetworkConfig
 
 case class ServerDescriptor(
   name: String,

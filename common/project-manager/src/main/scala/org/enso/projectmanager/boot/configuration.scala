@@ -1,4 +1,4 @@
-package org.enso.projectmanager.main
+package org.enso.projectmanager.boot
 
 import java.io.File
 

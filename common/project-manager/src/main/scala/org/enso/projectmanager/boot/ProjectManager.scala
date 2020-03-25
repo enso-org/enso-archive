@@ -1,29 +1,32 @@
-package org.enso.projectmanager.main
+package org.enso.projectmanager.boot
 
 import java.io.IOException
+import java.util.concurrent.ScheduledThreadPoolExecutor
 
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
-import org.enso.projectmanager.main.Globals.{
+import org.enso.projectmanager.boot.Globals.{
   ConfigFilename,
   ConfigNamespace,
   FailureExitCode,
   SuccessExitCode
 }
-import org.enso.projectmanager.main.configuration.ProjectManagerConfig
+import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import pureconfig.ConfigSource
 import zio.ZIO.effectTotal
 import zio._
+import zio.blocking.Blocking
+import zio.clock.Clock
 import zio.console._
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import pureconfig.ConfigSource
+import zio.interop.catz.core._
+import zio.random.Random
+import zio.system.System
 import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
 import pureconfig._
 import pureconfig.generic.auto._
-import zio._
-import zio.interop.catz.core._
+
+import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext, ExecutionContextExecutor}
 
 /**
   * Project manager runner containing the main method.
@@ -42,16 +45,28 @@ object ProjectManager extends App with LazyLogging {
       .at(ConfigNamespace)
       .loadOrThrow[ProjectManagerConfig]
 
+  val computeThreadPool = new ScheduledThreadPoolExecutor(
+    java.lang.Runtime.getRuntime.availableProcessors()
+  )
+
+  val computeExecutionContext: ExecutionContextExecutor =
+    ExecutionContext.fromExecutor(
+      computeThreadPool,
+      th => logger.error("An expected error occurred", th)
+    )
+
   /**
     * ZIO runtime.
     */
-  implicit val runtime = Runtime.default
+  implicit val runtime =
+    Runtime(Globals.zioEnvironment, new ZioPlatform(computeExecutionContext))
 
   /**
     * Main process starting up the server.
     */
   lazy val mainProcess: ZIO[ZEnv, IOException, Unit] = {
-    val mainModule = new MainModule[ZIO[ZEnv, +*, +*]](config)
+    val mainModule =
+      new MainModule[ZIO[ZEnv, +*, +*]](config, computeExecutionContext)
     for {
       binding <- bindServer(mainModule)
       _       <- logServerStartup()
