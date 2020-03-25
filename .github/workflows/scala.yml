@@ -71,14 +71,12 @@ jobs:
     steps:
     - name: Checkout (PR)
       uses: actions/checkout@v2
-      if: github.event == 'pull_request'
+      if: github.event_name == 'pull_request'
       with:
         ref: ${{ github.event.pull_request.head.sha }}
     - name: Checkout (Branch)
       uses: actions/checkout@v2
-      if: github.event != 'pull_request'
-    - name: Test
-      run: echo ${{ github.event_name }} 
+      if: github.event_name != 'pull_request'
 #     - name: Setup GraalVM Environment
 #       uses: DeLaGuardo/setup-graalvm@2.0
 #       with:
