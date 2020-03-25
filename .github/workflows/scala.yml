@@ -69,9 +69,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v2
+    - name: Checkout (PR)
+      uses: actions/checkout@v2
+      if: github.event == 'pull_request'
       with:
         ref: ${{ github.event.pull_request.head.sha }}
+    - name: Checkout (Branch)
+      uses: actions/checkout@v2
+      if: github.event != 'pull_request'
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
