@@ -37,7 +37,7 @@ object CapabilityProtocol {
     * @param capability the capability being released.
     */
   case class ReleaseCapability(
-    clientId: Client.Id,
+    clientId: Client,
     capability: CapabilityRegistration
   )
 

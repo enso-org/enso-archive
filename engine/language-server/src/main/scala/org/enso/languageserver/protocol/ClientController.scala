@@ -14,6 +14,7 @@ import org.enso.languageserver.capability.CapabilityApi.{
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.data.Client
 import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
+import org.enso.languageserver.filemanager.FileEventManagerProtocol
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.text.TextApi._
@@ -95,6 +96,9 @@ class ClientController(
 
     case TextProtocol.TextDidChange(changes) =>
       webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
+
+    case FileEventManagerProtocol.FileEventResult(event) =>
+      webActor ! Notification(EventFile, EventFile.Params(event))
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))

@@ -46,10 +46,10 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
     watcher: FileEventWatcher,
     replyTo: ActorRef
   ): Receive = {
-    case UnwatchPath =>
+    case UnwatchPath(handler) =>
       val result = Try(watcher.stop()).fold(resultFailure, resultSuccess)
-      sender() ! UnwatchPathResult(result)
-      context.unbecome()
+      sender() ! UnwatchPathResult(handler, result)
+      context.become(uninitializedStage)
 
     case e: FileEventWatcherApi.WatcherEvent =>
       val event = FileEvent.fromWatcherEvent(root, base, e)
@@ -75,9 +75,12 @@ object FileEventManagerProtocol {
 
   case class WatchPathResult(result: Either[FileSystemFailure, Unit])
 
-  case object UnwatchPath
+  case class UnwatchPath(handler: ActorRef)
 
-  case class UnwatchPathResult(result: Either[FileSystemFailure, Unit])
+  case class UnwatchPathResult(
+    handler: ActorRef,
+    result: Either[FileSystemFailure, Unit]
+  )
 
   case class FileEventResult(result: FileEvent)
 }

@@ -54,7 +54,7 @@ object FileEventKind {
 
   private object CodecField {
 
-    val Type = "Type"
+    val Type = "type"
   }
 
   private object CodecType {

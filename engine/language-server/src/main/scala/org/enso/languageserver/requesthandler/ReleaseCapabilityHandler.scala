@@ -32,7 +32,7 @@ class ReleaseCapabilityHandler(
 
   private def requestStage: Receive = {
     case Request(ReleaseCapability, id, params: CapabilityRegistration) =>
-      capabilityRouter ! CapabilityProtocol.ReleaseCapability(client.id, params)
+      capabilityRouter ! CapabilityProtocol.ReleaseCapability(client, params)
       context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender()))
   }

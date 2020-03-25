@@ -61,11 +61,13 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
     event2 shouldBe WatcherEvent(fileA, EventTypeCreate)
   }
 
-  def withWatcher(test: (Path, LinkedBlockingQueue[WatcherEvent]) => Any): Any = {
+  def withWatcher(
+    test: (Path, LinkedBlockingQueue[WatcherEvent]) => Any
+  ): Any = {
     val executor = Executors.newSingleThreadExecutor()
-    val tmp = Files.createTempDirectory(null)
-    val queue = new LinkedBlockingQueue[WatcherEvent]()
-    val watcher = new FileEventWatcher(tmp, queue.put(_))
+    val tmp      = Files.createTempDirectory(null)
+    val queue    = new LinkedBlockingQueue[WatcherEvent]()
+    val watcher  = new FileEventWatcher(tmp, queue.put(_))
 
     executor.submit(new Runnable {
       def run() = watcher.start()
