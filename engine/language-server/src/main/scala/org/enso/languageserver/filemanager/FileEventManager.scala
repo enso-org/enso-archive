@@ -22,6 +22,15 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
 
   import FileEventManagerProtocol._
 
+  private var fileWatcher: FileEventWatcher = _
+
+  override def postStop(): Unit = {
+    // cleanup resources
+    if (fileWatcher ne null) {
+      Try(fileWatcher.stop()): Unit
+    }
+  }
+
   override def receive: Receive = uninitializedStage
 
   private def uninitializedStage: Receive = {
@@ -33,7 +42,8 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
           val result = Try(exec.exec_(effectBlocking(watcher.start())))
             .fold(resultFailure, resultSuccess)
           sender() ! WatchPathResult(result)
-          context.become(initializedStage(rootPath, path, watcher, sender()))
+          fileWatcher = watcher
+          context.become(initializedStage(rootPath, path, sender()))
 
         case Left(err) =>
           sender() ! WatchPathResult(Left(err))
@@ -43,11 +53,10 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
   private def initializedStage(
     root: File,
     base: Path,
-    watcher: FileEventWatcher,
     replyTo: ActorRef
   ): Receive = {
     case UnwatchPath(handler) =>
-      val result = Try(watcher.stop()).fold(resultFailure, resultSuccess)
+      val result = Try(fileWatcher.stop()).fold(resultFailure, resultSuccess)
       sender() ! UnwatchPathResult(handler, result)
       context.become(uninitializedStage)
 

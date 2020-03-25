@@ -8,8 +8,8 @@ import io.circe.{Decoder, Encoder, Json}
 /**
   * A representation of filesystem event.
   *
-  * @param object filesystem object
-  * @param kind type of filesystem event
+  * @param path path to the file system object
+  * @param kind type of file system event
   */
 case class FileEvent(path: Path, kind: FileEventKind)
 
