@@ -4,6 +4,7 @@ import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.ExpressionNode;
+import org.enso.interpreter.runtime.control.TailCallException;
 
 import java.util.UUID;
 
@@ -38,9 +39,9 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
   public static class IdEventListener implements ExecutionEventListener {
     private boolean successful = false;
     private final UUID expectedId;
-    private final Object expectedResult;
+    private final String expectedResult;
 
-    public IdEventListener(UUID expectedId, Object expectedResult) {
+    public IdEventListener(UUID expectedId, String expectedResult) {
       this.expectedId = expectedId;
       this.expectedResult = expectedResult;
     }
@@ -78,17 +79,27 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
         return;
       }
       UUID id = ((ExpressionNode) node).getId();
-      if (id != expectedId) {
+      if (!id.equals(expectedId)) {
         return;
       }
-      if (expectedResult.equals(result)) {
+      if (expectedResult != null && expectedResult.equals(result.toString())) {
         successful = true;
       }
     }
 
     @Override
-    public void onReturnExceptional(
-        EventContext context, VirtualFrame frame, Throwable exception) {}
+    public void onReturnExceptional(EventContext context, VirtualFrame frame, Throwable exception) {
+      if (!(exception instanceof TailCallException)) {
+        return;
+      }
+      if (!(context.getInstrumentedNode() instanceof ExpressionNode)) {
+        return;
+      }
+      UUID id = ((ExpressionNode) context.getInstrumentedNode()).getId();
+      if (expectedResult == null) {
+        successful = true;
+      }
+    }
   }
 
   /**
@@ -98,10 +109,14 @@ public class CodeIdsTestInstrument extends TruffleInstrument {
    * @param type the type of the expected node
    * @return a reference to attached event listener
    */
-  public EventBinding<IdEventListener> bindTo(UUID id, Object expectedResult) {
+  public EventBinding<IdEventListener> bindTo(UUID id, String expectedResult) {
     return env.getInstrumenter()
         .attachExecutionEventListener(
             SourceSectionFilter.newBuilder().tagIs(ExpressionNode.IdentifiedTag.class).build(),
             new IdEventListener(id, expectedResult));
+  }
+
+  public EventBinding<IdEventListener> bindToTailCall(UUID id) {
+    return bindTo(id, null);
   }
 }

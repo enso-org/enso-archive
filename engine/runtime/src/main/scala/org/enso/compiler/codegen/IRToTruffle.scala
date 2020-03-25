@@ -255,8 +255,10 @@ class IRToTruffle(
     location: Option[IdentifiedLocation]
   ): T = {
     location.foreach { loc =>
-      expr.setSourceLocation(loc.start, loc.end)
-      loc.id.foreach(expr.setId)
+      expr.setSourceLocation(loc.start, loc.length)
+      loc.id.foreach { id =>
+        expr.setId(id)
+      }
     }
     expr
   }
