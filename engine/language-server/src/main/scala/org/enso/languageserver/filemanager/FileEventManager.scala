@@ -2,7 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.effect._
 import zio.blocking.effectBlocking
@@ -17,7 +17,7 @@ import scala.util.Try
   * @param exec executor of file system effects
   */
 final class FileEventManager(config: Config, exec: Exec[BlockingIO])
-    extends Actor {
+    extends Actor with ActorLogging {
 
   import FileEventManagerProtocol._
 
@@ -38,7 +38,7 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
         case Right(rootPath) =>
           val pathToWatch = path.toFile(rootPath).toPath
           val watcherResult =
-            Try(FileEventWatcher.build(pathToWatch, self ! _))
+            Try(FileEventWatcher.build(pathToWatch, self ! _, self ! _))
               .fold(resultFailure, resultSuccess)
               .map { watcher =>
                 fileWatcher = watcher
@@ -62,9 +62,12 @@ final class FileEventManager(config: Config, exec: Exec[BlockingIO])
       sender() ! UnwatchPathResult(result)
       context.become(uninitializedStage)
 
-    case e: FileEventWatcherApi.WatcherEvent =>
+    case e: FileEventWatcher.WatcherEvent =>
       val event = FileEvent.fromWatcherEvent(root, base, e)
       replyTo ! FileEventResult(event)
+
+    case FileEventWatcher.WatcherError(e) =>
+      log.error("FileEventWatcher error", e)
   }
 
   private def resultSuccess[A](value: A): Either[FileSystemFailure, A] =

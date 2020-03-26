@@ -12,7 +12,7 @@ import scala.util.Try
 
 class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
 
-  import FileEventWatcherApi._
+  import FileEventWatcher._
 
   final val Timeout: FiniteDuration = 5.seconds
 
@@ -21,7 +21,7 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
 
     Files.createFile(fileA)
     val event = events.poll(Timeout.length, Timeout.unit)
-    event shouldBe WatcherEvent(fileA, EventTypeCreate)
+    event shouldBe FileEventWatcher.WatcherEvent(fileA, EventTypeCreate)
   }
 
   it should "get delete events" in withWatcher { (path, events) =>
@@ -67,7 +67,7 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
     val executor = Executors.newSingleThreadExecutor()
     val tmp      = Files.createTempDirectory(null).toRealPath()
     val queue    = new LinkedBlockingQueue[WatcherEvent]()
-    val watcher  = new FileEventWatcher(tmp, queue.put(_))
+    val watcher  = FileEventWatcher.build(tmp, queue.put(_), println(_))
 
     executor.submit(new Runnable {
       def run() = watcher.start()

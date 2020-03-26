@@ -26,7 +26,7 @@ object FileEvent {
   def fromWatcherEvent(
     root: File,
     base: Path,
-    event: FileEventWatcherApi.WatcherEvent
+    event: FileEventWatcher.WatcherEvent
   ): FileEvent =
     FileEvent(
       Path.getRelativePath(root, base, event.path),
@@ -57,16 +57,16 @@ object FileEventKind {
   case object Modified extends FileEventKind
 
   /**
-    * Create [[FileEventKind]] from [[FileEventWatcherApi.EventType]].
+    * Create [[FileEventKind]] from [[FileEventWatcher.EventType]].
     *
     * @param eventType file system event type
     * @return file event kind
     */
-  def apply(eventType: FileEventWatcherApi.EventType): FileEventKind =
+  def apply(eventType: FileEventWatcher.EventType): FileEventKind =
     eventType match {
-      case FileEventWatcherApi.EventTypeCreate => FileEventKind.Added
-      case FileEventWatcherApi.EventTypeModify => FileEventKind.Modified
-      case FileEventWatcherApi.EventTypeDelete => FileEventKind.Removed
+      case FileEventWatcher.EventTypeCreate => FileEventKind.Added
+      case FileEventWatcher.EventTypeModify => FileEventKind.Modified
+      case FileEventWatcher.EventTypeDelete => FileEventKind.Removed
     }
 
   private object CodecField {
