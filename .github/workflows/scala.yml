@@ -55,7 +55,7 @@ jobs:
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
     - name: Test Enso
       # FIXME: DEBUGGING macOS
-      run: sbt 'language_server/testOnly org.enso.languageserver.filemanager.FileEventWatcherSpec'
+      run: sbt 'language_server/testOnly org.enso.languageserver.websocket.FileEventRegistryTest'
     #- name: Benchmark the Parser
       #run: sbt -no-colors syntax/bench
     #- name: Check Runtime Benchmark Compilation
