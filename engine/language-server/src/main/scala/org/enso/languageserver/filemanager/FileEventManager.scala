@@ -34,11 +34,12 @@ final class FileEventManager(config: Config, fs: FileSystemApi[BlockingIO], exec
 
   private def uninitializedStage: Receive = {
     case WatchPath(path) =>
-      val replyTo = sender()
+      val pathToWatchResult = config
+        .findContentRoot(path.rootId)
+        .map(path.toFile(_))
       val result: BlockingIO[FileSystemFailure, Unit] =
         for {
-          rootPath <- IO.fromEither(config.findContentRoot(path.rootId))
-          pathToWatch = path.toFile(rootPath)
+          pathToWatch <- IO.fromEither(pathToWatchResult)
           _ <- validatePath(pathToWatch)
           watcher <- buildWatcher(pathToWatch)
           _ <- startWatcher(watcher)
@@ -48,11 +49,9 @@ final class FileEventManager(config: Config, fs: FileSystemApi[BlockingIO], exec
         .exec(result)
         .map(WatchPathResult(_))
         .pipeTo(sender())
-        .onComplete { _ =>
-          fileWatcher.foreach { watcher =>
-            context.become(initializedStage(watcher.getRoot.toFile, path, replyTo))
-          }
-        }
+      pathToWatchResult.foreach { root =>
+        context.become(initializedStage(root, path, sender()))
+      }
 
     case UnwatchPath =>
       // nothing to cleanup, just reply
@@ -87,7 +86,7 @@ final class FileEventManager(config: Config, fs: FileSystemApi[BlockingIO], exec
         .exec(stopWatcher)
         .map(UnwatchPathResult(_))
         .pipeTo(replyTo)
-        .onComplete(_ => context.become(uninitializedStage))
+      context.become(uninitializedStage)
 
     case e: FileEventWatcherApi.WatcherEvent =>
       val event = FileEvent.fromWatcherEvent(root, base, e)
