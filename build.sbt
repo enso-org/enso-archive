@@ -343,9 +343,11 @@ lazy val file_manager = (project in file("common/file-manager"))
 
 lazy val project_manager = (project in file("common/project-manager"))
   .settings(
-    (Compile / mainClass) := Some("org.enso.projectmanager.Server")
+    (Compile / mainClass) := Some("org.enso.projectmanager.boot.ProjectManager")
   )
   .settings(
+    (Compile / run / fork) := true,
+    (Compile / run / connectInput) := true,
     javaOptions ++= Seq(
       // Puts the language runtime on the truffle classpath, rather than the
       // standard classpath. This is the recommended way of handling this and

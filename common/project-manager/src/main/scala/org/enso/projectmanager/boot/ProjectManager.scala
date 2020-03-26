@@ -15,12 +15,8 @@ import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import pureconfig.ConfigSource
 import zio.ZIO.effectTotal
 import zio._
-import zio.blocking.Blocking
-import zio.clock.Clock
 import zio.console._
 import zio.interop.catz.core._
-import zio.random.Random
-import zio.system.System
 import org.enso.projectmanager.infrastructure.config.ConfigurationReaders.fileReader
 import pureconfig._
 import pureconfig.generic.auto._
@@ -82,7 +78,10 @@ object ProjectManager extends App with LazyLogging {
     * arguments to the program and has to return an `IO` with the errors fully handled.
     */
   override def run(args: List[String]): ZIO[ZEnv, Nothing, Int] =
-    mainProcess.fold(_ => FailureExitCode, _ => SuccessExitCode)
+    mainProcess.fold(
+      th => { th.printStackTrace(); FailureExitCode },
+      _ => SuccessExitCode
+    )
 
   private def logServerStartup(): UIO[Unit] =
     effectTotal {

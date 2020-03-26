@@ -2,8 +2,17 @@ package org.enso.projectmanager.service
 
 import java.util.UUID
 
-import cats.{Bifunctor, MonadError}
+import cats.MonadError
 import org.enso.projectmanager.control.core.CovariantFlatMap
+import org.enso.projectmanager.control.core.syntax._
+import org.enso.projectmanager.control.effect.ErrorChannel
+import org.enso.projectmanager.control.effect.syntax._
+import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  ServerBootFailed,
+  ServerBootTimedOut
+}
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.random.Generator
 import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailure.{
@@ -28,15 +37,6 @@ import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
   NameContainsForbiddenCharacter
 }
-import org.enso.projectmanager.control.core.syntax._
-import org.enso.projectmanager.control.effect.ErrorChannel
-import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.data.SocketData
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
-  ServerBootFailed,
-  ServerBootTimedOut
-}
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 
 /**
   * Implementation of business logic for project management.
