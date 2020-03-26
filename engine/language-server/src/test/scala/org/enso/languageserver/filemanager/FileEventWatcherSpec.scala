@@ -79,6 +79,8 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
     val queue    = new LinkedBlockingQueue[WatcherEvent]()
     val watcher  = new FileEventWatcher(tmp, queue.put(_))
 
+    println(s"$tmp -> ${tmp.toRealPath()}")
+
     executor.submit(new Runnable {
       def run() = watcher.start()
     })
@@ -102,6 +104,8 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
     val queue    = new LinkedBlockingQueue[WatcherEvent]()
     val watcher  = new FileEventWatcher(tmp, queue.put(_))
 
+    println(s"TMP = $tmp -> ${tmp.toRealPath()}")
+
     executor.submit(new Runnable {
       def run() = watcher.start()
     })
@@ -119,8 +123,8 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
   def consume(queue: LinkedBlockingQueue[WatcherEvent]): Unit = {
     var event = queue.poll(Timeout.length, Timeout.unit)
     while (event ne null) {
-      val dest = scala.util.Try(Files.readSymbolicLink(event.path))
-      println(s"$event $dest" )
+      val real = event.path.toRealPath()
+      println(s"$event $real" )
       event = queue.poll(Timeout.length, Timeout.unit)
     }
   }
