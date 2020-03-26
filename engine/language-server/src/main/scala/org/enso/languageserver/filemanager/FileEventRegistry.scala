@@ -17,9 +17,9 @@ import org.enso.languageserver.data.{
 }
 
 /**
-  * FileEvent registry handles [[ReceivesTreeUpdates]] capabilities, starts
+  * FileEvent registry handles `receivesTreeUpdates` capability, starts
   * [[FileEventManager]], handles errors, and sends file events to the
-  * [[ClientController]]
+  * [[org.enso.languageserver.protocol.ClientController]]
   *
   * ==Implementation==
   *

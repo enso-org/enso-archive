@@ -41,7 +41,7 @@ trait Exec[-F[_, _]] {
 }
 
 /**
-  * Executor of [[ZIO]] effects.
+  * Executor of Zio effects.
   *
   * @param runtime zio runtime
   */
@@ -69,7 +69,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     *
     * @param timeout execution timeout
     * @param op effect to execute
-    * @return a future. On timeout future is failed with [[TimeoutException]].
+    * @return a future. On timeout future is failed with `TimeoutException`.
     * Otherwise future contains either a failure or a result.
     */
   override def execTimed[E, A](

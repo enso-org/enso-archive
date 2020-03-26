@@ -36,7 +36,7 @@ final class FileEventWatcher(
     watcher.close()
 
   /**
-    * A callback executed by [[DirectoryWatcher]] on file system event.
+    * A callback executed by `DirectoryWatcher` on file system event.
     */
   override def onEvent(event: DirectoryChangeEvent): Unit = {
     WatcherEvent
