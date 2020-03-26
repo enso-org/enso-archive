@@ -20,35 +20,35 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
     val fileA = Paths.get(path.toString, "1.txt")
 
     Files.createFile(fileA)
-    // val event = events.poll(Timeout.length, Timeout.unit)
-    // event shouldBe WatcherEvent(fileA, EventTypeCreate)
-    consume(events)
+    val event = events.poll(Timeout.length, Timeout.unit)
+    event shouldBe WatcherEvent(fileA, EventTypeCreate)
+    // consume(events)
   }
 
   it should "get delete events" in withWatcher { (path, events) =>
     val fileA = Paths.get(path.toString, "2.txt")
 
     Files.createFile(fileA)
-    // val event1 = events.poll(Timeout.length, Timeout.unit)
-    // event1 shouldBe WatcherEvent(fileA, EventTypeCreate)
+    val event1 = events.poll(Timeout.length, Timeout.unit)
+    event1 shouldBe WatcherEvent(fileA, EventTypeCreate)
 
     Files.delete(fileA)
-    // val event2 = events.poll(Timeout.length, Timeout.unit)
-    // event2 shouldBe WatcherEvent(fileA, EventTypeDelete)
-    consume(events)
+    val event2 = events.poll(Timeout.length, Timeout.unit)
+    event2 shouldBe WatcherEvent(fileA, EventTypeDelete)
+    // consume(events)
   }
 
   it should "get modify events" in withWatcher { (path, events) =>
     val fileA = Paths.get(path.toString, "3.txt")
 
     Files.createFile(fileA)
-    // val event1 = events.poll(Timeout.length, Timeout.unit)
-    // event1 shouldBe WatcherEvent(fileA, EventTypeCreate)
+    val event1 = events.poll(Timeout.length, Timeout.unit)
+    event1 shouldBe WatcherEvent(fileA, EventTypeCreate)
 
     Files.write(fileA, "hello".getBytes())
-    // val event2 = events.poll(Timeout.length, Timeout.unit)
-    // event2 shouldBe WatcherEvent(fileA, EventTypeModify)
-    consume(events)
+    val event2 = events.poll(Timeout.length, Timeout.unit)
+    event2 shouldBe WatcherEvent(fileA, EventTypeModify)
+    // consume(events)
   }
 
   it should "get events from subdirectories" in withWatcher { (path, events) =>
@@ -56,16 +56,16 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
     val fileA  = Paths.get(path.toString, "subdir", "4.txt")
 
     Files.createDirectories(subdir)
-    // val event1 = events.poll(Timeout.length, Timeout.unit)
-    // event1 shouldBe WatcherEvent(subdir, EventTypeCreate)
+    val event1 = events.poll(Timeout.length, Timeout.unit)
+    event1 shouldBe WatcherEvent(subdir, EventTypeCreate)
 
     Files.createFile(fileA)
-    // val event2 = events.poll(Timeout.length, Timeout.unit)
-    // event2 shouldBe WatcherEvent(fileA, EventTypeCreate)
-    consume(events)
+    val event2 = events.poll(Timeout.length, Timeout.unit)
+    event2 shouldBe WatcherEvent(fileA, EventTypeCreate)
+    // consume(events)
   }
 
-  it should "test macOS file events" in withWatcherMacOs { (path, events) =>
+  it should "test macOS file events" in withWatcher { (path, events) =>
     val file = Paths.get(path.toString, "5.txt")
     Files.createFile(file)
 
