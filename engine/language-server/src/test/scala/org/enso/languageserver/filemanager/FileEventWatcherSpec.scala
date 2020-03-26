@@ -68,7 +68,10 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
   it should "test macOS file events" in withWatcherMacOs { (path, events) =>
     val file = Paths.get(path.toString, "5.txt")
     Files.createFile(file)
-    consume(events)
+
+    val event = events.poll(Timeout.length, Timeout.unit)
+    event shouldBe WatcherEvent(file, EventTypeCreate)
+    // consume(events)
   }
 
   def withWatcher(
