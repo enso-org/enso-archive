@@ -1126,7 +1126,7 @@ object IR {
         with Kind.Static
         with IRKind.Primitive {
       override val location: Option[IdentifiedLocation] =
-        ast.location.map(IdentifiedLocation(_))
+        ast.location.map(IdentifiedLocation(_, ast.id))
 
       override def addMetadata(newData: Metadata): Syntax = {
         copy(passData = this.passData + newData)
