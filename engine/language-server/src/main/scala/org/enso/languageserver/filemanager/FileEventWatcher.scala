@@ -19,7 +19,7 @@ final class FileEventWatcher(
 
   private val watcher: DirectoryWatcher = DirectoryWatcher
     .builder()
-    .path(root.toRealPath())
+    .path(root)
     .listener(this)
     .build()
 
