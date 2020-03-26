@@ -48,7 +48,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
         BufferRegistry.props(fileManager)(Sha3_224VersionCalculator)
       )
     val fileEventRegistry =
-      system.actorOf(FileEventRegistry.props(config, zioExec))
+      system.actorOf(FileEventRegistry.props(config, new FileSystem, zioExec))
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry, fileEventRegistry))
 

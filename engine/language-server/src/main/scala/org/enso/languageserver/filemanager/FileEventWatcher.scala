@@ -36,6 +36,12 @@ final class FileEventWatcher(
     watcher.close()
 
   /**
+    * Get watched root
+    */
+  def getRoot: Path =
+    root
+
+  /**
     * A callback executed by [[DirectoryWatcher]] on file system event.
     */
   override def onEvent(event: DirectoryChangeEvent): Unit = {

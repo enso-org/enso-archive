@@ -54,7 +54,7 @@ import org.enso.languageserver.data.{
   * @param config configuration
   * @param exec executor of file system events
   */
-final class FileEventRegistry(config: Config, exec: Exec[BlockingIO])
+final class FileEventRegistry(config: Config, fs: FileSystemApi[BlockingIO], exec: Exec[BlockingIO])
     extends Actor
     with ActorLogging {
 
@@ -72,7 +72,7 @@ final class FileEventRegistry(config: Config, exec: Exec[BlockingIO])
       if (store.hasManager(client)) {
         handler ! CapabilityAcquisitionBadRequest
       } else {
-        val manager = context.actorOf(FileEventManager.props(config, exec))
+        val manager = context.actorOf(FileEventManager.props(config, fs, exec))
         manager ! FileEventManagerProtocol.WatchPath(path)
         context.become(withStore(store.addMappings(manager, client, handler)))
       }
@@ -290,6 +290,6 @@ object FileEventRegistry {
     * @param config configuration
     * @param exec executor of file system events
     */
-  def props(config: Config, exec: Exec[BlockingIO]): Props =
-    Props(new FileEventRegistry(config, exec))
+  def props(config: Config, fs: FileSystemApi[BlockingIO], exec: Exec[BlockingIO]): Props =
+    Props(new FileEventRegistry(config, fs, exec))
 }
