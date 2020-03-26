@@ -116,11 +116,12 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
   }
 
   // poll until the timeout exception is thrown
-  def consume[A <: AnyRef](queue: LinkedBlockingQueue[A]): Unit = {
-    var elem = queue.poll(Timeout.length, Timeout.unit)
-    while (elem ne null) {
-      println(elem)
-      elem = queue.poll(Timeout.length, Timeout.unit)
+  def consume(queue: LinkedBlockingQueue[WatcherEvent]): Unit = {
+    var event = queue.poll(Timeout.length, Timeout.unit)
+    while (event ne null) {
+      val dest = scala.util.Try(Files.readSymbolicLink(event.path))
+      println(s"$event $dest" )
+      event = queue.poll(Timeout.length, Timeout.unit)
     }
   }
 }
