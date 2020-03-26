@@ -8,10 +8,10 @@ import zio.internal.{Executor, Platform, Tracing}
 
 import scala.concurrent.ExecutionContext
 
-class ZioPlatform(computeEc: ExecutionContext) extends Platform {
+class ZioPlatform(computeExecutionContext: ExecutionContext) extends Platform {
 
   override def executor: Executor =
-    Executor.fromExecutionContext(2048)(computeEc)
+    Executor.fromExecutionContext(2048)(computeExecutionContext)
 
   override val tracing = Tracing(
     Tracer.globallyCached(new AkkaLineNumbersTracer),

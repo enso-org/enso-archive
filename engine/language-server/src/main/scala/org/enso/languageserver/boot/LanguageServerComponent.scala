@@ -1,40 +1,55 @@
 package org.enso.languageserver.boot
 
-import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
+import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.LanguageProtocol
+import org.enso.languageserver.boot.LanguageServerComponent.{
+  ServerStarted,
+  ServerStopped
+}
 
-import scala.concurrent.Await
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class LanguageServerComponent(config: LanguageServerConfig) {
+class LanguageServerComponent(config: LanguageServerConfig)
+    extends LazyLogging {
 
+  @volatile
   private var maybeServerState: Option[(MainModule, Http.ServerBinding)] = None
 
-  def start(): Unit = {
-    println("Starting Language Server...")
-    val mainModule = new MainModule(config)
+  implicit val ec = config.computeEc
 
-    mainModule.languageServer ! LanguageProtocol.Initialize
-
-    val binding: Http.ServerBinding =
-      Await.result(
-        mainModule.server.bind(config.interface, config.port),
-        3.seconds
-      )
-
-    println(
-      s"Started server at ${config.interface}:${config.port}, press enter to kill server"
-    )
-    maybeServerState = Some(mainModule, binding)
+  def start(): Future[ServerStarted.type] = {
+    logger.info("Starting Language Server...")
+    for {
+      mainModule <- Future { new MainModule(config) }
+      _          <- Future { mainModule.languageServer ! LanguageProtocol.Initialize }
+      binding    <- mainModule.server.bind(config.interface, config.port)
+      _          <- Future { maybeServerState = Some(mainModule, binding) }
+      _ <- Future {
+        logger.info(s"Started server at ${config.interface}:${config.port}")
+      }
+    } yield ServerStarted
   }
 
-  def stop(): Unit = {
-    maybeServerState foreach {
-      case (mainModule, binding) =>
-        binding.terminate(10.seconds)
-        mainModule.system.terminate()
+  def stop(): Future[ServerStopped.type] =
+    maybeServerState match {
+      case None =>
+        Future.failed(new Exception("Server wasn't running"))
+
+      case Some((mainModule, binding)) =>
+        for {
+          _ <- binding.terminate(10.seconds)
+          _ <- mainModule.system.terminate()
+        } yield ServerStopped
     }
-  }
+
+}
+
+object LanguageServerComponent {
+
+  case object ServerStarted
+
+  case object ServerStopped
 
 }

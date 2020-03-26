@@ -18,9 +18,11 @@ import org.enso.languageserver.boot.{
   LanguageServerConfig
 }
 import org.enso.projectmanager.data.SocketData
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.ServerBooted
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,
+  ServerBooted
+}
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   ServerStarted,
   StartServer
 }
@@ -78,15 +80,23 @@ private[languageserver] class LanguageServerSupervisor(
       log.error(s"Booting failed for $descriptor")
       context.stop(self)
 
+    case ServerBootFailed(th) =>
+      unstashAll()
+      timeoutCancellable.cancel()
+      context.become(bootFailed(th))
+
     case ServerBooted(config, server) =>
       unstashAll()
       timeoutCancellable.cancel()
       context.become(supervising(config, server))
 
     case Terminated(Bootloader) =>
+      log.error(s"Bootloader for project ${project.name} failed")
       unstashAll()
       timeoutCancellable.cancel()
-      context.become(bootFailed())
+      context.become(
+        bootFailed(new Exception("The number of boot retries exceeded"))
+      )
 
     case _ => stash()
   }
@@ -103,11 +113,9 @@ private[languageserver] class LanguageServerSupervisor(
       context.become(supervising(config, server, clients + clientId))
   }
 
-  private def bootFailed(): Receive = {
+  private def bootFailed(th: Throwable): Receive = {
     case StartServer(_, _) =>
-      sender() ! ServerBootFailed(
-        new Exception("Too many retries")
-      )
+      sender() ! LanguageServerProtocol.ServerBootFailed(th)
       context.stop(self)
   }
 

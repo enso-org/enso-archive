@@ -44,7 +44,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
   implicit val versionCalculator: ContentBasedVersioning =
     Sha3_224VersionCalculator
 
-  implicit val system = ActorSystem()
+  implicit val system =
+    ActorSystem(serverConfig.name, None, None, Some(serverConfig.computeEc))
 
   implicit val materializer = SystemMaterializer.get(system)
 
