@@ -222,4 +222,32 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
   }
 
+  "project/close" must {
+
+    "fail when project is not open" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/close",
+              "id": 0,
+              "params": {
+                "projectId": ${UUID.randomUUID()} 
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code":4006,
+              "message":"Cannot close project that is not open"
+            }
+          }
+          """)
+
+    }
+
+  }
+
 }
