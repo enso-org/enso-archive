@@ -7,20 +7,17 @@ import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
-import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation, TailCall}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{
-  LocalScope,
-  ModuleScope,
-  TopLevelScope
-}
+import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
 import org.enso.polyglot.LanguageInfo
-import org.enso.syntax.text.{AST, Parser}
+import org.enso.syntax.text.{AST, Debug, Parser}
 
 /**
   * This class encapsulates the static transformation processes that take place
@@ -40,10 +37,12 @@ class Compiler(
     * they nevertheless exist.
     */
   val compilerPhaseOrdering: List[IRPass] = List(
+    GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,
-    ApplicationSaturation()
+    ApplicationSaturation(),
+    TailCall
   )
 
   /**
@@ -59,7 +58,6 @@ class Compiler(
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
     val compilerOutput = runCompilerPhases(expr)
-
     truffleCodegen(compilerOutput, source, scope)
   }
 
@@ -105,14 +103,13 @@ class Compiler(
     * Processes the source in the context of given local and module scopes.
     *
     * @param srcString string representing the expression to process
-    * @param localScope local scope to process the source in
-    * @param moduleScope module scope to process the source in
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return an expression node representing the parsed and analyzed source
     */
   def runInline(
     srcString: String,
-    localScope: LocalScope,
-    moduleScope: ModuleScope
+    inlineContext: InlineContext
   ): Option[RuntimeExpression] = {
     val source = Source
       .newBuilder(
@@ -124,17 +121,8 @@ class Compiler(
     val parsed: AST = parse(source)
 
     generateIRInline(parsed).flatMap { ir =>
-      Some({
-        val compilerOutput =
-          runCompilerPhasesInline(ir, localScope, moduleScope)
-
-        truffleCodegenInline(
-          compilerOutput,
-          source,
-          moduleScope,
-          localScope
-        )
-      })
+      val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
+      Some(truffleCodegenInline(compilerOutput, source, inlineContext))
     }
   }
 
@@ -147,7 +135,7 @@ class Compiler(
     * @param qualifiedName the qualified name of the module
     * @return the scope containing all definitions in the requested module
     */
-  def requestProcess(qualifiedName: String): ModuleScope = {
+  def processImport(qualifiedName: String): ModuleScope = {
     val module = topScope.getModule(qualifiedName)
     if (module.isPresent) {
       module.get().getScope(context)
@@ -162,14 +150,8 @@ class Compiler(
     * @param source the code to parse
     * @return an AST representation of `source`
     */
-  def parse(source: Source): AST = {
-    val parser: Parser = Parser()
-    val unresolvedAST: AST.Module =
-      parser.run(source.getCharacters.toString)
-    val resolvedAST: AST.Module = parser.dropMacroMeta(unresolvedAST)
-
-    resolvedAST
-  }
+  def parse(source: Source): AST =
+    Parser().runWithIds(source.getCharacters.toString)
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
@@ -205,16 +187,17 @@ class Compiler(
   /** Runs the various compiler passes in an inline context.
     *
     * @param ir the compiler intermediate representation to transform
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return the output result of the
     */
   def runCompilerPhasesInline(
     ir: IR.Expression,
-    localScope: LocalScope,
-    moduleScope: ModuleScope
+    inlineContext: InlineContext
   ): IR.Expression = {
     compilerPhaseOrdering.foldLeft(ir)(
       (intermediateIR, pass) =>
-        pass.runExpression(intermediateIR, Some(localScope), Some(moduleScope))
+        pass.runExpression(intermediateIR, inlineContext)
     )
   }
 
@@ -236,18 +219,27 @@ class Compiler(
     *
     * @param ir the prorgam to translate
     * @param source the source code of the program represented by `ir`
-    * @param moduleScope the module scope in which the code is to be generated
-    * @param localScope the local scope in which the inline code is to be
-    *                   located
+    * @param inlineContext a context object that contains the information needed
+    *                      for inline evaluation
     * @return the runtime representation of the program represented by `ir`
     */
   def truffleCodegenInline(
     ir: IR.Expression,
     source: Source,
-    moduleScope: ModuleScope,
-    localScope: LocalScope
+    inlineContext: InlineContext
   ): RuntimeExpression = {
-    new IRToTruffle(this.language, source, moduleScope)
-      .runInline(ir, localScope, "<inline_source>")
+    new IRToTruffle(
+      this.language,
+      source,
+      inlineContext.moduleScope.getOrElse(
+        throw new CompilerError(
+          "Cannot perform inline codegen with a missing module scope."
+        )
+      )
+    ).runInline(
+      ir,
+      inlineContext.localScope.getOrElse(LocalScope.root),
+      "<inline_source>"
+    )
   }
 }
