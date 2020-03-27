@@ -27,7 +27,7 @@ final class FileEventManager(
 
   import context.dispatcher, FileEventManagerProtocol._
 
-  private var restartsCount: Int                    = 0
+  private val restartCounter = new FileEventManager.RestartCounter(config.fileEventManager.maxRestarts)
   private var fileWatcher: Option[FileEventWatcher] = None
 
   override def postStop(): Unit = {
@@ -76,22 +76,22 @@ final class FileEventManager(
       context.become(uninitializedStage)
 
     case e: FileEventWatcher.WatcherEvent =>
-      restartsCount = 0
+      restartCounter.reset()
       val event = FileEvent.fromWatcherEvent(root, base, e)
       subscriber ! FileEventResult(event)
 
     case FileEventWatcher.WatcherError(e) =>
       Try(fileWatcher.foreach(_.stop()))
-      restartsCount += 1
-      if (restartsCount < config.fileEventManager.maxRestarts) {
-        log.error(s"File watcher error, restart attempt#$restartsCount", e)
+      restartCounter.inc()
+      if (restartCounter.canRestart) {
+        log.error(s"Restart on error#${restartCounter.count}", e)
         context.system.scheduler.scheduleOnce(
           config.fileEventManager.restartTimeout,
           self,
           WatchPath(base)
         )
       } else {
-        log.error("File watcher error, restart failure", e)
+        log.error("Hit maximum number of restarts", e)
         subscriber ! FileEventError(e)
       }
       context.become(uninitializedStage)
@@ -129,6 +129,40 @@ final class FileEventManager(
 }
 
 object FileEventManager {
+
+  /**
+    * Conunt unsuccessful file watcher restarts
+    *
+    * @param maxRestarts maximum number of restarts we can try
+    */
+  private final class RestartCounter(maxRestarts: Int) {
+
+    private var restartCount: Int = 0
+
+    /**
+      * Return current restart count.
+      */
+    def count: Int =
+      restartCount
+
+    /**
+      * Increment restart count.
+      */
+    def inc(): Unit =
+      restartCount += 1
+
+    /**
+      * Reset restart count.
+      */
+    def reset(): Unit =
+      restartCount = 0
+
+    /**
+      * Return true if we hit the maximum number of restarts.
+      */
+    def canRestart: Boolean =
+      restartCount < maxRestarts
+  }
 
   /**
     * Creates a configuration object used to create a [[FileEventManager]].
