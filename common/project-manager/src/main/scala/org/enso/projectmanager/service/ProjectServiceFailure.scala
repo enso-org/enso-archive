@@ -31,7 +31,12 @@ object ProjectServiceFailure {
     */
   case object ProjectNotFound extends ProjectServiceFailure
 
-  case class LanguageServerStartupFailed(message: String)
-      extends ProjectServiceFailure
+  case class ProjectOpenFailed(message: String) extends ProjectServiceFailure
+
+  case class ProjectCloseFailed(message: String) extends ProjectServiceFailure
+
+  case object ProjectNotOpen extends ProjectServiceFailure
+
+  case object ProjectOpenByOtherPeers extends ProjectServiceFailure
 
 }

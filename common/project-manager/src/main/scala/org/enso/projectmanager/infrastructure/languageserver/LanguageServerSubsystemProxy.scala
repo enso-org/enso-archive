@@ -19,8 +19,7 @@ import scala.concurrent.ExecutionContext
 class LanguageServerSubsystemProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatMap](
   controller: ActorRef,
   timeoutConfig: TimeoutConfig
-)(implicit ec: ExecutionContext)
-    extends LanguageServerService[F] {
+) extends LanguageServerService[F] {
 
   implicit val timeout: Timeout = Timeout(timeoutConfig.bootTimeout)
 

@@ -20,7 +20,7 @@ object LanguageServerProtocol {
   case object ServerStopped extends ServerStoppageResult
 
   sealed trait ServerStoppageFailure              extends ServerStoppageResult
-  case class FailureDuringStoppage(th: Throwable) extends ServerStoppageResult
+  case class FailureDuringStoppage(th: Throwable) extends ServerStoppageFailure
   case object ServerNotRunning                    extends ServerStoppageFailure
   case object CannotDisconnectOtherClients        extends ServerStoppageFailure
 

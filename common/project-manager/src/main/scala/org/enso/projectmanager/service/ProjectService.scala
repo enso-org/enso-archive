@@ -34,9 +34,12 @@ import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.service.ProjectServiceFailure.{
   DataStoreFailure,
-  LanguageServerStartupFailed,
+  ProjectCloseFailed,
   ProjectExists,
-  ProjectNotFound
+  ProjectNotFound,
+  ProjectNotOpen,
+  ProjectOpenByOtherPeers,
+  ProjectOpenFailed
 }
 import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
@@ -111,10 +114,10 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         .start(clientId, project)
         .mapError {
           case ServerBootTimedOut =>
-            LanguageServerStartupFailed("Language server boot timed out")
+            ProjectOpenFailed("Language server boot timed out")
 
           case ServerBootFailed(th) =>
-            LanguageServerStartupFailed(
+            ProjectOpenFailed(
               s"Language server boot failed: ${th.getMessage}"
             )
         }
@@ -127,9 +130,9 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
   ): F[ProjectServiceFailure, Unit] = {
     log.debug(s"Closing project $projectId") *>
     languageServerService.stop(clientId, projectId).mapError {
-      case FailureDuringStoppage(th)    =>
-      case ServerNotRunning             =>
-      case CannotDisconnectOtherClients =>
+      case FailureDuringStoppage(th)    => ProjectCloseFailed(th.getMessage)
+      case ServerNotRunning             => ProjectNotOpen
+      case CannotDisconnectOtherClients => ProjectOpenByOtherPeers
     }
   }
 

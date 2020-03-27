@@ -74,6 +74,12 @@ object ProjectManagementApi {
   case object ProjectNotFoundError
       extends Error(4004, "Project with the provided id does not exist")
 
-  case class LanguageServerStartupError(msg: String) extends Error(4005, msg)
+  case class ProjectOpenError(msg: String) extends Error(4005, msg)
+
+  case class ProjectCloseError(msg: String) extends Error(4005, msg)
+  case object ProjectNotOpenError
+      extends Error(4006, "Cannot close project that is not open")
+  case object ProjectOpenByOtherPeersError
+      extends Error(4007, "Cannot close because project is open by other peers")
 
 }

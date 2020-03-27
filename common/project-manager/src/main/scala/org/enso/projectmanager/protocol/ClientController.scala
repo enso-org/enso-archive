@@ -6,11 +6,13 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.protocol.ProjectManagementApi.{
+  ProjectClose,
   ProjectCreate,
   ProjectDelete,
   ProjectOpen
 }
 import org.enso.projectmanager.requesthandler.{
+  ProjectCloseHandler,
   ProjectCreateHandler,
   ProjectDeleteHandler,
   ProjectOpenHandler
@@ -40,6 +42,8 @@ class ClientController[F[+_, +_]: Exec](
       ProjectCreate -> ProjectCreateHandler.props[F](projectService, timeout),
       ProjectDelete -> ProjectDeleteHandler.props[F](projectService, timeout),
       ProjectOpen -> ProjectOpenHandler
+        .props[F](clientId, projectService, timeout),
+      ProjectClose -> ProjectCloseHandler
         .props[F](clientId, projectService, timeout)
     )
 
