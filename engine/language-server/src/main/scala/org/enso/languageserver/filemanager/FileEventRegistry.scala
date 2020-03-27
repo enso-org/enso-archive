@@ -1,7 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.data.Config
+import org.enso.languageserver.data.{Client, Config}
 import org.enso.languageserver.effect._
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
@@ -15,6 +15,7 @@ import org.enso.languageserver.data.{
   CapabilityRegistration,
   ReceivesTreeUpdates
 }
+import org.enso.languageserver.event.ClientDisconnected
 
 /**
   * FileEvent registry handles `receivesTreeUpdates` capability, starts
@@ -62,6 +63,11 @@ final class FileEventRegistry(
     with ActorLogging {
 
   import FileEventRegistry._
+
+  override def preStart(): Unit = {
+    context.system.eventStream
+      .subscribe(self, classOf[ClientDisconnected]): Unit
+  }
 
   override def receive: Receive = withStore(Store())
 
@@ -132,6 +138,11 @@ final class FileEventRegistry(
         log.error(s"Unable to find a client for $msg")
         manager ! FileEventManagerProtocol.UnwatchPath
       }
+
+    case ClientDisconnected(client) =>
+      store
+        .getManagers(client)
+        .foreach { _ ! FileEventManagerProtocol.UnwatchPath }
   }
 }
 
@@ -220,6 +231,15 @@ object FileEventRegistry {
       */
     def getClient(manager: EventManagerRef): ClientRef =
       clientStore(manager)
+
+    /**
+      * Get all managers associated with a client.
+      */
+    def getManagers(client: Client): Vector[EventManagerRef] =
+      managerStore.view
+        .filterKeys(_.actor == client.actor)
+        .values
+        .toVector
 
     /**
       * Add manager and associated mappings to the store.

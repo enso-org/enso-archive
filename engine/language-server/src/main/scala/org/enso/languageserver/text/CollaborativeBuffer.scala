@@ -105,9 +105,9 @@ class CollaborativeBuffer(
     case ReleaseCapability(client, CapabilityRegistration(CanEdit(_))) =>
       releaseWriteLock(buffer, clients, lockHolder, client.id)
 
-    case ClientDisconnected(clientId) =>
-      if (clients.contains(clientId)) {
-        removeClient(buffer, clients, lockHolder, clientId)
+    case ClientDisconnected(client) =>
+      if (clients.contains(client.id)) {
+        removeClient(buffer, clients, lockHolder, client.id)
       }
 
     case CloseFile(clientId, _) =>

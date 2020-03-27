@@ -85,7 +85,7 @@ class ClientController(
 
   def connected(webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
-      context.system.eventStream.publish(ClientDisconnected(clientId))
+      context.system.eventStream.publish(ClientDisconnected(client))
       context.stop(self)
 
     case CapabilityProtocol.CapabilityForceReleased(registration) =>
