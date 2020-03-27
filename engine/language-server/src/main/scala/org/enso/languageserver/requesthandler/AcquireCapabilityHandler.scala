@@ -7,9 +7,11 @@ import org.enso.languageserver.capability.CapabilityApi.AcquireCapability
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.capability.CapabilityProtocol.{
   CapabilityAcquired,
-  CapabilityAcquisitionBadRequest
+  CapabilityAcquisitionBadRequest,
+  CapabilityAcquisitionFileSystemFailure
 }
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.filemanager.FileSystemFailureMapper
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -53,6 +55,13 @@ class AcquireCapabilityHandler(
 
     case CapabilityAcquisitionBadRequest =>
       replyTo ! ResponseError(Some(id), ServiceError)
+      context.stop(self)
+
+    case CapabilityAcquisitionFileSystemFailure(error) =>
+      replyTo ! ResponseError(
+        Some(id),
+        FileSystemFailureMapper.mapFailure(error)
+      )
       context.stop(self)
   }
 

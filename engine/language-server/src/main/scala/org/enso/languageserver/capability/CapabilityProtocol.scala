@@ -1,6 +1,7 @@
 package org.enso.languageserver.capability
 
 import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.filemanager.FileSystemFailure
 
 object CapabilityProtocol {
 
@@ -31,6 +32,14 @@ object CapabilityProtocol {
   case object CapabilityAcquisitionBadRequest extends AcquireCapabilityResponse
 
   /**
+    * Signals about capability acquisition error.
+    *
+    * @param error file system failure
+    */
+  case class CapabilityAcquisitionFileSystemFailure(error: FileSystemFailure)
+      extends AcquireCapabilityResponse
+
+  /**
     * Notifies the Language Server about a client releasing a capability.
     *
     * @param clientId the client releasing the capability.
@@ -55,6 +64,11 @@ object CapabilityProtocol {
     * Signals that capability release request cannot be processed.
     */
   case object CapabilityReleaseBadRequest extends ReleaseCapabilityResponse
+
+  /**
+    * Signals that requested capability is not acquired.
+    */
+  case object CapabilityNotAcquiredResponse extends ReleaseCapabilityResponse
 
   /**
     * A notification sent by the Language Server, notifying a client about

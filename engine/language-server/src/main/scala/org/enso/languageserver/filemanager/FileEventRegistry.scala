@@ -6,8 +6,8 @@ import org.enso.languageserver.effect._
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
-  CapabilityAcquisitionBadRequest,
-  CapabilityReleaseBadRequest,
+  CapabilityAcquisitionFileSystemFailure,
+  CapabilityNotAcquiredResponse,
   CapabilityReleased,
   ReleaseCapability
 }
@@ -73,12 +73,13 @@ final class FileEventRegistry(
       val client  = ClientRef(clientController.actor, path)
       val handler = sender()
       if (store.hasManager(client)) {
-        handler ! CapabilityAcquisitionBadRequest
-      } else {
-        val manager = context.actorOf(FileEventManager.props(config, fs, exec))
-        manager ! FileEventManagerProtocol.WatchPath(path)
-        context.become(withStore(store.addMappings(manager, client, handler)))
+        val oldManager = store.getManager(client)
+        oldManager ! FileEventManagerProtocol.UnwatchPath
       }
+
+      val manager = context.actorOf(FileEventManager.props(config, fs, exec))
+      manager ! FileEventManagerProtocol.WatchPath(path)
+      context.become(withStore(store.addMappings(manager, client, handler)))
 
     case ReleaseCapability(
         clientController,
@@ -91,7 +92,7 @@ final class FileEventRegistry(
         manager ! FileEventManagerProtocol.UnwatchPath
         context.become(withStore(store.addHandler(manager, handler)))
       } else {
-        handler ! CapabilityReleaseBadRequest
+        handler ! CapabilityNotAcquiredResponse
       }
 
     case FileEventManagerProtocol.WatchPathResult(result) =>
@@ -103,7 +104,7 @@ final class FileEventRegistry(
             handler ! CapabilityAcquired
           case Left(err) =>
             log.error(s"Error acquiring capability: $err")
-            handler ! CapabilityAcquisitionBadRequest
+            handler ! CapabilityAcquisitionFileSystemFailure(err)
             manager ! FileEventManagerProtocol.UnwatchPath
         }
         context.become(withStore(store.removeHandler(manager)))
@@ -116,19 +117,11 @@ final class FileEventRegistry(
       val manager = sender()
       if (store.hasHandler(manager)) {
         val handler = store.getHandler(manager)
-        result match {
-          case Right(()) =>
-            handler ! CapabilityReleased
-          case Left(err) =>
-            log.error(s"Error releasing capability: $err")
-            handler ! CapabilityReleaseBadRequest
-        }
-        context.stop(manager)
-        context.become(withStore(store.removeMappings(manager)))
-      } else {
-        // Reply has been already sent, cleanup the resources
-        context.stop(manager)
+        result.foreach(err => log.error(s"Error releasing capability: $err"))
+        handler ! CapabilityReleased
       }
+      context.stop(manager)
+      context.become(withStore(store.removeMappings(manager)))
 
     case msg @ FileEventManagerProtocol.FileEventResult(_) =>
       val manager = sender()

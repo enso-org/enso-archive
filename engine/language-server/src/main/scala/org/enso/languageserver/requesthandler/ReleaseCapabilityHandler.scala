@@ -3,9 +3,13 @@ package org.enso.languageserver.requesthandler
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.capability.CapabilityApi.ReleaseCapability
+import org.enso.languageserver.capability.CapabilityApi.{
+  CapabilityNotAcquired,
+  ReleaseCapability
+}
 import org.enso.languageserver.capability.CapabilityProtocol
 import org.enso.languageserver.capability.CapabilityProtocol.{
+  CapabilityNotAcquiredResponse,
   CapabilityReleaseBadRequest,
   CapabilityReleased
 }
@@ -48,6 +52,10 @@ class ReleaseCapabilityHandler(
 
     case CapabilityReleaseBadRequest =>
       replyTo ! ResponseError(Some(id), ServiceError)
+      context.stop(self)
+
+    case CapabilityNotAcquiredResponse =>
+      replyTo ! ResponseError(Some(id), CapabilityNotAcquired)
       context.stop(self)
   }
 

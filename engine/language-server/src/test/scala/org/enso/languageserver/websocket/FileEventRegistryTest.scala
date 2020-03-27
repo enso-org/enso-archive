@@ -56,9 +56,59 @@ class FileEventRegistryTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "id": 1,
             "error": {
-              "code": 1,
-              "message": "Service error"
+              "code": 1003,
+              "message": "File not found"
             }
+          }
+          """)
+    }
+
+    "reacquire capability receivesTreeUpdates" in {
+      val client = new WsTestClient(address)
+
+      // acquire
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/acquire",
+            "id": 1,
+            "params": {
+              "method": "receivesTreeUpdates",
+              "registerOptions": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 1,
+            "result": null
+          }
+          """)
+
+      // reacquire
+      client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/acquire",
+            "id": 2,
+            "params": {
+              "method": "receivesTreeUpdates",
+              "registerOptions": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ ]
+                }
+              }
+            }
+          }
+          """)
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id": 2,
+            "result": null
           }
           """)
     }
@@ -85,8 +135,8 @@ class FileEventRegistryTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "id": 1,
             "error": {
-              "code": 1,
-              "message": "Service error"
+              "code" : 2001,
+              "message" : "Capability not acquired"
             }
           }
           """)
