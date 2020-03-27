@@ -44,5 +44,5 @@ object CapabilityApi {
   // Errors
 
   case object CapabilityNotAcquired
-      extends Error(2001, "Capability not acquired")
+      extends Error(5001, "Capability not acquired")
 }

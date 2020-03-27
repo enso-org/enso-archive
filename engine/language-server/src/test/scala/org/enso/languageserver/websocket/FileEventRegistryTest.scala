@@ -135,7 +135,7 @@ class FileEventRegistryTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "id": 1,
             "error": {
-              "code" : 2001,
+              "code" : 5001,
               "message" : "Capability not acquired"
             }
           }

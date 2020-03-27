@@ -1172,6 +1172,19 @@ content roots in the current project.
 ##### Disables
 None
 
+##### Errors
+
+[`capability/acquire`](#capabilityacquire):
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`FileNotFound`](#filenotfound) informs that path cannot be found.
+
+[`capability/release`](#capabilityrelease):
+- [`CapabilityNotAcquired`](#capabilitynotacquired) informs that requested
+  capability is not acquired.
+
+
+
 #### `executionContext/canModify`
 This capability states that the client has the ability to modify an execution
 context, including modifying the execution stack, invalidating caches, or
@@ -2230,5 +2243,15 @@ Signals that the project doesn't exist.
 "error" : {
   "code" : 4004,
   "message" : "Project with the provided id does not exist"
+}
+```
+
+##### `CapabilityNotAcquired`
+Signals that requested capability is not acquired.
+
+```typescript
+"error" : {
+  "code" : 5001,
+  "message" : "Capability not acquired"
 }
 ```
