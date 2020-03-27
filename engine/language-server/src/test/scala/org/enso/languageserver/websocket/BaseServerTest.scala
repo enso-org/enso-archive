@@ -26,7 +26,7 @@ import scala.concurrent.duration._
 
 class BaseServerTest extends JsonRpcServerTestKit {
 
-  val testContentRoot   = Files.createTempDirectory(null)
+  val testContentRoot   = Files.createTempDirectory(null).toRealPath()
   val testContentRootId = UUID.randomUUID()
   val config = Config(
     Map(testContentRootId -> testContentRoot.toFile),
