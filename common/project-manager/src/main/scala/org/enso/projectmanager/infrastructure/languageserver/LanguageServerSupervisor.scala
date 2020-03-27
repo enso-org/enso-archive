@@ -14,32 +14,26 @@ import akka.actor.{
   SupervisorStrategy,
   Terminated
 }
+import akka.pattern.pipe
+import org.enso.languageserver.boot.LanguageServerComponent.ServerStopped
 import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
 }
+import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,
   ServerBooted
 }
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
-  CannotDisconnectOtherClients,
-  FailureDuringStoppage,
-  ServerStarted,
-  StartServer,
-  StopServer
-}
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
   Boot,
   BootTimeout
 }
-import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.model.Project
-import akka.pattern.pipe
-import org.enso.languageserver.boot.LanguageServerComponent.ServerStopped
-import org.enso.projectmanager.event.ClientDisconnected
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 
 import scala.concurrent.duration._
 
@@ -166,7 +160,7 @@ private[languageserver] class LanguageServerSupervisor(
       stop()
 
     case ServerStopped =>
-      log.info(s"Language server shutdown successfully [$project].")
+      log.info(s"Language server shut down successfully [$project].")
       maybeRequester.foreach(_ ! LanguageServerProtocol.ServerStopped)
       stop()
   }
