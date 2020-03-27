@@ -347,6 +347,7 @@ lazy val project_manager = (project in file("common/project-manager"))
   )
   .settings(
     (Compile / run / fork) := true,
+    (Test / fork) := true,
     (Compile / run / connectInput) := true,
     javaOptions ++= Seq(
       // Puts the language runtime on the truffle classpath, rather than the
