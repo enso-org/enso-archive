@@ -14,7 +14,7 @@ import org.enso.projectmanager.infrastructure.file.{
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
   LanguageServerRegistry,
-  LanguageServerSubsystemProxy
+  LanguageServerRegistryProxy
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
@@ -82,7 +82,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
       "language-server-controller"
     )
 
-  lazy val languageServerService = new LanguageServerSubsystemProxy[F](
+  lazy val languageServerService = new LanguageServerRegistryProxy[F](
     languageServerController,
     config.timeout
   )

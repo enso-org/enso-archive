@@ -14,10 +14,8 @@ import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.model.Project
 
-import scala.concurrent.ExecutionContext
-
-class LanguageServerSubsystemProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatMap](
-  controller: ActorRef,
+class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatMap](
+  registry: ActorRef,
   timeoutConfig: TimeoutConfig
 ) extends LanguageServerService[F] {
 
@@ -29,7 +27,7 @@ class LanguageServerSubsystemProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlat
   ): F[ServerStartupFailure, SocketData] =
     Async[F]
       .fromFuture { () =>
-        (controller ? StartServer(clientId, project)).mapTo[ServerStartupResult]
+        (registry ? StartServer(clientId, project)).mapTo[ServerStartupResult]
       }
       .mapError(_ => ServerBootTimedOut)
       .flatMap {
@@ -43,8 +41,7 @@ class LanguageServerSubsystemProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlat
   ): F[ServerStoppageFailure, Unit] =
     Async[F]
       .fromFuture { () =>
-        (controller ? StopServer(clientId, projectId))
-          .mapTo[ServerStoppageResult]
+        (registry ? StopServer(clientId, projectId)).mapTo[ServerStoppageResult]
       }
       .mapError(FailureDuringStoppage(_))
       .flatMap {

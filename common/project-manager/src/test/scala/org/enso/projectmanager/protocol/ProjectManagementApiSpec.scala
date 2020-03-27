@@ -171,7 +171,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             }
           }
           """)
-      projectDir shouldBe 'directory
+      projectDir shouldBe Symbol("directory")
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/delete",
@@ -190,6 +190,34 @@ class ProjectManagementApiSpec extends BaseServerSpec {
           """)
 
       projectDir.exists() shouldBe false
+    }
+
+  }
+
+  "project/open" must {
+
+    "fail when project doesn't exist" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 0,
+              "params": {
+                "projectId": ${UUID.randomUUID()} 
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "error":{
+              "code":4004,
+              "message":"Project with the provided id does not exist"
+            }
+          }
+          """)
+
     }
 
   }

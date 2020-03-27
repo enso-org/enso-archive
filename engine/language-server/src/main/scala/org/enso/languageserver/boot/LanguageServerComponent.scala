@@ -35,7 +35,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
   def stop(): Future[ServerStopped.type] =
     maybeServerState match {
       case None =>
-        Future.failed(new Exception("Server wasn't running"))
+        Future.failed(new Exception("Server isn't running"))
 
       case Some((mainModule, binding)) =>
         for {
