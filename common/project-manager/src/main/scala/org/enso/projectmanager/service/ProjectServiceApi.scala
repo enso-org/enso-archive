@@ -32,4 +32,9 @@ trait ProjectServiceApi[F[+_, +_]] {
     projectId: UUID
   ): F[ProjectServiceFailure, SocketData]
 
+  def closeProject(
+    clientId: UUID,
+    projectId: UUID
+  ): F[ProjectServiceFailure, Unit]
+
 }

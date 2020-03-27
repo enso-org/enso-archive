@@ -17,7 +17,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 import org.enso.projectmanager.infrastructure.net.Tcp
 
 private[languageserver] class LanguageServerBootLoader(
-  descriptor: ServerDescriptor
+  descriptor: LanguageServerDescriptor
 ) extends Actor
     with ActorLogging {
 
@@ -87,7 +87,7 @@ private[languageserver] class LanguageServerBootLoader(
 
 private[languageserver] object LanguageServerBootLoader {
 
-  def props(descriptor: ServerDescriptor): Props =
+  def props(descriptor: LanguageServerDescriptor): Props =
     Props(new LanguageServerBootLoader(descriptor))
 
   case object FindFreeSocket

@@ -1,16 +1,9 @@
 package org.enso.projectmanager.requesthandler
 
 import org.enso.jsonrpc.Error
-import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.projectmanager.protocol.ProjectManagementApi._
 import org.enso.projectmanager.service.ProjectServiceFailure
-import org.enso.projectmanager.service.ProjectServiceFailure.{
-  DataStoreFailure,
-  LanguageServerStartupFailed,
-  ProjectExists,
-  ProjectNotFound,
-  ValidationFailure
-}
+import org.enso.projectmanager.service.ProjectServiceFailure._
 
 object ProjectServiceFailureMapper {
 

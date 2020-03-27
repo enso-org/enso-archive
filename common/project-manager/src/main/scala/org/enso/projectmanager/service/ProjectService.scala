@@ -9,8 +9,13 @@ import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  CannotDisconnectOtherClients,
+  FailureDuringStoppage,
   ServerBootFailed,
-  ServerBootTimedOut
+  ServerBootTimedOut,
+  ServerNotRunning,
+  ServerStoppageFailure,
+  ServerStoppageResult
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.log.Logging
@@ -114,6 +119,18 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
             )
         }
     } yield socket
+  }
+
+  override def closeProject(
+    clientId: UUID,
+    projectId: UUID
+  ): F[ProjectServiceFailure, Unit] = {
+    log.debug(s"Closing project $projectId") *>
+    languageServerService.stop(clientId, projectId).mapError {
+      case FailureDuringStoppage(th)    =>
+      case ServerNotRunning             =>
+      case CannotDisconnectOtherClients =>
+    }
   }
 
   private def getUserProject(

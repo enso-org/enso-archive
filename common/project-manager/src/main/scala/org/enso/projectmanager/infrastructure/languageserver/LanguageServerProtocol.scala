@@ -15,4 +15,13 @@ object LanguageServerProtocol {
   case class ServerBootFailed(throwable: Throwable) extends ServerStartupFailure
   case object ServerBootTimedOut                    extends ServerStartupFailure
 
+  case class StopServer(clientId: UUID, projectId: UUID)
+  sealed trait ServerStoppageResult
+  case object ServerStopped extends ServerStoppageResult
+
+  sealed trait ServerStoppageFailure              extends ServerStoppageResult
+  case class FailureDuringStoppage(th: Throwable) extends ServerStoppageResult
+  case object ServerNotRunning                    extends ServerStoppageFailure
+  case object CannotDisconnectOtherClients        extends ServerStoppageFailure
+
 }

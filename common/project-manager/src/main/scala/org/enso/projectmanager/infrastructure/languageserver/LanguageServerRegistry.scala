@@ -3,10 +3,15 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.StartServer
 import org.enso.projectmanager.boot.configuration.NetworkConfig
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  ServerNotRunning,
+  StartServer,
+  StopServer
+}
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 
-class LanguageServerController(networkConfig: NetworkConfig)
+class LanguageServerRegistry(networkConfig: NetworkConfig)
     extends Actor
     with ActorLogging {
 
@@ -23,6 +28,17 @@ class LanguageServerController(networkConfig: NetworkConfig)
         ref.forward(msg)
         context.become(running(servers + (project.id -> ref)))
       }
+
+    case msg @ StopServer(_, projectId) =>
+      if (servers.contains(projectId)) {
+        servers(projectId).forward(msg)
+      } else {
+        sender() ! ServerNotRunning
+      }
+
+    case ServerShutDown(projectId) =>
+      context.become(running(servers - projectId))
+
   }
 
   override def unhandled(message: Any): Unit =
@@ -30,9 +46,11 @@ class LanguageServerController(networkConfig: NetworkConfig)
 
 }
 
-object LanguageServerController {
+object LanguageServerRegistry {
+
+  case class ServerShutDown(projectId: UUID)
 
   def props(networkConfig: NetworkConfig): Props =
-    Props(new LanguageServerController(networkConfig))
+    Props(new LanguageServerRegistry(networkConfig))
 
 }

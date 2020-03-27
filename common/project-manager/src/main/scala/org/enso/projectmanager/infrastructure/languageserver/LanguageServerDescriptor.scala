@@ -4,7 +4,7 @@ import java.util.UUID
 
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 
-case class ServerDescriptor(
+case class LanguageServerDescriptor(
   name: String,
   rootId: UUID,
   root: String,

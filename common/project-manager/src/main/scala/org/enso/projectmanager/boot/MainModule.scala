@@ -12,8 +12,8 @@ import org.enso.projectmanager.infrastructure.file.{
   SynchronizedFileStorage
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
-  LanguageServerController,
-  LanguageServerControllerProxy
+  LanguageServerRegistry,
+  LanguageServerSubsystemProxy
 }
 import org.enso.projectmanager.infrastructure.log.Slf4jLogging
 import org.enso.projectmanager.infrastructure.random.SystemGenerator
@@ -78,13 +78,13 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
 
   lazy val languageServerController =
     system.actorOf(
-      LanguageServerController.props(config.network),
+      LanguageServerRegistry.props(config.network),
       "language-server-controller"
     )
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
-  lazy val languageServerService = new LanguageServerControllerProxy[F](
+  lazy val languageServerService = new LanguageServerSubsystemProxy[F](
     languageServerController,
     config.timeout
   )

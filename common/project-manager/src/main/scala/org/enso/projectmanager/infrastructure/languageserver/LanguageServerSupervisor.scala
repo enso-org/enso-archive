@@ -2,6 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
+import akka.actor.Status.Failure
 import akka.actor.{
   Actor,
   ActorLogging,
@@ -23,8 +24,11 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
   ServerBooted
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  CannotDisconnectOtherClients,
+  FailureDuringStoppage,
   ServerStarted,
-  StartServer
+  StartServer,
+  StopServer
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
   Boot,
@@ -32,6 +36,9 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSuper
 }
 import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.model.Project
+import akka.pattern.pipe
+import org.enso.languageserver.boot.LanguageServerComponent.ServerStopped
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 
 import scala.concurrent.duration._
 
@@ -45,7 +52,7 @@ private[languageserver] class LanguageServerSupervisor(
   import context.dispatcher
 
   private val descriptor =
-    ServerDescriptor(
+    LanguageServerDescriptor(
       name          = s"language-server-${project.id}",
       rootId        = UUID.randomUUID(),
       root          = project.path.get,
@@ -78,7 +85,7 @@ private[languageserver] class LanguageServerSupervisor(
   ): Receive = {
     case BootTimeout =>
       log.error(s"Booting failed for $descriptor")
-      context.stop(self)
+      stop()
 
     case ServerBootFailed(th) =>
       unstashAll()
@@ -111,15 +118,47 @@ private[languageserver] class LanguageServerSupervisor(
         SocketData(config.interface, config.port)
       )
       context.become(supervising(config, server, clients + clientId))
+
+    case Terminated(_) =>
+      log.debug(s"Bootloader for $project terminated.")
+
+    case StopServer(clientId, _) =>
+      val updatedClients = clients - clientId
+      if (updatedClients.isEmpty) {
+        server.stop() pipeTo self
+        context.become(stopping(sender()))
+      } else {
+        sender() ! CannotDisconnectOtherClients
+        context.become(supervising(config, server, updatedClients))
+      }
   }
 
   private def bootFailed(th: Throwable): Receive = {
     case StartServer(_, _) =>
       sender() ! LanguageServerProtocol.ServerBootFailed(th)
-      context.stop(self)
+      stop()
+
   }
 
-  private def stopping(): Receive = ???
+  private def stopping(requester: ActorRef): Receive = {
+    case Failure(th) =>
+      log.error(
+        th,
+        s"An error occurred during Language server shutdown [$project]."
+      )
+      requester ! FailureDuringStoppage(th)
+      stop()
+
+    case ServerStopped =>
+      log.info(s"Language server shutdown successfully [$project].")
+      requester ! LanguageServerProtocol.ServerStopped
+      stop()
+  }
+
+  private def stop(): Unit = {
+    context.stop(self)
+    context.parent ! ServerShutDown(project.id)
+  }
 
   override def unhandled(message: Any): Unit =
     log.warning("Received unknown message: {}", message)

@@ -52,6 +52,18 @@ object ProjectManagementApi {
     }
   }
 
+  case object ProjectClose extends Method("project/close") {
+
+    case class Params(projectId: UUID)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ProjectClose.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case class ProjectNameValidationError(msg: String) extends Error(4001, msg)
 
   case class ProjectDataStoreError(msg: String) extends Error(4002, msg)
