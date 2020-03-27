@@ -2,9 +2,10 @@ package org.enso.projectmanager.boot
 
 import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
-import cats.{Bifunctor, MonadError}
+import cats.MonadError
 import io.circe.generic.auto._
 import org.enso.jsonrpc.JsonRpcServer
+import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.effect.{Async, ErrorChannel, Exec, Sync}
 import org.enso.projectmanager.infrastructure.file.{
@@ -22,7 +23,6 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectIndex
 }
 import org.enso.projectmanager.infrastructure.time.RealClock
-import org.enso.projectmanager.boot.configuration.ProjectManagerConfig
 import org.enso.projectmanager.protocol.{
   JsonRpc,
   ManagerClientControllerFactory
@@ -82,8 +82,6 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
       "language-server-controller"
     )
 
-  import scala.concurrent.ExecutionContext.Implicits.global
-
   lazy val languageServerService = new LanguageServerSubsystemProxy[F](
     languageServerController,
     config.timeout
@@ -103,7 +101,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
     new ManagerClientControllerFactory[F](
       system,
       projectService,
-      config.timeout.requestTimeout
+      config.timeout
     )
 
   lazy val server = new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)

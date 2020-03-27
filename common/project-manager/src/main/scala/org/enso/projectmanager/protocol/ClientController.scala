@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
+import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.protocol.ProjectManagementApi.{
   ProjectClose,
@@ -19,32 +20,32 @@ import org.enso.projectmanager.requesthandler.{
 }
 import org.enso.projectmanager.service.ProjectServiceApi
 
-import scala.concurrent.duration.FiniteDuration
-
 /**
   * An actor handling communications between a single client and the project
   * manager.
   *
   * @param clientId the internal client id.
   * @param projectService a project service
-  * @param timeout a request timeout
+  * @param config a request timeout cofig
   */
 class ClientController[F[+_, +_]: Exec](
   clientId: UUID,
   projectService: ProjectServiceApi[F],
-  timeout: FiniteDuration
+  config: TimeoutConfig
 ) extends Actor
     with Stash
     with ActorLogging {
 
   private val requestHandlers: Map[Method, Props] =
     Map(
-      ProjectCreate -> ProjectCreateHandler.props[F](projectService, timeout),
-      ProjectDelete -> ProjectDeleteHandler.props[F](projectService, timeout),
+      ProjectCreate -> ProjectCreateHandler
+        .props[F](projectService, config.requestTimeout),
+      ProjectDelete -> ProjectDeleteHandler
+        .props[F](projectService, config.requestTimeout),
       ProjectOpen -> ProjectOpenHandler
-        .props[F](clientId, projectService, timeout),
+        .props[F](clientId, projectService, config.bootTimeout),
       ProjectClose -> ProjectCloseHandler
-        .props[F](clientId, projectService, timeout)
+        .props[F](clientId, projectService, config.bootTimeout)
     )
 
   override def unhandled(message: Any): Unit =
@@ -79,8 +80,8 @@ object ClientController {
   def props[F[+_, +_]: Exec](
     clientId: UUID,
     projectService: ProjectServiceApi[F],
-    timeout: FiniteDuration
+    config: TimeoutConfig
   ): Props =
-    Props(new ClientController(clientId, projectService, timeout))
+    Props(new ClientController(clientId, projectService, config: TimeoutConfig))
 
 }
