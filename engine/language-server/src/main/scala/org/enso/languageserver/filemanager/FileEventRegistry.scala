@@ -1,12 +1,13 @@
 package org.enso.languageserver.filemanager
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.data.{Client, Config}
+import org.enso.languageserver.data.{CapabilityRegistration, Client, Config}
 import org.enso.languageserver.effect._
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquired,
   CapabilityAcquisitionFileSystemFailure,
+  CapabilityForceReleased,
   CapabilityNotAcquiredResponse,
   CapabilityReleased,
   ReleaseCapability
@@ -138,6 +139,19 @@ final class FileEventRegistry(
         log.error(s"Unable to find a client for $msg")
         manager ! FileEventManagerProtocol.UnwatchPath
       }
+
+    case FileEventManagerProtocol.FileEventError(e) =>
+      val manager = sender()
+      if (store.hasClient(manager)) {
+        log.error(s"File watcher error, releasing capability", e)
+        val client = store.getClient(manager)
+        client.actor ! CapabilityForceReleased(
+          CapabilityRegistration(ReceivesTreeUpdates(client.path))
+        )
+      } else {
+        log.error("Unable to find a client for FileEventError", e)
+      }
+      manager ! FileEventManagerProtocol.UnwatchPath
 
     case ClientDisconnected(client) =>
       store

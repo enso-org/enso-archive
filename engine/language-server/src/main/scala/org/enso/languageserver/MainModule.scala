@@ -10,6 +10,7 @@ import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
   ContentBasedVersioning,
+  FileEventManagerConfig,
   FileManagerConfig,
   Sha3_224VersionCalculator
 }
@@ -37,7 +38,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val languageServerConfig = Config(
     Map(serverConfig.contentRootUuid -> new File(serverConfig.contentRootPath)),
-    FileManagerConfig(timeout = 3.seconds)
+    FileManagerConfig(timeout = 3.seconds),
+    FileEventManagerConfig()
   )
 
   val zioExec = ZioExec(zio.Runtime.default)

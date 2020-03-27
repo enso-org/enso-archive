@@ -34,4 +34,11 @@ object FileEventManagerProtocol {
     * @param result file event
     */
   case class FileEventResult(result: FileEvent)
+
+  /**
+    * Notifies about unrecoverable file watcher error.
+    *
+    * @param error last file watcher error
+    */
+  case class FileEventError(error: Throwable)
 }

@@ -8,7 +8,31 @@ import org.enso.languageserver.filemanager.{
   FileSystemFailure
 }
 
-import scala.concurrent.duration.FiniteDuration
+import scala.concurrent.duration._
+
+/**
+  * Configuration of the file event manager.
+  *
+  * @param restartTimeout timeout before watcher is restarted on error
+  * @param maxRestartsCount maximum number of unsuccessful restarts
+  * before returning an error
+  */
+case class FileEventManagerConfig(
+  restartTimeout: FiniteDuration,
+  maxRestarts: Int
+)
+
+object FileEventManagerConfig {
+
+  /**
+    * Default file event manager config.
+    */
+  def apply(): FileEventManagerConfig =
+    FileEventManagerConfig(
+      restartTimeout = 5.seconds,
+      maxRestarts    = 10
+    )
+}
 
 case class FileManagerConfig(timeout: FiniteDuration, parallelism: Int)
 
@@ -29,7 +53,8 @@ object FileManagerConfig {
   */
 case class Config(
   contentRoots: Map[UUID, File],
-  fileManager: FileManagerConfig
+  fileManager: FileManagerConfig,
+  fileEventManager: FileEventManagerConfig
 ) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =

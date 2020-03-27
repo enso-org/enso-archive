@@ -9,7 +9,6 @@ import org.enso.languageserver.effect._
 import zio._
 import zio.blocking.effectBlocking
 
-import scala.concurrent.duration._
 import scala.util.Try
 
 /**
@@ -28,6 +27,7 @@ final class FileEventManager(
 
   import context.dispatcher, FileEventManagerProtocol._
 
+  private var restartsCount: Int                    = 0
   private var fileWatcher: Option[FileEventWatcher] = None
 
   override def postStop(): Unit = {
@@ -76,13 +76,24 @@ final class FileEventManager(
       context.become(uninitializedStage)
 
     case e: FileEventWatcher.WatcherEvent =>
+      restartsCount = 0
       val event = FileEvent.fromWatcherEvent(root, base, e)
       subscriber ! FileEventResult(event)
 
     case FileEventWatcher.WatcherError(e) =>
-      log.error("File watcher error", e)
       Try(fileWatcher.foreach(_.stop()))
-      context.system.scheduler.scheduleOnce(5.seconds, self, WatchPath(base))
+      restartsCount += 1
+      if (restartsCount < config.fileEventManager.maxRestarts) {
+        log.error(s"File watcher error, restart attempt#$restartsCount", e)
+        context.system.scheduler.scheduleOnce(
+          config.fileEventManager.restartTimeout,
+          self,
+          WatchPath(base)
+        )
+      } else {
+        log.error("File watcher error, restart failure", e)
+        subscriber ! FileEventError(e)
+      }
       context.become(uninitializedStage)
 
   }

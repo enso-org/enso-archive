@@ -11,6 +11,7 @@ import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data.{
   Config,
+  FileEventManagerConfig,
   FileManagerConfig,
   Sha3_224VersionCalculator
 }
@@ -30,7 +31,8 @@ class BaseServerTest extends JsonRpcServerTestKit {
   val testContentRootId = UUID.randomUUID()
   val config = Config(
     Map(testContentRootId -> testContentRoot.toFile),
-    FileManagerConfig(timeout = 3.seconds)
+    FileManagerConfig(timeout = 3.seconds),
+    FileEventManagerConfig()
   )
 
   testContentRoot.toFile.deleteOnExit()
