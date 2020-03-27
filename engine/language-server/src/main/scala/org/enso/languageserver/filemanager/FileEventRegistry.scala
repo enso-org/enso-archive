@@ -5,8 +5,8 @@ import org.enso.languageserver.data.Config
 import org.enso.languageserver.effect._
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
-  CapabilityAcquisitionBadRequest,
   CapabilityAcquired,
+  CapabilityAcquisitionBadRequest,
   CapabilityReleaseBadRequest,
   CapabilityReleased,
   ReleaseCapability
@@ -54,8 +54,11 @@ import org.enso.languageserver.data.{
   * @param config configuration
   * @param exec executor of file system events
   */
-final class FileEventRegistry(config: Config, fs: FileSystemApi[BlockingIO], exec: Exec[BlockingIO])
-    extends Actor
+final class FileEventRegistry(
+  config: Config,
+  fs: FileSystemApi[BlockingIO],
+  exec: Exec[BlockingIO]
+) extends Actor
     with ActorLogging {
 
   import FileEventRegistry._
@@ -67,7 +70,7 @@ final class FileEventRegistry(config: Config, fs: FileSystemApi[BlockingIO], exe
         clientController,
         CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
-      val client = ClientRef(clientController.actor, path)
+      val client  = ClientRef(clientController.actor, path)
       val handler = sender()
       if (store.hasManager(client)) {
         handler ! CapabilityAcquisitionBadRequest
@@ -81,7 +84,7 @@ final class FileEventRegistry(config: Config, fs: FileSystemApi[BlockingIO], exe
         clientController,
         CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
-      val client = ClientRef(clientController.actor, path)
+      val client  = ClientRef(clientController.actor, path)
       val handler = sender()
       if (store.hasManager(client)) {
         val manager = store.getManager(client)
@@ -233,10 +236,14 @@ object FileEventRegistry {
       * @param handler Acquire or Release capability handler
       * @return updated store
       */
-    def addMappings(manager: EventManagerRef, client: ClientRef, handler: HandlerRef): Store =
+    def addMappings(
+      manager: EventManagerRef,
+      client: ClientRef,
+      handler: HandlerRef
+    ): Store =
       copy(
-        managerStore = managerStore + (client -> manager),
-        clientStore = clientStore + (manager -> client),
+        managerStore = managerStore + (client  -> manager),
+        clientStore  = clientStore + (manager  -> client),
         handlerStore = handlerStore + (manager -> handler)
       )
 
@@ -253,7 +260,7 @@ object FileEventRegistry {
         .getOrElse(managerStore)
       copy(
         managerStore = newManagerStore,
-        clientStore = clientStore - manager,
+        clientStore  = clientStore - manager,
         handlerStore = handlerStore - manager
       )
     }
@@ -290,6 +297,10 @@ object FileEventRegistry {
     * @param config configuration
     * @param exec executor of file system events
     */
-  def props(config: Config, fs: FileSystemApi[BlockingIO], exec: Exec[BlockingIO]): Props =
+  def props(
+    config: Config,
+    fs: FileSystemApi[BlockingIO],
+    exec: Exec[BlockingIO]
+  ): Props =
     Props(new FileEventRegistry(config, fs, exec))
 }

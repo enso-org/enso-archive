@@ -2,13 +2,14 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.effect._
 import zio._
 import zio.blocking.effectBlocking
 
+import scala.concurrent.duration._
 import scala.util.Try
 
 /**
@@ -18,8 +19,12 @@ import scala.util.Try
   * @param config configuration
   * @param exec executor of file system effects
   */
-final class FileEventManager(config: Config, fs: FileSystemApi[BlockingIO], exec: Exec[BlockingIO])
-    extends Actor {
+final class FileEventManager(
+  config: Config,
+  fs: FileSystemApi[BlockingIO],
+  exec: Exec[BlockingIO]
+) extends Actor
+    with ActorLogging {
 
   import context.dispatcher, FileEventManagerProtocol._
 
@@ -40,9 +45,9 @@ final class FileEventManager(config: Config, fs: FileSystemApi[BlockingIO], exec
       val result: BlockingIO[FileSystemFailure, Unit] =
         for {
           pathToWatch <- IO.fromEither(pathToWatchResult)
-          _ <- validatePath(pathToWatch)
-          watcher <- buildWatcher(pathToWatch)
-          _ <- startWatcher(watcher)
+          _           <- validatePath(pathToWatch)
+          watcher     <- buildWatcher(pathToWatch)
+          _           <- startWatcher(watcher)
         } yield ()
 
       exec
@@ -61,33 +66,44 @@ final class FileEventManager(config: Config, fs: FileSystemApi[BlockingIO], exec
   private def initializedStage(
     root: File,
     base: Path,
-    replyTo: ActorRef
+    subscriber: ActorRef
   ): Receive = {
     case UnwatchPath =>
       exec
         .exec(stopWatcher)
         .map(UnwatchPathResult(_))
-        .pipeTo(replyTo)
+        .pipeTo(subscriber)
       context.become(uninitializedStage)
 
     case e: FileEventWatcher.WatcherEvent =>
       val event = FileEvent.fromWatcherEvent(root, base, e)
-      replyTo ! FileEventResult(event)
+      subscriber ! FileEventResult(event)
+
+    case FileEventWatcher.WatcherError(e) =>
+      log.error("File watcher error", e)
+      Try(fileWatcher.foreach(_.stop()))
+      context.system.scheduler.scheduleOnce(5.seconds, self, WatchPath(base))
+      context.become(uninitializedStage)
+
   }
 
-  private def buildWatcher(path: File): IO[FileSystemFailure, FileEventWatcher] =
+  private def buildWatcher(
+    path: File
+  ): IO[FileSystemFailure, FileEventWatcher] =
     IO(FileEventWatcher.build(path.toPath, self ! _, self ! _))
       .mapError(errorHandler)
 
   private def validatePath(path: File): BlockingIO[FileSystemFailure, Unit] =
     for {
       pathExists <- fs.exists(path)
-      _ <- ZIO.when(!pathExists)(IO.fail(FileNotFound))
+      _          <- ZIO.when(!pathExists)(IO.fail(FileNotFound))
     } yield ()
 
-  private def startWatcher(watcher: FileEventWatcher): IO[FileSystemFailure, Unit] =
+  private def startWatcher(
+    watcher: FileEventWatcher
+  ): IO[FileSystemFailure, Unit] =
     IO {
-      this.fileWatcher = Some(watcher)
+      fileWatcher = Some(watcher)
       exec.exec_(effectBlocking(watcher.start()))
     }.mapError(errorHandler)
 
@@ -110,6 +126,10 @@ object FileEventManager {
     * @param fs file system
     * @param exec executor of file system effects
     */
-  def props(config: Config, fs: FileSystemApi[BlockingIO], exec: Exec[BlockingIO]): Props =
+  def props(
+    config: Config,
+    fs: FileSystemApi[BlockingIO],
+    exec: Exec[BlockingIO]
+  ): Props =
     Props(new FileEventManager(config, fs, exec))
 }

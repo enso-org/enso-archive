@@ -118,7 +118,11 @@ object FileEventWatcher {
     */
   case class WatcherError(exception: Exception)
 
-  def build(root: Path, eventCallback: WatcherEvent => Unit, exceptionCallback: WatcherError => Unit): FileEventWatcher =
+  def build(
+    root: Path,
+    eventCallback: WatcherEvent => Unit,
+    exceptionCallback: WatcherError => Unit
+  ): FileEventWatcher =
     new FileEventWatcher(root, eventCallback, exceptionCallback)
 
 }
