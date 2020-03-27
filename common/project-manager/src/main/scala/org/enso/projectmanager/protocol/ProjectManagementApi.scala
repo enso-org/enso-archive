@@ -42,7 +42,7 @@ object ProjectManagementApi {
 
     case class Params(projectId: UUID)
 
-    case class Result(lsAddress: SocketData)
+    case class Result(languageServerAddress: SocketData)
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = ProjectOpen.Params

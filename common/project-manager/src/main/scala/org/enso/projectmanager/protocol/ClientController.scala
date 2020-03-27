@@ -67,7 +67,7 @@ class ClientController[F[+_, +_]: Exec](
 
   def connected(webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
-      log.info(s"Client disconnected from Project Manager [$clientId]")
+      log.info(s"Client disconnected from the Project Manager [$clientId]")
       context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 

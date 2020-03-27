@@ -217,7 +217,6 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             }
           }
           """)
-
     }
 
   }
