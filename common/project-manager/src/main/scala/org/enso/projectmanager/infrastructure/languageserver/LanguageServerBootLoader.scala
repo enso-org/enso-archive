@@ -81,7 +81,7 @@ private[languageserver] class LanguageServerBootLoader(
   }
 
   override def unhandled(message: Any): Unit =
-    log.warning("Boot Received unknown message: {}", message)
+    log.warning("Received unknown message: {}", message)
 
 }
 

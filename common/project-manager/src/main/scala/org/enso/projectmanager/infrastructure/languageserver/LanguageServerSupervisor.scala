@@ -38,6 +38,7 @@ import org.enso.projectmanager.boot.configuration.NetworkConfig
 import org.enso.projectmanager.model.Project
 import akka.pattern.pipe
 import org.enso.languageserver.boot.LanguageServerComponent.ServerStopped
+import org.enso.projectmanager.event.ClientDisconnected
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 
 import scala.concurrent.duration._
@@ -64,6 +65,7 @@ private[languageserver] class LanguageServerSupervisor(
   }
 
   override def preStart(): Unit = {
+    context.system.eventStream.subscribe(self, classOf[ClientDisconnected])
     self ! Boot
   }
 
@@ -123,14 +125,28 @@ private[languageserver] class LanguageServerSupervisor(
       log.debug(s"Bootloader for $project terminated.")
 
     case StopServer(clientId, _) =>
-      val updatedClients = clients - clientId
-      if (updatedClients.isEmpty) {
-        server.stop() pipeTo self
-        context.become(stopping(sender()))
-      } else {
-        sender() ! CannotDisconnectOtherClients
-        context.become(supervising(config, server, updatedClients))
-      }
+      removeClient(config, server, clients, clientId, Some(sender()))
+
+    case ClientDisconnected(clientId) =>
+      removeClient(config, server, clients, clientId, None)
+
+  }
+
+  private def removeClient(
+    config: LanguageServerConfig,
+    server: LanguageServerComponent,
+    clients: Set[UUID],
+    clientId: UUID,
+    maybeRequester: Option[ActorRef]
+  ): Unit = {
+    val updatedClients = clients - clientId
+    if (updatedClients.isEmpty) {
+      server.stop() pipeTo self
+      context.become(stopping(maybeRequester))
+    } else {
+      sender() ! CannotDisconnectOtherClients
+      context.become(supervising(config, server, updatedClients))
+    }
   }
 
   private def bootFailed(th: Throwable): Receive = {
@@ -140,18 +156,18 @@ private[languageserver] class LanguageServerSupervisor(
 
   }
 
-  private def stopping(requester: ActorRef): Receive = {
+  private def stopping(maybeRequester: Option[ActorRef]): Receive = {
     case Failure(th) =>
       log.error(
         th,
         s"An error occurred during Language server shutdown [$project]."
       )
-      requester ! FailureDuringStoppage(th)
+      maybeRequester.foreach(_ ! FailureDuringStoppage(th))
       stop()
 
     case ServerStopped =>
       log.info(s"Language server shutdown successfully [$project].")
-      requester ! LanguageServerProtocol.ServerStopped
+      maybeRequester.foreach(_ ! LanguageServerProtocol.ServerStopped)
       stop()
   }
 

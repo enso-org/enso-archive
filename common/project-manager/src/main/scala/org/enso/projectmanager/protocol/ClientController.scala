@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
+import org.enso.projectmanager.event.{ClientConnected, ClientDisconnected}
 import org.enso.projectmanager.protocol.ProjectManagementApi.{
   ProjectClose,
   ProjectCreate,
@@ -53,14 +54,18 @@ class ClientController[F[+_, +_]: Exec](
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>
+      log.info(s"Client connected to Project Manager [$clientId]")
       unstashAll()
       context.become(connected(webActor))
+      context.system.eventStream.publish(ClientConnected(clientId))
 
     case _ => stash()
   }
 
   def connected(webActor: ActorRef): Receive = {
     case MessageHandler.Disconnected =>
+      log.info(s"Client disconnected from Project Manager [$clientId]")
+      context.system.eventStream.publish(ClientDisconnected(clientId))
       context.stop(self)
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
