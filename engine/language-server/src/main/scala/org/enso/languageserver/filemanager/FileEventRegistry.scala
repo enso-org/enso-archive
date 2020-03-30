@@ -20,40 +20,10 @@ import org.enso.languageserver.event.ClientDisconnected
 
 /**
   * FileEvent registry handles `receivesTreeUpdates` capability, starts
-  * [[FileEventManager]], handles errors, and sends file events to the
-  * [[org.enso.languageserver.protocol.ClientController]]
-  *
-  * ==Implementation==
-  *
-  * Scheme of interaction between file-event actors:
-  *
-  * {{{
-  *
-  *  +------------------+  +-------------------+
-  *  | ClientController |  | CapabilityHandler |
-  *  +------------------+  +-------------------+
-  *                   ^      ^ CapabilityResponse
-  *   FileEventResult |      |
-  *                   |      v Acquire/ReleaseCapability
-  *             +-------------------+
-  *             | FileEventRegistry |
-  *             +-------------------+
-  *                   ^      ^ Watch/UnwatchPathResult
-  *         FileEvent |      |
-  *                   |      v Watch/UnwatchPath
-  *             +-------------------+
-  *             | FileEventManager  |
-  *             +-------------------+
-  *                   ^
-  *      WatcherEvent |
-  *                   |
-  *             +-------------------+
-  *             | FileEventWatcher  |
-  *             +-------------------+
-  *
-  * }}}
+  * [[FileEventManager]], and handles errors
   *
   * @param config configuration
+  * @param fs file system
   * @param exec executor of file system events
   */
 final class FileEventRegistry(
@@ -86,7 +56,7 @@ final class FileEventRegistry(
 
       val manager = context.actorOf(FileEventManager.props(config, fs, exec))
       context.watch(manager)
-      manager ! FileEventManagerProtocol.WatchPath(path)
+      manager ! FileEventManagerProtocol.WatchPath(path, clientController.actor)
       context.become(withStore(store.addMappings(manager, client, handler)))
 
     case ReleaseCapability(
@@ -130,16 +100,6 @@ final class FileEventRegistry(
       }
       context.stop(manager)
       context.become(withStore(store.removeMappings(manager)))
-
-    case msg @ FileEventManagerProtocol.FileEventResult(_) =>
-      val manager = sender()
-      if (store.hasClient(manager)) {
-        val client = store.getClient(manager)
-        client.actor ! msg
-      } else {
-        log.error(s"Unable to find a client for $msg")
-        manager ! FileEventManagerProtocol.UnwatchPath
-      }
 
     case FileEventManagerProtocol.FileEventError(e) =>
       val manager = sender()

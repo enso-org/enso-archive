@@ -1,5 +1,7 @@
 package org.enso.languageserver.filemanager
 
+import akka.actor.ActorRef
+
 object FileEventManagerProtocol {
 
   /**
@@ -7,7 +9,7 @@ object FileEventManagerProtocol {
     *
     * @param path path to watch
     */
-  case class WatchPath(path: Path)
+  case class WatchPath(path: Path, client: ActorRef)
 
   /**
     * Returns result of a [[WatchPath]] request.

@@ -13,9 +13,10 @@ import scala.util.Try
 
 /**
   * Event manager starts [[FileEventWatcher]], handles errors, converts and
-  * sends [[FileEvent]]'s to [[FileEventRegistry]].
+  * sends events to the client.
   *
   * @param config configuration
+  * @param fs file system
   * @param exec executor of file system effects
   */
 final class FileEventManager(
@@ -27,7 +28,8 @@ final class FileEventManager(
 
   import context.dispatcher, FileEventManagerProtocol._
 
-  private val restartCounter = new FileEventManager.RestartCounter(config.fileEventManager.maxRestarts)
+  private val restartCounter =
+    new FileEventManager.RestartCounter(config.fileEventManager.maxRestarts)
   private var fileWatcher: Option[FileEventWatcher] = None
 
   override def postStop(): Unit = {
@@ -38,7 +40,7 @@ final class FileEventManager(
   override def receive: Receive = uninitializedStage
 
   private def uninitializedStage: Receive = {
-    case WatchPath(path) =>
+    case WatchPath(path, client) =>
       val pathToWatchResult = config
         .findContentRoot(path.rootId)
         .map(path.toFile(_))
@@ -55,7 +57,7 @@ final class FileEventManager(
         .map(WatchPathResult(_))
         .pipeTo(sender())
       pathToWatchResult.foreach { root =>
-        context.become(initializedStage(root, path, sender()))
+        context.become(initializedStage(root, path, sender(), client))
       }
 
     case UnwatchPath =>
@@ -66,7 +68,8 @@ final class FileEventManager(
   private def initializedStage(
     root: File,
     base: Path,
-    subscriber: ActorRef
+    subscriber: ActorRef,
+    client: ActorRef
   ): Receive = {
     case UnwatchPath =>
       exec
@@ -78,7 +81,7 @@ final class FileEventManager(
     case e: FileEventWatcher.WatcherEvent =>
       restartCounter.reset()
       val event = FileEvent.fromWatcherEvent(root, base, e)
-      subscriber ! FileEventResult(event)
+      client ! FileEventResult(event)
 
     case FileEventWatcher.WatcherError(e) =>
       Try(fileWatcher.foreach(_.stop()))
@@ -88,7 +91,7 @@ final class FileEventManager(
         context.system.scheduler.scheduleOnce(
           config.fileEventManager.restartTimeout,
           self,
-          WatchPath(base)
+          WatchPath(base, client)
         )
       } else {
         log.error("Hit maximum number of restarts", e)
@@ -136,7 +139,7 @@ object FileEventManager {
     *
     * @param maxRestarts maximum number of restarts we can try
     */
-  private final class RestartCounter(maxRestarts: Int) {
+  final private class RestartCounter(maxRestarts: Int) {
 
     private var restartCount: Int = 0
 
