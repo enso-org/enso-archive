@@ -9,7 +9,8 @@ import zio._
   * Watches the root with subdirectories and executes callback on file event.
   *
   * @param root directory to watch
-  * @param callback that fires on the file system events
+  * @param eventCallback callback that fires on the file system events
+  * @param errorCallback callback that fires on a watcher error
   */
 final class WatcherAdapter(
   root: Path,
@@ -26,13 +27,13 @@ final class WatcherAdapter(
     .build()
 
   /**
-    * Start the watcher.
+    * Start watcher.
     */
   def start(): IO[Throwable, Unit] =
     IO(watcher.watch())
 
   /**
-    * Stop the watcher.
+    * Stop watcher.
     */
   def stop(): IO[Throwable, Unit] =
     IO(watcher.close())

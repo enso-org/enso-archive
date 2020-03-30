@@ -35,34 +35,34 @@ final class ReceivesTreeUpdatesHandler(
         client,
         CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
-      store.getManager(path) match {
-        case Some(manager) =>
-          manager.forward(
+      store.getWatcher(path) match {
+        case Some(watcher) =>
+          watcher.forward(
             PathWatcherProtocol.WatchPath(path, client.actor)
           )
         case None =>
-          val manager =
+          val watcher =
             context.actorOf(PathWatcher.props(config, fs, exec))
-          context.watch(manager)
-          manager.forward(
+          context.watch(watcher)
+          watcher.forward(
             PathWatcherProtocol.WatchPath(path, client.actor)
           )
-          context.become(withStore(store.addManager(manager, path)))
+          context.become(withStore(store.addWatcher(watcher, path)))
       }
 
     case ReleaseCapability(
         client,
         CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
-      store.getManager(path) match {
-        case Some(manager) =>
-          manager.forward(PathWatcherProtocol.UnwatchPath(client.actor))
+      store.getWatcher(path) match {
+        case Some(watcher) =>
+          watcher.forward(PathWatcherProtocol.UnwatchPath(client.actor))
         case None =>
           sender() ! CapabilityNotAcquiredResponse
       }
 
-    case Terminated(manager) =>
-      context.become(withStore(store.removeManager(manager)))
+    case Terminated(watcher) =>
+      context.become(withStore(store.removeWatcher(watcher)))
   }
 }
 
@@ -71,37 +71,37 @@ object ReceivesTreeUpdatesHandler {
   /**
     * Internal state of a [[ReceivesTreeUpdatesHandler]].
     *
-    * @param managers a file event manager with a watched path
+    * @param watchers mappings of a path watcher with a path
     */
-  case class Store(managers: Map[Path, ActorRef]) {
+  case class Store(watchers: Map[Path, ActorRef]) {
 
     /**
-      * Returns manager associated with the provided path.
+      * Returns watcher associated with the provided path.
       *
       * @param path watched path
-      * @return optional manager associated with this path
+      * @return optional watcher associated with this path
       */
-    def getManager(path: Path): Option[ActorRef] =
-      managers.get(path)
+    def getWatcher(path: Path): Option[ActorRef] =
+      watchers.get(path)
 
     /**
-      * Add new manager with watched path to the store.
+      * Add new watcher with the path to the store.
       *
-      * @param manager file event manager
+      * @param watcher path watcher
       * @param path watched path
       * @return updated store
       */
-    def addManager(manager: ActorRef, path: Path): Store =
-      copy(managers = managers + (path -> manager))
+    def addWatcher(watcher: ActorRef, path: Path): Store =
+      copy(watchers = watchers + (path -> watcher))
 
     /**
-      * Remove manager from the store.
+      * Remove watcher from the store.
       *
-      * @param manager file event manager
+      * @param watcher path watcher
       * @return updated store
       */
-    def removeManager(manager: ActorRef): Store =
-      copy(managers = managers.filter(kv => kv._2 != manager))
+    def removeWatcher(watcher: ActorRef): Store =
+      copy(watchers = watchers.filter(kv => kv._2 != watcher))
   }
 
   private object Store {

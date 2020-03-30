@@ -23,8 +23,8 @@ import zio._
 import scala.concurrent.Await
 
 /**
-  * Event manager starts [[WatcherAdapter]], handles errors, converts and
-  * sends events to the client.
+  * Starts [[WatcherAdapter]], handles errors, converts and sends
+  * events to the client.
   *
   * @param config configuration
   * @param fs file system

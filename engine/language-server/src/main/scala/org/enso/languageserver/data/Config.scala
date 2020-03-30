@@ -11,7 +11,7 @@ import org.enso.languageserver.filemanager.{
 import scala.concurrent.duration._
 
 /**
-  * Configuration of the file event manager.
+  * Configuration of the path watcher.
   *
   * @param timeout path watcher operations timeout
   * @param restartTimeout timeout before watcher is restarted on error
@@ -27,7 +27,7 @@ case class PathWatcherConfig(
 object PathWatcherConfig {
 
   /**
-    * Default file event manager config.
+    * Default path watcher config.
     */
   def apply(): PathWatcherConfig =
     PathWatcherConfig(

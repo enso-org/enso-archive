@@ -67,7 +67,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val bufferRegistry =
     system.actorOf(BufferRegistry.props(fileManager), "buffer-registry")
 
-  lazy val fileEventRegistry =
+  lazy val receivesTreeUpdatesHandler =
     system.actorOf(
       ReceivesTreeUpdatesHandler
         .props(languageServerConfig, fileSystem, zioExec),
@@ -76,7 +76,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val capabilityRouter =
     system.actorOf(
-      CapabilityRouter.props(bufferRegistry, fileEventRegistry),
+      CapabilityRouter.props(bufferRegistry, receivesTreeUpdatesHandler),
       "capability-router"
     )
 
