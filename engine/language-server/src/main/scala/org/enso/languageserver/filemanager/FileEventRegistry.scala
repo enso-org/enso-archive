@@ -1,6 +1,6 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import org.enso.languageserver.data.{CapabilityRegistration, Client, Config}
 import org.enso.languageserver.effect._
 import org.enso.languageserver.capability.CapabilityProtocol.{
@@ -85,6 +85,7 @@ final class FileEventRegistry(
       }
 
       val manager = context.actorOf(FileEventManager.props(config, fs, exec))
+      context.watch(manager)
       manager ! FileEventManagerProtocol.WatchPath(path)
       context.become(withStore(store.addMappings(manager, client, handler)))
 
@@ -157,6 +158,9 @@ final class FileEventRegistry(
       store
         .getManagers(client)
         .foreach { _ ! FileEventManagerProtocol.UnwatchPath }
+
+    case Terminated(manager) =>
+      context.become(withStore(store.removeMappings(manager)))
   }
 }
 
