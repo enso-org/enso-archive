@@ -16,9 +16,9 @@ import org.enso.languageserver.data.{
   Sha3_224VersionCalculator
 }
 import org.enso.languageserver.filemanager.{
-  FileEventRegistry,
   FileManager,
-  FileSystem
+  FileSystem,
+  ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.text.BufferRegistry
@@ -50,7 +50,9 @@ class BaseServerTest extends JsonRpcServerTestKit {
         BufferRegistry.props(fileManager)(Sha3_224VersionCalculator)
       )
     val fileEventRegistry =
-      system.actorOf(FileEventRegistry.props(config, new FileSystem, zioExec))
+      system.actorOf(
+        ReceivesTreeUpdatesHandler.props(config, new FileSystem, zioExec)
+      )
     lazy val capabilityRouter =
       system.actorOf(CapabilityRouter.props(bufferRegistry, fileEventRegistry))
 

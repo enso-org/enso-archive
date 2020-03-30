@@ -16,10 +16,13 @@ import org.enso.languageserver.data.{
   * correct recipient based on the capability object.
   *
   * @param bufferRegistry the recipient of buffer capability requests
-  * @param fileEventRegistry `FileEventRegistry` actor
+  * @param receivesTreeUpdatesHandler the recipient of
+  * `receivesTreeUpdates` capability requests
   */
-class CapabilityRouter(bufferRegistry: ActorRef, fileEventRegistry: ActorRef)
-    extends Actor {
+class CapabilityRouter(
+  bufferRegistry: ActorRef,
+  receivesTreeUpdatesHandler: ActorRef
+) extends Actor {
 
   override def receive: Receive = {
     case msg @ AcquireCapability(_, CapabilityRegistration(CanEdit(_))) =>
@@ -32,13 +35,13 @@ class CapabilityRouter(bufferRegistry: ActorRef, fileEventRegistry: ActorRef)
           _,
           CapabilityRegistration(ReceivesTreeUpdates(_))
         ) =>
-      fileEventRegistry.forward(msg)
+      receivesTreeUpdatesHandler.forward(msg)
 
     case msg @ ReleaseCapability(
           _,
           CapabilityRegistration(ReceivesTreeUpdates(_))
         ) =>
-      fileEventRegistry.forward(msg)
+      receivesTreeUpdatesHandler.forward(msg)
   }
 
 }
@@ -51,7 +54,10 @@ object CapabilityRouter {
     * @param bufferRegistry a buffer registry ref
     * @return a configuration object
     */
-  def props(bufferRegistry: ActorRef, fileEventRegistry: ActorRef): Props =
-    Props(new CapabilityRouter(bufferRegistry, fileEventRegistry))
+  def props(
+    bufferRegistry: ActorRef,
+    receivesTreeUpdatesHandler: ActorRef
+  ): Props =
+    Props(new CapabilityRouter(bufferRegistry, receivesTreeUpdatesHandler))
 
 }

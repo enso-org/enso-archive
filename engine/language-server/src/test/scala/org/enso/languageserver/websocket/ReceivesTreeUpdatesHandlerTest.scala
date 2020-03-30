@@ -4,9 +4,9 @@ import java.nio.file.{Files, Paths}
 
 import io.circe.literal._
 
-class FileEventRegistryTest extends BaseServerTest {
+class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
 
-  "FileEventRegistry" must {
+  "ReceivesTreeUpdatesHandler" must {
 
     "acquire capability receivesTreeUpdates" in {
       val client = new WsTestClient(address)

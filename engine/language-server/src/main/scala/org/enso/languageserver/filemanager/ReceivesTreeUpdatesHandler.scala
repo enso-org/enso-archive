@@ -20,13 +20,13 @@ import org.enso.languageserver.effect._
   * @param fs file system
   * @param exec executor of file system events
   */
-final class FileEventRegistry(
+final class ReceivesTreeUpdatesHandler(
   config: Config,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor {
 
-  import FileEventRegistry._
+  import ReceivesTreeUpdatesHandler._
 
   override def receive: Receive = withStore(Store())
 
@@ -66,10 +66,10 @@ final class FileEventRegistry(
   }
 }
 
-object FileEventRegistry {
+object ReceivesTreeUpdatesHandler {
 
   /**
-    * Internal state of a [[FileEventRegistry]].
+    * Internal state of a [[ReceivesTreeUpdatesHandler]].
     *
     * @param managers a file event manager with a watched path
     */
@@ -111,7 +111,8 @@ object FileEventRegistry {
   }
 
   /**
-    * Creates a configuration object used to create a [[FileEventRegistry]].
+    * Creates a configuration object used to create a
+    * [[ReceivesTreeUpdatesHandler]].
     *
     * @param config configuration
     * @param exec executor of file system events
@@ -121,5 +122,5 @@ object FileEventRegistry {
     fs: FileSystemApi[BlockingIO],
     exec: Exec[BlockingIO]
   ): Props =
-    Props(new FileEventRegistry(config, fs, exec))
+    Props(new ReceivesTreeUpdatesHandler(config, fs, exec))
 }

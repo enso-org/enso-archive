@@ -16,9 +16,9 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
-  FileEventRegistry,
   FileManager,
-  FileSystem
+  FileSystem,
+  ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.RuntimeConnector
@@ -69,7 +69,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val fileEventRegistry =
     system.actorOf(
-      FileEventRegistry.props(languageServerConfig, fileSystem, zioExec),
+      ReceivesTreeUpdatesHandler
+        .props(languageServerConfig, fileSystem, zioExec),
       "file-event-registry"
     )
 
