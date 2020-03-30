@@ -459,6 +459,7 @@ lazy val language_server = (project in file("engine/language-server"))
       "org.bouncycastle" % "bcpkix-jdk15on"        % "1.64",
       "dev.zio"          %% "zio"                  % "1.0.0-RC18-2",
       "io.methvin"       % "directory-watcher"     % "0.9.6",
+      "com.beachape"     %% "enumeratum-circe"     % "1.5.23",
       akkaTestkit        % Test,
       "commons-io"       % "commons-io" % "2.6",
       "org.scalatest"    %% "scalatest" % "3.2.0-M2" % Test,

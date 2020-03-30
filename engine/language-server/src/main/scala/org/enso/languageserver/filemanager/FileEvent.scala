@@ -2,8 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 
-import io.circe.syntax._
-import io.circe.{Decoder, Encoder, Json}
+import enumeratum._
 
 /**
   * A representation of filesystem event.
@@ -37,9 +36,9 @@ object FileEvent {
 /**
   * Type of a file event.
   */
-sealed trait FileEventKind
+sealed trait FileEventKind extends EnumEntry
 
-object FileEventKind {
+object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {
 
   /**
     * Event type indicating file creation.
@@ -56,6 +55,8 @@ object FileEventKind {
     */
   case object Modified extends FileEventKind
 
+  val values = findValues
+
   /**
     * Create [[FileEventKind]] from [[FileEventWatcher.EventType]].
     *
@@ -67,40 +68,5 @@ object FileEventKind {
       case FileEventWatcher.EventTypeCreate => FileEventKind.Added
       case FileEventWatcher.EventTypeModify => FileEventKind.Modified
       case FileEventWatcher.EventTypeDelete => FileEventKind.Removed
-    }
-
-  private object CodecField {
-
-    val Type = "type"
-  }
-
-  private object CodecType {
-
-    val Added = "Added"
-
-    val Removed = "Removed"
-
-    val Modified = "Modified"
-  }
-
-  implicit val encoder: Encoder[FileEventKind] =
-    Encoder.instance[FileEventKind] {
-      case Added =>
-        Json.obj(CodecField.Type -> CodecType.Added.asJson)
-
-      case Removed =>
-        Json.obj(CodecField.Type -> CodecType.Removed.asJson)
-
-      case Modified =>
-        Json.obj(CodecField.Type -> CodecType.Modified.asJson)
-    }
-
-  implicit val decoder: Decoder[FileEventKind] =
-    Decoder.instance { cursor =>
-      cursor.downField(CodecField.Type).as[String].flatMap {
-        case CodecType.Added    => Right(Added)
-        case CodecType.Removed  => Right(Removed)
-        case CodecType.Modified => Right(Modified)
-      }
     }
 }

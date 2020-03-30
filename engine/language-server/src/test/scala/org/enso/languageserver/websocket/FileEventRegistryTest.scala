@@ -230,9 +230,7 @@ class FileEventRegistryTest extends BaseServerTest {
                     "rootId": $testContentRootId,
                     "segments": [ "oneone.txt" ]
                  },
-                 "kind": {
-                   "type": "Added"
-                 }
+                 "kind": "Added"
                }
              }
           }
@@ -249,9 +247,7 @@ class FileEventRegistryTest extends BaseServerTest {
                     "rootId": $testContentRootId,
                     "segments": [ "oneone.txt" ]
                  },
-                 "kind": {
-                   "type": "Modified"
-                 }
+                 "kind": "Modified"
                }
              }
           }
@@ -268,9 +264,7 @@ class FileEventRegistryTest extends BaseServerTest {
                     "rootId": $testContentRootId,
                     "segments": [ "oneone.txt" ]
                  },
-                 "kind": {
-                   "type": "Removed"
-                 }
+                 "kind": "Removed"
                }
              }
           }
