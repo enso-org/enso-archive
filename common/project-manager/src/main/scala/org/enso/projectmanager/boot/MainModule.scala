@@ -78,7 +78,7 @@ class MainModule[F[+_, +_]: Sync: ErrorChannel: Exec: CovariantFlatMap: Async](
 
   lazy val languageServerController =
     system.actorOf(
-      LanguageServerRegistry.props(config.network),
+      LanguageServerRegistry.props(config.network, config.bootloader),
       "language-server-controller"
     )
 

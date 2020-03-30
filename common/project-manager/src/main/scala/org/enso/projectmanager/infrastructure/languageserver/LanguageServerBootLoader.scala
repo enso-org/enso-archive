@@ -7,6 +7,7 @@ import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
 }
+import org.enso.projectmanager.boot.configuration.BootloaderConfig
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   Boot,
@@ -17,7 +18,8 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 import org.enso.projectmanager.infrastructure.net.Tcp
 
 private[languageserver] class LanguageServerBootLoader(
-  descriptor: LanguageServerDescriptor
+  descriptor: LanguageServerDescriptor,
+  config: BootloaderConfig
 ) extends Actor
     with ActorLogging {
 
@@ -64,8 +66,9 @@ private[languageserver] class LanguageServerBootLoader(
         th,
         s"An error occurred during boot of Language Server [${descriptor.name}]"
       )
-      if (retry < 10) {
-        self ! Boot
+      if (retry < config.noRetries) {
+        context.system.scheduler
+          .scheduleOnce(config.delayBetweenRetry, self, Boot)
         context.become(booting(socket, retry + 1))
       } else {
         log.error("Tried 10 times to boot Language Server. Giving up.")
@@ -87,8 +90,11 @@ private[languageserver] class LanguageServerBootLoader(
 
 private[languageserver] object LanguageServerBootLoader {
 
-  def props(descriptor: LanguageServerDescriptor): Props =
-    Props(new LanguageServerBootLoader(descriptor))
+  def props(
+    descriptor: LanguageServerDescriptor,
+    config: BootloaderConfig
+  ): Props =
+    Props(new LanguageServerBootLoader(descriptor, config))
 
   case object FindFreeSocket
 

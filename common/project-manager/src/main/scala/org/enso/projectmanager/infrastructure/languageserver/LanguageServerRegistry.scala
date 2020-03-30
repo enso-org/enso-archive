@@ -3,7 +3,10 @@ package org.enso.projectmanager.infrastructure.languageserver
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.projectmanager.boot.configuration.NetworkConfig
+import org.enso.projectmanager.boot.configuration.{
+  BootloaderConfig,
+  NetworkConfig
+}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
   ServerNotRunning,
   StartServer,
@@ -11,8 +14,10 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 
-class LanguageServerRegistry(networkConfig: NetworkConfig)
-    extends Actor
+class LanguageServerRegistry(
+  networkConfig: NetworkConfig,
+  bootloaderConfig: BootloaderConfig
+) extends Actor
     with ActorLogging {
 
   override def receive: Receive = running()
@@ -23,7 +28,8 @@ class LanguageServerRegistry(networkConfig: NetworkConfig)
         servers(project.id).forward(msg)
       } else {
         val ref = context.actorOf(
-          LanguageServerSupervisor.props(project, networkConfig)
+          LanguageServerSupervisor
+            .props(project, networkConfig, bootloaderConfig)
         )
         ref.forward(msg)
         context.become(running(servers + (project.id -> ref)))
@@ -50,7 +56,10 @@ object LanguageServerRegistry {
 
   case class ServerShutDown(projectId: UUID)
 
-  def props(networkConfig: NetworkConfig): Props =
-    Props(new LanguageServerRegistry(networkConfig))
+  def props(
+    networkConfig: NetworkConfig,
+    bootloaderConfig: BootloaderConfig
+  ): Props =
+    Props(new LanguageServerRegistry(networkConfig, bootloaderConfig))
 
 }

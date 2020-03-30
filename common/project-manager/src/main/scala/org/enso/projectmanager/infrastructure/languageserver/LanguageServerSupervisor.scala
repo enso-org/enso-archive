@@ -20,7 +20,10 @@ import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
 }
-import org.enso.projectmanager.boot.configuration.NetworkConfig
+import org.enso.projectmanager.boot.configuration.{
+  BootloaderConfig,
+  NetworkConfig
+}
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
@@ -39,7 +42,8 @@ import scala.concurrent.duration._
 
 private[languageserver] class LanguageServerSupervisor(
   project: Project,
-  networkConfig: NetworkConfig
+  networkConfig: NetworkConfig,
+  bootloaderConfig: BootloaderConfig
 ) extends Actor
     with Stash
     with ActorLogging {
@@ -66,7 +70,9 @@ private[languageserver] class LanguageServerSupervisor(
   override def receive: Receive = {
     case Boot =>
       val bootloader =
-        context.actorOf(LanguageServerBootLoader.props(descriptor))
+        context.actorOf(
+          LanguageServerBootLoader.props(descriptor, bootloaderConfig)
+        )
       context.watch(bootloader)
       val timeoutCancellable =
         context.system.scheduler.scheduleOnce(30.seconds, self, BootTimeout)
@@ -177,8 +183,14 @@ private[languageserver] class LanguageServerSupervisor(
 
 object LanguageServerSupervisor {
 
-  def props(project: Project, networkConfig: NetworkConfig): Props =
-    Props(new LanguageServerSupervisor(project, networkConfig))
+  def props(
+    project: Project,
+    networkConfig: NetworkConfig,
+    bootloaderConfig: BootloaderConfig
+  ): Props =
+    Props(
+      new LanguageServerSupervisor(project, networkConfig, bootloaderConfig)
+    )
 
   case object BootTimeout
 

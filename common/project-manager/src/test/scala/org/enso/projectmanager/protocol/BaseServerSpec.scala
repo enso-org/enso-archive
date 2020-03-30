@@ -23,6 +23,7 @@ import org.enso.projectmanager.infrastructure.repository.{
   ProjectIndex
 }
 import org.enso.projectmanager.boot.configuration.{
+  BootloaderConfig,
   NetworkConfig,
   StorageConfig,
   TimeoutConfig
@@ -59,6 +60,8 @@ class BaseServerSpec extends JsonRpcServerTestKit {
     userProjectsPath    = userProjectDir
   )
 
+  lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
+
   lazy val timeoutConfig = TimeoutConfig(3.seconds, 3.seconds, 3.seconds)
 
   lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
@@ -86,7 +89,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val projectValidator = new MonadicProjectValidator[ZIO[ZEnv, *, *]]()
 
   lazy val languageServerRegistry =
-    system.actorOf(LanguageServerRegistry.props(netConfig))
+    system.actorOf(LanguageServerRegistry.props(netConfig, bootloaderConfig))
 
   lazy val languageServerService =
     new LanguageServerRegistryProxy[ZIO[ZEnv, +*, +*]](

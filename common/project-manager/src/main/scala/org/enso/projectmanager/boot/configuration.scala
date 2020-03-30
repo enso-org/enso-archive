@@ -15,7 +15,8 @@ object configuration {
     server: ServerConfig,
     storage: StorageConfig,
     timeout: TimeoutConfig,
-    network: NetworkConfig
+    network: NetworkConfig,
+    bootloader: BootloaderConfig
   )
 
   /**
@@ -45,5 +46,10 @@ object configuration {
   )
 
   case class NetworkConfig(interface: String, minPort: Int, maxPort: Int)
+
+  case class BootloaderConfig(
+    noRetries: Int,
+    delayBetweenRetry: FiniteDuration
+  )
 
 }
