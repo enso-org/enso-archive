@@ -25,7 +25,7 @@ object FileEvent {
   def fromWatcherEvent(
     root: File,
     base: Path,
-    event: FileEventWatcher.WatcherEvent
+    event: WatcherAdapter.WatcherEvent
   ): FileEvent =
     FileEvent(
       Path.getRelativePath(root, base, event.path),
@@ -58,15 +58,15 @@ object FileEventKind extends Enum[FileEventKind] with CirceEnum[FileEventKind] {
   val values = findValues
 
   /**
-    * Create [[FileEventKind]] from [[FileEventWatcher.EventType]].
+    * Create [[FileEventKind]] from [[WatcherAdapter.EventType]].
     *
     * @param eventType file system event type
     * @return file event kind
     */
-  def apply(eventType: FileEventWatcher.EventType): FileEventKind =
+  def apply(eventType: WatcherAdapter.EventType): FileEventKind =
     eventType match {
-      case FileEventWatcher.EventTypeCreate => FileEventKind.Added
-      case FileEventWatcher.EventTypeModify => FileEventKind.Modified
-      case FileEventWatcher.EventTypeDelete => FileEventKind.Removed
+      case WatcherAdapter.EventTypeCreate => FileEventKind.Added
+      case WatcherAdapter.EventTypeModify => FileEventKind.Modified
+      case WatcherAdapter.EventTypeDelete => FileEventKind.Removed
     }
 }

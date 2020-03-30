@@ -11,13 +11,13 @@ import zio._
   * @param root directory to watch
   * @param callback that fires on the file system events
   */
-final class FileEventWatcher(
+final class WatcherAdapter(
   root: Path,
-  eventCallback: FileEventWatcher.WatcherEvent => Unit,
-  errorCallback: FileEventWatcher.WatcherError => Unit
+  eventCallback: WatcherAdapter.WatcherEvent => Unit,
+  errorCallback: WatcherAdapter.WatcherError => Unit
 ) extends DirectoryChangeListener {
 
-  import FileEventWatcher._
+  import WatcherAdapter._
 
   private val watcher: DirectoryWatcher = DirectoryWatcher
     .builder()
@@ -47,11 +47,11 @@ final class FileEventWatcher(
   }
 
   override def onException(e: Exception): Unit = {
-    errorCallback(FileEventWatcher.WatcherError(e))
+    errorCallback(WatcherAdapter.WatcherError(e))
   }
 }
 
-object FileEventWatcher {
+object WatcherAdapter {
 
   /**
     * Type of a file event.
@@ -123,7 +123,7 @@ object FileEventWatcher {
     root: Path,
     eventCallback: WatcherEvent => Unit,
     exceptionCallback: WatcherError => Unit
-  ): FileEventWatcher =
-    new FileEventWatcher(root, eventCallback, exceptionCallback)
+  ): WatcherAdapter =
+    new WatcherAdapter(root, eventCallback, exceptionCallback)
 
 }

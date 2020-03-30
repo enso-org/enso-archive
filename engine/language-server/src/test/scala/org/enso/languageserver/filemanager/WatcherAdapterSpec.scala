@@ -11,9 +11,9 @@ import org.scalatest.matchers.should.Matchers
 import scala.concurrent.duration._
 import scala.util.Try
 
-class FileEventWatcherSpec extends AnyFlatSpec with Matchers with Effects {
+class WatcherAdapterSpec extends AnyFlatSpec with Matchers with Effects {
 
-  import FileEventWatcher._
+  import WatcherAdapter._
 
   final val Timeout: FiniteDuration = 5.seconds
 
@@ -22,7 +22,7 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers with Effects {
 
     Files.createFile(fileA)
     val event = events.poll(Timeout.length, Timeout.unit)
-    event shouldBe FileEventWatcher.WatcherEvent(fileA, EventTypeCreate)
+    event shouldBe WatcherAdapter.WatcherEvent(fileA, EventTypeCreate)
   }
 
   it should "get delete events" in withWatcher { (path, events) =>
@@ -68,7 +68,7 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers with Effects {
     val executor = Executors.newSingleThreadExecutor()
     val tmp      = Files.createTempDirectory(null).toRealPath()
     val queue    = new LinkedBlockingQueue[WatcherEvent]()
-    val watcher  = FileEventWatcher.build(tmp, queue.put(_), println(_))
+    val watcher  = WatcherAdapter.build(tmp, queue.put(_), println(_))
 
     executor.submit(new Runnable {
       def run() = watcher.start().unsafeRunSync(): Unit

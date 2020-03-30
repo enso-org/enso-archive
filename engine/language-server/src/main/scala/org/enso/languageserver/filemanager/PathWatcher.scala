@@ -23,7 +23,7 @@ import zio._
 import scala.concurrent.Await
 
 /**
-  * Event manager starts [[FileEventWatcher]], handles errors, converts and
+  * Event manager starts [[WatcherAdapter]], handles errors, converts and
   * sends events to the client.
   *
   * @param config configuration
@@ -41,7 +41,7 @@ final class PathWatcher(
 
   private val restartCounter =
     new PathWatcher.RestartCounter(config.pathWatcher.maxRestarts)
-  private var fileWatcher: Option[FileEventWatcher] = None
+  private var fileWatcher: Option[WatcherAdapter] = None
 
   override def preStart(): Unit = {
     context.system.eventStream
@@ -98,12 +98,12 @@ final class PathWatcher(
     case ClientDisconnected(client) if clients.contains(client.actor) =>
       unregisterClient(root, base, clients - client.actor)
 
-    case e: FileEventWatcher.WatcherEvent =>
+    case e: WatcherAdapter.WatcherEvent =>
       restartCounter.reset()
       val event = FileEvent.fromWatcherEvent(root, base, e)
       clients.foreach(_ ! FileEventResult(event))
 
-    case FileEventWatcher.WatcherError(e) =>
+    case WatcherAdapter.WatcherError(e) =>
       stopWatcher()
       restartCounter.inc()
       if (restartCounter.canRestart) {
@@ -144,13 +144,13 @@ final class PathWatcher(
 
   private def buildWatcher(
     path: File
-  ): Either[FileSystemFailure, FileEventWatcher] =
+  ): Either[FileSystemFailure, WatcherAdapter] =
     Either
-      .catchNonFatal(FileEventWatcher.build(path.toPath, self ! _, self ! _))
+      .catchNonFatal(WatcherAdapter.build(path.toPath, self ! _, self ! _))
       .leftMap(errorHandler)
 
   private def startWatcher(
-    watcher: FileEventWatcher
+    watcher: WatcherAdapter
   ): Either[FileSystemFailure, Unit] =
     Either
       .catchNonFatal {
