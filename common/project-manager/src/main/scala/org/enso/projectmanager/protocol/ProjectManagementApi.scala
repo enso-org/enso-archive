@@ -77,12 +77,16 @@ object ProjectManagementApi {
   case class ProjectOpenError(msg: String) extends Error(4005, msg)
 
   case class ProjectCloseError(msg: String) extends Error(4005, msg)
+
   case object ProjectNotOpenError
       extends Error(4006, "Cannot close project that is not open")
+
   case object ProjectOpenByOtherPeersError
       extends Error(
         4007,
         "Cannot close project because it is open by other peers"
       )
 
+  case object CannotRemoveOpenProjectError
+      extends Error(4008, "Cannot remove open project")
 }

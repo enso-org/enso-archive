@@ -4,6 +4,7 @@ import java.util.UUID
 
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  CheckTimeout,
   ServerStartupFailure,
   ServerStoppageFailure
 }
@@ -20,5 +21,7 @@ trait LanguageServerService[F[+_, +_]] {
     clientId: UUID,
     projectId: UUID
   ): F[ServerStoppageFailure, Unit]
+
+  def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean]
 
 }

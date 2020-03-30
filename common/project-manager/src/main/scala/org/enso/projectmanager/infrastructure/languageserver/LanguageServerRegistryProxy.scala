@@ -49,4 +49,11 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
         case f: ServerStoppageFailure => ErrorChannel[F].fail(f)
       }
 
+  override def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean] =
+    Async[F]
+      .fromFuture { () =>
+        (registry ? CheckIfServerIsRunning(projectId)).mapTo[Boolean]
+      }
+      .mapError(_ => CheckTimeout)
+
 }

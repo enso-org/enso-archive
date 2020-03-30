@@ -1,11 +1,12 @@
 package org.enso.projectmanager.requesthandler
 
 import org.enso.jsonrpc.Error
+import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.projectmanager.protocol.ProjectManagementApi._
 import org.enso.projectmanager.service.ProjectServiceFailure
 import org.enso.projectmanager.service.ProjectServiceFailure.{
-  ProjectOpenByOtherPeers,
   ProjectNotOpen,
+  ProjectOpenByOtherPeers,
   _
 }
 
@@ -23,6 +24,8 @@ object ProjectServiceFailureMapper {
     case ProjectCloseFailed(msg) => ProjectCloseError(msg)
     case ProjectNotOpen          => ProjectNotOpenError
     case ProjectOpenByOtherPeers => ProjectOpenByOtherPeersError
+    case CannotRemoveOpenProject => CannotRemoveOpenProjectError
+    case ProjectOperationTimeout => ServiceError
   }
 
 }

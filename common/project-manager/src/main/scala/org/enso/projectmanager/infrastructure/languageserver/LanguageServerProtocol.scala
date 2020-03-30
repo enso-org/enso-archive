@@ -24,4 +24,7 @@ object LanguageServerProtocol {
   case object ServerNotRunning                    extends ServerStoppageFailure
   case object CannotDisconnectOtherClients        extends ServerStoppageFailure
 
+  case class CheckIfServerIsRunning(projectId: UUID)
+  case object CheckTimeout
+
 }

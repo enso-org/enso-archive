@@ -8,6 +8,7 @@ import org.enso.projectmanager.boot.configuration.{
   NetworkConfig
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
+  CheckIfServerIsRunning,
   ServerNotRunning,
   StartServer,
   StopServer
@@ -44,6 +45,9 @@ class LanguageServerRegistry(
 
     case ServerShutDown(projectId) =>
       context.become(running(servers - projectId))
+
+    case CheckIfServerIsRunning(projectId) =>
+      sender() ! servers.contains(projectId)
 
   }
 

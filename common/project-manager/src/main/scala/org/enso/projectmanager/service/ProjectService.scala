@@ -8,15 +8,7 @@ import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.control.effect.syntax._
 import org.enso.projectmanager.data.SocketData
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol.{
-  CannotDisconnectOtherClients,
-  FailureDuringStoppage,
-  ServerBootFailed,
-  ServerBootTimedOut,
-  ServerNotRunning,
-  ServerStoppageFailure,
-  ServerStoppageResult
-}
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.log.Logging
 import org.enso.projectmanager.infrastructure.random.Generator
@@ -32,15 +24,7 @@ import org.enso.projectmanager.infrastructure.repository.{
 }
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
-import org.enso.projectmanager.service.ProjectServiceFailure.{
-  DataStoreFailure,
-  ProjectCloseFailed,
-  ProjectExists,
-  ProjectNotFound,
-  ProjectNotOpen,
-  ProjectOpenByOtherPeers,
-  ProjectOpenFailed
-}
+import org.enso.projectmanager.service.ProjectServiceFailure._
 import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
   NameContainsForbiddenCharacter
@@ -100,8 +84,20 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
     log.debug(s"Deleting project $projectId.") *>
+    ensureProjectIsNotRunning(projectId) *>
     repo.deleteUserProject(projectId).mapError(toServiceFailure) *>
     log.info(s"Project $projectId deleted.")
+
+  private def ensureProjectIsNotRunning(
+    projectId: UUID
+  ): F[ProjectServiceFailure, Unit] =
+    languageServerService
+      .isRunning(projectId)
+      .mapError(_ => ProjectOperationTimeout)
+      .flatMap {
+        case false => CovariantFlatMap[F].pure()
+        case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
+      }
 
   override def openProject(
     clientId: UUID,

@@ -39,4 +39,8 @@ object ProjectServiceFailure {
 
   case object ProjectOpenByOtherPeers extends ProjectServiceFailure
 
+  case object CannotRemoveOpenProject extends ProjectServiceFailure
+
+  case object ProjectOperationTimeout extends ProjectServiceFailure
+
 }

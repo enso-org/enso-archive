@@ -149,6 +149,85 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
     }
 
+    "fail when project is running" in {
+      val projectName = "to-remove"
+      val client      = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": $projectName
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 0,
+            "result" : {
+              "projectId" : $TestUUID
+            }
+          }
+          """)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 1,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client.expectMessage()
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 2,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":2,
+            "error":{
+              "code":4008,
+              "message":"Cannot remove open project"
+            }
+          }
+          """)
+
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/close",
+              "id": 3,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":3,
+            "result": null
+          }
+          """)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 3,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client.expectMessage()
+    }
+
     "remove project structure" in {
       val projectName = "to-remove"
       val projectDir  = new File(userProjectDir, projectName)
