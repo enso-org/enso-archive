@@ -450,6 +450,93 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
     }
 
+    "close project when the requester is the only client" in {
+      val projectName = "to-remove"
+
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": $projectName
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 0,
+            "result" : {
+              "projectId" : $TestUUID
+            }
+          }
+          """)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 1,
+              "params": {
+                "projectId": $TestUUID
+              }
+            }
+          """)
+      val Right(openReply) = parse(client.expectMessage())
+      val socketField = openReply.hcursor
+        .downField("result")
+        .downField("languageServerAddress")
+      val Right(host)          = socketField.downField("host").as[String]
+      val Right(port)          = socketField.downField("port").as[Int]
+      val languageServerClient = new WsTestClient(s"ws://$host:$port")
+
+      languageServerClient.send("test")
+      languageServerClient.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : null,
+            "error" : {
+              "code" : -32700,
+              "message" : "Parse error"
+            }
+          }
+            """)
+
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/close",
+              "id": 2,
+              "params": {
+                "projectId": $TestUUID
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":2,
+            "result": null
+          }
+          """)
+      languageServerClient.send("test")
+      languageServerClient.expectNoMessage()
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 3,
+              "params": {
+                "projectId": $TestUUID
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":3,
+            "result": null
+          }
+          """)
+    }
+
   }
 
 }
