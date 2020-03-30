@@ -151,7 +151,7 @@ final class FileEventRegistry(
       } else {
         log.error("Unable to find a client for FileEventError", e)
       }
-      manager ! FileEventManagerProtocol.UnwatchPath
+      context.become(withStore(store.removeMappings(manager)))
 
     case ClientDisconnected(client) =>
       store

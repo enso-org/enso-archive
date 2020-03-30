@@ -2,7 +2,7 @@ package org.enso.languageserver.filemanager
 
 import java.io.File
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, PoisonPill, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.effect._
@@ -93,6 +93,7 @@ final class FileEventManager(
       } else {
         log.error("Hit maximum number of restarts", e)
         subscriber ! FileEventError(e)
+        self ! PoisonPill
       }
       context.become(uninitializedStage)
 
