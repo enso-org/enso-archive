@@ -38,14 +38,14 @@ final class ReceivesTreeUpdatesHandler(
       store.getManager(path) match {
         case Some(manager) =>
           manager.forward(
-            FileEventManagerProtocol.WatchPath(path, client.actor)
+            PathWatcherProtocol.WatchPath(path, client.actor)
           )
         case None =>
           val manager =
-            context.actorOf(FileEventManager.props(config, fs, exec))
+            context.actorOf(PathWatcher.props(config, fs, exec))
           context.watch(manager)
           manager.forward(
-            FileEventManagerProtocol.WatchPath(path, client.actor)
+            PathWatcherProtocol.WatchPath(path, client.actor)
           )
           context.become(withStore(store.addManager(manager, path)))
       }
@@ -56,7 +56,7 @@ final class ReceivesTreeUpdatesHandler(
         ) =>
       store.getManager(path) match {
         case Some(manager) =>
-          manager.forward(FileEventManagerProtocol.UnwatchPath(client.actor))
+          manager.forward(PathWatcherProtocol.UnwatchPath(client.actor))
         case None =>
           sender() ! CapabilityNotAcquiredResponse
       }

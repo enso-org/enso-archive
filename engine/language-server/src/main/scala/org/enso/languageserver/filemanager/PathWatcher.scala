@@ -29,17 +29,17 @@ import zio.blocking.effectBlocking
   * @param fs file system
   * @param exec executor of file system effects
   */
-final class FileEventManager(
+final class PathWatcher(
   config: Config,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
 ) extends Actor
     with ActorLogging {
 
-  import context.dispatcher, FileEventManagerProtocol._
+  import context.dispatcher, PathWatcherProtocol._
 
   private val restartCounter =
-    new FileEventManager.RestartCounter(config.fileEventManager.maxRestarts)
+    new PathWatcher.RestartCounter(config.fileEventManager.maxRestarts)
   private var fileWatcher: Option[FileEventWatcher] = None
 
   override def preStart(): Unit = {
@@ -168,7 +168,7 @@ final class FileEventManager(
   }
 }
 
-object FileEventManager {
+object PathWatcher {
 
   /**
     * Conunt unsuccessful file watcher restarts
@@ -205,7 +205,7 @@ object FileEventManager {
   }
 
   /**
-    * Creates a configuration object used to create a [[FileEventManager]].
+    * Creates a configuration object used to create a [[PathWatcher]].
     *
     * @param config configuration
     * @param fs file system
@@ -216,5 +216,5 @@ object FileEventManager {
     fs: FileSystemApi[BlockingIO],
     exec: Exec[BlockingIO]
   ): Props =
-    Props(new FileEventManager(config, fs, exec))
+    Props(new PathWatcher(config, fs, exec))
 }
