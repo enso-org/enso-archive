@@ -9,7 +9,13 @@ object FileEventManagerProtocol {
     *
     * @param path path to watch
     */
-  case class WatchPath(path: Path, client: ActorRef)
+  case class WatchPath(path: Path, clients: Set[ActorRef])
+
+  case object WatchPath {
+
+    def apply(path: Path, client: ActorRef): WatchPath =
+      WatchPath(path, Set(client))
+  }
 
   /**
     * Returns result of a [[WatchPath]] request.
@@ -21,7 +27,7 @@ object FileEventManagerProtocol {
   /**
     * Requests event manager to stop watching.
     */
-  case object UnwatchPath
+  case class UnwatchPath(client: ActorRef)
 
   /**
     * Returns the result of a [[UnwatchPath]] request.

@@ -1,26 +1,20 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
-import org.enso.languageserver.data.{CapabilityRegistration, Client, Config}
-import org.enso.languageserver.effect._
+import akka.actor.{Actor, ActorRef, Props, Terminated}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
-  CapabilityAcquired,
-  CapabilityAcquisitionFileSystemFailure,
-  CapabilityForceReleased,
   CapabilityNotAcquiredResponse,
-  CapabilityReleased,
   ReleaseCapability
 }
+import org.enso.languageserver.data.{CapabilityRegistration, Config}
 import org.enso.languageserver.data.{
   CapabilityRegistration,
   ReceivesTreeUpdates
 }
-import org.enso.languageserver.event.ClientDisconnected
+import org.enso.languageserver.effect._
 
 /**
-  * FileEvent registry handles `receivesTreeUpdates` capability, starts
-  * [[FileEventManager]], and handles errors
+  * Handles `receivesTreeUpdates` capabilities acquisition and release.
   *
   * @param config configuration
   * @param fs file system
@@ -30,256 +24,90 @@ final class FileEventRegistry(
   config: Config,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
-) extends Actor
-    with ActorLogging {
+) extends Actor {
 
   import FileEventRegistry._
-
-  override def preStart(): Unit = {
-    context.system.eventStream
-      .subscribe(self, classOf[ClientDisconnected]): Unit
-  }
 
   override def receive: Receive = withStore(Store())
 
   def withStore(store: Store): Receive = {
     case AcquireCapability(
-        clientController,
+        client,
         CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
-      val client  = ClientRef(clientController.actor, path)
-      val handler = sender()
-      if (store.hasManager(client)) {
-        val oldManager = store.getManager(client)
-        oldManager ! FileEventManagerProtocol.UnwatchPath
+      store.getManager(path) match {
+        case Some(manager) =>
+          manager.forward(
+            FileEventManagerProtocol.WatchPath(path, client.actor)
+          )
+        case None =>
+          val manager =
+            context.actorOf(FileEventManager.props(config, fs, exec))
+          context.watch(manager)
+          manager.forward(
+            FileEventManagerProtocol.WatchPath(path, client.actor)
+          )
+          context.become(withStore(store.addManager(manager, path)))
       }
-
-      val manager = context.actorOf(FileEventManager.props(config, fs, exec))
-      context.watch(manager)
-      manager ! FileEventManagerProtocol.WatchPath(path, clientController.actor)
-      context.become(withStore(store.addMappings(manager, client, handler)))
 
     case ReleaseCapability(
-        clientController,
+        client,
         CapabilityRegistration(ReceivesTreeUpdates(path))
         ) =>
-      val client  = ClientRef(clientController.actor, path)
-      val handler = sender()
-      if (store.hasManager(client)) {
-        val manager = store.getManager(client)
-        manager ! FileEventManagerProtocol.UnwatchPath
-        context.become(withStore(store.addHandler(manager, handler)))
-      } else {
-        handler ! CapabilityNotAcquiredResponse
+      store.getManager(path) match {
+        case Some(manager) =>
+          manager.forward(FileEventManagerProtocol.UnwatchPath(client.actor))
+        case None =>
+          sender() ! CapabilityNotAcquiredResponse
       }
-
-    case FileEventManagerProtocol.WatchPathResult(result) =>
-      val manager = sender()
-      if (store.hasHandler(manager)) {
-        val handler = store.getHandler(manager)
-        result match {
-          case Right(()) =>
-            handler ! CapabilityAcquired
-          case Left(err) =>
-            log.error(s"Error acquiring capability: $err")
-            handler ! CapabilityAcquisitionFileSystemFailure(err)
-            manager ! FileEventManagerProtocol.UnwatchPath
-        }
-        context.become(withStore(store.removeHandler(manager)))
-      } else {
-        log.error(s"Unable to find a handler after WatchPath")
-        manager ! FileEventManagerProtocol.UnwatchPath
-      }
-
-    case FileEventManagerProtocol.UnwatchPathResult(result) =>
-      val manager = sender()
-      if (store.hasHandler(manager)) {
-        val handler = store.getHandler(manager)
-        result.foreach(err => log.error(s"Error releasing capability: $err"))
-        handler ! CapabilityReleased
-      }
-      context.stop(manager)
-      context.become(withStore(store.removeMappings(manager)))
-
-    case FileEventManagerProtocol.FileEventError(e) =>
-      val manager = sender()
-      if (store.hasClient(manager)) {
-        log.error(s"File watcher error, releasing capability", e)
-        val client = store.getClient(manager)
-        client.actor ! CapabilityForceReleased(
-          CapabilityRegistration(ReceivesTreeUpdates(client.path))
-        )
-      } else {
-        log.error("Unable to find a client for FileEventError", e)
-      }
-      context.become(withStore(store.removeMappings(manager)))
-
-    case ClientDisconnected(client) =>
-      store
-        .getManagers(client)
-        .foreach { _ ! FileEventManagerProtocol.UnwatchPath }
 
     case Terminated(manager) =>
-      context.become(withStore(store.removeMappings(manager)))
+      context.become(withStore(store.removeManager(manager)))
   }
 }
 
 object FileEventRegistry {
 
   /**
-    * [[FileEventManager]] actor
-    */
-  private type EventManagerRef = ActorRef
-
-  /**
-    * Acquire/ReleaseCapabilityHandler actor
-    */
-  private type HandlerRef = ActorRef
-
-  /**
-    * [[ClientController]] actor who requested to acquire [[ReceiveTreeUpdates]]
-    * capability
-    */
-  private case class ClientRef(actor: ActorRef, path: Path)
-
-  /**
     * Internal state of a [[FileEventRegistry]].
     *
-    * @param managerStore a mapping between a client requested to watch a path,
-    * and event manager watching the path
-    * @param clientStore a mapping between an event manager watching the path,
-    * and a client who requested to watch this path
-    * @param handlerStore a mapping between an event manager watching the path,
-    * and a capability handler who sent the AcquireCapability or
-    * ReleaseCapability request
+    * @param managers a file event manager with a watched path
     */
-  private case class Store(
-    managerStore: Map[ClientRef, EventManagerRef],
-    clientStore: Map[EventManagerRef, ClientRef],
-    handlerStore: Map[EventManagerRef, HandlerRef]
-  ) {
+  case class Store(managers: Map[Path, ActorRef]) {
 
     /**
-      * Checks if client has a manager associated with it.
+      * Returns manager associated with the provided path.
       *
-      * @client client controller
+      * @param path watched path
+      * @return optional manager associated with this path
       */
-    def hasManager(client: ClientRef): Boolean =
-      managerStore.contains(client)
+    def getManager(path: Path): Option[ActorRef] =
+      managers.get(path)
 
     /**
-      * Returns manager associated with the provided client.
-      *
-      * @param client client controller
-      * @return manager associated with this client
-      */
-    def getManager(client: ClientRef): EventManagerRef =
-      managerStore(client)
-
-    /**
-      * Checks if manager has a handler associated with it.
+      * Add new manager with watched path to the store.
       *
       * @param manager file event manager
+      * @param path watched path
+      * @return updated store
       */
-    def hasHandler(manager: EventManagerRef): Boolean =
-      handlerStore.contains(manager)
+    def addManager(manager: ActorRef, path: Path): Store =
+      copy(managers = managers + (path -> manager))
 
     /**
-      * Returns handler associated with the provided manager.
+      * Remove manager from the store.
       *
       * @param manager file event manager
-      * @return handler associated with this manager
-      */
-    def getHandler(manager: EventManagerRef): HandlerRef =
-      handlerStore(manager)
-
-    /**
-      * Checks if manager has a client associated with it.
-      *
-      * @param manager file event manager
-      */
-    def hasClient(manager: EventManagerRef): Boolean =
-      clientStore.contains(manager)
-
-    /**
-      * Returns client associated with the provided manager.
-      *
-      * @param manaer file event manager
-      * @return client associated with this manager
-      */
-    def getClient(manager: EventManagerRef): ClientRef =
-      clientStore(manager)
-
-    /**
-      * Get all managers associated with a client.
-      */
-    def getManagers(client: Client): Vector[EventManagerRef] =
-      managerStore.view
-        .filterKeys(_.actor == client.actor)
-        .values
-        .toVector
-
-    /**
-      * Add manager and associated mappings to the store.
-      *
-      * @param manager [[FileEventManager]] event manager
-      * @param client client controller
-      * @param handler Acquire or Release capability handler
       * @return updated store
       */
-    def addMappings(
-      manager: EventManagerRef,
-      client: ClientRef,
-      handler: HandlerRef
-    ): Store =
-      copy(
-        managerStore = managerStore + (client  -> manager),
-        clientStore  = clientStore + (manager  -> client),
-        handlerStore = handlerStore + (manager -> handler)
-      )
-
-    /**
-      * Remove manager and associated mappings from the store.
-      *
-      * @param manager [[FileEventManager]] event manager
-      * @return updated store
-      */
-    def removeMappings(manager: EventManagerRef): Store = {
-      val newManagerStore = clientStore
-        .get(manager)
-        .map(managerStore - _)
-        .getOrElse(managerStore)
-      copy(
-        managerStore = newManagerStore,
-        clientStore  = clientStore - manager,
-        handlerStore = handlerStore - manager
-      )
-    }
-
-    /**
-      * Add new manager with associated handler to the store.
-      *
-      * @param manager [[FileEventManager]] event manager
-      * @param handler Acquire or Release capability handler
-      * @return updated store
-      */
-    def addHandler(manager: EventManagerRef, handler: HandlerRef): Store =
-      copy(handlerStore = handlerStore + (manager -> handler))
-
-    /**
-      * Remove manager and associated handler from the store.
-      *
-      * @param manager [[FileEventManager]] event manager.
-      * @return updated store
-      */
-    def removeHandler(manager: EventManagerRef): Store =
-      copy(handlerStore = handlerStore - manager)
+    def removeManager(manager: ActorRef): Store =
+      copy(managers = managers.filter(kv => kv._2 != manager))
   }
 
   private object Store {
 
     def apply(): Store =
-      new Store(Map(), Map(), Map())
+      new Store(Map())
   }
 
   /**

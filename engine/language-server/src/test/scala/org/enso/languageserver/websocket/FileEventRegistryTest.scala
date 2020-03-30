@@ -11,47 +11,14 @@ class FileEventRegistryTest extends BaseServerTest {
     "acquire capability receivesTreeUpdates" in {
       val client = new WsTestClient(address)
 
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/acquire",
-            "id": 1,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
-          }
-          """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 1,
-            "result": null
-          }
-          """)
+      client.send(jsonrpc.acquireReceivesTreeUpdates(1))
+      client.expectJson(jsonrpc.ok(1))
     }
 
     "fail to acquire capability if directory doesn't exist" in {
       val client = new WsTestClient(address)
 
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/acquire",
-            "id": 1,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ "inexistent" ]
-                }
-              }
-            }
-          }
-          """)
+      client.send(jsonrpc.acquireReceivesTreeUpdates(1, "nonexistent"))
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
@@ -67,70 +34,18 @@ class FileEventRegistryTest extends BaseServerTest {
       val client = new WsTestClient(address)
 
       // acquire
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/acquire",
-            "id": 1,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
-          }
-          """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 1,
-            "result": null
-          }
-          """)
+      client.send(jsonrpc.acquireReceivesTreeUpdates(1))
+      client.expectJson(jsonrpc.ok(1))
 
       // reacquire
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/acquire",
-            "id": 2,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
-          }
-          """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 2,
-            "result": null
-          }
-          """)
+      client.send(jsonrpc.acquireReceivesTreeUpdates(2))
+      client.expectJson(jsonrpc.ok(2))
     }
 
     "fail to release capability it does not hold" in {
       val client = new WsTestClient(address)
 
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/release",
-            "id": 1,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
-          }
-          """)
+      client.send(jsonrpc.releaseReceivesTreeUpdates(1))
       client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
@@ -146,82 +61,42 @@ class FileEventRegistryTest extends BaseServerTest {
       val client = new WsTestClient(address)
 
       // acquire capability
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/acquire",
-            "id": 1,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
-          }
-          """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 1,
-            "result": null
-          }
-          """)
+      client.send(jsonrpc.acquireReceivesTreeUpdates(1))
+      client.expectJson(jsonrpc.ok(1))
 
       // release capability
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/release",
-            "id": 2,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
-          }
-          """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 2,
-            "result": null
-          }
-          """)
+      client.send(jsonrpc.releaseReceivesTreeUpdates(2))
+      client.expectJson(jsonrpc.ok(2))
     }
 
     "receive file system updates" in {
-      val client = new WsTestClient(address)
+      val client1 = new WsTestClient(address)
+      val client2 = new WsTestClient(address)
 
       // acquire capability
-      client.send(json"""
-          { "jsonrpc": "2.0",
-            "method": "capability/acquire",
-            "id": 1,
-            "params": {
-              "method": "receivesTreeUpdates",
-              "registerOptions": {
-                "path": {
-                  "rootId": $testContentRootId,
-                  "segments": [ ]
-                }
-              }
-            }
-          }
-          """)
-      client.expectJson(json"""
-          { "jsonrpc": "2.0",
-            "id": 1,
-            "result": null
-          }
-          """)
+      client1.send(jsonrpc.acquireReceivesTreeUpdates(1))
+      client1.expectJson(jsonrpc.ok(1))
+      client2.send(jsonrpc.acquireReceivesTreeUpdates(1))
+      client2.expectJson(jsonrpc.ok(1))
 
       // create file
       val path = Paths.get(testContentRoot.toString, "oneone.txt")
       Files.createFile(path)
-      client.expectJson(json"""
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/event",
+            "params": {
+               "event": {
+                 "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ "oneone.txt" ]
+                 },
+                 "kind": "Added"
+               }
+             }
+          }
+          """)
+      client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -238,7 +113,21 @@ class FileEventRegistryTest extends BaseServerTest {
 
       // update file
       Files.write(path, "Hello".getBytes())
-      client.expectJson(json"""
+      client1.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "method": "file/event",
+            "params": {
+               "event": {
+                 "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ "oneone.txt" ]
+                 },
+                 "kind": "Modified"
+               }
+             }
+          }
+          """)
+      client2.expectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -253,9 +142,13 @@ class FileEventRegistryTest extends BaseServerTest {
           }
           """)
 
+      // release capability
+      client2.send(jsonrpc.releaseReceivesTreeUpdates(2))
+      client2.expectJson(jsonrpc.ok(2))
+
       // remove file
       Files.delete(path)
-      client.expectJson(json"""
+      client1.expectJson(json"""
           { "jsonrpc": "2.0",
             "method": "file/event",
             "params": {
@@ -269,8 +162,88 @@ class FileEventRegistryTest extends BaseServerTest {
              }
           }
           """)
+      client2.expectNoMessage()
     }
 
+  }
+
+  object jsonrpc {
+
+    def ok(reqId: Int) =
+      json"""
+          { "jsonrpc": "2.0",
+            "id": $reqId,
+            "result": null
+          }
+          """
+
+    def acquireReceivesTreeUpdates(reqId: Int) =
+      json"""
+            { "jsonrpc": "2.0",
+              "method": "capability/acquire",
+              "id": $reqId,
+              "params": {
+                "method": "receivesTreeUpdates",
+                "registerOptions": {
+                  "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ ]
+                  }
+                }
+              }
+            }
+            """
+
+    def acquireReceivesTreeUpdates(reqId: Int, segment: String) =
+      json"""
+            { "jsonrpc": "2.0",
+              "method": "capability/acquire",
+              "id": $reqId,
+              "params": {
+                "method": "receivesTreeUpdates",
+                "registerOptions": {
+                  "path": {
+                    "rootId": $testContentRootId,
+                    "segments": [ $segment ]
+                  }
+                }
+              }
+            }
+            """
+
+    def releaseReceivesTreeUpdates(reqId: Int) =
+      json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/release",
+            "id": $reqId,
+            "params": {
+              "method": "receivesTreeUpdates",
+              "registerOptions": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ ]
+                }
+              }
+            }
+          }
+          """
+
+    def releaseReceivesTreeUpdates(reqId: Int, segment: String) =
+      json"""
+          { "jsonrpc": "2.0",
+            "method": "capability/release",
+            "id": $reqId,
+            "params": {
+              "method": "receivesTreeUpdates",
+              "registerOptions": {
+                "path": {
+                  "rootId": $testContentRootId,
+                  "segments": [ $segment ]
+                }
+              }
+            }
+          }
+          """
   }
 
 }
