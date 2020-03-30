@@ -293,7 +293,133 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "result": null
           }
           """)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 3,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":3,
+            "result": null
+          }
+          """)
+    }
 
+    "not start new Language Server if one is running" in {
+      val projectName = "to-remove"
+
+      val client1 = new WsTestClient(address)
+      client1.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": $projectName
+              }
+            }
+          """)
+      client1.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 0,
+            "result" : {
+              "projectId" : $TestUUID
+            }
+          }
+          """)
+      client1.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 1,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      val Right(openReply) = parse(client1.expectMessage())
+      val socketField = openReply.hcursor
+        .downField("result")
+        .downField("languageServerAddress")
+      val Right(host) = socketField.downField("host").as[String]
+      val Right(port) = socketField.downField("port").as[Int]
+      val client2     = new WsTestClient(address)
+      client2.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 0,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client2.expectJson(json"""
+          {
+            "jsonrpc" : "2.0",
+            "id" : 0,
+            "result" : {
+              "languageServerAddress" : { "host": $host, "port": $port }
+            }
+          }
+          """)
+
+      client1.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/close",
+              "id": 2,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client1.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":2,
+            "error" : {
+              "code" : 4007,
+              "message" : "Cannot close project because it is open by other peers"
+             }
+          }
+          """)
+
+      client2.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/close",
+              "id": 2,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client2.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":2,
+            "result": null
+          }
+          """)
+      client1.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 3,
+              "params": {
+                "projectId": $TestUUID 
+              }
+            }
+          """)
+      client1.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":3,
+            "result": null
+          }
+          """)
     }
 
   }

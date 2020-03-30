@@ -80,6 +80,9 @@ object ProjectManagementApi {
   case object ProjectNotOpenError
       extends Error(4006, "Cannot close project that is not open")
   case object ProjectOpenByOtherPeersError
-      extends Error(4007, "Cannot close because project is open by other peers")
+      extends Error(
+        4007,
+        "Cannot close project because it is open by other peers"
+      )
 
 }
