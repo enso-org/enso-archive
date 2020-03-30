@@ -32,7 +32,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.{
   Boot,
   BootTimeout
 }
@@ -40,7 +40,7 @@ import org.enso.projectmanager.model.Project
 
 import scala.concurrent.duration._
 
-private[languageserver] class LanguageServerSupervisor(
+private class LanguageServerController(
   project: Project,
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig
@@ -181,7 +181,7 @@ private[languageserver] class LanguageServerSupervisor(
 
 }
 
-object LanguageServerSupervisor {
+object LanguageServerController {
 
   def props(
     project: Project,
@@ -189,7 +189,7 @@ object LanguageServerSupervisor {
     bootloaderConfig: BootloaderConfig
   ): Props =
     Props(
-      new LanguageServerSupervisor(project, networkConfig, bootloaderConfig)
+      new LanguageServerController(project, networkConfig, bootloaderConfig)
     )
 
   case object BootTimeout

@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig
@@ -23,31 +23,37 @@ class LanguageServerRegistry(
 
   override def receive: Receive = running()
 
-  private def running(servers: Map[UUID, ActorRef] = Map.empty): Receive = {
+  private def running(
+    serverControllers: Map[UUID, ActorRef] = Map.empty
+  ): Receive = {
     case msg @ StartServer(_, project) =>
-      if (servers.contains(project.id)) {
-        servers(project.id).forward(msg)
+      if (serverControllers.contains(project.id)) {
+        serverControllers(project.id).forward(msg)
       } else {
-        val ref = context.actorOf(
-          LanguageServerSupervisor
+        val controller = context.actorOf(
+          LanguageServerController
             .props(project, networkConfig, bootloaderConfig)
         )
-        ref.forward(msg)
-        context.become(running(servers + (project.id -> ref)))
+        context.watch(controller)
+        controller.forward(msg)
+        context.become(running(serverControllers + (project.id -> controller)))
       }
 
     case msg @ StopServer(_, projectId) =>
-      if (servers.contains(projectId)) {
-        servers(projectId).forward(msg)
+      if (serverControllers.contains(projectId)) {
+        serverControllers(projectId).forward(msg)
       } else {
         sender() ! ServerNotRunning
       }
 
     case ServerShutDown(projectId) =>
-      context.become(running(servers - projectId))
+      context.become(running(serverControllers - projectId))
+
+    case Terminated(ref) =>
+      context.become(running(serverControllers.filterNot(_._2 == ref)))
 
     case CheckIfServerIsRunning(projectId) =>
-      sender() ! servers.contains(projectId)
+      sender() ! serverControllers.contains(projectId)
 
   }
 
