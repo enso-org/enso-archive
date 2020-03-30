@@ -19,7 +19,8 @@ import org.enso.languageserver.data.{
 import org.enso.languageserver.effect._
 import org.enso.languageserver.event.ClientDisconnected
 import zio._
-import zio.blocking.effectBlocking
+
+import scala.concurrent.Await
 
 /**
   * Event manager starts [[FileEventWatcher]], handles errors, converts and
@@ -39,7 +40,7 @@ final class PathWatcher(
   import context.dispatcher, PathWatcherProtocol._
 
   private val restartCounter =
-    new PathWatcher.RestartCounter(config.fileEventManager.maxRestarts)
+    new PathWatcher.RestartCounter(config.pathWatcher.maxRestarts)
   private var fileWatcher: Option[FileEventWatcher] = None
 
   override def preStart(): Unit = {
@@ -108,7 +109,7 @@ final class PathWatcher(
       if (restartCounter.canRestart) {
         log.error(s"Restart on error#${restartCounter.count}", e)
         context.system.scheduler.scheduleOnce(
-          config.fileEventManager.restartTimeout,
+          config.pathWatcher.restartTimeout,
           self,
           WatchPath(base, clients)
         )
@@ -154,13 +155,17 @@ final class PathWatcher(
     Either
       .catchNonFatal {
         fileWatcher = Some(watcher)
-        exec.exec_(effectBlocking(watcher.start()))
+        exec.exec_(watcher.start())
       }
       .leftMap(errorHandler)
 
   private def stopWatcher(): Either[FileSystemFailure, Unit] =
     Either
-      .catchNonFatal(fileWatcher.foreach(_.stop()))
+      .catchNonFatal {
+        fileWatcher.foreach { watcher =>
+          Await.ready(exec.exec(watcher.stop()), config.pathWatcher.timeout)
+        }
+      }
       .leftMap(errorHandler)
 
   private val errorHandler: Throwable => FileSystemFailure = {

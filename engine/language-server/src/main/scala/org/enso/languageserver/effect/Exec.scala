@@ -3,6 +3,7 @@ package org.enso.languageserver.effect
 import java.util.concurrent.{ExecutionException, TimeoutException}
 
 import zio._
+import zio.blocking.blocking
 
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
@@ -96,7 +97,7 @@ case class ZioExec(runtime: Runtime[ZEnv]) extends Exec[ZioExec.IO] {
     * @param op effect to execute
     */
   override def exec_[E, A](op: ZIO[ZEnv, E, A]): Unit =
-    runtime.unsafeRunAsync_(op)
+    runtime.unsafeRunAsync_(blocking(op))
 }
 
 object ZioExec {

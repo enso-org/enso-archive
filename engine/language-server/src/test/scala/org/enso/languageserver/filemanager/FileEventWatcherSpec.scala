@@ -4,13 +4,14 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.concurrent.{Executors, LinkedBlockingQueue}
 
 import org.apache.commons.io.FileUtils
+import org.enso.languageserver.effect.Effects
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.util.Try
 
-class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
+class FileEventWatcherSpec extends AnyFlatSpec with Matchers with Effects {
 
   import FileEventWatcher._
 
@@ -70,12 +71,12 @@ class FileEventWatcherSpec extends AnyFlatSpec with Matchers {
     val watcher  = FileEventWatcher.build(tmp, queue.put(_), println(_))
 
     executor.submit(new Runnable {
-      def run() = watcher.start()
+      def run() = watcher.start().unsafeRunSync(): Unit
     })
 
     try test(tmp, queue)
     finally {
-      watcher.stop()
+      watcher.stop().unsafeRunSync()
       executor.shutdown()
       Try(executor.awaitTermination(Timeout.length, Timeout.unit))
       Try(FileUtils.deleteDirectory(tmp.toFile)): Unit

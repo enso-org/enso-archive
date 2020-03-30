@@ -13,22 +13,25 @@ import scala.concurrent.duration._
 /**
   * Configuration of the file event manager.
   *
+  * @param timeout path watcher operations timeout
   * @param restartTimeout timeout before watcher is restarted on error
   * @param maxRestartsCount maximum number of unsuccessful restarts
   * before returning an error
   */
-case class FileEventManagerConfig(
+case class PathWatcherConfig(
+  timeout: FiniteDuration,
   restartTimeout: FiniteDuration,
   maxRestarts: Int
 )
 
-object FileEventManagerConfig {
+object PathWatcherConfig {
 
   /**
     * Default file event manager config.
     */
-  def apply(): FileEventManagerConfig =
-    FileEventManagerConfig(
+  def apply(): PathWatcherConfig =
+    PathWatcherConfig(
+      timeout        = 5.seconds,
       restartTimeout = 5.seconds,
       maxRestarts    = 10
     )
@@ -54,7 +57,7 @@ object FileManagerConfig {
 case class Config(
   contentRoots: Map[UUID, File],
   fileManager: FileManagerConfig,
-  fileEventManager: FileEventManagerConfig
+  pathWatcher: PathWatcherConfig
 ) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
