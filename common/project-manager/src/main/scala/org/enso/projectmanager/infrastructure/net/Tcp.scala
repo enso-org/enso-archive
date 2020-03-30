@@ -10,7 +10,7 @@ object Tcp {
 
   @tailrec
   def findAvailablePort(address: String, minPort: Int, maxPort: Int): Int = {
-    val random = Random.nextInt(maxPort - minPort)
+    val random = Random.nextInt(maxPort - minPort + 1)
     val port   = minPort + random
     if (isPortAvailable(address, port)) {
       port

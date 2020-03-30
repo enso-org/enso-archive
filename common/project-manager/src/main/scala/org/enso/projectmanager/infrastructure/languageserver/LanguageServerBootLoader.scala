@@ -30,7 +30,9 @@ private[languageserver] class LanguageServerBootLoader(
     self ! FindFreeSocket
   }
 
-  override def receive: Receive = {
+  override def receive: Receive = findingSocket()
+
+  private def findingSocket(retry: Int = 0): Receive = {
     case FindFreeSocket =>
       log.debug("Looking for available socket to bind the language server")
       val port = Tcp.findAvailablePort(
@@ -43,11 +45,11 @@ private[languageserver] class LanguageServerBootLoader(
       )
       self ! Boot
       context.become(
-        booting(SocketData(descriptor.networkConfig.interface, port))
+        booting(SocketData(descriptor.networkConfig.interface, port), retry)
       )
   }
 
-  private def booting(socket: SocketData, retry: Int = 0): Receive = {
+  private def booting(socket: SocketData, retry: Int): Receive = {
     case Boot =>
       log.debug("Booting a language server")
       val config = LanguageServerConfig(
@@ -68,10 +70,10 @@ private[languageserver] class LanguageServerBootLoader(
       )
       if (retry < config.noRetries) {
         context.system.scheduler
-          .scheduleOnce(config.delayBetweenRetry, self, Boot)
-        context.become(booting(socket, retry + 1))
+          .scheduleOnce(config.delayBetweenRetry, self, FindFreeSocket)
+        context.become(findingSocket(retry + 1))
       } else {
-        log.error("Tried 10 times to boot Language Server. Giving up.")
+        log.error(s"Tried $retry times to boot Language Server. Giving up.")
         context.parent ! ServerBootFailed(th)
         context.stop(self)
       }
