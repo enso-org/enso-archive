@@ -37,6 +37,12 @@ trait ProjectRepository[F[+_, +_]] {
     */
   def deleteUserProject(projectId: UUID): F[ProjectRepositoryFailure, Unit]
 
+  /**
+    * Finds a project by project id.
+    *
+    * @param projectId a project id
+    * @return option with the project entity
+    */
   def findUserProject(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]]

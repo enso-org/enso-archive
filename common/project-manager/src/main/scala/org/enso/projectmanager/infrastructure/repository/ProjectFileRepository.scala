@@ -44,6 +44,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.exists(name))
       .mapError(_.fold(convertFileStorageFailure))
 
+  /** @inheritdoc **/
   override def findUserProject(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]] =
