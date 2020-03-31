@@ -6,7 +6,8 @@ import org.enso.languageserver.runtime.handler.CreateContextRequestHandler
 
 import scala.concurrent.duration.FiniteDuration
 
-final class ContextManager(timeout: FiniteDuration, runtime: ActorRef) extends Actor {
+final class ContextManager(timeout: FiniteDuration, runtime: ActorRef)
+    extends Actor {
 
   import ExecutionProtocol._
 
@@ -15,7 +16,8 @@ final class ContextManager(timeout: FiniteDuration, runtime: ActorRef) extends A
 
   def withContext(contexts: Set[ContextId]): Receive = {
     case msg: CreateContextRequest =>
-      val handler = context.actorOf(CreateContextRequestHandler.props(timeout, runtime))
+      val handler =
+        context.actorOf(CreateContextRequestHandler.props(timeout, runtime))
       handler.forward(msg)
   }
 }

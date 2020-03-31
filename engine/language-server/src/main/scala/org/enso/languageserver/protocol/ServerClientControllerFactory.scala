@@ -29,5 +29,14 @@ class ServerClientControllerFactory(
     * @return
     */
   override def createClientController(clientId: UUID): ActorRef =
-    system.actorOf(ClientController.props(clientId, server, bufferRegistry, capabilityRouter, fileManager, contextRegistry))
+    system.actorOf(
+      ClientController.props(
+        clientId,
+        server,
+        bufferRegistry,
+        capabilityRouter,
+        fileManager,
+        contextRegistry
+      )
+    )
 }

@@ -11,7 +11,10 @@ object ExecutionApi {
 
   case object ExecutionContextCreate extends Method("executionContext/create") {
 
-    case class Result(canModify: CapabilityRegistration, receivesEvents: CapabilityRegistration)
+    case class Result(
+      canModify: CapabilityRegistration,
+      receivesEvents: CapabilityRegistration
+    )
 
     implicit val hasParams = new HasParams[this.type] {
       type Params = Unused.type

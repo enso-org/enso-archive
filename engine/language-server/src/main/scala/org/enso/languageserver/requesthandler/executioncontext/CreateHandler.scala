@@ -3,7 +3,11 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.data.{CapabilityRegistration, CanModify, ReceivesEvents}
+import org.enso.languageserver.data.{
+  CanModify,
+  CapabilityRegistration,
+  ReceivesEvents
+}
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.ExecutionProtocol
@@ -39,9 +43,9 @@ class CreateHandler(
       context.stop(self)
 
     case ExecutionProtocol.CreateContextResponse(contextId) =>
-      val canModify = CapabilityRegistration(CanModify(contextId))
+      val canModify      = CapabilityRegistration(CanModify(contextId))
       val receivesEvents = CapabilityRegistration(ReceivesEvents(contextId))
-      val result = ExecutionContextCreate.Result(canModify, receivesEvents)
+      val result         = ExecutionContextCreate.Result(canModify, receivesEvents)
       replyTo ! ResponseResult(ExecutionContextCreate, id, result)
       cancellable.cancel()
       context.stop(self)

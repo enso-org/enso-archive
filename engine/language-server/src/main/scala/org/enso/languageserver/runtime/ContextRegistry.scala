@@ -34,7 +34,8 @@ import org.enso.languageserver.runtime.ExecutionApi.ContextId
   *
   * }}}
   */
-final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef) extends Actor {
+final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
+    extends Actor {
 
   import ContextRegistry._
 
@@ -48,7 +49,9 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef) e
         case Some(manager) =>
           manager.forward(ExecutionProtocol.CreateContextRequest(freshId))
         case None =>
-          val manager = context.actorOf(ContextManager.props(config.requestTimeout, runtime))
+          val manager = context.actorOf(
+            ContextManager.props(config.requestTimeout, runtime)
+          )
           context.watch(manager)
           manager.forward(ExecutionProtocol.CreateContextRequest(freshId))
           context.become(withStore(store + (sender() -> manager)))

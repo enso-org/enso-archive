@@ -39,7 +39,8 @@ object ReceivesTreeUpdates {
   *
   * @param contextId identifier of an execution conatext
   */
-case class CanModify(contextId: ContextId) extends Capability(CanModify.methodName)
+case class CanModify(contextId: ContextId)
+    extends Capability(CanModify.methodName)
 
 object CanModify {
   val methodName = "canModify"
@@ -50,7 +51,8 @@ object CanModify {
   *
   * @param contextId identifier of an execution conatext
   */
-case class ReceivesEvents(contextId: ContextId) extends Capability(ReceivesEvents.methodName)
+case class ReceivesEvents(contextId: ContextId)
+    extends Capability(ReceivesEvents.methodName)
 
 object ReceivesEvents {
   val methodName = "receivesEvents"

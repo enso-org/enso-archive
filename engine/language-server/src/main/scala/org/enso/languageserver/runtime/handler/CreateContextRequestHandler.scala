@@ -7,7 +7,11 @@ import org.enso.polyglot.runtime.Runtime
 
 import scala.concurrent.duration.FiniteDuration
 
-final class CreateContextRequestHandler(timeout: FiniteDuration, runtime: ActorRef) extends Actor with ActorLogging {
+final class CreateContextRequestHandler(
+  timeout: FiniteDuration,
+  runtime: ActorRef
+) extends Actor
+    with ActorLogging {
 
   import context.dispatcher, ExecutionProtocol._
 
@@ -16,11 +20,15 @@ final class CreateContextRequestHandler(timeout: FiniteDuration, runtime: ActorR
   private def requestStage: Receive = {
     case CreateContextRequest(contextId) =>
       runtime ! Runtime.Api.CreateContextRequest(contextId)
-      val cancellable = context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(sender(), cancellable))
   }
 
-  private def responseStage(replyTo: ActorRef, cancellable: Cancellable): Receive = {
+  private def responseStage(
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case RequestTimeout =>
       replyTo ! RequestTimeout
       context.stop(self)
