@@ -16,7 +16,6 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
   ServerBooted
 }
 import org.enso.projectmanager.infrastructure.net.Tcp
-import org.enso.projectmanager.requesthandler.ProjectOpenHandler
 
 /**
   * It boots a Language Sever described by the `descriptor`. Upon boot failure
@@ -57,7 +56,7 @@ class LanguageServerBootLoader(
       )
   }
 
-  private def booting(socket: SocketData, retry: Int): Receive = {
+  private def booting(socket: SocketData, retryCount: Int): Receive = {
     case Boot =>
       log.debug("Booting a language server")
       val config = LanguageServerConfig(
@@ -76,12 +75,14 @@ class LanguageServerBootLoader(
         th,
         s"An error occurred during boot of Language Server [${descriptor.name}]"
       )
-      if (retry < config.noRetries) {
+      if (retryCount < config.numberOfRetries) {
         context.system.scheduler
           .scheduleOnce(config.delayBetweenRetry, self, FindFreeSocket)
-        context.become(findingSocket(retry + 1))
+        context.become(findingSocket(retryCount + 1))
       } else {
-        log.error(s"Tried $retry times to boot Language Server. Giving up.")
+        log.error(
+          s"Tried $retryCount times to boot Language Server. Giving up."
+        )
         context.parent ! ServerBootFailed(th)
         context.stop(self)
       }

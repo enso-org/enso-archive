@@ -64,11 +64,11 @@ object configuration {
   /**
     * A configuration object for bootloader properties.
     *
-    * @param noRetries how many times a bootloader should try to boot the LS
+    * @param numberOfRetries how many times a bootloader should try to boot the LS
     * @param delayBetweenRetry delays between retries
     */
   case class BootloaderConfig(
-    noRetries: Int,
+    numberOfRetries: Int,
     delayBetweenRetry: FiniteDuration
   )
 
