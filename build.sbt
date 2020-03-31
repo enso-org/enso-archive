@@ -354,7 +354,7 @@ lazy val project_manager = (project in file("common/project-manager"))
       // standard classpath. This is the recommended way of handling this and
       // we should strive to use such structure everywhere. See
       // https://www.graalvm.org/docs/graalvm-as-a-platform/implement-language#graalvm
-      s"-Dtruffle.class.path.append=${(LocalProject("runtime") / Compile / fullClasspath).value
+      s"-Dtruffle.class.path.append=${(runtime / Compile / fullClasspath).value
         .map(_.data)
         .mkString(File.pathSeparator)}"
     ),
