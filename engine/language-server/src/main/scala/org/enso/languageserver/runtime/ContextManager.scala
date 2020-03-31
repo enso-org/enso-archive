@@ -14,9 +14,6 @@ final class ContextManager(timeout: FiniteDuration, runtime: ActorRef) extends A
     withContext(Set())
 
   def withContext(contexts: Set[ContextId]): Receive = {
-    case CreateContextRequest(contextId) if contexts.contains(contextId) =>
-      sender() ! ExecutionContextExistsError
-
     case msg: CreateContextRequest =>
       val handler = context.actorOf(CreateContextRequestHandler.props(timeout, runtime))
       handler.forward(msg)
