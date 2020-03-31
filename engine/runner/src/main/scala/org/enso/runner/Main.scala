@@ -3,9 +3,9 @@ package org.enso.runner
 import java.io.File
 import java.util.UUID
 
+import buildinfo.Info
 import cats.implicits._
 import org.apache.commons.cli.{Option => CliOption, _}
-import org.enso.languageserver
 import org.enso.languageserver.boot
 import org.enso.languageserver.boot.LanguageServerConfig
 import org.enso.pkg.Package
