@@ -30,8 +30,7 @@ class ZioPlatform(computeExecutionContext: ExecutionContext) extends Platform {
     t.printStackTrace()
     try {
       System.exit(-1)
-      throw t
-    } catch { case _: Throwable => throw t }
+    } finally { throw t }
   }
 
   override def reportFailure(cause: Cause[Any]): Unit =
