@@ -743,11 +743,11 @@ interface ProjectOpenResponse {
 ```
 
 ##### Errors
-- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal 
+- [`ProjectNameValidationError`](#projectnamevalidationerror) to signal
 validation failures.
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
-- [`ProjectExistsError`](#projectexistserror) to signal that the project 
+- [`ProjectExistsError`](#projectexistserror) to signal that the project
 already exists.
 
 
@@ -772,9 +772,9 @@ interface ProjectDeleteRequest {
 ```
 
 ##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
-- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project 
+- [`ProjectNotFoundError`](#projectnotfounderror) to signal that the project
 doesn't exist.
 - [`CannotRemoveOpenProjectError`](#cannotremoveopenprojecterror) to signal that 
 the project cannot be removed, because is open by at least one user.
@@ -1181,13 +1181,26 @@ This capability states that the client will receive updates for any watched
 content roots in the current project.
 
 - **method:** `file/receivesTreeUpdates`
-- **registerOptions:** `{}`
+- **registerOptions:** `{ path: Path; }`
 
 ##### Enables
 - `file/event`
 
 ##### Disables
 None
+
+##### Errors
+
+[`capability/acquire`](#capabilityacquire):
+- [`FileSystemError`](#filesystemerror) to signal a generic, unrecoverable
+  file-system error.
+- [`FileNotFound`](#filenotfound) informs that path cannot be found.
+
+[`capability/release`](#capabilityrelease):
+- [`CapabilityNotAcquired`](#capabilitynotacquired) informs that requested
+  capability is not acquired.
+
+
 
 #### `executionContext/canModify`
 This capability states that the client has the ability to modify an execution
@@ -1537,13 +1550,13 @@ of the (possibly multiple) content roots.
 
 ```typescript
 {
-  object: FileSystemObject;
+  path: Path;
   kind: FileEventKind;
 }
 ```
 
 ##### Errors
-TBC
+None
 
 #### `file/addRoot`
 This request adds a content root to the active project.
@@ -2250,6 +2263,7 @@ Signals that the project doesn't exist.
 }
 ```
 
+```
 ##### `ProjectOpenError`
 Signals that the project cannot be open due to boot failures.
 
@@ -2299,3 +2313,12 @@ Signals that cannot remove open project.
   "message" : "Cannot remove open project"
 }
 ```
+
+##### `CapabilityNotAcquired`
+Signals that requested capability is not acquired.
+
+```typescript
+"error" : {
+  "code" : 5001,
+  "message" : "Capability not acquired"
+}
