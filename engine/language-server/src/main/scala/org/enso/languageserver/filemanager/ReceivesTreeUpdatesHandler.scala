@@ -1,6 +1,6 @@
 package org.enso.languageserver.filemanager
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityNotAcquiredResponse,
@@ -24,13 +24,17 @@ final class ReceivesTreeUpdatesHandler(
   config: Config,
   fs: FileSystemApi[BlockingIO],
   exec: Exec[BlockingIO]
-) extends Actor {
+) extends Actor
+    with ActorLogging {
 
   import ReceivesTreeUpdatesHandler._
 
   override def receive: Receive = withStore(Store())
 
-  def withStore(store: Store): Receive = {
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
+
+  private def withStore(store: Store): Receive = {
     case AcquireCapability(
         client,
         CapabilityRegistration(ReceivesTreeUpdates(path))
@@ -115,6 +119,7 @@ object ReceivesTreeUpdatesHandler {
     * [[ReceivesTreeUpdatesHandler]].
     *
     * @param config configuration
+    * @param fs file system
     * @param exec executor of file system events
     */
   def props(

@@ -53,6 +53,9 @@ final class PathWatcher(
 
   override def receive: Receive = uninitializedStage
 
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
+
   private def uninitializedStage: Receive = {
     case WatchPath(path, clients) =>
       val pathToWatchResult = config
