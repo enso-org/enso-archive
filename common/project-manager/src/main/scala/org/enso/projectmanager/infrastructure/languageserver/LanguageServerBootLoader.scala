@@ -16,8 +16,16 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
   ServerBooted
 }
 import org.enso.projectmanager.infrastructure.net.Tcp
+import org.enso.projectmanager.requesthandler.ProjectOpenHandler
 
-private[languageserver] class LanguageServerBootLoader(
+/**
+  * It boots a Language Sever described by the `descriptor`. Upon boot failure
+  * looks up new available port and retries to boot the server.
+  *
+  * @param descriptor a LS descriptor
+  * @param config a bootloader config
+  */
+class LanguageServerBootLoader(
   descriptor: LanguageServerDescriptor,
   config: BootloaderConfig
 ) extends Actor
@@ -90,20 +98,44 @@ private[languageserver] class LanguageServerBootLoader(
 
 }
 
-private[languageserver] object LanguageServerBootLoader {
+object LanguageServerBootLoader {
 
+  /**
+    * Creates a configuration object used to create a [[LanguageServerBootLoader]].
+    *
+    * @param descriptor a LS descriptor
+    * @param config a bootloader config
+    * @return a configuration object
+    */
   def props(
     descriptor: LanguageServerDescriptor,
     config: BootloaderConfig
   ): Props =
     Props(new LanguageServerBootLoader(descriptor, config))
 
+  /**
+    * Find free socket command.
+    */
   case object FindFreeSocket
 
+  /**
+    * Boot command.
+    */
   case object Boot
 
+  /**
+    * Signals that server boot failed.
+    *
+    * @param th a throwable
+    */
   case class ServerBootFailed(th: Throwable)
 
+  /**
+    * Signals that server booted successfully.
+    *
+    * @param config a server config
+    * @param server a server lifecycle component
+    */
   case class ServerBooted(
     config: LanguageServerConfig,
     server: LanguageServerComponent

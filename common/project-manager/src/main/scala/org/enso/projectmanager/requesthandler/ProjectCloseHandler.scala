@@ -16,6 +16,13 @@ import org.enso.projectmanager.service.{
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `project/close` commands.
+  *
+  * @param clientId the requester id
+  * @param service a project service
+  * @param requestTimeout a request timeout
+  */
 class ProjectCloseHandler[F[+_, +_]: Exec](
   clientId: UUID,
   service: ProjectServiceApi[F],
@@ -72,6 +79,7 @@ object ProjectCloseHandler {
   /**
     * Creates a configuration object used to create a [[ProjectCloseHandler]].
     *
+    * @param clientId the requester id
     * @param service a project service
     * @param requestTimeout a request timeout
     * @return a configuration object

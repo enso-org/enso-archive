@@ -11,14 +11,24 @@ import org.enso.languageserver.boot.LanguageServerComponent.{
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
+/**
+  * A lifecycle component used to start and stop a Language Server.
+  *
+  * @param config a LS config
+  */
 class LanguageServerComponent(config: LanguageServerConfig)
     extends LazyLogging {
 
   @volatile
   private var maybeServerState: Option[(MainModule, Http.ServerBinding)] = None
 
-  implicit val ec = config.computeEc
+  implicit private val ec = config.computeExecutionContext
 
+  /**
+    * Starts asynchronously a server.
+    *
+    * @return a notice that the server started successfully
+    */
   def start(): Future[ServerStarted.type] = {
     logger.info("Starting Language Server...")
     for {
@@ -32,6 +42,11 @@ class LanguageServerComponent(config: LanguageServerConfig)
     } yield ServerStarted
   }
 
+  /**
+    * Stops asynchronously a server.
+    *
+    * @return a notice that the server stopped successfully
+    */
   def stop(): Future[ServerStopped.type] =
     maybeServerState match {
       case None =>

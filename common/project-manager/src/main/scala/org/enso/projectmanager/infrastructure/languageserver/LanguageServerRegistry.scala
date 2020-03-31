@@ -15,6 +15,14 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProto
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 
+/**
+  * An actor that routes request regarding lang. server lifecycle to the
+  * right controller managing the server.
+  * It creates a controller actor, if a server doesn't exists.
+  *
+  * @param networkConfig a net config
+  * @param bootloaderConfig a bootloader config
+  */
 class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig
@@ -64,8 +72,20 @@ class LanguageServerRegistry(
 
 object LanguageServerRegistry {
 
+  /**
+    * A notification informing that a server has shut down.
+    *
+    * @param projectId a project id
+    */
   case class ServerShutDown(projectId: UUID)
 
+  /**
+    *  Creates a configuration object used to create a [[LanguageServerRegistry]].
+    *
+    * @param networkConfig a net config
+    * @param bootloaderConfig a bootloader config
+    * @return
+    */
   def props(
     networkConfig: NetworkConfig,
     bootloaderConfig: BootloaderConfig

@@ -17,6 +17,6 @@ case class LanguageServerConfig(
   port: Int,
   contentRootUuid: UUID,
   contentRootPath: String,
-  name: String                = "language-server",
-  computeEc: ExecutionContext = ExecutionContext.global
+  name: String                              = "language-server",
+  computeExecutionContext: ExecutionContext = ExecutionContext.global
 )

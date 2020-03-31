@@ -14,6 +14,14 @@ import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.model.Project
 
+/**
+  * It is a proxy to actor based language subsystem. It a bridge between
+  * actor interface and pure functional effects.
+  *
+  * @param registry a lang. server registry
+  * @param timeoutConfig a timeout config
+  * @tparam F a effectful context
+  */
 class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatMap](
   registry: ActorRef,
   timeoutConfig: TimeoutConfig
@@ -21,6 +29,7 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
 
   implicit val timeout: Timeout = Timeout(timeoutConfig.bootTimeout)
 
+  /** @inheritdoc **/
   override def start(
     clientId: UUID,
     project: Project
@@ -35,6 +44,7 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
         case f: ServerStartupFailure => ErrorChannel[F].fail(f)
       }
 
+  /** @inheritdoc **/
   override def stop(
     clientId: UUID,
     projectId: UUID
@@ -49,6 +59,7 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
         case f: ServerStoppageFailure => ErrorChannel[F].fail(f)
       }
 
+  /** @inheritdoc **/
   override def isRunning(projectId: UUID): F[CheckTimeout.type, Boolean] =
     Async[F]
       .fromFuture { () =>

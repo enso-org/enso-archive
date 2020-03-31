@@ -45,7 +45,12 @@ class MainModule(serverConfig: LanguageServerConfig) {
     Sha3_224VersionCalculator
 
   implicit val system =
-    ActorSystem(serverConfig.name, None, None, Some(serverConfig.computeEc))
+    ActorSystem(
+      serverConfig.name,
+      None,
+      None,
+      Some(serverConfig.computeExecutionContext)
+    )
 
   implicit val materializer = SystemMaterializer.get(system)
 

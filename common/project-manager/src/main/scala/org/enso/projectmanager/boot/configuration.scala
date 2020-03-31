@@ -27,6 +27,13 @@ object configuration {
     */
   case class ServerConfig(host: String, port: Int)
 
+  /**
+    * A configuration object for properties of project storage.
+    *
+    * @param projectsRoot a project root
+    * @param projectMetadataPath a path to metadata
+    * @param userProjectsPath a user project root
+    */
   case class StorageConfig(
     projectsRoot: File,
     projectMetadataPath: File,
@@ -34,7 +41,7 @@ object configuration {
   )
 
   /**
-    * A configuration object for timeout proeperties.
+    * A configuration object for timeout properties.
     *
     * @param ioTimeout a timeout for IO operations
     * @param requestTimeout a timeout for JSON RPC request timeout
@@ -45,8 +52,21 @@ object configuration {
     bootTimeout: FiniteDuration
   )
 
+  /**
+    * A configuration object for networking.
+    *
+    * @param interface an interface to listen to
+    * @param minPort min port for the LS
+    * @param maxPort max port for the LS
+    */
   case class NetworkConfig(interface: String, minPort: Int, maxPort: Int)
 
+  /**
+    * A configuration object for bootloader properties.
+    *
+    * @param noRetries how many times a bootloader should try to boot the LS
+    * @param delayBetweenRetry delays between retries
+    */
   case class BootloaderConfig(
     noRetries: Int,
     delayBetweenRetry: FiniteDuration

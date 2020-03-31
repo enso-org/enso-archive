@@ -99,6 +99,13 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
+  /**
+    * Opens a project. It starts up a Language Server if needed.
+    *
+    * @param clientId the requester id
+    * @param projectId the project id
+    * @return either failure or a socket of the Language Server
+    */
   override def openProject(
     clientId: UUID,
     projectId: UUID
@@ -120,6 +127,13 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     } yield socket
   }
 
+  /**
+    * Closes a project. Tries to shut down the Language Server.
+    *
+    * @param clientId the requester id
+    * @param projectId the project id
+    * @return either failure or [[Unit]] representing void success
+    */
   override def closeProject(
     clientId: UUID,
     projectId: UUID

@@ -17,6 +17,13 @@ import org.enso.projectmanager.service.{
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `project/open` commands.
+  *
+  * @param clientId the requester id
+  * @param service a project service
+  * @param requestTimeout a request timeout
+  */
 class ProjectOpenHandler[F[+_, +_]: Exec](
   clientId: UUID,
   service: ProjectServiceApi[F],
@@ -75,6 +82,7 @@ object ProjectOpenHandler {
   /**
     * Creates a configuration object used to create a [[ProjectOpenHandler]].
     *
+    * @param clientId the requester id
     * @param service a project service
     * @param requestTimeout a request timeout
     * @return a configuration object

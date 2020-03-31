@@ -30,17 +30,25 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
   ServerBootFailed,
   ServerBooted
 }
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.{
   Boot,
   BootTimeout
 }
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
 import org.enso.projectmanager.model.Project
 
 import scala.concurrent.duration._
 
-private class LanguageServerController(
+/**
+  * A language server controller responsible for managing the server lifecycle.
+  * It delegates all tasks to other actors like bootloader or supervisor.
+  *
+  * @param project a project open by the server
+  * @param networkConfig a net config
+  * @param bootloaderConfig a bootloader config
+  */
+class LanguageServerController(
   project: Project,
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig
@@ -183,6 +191,14 @@ private class LanguageServerController(
 
 object LanguageServerController {
 
+  /**
+    * Creates a configuration object used to create a [[LanguageServerController]].
+    *
+    * @param project a project open by the server
+    * @param networkConfig a net config
+    * @param bootloaderConfig a bootloader config
+    * @return a configuration object
+    */
   def props(
     project: Project,
     networkConfig: NetworkConfig,
@@ -192,8 +208,14 @@ object LanguageServerController {
       new LanguageServerController(project, networkConfig, bootloaderConfig)
     )
 
+  /**
+    * Signals boot timeout.
+    */
   case object BootTimeout
 
+  /**
+    * Boot command.
+    */
   case object Boot
 
 }
