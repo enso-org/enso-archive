@@ -1,5 +1,6 @@
 package org.enso.projectmanager.boot
 
+import com.typesafe.scalalogging.LazyLogging
 import zio.Cause
 import zio.internal.stacktracer.Tracer
 import zio.internal.stacktracer.impl.AkkaLineNumbersTracer
@@ -13,7 +14,9 @@ import scala.concurrent.ExecutionContext
   *
   * @param computeExecutionContext compute thread pool
   */
-class ZioPlatform(computeExecutionContext: ExecutionContext) extends Platform {
+class ZioPlatform(computeExecutionContext: ExecutionContext)
+    extends Platform
+    with LazyLogging {
 
   override def executor: Executor =
     Executor.fromExecutionContext(2048)(computeExecutionContext)
@@ -30,11 +33,12 @@ class ZioPlatform(computeExecutionContext: ExecutionContext) extends Platform {
     t.printStackTrace()
     try {
       System.exit(-1)
-    } finally { throw t }
+      throw t
+    } catch { case _: Throwable => throw t }
   }
 
   override def reportFailure(cause: Cause[Any]): Unit =
     if (cause.died)
-      System.err.println(cause.prettyPrint)
+      logger.error(cause.prettyPrint)
 
 }
