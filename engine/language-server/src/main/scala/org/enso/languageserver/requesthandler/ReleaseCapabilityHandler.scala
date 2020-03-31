@@ -1,6 +1,6 @@
 package org.enso.languageserver.requesthandler
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
 import org.enso.languageserver.capability.CapabilityApi.{
@@ -37,10 +37,15 @@ class ReleaseCapabilityHandler(
   private def requestStage: Receive = {
     case Request(ReleaseCapability, id, params: CapabilityRegistration) =>
       capabilityRouter ! CapabilityProtocol.ReleaseCapability(client, params)
-      context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
-      context.become(responseStage(id, sender()))
+      val cancellable =
+        context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
+      context.become(responseStage(id, sender(), cancellable))
   }
-  private def responseStage(id: Id, replyTo: ActorRef): Receive = {
+  private def responseStage(
+    id: Id,
+    replyTo: ActorRef,
+    cancellable: Cancellable
+  ): Receive = {
     case RequestTimeout =>
       log.error(s"Releasing capability for ${client.id} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
@@ -48,14 +53,17 @@ class ReleaseCapabilityHandler(
 
     case CapabilityReleased =>
       replyTo ! ResponseResult(ReleaseCapability, id, Unused)
+      cancellable.cancel()
       context.stop(self)
 
     case CapabilityReleaseBadRequest =>
       replyTo ! ResponseError(Some(id), ServiceError)
+      cancellable.cancel()
       context.stop(self)
 
     case CapabilityNotAcquiredResponse =>
       replyTo ! ResponseError(Some(id), CapabilityNotAcquired)
+      cancellable.cancel()
       context.stop(self)
   }
 
