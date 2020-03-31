@@ -8,6 +8,11 @@ import zio.internal.{Executor, Platform, Tracing}
 
 import scala.concurrent.ExecutionContext
 
+/**
+  * An environment needed to execute ZIO actions.
+  *
+  * @param computeExecutionContext compute thread pool
+  */
 class ZioPlatform(computeExecutionContext: ExecutionContext) extends Platform {
 
   override def executor: Executor =
