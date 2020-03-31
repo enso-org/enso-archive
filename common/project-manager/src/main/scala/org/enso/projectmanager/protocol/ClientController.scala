@@ -14,12 +14,14 @@ import org.enso.projectmanager.protocol.ProjectManagementApi.{
   ProjectClose,
   ProjectCreate,
   ProjectDelete,
+  ProjectListRecent,
   ProjectOpen
 }
 import org.enso.projectmanager.requesthandler.{
   ProjectCloseHandler,
   ProjectCreateHandler,
   ProjectDeleteHandler,
+  ProjectListRecentHandler,
   ProjectOpenHandler
 }
 import org.enso.projectmanager.service.ProjectServiceApi
@@ -49,7 +51,9 @@ class ClientController[F[+_, +_]: Exec](
       ProjectOpen -> ProjectOpenHandler
         .props[F](clientId, projectService, config.bootTimeout),
       ProjectClose -> ProjectCloseHandler
-        .props[F](clientId, projectService, config.bootTimeout)
+        .props[F](clientId, projectService, config.bootTimeout),
+      ProjectListRecent -> ProjectListRecentHandler
+        .props[F](clientId, projectService, config.requestTimeout)
     )
 
   override def unhandled(message: Any): Unit =

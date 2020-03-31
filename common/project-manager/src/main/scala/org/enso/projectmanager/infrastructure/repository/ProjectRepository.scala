@@ -20,12 +20,12 @@ trait ProjectRepository[F[+_, +_]] {
   def exists(name: String): F[ProjectRepositoryFailure, Boolean]
 
   /**
-    * Inserts the provided user project to the storage.
+    * Upsert the provided user project in the storage.
     *
     * @param project the project to insert
     * @return
     */
-  def insertUserProject(
+  def upsertUserProject(
     project: Project
   ): F[ProjectRepositoryFailure, Unit]
 
@@ -46,5 +46,7 @@ trait ProjectRepository[F[+_, +_]] {
   def findUserProject(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]]
+
+  def listRecent(size: Int): F[ProjectRepositoryFailure, List[Project]]
 
 }

@@ -72,6 +72,9 @@ class ProjectCreateHandler[F[+_, +_]: Exec](
       context.stop(self)
   }
 
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
+
 }
 
 object ProjectCreateHandler {

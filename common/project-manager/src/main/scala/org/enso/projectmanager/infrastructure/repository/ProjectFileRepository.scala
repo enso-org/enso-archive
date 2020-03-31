@@ -44,6 +44,19 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.exists(name))
       .mapError(_.fold(convertFileStorageFailure))
 
+  override def listRecent(
+    size: Int
+  ): F[ProjectRepositoryFailure, List[Project]] =
+    indexStorage
+      .load()
+      .map {
+        _.userProjects.values.toList
+          .filter(_.lastOpened.isDefined)
+          .sortBy(_.lastOpened.get)
+          .take(size)
+      }
+      .mapError(_.fold(convertFileStorageFailure))
+
   /** @inheritdoc **/
   override def findUserProject(
     projectId: UUID
@@ -59,7 +72,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     * @param project the project to insert
     * @return
     */
-  override def insertUserProject(
+  override def upsertUserProject(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)

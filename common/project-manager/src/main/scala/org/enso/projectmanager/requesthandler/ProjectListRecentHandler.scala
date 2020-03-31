@@ -5,9 +5,10 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc._
+import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult, Unused}
 import org.enso.projectmanager.control.effect.Exec
-import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectClose
+import org.enso.projectmanager.data.ProjectMetadata
+import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectListRecent
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
 import org.enso.projectmanager.service.{
   ProjectServiceApi,
@@ -17,26 +18,27 @@ import org.enso.projectmanager.service.{
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for `project/close` commands.
+  * A request handler for `project/listRecent` commands.
   *
   * @param clientId the requester id
   * @param service a project service
   * @param requestTimeout a request timeout
   */
-class ProjectCloseHandler[F[+_, +_]: Exec](
+class ProjectListRecentHandler[F[+_, +_]: Exec](
   clientId: UUID,
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
     with ActorLogging {
+
   override def receive: Receive = requestStage
 
   import context.dispatcher
 
   private def requestStage: Receive = {
-    case Request(ProjectClose, id, params: ProjectClose.Params) =>
+    case Request(ProjectListRecent, id, params: ProjectListRecent.Params) =>
       Exec[F]
-        .exec(service.closeProject(clientId, params.projectId))
+        .exec { service.listRecentProjects(params.numberOfProjects) }
         .pipeTo(self)
       val cancellable =
         context.system.scheduler
@@ -50,13 +52,13 @@ class ProjectCloseHandler[F[+_, +_]: Exec](
     cancellable: Cancellable
   ): Receive = {
     case Status.Failure(ex) =>
-      log.error(s"Failure during $ProjectClose operation:", ex)
+      log.error(s"Failure during $ProjectListRecent operation:", ex)
       replyTo ! ResponseError(Some(id), ServiceError)
       cancellable.cancel()
       context.stop(self)
 
     case RequestTimeout =>
-      log.error(s"Request $ProjectClose with $id timed out")
+      log.error(s"Request $ProjectListRecent with $id timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -66,8 +68,12 @@ class ProjectCloseHandler[F[+_, +_]: Exec](
       cancellable.cancel()
       context.stop(self)
 
-    case Right(()) =>
-      replyTo ! ResponseResult(ProjectClose, id, Unused)
+    case Right(list: List[ProjectMetadata]) =>
+      replyTo ! ResponseResult(
+        ProjectListRecent,
+        id,
+        ProjectListRecent.Result(list)
+      )
       cancellable.cancel()
       context.stop(self)
   }
@@ -77,10 +83,10 @@ class ProjectCloseHandler[F[+_, +_]: Exec](
 
 }
 
-object ProjectCloseHandler {
+object ProjectListRecentHandler {
 
   /**
-    * Creates a configuration object used to create a [[ProjectCloseHandler]].
+    * Creates a configuration object used to create a [[ProjectListRecentHandler]].
     *
     * @param clientId the requester id
     * @param service a project service
@@ -92,6 +98,6 @@ object ProjectCloseHandler {
     service: ProjectServiceApi[F],
     requestTimeout: FiniteDuration
   ): Props =
-    Props(new ProjectCloseHandler(clientId, service, requestTimeout))
+    Props(new ProjectListRecentHandler(clientId, service, requestTimeout))
 
 }

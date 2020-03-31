@@ -7,7 +7,7 @@ import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.ErrorChannel
 import org.enso.projectmanager.control.effect.syntax._
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.{ProjectMetadata, SocketData}
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerService
 import org.enso.projectmanager.infrastructure.log.Logging
@@ -68,7 +68,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
       project       = Project(projectId, name, creationTime)
-      _            <- repo.insertUserProject(project).mapError(toServiceFailure)
+      _            <- repo.upsertUserProject(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
@@ -110,21 +110,25 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     clientId: UUID,
     projectId: UUID
   ): F[ProjectServiceFailure, SocketData] = {
+    // format: off
     for {
-      _       <- log.debug(s"Opening project $projectId")
-      project <- getUserProject(projectId)
-      socket <- languageServerService
-        .start(clientId, project)
-        .mapError {
-          case ServerBootTimedOut =>
-            ProjectOpenFailed("Language server boot timed out")
-
-          case ServerBootFailed(th) =>
-            ProjectOpenFailed(
-              s"Language server boot failed: ${th.getMessage}"
-            )
-        }
+      _        <- log.debug(s"Opening project $projectId")
+      project  <- getUserProject(projectId)
+      openTime <- clock.nowInUtc()
+      updated   = project.copy(lastOpened = Some(openTime))
+      _        <- repo.upsertUserProject(updated).mapError(toServiceFailure)
+      socket   <- languageServerService.start(clientId, updated)
+                    .mapError {
+                      case ServerBootTimedOut =>
+                        ProjectOpenFailed("Language server boot timed out")
+            
+                      case ServerBootFailed(th) =>
+                        ProjectOpenFailed(
+                          s"Language server boot failed: ${th.getMessage}"
+                        )
+                    }
     } yield socket
+    // format: on
   }
 
   /**
@@ -145,6 +149,27 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       case CannotDisconnectOtherClients => ProjectOpenByOtherPeers
     }
   }
+
+  /**
+    * Lists recent user projects.
+    *
+    * @param size the size of result set
+    * @return list of recent projects
+    */
+  override def listRecentProjects(
+    size: Int
+  ): F[ProjectServiceFailure, List[ProjectMetadata]] =
+    repo
+      .listRecent(size)
+      .map(_.map(toProjectMetadata))
+      .mapError(toServiceFailure)
+
+  private def toProjectMetadata(project: Project): ProjectMetadata =
+    ProjectMetadata(
+      name       = project.name,
+      id         = project.id,
+      lastOpened = project.lastOpened
+    )
 
   private def getUserProject(
     projectId: UUID
