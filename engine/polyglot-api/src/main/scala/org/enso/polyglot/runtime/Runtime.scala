@@ -40,6 +40,8 @@ object Runtime {
     )
   )
   sealed trait Api
+  sealed trait ApiRequest extends Api
+  sealed trait ApiResponse extends Api
 
   object Api {
     type ContextId = UUID

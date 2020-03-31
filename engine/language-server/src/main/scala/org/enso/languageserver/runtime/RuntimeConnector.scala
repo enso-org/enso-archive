@@ -20,10 +20,17 @@ class RuntimeConnector extends Actor with ActorLogging with Stash {
     case _ => stash()
   }
 
+  /**
+    * [[Runtime.ApiRequest]]'s are sent to runtime,
+    * [[Runtime.ApiResponse]]'s are forwarded to the sender.
+    */
   def initialized(engineConnection: MessageEndpoint): Receive = {
     case Destroy => context.stop(self)
-    case Runtime.Api.CreateContextResponse(uid) =>
-      log.info("Context created {}.", uid)
+    case msg: Runtime.ApiRequest =>
+      engineConnection.sendBinary(Runtime.Api.serialize(msg))
+    case msg: Runtime.ApiResponse =>
+      val sender: ActorRef = ???
+      sender ! msg
   }
 }
 

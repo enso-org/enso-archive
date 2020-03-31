@@ -48,6 +48,16 @@ object FileManagerConfig {
     )
 }
 
+case class ExecutionContextConfig(requestTimeout: FiniteDuration)
+
+object ExecutionContextConfig {
+
+  def apply(): ExecutionContextConfig =
+    ExecutionContextConfig(
+      requestTimeout = 5.seconds
+    )
+}
+
 /**
   * The config of the running Language Server instance.
   *
@@ -57,7 +67,8 @@ object FileManagerConfig {
 case class Config(
   contentRoots: Map[UUID, File],
   fileManager: FileManagerConfig,
-  pathWatcher: PathWatcherConfig
+  pathWatcher: PathWatcherConfig,
+  executionContext: ExecutionContextConfig
 ) {
 
   def findContentRoot(rootId: UUID): Either[FileSystemFailure, File] =
