@@ -184,11 +184,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     }
 
     "remove project structure" in {
+      //given
       val projectName     = "to-remove"
       val projectDir      = new File(userProjectDir, projectName)
       implicit val client = new WsTestClient(address)
       val projectId       = createProject(projectName)
       projectDir shouldBe Symbol("directory")
+      //when
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/delete",
@@ -198,6 +200,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      //then
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
@@ -237,44 +240,14 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     }
 
     "start the Language Server if not running" in {
-      val projectName = "to-remove"
-
-      val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": $projectName
-              }
-            }
-          """)
-      val projectId = getGeneratedUUID
-      client.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "projectId" : $projectId
-            }
-          }
-          """)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/open",
-              "id": 1,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      val Right(openReply) = parse(client.expectMessage())
-      val socketField = openReply.hcursor
-        .downField("result")
-        .downField("languageServerAddress")
-      val Right(host)          = socketField.downField("host").as[String]
-      val Right(port)          = socketField.downField("port").as[Int]
-      val languageServerClient = new WsTestClient(s"ws://$host:$port")
+      //given
+      val projectName     = "to-remove"
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject(projectName)
+      //when
+      val socket = openProject(projectId)
+      val languageServerClient =
+        new WsTestClient(s"ws://${socket.host}:${socket.port}")
       languageServerClient.send(json"""
           {
             "jsonrpc": "2.0",
@@ -288,44 +261,16 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             }
           }
             """)
+      //then
       languageServerClient.expectJson(json"""
           {
             "jsonrpc":"2.0",
              "id":1,
              "error":{"code":1001,"message":"Content root not found"}}
             """)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/close",
-              "id": 2,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":2,
-            "result": null
-          }
-          """)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/delete",
-              "id": 3,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":3,
-            "result": null
-          }
-          """)
+      //teardown
+      closeProject(projectId)
+      deleteProject(projectId)
     }
 
     "not start new Language Server if one is running" in {
