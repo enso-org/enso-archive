@@ -151,37 +151,12 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     }
 
     "fail when project is running" in {
-      val projectName = "to-remove"
-      val client      = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": $projectName
-              }
-            }
-          """)
-      val projectId = getGeneratedUUID
-      client.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "projectId" : $projectId
-            }
-          }
-          """)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/open",
-              "id": 1,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client.expectMessage()
+      //given
+      val projectName     = "to-remove"
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject(projectName)
+      openProject(projectId)
+      //when
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/delete",
@@ -191,6 +166,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      //then
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
@@ -202,58 +178,16 @@ class ProjectManagementApiSpec extends BaseServerSpec {
           }
           """)
 
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/close",
-              "id": 3,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":3,
-            "result": null
-          }
-          """)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/delete",
-              "id": 3,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client.expectMessage()
+      //teardown
+      closeProject(projectId)
+      deleteProject(projectId)
     }
 
     "remove project structure" in {
-      val projectName = "to-remove"
-      val projectDir  = new File(userProjectDir, projectName)
-
-      val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": $projectName
-              }
-            }
-          """)
-      val projectId = getGeneratedUUID
-      client.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "projectId" : $projectId
-            }
-          }
-          """)
+      val projectName     = "to-remove"
+      val projectDir      = new File(userProjectDir, projectName)
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject(projectName)
       projectDir shouldBe Symbol("directory")
       client.send(json"""
             { "jsonrpc": "2.0",
