@@ -25,7 +25,7 @@ trait ProjectRepository[F[+_, +_]] {
     * @param project the project to insert
     * @return
     */
-  def upsertUserProject(
+  def save(
     project: Project
   ): F[ProjectRepositoryFailure, Unit]
 
@@ -35,7 +35,7 @@ trait ProjectRepository[F[+_, +_]] {
     * @param projectId the project id to remove
     * @return either failure or success
     */
-  def deleteUserProject(projectId: UUID): F[ProjectRepositoryFailure, Unit]
+  def delete(projectId: UUID): F[ProjectRepositoryFailure, Unit]
 
   /**
     * Finds a project by project id.
@@ -43,7 +43,7 @@ trait ProjectRepository[F[+_, +_]] {
     * @param projectId a project id
     * @return option with the project entity
     */
-  def findUserProject(
+  def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]]
 

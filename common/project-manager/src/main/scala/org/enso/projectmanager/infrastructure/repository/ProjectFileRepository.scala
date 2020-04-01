@@ -50,7 +50,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     indexStorage
       .load()
       .map {
-        _.userProjects.values.toList
+        _.projects.values.toList
           .filter(_.lastOpened.isDefined)
           .sortBy(_.lastOpened.get)
           .take(size)
@@ -58,12 +58,12 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/
-  override def findUserProject(
+  override def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]] =
     indexStorage
       .load()
-      .map(_.userProjects.get(projectId))
+      .map(_.projects.get(projectId))
       .mapError(_.fold(convertFileStorageFailure))
 
   /**
@@ -72,7 +72,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     * @param project the project to insert
     * @return
     */
-  override def upsertUserProject(
+  override def save(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
     val projectPath     = new File(storageConfig.userProjectsPath, project.name)
@@ -81,7 +81,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     createProjectStructure(project, projectPath) *>
     indexStorage
       .modify { index =>
-        val updated = index.addUserProject(projectWithPath)
+        val updated = index.add(projectWithPath)
         (updated, ())
       }
       .mapError(_.fold(convertFileStorageFailure))
@@ -101,13 +101,13 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
     * @param projectId the project id to remove
     * @return either failure or success
     */
-  override def deleteUserProject(
+  override def delete(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Unit] =
     indexStorage
       .modify { index =>
-        val maybeProject = index.findUserProject(projectId)
-        index.removeUserProject(projectId) -> maybeProject
+        val maybeProject = index.findById(projectId)
+        index.remove(projectId) -> maybeProject
       }
       .mapError(_.fold(convertFileStorageFailure))
       .flatMap {

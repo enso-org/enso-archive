@@ -24,6 +24,7 @@ import org.enso.projectmanager.infrastructure.repository.{
 }
 import org.enso.projectmanager.infrastructure.time.Clock
 import org.enso.projectmanager.model.Project
+import org.enso.projectmanager.model.ProjectKind.UserProject
 import org.enso.projectmanager.service.ProjectServiceFailure._
 import org.enso.projectmanager.service.ValidationFailure.{
   EmptyName,
@@ -67,8 +68,8 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       _            <- validateExists(name)
       creationTime <- clock.nowInUtc()
       projectId    <- gen.randomUUID()
-      project       = Project(projectId, name, creationTime)
-      _            <- repo.upsertUserProject(project).mapError(toServiceFailure)
+      project       = Project(projectId, name, UserProject, creationTime)
+      _            <- repo.save(project).mapError(toServiceFailure)
       _            <- log.info(s"Project $project created.")
     } yield projectId
     // format: on
@@ -85,7 +86,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
   ): F[ProjectServiceFailure, Unit] =
     log.debug(s"Deleting project $projectId.") *>
     ensureProjectIsNotRunning(projectId) *>
-    repo.deleteUserProject(projectId).mapError(toServiceFailure) *>
+    repo.delete(projectId).mapError(toServiceFailure) *>
     log.info(s"Project $projectId deleted.")
 
   private def ensureProjectIsNotRunning(
@@ -116,7 +117,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       project  <- getUserProject(projectId)
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
-      _        <- repo.upsertUserProject(updated).mapError(toServiceFailure)
+      _        <- repo.save(updated).mapError(toServiceFailure)
       socket   <- languageServerService.start(clientId, updated)
                     .mapError {
                       case ServerBootTimedOut =>
@@ -175,7 +176,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     projectId: UUID
   ): F[ProjectServiceFailure, Project] =
     repo
-      .findUserProject(projectId)
+      .findById(projectId)
       .mapError(toServiceFailure)
       .flatMap {
         case None          => ErrorChannel[F].fail(ProjectNotFound)
