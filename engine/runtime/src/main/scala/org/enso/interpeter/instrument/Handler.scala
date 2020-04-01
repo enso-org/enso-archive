@@ -54,17 +54,22 @@ class Handler {
     * @param msg the message to handle.
     */
   def onMessage(msg: Api): Unit = msg match {
-    case Api.CreateContextRequest(id) =>
-      contextManager.create(id)
-      endpoint.sendToClient(Api.CreateContextResponse(id))
+    case Api.CreateContextRequest(requestId, contextId) =>
+      contextManager.create(contextId)
+      endpoint.sendToClient(Api.CreateContextResponse(requestId, contextId))
 
-    case Api.DestroyContextRequest(id) =>
-      if (contextManager.get(id).isDefined) {
-        contextManager.destroy(id)
-        endpoint.sendToClient(Api.DestroyContextResponse(id, None))
+    case Api.DestroyContextRequest(requestId, contextId) =>
+      if (contextManager.get(contextId).isDefined) {
+        contextManager.destroy(contextId)
+        endpoint.sendToClient(
+          Api.DestroyContextResponse(requestId, contextId, None)
+        )
       } else {
         endpoint.sendToClient(
-          Api.DestroyContextResponse(id, Some(Api.ContextDoesNotExistError()))
+          Api.DestroyContextResponse(
+            requestId,
+            contextId,
+            Some(Api.ContextDoesNotExistError()))
         )
       }
 
