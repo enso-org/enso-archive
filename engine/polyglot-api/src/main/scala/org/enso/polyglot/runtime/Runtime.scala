@@ -39,45 +39,53 @@ object Runtime {
       )
     )
   )
-  sealed trait Api
+  sealed trait Api {
+    def requestId: Api.RequestId
+  }
   sealed trait ApiRequest extends Api
   sealed trait ApiResponse extends Api
 
   object Api {
     type ContextId = UUID
+    type RequestId = UUID
 
     /**
       * A Request sent from the client to the runtime server, to create a new
       * execution context with a given id.
       *
-      * @param id the newly created context's id.
+      * @param requestId request identifier
+      * @param contextId the newly created context's id.
       */
-    case class CreateContextRequest(id: ContextId) extends Api
+    case class CreateContextRequest(requestId: RequestId, contextId: ContextId) extends Api
 
     /**
       * A response sent from the server upon handling the [[CreateContextRequest]]
       *
-      * @param id the newly created context's id.
+      * @param requestId request initiated the response
+      * @param contextId the newly created context's id.
       */
-    case class CreateContextResponse(id: ContextId) extends Api
+    case class CreateContextResponse(requestId: RequestId, contextId: ContextId) extends Api
 
     /**
       * A Request sent from the client to the runtime server, to destroy an
       * execution context with a given id.
       *
-      * @param id the destroyed context's id.
-      *
+      * @param requestId request identifier
+      * @param contextId the destroyed context's id.
       */
-    case class DestroyContextRequest(id: ContextId) extends Api
+    case class DestroyContextRequest(requestId: RequestId, contextId: ContextId) extends Api
 
     /**
       * A success response sent from the server upon handling the
       * [[DestroyContextRequest]]
       *
-      * @param id the destroyed context's id.
+      * @param requestId request initiated the response
+      * @param contextId the destroyed context's id
+      * @param error optional error
       */
     case class DestroyContextResponse(
-      id: ContextId,
+      requestId: RequestId,
+      contextId: ContextId,
       error: Option[ContextDoesNotExistError]
     ) extends Api
 

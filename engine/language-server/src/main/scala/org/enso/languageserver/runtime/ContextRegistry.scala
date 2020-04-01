@@ -1,10 +1,7 @@
 package org.enso.languageserver.runtime
 
-import java.util.UUID
-
 import akka.actor.{Actor, ActorRef, Props, Terminated}
 import org.enso.languageserver.data.ExecutionContextConfig
-import org.enso.languageserver.runtime.ExecutionApi.ContextId
 
 /**
   *
@@ -47,23 +44,19 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
     case ExecutionProtocol.CreateContextRequest =>
       store.get(sender()) match {
         case Some(manager) =>
-          manager.forward(ExecutionProtocol.CreateContextRequest(freshId))
+          manager.forward(ExecutionProtocol.CreateContextRequest(IdGen.nextId))
         case None =>
           val manager = context.actorOf(
             ContextManager.props(config.requestTimeout, runtime)
           )
           context.watch(manager)
-          manager.forward(ExecutionProtocol.CreateContextRequest(freshId))
+          manager.forward(ExecutionProtocol.CreateContextRequest(IdGen.nextId))
           context.become(withStore(store + (sender() -> manager)))
       }
 
     case Terminated(manager) =>
       context.become(withStore(store.filter(kv => kv._2 != manager)))
-
   }
-
-  private def freshId: ContextId =
-    UUID.randomUUID()
 }
 
 object ContextRegistry {

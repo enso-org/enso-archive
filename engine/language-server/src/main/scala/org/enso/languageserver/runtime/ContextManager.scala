@@ -19,6 +19,7 @@ final class ContextManager(timeout: FiniteDuration, runtime: ActorRef)
       val handler =
         context.actorOf(CreateContextRequestHandler.props(timeout, runtime))
       handler.forward(msg)
+      context.become(withContext(contexts + msg.contextId))
   }
 }
 

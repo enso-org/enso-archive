@@ -14,13 +14,14 @@ class ContextRegistryTest extends BaseServerTest {
       val createContextRequest = runtimeConnectorProbe
         .receiveN(1)
         .head
-      val contextId = createContextRequest
         .asInstanceOf[Runtime.Api.CreateContextRequest]
-        .id
       runtimeConnectorProbe.lastSender ! Runtime.Api.CreateContextResponse(
-        contextId
+        createContextRequest.requestId,
+        createContextRequest.contextId
       )
-      client.expectJson(json.executionContextCreateResponse(1, contextId))
+      client.expectJson(
+        json.executionContextCreateResponse(1, createContextRequest.contextId)
+      )
     }
 
   }
