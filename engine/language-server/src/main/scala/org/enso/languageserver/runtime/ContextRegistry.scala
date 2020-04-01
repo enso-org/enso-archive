@@ -17,7 +17,7 @@ import org.enso.languageserver.data.ExecutionContextConfig
   *
   * {{{
   *
-  *                    1                            1
+  *                   *C                            1
   *  +------------------+   *H    +------------------+
   *  | ClientController +-------->+ ContextRegistry  |
   *  +--------------+---+         +---------+--------+

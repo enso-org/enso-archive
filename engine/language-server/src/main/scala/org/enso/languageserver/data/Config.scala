@@ -37,10 +37,21 @@ object PathWatcherConfig {
     )
 }
 
+/**
+  * Configuration of the file manager.
+  *
+  * @param timeout IO operation timeout
+  * @param parallelism number of processes working with the file system
+  */
 case class FileManagerConfig(timeout: FiniteDuration, parallelism: Int)
 
 object FileManagerConfig {
 
+  /**
+    * Default file manager config.
+    *
+    * @param timeout IO operation timeout
+    */
   def apply(timeout: FiniteDuration): FileManagerConfig =
     FileManagerConfig(
       timeout     = timeout,
@@ -48,10 +59,18 @@ object FileManagerConfig {
     )
 }
 
+/**
+  * Configuration of the execution context.
+  *
+  * @param requestTimeout timeout of requests to the engine
+  */
 case class ExecutionContextConfig(requestTimeout: FiniteDuration)
 
 object ExecutionContextConfig {
 
+  /**
+    * Default execution context config.
+    */
   def apply(): ExecutionContextConfig =
     ExecutionContextConfig(
       requestTimeout = 5.seconds

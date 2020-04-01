@@ -21,11 +21,12 @@ import org.enso.languageserver.effect._
   * Legend:
   *
   *   - 1  - Singleton
+  *   - *C - Created per client
   *   - *P - Created for each watched Path
   *   - *H - Request is forwarded to intermediate handler. Created per request.
   *
   * {{{
-  *                    1                                      1
+  *                   *C                                      1
   *  +------------------+   *H    +----------------------------+
   *  | ClientController +-------->+ ReceivesTreeUpdatesHandler |
   *  +--------------+---+         +---------+------------------+
