@@ -48,11 +48,13 @@ trait ProjectRepository[F[+_, +_]] {
   ): F[ProjectRepositoryFailure, Option[Project]]
 
   /**
-    * Lists the user's most recently opened projects.
+    * Finds projects that meet criteria specified by predicate.
     *
-    * @param size
-    * @return
+    * @param predicate a predicate function
+    * @return projects that meet the criteria
     */
-  def listRecent(size: Int): F[ProjectRepositoryFailure, List[Project]]
+  def find(
+    predicate: Project => Boolean
+  ): F[ProjectRepositoryFailure, List[Project]]
 
 }

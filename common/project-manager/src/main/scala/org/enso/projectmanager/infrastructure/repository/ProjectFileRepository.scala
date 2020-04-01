@@ -4,6 +4,7 @@ import java.io.File
 import java.util.UUID
 
 import org.enso.pkg.Package
+import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.control.core.CovariantFlatMap
 import org.enso.projectmanager.control.core.syntax._
 import org.enso.projectmanager.control.effect.syntax._
@@ -14,7 +15,6 @@ import org.enso.projectmanager.infrastructure.repository.ProjectRepositoryFailur
   ProjectNotFoundInIndex,
   StorageFailure
 }
-import org.enso.projectmanager.boot.configuration.StorageConfig
 import org.enso.projectmanager.model.Project
 
 /**
@@ -40,17 +40,12 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/
-  override def listRecent(
-    size: Int
+  override def find(
+    predicate: Project => Boolean
   ): F[ProjectRepositoryFailure, List[Project]] =
     indexStorage
       .load()
-      .map {
-        _.query(_.lastOpened.isDefined)
-          .sortBy(_.lastOpened.get)
-          .reverse
-          .take(size)
-      }
+      .map(_.query(predicate))
       .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/

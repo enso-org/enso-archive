@@ -134,7 +134,8 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     size: Int
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =
     repo
-      .listRecent(size)
+      .find(_.lastOpened.isDefined)
+      .map(_.sortBy(_.lastOpened.get).reverse.take(size))
       .map(_.map(toProjectMetadata))
       .mapError(toServiceFailure)
 
