@@ -6,6 +6,7 @@ import java.util.UUID
 
 import io.circe.literal._
 import io.circe.parser.parse
+import org.enso.projectmanager.data.SocketData
 
 class ProjectManagementApiSpec extends BaseServerSpec {
 
@@ -626,37 +627,12 @@ class ProjectManagementApiSpec extends BaseServerSpec {
   "project/listRecent" must {
 
     "return empty list if none of projects was open" in {
-      val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": "foo"
-              }
-            }
-          """)
-      client.expectMessage()
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": "bar"
-              }
-            }
-          """)
-      client.expectMessage()
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": "baz"
-              }
-            }
-          """)
-      client.expectMessage()
+      implicit val client = new WsTestClient(address)
+      //given
+      val fooId = createProject("foo")
+      val barId = createProject("bar")
+      val bazId = createProject("baz")
+      //when
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/listRecent",
@@ -666,6 +642,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      //then
       client.expectJson(json"""
           {
             "jsonrpc":"2.0",
@@ -675,9 +652,143 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             }
           }
           """)
-
+      deleteProject(fooId)
+      deleteProject(barId)
+      deleteProject(bazId)
     }
 
+    "returned sorted list of recently open projects" in {
+      implicit val client = new WsTestClient(address)
+      //given
+      val fooId = createProject("foo")
+      val barId = createProject("bar")
+      val bazId = createProject("baz")
+      testClock.moveTimeForward()
+      openProject(fooId)
+      testClock.moveTimeForward()
+      openProject(barId)
+      val barOpenTime = testClock.currentTime
+      testClock.moveTimeForward()
+      openProject(bazId)
+      val bazOpenTime = testClock.currentTime
+      //when
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/listRecent",
+              "id": 0,
+              "params": {
+                "numberOfProjects": 2
+              }
+            }
+          """)
+      //then
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": {
+              "projects": [
+                {"name":"baz", "id":$bazId, "lastOpened":$bazOpenTime},
+                {"name":"bar", "id":$barId, "lastOpened":$barOpenTime}
+              ]
+            }
+          }
+          """)
+      //teardown
+      closeProject(fooId)
+      closeProject(barId)
+      closeProject(bazId)
+      deleteProject(fooId)
+      deleteProject(barId)
+      deleteProject(bazId)
+    }
+
+  }
+
+  def createProject(name: String)(implicit client: WsTestClient): UUID = {
+    client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": $name
+              }
+            }
+          """)
+    val projectId = getGeneratedUUID
+    client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": {
+              "projectId": $projectId
+            }
+          } 
+          """)
+    projectId
+  }
+
+  def openProject(
+    projectId: UUID
+  )(implicit client: WsTestClient): SocketData = {
+    client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/open",
+              "id": 0,
+              "params": {
+                "projectId": $projectId
+              }
+            }
+          """)
+    val Right(openReply) = parse(client.expectMessage())
+    val socketField = openReply.hcursor
+      .downField("result")
+      .downField("languageServerAddress")
+    val Right(host) = socketField.downField("host").as[String]
+    val Right(port) = socketField.downField("port").as[Int]
+    SocketData(host, port)
+  }
+
+  def closeProject(
+    projectId: UUID
+  )(implicit client: WsTestClient): Unit = {
+    client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/close",
+              "id": 0,
+              "params": {
+                "projectId": $projectId
+              }
+            }
+          """)
+    client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": null
+          }
+          """)
+  }
+
+  def deleteProject(
+    projectId: UUID
+  )(implicit client: WsTestClient): Unit = {
+    client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/delete",
+              "id": 0,
+              "params": {
+                "projectId": $projectId
+              }
+            }
+          """)
+    client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": null
+          }
+          """)
   }
 
 }

@@ -48,6 +48,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map {
         _.query(_.lastOpened.isDefined)
           .sortBy(_.lastOpened.get)
+          .reverse
           .take(size)
       }
       .mapError(_.fold(convertFileStorageFailure))

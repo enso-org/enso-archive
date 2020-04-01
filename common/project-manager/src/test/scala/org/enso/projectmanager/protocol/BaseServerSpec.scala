@@ -6,6 +6,7 @@ import java.time.{OffsetDateTime, ZoneOffset}
 import java.util.UUID
 
 import io.circe.generic.auto._
+import org.apache.commons.io.FileUtils
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
 import org.enso.projectmanager.boot.configuration.{
@@ -42,9 +43,8 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   override def protocol: Protocol = JsonRpc.protocol
 
-  val TestNow = OffsetDateTime.now(ZoneOffset.UTC)
-
-  val testClock = new ProgrammableClock[ZEnv](TestNow)
+  val testClock =
+    new ProgrammableClock[ZEnv](OffsetDateTime.now(ZoneOffset.UTC))
 
   def getGeneratedUUID: UUID = gen.takeFirst()
 
@@ -116,6 +116,11 @@ class BaseServerSpec extends JsonRpcServerTestKit {
       projectService,
       timeoutConfig
     )
+  }
+
+  override def afterEach(): Unit = {
+    super.afterEach()
+    FileUtils.deleteDirectory(testProjectsRoot)
   }
 
 }

@@ -9,14 +9,14 @@ class ProgrammableClock[R](initialNow: OffsetDateTime)
     extends Clock[ZIO[R, +*, +*]] {
 
   @volatile
-  private var currentTime = initialNow
+  var currentTime = initialNow.withOffsetSameInstant(ZoneOffset.UTC)
 
   override def now(): IO[Nothing, OffsetDateTime] = IO.succeed(currentTime)
 
   override def nowInUtc(): IO[Nothing, OffsetDateTime] =
-    IO.succeed(currentTime.withOffsetSameInstant(ZoneOffset.UTC))
+    IO.succeed(currentTime)
 
-  def moveTimeForward(seconds: Long): Unit =
+  def moveTimeForward(seconds: Long = 1): Unit =
     currentTime = currentTime.plusSeconds(seconds)
 
 }
