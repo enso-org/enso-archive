@@ -95,7 +95,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     }
 
     "create project structure" in {
-      val projectName = "luna_test-project1"
+      val projectName = "foo"
       val projectDir  = new File(userProjectDir, projectName)
       val packageFile = new File(projectDir, "package.yaml")
       val mainEnso    = Paths.get(projectDir.toString, "src", "Main.enso").toFile
@@ -152,9 +152,8 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
     "fail when project is running" in {
       //given
-      val projectName     = "to-remove"
       implicit val client = new WsTestClient(address)
-      val projectId       = createProject(projectName)
+      val projectId       = createProject("foo")
       openProject(projectId)
       //when
       client.send(json"""
@@ -274,63 +273,15 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     }
 
     "not start new Language Server if one is running" in {
-      val projectName = "to-remove"
-
-      val client1 = new WsTestClient(address)
-      client1.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": $projectName
-              }
-            }
-          """)
-      val projectId = getGeneratedUUID
-      client1.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "projectId" : $projectId
-            }
-          }
-          """)
-      client1.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/open",
-              "id": 1,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      val Right(openReply) = parse(client1.expectMessage())
-      val socketField = openReply.hcursor
-        .downField("result")
-        .downField("languageServerAddress")
-      val Right(host) = socketField.downField("host").as[String]
-      val Right(port) = socketField.downField("port").as[Int]
-      val client2     = new WsTestClient(address)
-      client2.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/open",
-              "id": 0,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client2.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "languageServerAddress" : { "host": $host, "port": $port }
-            }
-          }
-          """)
-
+      val client1   = new WsTestClient(address)
+      val projectId = createProject("foo")(client1)
+      //when
+      val socket1 = openProject(projectId)(client1)
+      val client2 = new WsTestClient(address)
+      val socket2 = openProject(projectId)(client2)
+      //then
+      socket2 shouldBe socket1
+      //teardown
       client1.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/close",
@@ -350,39 +301,8 @@ class ProjectManagementApiSpec extends BaseServerSpec {
              }
           }
           """)
-
-      client2.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/close",
-              "id": 2,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client2.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":2,
-            "result": null
-          }
-          """)
-      client1.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/delete",
-              "id": 3,
-              "params": {
-                "projectId": $projectId 
-              }
-            }
-          """)
-      client1.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":3,
-            "result": null
-          }
-          """)
+      closeProject(projectId)(client2)
+      deleteProject(projectId)(client1)
     }
 
   }
@@ -415,13 +335,11 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
     "close project when the requester is the only client" in {
       //given
-      val projectName     = "to-remove"
       implicit val client = new WsTestClient(address)
-      val projectId       = createProject(projectName)
+      val projectId       = createProject("foo")
       val socket          = openProject(projectId)
       val languageServerClient =
         new WsTestClient(s"ws://${socket.host}:${socket.port}")
-
       languageServerClient.send("test")
       languageServerClient.expectJson(json"""
           {
