@@ -8,6 +8,12 @@ import java.util.UUID
 import io.circe.generic.auto._
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
 import org.enso.jsonrpc.{ClientControllerFactory, Protocol}
+import org.enso.projectmanager.boot.configuration.{
+  BootloaderConfig,
+  NetworkConfig,
+  StorageConfig,
+  TimeoutConfig
+}
 import org.enso.projectmanager.control.effect.ZioEnvExec
 import org.enso.projectmanager.infrastructure.file.{
   BlockingFileSystem,
@@ -15,21 +21,18 @@ import org.enso.projectmanager.infrastructure.file.{
 }
 import org.enso.projectmanager.infrastructure.languageserver.{
   LanguageServerRegistry,
-  LanguageServerRegistryProxy,
-  LanguageServerService
+  LanguageServerRegistryProxy
 }
 import org.enso.projectmanager.infrastructure.repository.{
   ProjectFileRepository,
   ProjectIndex
 }
-import org.enso.projectmanager.boot.configuration.{
-  BootloaderConfig,
-  NetworkConfig,
-  StorageConfig,
-  TimeoutConfig
-}
 import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
-import org.enso.projectmanager.test.{ConstGenerator, NopLogging, StoppedClock}
+import org.enso.projectmanager.test.{
+  NopLogging,
+  ObservableGenerator,
+  StoppedClock
+}
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
 
@@ -43,9 +46,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   val testClock = new StoppedClock[ZEnv](TestNow)
 
-  val TestUUID = UUID.randomUUID()
+  def getGeneratedUUID: UUID = gen.takeFirst()
 
-  lazy val gen = new ConstGenerator[ZEnv](TestUUID)
+  lazy val gen = new ObservableGenerator[ZEnv]()
 
   val testProjectsRoot = Files.createTempDirectory(null).toFile
   testProjectsRoot.deleteOnExit()

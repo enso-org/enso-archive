@@ -68,7 +68,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "jsonrpc" : "2.0",
             "id" : 1,
             "result" : {
-              "projectId" : $TestUUID
+              "projectId" : $getGeneratedUUID
             }
           }
           """)
@@ -114,7 +114,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "jsonrpc" : "2.0",
             "id" : 1,
             "result" : {
-              "projectId" : $TestUUID
+              "projectId" : $getGeneratedUUID
             }
           }
           """)
@@ -161,12 +161,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 0,
             "result" : {
-              "projectId" : $TestUUID
+              "projectId" : $projectId
             }
           }
           """)
@@ -175,7 +176,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/open",
               "id": 1,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -185,7 +186,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/delete",
               "id": 2,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -205,7 +206,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/close",
               "id": 3,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -221,7 +222,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/delete",
               "id": 3,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -242,12 +243,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 0,
             "result" : {
-              "projectId" : $TestUUID
+              "projectId" : $projectId
             }
           }
           """)
@@ -257,7 +259,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/delete",
               "id": 1,
               "params": {
-                "projectId": $TestUUID
+                "projectId": $projectId
               }
             }
           """)
@@ -312,12 +314,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 0,
             "result" : {
-              "projectId" : $TestUUID
+              "projectId" : $projectId
             }
           }
           """)
@@ -326,7 +329,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/open",
               "id": 1,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -361,7 +364,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/close",
               "id": 2,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -377,7 +380,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/delete",
               "id": 3,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -403,12 +406,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client1.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 0,
             "result" : {
-              "projectId" : $TestUUID
+              "projectId" : $projectId
             }
           }
           """)
@@ -417,7 +421,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/open",
               "id": 1,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -433,7 +437,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/open",
               "id": 0,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -452,7 +456,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/close",
               "id": 2,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -472,7 +476,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/close",
               "id": 2,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -488,7 +492,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/delete",
               "id": 3,
               "params": {
-                "projectId": $TestUUID 
+                "projectId": $projectId 
               }
             }
           """)
@@ -542,12 +546,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               }
             }
           """)
+      val projectId = getGeneratedUUID
       client.expectJson(json"""
           {
             "jsonrpc" : "2.0",
             "id" : 0,
             "result" : {
-              "projectId" : $TestUUID
+              "projectId" : $projectId
             }
           }
           """)
@@ -556,7 +561,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/open",
               "id": 1,
               "params": {
-                "projectId": $TestUUID
+                "projectId": $projectId
               }
             }
           """)
@@ -585,7 +590,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/close",
               "id": 2,
               "params": {
-                "projectId": $TestUUID
+                "projectId": $projectId
               }
             }
           """)
@@ -603,7 +608,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
               "method": "project/delete",
               "id": 3,
               "params": {
-                "projectId": $TestUUID
+                "projectId": $projectId
               }
             }
           """)
