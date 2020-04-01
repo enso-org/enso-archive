@@ -414,44 +414,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
     }
 
     "close project when the requester is the only client" in {
-      val projectName = "to-remove"
-
-      val client = new WsTestClient(address)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/create",
-              "id": 0,
-              "params": {
-                "name": $projectName
-              }
-            }
-          """)
-      val projectId = getGeneratedUUID
-      client.expectJson(json"""
-          {
-            "jsonrpc" : "2.0",
-            "id" : 0,
-            "result" : {
-              "projectId" : $projectId
-            }
-          }
-          """)
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/open",
-              "id": 1,
-              "params": {
-                "projectId": $projectId
-              }
-            }
-          """)
-      val Right(openReply) = parse(client.expectMessage())
-      val socketField = openReply.hcursor
-        .downField("result")
-        .downField("languageServerAddress")
-      val Right(host)          = socketField.downField("host").as[String]
-      val Right(port)          = socketField.downField("port").as[Int]
-      val languageServerClient = new WsTestClient(s"ws://$host:$port")
+      //given
+      val projectName     = "to-remove"
+      implicit val client = new WsTestClient(address)
+      val projectId       = createProject(projectName)
+      val socket          = openProject(projectId)
+      val languageServerClient =
+        new WsTestClient(s"ws://${socket.host}:${socket.port}")
 
       languageServerClient.send("test")
       languageServerClient.expectJson(json"""
@@ -465,40 +434,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
           }
             """)
 
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/close",
-              "id": 2,
-              "params": {
-                "projectId": $projectId
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":2,
-            "result": null
-          }
-          """)
+      //when
+      closeProject(projectId)
       languageServerClient.send("test")
+      //then
       languageServerClient.expectNoMessage()
-      client.send(json"""
-            { "jsonrpc": "2.0",
-              "method": "project/delete",
-              "id": 3,
-              "params": {
-                "projectId": $projectId
-              }
-            }
-          """)
-      client.expectJson(json"""
-          {
-            "jsonrpc":"2.0",
-            "id":3,
-            "result": null
-          }
-          """)
+      //teardown
+      deleteProject(projectId)
     }
 
   }
