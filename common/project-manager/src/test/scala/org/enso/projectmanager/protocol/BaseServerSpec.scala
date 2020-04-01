@@ -31,7 +31,7 @@ import org.enso.projectmanager.service.{MonadicProjectValidator, ProjectService}
 import org.enso.projectmanager.test.{
   NopLogging,
   ObservableGenerator,
-  StoppedClock
+  ProgrammableClock
 }
 import zio.interop.catz.core._
 import zio.{Runtime, Semaphore, ZEnv, ZIO}
@@ -44,7 +44,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   val TestNow = OffsetDateTime.now(ZoneOffset.UTC)
 
-  val testClock = new StoppedClock[ZEnv](TestNow)
+  val testClock = new ProgrammableClock[ZEnv](TestNow)
 
   def getGeneratedUUID: UUID = gen.takeFirst()
 

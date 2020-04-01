@@ -623,4 +623,61 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
   }
 
+  "project/listRecent" must {
+
+    "return empty list if none of projects was open" in {
+      val client = new WsTestClient(address)
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": "foo"
+              }
+            }
+          """)
+      client.expectMessage()
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": "bar"
+              }
+            }
+          """)
+      client.expectMessage()
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/create",
+              "id": 0,
+              "params": {
+                "name": "baz"
+              }
+            }
+          """)
+      client.expectMessage()
+      client.send(json"""
+            { "jsonrpc": "2.0",
+              "method": "project/listRecent",
+              "id": 0,
+              "params": {
+                "numberOfProjects": 5
+              }
+            }
+          """)
+      client.expectJson(json"""
+          {
+            "jsonrpc":"2.0",
+            "id":0,
+            "result": {
+              "projects": []
+            }
+          }
+          """)
+
+    }
+
+  }
+
 }
