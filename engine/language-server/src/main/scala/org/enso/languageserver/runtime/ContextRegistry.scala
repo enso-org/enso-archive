@@ -58,7 +58,7 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
           )
           context.watch(manager)
           manager.forward(ExecutionProtocol.CreateContextRequest)
-          context.become(withStore(store + (sender() -> manager)))
+          context.become(withStore(store + (client -> manager)))
       }
 
     case Terminated(manager) =>

@@ -1,7 +1,7 @@
 package org.enso.languageserver.websocket
 
 import io.circe.literal._
-import org.enso.polyglot.runtime.Runtime
+import org.enso.polyglot.runtime.Runtime.Api
 
 class ContextRegistryTest extends BaseServerTest {
 
@@ -11,17 +11,18 @@ class ContextRegistryTest extends BaseServerTest {
       val client = new WsTestClient(address)
 
       client.send(json.executionContextCreateRequest(1))
-      val createContextRequest = runtimeConnectorProbe
-        .receiveN(1)
-        .head
-        .asInstanceOf[Runtime.Api.CreateContextRequest]
-      runtimeConnectorProbe.lastSender ! Runtime.Api.CreateContextResponse(
-        createContextRequest.requestId,
-        createContextRequest.contextId
+      val (requestId, contextId) =
+        runtimeConnectorProbe.receiveN(1).head match {
+          case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
+            (requestId, contextId)
+          case msg =>
+            fail(s"Unexpected message: $msg")
+        }
+      runtimeConnectorProbe.lastSender ! Api.Response(
+        requestId,
+        Api.CreateContextResponse(contextId)
       )
-      client.expectJson(
-        json.executionContextCreateResponse(1, createContextRequest.contextId)
-      )
+      client.expectJson(json.executionContextCreateResponse(1, contextId))
     }
 
   }
@@ -47,7 +48,7 @@ class ContextRegistryTest extends BaseServerTest {
 
     def executionContextCreateResponse(
       reqId: Int,
-      contextId: Runtime.Api.ContextId
+      contextId: Api.ContextId
     ) =
       json"""
           { "jsonrpc": "2.0",

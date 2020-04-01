@@ -39,55 +39,65 @@ object Runtime {
       )
     )
   )
-  sealed trait Api {
-    def requestId: Api.RequestId
-  }
+  sealed trait Api
   sealed trait ApiRequest extends Api
   sealed trait ApiResponse extends Api
 
   object Api {
+
     type ContextId = UUID
     type RequestId = UUID
+
+    /**
+      * Envelope for an Api request.
+      *
+      * @param requestId request identifier
+      * @param payload request
+      */
+    case class Request(requestId: RequestId, payload: ApiRequest)
+
+    /**
+      * Envelope for an Api response.
+      *
+      * @param requestId request that initiated the response
+      * @param payload response
+      */
+    case class Response(requestId: RequestId, payload: ApiResponse)
 
     /**
       * A Request sent from the client to the runtime server, to create a new
       * execution context with a given id.
       *
-      * @param requestId request identifier
       * @param contextId the newly created context's id.
       */
-    case class CreateContextRequest(requestId: RequestId, contextId: ContextId) extends Api
+    case class CreateContextRequest(contextId: ContextId) extends ApiRequest
 
     /**
       * A response sent from the server upon handling the [[CreateContextRequest]]
       *
-      * @param requestId request initiated the response
       * @param contextId the newly created context's id.
       */
-    case class CreateContextResponse(requestId: RequestId, contextId: ContextId) extends Api
+    case class CreateContextResponse(contextId: ContextId) extends ApiResponse
 
     /**
       * A Request sent from the client to the runtime server, to destroy an
       * execution context with a given id.
       *
-      * @param requestId request identifier
       * @param contextId the destroyed context's id.
       */
-    case class DestroyContextRequest(requestId: RequestId, contextId: ContextId) extends Api
+    case class DestroyContextRequest(contextId: ContextId) extends ApiRequest
 
     /**
       * A success response sent from the server upon handling the
       * [[DestroyContextRequest]]
       *
-      * @param requestId request initiated the response
       * @param contextId the destroyed context's id
       * @param error optional error
       */
     case class DestroyContextResponse(
-      requestId: RequestId,
       contextId: ContextId,
       error: Option[ContextDoesNotExistError]
-    ) extends Api
+    ) extends ApiResponse
 
     /**
       * An error payload signifying a non-existent context.
@@ -101,22 +111,40 @@ object Runtime {
     }
 
     /**
-      * Serializes a protocol message into a byte buffer.
+      * Serializes a Request into a byte buffer.
       *
       * @param message the message to serialize.
       * @return the serialized version of the message.
       */
-    def serialize(message: Api): ByteBuffer =
+    def serialize(message: Request): ByteBuffer =
       ByteBuffer.wrap(mapper.writeValueAsBytes(message))
 
     /**
-      * Deserializes a byte buffer into a protocol message.
+      * Serializes a Response into a byte buffer.
+      *
+      * @param message the message to serialize.
+      * @return the serialized version of the message.
+      */
+    def serialize(message: Response): ByteBuffer =
+      ByteBuffer.wrap(mapper.writeValueAsBytes(message))
+
+    /**
+      * Deserializes a byte buffer into a Request message.
       *
       * @param bytes the buffer to deserialize
       * @return the deserialized message, if the byte buffer can be deserialized.
       */
-    def deserialize(bytes: ByteBuffer): Option[Api] =
-      Try(mapper.readValue(bytes.array(), classOf[Api])).toOption
+    def deserializeRequest(bytes: ByteBuffer): Option[Request] =
+      Try(mapper.readValue(bytes.array(), classOf[Request])).toOption
+
+    /**
+      * Deserializes a byte buffer into a Response message.
+      *
+      * @param bytes the buffer to deserialize
+      * @return the deserialized message, if the byte buffer can be deserialized.
+      */
+    def deserializeResponse(bytes: ByteBuffer): Option[Response] =
+      Try(mapper.readValue(bytes.array(), classOf[Response])).toOption
   }
 
 }
