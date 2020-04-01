@@ -30,12 +30,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   indexStorage: FileStorage[ProjectIndex, F]
 ) extends ProjectRepository[F] {
 
-  /**
-    * Tests if project is present in the data storage.
-    *
-    * @param name a project name
-    * @return true if project exists
-    */
+  /** @inheritdoc **/
   override def exists(
     name: String
   ): F[ProjectRepositoryFailure, Boolean] =
@@ -44,14 +39,14 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.exists(name))
       .mapError(_.fold(convertFileStorageFailure))
 
+  /** @inheritdoc **/
   override def listRecent(
     size: Int
   ): F[ProjectRepositoryFailure, List[Project]] =
     indexStorage
       .load()
       .map {
-        _.projects.values.toList
-          .filter(_.lastOpened.isDefined)
+        _.query(_.lastOpened.isDefined)
           .sortBy(_.lastOpened.get)
           .take(size)
       }
@@ -66,12 +61,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .map(_.projects.get(projectId))
       .mapError(_.fold(convertFileStorageFailure))
 
-  /**
-    * Inserts the provided user project to the storage.
-    *
-    * @param project the project to insert
-    * @return
-    */
+  /** @inheritdoc **/
   override def save(
     project: Project
   ): F[ProjectRepositoryFailure, Unit] = {
@@ -95,12 +85,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .blockingOp { Package.create(projectPath, project.name) }
       .mapError(th => StorageFailure(th.toString))
 
-  /**
-    * Removes the provided project from the storage.
-    *
-    * @param projectId the project id to remove
-    * @return either failure or success
-    */
+  /** @inheritdoc **/
   override def delete(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Unit] =

@@ -47,6 +47,12 @@ trait ProjectRepository[F[+_, +_]] {
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]]
 
+  /**
+    * Lists the user's most recently opened projects.
+    *
+    * @param size
+    * @return
+    */
   def listRecent(size: Int): F[ProjectRepositoryFailure, List[Project]]
 
 }

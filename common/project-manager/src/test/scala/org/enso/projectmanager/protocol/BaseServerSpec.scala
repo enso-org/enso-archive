@@ -55,9 +55,9 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   val indexFile = new File(testProjectsRoot, "project-index.json")
 
   lazy val testStorageConfig = StorageConfig(
-    projectsRoot        = testProjectsRoot,
-    projectMetadataPath = indexFile,
-    userProjectsPath    = userProjectDir
+    projectsRoot     = testProjectsRoot,
+    projectIndexPath = indexFile,
+    userProjectsPath = userProjectDir
   )
 
   lazy val bootloaderConfig = BootloaderConfig(3, 1.second)
@@ -75,7 +75,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
 
   lazy val indexStorage =
     new SynchronizedFileStorage[ProjectIndex, ZIO[ZEnv, +*, +*]](
-      testStorageConfig.projectMetadataPath,
+      testStorageConfig.projectIndexPath,
       fileSystem
     )
 

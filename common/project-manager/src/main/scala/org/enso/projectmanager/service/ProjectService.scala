@@ -52,12 +52,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
 
   import E._
 
-  /**
-    * Creates a user project.
-    *
-    * @param name the name of th project
-    * @return projectId
-    */
+  /** @inheritdoc **/
   override def createUserProject(
     name: String
   ): F[ProjectServiceFailure, UUID] = {
@@ -75,12 +70,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     // format: on
   }
 
-  /**
-    * Deletes a user project.
-    *
-    * @param projectId the project id
-    * @return either failure or unit representing success
-    */
+  /** @inheritdoc **/
   override def deleteUserProject(
     projectId: UUID
   ): F[ProjectServiceFailure, Unit] =
@@ -100,13 +90,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 
-  /**
-    * Opens a project. It starts up a Language Server if needed.
-    *
-    * @param clientId the requester id
-    * @param projectId the project id
-    * @return either failure or a socket of the Language Server
-    */
+  /** @inheritdoc **/
   override def openProject(
     clientId: UUID,
     projectId: UUID
@@ -132,13 +116,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     // format: on
   }
 
-  /**
-    * Closes a project. Tries to shut down the Language Server.
-    *
-    * @param clientId the requester id
-    * @param projectId the project id
-    * @return either failure or [[Unit]] representing void success
-    */
+  /** @inheritdoc **/
   override def closeProject(
     clientId: UUID,
     projectId: UUID
@@ -151,12 +129,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
     }
   }
 
-  /**
-    * Lists recent user projects.
-    *
-    * @param size the size of result set
-    * @return list of recent projects
-    */
+  /** @inheritdoc **/
   override def listRecentProjects(
     size: Int
   ): F[ProjectServiceFailure, List[ProjectMetadata]] =

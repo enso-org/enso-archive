@@ -40,6 +40,15 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
     projects.get(projectId)
 
   /**
+    * Queries index using a function that specifies criteria of result set.
+    *
+    * @param predicate a predicate function
+    * @return projects that meet the criteria
+    */
+  def query(predicate: Project => Boolean): List[Project] =
+    projects.values.filter(predicate).toList
+
+  /**
     * Checks if project with the provided name is in the index.
     *
     * @param name a project name

@@ -52,7 +52,7 @@ trait ProjectServiceApi[F[+_, +_]] {
   ): F[ProjectServiceFailure, Unit]
 
   /**
-    * Lists recent user projects.
+    * Lists the user's most recently opened projects..
     *
     * @param size the size of result set
     * @return list of recent projects
