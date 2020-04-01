@@ -4,32 +4,40 @@ import akka.actor.{Actor, ActorRef, Props, Terminated}
 import org.enso.languageserver.data.ExecutionContextConfig
 
 /**
+  * Registry handles execution context requests and routes them to the
+  * appropriate context manager.
+  *
+  * == Implementation ==
+  *
+  * Legend:
+  *
+  *   - 1  - Singleton
+  *   - *C - Created per client
+  *   - *H - Request is forwarded to intermediate handler. Created per request.
   *
   * {{{
-  *                      Request
-  * +------------------+         +------------------+
-  * | ClientController +-------->+ ContextRegistry  |  Client -> ActorRef
-  * +--------------+---+         +---------+--------+           (ContextManager)
-  *                ^                       |
-  *                |                       | forward
-  *                |                       v
-  *                |             +---------+--------+
-  *                +-------------+  ContextManager  |  [ContextId]
-  *                              +----+--------+----+
-  *                                   |        ^  polyglot_api
-  *                                   |        |  Runtime.Api
-  *                                   v        |
-  *                              +----+--------+----+  Runtime.Api(reqId)
-  *                              | RuntimeConnector |       ReqId  -> ActorRef
-  *                              +---------+--------+                (sender)
-  *                                        ^           publish Event
-  *                                        | sendBinary
-  *                                        v
-  *                              +---------+--------+
-  *                              | MessageEndpoint  |
-  *                              +------------------+
+  *
+  *                    1                            1
+  *  +------------------+   *H    +------------------+
+  *  | ClientController +-------->+ ContextRegistry  |
+  *  +--------------+---+         +---------+--------+
+  *                 ^                       |
+  *                 |                       |
+  *                 |                       v      *C
+  *                 |             +---------+--------+
+  *                 +-------------+  ContextManager  |
+  *                               +---------+--------+
+  *                                         ^
+  *                                         |*H
+  *                                         v       1
+  *                               +---------+--------+
+  *                               | RuntimeConnector |
+  *                               +------------------+
   *
   * }}}
+  *
+  * @param config execution context configuration
+  * @param runtime reference to the [[RuntimeConnector]]
   */
 final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
     extends Actor {
@@ -39,7 +47,6 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
   override def receive: Receive =
     withStore(Map())
 
-  // TODO: store
   private def withStore(store: Map[ClientRef, ManagerRef]): Receive = {
     case ExecutionProtocol.CreateContextRequest =>
       store.get(sender()) match {
@@ -65,6 +72,12 @@ object ContextRegistry {
 
   private type ManagerRef = ActorRef
 
+  /**
+    * Creates a configuration object used to create a [[ContextRegistry]].
+    *
+    * @param config execution context configuration
+    * @param runtime reference to the [[RuntimeConnector]]
+    */
   def props(config: ExecutionContextConfig, runtime: ActorRef): Props =
     Props(new ContextRegistry(config, runtime))
 }

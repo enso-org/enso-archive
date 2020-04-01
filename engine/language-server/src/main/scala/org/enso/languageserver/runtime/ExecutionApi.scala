@@ -5,6 +5,11 @@ import java.util.UUID
 import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 
+/**
+  * The execution JSON RPC API provided by the language server.
+  *
+  * @see [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
+  */
 object ExecutionApi {
 
   type ContextId = UUID

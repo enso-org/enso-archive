@@ -7,6 +7,12 @@ import org.enso.polyglot.runtime.Runtime
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for [[ExecutionProtocol.CreateContextRequest]] commands.
+  *
+  * @param timeout request timeout
+  * @param runtime reference to the [[RuntimeConnector]]
+  */
 final class CreateContextRequestHandler(
   timeout: FiniteDuration,
   runtime: ActorRef

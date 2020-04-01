@@ -16,6 +16,34 @@ import org.enso.languageserver.effect._
 /**
   * Handles `receivesTreeUpdates` capabilities acquisition and release.
   *
+  * == Implementation ==
+  *
+  * Legend:
+  *
+  *   - 1  - Singleton
+  *   - *P - Created for each watched Path
+  *   - *H - Request is forwarded to intermediate handler. Created per request.
+  *
+  * {{{
+  *                    1                                      1
+  *  +------------------+   *H    +----------------------------+
+  *  | ClientController +-------->+ ReceivesTreeUpdatesHandler |
+  *  +--------------+---+         +---------+------------------+
+  *                 ^                       |
+  *                 |                       |
+  *                 |                       v      *P
+  *                 |             +---------+--------+
+  *                 +-------------+   PathWatcher    |
+  *                               +---------+--------+
+  *                                         ^
+  *                                         |
+  *                                         |      *P
+  *                               +---------+--------+
+  *                               |  WatcherAdapter  |
+  *                               +------------------+
+  *
+  * }}}
+  *
   * @param config configuration
   * @param fs file system
   * @param exec executor of file system events

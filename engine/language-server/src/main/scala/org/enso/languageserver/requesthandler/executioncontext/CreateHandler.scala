@@ -14,6 +14,12 @@ import org.enso.languageserver.runtime.ExecutionProtocol
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `executionContext/create` commands.
+  *
+  * @param timeout request timeout
+  * @param contextRegistry a reference to the context registry.
+  */
 class CreateHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef
@@ -53,12 +59,17 @@ class CreateHandler(
 
   override def unhandled(message: Any): Unit =
     log.warning("Received unknown message: {}", message)
-
 }
 
 object CreateHandler {
 
-  def props(requestTimeout: FiniteDuration, contextRegistry: ActorRef): Props =
-    Props(new CreateHandler(requestTimeout, contextRegistry))
+  /**
+    * Creates configuration object used to create a [[CreateHandler]].
+    *
+    * @param timeout request timeout
+    * @param contextRegistry a reference to the context registry.
+    */
+  def props(timeout: FiniteDuration, contextRegistry: ActorRef): Props =
+    Props(new CreateHandler(timeout, contextRegistry))
 
 }

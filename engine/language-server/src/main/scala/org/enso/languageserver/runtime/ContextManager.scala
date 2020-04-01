@@ -6,6 +6,14 @@ import org.enso.languageserver.runtime.handler.CreateContextRequestHandler
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * Manager is created per client, holds client's context ids, and
+  * communicates with the runtime connector through intermediate
+  * handlers.
+  *
+  * @param timeout request timeout
+  * @param runtime reference to the runtime connector
+  */
 final class ContextManager(timeout: FiniteDuration, runtime: ActorRef)
     extends Actor {
 
@@ -25,6 +33,12 @@ final class ContextManager(timeout: FiniteDuration, runtime: ActorRef)
 
 object ContextManager {
 
+  /**
+    * Creates a configuration object used to create a [[ContextManager]].
+    *
+    * @param timeout request timeout
+    * @param runtime reference to the runtime connector
+    */
   def props(timeout: FiniteDuration, runtime: ActorRef): Props =
     Props(new ContextManager(timeout, runtime))
 }
