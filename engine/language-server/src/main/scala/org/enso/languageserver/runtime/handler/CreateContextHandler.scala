@@ -8,12 +8,12 @@ import org.enso.polyglot.runtime.Runtime
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * A request handler for [[ExecutionProtocol.CreateContextRequest]] commands.
+  * A request handler for create context commands.
   *
   * @param timeout request timeout
-  * @param runtime reference to the [[RuntimeConnector]]
+  * @param runtime reference to the runtime connector
   */
-final class CreateContextRequestHandler(
+final class CreateContextHandler(
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
@@ -49,8 +49,14 @@ final class CreateContextRequestHandler(
     log.warning("Received unknown message: {}", message)
 }
 
-object CreateContextRequestHandler {
+object CreateContextHandler {
 
+  /**
+    * Creates configuration object used to create a [[CreateContextHandler]]
+    *
+    * @param timeout request timeout
+    * @param runtime reference to the runtime connector
+    */
   def props(timeout: FiniteDuration, runtime: ActorRef): Props =
-    Props(new CreateContextRequestHandler(timeout, runtime))
+    Props(new CreateContextHandler(timeout, runtime))
 }

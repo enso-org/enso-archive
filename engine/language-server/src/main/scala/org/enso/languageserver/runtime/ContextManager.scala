@@ -2,12 +2,12 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorRef, Props}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
-import org.enso.languageserver.runtime.handler.CreateContextRequestHandler
+import org.enso.languageserver.runtime.handler._
 
 import scala.concurrent.duration.FiniteDuration
 
 /**
-  * Manager is created per client, holds client's context ids, and
+  * Manager is created per client, holds client's contexts, and
   * communicates with the runtime connector through intermediate
   * handlers.
   *
@@ -25,7 +25,7 @@ final class ContextManager(timeout: FiniteDuration, runtime: ActorRef)
   private def withContext(contexts: Set[ContextId]): Receive = {
     case CreateContextRequest =>
       val handler =
-        context.actorOf(CreateContextRequestHandler.props(timeout, runtime))
+        context.actorOf(CreateContextHandler.props(timeout, runtime))
       val contextId = freshId(contexts)
       handler.forward(CreateContextRequest(contextId))
       context.become(withContext(contexts + contextId))
