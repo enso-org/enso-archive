@@ -52,23 +52,28 @@ class ContextManagementTest
     messageQueue = messageQueue.drop(1)
     msg
   }
+  def nextId: UUID = UUID.randomUUID()
 
   "Runtime server" should "allow context creation and deletion" in {
-    val uuid = UUID.randomUUID()
-    send(Api.CreateContextRequest(uuid))
-    receive shouldEqual Some(Api.CreateContextResponse(uuid))
-    send(Api.DestroyContextRequest(uuid))
-    receive shouldEqual Some(Api.DestroyContextResponse(uuid, None))
+    val requestId1 = nextId
+    val requestId2 = nextId
+    val contextId = nextId
+    send(Api.CreateContextRequest(requestId1, contextId))
+    receive shouldEqual Some(Api.CreateContextResponse(requestId1, contextId))
+    send(Api.DestroyContextRequest(requestId2, contextId))
+    receive shouldEqual Some(Api.DestroyContextResponse(requestId2, contextId, None))
   }
 
   "Runtime server" should "fail destroying a context if it does not exist" in {
-    val uuid1 = UUID.randomUUID()
-    val uuid2 = UUID.randomUUID()
-    send(Api.CreateContextRequest(uuid1))
-    receive shouldEqual Some(Api.CreateContextResponse(uuid1))
-    send(Api.DestroyContextRequest(uuid2))
+    val requestId1 = nextId
+    val contextId1 = nextId
+    val requestId2 = nextId
+    val contextId2 = nextId
+    send(Api.CreateContextRequest(requestId1, contextId1))
+    receive shouldEqual Some(Api.CreateContextResponse(requestId1, contextId1))
+    send(Api.DestroyContextRequest(requestId2, contextId2))
     receive shouldEqual Some(
-      Api.DestroyContextResponse(uuid2, Some(Api.ContextDoesNotExistError()))
+      Api.DestroyContextResponse(requestId2, contextId2, Some(Api.ContextDoesNotExistError()))
     )
   }
 }
