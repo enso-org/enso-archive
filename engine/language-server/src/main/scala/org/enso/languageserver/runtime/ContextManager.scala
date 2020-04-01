@@ -22,12 +22,19 @@ final class ContextManager(timeout: FiniteDuration, runtime: ActorRef)
   override def receive: Receive =
     withContext(Set())
 
-  def withContext(contexts: Set[ContextId]): Receive = {
-    case msg: CreateContextRequest =>
+  private def withContext(contexts: Set[ContextId]): Receive = {
+    case CreateContextRequest =>
       val handler =
         context.actorOf(CreateContextRequestHandler.props(timeout, runtime))
-      handler.forward(msg)
-      context.become(withContext(contexts + msg.contextId))
+      val contextId = freshId(contexts)
+      handler.forward(CreateContextRequest(contextId))
+      context.become(withContext(contexts + contextId))
+  }
+
+  @annotation.tailrec
+  private def freshId(contexts: Set[ContextId]): ContextId = {
+    val nextId = IdGen.nextId
+    if (contexts.contains(nextId)) freshId(contexts) else nextId
   }
 }
 

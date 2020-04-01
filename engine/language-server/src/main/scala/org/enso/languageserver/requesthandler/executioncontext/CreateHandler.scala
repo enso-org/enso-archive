@@ -10,7 +10,10 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.ExecutionProtocol
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  ExecutionProtocol
+}
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -32,7 +35,7 @@ class CreateHandler(
 
   private def requestStage: Receive = {
     case Request(ExecutionContextCreate, id, _) =>
-      contextRegistry ! ExecutionProtocol.CreateContextRequest
+      contextRegistry ! ContextRegistryProtocol.CreateContextRequest(sender())
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))

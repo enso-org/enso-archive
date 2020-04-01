@@ -48,16 +48,16 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
     withStore(Map())
 
   private def withStore(store: Map[ClientRef, ManagerRef]): Receive = {
-    case ExecutionProtocol.CreateContextRequest =>
-      store.get(sender()) match {
+    case ContextRegistryProtocol.CreateContextRequest(client) =>
+      store.get(client) match {
         case Some(manager) =>
-          manager.forward(ExecutionProtocol.CreateContextRequest(IdGen.nextId))
+          manager.forward(ExecutionProtocol.CreateContextRequest)
         case None =>
           val manager = context.actorOf(
             ContextManager.props(config.requestTimeout, runtime)
           )
           context.watch(manager)
-          manager.forward(ExecutionProtocol.CreateContextRequest(IdGen.nextId))
+          manager.forward(ExecutionProtocol.CreateContextRequest)
           context.become(withStore(store + (sender() -> manager)))
       }
 
