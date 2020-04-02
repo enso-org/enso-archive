@@ -37,7 +37,8 @@ import org.enso.languageserver.runtime.handler._
   * @param runtime reference to the [[RuntimeConnector]]
   */
 final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
-    extends Actor with ActorLogging {
+    extends Actor
+    with ActorLogging {
 
   import ContextRegistry._
 

@@ -59,10 +59,10 @@ object Runtime {
     /**
       * Envelope for an Api response.
       *
-      * @param requestId request that initiated the response
+      * @param correlationId request that initiated the response
       * @param payload response
       */
-    case class Response(requestId: RequestId, payload: ApiResponse)
+    case class Response(correlationId: RequestId, payload: ApiResponse)
 
     /**
       * A Request sent from the client to the runtime server, to create a new

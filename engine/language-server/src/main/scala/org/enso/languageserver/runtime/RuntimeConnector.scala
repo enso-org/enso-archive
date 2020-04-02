@@ -37,8 +37,8 @@ class RuntimeConnector extends Actor with ActorLogging with Stash {
       engine.sendBinary(Runtime.Api.serialize(msg))
       context.become(initialized(engine, senders + (msg.requestId -> sender())))
     case msg: Runtime.Api.Response =>
-      senders.get(msg.requestId).foreach(_ ! msg)
-      context.become(initialized(engine, senders - msg.requestId))
+      senders.get(msg.correlationId).foreach(_ ! msg)
+      context.become(initialized(engine, senders - msg.correlationId))
   }
 }
 
