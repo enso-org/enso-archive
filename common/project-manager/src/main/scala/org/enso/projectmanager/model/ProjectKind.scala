@@ -10,7 +10,7 @@ sealed trait ProjectKind extends EnumEntry
 object ProjectKind extends Enum[ProjectKind] with CirceEnum[ProjectKind] {
 
   /**
-    * Enum for user projects.
+    * Enum value for user projects.
     */
   case object UserProject extends ProjectKind
 
