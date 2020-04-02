@@ -11,6 +11,7 @@ import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
+import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -24,7 +25,7 @@ class ProjectDeleteHandler[F[+_, +_]: Exec](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
-    with ActorLogging {
+    with UnhandledLogging {
   override def receive: Receive = requestStage
 
   import context.dispatcher
@@ -65,9 +66,6 @@ class ProjectDeleteHandler[F[+_, +_]: Exec](
       cancellable.cancel()
       context.stop(self)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
 }
 

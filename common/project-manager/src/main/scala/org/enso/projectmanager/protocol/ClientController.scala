@@ -2,7 +2,7 @@ package org.enso.projectmanager.protocol
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
@@ -10,21 +10,10 @@ import org.enso.projectmanager.event.ClientEvent.{
   ClientConnected,
   ClientDisconnected
 }
-import org.enso.projectmanager.protocol.ProjectManagementApi.{
-  ProjectClose,
-  ProjectCreate,
-  ProjectDelete,
-  ProjectListRecent,
-  ProjectOpen
-}
-import org.enso.projectmanager.requesthandler.{
-  ProjectCloseHandler,
-  ProjectCreateHandler,
-  ProjectDeleteHandler,
-  ProjectListRecentHandler,
-  ProjectOpenHandler
-}
+import org.enso.projectmanager.protocol.ProjectManagementApi._
+import org.enso.projectmanager.requesthandler._
 import org.enso.projectmanager.service.ProjectServiceApi
+import org.enso.projectmanager.util.UnhandledLogging
 
 /**
   * An actor handling communications between a single client and the project
@@ -40,7 +29,7 @@ class ClientController[F[+_, +_]: Exec](
   config: TimeoutConfig
 ) extends Actor
     with Stash
-    with ActorLogging {
+    with UnhandledLogging {
 
   private val requestHandlers: Map[Method, Props] =
     Map(
@@ -55,9 +44,6 @@ class ClientController[F[+_, +_]: Exec](
       ProjectListRecent -> ProjectListRecentHandler
         .props[F](clientId, projectService, config.requestTimeout)
     )
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
   override def receive: Receive = {
     case JsonRpcServer.WebConnect(webActor) =>

@@ -2,7 +2,7 @@ package org.enso.projectmanager.requesthandler
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
+import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
@@ -14,6 +14,7 @@ import org.enso.projectmanager.service.{
   ProjectServiceApi,
   ProjectServiceFailure
 }
+import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -29,7 +30,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
-    with ActorLogging {
+    with UnhandledLogging {
   override def receive: Receive = requestStage
 
   import context.dispatcher
@@ -74,9 +75,6 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
       cancellable.cancel()
       context.stop(self)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
 }
 

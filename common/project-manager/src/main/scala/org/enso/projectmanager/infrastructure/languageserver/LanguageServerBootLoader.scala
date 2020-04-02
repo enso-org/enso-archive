@@ -1,7 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.Status.Failure
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.boot.{
   LanguageServerComponent,
@@ -16,6 +16,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
   ServerBooted
 }
 import org.enso.projectmanager.infrastructure.net.Tcp
+import org.enso.projectmanager.util.UnhandledLogging
 
 /**
   * It boots a Language Sever described by the `descriptor`. Upon boot failure
@@ -28,7 +29,7 @@ class LanguageServerBootLoader(
   descriptor: LanguageServerDescriptor,
   config: BootloaderConfig
 ) extends Actor
-    with ActorLogging {
+    with UnhandledLogging {
 
   import context.dispatcher
 
@@ -93,9 +94,6 @@ class LanguageServerBootLoader(
       context.stop(self)
 
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 
 }
 
