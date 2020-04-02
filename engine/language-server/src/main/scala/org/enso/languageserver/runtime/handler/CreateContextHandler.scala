@@ -1,8 +1,10 @@
 package org.enso.languageserver.runtime.handler
 
+import java.util.UUID
+
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.{ExecutionProtocol, IdGen}
+import org.enso.languageserver.runtime.ExecutionProtocol
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
@@ -25,7 +27,10 @@ final class CreateContextHandler(
 
   private def requestStage: Receive = {
     case CreateContextRequest(contextId) =>
-      runtime ! Api.Request(IdGen.nextId, Api.CreateContextRequest(contextId))
+      runtime ! Api.Request(
+        UUID.randomUUID(),
+        Api.CreateContextRequest(contextId)
+      )
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(sender(), cancellable))

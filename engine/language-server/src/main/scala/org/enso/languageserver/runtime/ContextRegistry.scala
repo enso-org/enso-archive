@@ -1,7 +1,11 @@
 package org.enso.languageserver.runtime
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import java.util.UUID
+
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.ExecutionContextConfig
+import org.enso.languageserver.runtime.ExecutionApi.ContextId
+import org.enso.languageserver.runtime.handler._
 
 /**
   * Registry handles execution context requests and routes them to the
@@ -12,23 +16,16 @@ import org.enso.languageserver.data.ExecutionContextConfig
   * Legend:
   *
   *   - 1  - Singleton
-  *   - *C - Created per client
   *   - *H - Request is forwarded to intermediate handler. Created per request.
   *
   * {{{
   *
   *                   *C                            1
   *  +------------------+   *H    +------------------+
-  *  | ClientController +-------->+ ContextRegistry  |
-  *  +--------------+---+         +---------+--------+
-  *                 ^                       |
-  *                 |                       |
-  *                 |                       v      *C
-  *                 |             +---------+--------+
-  *                 +-------------+  ContextManager  |
-  *                               +---------+--------+
-  *                                         ^
-  *                                         |*H
+  *  | ClientController +----+--->+ ContextRegistry  |
+  *  +------------------+    ^    +---------+--------+
+  *                          |              |
+  *                          +--------------+*H
   *                                         v       1
   *                               +---------+--------+
   *                               | RuntimeConnector |
@@ -40,37 +37,42 @@ import org.enso.languageserver.data.ExecutionContextConfig
   * @param runtime reference to the [[RuntimeConnector]]
   */
 final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
-    extends Actor {
+    extends Actor with ActorLogging {
 
   import ContextRegistry._
 
   override def receive: Receive =
-    withStore(Map())
+    withStore(Store(Map()))
 
-  private def withStore(store: Map[ClientRef, ManagerRef]): Receive = {
+  private def withStore(store: Store): Receive = {
     case ContextRegistryProtocol.CreateContextRequest(client) =>
-      store.get(client) match {
-        case Some(manager) =>
-          manager.forward(ExecutionProtocol.CreateContextRequest)
-        case None =>
-          val manager = context.actorOf(
-            ContextManager.props(config.requestTimeout, runtime)
-          )
-          context.watch(manager)
-          manager.forward(ExecutionProtocol.CreateContextRequest)
-          context.become(withStore(store + (client -> manager)))
-      }
-
-    case Terminated(manager) =>
-      context.become(withStore(store.filter(kv => kv._2 != manager)))
+      val handler = context.actorOf(
+        CreateContextHandler.props(config.requestTimeout, runtime)
+      )
+      val contextId = UUID.randomUUID()
+      handler.forward(ExecutionProtocol.CreateContextRequest(contextId))
+      context.become(withStore(store.addContext(client, contextId)))
   }
+
+  override def unhandled(message: Any): Unit =
+    log.warning("Received unknown message: {}", message)
 }
 
 object ContextRegistry {
 
   private type ClientRef = ActorRef
 
-  private type ManagerRef = ActorRef
+  private case class Store(store: Map[ClientRef, Set[ContextId]]) {
+
+    def addContext(client: ClientRef, contextId: ContextId): Store =
+      copy(store = store + (client -> (getContexts(client) + contextId)))
+
+    def removeContext(client: ClientRef, contextId: ContextId): Store =
+      copy(store = store + (client -> (getContexts(client) - contextId)))
+
+    def getContexts(client: ClientRef): Set[ContextId] =
+      store.getOrElse(client, Set())
+  }
 
   /**
     * Creates a configuration object used to create a [[ContextRegistry]].
