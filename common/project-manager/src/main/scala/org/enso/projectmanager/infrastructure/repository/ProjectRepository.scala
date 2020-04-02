@@ -57,4 +57,11 @@ trait ProjectRepository[F[+_, +_]] {
     predicate: Project => Boolean
   ): F[ProjectRepositoryFailure, List[Project]]
 
+  /**
+    * Gets all projects from the data store.
+    *
+    * @return all projects stored in the project index
+    */
+  def getAll(): F[ProjectRepositoryFailure, List[Project]]
+
 }

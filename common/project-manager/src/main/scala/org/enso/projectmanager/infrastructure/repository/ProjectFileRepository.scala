@@ -49,6 +49,13 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
       .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/
+  override def getAll(): F[ProjectRepositoryFailure, List[Project]] =
+    indexStorage
+      .load()
+      .map(_.projects.values.toList)
+      .mapError(_.fold(convertFileStorageFailure))
+
+  /** @inheritdoc **/
   override def findById(
     projectId: UUID
   ): F[ProjectRepositoryFailure, Option[Project]] =

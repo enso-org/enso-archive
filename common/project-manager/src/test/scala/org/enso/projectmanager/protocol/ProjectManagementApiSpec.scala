@@ -365,11 +365,13 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
   "project/listRecent" must {
 
-    "return empty list if none of projects was opened" in {
+    "return a list sorted by creation time if none of projects was opened" in {
       implicit val client = new WsTestClient(address)
       //given
       val fooId = createProject("foo")
+      testClock.moveTimeForward()
       val barId = createProject("bar")
+      testClock.moveTimeForward()
       val bazId = createProject("baz")
       //when
       client.send(json"""
@@ -387,7 +389,11 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "jsonrpc":"2.0",
             "id":0,
             "result": {
-              "projects": []
+              "projects": [
+                {"name": "baz", "id": $bazId, "lastOpened": null},
+                {"name": "bar", "id": $barId, "lastOpened": null},
+                {"name": "foo", "id": $fooId, "lastOpened": null}
+              ]
             }
           }
           """)
@@ -401,22 +407,21 @@ class ProjectManagementApiSpec extends BaseServerSpec {
       //given
       val fooId = createProject("foo")
       val barId = createProject("bar")
-      val bazId = createProject("baz")
       testClock.moveTimeForward()
       openProject(fooId)
+      val fooOpenTime = testClock.currentTime
       testClock.moveTimeForward()
       openProject(barId)
       val barOpenTime = testClock.currentTime
       testClock.moveTimeForward()
-      openProject(bazId)
-      val bazOpenTime = testClock.currentTime
+      val bazId = createProject("baz")
       //when
       client.send(json"""
             { "jsonrpc": "2.0",
               "method": "project/listRecent",
               "id": 0,
               "params": {
-                "numberOfProjects": 2
+                "numberOfProjects": 3
               }
             }
           """)
@@ -427,8 +432,9 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "id":0,
             "result": {
               "projects": [
-                {"name":"baz", "id":$bazId, "lastOpened":$bazOpenTime},
-                {"name":"bar", "id":$barId, "lastOpened":$barOpenTime}
+                {"name": "bar", "id": $barId, "lastOpened": $barOpenTime},
+                {"name": "foo", "id": $fooId, "lastOpened": $fooOpenTime},
+                {"name": "baz", "id": $bazId, "lastOpened": null}
               ]
             }
           }
@@ -436,7 +442,6 @@ class ProjectManagementApiSpec extends BaseServerSpec {
       //teardown
       closeProject(fooId)
       closeProject(barId)
-      closeProject(bazId)
       deleteProject(fooId)
       deleteProject(barId)
       deleteProject(bazId)
