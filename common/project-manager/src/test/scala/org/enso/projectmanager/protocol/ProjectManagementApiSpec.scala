@@ -365,7 +365,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
 
   "project/listRecent" must {
 
-    "return empty list if none of projects was open" in {
+    "return empty list if none of projects was opened" in {
       implicit val client = new WsTestClient(address)
       //given
       val fooId = createProject("foo")
@@ -396,7 +396,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
       deleteProject(bazId)
     }
 
-    "returned sorted list of recently open projects" in {
+    "returned sorted list of recently opened projects" in {
       implicit val client = new WsTestClient(address)
       //given
       val fooId = createProject("foo")
