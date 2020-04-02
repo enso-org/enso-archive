@@ -74,6 +74,8 @@ class ClientController(
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
+        .props(requestTimeout, contextRegistry),
+      ExecutionContextDestroy -> executioncontext.DestroyHandler
         .props(requestTimeout, contextRegistry)
     )
 

@@ -20,4 +20,23 @@ object ExecutionProtocol {
     */
   case class CreateContextResponse(contextId: ContextId) extends Api
 
+  /**
+    * A request to the language server to delete an execution context.
+    *
+    * @param contextId the newly created context's id
+    */
+  case class DestroyContextRequest(contextId: ContextId) extends Api
+
+  /**
+    * A response about deletion of an execution context.
+    *
+    * @param contextId the newly created context's id
+    */
+  case class DestroyContextResponse(contextId: ContextId) extends Api
+
+  /**
+    * Signals that user doesn't have access to the requested context.
+    */
+  case object AccessDeniedError extends Api
+
 }

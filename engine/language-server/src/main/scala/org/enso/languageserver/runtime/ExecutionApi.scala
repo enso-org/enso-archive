@@ -28,4 +28,17 @@ object ExecutionApi {
       type Result = ExecutionContextCreate.Result
     }
   }
+
+  case object ExecutionContextDestroy
+      extends Method("executionContext/destroy") {
+
+    case class Params(contextId: ContextId)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextDestroy.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
 }
