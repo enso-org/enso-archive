@@ -102,19 +102,26 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       openTime <- clock.nowInUtc()
       updated   = project.copy(lastOpened = Some(openTime))
       _        <- repo.save(updated).mapError(toServiceFailure)
-      socket   <- languageServerService.start(clientId, updated)
-                    .mapError {
-                      case ServerBootTimedOut =>
-                        ProjectOpenFailed("Language server boot timed out")
-            
-                      case ServerBootFailed(th) =>
-                        ProjectOpenFailed(
-                          s"Language server boot failed: ${th.getMessage}"
-                        )
-                    }
+      socket   <- startServer(clientId, updated)
     } yield socket
     // format: on
   }
+
+  private def startServer(
+    clientId: UUID,
+    project: Project
+  ): F[ProjectServiceFailure, SocketData] =
+    languageServerService
+      .start(clientId, project)
+      .mapError {
+        case ServerBootTimedOut =>
+          ProjectOpenFailed("Language server boot timed out")
+
+        case ServerBootFailed(th) =>
+          ProjectOpenFailed(
+            s"Language server boot failed: ${th.getMessage}"
+          )
+      }
 
   /** @inheritdoc **/
   override def closeProject(
