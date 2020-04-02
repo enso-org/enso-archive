@@ -20,7 +20,7 @@ trait ProjectRepository[F[+_, +_]] {
   def exists(name: String): F[ProjectRepositoryFailure, Boolean]
 
   /**
-    * Upsert the provided user project in the storage.
+    * Saves the provided user project in the storage.
     *
     * @param project the project to insert
     * @return

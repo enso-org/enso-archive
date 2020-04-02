@@ -54,7 +54,7 @@ class ProjectFileRepository[F[+_, +_]: Sync: ErrorChannel: CovariantFlatMap](
   ): F[ProjectRepositoryFailure, Option[Project]] =
     indexStorage
       .load()
-      .map(_.projects.get(projectId))
+      .map(_.findById(projectId))
       .mapError(_.fold(convertFileStorageFailure))
 
   /** @inheritdoc **/
