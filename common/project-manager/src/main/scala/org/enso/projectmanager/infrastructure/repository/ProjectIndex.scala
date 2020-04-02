@@ -45,7 +45,7 @@ case class ProjectIndex(projects: Map[UUID, Project] = Map.empty) {
     * @param predicate a predicate function
     * @return projects that meet the criteria
     */
-  def query(predicate: Project => Boolean): List[Project] =
+  def find(predicate: Project => Boolean): List[Project] =
     projects.values.filter(predicate).toList
 
   /**
