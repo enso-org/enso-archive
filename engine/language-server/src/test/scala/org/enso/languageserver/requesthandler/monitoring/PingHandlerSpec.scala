@@ -1,10 +1,10 @@
 package org.enso.languageserver.requesthandler.monitoring
 
-import akka.actor.{ActorSystem, Terminated}
+import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.enso.jsonrpc.Id.Number
 import org.enso.jsonrpc.{Request, ResponseResult, Unused}
-import org.enso.languageserver.monitoring.{MonitoringApi, MonitoringProtocol}
+import org.enso.languageserver.monitoring.MonitoringApi
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
