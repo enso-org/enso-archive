@@ -4,6 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.ExecutionContextConfig
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.runtime.handler._
 
@@ -46,6 +47,9 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
     withStore(Store(Map()))
 
   private def withStore(store: Store): Receive = {
+    case Ping =>
+      sender() ! Pong
+
     case ContextRegistryProtocol.CreateContextRequest(client) =>
       val handler = context.actorOf(
         CreateContextHandler.props(config.requestTimeout, runtime)

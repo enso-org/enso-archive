@@ -10,6 +10,7 @@ import org.enso.languageserver.data.{
   CapabilityRegistration,
   ReceivesTreeUpdates
 }
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 
 /**
   * A content based router that routes each capability request to the
@@ -25,6 +26,9 @@ class CapabilityRouter(
 ) extends Actor {
 
   override def receive: Receive = {
+    case Ping =>
+      sender() ! Pong
+
     case msg @ AcquireCapability(_, CapabilityRegistration(CanEdit(_))) =>
       bufferRegistry.forward(msg)
 
