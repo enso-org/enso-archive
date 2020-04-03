@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.ExecutionProtocol
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
@@ -21,16 +21,13 @@ final class DestroyContextHandler(
 ) extends Actor
     with ActorLogging {
 
-  import context.dispatcher
+  import context.dispatcher, ContextRegistryProtocol._
 
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
-    case ExecutionProtocol.DestroyContextRequest(contextId) =>
-      runtime ! Api.Request(
-        UUID.randomUUID(),
-        Api.DestroyContextRequest(contextId)
-      )
+    case msg: Api.DestroyContextRequest =>
+      runtime ! Api.Request(UUID.randomUUID(), msg)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(sender(), cancellable))
@@ -47,9 +44,9 @@ final class DestroyContextHandler(
     case Api.Response(_, Api.DestroyContextResponse(contextId, errOpt)) =>
       errOpt match {
         case Some(Api.ContextDoesNotExistError()) =>
-          replyTo ! ExecutionProtocol.AccessDeniedError
+          replyTo ! AccessDeniedError
         case None =>
-          replyTo ! ExecutionProtocol.DestroyContextResponse(contextId)
+          replyTo ! DestroyContextResponse(contextId)
       }
       cancellable.cancel()
       context.stop(self)

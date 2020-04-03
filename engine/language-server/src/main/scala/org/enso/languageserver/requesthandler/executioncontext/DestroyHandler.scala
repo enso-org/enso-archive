@@ -3,13 +3,10 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.filemanager.FileManagerApi.{AccessDeniedError}
+import org.enso.languageserver.filemanager.FileManagerApi
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.{
-  ContextRegistryProtocol,
-  ExecutionProtocol
-}
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -25,7 +22,7 @@ class DestroyHandler(
 ) extends Actor
     with ActorLogging {
 
-  import context.dispatcher
+  import context.dispatcher, ContextRegistryProtocol._
 
   override def receive: Receive = requestStage
 
@@ -35,10 +32,7 @@ class DestroyHandler(
         id,
         params: ExecutionContextDestroy.Params
         ) =>
-      contextRegistry ! ContextRegistryProtocol.DestroyContextRequest(
-        sender(),
-        params.contextId
-      )
+      contextRegistry ! DestroyContextRequest(sender(), params.contextId)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -54,13 +48,13 @@ class DestroyHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case ExecutionProtocol.DestroyContextResponse(_) =>
+    case DestroyContextResponse(_) =>
       replyTo ! ResponseResult(ExecutionContextDestroy, id, Unused)
       cancellable.cancel()
       context.stop(self)
 
-    case ExecutionProtocol.AccessDeniedError =>
-      replyTo ! ResponseError(Some(id), AccessDeniedError)
+    case AccessDeniedError =>
+      replyTo ! ResponseError(Some(id), FileManagerApi.AccessDeniedError)
       cancellable.cancel()
       context.stop(self)
   }

@@ -10,10 +10,7 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.{
-  ContextRegistryProtocol,
-  ExecutionProtocol
-}
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -29,13 +26,13 @@ class CreateHandler(
 ) extends Actor
     with ActorLogging {
 
-  import context.dispatcher
+  import context.dispatcher, ContextRegistryProtocol._
 
   override def receive: Receive = requestStage
 
   private def requestStage: Receive = {
     case Request(ExecutionContextCreate, id, _) =>
-      contextRegistry ! ContextRegistryProtocol.CreateContextRequest(sender())
+      contextRegistry ! CreateContextRequest(sender())
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -51,7 +48,7 @@ class CreateHandler(
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
-    case ExecutionProtocol.CreateContextResponse(contextId) =>
+    case CreateContextResponse(contextId) =>
       val canModify      = CapabilityRegistration(CanModify(contextId))
       val receivesEvents = CapabilityRegistration(ReceivesEvents(contextId))
       val result         = ExecutionContextCreate.Result(canModify, receivesEvents)

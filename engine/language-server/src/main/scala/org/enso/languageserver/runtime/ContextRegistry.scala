@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.ExecutionContextConfig
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.runtime.handler._
+import org.enso.polyglot.runtime.Runtime.Api
 
 /**
   * Registry handles execution context requests and communicates with runtime
@@ -51,7 +52,7 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
         CreateContextHandler.props(config.requestTimeout, runtime)
       )
       val contextId = UUID.randomUUID()
-      handler.forward(ExecutionProtocol.CreateContextRequest(contextId))
+      handler.forward(Api.CreateContextRequest(contextId))
       context.become(withStore(store.addContext(client, contextId)))
 
     case DestroyContextRequest(client, contextId) =>
@@ -60,10 +61,10 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
         val handler = context.actorOf(
           DestroyContextHandler.props(config.requestTimeout, runtime)
         )
-        handler.forward(ExecutionProtocol.DestroyContextRequest(contextId))
+        handler.forward(Api.DestroyContextRequest(contextId))
         context.become(withStore(store.updated(client, contexts - contextId)))
       } else {
-        sender() ! ExecutionProtocol.AccessDeniedError
+        sender() ! AccessDeniedError
       }
   }
 
