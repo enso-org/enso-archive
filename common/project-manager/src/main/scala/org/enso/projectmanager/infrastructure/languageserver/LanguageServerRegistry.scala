@@ -2,7 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
   NetworkConfig
@@ -18,7 +18,7 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 /**
   * An actor that routes request regarding lang. server lifecycle to the
-  * right controller managing the server.
+  * right controller that manages the server.
   * It creates a controller actor, if a server doesn't exists.
   *
   * @param networkConfig a net config
@@ -28,6 +28,7 @@ class LanguageServerRegistry(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig
 ) extends Actor
+    with ActorLogging
     with UnhandledLogging {
 
   override def receive: Receive = running()

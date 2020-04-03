@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.Status.Failure
 import akka.actor.{
   Actor,
+  ActorLogging,
   ActorRef,
   Cancellable,
   OneForOneStrategy,
@@ -53,6 +54,7 @@ class LanguageServerController(
   networkConfig: NetworkConfig,
   bootloaderConfig: BootloaderConfig
 ) extends Actor
+    with ActorLogging
     with Stash
     with UnhandledLogging {
 

@@ -2,7 +2,7 @@ package org.enso.projectmanager.protocol
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorRef, Props, Stash}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Stash}
 import org.enso.jsonrpc.{JsonRpcServer, MessageHandler, Method, Request}
 import org.enso.projectmanager.boot.configuration.TimeoutConfig
 import org.enso.projectmanager.control.effect.Exec
@@ -28,6 +28,7 @@ class ClientController[F[+_, +_]: Exec](
   projectService: ProjectServiceApi[F],
   config: TimeoutConfig
 ) extends Actor
+    with ActorLogging
     with Stash
     with UnhandledLogging {
 

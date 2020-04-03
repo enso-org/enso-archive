@@ -25,6 +25,7 @@ class ProjectDeleteHandler[F[+_, +_]: Exec](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
+    with ActorLogging
     with UnhandledLogging {
   override def receive: Receive = requestStage
 

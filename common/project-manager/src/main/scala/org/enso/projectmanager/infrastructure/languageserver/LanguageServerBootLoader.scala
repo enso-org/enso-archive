@@ -1,7 +1,7 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.Status.Failure
-import akka.actor.{Actor, Props}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.pattern.pipe
 import org.enso.languageserver.boot.{
   LanguageServerComponent,
@@ -29,6 +29,7 @@ class LanguageServerBootLoader(
   descriptor: LanguageServerDescriptor,
   config: BootloaderConfig
 ) extends Actor
+    with ActorLogging
     with UnhandledLogging {
 
   import context.dispatcher

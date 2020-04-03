@@ -5,7 +5,7 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
-import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult, Unused}
+import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.ProjectMetadata
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectListRecent
@@ -30,6 +30,7 @@ class ProjectListRecentHandler[F[+_, +_]: Exec](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
+    with ActorLogging
     with UnhandledLogging {
 
   override def receive: Receive = requestStage

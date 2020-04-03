@@ -2,7 +2,7 @@ package org.enso.projectmanager.requesthandler
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorRef, Cancellable, Props, Status}
+import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props, Status}
 import akka.pattern.pipe
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
@@ -30,6 +30,7 @@ class ProjectOpenHandler[F[+_, +_]: Exec](
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
+    with ActorLogging
     with UnhandledLogging {
   override def receive: Receive = requestStage
 
