@@ -7,6 +7,7 @@ import org.enso.languageserver.filemanager.FileManagerApi
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -20,7 +21,8 @@ class DestroyHandler(
   timeout: FiniteDuration,
   contextRegistry: ActorRef
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher, ContextRegistryProtocol._
 
@@ -58,9 +60,6 @@ class DestroyHandler(
       cancellable.cancel()
       context.stop(self)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 }
 
 object DestroyHandler {

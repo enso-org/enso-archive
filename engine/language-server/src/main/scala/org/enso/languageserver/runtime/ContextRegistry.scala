@@ -6,6 +6,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.ExecutionContextConfig
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.runtime.handler._
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
 /**
@@ -39,7 +40,8 @@ import org.enso.polyglot.runtime.Runtime.Api
   */
 final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
     extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import ContextRegistry._, ContextRegistryProtocol._
 
@@ -67,9 +69,6 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
         sender() ! AccessDeniedError
       }
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 }
 
 object ContextRegistry {

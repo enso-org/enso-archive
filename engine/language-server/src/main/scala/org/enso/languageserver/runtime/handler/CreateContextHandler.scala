@@ -5,6 +5,7 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
 import scala.concurrent.duration.FiniteDuration
@@ -19,7 +20,8 @@ final class CreateContextHandler(
   timeout: FiniteDuration,
   runtime: ActorRef
 ) extends Actor
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
 
   import context.dispatcher, ContextRegistryProtocol._
 
@@ -46,9 +48,6 @@ final class CreateContextHandler(
       cancellable.cancel()
       context.stop(self)
   }
-
-  override def unhandled(message: Any): Unit =
-    log.warning("Received unknown message: {}", message)
 }
 
 object CreateContextHandler {
