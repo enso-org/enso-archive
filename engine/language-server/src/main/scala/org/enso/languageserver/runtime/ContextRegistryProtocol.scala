@@ -36,5 +36,10 @@ object ContextRegistryProtocol {
   /**
     * Signals that user doesn't have access to the requested context.
     */
-  case object AccessDeniedError
+  case object AccessDenied
+
+  /**
+    * Signals that context was not found.
+    */
+  case object ContextNotFound
 }

@@ -2,7 +2,7 @@ package org.enso.languageserver.runtime
 
 import java.util.UUID
 
-import org.enso.jsonrpc.{HasParams, HasResult, Method, Unused}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method, Unused}
 import org.enso.languageserver.data.CapabilityRegistration
 
 /**
@@ -41,4 +41,9 @@ object ExecutionApi {
       type Result = Unused.type
     }
   }
+
+  case object StackItemNotFoundError extends Error(2001, "Stack item not found")
+
+  case object ContextNotFoundError extends Error(2002, "Context not found")
+
 }

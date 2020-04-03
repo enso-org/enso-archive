@@ -70,14 +70,14 @@ class ContextRegistryTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "id" : 1,
             "error" : {
-              "code" : 1002,
+              "code" : 100,
               "message" : "Access denied"
             }
           }
           """)
     }
 
-    "reply AccessDenied when destroying context that wasn't found" in {
+    "reply ContextNotFound when destroying context that wasn't found" in {
       val client = new WsTestClient(address)
 
       // create context
@@ -115,8 +115,8 @@ class ContextRegistryTest extends BaseServerTest {
           { "jsonrpc": "2.0",
             "id" : 2,
             "error" : {
-              "code" : 1002,
-              "message" : "Access denied"
+              "code" : 2002,
+              "message" : "Context not found"
             }
           }
           """)

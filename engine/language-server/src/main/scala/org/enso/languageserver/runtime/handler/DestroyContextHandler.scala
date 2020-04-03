@@ -46,7 +46,7 @@ final class DestroyContextHandler(
     case Api.Response(_, Api.DestroyContextResponse(contextId, errOpt)) =>
       errOpt match {
         case Some(Api.ContextDoesNotExistError()) =>
-          replyTo ! AccessDeniedError
+          replyTo ! ContextNotFound
         case None =>
           replyTo ! DestroyContextResponse(contextId)
       }

@@ -66,7 +66,7 @@ final class ContextRegistry(config: ExecutionContextConfig, runtime: ActorRef)
         handler.forward(Api.DestroyContextRequest(contextId))
         context.become(withStore(store.updated(client, contexts - contextId)))
       } else {
-        sender() ! AccessDeniedError
+        sender() ! AccessDenied
       }
   }
 }
