@@ -6,6 +6,11 @@ import org.enso.languageserver.runtime.ExecutionApi.ContextId
 object ContextRegistryProtocol {
 
   /**
+    * Trait indicating failure response.
+    */
+  sealed trait Failure
+
+  /**
     * A request to the context registry to create a new execution context.
     *
     * @param client reference to the client
@@ -36,10 +41,10 @@ object ContextRegistryProtocol {
   /**
     * Signals that user doesn't have access to the requested context.
     */
-  case object AccessDenied
+  case object AccessDenied extends Failure
 
   /**
     * Signals that context was not found.
     */
-  case object ContextNotFound
+  case class ContextNotFound(contextId: ContextId) extends Failure
 }

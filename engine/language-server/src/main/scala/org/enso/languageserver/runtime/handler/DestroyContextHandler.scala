@@ -4,7 +4,10 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
+}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -43,13 +46,13 @@ final class DestroyContextHandler(
       replyTo ! RequestTimeout
       context.stop(self)
 
-    case Api.Response(_, Api.DestroyContextResponse(contextId, errOpt)) =>
-      errOpt match {
-        case Some(Api.ContextDoesNotExistError()) =>
-          replyTo ! ContextNotFound
-        case None =>
-          replyTo ! DestroyContextResponse(contextId)
-      }
+    case Api.Response(_, Api.DestroyContextResponse(contextId)) =>
+      replyTo ! DestroyContextResponse(contextId)
+      cancellable.cancel()
+      context.stop(self)
+
+    case Api.Response(_, error: Api.Error) =>
+      replyTo ! RuntimeFailureMapper.mapApiError(error)
       cancellable.cancel()
       context.stop(self)
   }

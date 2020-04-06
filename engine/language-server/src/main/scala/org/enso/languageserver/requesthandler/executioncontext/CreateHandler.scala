@@ -10,7 +10,10 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
+}
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -55,6 +58,11 @@ class CreateHandler(
       val receivesEvents = CapabilityRegistration(ReceivesEvents(contextId))
       val result         = ExecutionContextCreate.Result(canModify, receivesEvents)
       replyTo ! ResponseResult(ExecutionContextCreate, id, result)
+      cancellable.cancel()
+      context.stop(self)
+
+    case error: ContextRegistryProtocol.Failure =>
+      replyTo ! ResponseError(Some(id), RuntimeFailureMapper.mapFailure(error))
       cancellable.cancel()
       context.stop(self)
   }

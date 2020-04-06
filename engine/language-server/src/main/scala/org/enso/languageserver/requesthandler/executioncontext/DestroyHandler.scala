@@ -3,10 +3,12 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.protocol.ErrorApi._
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
+}
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -55,13 +57,10 @@ class DestroyHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case AccessDenied =>
-      replyTo ! ResponseError(Some(id), AccessDeniedError)
+    case error: ContextRegistryProtocol.Failure =>
+      replyTo ! ResponseError(Some(id), RuntimeFailureMapper.mapFailure(error))
       cancellable.cancel()
       context.stop(self)
-
-    case ContextNotFound =>
-      replyTo ! ResponseError(Some(id), ContextNotFoundError)
   }
 }
 

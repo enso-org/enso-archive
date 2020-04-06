@@ -57,7 +57,7 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.DestroyContextResponse(contextId, error = None)
+        Api.DestroyContextResponse(contextId)
       )
       client.expectJson(json.ok(2))
     }
@@ -106,10 +106,7 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.DestroyContextResponse(
-          contextId,
-          error = Some(Api.ContextDoesNotExistError())
-        )
+        Api.ContextNotExistError(contextId)
       )
       client.expectJson(json"""
           { "jsonrpc": "2.0",
