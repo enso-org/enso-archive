@@ -1,6 +1,7 @@
 package org.enso.languageserver.runtime
 
 import akka.actor.ActorRef
+import org.enso.languageserver.filemanager.FileSystemFailure
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 
 object ContextRegistryProtocol {
@@ -39,6 +40,27 @@ object ContextRegistryProtocol {
   case class DestroyContextResponse(contextId: ContextId)
 
   /**
+    * A request to the context registry to push an execution context
+    * down the stack.
+    *
+    * @param client reference to the client
+    * @param contextId execution context identifier
+    * @param stackItem an object representing an item on the stack
+    */
+  case class PushContextRequest(
+    client: ActorRef,
+    contextId: ContextId,
+    stackItem: StackItem
+  )
+
+  /**
+    * A response about pushing the new item to the stack.
+    *
+    * @param contextId execution context identifier
+    */
+  case class PushContextResponse(contextId: ContextId)
+
+  /**
     * Signals that user doesn't have access to the requested context.
     */
   case object AccessDenied extends Failure
@@ -47,4 +69,11 @@ object ContextRegistryProtocol {
     * Signals that context was not found.
     */
   case class ContextNotFound(contextId: ContextId) extends Failure
+
+  /**
+    * Signals about file system error.
+    *
+    * @param error file system failure
+    */
+  case class FileSystemError(error: FileSystemFailure) extends Failure
 }

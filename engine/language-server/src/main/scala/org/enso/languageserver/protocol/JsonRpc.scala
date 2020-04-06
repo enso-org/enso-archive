@@ -36,6 +36,7 @@ object JsonRpc {
     .registerRequest(InfoFile)
     .registerRequest(ExecutionContextCreate)
     .registerRequest(ExecutionContextDestroy)
+    .registerRequest(ExecutionContextPush)
     .registerNotification(ForceReleaseCapability)
     .registerNotification(GrantCapability)
     .registerNotification(TextDidChange)
