@@ -11,3 +11,10 @@
 /common/pkg @kustosz
 /common/syntax @iamrecursion
 /common/unused @iamrecursion
+
+# Main Project
+/engine/core-definition @iamrecursion
+/engine/language-server @lolczak @4e6
+/engine/polyglot-api @iamrecursion @kustosz
+/engine/runner @iamrecursion @kustosz @lolczak @4e6
+/engine/runtime @iamrecursion @kustosz
