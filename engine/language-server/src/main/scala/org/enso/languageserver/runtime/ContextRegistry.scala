@@ -81,7 +81,7 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
             sender() ! FileSystemError(error)
         }
       } else {
-        sender() ! AccessDeniedError
+        sender() ! AccessDenied
       }
 
     case PopContextRequest(client, contextId) =>
@@ -90,7 +90,7 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
         val handler = context.actorOf(PopContextHandler.props(timeout, runtime))
         handler.forward(Api.PopContextRequest(contextId))
       } else {
-        sender() ! AccessDeniedError
+        sender() ! AccessDenied
       }
   }
 

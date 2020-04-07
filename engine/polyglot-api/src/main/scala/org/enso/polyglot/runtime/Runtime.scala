@@ -39,6 +39,22 @@ object Runtime {
         name  = "destroyContextResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.PushContextRequest],
+        name  = "pushContextRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.PushContextResponse],
+        name  = "pushContextResponse"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.PopContextRequest],
+        name  = "popContextRequest"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.PopContextResponse],
+        name  = "popContextResponse"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
         name  = "contextNotExistError"
       )
@@ -67,6 +83,19 @@ object Runtime {
     /**
       * A representation of an executable position in code.
       */
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+    @JsonSubTypes(
+      Array(
+        new JsonSubTypes.Type(
+          value = classOf[StackItem.ExplicitCall],
+          name  = "explicitCall"
+        ),
+        new JsonSubTypes.Type(
+          value = classOf[StackItem.LocalCall],
+          name  = "localCall"
+        )
+      )
+    )
     sealed trait StackItem
 
     object StackItem {
@@ -130,7 +159,6 @@ object Runtime {
       * [[DestroyContextRequest]]
       *
       * @param contextId the destroyed context's id
-      * @param error optional error
       */
     case class DestroyContextResponse(contextId: ContextId) extends ApiResponse
 

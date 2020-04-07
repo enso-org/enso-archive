@@ -72,5 +72,29 @@ class Handler {
         )
       }
 
+    case Api.Request(requestId, Api.PushContextRequest(contextId, item)) =>
+      if (contextManager.get(contextId).isDefined) {
+        contextManager.push(contextId, item)
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.PushContextResponse(contextId))
+        )
+      } else {
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.ContextNotExistError(contextId))
+        )
+      }
+
+    case Api.Request(requestId, Api.PopContextRequest(contextId)) =>
+      if (contextManager.get(contextId).isDefined) {
+        contextManager.pop(contextId)
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.PopContextResponse(contextId))
+        )
+      } else {
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.ContextNotExistError(contextId))
+        )
+      }
+
   }
 }

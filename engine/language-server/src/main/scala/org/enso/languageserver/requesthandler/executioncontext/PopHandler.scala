@@ -3,10 +3,12 @@ package org.enso.languageserver.requesthandler.executioncontext
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.filemanager.FileManagerApi
 import org.enso.languageserver.requesthandler.RequestTimeout
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.runtime.ContextRegistryProtocol
+import org.enso.languageserver.runtime.{
+  ContextRegistryProtocol,
+  RuntimeFailureMapper
+}
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
@@ -51,8 +53,8 @@ class PopHandler(
       cancellable.cancel()
       context.stop(self)
 
-    case AccessDeniedError =>
-      replyTo ! ResponseError(Some(id), FileManagerApi.AccessDeniedError)
+    case error: ContextRegistryProtocol.Failure =>
+      replyTo ! ResponseError(Some(id), RuntimeFailureMapper.mapFailure(error))
       cancellable.cancel()
       context.stop(self)
   }
