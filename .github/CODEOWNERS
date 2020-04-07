@@ -21,3 +21,9 @@
 
 # Documentation
 /doc @iamrecursion
+/.gitignore @iamrecursion
+/.jvmopts @iamrecursion @kustosz
+/.scalafmt.conf @iamrecursion
+/CODE_OF_CONDUCT.md @iamrecursion
+/LICENSE @iamrecursion
+README.md @iamrecursion
