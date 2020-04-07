@@ -22,7 +22,8 @@ import org.enso.languageserver.boot.{
 }
 import org.enso.projectmanager.boot.configuration.{
   BootloaderConfig,
-  NetworkConfig
+  NetworkConfig,
+  SupervisionConfig
 }
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
@@ -32,7 +33,8 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootL
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.{
   Boot,
-  BootTimeout
+  BootTimeout,
+  ServerDied
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
@@ -52,7 +54,8 @@ import scala.concurrent.duration._
 class LanguageServerController(
   project: Project,
   networkConfig: NetworkConfig,
-  bootloaderConfig: BootloaderConfig
+  bootloaderConfig: BootloaderConfig,
+  supervisionConfig: SupervisionConfig
 ) extends Actor
     with ActorLogging
     with Stash
@@ -81,7 +84,8 @@ class LanguageServerController(
     case Boot =>
       val bootloader =
         context.actorOf(
-          LanguageServerBootLoader.props(descriptor, bootloaderConfig)
+          LanguageServerBootLoader.props(descriptor, bootloaderConfig),
+          "bootloader"
         )
       context.watch(bootloader)
       val timeoutCancellable =
@@ -108,6 +112,10 @@ class LanguageServerController(
       unstashAll()
       timeoutCancellable.cancel()
       context.become(supervising(config, server))
+      context.actorOf(
+        LanguageServerSupervisor.props(config, server, supervisionConfig),
+        "supervisor"
+      )
 
     case Terminated(Bootloader) =>
       log.error(s"Bootloader for project ${project.name} failed")
@@ -140,6 +148,9 @@ class LanguageServerController(
     case ClientDisconnected(clientId) =>
       removeClient(config, server, clients, clientId, None)
 
+    case ServerDied =>
+      log.error(s"Language server died [$config]")
+      context.stop(self)
   }
 
   private def removeClient(
@@ -163,7 +174,6 @@ class LanguageServerController(
     case StartServer(_, _) =>
       sender() ! LanguageServerProtocol.ServerBootFailed(th)
       stop()
-
   }
 
   private def stopping(maybeRequester: Option[ActorRef]): Receive = {
@@ -201,10 +211,16 @@ object LanguageServerController {
   def props(
     project: Project,
     networkConfig: NetworkConfig,
-    bootloaderConfig: BootloaderConfig
+    bootloaderConfig: BootloaderConfig,
+    supervisionConfig: SupervisionConfig
   ): Props =
     Props(
-      new LanguageServerController(project, networkConfig, bootloaderConfig)
+      new LanguageServerController(
+        project,
+        networkConfig,
+        bootloaderConfig,
+        supervisionConfig
+      )
     )
 
   /**
@@ -216,5 +232,7 @@ object LanguageServerController {
     * Boot command.
     */
   case object Boot
+
+  case object ServerDied
 
 }

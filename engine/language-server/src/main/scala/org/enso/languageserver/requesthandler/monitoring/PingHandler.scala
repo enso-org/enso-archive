@@ -41,6 +41,7 @@ class PingHandler(
     case Pong =>
       if (count + 1 == subsystems.size) {
         replyTo ! ResponseResult(MonitoringApi.Ping, id, Unused)
+        cancellable.cancel()
         context.stop(self)
       } else {
         context.become(gather(id, replyTo, cancellable, count + 1))

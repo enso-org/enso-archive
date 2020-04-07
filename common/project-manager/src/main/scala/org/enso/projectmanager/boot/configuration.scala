@@ -16,7 +16,8 @@ object configuration {
     storage: StorageConfig,
     timeout: TimeoutConfig,
     network: NetworkConfig,
-    bootloader: BootloaderConfig
+    bootloader: BootloaderConfig,
+    supervision: SupervisionConfig
   )
 
   /**
@@ -72,4 +73,10 @@ object configuration {
     delayBetweenRetry: FiniteDuration
   )
 
+  case class SupervisionConfig(
+    heartbeatInterval: FiniteDuration,
+    heartbeatTimeout: FiniteDuration,
+    numberOfRetries: Int,
+    delayBetweenRetry: FiniteDuration
+  )
 }

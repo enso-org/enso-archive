@@ -4,6 +4,7 @@ import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.LanguageProtocol
 import org.enso.languageserver.boot.LanguageServerComponent.{
+  ServerRestarted,
   ServerStarted,
   ServerStopped
 }
@@ -56,8 +57,35 @@ class LanguageServerComponent(config: LanguageServerConfig)
         for {
           _ <- binding.terminate(10.seconds)
           _ <- mainModule.system.terminate()
+          _ <- Future { mainModule.context.close(true) }
+          _ <- Future { maybeServerState = None }
         } yield ServerStopped
     }
+
+  def restart(): Future[ServerRestarted.type] =
+    for {
+      _ <- forceStop()
+      _ <- start()
+    } yield ServerRestarted
+
+  private def forceStop(): Future[Unit] = {
+    maybeServerState match {
+      case None =>
+        Future.successful(())
+
+      case Some((mainModule, binding)) =>
+        for {
+          _ <- binding.terminate(10.seconds).recover(logError)
+          _ <- mainModule.system.terminate().recover(logError)
+          _ <- Future { mainModule.context.close(true) }.recover(logError)
+          _ <- Future { maybeServerState = None }
+        } yield ServerStopped
+    }
+  }
+
+  private val logError: PartialFunction[Throwable, Unit] = {
+    case th => logger.error("An error occurred during stopping server", th)
+  }
 
 }
 
@@ -66,5 +94,7 @@ object LanguageServerComponent {
   case object ServerStarted
 
   case object ServerStopped
+
+  case object ServerRestarted
 
 }
