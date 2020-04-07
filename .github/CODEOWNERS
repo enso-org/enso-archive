@@ -5,3 +5,9 @@
 /common/flexer @iamrecursion
 /common/graph @iamrecursion
 /common/json-rpc-server @lolczak @4e6
+/common/json-rpc-server-test @lolczak @4e6
+/common/logger @kustosz @iamrecursion
+/common/parser-service @kustosz @iamrecursion
+/common/pkg @kustosz
+/common/syntax @iamrecursion
+/common/unused @iamrecursion
