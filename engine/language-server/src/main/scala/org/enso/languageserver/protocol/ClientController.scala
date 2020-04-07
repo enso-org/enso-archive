@@ -80,6 +80,8 @@ class ClientController(
       ExecutionContextDestroy -> executioncontext.DestroyHandler
         .props(requestTimeout, contextRegistry),
       ExecutionContextPush -> executioncontext.PushHandler
+        .props(requestTimeout, contextRegistry),
+      ExecutionContextPop -> executioncontext.PopHandler
         .props(requestTimeout, contextRegistry)
     )
 

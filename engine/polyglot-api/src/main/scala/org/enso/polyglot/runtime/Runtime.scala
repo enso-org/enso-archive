@@ -152,6 +152,21 @@ object Runtime {
     case class PushContextResponse(contextId: ContextId) extends ApiResponse
 
     /**
+      * A Request sent from the client to the runtime server, to move
+      * the execution context up the stack.
+      *
+      * @param contextId the context's id.
+      */
+    case class PopContextRequest(contextId: ContextId) extends ApiRequest
+
+    /**
+      * A response sent from the server upon handling the [[PopContextRequest]]
+      *
+      * @param contextId the context's id.
+      */
+    case class PopContextResponse(contextId: ContextId) extends ApiResponse
+
+    /**
       * An error payload signifying a non-existent context.
       */
     case class ContextNotExistError(contextId: ContextId) extends Error

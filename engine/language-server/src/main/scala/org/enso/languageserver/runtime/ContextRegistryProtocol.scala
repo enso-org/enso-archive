@@ -61,6 +61,22 @@ object ContextRegistryProtocol {
   case class PushContextResponse(contextId: ContextId)
 
   /**
+    * A request to the context registry to move an execution context
+    * up the stack.
+    *
+    * @param client reference to the client
+    * @param contextId execution context identifier
+    */
+  case class PopContextRequest(client: ActorRef, contextId: ContextId)
+
+  /**
+    * A response about popping the stack.
+    *
+    * @param contextId execution context identifier
+    */
+  case class PopContextResponse(contextId: ContextId)
+
+  /**
     * Signals that user doesn't have access to the requested context.
     */
   case object AccessDenied extends Failure

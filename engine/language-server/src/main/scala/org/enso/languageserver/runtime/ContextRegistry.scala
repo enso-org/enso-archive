@@ -83,6 +83,15 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       } else {
         sender() ! AccessDeniedError
       }
+
+    case PopContextRequest(client, contextId) =>
+      val contexts = store.getContexts(client)
+      if (contexts.contains(contextId)) {
+        val handler = context.actorOf(PopContextHandler.props(timeout, runtime))
+        handler.forward(Api.PopContextRequest(contextId))
+      } else {
+        sender() ! AccessDeniedError
+      }
   }
 
   private def getRuntimeStackItem(

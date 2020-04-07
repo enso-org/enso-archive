@@ -54,6 +54,18 @@ object ExecutionApi {
     }
   }
 
+  case object ExecutionContextPop extends Method("executionContext/pop") {
+
+    case class Params(contextId: ContextId)
+
+    implicit val hasParams = new HasParams[this.type] {
+      type Params = ExecutionContextPop.Params
+    }
+    implicit val hasResult = new HasResult[this.type] {
+      type Result = Unused.type
+    }
+  }
+
   case object StackItemNotFoundError extends Error(2001, "Stack item not found")
 
   case object ContextNotFoundError extends Error(2002, "Context not found")
