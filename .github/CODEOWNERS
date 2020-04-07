@@ -18,3 +18,6 @@
 /engine/polyglot-api @iamrecursion @kustosz
 /engine/runner @iamrecursion @kustosz @lolczak @4e6
 /engine/runtime @iamrecursion @kustosz
+
+# Documentation
+/doc @iamrecursion
