@@ -17,7 +17,7 @@ import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
 }
 
 /**
-  * An Akka-based  bidirectional web socket connection.
+  * An Akka-based bidirectional web socket connection.
   *
   * @param address a server address
   * @param system an actor system

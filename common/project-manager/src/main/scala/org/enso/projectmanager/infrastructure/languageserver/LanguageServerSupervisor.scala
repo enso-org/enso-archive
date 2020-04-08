@@ -117,12 +117,12 @@ object LanguageServerSupervisor {
   private case object RestartServer
 
   /**
-    * A send heartbeat command.
+    * A command responsible for initiating heartbeat session.
     */
   case object SendHeartbeat
 
   /**
-    * An event sent when server is unresponsive.
+    * Signals that server is unresponsive.
     */
   case object ServerUnresponsive
 
