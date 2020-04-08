@@ -83,6 +83,8 @@ object ContextRegistryProtocol {
 
   /**
     * Signals that context was not found.
+    *
+    * @param contextId execution context identifier
     */
   case class ContextNotFound(contextId: ContextId) extends Failure
 
@@ -92,4 +94,11 @@ object ContextRegistryProtocol {
     * @param error file system failure
     */
   case class FileSystemError(error: FileSystemFailure) extends Failure
+
+  /**
+    * Signals that stack is empty.
+    *
+    * @param contextId execution context identifier
+    */
+  case class EmptyStackError(contextId: ContextId) extends Failure
 }

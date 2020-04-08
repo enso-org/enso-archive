@@ -716,7 +716,7 @@ interface ProjectListRecentResponse {
 ```
 
 ##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
 
 #### `project/create`
@@ -2069,6 +2069,8 @@ null
 ##### Errors
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
+- [`EmptyStackError`](#emptystackerror) when the user tries to pop an empty
+  stack.
 
 #### `executionContext/recompute`
 Sent from the client to the server to force recomputation of current position.
@@ -2195,6 +2197,16 @@ It signals that provided context was not found.
 "error" : {
   "code" : 2002,
   "message" : "Context not found"
+}
+```
+
+##### `EmptyStackError`
+It signals that stack is empty.
+
+```typescript
+"error" : {
+  "code" : 2003,
+  "message" : "Stack is empty"
 }
 ```
 

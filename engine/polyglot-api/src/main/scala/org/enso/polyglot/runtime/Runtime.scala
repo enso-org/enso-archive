@@ -57,6 +57,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
         name  = "contextNotExistError"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.EmptyStackError],
+        name  = "emptyStackError"
       )
     )
   )
@@ -195,9 +199,18 @@ object Runtime {
     case class PopContextResponse(contextId: ContextId) extends ApiResponse
 
     /**
-      * An error payload signifying a non-existent context.
+      * An error response signifying a non-existent context.
+      *
+      * @param contextId the context's id
       */
     case class ContextNotExistError(contextId: ContextId) extends Error
+
+    /**
+      * An error response signifying that stack is empty.
+      *
+      * @param contextId the context's id
+      */
+    case class EmptyStackError(contextId: ContextId) extends Error
 
     private lazy val mapper = {
       val factory = new CBORFactory()

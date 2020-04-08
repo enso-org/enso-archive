@@ -70,4 +70,6 @@ object ExecutionApi {
 
   case object ContextNotFoundError extends Error(2002, "Context not found")
 
+  case object EmptyStackError extends Error(2003, "Stack is empty")
+
 }

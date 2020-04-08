@@ -121,4 +121,18 @@ class ContextManagementTest
       Api.Response(requestId, Api.ContextNotExistError(contextId))
     )
   }
+
+  "Runtime server" should "fail popping empty stack" in {
+    val contextId  = UUID.randomUUID()
+    val requestId1 = UUID.randomUUID()
+    val requestId2 = UUID.randomUUID()
+    send(Api.Request(requestId1, Api.CreateContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId1, Api.CreateContextResponse(contextId))
+    )
+    send(Api.Request(requestId2, Api.PopContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId2, Api.EmptyStackError(contextId))
+    )
+  }
 }

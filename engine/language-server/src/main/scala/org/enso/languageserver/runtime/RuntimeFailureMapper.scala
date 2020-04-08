@@ -22,6 +22,8 @@ object RuntimeFailureMapper {
         ContextNotFoundError
       case ContextRegistryProtocol.FileSystemError(error) =>
         FileSystemFailureMapper.mapFailure(error)
+      case ContextRegistryProtocol.EmptyStackError(_) =>
+        EmptyStackError
     }
 
   /**
@@ -34,6 +36,8 @@ object RuntimeFailureMapper {
     error match {
       case Api.ContextNotExistError(contextId) =>
         ContextRegistryProtocol.ContextNotFound(contextId)
+      case Api.EmptyStackError(contextId) =>
+        ContextRegistryProtocol.EmptyStackError(contextId)
     }
 
 }

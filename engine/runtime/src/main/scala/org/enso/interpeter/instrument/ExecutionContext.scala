@@ -48,20 +48,22 @@ class ExecutionContextManager {
     *
     * @param id the context id.
     * @param item stack item.
+    * @return Unit representing success or None if the context does not exist.
     */
-  def push(id: ContextId, item: StackItem): Unit =
+  def push(id: ContextId, item: StackItem): Option[Unit] =
     for {
       stack <- contexts.get(ExecutionContext(id))
-    } stack.push(item)
+    } yield stack.push(item)
 
   /**
     * If the context exists and stack not empty, pop the item from the stack.
     *
     * @param id the context id.
+    * @return stack item or None if the stack is empty or not exists.
     */
-  def pop(id: ContextId): Unit =
+  def pop(id: ContextId): Option[StackItem] =
     for {
       stack <- contexts.get(ExecutionContext(id))
       if stack.nonEmpty
-    } stack.pop()
+    } yield stack.pop()
 }

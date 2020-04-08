@@ -216,7 +216,7 @@ class ContextRegistryTest extends BaseServerTest {
       client.expectJson(json.ok(3))
     }
 
-    "pop empty stack" in {
+    "return EmptyStackError when popping empty stack" in {
       val client = new WsTestClient(address)
 
       // create context
@@ -245,9 +245,17 @@ class ContextRegistryTest extends BaseServerTest {
         }
       runtimeConnectorProbe.lastSender ! Api.Response(
         requestId2,
-        Api.PopContextResponse(contextId)
+        Api.EmptyStackError(contextId)
       )
-      client.expectJson(json.ok(2))
+      client.expectJson(json"""
+          { "jsonrpc": "2.0",
+            "id" : 2,
+            "error" : {
+              "code" : 2003,
+              "message" : "Stack is empty"
+            }
+          }
+          """)
     }
   }
 
