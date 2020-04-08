@@ -629,10 +629,10 @@ fields:
 - **Visibility:** Whether the method should be used by the public or is an
   internal / implementation detail ('Public' or 'Private').
 
-They must also contain separate sections specifying their parameters, result,
-and any errors that may occur. These specifications should be either in
-typescript or flatbuffers syntax, depending on the connection on which the
-message occurs.
+They must also contain separate sections specifying their parameters, result (if
+it has one), and any errors that may occur. These specifications should be
+either in typescript or flatbuffers syntax, depending on the connection on
+which the message occurs.
 
 The capability specifications must include the following fields, as well as a
 section 'Enables' stating which protocol messages are gated by the capability.
@@ -1206,6 +1206,22 @@ table InitResponse {}
 N/A
 
 #### `session/end`
+This message informs the engine that the session is being terminated by a given
+user.
+
+- **Type:** Notification
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+null
+```
+
+##### Errors
+TBC
 
 ### Capability Management
 In order to mediate between multiple clients properly, the language server has
@@ -1368,6 +1384,9 @@ destroying the context.
 - `executionContext/recompute`
 - `executionContext/push`
 - `executionContext/pop`
+- `executionContext/attachVisualisation`
+- `executionContext/modifyVisualisation`
+- `executionContext/detachVisualisation`
 
 ##### Disables
 None
@@ -2299,7 +2318,6 @@ expressions becoming available.
   updates: ExpressionValueUpdate[]
 }
 ```
-
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
