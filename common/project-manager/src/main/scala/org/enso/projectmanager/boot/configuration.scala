@@ -81,13 +81,13 @@ object configuration {
     * @param heartbeatInterval an interval between heartbeat sessions
     * @param heartbeatTimeout a timeout for pong reply
     * @param numberOfRestarts a maximum number of restarts
-    * @param delayBetweenRetry a delay between server restarts
+    * @param delayBetweenRestarts a delay between server restarts
     */
   case class SupervisionConfig(
     initialDelay: FiniteDuration,
     heartbeatInterval: FiniteDuration,
     heartbeatTimeout: FiniteDuration,
     numberOfRestarts: Int,
-    delayBetweenRetry: FiniteDuration
+    delayBetweenRestarts: FiniteDuration
   )
 }

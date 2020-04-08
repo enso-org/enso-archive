@@ -85,7 +85,7 @@ class LanguageServerSupervisor(
       log.error(s"An error occurred during restarting the server [$config]", th)
       if (restartCount < supervisionConfig.numberOfRestarts) {
         scheduler.scheduleOnce(
-          supervisionConfig.delayBetweenRetry,
+          supervisionConfig.delayBetweenRestarts,
           self,
           RestartServer
         )
