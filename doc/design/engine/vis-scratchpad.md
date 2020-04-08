@@ -1,7 +1,12 @@
 # Scratchpad
+private and public messages
 
 ## Binary Protocol
-- Something existing (protobufs / capnproto)
+- Something existing (protobufs / capnproto / flatbuffers)
+
+- If we want to support streaming data then we have to use capnp / flatbuffers.
+- Flatbuffers seems like a good choice due to that ability to stream.
+- All of the above have JVM and Rust bindings.
 
 ## Messages
 

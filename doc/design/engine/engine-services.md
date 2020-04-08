@@ -17,11 +17,11 @@ services components, as well as any open questions that may remain.
 - [Architecture](#architecture)
   - [The Project Picker](#the-project-picker)
   - [Language Server](#language-server)
-- [The Protocol Itself](#the-protocol-itself)
+- [The Textual Protocol](#the-textual-protocol)
   - [Protocol Communication Patterns](#protocol-communication-patterns)
   - [The Protocol Transport](#the-protocol-transport)
   - [The Protocol Format](#the-protocol-format)
-- [Protocol Functionality](#protocol-functionality)
+- [Textual Protocol Functionality](#textual-protocol-functionality)
   - [Textual Diff Management](#textual-diff-management)
   - [Handling Multiple Clients](#handling-multiple-clients)
   - [Project State Management](#project-state-management)
@@ -33,9 +33,10 @@ services components, as well as any open questions that may remain.
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
+- [The Binary Protocol](#the-binary-protocol)
+- [Binary Protocol Functionality](#binary-protocol-functionality)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
-    - [`AbsolutePath`](#absolutepath)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Types](#types)
     - [`ProjectMetadata`](#projectmetadata)
@@ -53,6 +54,7 @@ services components, as well as any open questions that may remain.
     - [`File`](#file)
     - [`DirectoryTree`](#directorytree)
     - [`FileAttributes`](#fileattributes)
+    - [`UTCDateTime`](#utcdatetime)
     - [`FileEventKind`](#fileeventkind)
     - [`Position`](#position)
     - [`Range`](#range)
@@ -180,7 +182,7 @@ introduce significant coupling between the runtime implementation and the
 language server. Instead, the LS should only depend on `org.graalvm.polyglot` to
 interface with the runtime.
 
-## The Protocol Itself
+## The Textual Protocol
 The protocol refers to the communication format that all of the above services
 speak between each other and to the GUI. This protocol is not specialised only
 to language server operations, as instead it needs to work for all of the
@@ -259,7 +261,7 @@ LSP messages. The following notes apply:
 This means that we have two pipes: one is the textual WebSocket defined by LSP,
 and the other is a binary WebSocket.
 
-## Protocol Functionality
+## Textual Protocol Functionality
 This entire section deals with the _functional_ requirements placed upon the
 protocol used by the engine services. These requirements are overwhelmingly
 imposed by the IDE, but also include additional functionality for the future
@@ -577,6 +579,11 @@ and will be expanded upon as necessary in the future.
   a user's development experience.
 - **LSP Spec Completeness:** We should also support all LSP messages that are
   relevant to our language. Currently we only support a small subset thereof.
+
+## The Binary Protocol
+The binary protocol refers to the auxiliary protocol-based 
+
+## Binary Protocol Functionality
 
 ## Protocol Message Specification - Common Types
 There are a number of types that are shared between many of the protocol
