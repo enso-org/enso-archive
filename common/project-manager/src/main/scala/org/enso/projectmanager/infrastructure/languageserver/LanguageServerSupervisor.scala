@@ -60,25 +60,27 @@ class LanguageServerSupervisor(
       )
 
     case ServerUnresponsive =>
-      log.info(s"Server died $config. Restarting it...")
+      log.info(s"Server is unresponsive [$config]. Restarting it...")
       cancellable.cancel()
+      log.info(s"Restarting first time the server")
       server.restart() pipeTo self
       context.become(restarting())
   }
 
-  private def restarting(retryCount: Int = 0): Receive = {
+  private def restarting(restartCount: Int = 1): Receive = {
     case RestartServer =>
+      log.info(s"Restarting $restartCount time the server")
       server.restart() pipeTo self
 
     case Failure(th) =>
       log.error(s"An error occurred during restarting the server [$config]", th)
-      if (retryCount < supervisionConfig.numberOfRetries) {
+      if (restartCount < supervisionConfig.numberOfRestarts) {
         scheduler.scheduleOnce(
           supervisionConfig.delayBetweenRetry,
           self,
           RestartServer
         )
-        context.become(restarting(retryCount + 1))
+        context.become(restarting(restartCount + 1))
       } else {
         log.error("Cannot restart language server")
         context.parent ! ServerDied

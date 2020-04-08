@@ -2,17 +2,19 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import com.miguno.akka.testing.VirtualTime
 import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
 import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSocketServer.{
   Reject,
   ReplyWith
 }
+import org.enso.projectmanager.infrastructure.languageserver.StepParent.ChildTerminated
 import org.mockito.BDDMockito._
 import org.mockito.Mockito._
 import org.mockito.MockitoSugar
@@ -49,14 +51,13 @@ class LanguageServerSupervisorSpec
     (1 to 10).foreach { _ =>
       probe.expectMsgPF() { case PingMatcher(_) => () }
       virtualTime.advance(testHeartbeatInterval / 2)
-      virtualTime.scheduler.tick()
       probe.expectNoMessage()
       virtualTime.advance(testHeartbeatInterval / 2)
-      virtualTime.scheduler.tick()
     }
     //then
     `then`(serverComponent.restart()).shouldHaveNoInteractions()
     //teardown
+    system.stop(parent)
     server.stop()
   }
 
@@ -84,14 +85,11 @@ class LanguageServerSupervisorSpec
       verifyNoInteractions(serverComponent)
       probe.expectMsgPF() { case PingMatcher(_) => () }
       virtualTime.advance(testHeartbeatInterval / 2)
-      virtualTime.scheduler.tick()
       probe.expectNoMessage()
       virtualTime.advance(testHeartbeatInterval / 2)
-      virtualTime.scheduler.tick()
     }
     probe.expectMsgPF() { case PingMatcher(_) => () }
     virtualTime.advance(testHeartbeatTimeout)
-    virtualTime.scheduler.tick()
     eventually {
       verify(serverComponent, times(1)).restart()
     }
@@ -100,12 +98,45 @@ class LanguageServerSupervisorSpec
       verifyNoMoreInteractions(serverComponent)
       probe.expectMsgPF() { case PingMatcher(_) => () }
       virtualTime.advance(testHeartbeatInterval / 2)
-      virtualTime.scheduler.tick()
       probe.expectNoMessage()
       virtualTime.advance(testHeartbeatInterval / 2)
-      virtualTime.scheduler.tick()
     }
     //teardown
+    system.stop(parent)
+    server.stop()
+  }
+
+  it should "restart server limited number of times" in new TestCtx {
+    //given
+    when(serverComponent.restart()).thenReturn(Future.failed(new Exception))
+    val probe = TestProbe()
+    server.withBehaviour {
+      case ping @ PingMatcher(_) =>
+        probe.ref ! ping
+        Reject
+    }
+    //when
+    virtualTime.advance(testInitialDelay)
+    verifyNoInteractions(serverComponent)
+    probe.expectMsgPF(5.seconds) { case PingMatcher(_) => () }
+    virtualTime.advance(testHeartbeatTimeout)
+    (1 to testRestartLimit).foreach { i =>
+      eventually {
+        verify(serverComponent, times(i)).restart()
+      }
+      //I need to wait some time to give the supervisor time to schedule next
+      // restart command
+      Thread.sleep(1000)
+      virtualTime.advance(testRestartDelay)
+    }
+    virtualTime.advance(testHeartbeatInterval)
+    probe.expectNoMessage()
+    verifyNoMoreInteractions(serverComponent)
+    //then
+    parentProbe.expectMsg(ServerDied)
+    parentProbe.expectMsg(ChildTerminated)
+    //teardown
+    system.stop(parent)
     server.stop()
   }
 
@@ -129,6 +160,10 @@ class LanguageServerSupervisorSpec
 
     val testHeartbeatTimeout = 7.seconds
 
+    val testRestartLimit = 3
+
+    val testRestartDelay = 2.seconds
+
     val server = new ProgrammableWebSocketServer(testHost, testPort)
     server.start()
 
@@ -140,17 +175,24 @@ class LanguageServerSupervisorSpec
         testInitialDelay,
         testHeartbeatInterval,
         testHeartbeatTimeout,
-        3,
-        2.seconds
+        testRestartLimit,
+        testRestartDelay
       )
 
-    val actorUnderTest = system.actorOf(
-      LanguageServerSupervisor.props(
-        serverConfig,
-        serverComponent,
-        supervisionConfig,
-        new AkkaBasedWebSocketConnectionFactory(),
-        virtualTime.scheduler
+    val parentProbe = TestProbe()
+
+    val parent = system.actorOf(
+      Props(
+        new StepParent(
+          LanguageServerSupervisor.props(
+            serverConfig,
+            serverComponent,
+            supervisionConfig,
+            new AkkaBasedWebSocketConnectionFactory(),
+            virtualTime.scheduler
+          ),
+          parentProbe.ref
+        )
       )
     )
 

@@ -77,7 +77,7 @@ object configuration {
     initialDelay: FiniteDuration,
     heartbeatInterval: FiniteDuration,
     heartbeatTimeout: FiniteDuration,
-    numberOfRetries: Int,
+    numberOfRestarts: Int,
     delayBetweenRetry: FiniteDuration
   )
 }
