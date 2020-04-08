@@ -1,15 +1,13 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.Status.Failure
-import akka.actor.{Actor, ActorLogging, Cancellable, Props}
+import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
 import akka.pattern.pipe
-import org.enso.languageserver.boot.LanguageServerComponent.ServerRestarted
-import org.enso.languageserver.boot.{
-  LanguageServerComponent,
-  LanguageServerConfig
-}
+import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
+import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
 import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
   RestartServer,
@@ -23,8 +21,10 @@ import scala.concurrent.duration._
 
 class LanguageServerSupervisor(
   config: LanguageServerConfig,
-  server: LanguageServerComponent,
-  supervisionConfig: SupervisionConfig
+  server: LifecycleComponent,
+  supervisionConfig: SupervisionConfig,
+  connectionFactor: WebSocketConnectionFactory,
+  scheduler: Scheduler
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -38,7 +38,7 @@ class LanguageServerSupervisor(
   private def uninitialized: Receive = {
     case StartSupervision =>
       val cancellable =
-        context.system.scheduler.scheduleAtFixedRate(
+        scheduler.scheduleAtFixedRate(
           5.seconds,
           supervisionConfig.heartbeatInterval,
           self,
@@ -51,7 +51,12 @@ class LanguageServerSupervisor(
     case SendHeartbeat =>
       val socket = SocketData(config.interface, config.port)
       context.actorOf(
-        HeartbeatSession.props(socket, supervisionConfig.heartbeatTimeout)
+        HeartbeatSession.props(
+          socket,
+          supervisionConfig.heartbeatTimeout,
+          connectionFactor,
+          scheduler
+        )
       )
 
     case ServerUnresponsive =>
@@ -68,7 +73,7 @@ class LanguageServerSupervisor(
     case Failure(th) =>
       log.error(s"An error occurred during restarting the server [$config]", th)
       if (retryCount < supervisionConfig.numberOfRetries) {
-        context.system.scheduler.scheduleOnce(
+        scheduler.scheduleOnce(
           supervisionConfig.delayBetweenRetry,
           self,
           RestartServer
@@ -80,10 +85,10 @@ class LanguageServerSupervisor(
         context.stop(self)
       }
 
-    case ServerRestarted =>
+    case ComponentRestarted =>
       log.info(s"Language server restarted [$config]")
       val cancellable =
-        context.system.scheduler.scheduleAtFixedRate(
+        scheduler.scheduleAtFixedRate(
           5.seconds,
           supervisionConfig.heartbeatInterval,
           self,
@@ -106,9 +111,19 @@ object LanguageServerSupervisor {
 
   def props(
     config: LanguageServerConfig,
-    server: LanguageServerComponent,
-    supervisionConfig: SupervisionConfig
+    server: LifecycleComponent,
+    supervisionConfig: SupervisionConfig,
+    connectionFactor: WebSocketConnectionFactory,
+    scheduler: Scheduler
   ): Props =
-    Props(new LanguageServerSupervisor(config, server, supervisionConfig))
+    Props(
+      new LanguageServerSupervisor(
+        config,
+        server,
+        supervisionConfig,
+        connectionFactor,
+        scheduler
+      )
+    )
 
 }

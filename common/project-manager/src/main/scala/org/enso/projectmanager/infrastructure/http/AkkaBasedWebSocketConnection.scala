@@ -1,19 +1,28 @@
 package org.enso.projectmanager.infrastructure.http
 
 import akka.NotUsed
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.ws._
 import akka.pattern.pipe
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.stream.{CompletionStrategy, OverflowStrategy}
-import org.enso.projectmanager.infrastructure.http.WebSocketClient._
+import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnection._
+import org.enso.projectmanager.infrastructure.http.FanOutReceiver.Listen
+import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
+  WebSocketConnected,
+  WebSocketMessage,
+  WebSocketStreamClosed,
+  WebSocketStreamFailure
+}
 
-class WebSocketClient(address: String, receiver: ActorRef)(
+class AkkaBasedWebSocketConnection(address: String)(
   implicit system: ActorSystem
-) {
+) extends WebSocketConnection {
 
   import system.dispatcher
+
+  private val receiver = system.actorOf(Props(new FanOutReceiver))
 
   private var outboundChannel: ActorRef = _
 
@@ -50,6 +59,9 @@ class WebSocketClient(address: String, receiver: ActorRef)(
 
   private val flow = Flow.fromSinkAndSource(sink, source)
 
+  override def attachListener(listener: ActorRef): Unit =
+    receiver ! Listen(listener)
+
   def connect(): Unit = {
     val (future, _) =
       Http()
@@ -74,16 +86,8 @@ class WebSocketClient(address: String, receiver: ActorRef)(
 
 }
 
-object WebSocketClient {
+object AkkaBasedWebSocketConnection {
 
   private object CloseWebSocket
-
-  case object WebSocketConnected
-
-  case class WebSocketMessage(payload: String)
-
-  case object WebSocketStreamClosed
-
-  case class WebSocketStreamFailure(th: Throwable)
 
 }

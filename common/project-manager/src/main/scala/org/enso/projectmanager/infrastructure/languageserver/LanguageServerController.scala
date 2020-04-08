@@ -15,7 +15,7 @@ import akka.actor.{
   Terminated
 }
 import akka.pattern.pipe
-import org.enso.languageserver.boot.LanguageServerComponent.ServerStopped
+import org.enso.languageserver.boot.LifecycleComponent.ComponentStopped
 import org.enso.languageserver.boot.{
   LanguageServerComponent,
   LanguageServerConfig
@@ -27,6 +27,7 @@ import org.enso.projectmanager.boot.configuration.{
 }
 import org.enso.projectmanager.data.SocketData
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
+import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
   ServerBootFailed,
   ServerBooted
@@ -61,7 +62,7 @@ class LanguageServerController(
     with Stash
     with UnhandledLogging {
 
-  import context.dispatcher
+  import context.{dispatcher, system}
 
   private val descriptor =
     LanguageServerDescriptor(
@@ -113,7 +114,13 @@ class LanguageServerController(
       timeoutCancellable.cancel()
       context.become(supervising(config, server))
       context.actorOf(
-        LanguageServerSupervisor.props(config, server, supervisionConfig),
+        LanguageServerSupervisor.props(
+          config,
+          server,
+          supervisionConfig,
+          new AkkaBasedWebSocketConnectionFactory(),
+          context.system.scheduler
+        ),
         "supervisor"
       )
 
@@ -185,9 +192,9 @@ class LanguageServerController(
       maybeRequester.foreach(_ ! FailureDuringStoppage(th))
       stop()
 
-    case ServerStopped =>
+    case ComponentStopped =>
       log.info(s"Language server shut down successfully [$project].")
-      maybeRequester.foreach(_ ! LanguageServerProtocol.ServerStopped)
+      maybeRequester.foreach(_ ! ServerStopped)
       stop()
   }
 

@@ -3,10 +3,10 @@ package org.enso.languageserver.boot
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.LanguageProtocol
-import org.enso.languageserver.boot.LanguageServerComponent.{
-  ServerRestarted,
-  ServerStarted,
-  ServerStopped
+import org.enso.languageserver.boot.LifecycleComponent.{
+  ComponentRestarted,
+  ComponentStarted,
+  ComponentStopped
 }
 
 import scala.concurrent.Future
@@ -18,7 +18,8 @@ import scala.concurrent.duration._
   * @param config a LS config
   */
 class LanguageServerComponent(config: LanguageServerConfig)
-    extends LazyLogging {
+    extends LifecycleComponent
+    with LazyLogging {
 
   @volatile
   private var maybeServerState: Option[(MainModule, Http.ServerBinding)] = None
@@ -30,7 +31,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     *
     * @return a notice that the server started successfully
     */
-  def start(): Future[ServerStarted.type] = {
+  override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     for {
       mainModule <- Future { new MainModule(config) }
@@ -40,7 +41,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
       _ <- Future {
         logger.info(s"Started server at ${config.interface}:${config.port}")
       }
-    } yield ServerStarted
+    } yield ComponentStarted
   }
 
   /**
@@ -48,7 +49,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     *
     * @return a notice that the server stopped successfully
     */
-  def stop(): Future[ServerStopped.type] =
+  override def stop(): Future[ComponentStopped.type] =
     maybeServerState match {
       case None =>
         Future.failed(new Exception("Server isn't running"))
@@ -59,14 +60,14 @@ class LanguageServerComponent(config: LanguageServerConfig)
           _ <- mainModule.system.terminate()
           _ <- Future { mainModule.context.close(true) }
           _ <- Future { maybeServerState = None }
-        } yield ServerStopped
+        } yield ComponentStopped
     }
 
-  def restart(): Future[ServerRestarted.type] =
+  override def restart(): Future[ComponentRestarted.type] =
     for {
       _ <- forceStop()
       _ <- start()
-    } yield ServerRestarted
+    } yield ComponentRestarted
 
   private def forceStop(): Future[Unit] = {
     maybeServerState match {
@@ -79,22 +80,12 @@ class LanguageServerComponent(config: LanguageServerConfig)
           _ <- mainModule.system.terminate().recover(logError)
           _ <- Future { mainModule.context.close(true) }.recover(logError)
           _ <- Future { maybeServerState = None }
-        } yield ServerStopped
+        } yield ComponentStopped
     }
   }
 
   private val logError: PartialFunction[Throwable, Unit] = {
     case th => logger.error("An error occurred during stopping server", th)
   }
-
-}
-
-object LanguageServerComponent {
-
-  case object ServerStarted
-
-  case object ServerStopped
-
-  case object ServerRestarted
 
 }

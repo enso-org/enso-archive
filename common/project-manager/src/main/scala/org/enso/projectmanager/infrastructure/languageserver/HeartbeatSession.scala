@@ -2,38 +2,42 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, Cancellable, Props}
+import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
+import io.circe.parser._
 import org.enso.projectmanager.data.SocketData
-import org.enso.projectmanager.infrastructure.http.WebSocketClient
-import org.enso.projectmanager.infrastructure.http.WebSocketClient.{
+import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
   WebSocketConnected,
   WebSocketMessage,
   WebSocketStreamClosed,
   WebSocketStreamFailure
 }
+import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.HeartbeatSession.{
   HeartbeatTimeout,
   SocketClosureTimeout
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.ServerUnresponsive
 import org.enso.projectmanager.util.UnhandledLogging
-import io.circe.parser._
 
 import scala.concurrent.duration.FiniteDuration
 
-class HeartbeatSession(socket: SocketData, timeout: FiniteDuration)
-    extends Actor
+class HeartbeatSession(
+  socket: SocketData,
+  timeout: FiniteDuration,
+  connectionFactor: WebSocketConnectionFactory,
+  scheduler: Scheduler
+) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
-  import context.system, context.dispatcher
+  import context.dispatcher
 
   private val requestId = UUID.randomUUID()
 
-  private val client =
-    new WebSocketClient(s"ws://${socket.host}:${socket.port}", self)
+  private val client = connectionFactor.createConnection(socket)
 
   override def preStart(): Unit = {
+    client.attachListener(self)
     client.connect()
   }
 
@@ -50,8 +54,7 @@ class HeartbeatSession(socket: SocketData, timeout: FiniteDuration)
                      |   "params": null
                      |}
                      |""".stripMargin)
-      val cancellable =
-        context.system.scheduler.scheduleOnce(timeout, self, HeartbeatTimeout)
+      val cancellable = scheduler.scheduleOnce(timeout, self, HeartbeatTimeout)
       context.become(pongStage(cancellable))
 
     case WebSocketStreamFailure(th) =>
@@ -76,8 +79,7 @@ class HeartbeatSession(socket: SocketData, timeout: FiniteDuration)
             cancellable.cancel()
             client.disconnect()
             val closureTimeout =
-              context.system.scheduler
-                .scheduleOnce(timeout, self, SocketClosureTimeout)
+              scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
             context.become(socketClosureStage(closureTimeout))
           } else {
             log.warning(s"Received unknown response $payload")
@@ -85,11 +87,11 @@ class HeartbeatSession(socket: SocketData, timeout: FiniteDuration)
       }
 
     case HeartbeatTimeout =>
+      log.debug(s"Heartbeat timeout detected for $requestId")
       context.parent ! ServerUnresponsive
       client.disconnect()
       val closureTimeout =
-        context.system.scheduler
-          .scheduleOnce(timeout, self, SocketClosureTimeout)
+        scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
       context.become(socketClosureStage(closureTimeout))
 
     case WebSocketStreamClosed =>
@@ -127,7 +129,12 @@ object HeartbeatSession {
 
   case object SocketClosureTimeout
 
-  def props(socket: SocketData, timeout: FiniteDuration): Props =
-    Props(new HeartbeatSession(socket, timeout))
+  def props(
+    socket: SocketData,
+    timeout: FiniteDuration,
+    connectionFactor: WebSocketConnectionFactory,
+    scheduler: Scheduler
+  ): Props =
+    Props(new HeartbeatSession(socket, timeout, connectionFactor, scheduler))
 
 }
