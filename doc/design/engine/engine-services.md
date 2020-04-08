@@ -37,6 +37,8 @@ services components, as well as any open questions that may remain.
   - [Binary Protocol Transport](#binary-protocol-transport)
 - [Binary Protocol Functionality](#binary-protocol-functionality)
   - [Displaying Visualisations](#displaying-visualisations)
+- [Service Connection Setup](#service-connection-setup)
+- [Service Connection Teardown](#service-connection-teardown)
 - [Protocol Message Specification - Key](#protocol-message-specification---key)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
@@ -115,6 +117,9 @@ services components, as well as any open questions that may remain.
     - [`executionContext/pop`](#executioncontextpop)
     - [`executionContext/recompute`](#executioncontextrecompute)
     - [`executionContext/expressionValuesComputed`](#executioncontextexpressionvaluescomputed)
+    - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
+    - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
+    - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
   - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
@@ -618,6 +623,35 @@ From the implementation perspective:
   time the underlying data is recomputed.
 - Protocol responses must contain a pointer into the binary pipe carrying the
   visualisation data to identify an update.
+
+## Service Connection Setup
+As these services need to support multiple clients in future, there is some
+rigmarole around setting up the various connections needed by each client. The
+process for spawning and connecting to an engine instance is as follows:
+
+1.  **Spawn the Server:** The project manager spawns the language server,
+    passing the socket information as part of the initialisation flow.
+2.  **Client ID Generation:** The client generates and stores a UUID that will
+    be used to identify the client while it is connected.
+3.  **Protocol Connection Initialisation:** The client performs the init for the
+    textual protocol connection, passing its client identifier as it does so.
+    See [`session/initProtocolConnection`](#sessioninitprotocolconnection)
+    below for more information.
+4.  **Data Connection Initialisation:** The client performs the init for the
+    data connection, passing its client identifier as it does so. See
+    [`session/initDataConnection`](#sessioninitdataconnection) below for more
+    information.
+
+## Service Connection Teardown
+As the engine performs sophisticated caching and persisting of data where
+possible, it is very important that the client informs the engine of the end of
+its session. In contrast to the initialisation flow above, this is not an
+involved process.
+
+1.  **Notify the Engine:** _Prior_ to disconnecting from the sockets, the client
+    must send `session/end` to the server.
+2.  **Disconnect:** Once that message has been sent, the client may disconnect
+    at any time.
 
 ## Protocol Message Specification - Key
 The message specification for protocol messages must include the following
@@ -2185,7 +2219,7 @@ interface LocalCall {
 Points to a method definition.
 
 ```typescript
-{
+interface MethodPointer {
   file: Path;
   definedOnType: String;
   name: String;
@@ -2195,11 +2229,21 @@ Points to a method definition.
 ##### `ExpressionValueUpdate`
 
 ```typescript
-{
+interface ExpressionValueUpdate {
   id: ExpressionId;
   type?: String;
   shortValue?: String;
   methodCall?: MethodPointer;
+}
+```
+
+##### `VisualisationConfiguration`
+
+```typescript
+interface VisualisationConfiguration {
+  executionContextId: UUID;
+  visualisationModule: QualifiedName;
+  expression: String;
 }
 ```
 
@@ -2208,6 +2252,11 @@ Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
 [`executionContext/receivesEvents`](#executioncontextreceivesevents)
 containing freshly created [`ContextId`](#contextid)
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 ```typescript
@@ -2228,6 +2277,11 @@ None
 #### `executionContext/destroy`
 Sent from the client to the server destroy an execution context and free its
 resources.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 ```typescript
@@ -2251,6 +2305,11 @@ null
 Sent from the client to the server to duplicate an execution context, creating
 an independent copy, containing all the data precomputed in the first one.
 
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
 ##### Parameters
 ```typescript
 {
@@ -2273,6 +2332,11 @@ No known errors.
 #### `executionContext/push`
 Sent from the client to the server move the execution context to a new location
 deeper down the stack.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 ```typescript
@@ -2298,6 +2362,11 @@ null
 Sent from the client to the server move the execution context up the stack,
 corresponding to the client clicking out of the current breadcrumb.
 
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
 ##### Parameters
 ```typescript
 {
@@ -2317,6 +2386,11 @@ null
 #### `executionContext/recompute`
 Sent from the client to the server to force recomputation of current position.
 May include a list of expressions for which caches should be invalidated.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 ```typescript
@@ -2338,6 +2412,11 @@ No known errors.
 Sent from the server to the client to inform about new information for certain
 expressions becoming available.
 
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
+
 ##### Parameters
 ```typescript
 {
@@ -2345,6 +2424,90 @@ expressions becoming available.
   updates: [ExpressionValueUpdate]
 }
 ```
+
+##### Errors
+TBC
+
+#### `executionContext/attachVisualisation`
+This message allows the client to attach a visualisation, potentially
+preprocessed by some arbitrary Enso code, to a given node in the program.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+interface AttachVisualisationRequest {
+  visualisationId: UUID;
+  expressionId: UUID;
+  visualisationConfig: VisualisationConfiguration;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `executionContext/detachVisualisation`
+This message allows a client to detach a visualisation from the executing code.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+interface DetachVisualisationRequest {
+  executionContextId: UUID;
+  visualisationId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
+
+#### `executionContext/modifyVisualisation`
+This message allows a client to modify the configuration for an existing
+visualisation.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+interface ModifyVisualisationRequest {
+  visualisationId: UUID;
+  visualisationConfig: VisualisationConfiguration;
+}
+```
+
+##### Result
+
+```typescript
+null
+```
+
+##### Errors
+TBC
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
