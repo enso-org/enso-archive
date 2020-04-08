@@ -94,7 +94,7 @@ In order to build and run Enso you will need the following tools:
   the [`build.sbt`](build.sbt) file, and Java 8, configured as your default JVM.
 
 Managing multiple JVM installations can be a pain, so some of the team use
-[Jenv](http://www.jenv.be/). Jenv is a useful tool for managing multiple JVMs.
+[Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
 
 ### Getting the Sources
 Given you've probably been reading this document on GitHub, you might have an
@@ -427,4 +427,3 @@ seasoned developers, some useful places to look for information are:
 
 - The [design documentation](doc/design/).
 - The community! Don't be afraid to ask questions.
-
