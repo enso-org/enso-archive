@@ -27,7 +27,7 @@ object StackItem {
   ) extends StackItem
 
   /**
-    * A cal corresponding to "entering a function call".
+    * A call corresponding to "entering a function call".
     *
     * @param expressionId an expression identifier
     */
