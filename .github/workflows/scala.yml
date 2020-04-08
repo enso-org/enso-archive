@@ -34,6 +34,7 @@ env:
   javaVersion: java8
   # Please ensure that this is in sync with project/build.properties
   sbtVersion: 1.3.9
+  ciSkipKey: '[ci skip]'
 
 jobs:
 
@@ -46,6 +47,7 @@ jobs:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
       fail-fast: false
+    if: "!contains(github.event.head_commit.message, ${{ env.ciSkipKey }})"
     steps:
     - uses: actions/checkout@v2
     - name: Setup GraalVM Environment
@@ -73,6 +75,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: "!contains(github.event.head_commit.message, ${{ env.ciSkipKey }})"
     steps:
     - name: Checkout (PR)
       uses: actions/checkout@v2
