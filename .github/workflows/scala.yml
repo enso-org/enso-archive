@@ -46,8 +46,9 @@ jobs:
       matrix:
         os: [windows-latest, macOS-latest, ubuntu-latest]
       fail-fast: false
-    if: "!contains(github.event.head_commit.message, 'skip')"
     steps:
+    - name: Test
+      run: echo ${{ github.event.head_commit.message }}
     - uses: actions/checkout@v2
 #     - name: Setup GraalVM Environment
 #       uses: DeLaGuardo/setup-graalvm@2.0
@@ -70,19 +71,19 @@ jobs:
 #       run: ./enso.jar --run ci/Test.enso
 
   # This job is responsible for building the artifacts
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-    - name: Checkout (PR)
-      uses: actions/checkout@v2
-      if: github.event_name == 'pull_request'
-      with:
-        ref: ${{ github.event.pull_request.head.sha }}
-    - name: Checkout (Branch)
-      uses: actions/checkout@v2
-      if: github.event_name != 'pull_request'
+#   build:
+#     name: Build
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 30
+#     steps:
+#     - name: Checkout (PR)
+#       uses: actions/checkout@v2
+#       if: github.event_name == 'pull_request'
+#       with:
+#         ref: ${{ github.event.pull_request.head.sha }}
+#     - name: Checkout (Branch)
+#       uses: actions/checkout@v2
+#       if: github.event_name != 'pull_request'
 #     - name: Setup GraalVM Environment
 #       uses: DeLaGuardo/setup-graalvm@2.0
 #       with:
