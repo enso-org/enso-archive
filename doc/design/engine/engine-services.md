@@ -17,9 +17,9 @@ services components, as well as any open questions that may remain.
 - [Architecture](#architecture)
   - [The Project Picker](#the-project-picker)
   - [Language Server](#language-server)
-- [The Textual Protocol](#the-textual-protocol)
-  - [Protocol Communication Patterns](#protocol-communication-patterns)
-  - [The Protocol Transport](#the-protocol-transport)
+- [Textual Protocol](#textual-protocol)
+  - [Textual Protocol Communication Patterns](#textual-protocol-communication-patterns)
+  - [Textual Protocol Transport](#textual-protocol-transport)
   - [The Protocol Format](#the-protocol-format)
 - [Textual Protocol Functionality](#textual-protocol-functionality)
   - [Textual Diff Management](#textual-diff-management)
@@ -33,8 +33,11 @@ services components, as well as any open questions that may remain.
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
-- [The Binary Protocol](#the-binary-protocol)
+- [Binary Protocol](#binary-protocol)
+  - [Binary Protocol Communication Patterns](#binary-protocol-communication-patterns)
+  - [Binary Protocol Transport](#binary-protocol-transport)
 - [Binary Protocol Functionality](#binary-protocol-functionality)
+  - [Displaying Visualisations](#displaying-visualisations)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
@@ -182,7 +185,7 @@ introduce significant coupling between the runtime implementation and the
 language server. Instead, the LS should only depend on `org.graalvm.polyglot` to
 interface with the runtime.
 
-## The Textual Protocol
+## Textual Protocol
 The protocol refers to the communication format that all of the above services
 speak between each other and to the GUI. This protocol is not specialised only
 to language server operations, as instead it needs to work for all of the
@@ -204,9 +207,9 @@ as follows:
      a future extension to the specification.
 
 Aside from the language server protocol-based operations, we will definitely
-need a protocol extension
+need a protocol extension to support Enso's custom language functionality.
 
-### Protocol Communication Patterns
+### Textual Protocol Communication Patterns
 Whatever protocol we decide on will need to have support for a couple of main
 communication patterns:
 
@@ -232,7 +235,7 @@ We can support additional patterns through LSP's mechanisms:
 - Asynchronous responses can be sent as notifications.
 - Protocol-level acknowledgements is supported directly in LSP.
 
-### The Protocol Transport
+### Textual Protocol Transport
 The transport of the protocol refers to the underlying layer over which its
 messages (discussed in [the protocol format](#the-protocol-format) below) are
 sent. As we are maintaining compatibility with LSP, the protocol transport
@@ -580,10 +583,38 @@ and will be expanded upon as necessary in the future.
 - **LSP Spec Completeness:** We should also support all LSP messages that are
   relevant to our language. Currently we only support a small subset thereof.
 
-## The Binary Protocol
-The binary protocol refers to the auxiliary protocol-based 
+## Binary Protocol
+The binary protocol refers to the auxiliary protocol used to transport raw
+binary data between the engine and the client. This functionality is _entirely_
+extraneous to the operation of the [textual protocol](#textual-protocol), and is
+used for transferring large amounts of data between Enso components.
+
+As the protocol is a binary transport, it is _mediated and controlled_ by
+messages that exist as part of the textual protocol.
+
+### Binary Protocol Communication Patterns
+The binary protocol currently only supports a single type of communication
+pattern:
+
+- **Push:** Messages containing data are pushed from the engine to the client in
+  response to operations performed using the textual protocol.
+
+### Binary Protocol Transport
+<!-- TBC -->
 
 ## Binary Protocol Functionality
+The binary protocol exists in order to serve the high-bandwidth data transfer
+requirements of the engine and the GUI.
+
+### Displaying Visualisations
+The primary purpose of the binary protocol is to allow the transfer of
+visualisation data from the executing language in the engine to the GUI.
+
+Visualisations in Enso are able to output arbitrary data for display in the GUI,
+which requires a mechanism for transferring arbitrary data between the engine
+and the GUI. These visualisations can output data in common formats, which will
+be serialised by the transport (e.g. text), but they can also write arbitrary
+binary data that can then be interpreted by the visualisation component itself.
 
 ## Protocol Message Specification - Common Types
 There are a number of types that are shared between many of the protocol
@@ -723,7 +754,7 @@ interface ProjectListRecentResponse {
 ```
 
 ##### Errors
-- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with 
+- [`ProjectDataStoreError`](#projectdatastoreerror) to signal problems with
 underlying data store.
 
 #### `project/create`
