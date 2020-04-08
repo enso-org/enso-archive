@@ -73,6 +73,16 @@ object configuration {
     delayBetweenRetry: FiniteDuration
   )
 
+  /**
+    * A configuration object for supervisor properties.
+    *
+    * @param initialDelay a time that the supervisor wait before starts
+    *                     monitoring
+    * @param heartbeatInterval an interval between heartbeat sessions
+    * @param heartbeatTimeout a timeout for pong reply
+    * @param numberOfRestarts a maximum number of restarts
+    * @param delayBetweenRetry a delay between server restarts
+    */
   case class SupervisionConfig(
     initialDelay: FiniteDuration,
     heartbeatInterval: FiniteDuration,

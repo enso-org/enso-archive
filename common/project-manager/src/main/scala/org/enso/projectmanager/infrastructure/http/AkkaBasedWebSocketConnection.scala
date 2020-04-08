@@ -16,6 +16,12 @@ import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
   WebSocketStreamFailure
 }
 
+/**
+  * An Akka-based  bidirectional web socket connection.
+  *
+  * @param address a server address
+  * @param system an actor system
+  */
 class AkkaBasedWebSocketConnection(address: String)(
   implicit system: ActorSystem
 ) extends WebSocketConnection {
@@ -59,9 +65,11 @@ class AkkaBasedWebSocketConnection(address: String)(
 
   private val flow = Flow.fromSinkAndSource(sink, source)
 
+  /** @inheritdoc **/
   override def attachListener(listener: ActorRef): Unit =
     receiver ! Listen(listener)
 
+  /** @inheritdoc **/
   def connect(): Unit = {
     val (future, _) =
       Http()
@@ -80,8 +88,10 @@ class AkkaBasedWebSocketConnection(address: String)(
       .pipeTo(receiver)
   }
 
+  /** @inheritdoc **/
   def send(message: String): Unit = outboundChannel ! message
 
+  /** @inheritdoc **/
   def disconnect(): Unit = outboundChannel ! CloseWebSocket
 
 }

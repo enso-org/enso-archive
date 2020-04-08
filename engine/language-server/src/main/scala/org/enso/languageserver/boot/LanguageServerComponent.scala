@@ -26,11 +26,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
 
   implicit private val ec = config.computeExecutionContext
 
-  /**
-    * Starts asynchronously a server.
-    *
-    * @return a notice that the server started successfully
-    */
+  /** @inheritdoc **/
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     for {
@@ -44,11 +40,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     } yield ComponentStarted
   }
 
-  /**
-    * Stops asynchronously a server.
-    *
-    * @return a notice that the server stopped successfully
-    */
+  /** @inheritdoc **/
   override def stop(): Future[ComponentStopped.type] =
     maybeServerState match {
       case None =>
@@ -63,6 +55,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
         } yield ComponentStopped
     }
 
+  /** @inheritdoc **/
   override def restart(): Future[ComponentRestarted.type] =
     for {
       _ <- forceStop()

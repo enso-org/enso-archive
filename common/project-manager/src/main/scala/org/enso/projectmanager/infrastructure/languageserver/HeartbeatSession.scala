@@ -21,10 +21,18 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * Implements one ping-pong session.
+  *
+  * @param socket a server socket
+  * @param timeout a session timeout
+  * @param connectionFactory a web socket connection factory
+  * @param scheduler a scheduler
+  */
 class HeartbeatSession(
   socket: SocketData,
   timeout: FiniteDuration,
-  connectionFactor: WebSocketConnectionFactory,
+  connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler
 ) extends Actor
     with ActorLogging
@@ -34,7 +42,7 @@ class HeartbeatSession(
 
   private val requestId = UUID.randomUUID()
 
-  private val client = connectionFactor.createConnection(socket)
+  private val client = connectionFactory.createConnection(socket)
 
   override def preStart(): Unit = {
     client.attachListener(self)
@@ -125,16 +133,31 @@ class HeartbeatSession(
 
 object HeartbeatSession {
 
+  /**
+    * Signals hearbeat timeout.
+    */
   case object HeartbeatTimeout
 
+  /**
+    * Signals socket closure timeout.
+    */
   case object SocketClosureTimeout
 
+  /**
+    * Creates a configuration object used to create a [[LanguageServerSupervisor]].
+    *
+    * @param socket a server socket
+    * @param timeout a session timeout
+    * @param connectionFactory a web socket connection factory
+    * @param scheduler a scheduler
+    * @return a configuration object
+    */
   def props(
     socket: SocketData,
     timeout: FiniteDuration,
-    connectionFactor: WebSocketConnectionFactory,
+    connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler
   ): Props =
-    Props(new HeartbeatSession(socket, timeout, connectionFactor, scheduler))
+    Props(new HeartbeatSession(socket, timeout, connectionFactory, scheduler))
 
 }

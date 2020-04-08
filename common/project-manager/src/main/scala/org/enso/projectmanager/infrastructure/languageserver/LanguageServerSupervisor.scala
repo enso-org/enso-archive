@@ -17,13 +17,22 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSuper
 }
 import org.enso.projectmanager.util.UnhandledLogging
 
-import scala.concurrent.duration._
-
+/**
+  * A supervisor process responsible for monitoring language server and
+  * restarting it when it is unresponsive. It delegates server monitoring
+  * to the [[HeartbeatSession]] actor.
+  *
+  * @param config a server config
+  * @param server a server handle
+  * @param supervisionConfig a supervision config
+  * @param connectionFactory a web socket connection factory
+  * @param scheduler a scheduler
+  */
 class LanguageServerSupervisor(
   config: LanguageServerConfig,
   server: LifecycleComponent,
   supervisionConfig: SupervisionConfig,
-  connectionFactor: WebSocketConnectionFactory,
+  connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler
 ) extends Actor
     with ActorLogging
@@ -54,7 +63,7 @@ class LanguageServerSupervisor(
         HeartbeatSession.props(
           socket,
           supervisionConfig.heartbeatTimeout,
-          connectionFactor,
+          connectionFactory,
           scheduler
         )
       )
@@ -107,15 +116,31 @@ object LanguageServerSupervisor {
 
   private case object RestartServer
 
+  /**
+    * A send heartbeat command.
+    */
   case object SendHeartbeat
 
+  /**
+    * An event sent when server is unresponsive.
+    */
   case object ServerUnresponsive
 
+  /**
+    * Creates a configuration object used to create a [[LanguageServerSupervisor]].
+    *
+    * @param config a server config
+    * @param server a server handle
+    * @param supervisionConfig a supervision config
+    * @param connectionFactory a web socket connection factory
+    * @param scheduler a scheduler
+    * @return a configuration object
+    */
   def props(
     config: LanguageServerConfig,
     server: LifecycleComponent,
     supervisionConfig: SupervisionConfig,
-    connectionFactor: WebSocketConnectionFactory,
+    connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler
   ): Props =
     Props(
@@ -123,7 +148,7 @@ object LanguageServerSupervisor {
         config,
         server,
         supervisionConfig,
-        connectionFactor,
+        connectionFactory,
         scheduler
       )
     )
