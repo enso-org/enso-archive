@@ -39,7 +39,7 @@ class LanguageServerSupervisorSpec
   "A language supervisor" should "monitor language server by sending ping requests on regular basis" in new TestCtx {
     //given
     val probe = TestProbe()
-    server.withBehaviour {
+    fakeServer.withBehaviour {
       case ping @ PingMatcher(requestId) =>
         probe.ref ! ping
         ReplyWith(
@@ -58,7 +58,7 @@ class LanguageServerSupervisorSpec
     `then`(serverComponent.restart()).shouldHaveNoInteractions()
     //teardown
     system.stop(parent)
-    server.stop()
+    fakeServer.stop()
   }
 
   it should "restart server when pong message doesn't arrive on time" in new TestCtx {
@@ -67,7 +67,7 @@ class LanguageServerSupervisorSpec
       .thenReturn(Future.successful(ComponentRestarted))
     val probe               = TestProbe()
     @volatile var pingCount = 0
-    server.withBehaviour {
+    fakeServer.withBehaviour {
       case ping @ PingMatcher(requestId) =>
         probe.ref ! ping
         pingCount += 1
@@ -103,14 +103,14 @@ class LanguageServerSupervisorSpec
     }
     //teardown
     system.stop(parent)
-    server.stop()
+    fakeServer.stop()
   }
 
   it should "restart server limited number of times" in new TestCtx {
     //given
     when(serverComponent.restart()).thenReturn(Future.failed(new Exception))
     val probe = TestProbe()
-    server.withBehaviour {
+    fakeServer.withBehaviour {
       case ping @ PingMatcher(_) =>
         probe.ref ! ping
         Reject
@@ -137,7 +137,7 @@ class LanguageServerSupervisorSpec
     parentProbe.expectMsg(ChildTerminated)
     //teardown
     system.stop(parent)
-    server.stop()
+    fakeServer.stop()
   }
 
   override def afterAll {
@@ -164,8 +164,8 @@ class LanguageServerSupervisorSpec
 
     val testRestartDelay = 2.seconds
 
-    val server = new ProgrammableWebSocketServer(testHost, testPort)
-    server.start()
+    val fakeServer = new ProgrammableWebSocketServer(testHost, testPort)
+    fakeServer.start()
 
     val serverConfig =
       LanguageServerConfig(testHost, testPort, UUID.randomUUID(), "/tmp")
