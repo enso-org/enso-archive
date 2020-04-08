@@ -29,7 +29,6 @@ services components, as well as any open questions that may remain.
   - [Execution Management](#execution-management)
     - [Caching](#caching)
     - [Progress Reporting](#progress-reporting)
-  - [Visualisation Support](#visualisation-support)
   - [Completion](#completion)
   - [Analysis Operations](#analysis-operations)
   - [Functionality Post 2.0](#functionality-post-20)
@@ -38,6 +37,7 @@ services components, as well as any open questions that may remain.
   - [Binary Protocol Transport](#binary-protocol-transport)
 - [Binary Protocol Functionality](#binary-protocol-functionality)
   - [Displaying Visualisations](#displaying-visualisations)
+- [Protocol Message Specification - Key](#protocol-message-specification---key)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
@@ -66,6 +66,10 @@ services components, as well as any open questions that may remain.
     - [`FileContents`](#filecontents)
     - [`FileSystemObject`](#filesystemobject)
     - [`WorkspaceEdit`](#workspaceedit)
+  - [Connection Management](#connection-management)
+    - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
+    - [`session/initDataConnection`](#sessioninitdataconnection)
+    - [`session/end`](#sessionend)
   - [Capability Management](#capability-management)
     - [`capability/acquire`](#capabilityacquire)
     - [`capability/release`](#capabilityrelease)
@@ -453,26 +457,6 @@ with visualisations. As a result that should be reserved for reporting progress
 of long-running operations within the _language server_ rather than in user
 code.
 
-### Visualisation Support
-A major part of Enso Studio's functionality is the rich embedded visualisations
-that it supports. This means that the following functionality is necessary:
-
-- Execution of an arbitrary Enso expression on a cached value designated by
-  a source location.
-- The ability to create and destroy visualisation subscriptions with an
-  arbitrary piece of Enso code as the preprocessing function.
-- The ability to update _existing_ subscriptions with a new preprocessing
-  function.
-
-From the implementation perspective:
-
-- This will need to be an entirely separate set of protocol messages that should
-  be specified in detail in this document.
-- Visualisations should work on a pub/sub model, where an update is sent every
-  time the underlying data is recomputed.
-- Protocol responses must contain a pointer into the binary pipe carrying the
-  visualisation data to identify an update.
-
 ### Completion
 The IDE needs the ability to request completions for some target point (cursor
 position) in the source code. In essence, this boils down to _some_ kind of
@@ -607,14 +591,55 @@ The binary protocol exists in order to serve the high-bandwidth data transfer
 requirements of the engine and the GUI.
 
 ### Displaying Visualisations
-The primary purpose of the binary protocol is to allow the transfer of
-visualisation data from the executing language in the engine to the GUI.
+A major part of Enso Studio's functionality is the rich embedded visualisations
+that it supports. This means that the following functionality is necessary:
+
+- Execution of an arbitrary Enso expression on a cached value designated by
+  a source location.
+- The ability to create and destroy visualisation subscriptions with an
+  arbitrary piece of Enso code as the preprocessing function.
+- The ability to update _existing_ subscriptions with a new preprocessing
+  function.
 
 Visualisations in Enso are able to output arbitrary data for display in the GUI,
 which requires a mechanism for transferring arbitrary data between the engine
 and the GUI. These visualisations can output data in common formats, which will
 be serialised by the transport (e.g. text), but they can also write arbitrary
-binary data that can then be interpreted by the visualisation component itself.
+binary data that can then be interpreted by the visualisation component itself
+in any language that can be used from within the IDE.
+
+From the implementation perspective:
+
+- This will need to be an entirely separate set of protocol messages that should
+  be specified in detail in this document.
+- Visualisations should work on a pub/sub model, where an update is sent every
+  time the underlying data is recomputed.
+- Protocol responses must contain a pointer into the binary pipe carrying the
+  visualisation data to identify an update.
+
+## Protocol Message Specification - Key
+The message specification for protocol messages must include the following
+fields:
+
+- **Type:** The type of the message (e.g. Request or Notification).
+- **Direction:** The direction in which the _originating_ message is sent
+  (either `Client -> Server` or `Server -> Client`).
+- **Connection:** Which connection the message should be sent on. Write
+  'Protocol' for the textual connection and 'Data' for the binary connection.
+- **Visibility:** Whether the method should be used by the public or is an
+  internal / implementation detail ('Public' or 'Private').
+
+They must also contain separate sections specifying their parameters, result,
+and any errors that may occur. These specifications should be either in
+typescript or flatbuffers syntax, depending on the connection on which the
+message occurs.
+
+The capability specifications must include the following fields, as well as a
+section 'Enables' stating which protocol messages are gated by the capability.
+
+- **method:** The name of the capability.
+- **registerOptions:** The options that must be provided to register the
+  capability, described using typescript type syntax.
 
 ## Protocol Message Specification - Common Types
 There are a number of types that are shared between many of the protocol
@@ -672,6 +697,8 @@ specified project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -703,6 +730,8 @@ persist state to disk as needed.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -736,6 +765,8 @@ opened projects.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -762,6 +793,8 @@ This message requests the creation of a new project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -793,6 +826,8 @@ This message requests the deletion of a project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -822,6 +857,8 @@ This request lists the sample projects that are available to the user.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1092,12 +1129,83 @@ interface File {
 interface Other {
   name: String;
   path: Path;
-;
+}
 ```
 
 #### `WorkspaceEdit`
 This is a message to be specified once we better understand the intricacies of
 undo/redo.
+
+### Connection Management
+In order to properly set-up and tear-down the language server connection, we
+need a set of messages to control this process.
+
+#### `session/initProtocolConnection`
+This message initialises the connection used to send the textual protocol
+messages. This initialisation is important such that the client identifier can
+be correlated between the textual and data connections.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
+
+##### Parameters
+
+```typescript
+{
+  clientId: UUID;
+}
+```
+
+##### Result
+
+```typescript
+{
+  contentRoots: [UUID];
+}
+```
+
+##### Errors
+TBC
+
+#### `session/initDataConnection`
+This message initialises the data connection used for transferring binary data
+between engine and clients. This initialisation is important such that the
+client identifier can be correlated between the data and textual connections.
+
+- **Type:** Request
+- **Direction:** Client -> Server
+- **Connection:** Data
+- **Visibility:** Public
+
+##### Parameters
+
+```idl
+namespace session;
+
+struct UUID {
+  identifier:uint64;
+}
+
+table Init {
+  identifier:UUID;
+}
+
+```
+
+##### Result
+
+```
+namespace session;
+
+table InitResponse {}
+```
+
+##### Errors
+N/A
+
+#### `session/end`
 
 ### Capability Management
 In order to mediate between multiple clients properly, the language server has
@@ -1110,6 +1218,8 @@ client.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1142,6 +1252,8 @@ capability.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1166,6 +1278,8 @@ action on its part.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1184,6 +1298,8 @@ capability set.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1311,6 +1427,8 @@ file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 If the file is recorded as open by the language server, then the result will
 return the contents from the in-memory buffer rather than the file on disk.
@@ -1343,6 +1461,8 @@ This request asks the file manager to create the specified file system object.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This will fail if the specified object already exists.
 
@@ -1371,6 +1491,8 @@ This request asks the file manager to delete the specified file system object.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1398,6 +1520,8 @@ another location.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1425,6 +1549,8 @@ another location.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The move should be specified by filesystem events, and such notifications should
 inform the client that the currently edited file has been moved.
@@ -1456,6 +1582,8 @@ at the specified path.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1483,6 +1611,8 @@ directory tree starting at a given path.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 For trees that exceed the provided `depth`, the result should be truncated, and
 the corresponding flag should be set.
@@ -1519,6 +1649,8 @@ directory.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1548,6 +1680,8 @@ This request gets information about a specified filesystem object.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This request should work for all kinds of filesystem object.
 
@@ -1579,6 +1713,8 @@ stays in synchronisation with reality.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 Events should be sent from server to client for every event observed under one
 of the (possibly multiple) content roots.
@@ -1600,6 +1736,8 @@ This request adds a content root to the active project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 When a content root is added, the language server must notify clients other than
 the one that added the root by sending a `file/rootAdded`. Additionally, all
@@ -1630,6 +1768,8 @@ This request removes a content root from the active project.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 When a content root is removed, the language server must notify clients other
 than the one that added the root by sending a `file/rootRemoved`. Additionally,
@@ -1659,6 +1799,8 @@ addition of the root in order to inform them of the content root's ID.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1678,6 +1820,8 @@ removal of the content root in order to inform them of the removal of the root.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1700,6 +1844,8 @@ file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 If no client has write lock on the opened file, the capability is granted to
 the client that sent the `text/openFile` message.
@@ -1735,6 +1881,8 @@ file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1759,6 +1907,8 @@ This requests for the language server to save the specified file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The request may fail if the requesting client does not have permission to edit
 that file, or if the client is requesting a save of an outdated version.
@@ -1794,6 +1944,8 @@ edits solely concern text files.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This operation may fail if the requesting client does not have permission to
 edit the resources for which edits are sent. This failure _may_ be partial, in
@@ -1827,6 +1979,8 @@ changes made to files that they have open.
 
 - **Type:** Notification
 - **Direction:** Server -> Client
+- **Connection:** Protocol
+- **Visibility:** Public
 
 This notification must _only_ be sent for files that the client has open.
 
@@ -1853,6 +2007,8 @@ the server process, allowing it to obtain some initial information.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 ##### Parameters
 
@@ -1877,6 +2033,8 @@ be undone.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The exact behaviour of this message is to be determined, but it must involve the
 server undoing that same action for all clients in the workspace.
@@ -1904,6 +2062,8 @@ be redone.
 
 - **Type:** Request
 - **Direction:** Client -> Server
+- **Connection:** Protocol
+- **Visibility:** Public
 
 The exact behaviour of this message is to be determined, but it must involve the
 server redoing that same action for all clients in the workspace.

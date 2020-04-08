@@ -1,5 +1,6 @@
 # Scratchpad
 private and public messages
+connection (protocol / data)
 
 ## Binary Protocol
 - Something existing (protobufs / capnproto / flatbuffers)
@@ -53,23 +54,7 @@ type VisualisationExpression = String;
 }
 ```
 
-## Connection Stuff
-
-### `session/initTextConnection`
-
-```typescript
-{
-    clientId: UUID;
-}
-
-{
-    contentRoots: [UUID];
-}
-```
-
-- Request
-
-### `session/initBinaryConnection`
+### `session/initDataConnection`
 
 ```typescript
 {
@@ -92,6 +77,9 @@ type VisualisationExpression = String;
     + Client generates UUID Client Identifier
     + Connect + Init to text protocol -> replies with content roots
     + Connect + Init to binary protocol -> ACK
+
+### `session/end`
+request/response
 
 ## Permissioning
 Currently gated under `executionContext/canModify`.
