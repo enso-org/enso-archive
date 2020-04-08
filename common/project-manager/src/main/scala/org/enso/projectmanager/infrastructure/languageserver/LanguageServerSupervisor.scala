@@ -39,7 +39,7 @@ class LanguageServerSupervisor(
     case StartSupervision =>
       val cancellable =
         scheduler.scheduleAtFixedRate(
-          5.seconds,
+          supervisionConfig.initialDelay,
           supervisionConfig.heartbeatInterval,
           self,
           SendHeartbeat
@@ -89,7 +89,7 @@ class LanguageServerSupervisor(
       log.info(s"Language server restarted [$config]")
       val cancellable =
         scheduler.scheduleAtFixedRate(
-          5.seconds,
+          supervisionConfig.initialDelay,
           supervisionConfig.heartbeatInterval,
           self,
           SendHeartbeat

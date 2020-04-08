@@ -71,7 +71,7 @@ class BaseServerSpec extends JsonRpcServerTestKit {
   lazy val netConfig = NetworkConfig("127.0.0.1", 40000, 60000)
 
   lazy val supervisionConfig =
-    SupervisionConfig(10.seconds, 5.seconds, 3, 1.seconds)
+    SupervisionConfig(5.seconds, 10.seconds, 5.seconds, 3, 1.seconds)
 
   implicit val exec = new ZioEnvExec(Runtime.default)
 

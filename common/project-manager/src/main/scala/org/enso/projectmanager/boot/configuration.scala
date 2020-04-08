@@ -74,6 +74,7 @@ object configuration {
   )
 
   case class SupervisionConfig(
+    initialDelay: FiniteDuration,
     heartbeatInterval: FiniteDuration,
     heartbeatTimeout: FiniteDuration,
     numberOfRetries: Int,
