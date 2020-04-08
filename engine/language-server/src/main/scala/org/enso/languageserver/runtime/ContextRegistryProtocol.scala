@@ -77,6 +77,17 @@ object ContextRegistryProtocol {
   case class PopContextResponse(contextId: ContextId)
 
   /**
+    * A notification that new information about some expressions is available.
+    *
+    * @param contextId execution context identifier
+    * @param updates a list of updated expressions
+    */
+  case class ExpressionValuesComputed(
+    contextId: ContextId,
+    updates: Vector[ExpressionValueUpdate]
+  )
+
+  /**
     * Signals that user doesn't have access to the requested context.
     */
   case object AccessDenied extends Failure

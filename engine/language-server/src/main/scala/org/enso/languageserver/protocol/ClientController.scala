@@ -19,6 +19,7 @@ import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextApi._
@@ -122,6 +123,12 @@ class ClientController(
 
     case PathWatcherProtocol.FileEventResult(event) =>
       webActor ! Notification(EventFile, EventFile.Params(event))
+
+    case ContextRegistryProtocol.ExpressionValuesComputed(contextId, updates) =>
+      webActor ! Notification(
+        ExecutionContextExpressionValuesComputed,
+        ExecutionContextExpressionValuesComputed.Params(contextId, updates)
+      )
 
     case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))
