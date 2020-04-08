@@ -15,6 +15,10 @@ object StackItem {
 
   /**
     * A call performed at the top of the stack, to initialize the context.
+    *
+    * @param methodPointer points to a method definition
+    * @param thisArgumentExpression optional argument
+    * @param positionalArgumentsExpressions positional arguments
     */
   case class ExplicitCall(
     methodPointer: MethodPointer,
@@ -24,6 +28,8 @@ object StackItem {
 
   /**
     * A cal corresponding to "entering a function call".
+    *
+    * @param expressionId an expression identifier
     */
   case class LocalCall(expressionId: UUID) extends StackItem
 

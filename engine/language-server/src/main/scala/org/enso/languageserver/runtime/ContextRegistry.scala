@@ -85,8 +85,7 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       }
 
     case PopContextRequest(client, contextId) =>
-      val contexts = store.getContexts(client)
-      if (contexts.contains(contextId)) {
+      if (store.hasContext(client, contextId)) {
         val handler = context.actorOf(PopContextHandler.props(timeout, runtime))
         handler.forward(Api.PopContextRequest(contextId))
       } else {
@@ -142,7 +141,7 @@ object ContextRegistry {
   /**
     * Creates a configuration object used to create a [[ContextRegistry]].
     *
-    * @param config configuration
+    * @param config language server configuration
     * @param runtime reference to the [[RuntimeConnector]]
     */
   def props(config: Config, runtime: ActorRef): Props =

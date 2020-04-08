@@ -55,7 +55,7 @@ class ExecutionContextManager {
     } stack.push(item)
 
   /**
-    * If the context exists, and stack not empty, pop the item from the stack.
+    * If the context exists and stack not empty, pop the item from the stack.
     *
     * @param id the context id.
     */
