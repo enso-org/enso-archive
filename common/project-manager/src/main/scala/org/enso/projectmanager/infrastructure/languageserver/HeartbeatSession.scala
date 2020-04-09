@@ -2,14 +2,7 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{
-  Actor,
-  ActorLogging,
-  Cancellable,
-  PoisonPill,
-  Props,
-  Scheduler
-}
+import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
 import io.circe.parser._
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
@@ -76,12 +69,10 @@ class HeartbeatSession(
     case WebSocketStreamFailure(th) =>
       log.error(s"An error occurred during connecting to websocket $socket", th)
       context.parent ! ServerUnresponsive
-      connection.disconnect()
-      context.stop(self)
+      stop()
 
     case GracefulStop =>
-      connection.disconnect()
-      self ! PoisonPill
+      stop()
   }
 
   private def pongStage(cancellable: Cancellable): Receive = {
@@ -127,8 +118,7 @@ class HeartbeatSession(
 
     case GracefulStop =>
       cancellable.cancel()
-      connection.disconnect()
-      self ! PoisonPill
+      stop()
   }
 
   private def socketClosureStage(cancellable: Cancellable): Receive = {
@@ -146,9 +136,14 @@ class HeartbeatSession(
       context.stop(self)
 
     case GracefulStop =>
-      cancellable.cancel()
-      connection.disconnect()
-      self ! PoisonPill
+    //ignoring it, because the actor is already closing
+  }
+
+  private def stop(): Unit = {
+    connection.disconnect()
+    val closureTimeout =
+      scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
+    context.become(socketClosureStage(closureTimeout))
   }
 
 }

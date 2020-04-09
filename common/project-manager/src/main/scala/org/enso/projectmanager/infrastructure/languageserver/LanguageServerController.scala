@@ -171,7 +171,6 @@ class LanguageServerController(
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
       server.stop() pipeTo self
-      context.children.foreach(_ ! GracefulStop)
       context.become(stopping(maybeRequester))
     } else {
       sender() ! CannotDisconnectOtherClients
@@ -200,9 +199,22 @@ class LanguageServerController(
       stop()
   }
 
+  private def waitingForChildren(): Receive = {
+    case Terminated(_) =>
+      if (context.children.isEmpty) {
+        context.stop(self)
+      }
+  }
+
   private def stop(): Unit = {
-    context.stop(self)
     context.parent ! ServerShutDown(project.id)
+    if (context.children.isEmpty) {
+      context.stop(self)
+    } else {
+      context.children.foreach(_ ! GracefulStop)
+      context.children.foreach(context.watch)
+      context.become(waitingForChildren())
+    }
   }
 
 }

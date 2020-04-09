@@ -7,7 +7,8 @@ import akka.actor.{
   Cancellable,
   PoisonPill,
   Props,
-  Scheduler
+  Scheduler,
+  Terminated
 }
 import akka.pattern.pipe
 import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
@@ -87,9 +88,8 @@ class LanguageServerSupervisor(
       context.become(restarting())
 
     case GracefulStop =>
-      context.children.foreach(_ ! HeartbeatSession.GracefulStop)
       cancellable.cancel()
-      self ! PoisonPill
+      stop()
   }
 
   private def restarting(restartCount: Int = 1): Receive = {
@@ -124,8 +124,24 @@ class LanguageServerSupervisor(
       context.become(supervising(cancellable))
 
     case GracefulStop =>
+      stop()
+  }
+
+  private def waitingForChildren(): Receive = {
+    case Terminated(_) =>
+      if (context.children.isEmpty) {
+        context.stop(self)
+      }
+  }
+
+  private def stop(): Unit = {
+    if (context.children.isEmpty) {
+      context.stop(self)
+    } else {
       context.children.foreach(_ ! HeartbeatSession.GracefulStop)
-      self ! PoisonPill
+      context.children.foreach(context.watch)
+      context.become(waitingForChildren())
+    }
   }
 
 }
