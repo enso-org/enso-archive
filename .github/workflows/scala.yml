@@ -47,7 +47,7 @@ jobs:
         tar -xzf sbt.tgz
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
-    # Caches
+    # Caches (fragile, depends on the dependencies of the parser)
     - name: Cache Ivy
       uses: actions/cache@v1.1.2
       with:
@@ -133,7 +133,7 @@ jobs:
         tar -xzf sbt.tgz
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
-    # Caches
+    # Caches (fragile, depends on the dependencies of the parser)
     - name: Cache Ivy
       uses: actions/cache@v1.1.2
       with:
