@@ -20,10 +20,8 @@ import org.mockito.BDDMockito._
 import org.mockito.Mockito._
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterAll
-import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
-import org.scalatest.time.{Millis, Seconds, Span}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -34,13 +32,7 @@ class LanguageServerSupervisorSpec
     with AnyFlatSpecLike
     with Matchers
     with BeforeAndAfterAll
-    with MockitoSugar
-    with Eventually {
-
-  implicit override val patienceConfig: PatienceConfig = PatienceConfig(
-    timeout  = scaled(Span(90, Seconds)),
-    interval = scaled(Span(150, Millis))
-  )
+    with MockitoSugar {
 
   "A language supervisor" should "monitor language server by sending ping requests on regular basis" in new TestCtx {
     //given
@@ -100,9 +92,7 @@ class LanguageServerSupervisorSpec
     }
     probe.expectMsgPF() { case PingMatcher(_) => () }
     virtualTime.advance(testHeartbeatTimeout)
-    eventually {
-      verify(serverComponent, times(1)).restart()
-    }
+    verify(serverComponent, timeout(VerificationTimeout).times(1)).restart()
     virtualTime.advance(testInitialDelay)
     (1 to 10).foreach { _ =>
       verifyNoMoreInteractions(serverComponent)
@@ -134,9 +124,7 @@ class LanguageServerSupervisorSpec
     verifyNoInteractions(serverComponent)
     virtualTime.advance(testHeartbeatTimeout)
     (1 to testRestartLimit).foreach { i =>
-      eventually {
-        verify(serverComponent, times(i)).restart()
-      }
+      verify(serverComponent, timeout(VerificationTimeout).times(i)).restart()
       //I need to wait some time to give the supervisor time to schedule next
       // restart command
       Thread.sleep(1000)
@@ -158,6 +146,8 @@ class LanguageServerSupervisorSpec
   }
 
   trait TestCtx {
+
+    val VerificationTimeout = 120000
 
     val virtualTime = new VirtualTime
 
