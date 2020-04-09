@@ -70,20 +70,14 @@ jobs:
       uses: actions/cache@v1.1.2
       with:
         path: ./common/unused/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-logger-jvm-
+        key: ${{ runner.os }}-unused-jvm-${{ hashFiles('common/unused/src/**') }}
+        restore-keys: ${{ runner.os }}-unused-jvm-
     - name: Cache Logger (JVM)
       uses: actions/cache@v1.1.2
       with:
         path: ./common/logger/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/flexer/src/**') }}
+        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/logger/src/**') }}
         restore-keys: ${{ runner.os }}-logger-jvm-
-    - name: Cache Flexer (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./common/flexer/.jvm
-        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-flexer-jvm-
     - name: Cache Flexer (JVM)
       uses: actions/cache@v1.1.2
       with:
@@ -162,20 +156,14 @@ jobs:
       uses: actions/cache@v1.1.2
       with:
         path: ./common/unused/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-logger-jvm-
+        key: ${{ runner.os }}-unused-jvm-${{ hashFiles('common/unused/src/**') }}
+        restore-keys: ${{ runner.os }}-unused-jvm-
     - name: Cache Logger (JVM)
       uses: actions/cache@v1.1.2
       with:
         path: ./common/logger/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/flexer/src/**') }}
+        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('common/logger/src/**') }}
         restore-keys: ${{ runner.os }}-logger-jvm-
-    - name: Cache Flexer (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./common/flexer/.jvm
-        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-flexer-jvm-
     - name: Cache Flexer (JVM)
       uses: actions/cache@v1.1.2
       with:
@@ -198,20 +186,14 @@ jobs:
       uses: actions/cache@v1.1.2
       with:
         path: ./common/unused/.js
-        key: ${{ runner.os }}-logger-js-${{ hashFiles('common/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-logger-js-
+        key: ${{ runner.os }}-unused-js-${{ hashFiles('common/unused/src/**') }}
+        restore-keys: ${{ runner.os }}-unused-js-
     - name: Cache Logger (JS)
       uses: actions/cache@v1.1.2
       with:
         path: ./common/logger/.js
-        key: ${{ runner.os }}-logger-js-${{ hashFiles('common/flexer/src/**') }}
+        key: ${{ runner.os }}-logger-js-${{ hashFiles('common/logger/src/**') }}
         restore-keys: ${{ runner.os }}-logger-js-
-    - name: Cache Flexer (JS)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./common/flexer/.js
-        key: ${{ runner.os }}-flexer-js-${{ hashFiles('common/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-flexer-js-
     - name: Cache Flexer (JS)
       uses: actions/cache@v1.1.2
       with:
