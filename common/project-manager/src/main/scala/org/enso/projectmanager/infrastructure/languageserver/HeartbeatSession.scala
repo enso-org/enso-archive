@@ -2,7 +2,14 @@ package org.enso.projectmanager.infrastructure.languageserver
 
 import java.util.UUID
 
-import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
+import akka.actor.{
+  Actor,
+  ActorLogging,
+  Cancellable,
+  PoisonPill,
+  Props,
+  Scheduler
+}
 import io.circe.parser._
 import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
@@ -13,6 +20,7 @@ import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
 }
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.HeartbeatSession.{
+  GracefulStop,
   HeartbeatTimeout,
   SocketClosureTimeout
 }
@@ -42,11 +50,11 @@ class HeartbeatSession(
 
   private val requestId = UUID.randomUUID()
 
-  private val client = connectionFactory.createConnection(socket)
+  private val connection = connectionFactory.createConnection(socket)
 
   override def preStart(): Unit = {
-    client.attachListener(self)
-    client.connect()
+    connection.attachListener(self)
+    connection.connect()
   }
 
   override def receive: Receive = pingStage
@@ -54,22 +62,26 @@ class HeartbeatSession(
   private def pingStage: Receive = {
     case WebSocketConnected =>
       log.debug(s"Sending ping message to $socket")
-      client.send(s"""
-                     |{ 
-                     |   "jsonrpc": "2.0",
-                     |   "method": "heartbeat/ping",
-                     |   "id": "$requestId",
-                     |   "params": null
-                     |}
-                     |""".stripMargin)
+      connection.send(s"""
+                         |{ 
+                         |   "jsonrpc": "2.0",
+                         |   "method": "heartbeat/ping",
+                         |   "id": "$requestId",
+                         |   "params": null
+                         |}
+                         |""".stripMargin)
       val cancellable = scheduler.scheduleOnce(timeout, self, HeartbeatTimeout)
       context.become(pongStage(cancellable))
 
     case WebSocketStreamFailure(th) =>
       log.error(s"An error occurred during connecting to websocket $socket", th)
       context.parent ! ServerUnresponsive
-      client.disconnect()
+      connection.disconnect()
       context.stop(self)
+
+    case GracefulStop =>
+      connection.disconnect()
+      self ! PoisonPill
   }
 
   private def pongStage(cancellable: Cancellable): Receive = {
@@ -85,7 +97,7 @@ class HeartbeatSession(
           if (id == requestId.toString) {
             log.debug(s"Received correct pong message from $socket")
             cancellable.cancel()
-            client.disconnect()
+            connection.disconnect()
             val closureTimeout =
               scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
             context.become(socketClosureStage(closureTimeout))
@@ -97,7 +109,7 @@ class HeartbeatSession(
     case HeartbeatTimeout =>
       log.debug(s"Heartbeat timeout detected for $requestId")
       context.parent ! ServerUnresponsive
-      client.disconnect()
+      connection.disconnect()
       val closureTimeout =
         scheduler.scheduleOnce(timeout, self, SocketClosureTimeout)
       context.become(socketClosureStage(closureTimeout))
@@ -110,8 +122,13 @@ class HeartbeatSession(
       log.error(s"An error occurred during waiting for Pong message", th)
       context.parent ! ServerUnresponsive
       cancellable.cancel()
-      client.disconnect()
+      connection.disconnect()
       context.stop(self)
+
+    case GracefulStop =>
+      cancellable.cancel()
+      connection.disconnect()
+      self ! PoisonPill
   }
 
   private def socketClosureStage(cancellable: Cancellable): Receive = {
@@ -127,11 +144,21 @@ class HeartbeatSession(
     case SocketClosureTimeout =>
       log.error(s"Socket closure timed out")
       context.stop(self)
+
+    case GracefulStop =>
+      cancellable.cancel()
+      connection.disconnect()
+      self ! PoisonPill
   }
 
 }
 
 object HeartbeatSession {
+
+  /**
+    * A stop command.
+    */
+  case object GracefulStop
 
   /**
     * Signals hearbeat timeout.

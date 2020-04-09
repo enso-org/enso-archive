@@ -15,6 +15,7 @@ import org.enso.projectmanager.infrastructure.languageserver.ProgrammableWebSock
   ReplyWith
 }
 import org.enso.projectmanager.infrastructure.languageserver.StepParent.ChildTerminated
+import org.enso.projectmanager.infrastructure.net.Tcp
 import org.mockito.BDDMockito._
 import org.mockito.Mockito._
 import org.mockito.MockitoSugar
@@ -152,7 +153,7 @@ class LanguageServerSupervisorSpec
 
     val testHost = "127.0.0.1"
 
-    val testPort = 56523
+    val testPort = Tcp.findAvailablePort(testHost, 49152, 65535)
 
     val testInitialDelay = 5.seconds
 

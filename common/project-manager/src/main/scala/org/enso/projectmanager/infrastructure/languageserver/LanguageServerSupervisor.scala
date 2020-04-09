@@ -1,7 +1,14 @@
 package org.enso.projectmanager.infrastructure.languageserver
 
 import akka.actor.Status.Failure
-import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
+import akka.actor.{
+  Actor,
+  ActorLogging,
+  Cancellable,
+  PoisonPill,
+  Props,
+  Scheduler
+}
 import akka.pattern.pipe
 import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
 import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
@@ -10,6 +17,7 @@ import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
+  GracefulStop,
   RestartServer,
   SendHeartbeat,
   ServerUnresponsive,
@@ -45,6 +53,9 @@ class LanguageServerSupervisor(
   override def receive: Receive = uninitialized
 
   private def uninitialized: Receive = {
+    case GracefulStop =>
+      context.stop(self)
+
     case StartSupervision =>
       val cancellable =
         scheduler.scheduleAtFixedRate(
@@ -74,6 +85,11 @@ class LanguageServerSupervisor(
       log.info(s"Restarting first time the server")
       server.restart() pipeTo self
       context.become(restarting())
+
+    case GracefulStop =>
+      context.children.foreach(_ ! HeartbeatSession.GracefulStop)
+      cancellable.cancel()
+      self ! PoisonPill
   }
 
   private def restarting(restartCount: Int = 1): Receive = {
@@ -106,11 +122,20 @@ class LanguageServerSupervisor(
           SendHeartbeat
         )
       context.become(supervising(cancellable))
+
+    case GracefulStop =>
+      context.children.foreach(_ ! HeartbeatSession.GracefulStop)
+      self ! PoisonPill
   }
 
 }
 
 object LanguageServerSupervisor {
+
+  /**
+    * A stop command.
+    */
+  case object GracefulStop
 
   private case object StartSupervision
 

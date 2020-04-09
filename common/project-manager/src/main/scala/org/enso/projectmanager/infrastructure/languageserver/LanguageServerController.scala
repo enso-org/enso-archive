@@ -39,6 +39,7 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerContr
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
+import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.GracefulStop
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.util.UnhandledLogging
 
@@ -170,6 +171,7 @@ class LanguageServerController(
     val updatedClients = clients - clientId
     if (updatedClients.isEmpty) {
       server.stop() pipeTo self
+      context.children.foreach(_ ! GracefulStop)
       context.become(stopping(maybeRequester))
     } else {
       sender() ! CannotDisconnectOtherClients
