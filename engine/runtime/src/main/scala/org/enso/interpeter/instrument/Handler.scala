@@ -79,15 +79,15 @@ class Handler {
 
   sealed private trait ExecutionItem
 
-  private case class MethodExecution(
-    module: String,
-    constructor: String,
-    function: String
-  ) extends ExecutionItem
+  private object ExecutionItem {
+    case class Method(
+      module: String,
+      constructor: String,
+      function: String
+    ) extends ExecutionItem
 
-  private case class CallDataExecution(callData: FunctionCall)
-      extends ExecutionItem
-
+    case class CallData(callData: FunctionCall) extends ExecutionItem
+  }
   private def sendVal(res: ExpressionValue): Unit = {
     endpoint.sendToClient(
       Api.Response(
@@ -109,7 +109,7 @@ class Handler {
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       enterables += fun.getExpressionId -> fun.getCall
     executionItem match {
-      case MethodExecution(module, cons, function) =>
+      case ExecutionItem.Method(module, cons, function) =>
         executionService.execute(
           module,
           cons,
@@ -117,7 +117,7 @@ class Handler {
           valsCallback,
           callablesCallback
         )
-      case CallDataExecution(callData) =>
+      case ExecutionItem.CallData(callData) =>
         executionService.execute(callData, valsCallback, callablesCallback)
     }
 
@@ -126,7 +126,7 @@ class Handler {
       case item :: tail =>
         enterables
           .get(item)
-          .foreach(call => execute(CallDataExecution(call), tail))
+          .foreach(call => execute(ExecutionItem.CallData(call), tail))
     }
   }
 
@@ -164,7 +164,7 @@ class Handler {
       }
 
     case Api.Request(_, Api.Execute(mod, cons, fun, furtherStack)) =>
-      withContext(execute(MethodExecution(mod, cons, fun), furtherStack))
+      withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack))
 
   }
 }
