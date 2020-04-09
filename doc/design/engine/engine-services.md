@@ -588,8 +588,8 @@ messages that exist as part of the textual protocol.
 The binary protocol currently only supports a single type of communication
 pattern:
 
-- **Push:** Messages containing data are pushed from the engine to the client in
-  response to operations performed using the textual protocol.
+- **Push:** Messages containing data are pushed in response to operations 
+  performed using the textual protocol.
 
 ### Binary Protocol Transport
 The binary protocol uses [flatbuffers](https://github.com/google/flatbuffers)
@@ -1229,7 +1229,8 @@ client identifier can be correlated between the data and textual connections.
 namespace session;
 
 struct UUID {
-  identifier:uint64;
+  firstHalf:uint64;
+  secondHalf:uint64;
 }
 
 struct Init {
@@ -1468,7 +1469,8 @@ transport is concerned, it is just a binary blob.
 namespace executionContext;
 
 struct UUID {
-  id:uint64;
+  firstHalf:uint64;
+  secondHalf:uint64;
 }
 
 struct VisualisationContext {
