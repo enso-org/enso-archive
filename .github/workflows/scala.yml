@@ -51,7 +51,7 @@ jobs:
     - uses: actions/checkout@v2
     - run: echo $GITHUB_REPOSITORY 
     - name: Test
-      uses: luna/skip-ci-action@0.1.22
+      uses: luna/skip-ci-action@0.10
       with:
         github-repo: ${{ github.repository }}
         github-token: ${{ secrets.GITHUB_TOKEN }}
