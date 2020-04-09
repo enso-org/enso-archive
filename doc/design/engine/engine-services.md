@@ -1229,8 +1229,8 @@ client identifier can be correlated between the data and textual connections.
 namespace session;
 
 struct UUID {
-  firstHalf:uint64;
-  secondHalf:uint64;
+  lowBytes:uint64;
+  highBytes:uint64;
 }
 
 struct Init {
@@ -1469,8 +1469,8 @@ transport is concerned, it is just a binary blob.
 namespace executionContext;
 
 struct UUID {
-  firstHalf:uint64;
-  secondHalf:uint64;
+  lowBytes:uint64;
+  highBytes:uint64;
 }
 
 struct VisualisationContext {
