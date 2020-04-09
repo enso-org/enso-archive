@@ -35,8 +35,7 @@ class LanguageServerSupervisorSpec
     with Matchers
     with BeforeAndAfterAll
     with MockitoSugar
-    with Eventually
-    with IntegrationPatience {
+    with Eventually {
 
   implicit override val patienceConfig: PatienceConfig = PatienceConfig(
     timeout  = scaled(Span(60, Seconds)),
