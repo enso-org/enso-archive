@@ -39,7 +39,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Test
-      uses: luna/skip-ci-action@0.33
+      uses: luna/skip-ci-action@0.34
       with:
         run-id: ${{ github.run_id }}
         github-token: ${{ github.token }}
