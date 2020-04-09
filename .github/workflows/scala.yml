@@ -46,6 +46,22 @@ jobs:
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         tar -xzf sbt.tgz
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+
+    # Caches
+    - name: Cache Ivy
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/.ivy2/cache
+        key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
+        restore-keys: ${{ runner.os }}-ivy-
+    - name: Cache SBT
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/,sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+        restore-keys: ${{ runner.os }}-sbt-
+
+    # Tests
     - name: Test Enso
       run: sbt --no-colors test
     - name: Benchmark the Parser
@@ -80,6 +96,11 @@ jobs:
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
         tar -xzf sbt.tgz
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+
+    # Caches
+
+
+    # Builds
     - name: Build the Uberjar
       run: sbt --no-colors runner/assembly
     - name: Publish the Uberjar
