@@ -53,6 +53,7 @@ jobs:
     - name: Test
       uses: luna/skip-ci-action@0.14
       with:
+        github-token: ${{ github.token }}
         stop-internally: true  
         excluded-paths: |
           /doc/*
