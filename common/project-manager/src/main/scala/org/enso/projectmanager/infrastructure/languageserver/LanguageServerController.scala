@@ -25,7 +25,7 @@ import org.enso.projectmanager.boot.configuration.{
   NetworkConfig,
   SupervisionConfig
 }
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.event.ClientEvent.ClientDisconnected
 import org.enso.projectmanager.infrastructure.http.AkkaBasedWebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerBootLoader.{
@@ -142,7 +142,7 @@ class LanguageServerController(
   ): Receive = {
     case StartServer(clientId, _) =>
       sender() ! ServerStarted(
-        SocketData(config.interface, config.port)
+        Socket(config.interface, config.port)
       )
       context.become(supervising(config, server, clients + clientId))
 

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, Cancellable, Props, Scheduler}
 import io.circe.parser._
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
   WebSocketConnected,
   WebSocketMessage,
@@ -30,7 +30,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param scheduler a scheduler
   */
 class HeartbeatSession(
-  socket: SocketData,
+  socket: Socket,
   timeout: FiniteDuration,
   connectionFactory: WebSocketConnectionFactory,
   scheduler: Scheduler
@@ -153,7 +153,7 @@ object HeartbeatSession {
     * @return a configuration object
     */
   def props(
-    socket: SocketData,
+    socket: Socket,
     timeout: FiniteDuration,
     connectionFactory: WebSocketConnectionFactory,
     scheduler: Scheduler

@@ -6,7 +6,7 @@ import akka.pattern.pipe
 import org.enso.languageserver.boot.LifecycleComponent.ComponentRestarted
 import org.enso.languageserver.boot.{LanguageServerConfig, LifecycleComponent}
 import org.enso.projectmanager.boot.configuration.SupervisionConfig
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
@@ -58,7 +58,7 @@ class LanguageServerSupervisor(
 
   private def supervising(cancellable: Cancellable): Receive = {
     case SendHeartbeat =>
-      val socket = SocketData(config.interface, config.port)
+      val socket = Socket(config.interface, config.port)
       context.actorOf(
         HeartbeatSession.props(
           socket,

@@ -1,6 +1,6 @@
 package org.enso.projectmanager.infrastructure.http
 
-import org.enso.projectmanager.data.SocketData
+import org.enso.projectmanager.data.Socket
 
 /**
   * Abstract connection factory.
@@ -13,6 +13,6 @@ trait WebSocketConnectionFactory {
     * @param socket a server address
     * @return a connection
     */
-  def createConnection(socket: SocketData): WebSocketConnection
+  def createConnection(socket: Socket): WebSocketConnection
 
 }
