@@ -1899,6 +1899,8 @@ health of the Language Server.
 
 - **Type:** Request
 - **Direction:** Supervisor -> Server
+- **Connection:** Protocol
+- **Visibility:** Private
 
 ##### Parameters
 
