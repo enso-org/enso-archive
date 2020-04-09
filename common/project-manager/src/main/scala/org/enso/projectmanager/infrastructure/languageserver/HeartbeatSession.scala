@@ -13,7 +13,6 @@ import org.enso.projectmanager.infrastructure.http.WebSocketConnection.{
 }
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.HeartbeatSession.{
-  GracefulStop,
   HeartbeatTimeout,
   SocketClosureTimeout
 }
@@ -149,11 +148,6 @@ class HeartbeatSession(
 }
 
 object HeartbeatSession {
-
-  /**
-    * A stop command.
-    */
-  case object GracefulStop
 
   /**
     * Signals heartbeat timeout.

@@ -10,6 +10,7 @@ class StepParent(childProps: Props, probe: ActorRef) extends Actor {
 
   override def receive: Receive = {
     case Terminated(`child`) => probe ! ChildTerminated
+    case GracefulStop        => child ! GracefulStop
     case msg                 => probe.tell(msg, sender)
   }
 }

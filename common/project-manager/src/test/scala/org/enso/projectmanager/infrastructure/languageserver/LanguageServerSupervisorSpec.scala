@@ -38,7 +38,7 @@ class LanguageServerSupervisorSpec
     with Eventually {
 
   implicit override val patienceConfig: PatienceConfig = PatienceConfig(
-    timeout  = scaled(Span(60, Seconds)),
+    timeout  = scaled(Span(90, Seconds)),
     interval = scaled(Span(150, Millis))
   )
 
@@ -64,6 +64,8 @@ class LanguageServerSupervisorSpec
     //then
     `then`(serverComponent.restart()).shouldHaveNoInteractions()
     //teardown
+    parent ! GracefulStop
+    parentProbe.expectMsg(ChildTerminated)
     system.stop(parent)
     fakeServer.stop()
   }
@@ -110,6 +112,8 @@ class LanguageServerSupervisorSpec
       virtualTime.advance(testHeartbeatInterval / 2)
     }
     //teardown
+    parent ! GracefulStop
+    parentProbe.expectMsg(ChildTerminated)
     system.stop(parent)
     fakeServer.stop()
   }

@@ -5,7 +5,6 @@ import akka.actor.{
   Actor,
   ActorLogging,
   Cancellable,
-  PoisonPill,
   Props,
   Scheduler,
   Terminated
@@ -18,7 +17,6 @@ import org.enso.projectmanager.data.Socket
 import org.enso.projectmanager.infrastructure.http.WebSocketConnectionFactory
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerController.ServerDied
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.{
-  GracefulStop,
   RestartServer,
   SendHeartbeat,
   ServerUnresponsive,
@@ -138,7 +136,7 @@ class LanguageServerSupervisor(
     if (context.children.isEmpty) {
       context.stop(self)
     } else {
-      context.children.foreach(_ ! HeartbeatSession.GracefulStop)
+      context.children.foreach(_ ! GracefulStop)
       context.children.foreach(context.watch)
       context.become(waitingForChildren())
     }
@@ -147,11 +145,6 @@ class LanguageServerSupervisor(
 }
 
 object LanguageServerSupervisor {
-
-  /**
-    * A stop command.
-    */
-  case object GracefulStop
 
   private case object StartSupervision
 

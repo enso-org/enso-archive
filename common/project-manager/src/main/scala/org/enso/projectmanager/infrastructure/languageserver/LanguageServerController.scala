@@ -39,7 +39,6 @@ import org.enso.projectmanager.infrastructure.languageserver.LanguageServerContr
 }
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerProtocol._
 import org.enso.projectmanager.infrastructure.languageserver.LanguageServerRegistry.ServerShutDown
-import org.enso.projectmanager.infrastructure.languageserver.LanguageServerSupervisor.GracefulStop
 import org.enso.projectmanager.model.Project
 import org.enso.projectmanager.util.UnhandledLogging
 
