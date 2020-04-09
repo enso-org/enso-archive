@@ -52,7 +52,7 @@ jobs:
     - name: Test
       uses: luna/skip-ci-action@0.1.22
       with:
-        github-repo: ${{ env.GITHUB_REPOSITORY }}
+        github-repo: luna/enso
         github-token: ${{ secrets.GITHUB_TOKEN }}
         stop-internally: true  
         excluded-paths: |
