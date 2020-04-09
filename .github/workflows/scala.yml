@@ -51,7 +51,7 @@ jobs:
     - uses: actions/checkout@v2
     - run: echo "Foo"
     - name: Test
-      uses: luna/skip-ci-action@0.1.5
+      uses: luna/skip-ci-action@0.1.6
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         stop-internally: true  
