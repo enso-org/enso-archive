@@ -161,7 +161,7 @@ object HeartbeatSession {
   case object GracefulStop
 
   /**
-    * Signals hearbeat timeout.
+    * Signals heartbeat timeout.
     */
   case object HeartbeatTimeout
 
