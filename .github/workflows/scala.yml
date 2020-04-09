@@ -49,9 +49,8 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
-    - run: echo "Foo"
     - name: Test
-      uses: luna/skip-ci-action@0.1.6
+      uses: luna/skip-ci-action@0.1.7
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         stop-internally: true  
