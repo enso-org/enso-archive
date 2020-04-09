@@ -1,6 +1,6 @@
 package org.enso.languageserver.text
 
-import akka.actor.{Actor, ActorRef, Props, Terminated}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props, Terminated}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   CapabilityAcquisitionBadRequest,
@@ -14,6 +14,7 @@ import org.enso.languageserver.data.{
 }
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
+import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.TextProtocol.{
   ApplyEdit,
   CloseFile,
@@ -32,7 +33,9 @@ import org.enso.languageserver.text.editing.model.FileEdit
   */
 class BufferRegistry(fileManager: ActorRef)(
   implicit versionCalculator: ContentBasedVersioning
-) extends Actor {
+) extends Actor
+    with ActorLogging
+    with UnhandledLogging {
 
   override def receive: Receive = running(Map.empty)
 

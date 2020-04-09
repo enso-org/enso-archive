@@ -1,6 +1,6 @@
 package org.enso.languageserver.capability
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.capability.CapabilityProtocol.{
   AcquireCapability,
   ReleaseCapability
@@ -11,6 +11,7 @@ import org.enso.languageserver.data.{
   ReceivesTreeUpdates
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
+import org.enso.languageserver.util.UnhandledLogging
 
 /**
   * A content based router that routes each capability request to the
@@ -23,7 +24,9 @@ import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
 class CapabilityRouter(
   bufferRegistry: ActorRef,
   receivesTreeUpdatesHandler: ActorRef
-) extends Actor {
+) extends Actor
+    with ActorLogging
+    with UnhandledLogging {
 
   override def receive: Receive = {
     case Ping =>

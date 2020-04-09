@@ -8,6 +8,7 @@ import org.enso.languageserver.event.{
   ClientEvent
 }
 import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
+import org.enso.languageserver.util.UnhandledLogging
 
 object LanguageProtocol {
 
@@ -24,7 +25,9 @@ object LanguageProtocol {
 class LanguageServer(config: Config)
     extends Actor
     with Stash
-    with ActorLogging {
+    with ActorLogging
+    with UnhandledLogging {
+
   import LanguageProtocol._
 
   override def preStart(): Unit = {
