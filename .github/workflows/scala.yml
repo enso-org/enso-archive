@@ -50,7 +50,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Test
-      uses: luna/skip-ci-action@0.1.8
+      uses: luna/skip-ci-action@0.1.9
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         stop-internally: true  
