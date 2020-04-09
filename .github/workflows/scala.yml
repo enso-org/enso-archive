@@ -40,7 +40,7 @@ jobs:
     - uses: actions/checkout@v2
     - run: echo $GITHUB_REPOSITORY 
     - name: Test
-      uses: luna/skip-ci-action@0.25
+      uses: luna/skip-ci-action@0.26
       with:
         github-token: ${{ github.token }}
         stop-internally: true  
