@@ -57,9 +57,27 @@ jobs:
     - name: Cache SBT
       uses: actions/cache@v1.1.2
       with:
-        path: /home/runner/,sbt
+        path: /home/runner/.sbt
         key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
         restore-keys: ${{ runner.os }}-sbt-
+    - name: Cache Flexer (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/flexer/.jvm
+        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
+        restore-keys: ${{ runner.os }}-flexer-jvm
+    - name: Cache Syntax Definition (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/definition/.jvm
+        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('common/syntax/definition/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-defintion-jvm
+    - name: Cache Syntax Specialization (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/specialization/jvm
+        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-specialization-jvm
 
     # Tests
     - name: Test Enso
@@ -98,7 +116,54 @@ jobs:
         echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
 
     # Caches
-
+    - name: Cache Ivy
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/.ivy2/cache
+        key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
+        restore-keys: ${{ runner.os }}-ivy-
+    - name: Cache SBT
+      uses: actions/cache@v1.1.2
+      with:
+        path: /home/runner/.sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+        restore-keys: ${{ runner.os }}-sbt-
+    - name: Cache Flexer (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/flexer/.jvm
+        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('common/flexer/src/**') }}
+        restore-keys: ${{ runner.os }}-flexer-jvm
+    - name: Cache Syntax Definition (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/definition/.jvm
+        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('common/syntax/definition/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-defintion-jvm
+    - name: Cache Syntax Specialization (JVM)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/specialization/jvm
+        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-specialization-jvm
+    - name: Cache Flexer (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/flexer/.js
+        key: ${{ runner.os }}-flexer-js-${{ hashFiles('common/flexer/src/**') }}
+        restore-keys: ${{ runner.os }}-flexer-js
+    - name: Cache Syntax Definition (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/definition/.js
+        key: ${{ runner.os }}-syntax-definition-js-${{ hashFiles('common/syntax/definition/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-defintion-js
+    - name: Cache Syntax Specialization (JS)
+      uses: actions/cache@v1.1.2
+      with:
+        path: ./common/syntax/specialization/js
+        key: ${{ runner.os }}-syntax-specialization-js-${{ hashFiles('common/syntax/specialization/shared/src/**') }}
+        restore-keys: ${{ runner.os }}-syntax-specialization-js
 
     # Builds
     - name: Build the Uberjar
@@ -138,3 +203,4 @@ jobs:
         null
         text
         EOF
+
