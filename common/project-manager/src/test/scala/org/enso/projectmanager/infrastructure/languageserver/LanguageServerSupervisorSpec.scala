@@ -23,6 +23,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.concurrent.{Eventually, IntegrationPatience}
 import org.scalatest.flatspec.AnyFlatSpecLike
 import org.scalatest.matchers.must.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
 
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -36,6 +37,11 @@ class LanguageServerSupervisorSpec
     with MockitoSugar
     with Eventually
     with IntegrationPatience {
+
+  implicit override val patienceConfig: PatienceConfig = PatienceConfig(
+    timeout  = scaled(Span(60, Seconds)),
+    interval = scaled(Span(150, Millis))
+  )
 
   "A language supervisor" should "monitor language server by sending ping requests on regular basis" in new TestCtx {
     //given
@@ -121,8 +127,8 @@ class LanguageServerSupervisorSpec
     probe.expectNoMessage()
     //when
     virtualTime.advance(testInitialDelay)
-    verifyNoInteractions(serverComponent)
     probe.expectMsgPF(5.seconds) { case PingMatcher(_) => () }
+    verifyNoInteractions(serverComponent)
     virtualTime.advance(testHeartbeatTimeout)
     (1 to testRestartLimit).foreach { i =>
       eventually {
