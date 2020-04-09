@@ -38,9 +38,8 @@ jobs:
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
-    - run: echo $GITHUB_REPOSITORY 
     - name: Test
-      uses: luna/skip-ci-action@0.30
+      uses: luna/skip-ci-action@0.31
       with:
         run-id: ${{ github.run_id }}
         github-token: ${{ github.token }}
