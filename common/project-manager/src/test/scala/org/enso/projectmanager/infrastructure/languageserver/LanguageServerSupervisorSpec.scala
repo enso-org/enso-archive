@@ -47,6 +47,7 @@ class LanguageServerSupervisorSpec
           s"""{ "jsonrpc": "2.0", "id": "$requestId", "result": null }"""
         )
     }
+    probe.expectNoMessage()
     //when
     virtualTime.advance(testInitialDelay)
     (1 to 10).foreach { _ =>
@@ -80,6 +81,7 @@ class LanguageServerSupervisorSpec
           )
         }
     }
+    probe.expectNoMessage()
     //when
     virtualTime.advance(testInitialDelay)
     (1 to 4).foreach { _ =>
@@ -116,6 +118,7 @@ class LanguageServerSupervisorSpec
         probe.ref ! ping
         Reject
     }
+    probe.expectNoMessage()
     //when
     virtualTime.advance(testInitialDelay)
     verifyNoInteractions(serverComponent)
