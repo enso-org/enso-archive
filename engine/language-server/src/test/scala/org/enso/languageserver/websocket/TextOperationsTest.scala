@@ -13,7 +13,7 @@ class TextOperationsTest extends BaseServerTest {
       // 1. Client tries to open a non-existent file.
       // 2. Client receives an error message.
       val client = new WsTestClient(address)
-
+      initSession(client)
       // 1
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -44,7 +44,7 @@ class TextOperationsTest extends BaseServerTest {
       // 3. Client opens the created file.
       // 4. Client receives the file contents and a canEdit capability.
       val client = new WsTestClient(address)
-
+      initSession(client)
       // 1
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -111,7 +111,8 @@ class TextOperationsTest extends BaseServerTest {
       // 6. Client 2 receives the file contents without a canEdit capability.
       val client1 = new WsTestClient(address)
       val client2 = new WsTestClient(address)
-
+      initSession(client1)
+      initSession(client2)
       // 1
       client1.send(json"""
           { "jsonrpc": "2.0",
@@ -207,7 +208,8 @@ class TextOperationsTest extends BaseServerTest {
     // 8. Client 2 receives the file contents and a canEdit capability.
     val client1 = new WsTestClient(address)
     val client2 = new WsTestClient(address)
-
+    initSession(client1)
+    initSession(client2)
     // 1
     client1.send(json"""
           { "jsonrpc": "2.0",
@@ -323,7 +325,9 @@ class TextOperationsTest extends BaseServerTest {
     val client1 = new WsTestClient(address)
     val client2 = new WsTestClient(address)
     val client3 = new WsTestClient(address)
-
+    initSession(client1)
+    initSession(client2)
+    initSession(client3)
     client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -459,7 +463,8 @@ class TextOperationsTest extends BaseServerTest {
     "fail when a client didn't open it before" in {
       val client1 = new WsTestClient(address)
       val client2 = new WsTestClient(address)
-
+      initSession(client1)
+      initSession(client2)
       client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -536,7 +541,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "fail when a file wasn't opened first" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -579,7 +584,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "close file if it was open before" in {
       val client1 = new WsTestClient(address)
-
+      initSession(client1)
       client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -659,7 +664,8 @@ class TextOperationsTest extends BaseServerTest {
       system.eventStream.subscribe(eventProbe.ref, classOf[BufferClosed])
       val client1 = new WsTestClient(address)
       val client2 = new WsTestClient(address)
-
+      initSession(client1)
+      initSession(client2)
       client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -784,7 +790,7 @@ class TextOperationsTest extends BaseServerTest {
   "text/applyEdit" must {
     "fail when a file wasn't opened first" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -840,7 +846,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "fail when old version is incorrect" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -932,7 +938,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "fail when new version is incorrect" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1024,7 +1030,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "fail when changes are incorrect" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1117,7 +1123,8 @@ class TextOperationsTest extends BaseServerTest {
     "fail when a client doesn't have write lock" in {
       val client1 = new WsTestClient(address)
       val client2 = new WsTestClient(address)
-
+      initSession(client1)
+      initSession(client2)
       client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1232,7 +1239,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "apply multiple changes at a clip" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1329,7 +1336,8 @@ class TextOperationsTest extends BaseServerTest {
     "should notify subscribers about a change" in {
       val client1 = new WsTestClient(address)
       val client2 = new WsTestClient(address)
-
+      initSession(client1)
+      initSession(client2)
       client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1489,7 +1497,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "fail when a client didn't open it" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1551,7 +1559,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "fail when a client's version doesn't match a server version" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1631,7 +1639,8 @@ class TextOperationsTest extends BaseServerTest {
     "fail when a client doesn't hold a write lock" in {
       val client1 = new WsTestClient(address)
       val client2 = new WsTestClient(address)
-
+      initSession(client1)
+      initSession(client2)
       client1.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -1733,7 +1742,7 @@ class TextOperationsTest extends BaseServerTest {
 
     "persist changes from a buffer to durable storage" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",

@@ -12,7 +12,7 @@ class FileManagerTest extends BaseServerTest {
 
     "write textual content to a file" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -39,7 +39,7 @@ class FileManagerTest extends BaseServerTest {
 
     "return failure when a content root cannot be found" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -66,7 +66,7 @@ class FileManagerTest extends BaseServerTest {
 
     "read a file content" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/write",
@@ -108,7 +108,7 @@ class FileManagerTest extends BaseServerTest {
 
     "return FileNotFoundError if a file doesn't exist" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/read",
@@ -134,7 +134,7 @@ class FileManagerTest extends BaseServerTest {
 
     "create a file" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
@@ -164,7 +164,7 @@ class FileManagerTest extends BaseServerTest {
 
     "create a directory" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/create",
@@ -194,7 +194,7 @@ class FileManagerTest extends BaseServerTest {
 
     "delete a file" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a file
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -248,7 +248,7 @@ class FileManagerTest extends BaseServerTest {
 
     "delete a directory" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a directory
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -304,7 +304,7 @@ class FileManagerTest extends BaseServerTest {
       val client = new WsTestClient(address)
       val file   = Paths.get(testContentRoot.toString, "foo1", "bar.txt").toFile
       file.isFile shouldBe false
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/delete",
@@ -335,7 +335,7 @@ class FileManagerTest extends BaseServerTest {
       val client = new WsTestClient(address)
       val file   = Paths.get(testContentRoot.toString, "foo1", "baz").toFile
       file.isDirectory shouldBe false
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/delete",
@@ -364,7 +364,7 @@ class FileManagerTest extends BaseServerTest {
 
     "copy a file" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a file
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -421,7 +421,7 @@ class FileManagerTest extends BaseServerTest {
 
     "copy a directory" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a file
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -478,7 +478,7 @@ class FileManagerTest extends BaseServerTest {
 
     "return failure when copying nonexistent file" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/copy",
@@ -511,7 +511,7 @@ class FileManagerTest extends BaseServerTest {
 
     "move a file" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a file
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -569,7 +569,7 @@ class FileManagerTest extends BaseServerTest {
 
     "move a directory" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a file
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -630,7 +630,7 @@ class FileManagerTest extends BaseServerTest {
 
     "return failure when moving nonexistent file" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/move",
@@ -663,7 +663,7 @@ class FileManagerTest extends BaseServerTest {
 
     "return failure when target file exists" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a source file
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -751,7 +751,7 @@ class FileManagerTest extends BaseServerTest {
       val client = new WsTestClient(address)
       val path   = Paths.get(testContentRoot.toString, "nonexistent.txt")
       path.toFile.exists shouldBe false
-
+      initSession(client)
       // check file exists
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -777,7 +777,7 @@ class FileManagerTest extends BaseServerTest {
 
     "get a root tree" in withCleanRoot {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create:
       //
       // base
@@ -923,7 +923,7 @@ class FileManagerTest extends BaseServerTest {
 
     "get a directory tree" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create:
       //
       // base
@@ -1055,7 +1055,7 @@ class FileManagerTest extends BaseServerTest {
 
     "get a truncated directory tree" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create:
       //
       // base
@@ -1173,7 +1173,7 @@ class FileManagerTest extends BaseServerTest {
 
     "get a subdirectory tree" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create base/a.txt
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1274,7 +1274,7 @@ class FileManagerTest extends BaseServerTest {
 
     "get a directory tree with symlink" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create:
       //
       // base2
@@ -1403,7 +1403,7 @@ class FileManagerTest extends BaseServerTest {
 
     "get a directory tree with symlink outside of root" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create base3
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1487,7 +1487,7 @@ class FileManagerTest extends BaseServerTest {
 
     "list a subdirectory" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create:
       //
       //  subdir
@@ -1554,7 +1554,7 @@ class FileManagerTest extends BaseServerTest {
 
     "get file info" in {
       val client = new WsTestClient(address)
-
+      initSession(client)
       // create a file
       client.send(json"""
           { "jsonrpc": "2.0",
@@ -1624,7 +1624,7 @@ class FileManagerTest extends BaseServerTest {
       val client = new WsTestClient(address)
       val file   = Paths.get(testContentRoot.toString, "nonexistent.txt").toFile
       file.exists shouldBe false
-
+      initSession(client)
       client.send(json"""
           { "jsonrpc": "2.0",
             "method": "file/info",

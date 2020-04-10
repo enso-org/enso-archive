@@ -22,6 +22,7 @@ class MonitoringTest extends BaseServerTest {
           }
           """)
     }
+
   }
 
 }

@@ -17,12 +17,15 @@ import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
+import org.enso.languageserver.protocol.ErrorApi.SessionNotInitialisedError
 import org.enso.languageserver.requesthandler._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
+import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
+import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration._
 
@@ -30,7 +33,7 @@ import scala.concurrent.duration._
   * An actor handling communications between a single client and the language
   * server.
   *
-  * @param clientId the internal client id.
+  * @param connectionId the internal client id.
   * @param server the language server actor ref.
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
@@ -39,7 +42,7 @@ import scala.concurrent.duration._
   * @param requestTimeout a request timeout
   */
 class ClientController(
-  val clientId: Client.Id,
+  val connectionId: UUID,
   val server: ActorRef,
   val bufferRegistry: ActorRef,
   val capabilityRouter: ActorRef,
@@ -53,9 +56,77 @@ class ClientController(
 
   implicit val timeout = Timeout(requestTimeout)
 
-  private val client = Client(clientId, self)
+  override def receive: Receive = {
+    case JsonRpcServer.WebConnect(webActor) =>
+      unstashAll()
+      context.become(connected(webActor))
+    case _ => stash()
+  }
 
-  private val requestHandlers: Map[Method, Props] =
+  private def connected(webActor: ActorRef): Receive = {
+    case req @ Request(Ping, _, Unused) =>
+      val handler = context.actorOf(
+        PingHandler.props(
+          List(
+            server,
+            bufferRegistry,
+            capabilityRouter,
+            fileManager,
+            contextRegistry
+          ),
+          requestTimeout
+        )
+      )
+      handler.forward(req)
+
+    case req @ Request(
+          InitProtocolConnection,
+          _,
+          InitProtocolConnection.Params(clientId)
+        ) =>
+      val client = Client(clientId, self)
+      context.system.eventStream.publish(ClientConnected(client))
+      val requestHandlers = createRequestHandlers(client)
+      val handler = context.actorOf(
+        InitProtocolConnectionHandler.props(fileManager, requestTimeout)
+      )
+      handler.forward(req)
+      context.become(initialised(webActor, client, requestHandlers))
+
+    case Request(_, id, _) =>
+      sender() ! ResponseError(Some(id), SessionNotInitialisedError)
+
+    case MessageHandler.Disconnected =>
+      context.stop(self)
+  }
+
+  private def initialised(
+    webActor: ActorRef,
+    client: Client,
+    requestHandlers: Map[Method, Props]
+  ): Receive = {
+    case MessageHandler.Disconnected =>
+      context.system.eventStream.publish(ClientDisconnected(client))
+      context.stop(self)
+
+    case CapabilityProtocol.CapabilityForceReleased(registration) =>
+      webActor ! Notification(ForceReleaseCapability, registration)
+
+    case CapabilityProtocol.CapabilityGranted(registration) =>
+      webActor ! Notification(GrantCapability, registration)
+
+    case TextProtocol.TextDidChange(changes) =>
+      webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
+
+    case PathWatcherProtocol.FileEventResult(event) =>
+      webActor ! Notification(EventFile, EventFile.Params(event))
+
+    case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
+      val handler = context.actorOf(requestHandlers(method))
+      handler.forward(req)
+  }
+
+  private def createRequestHandlers(client: Client): Map[Method, Props] =
     Map(
       Ping -> PingHandler.props(
         List(
@@ -97,36 +168,6 @@ class ClientController(
         .props(requestTimeout, contextRegistry)
     )
 
-  override def receive: Receive = {
-    case JsonRpcServer.WebConnect(webActor) =>
-      context.system.eventStream
-        .publish(ClientConnected(Client(clientId, self)))
-      unstashAll()
-      context.become(connected(webActor))
-    case _ => stash()
-  }
-
-  def connected(webActor: ActorRef): Receive = {
-    case MessageHandler.Disconnected =>
-      context.system.eventStream.publish(ClientDisconnected(client))
-      context.stop(self)
-
-    case CapabilityProtocol.CapabilityForceReleased(registration) =>
-      webActor ! Notification(ForceReleaseCapability, registration)
-
-    case CapabilityProtocol.CapabilityGranted(registration) =>
-      webActor ! Notification(GrantCapability, registration)
-
-    case TextProtocol.TextDidChange(changes) =>
-      webActor ! Notification(TextDidChange, TextDidChange.Params(changes))
-
-    case PathWatcherProtocol.FileEventResult(event) =>
-      webActor ! Notification(EventFile, EventFile.Params(event))
-
-    case r @ Request(method, _, _) if (requestHandlers.contains(method)) =>
-      val handler = context.actorOf(requestHandlers(method))
-      handler.forward(r)
-  }
 }
 
 object ClientController {
