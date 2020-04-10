@@ -26,8 +26,8 @@ import org.enso.projectmanager.util.UnhandledLogging
 
 /**
   * A supervisor process responsible for monitoring language server and
-  * restarting it when it is unresponsive. It delegates server monitoring
-  * to the [[HeartbeatSession]] actor.
+  * restarting it when the server is unresponsive. It delegates server
+  * monitoring to the [[HeartbeatSession]] actor.
   *
   * @param config a server config
   * @param server a server handle
