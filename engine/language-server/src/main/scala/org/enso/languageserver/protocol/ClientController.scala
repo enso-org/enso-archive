@@ -17,14 +17,17 @@ import org.enso.languageserver.event.{ClientConnected, ClientDisconnected}
 import org.enso.languageserver.filemanager.FileManagerApi._
 import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
-import org.enso.languageserver.protocol.ErrorApi.SessionNotInitialisedError
 import org.enso.languageserver.requesthandler._
-import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
+import org.enso.languageserver.requesthandler.text._
 import org.enso.languageserver.runtime.ExecutionApi._
-import org.enso.languageserver.session.SessionApi.InitProtocolConnection
+import org.enso.languageserver.session.SessionApi.{
+  InitProtocolConnection,
+  SessionAlreadyInitialisedError,
+  SessionNotInitialisedError
+}
 import org.enso.languageserver.text.TextApi._
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.util.UnhandledLogging
@@ -107,6 +110,9 @@ class ClientController(
     client: Client,
     requestHandlers: Map[Method, Props]
   ): Receive = {
+    case Request(InitProtocolConnection, id, _) =>
+      sender() ! ResponseError(Some(id), SessionAlreadyInitialisedError)
+
     case MessageHandler.Disconnected =>
       context.system.eventStream.publish(ClientDisconnected(client))
       context.stop(self)

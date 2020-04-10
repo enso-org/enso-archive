@@ -11,7 +11,4 @@ object ErrorApi {
 
   case object AccessDeniedError extends Error(100, "Access denied")
 
-  case object SessionNotInitialisedError
-      extends Error(101, "Session not initialised")
-
 }

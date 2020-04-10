@@ -48,9 +48,33 @@ class SessionManagementTest extends BaseServerTest {
         client.expectJson(json"""
           { "jsonrpc": "2.0",
             "id": 1,
-            "error": { "code": 101, "message": "Session not initialised" }
+            "error": { "code": 6001, "message": "Session not initialised" }
           }
           """)
+      }
+
+    }
+
+    "connection is initialised" must {
+
+      "reply with an error if client tries initialise connection second time" in {
+        val client = new WsTestClient(address)
+        initSession(client)
+        client.send(json"""
+          { "jsonrpc": "2.0",
+            "method": "session/initProtocolConnection",
+            "id": 1,
+            "params": {
+              "clientId": "e3d99192-2edc-4613-bdf4-db35e4b9b956"
+            }
+          }
+          """)
+        client.expectJson(json"""
+            { "jsonrpc":"2.0",
+              "id":1,
+              "error": { "code": 6002, "message": "Session already initialised" }
+            }
+              """)
       }
 
     }

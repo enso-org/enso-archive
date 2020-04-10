@@ -2,7 +2,7 @@ package org.enso.languageserver.session
 
 import java.util.UUID
 
-import org.enso.jsonrpc.{HasParams, HasResult, Method}
+import org.enso.jsonrpc.{Error, HasParams, HasResult, Method}
 
 /**
   * The connection management JSON RPC API provided by the language server.
@@ -25,5 +25,11 @@ object SessionApi {
       type Result = InitProtocolConnection.Result
     }
   }
+
+  case object SessionNotInitialisedError
+      extends Error(6001, "Session not initialised")
+
+  case object SessionAlreadyInitialisedError
+      extends Error(6002, "Session already initialised")
 
 }
