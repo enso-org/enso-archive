@@ -19,6 +19,8 @@ import org.enso.languageserver.filemanager.PathWatcherProtocol
 import org.enso.languageserver.monitoring.MonitoringApi.Ping
 import org.enso.languageserver.protocol.ErrorApi.SessionNotInitialisedError
 import org.enso.languageserver.requesthandler._
+import org.enso.languageserver.requesthandler.text._
+import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.runtime.ExecutionApi._
