@@ -1213,7 +1213,8 @@ be correlated between the textual and data connections.
 ```
 
 ##### Errors
-TBC
+- [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal 
+that session is already initialised.
 
 #### `session/initDataConnection`
 This message initialises the data connection used for transferring binary data
@@ -2835,4 +2836,24 @@ Signals that requested capability is not acquired.
 "error" : {
   "code" : 5001,
   "message" : "Capability not acquired"
+}
+
+
+##### `SessionNotInitialisedError`
+Signals that requested cannot be proccessed, beacuse session is not initialised.
+
+```typescript
+"error" : {
+  "code" : 6001,
+  "message" : "Session not initialised"
+}
+
+
+##### `SessionAlreadyInitialisedError`
+Signals that session is already initialised.
+
+```typescript
+"error" : {
+  "code" : 6002,
+  "message" : "Session already initialised"
 }
