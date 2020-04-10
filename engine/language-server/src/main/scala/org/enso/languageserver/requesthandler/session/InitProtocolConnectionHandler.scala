@@ -6,12 +6,17 @@ import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
 import org.enso.languageserver.filemanager.FileManagerProtocol
 import org.enso.languageserver.filemanager.FileManagerProtocol.ContentRootsResult
 import org.enso.languageserver.requesthandler.RequestTimeout
-import org.enso.languageserver.requesthandler.file.CreateFileHandler
 import org.enso.languageserver.session.SessionApi.InitProtocolConnection
 import org.enso.languageserver.util.UnhandledLogging
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for `session/initProtocolConnection` commands.
+  *
+  * @param fileManager a file manager reference
+  * @param timeout a request timeout
+  */
 class InitProtocolConnectionHandler(
   fileManager: ActorRef,
   timeout: FiniteDuration
@@ -55,6 +60,13 @@ class InitProtocolConnectionHandler(
 
 object InitProtocolConnectionHandler {
 
+  /**
+    * Creates a configuration object used to create a [[InitProtocolConnectionHandler]]
+    *
+    * @param fileManager a file manager reference
+    * @param timeout a request timeout
+    * @return a configuration object
+    */
   def props(fileManager: ActorRef, timeout: FiniteDuration): Props =
     Props(new InitProtocolConnectionHandler(fileManager, timeout))
 
