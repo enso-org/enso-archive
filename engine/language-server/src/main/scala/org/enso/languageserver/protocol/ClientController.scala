@@ -89,13 +89,13 @@ class ClientController(
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextDestroy -> executioncontext.DestroyHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextPush -> executioncontext.PushHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextPop -> executioncontext.PopHandler
-        .props(requestTimeout, contextRegistry)
+        .props(requestTimeout, contextRegistry, client)
     )
 
   override def receive: Receive = {

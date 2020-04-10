@@ -1,14 +1,15 @@
 package org.enso.languageserver.runtime
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, Props}
+import org.enso.languageserver.data.{Client, Config}
 import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
 final class ContextEventsListener(
-  client: ActorRef,
-  root: Path,
+  config: Config,
+  client: Client,
   contextId: ContextId
 ) extends Actor
     with ActorLogging
@@ -20,31 +21,68 @@ final class ContextEventsListener(
   }
 
   override def receive: Receive = {
-    case Api.ExpressionValuesComputed(`contextId`, updates) =>
-      client ! ContextRegistryProtocol.ExpressionValuesComputed(
+    case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
+      val updates = apiUpdates.flatMap { update =>
+        getRuntimeUpdate(update) match {
+          case None =>
+            log.error(s"Failed to convert $update")
+            None
+          case runtimeUpdate =>
+            runtimeUpdate
+        }
+      }
+      client.actor ! ContextRegistryProtocol.ExpressionValuesComputed(
         contextId,
-        updates.map(fromRuntimeUpdate)
+        updates
       )
   }
 
-  private def fromRuntimeUpdate(
+  private def getRuntimeUpdate(
     update: Api.ExpressionValueUpdate
-  ): ExpressionValueUpdate =
-    ExpressionValueUpdate(
-      update.expressionId,
-      update.expressionType,
-      update.shortValue,
-      update.methodCall.map(fromRuntimePointer)
-    )
+  ): Option[ExpressionValueUpdate] = {
+    update.methodCall match {
+      case None =>
+        Some(
+          ExpressionValueUpdate(
+            update.expressionId,
+            update.expressionType,
+            update.shortValue,
+            None
+          )
+        )
+      case Some(methodCall) =>
+        getRuntimePointer(methodCall).map { pointer =>
+          ExpressionValueUpdate(
+            update.expressionId,
+            update.expressionType,
+            update.shortValue,
+            Some(pointer)
+          )
+        }
+    }
+  }
 
-  private def fromRuntimePointer(
+  private def getRuntimePointer(
     pointer: Api.MethodPointer
-  ): MethodPointer =
+  ): Option[MethodPointer] =
+    getRelativePath(pointer.file).map { relativePath =>
       MethodPointer(
-        file          = Path.getRelativePath(root.toFile, root, pointer.file),
+        file          = relativePath,
         definedOnType = pointer.definedOnType,
         name          = pointer.name
       )
+    }
+
+  private def getRelativePath(path: java.nio.file.Path): Option[Path] =
+    config.contentRoots.view.flatMap {
+      case (id, root) =>
+        if (path.startsWith(root.toPath)) {
+          Some(Path(id, root.toPath.relativize(path)))
+        } else {
+          None
+        }
+    }.headOption
+
 }
 
 object ContextEventsListener {
@@ -52,6 +90,6 @@ object ContextEventsListener {
   /**
     * Creates a configuration object used to create a [[ContextEventsListener]].
     */
-  def props(client: ActorRef, root: Path, contextId: ContextId): Props =
-    Props(new ContextEventsListener(client, root, contextId))
+  def props(config: Config, client: Client, contextId: ContextId): Props =
+    Props(new ContextEventsListener(config, client, contextId))
 }

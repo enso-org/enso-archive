@@ -55,8 +55,8 @@ object Runtime {
         name  = "popContextResponse"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.ExpressionValueUpdate],
-        name  = "expressionValueUpdate"
+        value = classOf[Api.ExpressionValuesComputed],
+        name  = "expressionValuesComputed"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.ContextNotExistError],
@@ -157,7 +157,7 @@ object Runtime {
     case class ExpressionValuesComputed(
       contextId: ContextId,
       updates: Vector[ExpressionValueUpdate]
-    )
+    ) extends ApiNotification
 
     /**
       * Envelope for an Api request.
