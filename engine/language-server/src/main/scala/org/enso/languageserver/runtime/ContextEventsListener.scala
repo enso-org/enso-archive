@@ -7,6 +7,14 @@ import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
+/**
+  * Event listener is created for the given context. It handles notifications
+  * from the runtime and send updates to the client.
+  *
+  * @param config configuration
+  * @param client reference to the client
+  * @param contextId exectuion context identifier
+  */
 final class ContextEventsListener(
   config: Config,
   client: Client,
@@ -89,6 +97,10 @@ object ContextEventsListener {
 
   /**
     * Creates a configuration object used to create a [[ContextEventsListener]].
+    *
+    * @param config configuration
+    * @param client reference to the client
+    * @param contextId exectuion context identifier
     */
   def props(config: Config, client: Client, contextId: ContextId): Props =
     Props(new ContextEventsListener(config, client, contextId))
