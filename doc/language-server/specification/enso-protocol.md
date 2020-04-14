@@ -1,4 +1,4 @@
-# The Enso Engine Services
+# The Enso Protocol
 Enso is a sophisticated language, but in order to provide a great user
 experience to our users we also need the ability to provide great tooling. This
 tooling means a language server, but it also means a set of extra peripheral
