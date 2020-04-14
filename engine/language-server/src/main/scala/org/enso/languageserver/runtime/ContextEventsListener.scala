@@ -31,7 +31,7 @@ final class ContextEventsListener(
   override def receive: Receive = {
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       val updates = apiUpdates.flatMap { update =>
-        getRuntimeUpdate(update) match {
+        toRuntimeUpdate(update) match {
           case None =>
             log.error(s"Failed to convert $update")
             None
@@ -46,7 +46,7 @@ final class ContextEventsListener(
         )
   }
 
-  private def getRuntimeUpdate(
+  private def toRuntimeUpdate(
     update: Api.ExpressionValueUpdate
   ): Option[ExpressionValueUpdate] = {
     update.methodCall match {
@@ -60,7 +60,7 @@ final class ContextEventsListener(
           )
         )
       case Some(methodCall) =>
-        getRuntimePointer(methodCall).map { pointer =>
+        toRuntimePointer(methodCall).map { pointer =>
           ExpressionValueUpdate(
             update.expressionId,
             update.expressionType,
@@ -71,7 +71,7 @@ final class ContextEventsListener(
     }
   }
 
-  private def getRuntimePointer(
+  private def toRuntimePointer(
     pointer: Api.MethodPointer
   ): Option[MethodPointer] =
     getRelativePath(pointer.file).map { relativePath =>
