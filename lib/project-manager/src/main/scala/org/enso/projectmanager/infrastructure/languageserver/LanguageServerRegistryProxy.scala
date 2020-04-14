@@ -53,9 +53,9 @@ class LanguageServerRegistryProxy[F[+_, +_]: Async: ErrorChannel: CovariantFlatM
       .fromFuture { () =>
         (registry ? StopServer(clientId, projectId)).mapTo[ServerStoppageResult]
       }
-      .mapError(FailureDuringStoppage(_))
+      .mapError(FailureDuringStoppage)
       .flatMap {
-        case ServerStopped            => CovariantFlatMap[F].pure()
+        case ServerStopped            => CovariantFlatMap[F].pure(())
         case f: ServerStoppageFailure => ErrorChannel[F].fail(f)
       }
 

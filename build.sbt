@@ -89,7 +89,6 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    unused.jvm,
     flexer.jvm,
     `syntax-definition`.jvm,
     syntax.jvm,
@@ -175,7 +174,6 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("lib/logger"))
-  .dependsOn(unused)
   .settings(
     version := "0.1",
     libraryDependencies ++= scala_compiler
@@ -198,19 +196,13 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   )
   .jsSettings(jsSettings)
 
-lazy val unused = crossProject(JVMPlatform, JSPlatform)
-  .withoutSuffixFor(JVMPlatform)
-  .crossType(CrossType.Pure)
-  .in(file("lib/unused"))
-  .settings(version := "0.1", scalacOptions += "-nowarn")
-  .jsSettings(testFrameworks := Nil)
-
 lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
   .crossType(CrossType.Pure)
   .in(file("lib/syntax/definition"))
   .dependsOn(logger, flexer)
   .settings(
+    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
       "org.typelevel" %%% "cats-core"     % catsVersion,
       "org.typelevel" %%% "kittens"       % "2.0.0",
@@ -231,6 +223,7 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
   .configs(Benchmark)
   .settings(
     testFrameworks := Nil,
+    scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     mainClass in (Compile, run) := Some("org.enso.syntax.text.Main"),
     version := "0.1",
     logBuffered := false,

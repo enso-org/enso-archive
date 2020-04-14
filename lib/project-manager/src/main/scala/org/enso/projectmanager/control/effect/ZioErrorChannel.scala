@@ -3,12 +3,16 @@ package org.enso.projectmanager.control.effect
 import shapeless.=:!=
 import zio.{CanFail, ZIO}
 
+import scala.annotation.unused
+
 /**
   * Instance of [[ErrorChannel]] class for ZIO.
   */
 class ZioErrorChannel[R] extends ErrorChannel[ZIO[R, +*, +*]] {
 
-  implicit private def canFailEv[E](implicit ev: E =:!= Nothing): CanFail[E] =
+  implicit private def canFailEv[E](
+    implicit @unused ev: E =:!= Nothing
+  ): CanFail[E] =
     CanFail
 
   /** @inheritdoc **/

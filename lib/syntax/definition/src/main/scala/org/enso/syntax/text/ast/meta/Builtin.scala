@@ -80,6 +80,7 @@ object Builtin {
                 case _ => internalError
               }
               AST.Import(head, tail)
+            case _ => internalError
           }
         case _ => internalError
       }

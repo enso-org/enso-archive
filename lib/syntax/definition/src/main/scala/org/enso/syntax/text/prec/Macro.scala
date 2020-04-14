@@ -6,7 +6,7 @@ import org.enso.syntax.text.AST
 import org.enso.syntax.text.ast.meta.Builder
 import org.enso.syntax.text.ast.meta.Builtin
 
-import scala.annotation.tailrec
+import scala.annotation.{tailrec, unused}
 
 object Macro {
   val logger = new Logger()
@@ -21,7 +21,7 @@ object Macro {
   private def transform(t: AST): AST =
     new Transformer(t).run(AST.tokenize(t).toList())
 
-  final private class Transformer(t: AST) {
+  final private class Transformer(@unused t: AST) {
     val root: Builder.Context       = Builder.Context(Builtin.registry.tree)
 
     var builder: Builder            = Builder.moduleBuilder()

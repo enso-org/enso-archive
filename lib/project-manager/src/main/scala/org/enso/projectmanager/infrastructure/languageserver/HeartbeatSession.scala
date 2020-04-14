@@ -124,18 +124,19 @@ class HeartbeatSession(
     case WebSocketStreamClosed =>
       context.stop(self)
       cancellable.cancel()
+      ()
 
     case WebSocketStreamFailure(th) =>
       log.error(s"An error occurred during closing web socket", th)
       context.stop(self)
       cancellable.cancel()
+      ()
 
     case SocketClosureTimeout =>
       log.error(s"Socket closure timed out")
       context.stop(self)
 
-    case GracefulStop =>
-    //ignoring it, because the actor is already closing
+    case GracefulStop => // ignoring it, because the actor is already closing
   }
 
   private def stop(): Unit = {

@@ -1,7 +1,7 @@
 package org.enso
 
+import scala.annotation.unused
 import scala.reflect.macros.blackbox.Context
-import org.enso.lint.Unused
 
 class Logger {
   import Logger._
@@ -70,9 +70,8 @@ class Logger {
 object Logger {
   def groupRedirect[R: c.WeakTypeTag](
     c: Context
-  )(msg: c.Tree)(body: c.Tree): c.Expr[R] = {
+  )(@unused msg: c.Tree)(body: c.Tree): c.Expr[R] = {
     import c.universe._
-    Unused(msg)
     val target = c.macroApplication match {
       case Apply(Apply(TypeApply(Select(base, name), typ), msg2), body2) =>
         val newName = TermName("_" + name.toString)
@@ -131,9 +130,8 @@ object Logger {
     if (checkEnabled(c)) c.Expr(q"$target") else c.Expr(q"$body")
   }
 
-  def funcRedirect(c: Context)(s: c.Tree): c.Expr[Unit] = {
+  def funcRedirect(c: Context)(@unused s: c.Tree): c.Expr[Unit] = {
     import c.universe._
-    Unused(s)
     val target = c.macroApplication match {
       case Apply(Select(base, name), args) =>
         val newName = TermName("_" + name.toString)

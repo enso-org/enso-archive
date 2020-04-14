@@ -512,6 +512,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "result": null
           }
           """)
+    ()
   }
 
   def deleteProject(
@@ -533,6 +534,7 @@ class ProjectManagementApiSpec extends BaseServerSpec {
             "result": null
           }
           """)
+    ()
   }
 
 }

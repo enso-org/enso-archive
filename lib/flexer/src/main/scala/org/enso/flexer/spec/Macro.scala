@@ -1,8 +1,8 @@
 package org.enso.flexer.spec
 
 import org.enso.flexer.Parser
-import org.enso.lint.Unused
 
+import scala.annotation.unused
 import scala.reflect.macros.blackbox.Context
 
 // FIXME: Needs to be refactored. Contains deprecated API usage
@@ -28,9 +28,8 @@ object Macro {
 
   def compileImpl[T: c.WeakTypeTag, P: c.WeakTypeTag](
     c: Context
-  )(p: c.Expr[P])(ev: c.Expr[P <:< Parser[T]]): c.Expr[() => P] = {
+  )(p: c.Expr[P])(@unused ev: c.Expr[P <:< Parser[T]]): c.Expr[() => P] = {
     import c.universe._
-    Unused(ev)
     val tree   = p.tree
     val expr   = q"$tree"
     val parser = c.eval(c.Expr[Parser[T]](c.untypecheck(expr.duplicate)))

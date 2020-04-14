@@ -15,7 +15,6 @@ import org.enso.data.Shifted
 import org.enso.data.Size
 import org.enso.data.Span
 import org.enso.data.Tree
-import org.enso.lint.Unused
 import org.enso.syntax.text.ast.Repr.R
 import org.enso.syntax.text.ast.Repr._
 import org.enso.syntax.text.HasSpan.implicits._
@@ -24,7 +23,7 @@ import org.enso.syntax.text.ast.Repr
 import org.enso.syntax.text.ast.opr
 import org.enso.syntax.text.ast.meta.Pattern
 
-import scala.annotation.tailrec
+import scala.annotation.{tailrec, unused}
 import scala.reflect.ClassTag
 
 /* Note [JSON Serialization]
@@ -1295,7 +1294,7 @@ object AST {
     * The implementation may seem complex, but this is just a scala way for
     * deconstructing types. When provided with a AST type, like [[Ident.Var]],
     * [[Unapply]] deconstructs it to [[(ASTOf[VarOf])]] and then generates
-    * an object providing unapply implementation for the [[Ident.VarOf]] type.
+    * an object providing unapply implementation for the [[VarOf]] type.
     */
   sealed trait Unapply[T] {
     type In
@@ -1364,8 +1363,8 @@ object AST {
     def setID(newID: ID): ASTOf[T] = setID(Some(newID))
     def withNewID():      ASTOf[T] = copy(id = Some(UUID.randomUUID()))
     def withNewIDIfMissing(): ASTOf[T] = id match {
-      case Some(id) => this
-      case None     => this.withNewID()
+      case Some(_) => this
+      case None    => this.withNewID()
     }
     def setLocation(newLocation: Option[Location]): ASTOf[T] =
       copy(location = newLocation)
@@ -1482,13 +1481,13 @@ object AST {
       ids.reverse
     }
 
-    // Note (file top) [JSON Serialization]
+    // Note [JSON Serialization]
     def toJson(): Json = {
       import io.circe.syntax._
       import io.circe.generic.auto._
 
-      // Note (below) [JSON Format Customizations]
-      implicit def blockEncoder[A: Encoder]: Encoder[Shape.Block[A]] =
+      // Note [JSON Format Customizations]
+      @unused implicit def blockEncoder[A: Encoder]: Encoder[Shape.Block[A]] =
         block =>
           Json.obj(
             "ty"          -> block.ty.asJson,
@@ -1500,7 +1499,7 @@ object AST {
           )
 
       // Note (below) [JSON Format Customizations]
-      implicit def escapeEncoder: Encoder[Escape] = {
+      @unused implicit def escapeEncoder: Encoder[Escape] = {
         case e: Escape.Character =>
           Json.obj("Character" -> Json.obj("c" -> e.repr.asJson))
         case e: Escape.Control =>
@@ -1515,6 +1514,7 @@ object AST {
           Json.obj("Unicode21" -> Json.obj("digits" -> e.digits.asJson))
         case e: Escape.Unicode.U32 =>
           Json.obj("Unicode32" -> Json.obj("digits" -> e.digits.asJson))
+        case _ => throw new RuntimeException("Cannot encode escape.")
       }
 
       val ast: AST = t
@@ -1921,14 +1921,13 @@ object AST {
 
     // FIXME: Compatibility mode
     def apply(
-      isOrphan: Boolean,
+      @unused isOrphan: Boolean,
       typ: Type,
       indent: Int,
       emptyLines: List[Int],
       firstLine: Line,
       lines: List[OptLine]
     ): Block = {
-      Unused(isOrphan)
       Shape.Block(typ, indent, emptyLines, firstLine, lines, isOrphan)
     }
 

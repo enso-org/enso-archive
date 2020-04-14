@@ -86,7 +86,7 @@ class ProjectService[F[+_, +_]: ErrorChannel: CovariantFlatMap](
       .isRunning(projectId)
       .mapError(_ => ProjectOperationTimeout)
       .flatMap {
-        case false => CovariantFlatMap[F].pure()
+        case false => CovariantFlatMap[F].pure(())
         case true  => ErrorChannel[F].fail(CannotRemoveOpenProject)
       }
 

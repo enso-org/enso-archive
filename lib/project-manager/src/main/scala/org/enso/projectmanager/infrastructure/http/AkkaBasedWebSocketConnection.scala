@@ -54,12 +54,13 @@ class AkkaBasedWebSocketConnection(address: String)(
   private val sink: Sink[Message, NotUsed] = Flow[Message]
     .map {
       case TextMessage.Strict(s) => WebSocketMessage(s)
+      case _ => throw new RuntimeException("Unmatched case")
     }
     .to(
       Sink.actorRef[WebSocketMessage](
         receiver,
         WebSocketStreamClosed,
-        WebSocketStreamFailure(_)
+        WebSocketStreamFailure
       )
     )
 
@@ -86,6 +87,7 @@ class AkkaBasedWebSocketConnection(address: String)(
           WebSocketStreamFailure(new Exception(s"Cannot connect $cause"))
       }
       .pipeTo(receiver)
+    ()
   }
 
   /** @inheritdoc **/

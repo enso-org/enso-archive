@@ -71,6 +71,7 @@ class LanguageServerBootLoader(
       )
       val server = new LanguageServerComponent(config)
       server.start().map(_ => config -> server) pipeTo self
+      ()
 
     case Failure(th) =>
       log.error(

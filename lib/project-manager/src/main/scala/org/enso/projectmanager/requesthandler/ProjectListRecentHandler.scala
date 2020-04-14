@@ -10,12 +10,10 @@ import org.enso.projectmanager.control.effect.Exec
 import org.enso.projectmanager.data.ProjectMetadata
 import org.enso.projectmanager.protocol.ProjectManagementApi.ProjectListRecent
 import org.enso.projectmanager.requesthandler.ProjectServiceFailureMapper.mapFailure
-import org.enso.projectmanager.service.{
-  ProjectServiceApi,
-  ProjectServiceFailure
-}
+import org.enso.projectmanager.service.{ProjectServiceApi, ProjectServiceFailure}
 import org.enso.projectmanager.util.UnhandledLogging
 
+import scala.annotation.unused
 import scala.concurrent.duration.FiniteDuration
 
 /**
@@ -26,7 +24,7 @@ import scala.concurrent.duration.FiniteDuration
   * @param requestTimeout a request timeout
   */
 class ProjectListRecentHandler[F[+_, +_]: Exec](
-  clientId: UUID,
+  @unused clientId: UUID,
   service: ProjectServiceApi[F],
   requestTimeout: FiniteDuration
 ) extends Actor
@@ -70,11 +68,15 @@ class ProjectListRecentHandler[F[+_, +_]: Exec](
       cancellable.cancel()
       context.stop(self)
 
-    case Right(list: List[ProjectMetadata]) =>
+    case Right(list: List[_]) =>
+      val metadata = list.collect {
+        case meta: ProjectMetadata => meta
+      }
+
       replyTo ! ResponseResult(
         ProjectListRecent,
         id,
-        ProjectListRecent.Result(list)
+        ProjectListRecent.Result(metadata)
       )
       cancellable.cancel()
       context.stop(self)

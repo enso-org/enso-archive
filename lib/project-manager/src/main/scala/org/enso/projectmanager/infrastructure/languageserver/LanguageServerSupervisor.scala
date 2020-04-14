@@ -77,6 +77,7 @@ class LanguageServerSupervisor(
           scheduler
         )
       )
+      ()
 
     case ServerUnresponsive =>
       log.info(s"Server is unresponsive [$config]. Restarting it...")
@@ -94,6 +95,7 @@ class LanguageServerSupervisor(
     case RestartServer =>
       log.info(s"Restarting $restartCount time the server")
       server.restart() pipeTo self
+      ()
 
     case Failure(th) =>
       log.error(s"An error occurred during restarting the server [$config]", th)
