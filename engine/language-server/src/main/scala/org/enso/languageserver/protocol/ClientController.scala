@@ -22,6 +22,7 @@ import org.enso.languageserver.requesthandler.capability._
 import org.enso.languageserver.requesthandler.monitoring.PingHandler
 import org.enso.languageserver.requesthandler.session.InitProtocolConnectionHandler
 import org.enso.languageserver.requesthandler.text._
+import org.enso.languageserver.runtime.ContextRegistryProtocol
 import org.enso.languageserver.runtime.ExecutionApi._
 import org.enso.languageserver.session.SessionApi.{
   InitProtocolConnection,
@@ -129,6 +130,13 @@ class ClientController(
     case PathWatcherProtocol.FileEventResult(event) =>
       webActor ! Notification(EventFile, EventFile.Params(event))
 
+    case ContextRegistryProtocol
+          .ExpressionValuesComputedNotification(contextId, updates) =>
+      webActor ! Notification(
+        ExecutionContextExpressionValuesComputed,
+        ExecutionContextExpressionValuesComputed.Params(contextId, updates)
+      )
+
     case req @ Request(method, _, _) if (requestHandlers.contains(method)) =>
       val handler = context.actorOf(requestHandlers(method))
       handler.forward(req)
@@ -167,13 +175,13 @@ class ClientController(
       TreeFile   -> file.TreeFileHandler.props(requestTimeout, fileManager),
       InfoFile   -> file.InfoFileHandler.props(requestTimeout, fileManager),
       ExecutionContextCreate -> executioncontext.CreateHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextDestroy -> executioncontext.DestroyHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextPush -> executioncontext.PushHandler
-        .props(requestTimeout, contextRegistry),
+        .props(requestTimeout, contextRegistry, client),
       ExecutionContextPop -> executioncontext.PopHandler
-        .props(requestTimeout, contextRegistry)
+        .props(requestTimeout, contextRegistry, client)
     )
 
 }
