@@ -6,7 +6,7 @@ import org.enso.jsonrpc.{Error, HasParams, HasResult, Method}
 
 /**
   * The connection management JSON RPC API provided by the language server.
-  * See [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md]]
+  * See [[https://github.com/luna/enso/blob/master/doc/design/engine/engine-services.md#connection-management]]
   * for message specifications.
   */
 object SessionApi {
