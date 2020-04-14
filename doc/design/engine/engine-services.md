@@ -2837,7 +2837,7 @@ Signals that requested capability is not acquired.
   "code" : 5001,
   "message" : "Capability not acquired"
 }
-
+```
 
 ##### `SessionNotInitialisedError`
 Signals that requested cannot be proccessed, beacuse session is not initialised.
@@ -2847,7 +2847,7 @@ Signals that requested cannot be proccessed, beacuse session is not initialised.
   "code" : 6001,
   "message" : "Session not initialised"
 }
-
+```
 
 ##### `SessionAlreadyInitialisedError`
 Signals that session is already initialised.
@@ -2857,3 +2857,4 @@ Signals that session is already initialised.
   "code" : 6002,
   "message" : "Session already initialised"
 }
+```
