@@ -2,7 +2,6 @@ package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, Props}
 import org.enso.languageserver.data.{Client, Config}
-import org.enso.languageserver.filemanager.Path
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
@@ -74,23 +73,13 @@ final class ContextEventsListener(
   private def toRuntimePointer(
     pointer: Api.MethodPointer
   ): Option[MethodPointer] =
-    getRelativePath(pointer.file).map { relativePath =>
+    config.findRelativePath(pointer.file.toFile).map { relativePath =>
       MethodPointer(
         file          = relativePath,
         definedOnType = pointer.definedOnType,
         name          = pointer.name
       )
     }
-
-  private def getRelativePath(path: java.nio.file.Path): Option[Path] =
-    config.contentRoots.view.flatMap {
-      case (id, root) =>
-        if (path.startsWith(root.toPath)) {
-          Some(Path(id, root.toPath.relativize(path)))
-        } else {
-          None
-        }
-    }.headOption
 
 }
 
