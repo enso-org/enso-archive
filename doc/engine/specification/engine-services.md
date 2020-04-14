@@ -71,7 +71,6 @@ services components, as well as any open questions that may remain.
   - [Connection Management](#connection-management)
     - [`session/initProtocolConnection`](#sessioninitprotocolconnection)
     - [`session/initDataConnection`](#sessioninitdataconnection)
-    - [`session/end`](#sessionend)
   - [Capability Management](#capability-management)
     - [`capability/acquire`](#capabilityacquire)
     - [`capability/release`](#capabilityrelease)
@@ -1254,24 +1253,6 @@ table InitResponse {}
 
 ##### Errors
 N/A
-
-#### `session/end`
-This message informs the engine that the session is being terminated by a given
-user.
-
-- **Type:** Notification
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-null
-```
-
-##### Errors
-TBC
 
 ### Capability Management
 In order to mediate between multiple clients properly, the language server has
