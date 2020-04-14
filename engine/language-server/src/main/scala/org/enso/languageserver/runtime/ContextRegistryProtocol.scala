@@ -82,7 +82,7 @@ object ContextRegistryProtocol {
     * @param contextId execution context identifier
     * @param updates a list of updated expressions
     */
-  case class ExpressionValuesComputed(
+  case class ExpressionValuesComputedNotification(
     contextId: ContextId,
     updates: Vector[ExpressionValueUpdate]
   )

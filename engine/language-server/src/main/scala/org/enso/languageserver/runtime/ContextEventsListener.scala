@@ -39,10 +39,11 @@ final class ContextEventsListener(
             runtimeUpdate
         }
       }
-      client.actor ! ContextRegistryProtocol.ExpressionValuesComputed(
-        contextId,
-        updates
-      )
+      client.actor ! ContextRegistryProtocol
+        .ExpressionValuesComputedNotification(
+          contextId,
+          updates
+        )
   }
 
   private def getRuntimeUpdate(
