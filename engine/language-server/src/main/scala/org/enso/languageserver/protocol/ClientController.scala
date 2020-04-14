@@ -38,7 +38,7 @@ import scala.concurrent.duration._
   * An actor handling communications between a single client and the language
   * server.
   *
-  * @param connectionId the internal client id.
+  * @param connectionId the internal connection id.
   * @param server the language server actor ref.
   * @param bufferRegistry a router that dispatches text editing requests
   * @param capabilityRouter a router that dispatches capability requests
