@@ -58,8 +58,7 @@ class SessionManagementTest extends BaseServerTest {
     "connection is initialised" must {
 
       "reply with an error if client tries initialise connection second time" in {
-        val client = new WsTestClient(address)
-        initSession(client)
+        val client = getInitialisedWsClient()
         client.send(json"""
           { "jsonrpc": "2.0",
             "method": "session/initProtocolConnection",

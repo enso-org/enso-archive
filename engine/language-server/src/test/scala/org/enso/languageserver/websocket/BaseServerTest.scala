@@ -67,7 +67,13 @@ class BaseServerTest extends JsonRpcServerTestKit {
     )
   }
 
-  def initSession(client: WsTestClient): UUID = {
+  def getInitialisedWsClient(): WsTestClient = {
+    val client = new WsTestClient(address)
+    initSession(client)
+    client
+  }
+
+  private def initSession(client: WsTestClient): UUID = {
     val clientId = UUID.randomUUID()
     client.send(json"""
           { "jsonrpc": "2.0",
