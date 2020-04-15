@@ -253,7 +253,7 @@ class ContextRegistryTest extends BaseServerTest {
     }
 
     "send notifications" in {
-      val client = new WsTestClient(address)
+      val client = getInitialisedWsClient()
 
       // create context
       client.send(json.executionContextCreateRequest(1))
