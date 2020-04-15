@@ -9,8 +9,6 @@ table VisualisationContext {
 }
 
 table VisualisationUpdate {
-  visualisationContext:VisualisationContext;
-  data:[ubyte];
+  visualisationContext: VisualisationContext;
+  data: [ubyte];
 }
-
-root_type VisualisationUpdate;
