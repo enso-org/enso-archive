@@ -5,7 +5,7 @@ include "execution-context.fbs";
 namespace org.enso.languageserver.protocol;
 
 union InboundPayload {
-  SessionInit: org.enso.languageserver.protocol.session.Init
+  SESSION_INIT: org.enso.languageserver.protocol.session.SessionInit
 }
 
 table InboundMessage {
@@ -13,8 +13,8 @@ table InboundMessage {
 }
 
 union OutboundPayload {
-  SessionInitResponse: org.enso.languageserver.protocol.session.InitResponse,
-  VisualisationUpdate: org.enso.languageserver.protocol.executioncontext.VisualisationUpdate
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.executioncontext.VisualisationUpdate
 }
 
 table OutboundMessage {

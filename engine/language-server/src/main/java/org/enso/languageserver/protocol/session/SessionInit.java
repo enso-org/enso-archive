@@ -8,19 +8,19 @@ import java.util.*;
 import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
-public final class Init extends Table {
+public final class SessionInit extends Table {
   public static void ValidateVersion() { Constants.FLATBUFFERS_1_12_0(); }
-  public static Init getRootAsInit(ByteBuffer _bb) { return getRootAsInit(_bb, new Init()); }
-  public static Init getRootAsInit(ByteBuffer _bb, Init obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
+  public static SessionInit getRootAsSessionInit(ByteBuffer _bb) { return getRootAsSessionInit(_bb, new SessionInit()); }
+  public static SessionInit getRootAsSessionInit(ByteBuffer _bb, SessionInit obj) { _bb.order(ByteOrder.LITTLE_ENDIAN); return (obj.__assign(_bb.getInt(_bb.position()) + _bb.position(), _bb)); }
   public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public Init __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
+  public SessionInit __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public org.enso.languageserver.protocol.util.UUID identifier() { return identifier(new org.enso.languageserver.protocol.util.UUID()); }
   public org.enso.languageserver.protocol.util.UUID identifier(org.enso.languageserver.protocol.util.UUID obj) { int o = __offset(4); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
 
-  public static void startInit(FlatBufferBuilder builder) { builder.startTable(1); }
+  public static void startSessionInit(FlatBufferBuilder builder) { builder.startTable(1); }
   public static void addIdentifier(FlatBufferBuilder builder, int identifierOffset) { builder.addStruct(0, identifierOffset, 0); }
-  public static int endInit(FlatBufferBuilder builder) {
+  public static int endSessionInit(FlatBufferBuilder builder) {
     int o = builder.endTable();
     return o;
   }
@@ -28,8 +28,8 @@ public final class Init extends Table {
   public static final class Vector extends BaseVector {
     public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public Init get(int j) { return get(new Init(), j); }
-    public Init get(Init obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
+    public SessionInit get(int j) { return get(new SessionInit(), j); }
+    public SessionInit get(SessionInit obj, int j) {  return obj.__assign(__indirect(__element(j), bb), bb); }
   }
 }
 

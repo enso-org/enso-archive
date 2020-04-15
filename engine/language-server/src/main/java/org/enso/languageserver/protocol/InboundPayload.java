@@ -5,9 +5,9 @@ package org.enso.languageserver.protocol;
 public final class InboundPayload {
   private InboundPayload() { }
   public static final byte NONE = 0;
-  public static final byte SessionInit = 1;
+  public static final byte SESSION_INIT = 1;
 
-  public static final String[] names = { "NONE", "SessionInit", };
+  public static final String[] names = { "NONE", "SESSION_INIT", };
 
   public static String name(int e) { return names[e]; }
 }

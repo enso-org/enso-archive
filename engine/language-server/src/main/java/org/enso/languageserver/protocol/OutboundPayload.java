@@ -5,10 +5,10 @@ package org.enso.languageserver.protocol;
 public final class OutboundPayload {
   private OutboundPayload() { }
   public static final byte NONE = 0;
-  public static final byte SessionInitResponse = 1;
-  public static final byte VisualisationUpdate = 2;
+  public static final byte SESSION_INIT_RESPONSE = 1;
+  public static final byte VISUALISATION_UPDATE = 2;
 
-  public static final String[] names = { "NONE", "SessionInitResponse", "VisualisationUpdate", };
+  public static final String[] names = { "NONE", "SESSION_INIT_RESPONSE", "VISUALISATION_UPDATE", };
 
   public static String name(int e) { return names[e]; }
 }

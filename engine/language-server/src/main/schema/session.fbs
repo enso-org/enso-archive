@@ -2,8 +2,8 @@ include "util.fbs";
 
 namespace org.enso.languageserver.protocol.session;
 
-table Init {
+table SessionInit {
   identifier: org.enso.languageserver.protocol.util.UUID;
 }
 
-table InitResponse {}
+table SessionInitResponse {}
