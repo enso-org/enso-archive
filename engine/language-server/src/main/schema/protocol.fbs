@@ -1,0 +1,22 @@
+include "util.fbs";
+include "session.fbs";
+include "execution-context.fbs";
+
+namespace org.enso.languageserver.protocol;
+
+union InboundPayload {
+  SessionInit: org.enso.languageserver.protocol.session.Init
+}
+
+table InboundMessage {
+  payload: InboundPayload;
+}
+
+union OutboundPayload {
+  SessionInitResponse: org.enso.languageserver.protocol.session.InitResponse,
+  VisualisationUpdate: org.enso.languageserver.protocol.executioncontext.VisualisationUpdate
+}
+
+table OutboundMessage {
+  payload: OutboundPayload;
+}

@@ -1,0 +1,16 @@
+include "util.fbs";
+
+namespace org.enso.languageserver.protocol.executioncontext;
+
+table VisualisationContext {
+  visualisationId: org.enso.languageserver.protocol.util.UUID;
+  contextId: org.enso.languageserver.protocol.util.UUID;
+  expressionId: org.enso.languageserver.protocol.util.UUID;
+}
+
+table VisualisationUpdate {
+  visualisationContext:VisualisationContext;
+  data:[ubyte];
+}
+
+root_type VisualisationUpdate;
