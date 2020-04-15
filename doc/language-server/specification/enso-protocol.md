@@ -1226,20 +1226,23 @@ client identifier can be correlated between the data and textual connections.
 - **Visibility:** Public
 
 ##### Parameters
-
 ```idl
-namespace session;
+namespace org.enso.languageserver.protocol.util;
 
 struct UUID {
-  lowBytes:uint64;
-  highBytes:uint64;
+  leastSigBits:uint64;
+  mostSigBits:uint64;
+}
+```
+
+```idl
+namespace org.enso.languageserver.protocol.session;
+
+table SessionInit {
+  identifier: org.enso.languageserver.protocol.util.UUID;
 }
 
-struct Init {
-  identifier:UUID;
-}
-
-root_type Init;
+table SessionInitResponse {}
 
 ```
 
@@ -1450,25 +1453,27 @@ transport is concerned, it is just a binary blob.
 ##### Parameters
 
 ```idl
-namespace executionContext;
+namespace org.enso.languageserver.protocol.util;
 
 struct UUID {
-  lowBytes:uint64;
-  highBytes:uint64;
+  leastSigBits:uint64;
+  mostSigBits:uint64;
+}
+```
+
+```idl
+namespace org.enso.languageserver.protocol.executioncontext;
+
+table VisualisationContext {
+  visualisationId: org.enso.languageserver.protocol.util.UUID;
+  contextId: org.enso.languageserver.protocol.util.UUID;
+  expressionId: org.enso.languageserver.protocol.util.UUID;
 }
 
-struct VisualisationContext {
-  visualisationId:UUID;
-  contextId:UUID;
-  expressionId:UUID;
+table VisualisationUpdate {
+  visualisationContext: VisualisationContext;
+  data: [ubyte];
 }
-
-struct VisualisationUpdate {
-  visualisationContext:VisualisationContext;
-  data:[ubyte];
-}
-
-root_type VisualisationUpdate;
 ```
 
 ##### Errors
