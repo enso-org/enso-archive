@@ -726,8 +726,7 @@ class IRToTruffle(
             throw new CompilerError("No scope attached to a call argument.")
           )
         val result = value match {
-          // TODO [AA] It should never be a force here after demand analysis is
-          //  done
+          // TODO [AA] Need to remove the `flattenToParent` hack
           case term: IR.Application.Force =>
             val childScope =
               scope.createChild(scopeInfo.scope, flattenToParent = true)
