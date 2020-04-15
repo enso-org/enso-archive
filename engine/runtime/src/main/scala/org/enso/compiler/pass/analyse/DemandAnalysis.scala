@@ -10,14 +10,10 @@ import org.enso.compiler.pass.IRPass
   * to be forced (where the suspended value is _demanded_). It does the
   * following:
   *
-  * - Determines the usage sites where a suspended term needs to be forced.
-  * - Inserts state annotations onto all usages to say whether they should be
-  *   forced or not.
-  *
   * This pass needs to be run after [[AliasAnalysis]].
   */
 case object DemandAnalysis extends IRPass {
-  override type Metadata = State
+  override type Metadata = IR.Metadata.Empty
 
   /** Executes the demand analysis process on an Enso module.
     *
