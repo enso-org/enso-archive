@@ -44,7 +44,7 @@ jobs:
         conda-channels: anaconda, conda-forge
     - run: conda --version
     - run: which python
-    - name: Install FlatBuffers flatc
+    - name: Install FlatBuffers Compiler
       run: conda install flatbuffers=1.12.0
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
