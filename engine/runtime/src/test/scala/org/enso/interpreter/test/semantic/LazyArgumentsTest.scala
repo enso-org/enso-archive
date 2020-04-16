@@ -88,4 +88,14 @@ class LazyArgumentsTest extends InterpreterTest {
         |""".stripMargin
     eval(code).call(1) shouldEqual 1
   }
+
+  subject should "allow passing suspended functions" in {
+    val code =
+      """main =
+        |    foo = ~x -> ~x 1
+        |    foo (x -> x)
+        |""".stripMargin
+
+    eval(code) shouldEqual 1
+  }
 }

@@ -719,12 +719,56 @@ class IRToTruffle(
       *         `arg`
       */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
-      case IR.CallArgument.Specified(name, value, _, _) =>
+      // TODO [AA] Actually use the suspension info
+      case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _) =>
         val scopeInfo = arg
           .getMetadata[AliasAnalysis.Info.Scope.Child]
           .getOrElse(
             throw new CompilerError("No scope attached to a call argument.")
           )
+
+        // Note [Defaulting to Suspension]
+        val shouldSuspendArg =
+          shouldBeSuspended.getOrElse(throw new CompilerError("")) //crash
+
+//        val childScope = scope.createChild(scopeInfo.scope)
+//        val argumentExpression =
+//          new ExpressionProcessor(childScope, scopeName).run(value)
+//
+//        val result = if (shouldSuspendArg) {
+//          argumentExpression
+//        } else {
+//          val argExpressionIsTail = value
+//            .getMetadata[TailCall.Metadata]
+//            .getOrElse(
+//              throw new CompilerError(
+//                "Argument with missing tail call information."
+//              )
+//            )
+//
+//          argumentExpression.setTail(argExpressionIsTail)
+//
+//          val displayName =
+//            s"call_argument<${name.getOrElse(String.valueOf(position))}>"
+//
+//          val section = value.location
+//            .map(loc => source.createSection(loc.start, loc.end))
+//            .orNull
+//
+//          val callTarget = Truffle.getRuntime.createCallTarget(
+//            ClosureRootNode.build(
+//              language,
+//              childScope,
+//              moduleScope,
+//              argumentExpression,
+//              section,
+//              displayName
+//            )
+//          )
+//
+//          CreateThunkNode.build(callTarget)
+//        }
+
         val result = value match {
           // TODO [AA] Need to remove the `flattenToParent` hack
           case term: IR.Application.Force =>
@@ -770,6 +814,11 @@ class IRToTruffle(
         new CallArgument(name.map(_.name).orNull, result)
     }
   }
+
+  /* Note [Defaulting to Suspension]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * While, in an ideal world
+   */
 
   // ==========================================================================
   // === Definition Argument Processor ========================================

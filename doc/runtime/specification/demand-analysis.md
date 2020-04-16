@@ -49,3 +49,11 @@ for (node <- ir):
         if (node is not used in a function application):
             node = force(node)
 ```
+
+This, however, is not entirely sufficient to support codegen. At the time of
+generating truffle code, we want to know whether a given usage in an argument to
+a function application needs to be wrapped in a suspension or left alone (as is
+the case for a suspended term passed to a function).
+
+To this end, we instead explicitly mark the arguments to the application with
+whether or not they should be suspended during codegen.

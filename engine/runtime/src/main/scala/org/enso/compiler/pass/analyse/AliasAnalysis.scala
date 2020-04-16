@@ -167,8 +167,10 @@ case object AliasAnalysis extends IRPass {
           .addMetadata(Info.Scope.Child(graph, currentScope))
       case binding @ IR.Expression.Binding(name, expression, _, _) =>
         if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
+          val isSuspended  = expression.isInstanceOf[IR.Expression.Block]
           val occurrenceId = graph.nextId()
-          val occurrence   = Occurrence.Def(occurrenceId, name.name)
+          val occurrence =
+            Occurrence.Def(occurrenceId, name.name, isSuspended)
 
           parentScope.add(occurrence)
 
@@ -289,7 +291,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: AliasAnalysis.Graph.Scope
   ): List[IR.CallArgument] = {
     args.map {
-      case arg @ IR.CallArgument.Specified(_, expr, _, _) =>
+      case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
         val currentScope = expr match {
           case _: IR.Literal => parentScope
           case _             => parentScope.addChild()

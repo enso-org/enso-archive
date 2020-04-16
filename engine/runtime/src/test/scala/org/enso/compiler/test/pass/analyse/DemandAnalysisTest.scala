@@ -61,15 +61,25 @@ class DemandAnalysisTest extends CompilerTest {
   // TODO [AA] The only cases where force needs to be inserted are `a` and
   //  `b = a` (`a -> b -> a`)
   "Suspended arguments" should {
-    "do the thing" in {
+    "be forced when assigned" in {
       implicit val ctx: InlineContext =
         InlineContext(localScope = Some(LocalScope.root))
 
       val ir =
         """~x ~y z ->
-          |  a = x
-          |  x + y + z
+          |    a = x
+          |    z
           |""".stripMargin.preprocessExpression.get.analyse
+    }
+
+    "work correctly when deeply nested" in {
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
+
+      val ir =
+        """~x ->
+          |    foo x (y -> bar y x)
+          |""".stripMargin
     }
 
 //    "not be forced when passed to functions" in {
@@ -82,6 +92,8 @@ class DemandAnalysisTest extends CompilerTest {
 //
 //      pending
 //    }
+
+    "be marked as not to suspend during codegen" in {}
   }
 
   "Non-suspended arguments" should {
@@ -97,6 +109,14 @@ class DemandAnalysisTest extends CompilerTest {
 //
 //      pending
 //    }
+
+    "be marked for suspension during codegen when passed to a function" in {}
+  }
+
+  "Suspended blocks" should {
+    "be forced when assigned" in {}
+
+    "not be forced when passed to a function" in {}
   }
 
   "Demand analysis" should {
