@@ -47,10 +47,10 @@ jobs:
     - run: conda create --name enso
     - name: Init Windows shell
       run: conda init powershell
-      if: ${{ runner.os }} == windows-latest
+      if: runner.os == 'windows-latest'
     - name: Init Unix-like shell
-      run: conda init bash
-      if: ${{ runner.os }} != windows-latest
+        run: conda init bash
+        if: runner.os != 'windows-latest'
     - run: conda activate enso
     - name: Install FlatBuffers Compiler
       run: conda install flatbuffers=1.12.0
