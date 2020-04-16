@@ -1243,7 +1243,6 @@ table SessionInit {
 }
 
 table SessionInitResponse {}
-
 ```
 
 ##### Result
