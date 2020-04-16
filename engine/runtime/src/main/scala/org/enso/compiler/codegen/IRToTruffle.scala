@@ -719,7 +719,6 @@ class IRToTruffle(
       *         `arg`
       */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
-      // TODO [AA] Actually use the suspension info
       case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _) =>
         val scopeInfo = arg
           .getMetadata[AliasAnalysis.Info.Scope.Child]
@@ -776,47 +775,6 @@ class IRToTruffle(
 
           CreateThunkNode.build(callTarget)
         }
-
-//        val result = value match {
-//          case term: IR.Application.Force =>
-//            val childScope =
-//              scope.createChild(scopeInfo.scope, flattenToParent = true)
-//            new ExpressionProcessor(childScope, scopeName).run(term.target)
-//          case _ =>
-//            val childScope = scope.createChild(scopeInfo.scope)
-//            val argumentExpression =
-//              new ExpressionProcessor(childScope, scopeName).run(value)
-//
-//            val argExpressionIsTail = value
-//              .getMetadata[TailCall.Metadata]
-//              .getOrElse(
-//                throw new CompilerError(
-//                  "Argument with missing tail call information."
-//                )
-//              )
-//
-//            argumentExpression.setTail(argExpressionIsTail)
-//
-//            val displayName =
-//              s"call_argument<${name.getOrElse(String.valueOf(position))}>"
-//
-//            val section = value.location
-//              .map(loc => source.createSection(loc.start, loc.end))
-//              .orNull
-//
-//            val callTarget = Truffle.getRuntime.createCallTarget(
-//              ClosureRootNode.build(
-//                language,
-//                childScope,
-//                moduleScope,
-//                argumentExpression,
-//                section,
-//                displayName
-//              )
-//            )
-//
-//            CreateThunkNode.build(callTarget)
-//        }
 
         new CallArgument(name.map(_.name).orNull, result)
     }

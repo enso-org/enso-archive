@@ -46,15 +46,25 @@ case object DemandAnalysis extends IRPass {
       isInsideCallArgument = false
     )
 
+  /** Performs demand analysis on an arbitrary program expression.
+    *
+    * @param expression the expression to perform demand analysis on
+    * @param isInsideApplication whether the current expression occurs _inside_
+    *                            an application (note that this should not be
+    *                            set for the application itself)
+    * @param isInsideCallArgument whether the current expression occurs _inside_
+    *                             a call argument (note that this should not be
+    *                             set for the call argument itself)
+    * @return `expression`, transformed by the demand analysis process
+    */
   def analyseExpression(
     expression: IR.Expression,
-    isInsideApplication: Boolean, // actually _inside_
+    isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Expression = {
     expression match {
       case fn: IR.Function => analyseFunction(fn, isInsideApplication)
-      case name: IR.Name =>
-        analyseName(name, isInsideApplication, isInsideCallArgument)
+      case name: IR.Name   => analyseName(name, isInsideCallArgument)
       case app: IR.Application =>
         analyseApplication(app, isInsideApplication, isInsideCallArgument)
       case typ: IR.Type =>
@@ -91,6 +101,13 @@ case object DemandAnalysis extends IRPass {
     }
   }
 
+  /** Performs demand analysis for a function.
+    *
+    * @param function the function to perform demand analysis on
+    * @param isInsideApplication whether or not the function occurs inside an
+    *                            application
+    * @return `function`, transformed by the demand analysis process
+    */
   def analyseFunction(
     function: IR.Function,
     isInsideApplication: Boolean
@@ -106,12 +123,22 @@ case object DemandAnalysis extends IRPass {
       )
   }
 
+  /** Performs demand analysis for a name.
+    *
+    * If the name refers to a term that is suspended, this name is forced unless
+    * it is being passed to a function. If the name is being passed to a function
+    * it is passed raw.
+    *
+    * @param name the name to perform demand analysis on.
+    * @param isInsideCallArgument whether or not the name occurs inside a call
+    *                             call argument
+    * @return `name`, transformed by the demand analysis process
+    */
   def analyseName(
     name: IR.Name,
-    isInsideApplication: Boolean,
     isInsideCallArgument: Boolean
   ): IR.Expression = {
-    val usesLazyTerm = isUsageOfLazy(name)
+    val usesLazyTerm = isUsageOfSuspendedTerm(name)
 
     if (isInsideCallArgument) {
       name
@@ -124,6 +151,15 @@ case object DemandAnalysis extends IRPass {
     }
   }
 
+  /** Performs demand analysis on an application.
+    *
+    * @param application the function application to perform demand analysis on
+    * @param isInsideApplication whether or not the application is occuring
+    *                            inside another application
+    * @param isInsideCallArgument whether or not the application is occurring
+    *                             inside a call argument
+    * @return `application`, transformed by the demand analysis process
+    */
   def analyseApplication(
     application: IR.Application,
     isInsideApplication: Boolean,
@@ -152,7 +188,14 @@ case object DemandAnalysis extends IRPass {
       )
   }
 
-  def isUsageOfLazy(expr: IR.Expression): Boolean = {
+  /** Determines whether a particular piece of IR represents the usage of a
+    * suspended term (and hence requires forcing).
+    *
+    * @param expr the expression to check
+    * @return `true` if `expr` represents the usage of a suspended term, `false`
+    *         otherwise
+    */
+  def isUsageOfSuspendedTerm(expr: IR.Expression): Boolean = {
     expr match {
       case name: IR.Name =>
         val aliasInfo = name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
@@ -179,6 +222,15 @@ case object DemandAnalysis extends IRPass {
     }
   }
 
+  /** Performs demand analysis on a function call argument.
+    *
+    * In keeping with the requirement by the runtime to pass all function
+    * arguments as thunks, we mark the argument as needing suspension based on
+    * whether it already is a thunk or not.
+    *
+    * @param arg the argument to perform demand analysis on
+    * @return `arg`, transformed by the demand analysis process
+    */
   def analyseCallArgument(arg: IR.CallArgument): IR.CallArgument = {
     arg match {
       case spec @ IR.CallArgument.Specified(_, expr, _, _, _) =>
@@ -188,11 +240,16 @@ case object DemandAnalysis extends IRPass {
             isInsideApplication  = true,
             isInsideCallArgument = true
           ),
-          shouldBeSuspended = Some(!isUsageOfLazy(expr))
+          shouldBeSuspended = Some(!isUsageOfSuspendedTerm(expr))
         )
     }
   }
 
+  /** Performs demand analysis on a function definition argument.
+    *
+    * @param arg the argument to perform demand analysis on
+    * @return `arg`, transformed by the demand analysis process
+    */
   def analyseDefinitionArgument(
     arg: IR.DefinitionArgument
   ): IR.DefinitionArgument = {
@@ -211,6 +268,15 @@ case object DemandAnalysis extends IRPass {
     }
   }
 
+  /** Performs demand analysis on a typing expression.
+    *
+    * @param typ the expression to perform demand analysis on
+    * @param isInsideApplication whether the typing expression occurs inside a
+    *                            function application
+    * @param isInsideCallArgument whether the typing expression occurs inside a
+    *                             function call argument
+    * @return `typ`, transformed by the demand analysis process
+    */
   def analyseType(
     typ: IR.Type,
     isInsideApplication: Boolean,
@@ -220,6 +286,15 @@ case object DemandAnalysis extends IRPass {
       analyseExpression(x, isInsideApplication, isInsideCallArgument)
     )
 
+  /** Performs demand analysis on a case expression.
+   *
+   * @param cse the case expression to perform demand analysis on
+   * @param isInsideApplication whether the case expression occurs inside a
+   *                            function application
+   * @param isInsideCallArgument whether the case expression occurs inside a
+   *                             function call argument
+   * @return `cse`, transformed by the demand analysis process
+   */
   def analyseCase(
     cse: IR.Case,
     isInsideApplication: Boolean,
@@ -244,6 +319,11 @@ case object DemandAnalysis extends IRPass {
     case _ => throw new CompilerError("Unexpected case construct.")
   }
 
+  /** Performs demand analysis on a case branch.
+   *
+   * @param branch the case branch to perform demand analysis on
+   * @return `branch`, transformed by the demand analysis process
+   */
   def analyseCaseBranch(branch: IR.Case.Branch): IR.Case.Branch = {
     branch.copy(
       expression = analyseExpression(
