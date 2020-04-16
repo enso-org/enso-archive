@@ -50,6 +50,8 @@ jobs:
     - run: dir C:\Miniconda
     - run: dir C:\Miniconda\pkgs\flatbuffers-1.12.0-he025d50_0\Library\bin
     - run: dir C:\Miniconda\Scripts
+    - run: conda info --envs
+    - run: conda env list
     - run: echo %PATH%
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
