@@ -52,7 +52,7 @@ jobs:
     - run: dir C:\Miniconda\Scripts
     - run: conda info --envs
     - run: conda env list
-    - run: echo %PATH%
+    - run: echo %Path%
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
