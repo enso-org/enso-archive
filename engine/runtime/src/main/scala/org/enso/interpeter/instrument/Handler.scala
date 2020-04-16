@@ -1,5 +1,6 @@
 package org.enso.interpeter.instrument
 
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
 import java.util.function.Consumer
@@ -82,7 +83,7 @@ final class Handler {
 
   private object ExecutionItem {
     case class Method(
-      module: String,
+      file: File,
       constructor: String,
       function: String
     ) extends ExecutionItem
@@ -102,7 +103,10 @@ final class Handler {
     )
   }
 
-  private def sendUpdate(contextId: Api.ContextId, res: ExpressionValue): Unit = {
+  private def sendUpdate(
+    contextId: Api.ContextId,
+    res: ExpressionValue
+  ): Unit = {
     endpoint.sendToClient(
       Api.Response(
         Api.ExpressionValuesComputed(
@@ -112,7 +116,6 @@ final class Handler {
               res.getExpressionId,
               OptionConverters.toScala(res.getType),
               OptionConverters.toScala(res.getValue).map(_.toString),
-              // TODO: method pointer
               None
             )
           )
@@ -133,9 +136,9 @@ final class Handler {
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       enterables += fun.getExpressionId -> fun.getCall
     executionItem match {
-      case ExecutionItem.Method(module, cons, function) =>
+      case ExecutionItem.Method(file, cons, function) =>
         executionService.execute(
-          module,
+          file,
           cons,
           function,
           valsCallback,
@@ -171,11 +174,17 @@ final class Handler {
         calls += call
     }
     val item = toExecutionItem(calls.result().head)
-    execute(item, locals.result(), sendUpdate(contextId, _))
+    execute(item, locals.result().reverse, sendUpdate(contextId, _))
   }
 
-  private def toExecutionItem(call: Api.StackItem.ExplicitCall): ExecutionItem =
-    ???
+  private def toExecutionItem(
+    call: Api.StackItem.ExplicitCall
+  ): ExecutionItem =
+    ExecutionItem.Method(
+      call.methodPointer.file.toFile,
+      call.methodPointer.definedOnType,
+      call.methodPointer.name
+    )
 
   private def withContext(action: => Unit): Unit =
     if (truffleContext ne null) {
@@ -255,7 +264,13 @@ final class Handler {
         )
       }
 
-    case Api.Request(_, Api.Execute(mod, cons, fun, furtherStack)) =>
-      withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack, sendVal))
+    case Api.Request(_, Api.Execute(file, cons, fun, furtherStack)) =>
+      withContext(
+        execute(
+          ExecutionItem.Method(file.toFile, cons, fun),
+          furtherStack,
+          sendVal
+        )
+      )
   }
 }

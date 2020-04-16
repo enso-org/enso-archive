@@ -2,7 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import java.io.File
 import java.nio.ByteBuffer
-import java.nio.file.Files
+import java.nio.file.{Files, Path}
 import java.util.UUID
 
 import org.enso.interpreter.test.Metadata
@@ -60,14 +60,9 @@ class RuntimeServerTest
     )
     executionContext.context.initialize(LanguageInfo.ID)
 
-    def mkFile(name: String): File = new File(tmpDir, name)
-
-    def writeFile(name: String, contents: String): Unit = {
-      Files.write(mkFile(name).toPath, contents.getBytes): Unit
-    }
-
-    def writeMain(contents: String): Unit = {
-      Files.write(pkg.mainFile.toPath, contents.getBytes): Unit
+    def writeMain(contents: String): Path = {
+      Files.createDirectories(pkg.mainFile.toPath.getParent)
+      Files.write(pkg.mainFile.toPath, contents.getBytes)
     }
 
     def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
@@ -92,7 +87,7 @@ class RuntimeServerTest
     val idFooZ  = metadata.addItem(102, 7)
     val idFooK  = metadata.addItem(118, 3)
 
-    context.writeMain(
+    val mainFile = context.writeMain(
       metadata.appendToCode(
         """
           |main =
@@ -117,7 +112,7 @@ class RuntimeServerTest
       Api.Request(
         UUID.randomUUID(),
         Api.Execute(
-          "Test.Main",
+          mainFile,
           "Main",
           "main",
           List(idMainY)
@@ -160,7 +155,7 @@ class RuntimeServerTest
     val idFooZ   = metadata.addItem(102, 7)
     val idBarT   = metadata.addItem(155, 8)
 
-    context.writeMain(
+    val mainFile = context.writeMain(
       metadata.appendToCode(
         """
           |main =
@@ -185,7 +180,7 @@ class RuntimeServerTest
       Api.Request(
         UUID.randomUUID(),
         Api.Execute(
-          "Test.Main",
+          mainFile,
           "Main",
           "main",
           List(idMainY, idFooZ)

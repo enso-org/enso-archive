@@ -14,7 +14,9 @@ import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.pkg.QualifiedName;
 
+import java.io.File;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -112,5 +114,19 @@ public class ExecutionService {
       return;
     }
     execute(callMay.get(), valueCallback, funCallCallback);
+  }
+
+  public void execute(
+      File path,
+      String consName,
+      String methodName,
+      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
+      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
+    throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
+    Optional<QualifiedName> moduleName = context.getModuleNameForFile(path);
+    if (!moduleName.isPresent()) {
+      return;
+    }
+    execute(moduleName.get().toString(), consName, methodName, valueCallback, funCallCallback);
   }
 }
