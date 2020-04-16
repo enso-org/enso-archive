@@ -738,7 +738,7 @@ interface Path {
 ```
 
 #### `IPWithSocket`
-Represents an IP socket.
+A IPWithSocket is an endpoint for communication between machines. 
 
 ##### Format
 
