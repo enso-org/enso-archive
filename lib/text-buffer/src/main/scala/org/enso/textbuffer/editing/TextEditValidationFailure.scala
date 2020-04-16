@@ -1,6 +1,6 @@
-package org.enso.languageserver.text.editing
+package org.enso.textbuffer.editing
 
-import org.enso.languageserver.text.editing.model.Position
+import org.enso.textbuffer.editing.model.Position
 
 /**
   * Base trait for text edit validation failures.

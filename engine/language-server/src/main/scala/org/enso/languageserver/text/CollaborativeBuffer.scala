@@ -28,8 +28,14 @@ import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.text.Buffer.Version
 import org.enso.languageserver.text.CollaborativeBuffer.IOTimeout
 import org.enso.languageserver.text.TextProtocol._
-import org.enso.languageserver.text.editing._
-import org.enso.languageserver.text.editing.model.{FileEdit, TextEdit}
+import org.enso.textbuffer.editing.{
+  EditorOps,
+  EndPositionBeforeStartPosition,
+  InvalidPosition,
+  NegativeCoordinateInPosition,
+  TextEditValidationFailure
+}
+import org.enso.textbuffer.editing.model.TextEdit
 
 import scala.concurrent.duration._
 import scala.language.postfixOps

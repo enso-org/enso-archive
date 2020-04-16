@@ -1,8 +1,10 @@
-package org.enso.languageserver.data.buffer
-import cats.kernel.Monoid
+package org.enso.textbuffer.buffer
+
+import cats.Monoid
 
 /**
   * The measure used for storing strings in the b-tree.
+  *
   * @param utf16Size number of characters.
   * @param utf32Size number of code points.
   * @param fullLines number of lines terminated with a new line character.

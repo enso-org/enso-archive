@@ -1,4 +1,5 @@
-package org.enso.languageserver.text
+package org.enso.textbuffer
+
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
 

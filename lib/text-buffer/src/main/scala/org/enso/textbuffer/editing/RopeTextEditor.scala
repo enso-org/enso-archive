@@ -1,7 +1,7 @@
-package org.enso.languageserver.text.editing
+package org.enso.textbuffer.editing
 
-import org.enso.languageserver.data.buffer.Rope
-import org.enso.languageserver.text.editing.model.TextEdit
+import org.enso.textbuffer.buffer.Rope
+import org.enso.textbuffer.editing.model.TextEdit
 
 /**
   * Instance of the [[TextEditor]] type class for the [[Rope]] type.
