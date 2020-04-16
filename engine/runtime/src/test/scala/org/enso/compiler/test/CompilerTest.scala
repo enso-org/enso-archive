@@ -96,13 +96,12 @@ trait CompilerRunner {
       inlineContext: InlineContext
     ): IR = ir match {
       case expr: IR.Expression =>
-        passes.foldLeft(expr)(
-          (intermediate, pass) =>
-            pass.runExpression(intermediate, inlineContext)
+        passes.foldLeft(expr)((intermediate, pass) =>
+          pass.runExpression(intermediate, inlineContext)
         )
       case mod: IR.Module =>
-        passes.foldLeft(mod)(
-          (intermediate, pass) => pass.runModule(intermediate)
+        passes.foldLeft(mod)((intermediate, pass) =>
+          pass.runModule(intermediate)
         )
       case _ => throw new RuntimeException(s"Cannot run passes on $ir.")
     }

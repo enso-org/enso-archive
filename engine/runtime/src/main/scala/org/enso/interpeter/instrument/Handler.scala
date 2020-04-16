@@ -14,6 +14,8 @@ import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
 
+import scala.jdk.javaapi.OptionConverters
+
 /**
   * A message endpoint implementation used by the
   * [[org.enso.interpreter.instrument.RuntimeServerInstrument]].
@@ -92,12 +94,14 @@ class Handler {
       Api.Response(
         Api.ExpressionValueUpdateNotification(
           res.getExpressionId,
-          res.getValue.toString
+          OptionConverters.toScala(res.getType),
+          OptionConverters.toScala(res.getValue).map(_.toString)
         )
       )
     )
   }
 
+  @scala.annotation.tailrec
   private def execute(
     executionItem: ExecutionItem,
     furtherStack: List[UUID]
@@ -123,9 +127,10 @@ class Handler {
     furtherStack match {
       case Nil => ()
       case item :: tail =>
-        enterables
-          .get(item)
-          .foreach(call => execute(ExecutionItem.CallData(call), tail))
+        enterables.get(item) match {
+          case Some(call) => execute(ExecutionItem.CallData(call), tail)
+          case None       => ()
+        }
     }
   }
 

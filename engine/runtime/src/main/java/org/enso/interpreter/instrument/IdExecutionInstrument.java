@@ -10,7 +10,9 @@ import com.oracle.truffle.api.nodes.Node;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
+import org.enso.interpreter.runtime.type.Types;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -64,17 +66,37 @@ public class IdExecutionInstrument extends TruffleInstrument {
   /** A value class for notifications about identified expressions' values being computed. */
   public static class ExpressionValue {
     private UUID expressionId;
-    private Object value;
+    private Optional<String> type;
+    private Optional<Object> value;
 
     /**
      * Creates a new instance of this class.
      *
      * @param expressionId the id of the expression being computed.
+     * @param type of the computed expression.
      * @param value the value returned by computing the expression.
      */
-    public ExpressionValue(UUID expressionId, Object value) {
+    public ExpressionValue(UUID expressionId, Optional<String> type, Optional<Object> value) {
       this.expressionId = expressionId;
+      this.type = type;
       this.value = value;
+    }
+
+    /**
+     * Creates a new instance of this class.
+     *
+     * @param expressionId the id of the expression being computed.
+     * @param type of the computed expression.
+     * @param value the value returned by computing the expression.
+     */
+    public ExpressionValue(UUID expressionId, Optional<String> type, Object value) {
+      this.expressionId = expressionId;
+      this.type = type;
+      if (type.isPresent()) {
+        this.value = Optional.of(value);
+      } else {
+        this.value = Optional.empty();
+      };
     }
 
     /** @return the id of the expression computed. */
@@ -82,8 +104,12 @@ public class IdExecutionInstrument extends TruffleInstrument {
       return expressionId;
     }
 
+    public Optional<String> getType() {
+      return type;
+    }
+
     /** @return the computed value of the expression. */
-    public Object getValue() {
+    public Optional<Object> getValue() {
       return value;
     }
   }
@@ -166,7 +192,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
                 (FunctionCallInstrumentationNode.FunctionCall) result));
       } else if (node instanceof ExpressionNode) {
         valueCallback.accept(
-            new ExpressionValue(((ExpressionNode) context.getInstrumentedNode()).getId(), result));
+            new ExpressionValue(
+                ((ExpressionNode) context.getInstrumentedNode()).getId(),
+                Types.getName(result),
+                result));
       }
     }
 

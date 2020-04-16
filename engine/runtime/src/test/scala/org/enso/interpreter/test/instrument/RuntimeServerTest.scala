@@ -86,10 +86,11 @@ class RuntimeServerTest
 
   "Runtime server" should "allow executing a stack of functions by entering them through call-sites" in {
     val metadata = new Metadata
-    val _        = metadata.addItem(14, 7)
-    val idMainY  = metadata.addItem(30, 7)
-    val idFooY   = metadata.addItem(85, 8)
-    val idFooZ   = metadata.addItem(102, 5)
+    //val idMainX = metadata.addItem(16, 5)
+    val idMainY = metadata.addItem(30, 7)
+    val idFooY  = metadata.addItem(85, 8)
+    val idFooZ  = metadata.addItem(102, 7)
+    val idFooK  = metadata.addItem(118, 3)
 
     context.writeMain(
       metadata.appendToCode(
@@ -102,8 +103,13 @@ class RuntimeServerTest
           |
           |Number.foo = x ->
           |    y = this + 3
-          |    z = y * x
+          |    z = y.bar x
+          |    k = "k"
           |    z
+          |
+          |Number.bar = x ->
+          |    t = this - x
+          |    t
           |""".stripMargin
       )
     )
@@ -118,10 +124,86 @@ class RuntimeServerTest
         )
       )
     )
+    val updates =
+      Set(context.receive, context.receive, context.receive, context.receive)
+    updates shouldEqual Set(
+      Some(
+        Api.Response(
+          Api.ExpressionValueUpdateNotification(
+            idFooY,
+            Some("Number"),
+            Some("9")
+          )
+        )
+      ),
+      Some(
+        Api.Response(
+          Api.ExpressionValueUpdateNotification(
+            idFooZ,
+            Some("Number"),
+            Some("4")
+          )
+        )
+      ),
+      Some(
+        Api.Response(
+          Api.ExpressionValueUpdateNotification(idFooK, Some("Text"), Some("k"))
+        )
+      ),
+      None
+    )
+  }
+
+  it should "allow executing a nested stack" in {
+    val metadata = new Metadata
+    val idMainY  = metadata.addItem(30, 7)
+    val idFooZ   = metadata.addItem(102, 7)
+    val idBarT   = metadata.addItem(155, 8)
+
+    context.writeMain(
+      metadata.appendToCode(
+        """
+          |main =
+          |    x = 1 + 5
+          |    y = x.foo 5
+          |    z = y + 5
+          |    z
+          |
+          |Number.foo = x ->
+          |    y = this + 3
+          |    z = y.bar x
+          |    k = "k"
+          |    z
+          |
+          |Number.bar = x ->
+          |    t = this - x
+          |    t
+          |""".stripMargin
+      )
+    )
+    context.send(
+      Api.Request(
+        UUID.randomUUID(),
+        Api.Execute(
+          "Test.Main",
+          "Main",
+          "main",
+          List(idMainY, idFooZ)
+        )
+      )
+    )
     val updates = Set(context.receive, context.receive)
     updates shouldEqual Set(
-      Some(Api.Response(Api.ExpressionValueUpdateNotification(idFooY, "9"))),
-      Some(Api.Response(Api.ExpressionValueUpdateNotification(idFooZ, "45")))
+      Some(
+        Api.Response(
+          Api.ExpressionValueUpdateNotification(
+            idBarT,
+            Some("Number"),
+            Some("4")
+          )
+        )
+      ),
+      None
     )
   }
 }

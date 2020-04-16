@@ -310,7 +310,8 @@ object Runtime {
       */
     case class ExpressionValueUpdateNotification(
       expressionId: ExpressionId,
-      shortValue: String
+      simpleType: Option[String],
+      shortValue: Option[String]
     ) extends ApiResponse
 
     private lazy val mapper = {
