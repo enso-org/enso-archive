@@ -42,6 +42,7 @@ services components, as well as any open questions that may remain.
 - [Protocol Message Specification - Key](#protocol-message-specification---key)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
+    - [`EnsoUUID`](#ensouuid)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Types](#types)
     - [`ProjectMetadata`](#projectmetadata)
@@ -585,6 +586,39 @@ used for transferring large amounts of data between Enso components.
 As the protocol is a binary transport, it is _mediated and controlled_ by
 messages that exist as part of the textual protocol.
 
+In order to deserialize a family of messages and correlate responses with 
+requests, each request/response/notification is wrapped in an envelope object. 
+There is a separate envelope for incoming and outgoing messages:
+
+```idl
+namespace org.enso.languageserver.protocol;
+
+union InboundPayload {
+  SESSION_INIT: org.enso.languageserver.protocol.session.SessionInit
+}
+
+table InboundMessage {
+  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  payload: InboundPayload (required);
+}
+```
+
+```idl
+namespace org.enso.languageserver.protocol;
+
+union OutboundPayload {
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.executioncontext.VisualisationUpdate
+}
+
+table OutboundMessage {
+  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  payload: OutboundPayload (required);
+}
+```
+
 ### Binary Protocol Communication Patterns
 The binary protocol currently only supports a single type of communication
 pattern:
@@ -700,6 +734,20 @@ be supported.
 interface Path {
   rootId: UUID;
   segments: [String];
+}
+```
+
+#### `EnsoUUID`
+An EnsoUUID is a value object containing 128-bit universally unique identifier.
+
+##### Format
+
+```idl
+namespace org.enso.languageserver.protocol.util;
+
+struct EnsoUUID {
+  leastSigBits:uint64;
+  mostSigBits:uint64;
 }
 ```
 
@@ -1243,6 +1291,8 @@ table SessionInit {
 }
 
 table SessionInitResponse {}
+
+root_type SessionInit;
 ```
 
 ##### Result
@@ -1452,15 +1502,6 @@ transport is concerned, it is just a binary blob.
 ##### Parameters
 
 ```idl
-namespace org.enso.languageserver.protocol.util;
-
-struct UUID {
-  leastSigBits:uint64;
-  mostSigBits:uint64;
-}
-```
-
-```idl
 namespace org.enso.languageserver.protocol.executioncontext;
 
 table VisualisationContext {
@@ -1473,6 +1514,8 @@ table VisualisationUpdate {
   visualisationContext: VisualisationContext;
   data: [ubyte];
 }
+
+root_type VisualisationUpdate;
 ```
 
 ##### Errors
