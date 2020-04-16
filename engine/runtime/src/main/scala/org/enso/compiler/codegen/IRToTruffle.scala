@@ -727,15 +727,23 @@ class IRToTruffle(
             throw new CompilerError("No scope attached to a call argument.")
           )
 
-        // Note [Defaulting to Suspension]
-        val shouldSuspendArg =
-          shouldBeSuspended.getOrElse(throw new CompilerError("")) //crash
+        val shouldSuspend =
+          shouldBeSuspended.getOrElse(
+            throw new CompilerError(
+              "Demand analysis information missing from call argument."
+            )
+          )
 
-//        val childScope = scope.createChild(scopeInfo.scope)
+        val childScope = if (shouldSuspend) {
+          scope.createChild(scopeInfo.scope)
+        } else {
+          // Note [Scope Flattening]
+          scope.createChild(scopeInfo.scope, flattenToParent = true)
+        }
 //        val argumentExpression =
 //          new ExpressionProcessor(childScope, scopeName).run(value)
 //
-//        val result = if (shouldSuspendArg) {
+//        val result = if (!shouldSuspend) {
 //          argumentExpression
 //        } else {
 //          val argExpressionIsTail = value
@@ -772,8 +780,13 @@ class IRToTruffle(
         val result = value match {
           // TODO [AA] Need to remove the `flattenToParent` hack
           case term: IR.Application.Force =>
+            println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            println(shouldSuspend)
+            // TODO [AA] Hack to work around runtime rep of function args
             val childScope =
               scope.createChild(scopeInfo.scope, flattenToParent = true)
+
+            // TODO [AA] Fix Alias analysis
             new ExpressionProcessor(childScope, scopeName).run(term.target)
           case _ =>
             val childScope = scope.createChild(scopeInfo.scope)
@@ -815,9 +828,18 @@ class IRToTruffle(
     }
   }
 
-  /* Note [Defaulting to Suspension]
-   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-   * While, in an ideal world
+  /* Note [Scope Flattening]
+   * ~~~~~~~~~~~~~~~~~~~~~~~
+   * Given that we represent _all_ function arguments as thunks at runtime, we
+   * account for this during alias analysis by allocating new scopes for the
+   * function arguments as they are passed. However, in the case of an argument
+   * that is _already_ suspended, we want to pass this directly. However, we do
+   * not have demand information at the point of alias analysis, and so we have
+   * allocated a new scope for it regardless.
+   *
+   * As a result, we flatten that scope back into the parent during codegen to
+   * work around the differences between the semantic meaning of the language
+   * and the runtime representation of function arguments.
    */
 
   // ==========================================================================

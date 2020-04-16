@@ -157,7 +157,7 @@ class CodeLocationsTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    bar = a ~b ~c -> ~b
+        |    bar = a ~b ~c -> b
         |
         |    bar 0 10 0
         |""".stripMargin

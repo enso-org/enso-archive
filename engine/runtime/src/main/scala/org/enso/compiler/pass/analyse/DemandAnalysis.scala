@@ -114,16 +114,14 @@ case object DemandAnalysis extends IRPass {
   ): IR.Expression = {
     val usesLazyTerm = isUsageOfLazy(name)
 
-    if (usesLazyTerm) {
-      if (isInsideApplication && isInsideCallArgument) {
-        name
+    if (isInsideCallArgument) {
+      name
+    } else {
+      if (usesLazyTerm) {
+        IR.Application.Force(name, name.location)
       } else {
-        // TODO [AA]
-//        IR.Application.Force(name, name.location, name.passData)
         name
       }
-    } else {
-      name
     }
   }
 
@@ -188,7 +186,7 @@ case object DemandAnalysis extends IRPass {
         spec.copy(
           value = analyseExpression(
             expr,
-            isInsideApplication  = false,
+            isInsideApplication  = true,
             isInsideCallArgument = true
           ),
           shouldBeSuspended = Some(!isUsageOfLazy(expr))
