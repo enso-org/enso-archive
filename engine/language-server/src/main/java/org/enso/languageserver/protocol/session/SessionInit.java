@@ -15,13 +15,14 @@ public final class SessionInit extends Table {
   public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
   public SessionInit __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public org.enso.languageserver.protocol.util.UUID identifier() { return identifier(new org.enso.languageserver.protocol.util.UUID()); }
-  public org.enso.languageserver.protocol.util.UUID identifier(org.enso.languageserver.protocol.util.UUID obj) { int o = __offset(4); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
+  public org.enso.languageserver.protocol.util.EnsoUUID identifier() { return identifier(new org.enso.languageserver.protocol.util.EnsoUUID()); }
+  public org.enso.languageserver.protocol.util.EnsoUUID identifier(org.enso.languageserver.protocol.util.EnsoUUID obj) { int o = __offset(4); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
 
   public static void startSessionInit(FlatBufferBuilder builder) { builder.startTable(1); }
   public static void addIdentifier(FlatBufferBuilder builder, int identifierOffset) { builder.addStruct(0, identifierOffset, 0); }
   public static int endSessionInit(FlatBufferBuilder builder) {
     int o = builder.endTable();
+    builder.required(o, 4);  // identifier
     return o;
   }
 

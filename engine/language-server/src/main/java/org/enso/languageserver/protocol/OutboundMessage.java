@@ -15,23 +15,22 @@ public final class OutboundMessage extends Table {
   public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
   public OutboundMessage __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public byte payloadType() { int o = __offset(4); return o != 0 ? bb.get(o + bb_pos) : 0; }
-  public Table payload(Table obj) { int o = __offset(6); return o != 0 ? __union(obj, o + bb_pos) : null; }
+  public org.enso.languageserver.protocol.util.EnsoUUID requestId() { return requestId(new org.enso.languageserver.protocol.util.EnsoUUID()); }
+  public org.enso.languageserver.protocol.util.EnsoUUID requestId(org.enso.languageserver.protocol.util.EnsoUUID obj) { int o = __offset(4); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
+  public org.enso.languageserver.protocol.util.EnsoUUID correlationId() { return correlationId(new org.enso.languageserver.protocol.util.EnsoUUID()); }
+  public org.enso.languageserver.protocol.util.EnsoUUID correlationId(org.enso.languageserver.protocol.util.EnsoUUID obj) { int o = __offset(6); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
+  public byte payloadType() { int o = __offset(8); return o != 0 ? bb.get(o + bb_pos) : 0; }
+  public Table payload(Table obj) { int o = __offset(10); return o != 0 ? __union(obj, o + bb_pos) : null; }
 
-  public static int createOutboundMessage(FlatBufferBuilder builder,
-      byte payload_type,
-      int payloadOffset) {
-    builder.startTable(2);
-    OutboundMessage.addPayload(builder, payloadOffset);
-    OutboundMessage.addPayloadType(builder, payload_type);
-    return OutboundMessage.endOutboundMessage(builder);
-  }
-
-  public static void startOutboundMessage(FlatBufferBuilder builder) { builder.startTable(2); }
-  public static void addPayloadType(FlatBufferBuilder builder, byte payloadType) { builder.addByte(0, payloadType, 0); }
-  public static void addPayload(FlatBufferBuilder builder, int payloadOffset) { builder.addOffset(1, payloadOffset, 0); }
+  public static void startOutboundMessage(FlatBufferBuilder builder) { builder.startTable(4); }
+  public static void addRequestId(FlatBufferBuilder builder, int requestIdOffset) { builder.addStruct(0, requestIdOffset, 0); }
+  public static void addCorrelationId(FlatBufferBuilder builder, int correlationIdOffset) { builder.addStruct(1, correlationIdOffset, 0); }
+  public static void addPayloadType(FlatBufferBuilder builder, byte payloadType) { builder.addByte(2, payloadType, 0); }
+  public static void addPayload(FlatBufferBuilder builder, int payloadOffset) { builder.addOffset(3, payloadOffset, 0); }
   public static int endOutboundMessage(FlatBufferBuilder builder) {
     int o = builder.endTable();
+    builder.required(o, 4);  // requestId
+    builder.required(o, 10);  // payload
     return o;
   }
 

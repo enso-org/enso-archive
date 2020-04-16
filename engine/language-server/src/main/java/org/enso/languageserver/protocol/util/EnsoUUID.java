@@ -8,14 +8,14 @@ import java.util.*;
 import com.google.flatbuffers.*;
 
 @SuppressWarnings("unused")
-public final class UUID extends Struct {
+public final class EnsoUUID extends Struct {
   public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
-  public UUID __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
+  public EnsoUUID __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
   public long leastSigBits() { return bb.getLong(bb_pos + 0); }
   public long mostSigBits() { return bb.getLong(bb_pos + 8); }
 
-  public static int createUUID(FlatBufferBuilder builder, long leastSigBits, long mostSigBits) {
+  public static int createEnsoUUID(FlatBufferBuilder builder, long leastSigBits, long mostSigBits) {
     builder.prep(8, 16);
     builder.putLong(mostSigBits);
     builder.putLong(leastSigBits);
@@ -25,8 +25,8 @@ public final class UUID extends Struct {
   public static final class Vector extends BaseVector {
     public Vector __assign(int _vector, int _element_size, ByteBuffer _bb) { __reset(_vector, _element_size, _bb); return this; }
 
-    public UUID get(int j) { return get(new UUID(), j); }
-    public UUID get(UUID obj, int j) {  return obj.__assign(__element(j), bb); }
+    public EnsoUUID get(int j) { return get(new EnsoUUID(), j); }
+    public EnsoUUID get(EnsoUUID obj, int j) {  return obj.__assign(__element(j), bb); }
   }
 }
 

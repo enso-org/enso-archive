@@ -15,12 +15,12 @@ public final class VisualisationContext extends Table {
   public void __init(int _i, ByteBuffer _bb) { __reset(_i, _bb); }
   public VisualisationContext __assign(int _i, ByteBuffer _bb) { __init(_i, _bb); return this; }
 
-  public org.enso.languageserver.protocol.util.UUID visualisationId() { return visualisationId(new org.enso.languageserver.protocol.util.UUID()); }
-  public org.enso.languageserver.protocol.util.UUID visualisationId(org.enso.languageserver.protocol.util.UUID obj) { int o = __offset(4); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
-  public org.enso.languageserver.protocol.util.UUID contextId() { return contextId(new org.enso.languageserver.protocol.util.UUID()); }
-  public org.enso.languageserver.protocol.util.UUID contextId(org.enso.languageserver.protocol.util.UUID obj) { int o = __offset(6); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
-  public org.enso.languageserver.protocol.util.UUID expressionId() { return expressionId(new org.enso.languageserver.protocol.util.UUID()); }
-  public org.enso.languageserver.protocol.util.UUID expressionId(org.enso.languageserver.protocol.util.UUID obj) { int o = __offset(8); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
+  public org.enso.languageserver.protocol.util.EnsoUUID visualisationId() { return visualisationId(new org.enso.languageserver.protocol.util.EnsoUUID()); }
+  public org.enso.languageserver.protocol.util.EnsoUUID visualisationId(org.enso.languageserver.protocol.util.EnsoUUID obj) { int o = __offset(4); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
+  public org.enso.languageserver.protocol.util.EnsoUUID contextId() { return contextId(new org.enso.languageserver.protocol.util.EnsoUUID()); }
+  public org.enso.languageserver.protocol.util.EnsoUUID contextId(org.enso.languageserver.protocol.util.EnsoUUID obj) { int o = __offset(6); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
+  public org.enso.languageserver.protocol.util.EnsoUUID expressionId() { return expressionId(new org.enso.languageserver.protocol.util.EnsoUUID()); }
+  public org.enso.languageserver.protocol.util.EnsoUUID expressionId(org.enso.languageserver.protocol.util.EnsoUUID obj) { int o = __offset(8); return o != 0 ? obj.__assign(o + bb_pos, bb) : null; }
 
   public static void startVisualisationContext(FlatBufferBuilder builder) { builder.startTable(3); }
   public static void addVisualisationId(FlatBufferBuilder builder, int visualisationIdOffset) { builder.addStruct(0, visualisationIdOffset, 0); }
@@ -28,6 +28,9 @@ public final class VisualisationContext extends Table {
   public static void addExpressionId(FlatBufferBuilder builder, int expressionIdOffset) { builder.addStruct(2, expressionIdOffset, 0); }
   public static int endVisualisationContext(FlatBufferBuilder builder) {
     int o = builder.endTable();
+    builder.required(o, 4);  // visualisationId
+    builder.required(o, 6);  // contextId
+    builder.required(o, 8);  // expressionId
     return o;
   }
 

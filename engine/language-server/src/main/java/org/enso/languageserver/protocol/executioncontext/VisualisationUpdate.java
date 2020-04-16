@@ -41,6 +41,8 @@ public final class VisualisationUpdate extends Table {
   public static void startDataVector(FlatBufferBuilder builder, int numElems) { builder.startVector(1, numElems, 1); }
   public static int endVisualisationUpdate(FlatBufferBuilder builder) {
     int o = builder.endTable();
+    builder.required(o, 4);  // visualisationContext
+    builder.required(o, 6);  // data
     return o;
   }
 

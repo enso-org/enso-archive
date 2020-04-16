@@ -9,7 +9,9 @@ union InboundPayload {
 }
 
 table InboundMessage {
-  payload: InboundPayload;
+  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  payload: InboundPayload (required);
 }
 
 union OutboundPayload {
@@ -18,5 +20,7 @@ union OutboundPayload {
 }
 
 table OutboundMessage {
-  payload: OutboundPayload;
+  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  payload: OutboundPayload (required);
 }
