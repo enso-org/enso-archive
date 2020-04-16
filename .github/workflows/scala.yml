@@ -41,6 +41,8 @@ jobs:
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+    - name: Install FlatBuffers flatc
+      run: conda install --revision 1.12.0 flatbuffers
     - name: Set Up SBT
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -121,6 +123,8 @@ jobs:
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+    - name: Install FlatBuffers flatc
+      run: conda install --revision 1.12.0 flatbuffers
     - name: Set Up SBT
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
