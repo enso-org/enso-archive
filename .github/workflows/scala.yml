@@ -47,8 +47,9 @@ jobs:
     - name: Install FlatBuffers Compiler
       run: conda install flatbuffers=1.12.0
     - run: conda list -vv -q flatbuffers
+    - run: dir C:\Miniconda
     - run: dir C:\Miniconda\pkgs
-    - run: flatc
+    - run: dir C:\Miniconda\Scripts
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
