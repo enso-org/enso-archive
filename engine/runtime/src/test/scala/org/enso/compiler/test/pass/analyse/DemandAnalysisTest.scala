@@ -60,13 +60,15 @@ class DemandAnalysisTest extends CompilerTest {
 
   // TODO [AA] The only cases where force needs to be inserted are `a` and
   //  `b = a` (`a -> b -> a`)
+
   "Suspended arguments" should {
     "be forced when assigned" in {
       implicit val ctx: InlineContext =
         InlineContext(localScope = Some(LocalScope.root))
 
       val ir =
-        """~x ~y z ->
+        """
+          |~x ~y z ->
           |    a = x
           |    z
           |""".stripMargin.preprocessExpression.get.analyse
@@ -77,7 +79,8 @@ class DemandAnalysisTest extends CompilerTest {
         InlineContext(localScope = Some(LocalScope.root))
 
       val ir =
-        """~x ->
+        """
+          |~x ->
           |    foo x (y -> bar y x)
           |""".stripMargin
     }

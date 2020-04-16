@@ -740,89 +740,83 @@ class IRToTruffle(
           // Note [Scope Flattening]
           scope.createChild(scopeInfo.scope, flattenToParent = true)
         }
-//        val argumentExpression =
-//          new ExpressionProcessor(childScope, scopeName).run(value)
-//
-//        val result = if (!shouldSuspend) {
-//          argumentExpression
-//        } else {
-//          val argExpressionIsTail = value
-//            .getMetadata[TailCall.Metadata]
-//            .getOrElse(
-//              throw new CompilerError(
-//                "Argument with missing tail call information."
-//              )
-//            )
-//
-//          argumentExpression.setTail(argExpressionIsTail)
-//
-//          val displayName =
-//            s"call_argument<${name.getOrElse(String.valueOf(position))}>"
-//
-//          val section = value.location
-//            .map(loc => source.createSection(loc.start, loc.end))
-//            .orNull
-//
-//          val callTarget = Truffle.getRuntime.createCallTarget(
-//            ClosureRootNode.build(
-//              language,
-//              childScope,
-//              moduleScope,
-//              argumentExpression,
-//              section,
-//              displayName
-//            )
-//          )
-//
-//          CreateThunkNode.build(callTarget)
-//        }
+        val argumentExpression =
+          new ExpressionProcessor(childScope, scopeName).run(value)
 
-        val result = value match {
-          // TODO [AA] Need to remove the `flattenToParent` hack
-          case term: IR.Application.Force =>
-            println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-            println(shouldSuspend)
-            // TODO [AA] Hack to work around runtime rep of function args
-            val childScope =
-              scope.createChild(scopeInfo.scope, flattenToParent = true)
-
-            // TODO [AA] Fix Alias analysis
-            new ExpressionProcessor(childScope, scopeName).run(term.target)
-          case _ =>
-            val childScope = scope.createChild(scopeInfo.scope)
-            val argumentExpression =
-              new ExpressionProcessor(childScope, scopeName).run(value)
-
-            val argExpressionIsTail = value
-              .getMetadata[TailCall.Metadata]
-              .getOrElse(
-                throw new CompilerError(
-                  "Argument with missing tail call information."
-                )
-              )
-
-            argumentExpression.setTail(argExpressionIsTail)
-
-            val displayName =
-              s"call_argument<${name.getOrElse(String.valueOf(position))}>"
-
-            val section = value.location
-              .map(loc => source.createSection(loc.start, loc.end))
-              .orNull
-
-            val callTarget = Truffle.getRuntime.createCallTarget(
-              ClosureRootNode.build(
-                language,
-                childScope,
-                moduleScope,
-                argumentExpression,
-                section,
-                displayName
+        val result = if (!shouldSuspend) {
+          argumentExpression
+        } else {
+          val argExpressionIsTail = value
+            .getMetadata[TailCall.Metadata]
+            .getOrElse(
+              throw new CompilerError(
+                "Argument with missing tail call information."
               )
             )
 
-            CreateThunkNode.build(callTarget)
+          argumentExpression.setTail(argExpressionIsTail)
+
+          val displayName =
+            s"call_argument<${name.getOrElse(String.valueOf(position))}>"
+
+          val section = value.location
+            .map(loc => source.createSection(loc.start, loc.end))
+            .orNull
+
+          val callTarget = Truffle.getRuntime.createCallTarget(
+            ClosureRootNode.build(
+              language,
+              childScope,
+              moduleScope,
+              argumentExpression,
+              section,
+              displayName
+            )
+          )
+
+          CreateThunkNode.build(callTarget)
         }
+
+//        val result = value match {
+//          case term: IR.Application.Force =>
+//            val childScope =
+//              scope.createChild(scopeInfo.scope, flattenToParent = true)
+//            new ExpressionProcessor(childScope, scopeName).run(term.target)
+//          case _ =>
+//            val childScope = scope.createChild(scopeInfo.scope)
+//            val argumentExpression =
+//              new ExpressionProcessor(childScope, scopeName).run(value)
+//
+//            val argExpressionIsTail = value
+//              .getMetadata[TailCall.Metadata]
+//              .getOrElse(
+//                throw new CompilerError(
+//                  "Argument with missing tail call information."
+//                )
+//              )
+//
+//            argumentExpression.setTail(argExpressionIsTail)
+//
+//            val displayName =
+//              s"call_argument<${name.getOrElse(String.valueOf(position))}>"
+//
+//            val section = value.location
+//              .map(loc => source.createSection(loc.start, loc.end))
+//              .orNull
+//
+//            val callTarget = Truffle.getRuntime.createCallTarget(
+//              ClosureRootNode.build(
+//                language,
+//                childScope,
+//                moduleScope,
+//                argumentExpression,
+//                section,
+//                displayName
+//              )
+//            )
+//
+//            CreateThunkNode.build(callTarget)
+//        }
 
         new CallArgument(name.map(_.name).orNull, result)
     }
