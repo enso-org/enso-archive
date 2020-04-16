@@ -2,18 +2,18 @@ import sbt.Keys._
 import sbt._
 import scala.sys.process._
 
-object GenFbs extends AutoPlugin {
+object GenerateFlatbuffers extends AutoPlugin {
   override def requires = sbt.plugins.JvmPlugin
   override def trigger  = allRequirements
 
   object autoImport {
-    val genFbs =
+    val generateFlatbuffers =
       taskKey[Unit]("Run flatc compiler to generate Java classes for schema")
   }
   import autoImport._
 
   override lazy val projectSettings = Seq(
-    genFbs := {
+    generateFlatbuffers := {
       val flatcCmd =
         System.getProperty("os.name").toLowerCase match {
           case mac if mac.contains("mac")       => "bin/flatc/osx/flatc"
