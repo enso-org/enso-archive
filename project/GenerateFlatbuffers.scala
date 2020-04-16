@@ -38,7 +38,8 @@ object GenerateFlatbuffers extends AutoPlugin {
 
   override lazy val projectSettings = Seq(
     generateFlatbuffersTask,
-    compile := (compile in Compile dependsOn generateFlatbuffers).value
+    (compile in Compile) := (compile in Compile dependsOn generateFlatbuffers).value,
+    (compile in Test) := (compile in Test dependsOn generateFlatbuffers).value
   )
 
 }
