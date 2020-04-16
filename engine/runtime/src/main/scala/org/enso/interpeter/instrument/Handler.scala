@@ -55,7 +55,7 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
   * A message handler, dispatching behaviors based on messages received
   * from an instance of [[Endpoint]].
   */
-class Handler {
+final class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
 
@@ -89,6 +89,7 @@ class Handler {
 
     case class CallData(callData: FunctionCall) extends ExecutionItem
   }
+
   private def sendVal(res: ExpressionValue): Unit = {
     endpoint.sendToClient(
       Api.Response(
@@ -101,14 +102,34 @@ class Handler {
     )
   }
 
+  private def sendUpdate(contextId: Api.ContextId, res: ExpressionValue): Unit = {
+    endpoint.sendToClient(
+      Api.Response(
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              res.getExpressionId,
+              OptionConverters.toScala(res.getType),
+              OptionConverters.toScala(res.getValue).map(_.toString),
+              // TODO: method pointer
+              None
+            )
+          )
+        )
+      )
+    )
+  }
+
   @scala.annotation.tailrec
   private def execute(
     executionItem: ExecutionItem,
-    furtherStack: List[UUID]
+    furtherStack: List[UUID],
+    valueCallback: Consumer[ExpressionValue]
   ): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
     val valsCallback: Consumer[ExpressionValue] =
-      if (furtherStack.isEmpty) sendVal else _ => ()
+      if (furtherStack.isEmpty) valueCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       enterables += fun.getExpressionId -> fun.getCall
     executionItem match {
@@ -128,8 +149,10 @@ class Handler {
       case Nil => ()
       case item :: tail =>
         enterables.get(item) match {
-          case Some(call) => execute(ExecutionItem.CallData(call), tail)
-          case None       => ()
+          case Some(call) =>
+            execute(ExecutionItem.CallData(call), tail, valueCallback)
+          case None =>
+            ()
         }
     }
   }
@@ -137,7 +160,22 @@ class Handler {
   private def execute(
     contextId: Api.ContextId,
     stack: List[Api.StackItem]
-  ): Unit = ()
+  ): Unit = {
+    val locals = List.newBuilder[UUID]
+    locals.sizeHint(stack)
+    val calls = List.newBuilder[Api.StackItem.ExplicitCall]
+    stack.foreach {
+      case Api.StackItem.LocalCall(id) =>
+        locals += id
+      case call: Api.StackItem.ExplicitCall =>
+        calls += call
+    }
+    val item = toExecutionItem(calls.result().head)
+    execute(item, locals.result(), sendUpdate(contextId, _))
+  }
+
+  private def toExecutionItem(call: Api.StackItem.ExplicitCall): ExecutionItem =
+    ???
 
   private def withContext(action: => Unit): Unit =
     if (truffleContext ne null) {
@@ -218,6 +256,6 @@ class Handler {
       }
 
     case Api.Request(_, Api.Execute(mod, cons, fun, furtherStack)) =>
-      withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack))
+      withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack, sendVal))
   }
 }
