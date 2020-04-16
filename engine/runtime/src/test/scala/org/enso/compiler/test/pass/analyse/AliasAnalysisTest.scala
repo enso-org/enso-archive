@@ -515,8 +515,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "assign Info.Occurrence to definitions and usages of symbols" in {
-      topLambda.arguments.foreach(
-        arg => arg.getMetadata[Info.Occurrence] shouldBe defined
+      topLambda.arguments.foreach(arg =>
+        arg.getMetadata[Info.Occurrence] shouldBe defined
       )
 
       topLambdaBody.expressions.foreach(
@@ -524,8 +524,8 @@ class AliasAnalysisTest extends CompilerTest {
           .getMetadata[Info.Occurrence] shouldBe defined
       )
 
-      childLambda.arguments.foreach(
-        arg => arg.getMetadata[Info.Occurrence] shouldBe defined
+      childLambda.arguments.foreach(arg =>
+        arg.getMetadata[Info.Occurrence] shouldBe defined
       )
 
       childLambdaBody.function.getMetadata[Info.Occurrence] shouldBe defined
