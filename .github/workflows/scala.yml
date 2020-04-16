@@ -42,7 +42,7 @@ jobs:
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
     - name: Install FlatBuffers flatc
-      run: conda install --revision 1.12.0 flatbuffers
+      run: conda install flatbuffers=1.12.0
     - name: Set Up SBT
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
@@ -124,7 +124,7 @@ jobs:
       with:
         graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
     - name: Install FlatBuffers flatc
-      run: conda install --revision 1.12.0 flatbuffers
+      run: conda install flatbuffers=1.12.0
     - name: Set Up SBT
       run: |
         curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
