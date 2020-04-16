@@ -5,7 +5,6 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
-// TODO [AA] Need to remove the syntax for explicit forces.
 /** This pass implements demand analysis for Enso.
   *
   * Demand analysis is the process of determining _when_ a suspended term needs
