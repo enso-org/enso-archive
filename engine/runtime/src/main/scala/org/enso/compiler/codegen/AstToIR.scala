@@ -377,11 +377,6 @@ object AstToIR {
           translateExpression(context),
           getIdentifiedLocation(callable)
         )
-      case AstView.ForcedTerm(term) =>
-        Application.Force(
-          translateExpression(term),
-          getIdentifiedLocation(callable)
-        )
       case AstView.Application(name, args) =>
         val (validArguments, hasDefaultsSuspended) =
           calculateDefaultsSuspension(args)
