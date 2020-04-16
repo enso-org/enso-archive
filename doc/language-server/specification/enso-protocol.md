@@ -737,6 +737,18 @@ interface Path {
 }
 ```
 
+#### `IPWithSocket`
+Represents an IP socket.
+
+##### Format
+
+```typescript
+interface IPWithSocket {
+  host: String;
+  port: Int;
+}
+```
+
 #### `EnsoUUID`
 An EnsoUUID is a value object containing 128-bit universally unique identifier.
 
