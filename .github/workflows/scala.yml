@@ -42,6 +42,8 @@ jobs:
       with:
         update-conda: true
         conda-channels: anaconda, conda-forge
+    - run: echo ${{ runner }}
+    - run: echo ${{ runner.os }}
     - run: conda --version
     - run: which python
     - run: conda create --name enso
