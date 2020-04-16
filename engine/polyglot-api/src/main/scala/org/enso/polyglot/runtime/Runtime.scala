@@ -66,6 +66,10 @@ object Runtime {
         value = classOf[Api.EmptyStackError],
         name  = "emptyStackError"
       ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.InvalidStackItemError],
+        name  = "invalidStackItemError"
+      ),
       new JsonSubTypes.Type(value = classOf[Api.Execute], name = "execute"),
       new JsonSubTypes.Type(
         value = classOf[Api.InitializedNotification],
@@ -273,6 +277,13 @@ object Runtime {
       * @param contextId the context's id
       */
     case class EmptyStackError(contextId: ContextId) extends Error
+
+    /**
+      * An error response signifying that stack item is invalid.
+      *
+      * @param contextId the context's id
+      */
+    case class InvalidStackItemError(contextId: ContextId) extends Error
 
     /**
       * Notification sent from the server to the client upon successful

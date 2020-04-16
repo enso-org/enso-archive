@@ -134,14 +134,20 @@ class Handler {
     }
   }
 
-  private def withContext(action: => Unit): Unit = {
-    val token = truffleContext.enter()
-    try {
-      action
-    } finally {
-      truffleContext.leave(token)
+  private def execute(
+    contextId: Api.ContextId,
+    stack: List[Api.StackItem]
+  ): Unit = ()
+
+  private def withContext(action: => Unit): Unit =
+    if (truffleContext ne null) {
+      val token = truffleContext.enter()
+      try {
+        action
+      } finally {
+        truffleContext.leave(token)
+      }
     }
-  }
 
   /**
     * Handles a message received from the client.
@@ -168,18 +174,41 @@ class Handler {
       }
 
     case Api.Request(requestId, Api.PushContextRequest(contextId, item)) => {
-      val payload = contextManager.push(contextId, item) match {
-        case Some(()) => Api.PushContextResponse(contextId)
-        case None     => Api.ContextNotExistError(contextId)
+      if (contextManager.get(contextId).isDefined) {
+        val stack = contextManager.getStack(contextId)
+        val payload = item match {
+          case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
+            contextManager.push(contextId, item)
+            withContext(execute(contextId, List(call)))
+            Api.PushContextResponse(contextId)
+          case _: Api.StackItem.LocalCall if stack.nonEmpty =>
+            contextManager.push(contextId, item)
+            withContext(execute(contextId, stack.toList))
+            Api.PushContextResponse(contextId)
+          case _ =>
+            Api.InvalidStackItemError(contextId)
+        }
+        endpoint.sendToClient(Api.Response(requestId, payload))
+      } else {
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.ContextNotExistError(contextId))
+        )
       }
-      endpoint.sendToClient(Api.Response(requestId, payload))
     }
 
     case Api.Request(requestId, Api.PopContextRequest(contextId)) =>
       if (contextManager.get(contextId).isDefined) {
         val payload = contextManager.pop(contextId) match {
-          case Some(_) => Api.PopContextResponse(contextId)
-          case None    => Api.EmptyStackError(contextId)
+          case Some(call: Api.StackItem.ExplicitCall) =>
+            withContext(execute(contextId, List(call)))
+            Api.PopContextResponse(contextId)
+          case Some(_: Api.StackItem.LocalCall) =>
+            withContext(
+              execute(contextId, contextManager.getStack(contextId).toList)
+            )
+            Api.PopContextResponse(contextId)
+          case None =>
+            Api.EmptyStackError(contextId)
         }
         endpoint.sendToClient(Api.Response(requestId, payload))
       } else {
@@ -190,6 +219,5 @@ class Handler {
 
     case Api.Request(_, Api.Execute(mod, cons, fun, furtherStack)) =>
       withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack))
-
   }
 }

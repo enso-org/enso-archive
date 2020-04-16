@@ -1,6 +1,7 @@
 package org.enso.interpreter.test.instrument
 
 import java.nio.ByteBuffer
+import java.nio.file.Paths
 import java.util.UUID
 
 import org.enso.polyglot.runtime.Runtime.Api
@@ -88,6 +89,7 @@ class ContextManagementTest
     val requestId1   = UUID.randomUUID()
     val requestId2   = UUID.randomUUID()
     val requestId3   = UUID.randomUUID()
+    val requestId4   = UUID.randomUUID()
     send(Api.Request(requestId1, Api.CreateContextRequest(contextId)))
     receive shouldEqual Some(
       Api.Response(requestId1, Api.CreateContextResponse(contextId))
@@ -99,11 +101,27 @@ class ContextManagementTest
       )
     )
     receive shouldEqual Some(
-      Api.Response(requestId2, Api.PushContextResponse(contextId))
+      Api.Response(requestId2, Api.InvalidStackItemError(contextId))
     )
-    send(Api.Request(requestId3, Api.PopContextRequest(contextId)))
+    send(
+      Api.Request(
+        requestId3,
+        Api.PushContextRequest(
+          contextId,
+          Api.StackItem.ExplicitCall(
+            Api.MethodPointer(Paths.get(""), "", ""),
+            None,
+            Vector()
+          )
+        )
+      )
+    )
     receive shouldEqual Some(
-      Api.Response(requestId3, Api.PopContextResponse(contextId))
+      Api.Response(requestId3, Api.PushContextResponse(contextId))
+    )
+    send(Api.Request(requestId4, Api.PopContextRequest(contextId)))
+    receive shouldEqual Some(
+      Api.Response(requestId4, Api.PopContextResponse(contextId))
     )
   }
 
