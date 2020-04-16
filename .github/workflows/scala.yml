@@ -48,9 +48,6 @@ jobs:
     - name: Init Windows shell
       if: runner.os == 'Windows'
       run: conda init powershell
-    - name: Init Unix-like shell
-      if: runner.os != 'Windows'
-      run: conda init bash
     - name: Activate enso env
       if: runner.os == 'Windows'
       run: conda activate enso
