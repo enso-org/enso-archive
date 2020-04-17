@@ -42,15 +42,12 @@ jobs:
       with:
         update-conda: true
         conda-channels: anaconda, conda-forge
-    - name: Create enso env
+    - name: Activate Conda Environment on Windows
       if: runner.os == 'Windows'
-      run: conda create --name enso
-    - name: Init Windows shell
-      if: runner.os == 'Windows'
-      run: conda init powershell
-    - name: Activate enso env
-      if: runner.os == 'Windows'
-      run: conda activate enso
+      run: |
+        conda create --name enso
+        conda init powershell
+        conda activate enso
     - name: Install FlatBuffers Compiler
       run: conda install flatbuffers=1.12.0
     - name: Setup GraalVM Environment
@@ -133,20 +130,12 @@ jobs:
     - name: Checkout (Branch)
       uses: actions/checkout@v2
       if: github.event_name != 'pull_request'
-    - name: Setup conda
-      uses: s-weigand/setup-conda@v1
-      with:
-        update-conda: true
-        conda-channels: anaconda, conda-forge
-    - name: Create enso env
+    - name: Activate Conda Environment on Windows
       if: runner.os == 'Windows'
-      run: conda create --name enso
-    - name: Init Windows shell
-      if: runner.os == 'Windows'
-      run: conda init powershell
-    - name: Activate enso env
-      if: runner.os == 'Windows'
-      run: conda activate enso
+      run: |
+        conda create --name enso
+        conda init powershell
+        conda activate enso
     - name: Install FlatBuffers Compiler
       run: conda install flatbuffers=1.12.0
     - name: Setup GraalVM Environment
