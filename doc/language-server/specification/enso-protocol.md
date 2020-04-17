@@ -42,6 +42,7 @@ services components, as well as any open questions that may remain.
 - [Protocol Message Specification - Key](#protocol-message-specification---key)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
+    - [`IPWithSocket`](#ipwithsocket)
     - [`EnsoUUID`](#ensouuid)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Types](#types)
@@ -82,7 +83,6 @@ services components, as well as any open questions that may remain.
     - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
     - [`executionContext/canModify`](#executioncontextcanmodify)
     - [`executionContext/receiveUpdates`](#executioncontextreceiveupdates)
-    - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
   - [File Management Operations](#file-management-operations)
     - [`file/write`](#filewrite)
     - [`file/read`](#fileread)
@@ -122,6 +122,7 @@ services components, as well as any open questions that may remain.
     - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
     - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
     - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
+    - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
   - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
@@ -1285,14 +1286,6 @@ client identifier can be correlated between the data and textual connections.
 - **Visibility:** Public
 
 ##### Parameters
-```idl
-namespace org.enso.languageserver.protocol.util;
-
-struct UUID {
-  leastSigBits:uint64;
-  mostSigBits:uint64;
-}
-```
 
 ```idl
 namespace org.enso.languageserver.protocol.session;
@@ -1496,41 +1489,6 @@ a given execution context.
 
 ##### Disables
 None
-
-#### `executionContext/visualisationUpdate`
-This message is responsible for providing a visualisation data update to the
-client.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Data
-- **Visibility:** Public
-
-The `visualisationData` component of the table definition _must_ be
-pre-serialized before being inserted into this message. As far as this level of
-transport is concerned, it is just a binary blob.
-
-##### Parameters
-
-```idl
-namespace org.enso.languageserver.protocol.executioncontext;
-
-table VisualisationContext {
-  visualisationId: org.enso.languageserver.protocol.util.UUID;
-  contextId: org.enso.languageserver.protocol.util.UUID;
-  expressionId: org.enso.languageserver.protocol.util.UUID;
-}
-
-table VisualisationUpdate {
-  visualisationContext: VisualisationContext;
-  data: [ubyte];
-}
-
-root_type VisualisationUpdate;
-```
-
-##### Errors
-N/A
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
@@ -2604,6 +2562,46 @@ null
 
 ##### Errors
 TBC
+
+#### `executionContext/visualisationUpdate`
+This message is responsible for providing a visualisation data update to the
+client.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Data
+- **Visibility:** Public
+
+The `visualisationData` component of the table definition _must_ be
+pre-serialized before being inserted into this message. As far as this level of
+transport is concerned, it is just a binary blob.
+
+##### Parameters
+
+```idl
+namespace executionContext;
+
+struct UUID {
+  lowBytes:uint64;
+  highBytes:uint64;
+}
+
+struct VisualisationContext {
+  visualisationId:UUID;
+  contextId:UUID;
+  expressionId:UUID;
+}
+
+struct VisualisationUpdate {
+  visualisationContext:VisualisationContext;
+  data:[ubyte];
+}
+
+root_type VisualisationUpdate;
+```
+
+##### Errors
+N/A
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
