@@ -92,6 +92,8 @@ In order to build and run Enso you will need the following tools:
 - [sbt](https://www.scala-sbt.org/) with version at least 1.3.0.
 - [GraalVM](https://www.graalvm.org/) with version at least that described in
   the [`build.sbt`](build.sbt) file, and Java 8, configured as your default JVM.
+- [Flatbuffers Compiler](https://google.github.io/flatbuffers) with version 
+  1.12.0.
 
 Managing multiple JVM installations can be a pain, so some of the team use
 [Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
