@@ -246,8 +246,7 @@ final class Handler {
     case Api.Request(requestId, Api.PopContextRequest(contextId)) =>
       if (contextManager.get(contextId).isDefined) {
         val payload = contextManager.pop(contextId) match {
-          case Some(call: Api.StackItem.ExplicitCall) =>
-            withContext(execute(contextId, List(call)))
+          case Some(_: Api.StackItem.ExplicitCall) =>
             Api.PopContextResponse(contextId)
           case Some(_: Api.StackItem.LocalCall) =>
             withContext(
