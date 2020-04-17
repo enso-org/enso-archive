@@ -189,7 +189,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       } else if (node instanceof ExpressionNode) {
         valueCallback.accept(
             new ExpressionValue(
-                ((ExpressionNode) context.getInstrumentedNode()).getId(),
+                ((ExpressionNode) node).getId(),
                 Types.getName(result),
                 result));
       }
