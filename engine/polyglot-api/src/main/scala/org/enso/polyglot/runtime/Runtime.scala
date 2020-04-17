@@ -1,7 +1,7 @@
 package org.enso.polyglot.runtime
 
+import java.io.File
 import java.nio.ByteBuffer
-import java.nio.file.Path
 import java.util.UUID
 
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
@@ -95,7 +95,7 @@ object Runtime {
     /**
       * A representation of a pointer to a method definition.
       */
-    case class MethodPointer(file: Path, definedOnType: String, name: String)
+    case class MethodPointer(file: File, definedOnType: String, name: String)
 
     /**
       * A representation of an executable position in code.

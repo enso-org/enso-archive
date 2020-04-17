@@ -75,7 +75,7 @@ final class ContextEventsListener(
   private def toRuntimePointer(
     pointer: Api.MethodPointer
   ): Option[MethodPointer] =
-    config.findRelativePath(pointer.file.toFile).map { relativePath =>
+    config.findRelativePath(pointer.file).map { relativePath =>
       MethodPointer(
         file          = relativePath,
         definedOnType = pointer.definedOnType,

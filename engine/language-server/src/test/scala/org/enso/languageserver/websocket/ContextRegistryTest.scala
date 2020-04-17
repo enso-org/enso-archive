@@ -1,6 +1,6 @@
 package org.enso.languageserver.websocket
 
-import java.nio.file.Paths
+import java.io.File
 import java.util.UUID
 
 import io.circe.literal._
@@ -325,7 +325,7 @@ class ContextRegistryTest extends BaseServerTest {
         shortValue     = Some("ShortValue"),
         methodCall = Some(
           Api.MethodPointer(
-            file          = testContentRoot,
+            file          = testContentRoot.toFile,
             definedOnType = "DefinedOnType",
             name          = "Name"
           )
@@ -336,7 +336,7 @@ class ContextRegistryTest extends BaseServerTest {
         expressionType = None,
         shortValue     = None,
         methodCall = Some(
-          Api.MethodPointer(Paths.get("/invalid"), "Invalid", "Invalid")
+          Api.MethodPointer(new File("/invalid"), "Invalid", "Invalid")
         )
       )
       system.eventStream.publish(

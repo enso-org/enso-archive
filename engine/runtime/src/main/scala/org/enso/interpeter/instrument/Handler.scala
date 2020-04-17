@@ -174,7 +174,7 @@ final class Handler {
     call: Api.StackItem.ExplicitCall
   ): ExecutionItem =
     ExecutionItem.Method(
-      call.methodPointer.file.toFile,
+      call.methodPointer.file,
       call.methodPointer.definedOnType,
       call.methodPointer.name
     )

@@ -2,7 +2,7 @@ package org.enso.interpreter.test.instrument
 
 import java.io.File
 import java.nio.ByteBuffer
-import java.nio.file.{Files, Path}
+import java.nio.file.Files
 import java.util.UUID
 
 import org.enso.interpreter.test.Metadata
@@ -60,8 +60,8 @@ class RuntimeServerTest
     )
     executionContext.context.initialize(LanguageInfo.ID)
 
-    def writeMain(contents: String): Path = {
-      Files.write(pkg.mainFile.toPath, contents.getBytes)
+    def writeMain(contents: String): File = {
+      Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
     }
 
     def send(msg: Api.Request): Unit = endPoint.sendBinary(Api.serialize(msg))
