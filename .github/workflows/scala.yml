@@ -42,8 +42,6 @@ jobs:
       with:
         update-conda: true
         conda-channels: anaconda, conda-forge
-    - run: conda --version
-    - run: which python
     - name: Create enso env
       if: runner.os == 'Windows'
       run: conda create --name enso
@@ -55,8 +53,6 @@ jobs:
       run: conda activate enso
     - name: Install FlatBuffers Compiler
       run: conda install flatbuffers=1.12.0
-    - run: which flatc
-    - run: flatc --version
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
@@ -142,8 +138,6 @@ jobs:
       with:
         update-conda: true
         conda-channels: anaconda, conda-forge
-    - run: conda --version
-    - run: which python
     - name: Create enso env
       if: runner.os == 'Windows'
       run: conda create --name enso
@@ -155,7 +149,6 @@ jobs:
       run: conda activate enso
     - name: Install FlatBuffers Compiler
       run: conda install flatbuffers=1.12.0
-    - run: which flatc
     - name: Setup GraalVM Environment
       uses: DeLaGuardo/setup-graalvm@2.0
       with:
