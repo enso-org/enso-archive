@@ -80,7 +80,7 @@ class WatcherAdapterSpec extends AnyFlatSpec with Matchers with Effects {
 
     try {
       // wait until the watcher is started
-      lock.acquire()
+      lock.tryAcquire(Timeout.length, Timeout.unit)
       test(tmp, queue)
     } finally {
       watcher.stop().unsafeRunSync()
