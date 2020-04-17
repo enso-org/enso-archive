@@ -13,14 +13,14 @@ object GenerateFlatbuffers extends AutoPlugin {
   import autoImport._
 
   lazy val generateFlatbuffersTask = generateFlatbuffers := {
-      val flatcCmd =
-        System.getProperty("os.name").toLowerCase match {
-          case mac if mac.contains("mac")       => "flatc"
-          case win if win.contains("win")       => "flatc.exe"
-          case linux if linux.contains("linux") => "flatc"
-          case osName =>
-            throw new RuntimeException(s"Unknown operating system $osName")
-        }
+      val flatcCmd = "flatc"
+//        System.getProperty("os.name").toLowerCase match {
+//          case mac if mac.contains("mac")       => "flatc"
+//          case win if win.contains("win")       => "flatc.exe"
+//          case linux if linux.contains("linux") => "flatc"
+//          case osName =>
+//            throw new RuntimeException(s"Unknown operating system $osName")
+//        }
       val root = baseDirectory.value
       val schemas =
         (file(s"$root/src/main/schema") ** "*.fbs").get
