@@ -88,14 +88,13 @@ public class IdExecutionInstrument extends TruffleInstrument {
       return expressionId;
     }
 
-    @CompilerDirectives.TruffleBoundary
     /** @return the computed type of the expression. */
+    @CompilerDirectives.TruffleBoundary
     public Optional<String> getType() {
       return Optional.ofNullable(type);
     }
 
     /** @return the computed value of the expression. */
-    @CompilerDirectives.TruffleBoundary
     public Object getValue() {
       return value;
     }
