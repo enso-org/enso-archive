@@ -36,7 +36,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     this.env = env;
   }
 
-  /** A value class for notifications about functions being called in the course of execution. */
+  /** A class for notifications about functions being called in the course of execution. */
   public static class ExpressionCall {
     private UUID expressionId;
     private FunctionCallInstrumentationNode.FunctionCall call;
@@ -63,7 +63,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
   }
 
-  /** A value class for notifications about identified expressions' values being computed. */
+  /** A class for notifications about identified expressions' values being computed. */
   public static class ExpressionValue {
     private UUID expressionId;
     private Optional<String> type;
@@ -92,11 +92,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     public ExpressionValue(UUID expressionId, Optional<String> type, Object value) {
       this.expressionId = expressionId;
       this.type = type;
-      if (type.isPresent()) {
-        this.value = Optional.of(value);
-      } else {
-        this.value = Optional.empty();
-      };
+      this.value = type.map(t -> value);
     }
 
     /** @return the id of the expression computed. */

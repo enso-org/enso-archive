@@ -115,12 +115,12 @@ final class Handler {
   @scala.annotation.tailrec
   private def execute(
     executionItem: ExecutionItem,
-    furtherStack: List[UUID],
+    callStack: List[UUID],
     valueCallback: Consumer[ExpressionValue]
   ): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
     val valsCallback: Consumer[ExpressionValue] =
-      if (furtherStack.isEmpty) valueCallback else _ => ()
+      if (callStack.isEmpty) valueCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       enterables += fun.getExpressionId -> fun.getCall
     executionItem match {
@@ -136,7 +136,7 @@ final class Handler {
         executionService.execute(callData, valsCallback, callablesCallback)
     }
 
-    furtherStack match {
+    callStack match {
       case Nil => ()
       case item :: tail =>
         enterables.get(item) match {

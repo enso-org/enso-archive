@@ -71,7 +71,6 @@ class WatcherAdapterSpec extends AnyFlatSpec with Matchers with Effects {
     val queue    = new LinkedBlockingQueue[WatcherEvent]()
     val watcher  = WatcherAdapter.build(tmp, queue.put(_), println(_))
 
-    // start watcher asynchronously
     executor.submit(new Runnable {
       def run(): Unit = {
         lock.release()
