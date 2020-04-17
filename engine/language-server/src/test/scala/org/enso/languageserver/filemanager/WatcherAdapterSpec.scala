@@ -1,7 +1,7 @@
 package org.enso.languageserver.filemanager
 
 import java.nio.file.{Files, Path, Paths}
-import java.util.concurrent.{Executors, LinkedBlockingQueue}
+import java.util.concurrent.{Executors, LinkedBlockingQueue, Semaphore}
 
 import org.apache.commons.io.FileUtils
 import org.enso.languageserver.effect.Effects
@@ -65,17 +65,25 @@ class WatcherAdapterSpec extends AnyFlatSpec with Matchers with Effects {
   def withWatcher(
     test: (Path, LinkedBlockingQueue[WatcherEvent]) => Any
   ): Any = {
+    val lock     = new Semaphore(0)
     val executor = Executors.newSingleThreadExecutor()
     val tmp      = Files.createTempDirectory(null).toRealPath()
     val queue    = new LinkedBlockingQueue[WatcherEvent]()
     val watcher  = WatcherAdapter.build(tmp, queue.put(_), println(_))
 
+    // start watcher asynchronously
     executor.submit(new Runnable {
-      def run() = watcher.start().unsafeRunSync(): Unit
+      def run(): Unit = {
+        lock.release()
+        watcher.start().unsafeRunSync(): Unit
+      }
     })
 
-    try test(tmp, queue)
-    finally {
+    try {
+      // wait until the watcher is started
+      lock.acquire()
+      test(tmp, queue)
+    } finally {
       watcher.stop().unsafeRunSync()
       executor.shutdown()
       Try(executor.awaitTermination(Timeout.length, Timeout.unit))
