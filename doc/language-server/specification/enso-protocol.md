@@ -1212,7 +1212,7 @@ be correlated between the textual and data connections.
 ```
 
 ##### Errors
-- [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal 
+- [`SessionAlreadyInitialisedError`](#sessionalreadyinitialisederror) to signal
 that session is already initialised.
 
 #### `session/initDataConnection`
@@ -2414,10 +2414,12 @@ null
 ```
 
 ##### Errors
-- [`StackItemNotFoundError`](#stackitemnotfounderror) when the request stack
-  item could not be found.
 - [`AccessDeniedError`](#accessdeniederror) when the user does not hold the
   `executionContext/canModify` capability for this context.
+- [`StackItemNotFoundError`](#stackitemnotfounderror) when the request stack
+  item could not be found.
+- [`InvalidStackItemError`](#invalidstackitemerror) when pushing `LocalCall` on
+  top of the empty stack, or pushing `ExplicitCall` on top of non-empty stack.
 
 
 #### `executionContext/pop`
@@ -2675,6 +2677,16 @@ It signals that stack is empty.
 "error" : {
   "code" : 2003,
   "message" : "Stack is empty"
+}
+```
+
+##### `InvalidStackItemError`
+It signals that stack is invalid in this context.
+
+```typescript
+"error" : {
+  "code" : 2004,
+  "message" : "Invalid stack item"
 }
 ```
 
