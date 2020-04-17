@@ -91,18 +91,6 @@ final class Handler {
     case class CallData(callData: FunctionCall) extends ExecutionItem
   }
 
-  private def sendVal(res: ExpressionValue): Unit = {
-    endpoint.sendToClient(
-      Api.Response(
-        Api.ExpressionValueUpdateNotification(
-          res.getExpressionId,
-          OptionConverters.toScala(res.getType),
-          OptionConverters.toScala(res.getValue).map(_.toString)
-        )
-      )
-    )
-  }
-
   private def sendUpdate(
     contextId: Api.ContextId,
     res: ExpressionValue
@@ -164,17 +152,22 @@ final class Handler {
     contextId: Api.ContextId,
     stack: List[Api.StackItem]
   ): Unit = {
-    val locals = List.newBuilder[UUID]
-    locals.sizeHint(stack)
-    val calls = List.newBuilder[Api.StackItem.ExplicitCall]
-    stack.foreach {
-      case Api.StackItem.LocalCall(id) =>
-        locals += id
-      case call: Api.StackItem.ExplicitCall =>
-        calls += call
-    }
-    val item = toExecutionItem(calls.result().head)
-    execute(item, locals.result().reverse, sendUpdate(contextId, _))
+    def unwind(
+      stack: List[Api.StackItem],
+      explicitCalls: List[Api.StackItem.ExplicitCall],
+      localCalls: List[UUID]
+    ): (List[Api.StackItem.ExplicitCall], List[UUID]) =
+      stack match {
+        case Nil =>
+          (explicitCalls, localCalls)
+        case List(call: Api.StackItem.ExplicitCall) =>
+          (List(call), localCalls)
+        case Api.StackItem.LocalCall(id) :: xs =>
+          unwind(xs, explicitCalls, id :: localCalls)
+      }
+    val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
+    val item                        = toExecutionItem(explicitCalls.head)
+    execute(item, localCalls, sendUpdate(contextId, _))
   }
 
   private def toExecutionItem(
@@ -262,14 +255,5 @@ final class Handler {
           Api.Response(requestId, Api.ContextNotExistError(contextId))
         )
       }
-
-    case Api.Request(_, Api.Execute(file, cons, fun, furtherStack)) =>
-      withContext(
-        execute(
-          ExecutionItem.Method(file.toFile, cons, fun),
-          furtherStack,
-          sendVal
-        )
-      )
   }
 }
