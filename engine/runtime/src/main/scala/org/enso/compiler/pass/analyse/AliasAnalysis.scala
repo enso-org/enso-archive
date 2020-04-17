@@ -151,12 +151,13 @@ case object AliasAnalysis extends IRPass {
 
         block
           .copy(
-            expressions = expressions.map((expression: IR.Expression) =>
-              analyseExpression(
-                expression,
-                graph,
-                currentScope
-              )
+            expressions = expressions.map(
+              (expression: IR.Expression) =>
+                analyseExpression(
+                  expression,
+                  graph,
+                  currentScope
+                )
             ),
             returnValue = analyseExpression(
               retVal,
@@ -187,12 +188,13 @@ case object AliasAnalysis extends IRPass {
       case app: IR.Application =>
         analyseApplication(app, graph, parentScope)
       case x =>
-        x.mapExpressions((expression: IR.Expression) =>
-          analyseExpression(
-            expression,
-            graph,
-            parentScope
-          )
+        x.mapExpressions(
+          (expression: IR.Expression) =>
+            analyseExpression(
+              expression,
+              graph,
+              parentScope
+            )
         )
     }
   }
@@ -232,12 +234,13 @@ case object AliasAnalysis extends IRPass {
 
           arg
             .copy(
-              defaultValue = value.map((ir: IR.Expression) =>
-                analyseExpression(
-                  ir,
-                  graph,
-                  scope
-                )
+              defaultValue = value.map(
+                (ir: IR.Expression) =>
+                  analyseExpression(
+                    ir,
+                    graph,
+                    scope
+                  )
               )
             )
             .addMetadata(Info.Occurrence(graph, occurrenceId))
@@ -372,12 +375,13 @@ case object AliasAnalysis extends IRPass {
       case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _) =>
         caseExpr.copy(
           scrutinee = analyseExpression(scrutinee, graph, parentScope),
-          branches = branches.map(branch =>
-            branch.copy(
-              pattern = analyseExpression(branch.pattern, graph, parentScope),
-              expression =
-                analyseExpression(branch.expression, graph, parentScope)
-            )
+          branches = branches.map(
+            branch =>
+              branch.copy(
+                pattern = analyseExpression(branch.pattern, graph, parentScope),
+                expression =
+                  analyseExpression(branch.expression, graph, parentScope)
+              )
           ),
           fallback = fallback.map(analyseExpression(_, graph, parentScope))
         ) //.addMetadata(Info.Scope.Child(graph, currentScope))
@@ -491,8 +495,8 @@ case object AliasAnalysis extends IRPass {
     ): Set[Graph.Link] = {
       val idsForSym = rootScope.symbolToIds[T](symbol)
 
-      links.filter(l =>
-        idsForSym.contains(l.source) || idsForSym.contains(l.target)
+      links.filter(
+        l => idsForSym.contains(l.source) || idsForSym.contains(l.target)
       )
     }
 

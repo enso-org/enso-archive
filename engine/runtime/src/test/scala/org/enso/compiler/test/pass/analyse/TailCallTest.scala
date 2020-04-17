@@ -147,10 +147,11 @@ class TailCallTest extends CompilerTest {
     }
 
     "mark the other expressions in the function as not tail" in {
-      fnBody.expressions.foreach(expr =>
-        expr.getMetadata[TailCall.Metadata] shouldEqual Some(
-          TailPosition.NotTail
-        )
+      fnBody.expressions.foreach(
+        expr =>
+          expr.getMetadata[TailCall.Metadata] shouldEqual Some(
+            TailPosition.NotTail
+          )
       )
     }
   }
@@ -256,19 +257,21 @@ class TailCallTest extends CompilerTest {
         .expression
         .asInstanceOf[IR.Application.Prefix]
         .arguments
-        .foreach(arg =>
-          arg.getMetadata[TailCall.Metadata] shouldEqual Some(
-            TailPosition.Tail
-          )
+        .foreach(
+          arg =>
+            arg.getMetadata[TailCall.Metadata] shouldEqual Some(
+              TailPosition.Tail
+            )
         )
 
       tailCallBody.returnValue
         .asInstanceOf[IR.Application.Prefix]
         .arguments
-        .foreach(arg =>
-          arg.getMetadata[TailCall.Metadata] shouldEqual Some(
-            TailPosition.Tail
-          )
+        .foreach(
+          arg =>
+            arg.getMetadata[TailCall.Metadata] shouldEqual Some(
+              TailPosition.Tail
+            )
         )
     }
 
@@ -311,10 +314,11 @@ class TailCallTest extends CompilerTest {
     }
 
     "mark the block expressions as not tail" in {
-      block.expressions.foreach(expr =>
-        expr.getMetadata[TailCall.Metadata] shouldEqual Some(
-          TailPosition.NotTail
-        )
+      block.expressions.foreach(
+        expr =>
+          expr.getMetadata[TailCall.Metadata] shouldEqual Some(
+            TailPosition.NotTail
+          )
       )
     }
 

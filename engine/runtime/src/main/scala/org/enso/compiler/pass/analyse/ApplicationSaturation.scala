@@ -78,8 +78,9 @@ case class ApplicationSaturation(
 
                     func.copy(
                       arguments = args.map(
-                        _.mapExpressions((ir: IR.Expression) =>
-                          runExpression(ir, inlineContext)
+                        _.mapExpressions(
+                          (ir: IR.Expression) =>
+                            runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + saturationInfo
@@ -88,8 +89,9 @@ case class ApplicationSaturation(
                   } else if (args.length > arity) {
                     func.copy(
                       arguments = args.map(
-                        _.mapExpressions((ir: IR.Expression) =>
-                          runExpression(ir, inlineContext)
+                        _.mapExpressions(
+                          (ir: IR.Expression) =>
+                            runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + CallSaturation.Over(args.length - arity)
@@ -97,8 +99,9 @@ case class ApplicationSaturation(
                   } else {
                     func.copy(
                       arguments = args.map(
-                        _.mapExpressions((ir: IR.Expression) =>
-                          runExpression(ir, inlineContext)
+                        _.mapExpressions(
+                          (ir: IR.Expression) =>
+                            runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + CallSaturation.Partial(
@@ -109,8 +112,8 @@ case class ApplicationSaturation(
                 case None =>
                   func.copy(
                     arguments = args.map(
-                      _.mapExpressions((ir: IR.Expression) =>
-                        runExpression(ir, inlineContext)
+                      _.mapExpressions(
+                        (ir: IR.Expression) => runExpression(ir, inlineContext)
                       )
                     ),
                     passData = meta + CallSaturation.Unknown()
