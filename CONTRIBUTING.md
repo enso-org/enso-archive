@@ -100,7 +100,7 @@ Managing multiple JVM installations can be a pain, so some of the team use
 
 Windows users can download Flatbuffers Compiler 
 [here](https://github.com/google/flatbuffers/releases). On MacOS just type 
-`brew install flatbuffers`. Linux users can install `flatc` via [Conda package 
+`brew install flatbuffers`. Linux users can install `flatc` via the [`conda` package 
 manager](https://conda.io) by typing `conda install flatbuffers=1.12.0`.
 
 
