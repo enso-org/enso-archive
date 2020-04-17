@@ -42,6 +42,8 @@ services components, as well as any open questions that may remain.
 - [Protocol Message Specification - Key](#protocol-message-specification---key)
 - [Protocol Message Specification - Common Types](#protocol-message-specification---common-types)
     - [`Path`](#path)
+    - [`IPWithSocket`](#ipwithsocket)
+    - [`EnsoUUID`](#ensouuid)
 - [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
   - [Types](#types)
     - [`ProjectMetadata`](#projectmetadata)
@@ -81,7 +83,6 @@ services components, as well as any open questions that may remain.
     - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
     - [`executionContext/canModify`](#executioncontextcanmodify)
     - [`executionContext/receiveUpdates`](#executioncontextreceiveupdates)
-    - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
   - [File Management Operations](#file-management-operations)
     - [`file/write`](#filewrite)
     - [`file/read`](#fileread)
@@ -105,7 +106,6 @@ services components, as well as any open questions that may remain.
     - [`text/applyEdit`](#textapplyedit)
     - [`text/didChange`](#textdidchange)
   - [Workspace Operations](#workspace-operations)
-    - [`workspace/connect`](#workspaceconnect)
     - [`workspace/undo`](#workspaceundo)
     - [`workspace/redo`](#workspaceredo)
   - [Monitoring](#monitoring)
@@ -122,6 +122,7 @@ services components, as well as any open questions that may remain.
     - [`executionContext/attachVisualisation`](#executioncontextattachvisualisation)
     - [`executionContext/detachVisualisation`](#executioncontextdetachvisualisation)
     - [`executionContext/modifyVisualisation`](#executioncontextmodifyvisualisation)
+    - [`executionContext/visualisationUpdate`](#executioncontextvisualisationupdate)
   - [Errors - Language Server](#errors---language-server)
 
 <!-- /MarkdownTOC -->
@@ -585,6 +586,39 @@ used for transferring large amounts of data between Enso components.
 As the protocol is a binary transport, it is _mediated and controlled_ by
 messages that exist as part of the textual protocol.
 
+In order to deserialize a family of messages and correlate responses with 
+requests, each request/response/notification is wrapped in an envelope 
+structure. There is a separate envelope for incoming and outgoing messages:
+
+```idl
+namespace org.enso.languageserver.protocol;
+
+union InboundPayload {
+  SESSION_INIT: org.enso.languageserver.protocol.session.SessionInit
+}
+
+table InboundMessage {
+  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  payload: InboundPayload (required);
+}
+```
+
+```idl
+namespace org.enso.languageserver.protocol;
+
+union OutboundPayload {
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.executioncontext.VisualisationUpdate
+}
+
+table OutboundMessage {
+  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  payload: OutboundPayload (required);
+}
+```
+
 ### Binary Protocol Communication Patterns
 The binary protocol currently only supports a single type of communication
 pattern:
@@ -700,6 +734,32 @@ be supported.
 interface Path {
   rootId: UUID;
   segments: [String];
+}
+```
+
+#### `IPWithSocket`
+A IPWithSocket is an endpoint for communication between machines. 
+
+##### Format
+
+```typescript
+interface IPWithSocket {
+  host: String;
+  port: Int;
+}
+```
+
+#### `EnsoUUID`
+An EnsoUUID is a value object containing 128-bit universally unique identifier.
+
+##### Format
+
+```idl
+namespace org.enso.languageserver.protocol.util;
+
+struct EnsoUUID {
+  leastSigBits:uint64;
+  mostSigBits:uint64;
 }
 ```
 
@@ -1228,19 +1288,15 @@ client identifier can be correlated between the data and textual connections.
 ##### Parameters
 
 ```idl
-namespace session;
+namespace org.enso.languageserver.protocol.session;
 
-struct UUID {
-  lowBytes:uint64;
-  highBytes:uint64;
+table SessionInit {
+  identifier: org.enso.languageserver.protocol.util.UUID;
 }
 
-struct Init {
-  identifier:UUID;
-}
+table SessionInitResponse {}
 
-root_type Init;
-
+root_type SessionInit;
 ```
 
 ##### Result
@@ -1433,46 +1489,6 @@ a given execution context.
 
 ##### Disables
 None
-
-#### `executionContext/visualisationUpdate`
-This message is responsible for providing a visualisation data update to the
-client.
-
-- **Type:** Notification
-- **Direction:** Server -> Client
-- **Connection:** Data
-- **Visibility:** Public
-
-The `visualisationData` component of the table definition _must_ be
-pre-serialized before being inserted into this message. As far as this level of
-transport is concerned, it is just a binary blob.
-
-##### Parameters
-
-```idl
-namespace executionContext;
-
-struct UUID {
-  lowBytes:uint64;
-  highBytes:uint64;
-}
-
-struct VisualisationContext {
-  visualisationId:UUID;
-  contextId:UUID;
-  expressionId:UUID;
-}
-
-struct VisualisationUpdate {
-  visualisationContext:VisualisationContext;
-  data:[ubyte];
-}
-
-root_type VisualisationUpdate;
-```
-
-##### Errors
-N/A
 
 ### File Management Operations
 The language server also provides file operations to the IDE.
@@ -2114,32 +2130,6 @@ null
 The language server also has a set of operations useful for managing the client
 workspace.
 
-#### `workspace/connect`
-This is a request sent from the client to the server when it first connects to
-the server process, allowing it to obtain some initial information.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-null
-```
-
-##### Result
-
-```typescript
-{
-  contentRoots: [{id: UUID; absPath: [String]}]
-}
-```
-
-##### Errors
-TBC
-
 #### `workspace/undo`
 This request is sent from the client to the server to request that an operation
 be undone.
@@ -2574,6 +2564,46 @@ null
 
 ##### Errors
 TBC
+
+#### `executionContext/visualisationUpdate`
+This message is responsible for providing a visualisation data update to the
+client.
+
+- **Type:** Notification
+- **Direction:** Server -> Client
+- **Connection:** Data
+- **Visibility:** Public
+
+The `visualisationData` component of the table definition _must_ be
+pre-serialized before being inserted into this message. As far as this level of
+transport is concerned, it is just a binary blob.
+
+##### Parameters
+
+```idl
+namespace executionContext;
+
+struct UUID {
+  lowBytes:uint64;
+  highBytes:uint64;
+}
+
+struct VisualisationContext {
+  visualisationId:UUID;
+  contextId:UUID;
+  expressionId:UUID;
+}
+
+struct VisualisationUpdate {
+  visualisationContext:VisualisationContext;
+  data:[ubyte];
+}
+
+root_type VisualisationUpdate;
+```
+
+##### Errors
+N/A
 
 ### Errors - Language Server
 The language server component also has its own set of errors. This section is
