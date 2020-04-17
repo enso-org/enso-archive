@@ -95,38 +95,26 @@ public class ExecutionService {
    * Executes a method described by its name, constructor it's defined on and the module it's
    * defined in.
    *
-   * @param moduleName the qualified name of the module the method is defined in.
+   * @param modulePath the path to the module where the method is defined.
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
    * @param valueCallback the consumer for expression value events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
-      String moduleName,
+      File modulePath,
       String consName,
       String methodName,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-    Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
-        prepareFunctionCall(moduleName, consName, methodName);
+    Optional<FunctionCallInstrumentationNode.FunctionCall> callMay = context
+      .getModuleNameForFile(modulePath)
+      .flatMap(moduleName -> prepareFunctionCall(moduleName.toString(), consName, methodName));
     if (!callMay.isPresent()) {
       return;
     }
     execute(callMay.get(), valueCallback, funCallCallback);
   }
 
-  public void execute(
-      File path,
-      String consName,
-      String methodName,
-      Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
-      Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
-    throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
-    Optional<QualifiedName> moduleName = context.getModuleNameForFile(path);
-    if (!moduleName.isPresent()) {
-      return;
-    }
-    execute(moduleName.get().toString(), consName, methodName, valueCallback, funCallCallback);
-  }
 }

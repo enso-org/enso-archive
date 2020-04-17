@@ -103,7 +103,7 @@ final class Handler {
             Api.ExpressionValueUpdate(
               res.getExpressionId,
               OptionConverters.toScala(res.getType),
-              OptionConverters.toScala(res.getValue).map(_.toString),
+              Some(res.getValue.toString),
               None
             )
           )
@@ -179,15 +179,14 @@ final class Handler {
       call.methodPointer.name
     )
 
-  private def withContext(action: => Unit): Unit =
-    if (truffleContext ne null) {
-      val token = truffleContext.enter()
-      try {
-        action
-      } finally {
-        truffleContext.leave(token)
-      }
+  private def withContext(action: => Unit): Unit = {
+    val token = truffleContext.enter()
+    try {
+      action
+    } finally {
+      truffleContext.leave(token)
     }
+  }
 
   /**
     * Handles a message received from the client.

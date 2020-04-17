@@ -1,6 +1,7 @@
 package org.enso.interpreter.instrument;
 
 import com.oracle.truffle.api.CallTarget;
+import com.oracle.truffle.api.CompilerDirectives;
 import com.oracle.truffle.api.Truffle;
 import com.oracle.truffle.api.frame.FrameInstance;
 import com.oracle.truffle.api.frame.FrameInstanceVisitor;
@@ -65,9 +66,9 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
   /** A class for notifications about identified expressions' values being computed. */
   public static class ExpressionValue {
-    private UUID expressionId;
-    private Optional<String> type;
-    private Optional<Object> value;
+    private final UUID expressionId;
+    private final String type;
+    private final Object value;
 
     /**
      * Creates a new instance of this class.
@@ -76,23 +77,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param type of the computed expression.
      * @param value the value returned by computing the expression.
      */
-    public ExpressionValue(UUID expressionId, Optional<String> type, Optional<Object> value) {
+    public ExpressionValue(UUID expressionId, String type, Object value) {
       this.expressionId = expressionId;
       this.type = type;
       this.value = value;
-    }
-
-    /**
-     * Creates a new instance of this class.
-     *
-     * @param expressionId the id of the expression being computed.
-     * @param type of the computed expression.
-     * @param value the value returned by computing the expression.
-     */
-    public ExpressionValue(UUID expressionId, Optional<String> type, Object value) {
-      this.expressionId = expressionId;
-      this.type = type;
-      this.value = type.map(t -> value);
     }
 
     /** @return the id of the expression computed. */
@@ -100,12 +88,15 @@ public class IdExecutionInstrument extends TruffleInstrument {
       return expressionId;
     }
 
+    @CompilerDirectives.TruffleBoundary
+    /** @return the computed type of the expression. */
     public Optional<String> getType() {
-      return type;
+      return Optional.ofNullable(type);
     }
 
     /** @return the computed value of the expression. */
-    public Optional<Object> getValue() {
+    @CompilerDirectives.TruffleBoundary
+    public Object getValue() {
       return value;
     }
   }
@@ -190,7 +181,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         valueCallback.accept(
             new ExpressionValue(
                 ((ExpressionNode) node).getId(),
-                Types.getName(result),
+                Types.getName(result).orElse(null),
                 result));
       }
     }

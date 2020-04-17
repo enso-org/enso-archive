@@ -132,10 +132,12 @@ public class Context {
   }
 
   /**
-   * Get module name from the file path.
+   * Guess module name from the file path by comparing it with the source pathes
+   * of imported packages.
    *
    * @param path file path.
-   * @return qualified module name.
+   * @return qualified module name if the function can find imported package
+   * with matching path.
    */
   public Optional<QualifiedName> getModuleNameForFile(File path) {
     return packages.stream()
@@ -145,10 +147,11 @@ public class Context {
   }
 
   /**
-   * Get module from the file path.
+   * Get module from the file path. Function tries to recover module name from
+   * the provided file path.
    *
    * @param path file path.
-   * @return module.
+   * @return module if module name can be guessed from the provided file path.
    */
   public Optional<Module> getModuleForFile(File path) {
     return getModuleNameForFile(path)
