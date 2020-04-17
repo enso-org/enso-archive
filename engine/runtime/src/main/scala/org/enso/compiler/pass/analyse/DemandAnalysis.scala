@@ -144,7 +144,16 @@ case object DemandAnalysis extends IRPass {
       name
     } else {
       if (usesLazyTerm) {
-        IR.Application.Force(name, name.location)
+        val forceLocation   = name.location
+        val newNameLocation = name.location.map(l => l.copy(id = None))
+
+        val newName = name match {
+          case lit: IR.Name.Literal => lit.copy(location  = newNameLocation)
+          case ths: IR.Name.This    => ths.copy(location  = newNameLocation)
+          case here: IR.Name.Here   => here.copy(location = newNameLocation)
+        }
+
+        IR.Application.Force(newName, forceLocation)
       } else {
         name
       }
@@ -287,14 +296,14 @@ case object DemandAnalysis extends IRPass {
     )
 
   /** Performs demand analysis on a case expression.
-   *
-   * @param cse the case expression to perform demand analysis on
-   * @param isInsideApplication whether the case expression occurs inside a
-   *                            function application
-   * @param isInsideCallArgument whether the case expression occurs inside a
-   *                             function call argument
-   * @return `cse`, transformed by the demand analysis process
-   */
+    *
+    * @param cse the case expression to perform demand analysis on
+    * @param isInsideApplication whether the case expression occurs inside a
+    *                            function application
+    * @param isInsideCallArgument whether the case expression occurs inside a
+    *                             function call argument
+    * @return `cse`, transformed by the demand analysis process
+    */
   def analyseCase(
     cse: IR.Case,
     isInsideApplication: Boolean,
@@ -320,10 +329,10 @@ case object DemandAnalysis extends IRPass {
   }
 
   /** Performs demand analysis on a case branch.
-   *
-   * @param branch the case branch to perform demand analysis on
-   * @return `branch`, transformed by the demand analysis process
-   */
+    *
+    * @param branch the case branch to perform demand analysis on
+    * @return `branch`, transformed by the demand analysis process
+    */
   def analyseCaseBranch(branch: IR.Case.Branch): IR.Case.Branch = {
     branch.copy(
       expression = analyseExpression(
