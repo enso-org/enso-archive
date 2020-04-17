@@ -498,7 +498,8 @@ lazy val `language-server` = (project in file("engine/language-server"))
       "org.graalvm.sdk"            % "polyglot-tck" % graalVersion % "provided"
     ),
     testOptions in Test += Tests
-      .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000")
+      .Argument(TestFrameworks.ScalaCheck, "-minSuccessfulTests", "1000"),
+    sourceGenerators in Compile += GenerateFlatbuffers.task
   )
   .configs(Benchmark)
   .settings(

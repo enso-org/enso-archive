@@ -3,11 +3,9 @@ import sbt._
 
 import scala.sys.process._
 
-object GenerateFlatbuffers extends AutoPlugin {
-  override def requires = sbt.plugins.JvmPlugin
-  override def trigger  = allRequirements
+object GenerateFlatbuffers {
 
-  lazy val generateFlatbuffersTask = Def.task {
+  lazy val task = Def.task {
     val flatcCmd = "flatc"
     val root     = baseDirectory.value
     val schemas =
@@ -27,9 +25,5 @@ object GenerateFlatbuffers extends AutoPlugin {
     }
     (out ** "*.java").get
   }
-
-  override lazy val projectSettings = Seq(
-    sourceGenerators in Compile += generateFlatbuffersTask
-  )
 
 }
