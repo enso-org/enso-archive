@@ -63,6 +63,7 @@ class DemandAnalysisTest extends CompilerTest {
 
   "Suspended arguments" should {
     "be forced when assigned" in {
+      pending
       implicit val ctx: InlineContext =
         InlineContext(localScope = Some(LocalScope.root))
 
@@ -75,6 +76,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "work correctly when deeply nested" in {
+      pending
       implicit val ctx: InlineContext =
         InlineContext(localScope = Some(LocalScope.root))
 
@@ -85,66 +87,98 @@ class DemandAnalysisTest extends CompilerTest {
           |""".stripMargin
     }
 
-//    "not be forced when passed to functions" in {
-//      implicit val ctx: InlineContext =
-//        InlineContext(localScope = Some(LocalScope.root))
-//
-//      val code =
-//        """~x ~y z -> foo x y z
-//          |""".stripMargin.preprocessExpression.get.analyse
-//
-//      pending
-//    }
+    "not be forced when passed to functions" in {
+      pending
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
 
-    "be marked as not to suspend during codegen" in {}
+      val ir =
+        """
+          |~x ~y z -> foo x y z
+          |""".stripMargin.preprocessExpression.get.analyse
+    }
+
+    "be marked as not to suspend during codegen when passed to a function" in {
+      pending
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
+
+      val ir =
+        """
+          |~x ~y z -> foo x y z
+          |""".stripMargin.preprocessExpression.get.analyse
+    }
   }
 
   "Non-suspended arguments" should {
-//    "be left alone by demand analysis" in {
-//      implicit val ctx: InlineContext =
-//        InlineContext(localScope = Some(LocalScope.root))
-//
-//      val code =
-//        """x y ->
-//          |  a = x + u
-//          |  foo x a
-//          |""".stripMargin.preprocessExpression.get.analyse
-//
-//      pending
-//    }
+    "be left alone by demand analysis" in {
+      pending
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
 
-    "be marked for suspension during codegen when passed to a function" in {}
+      val ir =
+        """x y ->
+          |  a = x
+          |  foo x a
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      // TODO [AA] Need to check both usages of x
+    }
+
+    "be marked for suspension during codegen when passed to a function" in {
+      pending
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
+
+      val ir =
+        """
+          |x y -> foo x y
+          |""".stripMargin.preprocessExpression.get.analyse
+    }
   }
 
   "Suspended blocks" should {
-    "be forced when assigned" in {}
+    "be forced when used" in {
+      pending
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
 
-    "not be forced when passed to a function" in {}
-  }
+      val ir =
+        """
+          |x ->
+          |    blck =
+          |        foo a b
+          |    test = blck
+          |    blck
+          |""".stripMargin.preprocessExpression.get.analyse
+    }
 
-  "Demand analysis" should {
-//    "work properly on modules" in {
-//      implicit val ctx: InlineContext =
-//        InlineContext(localScope = Some(LocalScope.root))
-//
-//      val code =
-//        """T.foo = ~x y -> this.bar x + y
-//          |
-//          |T.bar = ~x -> IO.println x
-//          |""".stripMargin.preprocessExpression.get.analyse
-//
-//      pending
-//    }
-//
-//    "work properly on expressions" in {
-//      implicit val ctx: InlineContext =
-//        InlineContext(localScope = Some(LocalScope.root))
-//
-//      val code =
-//        """~a ~b c d -> a + b + c + d
-//          |""".stripMargin.preprocessExpression.get.analyse
-//
-//      pending
-//    }
+    "not be forced when passed to a function" in {
+      pending
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
+
+      val ir =
+        """
+          |x ->
+          |    blck =
+          |        foo a b
+          |    bar blck
+          |""".stripMargin.preprocessExpression.get.analyse
+    }
+
+    "be marked as not to suspend during codegen when passed to a function" in {
+      pending
+      implicit val ctx: InlineContext =
+        InlineContext(localScope = Some(LocalScope.root))
+
+      val ir =
+        """
+          |x ->
+          |    blck =
+          |        foo a b
+          |    bar blck
+          |""".stripMargin.preprocessExpression.get.analyse
+    }
   }
 }
