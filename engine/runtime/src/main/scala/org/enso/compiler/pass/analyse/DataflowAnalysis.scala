@@ -38,4 +38,10 @@ case object DataflowAnalysis extends IRPass {
   // === Pass Internals =======================================================
 
   // === Pass Metadata ========================================================
+
+  sealed trait Dependency extends IR.Metadata
+  object Dependency {
+    sealed case class Expression() extends Dependency
+    sealed case class TopScope()   extends Dependency
+  }
 }

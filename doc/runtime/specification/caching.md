@@ -35,6 +35,9 @@ An expression `a` can be any Enso expression, including definitions of dynamic
 symbols. Given that dynamic symbols need not be in scope, care has to be taken
 with registering them properly.
 
+Each expression in the compiler IR is annotated with both the set of expressions
+that depend on it, and the set of expressions that it depends on.
+
 ### Identifying Expressions
 
 > The actionables for this section are:
