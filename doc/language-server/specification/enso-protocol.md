@@ -106,7 +106,6 @@ services components, as well as any open questions that may remain.
     - [`text/applyEdit`](#textapplyedit)
     - [`text/didChange`](#textdidchange)
   - [Workspace Operations](#workspace-operations)
-    - [`workspace/connect`](#workspaceconnect)
     - [`workspace/undo`](#workspaceundo)
     - [`workspace/redo`](#workspaceredo)
   - [Monitoring](#monitoring)
@@ -2172,32 +2171,6 @@ null
 ### Workspace Operations
 The language server also has a set of operations useful for managing the client
 workspace.
-
-#### `workspace/connect`
-This is a request sent from the client to the server when it first connects to
-the server process, allowing it to obtain some initial information.
-
-- **Type:** Request
-- **Direction:** Client -> Server
-- **Connection:** Protocol
-- **Visibility:** Public
-
-##### Parameters
-
-```typescript
-null
-```
-
-##### Result
-
-```typescript
-{
-  contentRoots: [{id: UUID; absPath: [String]}]
-}
-```
-
-##### Errors
-TBC
 
 #### `workspace/undo`
 This request is sent from the client to the server to request that an operation
