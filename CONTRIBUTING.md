@@ -96,7 +96,13 @@ In order to build and run Enso you will need the following tools:
   1.12.0.
 
 Managing multiple JVM installations can be a pain, so some of the team use
-[Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs.
+[Jenv](http://www.jenv.be/): A useful tool for managing multiple JVMs. 
+
+Windows users can download Flatbuffers Compiler 
+[here](https://github.com/google/flatbuffers/releases). On MacOS just type 
+`brew install flatbuffers`. Linux users can install `flatc` via [Conda package 
+manager](https://conda.io) by typing `conda install flatbuffers=1.12.0`.
+
 
 ### Getting the Sources
 Given you've probably been reading this document on GitHub, you might have an
