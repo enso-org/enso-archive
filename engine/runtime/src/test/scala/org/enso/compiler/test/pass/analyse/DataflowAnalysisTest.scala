@@ -5,7 +5,10 @@ import java.util.UUID
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.DependenciesImpl
+import org.enso.compiler.pass.analyse.DataflowAnalysis.{
+  Dependencies,
+  DependenciesImpl
+}
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -167,6 +170,37 @@ class DataflowAnalysisTest extends CompilerTest {
       deps.fold(0) {
         case (num, (_, rStr)) => num + rStr.length
       } shouldEqual (str.length * 3)
+    }
+  }
+
+  "Dataflow metadata for modules" should {
+    "allow users to combine the information from multiple modules" in {
+      val module1 = new Dependencies.Module
+      val module2 = new Dependencies.Module
+
+      val symbol1 = "foo"
+      val symbol2 = "bar"
+      val symbol3 = "baz"
+
+      val symbol1DependentIdsInModule1 = Set(genUUID, genUUID)
+      val symbol2DependentIdsInModule1 = Set(genUUID, genUUID)
+      val symbol1DependentIdsInModule2 = Set(genUUID, genUUID)
+      val symbol3DependentIdsInModule2 = Set(genUUID)
+
+      module1(symbol1) = symbol1DependentIdsInModule1
+      module1(symbol2) = symbol2DependentIdsInModule1
+      module2(symbol1) = symbol1DependentIdsInModule2
+      module2(symbol3) = symbol3DependentIdsInModule2
+
+      val combinedModule = module1 ++ module2
+
+      combinedModule.get(symbol1) shouldBe defined
+      combinedModule.get(symbol2) shouldBe defined
+      combinedModule.get(symbol3) shouldBe defined
+
+      combinedModule(symbol1) shouldEqual (symbol1DependentIdsInModule1 ++ symbol1DependentIdsInModule2)
+      combinedModule(symbol2) shouldEqual symbol2DependentIdsInModule1
+      combinedModule(symbol3) shouldEqual symbol3DependentIdsInModule2
     }
   }
 

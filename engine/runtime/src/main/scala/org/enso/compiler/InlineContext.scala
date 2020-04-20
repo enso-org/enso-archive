@@ -1,5 +1,6 @@
 package org.enso.compiler
 
+import org.enso.compiler.pass.analyse.DataflowAnalysis
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** A type containing the information about the execution context for an inline

@@ -3,7 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Identifier
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{analyse, IRPass}
 
 import scala.collection.mutable
 
@@ -24,16 +24,27 @@ case object DataflowAnalysis extends IRPass {
     * @param ir the Enso IR to process
     * @return `ir`, annotated with data dependency information
     */
-  override def runModule(ir: IR.Module): IR.Module = ir
+  override def runModule(ir: IR.Module): IR.Module = {
+    val moduleDepInfo = new Dependencies.Module
 
-  // TODO [AA] Work out how the expression flow can update the module and
-  //  function metadata.
-  /** Executes the dataflow analysis process on an Enso module.
+    ir.copy(
+        bindings =
+          ir.bindings.map(d => analyseModuleDefinition(d, moduleDepInfo))
+      )
+      .addMetadata(moduleDepInfo)
+  }
+
+  // TODO [AA] Maybe make this work for the hell of it -> if the context is
+  //  there it should just work.
+  /** A no-op.
+    *
+    * At the current time we do not support caching in the inline expression
+    * flow, and hence this pass doesn't run in the expression flow.
     *
     * @param ir the Enso IR to process
     * @param inlineContext a context object that contains the information needed
     *                      for inline evaluation
-    * @return `ir`, annotated with data dependency information
+    * @return `ir`
     */
   override def runExpression(
     ir: IR.Expression,
@@ -41,6 +52,27 @@ case object DataflowAnalysis extends IRPass {
   ): IR.Expression = ir
 
   // === Pass Internals =======================================================
+
+  def analyseModuleDefinition(
+    binding: IR.Module.Scope.Definition,
+    moduleDepInfo: Dependencies.Module
+  ): IR.Module.Scope.Definition = {
+    binding match {
+      case atom: IR.Module.Scope.Definition.Atom => atom
+      case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
+        val functionDepInfo = new Dependencies.Function
+        m.copy(body = analyseExpression(body, moduleDepInfo, functionDepInfo))
+    }
+  }
+
+  // TODO [AA] Which nodes should get the `functionDepInfo`?
+  def analyseExpression(
+    expression: IR.Expression,
+    moduleDepInfo: Dependencies.Module,
+    functionDepInfo: Dependencies.Function
+  ): IR.Expression = {
+    expression
+  }
 
   // === Pass Metadata ========================================================
 
@@ -103,6 +135,24 @@ case object DataflowAnalysis extends IRPass {
         f: (String, Set[Identifier]) => Boolean
       ): DependenciesImpl[String, Set[Identifier]] =
         new Module(dependencies.filter(f.tupled))
+
+      /** Combines the analysis results for two modules.
+       *
+       * @param that the other module result to combine with `this`
+       * @return the result of combining `this` and `that`
+       */
+      def ++(that: Module): Module = {
+        val combinedModule = new Module(this.dependencies)
+
+        for ((key, value) <- that.dependencies) {
+          combinedModule.get(key) match {
+            case Some(xs) => combinedModule(key) = value ++ xs
+            case None     => combinedModule(key) = value
+          }
+        }
+
+        combinedModule
+      }
     }
   }
 
