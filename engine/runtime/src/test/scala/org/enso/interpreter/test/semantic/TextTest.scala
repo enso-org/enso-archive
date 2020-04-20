@@ -13,6 +13,17 @@ class TextTest extends InterpreterTest {
     consumeOut shouldEqual List("hello world!")
   }
 
+  "Single line interpolated literals" should "exist in the language" in {
+    val code =
+      """
+        |main =
+        |    w = "World"
+        |    IO.println 'Hello, `w`!'
+        |""".stripMargin
+    eval(code)
+    consumeOut shouldEqual List("Hello, World!")
+  }
+
   "Block raw text literals" should "exist in the language" in {
     val code =
       s"""

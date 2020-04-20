@@ -18,6 +18,7 @@ import org.enso.interpreter.node.expression.builtin.number.SubtractNode;
 import org.enso.interpreter.node.expression.builtin.state.GetStateNode;
 import org.enso.interpreter.node.expression.builtin.state.PutStateNode;
 import org.enso.interpreter.node.expression.builtin.state.RunStateNode;
+import org.enso.interpreter.node.expression.builtin.text.ConcatNode;
 import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
@@ -26,6 +27,7 @@ import org.enso.pkg.QualifiedName;
 /** Container class for static predefined atoms, methods, and their containing scope. */
 public class Builtins {
   public static final String MODULE_NAME = "Builtins";
+  public static final String STRING_CONCAT_METHOD = "+";
 
   /** Container for method names needed outside this class. */
   public static class MethodNames {
@@ -105,6 +107,8 @@ public class Builtins {
     scope.registerMethod(debug, "breakpoint", DebugBreakpointNode.makeFunction(language));
 
     scope.registerMethod(function, "call", ExplicitCallFunctionNode.makeFunction(language));
+
+    scope.registerMethod(text, STRING_CONCAT_METHOD, ConcatNode.makeFunction(language));
   }
 
   /**

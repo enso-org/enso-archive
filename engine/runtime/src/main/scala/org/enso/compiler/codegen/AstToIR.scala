@@ -5,6 +5,7 @@ import cats.implicits._
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
+import org.enso.interpreter.runtime.Builtins
 import org.enso.syntax.text.AST
 
 // FIXME [AA] All places where we currently throw a `RuntimeException` should
@@ -273,8 +274,42 @@ object AstToIR {
             Literal.Text(fullString, getIdentifiedLocation(literal))
           case AST.Literal.Text.Block.Fmt(_, _, _) =>
             throw new RuntimeException("Format strings not yet supported")
-          case AST.Literal.Text.Line.Fmt(_) =>
-            throw new RuntimeException("Format strings not yet supported")
+          case AST.Literal.Text.Line.Fmt(segments) =>
+            val litSegs = segments.collect {
+              case AST.Literal.Text.Segment.Plain(str) => Left(str)
+              case AST.Literal.Text.Segment.Esc(code)  => Left(code.repr)
+              case AST.Literal.Text.Segment.Expr(Some(expr)) =>
+                Right(translateExpression(expr))
+            }
+            def consolidate(
+              segments: List[Either[String, Expression]]
+            ): List[Expression] = {
+              val (nonExprs, exprs) = segments.span(_.isLeft)
+              val nonExprsString = Literal.Text(nonExprs.collect {
+                case Left(str) => str
+              }.mkString, None)
+              exprs match {
+                case Right(expr) :: rest =>
+                  nonExprsString :: expr :: consolidate(rest)
+                case _ => List(nonExprsString)
+              }
+            }
+            val exprs = consolidate(litSegs)
+            exprs match {
+              case Nil => Literal.Text("", getIdentifiedLocation(literal))
+              case first :: rest =>
+                rest.foldLeft(first)((str, expr) =>
+                  Application.Prefix(
+                    Name.Literal(Builtins.STRING_CONCAT_METHOD, None),
+                    List(
+                      CallArgument.Specified(None, str, None),
+                      CallArgument.Specified(None, expr, None)
+                    ),
+                    false,
+                    None
+                  )
+                )
+            }
           case _ =>
             throw new UnhandledEntity(literal.shape, "translateLiteral")
         }
