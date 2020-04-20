@@ -4,6 +4,9 @@ import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
+// TODO [AA] Every name needs an internal ID, including dynamic symbols.
+// TODO [AA] For dynamic symbols do we want to have separate IDs and a mapping
+//  of all IDs for a given symbol? (probably, gives us finer-grained control)
 /** This pass implements dataflow analysis for Enso.
   *
   * Dataflow analysis is the processes of determining the dependencies between
@@ -23,6 +26,7 @@ case object DataflowAnalysis extends IRPass {
     */
   override def runModule(ir: IR.Module): IR.Module = ir
 
+  // TODO [AA] Work out how the expression flow can update the module metadata.
   /** Executes the dataflow analysis process on an Enso module.
     *
     * @param ir the Enso IR to process
@@ -37,11 +41,16 @@ case object DataflowAnalysis extends IRPass {
 
   // === Pass Internals =======================================================
 
+
+
   // === Pass Metadata ========================================================
 
-  sealed trait Dependency extends IR.Metadata
-  object Dependency {
-    sealed case class Expression() extends Dependency
-    sealed case class TopScope()   extends Dependency
-  }
+  // TODO [AA] Some way of identifying things. Note, this pass doesn't attempt
+  //  to deal with the fact that IDs change on code update.
+  // TODO [AA] Need to produce global data.
+  //  - Function Body, global symbol
+  //  - Two types of metadata (one global attached to modules, and one local
+  //    attached to functions)
+  //  - Interdependent global symbols as a problem
+
 }

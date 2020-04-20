@@ -401,14 +401,18 @@ case object AliasAnalysis extends IRPass {
         *
         * @param graph the graph containing the alias information for that node
         */
-      sealed case class Root(graph: Graph) extends Scope
+      sealed case class Root(graph: Graph) extends Scope {
+        override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
+      }
 
       /** Aliasing information about a child scope.
         *
         * @param graph the graph
         * @param scope the child scope in `graph`
         */
-      sealed case class Child(graph: Graph, scope: Graph.Scope) extends Scope
+      sealed case class Child(graph: Graph, scope: Graph.Scope) extends Scope {
+        override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
+      }
     }
 
     /** Aliasing information for a piece of [[IR]] that is contained within a
@@ -417,7 +421,9 @@ case object AliasAnalysis extends IRPass {
       * @param graph the graph in which this IR node can be found
       * @param id the identifier of this IR node in `graph`
       */
-    sealed case class Occurrence(graph: Graph, id: Graph.Id) extends Info
+    sealed case class Occurrence(graph: Graph, id: Graph.Id) extends Info {
+      override val metadataName: String = "AliasAnalysis.Info.Occurrence"
+    }
   }
 
   /** A graph containing aliasing information for a given root scope in Enso. */

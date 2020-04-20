@@ -78,9 +78,8 @@ case class ApplicationSaturation(
 
                     func.copy(
                       arguments = args.map(
-                        _.mapExpressions(
-                          (ir: IR.Expression) =>
-                            runExpression(ir, inlineContext)
+                        _.mapExpressions((ir: IR.Expression) =>
+                          runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + saturationInfo
@@ -89,9 +88,8 @@ case class ApplicationSaturation(
                   } else if (args.length > arity) {
                     func.copy(
                       arguments = args.map(
-                        _.mapExpressions(
-                          (ir: IR.Expression) =>
-                            runExpression(ir, inlineContext)
+                        _.mapExpressions((ir: IR.Expression) =>
+                          runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + CallSaturation.Over(args.length - arity)
@@ -99,9 +97,8 @@ case class ApplicationSaturation(
                   } else {
                     func.copy(
                       arguments = args.map(
-                        _.mapExpressions(
-                          (ir: IR.Expression) =>
-                            runExpression(ir, inlineContext)
+                        _.mapExpressions((ir: IR.Expression) =>
+                          runExpression(ir, inlineContext)
                         )
                       ),
                       passData = meta + CallSaturation.Partial(
@@ -112,8 +109,8 @@ case class ApplicationSaturation(
                 case None =>
                   func.copy(
                     arguments = args.map(
-                      _.mapExpressions(
-                        (ir: IR.Expression) => runExpression(ir, inlineContext)
+                      _.mapExpressions((ir: IR.Expression) =>
+                        runExpression(ir, inlineContext)
                       )
                     ),
                     passData = meta + CallSaturation.Unknown()
@@ -153,11 +150,26 @@ object ApplicationSaturation {
   /** Describes the saturation state of a function application. */
   sealed trait CallSaturation extends IR.Metadata
   object CallSaturation {
-    sealed case class Over(additionalArgCount: Int)   extends CallSaturation
-    sealed case class Exact(helper: CodegenHelper)    extends CallSaturation
-    sealed case class ExactButByName()                extends CallSaturation
-    sealed case class Partial(unappliedArgCount: Int) extends CallSaturation
-    sealed case class Unknown()                       extends CallSaturation
+    sealed case class Over(additionalArgCount: Int) extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Over"
+    }
+    sealed case class Exact(helper: CodegenHelper) extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Exact"
+    }
+    sealed case class ExactButByName() extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.ExactButByName"
+    }
+    sealed case class Partial(unappliedArgCount: Int) extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Partial"
+    }
+    sealed case class Unknown() extends CallSaturation {
+      override val metadataName: String =
+        "ApplicationSaturation.CallSaturation.Unknown"
+    }
   }
 
   /** A description of a known function

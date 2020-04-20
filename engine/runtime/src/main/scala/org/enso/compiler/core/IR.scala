@@ -44,13 +44,13 @@ sealed trait IR {
 
   // TODO [AA] Use this throughout the passes
   /** Gets the metadata of the given type from the node, throwing a fatal
-   * compiler error with the specified message if it doesn't exist
-   *
-   * @param message the message to throw on error
-   * @tparam T the type of the metadata to be obtained
-   * @return the requested metadata
-   */
-  def unsafeGetMetadata[T <: IR.Metadata : ClassTag](message: String): T = {
+    * compiler error with the specified message if it doesn't exist
+    *
+    * @param message the message to throw on error
+    * @tparam T the type of the metadata to be obtained
+    * @return the requested metadata
+    */
+  def unsafeGetMetadata[T <: IR.Metadata: ClassTag](message: String): T = {
     this.getMetadata[T].getOrElse(throw new CompilerError(message))
   }
 
@@ -96,7 +96,6 @@ object IR {
       */
     def length: Int = location.length
   }
-
   object IdentifiedLocation {
 
     /**
@@ -128,6 +127,14 @@ object IR {
     }
 
     override def mapExpressions(fn: Expression => Expression): Empty = this
+
+    override def toString: String =
+      s"""
+      |IR.Empty(
+      |location = $location,
+      |passData = ${this.showPassData}
+      |)
+      |""".toSingleLine
   }
 
   // === Module ===============================================================
@@ -167,6 +174,16 @@ object IR {
         bindings = bindings.map(_.mapExpressions(_.transformExpressions(fn)))
       )
     }
+
+    override def toString: String =
+      s"""
+      |IR.Module(
+      |imports = $imports,
+      |bindings = $bindings,
+      |location = $location,
+      |passData = ${this.showPassData}
+      |)
+      |""".toSingleLine
   }
   object Module {
 
@@ -196,6 +213,15 @@ object IR {
         }
 
         override def mapExpressions(fn: Expression => Expression): Import = this
+
+        override def toString: String =
+          s"""
+             |IR.Module.Scope.Import(
+             |name = $name,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |)
+             |""".toSingleLine
       }
 
       /** A representation of top-level definitions. */
@@ -229,6 +255,16 @@ object IR {
               arguments = arguments.map(_.mapExpressions(fn))
             )
           }
+
+          override def toString: String =
+            s"""
+               |IR.Module.Scope.Definition.Atom(
+               |name = $name,
+               |arguments = $arguments,
+               |location = $location,
+               |passData = ${this.showPassData}
+               |)
+               |""".toSingleLine
         }
 
         /** The definition of a method for a given constructor [[typeName]].
@@ -261,6 +297,17 @@ object IR {
               body       = fn(body)
             )
           }
+
+          override def toString: String =
+            s"""
+               |IR.Module.Scope.Definition.Method(
+               |typeName = $typeName,
+               |methodName = $methodName,
+               |body = $body,
+               |location = $location,
+               |passData = ${this.showPassData}
+               |)
+               |""".toSingleLine
         }
       }
     }
@@ -318,6 +365,17 @@ object IR {
           returnValue = fn(returnValue)
         )
       }
+
+      override def toString: String =
+        s"""
+           |IR.Expression.Block(
+           |expressions = $expressions,
+           |returnValue = $returnValue,
+           |location = $location,
+           |suspended = $suspended,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** A binding expression of the form `name = expr`
@@ -341,6 +399,16 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Binding = {
         copy(name = name.mapExpressions(fn), expression = fn(expression))
       }
+
+      override def toString: String =
+        s"""
+           |IR.Expression.Binding(
+           |name = $name,
+           |expression = $expression,
+           |location = $location
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
   }
 
@@ -369,6 +437,14 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): Number = this
+
+      override def toString: String =
+        s"""IR.Literal.Number(
+           |value = $value,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** A textual Enso literal.
@@ -387,6 +463,15 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): Text = this
+
+      override def toString: String =
+        s"""
+           |IR.Literal.String(
+           |text = $text,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
   }
 
@@ -417,6 +502,15 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): Literal = this
+
+      override def toString: String =
+        s"""
+           |IR.Name.Literal(
+           |name = $name,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** A representation of the name `this`, used to refer to the current type.
@@ -435,6 +529,14 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): This = this
+
+      override def toString: String =
+        s"""
+           |IR.Name.This(
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** A representation of the name `here`, used to refer to the current
@@ -454,6 +556,13 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): Here = this
+
+      override def toString: String =
+        s"""IR.Name.Here(
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
   }
 
@@ -492,6 +601,15 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Ascription = {
         copy(typed = fn(typed), signature = fn(signature))
       }
+
+      override def toString: String =
+        s"""IR.Type.Ascription(
+           |typed = $typed,
+           |signature = $signature,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".stripMargin
     }
     object Ascription extends Info {
       override val name: String = ":"
@@ -519,6 +637,15 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Context = {
         copy(typed = fn(typed), context = fn(context))
       }
+
+      override def toString: String =
+        s"""IR.Type.Context(
+           |typed = $typed,
+           |context = $context,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
     object Context extends Info {
       override val name: String = "in"
@@ -558,6 +685,17 @@ object IR {
             value      = fn(value)
           )
         }
+
+        override def toString: String =
+          s"""
+             |IR.Type.Set.Member(
+             |label = $label,
+             |memberType = $memberType,
+             |value = $value,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |)
+             |""".toSingleLine
       }
       object Member extends Info {
         override val name: String = "_ : _ = _"
@@ -586,6 +724,15 @@ object IR {
         ): Subsumption = {
           copy(left = fn(left), right = fn(right))
         }
+
+        override def toString: String =
+          s"""
+             |IR.Type.Set.Subsumption(
+             |left = $left,
+             |right = $right,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |""".toSingleLine
       }
       object Subsumption extends Info {
         override val name: String = "<:"
@@ -612,6 +759,15 @@ object IR {
         override def mapExpressions(fn: Expression => Expression): Equality = {
           copy(left = fn(left), right = fn(right))
         }
+
+        override def toString: String =
+          s"""
+             |IR.Type.Set.Equality(
+             |left = $left,
+             |right = $right,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |""".toSingleLine
       }
       object Equality extends Info {
         override val name: String = "~"
@@ -638,6 +794,15 @@ object IR {
         override def mapExpressions(fn: Expression => Expression): Concat = {
           copy(left = fn(left), right = fn(right))
         }
+
+        override def toString: String =
+          s"""
+             |IR.Type.Set.Concat(
+             |left = $left,
+             |right = $right,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |""".toSingleLine
       }
       object Concat extends Info {
         override val name: String = ","
@@ -664,6 +829,15 @@ object IR {
         override def mapExpressions(fn: Expression => Expression): Union = {
           copy(left = fn(left), right = fn(right))
         }
+
+        override def toString: String =
+          s"""
+             |IR.Type.Set.Ubion(
+             |left = $left,
+             |right = $right,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |""".toSingleLine
       }
       object Union extends Info {
         override val name: String = "|"
@@ -692,6 +866,15 @@ object IR {
         ): Intersection = {
           copy(left = fn(left), right = fn(right))
         }
+
+        override def toString: String =
+          s"""
+             |IR.Type.Set.Intersection(
+             |left = $left,
+             |right = $right,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |""".toSingleLine
       }
       object Intersection extends Info {
         override val name: String = "&"
@@ -720,6 +903,15 @@ object IR {
         ): Subtraction = {
           copy(left = fn(left), right = fn(right))
         }
+
+        override def toString: String =
+          s"""
+             |IR.Type.Set.Subtraction(
+             |left = $left,
+             |right = $right,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |""".toSingleLine
       }
       object Subtraction extends Info {
         override val name: String = "\\"
@@ -781,6 +973,17 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Lambda = {
         copy(arguments = arguments.map(_.mapExpressions(fn)), body = fn(body))
       }
+
+      override def toString: String =
+        s"""
+           |IR.Function.Lambda(
+           |arguments = $arguments,
+           |body = $body,
+           |location = $location,
+           |canBeTCO = $canBeTCO,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
   }
 
@@ -825,6 +1028,17 @@ object IR {
           defaultValue = defaultValue.map(fn)
         )
       }
+
+      override def toString: String =
+        s"""
+           |IR.DefinitionArgument.Specified(
+           |name = $name,
+           |defaultValue = $defaultValue,
+           |suspended = $suspended,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     // TODO [AA] Add support for `_` ignored arguments.
@@ -863,6 +1077,17 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Prefix = {
         copy(function = fn(function), arguments.map(_.mapExpressions(fn)))
       }
+
+      override def toString: String =
+        s"""
+           |IR.Application.Prefix(
+           |function = $function,
+           |arguments = $arguments,
+           |hasDefaultsSuspended = $hasDefaultsSuspended,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** A representation of a term that is explicitly forced.
@@ -884,6 +1109,15 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Force = {
         copy(target = fn(target))
       }
+
+      override def toString: String =
+        s"""
+           |IR.Application.Force(
+           |target = $target,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** Operator applications in Enso. */
@@ -916,6 +1150,17 @@ object IR {
         override def mapExpressions(fn: Expression => Expression): Binary = {
           copy(left = fn(left), right = fn(right))
         }
+
+        override def toString: String =
+          s"""
+             |IR.Application.Operator.Binary(
+             |left = $left,
+             |operator = $operator,
+             |right = $right,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |)
+             |""".toSingleLine
       }
     }
 
@@ -968,6 +1213,17 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Specified = {
         copy(name = name.map(n => n.mapExpressions(fn)), value = fn(value))
       }
+
+      override def toString: String =
+        s"""
+           |IR.CallArgument.Specified(
+           |name = $name,
+           |value = $value,
+           |location = $location,
+           |shouldBeSuspended = $shouldBeSuspended,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     // TODO [AA] Add support for the `_` lambda shorthand argument (can be
@@ -1010,6 +1266,17 @@ object IR {
           fallback.map(fn)
         )
       }
+
+      override def toString: String =
+        s"""
+           |IR.Case.Expr(
+           |scutinee = $scrutinee,
+           |branches = $branches,
+           |fallback = $fallback,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** A branch in a case statement.
@@ -1033,6 +1300,16 @@ object IR {
       override def mapExpressions(fn: Expression => Expression): Branch = {
         copy(pattern = fn(pattern), expression = fn(expression))
       }
+
+      override def toString: String =
+        s"""
+           |IR.Case.Branch(
+           |pattern = $pattern,
+           |expression = $expression,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** The different types of patterns that can occur in a match. */
@@ -1080,6 +1357,16 @@ object IR {
       ): Documentation = {
         copy(commented = fn(commented))
       }
+
+      override def toString: String =
+        s"""
+           |IR.Comment.Documentation(
+           |commented = $commented,
+           |doc = $doc,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
   }
 
@@ -1112,6 +1399,16 @@ object IR {
 
       override def mapExpressions(fn: Expression => Expression): Definition =
         this
+
+      override def toString: String =
+        s"""
+           |IR.Foreign.Definition(
+           |lang = $lang,
+           |code = $code,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
   }
 
@@ -1158,6 +1455,15 @@ object IR {
       }
 
       override def mapExpressions(fn: Expression => Expression): Syntax = this
+
+      override def toString: String =
+        s"""
+           |IR.Error.Syntax(
+           |ast = $ast,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** A representation of an invalid piece of IR.
@@ -1179,6 +1485,15 @@ object IR {
 
       override def mapExpressions(fn: Expression => Expression): InvalidIR =
         this
+
+      override def toString: String =
+        s"""
+           |IR.Error.InvalidIR(
+           |ir = $ir,
+           |location = $location,
+           |passData = ${this.showPassData}
+           |)
+           |""".toSingleLine
     }
 
     /** Errors pertaining to the redefinition of language constructs that are
@@ -1210,6 +1525,15 @@ object IR {
         override def mapExpressions(
           fn: Expression => Expression
         ): Argument = this
+
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.Argument(
+             |invalidArgDef = $invalidArgDef,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |)
+             |""".toSingleLine
       }
 
       /** An error representing the redefinition of a binding in a given scope.
@@ -1235,6 +1559,15 @@ object IR {
 
         override def mapExpressions(fn: Expression => Expression): Binding =
           this
+
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.Binding(
+             |invalidBinding = $invalidBinding,
+             |location = $location,
+             |passData = ${this.showPassData}
+             |)
+             |""".stripMargin
       }
     }
   }
@@ -1276,11 +1609,58 @@ object IR {
   /** This trait should be implemented by all metadata elements generated by
     * passes such that it can be stored in each IR node.
     */
-  trait Metadata
+  trait Metadata {
+
+    /** The name of the metadata as a string. */
+    val metadataName: String
+  }
   object Metadata {
 
     /** An empty metadata type for passes that do not create any metadata. */
-    sealed case class Empty() extends Metadata
+    sealed case class Empty() extends Metadata {
+      override val metadataName: String = "Empty"
+    }
   }
 
+  // ==========================================================================
+  // === Extension Methods ====================================================
+  // ==========================================================================
+
+  /** This class adds an extension method to control how the pass data element
+    * of the IR is printed.
+    *
+    * @param ir the IR to print the pass data for
+    */
+  implicit class ShowPassData(ir: IR) {
+
+    /** Creates a string representation of the pass data for a given IR node.
+      *
+      * @return a string representation of the pass data for [[ir]]
+      */
+    def showPassData: String = {
+      val metaString = ir.passData.map(_.metadataName)
+
+      s"$metaString"
+    }
+  }
+
+  /** Adds extension methods on strings to aid in writing custom to string
+    * overrides.
+    *
+    * @param string the string to process
+    */
+  implicit class ToStringHelper(string: String) {
+
+    /** Converts a multiline string to a single line
+      *
+      * @return [[string]], converted to a single line
+      */
+    def toSingleLine: String = {
+      val lines = string.stripMargin.split("\n").toList.filterNot(_ == "")
+
+      val body = lines.tail.dropRight(1).mkString(" ")
+
+      s"${lines.head}${body}${lines.last}"
+    }
+  }
 }

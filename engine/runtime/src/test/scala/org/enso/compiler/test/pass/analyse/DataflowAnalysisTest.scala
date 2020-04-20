@@ -14,8 +14,9 @@ import org.enso.compiler.pass.desugar.{
   LiftSpecialOperators,
   OperatorToFunction
 }
+import org.enso.compiler.test.CompilerTest
 
-class DataflowAnalysisTest {
+class DataflowAnalysisTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
@@ -62,4 +63,8 @@ class DataflowAnalysisTest {
   }
 
   // === The Tests ============================================================
+
+  "Dataflow analysis on modules" should {}
+
+  "Dataflow analysis on expressions" should {}
 }

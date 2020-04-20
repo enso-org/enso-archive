@@ -328,10 +328,9 @@ case object TailCall extends IRPass {
       case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _) =>
         arg
           .copy(
-            defaultValue = default.map(
-              x =>
-                analyseExpression(x, isInTailPosition = false)
-                  .addMetadata(TailPosition.NotTail)
+            defaultValue = default.map(x =>
+              analyseExpression(x, isInTailPosition = false)
+                .addMetadata(TailPosition.NotTail)
             )
           )
           .addMetadata(TailPosition.NotTail)
@@ -349,14 +348,16 @@ case object TailCall extends IRPass {
 
     /** The expression is in a tail position and can be tail call optimised. */
     final case object Tail extends TailPosition {
-      override def isTail: Boolean = true
+      override val metadataName: String = "TailCall.TailPosition.Tail"
+      override def isTail: Boolean      = true
     }
 
     /** The expression is not in a tail position and cannot be tail call
       * optimised.
       */
     final case object NotTail extends TailPosition {
-      override def isTail: Boolean = false
+      override val metadataName: String = "TailCall.TailPosition.NotTail"
+      override def isTail: Boolean      = false
     }
 
     /** Implicitly converts a boolean to a [[TailPosition]] value.
