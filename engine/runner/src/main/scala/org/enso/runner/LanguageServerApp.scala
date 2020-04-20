@@ -25,7 +25,7 @@ object LanguageServerApp {
 
     val binding =
       Await.result(
-        mainModule.server.bind(config.interface, config.port),
+        mainModule.jsonRpcServer.bind(config.interface, config.port),
         3.seconds
       )
 

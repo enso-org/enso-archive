@@ -1,0 +1,34 @@
+package org.enso.languageserver.protocol.binary
+
+import java.nio.ByteBuffer
+
+import org.enso.languageserver.http.server.BinaryDecoder
+import org.enso.languageserver.protocol.binary.DecodingFailure.{
+  DataCorrupted,
+  EmptyPayload,
+  GenericDecodingFailure
+}
+import org.enso.languageserver.protocol.binary.envelope.{
+  InboundMessage,
+  InboundPayload
+}
+
+object BinaryProtocolDecoder
+    extends BinaryDecoder[Either[DecodingFailure, InboundMessage]] {
+
+  override def decode(
+    bytes: ByteBuffer
+  ): Either[DecodingFailure, InboundMessage] =
+    try {
+      val inMsg = InboundMessage.getRootAsInboundMessage(bytes)
+      if (inMsg.payloadType() == InboundPayload.NONE) {
+        Left(EmptyPayload)
+      } else {
+        Right(inMsg)
+      }
+    } catch {
+      case _: IndexOutOfBoundsException => Left(DataCorrupted)
+      case throwable: Throwable         => Left(GenericDecodingFailure(throwable))
+    }
+
+}

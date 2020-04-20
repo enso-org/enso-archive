@@ -25,6 +25,12 @@ import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.LanguageServer
+import org.enso.languageserver.http.server.BinaryWebSocketServer
+import org.enso.languageserver.protocol.binary.{
+  BinaryConnectionControllerFactory,
+  BinaryProtocolDecoder,
+  BinaryProtocolEncoder
+}
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -124,7 +130,14 @@ class MainModule(serverConfig: LanguageServerConfig) {
     contextRegistry
   )
 
-  lazy val server =
+  lazy val jsonRpcServer =
     new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
+
+  lazy val binaryDataServer =
+    new BinaryWebSocketServer(
+      BinaryProtocolDecoder,
+      BinaryProtocolEncoder,
+      new BinaryConnectionControllerFactory
+    )
 
 }

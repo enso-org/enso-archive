@@ -1,6 +1,11 @@
-namespace org.enso.languageserver.protocol.util;
+namespace org.enso.languageserver.protocol.binary.util;
 
 struct EnsoUUID {
   leastSigBits:uint64;
   mostSigBits:uint64;
+}
+
+table Error {
+  code: int;
+  message: string;
 }

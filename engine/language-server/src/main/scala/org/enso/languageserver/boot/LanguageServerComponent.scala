@@ -32,8 +32,10 @@ class LanguageServerComponent(config: LanguageServerConfig)
     for {
       mainModule <- Future { new MainModule(config) }
       _          <- Future { mainModule.languageServer ! LanguageProtocol.Initialize }
-      binding    <- mainModule.server.bind(config.interface, config.port)
-      _          <- Future { maybeServerState = Some((mainModule, binding)) }
+      rpcBinding <- mainModule.jsonRpcServer.bind(config.interface, config.port)
+      dataBinding <- mainModule.binaryDataServer
+        .bind(config.interface, config.port + 1)
+      _ <- Future { maybeServerState = Some((mainModule, rpcBinding)) }
       _ <- Future {
         logger.info(s"Started server at ${config.interface}:${config.port}")
       }

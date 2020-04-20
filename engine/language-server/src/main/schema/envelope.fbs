@@ -1,0 +1,27 @@
+include "util.fbs";
+include "session.fbs";
+include "execution-context.fbs";
+
+namespace org.enso.languageserver.protocol.binary.envelope;
+
+union InboundPayload {
+  SESSION_INIT: org.enso.languageserver.protocol.binary.session.SessionInit
+}
+
+table InboundMessage {
+  requestId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.binary.util.EnsoUUID;
+  payload: InboundPayload (required);
+}
+
+union OutboundPayload {
+  ERROR: org.enso.languageserver.protocol.binary.util.Error,
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.binary.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.binary.executioncontext.VisualisationUpdate
+}
+
+table OutboundMessage {
+  requestId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.binary.util.EnsoUUID;
+  payload: OutboundPayload (required);
+}
