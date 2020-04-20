@@ -5,8 +5,6 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
 // TODO [AA] Every name needs an internal ID, including dynamic symbols.
-// TODO [AA] For dynamic symbols do we want to have separate IDs and a mapping
-//  of all IDs for a given symbol? (probably, gives us finer-grained control)
 /** This pass implements dataflow analysis for Enso.
   *
   * Dataflow analysis is the processes of determining the dependencies between
@@ -26,7 +24,8 @@ case object DataflowAnalysis extends IRPass {
     */
   override def runModule(ir: IR.Module): IR.Module = ir
 
-  // TODO [AA] Work out how the expression flow can update the module metadata.
+  // TODO [AA] Work out how the expression flow can update the module and
+  //  function metadata.
   /** Executes the dataflow analysis process on an Enso module.
     *
     * @param ir the Enso IR to process

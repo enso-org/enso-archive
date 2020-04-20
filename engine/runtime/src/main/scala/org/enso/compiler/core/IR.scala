@@ -1,5 +1,7 @@
 package org.enso.compiler.core
 
+import java.util.UUID
+
 import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.exception.CompilerError
 import org.enso.syntax.text.ast.Doc
@@ -70,6 +72,9 @@ sealed trait IR {
     * @return a pretty-printed representation of the IR
     */
   def pretty: String = Debug.pretty(this.toString)
+
+  /** A unique identifier for a piece of IR. */
+  val id: UUID = UUID.randomUUID()
 }
 object IR {
 
@@ -132,7 +137,8 @@ object IR {
       s"""
       |IR.Empty(
       |location = $location,
-      |passData = ${this.showPassData}
+      |passData = ${this.showPassData},
+      |id = $id
       |)
       |""".toSingleLine
   }
@@ -181,7 +187,8 @@ object IR {
       |imports = $imports,
       |bindings = $bindings,
       |location = $location,
-      |passData = ${this.showPassData}
+      |passData = ${this.showPassData},
+      |id = $id
       |)
       |""".toSingleLine
   }
@@ -216,12 +223,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Module.Scope.Import(
-             |name = $name,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |)
-             |""".toSingleLine
+          |IR.Module.Scope.Import(
+          |name = $name,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |)
+          |""".toSingleLine
       }
 
       /** A representation of top-level definitions. */
@@ -258,13 +266,14 @@ object IR {
 
           override def toString: String =
             s"""
-               |IR.Module.Scope.Definition.Atom(
-               |name = $name,
-               |arguments = $arguments,
-               |location = $location,
-               |passData = ${this.showPassData}
-               |)
-               |""".toSingleLine
+            |IR.Module.Scope.Definition.Atom(
+            |name = $name,
+            |arguments = $arguments,
+            |location = $location,
+            |passData = ${this.showPassData},
+            |id = $id
+            |)
+            |""".toSingleLine
         }
 
         /** The definition of a method for a given constructor [[typeName]].
@@ -300,14 +309,15 @@ object IR {
 
           override def toString: String =
             s"""
-               |IR.Module.Scope.Definition.Method(
-               |typeName = $typeName,
-               |methodName = $methodName,
-               |body = $body,
-               |location = $location,
-               |passData = ${this.showPassData}
-               |)
-               |""".toSingleLine
+            |IR.Module.Scope.Definition.Method(
+            |typeName = $typeName,
+            |methodName = $methodName,
+            |body = $body,
+            |location = $location,
+            |passData = ${this.showPassData},
+            |id = $id
+            |)
+            |""".toSingleLine
         }
       }
     }
@@ -368,14 +378,15 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Expression.Block(
-           |expressions = $expressions,
-           |returnValue = $returnValue,
-           |location = $location,
-           |suspended = $suspended,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Expression.Block(
+        |expressions = $expressions,
+        |returnValue = $returnValue,
+        |location = $location,
+        |suspended = $suspended,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** A binding expression of the form `name = expr`
@@ -402,13 +413,14 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Expression.Binding(
-           |name = $name,
-           |expression = $expression,
-           |location = $location
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Expression.Binding(
+        |name = $name,
+        |expression = $expression,
+        |location = $location
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
   }
 
@@ -440,11 +452,12 @@ object IR {
 
       override def toString: String =
         s"""IR.Literal.Number(
-           |value = $value,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |value = $value,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** A textual Enso literal.
@@ -466,12 +479,13 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Literal.String(
-           |text = $text,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Literal.String(
+        |text = $text,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
   }
 
@@ -505,12 +519,13 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Name.Literal(
-           |name = $name,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Name.Literal(
+        |name = $name,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** A representation of the name `this`, used to refer to the current type.
@@ -532,11 +547,12 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Name.This(
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Name.This(
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** A representation of the name `here`, used to refer to the current
@@ -559,10 +575,11 @@ object IR {
 
       override def toString: String =
         s"""IR.Name.Here(
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
   }
 
@@ -607,7 +624,8 @@ object IR {
            |typed = $typed,
            |signature = $signature,
            |location = $location,
-           |passData = ${this.showPassData}
+           |passData = ${this.showPassData},
+           |id = $id
            |)
            |""".stripMargin
     }
@@ -640,12 +658,13 @@ object IR {
 
       override def toString: String =
         s"""IR.Type.Context(
-           |typed = $typed,
-           |context = $context,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |typed = $typed,
+        |context = $context,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
     object Context extends Info {
       override val name: String = "in"
@@ -688,14 +707,15 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Type.Set.Member(
-             |label = $label,
-             |memberType = $memberType,
-             |value = $value,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |)
-             |""".toSingleLine
+          |IR.Type.Set.Member(
+          |label = $label,
+          |memberType = $memberType,
+          |value = $value,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |)
+          |""".toSingleLine
       }
       object Member extends Info {
         override val name: String = "_ : _ = _"
@@ -727,12 +747,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Type.Set.Subsumption(
-             |left = $left,
-             |right = $right,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |""".toSingleLine
+          |IR.Type.Set.Subsumption(
+          |left = $left,
+          |right = $right,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |""".toSingleLine
       }
       object Subsumption extends Info {
         override val name: String = "<:"
@@ -762,12 +783,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Type.Set.Equality(
-             |left = $left,
-             |right = $right,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |""".toSingleLine
+          |IR.Type.Set.Equality(
+          |left = $left,
+          |right = $right,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |""".toSingleLine
       }
       object Equality extends Info {
         override val name: String = "~"
@@ -797,12 +819,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Type.Set.Concat(
-             |left = $left,
-             |right = $right,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |""".toSingleLine
+          |IR.Type.Set.Concat(
+          |left = $left,
+          |right = $right,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |""".toSingleLine
       }
       object Concat extends Info {
         override val name: String = ","
@@ -832,12 +855,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Type.Set.Ubion(
-             |left = $left,
-             |right = $right,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |""".toSingleLine
+          |IR.Type.Set.Ubion(
+          |left = $left,
+          |right = $right,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |""".toSingleLine
       }
       object Union extends Info {
         override val name: String = "|"
@@ -869,12 +893,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Type.Set.Intersection(
-             |left = $left,
-             |right = $right,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |""".toSingleLine
+          |IR.Type.Set.Intersection(
+          |left = $left,
+          |right = $right,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |""".toSingleLine
       }
       object Intersection extends Info {
         override val name: String = "&"
@@ -906,12 +931,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Type.Set.Subtraction(
-             |left = $left,
-             |right = $right,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |""".toSingleLine
+          |IR.Type.Set.Subtraction(
+          |left = $left,
+          |right = $right,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |""".toSingleLine
       }
       object Subtraction extends Info {
         override val name: String = "\\"
@@ -976,14 +1002,15 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Function.Lambda(
-           |arguments = $arguments,
-           |body = $body,
-           |location = $location,
-           |canBeTCO = $canBeTCO,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Function.Lambda(
+        |arguments = $arguments,
+        |body = $body,
+        |location = $location,
+        |canBeTCO = $canBeTCO,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
   }
 
@@ -1031,14 +1058,15 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.DefinitionArgument.Specified(
-           |name = $name,
-           |defaultValue = $defaultValue,
-           |suspended = $suspended,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.DefinitionArgument.Specified(
+        |name = $name,
+        |defaultValue = $defaultValue,
+        |suspended = $suspended,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     // TODO [AA] Add support for `_` ignored arguments.
@@ -1080,14 +1108,15 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Application.Prefix(
-           |function = $function,
-           |arguments = $arguments,
-           |hasDefaultsSuspended = $hasDefaultsSuspended,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Application.Prefix(
+        |function = $function,
+        |arguments = $arguments,
+        |hasDefaultsSuspended = $hasDefaultsSuspended,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** A representation of a term that is explicitly forced.
@@ -1112,12 +1141,13 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Application.Force(
-           |target = $target,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Application.Force(
+        |target = $target,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** Operator applications in Enso. */
@@ -1153,14 +1183,15 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Application.Operator.Binary(
-             |left = $left,
-             |operator = $operator,
-             |right = $right,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |)
-             |""".toSingleLine
+          |IR.Application.Operator.Binary(
+          |left = $left,
+          |operator = $operator,
+          |right = $right,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |)
+          |""".toSingleLine
       }
     }
 
@@ -1216,14 +1247,15 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.CallArgument.Specified(
-           |name = $name,
-           |value = $value,
-           |location = $location,
-           |shouldBeSuspended = $shouldBeSuspended,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.CallArgument.Specified(
+        |name = $name,
+        |value = $value,
+        |location = $location,
+        |shouldBeSuspended = $shouldBeSuspended,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     // TODO [AA] Add support for the `_` lambda shorthand argument (can be
@@ -1269,14 +1301,15 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Case.Expr(
-           |scutinee = $scrutinee,
-           |branches = $branches,
-           |fallback = $fallback,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Case.Expr(
+        |scutinee = $scrutinee,
+        |branches = $branches,
+        |fallback = $fallback,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** A branch in a case statement.
@@ -1303,13 +1336,14 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Case.Branch(
-           |pattern = $pattern,
-           |expression = $expression,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Case.Branch(
+        |pattern = $pattern,
+        |expression = $expression,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** The different types of patterns that can occur in a match. */
@@ -1360,13 +1394,14 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Comment.Documentation(
-           |commented = $commented,
-           |doc = $doc,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Comment.Documentation(
+        |commented = $commented,
+        |doc = $doc,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
   }
 
@@ -1402,13 +1437,14 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Foreign.Definition(
-           |lang = $lang,
-           |code = $code,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Foreign.Definition(
+        |lang = $lang,
+        |code = $code,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
   }
 
@@ -1458,12 +1494,13 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Error.Syntax(
-           |ast = $ast,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Error.Syntax(
+        |ast = $ast,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** A representation of an invalid piece of IR.
@@ -1488,12 +1525,13 @@ object IR {
 
       override def toString: String =
         s"""
-           |IR.Error.InvalidIR(
-           |ir = $ir,
-           |location = $location,
-           |passData = ${this.showPassData}
-           |)
-           |""".toSingleLine
+        |IR.Error.InvalidIR(
+        |ir = $ir,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |id = $id
+        |)
+        |""".toSingleLine
     }
 
     /** Errors pertaining to the redefinition of language constructs that are
@@ -1528,12 +1566,13 @@ object IR {
 
         override def toString: String =
           s"""
-             |IR.Error.Redefined.Argument(
-             |invalidArgDef = $invalidArgDef,
-             |location = $location,
-             |passData = ${this.showPassData}
-             |)
-             |""".toSingleLine
+          |IR.Error.Redefined.Argument(
+          |invalidArgDef = $invalidArgDef,
+          |location = $location,
+          |passData = ${this.showPassData},
+          |id = $id
+          |)
+          |""".toSingleLine
       }
 
       /** An error representing the redefinition of a binding in a given scope.
@@ -1565,7 +1604,8 @@ object IR {
              |IR.Error.Redefined.Binding(
              |invalidBinding = $invalidBinding,
              |location = $location,
-             |passData = ${this.showPassData}
+             |passData = ${this.showPassData},
+             |id = $id
              |)
              |""".stripMargin
       }
