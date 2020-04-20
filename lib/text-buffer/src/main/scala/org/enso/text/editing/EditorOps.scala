@@ -1,7 +1,7 @@
-package org.enso.textbuffer.editing
+package org.enso.text.editing
 
 import cats.implicits._
-import org.enso.textbuffer.editing.model.TextEdit
+import org.enso.text.editing.model.TextEdit
 
 /**
   * Auxiliary operations that edit a buffer validating diffs before applying it.

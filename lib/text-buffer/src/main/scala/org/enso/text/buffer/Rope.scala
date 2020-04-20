@@ -1,4 +1,4 @@
-package org.enso.textbuffer.buffer
+package org.enso.text.buffer
 
 import cats.Monoid
 
@@ -68,7 +68,7 @@ case class Rope(root: Node[String, StringMeasure]) {
     */
   override def toString: String = {
     val sb = new StringBuilder(root.measure.utf16Size)
-    root.value.foreach { str => val _ = sb.append(str) }
+    root.value.foreach { str => sb.append(str) }
     sb.toString()
   }
 

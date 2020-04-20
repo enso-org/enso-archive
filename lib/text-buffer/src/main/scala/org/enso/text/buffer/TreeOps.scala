@@ -1,4 +1,4 @@
-package org.enso.textbuffer.buffer
+package org.enso.text.buffer
 
 /**
   * Encodes element-level operation on a tree.

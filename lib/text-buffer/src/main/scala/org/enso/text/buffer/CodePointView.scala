@@ -1,4 +1,4 @@
-package org.enso.textbuffer.buffer
+package org.enso.text.buffer
 
 /**
   * Exposes a code points based view over rope indexing operations.

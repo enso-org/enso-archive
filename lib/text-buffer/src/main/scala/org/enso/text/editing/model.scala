@@ -1,4 +1,4 @@
-package org.enso.textbuffer.editing
+package org.enso.text.editing
 
 object model {
 

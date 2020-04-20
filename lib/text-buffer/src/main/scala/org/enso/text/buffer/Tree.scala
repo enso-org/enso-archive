@@ -1,4 +1,4 @@
-package org.enso.textbuffer.buffer
+package org.enso.text.buffer
 
 import cats.Monoid
 

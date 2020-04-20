@@ -16,9 +16,9 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.io.File;
-import org.enso.textbuffer.buffer.Rope;
-import org.enso.textbuffer.editing.JavaEditorAdapter;
-import org.enso.textbuffer.editing.model;
+import org.enso.text.buffer.Rope;
+import org.enso.text.editing.JavaEditorAdapter;
+import org.enso.text.editing.model;
 
 import java.util.List;
 import java.util.Optional;

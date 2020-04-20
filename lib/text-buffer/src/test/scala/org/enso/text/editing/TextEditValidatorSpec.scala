@@ -1,7 +1,7 @@
-package org.enso.textbuffer.editing
+package org.enso.text.editing
 
-import org.enso.textbuffer.buffer.Rope
-import org.enso.textbuffer.editing.model.{Position, Range, TextEdit}
+import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.{Position, Range, TextEdit}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.must.Matchers
 import TextEditValidator.validate

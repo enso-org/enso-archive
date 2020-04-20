@@ -1,6 +1,6 @@
-package org.enso.textbuffer
+package org.enso.text
 
-import org.enso.textbuffer.buffer.Rope
+import org.enso.text.buffer.Rope
 import org.scalacheck.Prop.forAll
 import org.scalacheck.Arbitrary._
 import org.scalacheck.Properties

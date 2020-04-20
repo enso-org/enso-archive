@@ -25,7 +25,7 @@ import org.enso.interpreter.runtime.type.Types;
 import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.LanguageInfo;
 import org.enso.polyglot.MethodNames;
-import org.enso.textbuffer.buffer.Rope;
+import org.enso.text.buffer.Rope;
 
 /** Represents a source module with a known location. */
 @ExportLibrary(InteropLibrary.class)

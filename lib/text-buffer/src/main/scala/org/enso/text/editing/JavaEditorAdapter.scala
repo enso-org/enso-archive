@@ -1,9 +1,9 @@
-package org.enso.textbuffer.editing
+package org.enso.text.editing
 
 import java.util.Optional
 
-import org.enso.textbuffer.buffer.Rope
-import org.enso.textbuffer.editing.model.TextEdit
+import org.enso.text.buffer.Rope
+import org.enso.text.editing.model.TextEdit
 
 import scala.jdk.CollectionConverters._
 

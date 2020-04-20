@@ -1,7 +1,7 @@
 package org.enso.languageserver.text
 
 import org.enso.languageserver.filemanager.Path
-import org.enso.textbuffer.editing.model.TextEdit
+import org.enso.text.editing.model.TextEdit
 
 /**
   * A representation of a batch of edits to a file, versioned.

@@ -1,4 +1,4 @@
-package org.enso.textbuffer
+package org.enso.text
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen

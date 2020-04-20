@@ -1,4 +1,4 @@
-package org.enso.textbuffer.buffer
+package org.enso.text.buffer
 
 /**
   * Exposes a character-based API for rope operations.

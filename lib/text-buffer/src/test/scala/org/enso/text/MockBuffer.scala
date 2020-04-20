@@ -1,6 +1,6 @@
-package org.enso.textbuffer
+package org.enso.text
 
-import org.enso.textbuffer.buffer.StringUtils
+import org.enso.text.buffer.StringUtils
 
 case class MockBuffer(lines: List[String]) {
   override def toString: String = lines.mkString("")

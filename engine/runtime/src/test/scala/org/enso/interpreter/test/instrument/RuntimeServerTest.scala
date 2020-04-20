@@ -14,8 +14,8 @@ import org.enso.polyglot.{
   RuntimeOptions,
   RuntimeServerInfo
 }
-import org.enso.textbuffer.editing.model
-import org.enso.textbuffer.editing.model.TextEdit
+import org.enso.text.editing.model
+import org.enso.text.editing.model.TextEdit
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
 import org.scalatest.BeforeAndAfterEach
@@ -32,9 +32,11 @@ class RuntimeServerTest
   class TestContext(packageName: String) {
     var endPoint: MessageEndpoint        = _
     var messageQueue: List[Api.Response] = List()
-    val tmpDir: File                     = Files.createTempDirectory("enso-test-packages").toFile
-    val pkg: Package                     = Package.create(tmpDir, packageName)
-    val out: ByteArrayOutputStream       = new ByteArrayOutputStream()
+
+    val tmpDir: File = Files.createTempDirectory("enso-test-packages").toFile
+
+    val pkg: Package               = Package.create(tmpDir, packageName)
+    val out: ByteArrayOutputStream = new ByteArrayOutputStream()
     val executionContext = new PolyglotContext(
       Context
         .newBuilder(LanguageInfo.ID)
