@@ -290,7 +290,12 @@ object AstToIR {
               }.mkString, None)
               exprs match {
                 case Right(expr) :: rest =>
-                  nonExprsString :: expr :: consolidate(rest)
+                  nonExprsString :: Application.Prefix(
+                    Name.Literal(Builtins.TO_TEXT_METHOD, None),
+                    List(CallArgument.Specified(None, expr, None)),
+                    false,
+                    None
+                  ) :: consolidate(rest)
                 case _ => List(nonExprsString)
               }
             }
