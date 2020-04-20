@@ -71,18 +71,6 @@ case object DataflowAnalysis extends IRPass {
       override val metadataName: String =
         "DataflowAnalysis.Dependencies.Function"
 
-      /** Maps over the dependency mapping, producing a _new_ mapping.
-        *
-        * @param f the function to map over the dependency info
-        * @tparam K2 the new key type
-        * @tparam V2 the new value type
-        * @return the result of mapping `f` over the dependency info
-        */
-      override def map[K2, V2](
-        f: (Identifier, Set[Identifier]) => (K2, V2)
-      ): DependenciesImpl[K2, V2] =
-        new DependenciesImpl.Concrete[K2, V2](dependencies.map(f.tupled))
-
       /** Filters the dependency mapping, producing a _new_ mapping.
         *
         * @param f the filtering function
@@ -91,20 +79,6 @@ case object DataflowAnalysis extends IRPass {
       override def filter(
         f: (IR.Identifier, Set[IR.Identifier]) => Boolean
       ): Function = new Function(dependencies.filter(f.tupled))
-
-      /** Folds over the dependency mapping.
-        *
-        * This is a left fold.
-        *
-        * @param init the initial value for the fold
-        * @param f the fold function
-        * @tparam A1 the left operand type
-        * @tparam A2 the right operand type
-        * @return the result of folding over `this` using `f` starting at `init`
-        */
-      override def fold[A1, A2 >: (Identifier, Set[Identifier])](init: A1)(
-        f: (A1, A2) => A1
-      ): A1 = dependencies.foldLeft(init)(f)
     }
 
     /** Module-level dataflow results.
@@ -120,18 +94,6 @@ case object DataflowAnalysis extends IRPass {
         with DependenciesImpl[String, Set[IR.Identifier]] {
       override val metadataName: String = "DafaflowAnalysis.Dependencies.Module"
 
-      /** Maps over the dependency mapping, producing a _new_ mapping.
-        *
-        * @param f the function to map over the dependency info
-        * @tparam K2 the new key type
-        * @tparam V2 the new value type
-        * @return the result of mapping `f` over the dependency info
-        */
-      override def map[K2, V2](
-        f: (String, Set[Identifier]) => (K2, V2)
-      ): DependenciesImpl[K2, V2] =
-        new DependenciesImpl.Concrete[K2, V2](dependencies.map(f.tupled))
-
       /** Filters the dependency mapping, producing a _new_ mapping.
         *
         * @param f the filtering function
@@ -141,20 +103,6 @@ case object DataflowAnalysis extends IRPass {
         f: (String, Set[Identifier]) => Boolean
       ): DependenciesImpl[String, Set[Identifier]] =
         new Module(dependencies.filter(f.tupled))
-
-      /** Folds over the dependency mapping.
-        *
-        * This is a left fold.
-        *
-        * @param init the initial value for the fold
-        * @param f the fold function
-        * @tparam A1 the left operand type
-        * @tparam A2 the right operand type
-        * @return the result of folding over `this` using `f` starting at `init`
-        */
-      override def fold[A1, A2 >: (String, Set[Identifier])](init: A1)(
-        f: (A1, A2) => A1
-      ): A1 = dependencies.foldLeft(init)(f)
     }
   }
 
@@ -208,7 +156,8 @@ case object DataflowAnalysis extends IRPass {
       * @tparam V2 the new value type
       * @return the result of mapping `f` over the dependency info
       */
-    def map[K2, V2](f: (K, V) => (K2, V2)): DependenciesImpl[K2, V2]
+    def map[K2, V2](f: (K, V) => (K2, V2)): DependenciesImpl[K2, V2] =
+      new DependenciesImpl.Concrete[K2, V2](dependencies.map(f.tupled))
 
     /** Filters the dependency mapping, producing a _new_ mapping.
       *
@@ -227,7 +176,8 @@ case object DataflowAnalysis extends IRPass {
       * @tparam A2 the right operand type
       * @return the result of folding over `this` using `f` starting at `init`
       */
-    def fold[A1, A2 >: (K, V)](init: A1)(f: (A1, A2) => A1): A1
+    def fold[A1, A2 >: (K, V)](init: A1)(f: (A1, A2) => A1): A1 =
+      dependencies.foldLeft(init)(f)
   }
   object DependenciesImpl {
 
@@ -239,7 +189,7 @@ case object DataflowAnalysis extends IRPass {
       * @tparam V the value type in the map
       */
     sealed class Concrete[K, V](
-      val dependencies: mutable.Map[K, V] = mutable.Map()
+      val dependencies: mutable.Map[K, V] = mutable.Map[K, V]()
     ) extends DependenciesImpl[K, V] {
 
       /** Maps over the dependency mapping, producing a _new_ mapping.
