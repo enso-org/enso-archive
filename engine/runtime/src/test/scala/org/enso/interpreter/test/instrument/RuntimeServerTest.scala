@@ -1,6 +1,6 @@
 package org.enso.interpreter.test.instrument
 
-import java.io.{ByteArrayOutputStream, File, OutputStream}
+import java.io.{ByteArrayOutputStream, File}
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
@@ -301,7 +301,7 @@ class RuntimeServerTest
     send(Api.CreateContextRequest(contextId))
     context.receive
 
-    def push: Unit =
+    def push(): Unit =
       send(
         Api.PushContextRequest(
           contextId,
@@ -313,7 +313,7 @@ class RuntimeServerTest
             )
         )
       )
-    def pop: Unit = send(Api.PopContextRequest(contextId))
+    def pop(): Unit = send(Api.PopContextRequest(contextId))
 
     // Create a new file
     context.writeFile(fooFile, "main = IO.println \"I'm a file!\"")
