@@ -64,6 +64,10 @@ class DataflowAnalysisTest extends CompilerTest {
 
   // === The Tests ============================================================
 
+  "Function-level dependency descriptions" should {}
+
+  "Module-level dependency descriptions" should {}
+
   "Dataflow analysis on modules" should {}
 
   "Dataflow analysis on expressions" should {}

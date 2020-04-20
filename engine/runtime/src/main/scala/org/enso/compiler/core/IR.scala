@@ -74,9 +74,12 @@ sealed trait IR {
   def pretty: String = Debug.pretty(this.toString)
 
   /** A unique identifier for a piece of IR. */
-  val id: UUID = UUID.randomUUID()
+  val id: IR.Identifier = UUID.randomUUID()
 }
 object IR {
+
+  /** The type of identifiers for IR nodes. */
+  type Identifier = UUID
 
   /**
     * Couples a location with a possible source identifier.
@@ -855,7 +858,7 @@ object IR {
 
         override def toString: String =
           s"""
-          |IR.Type.Set.Ubion(
+          |IR.Type.Set.Union(
           |left = $left,
           |right = $right,
           |location = $location,
