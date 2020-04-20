@@ -17,6 +17,7 @@ import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
 import org.enso.interpreter.util.ScalaConversions;
 import org.enso.pkg.Package;
+import org.enso.pkg.QualifiedName;
 
 /**
  * The language context is the internal state of the language that is associated with each thread in
@@ -28,6 +29,7 @@ public class Context {
   private final Env environment;
   private final Compiler compiler;
   private final PrintStream out;
+  private List<Package> packages;
 
   /**
    * Creates a new Enso context.
@@ -41,12 +43,17 @@ public class Context {
     this.out = new PrintStream(environment.out());
 
     List<File> packagePaths = OptionsHelper.getPackagesPaths(environment);
-    Map<String, Module> knownFiles =
+
+    packages =
         packagePaths.stream()
             .map(Package::fromDirectory)
             .map(ScalaConversions::asJava)
             .filter(Optional::isPresent)
             .map(Optional::get)
+            .collect(Collectors.toList());
+
+    Map<String, Module> knownFiles =
+        packages.stream()
             .flatMap(p -> ScalaConversions.asJava(p.listSources()).stream())
             .collect(
                 Collectors.toMap(
@@ -76,7 +83,7 @@ public class Context {
    *
    * @return a handle to the compiler
    */
-  public final Compiler compiler() {
+  public final Compiler getCompiler() {
     return compiler;
   }
 
@@ -119,9 +126,50 @@ public class Context {
     return moduleScope;
   }
 
+  /**
+   * Removes all contents from a given scope.
+   *
+   * @param scope the scope to reset.
+   */
   public void resetScope(ModuleScope scope) {
     scope.reset();
     initializeScope(scope);
+  }
+
+  /**
+   * Fetches the module name associated with a given file, using the environment packages
+   * information.
+   *
+   * @param path the path to decode.
+   * @return a qualified name of the module corresponding to the file, if exists.
+   */
+  public Optional<QualifiedName> getModuleNameForFile(File path) {
+    return packages.stream()
+        .filter(pkg -> path.getAbsolutePath().startsWith(pkg.sourceDir().getAbsolutePath()))
+        .map(pkg -> pkg.moduleNameForFile(path))
+        .findFirst();
+  }
+
+  /**
+   * Fetches a module associated with a given file.
+   *
+   * @param path the module path to lookup.
+   * @return the relevant module, if exists.
+   */
+  public Optional<Module> getModuleForFile(File path) {
+    return getModuleNameForFile(path)
+        .flatMap(n -> getCompiler().topScope().getModule(n.toString()));
+  }
+
+  /**
+   * Registers a new module corresponding to a given file.
+   *
+   * @param path the file to register.
+   * @return the newly created module, if the file is a source file.
+   */
+  public Optional<Module> createModuleForFile(File path) {
+    return getModuleNameForFile(path)
+        .map(name -> getCompiler().topScope().createModule(name, getTruffleFile(path)));
   }
 
   private void initializeScope(ModuleScope scope) {

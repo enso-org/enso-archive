@@ -1,6 +1,6 @@
-package org.enso.languageserver.data.buffer
+package org.enso.text.buffer
 
-import cats.kernel.Monoid
+import cats.Monoid
 
 /**
   * A super class of nodes stored in the tree.
@@ -360,8 +360,8 @@ object Node {
     children: Array[Node[C, M]]
   )(implicit measureMonoid: Monoid[M]): Node[C, M] = {
     val height = children(0).height + 1
-    val size = children.foldLeft(measureMonoid.empty)(
-      (acc, n) => measureMonoid.combine(acc, n.measure)
+    val size = children.foldLeft(measureMonoid.empty)((acc, n) =>
+      measureMonoid.combine(acc, n.measure)
     )
     Node(height, size, Internal(children))
   }

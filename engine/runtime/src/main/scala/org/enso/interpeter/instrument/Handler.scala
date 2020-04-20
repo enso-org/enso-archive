@@ -1,5 +1,6 @@
 package org.enso.interpeter.instrument
 
+import java.io.File
 import java.nio.ByteBuffer
 import java.util.UUID
 import java.util.function.Consumer
@@ -13,6 +14,9 @@ import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.Functi
 import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
+
+import scala.jdk.javaapi.OptionConverters
+import scala.jdk.CollectionConverters._
 
 /**
   * A message endpoint implementation used by the
@@ -53,7 +57,7 @@ class Endpoint(handler: Handler) extends MessageEndpoint {
   * A message handler, dispatching behaviors based on messages received
   * from an instance of [[Endpoint]].
   */
-class Handler {
+final class Handler {
   val endpoint       = new Endpoint(this)
   val contextManager = new ExecutionContextManager
 
@@ -80,37 +84,50 @@ class Handler {
 
   private object ExecutionItem {
     case class Method(
-      module: String,
+      file: File,
       constructor: String,
       function: String
     ) extends ExecutionItem
 
     case class CallData(callData: FunctionCall) extends ExecutionItem
   }
-  private def sendVal(res: ExpressionValue): Unit = {
+
+  private def sendUpdate(
+    contextId: Api.ContextId,
+    res: ExpressionValue
+  ): Unit = {
     endpoint.sendToClient(
       Api.Response(
-        Api.ExpressionValueUpdateNotification(
-          res.getExpressionId,
-          res.getValue.toString
+        Api.ExpressionValuesComputed(
+          contextId,
+          Vector(
+            Api.ExpressionValueUpdate(
+              res.getExpressionId,
+              OptionConverters.toScala(res.getType),
+              Some(res.getValue.toString),
+              None
+            )
+          )
         )
       )
     )
   }
 
+  @scala.annotation.tailrec
   private def execute(
     executionItem: ExecutionItem,
-    furtherStack: List[UUID]
+    callStack: List[UUID],
+    valueCallback: Consumer[ExpressionValue]
   ): Unit = {
     var enterables: Map[UUID, FunctionCall] = Map()
     val valsCallback: Consumer[ExpressionValue] =
-      if (furtherStack.isEmpty) sendVal else _ => ()
+      if (callStack.isEmpty) valueCallback else _ => ()
     val callablesCallback: Consumer[ExpressionCall] = fun =>
       enterables += fun.getExpressionId -> fun.getCall
     executionItem match {
-      case ExecutionItem.Method(module, cons, function) =>
+      case ExecutionItem.Method(file, cons, function) =>
         executionService.execute(
-          module,
+          file,
           cons,
           function,
           valsCallback,
@@ -120,14 +137,48 @@ class Handler {
         executionService.execute(callData, valsCallback, callablesCallback)
     }
 
-    furtherStack match {
+    callStack match {
       case Nil => ()
       case item :: tail =>
-        enterables
-          .get(item)
-          .foreach(call => execute(ExecutionItem.CallData(call), tail))
+        enterables.get(item) match {
+          case Some(call) =>
+            execute(ExecutionItem.CallData(call), tail, valueCallback)
+          case None =>
+            ()
+        }
     }
   }
+
+  private def execute(
+    contextId: Api.ContextId,
+    stack: List[Api.StackItem]
+  ): Unit = {
+    def unwind(
+      stack: List[Api.StackItem],
+      explicitCalls: List[Api.StackItem.ExplicitCall],
+      localCalls: List[UUID]
+    ): (List[Api.StackItem.ExplicitCall], List[UUID]) =
+      stack match {
+        case Nil =>
+          (explicitCalls, localCalls)
+        case List(call: Api.StackItem.ExplicitCall) =>
+          (List(call), localCalls)
+        case Api.StackItem.LocalCall(id) :: xs =>
+          unwind(xs, explicitCalls, id :: localCalls)
+      }
+    val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
+    val item                        = toExecutionItem(explicitCalls.head)
+    execute(item, localCalls, sendUpdate(contextId, _))
+  }
+
+  private def toExecutionItem(
+    call: Api.StackItem.ExplicitCall
+  ): ExecutionItem =
+    ExecutionItem.Method(
+      call.methodPointer.file,
+      call.methodPointer.definedOnType,
+      call.methodPointer.name
+    )
 
   private def withContext(action: => Unit): Unit = {
     val token = truffleContext.enter()
@@ -143,48 +194,104 @@ class Handler {
     *
     * @param msg the message to handle.
     */
-  def onMessage(msg: Api.Request): Unit = msg match {
-    case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
-      contextManager.create(contextId)
-      endpoint.sendToClient(
-        Api.Response(requestId, Api.CreateContextResponse(contextId))
-      )
+  def onMessage(msg: Api.Request): Unit = {
+    val requestId = msg.requestId
+    msg.payload match {
+      case Api.CreateContextRequest(contextId) =>
+        contextManager.create(contextId)
+        endpoint.sendToClient(
+          Api.Response(requestId, Api.CreateContextResponse(contextId))
+        )
 
-    case Api.Request(requestId, Api.DestroyContextRequest(contextId)) =>
-      if (contextManager.get(contextId).isDefined) {
-        contextManager.destroy(contextId)
-        endpoint.sendToClient(
-          Api.Response(requestId, Api.DestroyContextResponse(contextId))
-        )
-      } else {
-        endpoint.sendToClient(
-          Api.Response(requestId, Api.ContextNotExistError(contextId))
-        )
+      case Api.PushContextRequest(contextId, item) => {
+        if (contextManager.get(contextId).isDefined) {
+          val stack = contextManager.getStack(contextId)
+          val payload = item match {
+            case call: Api.StackItem.ExplicitCall if stack.isEmpty =>
+              contextManager.push(contextId, item)
+              withContext(execute(contextId, List(call)))
+              Api.PushContextResponse(contextId)
+            case _: Api.StackItem.LocalCall if stack.nonEmpty =>
+              contextManager.push(contextId, item)
+              withContext(execute(contextId, stack.toList))
+              Api.PushContextResponse(contextId)
+            case _ =>
+              Api.InvalidStackItemError(contextId)
+          }
+          endpoint.sendToClient(Api.Response(requestId, payload))
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
       }
 
-    case Api.Request(requestId, Api.PushContextRequest(contextId, item)) => {
-      val payload = contextManager.push(contextId, item) match {
-        case Some(()) => Api.PushContextResponse(contextId)
-        case None     => Api.ContextNotExistError(contextId)
-      }
-      endpoint.sendToClient(Api.Response(requestId, payload))
-    }
+      case Api.PopContextRequest(contextId) =>
+        if (contextManager.get(contextId).isDefined) {
+          val payload = contextManager.pop(contextId) match {
+            case Some(_: Api.StackItem.ExplicitCall) =>
+              Api.PopContextResponse(contextId)
+            case Some(_: Api.StackItem.LocalCall) =>
+              withContext(
+                execute(contextId, contextManager.getStack(contextId).toList)
+              )
+              Api.PopContextResponse(contextId)
+            case None =>
+              Api.EmptyStackError(contextId)
+          }
+          endpoint.sendToClient(Api.Response(requestId, payload))
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
 
-    case Api.Request(requestId, Api.PopContextRequest(contextId)) =>
-      if (contextManager.get(contextId).isDefined) {
-        val payload = contextManager.pop(contextId) match {
-          case Some(_) => Api.PopContextResponse(contextId)
-          case None    => Api.EmptyStackError(contextId)
+      case Api.DestroyContextRequest(contextId) =>
+        if (contextManager.get(contextId).isDefined) {
+          contextManager.destroy(contextId)
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.DestroyContextResponse(contextId))
+          )
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
+
+      case Api.PushContextRequest(contextId, item) =>
+        val payload = contextManager.push(contextId, item) match {
+          case Some(()) => Api.PushContextResponse(contextId)
+          case None     => Api.ContextNotExistError(contextId)
         }
         endpoint.sendToClient(Api.Response(requestId, payload))
-      } else {
-        endpoint.sendToClient(
-          Api.Response(requestId, Api.ContextNotExistError(contextId))
-        )
-      }
 
-    case Api.Request(_, Api.Execute(mod, cons, fun, furtherStack)) =>
-      withContext(execute(ExecutionItem.Method(mod, cons, fun), furtherStack))
+      case Api.PopContextRequest(contextId) =>
+        if (contextManager.get(contextId).isDefined) {
+          val payload = contextManager.pop(contextId) match {
+            case Some(_) => Api.PopContextResponse(contextId)
+            case None    => Api.EmptyStackError(contextId)
+          }
+          endpoint.sendToClient(Api.Response(requestId, payload))
+        } else {
+          endpoint.sendToClient(
+            Api.Response(requestId, Api.ContextNotExistError(contextId))
+          )
+        }
 
+      case Api.OpenFileNotification(path, contents) =>
+        executionService.setModuleSources(path, contents)
+
+      case Api.CreateFileNotification(path) =>
+        executionService.createModule(path)
+
+      case Api.OpenFileNotification(path, contents) =>
+        executionService.setModuleSources(path, contents)
+
+      case Api.CloseFileNotification(path) =>
+        executionService.resetModuleSources(path)
+
+      case Api.EditFileNotification(path, edits) =>
+        executionService.modifyModuleSources(path, edits.asJava)
+    }
   }
 }

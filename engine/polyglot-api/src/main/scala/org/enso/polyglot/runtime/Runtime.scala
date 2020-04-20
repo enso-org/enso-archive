@@ -1,7 +1,7 @@
 package org.enso.polyglot.runtime
 
+import java.io.File
 import java.nio.ByteBuffer
-import java.nio.file.Path
 import java.util.UUID
 
 import com.fasterxml.jackson.annotation.{JsonSubTypes, JsonTypeInfo}
@@ -11,6 +11,7 @@ import com.fasterxml.jackson.module.scala.{
   DefaultScalaModule,
   ScalaObjectMapper
 }
+import org.enso.text.editing.model.TextEdit
 
 import scala.util.Try
 
@@ -55,6 +56,22 @@ object Runtime {
         name  = "popContextResponse"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.OpenFileNotification],
+        name  = "openFileNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.EditFileNotification],
+        name  = "editFileNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CloseFileNotification],
+        name  = "closeFileNotification"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.CreateFileNotification],
+        name  = "createFileNotification"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.ExpressionValuesComputed],
         name  = "expressionValuesComputed"
       ),
@@ -66,27 +83,26 @@ object Runtime {
         value = classOf[Api.EmptyStackError],
         name  = "emptyStackError"
       ),
-      new JsonSubTypes.Type(value = classOf[Api.Execute], name = "execute"),
+      new JsonSubTypes.Type(
+        value = classOf[Api.InvalidStackItemError],
+        name  = "invalidStackItemError"
+      ),
       new JsonSubTypes.Type(
         value = classOf[Api.InitializedNotification],
         name  = "initializedNotification"
-      ),
-      new JsonSubTypes.Type(
-        value = classOf[Api.ExpressionValueUpdateNotification],
-        name  = "expressionValueUpdateNotification"
       )
     )
   )
   sealed trait Api
-  sealed trait ApiRequest  extends Api
-  sealed trait ApiResponse extends Api
+  sealed trait ApiRequest      extends Api
+  sealed trait ApiResponse     extends Api
   sealed trait ApiNotification extends ApiResponse
 
   object Api {
 
-    type ContextId = UUID
+    type ContextId    = UUID
     type ExpressionId = UUID
-    type RequestId = UUID
+    type RequestId    = UUID
 
     /**
       * Indicates error response.
@@ -96,7 +112,7 @@ object Runtime {
     /**
       * A representation of a pointer to a method definition.
       */
-    case class MethodPointer(file: Path, definedOnType: String, name: String)
+    case class MethodPointer(file: File, definedOnType: String, name: String)
 
     /**
       * A representation of an executable position in code.
@@ -275,43 +291,53 @@ object Runtime {
     case class EmptyStackError(contextId: ContextId) extends Error
 
     /**
+      * An error response signifying that stack item is invalid.
+      *
+      * @param contextId the context's id
+      */
+    case class InvalidStackItemError(contextId: ContextId) extends Error
+
+    /**
+      * A notification sent to the server about switching a file to literal
+      * contents.
+      *
+      * @param path the file being moved to memory.
+      * @param contents the current file contents.
+      */
+    case class OpenFileNotification(path: File, contents: String)
+        extends ApiRequest
+
+    /**
+      * A notification sent to the server about in-memory file contents being
+      * edited.
+      *
+      * @param path the file being edited.
+      * @param edits the diffs to apply to the contents.
+      */
+    case class EditFileNotification(path: File, edits: Seq[TextEdit])
+        extends ApiRequest
+
+    /**
+      * A notification sent to the server about dropping the file from memory
+      * back to on-disk version.
+      *
+      * @param path the file being closed.
+      */
+    case class CloseFileNotification(path: File) extends ApiRequest
+
+    /**
+      * A notification sent to the server about a file being created.
+      *
+      * @param path the newly created file.
+      */
+    case class CreateFileNotification(path: File) extends ApiRequest
+
+    /**
       * Notification sent from the server to the client upon successful
       * initialization. Any messages sent to the server before receiving this
       * message will be dropped.
       */
     case class InitializedNotification() extends ApiResponse
-
-    /**
-      * An execution request for a given method.
-      * Note that this is a temporary message, only used to test functionality.
-      * To be replaced with actual execution stack API.
-      *
-      * @param modName the module to look for the method.
-      * @param consName the constructor the method is defined on.
-      * @param funName the method name.
-      * @param enterExprs the expressions that should be "entered" after
-      *                   executing the base method.
-      */
-    case class Execute(
-      modName: String,
-      consName: String,
-      funName: String,
-      enterExprs: List[ExpressionId]
-    ) extends ApiRequest
-
-    /**
-      * A notification sent from the server whenever an expression value
-      * becomes available.
-      * Note this is a temporary message, only used to test functionality.
-      * To be replaced with actual value computed notifications.
-      *
-      * @param expressionId the id of computed expression.
-      * @param shortValue the string representation of the expression's value.
-      */
-    case class ExpressionValueUpdateNotification(
-      expressionId: ExpressionId,
-      shortValue: String
-    ) extends ApiResponse
 
     private lazy val mapper = {
       val factory = new CBORFactory()
