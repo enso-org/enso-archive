@@ -1,7 +1,5 @@
 package org.enso.compiler.test.pass.analyse
 
-import java.util.UUID
-
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
@@ -35,12 +33,6 @@ class DataflowAnalysisTest extends CompilerTest {
     DemandAnalysis,
     TailCall
   )
-
-  /** Generates a new random [[UUID]].
-    *
-    * @return a random [[UUID]].
-    */
-  def genUUID: UUID = UUID.randomUUID()
 
   /** Adds an extension method to run dataflow analysis on an [[IR.Module]].
     *
@@ -173,15 +165,26 @@ class DataflowAnalysisTest extends CompilerTest {
     }
   }
 
-  "Dataflow metadata for scopes" should {
-    "allow querying for identifiers that should be invalidated on change" in {
-
-    }
-  }
+  "Dataflow metadata for scopes" should {}
 
   "Dataflow metadata for modules" should {
-    "allow querying for identifiers that should be invalidated on change" in {
+    "allow querying for ids that should be invalidated on symbol change" in {}
 
+    "allow querying for ids that should be invalidated on id change" in {
+      val scope = new Dependencies.Scope
+      val ids   = List.fill(5)(genID)
+
+      scope(ids.head) = Set(ids(1), ids(2))
+      scope(ids(2))   = Set(ids(3), ids(4))
+      scope(ids(4))   = Set(ids(1), ids.head)
+
+      scope.shouldInvalidateWhenChanging(ids.head) shouldEqual Set(
+        ids(1),
+        ids(2),
+        ids(3),
+        ids(4),
+        ids.head
+      )
     }
 
     "allow users to combine the information from multiple modules" in {
@@ -192,10 +195,10 @@ class DataflowAnalysisTest extends CompilerTest {
       val symbol2 = "bar"
       val symbol3 = "baz"
 
-      val symbol1DependentIdsInModule1 = Set(genUUID, genUUID)
-      val symbol2DependentIdsInModule1 = Set(genUUID, genUUID)
-      val symbol1DependentIdsInModule2 = Set(genUUID, genUUID)
-      val symbol3DependentIdsInModule2 = Set(genUUID)
+      val symbol1DependentIdsInModule1 = Set(genID, genID)
+      val symbol2DependentIdsInModule1 = Set(genID, genID)
+      val symbol1DependentIdsInModule2 = Set(genID, genID)
+      val symbol3DependentIdsInModule2 = Set(genID)
 
       module1(symbol1) = symbol1DependentIdsInModule1
       module1(symbol2) = symbol2DependentIdsInModule1

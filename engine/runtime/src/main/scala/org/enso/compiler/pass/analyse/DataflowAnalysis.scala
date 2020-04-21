@@ -97,7 +97,8 @@ case object DataflowAnalysis extends IRPass {
     /** Function-level dataflow results.
       *
       * It contains a mapping from expression identifiers to the identifiers of
-      * all other expressions that depend on a given expression.
+      * all other expressions that depend on a given expression. It contains the
+      * result for all children of the scope to which it is attached.
       *
       * @param dependencies the mapping between dependencies
       */
@@ -128,7 +129,21 @@ case object DataflowAnalysis extends IRPass {
       def shouldInvalidateWhenChanging(
         id: IR.Identifier
       ): Set[IR.Identifier] = {
-        ???
+        val visited = mutable.Set[IR.Identifier]()
+
+        def go(id: IR.Identifier): Set[IR.Identifier] = {
+          if (!visited.contains(id)) {
+            visited += id
+            get(id) match {
+              case Some(idents) => idents ++ idents.map(go).reduceLeft(_ ++ _)
+              case None         => Set()
+            }
+          } else {
+            Set()
+          }
+        }
+
+        go(id)
       }
     }
 
@@ -181,7 +196,8 @@ case object DataflowAnalysis extends IRPass {
         *         `symbol` is changed
         */
       def shouldInvalidateWhenChanging(
-        symbol: IR.Identifier
+        symbol: IR.Identifier,
+
       ): Set[IR.Identifier] = {
         ???
       }
