@@ -43,8 +43,8 @@ final class ContextEventsListener(
           contextId,
           updates
         )
+    // ignore updates from other contexts
     case _: Api.ExpressionValuesComputed =>
-      // ignore updates from other contexts
   }
 
   private def toRuntimeUpdate(

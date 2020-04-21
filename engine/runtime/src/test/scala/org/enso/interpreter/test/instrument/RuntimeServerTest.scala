@@ -326,7 +326,7 @@ class RuntimeServerTest
     )
     context.consumeOut shouldEqual List("I'm a file!")
 
-    // Open the new file with contents changed
+    // Open the file with contents changed
     send(
       Api.OpenFileNotification(
         fooFile,

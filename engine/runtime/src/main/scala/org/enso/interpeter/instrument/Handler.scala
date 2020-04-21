@@ -173,8 +173,7 @@ final class Handler {
   }
 
   private def executeAll(): Unit =
-    contextManager
-      .getAll
+    contextManager.getAll
       .filter(kv => kv._2.nonEmpty)
       .mapValues(_.toList)
       .foreach(Function.tupled(execute))
