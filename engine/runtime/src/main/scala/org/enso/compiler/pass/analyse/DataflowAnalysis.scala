@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Identifier
 import org.enso.compiler.pass.IRPass
 
 import scala.collection.mutable
@@ -17,7 +16,7 @@ import scala.collection.mutable
   * have been removed from the IR by the time it runs.
   */
 case object DataflowAnalysis extends IRPass {
-  override type Metadata = Dependencies
+  override type Metadata = Dependency
 
   /** Executes the dataflow analysis process on an Enso module.
     *
@@ -25,13 +24,7 @@ case object DataflowAnalysis extends IRPass {
     * @return `ir`, annotated with data dependency information
     */
   override def runModule(ir: IR.Module): IR.Module = {
-    val moduleDepInfo = new Dependencies.Module
-
-    ir.copy(
-        bindings =
-          ir.bindings.map(d => analyseModuleDefinition(d, moduleDepInfo))
-      )
-      .addMetadata(moduleDepInfo)
+    ir
   }
 
   // TODO [AA] Maybe make this work for the hell of it -> if the context is
@@ -54,272 +47,251 @@ case object DataflowAnalysis extends IRPass {
   // === Pass Internals =======================================================
 
   def analyseModuleDefinition(
-    binding: IR.Module.Scope.Definition,
-    moduleDepInfo: Dependencies.Module
+    binding: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     binding match {
       case atom: IR.Module.Scope.Definition.Atom => atom
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
-        val functionDepInfo = new Dependencies.Scope
-        m.copy(body =
-          analyseExpression(body, moduleDepInfo, List(functionDepInfo))
-        )
+        m.copy(body = analyseExpression(body))
     }
   }
 
-  // TODO [AA] Which nodes should get the `functionDepInfo`?
   def analyseExpression(
-    expression: IR.Expression,
-    moduleDepInfo: Dependencies.Module,
-    scopeStack: List[Dependencies.Scope]
+    expression: IR.Expression
   ): IR.Expression = {
     expression
   }
 
   // === Pass Metadata ========================================================
 
-  // TODO [AA] Nested query function.
-  // TODO [AA] `Function` should be attached to each scope, but upper scopes
-  //  should contain the data of lower scopes. Should get Inserted into
-  //  `LocalScope`
-  // TODO [AA] Some way of identifying things. Note, this pass doesn't attempt
-  //  to deal with the fact that IDs change on code update.
-  // TODO [AA] Need to produce global data.
-  //  - Function Body, global symbol
-  //  - Two types of metadata (one global attached to modules, and one local
-  //    attached to functions)
-  //  - Interdependent global symbols as a problem
+  /** Storage for dependency information.
+    *
+    * @param dependencies storage for the direct dependencies between program
+    *                     components
+    */
+  sealed case class Dependency(
+    dependencies: mutable.Map[Dependency.Type, Set[Dependency.Type]] =
+      mutable.Map()
+  ) extends IR.Metadata {
+    override val metadataName: String = "DataflowAnalysis.Dependencies"
 
-  /** This metadata describes which expressions depend on a given expression. */
-  sealed trait Dependencies extends IR.Metadata
-  object Dependencies {
-
-    /** Function-level dataflow results.
+    /** Returns the set of all dependents for the provided key.
       *
-      * It contains a mapping from expression identifiers to the identifiers of
-      * all other expressions that depend on a given expression. It contains the
-      * result for all children of the scope to which it is attached.
+      * Please note that the result set contains not just the _direct_ dependets
+      * of the key, but _all_ dependents of the key.
       *
-      * @param dependencies the mapping between dependencies
+      * @param key the key to get the dependents of
+      * @return the set of all dependencies on `key`
+      * @throws NoSuchElementException when `key` does not exist in the
+      *                                dependencies mapping
       */
-    sealed class Scope(
-      val dependencies: mutable.Map[IR.Identifier, Set[IR.Identifier]] =
-        mutable.Map()
-    ) extends Dependencies
-        with DependenciesImpl[IR.Identifier, Set[IR.Identifier]] {
-      override val metadataName: String =
-        "DataflowAnalysis.Dependencies.Scope"
-
-      /** Filters the dependency mapping, producing a _new_ mapping.
-        *
-        * @param f the filtering function
-        * @return the result of filtering `this` using `f`
-        */
-      override def filter(
-        f: (IR.Identifier, Set[IR.Identifier]) => Boolean
-      ): Scope = new Scope(dependencies.filter(f.tupled))
-
-      /** Returns the set of identifiers that should be invalidated when the
-        * input identifier is changed.
-        *
-        * @param id the identifier being changed
-        * @return the set of identifiers that should be invalidated when `id` is
-        *         changed
-        */
-      def shouldInvalidateWhenChanging(
-        id: IR.Identifier
-      ): Set[IR.Identifier] = {
-        val visited = mutable.Set[IR.Identifier]()
-
-        def go(id: IR.Identifier): Set[IR.Identifier] = {
-          if (!visited.contains(id)) {
-            visited += id
-            get(id) match {
-              case Some(idents) => idents ++ idents.map(go).reduceLeft(_ ++ _)
-              case None         => Set()
-            }
-          } else {
-            Set()
-          }
+    @throws[NoSuchElementException]
+    def apply(key: Dependency.Type): Set[Dependency.Type] = {
+      if (dependencies.contains(key)) {
+        get(key) match {
+          case Some(deps) => deps
+          case None       => throw new NoSuchElementException
         }
-
-        go(id)
+      } else {
+        throw new NoSuchElementException
       }
     }
 
-    /** Module-level dataflow results.
+    /** Returns the set of all dependents for the provided identifier.
       *
-      * It contains a mapping from the names of dynamic symbols to the
-      * identifiers of all other expressions that depend on that dynamic symbol.
+      * Please note that the result set contains not just the _direct_
+      * dependents of the id, but _all_ dependents of the id.
       *
-      * @param dependencies the mapping between dependencies
+      * @param id the key to get the dependents of
+      * @return the set of all dependencies on `id`
+      * @throws NoSuchElementException when `key` does not exist in the
+      *                                dependencies mapping
       */
-    sealed class Module(
-      val dependencies: mutable.Map[String, Set[IR.Identifier]] = mutable.Map()
-    ) extends Dependencies
-        with DependenciesImpl[String, Set[IR.Identifier]] {
-      override val metadataName: String = "DafaflowAnalysis.Dependencies.Module"
+    @throws[NoSuchElementException]
+    def apply(id: Dependency.Identifier): Set[Dependency.Type] =
+      this.apply(Dependency.Type.Static(id))
 
-      /** Filters the dependency mapping, producing a _new_ mapping.
-        *
-        * @param f the filtering function
-        * @return the result of filtering `this` using `f`
-        */
-      override def filter(
-        f: (String, Set[Identifier]) => Boolean
-      ): DependenciesImpl[String, Set[Identifier]] =
-        new Module(dependencies.filter(f.tupled))
+    /** Returns the set of all dependents for the provided symbol name.
+      *
+      * Please note that the result set contains not just the _direct_
+      * dependents of the symbol, but _all_ dependents of the symbol.
+      *
+      * @param symbol the key to get the dependents of
+      * @return the set of all dependencies on `symbol`
+      * @throws NoSuchElementException when `key` does not exist in the
+      *                                dependencies mapping
+      */
+    @throws[NoSuchElementException]
+    def apply(symbol: Dependency.Symbol): Set[Dependency.Type] =
+      this.apply(Dependency.Type.Dynamic(symbol))
 
-      /** Combines the analysis results for two modules.
-        *
-        * @param that the other module result to combine with `this`
-        * @return the result of combining `this` and `that`
-        */
-      def ++(that: Module): Module = {
-        val combinedModule = new Module(this.dependencies)
+    /** Safely gets the set of all dependents for the provided key.
+      *
+      * Please note that the result set contains not just the _direct_ dependents
+      * of the key, but _all_ dependents of the key.
+      *
+      * @param key the key to get the dependents of
+      * @return the set of all dependencies on `key`, if key exists
+      */
+    def get(key: Dependency.Type): Option[Set[Dependency.Type]] = {
+      val visited = mutable.Set[Dependency.Type]()
 
-        for ((key, value) <- that.dependencies) {
-          combinedModule.get(key) match {
-            case Some(xs) => combinedModule(key) = value ++ xs
-            case None     => combinedModule(key) = value
+      def go(key: Dependency.Type): Set[Dependency.Type] = {
+        if (!visited.contains(key)) {
+          visited += key
+
+          dependencies.get(key) match {
+            case Some(deps) => deps ++ deps.map(go).reduceLeft(_ ++ _)
+            case None       => Set()
           }
+        } else {
+          Set()
         }
-
-        combinedModule
       }
 
-      /** Returns the set of identifiers that should be invalidated when the
-        * input symbol is changed.
-        *
-        * @param symbol the dynamic symbol being changed
-        * @return the set of identifiers that should be invalidated when
-        *         `symbol` is changed
-        */
-      def shouldInvalidateWhenChanging(
-        symbol: IR.Identifier,
-
-      ): Set[IR.Identifier] = {
-        ???
+      if (dependencies.contains(key)) {
+        Some(go(key))
+      } else {
+        None
       }
     }
+
+    /** Returns the set of all dependents for the provided identifier.
+      *
+      * Please note that the result set contains not just the _direct_ dependents
+      * of the id, but _all_ dependents of the id.
+      *
+      * @param id the key to get the dependents of
+      * @return the set of all dependencies on `id`, if it exists
+      */
+    def get(id: Dependency.Identifier): Option[Set[Dependency.Type]] =
+      get(Dependency.Type.Static(id))
+
+    /** Returns the set of all dependents for the provided symbol name.
+      *
+      * Please note that the result set contains not just the _direct_ dependents
+      * of the symbol, but _all_ dependents of the symbol.
+      *
+      * @param symbol the key to get the dependents of
+      * @return the set of all dependencies on `symbol`
+      */
+    def get(symbol: Dependency.Symbol): Option[Set[Dependency.Type]] =
+      get(Dependency.Type.Dynamic(symbol))
+
+    /** Executes an update on the dependency information.
+      *
+      * @param key the key to update the dependents for
+      * @param dependents the updated dependents for `key`
+      */
+    def update(key: Dependency.Type, dependents: Set[Dependency.Type]): Unit =
+      dependencies(key) = dependents
+
+    /** Executes an update on the dependency information.
+      *
+      * @param id the key to update the dependents for
+      * @param dependents the updated dependents for `id`
+      */
+    def update(
+      id: Dependency.Identifier,
+      dependents: Set[Dependency.Type]
+    ): Unit =
+      update(Dependency.Type.Static(id), dependents)
+
+    /** Executes an update on the dependency information.
+      *
+      * @param symbol the key to update the dependents for
+      * @param dependents the updated dependents for `symbol`
+      */
+    def update(
+      symbol: Dependency.Symbol,
+      dependents: Set[Dependency.Type]
+    ): Unit =
+      update(Dependency.Type.Dynamic(symbol), dependents)
+
+    /** Updates the dependents for the provided key, or creates them if they do
+      * not already exist.
+      *
+      * @param key the key to add or update dependents for
+      * @param dependents the new dependents information for `key`
+      */
+    def updateAt(
+      key: Dependency.Type,
+      dependents: Set[Dependency.Type]
+    ): Unit = {
+      if (dependencies.contains(key)) {
+        dependencies(key) ++= dependents
+      } else {
+        dependencies(key) = dependents
+      }
+    }
+
+    /** Updates the dependents for the provided id, or creates them if they do
+      * not already exist.
+      *
+      * @param id the key to add or update dependents for
+      * @param dependents the new dependents information for `id`
+      */
+    def updateAt(
+      id: DataflowAnalysis.Dependency.Identifier,
+      dependents: Set[Dependency.Type]
+    ): Unit = {
+      updateAt(Dependency.Type.Static(id), dependents)
+    }
+
+    /** Updates the dependents for the provided symbol, or creates them if they
+      * do not already exist.
+      *
+      * @param symbol the key to add or update dependents for
+      * @param dependents the new dependents information for `symbol`
+      */
+    def updateAt(
+      symbol: Dependency.Symbol,
+      dependents: Set[Dependency.Type]
+    ): Unit = {
+      updateAt(Dependency.Type.Dynamic(symbol), dependents)
+    }
+
+    /** Combines two dependency information containers.
+      *
+      * @param that the other contaoner to combine with `this`
+      * @return the result of combining `this` and `that`
+      */
+    def ++(that: Dependency): Dependency = {
+      val combinedModule = new Dependency(this.dependencies)
+
+      for ((key, value) <- that.dependencies) {
+        combinedModule.dependencies.get(key) match {
+          case Some(xs) => combinedModule(key) = value ++ xs
+          case None     => combinedModule(key) = value
+        }
+      }
+
+      combinedModule
+    }
   }
+  object Dependency {
 
-  sealed trait DependenciesImpl[K, V] {
+    /** The type of identifiers in this analysis. */
+    type Identifier = IR.Identifier
 
-    /** Storage for the dependents data. */
-    val dependencies: mutable.Map[K, V]
+    /** The type of symbols in this analysis. */
+    type Symbol = String
 
-    /** Provides access to all of the dependents for a given identifier.
-      *
-      * @param key the identifier to find dependents of
-      * @return the dependents of the expression denoted by `key`
-      * @throws NoSuchElementException if `key` does not exist
-      */
-    def apply(key: K): V = dependencies(key)
+    /** The type of identification for a program component. */
+    sealed trait Type
+    object Type {
 
-    /** Safely gets the dependents for a given identifier.
-      *
-      * @param key the identifier to find dependents of
-      * @return the dependents of the expression denoted by `key`, if such
-      *         an expression exists
-      */
-    def get(key: K): Option[V] = dependencies.get(key)
-
-    /** Updates the value for the provided key.
-      *
-      * @param key the key to update
-      * @param value the value to associate with `key`
-      */
-    def update(key: K, value: V): Unit = dependencies(key) = value
-
-    /** Removes the given identifier and its dependents from the mapping.
-      *
-      * @param key the identifier to remove data for
-      * @return the removed dependents of the expression denoted by `key`
-      */
-    def remove(key: K): Option[V] = dependencies.remove(key)
-
-    /** Checks whether a value matching the predicate exists in the data.
-      *
-      * @param pred the predicate to satisfy
-      * @return whather or not `pred` has been satisfied
-      */
-    def exists(pred: (K, V) => Boolean): Boolean =
-      dependencies.exists(pred.tupled)
-
-    /** Maps over the dependency mapping, producing a _new_ mapping.
-      *
-      * @param f the function to map over the dependency info
-      * @tparam K2 the new key type
-      * @tparam V2 the new value type
-      * @return the result of mapping `f` over the dependency info
-      */
-    def map[K2, V2](f: (K, V) => (K2, V2)): DependenciesImpl[K2, V2] =
-      new DependenciesImpl.Concrete[K2, V2](dependencies.map(f.tupled))
-
-    /** Filters the dependency mapping, producing a _new_ mapping.
-      *
-      * @param f the filtering function
-      * @return the result of filtering `this` using `f`
-      */
-    def filter(f: (K, V) => Boolean): DependenciesImpl[K, V]
-
-    /** Folds over the dependency mapping.
-      *
-      * This is a left fold.
-      *
-      * @param init the initial value for the fold
-      * @param f the fold function
-      * @tparam A1 the left operand type
-      * @tparam A2 the right operand type
-      * @return the result of folding over `this` using `f` starting at `init`
-      */
-    def fold[A1, A2 >: (K, V)](init: A1)(f: (A1, A2) => A1): A1 =
-      dependencies.foldLeft(init)(f)
-  }
-  object DependenciesImpl {
-
-    /** An abitrary dependencies container for when it's necessary to use the
-      * type-changing map.
-      *
-      * @param dependencies the dependency information
-      * @tparam K the key type in the map
-      * @tparam V the value type in the map
-      */
-    sealed class Concrete[K, V](
-      val dependencies: mutable.Map[K, V] = mutable.Map[K, V]()
-    ) extends DependenciesImpl[K, V] {
-
-      /** Maps over the dependency mapping, producing a _new_ mapping.
+      /** Program components identified by their unique identifier.
         *
-        * @param f the function to map over the dependency info
-        * @tparam K2 the new key type
-        * @tparam V2 the new value type
-        * @return the result of mapping `f` over the dependency info
+        * @param id the unique identifier of the program component
         */
-      override def map[K2, V2](f: (K, V) => (K2, V2)): Concrete[K2, V2] =
-        new Concrete(dependencies.map(f.tupled))
+      sealed case class Static(id: Dependency.Identifier) extends Type
 
-      /** Filters the dependency mapping, producing a _new_ mapping.
+      /** Program components identified by their symbol.
         *
-        * @param f the filtering function
-        * @return the result of filtering `this` using `f`
+        * @param name the name of the symbol
         */
-      override def filter(f: (K, V) => Boolean): Concrete[K, V] =
-        new Concrete(dependencies.filter(f.tupled))
-
-      /** Folds over the dependency mapping.
-        *
-        * This is a left fold.
-        *
-        * @param init the initial value for the fold
-        * @param f the fold function
-        * @tparam A1 the left operand type
-        * @tparam A2 the right operand type
-        * @return the result of folding over `this` using `f` starting at `init`
-        */
-      override def fold[A1, A2 >: (K, V)](init: A1)(f: (A1, A2) => A1): A1 =
-        dependencies.foldLeft(init)(f)
+      sealed case class Dynamic(name: Dependency.Symbol) extends Type
     }
   }
 }

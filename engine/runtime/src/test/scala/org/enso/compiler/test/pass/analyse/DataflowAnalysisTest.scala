@@ -3,10 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.{
-  Dependencies,
-  DependenciesImpl
-}
+import org.enso.compiler.pass.analyse.DataflowAnalysis.Dependency
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -33,6 +30,23 @@ class DataflowAnalysisTest extends CompilerTest {
     DemandAnalysis,
     TailCall
   )
+
+  /** Generates an identifier dependency.
+    *
+    * @return a randomly generated identifier dependency
+    */
+  def genStaticDep: Dependency.Type = {
+    Dependency.Type.Static(genID)
+  }
+
+  /** Generates a symbol dependency from the included string.
+    *
+    * @param str the string to use as a name
+    * @return a symbol dependency on the symbol given by `str`
+    */
+  def genDynamicDep(str: String): Dependency.Type = {
+    Dependency.Type.Dynamic(str)
+  }
 
   /** Adds an extension method to run dataflow analysis on an [[IR.Module]].
     *
@@ -68,117 +82,16 @@ class DataflowAnalysisTest extends CompilerTest {
 
   // === The Tests ============================================================
 
-  "Dependency descriptions" should {
-    "allow direct access to the underlying storage" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
+  "Dataflow metadata" should {
+    "allow querying for expressions that should be invalidated on change" in {
+      val dependencies = new Dependency
+      val ids          = List.fill(5)(genStaticDep)
 
-      deps.dependencies shouldBe empty
-    }
+      dependencies(ids.head) = Set(ids(1), ids(2))
+      dependencies(ids(2))   = Set(ids(3), ids(4))
+      dependencies(ids(4))   = Set(ids(1), ids.head)
 
-    "allow users to get the dependents of a given identifier" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      val str  = "Foo"
-
-      deps(1) = str
-      deps(1) shouldEqual str
-    }
-
-    "throw if an unsafe access is used for a nonexistent identifier" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-
-      a[NoSuchElementException] should be thrownBy deps(1)
-    }
-
-    "allow users to safely get the dependents of a given identifier" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      deps(1) = "Str"
-
-      deps.get(1) shouldBe defined
-      deps.get(2) should not be defined
-    }
-
-    "allow users to update the dependent sets" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      val str  = "Str"
-
-      deps(1) = str
-
-      deps(1) += str
-      deps(1) shouldEqual (str + str)
-    }
-
-    "allow users to remove identifiers" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      val str  = "Str"
-
-      deps(1) = str
-      deps.remove(1) shouldEqual Some(str)
-    }
-
-    "allow users to check predicates against the dependency info" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      val id   = 1
-
-      deps(id) = "Str"
-      deps.exists((ident, _) => id == ident) shouldBe true
-    }
-
-    "allow users to map over the dependency info" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      val id   = 1
-      val id2  = 2
-      val str  = "Str"
-      deps(id)  = str
-      deps(id2) = str + str
-
-      val newDeps = deps.map((x, y) => (x, y.length))
-
-      newDeps(id) shouldEqual str.length
-      newDeps(id2) shouldEqual (str + str).length
-    }
-
-    "allow users to filter the dependency info" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      val id   = 1
-      val id2  = 2
-      val str  = "Str"
-      deps(id)  = str
-      deps(id2) = str + str
-
-      val newDeps = deps.filter((_, string) => string.length < 5)
-
-      newDeps.get(id) shouldBe defined
-      newDeps.get(id2) should not be defined
-    }
-
-    "allow users to fold over the dependency info" in {
-      val deps = new DependenciesImpl.Concrete[Int, String]
-      val id   = 1
-      val id2  = 2
-      val str  = "Str"
-      deps(id)  = str
-      deps(id2) = str + str
-
-      deps.fold(0) {
-        case (num, (_, rStr)) => num + rStr.length
-      } shouldEqual (str.length * 3)
-    }
-  }
-
-  "Dataflow metadata for scopes" should {}
-
-  "Dataflow metadata for modules" should {
-    "allow querying for ids that should be invalidated on symbol change" in {}
-
-    "allow querying for ids that should be invalidated on id change" in {
-      val scope = new Dependencies.Scope
-      val ids   = List.fill(5)(genID)
-
-      scope(ids.head) = Set(ids(1), ids(2))
-      scope(ids(2))   = Set(ids(3), ids(4))
-      scope(ids(4))   = Set(ids(1), ids.head)
-
-      scope.shouldInvalidateWhenChanging(ids.head) shouldEqual Set(
+      dependencies(ids.head) shouldEqual Set(
         ids(1),
         ids(2),
         ids(3),
@@ -187,18 +100,68 @@ class DataflowAnalysisTest extends CompilerTest {
       )
     }
 
-    "allow users to combine the information from multiple modules" in {
-      val module1 = new Dependencies.Module
-      val module2 = new Dependencies.Module
+    "provide a safe query function as well" in {
+      val dependencies = new Dependency
+      val ids          = List.fill(5)(genStaticDep)
+      val badId        = genStaticDep
 
-      val symbol1 = "foo"
-      val symbol2 = "bar"
-      val symbol3 = "baz"
+      dependencies(ids.head) = Set(ids(1), ids(2))
+      dependencies(ids(2))   = Set(ids(3), ids(4))
+      dependencies(ids(4))   = Set(ids(1), ids.head)
 
-      val symbol1DependentIdsInModule1 = Set(genID, genID)
-      val symbol2DependentIdsInModule1 = Set(genID, genID)
-      val symbol1DependentIdsInModule2 = Set(genID, genID)
-      val symbol3DependentIdsInModule2 = Set(genID)
+      dependencies.get(ids.head) shouldBe defined
+      dependencies.get(badId) should not be defined
+
+      dependencies.get(ids.head) shouldEqual Some(
+        Set(
+          ids(1),
+          ids(2),
+          ids(3),
+          ids(4),
+          ids.head
+        )
+      )
+    }
+
+    "allow for updating the dependents of a node" in {
+      val dependencies = new Dependency
+      val ids          = List.fill(3)(genStaticDep)
+
+      dependencies(ids.head) = Set(ids(1))
+      dependencies(ids.head) shouldEqual Set(ids(1))
+
+      dependencies(ids.head) = Set(ids(2))
+      dependencies(ids.head) shouldEqual Set(ids(2))
+
+      dependencies(ids.head) ++= Set(ids(1))
+      dependencies(ids.head) shouldEqual Set(ids(1), ids(2))
+    }
+
+    "allow for updating at a given node" in {
+      val dependencies = new Dependency
+      val ids          = List.fill(6)(genStaticDep)
+      val set1         = Set.from(ids.tail)
+      val newId        = genStaticDep
+
+      dependencies.updateAt(ids.head, set1)
+      dependencies(ids.head) shouldEqual set1
+
+      dependencies.updateAt(ids.head, Set(newId))
+      dependencies(ids.head) shouldEqual (set1 + newId)
+    }
+
+    "allow combining the information from multiple modules" in {
+      val module1 = new Dependency
+      val module2 = new Dependency
+
+      val symbol1 = genDynamicDep("foo")
+      val symbol2 = genDynamicDep("bar")
+      val symbol3 = genDynamicDep("baz")
+
+      val symbol1DependentIdsInModule1 = Set(genStaticDep, genStaticDep)
+      val symbol2DependentIdsInModule1 = Set(genStaticDep, genStaticDep)
+      val symbol1DependentIdsInModule2 = Set(genStaticDep, genStaticDep)
+      val symbol3DependentIdsInModule2 = Set(genStaticDep)
 
       module1(symbol1) = symbol1DependentIdsInModule1
       module1(symbol2) = symbol2DependentIdsInModule1
