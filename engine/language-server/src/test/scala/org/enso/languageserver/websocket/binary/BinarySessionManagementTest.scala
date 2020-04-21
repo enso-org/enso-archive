@@ -35,7 +35,7 @@ class BinarySessionManagementTest extends BaseBinaryServerTest {
       builder.finish(inMsg)
       //when
       client.send(builder.dataBuffer())
-      val msg = client.receiveMessage[OutboundMessage]()
+      val Right(msg) = client.receiveMessage[OutboundMessage]()
       //then
       msg.payloadType() shouldBe OutboundPayload.SESSION_INIT_RESPONSE
       msg

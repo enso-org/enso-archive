@@ -18,7 +18,11 @@ import org.enso.languageserver.http.server.WebSocketControlProtocol.{
   ConnectionFailed,
   OutboundStreamEstablished
 }
-import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
+import org.enso.languageserver.util.binary.{
+  BinaryDecoder,
+  BinaryEncoder,
+  DecodingFailure
+}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -112,7 +116,11 @@ class BinaryWebSocketServer[A, B](
         decoder.decode(bytes)
       }
       .to {
-        Sink.actorRef[A](frontController, ConnectionClosed, ConnectionFailed)
+        Sink.actorRef[Either[DecodingFailure, A]](
+          frontController,
+          ConnectionClosed,
+          ConnectionFailed
+        )
       }
   }
 

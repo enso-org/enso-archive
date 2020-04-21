@@ -15,7 +15,11 @@ import org.enso.languageserver.http.server.{
   ConnectionControllerFactory
 }
 import org.enso.languageserver.protocol.binary.InboundMessageDecoder
-import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
+import org.enso.languageserver.util.binary.{
+  BinaryDecoder,
+  BinaryEncoder,
+  DecodingFailure
+}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
@@ -95,7 +99,7 @@ abstract class BinaryServerTestKit
     def expectFrame(): ByteBuffer =
       outActor.expectMsgClass[ByteBuffer](classOf[ByteBuffer])
 
-    def receiveMessage[T: BinaryDecoder](): T = {
+    def receiveMessage[T: BinaryDecoder](): Either[DecodingFailure, T] = {
       val frame = expectFrame()
       implicitly[BinaryDecoder[T]].decode(frame)
     }

@@ -4,6 +4,6 @@ import java.nio.ByteBuffer
 
 trait BinaryDecoder[+A] {
 
-  def decode(bytes: ByteBuffer): A
+  def decode(bytes: ByteBuffer): Either[DecodingFailure, A]
 
 }

@@ -13,8 +13,7 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 }
 import org.enso.languageserver.util.binary.{BinaryDecoder, DecodingFailure}
 
-object InboundMessageDecoder
-    extends BinaryDecoder[Either[DecodingFailure, InboundMessage]] {
+object InboundMessageDecoder extends BinaryDecoder[InboundMessage] {
 
   override def decode(
     bytes: ByteBuffer
