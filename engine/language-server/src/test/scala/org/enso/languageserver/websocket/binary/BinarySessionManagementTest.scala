@@ -21,8 +21,8 @@ class BinarySessionManagementTest extends BaseBinaryServerTest {
 
     "return empty SessionInitResponse" in {
       //given
-      val clientId         = UUID.randomUUID()
       val client           = newWsClient()
+      val clientId         = UUID.randomUUID()
       val requestId        = UUID.randomUUID()
       implicit val builder = new FlatBufferBuilder(1024)
       val cmd              = SessionInitFactory.create(clientId)

@@ -7,6 +7,7 @@ import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.languageserver.http.server.WebSocketControlProtocol.{
   ConnectionClosed,
+  ConnectionFailed,
   OutboundStreamEstablished
 }
 import org.enso.languageserver.protocol.binary.envelope.InboundPayload.SESSION_INIT
@@ -17,9 +18,11 @@ import org.enso.languageserver.protocol.binary.envelope.{
 import org.enso.languageserver.protocol.binary.factory.{
   ErrorFactory,
   OutboundMessageFactory,
-  SessionInitResponseFactory
+  SessionInitResponseFactory,
+  VisualisationUpdateFactory
 }
 import org.enso.languageserver.protocol.binary.session.SessionInit
+import org.enso.languageserver.runtime.VisualisationProtocol.VisualisationUpdate
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
 import org.enso.languageserver.util.binary.DecodingFailure.{
@@ -28,19 +31,26 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
   GenericDecodingFailure
 }
 
+import scala.annotation.unused
+
 class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
     extends Actor
     with Stash
     with ActorLogging
     with UnhandledLogging {
 
-  override def receive: Receive = connectionNotEstablished
+  override def receive: Receive =
+    connectionEndHandler orElse connectionNotEstablished
 
   private def connectionNotEstablished: Receive = {
     case OutboundStreamEstablished(outboundChannel) =>
       log.debug(s"Connection established [$maybeIp]")
       unstashAll()
-      context.become(connected(outboundChannel))
+      context.become(
+        connected(outboundChannel) orElse connectionEndHandler orElse decodingFailureHandler(
+          outboundChannel
+        )
+      )
 
     case _ => stash()
   }
@@ -63,8 +73,45 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
       )
       builder.finish(outMsg)
       outboundChannel ! builder.dataBuffer()
-      context.become(initialized(outboundChannel, clientID))
+      context.become(
+        connectionEndHandler orElse initialized(outboundChannel, clientID) orElse decodingFailureHandler(
+          outboundChannel
+        )
+      )
 
+  }
+
+  private def initialized(
+    outboundChannel: ActorRef,
+    @unused clientId: UUID
+  ): Receive = {
+    case update: VisualisationUpdate =>
+      implicit val builder = new FlatBufferBuilder(1024)
+      val event            = VisualisationUpdateFactory.create(update)
+      val msg = OutboundMessageFactory.create(
+        UUID.randomUUID(),
+        None,
+        OutboundPayload.VISUALISATION_UPDATE,
+        event
+      )
+
+      builder.finish(msg)
+      outboundChannel ! builder.dataBuffer()
+  }
+
+  private def connectionEndHandler: Receive = {
+    case ConnectionClosed =>
+      context.stop(self)
+
+    case ConnectionFailed(th) =>
+      log.error(
+        s"An error occurred during processing web socket connection [$maybeIp]",
+        th
+      )
+      context.stop(self)
+  }
+
+  private def decodingFailureHandler(outboundChannel: ActorRef): Receive = {
     case Left(decodingFailure: DecodingFailure) =>
       implicit val builder = new FlatBufferBuilder(1024)
       val error =
@@ -83,17 +130,6 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
       )
       builder.finish(outMsg)
       outboundChannel ! builder.dataBuffer()
-  }
-
-  private def initialized(
-    outboundChannel: ActorRef,
-    clientId: UUID
-  ): Receive = {
-    case ConnectionClosed =>
-      context.stop(self)
-
-    case msg =>
-      log.info(s"$msg received by binary protocol")
   }
 
 }
