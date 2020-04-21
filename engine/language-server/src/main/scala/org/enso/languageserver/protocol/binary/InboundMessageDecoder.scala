@@ -2,18 +2,18 @@ package org.enso.languageserver.protocol.binary
 
 import java.nio.ByteBuffer
 
-import org.enso.languageserver.http.server.BinaryDecoder
-import org.enso.languageserver.protocol.binary.DecodingFailure.{
-  DataCorrupted,
-  EmptyPayload,
-  GenericDecodingFailure
-}
 import org.enso.languageserver.protocol.binary.envelope.{
   InboundMessage,
   InboundPayload
 }
+import org.enso.languageserver.util.binary.DecodingFailure.{
+  DataCorrupted,
+  EmptyPayload,
+  GenericDecodingFailure
+}
+import org.enso.languageserver.util.binary.{BinaryDecoder, DecodingFailure}
 
-object BinaryProtocolDecoder
+object InboundMessageDecoder
     extends BinaryDecoder[Either[DecodingFailure, InboundMessage]] {
 
   override def decode(

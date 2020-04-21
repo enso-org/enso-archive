@@ -10,17 +10,12 @@ import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import akka.util.ByteString
-import org.enso.jsonrpc.Protocol
 import org.enso.languageserver.http.server.{
-  BinaryDecoder,
-  BinaryEncoder,
   BinaryWebSocketServer,
   ConnectionControllerFactory
 }
-import org.enso.languageserver.protocol.binary.{
-  BinaryProtocolDecoder,
-  BinaryProtocolEncoder
-}
+import org.enso.languageserver.protocol.binary.InboundMessageDecoder
+import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{Assertion, BeforeAndAfterAll, BeforeAndAfterEach}
@@ -50,8 +45,8 @@ abstract class BinaryServerTestKit
 
   override def beforeEach(): Unit = {
     server = new BinaryWebSocketServer(
-      BinaryProtocolDecoder,
-      BinaryProtocolEncoder,
+      InboundMessageDecoder,
+      BinaryEncoder.empty,
       connectionControllerFactory
     )
     binding = Await.result(server.bind(interface, port = 0), 3.seconds)

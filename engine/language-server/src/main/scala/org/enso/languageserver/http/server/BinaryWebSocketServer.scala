@@ -18,6 +18,7 @@ import org.enso.languageserver.http.server.WebSocketControlProtocol.{
   ConnectionFailed,
   OutboundStreamEstablished
 }
+import org.enso.languageserver.util.binary.{BinaryDecoder, BinaryEncoder}
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}

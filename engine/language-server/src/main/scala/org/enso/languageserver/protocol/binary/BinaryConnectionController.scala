@@ -4,15 +4,10 @@ import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import akka.http.scaladsl.model.RemoteAddress
-import com.google.flatbuffers.{FlatBufferBuilder, Table}
+import com.google.flatbuffers.FlatBufferBuilder
 import org.enso.languageserver.http.server.WebSocketControlProtocol.{
   ConnectionClosed,
   OutboundStreamEstablished
-}
-import org.enso.languageserver.protocol.binary.DecodingFailure.{
-  DataCorrupted,
-  EmptyPayload,
-  GenericDecodingFailure
 }
 import org.enso.languageserver.protocol.binary.envelope.InboundPayload.SESSION_INIT
 import org.enso.languageserver.protocol.binary.envelope.{
@@ -26,6 +21,12 @@ import org.enso.languageserver.protocol.binary.factory.{
 }
 import org.enso.languageserver.protocol.binary.session.SessionInit
 import org.enso.languageserver.util.UnhandledLogging
+import org.enso.languageserver.util.binary.DecodingFailure
+import org.enso.languageserver.util.binary.DecodingFailure.{
+  DataCorrupted,
+  EmptyPayload,
+  GenericDecodingFailure
+}
 
 class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
     extends Actor

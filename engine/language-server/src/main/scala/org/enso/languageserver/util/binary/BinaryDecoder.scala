@@ -1,4 +1,4 @@
-package org.enso.languageserver.http.server
+package org.enso.languageserver.util.binary
 
 import java.nio.ByteBuffer
 

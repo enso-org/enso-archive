@@ -6,31 +6,24 @@ import java.net.URI
 import akka.actor.{ActorSystem, Props}
 import akka.stream.SystemMaterializer
 import org.enso.jsonrpc.JsonRpcServer
+import org.enso.languageserver.LanguageServer
 import org.enso.languageserver.capability.CapabilityRouter
-import org.enso.languageserver.data.{
-  Config,
-  ContentBasedVersioning,
-  ExecutionContextConfig,
-  FileManagerConfig,
-  PathWatcherConfig,
-  Sha3_224VersionCalculator
-}
+import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
 import org.enso.languageserver.filemanager.{
   FileManager,
   FileSystem,
   ReceivesTreeUpdatesHandler
 }
-import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
-import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
-import org.enso.languageserver.text.BufferRegistry
-import org.enso.languageserver.LanguageServer
 import org.enso.languageserver.http.server.BinaryWebSocketServer
 import org.enso.languageserver.protocol.binary.{
   BinaryConnectionControllerFactory,
-  BinaryProtocolDecoder,
-  BinaryProtocolEncoder
+  InboundMessageDecoder
 }
+import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
+import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
+import org.enso.languageserver.text.BufferRegistry
+import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
 import org.graalvm.polyglot.Context
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -133,10 +126,10 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val jsonRpcServer =
     new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
 
-  lazy val binaryDataServer =
+  lazy val binaryServer =
     new BinaryWebSocketServer(
-      BinaryProtocolDecoder,
-      BinaryProtocolEncoder,
+      InboundMessageDecoder,
+      BinaryEncoder.empty,
       new BinaryConnectionControllerFactory
     )
 

@@ -1,4 +1,4 @@
-package org.enso.languageserver.protocol.binary
+package org.enso.languageserver.util.binary
 
 sealed trait DecodingFailure
 

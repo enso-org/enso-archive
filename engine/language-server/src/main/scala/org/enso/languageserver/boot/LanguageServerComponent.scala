@@ -33,7 +33,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
       mainModule <- Future { new MainModule(config) }
       _          <- Future { mainModule.languageServer ! LanguageProtocol.Initialize }
       rpcBinding <- mainModule.jsonRpcServer.bind(config.interface, config.port)
-      dataBinding <- mainModule.binaryDataServer
+      dataBinding <- mainModule.binaryServer
         .bind(config.interface, config.port + 1)
       _ <- Future { maybeServerState = Some((mainModule, rpcBinding)) }
       _ <- Future {
@@ -75,8 +75,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
           _ <- mainModule.system.terminate().recover(logError)
           _ <- Future { mainModule.context.close(true) }.recover(logError)
           _ <- Future { maybeServerState = None }
-        } yield ComponentStopped
-        Future()
+        } yield ()
     }
   }
 
