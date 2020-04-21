@@ -155,7 +155,9 @@ class LanguageServerSupervisorSpec
 
     val testHost = "127.0.0.1"
 
-    val testPort = Tcp.findAvailablePort(testHost, 49152, 65535)
+    val testRpcPort = Tcp.findAvailablePort(testHost, 49152, 55535)
+
+    val testDataPort = Tcp.findAvailablePort(testHost, 55535, 65535)
 
     val testInitialDelay = 5.seconds
 
@@ -167,11 +169,17 @@ class LanguageServerSupervisorSpec
 
     val testRestartDelay = 2.seconds
 
-    val fakeServer = new ProgrammableWebSocketServer(testHost, testPort)
+    val fakeServer = new ProgrammableWebSocketServer(testHost, testRpcPort)
     fakeServer.start()
 
     val serverConfig =
-      LanguageServerConfig(testHost, testPort, UUID.randomUUID(), "/tmp")
+      LanguageServerConfig(
+        testHost,
+        testRpcPort,
+        testDataPort,
+        UUID.randomUUID(),
+        "/tmp"
+      )
 
     val supervisionConfig =
       SupervisionConfig(

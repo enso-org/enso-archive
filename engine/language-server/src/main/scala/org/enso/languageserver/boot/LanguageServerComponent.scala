@@ -3,6 +3,7 @@ package org.enso.languageserver.boot
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.LanguageProtocol
+import org.enso.languageserver.boot.LanguageServerComponent.ServerCtx
 import org.enso.languageserver.boot.LifecycleComponent.{
   ComponentRestarted,
   ComponentStarted,
@@ -22,7 +23,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     with LazyLogging {
 
   @volatile
-  private var maybeServerState: Option[(MainModule, Http.ServerBinding)] = None
+  private var maybeServerCtx: Option[ServerCtx] = None
 
   implicit private val ec = config.computeExecutionContext
 
@@ -30,30 +31,34 @@ class LanguageServerComponent(config: LanguageServerConfig)
   override def start(): Future[ComponentStarted.type] = {
     logger.info("Starting Language Server...")
     for {
-      mainModule <- Future { new MainModule(config) }
-      _          <- Future { mainModule.languageServer ! LanguageProtocol.Initialize }
-      rpcBinding <- mainModule.jsonRpcServer.bind(config.interface, config.port)
-      dataBinding <- mainModule.binaryServer
-        .bind(config.interface, config.port + 1)
-      _ <- Future { maybeServerState = Some((mainModule, rpcBinding)) }
+      module      <- Future { new MainModule(config) }
+      _           <- Future { module.languageServer ! LanguageProtocol.Initialize }
+      rpcBinding  <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
+      dataBinding <- module.dataServer.bind(config.interface, config.dataPort)
       _ <- Future {
-        logger.info(s"Started server at ${config.interface}:${config.port}")
+        maybeServerCtx = Some(ServerCtx(module, rpcBinding, dataBinding))
+      }
+      _ <- Future {
+        logger.info(
+          s"Started server at  rpc:${config.interface}:${config.rpcPort}, data:${config.interface}:${config.dataPort}"
+        )
       }
     } yield ComponentStarted
   }
 
   /** @inheritdoc **/
   override def stop(): Future[ComponentStopped.type] =
-    maybeServerState match {
+    maybeServerCtx match {
       case None =>
         Future.failed(new Exception("Server isn't running"))
 
-      case Some((mainModule, binding)) =>
+      case Some(serverState) =>
         for {
-          _ <- binding.terminate(10.seconds)
-          _ <- mainModule.system.terminate()
-          _ <- Future { mainModule.context.close(true) }
-          _ <- Future { maybeServerState = None }
+          _ <- serverState.rpcBinding.terminate(10.seconds)
+          _ <- serverState.dataBinding.terminate(10.seconds)
+          _ <- serverState.mainModule.system.terminate()
+          _ <- Future { serverState.mainModule.context.close(true) }
+          _ <- Future { maybeServerCtx = None }
         } yield ComponentStopped
     }
 
@@ -65,16 +70,18 @@ class LanguageServerComponent(config: LanguageServerConfig)
     } yield ComponentRestarted
 
   private def forceStop(): Future[Unit] = {
-    maybeServerState match {
+    maybeServerCtx match {
       case None =>
         Future.successful(())
 
-      case Some((mainModule, binding)) =>
+      case Some(serverState) =>
         for {
-          _ <- binding.terminate(10.seconds).recover(logError)
-          _ <- mainModule.system.terminate().recover(logError)
-          _ <- Future { mainModule.context.close(true) }.recover(logError)
-          _ <- Future { maybeServerState = None }
+          _ <- serverState.rpcBinding.terminate(10.seconds).recover(logError)
+          _ <- serverState.dataBinding.terminate(10.seconds).recover(logError)
+          _ <- serverState.mainModule.system.terminate().recover(logError)
+          _ <- Future { serverState.mainModule.context.close(true) }
+            .recover(logError)
+          _ <- Future { maybeServerCtx = None }
         } yield ()
     }
   }
@@ -82,5 +89,22 @@ class LanguageServerComponent(config: LanguageServerConfig)
   private val logError: PartialFunction[Throwable, Unit] = {
     case th => logger.error("An error occurred during stopping server", th)
   }
+
+}
+
+object LanguageServerComponent {
+
+  /**
+    * A running server context.
+    *
+    * @param mainModule
+    * @param rpcBinding
+    * @param dataBinding
+    */
+  case class ServerCtx(
+    mainModule: MainModule,
+    rpcBinding: Http.ServerBinding,
+    dataBinding: Http.ServerBinding
+  )
 
 }

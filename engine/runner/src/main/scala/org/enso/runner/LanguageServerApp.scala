@@ -25,12 +25,12 @@ object LanguageServerApp {
 
     val binding =
       Await.result(
-        mainModule.jsonRpcServer.bind(config.interface, config.port),
+        mainModule.jsonRpcServer.bind(config.interface, config.rpcPort),
         3.seconds
       )
 
     println(
-      s"Started server at ${config.interface}:${config.port}, press enter to kill server"
+      s"Started server at ${config.interface}:${config.rpcPort}, press enter to kill server"
     )
     StdIn.readLine()
     binding.terminate(10.seconds)

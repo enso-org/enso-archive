@@ -126,7 +126,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val jsonRpcServer =
     new JsonRpcServer(JsonRpc.protocol, clientControllerFactory)
 
-  lazy val binaryServer =
+  lazy val dataServer =
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,
