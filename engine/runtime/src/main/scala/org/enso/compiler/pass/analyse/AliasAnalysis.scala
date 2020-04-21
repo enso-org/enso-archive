@@ -170,7 +170,7 @@ case object AliasAnalysis extends IRPass {
           val isSuspended  = expression.isInstanceOf[IR.Expression.Block]
           val occurrenceId = graph.nextId()
           val occurrence =
-            Occurrence.Def(occurrenceId, name.name, isSuspended)
+            Occurrence.Def(occurrenceId, name.name, binding.id, isSuspended)
 
           parentScope.add(occurrence)
 
@@ -230,7 +230,9 @@ case object AliasAnalysis extends IRPass {
           scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
         if (!nameOccursInScope) {
           val occurrenceId = graph.nextId()
-          scope.add(Graph.Occurrence.Def(occurrenceId, name.name, isSusp))
+          scope.add(
+            Graph.Occurrence.Def(occurrenceId, name.name, arg.id, isSusp)
+          )
 
           arg
             .copy(
@@ -350,7 +352,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): IR.Name = {
     val occurrenceId = graph.nextId()
-    val occurrence   = Occurrence.Use(occurrenceId, name.name)
+    val occurrence   = Occurrence.Use(occurrenceId, name.name, name.id)
 
     parentScope.add(occurrence)
     graph.resolveUsage(occurrence)
@@ -522,8 +524,8 @@ case object AliasAnalysis extends IRPass {
       linksFor(id).find { edge =>
         val occ = getOccurrence(edge.target)
         occ match {
-          case Some(Occurrence.Def(_, _, _)) => true
-          case _                             => false
+          case Some(Occurrence.Def(_, _, _, _)) => true
+          case _                                => false
         }
       }
     }
@@ -734,8 +736,8 @@ case object AliasAnalysis extends IRPass {
         parentCounter: Int = 0
       ): Option[Graph.Link] = {
         val definition = occurrences.find {
-          case Graph.Occurrence.Def(_, n, _) => n == occurrence.symbol
-          case _                             => false
+          case Graph.Occurrence.Def(_, n, _, _) => n == occurrence.symbol
+          case _                                => false
         }
 
         definition match {
@@ -903,10 +905,13 @@ case object AliasAnalysis extends IRPass {
         *
         * @param id the identifier of the name in the graph
         * @param symbol the text of the name
+        * @param identifier the identifier of the symbol
+        * @param isLazy whether or not the symbol is defined as lazy
         */
       sealed case class Def(
         id: Id,
         symbol: Graph.Symbol,
+        identifier: IR.Identifier,
         isLazy: Boolean = false
       ) extends Occurrence
 
@@ -918,8 +923,13 @@ case object AliasAnalysis extends IRPass {
         *
         * @param id the identifier of the name in the graph
         * @param symbol the text of the name
+        * @param identifier the identifier of the symbol
         */
-      sealed case class Use(id: Id, symbol: Graph.Symbol) extends Occurrence
+      sealed case class Use(
+        id: Id,
+        symbol: Graph.Symbol,
+        identifier: IR.Identifier
+      ) extends Occurrence
     }
   }
 }

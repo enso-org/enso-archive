@@ -3,7 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Identifier
-import org.enso.compiler.pass.{analyse, IRPass}
+import org.enso.compiler.pass.IRPass
 
 import scala.collection.mutable
 
@@ -60,8 +60,10 @@ case object DataflowAnalysis extends IRPass {
     binding match {
       case atom: IR.Module.Scope.Definition.Atom => atom
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
-        val functionDepInfo = new Dependencies.Function
-        m.copy(body = analyseExpression(body, moduleDepInfo, functionDepInfo))
+        val functionDepInfo = new Dependencies.Scope
+        m.copy(body =
+          analyseExpression(body, moduleDepInfo, List(functionDepInfo))
+        )
     }
   }
 
@@ -69,13 +71,17 @@ case object DataflowAnalysis extends IRPass {
   def analyseExpression(
     expression: IR.Expression,
     moduleDepInfo: Dependencies.Module,
-    functionDepInfo: Dependencies.Function
+    scopeStack: List[Dependencies.Scope]
   ): IR.Expression = {
     expression
   }
 
   // === Pass Metadata ========================================================
 
+  // TODO [AA] Nested query function.
+  // TODO [AA] `Function` should be attached to each scope, but upper scopes
+  //  should contain the data of lower scopes. Should get Inserted into
+  //  `LocalScope`
   // TODO [AA] Some way of identifying things. Note, this pass doesn't attempt
   //  to deal with the fact that IDs change on code update.
   // TODO [AA] Need to produce global data.
@@ -95,13 +101,13 @@ case object DataflowAnalysis extends IRPass {
       *
       * @param dependencies the mapping between dependencies
       */
-    sealed class Function(
+    sealed class Scope(
       val dependencies: mutable.Map[IR.Identifier, Set[IR.Identifier]] =
         mutable.Map()
     ) extends Dependencies
         with DependenciesImpl[IR.Identifier, Set[IR.Identifier]] {
       override val metadataName: String =
-        "DataflowAnalysis.Dependencies.Function"
+        "DataflowAnalysis.Dependencies.Scope"
 
       /** Filters the dependency mapping, producing a _new_ mapping.
         *
@@ -110,7 +116,20 @@ case object DataflowAnalysis extends IRPass {
         */
       override def filter(
         f: (IR.Identifier, Set[IR.Identifier]) => Boolean
-      ): Function = new Function(dependencies.filter(f.tupled))
+      ): Scope = new Scope(dependencies.filter(f.tupled))
+
+      /** Returns the set of identifiers that should be invalidated when the
+        * input identifier is changed.
+        *
+        * @param id the identifier being changed
+        * @return the set of identifiers that should be invalidated when `id` is
+        *         changed
+        */
+      def shouldInvalidateWhenChanging(
+        id: IR.Identifier
+      ): Set[IR.Identifier] = {
+        ???
+      }
     }
 
     /** Module-level dataflow results.
@@ -137,10 +156,10 @@ case object DataflowAnalysis extends IRPass {
         new Module(dependencies.filter(f.tupled))
 
       /** Combines the analysis results for two modules.
-       *
-       * @param that the other module result to combine with `this`
-       * @return the result of combining `this` and `that`
-       */
+        *
+        * @param that the other module result to combine with `this`
+        * @return the result of combining `this` and `that`
+        */
       def ++(that: Module): Module = {
         val combinedModule = new Module(this.dependencies)
 
@@ -152,6 +171,19 @@ case object DataflowAnalysis extends IRPass {
         }
 
         combinedModule
+      }
+
+      /** Returns the set of identifiers that should be invalidated when the
+        * input symbol is changed.
+        *
+        * @param symbol the dynamic symbol being changed
+        * @return the set of identifiers that should be invalidated when
+        *         `symbol` is changed
+        */
+      def shouldInvalidateWhenChanging(
+        symbol: IR.Identifier
+      ): Set[IR.Identifier] = {
+        ???
       }
     }
   }

@@ -173,7 +173,17 @@ class DataflowAnalysisTest extends CompilerTest {
     }
   }
 
+  "Dataflow metadata for scopes" should {
+    "allow querying for identifiers that should be invalidated on change" in {
+
+    }
+  }
+
   "Dataflow metadata for modules" should {
+    "allow querying for identifiers that should be invalidated on change" in {
+
+    }
+
     "allow users to combine the information from multiple modules" in {
       val module1 = new Dependencies.Module
       val module2 = new Dependencies.Module

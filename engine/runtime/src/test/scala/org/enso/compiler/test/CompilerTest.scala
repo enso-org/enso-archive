@@ -1,5 +1,7 @@
 package org.enso.compiler.test
 
+import java.util.UUID
+
 import org.enso.compiler.InlineContext
 import org.enso.compiler.codegen.AstToIR
 import org.enso.compiler.core.IR
@@ -139,6 +141,12 @@ trait CompilerRunner {
       )
     }
   }
+
+  /** Generates a random identifier.
+   *
+   * @return a random identifier
+   */
+  def genID: IR.Identifier = UUID.randomUUID()
 
   // === IR Testing Utils =====================================================
 
