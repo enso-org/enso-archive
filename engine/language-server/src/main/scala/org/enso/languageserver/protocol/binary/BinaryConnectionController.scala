@@ -46,7 +46,7 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
 
   private def connected(outboundChannel: ActorRef): Receive = {
     case Right(msg: InboundMessage) if msg.payloadType() == SESSION_INIT =>
-      val payload = msg.payload(new Table).asInstanceOf[SessionInit]
+      val payload = msg.payload(new SessionInit).asInstanceOf[SessionInit]
       val clientID =
         new UUID(
           payload.identifier().mostSigBits(),
@@ -90,7 +90,9 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
   ): Receive = {
     case ConnectionClosed =>
       context.stop(self)
-    case msg => log.info(s"$msg received by binary protocol")
+
+    case msg =>
+      log.info(s"$msg received by binary protocol")
   }
 
 }
