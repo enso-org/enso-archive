@@ -68,10 +68,6 @@ object Runtime {
         name  = "closeFileNotification"
       ),
       new JsonSubTypes.Type(
-        value = classOf[Api.CreateFileNotification],
-        name  = "createFileNotification"
-      ),
-      new JsonSubTypes.Type(
         value = classOf[Api.ExpressionValuesComputed],
         name  = "expressionValuesComputed"
       ),
@@ -346,13 +342,6 @@ object Runtime {
       * @param path the file being closed.
       */
     case class CloseFileNotification(path: File) extends ApiRequest
-
-    /**
-      * A notification sent to the server about a file being created.
-      *
-      * @param path the newly created file.
-      */
-    case class CreateFileNotification(path: File) extends ApiRequest
 
     /**
       * Notification sent from the server to the client upon successful
