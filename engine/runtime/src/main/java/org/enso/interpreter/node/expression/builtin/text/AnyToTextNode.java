@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-/** An implementation of the operator + for numbers. */
+/** An implementation of generic string conversion. */
 @NodeInfo(shortName = "Any.to_text", description = "Generic text conversion.")
 public class AnyToTextNode extends BuiltinRootNode {
   private AnyToTextNode(Language language) {
@@ -21,7 +21,7 @@ public class AnyToTextNode extends BuiltinRootNode {
   }
 
   /**
-   * Creates a two-argument function wrapping this node.
+   * Creates a function wrapping this node.
    *
    * @param language the current language instance
    * @return a function wrapping this node
@@ -33,6 +33,12 @@ public class AnyToTextNode extends BuiltinRootNode {
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
+  /**
+   * Executes the node.
+   *
+   * @param frame current execution frame.
+   * @return the result of converting input into a string.
+   */
   @Override
   public Stateful execute(VirtualFrame frame) {
     Object thisArg = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0];

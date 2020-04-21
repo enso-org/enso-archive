@@ -13,7 +13,7 @@ import org.enso.interpreter.runtime.error.TypeError;
 import org.enso.interpreter.runtime.state.Stateful;
 import org.enso.interpreter.runtime.type.TypesGen;
 
-/** An implementation of the operator + for numbers. */
+/** An implementation of the operator + for strings. */
 @NodeInfo(shortName = "Text.+", description = "Text concatenation.")
 public class ConcatNode extends BuiltinRootNode {
   private final BranchProfile thatOpBadTypeProfile = BranchProfile.create();
@@ -36,14 +36,17 @@ public class ConcatNode extends BuiltinRootNode {
         new ArgumentDefinition(1, "that", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
+  /**
+   * Executes the node.
+   *
+   * @param frame current execution frame.
+   * @return the result of concatenating the input strings.
+   */
   @Override
   public Stateful execute(VirtualFrame frame) {
-
     String thisArg =
         TypesGen.asString(Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[0]);
-
     Object thatArg = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments())[1];
-
     if (TypesGen.isString(thatArg)) {
       Object state = Function.ArgumentsHelper.getState(frame.getArguments());
 
