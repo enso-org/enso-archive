@@ -3,7 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
-import org.enso.compiler.pass.analyse.DataflowAnalysis.Dependency
+import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
   DataflowAnalysis,
@@ -35,8 +35,8 @@ class DataflowAnalysisTest extends CompilerTest {
     *
     * @return a randomly generated identifier dependency
     */
-  def genStaticDep: Dependency.Type = {
-    Dependency.Type.Static(genID)
+  def genStaticDep: DependencyInfo.Type = {
+    DependencyInfo.Type.Static(genID)
   }
 
   /** Generates a symbol dependency from the included string.
@@ -44,8 +44,8 @@ class DataflowAnalysisTest extends CompilerTest {
     * @param str the string to use as a name
     * @return a symbol dependency on the symbol given by `str`
     */
-  def genDynamicDep(str: String): Dependency.Type = {
-    Dependency.Type.Dynamic(str)
+  def genDynamicDep(str: String): DependencyInfo.Type = {
+    DependencyInfo.Type.Dynamic(str)
   }
 
   /** Adds an extension method to run dataflow analysis on an [[IR.Module]].
@@ -84,7 +84,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
   "Dataflow metadata" should {
     "allow querying for expressions that should be invalidated on change" in {
-      val dependencies = new Dependency
+      val dependencies = new DependencyInfo
       val ids          = List.fill(5)(genStaticDep)
 
       dependencies(ids.head) = Set(ids(1), ids(2))
@@ -101,7 +101,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "provide a safe query function as well" in {
-      val dependencies = new Dependency
+      val dependencies = new DependencyInfo
       val ids          = List.fill(5)(genStaticDep)
       val badId        = genStaticDep
 
@@ -124,7 +124,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "allow for updating the dependents of a node" in {
-      val dependencies = new Dependency
+      val dependencies = new DependencyInfo
       val ids          = List.fill(3)(genStaticDep)
 
       dependencies(ids.head) = Set(ids(1))
@@ -138,7 +138,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "allow for updating at a given node" in {
-      val dependencies = new Dependency
+      val dependencies = new DependencyInfo
       val ids          = List.fill(6)(genStaticDep)
       val set1         = Set.from(ids.tail)
       val newId        = genStaticDep
@@ -151,8 +151,8 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "allow combining the information from multiple modules" in {
-      val module1 = new Dependency
-      val module2 = new Dependency
+      val module1 = new DependencyInfo
+      val module2 = new DependencyInfo
 
       val symbol1 = genDynamicDep("foo")
       val symbol2 = genDynamicDep("bar")
@@ -180,7 +180,31 @@ class DataflowAnalysisTest extends CompilerTest {
     }
   }
 
-  "Dataflow analysis on modules" should {}
+  "Dataflow analysis on modules" should {
+    "correctly identify global symbol dependents" in {
+      val ir =
+        """
+          |M.foo = a b ->
+          |   IO.println b
+          |   c = a + b
+          |   frobnicate a c
+          |""".stripMargin.preprocessModule.analyse
 
-  "Dataflow analysis on expressions" should {}
+//      println(ir.pretty)
+    }
+
+    "correctly identify local dependents" in {
+      pending
+    }
+
+    "correctly invalidate all expressions on change" in {
+      pending
+    }
+  }
+
+  "Dataflow analysis on expressions" should {
+    "properly update the analysis results" in {
+      pending
+    }
+  }
 }
