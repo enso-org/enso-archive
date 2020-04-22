@@ -200,6 +200,10 @@ class DataflowAnalysisTest extends CompilerTest {
     "correctly invalidate all expressions on change" in {
       pending
     }
+
+    "associate the dependency info with every node in the IR" in {
+      pending
+    }
   }
 
   "Dataflow analysis on expressions" should {

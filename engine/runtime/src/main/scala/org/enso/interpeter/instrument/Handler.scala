@@ -264,9 +264,6 @@ final class Handler {
       case Api.CreateFileNotification(path) =>
         executionService.createModule(path)
 
-      case Api.OpenFileNotification(path, contents) =>
-        executionService.setModuleSources(path, contents)
-
       case Api.CloseFileNotification(path) =>
         executionService.resetModuleSources(path)
 

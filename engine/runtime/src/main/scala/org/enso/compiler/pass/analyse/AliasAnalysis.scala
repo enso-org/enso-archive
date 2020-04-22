@@ -188,6 +188,7 @@ case object AliasAnalysis extends IRPass {
         }
       case app: IR.Application =>
         analyseApplication(app, graph, parentScope)
+      case tpe: IR.Type => analyseType(tpe, graph, parentScope)
       case x =>
         x.mapExpressions((expression: IR.Expression) =>
           analyseExpression(
@@ -196,6 +197,37 @@ case object AliasAnalysis extends IRPass {
             parentScope
           )
         )
+    }
+  }
+
+  /** Performs alias analysis on a type-related expression.
+   *
+   * @param value the ir to analyse
+   * @param graph the graph in which the analysis is taking place
+   * @param parentScope the parent scope in which `value` occurs
+   * @return `value`, annotated with aliasing information
+   */
+  def analyseType(value: IR.Type, graph: Graph, parentScope: Scope): IR.Type = {
+    value match {
+      case member @ IR.Type.Set.Member(lbl, memberType, value, _, _) =>
+        val memberTypeScope = memberType match {
+          case _: IR.Literal => parentScope
+          case _             => parentScope.addChild()
+        }
+
+        val valueScope = value match {
+          case _: IR.Literal => parentScope
+          case _             => parentScope.addChild()
+        }
+
+        val lblId = graph.nextId()
+        parentScope.add(Occurrence.Def(lblId, lbl.name, lbl.id))
+
+        member.copy(
+          memberType = analyseExpression(memberType, graph, memberTypeScope),
+          value      = analyseExpression(value, graph, valueScope)
+        ).addMetadata(Info.Occurrence(graph, lblId))
+      case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
 
@@ -374,17 +406,18 @@ case object AliasAnalysis extends IRPass {
   ): IR.Case = {
     ir match {
       case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _) =>
-        caseExpr.copy(
-          scrutinee = analyseExpression(scrutinee, graph, parentScope),
-          branches = branches.map(branch =>
-            branch.copy(
-              pattern = analyseExpression(branch.pattern, graph, parentScope),
-              expression =
-                analyseExpression(branch.expression, graph, parentScope)
-            )
-          ),
-          fallback = fallback.map(analyseExpression(_, graph, parentScope))
-        ) //.addMetadata(Info.Scope.Child(graph, currentScope))
+        caseExpr
+          .copy(
+            scrutinee = analyseExpression(scrutinee, graph, parentScope),
+            branches = branches.map(branch =>
+              branch.copy(
+                pattern = analyseExpression(branch.pattern, graph, parentScope),
+                expression =
+                  analyseExpression(branch.expression, graph, parentScope)
+              )
+            ),
+            fallback = fallback.map(analyseExpression(_, graph, parentScope))
+          )
       case _ => throw new CompilerError("Case branch in `analyseCase`.")
     }
   }
