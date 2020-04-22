@@ -4,22 +4,26 @@ include "execution-context.fbs";
 
 namespace org.enso.languageserver.protocol.data.envelope;
 
+//A mapping between payload type and inbound payload types.
 union InboundPayload {
   SESSION_INIT: org.enso.languageserver.protocol.data.session.SessionInit
 }
 
+//An envelope for inbound requests and commands.
 table InboundMessage {
   requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
   correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
   payload: InboundPayload (required);
 }
 
+//A mapping between payload type and outbound payload types.
 union OutboundPayload {
   ERROR: org.enso.languageserver.protocol.data.util.Error,
   SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.data.session.SessionInitResponse,
   VISUALISATION_UPDATE: org.enso.languageserver.protocol.data.executioncontext.VisualisationUpdate
 }
 
+//An envelope for outbound responses.
 table OutboundMessage {
   requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
   correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;

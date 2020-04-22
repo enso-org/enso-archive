@@ -2,12 +2,14 @@ include "util.fbs";
 
 namespace org.enso.languageserver.protocol.data.executioncontext;
 
+//A visualisation context identifying a concrete visualisation.
 table VisualisationContext {
   visualisationId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
   contextId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
   expressionId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
 }
 
+//An event signaling visualisation update.
 table VisualisationUpdate {
   visualisationContext: VisualisationContext (required);
   data: [ubyte] (required);
