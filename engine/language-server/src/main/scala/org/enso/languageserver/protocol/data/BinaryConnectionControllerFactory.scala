@@ -13,8 +13,8 @@ class BinaryConnectionControllerFactory()(implicit system: ActorSystem)
     extends ConnectionControllerFactory {
 
   /** @inheritdoc **/
-  override def createController(maybeIp: Option[RemoteAddress.IP]): ActorRef = {
-    system.actorOf(Props(new BinaryConnectionController(maybeIp)))
+  override def createController(clientIp: RemoteAddress.IP): ActorRef = {
+    system.actorOf(Props(new BinaryConnectionController(clientIp)))
   }
 
 }

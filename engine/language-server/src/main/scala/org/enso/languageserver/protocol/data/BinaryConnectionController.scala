@@ -39,9 +39,9 @@ import scala.annotation.unused
   * An actor handling data communications between a single client and the
   * language server.
   *
-  * @param maybeIp a client ip address
+  * @param clientIp a client ip address
   */
-class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
+class BinaryConnectionController(clientIp: RemoteAddress.IP)
     extends Actor
     with Stash
     with ActorLogging
@@ -52,7 +52,7 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
 
   private def connectionNotEstablished: Receive = {
     case OutboundStreamEstablished(outboundChannel) =>
-      log.info(s"Connection established [$maybeIp]")
+      log.info(s"Connection established [$clientIp]")
       unstashAll()
       context.become(
         connected(outboundChannel) orElse connectionEndHandler orElse decodingFailureHandler(
@@ -93,11 +93,12 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
 
   private def connectionEndHandler: Receive = {
     case ConnectionClosed =>
+      log.info(s"Connection closed [$clientIp]")
       context.stop(self)
 
     case ConnectionFailed(th) =>
       log.error(
-        s"An error occurred during processing web socket connection [$maybeIp]",
+        s"An error occurred during processing web socket connection [$clientIp]",
         th
       )
       context.stop(self)

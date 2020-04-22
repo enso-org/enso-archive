@@ -3,7 +3,7 @@ package org.enso.languageserver.http.server
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.RemoteAddress
+import akka.http.scaladsl.model.{RemoteAddress, StatusCodes}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -52,10 +52,16 @@ class BinaryWebSocketServer[A, B](
   implicit val ec: ExecutionContext = system.dispatcher
 
   private val route: Route =
-    extractClientIP { ip =>
-      path(config.path) {
-        get { handleWebSocketMessages(newConnection(ip.toIP)) }
-      }
+    extractClientIP {
+      case RemoteAddress.Unknown =>
+        complete(
+          StatusCodes.InternalServerError -> "Set akka.http.server.remote-address-header to on"
+        )
+
+      case ip: RemoteAddress.IP =>
+        path(config.path) {
+          get { handleWebSocketMessages(newConnection(ip)) }
+        }
     }
 
   /**
@@ -70,7 +76,7 @@ class BinaryWebSocketServer[A, B](
     Http().bindAndHandle(route, interface, port)
 
   private def newConnection(
-    ip: Option[RemoteAddress.IP]
+    ip: RemoteAddress.IP
   ): Flow[Message, Message, NotUsed] = {
 
     val frontController = factory.createController(ip)
@@ -107,7 +113,7 @@ class BinaryWebSocketServer[A, B](
 
   private def createInboundFlow(
     frontController: ActorRef,
-    ip: Option[RemoteAddress.IP]
+    ip: RemoteAddress.IP
   ): Sink[Message, NotUsed] = {
     Flow[Message]
       .mapConcat[BinaryMessage] {

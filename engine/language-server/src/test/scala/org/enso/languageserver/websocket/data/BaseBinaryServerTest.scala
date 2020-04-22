@@ -10,10 +10,10 @@ class BaseBinaryServerTest extends BinaryServerTestKit {
   protected var lastConnectionController: ActorRef = _
 
   override def connectionControllerFactory: ConnectionControllerFactory = {
-    (maybeIp: Option[RemoteAddress.IP]) =>
+    (clientIp: RemoteAddress.IP) =>
       {
         val controller =
-          system.actorOf(Props(new BinaryConnectionController(maybeIp)))
+          system.actorOf(Props(new BinaryConnectionController(clientIp)))
         lastConnectionController = controller
         controller
       }
