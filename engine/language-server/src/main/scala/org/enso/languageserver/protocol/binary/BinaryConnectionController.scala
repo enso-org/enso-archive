@@ -44,7 +44,7 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
 
   private def connectionNotEstablished: Receive = {
     case OutboundStreamEstablished(outboundChannel) =>
-      log.debug(s"Connection established [$maybeIp]")
+      log.info(s"Connection established [$maybeIp]")
       unstashAll()
       context.become(
         connected(outboundChannel) orElse connectionEndHandler orElse decodingFailureHandler(
