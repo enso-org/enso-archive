@@ -1,7 +1,7 @@
-package org.enso.languageserver.protocol.binary.factory
+package org.enso.languageserver.protocol.data.factory
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.binary.executioncontext
+import org.enso.languageserver.protocol.data.executioncontext
 import org.enso.languageserver.runtime.VisualisationProtocol.{
   VisualisationContext,
   VisualisationUpdate

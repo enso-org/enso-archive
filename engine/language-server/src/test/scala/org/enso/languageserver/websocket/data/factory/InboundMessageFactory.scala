@@ -1,11 +1,11 @@
-package org.enso.languageserver.websocket.binary.factory
+package org.enso.languageserver.websocket.data.factory
 
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.binary.envelope.InboundMessage
-import org.enso.languageserver.protocol.binary.factory.EnsoUuidFactory
-import org.enso.languageserver.protocol.binary.util.EnsoUUID
+import org.enso.languageserver.protocol.data.envelope.InboundMessage
+import org.enso.languageserver.protocol.data.factory.EnsoUuidFactory
+import org.enso.languageserver.protocol.data.util.EnsoUUID
 
 object InboundMessageFactory {
 

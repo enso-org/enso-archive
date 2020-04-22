@@ -1,10 +1,10 @@
-package org.enso.languageserver.protocol.binary.factory
+package org.enso.languageserver.protocol.data.factory
 
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.binary.envelope.OutboundMessage
-import org.enso.languageserver.protocol.binary.util.EnsoUUID
+import org.enso.languageserver.protocol.data.envelope.OutboundMessage
+import org.enso.languageserver.protocol.data.util.EnsoUUID
 
 object OutboundMessageFactory {
 

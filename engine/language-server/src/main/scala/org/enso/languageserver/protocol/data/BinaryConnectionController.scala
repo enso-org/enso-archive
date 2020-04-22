@@ -1,4 +1,4 @@
-package org.enso.languageserver.protocol.binary
+package org.enso.languageserver.protocol.data
 
 import java.util.UUID
 
@@ -10,18 +10,18 @@ import org.enso.languageserver.http.server.WebSocketControlProtocol.{
   ConnectionFailed,
   OutboundStreamEstablished
 }
-import org.enso.languageserver.protocol.binary.envelope.InboundPayload.SESSION_INIT
-import org.enso.languageserver.protocol.binary.envelope.{
+import org.enso.languageserver.protocol.data.envelope.InboundPayload.SESSION_INIT
+import org.enso.languageserver.protocol.data.envelope.{
   InboundMessage,
   OutboundPayload
 }
-import org.enso.languageserver.protocol.binary.factory.{
+import org.enso.languageserver.protocol.data.factory.{
   ErrorFactory,
   OutboundMessageFactory,
   SessionInitResponseFactory,
   VisualisationUpdateFactory
 }
-import org.enso.languageserver.protocol.binary.session.SessionInit
+import org.enso.languageserver.protocol.data.session.SessionInit
 import org.enso.languageserver.runtime.VisualisationProtocol.VisualisationUpdate
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure

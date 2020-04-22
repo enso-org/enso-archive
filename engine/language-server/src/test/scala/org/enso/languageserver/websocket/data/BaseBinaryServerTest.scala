@@ -1,8 +1,8 @@
-package org.enso.languageserver.websocket.binary
+package org.enso.languageserver.websocket.data
 import akka.actor.{ActorRef, Props}
 import akka.http.scaladsl.model.RemoteAddress
 import org.enso.languageserver.http.server.ConnectionControllerFactory
-import org.enso.languageserver.protocol.binary.BinaryConnectionController
+import org.enso.languageserver.protocol.data.BinaryConnectionController
 
 class BaseBinaryServerTest extends BinaryServerTestKit {
 

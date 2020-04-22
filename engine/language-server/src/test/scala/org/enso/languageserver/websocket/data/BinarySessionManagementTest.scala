@@ -1,14 +1,14 @@
-package org.enso.languageserver.websocket.binary
+package org.enso.languageserver.websocket.data
 
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.binary.envelope.{
+import org.enso.languageserver.protocol.data.envelope.{
   InboundPayload,
   OutboundMessage,
   OutboundPayload
 }
-import org.enso.languageserver.websocket.binary.factory.{
+import org.enso.languageserver.websocket.data.factory.{
   InboundMessageFactory,
   SessionInitFactory
 }

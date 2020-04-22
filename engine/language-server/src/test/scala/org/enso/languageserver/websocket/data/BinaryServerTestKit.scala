@@ -1,4 +1,4 @@
-package org.enso.languageserver.websocket.binary
+package org.enso.languageserver.websocket.data
 
 import java.nio.ByteBuffer
 
@@ -14,7 +14,7 @@ import org.enso.languageserver.http.server.{
   BinaryWebSocketServer,
   ConnectionControllerFactory
 }
-import org.enso.languageserver.protocol.binary.InboundMessageDecoder
+import org.enso.languageserver.protocol.data.InboundMessageDecoder
 import org.enso.languageserver.util.binary.{
   BinaryDecoder,
   BinaryEncoder,

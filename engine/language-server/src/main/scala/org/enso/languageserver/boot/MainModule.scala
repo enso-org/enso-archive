@@ -16,11 +16,14 @@ import org.enso.languageserver.filemanager.{
   ReceivesTreeUpdatesHandler
 }
 import org.enso.languageserver.http.server.BinaryWebSocketServer
-import org.enso.languageserver.protocol.binary.{
+import org.enso.languageserver.protocol.data.{
   BinaryConnectionControllerFactory,
   InboundMessageDecoder
 }
-import org.enso.languageserver.protocol.{JsonRpc, ServerClientControllerFactory}
+import org.enso.languageserver.protocol.rpc.{
+  JsonRpc,
+  ServerClientControllerFactory
+}
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder

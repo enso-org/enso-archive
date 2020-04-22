@@ -1,8 +1,8 @@
-package org.enso.languageserver.protocol.binary
+package org.enso.languageserver.protocol.data
 
 import java.nio.ByteBuffer
 
-import org.enso.languageserver.protocol.binary.envelope.{
+import org.enso.languageserver.protocol.data.envelope.{
   InboundMessage,
   InboundPayload
 }

@@ -1,4 +1,4 @@
-package org.enso.languageserver.protocol.binary
+package org.enso.languageserver.protocol.data
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.model.RemoteAddress

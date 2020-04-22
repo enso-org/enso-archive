@@ -1,10 +1,10 @@
-package org.enso.languageserver.websocket.binary.factory
+package org.enso.languageserver.websocket.data.factory
 
 import java.util.UUID
 
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.binary.factory.EnsoUuidFactory
-import org.enso.languageserver.protocol.binary.session.SessionInit
+import org.enso.languageserver.protocol.data.factory.EnsoUuidFactory
+import org.enso.languageserver.protocol.data.session.SessionInit
 
 object SessionInitFactory {
 
