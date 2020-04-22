@@ -97,9 +97,9 @@ object LanguageServerComponent {
   /**
     * A running server context.
     *
-    * @param mainModule
-    * @param rpcBinding
-    * @param dataBinding
+    * @param mainModule a main module containing all components of the server
+    * @param rpcBinding a http binding for rpc protocol
+    * @param dataBinding a http binding for data protocol
     */
   case class ServerCtx(
     mainModule: MainModule,

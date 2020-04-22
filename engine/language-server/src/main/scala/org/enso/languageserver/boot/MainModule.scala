@@ -31,7 +31,7 @@ import org.graalvm.polyglot.io.MessageEndpoint
 import scala.concurrent.duration._
 
 /**
-  * A main module containing all components of th server.
+  * A main module containing all components of the server.
   *
   * @param serverConfig a server config
   */
