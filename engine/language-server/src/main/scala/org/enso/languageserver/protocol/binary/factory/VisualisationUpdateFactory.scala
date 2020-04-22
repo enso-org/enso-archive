@@ -9,12 +9,20 @@ import org.enso.languageserver.runtime.VisualisationProtocol.{
 
 object VisualisationUpdateFactory {
 
-  def create(event: VisualisationUpdate)(
+  /**
+    * Creates [[VisualisationUpdate]] inside a [[FlatBufferBuilder]].
+    *
+    * @param update a visualisation update
+    * @param builder a flat buffers builder
+    * @return offset
+    */
+  def create(update: VisualisationUpdate)(
     implicit builder: FlatBufferBuilder
   ): Int = {
-    val ctx = createVisualisationCtx(event.visualisationContext)
+    val ctx = createVisualisationCtx(update.visualisationContext)
     val data =
-      executioncontext.VisualisationUpdate.createDataVector(builder, event.data)
+      executioncontext.VisualisationUpdate
+        .createDataVector(builder, update.data)
     executioncontext.VisualisationUpdate.createVisualisationUpdate(
       builder,
       ctx,
@@ -22,6 +30,13 @@ object VisualisationUpdateFactory {
     )
   }
 
+  /**
+    * Creates [[VisualisationContext]] inside a [[FlatBufferBuilder]].
+    *
+    * @param ctx a VisualisationContext
+    * @param builder a flat buffers builder
+    * @return offset
+    */
   def createVisualisationCtx(ctx: VisualisationContext)(
     implicit builder: FlatBufferBuilder
   ): Int = {

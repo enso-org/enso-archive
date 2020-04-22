@@ -33,6 +33,12 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 
 import scala.annotation.unused
 
+/**
+  * An actor handling data communications between a single client and the
+  * language server.
+  *
+  * @param maybeIp a client ip address
+  */
 class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
     extends Actor
     with Stash

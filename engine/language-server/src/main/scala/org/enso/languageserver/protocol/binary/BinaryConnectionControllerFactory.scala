@@ -12,12 +12,7 @@ import org.enso.languageserver.http.server.ConnectionControllerFactory
 class BinaryConnectionControllerFactory()(implicit system: ActorSystem)
     extends ConnectionControllerFactory {
 
-  /**
-    * Creates a connection controller that acts as front controller.
-    *
-    * @param maybeIp a client ip
-    * @return actor ref
-    */
+  /** @inheritdoc **/
   override def createController(maybeIp: Option[RemoteAddress.IP]): ActorRef = {
     system.actorOf(Props(new BinaryConnectionController(maybeIp)))
   }

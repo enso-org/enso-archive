@@ -27,6 +27,18 @@ import org.enso.languageserver.util.binary.{
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
+/**
+  * A web socket server realizing binary protocol.
+  *
+  * @param decoder an inbound packets decoder
+  * @param encoder an outbound packets encoder
+  * @param factory creates connection front controller per a single connection
+  * @param config a server config
+  * @param system an actor system
+  * @param materializer an actor materializer
+  * @tparam A a type of messages sent to connection controller
+  * @tparam B a type of messages received from connection controller
+  */
 class BinaryWebSocketServer[A, B](
   decoder: BinaryDecoder[A],
   encoder: BinaryEncoder[B],

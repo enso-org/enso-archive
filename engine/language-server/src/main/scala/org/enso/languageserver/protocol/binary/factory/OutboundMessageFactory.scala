@@ -8,6 +8,16 @@ import org.enso.languageserver.protocol.binary.util.EnsoUUID
 
 object OutboundMessageFactory {
 
+  /**
+    * Creates [[OutboundMessage]] inside a [[FlatBufferBuilder]].
+    *
+    * @param requestId a request id
+    * @param maybeCorrelationId a optional correlation id
+    * @param payloadType a payload type
+    * @param payload a message payload
+    * @param builder a flat buffer builder
+    * @return offset
+    */
   def create(
     requestId: UUID,
     maybeCorrelationId: Option[EnsoUUID],
