@@ -40,7 +40,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
       }
       _ <- Future {
         logger.info(
-          s"Started server at  rpc:${config.interface}:${config.rpcPort}, data:${config.interface}:${config.dataPort}"
+          s"Started server at rpc:${config.interface}:${config.rpcPort}, data:${config.interface}:${config.dataPort}"
         )
       }
     } yield ComponentStarted
