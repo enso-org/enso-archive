@@ -90,7 +90,7 @@ case object DataflowAnalysis extends IRPass {
   /** Performs dependency analysis on an arbitrary expression.
     *
     * The value of a block depends on its return value, while the value of a
-    * binding depends on the expression being bound.
+    * binding depends on the expression being bound and the name being bound to.
     *
     * @param expression the expression to perform dataflow analysis on
     * @param info the dependency information for the module
@@ -119,8 +119,9 @@ case object DataflowAnalysis extends IRPass {
             returnValue = analyseExpression(returnValue, info)
           )
           .addMetadata(info)
-      case binding @ IR.Expression.Binding(_, expression, _, _) =>
+      case binding @ IR.Expression.Binding(name, expression, _, _) =>
         info.updateAt(expression.getId, Set(binding.getId))
+        info.updateAt(name.getId, Set(binding.getId))
 
         binding
           .copy(

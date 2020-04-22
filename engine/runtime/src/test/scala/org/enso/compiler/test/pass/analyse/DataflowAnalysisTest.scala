@@ -132,6 +132,19 @@ class DataflowAnalysisTest extends CompilerTest {
       )
     }
 
+    "allow querying only the direct dependents of a node" in {
+      val dependencies = new DependencyInfo
+      val ids          = List.fill(5)(genStaticDep)
+
+      dependencies(ids.head) = Set(ids(1), ids(2))
+      dependencies(ids(2))   = Set(ids(3), ids(4))
+      dependencies(ids(4))   = Set(ids(1), ids.head)
+
+      dependencies.getDirect(ids.head) shouldEqual Some(Set(ids(1), ids(2)))
+      dependencies.getDirect(ids(2)) shouldEqual Some(Set(ids(3), ids(4)))
+      dependencies.getDirect(ids(4)) shouldEqual Some(Set(ids(1), ids.head))
+    }
+
     "allow for updating the dependents of a node" in {
       val dependencies = new DependencyInfo
       val ids          = List.fill(3)(genStaticDep)
@@ -200,17 +213,76 @@ class DataflowAnalysisTest extends CompilerTest {
 
     val depInfo = ir.getMetadata[DataflowAnalysis.DependencyInfo].get
 
+    // The method and body
+    val method =
+      ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
+    val fn     = method.body.asInstanceOf[IR.Function.Lambda]
+    val fnArgA = fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnArgB = fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnBody = fn.body.asInstanceOf[IR.Expression.Block]
+
+    // The `IO.println` expression
+    val printlnExpr =
+      fnBody.expressions.head.asInstanceOf[IR.Application.Prefix]
+    val printlnArgIO =
+      printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+    val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[IR.Name.Literal]
+    val printlnArgB =
+      printlnExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+    val printlnArgBExpr = printlnArgB.value.asInstanceOf[IR.Name.Literal]
+
+    // The `c =` expression
+    val cBindExpr  = fnBody.expressions(1).asInstanceOf[IR.Expression.Binding]
+    val cBindName  = cBindExpr.name.asInstanceOf[IR.Name.Literal]
+    val plusExpr   = cBindExpr.expression.asInstanceOf[IR.Application.Prefix]
+    val plusExprFn = plusExpr.function.asInstanceOf[IR.Name.Literal]
+    val plusExprArgA =
+      plusExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+    val plusExprArgAExpr = plusExprArgA.value.asInstanceOf[IR.Name.Literal]
+    val plusExprArgB =
+      plusExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+    val plusExprArgBExpr = plusExprArgB.value.asInstanceOf[IR.Name.Literal]
+
+    // The `frobnicate` return expression
+    val frobExpr = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]
+    val frobFn   = frobExpr.function.asInstanceOf[IR.Name.Literal]
+    val frobArgA =
+      frobExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+    val frobArgAExpr = frobArgA.value.asInstanceOf[IR.Name.Literal]
+    val frobArgC     = frobExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+    val frobArgCExpr = frobArgC.value.asInstanceOf[IR.Name.Literal]
+
+    // The global symbols
     val frobnicateSymbol = mkDynamicDep("frobnicate")
     val ioSymbol         = mkDynamicDep("IO")
     val printlnSymbol    = mkDynamicDep("println")
     val plusSymbol       = mkDynamicDep("+")
 
-    val method =
-      ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
-    val fn     = method.body.asInstanceOf[IR.Function.Lambda]
-
-    val methodId = mkStaticDep(method.getId)
-    val fnId     = mkStaticDep(fn.getId)
+    // The Identifiers
+    val methodId           = mkStaticDep(method.getId)
+    val fnId               = mkStaticDep(fn.getId)
+    val fnArgAId           = mkStaticDep(fnArgA.getId)
+    val fnArgBId           = mkStaticDep(fnArgB.getId)
+    val fnBodyId           = mkStaticDep(fnBody.getId)
+    val printlnExprId      = mkStaticDep(printlnExpr.getId)
+    val printlnArgIOId     = mkStaticDep(printlnArgIO.getId)
+    val printlnArgIOExprId = mkStaticDep(printlnArgIOExpr.getId)
+    val printlnArgBId      = mkStaticDep(printlnArgB.getId)
+    val printlnArgBExprId  = mkStaticDep(printlnArgBExpr.getId)
+    val cBindExprId        = mkStaticDep(cBindExpr.getId)
+    val cBindNameId        = mkStaticDep(cBindName.getId)
+    val plusExprId         = mkStaticDep(plusExpr.getId)
+    val plusExprFnId       = mkStaticDep(plusExprFn.getId)
+    val plusExprArgAId     = mkStaticDep(plusExprArgA.getId)
+    val plusExprArgAExprId = mkStaticDep(plusExprArgAExpr.getId)
+    val plusExprArgBId     = mkStaticDep(plusExprArgB.getId)
+    val plusExprArgBExprId = mkStaticDep(plusExprArgBExpr.getId)
+    val frobExprId         = mkStaticDep(frobExpr.getId)
+    val frobFnId           = mkStaticDep(frobFn.getId)
+    val frobArgAId         = mkStaticDep(frobArgA.getId)
+    val frobArgAExprId     = mkStaticDep(frobArgAExpr.getId)
+    val frobArgCId         = mkStaticDep(frobArgC.getId)
+    val frobArgCExprId     = mkStaticDep(frobArgCExpr.getId)
 
     "correctly identify global symbol dependents" in {
       pending
