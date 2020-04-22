@@ -6,7 +6,7 @@ import org.enso.languageserver.protocol.data.util.Error
 object ErrorFactory {
 
   /**
-    * Creates ReceivedCorruptedDataError inside a [[FlatBufferBuilder]].
+    * Creates a ReceivedCorruptedDataError inside a [[FlatBufferBuilder]].
     *
     * @param builder a flat buffer builder
     * @return offset
@@ -21,7 +21,7 @@ object ErrorFactory {
     )
 
   /**
-    * Creates ReceivedEmptyPayloadError inside a [[FlatBufferBuilder]].
+    * Creates a ReceivedEmptyPayloadError inside a [[FlatBufferBuilder]].
     *
     * @param builder a flat buffer builder
     * @return offset
@@ -36,7 +36,7 @@ object ErrorFactory {
     )
 
   /**
-    * Creates ServiceError inside a [[FlatBufferBuilder]].
+    * Creates a ServiceError inside a [[FlatBufferBuilder]].
     *
     * @param builder a flat buffer builder
     * @return offset

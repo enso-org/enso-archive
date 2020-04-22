@@ -28,10 +28,10 @@ import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
 /**
-  * A web socket server realizing binary protocol.
+  * A web socket server using a binary protocol.
   *
-  * @param decoder an inbound packets decoder
-  * @param encoder an outbound packets encoder
+  * @param decoder a decoder for inbound packets
+  * @param encoder an encoder for outbound packets
   * @param factory creates connection front controller per a single connection
   * @param config a server config
   * @param system an actor system
@@ -119,7 +119,7 @@ class BinaryWebSocketServer[A, B](
       .mapConcat[BinaryMessage] {
         case msg: TextMessage =>
           logger.warn(
-            s"Received text message $msg inside binary protocol [$ip]"
+            s"Received text message $msg over the data connection [$ip]"
           )
           Nil
 

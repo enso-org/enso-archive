@@ -19,7 +19,7 @@ object WebSocketControlProtocol {
   sealed trait WsCommand
 
   /**
-    * Signals that connection has been closed.
+    * Signals that a connection has been closed.
     */
   case object ConnectionClosed extends WsEvent
 
@@ -31,7 +31,7 @@ object WebSocketControlProtocol {
   case class ConnectionFailed(throwable: Throwable) extends WsEvent
 
   /**
-    * Signals that connection has been established.
+    * Signals that a connection has been established.
     *
     * @param outboundChannel an outbound sender
     */

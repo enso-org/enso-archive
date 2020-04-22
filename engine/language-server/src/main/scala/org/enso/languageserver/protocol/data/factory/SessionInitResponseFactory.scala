@@ -6,7 +6,7 @@ import org.enso.languageserver.protocol.data.session.SessionInitResponse
 object SessionInitResponseFactory {
 
   /**
-    * Creates [[SessionInitResponse]] inside a [[FlatBufferBuilder]].
+    * Creates a [[SessionInitResponse]] inside a [[FlatBufferBuilder]].
     *
     * @param builder a flat buffers builder
     * @return offset

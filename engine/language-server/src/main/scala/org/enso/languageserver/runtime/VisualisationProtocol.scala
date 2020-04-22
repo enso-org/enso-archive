@@ -18,7 +18,7 @@ object VisualisationProtocol {
   )
 
   /**
-    * Event signaling visualisation update.
+    * An event signaling a visualisation update.
     *
     * @param visualisationContext a visualisation context
     * @param data a visualisation data

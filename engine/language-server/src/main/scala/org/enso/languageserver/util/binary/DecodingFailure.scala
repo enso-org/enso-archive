@@ -8,7 +8,7 @@ sealed trait DecodingFailure
 object DecodingFailure {
 
   /**
-    * Signals empty payload in byte stream.
+    * Signals an empty payload in the byte stream.
     */
   case object EmptyPayload extends DecodingFailure
 
@@ -18,7 +18,7 @@ object DecodingFailure {
   case object DataCorrupted extends DecodingFailure
 
   /**
-    * Represents undefined decoding failure.
+    * Represents an undefined decoding failure.
     *
     * @param throwable a throwable
     */

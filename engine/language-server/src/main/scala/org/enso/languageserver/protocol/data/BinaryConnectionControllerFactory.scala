@@ -5,7 +5,7 @@ import akka.http.scaladsl.model.RemoteAddress
 import org.enso.languageserver.http.server.ConnectionControllerFactory
 
 /**
-  * A factory of binary connection controllers.
+  * A factory for binary connection controllers.
   *
   * @param system an actor system
   */

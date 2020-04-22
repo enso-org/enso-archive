@@ -10,7 +10,7 @@ import org.enso.languageserver.runtime.VisualisationProtocol.{
 object VisualisationUpdateFactory {
 
   /**
-    * Creates [[VisualisationUpdate]] inside a [[FlatBufferBuilder]].
+    * Creates a [[VisualisationUpdate]] inside a [[FlatBufferBuilder]].
     *
     * @param update a visualisation update
     * @param builder a flat buffers builder
@@ -31,7 +31,7 @@ object VisualisationUpdateFactory {
   }
 
   /**
-    * Creates [[VisualisationContext]] inside a [[FlatBufferBuilder]].
+    * Creates a [[VisualisationContext]] inside a [[FlatBufferBuilder]].
     *
     * @param ctx a VisualisationContext
     * @param builder a flat buffers builder

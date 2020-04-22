@@ -10,7 +10,7 @@ object EnsoUuidFactory {
   /**
     * Creates EnsoUUID inside a [[FlatBufferBuilder]].
     *
-    * @param uuid a uuid do serialize
+    * @param uuid a uuid to serialize
     * @param builder a builder
     * @return offset
     */
@@ -23,9 +23,9 @@ object EnsoUuidFactory {
   }
 
   /**
-    * Creates EnsoUUID inside a [[FlatBufferBuilder]].
+    * Creates an [[EnsoUUID]] inside a [[FlatBufferBuilder]].
     *
-    * @param uuid a uuid do serialize
+    * @param uuid a uuid to serialize
     * @param builder a builder
     * @return offset
     */

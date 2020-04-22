@@ -14,7 +14,7 @@ import org.enso.languageserver.util.binary.DecodingFailure.{
 import org.enso.languageserver.util.binary.{BinaryDecoder, DecodingFailure}
 
 /**
-  * A decoder of [[InboundMessage]].
+  * A decoder for an [[InboundMessage]].
   */
 object InboundMessageDecoder extends BinaryDecoder[InboundMessage] {
 

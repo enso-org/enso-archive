@@ -9,7 +9,7 @@ import org.enso.languageserver.protocol.data.util.EnsoUUID
 object OutboundMessageFactory {
 
   /**
-    * Creates [[OutboundMessage]] inside a [[FlatBufferBuilder]].
+    * Creates an [[OutboundMessage]] inside a [[FlatBufferBuilder]].
     *
     * @param requestId a request id
     * @param maybeCorrelationId a optional correlation id
