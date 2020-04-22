@@ -1,5 +1,6 @@
 package org.enso.languageserver.protocol.data
 
+import java.nio.ByteBuffer
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
@@ -22,6 +23,7 @@ import org.enso.languageserver.protocol.data.factory.{
   VisualisationUpdateFactory
 }
 import org.enso.languageserver.protocol.data.session.SessionInit
+import org.enso.languageserver.protocol.data.util.EnsoUUID
 import org.enso.languageserver.runtime.VisualisationProtocol.VisualisationUpdate
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.languageserver.util.binary.DecodingFailure
@@ -70,15 +72,8 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
           payload.identifier().leastSigBits()
         )
 
-      implicit val builder = new FlatBufferBuilder(1024)
-      val outMsg = OutboundMessageFactory.create(
-        UUID.randomUUID(),
-        Some(msg.requestId()),
-        OutboundPayload.SESSION_INIT_RESPONSE,
-        SessionInitResponseFactory.create()
-      )
-      builder.finish(outMsg)
-      outboundChannel ! builder.dataBuffer()
+      val responsePacket = createSessionInitResponsePacket(msg.requestId())
+      outboundChannel ! responsePacket
       context.become(
         connectionEndHandler orElse initialized(outboundChannel, clientID) orElse decodingFailureHandler(
           outboundChannel
@@ -92,17 +87,8 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
     @unused clientId: UUID
   ): Receive = {
     case update: VisualisationUpdate =>
-      implicit val builder = new FlatBufferBuilder(1024)
-      val event            = VisualisationUpdateFactory.create(update)
-      val msg = OutboundMessageFactory.create(
-        UUID.randomUUID(),
-        None,
-        OutboundPayload.VISUALISATION_UPDATE,
-        event
-      )
-
-      builder.finish(msg)
-      outboundChannel ! builder.dataBuffer()
+      val updatePacket = convertVisualisationUpdateToOutPacket(update)
+      outboundChannel ! updatePacket
   }
 
   private def connectionEndHandler: Receive = {
@@ -119,23 +105,62 @@ class BinaryConnectionController(maybeIp: Option[RemoteAddress.IP])
 
   private def decodingFailureHandler(outboundChannel: ActorRef): Receive = {
     case Left(decodingFailure: DecodingFailure) =>
-      implicit val builder = new FlatBufferBuilder(1024)
-      val error =
-        decodingFailure match {
-          case EmptyPayload  => ErrorFactory.createReceivedEmptyPayloadError()
-          case DataCorrupted => ErrorFactory.createReceivedCorruptedDataError()
-          case GenericDecodingFailure(th) =>
-            log.error("Unrecognized error occurred in binary protocol", th)
-            ErrorFactory.createServiceError()
-        }
-      val outMsg = OutboundMessageFactory.create(
-        UUID.randomUUID(),
-        None,
-        OutboundPayload.ERROR,
-        error
-      )
-      builder.finish(outMsg)
-      outboundChannel ! builder.dataBuffer()
+      val packet = convertDecodingFailureToOutPacket(decodingFailure)
+      outboundChannel ! packet
+  }
+
+  private def convertDecodingFailureToOutPacket(
+    decodingFailure: DecodingFailure
+  ): ByteBuffer = {
+    implicit val builder = new FlatBufferBuilder(1024)
+    val error =
+      decodingFailure match {
+        case EmptyPayload  => ErrorFactory.createReceivedEmptyPayloadError()
+        case DataCorrupted => ErrorFactory.createReceivedCorruptedDataError()
+        case GenericDecodingFailure(th) =>
+          log.error("Unrecognized error occurred in binary protocol", th)
+          ErrorFactory.createServiceError()
+      }
+    val outMsg = OutboundMessageFactory.create(
+      UUID.randomUUID(),
+      None,
+      OutboundPayload.ERROR,
+      error
+    )
+    builder.finish(outMsg)
+    builder.dataBuffer()
+  }
+
+  private def convertVisualisationUpdateToOutPacket(
+    update: VisualisationUpdate
+  ): ByteBuffer = {
+    implicit val builder = new FlatBufferBuilder(1024)
+    val event            = VisualisationUpdateFactory.create(update)
+    val msg = OutboundMessageFactory.create(
+      UUID.randomUUID(),
+      None,
+      OutboundPayload.VISUALISATION_UPDATE,
+      event
+    )
+
+    builder.finish(msg)
+    val updatePacket = builder.dataBuffer()
+    updatePacket
+  }
+
+  private def createSessionInitResponsePacket(
+    requestId: EnsoUUID
+  ): ByteBuffer = {
+    implicit val builder = new FlatBufferBuilder(1024)
+    val outMsg = OutboundMessageFactory.create(
+      UUID.randomUUID(),
+      Some(requestId),
+      OutboundPayload.SESSION_INIT_RESPONSE,
+      SessionInitResponseFactory.create()
+    )
+    builder.finish(outMsg)
+    val responsePacket = builder.dataBuffer()
+    responsePacket
   }
 
 }
