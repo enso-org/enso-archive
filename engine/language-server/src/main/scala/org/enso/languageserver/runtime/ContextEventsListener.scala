@@ -1,4 +1,4 @@
-package org.enso.languageserver.runtim
+package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, Props}
 import org.enso.languageserver.data.{Client, Config}
