@@ -3,7 +3,7 @@ package org.enso.languageserver.boot
 import akka.http.scaladsl.Http
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.LanguageProtocol
-import org.enso.languageserver.boot.LanguageServerComponent.ServerCtx
+import org.enso.languageserver.boot.LanguageServerComponent.ServerContext
 import org.enso.languageserver.boot.LifecycleComponent.{
   ComponentRestarted,
   ComponentStarted,
@@ -23,7 +23,7 @@ class LanguageServerComponent(config: LanguageServerConfig)
     with LazyLogging {
 
   @volatile
-  private var maybeServerCtx: Option[ServerCtx] = None
+  private var maybeServerCtx: Option[ServerContext] = None
 
   implicit private val ec = config.computeExecutionContext
 
@@ -36,11 +36,12 @@ class LanguageServerComponent(config: LanguageServerConfig)
       rpcBinding  <- module.jsonRpcServer.bind(config.interface, config.rpcPort)
       dataBinding <- module.dataServer.bind(config.interface, config.dataPort)
       _ <- Future {
-        maybeServerCtx = Some(ServerCtx(module, rpcBinding, dataBinding))
+        maybeServerCtx = Some(ServerContext(module, rpcBinding, dataBinding))
       }
       _ <- Future {
         logger.info(
-          s"Started server at rpc:${config.interface}:${config.rpcPort}, data:${config.interface}:${config.dataPort}"
+          s"Started server at rpc:${config.interface}:${config.rpcPort}, " +
+          s"data:${config.interface}:${config.dataPort}"
         )
       }
     } yield ComponentStarted
@@ -101,7 +102,7 @@ object LanguageServerComponent {
     * @param rpcBinding a http binding for rpc protocol
     * @param dataBinding a http binding for data protocol
     */
-  case class ServerCtx(
+  case class ServerContext(
     mainModule: MainModule,
     rpcBinding: Http.ServerBinding,
     dataBinding: Http.ServerBinding
