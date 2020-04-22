@@ -1,7 +1,5 @@
 package org.enso.compiler.pass.analyse
 
-import java.util.UUID
-
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
@@ -19,6 +17,7 @@ import scala.collection.mutable
   * have been removed from the IR by the time it runs. This means that it _must_
   * run after all desugaring passes.
   */
+//noinspection DuplicatedCode
 case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
 
@@ -56,68 +55,92 @@ case object DataflowAnalysis extends IRPass {
 
   // === Pass Internals =======================================================
 
+  /** Performs dataflow analysis on a module definition.
+    *
+    * Atoms are dependent on the definitions of their arguments, while methods
+    * are dependent on the definitions of their bodies.
+    *
+    * @param binding the binding to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `binding`, with attached dependency information
+    */
   def analyseModuleDefinition(
     binding: IR.Module.Scope.Definition,
-    dependencyInfo: DependencyInfo
+    info: DependencyInfo
   ): IR.Module.Scope.Definition = {
     binding match {
       case atom @ IR.Module.Scope.Definition.Atom(_, arguments, _, _) =>
-        arguments.foreach(arg =>
-          dependencyInfo.updateAt(arg.getId, Set(atom.getId))
-        )
+        arguments.foreach(arg => info.updateAt(arg.getId, Set(atom.getId)))
 
         atom
           .copy(
-            arguments =
-              arguments.map(analyseDefinitionArgument(_, dependencyInfo))
+            arguments = arguments.map(analyseDefinitionArgument(_, info))
           )
-          .addMetadata(dependencyInfo)
+          .addMetadata(info)
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
-        dependencyInfo.updateAt(body.getId, Set(m.getId))
+        info.updateAt(body.getId, Set(m.getId))
 
         m.copy(
-            body = analyseExpression(body, dependencyInfo)
+            body = analyseExpression(body, info)
           )
-          .addMetadata(dependencyInfo)
+          .addMetadata(info)
     }
   }
 
+  /** Performs dependency analysis on an arbitrary expression.
+    *
+    * The value of a block depends on its return value, while the value of a
+    * binding depends on the expression being bound.
+    *
+    * @param expression the expression to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `expression`, with attached dependency information
+    */
   def analyseExpression(
     expression: IR.Expression,
-    dependencyInfo: DependencyInfo
+    info: DependencyInfo
   ): IR.Expression = {
     expression match {
-      case function: IR.Function => analyseFunction(function, dependencyInfo)
-      case app: IR.Application   => analyseApplication(app, dependencyInfo)
-      case typ: IR.Type          => analyseType(typ, dependencyInfo)
-      case name: IR.Name         => analyseName(name, dependencyInfo)
-      case cse: IR.Case          => analyseCase(cse, dependencyInfo)
-      case comment: IR.Comment   => analyseComment(comment, dependencyInfo)
-      case literal: IR.Literal   => literal.addMetadata(dependencyInfo)
-      case foreign: IR.Foreign   => foreign.addMetadata(dependencyInfo)
+      case function: IR.Function => analyseFunction(function, info)
+      case app: IR.Application   => analyseApplication(app, info)
+      case typ: IR.Type          => analyseType(typ, info)
+      case name: IR.Name         => analyseName(name, info)
+      case cse: IR.Case          => analyseCase(cse, info)
+      case comment: IR.Comment   => analyseComment(comment, info)
+      case literal: IR.Literal   => literal.addMetadata(info)
+      case foreign: IR.Foreign   => foreign.addMetadata(info)
 
       case block @ IR.Expression.Block(expressions, returnValue, _, _, _) =>
-        dependencyInfo.updateAt(returnValue.getId, Set(block.getId))
+        info.updateAt(returnValue.getId, Set(block.getId))
 
         block
           .copy(
-            expressions = expressions.map(analyseExpression(_, dependencyInfo)),
-            returnValue = analyseExpression(returnValue, dependencyInfo)
+            expressions = expressions.map(analyseExpression(_, info)),
+            returnValue = analyseExpression(returnValue, info)
           )
-          .addMetadata(dependencyInfo)
+          .addMetadata(info)
       case binding @ IR.Expression.Binding(_, expression, _, _) =>
-        dependencyInfo.updateAt(expression.getId, Set(binding.getId))
+        info.updateAt(expression.getId, Set(binding.getId))
 
         binding
           .copy(
-            expression = analyseExpression(expression, dependencyInfo)
+            expression = analyseExpression(expression, info)
           )
-          .addMetadata(dependencyInfo)
+          .addMetadata(info)
 
       case error: IR.Error => error
     }
   }
 
+  /** Performs dataflow analysis on a function.
+    *
+    * The result of a function is dependent on the result from its body, as well
+    * as the definitions of its arguments.
+    *
+    * @param function the function to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `function`, with attached dependency information
+    */
   def analyseFunction(
     function: IR.Function,
     info: DependencyInfo
@@ -125,6 +148,7 @@ case object DataflowAnalysis extends IRPass {
     function match {
       case lam @ IR.Function.Lambda(arguments, body, _, _, _) =>
         info.updateAt(body.getId, Set(lam.getId))
+        arguments.foreach(arg => info.updateAt(arg.getId, Set(lam.getId)))
 
         lam
           .copy(
@@ -135,6 +159,15 @@ case object DataflowAnalysis extends IRPass {
     }
   }
 
+  /** Performs dependency analysis on an application.
+    *
+    * A prefix application depends on the values of the function and arguments,
+    * while a force depends purely on the term being forced.
+    *
+    * @param application the appliation to perform dependency analysis on
+    * @param info the dependency information for the module
+    * @return `application`, with attached dependency information
+    */
   def analyseApplication(
     application: IR.Application,
     info: DependencyInfo
@@ -159,6 +192,14 @@ case object DataflowAnalysis extends IRPass {
     }
   }
 
+  /** Performs dataflow analysis on a typing expression.
+    *
+    * Dataflow for typing expressions is a simple dependency on their parts.
+    *
+    * @param typ the type expression to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `typ`, with attached dependency information
+    */
   def analyseType(typ: IR.Type, info: DependencyInfo): IR.Type = {
     typ match {
       case asc @ IR.Type.Ascription(typed, signature, _, _) =>
@@ -253,12 +294,22 @@ case object DataflowAnalysis extends IRPass {
     }
   }
 
+  /** Performs dataflow analysis for a name usage.
+    *
+    * Name usages are dependent on the definition positions for those names.
+    * These names can either be dynamic symbols (in which case all usages of
+    * that symbol should be invalidated when the symbol changes), or static
+    * symbols, which can be resolved into a direct dependency.
+    *
+    * @param name the name to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `name`, with attached dependency information
+    */
   def analyseName(name: IR.Name, info: DependencyInfo): IR.Name = {
     val aliasInfo = name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
       "Name occurrence with missing aliasing information."
     )
     val defIdForName = aliasInfo.graph.defLinkFor(aliasInfo.id)
-
     val key = defIdForName match {
       case Some(defLink) =>
         aliasInfo.graph.getOccurrence(defLink.target) match {
@@ -275,6 +326,15 @@ case object DataflowAnalysis extends IRPass {
     name.addMetadata(info)
   }
 
+  /** Performs dependency analysis on a case expression.
+    *
+    * The value of a case expression is dependent on both its scrutinee and the
+    * definitions of its branches.
+    *
+    * @param cse the case expression to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `cse`, with attached dependency information
+    */
   def analyseCase(cse: IR.Case, info: DependencyInfo): IR.Case = {
     cse match {
       case expr @ IR.Case.Expr(scrutinee, branches, fallback, _, _) =>
@@ -294,6 +354,15 @@ case object DataflowAnalysis extends IRPass {
     }
   }
 
+  /** Performs dataflow analysis on a case branch.
+    *
+    * A case branch is dependent on both its pattern expression and the branch
+    * expression.
+    *
+    * @param branch the case branch to perform dataflow analysis on.
+    * @param info the dependency information for the module
+    * @return `branch`, with attached dependency information
+    */
   def analyseCaseBranch(
     branch: IR.Case.Branch,
     info: DependencyInfo
@@ -312,6 +381,15 @@ case object DataflowAnalysis extends IRPass {
       .addMetadata(info)
   }
 
+  /** Performs dataflow analysis on a comment entity.
+    *
+    * A comment expression is simply dependent on the result of the commented
+    * value.
+    *
+    * @param comment the comment to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `comment`, with attached dependency information
+    */
   def analyseComment(comment: IR.Comment, info: DependencyInfo): IR.Comment = {
     comment match {
       case doc @ IR.Comment.Documentation(commented, _, _, _) =>
@@ -325,38 +403,54 @@ case object DataflowAnalysis extends IRPass {
     }
   }
 
+  /** Performs dataflow analysis on a function definition argument.
+    *
+    * A function definition argument is dependent purely on its default, if said
+    * default is present.
+    *
+    * @param argument the definition argument to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `argument`, with attached dependency information
+    */
   def analyseDefinitionArgument(
     argument: IR.DefinitionArgument,
-    dependencyInfo: DependencyInfo
+    info: DependencyInfo
   ): IR.DefinitionArgument = {
     argument match {
       case spec @ IR.DefinitionArgument.Specified(_, defValue, _, _, _) =>
-        defValue.foreach(expr =>
-          dependencyInfo.updateAt(expr.getId, Set(spec.getId))
-        )
+        defValue.foreach(expr => info.updateAt(expr.getId, Set(spec.getId)))
 
         spec
           .copy(
-            defaultValue = defValue.map(analyseExpression(_, dependencyInfo))
+            defaultValue = defValue.map(analyseExpression(_, info))
           )
-          .addMetadata(dependencyInfo)
+          .addMetadata(info)
       case err: IR.Error.Redefined.Argument => err
     }
   }
 
+  /** Performs dataflow analysis on a function call argument.
+    *
+    * A function call argument is purely dependent on the expression value that
+    * it refers to.
+    *
+    * @param argument the call argument to perform dataflow analysis on
+    * @param info the dependency information for the module
+    * @return `argument`, with attached dependency information
+    */
   def analyseCallArgument(
     argument: IR.CallArgument,
-    dependencyInfo: DependencyInfo
+    info: DependencyInfo
   ): IR.CallArgument = {
     argument match {
       case spec @ IR.CallArgument.Specified(_, value, _, _, _) =>
-        dependencyInfo.updateAt(value.getId, Set(spec.getId))
+        info.updateAt(value.getId, Set(spec.getId))
 
         spec
           .copy(
-            value = analyseExpression(value, dependencyInfo)
+            value = analyseExpression(value, info)
           )
-          .addMetadata(dependencyInfo)
+          .addMetadata(info)
     }
   }
 
@@ -371,7 +465,6 @@ case object DataflowAnalysis extends IRPass {
     dependencies: mutable.Map[DependencyInfo.Type, Set[DependencyInfo.Type]] =
       mutable.Map()
   ) extends IR.Metadata {
-    val id                            = UUID.randomUUID()
     override val metadataName: String = "DataflowAnalysis.Dependencies"
 
     /** Returns the set of all dependents for the provided key.

@@ -205,50 +205,21 @@ class DataflowAnalysisTest extends CompilerTest {
     val printlnSymbol    = mkDynamicDep("println")
     val plusSymbol       = mkDynamicDep("+")
 
-    val fooMethod =
+    val method =
       ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
-    val fn     = fooMethod.body.asInstanceOf[IR.Function.Lambda]
-    val fnBody = fn.body.asInstanceOf[IR.Expression.Block]
-    val printlnExpr =
-      fnBody.expressions.head.asInstanceOf[IR.Application.Prefix]
-    val printlnFn = printlnExpr.function.asInstanceOf[IR.Name.Literal]
-    val ioArgInPrintln =
-      printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
-    val bArgInPrintln =
-      printlnExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
-    val cBinding = fnBody.expressions(1).asInstanceOf[IR.Expression.Binding]
-    val aAddB    = cBinding.expression.asInstanceOf[IR.Application.Prefix]
-    val retVal   = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]
+    val fn     = method.body.asInstanceOf[IR.Function.Lambda]
 
-    val methodId         = mkStaticDep(fooMethod.getId)
-    val functionId       = mkStaticDep(fn.getId)
-    val aArgId           = mkStaticDep(fn.arguments.head.getId)
-    val bArgId           = mkStaticDep(fn.arguments(1).getId)
-    val fnBodyId         = mkStaticDep(fnBody.getId)
-    val printlnExprId    = mkStaticDep(printlnExpr.getId)
-    val printlnFnId      = mkStaticDep(printlnExpr.function.getId)
-    val ioArgInPrintlnId = mkStaticDep(ioArgInPrintln.getId)
-    val ioUseInPrintlnId = mkStaticDep(ioArgInPrintln.value.getId)
-    val bArgInPrintlnId  = mkStaticDep(bArgInPrintln.getId)
-    val bUseInPrintlnId  = mkStaticDep(bArgInPrintln.value.getId)
-    val cBindingId       = mkStaticDep(cBinding.getId)
-    val cNameId          = mkStaticDep(cBinding.name.getId)
-    val aAddBId          = mkStaticDep(aAddB.getId)
-    val aUseAddId        = mkStaticDep(aAddB.arguments.head.getId)
-    val bUseAddId        = mkStaticDep(aAddB.arguments(1).getId)
-    val retValId         = mkStaticDep(retVal.getId)
-    val frobnicateId     = mkStaticDep(retVal.function.getId)
-    val aUseRetId        = mkStaticDep(retVal.arguments.head.getId)
-    val cUseRetId        = mkStaticDep(retVal.arguments(1).getId)
+    val methodId = mkStaticDep(method.getId)
+    val fnId     = mkStaticDep(fn.getId)
 
     "correctly identify global symbol dependents" in {
       pending
     }
 
-//    "correctly identify local dependents" in {
-//      pending
-//    }
-//
+    "correctly identify local dependents" in {
+      depInfo.get(fnId) shouldEqual Some(Set(methodId))
+    }
+
 //    "only store direct dependents for any given node" in {
 //      pending
 //    }
