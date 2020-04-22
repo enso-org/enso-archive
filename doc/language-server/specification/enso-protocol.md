@@ -591,31 +591,41 @@ requests, each request/response/notification is wrapped in an envelope
 structure. There is a separate envelope for incoming and outgoing messages:
 
 ```idl
-namespace org.enso.languageserver.protocol;
+namespace org.enso.languageserver.protocol.binary.envelope;
 
 union InboundPayload {
-  SESSION_INIT: org.enso.languageserver.protocol.session.SessionInit
+  SESSION_INIT: org.enso.languageserver.protocol.binary.session.SessionInit
 }
 
 table InboundMessage {
-  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
-  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  requestId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.binary.util.EnsoUUID;
   payload: InboundPayload (required);
 }
 ```
 
 ```idl
-namespace org.enso.languageserver.protocol;
+namespace org.enso.languageserver.protocol.binary.envelope;
 
 union OutboundPayload {
-  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.session.SessionInitResponse,
-  VISUALISATION_UPDATE: org.enso.languageserver.protocol.executioncontext.VisualisationUpdate
+  ERROR: org.enso.languageserver.protocol.binary.util.Error,
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.binary.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.binary.executioncontext.VisualisationUpdate
 }
 
 table OutboundMessage {
-  requestId: org.enso.languageserver.protocol.util.EnsoUUID (required);
-  correlationId: org.enso.languageserver.protocol.util.EnsoUUID;
+  requestId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.binary.util.EnsoUUID;
   payload: OutboundPayload (required);
+}
+```
+
+```idl
+namespace org.enso.languageserver.protocol.binary.util;
+
+table Error {
+  code: int;
+  message: string;
 }
 ```
 
@@ -755,7 +765,7 @@ An EnsoUUID is a value object containing 128-bit universally unique identifier.
 ##### Format
 
 ```idl
-namespace org.enso.languageserver.protocol.util;
+namespace org.enso.languageserver.protocol.binary.util;
 
 struct EnsoUUID {
   leastSigBits:uint64;
@@ -817,7 +827,8 @@ interface ProjectOpenRequest {
 
 ```typescript
 interface ProjectOpenResult {
-  languageServerAddress: IPWithSocket;
+  languageServerRpcAddress: IPWithSocket;
+  languageServerDataAddress: IPWithSocket;
 }
 ```
 
@@ -1288,10 +1299,10 @@ client identifier can be correlated between the data and textual connections.
 ##### Parameters
 
 ```idl
-namespace org.enso.languageserver.protocol.session;
+namespace org.enso.languageserver.protocol.binary.session;
 
 table SessionInit {
-  identifier: org.enso.languageserver.protocol.util.UUID;
+  identifier: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
 }
 
 table SessionInitResponse {}
@@ -2581,22 +2592,17 @@ transport is concerned, it is just a binary blob.
 ##### Parameters
 
 ```idl
-namespace executionContext;
+namespace org.enso.languageserver.protocol.binary.executioncontext;
 
-struct UUID {
-  lowBytes:uint64;
-  highBytes:uint64;
+table VisualisationContext {
+  visualisationId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  contextId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  expressionId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
 }
 
-struct VisualisationContext {
-  visualisationId:UUID;
-  contextId:UUID;
-  expressionId:UUID;
-}
-
-struct VisualisationUpdate {
-  visualisationContext:VisualisationContext;
-  data:[ubyte];
+table VisualisationUpdate {
+  visualisationContext: VisualisationContext (required);
+  data: [ubyte] (required);
 }
 
 root_type VisualisationUpdate;
