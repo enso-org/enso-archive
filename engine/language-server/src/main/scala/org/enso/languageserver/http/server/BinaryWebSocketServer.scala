@@ -13,7 +13,7 @@ import akka.stream.{CompletionStrategy, Materializer, OverflowStrategy}
 import akka.util.ByteString
 import com.typesafe.scalalogging.LazyLogging
 import org.enso.languageserver.http.server.BinaryWebSocketServer.Config
-import org.enso.languageserver.http.server.WebSocketControlProtocol.{
+import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   CloseConnection,
   ConnectionClosed,
   ConnectionFailed,

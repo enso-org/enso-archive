@@ -3,10 +3,10 @@ package org.enso.languageserver.http.server
 import akka.actor.ActorRef
 
 /**
-  * A web socket control protocol used to manage connection created by
+  * A web socket control protocol used to manage connections created by
   * [[BinaryWebSocketServer]].
   */
-object WebSocketControlProtocol {
+object BinaryWebSocketControlProtocol {
 
   /**
     * Base trait for web socket events.

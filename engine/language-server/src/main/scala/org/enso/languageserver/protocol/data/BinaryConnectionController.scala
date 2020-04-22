@@ -6,7 +6,7 @@ import java.util.UUID
 import akka.actor.{Actor, ActorLogging, ActorRef, Stash}
 import akka.http.scaladsl.model.RemoteAddress
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.http.server.WebSocketControlProtocol.{
+import org.enso.languageserver.http.server.BinaryWebSocketControlProtocol.{
   ConnectionClosed,
   ConnectionFailed,
   OutboundStreamEstablished
@@ -55,9 +55,8 @@ class BinaryConnectionController(clientIp: RemoteAddress.IP)
       log.info(s"Connection established [$clientIp]")
       unstashAll()
       context.become(
-        connected(outboundChannel) orElse connectionEndHandler orElse decodingFailureHandler(
-          outboundChannel
-        )
+        connected(outboundChannel) orElse connectionEndHandler
+        orElse decodingFailureHandler(outboundChannel)
       )
 
     case _ => stash()
@@ -75,9 +74,8 @@ class BinaryConnectionController(clientIp: RemoteAddress.IP)
       val responsePacket = createSessionInitResponsePacket(msg.requestId())
       outboundChannel ! responsePacket
       context.become(
-        connectionEndHandler orElse initialized(outboundChannel, clientID) orElse decodingFailureHandler(
-          outboundChannel
-        )
+        connectionEndHandler orElse initialized(outboundChannel, clientID)
+        orElse decodingFailureHandler(outboundChannel)
       )
 
   }
