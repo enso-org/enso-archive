@@ -333,7 +333,7 @@ class RuntimeServerTest
         "main = IO.println \"I'm an open file!\""
       )
     )
-    context.consumeOut shouldEqual List("I'm an open file!")
+    context.consumeOut shouldEqual List()
 
     // Modify the file
     send(
