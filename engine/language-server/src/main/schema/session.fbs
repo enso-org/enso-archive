@@ -1,9 +1,9 @@
 include "util.fbs";
 
-namespace org.enso.languageserver.protocol.binary.session;
+namespace org.enso.languageserver.protocol.data.session;
 
 table SessionInit {
-  identifier: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  identifier: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
 }
 
 table SessionInitResponse {}

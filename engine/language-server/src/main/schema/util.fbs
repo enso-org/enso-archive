@@ -1,4 +1,4 @@
-namespace org.enso.languageserver.protocol.binary.util;
+namespace org.enso.languageserver.protocol.data.util;
 
 struct EnsoUUID {
   leastSigBits:uint64;

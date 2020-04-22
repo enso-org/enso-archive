@@ -1,11 +1,11 @@
 include "util.fbs";
 
-namespace org.enso.languageserver.protocol.binary.executioncontext;
+namespace org.enso.languageserver.protocol.data.executioncontext;
 
 table VisualisationContext {
-  visualisationId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
-  contextId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
-  expressionId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
+  visualisationId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  contextId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  expressionId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
 }
 
 table VisualisationUpdate {

@@ -2,26 +2,26 @@ include "util.fbs";
 include "session.fbs";
 include "execution-context.fbs";
 
-namespace org.enso.languageserver.protocol.binary.envelope;
+namespace org.enso.languageserver.protocol.data.envelope;
 
 union InboundPayload {
-  SESSION_INIT: org.enso.languageserver.protocol.binary.session.SessionInit
+  SESSION_INIT: org.enso.languageserver.protocol.data.session.SessionInit
 }
 
 table InboundMessage {
-  requestId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
-  correlationId: org.enso.languageserver.protocol.binary.util.EnsoUUID;
+  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
   payload: InboundPayload (required);
 }
 
 union OutboundPayload {
-  ERROR: org.enso.languageserver.protocol.binary.util.Error,
-  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.binary.session.SessionInitResponse,
-  VISUALISATION_UPDATE: org.enso.languageserver.protocol.binary.executioncontext.VisualisationUpdate
+  ERROR: org.enso.languageserver.protocol.data.util.Error,
+  SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.data.session.SessionInitResponse,
+  VISUALISATION_UPDATE: org.enso.languageserver.protocol.data.executioncontext.VisualisationUpdate
 }
 
 table OutboundMessage {
-  requestId: org.enso.languageserver.protocol.binary.util.EnsoUUID (required);
-  correlationId: org.enso.languageserver.protocol.binary.util.EnsoUUID;
+  requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+  correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
   payload: OutboundPayload (required);
 }
