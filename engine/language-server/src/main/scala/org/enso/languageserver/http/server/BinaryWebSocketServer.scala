@@ -3,6 +3,7 @@ package org.enso.languageserver.http.server
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.StatusCodes.InternalServerError
 import akka.http.scaladsl.model.{RemoteAddress, StatusCodes}
 import akka.http.scaladsl.model.ws.{BinaryMessage, Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
@@ -32,7 +33,8 @@ import scala.concurrent.{ExecutionContext, Future}
   *
   * @param decoder a decoder for inbound packets
   * @param encoder an encoder for outbound packets
-  * @param factory creates connection front controller per a single connection
+  * @param factory creates front controller per a single connection that is
+  *                responsible for handling all incoming requests
   * @param config a server config
   * @param system an actor system
   * @param materializer an actor materializer
@@ -55,7 +57,8 @@ class BinaryWebSocketServer[A, B](
     extractClientIP {
       case RemoteAddress.Unknown =>
         complete(
-          StatusCodes.InternalServerError -> "Set akka.http.server.remote-address-header to on"
+          InternalServerError -> "Set akka.http.server.remote-address-header " +
+          "to on"
         )
 
       case ip: RemoteAddress.IP =>

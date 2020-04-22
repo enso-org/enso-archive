@@ -50,7 +50,9 @@ class LanguageServerBootLoader(
         dataPort = findPort()
       }
       log.info(
-        s"Found sockets for the language server [rpc:${descriptor.networkConfig.interface}:$rpcPort, data:${descriptor.networkConfig.interface}:$dataPort]"
+        s"Found sockets for the language server " +
+        s"[rpc:${descriptor.networkConfig.interface}:$rpcPort, " +
+        s"data:${descriptor.networkConfig.interface}:$dataPort]"
       )
       self ! Boot
       context.become(booting(rpcPort, dataPort, retry))
