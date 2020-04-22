@@ -124,8 +124,9 @@ public class ExecutionService {
   }
 
   /**
-   * Sets a module at a given path to use a literal source. If module not exists, it will be
-   * created.
+   * Sets a module at a given path to use a literal source.
+   *
+   * If a module does not exist it will be created.
    *
    * @param path the module path.
    * @param contents the sources to use for it.

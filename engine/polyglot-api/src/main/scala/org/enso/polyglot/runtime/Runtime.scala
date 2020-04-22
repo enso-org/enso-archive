@@ -148,10 +148,10 @@ object Runtime {
     /**
       * An update containing information about expression.
       *
-      * @param expressionId expression id
-      * @param expressionType optional type of expression
-      * @param shortValue optional value of expression
-      * @param methodCall optional pointer to a method definition
+      * @param expressionId expression id.
+      * @param expressionType the type of expression.
+      * @param shortValue the value of expression.
+      * @param methodCall the pointer to a method definition.
       */
     case class ExpressionValueUpdate(
       expressionId: ExpressionId,
@@ -174,7 +174,7 @@ object Runtime {
     /**
       * Envelope for an Api request.
       *
-      * @param requestId optional request identifier.
+      * @param requestId the request identifier.
       * @param payload the request payload.
       */
     case class Request(requestId: Option[RequestId], payload: ApiRequest)
