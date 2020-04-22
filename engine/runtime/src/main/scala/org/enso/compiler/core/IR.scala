@@ -20,6 +20,12 @@ import scala.reflect.ClassTag
   *
   * In time, it will be replaced by [[Core]], but expediency dictates that we
   * retain and evolve this representation for the near future.
+  *
+  * Please note that all extensions of [[IR]] must reimplement `copy` to keep
+  * the id intact when copying nodes. The copy implementation should provide a
+  * way to set the id for the copy, but should default to being copied. Care
+  * must be taken to not end up with two nodes with the same ID. When using
+  * `copy` to duplicate nodes, please ensure that a new ID is provided.
   */
 sealed trait IR {
 
@@ -73,10 +79,24 @@ sealed trait IR {
     */
   def pretty: String = Debug.pretty(this.toString)
 
+  /** Gets the node's identifier.
+    *
+    * @return the node's identifier
+    */
+  def getId: IR.Identifier = id
+
   /** A unique identifier for a piece of IR. */
-  val id: IR.Identifier = UUID.randomUUID()
+  protected var id: IR.Identifier
 }
 object IR {
+
+  /** Creates a random identifier.
+    *
+    * @return a random identifier
+    */
+  def randomId: IR.Identifier = {
+    UUID.randomUUID()
+  }
 
   /** The type of identifiers for IR nodes. */
   type Identifier = UUID
@@ -130,6 +150,25 @@ object IR {
       with Expression
       with Error
       with IRKind.Primitive {
+    override protected var id: Identifier = randomId
+
+    /** Creates a copy of `this`
+      *
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param id the identifier for the new node
+      * @return a copy of `this` with the specified fields updated
+      */
+    def copy(
+      location: Option[IdentifiedLocation] = location,
+      passData: ISet[Metadata]             = passData,
+      id: Identifier                       = id
+    ): Empty = {
+      val res = Empty(location, passData)
+      res.id = id
+      res
+    }
+
     override def addMetadata(newData: Metadata): Empty = {
       copy(passData = this.passData + newData)
     }
@@ -165,6 +204,29 @@ object IR {
     override val passData: ISet[Metadata] = ISet()
   ) extends IR
       with IRKind.Primitive {
+    override protected var id: Identifier = randomId
+
+    /** Creates a copy of `this`.
+      *
+      * @param imports the import statements that bring other modules into scope
+      * @param bindings the top-level bindings for this module
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param id the identifier for the new node
+      * @return a copy of `this`, updated with the specified values
+      */
+    def copy(
+      imports: List[Module.Scope.Import]      = imports,
+      bindings: List[Module.Scope.Definition] = bindings,
+      location: Option[IdentifiedLocation]    = location,
+      passData: ISet[Metadata]                = passData,
+      id: Identifier                          = id
+    ): Module = {
+      val res = Module(imports, bindings, location, passData)
+      res.id = id
+      res
+    }
+
     override def addMetadata(newData: Metadata): Module = {
       copy(passData = this.passData + newData)
     }
@@ -218,6 +280,27 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Scope
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param name the full `.`-separated path representing the import
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          name: String                         = name,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Import = {
+          val res = Import(name, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Import = {
           copy(passData = this.passData + newData)
         }
@@ -256,6 +339,29 @@ object IR {
           override val passData: ISet[Metadata] = ISet()
         ) extends Definition
             with IRKind.Primitive {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param name the name of the atom
+            * @param arguments the arguments to the atom constructor
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            name: IR.Name                        = name,
+            arguments: List[DefinitionArgument]  = arguments,
+            location: Option[IdentifiedLocation] = location,
+            passData: ISet[Metadata]             = passData,
+            id: Identifier                       = id
+          ): Atom = {
+            val res = Atom(name, arguments, location, passData)
+            res.id = id
+            res
+          }
+
           override def addMetadata(newData: Metadata): Atom = {
             copy(passData = this.passData + newData)
           }
@@ -298,6 +404,32 @@ object IR {
           override val passData: ISet[Metadata] = ISet()
         ) extends Definition
             with IRKind.Primitive {
+          override protected var id: Identifier = _
+
+          /** Creates a copy of `this`.
+            *
+            * @param typeName the name of the atom that the method is being
+            *                 defined for
+            * @param methodName the name of the method being defined on `typename`
+            * @param body the body of the method
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            typeName: IR.Name                    = typeName,
+            methodName: IR.Name                  = methodName,
+            body: Expression                     = body,
+            location: Option[IdentifiedLocation] = location,
+            passData: ISet[Metadata]             = passData,
+            id: Identifier                       = id
+          ): Method = {
+            val res = Method(typeName, methodName, body, location, passData)
+            res.id = id
+            res
+          }
+
           override def addMetadata(newData: Metadata): Method = {
             copy(passData = this.passData + newData)
           }
@@ -368,6 +500,31 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Expression
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param expressions the expressions in the block
+        * @param returnValue the final expression in the block
+        * @param location the source location that the node corresponds to
+        * @param suspended whether or not the block is suspended
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        expressions: List[Expression]        = expressions,
+        returnValue: Expression              = returnValue,
+        location: Option[IdentifiedLocation] = location,
+        suspended: Boolean                   = suspended,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Block = {
+        val res = Block(expressions, returnValue, location, suspended, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Block = {
         copy(passData = this.passData + newData)
       }
@@ -406,6 +563,29 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Expression
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the name being bound to
+        * @param expression the expression being bound to `name`
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        name: IR.Name                        = name,
+        expression: Expression               = expression,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Binding = {
+        val res = Binding(name, expression, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Binding = {
         copy(passData = this.passData + newData)
       }
@@ -447,6 +627,27 @@ object IR {
       override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Literal {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param value the textual representation of the numeric literal
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        value: String                        = value,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Number = {
+        val res = Number(value, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Number = {
         copy(passData = this.passData + newData)
       }
@@ -474,6 +675,27 @@ object IR {
       override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Literal {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param text the text of the literal
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        text: String                         = text,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Text = {
+        val res = Text(text, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Text = {
         copy(passData = this.passData + newData)
       }
@@ -514,6 +736,27 @@ object IR {
       override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Name {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the literal text of the name
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        name: String                         = name,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Literal = {
+        val res = Literal(name, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Name.Literal = {
         copy(passData = this.passData + newData)
       }
@@ -540,7 +783,25 @@ object IR {
       override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Name {
-      override val name: String = "this"
+      override protected var id: Identifier = randomId
+      override val name: String             = "this"
+
+      /** Creates a copy of `this`.
+        *
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): This = {
+        val res = This(location, passData)
+        res.id = id
+        res
+      }
 
       override def addMetadata(newData: Metadata): This = {
         copy(passData = this.passData + newData)
@@ -568,7 +829,25 @@ object IR {
       override val location: Option[IdentifiedLocation],
       override val passData: ISet[Metadata] = ISet()
     ) extends Name {
-      override val name: String = "here"
+      override protected var id: Identifier = randomId
+      override val name: String             = "here"
+
+      /** Creates a copy of `this`.
+        *
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Here = {
+        val res = Here(location, passData)
+        res.id = id
+        res
+      }
 
       override def addMetadata(newData: Metadata): Here = {
         copy(passData = this.passData + newData)
@@ -614,6 +893,29 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Type
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param typed the expression being ascribed a type
+        * @param signature the signature being ascribed to `typed`
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        typed: Expression                    = typed,
+        signature: Expression                = signature,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Ascription = {
+        val res = Ascription(typed, signature, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Ascription = {
         copy(passData = this.passData + newData)
       }
@@ -651,6 +953,29 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Type
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates ac opy of `this`.
+        *
+        * @param typed the type being ascribed a monadic context
+        * @param context the context being ascribed to `typed`
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        typed: Expression                    = typed,
+        context: Expression                  = context,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Context = {
+        val res = Context(typed, context, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Context = {
         copy(passData = this.passData + newData)
       }
@@ -696,6 +1021,31 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param label the member's label, if given
+          * @param memberType the member's type, if given
+          * @param value the member's value, if given
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          label: Name                          = label,
+          memberType: Expression               = memberType,
+          value: Expression                    = value,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Member = {
+          val res = Member(label, memberType, value, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Member = {
           copy(passData = this.passData + newData)
         }
@@ -738,6 +1088,29 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          left: Expression                     = left,
+          right: Expression                    = right,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Subsumption = {
+          val res = Subsumption(left, right, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Subsumption = {
           copy(passData = this.passData + newData)
         }
@@ -776,6 +1149,29 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          left: Expression                     = left,
+          right: Expression                    = right,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Equality = {
+          val res = Equality(left, right, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Equality = {
           copy(passData = this.passData + newData)
         }
@@ -812,6 +1208,29 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          left: Expression                     = left,
+          right: Expression                    = right,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Concat = {
+          val res = Concat(left, right, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Concat = {
           copy(passData = this.passData + newData)
         }
@@ -848,6 +1267,29 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          left: Expression                     = left,
+          right: Expression                    = right,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Union = {
+          val res = Union(left, right, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Union = {
           copy(passData = this.passData + newData)
         }
@@ -884,6 +1326,29 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          left: Expression                     = left,
+          right: Expression                    = right,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Intersection = {
+          val res = Intersection(left, right, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Intersection = {
           copy(passData = this.passData + newData)
         }
@@ -922,6 +1387,29 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Set
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param left the left operand
+          * @param right the right operand
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          left: Expression                     = left,
+          right: Expression                    = right,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Subtraction = {
+          val res = Subtraction(left, right, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Subtraction = {
           copy(passData = this.passData + newData)
         }
@@ -995,6 +1483,31 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Function
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param arguments the arguments to the lambda
+        * @param body the body of the lambda
+        * @param location the source location that the node corresponds to
+        * @param canBeTCO whether or not the function can be tail-call optimised
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        arguments: List[DefinitionArgument]  = arguments,
+        body: Expression                     = body,
+        location: Option[IdentifiedLocation] = location,
+        canBeTCO: Boolean                    = canBeTCO,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Lambda = {
+        val res = Lambda(arguments, body, location, canBeTCO, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Lambda = {
         copy(passData = this.passData + newData)
       }
@@ -1048,6 +1561,31 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends DefinitionArgument
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the name of the argument
+        * @param defaultValue the default value of the argument, if present
+        * @param suspended whether or not the argument has its execution suspended
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        name: IR.Name                        = name,
+        defaultValue: Option[Expression]     = defaultValue,
+        suspended: Boolean                   = suspended,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Specified = {
+        val res = Specified(name, defaultValue, suspended, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Specified = {
         copy(passData = this.passData + newData)
       }
@@ -1101,6 +1639,33 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Application
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param function the function being called
+        * @param arguments the arguments to the function being called
+        * @param hasDefaultsSuspended whether the function application has any
+        *                             argument defaults in `function` suspended
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        function: Expression                 = function,
+        arguments: List[CallArgument]        = arguments,
+        hasDefaultsSuspended: Boolean        = hasDefaultsSuspended,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Prefix = {
+        val res =
+          Prefix(function, arguments, hasDefaultsSuspended, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Prefix = {
         copy(passData = this.passData + newData)
       }
@@ -1134,6 +1699,27 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Application
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param target the expression being forced
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        target: Expression                   = target,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Force = {
+        val res = Force(target, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Force = {
         copy(passData = this.passData + newData)
       }
@@ -1176,6 +1762,31 @@ object IR {
         override val passData: ISet[Metadata] = ISet()
       ) extends Operator
           with IRKind.Sugar {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param left the left operand to `operator`
+          * @param operator the operator function being called
+          * @param right the right operand to `operator`
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          left: Expression                     = left,
+          operator: IR.Name                    = operator,
+          right: Expression                    = right,
+          location: Option[IdentifiedLocation] = location,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Binary = {
+          val res = Binary(left, operator, right, location, passData)
+          res.id = id
+          res
+        }
+
         override def addMetadata(newData: Metadata): Binary = {
           copy(passData = this.passData + newData)
         }
@@ -1240,6 +1851,32 @@ object IR {
       override val passData: ISet[Metadata]           = ISet()
     ) extends CallArgument
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param name the name of the argument being called, if present
+        * @param value the expression being passed as the argument's value
+        * @param location the source location that the node corresponds to
+        * @param shouldBeSuspended whether or not the argument should be passed
+        *        suspended
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        name: Option[IR.Name]                = name,
+        value: Expression                    = value,
+        location: Option[IdentifiedLocation] = location,
+        shouldBeSuspended: Option[Boolean]   = shouldBeSuspended,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Specified = {
+        val res = Specified(name, value, location, shouldBeSuspended, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Specified = {
         copy(passData = this.passData + newData)
       }
@@ -1290,6 +1927,31 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Case
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param scrutinee the expression whose value is being matched on
+        * @param branches the branches of the case expression
+        * @param fallback a fallback branch, if provided explicitly
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        scrutinee: Expression                = scrutinee,
+        branches: Seq[Branch]                = branches,
+        fallback: Option[Expression]         = fallback,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Expr = {
+        val res = Expr(scrutinee, branches, fallback, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Expr = {
         copy(passData = this.passData + newData)
       }
@@ -1329,6 +1991,29 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Case
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param pattern the pattern that attempts to match against the scrutinee
+        * @param expression the expression that is executed if the pattern matches
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        pattern: Expression                  = pattern,
+        expression: Expression               = expression,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Branch = {
+        val res = Branch(pattern, expression, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Branch = {
         copy(passData = this.passData + newData)
       }
@@ -1385,6 +2070,29 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Comment
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param commented the expression with which the comment is associated
+        * @param doc the documentation of `commented`
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        commented: Expression                = commented,
+        doc: Doc                             = doc,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Documentation = {
+        val res = Documentation(commented, doc, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Documentation = {
         copy(passData = this.passData + newData)
       }
@@ -1431,6 +2139,29 @@ object IR {
       override val passData: ISet[Metadata] = ISet()
     ) extends Foreign
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param lang the foreign language being written
+        * @param code the code written in `lang`
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        lang: String                         = lang,
+        code: String                         = code,
+        location: Option[IdentifiedLocation] = location,
+        passData: ISet[Metadata]             = passData,
+        id: Identifier                       = id
+      ): Definition = {
+        val res = Definition(lang, code, location, passData)
+        res.id = id
+        res
+      }
+
       override def addMetadata(newData: Metadata): Definition = {
         copy(passData = this.passData + newData)
       }
@@ -1486,6 +2217,25 @@ object IR {
     ) extends Error
         with Kind.Static
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param ast the erroneous AST
+        * @param passData the pass metadata associated with this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        ast: AST                 = ast,
+        passData: ISet[Metadata] = passData,
+        id: Identifier           = id
+      ): Syntax = {
+        val res = Syntax(ast, passData)
+        res.id = id
+        res
+      }
+
       override val location: Option[IdentifiedLocation] =
         ast.location.map(IdentifiedLocation(_, ast.id))
 
@@ -1517,6 +2267,25 @@ object IR {
     ) extends Error
         with Kind.Static
         with IRKind.Primitive {
+      override protected var id: Identifier = randomId
+
+      /** Creates a copy of `this`.
+        *
+        * @param ir the IR that is invalid
+        * @param passData any annotations from compiler passes
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        ir: IR                   = ir,
+        passData: ISet[Metadata] = passData,
+        id: Identifier           = id
+      ): InvalidIR = {
+        val res = InvalidIR(ir, passData)
+        res.id = id
+        res
+      }
+
       override val location: Option[IdentifiedLocation] = ir.location
 
       override def addMetadata(newData: Metadata): InvalidIR = {
@@ -1555,6 +2324,25 @@ object IR {
           with Kind.Static
           with IRKind.Primitive
           with IR.DefinitionArgument {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param invalidArgDef the invalid definition
+          * @param passData the pass metadata for the error
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          invalidArgDef: IR.DefinitionArgument = invalidArgDef,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): Argument = {
+          val res = Argument(invalidArgDef, passData)
+          res.id = id
+          res
+        }
+
         override val defaultValue: Option[Expression] = None
         override val location: Option[IdentifiedLocation] =
           invalidArgDef.location
@@ -1592,6 +2380,25 @@ object IR {
       ) extends Redefined
           with Kind.Static
           with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+         *
+         * @param invalidBinding the invalid binding
+         * @param passData the pass metadata for the error
+         * @param id the identifier for the new node
+         * @return a copy of `this`, updated with the specified values
+         */
+        def copy(
+          invalidBinding: IR.Expression.Binding = invalidBinding,
+          passData: ISet[Metadata]              = passData,
+          id: Identifier                        = id
+        ): Binding = {
+          val res = Binding(invalidBinding, passData)
+          res.id = id
+          res
+        }
+
         override val location: Option[IdentifiedLocation] =
           invalidBinding.location
 

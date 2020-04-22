@@ -170,7 +170,7 @@ case object AliasAnalysis extends IRPass {
           val isSuspended  = expression.isInstanceOf[IR.Expression.Block]
           val occurrenceId = graph.nextId()
           val occurrence =
-            Occurrence.Def(occurrenceId, name.name, binding.id, isSuspended)
+            Occurrence.Def(occurrenceId, name.name, binding.getId, isSuspended)
 
           parentScope.add(occurrence)
 
@@ -201,12 +201,12 @@ case object AliasAnalysis extends IRPass {
   }
 
   /** Performs alias analysis on a type-related expression.
-   *
-   * @param value the ir to analyse
-   * @param graph the graph in which the analysis is taking place
-   * @param parentScope the parent scope in which `value` occurs
-   * @return `value`, annotated with aliasing information
-   */
+    *
+    * @param value the ir to analyse
+    * @param graph the graph in which the analysis is taking place
+    * @param parentScope the parent scope in which `value` occurs
+    * @return `value`, annotated with aliasing information
+    */
   def analyseType(value: IR.Type, graph: Graph, parentScope: Scope): IR.Type = {
     value match {
       case member @ IR.Type.Set.Member(lbl, memberType, value, _, _) =>
@@ -221,12 +221,14 @@ case object AliasAnalysis extends IRPass {
         }
 
         val lblId = graph.nextId()
-        parentScope.add(Occurrence.Def(lblId, lbl.name, lbl.id))
+        parentScope.add(Occurrence.Def(lblId, lbl.name, lbl.getId))
 
-        member.copy(
-          memberType = analyseExpression(memberType, graph, memberTypeScope),
-          value      = analyseExpression(value, graph, valueScope)
-        ).addMetadata(Info.Occurrence(graph, lblId))
+        member
+          .copy(
+            memberType = analyseExpression(memberType, graph, memberTypeScope),
+            value      = analyseExpression(value, graph, valueScope)
+          )
+          .addMetadata(Info.Occurrence(graph, lblId))
       case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
@@ -257,13 +259,13 @@ case object AliasAnalysis extends IRPass {
     scope: Scope
   ): List[IR.DefinitionArgument] = {
     args.map {
-      case arg @ IR.DefinitionArgument.Specified(name, value, isSusp, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(name, value, susp, _, _) =>
         val nameOccursInScope =
           scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
         if (!nameOccursInScope) {
           val occurrenceId = graph.nextId()
           scope.add(
-            Graph.Occurrence.Def(occurrenceId, name.name, arg.id, isSusp)
+            Graph.Occurrence.Def(occurrenceId, name.name, arg.getId, susp)
           )
 
           arg
@@ -384,7 +386,7 @@ case object AliasAnalysis extends IRPass {
     parentScope: Scope
   ): IR.Name = {
     val occurrenceId = graph.nextId()
-    val occurrence   = Occurrence.Use(occurrenceId, name.name, name.id)
+    val occurrence   = Occurrence.Use(occurrenceId, name.name, name.getId)
 
     parentScope.add(occurrence)
     graph.resolveUsage(occurrence)

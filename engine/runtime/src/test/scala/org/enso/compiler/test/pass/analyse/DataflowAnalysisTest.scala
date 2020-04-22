@@ -39,12 +39,21 @@ class DataflowAnalysisTest extends CompilerTest {
     DependencyInfo.Type.Static(genID)
   }
 
-  /** Generates a symbol dependency from the included string.
+  /** Makes a statically known dependency from the included id.
+    *
+    * @param id the identifier to use as the id
+    * @return a static dependency on the node given by `id`
+    */
+  def mkStaticDep(id: DependencyInfo.Identifier): DependencyInfo.Type = {
+    DependencyInfo.Type.Static(id)
+  }
+
+  /** Makes a symbol dependency from the included string.
     *
     * @param str the string to use as a name
     * @return a symbol dependency on the symbol given by `str`
     */
-  def genDynamicDep(str: String): DependencyInfo.Type = {
+  def mkDynamicDep(str: String): DependencyInfo.Type = {
     DependencyInfo.Type.Dynamic(str)
   }
 
@@ -154,9 +163,9 @@ class DataflowAnalysisTest extends CompilerTest {
       val module1 = new DependencyInfo
       val module2 = new DependencyInfo
 
-      val symbol1 = genDynamicDep("foo")
-      val symbol2 = genDynamicDep("bar")
-      val symbol3 = genDynamicDep("baz")
+      val symbol1 = mkDynamicDep("foo")
+      val symbol2 = mkDynamicDep("bar")
+      val symbol3 = mkDynamicDep("baz")
 
       val symbol1DependentIdsInModule1 = Set(genStaticDep, genStaticDep)
       val symbol2DependentIdsInModule1 = Set(genStaticDep, genStaticDep)
@@ -181,34 +190,119 @@ class DataflowAnalysisTest extends CompilerTest {
   }
 
   "Dataflow analysis on modules" should {
+    val ir =
+      """
+        |M.foo = a b ->
+        |   IO.println b
+        |   c = a + b
+        |   frobnicate a c
+        |""".stripMargin.preprocessModule.analyse
+
+    val depInfo = ir.getMetadata[DataflowAnalysis.DependencyInfo].get
+
+    val frobnicateSymbol = mkDynamicDep("frobnicate")
+    val ioSymbol         = mkDynamicDep("IO")
+    val printlnSymbol    = mkDynamicDep("println")
+    val plusSymbol       = mkDynamicDep("+")
+
+    val fooMethod =
+      ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
+    val fn     = fooMethod.body.asInstanceOf[IR.Function.Lambda]
+    val fnBody = fn.body.asInstanceOf[IR.Expression.Block]
+    val printlnExpr =
+      fnBody.expressions.head.asInstanceOf[IR.Application.Prefix]
+    val printlnFn = printlnExpr.function.asInstanceOf[IR.Name.Literal]
+    val ioArgInPrintln =
+      printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+    val bArgInPrintln =
+      printlnExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+    val cBinding = fnBody.expressions(1).asInstanceOf[IR.Expression.Binding]
+    val aAddB    = cBinding.expression.asInstanceOf[IR.Application.Prefix]
+    val retVal   = fnBody.returnValue.asInstanceOf[IR.Application.Prefix]
+
+    val methodId         = mkStaticDep(fooMethod.getId)
+    val functionId       = mkStaticDep(fn.getId)
+    val aArgId           = mkStaticDep(fn.arguments.head.getId)
+    val bArgId           = mkStaticDep(fn.arguments(1).getId)
+    val fnBodyId         = mkStaticDep(fnBody.getId)
+    val printlnExprId    = mkStaticDep(printlnExpr.getId)
+    val printlnFnId      = mkStaticDep(printlnExpr.function.getId)
+    val ioArgInPrintlnId = mkStaticDep(ioArgInPrintln.getId)
+    val ioUseInPrintlnId = mkStaticDep(ioArgInPrintln.value.getId)
+    val bArgInPrintlnId  = mkStaticDep(bArgInPrintln.getId)
+    val bUseInPrintlnId  = mkStaticDep(bArgInPrintln.value.getId)
+    val cBindingId       = mkStaticDep(cBinding.getId)
+    val cNameId          = mkStaticDep(cBinding.name.getId)
+    val aAddBId          = mkStaticDep(aAddB.getId)
+    val aUseAddId        = mkStaticDep(aAddB.arguments.head.getId)
+    val bUseAddId        = mkStaticDep(aAddB.arguments(1).getId)
+    val retValId         = mkStaticDep(retVal.getId)
+    val frobnicateId     = mkStaticDep(retVal.function.getId)
+    val aUseRetId        = mkStaticDep(retVal.arguments.head.getId)
+    val cUseRetId        = mkStaticDep(retVal.arguments(1).getId)
+
     "correctly identify global symbol dependents" in {
-      val ir =
-        """
-          |M.foo = a b ->
-          |   IO.println b
-          |   c = a + b
-          |   frobnicate a c
-          |""".stripMargin.preprocessModule.analyse
-
-//      println(ir.pretty)
-    }
-
-    "correctly identify local dependents" in {
       pending
     }
 
-    "correctly invalidate all expressions on change" in {
-      pending
-    }
-
-    "associate the dependency info with every node in the IR" in {
-      pending
-    }
+//    "correctly identify local dependents" in {
+//      pending
+//    }
+//
+//    "only store direct dependents for any given node" in {
+//      pending
+//    }
+//
+//    "correctly invalidate expressions on change" in {
+//      pending
+//    }
+//
+//    "associate the dependency info with every node in the IR" in {
+//      pending
+//    }
   }
 
-  "Dataflow analysis on expressions" should {
-    "properly update the analysis results" in {
-      pending
-    }
-  }
+//  "Dataflow analysis on expressions" should {
+//    "properly update the analysis results" in {
+//      pending
+//    }
+//  }
+//
+//  "Dataflow analysis" should {
+//    "work properly for functions" in {
+//      pending
+//    }
+//
+//    "work properly for prefix applications" in {
+//      pending
+//    }
+//
+//    "work properly for forces" in {
+//      pending
+//    }
+//
+//    "work properly for names" in {
+//      pending
+//    }
+//
+//    "work properly for case expressions" in {
+//      pending
+//    }
+//
+//    "work properly for comments" in {
+//      pending
+//    }
+//
+//    "work properly for blocks" in {
+//      pending
+//    }
+//
+//    "work properly for bindings" in {
+//      pending
+//    }
+//
+//    "have the result data associated with literals" in {
+//      pending
+//    }
+//  }
 }
