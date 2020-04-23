@@ -220,7 +220,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
   }
 
-  "Dataflow analysis on modules" should {
+  "Whole-module dataflow analysis" should {
     val ir =
       """
         |M.foo = a b ->
@@ -229,7 +229,7 @@ class DataflowAnalysisTest extends CompilerTest {
         |   frobnicate a c
         |""".stripMargin.preprocessModule.analyse
 
-    val depInfo = ir.getMetadata[DataflowAnalysis.DependencyInfo].get
+    val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
 
     // The method and body
     val method =
@@ -581,57 +581,242 @@ class DataflowAnalysisTest extends CompilerTest {
     }
   }
 
-  "Dataflow analysis on expressions" should {
-    implicit val inlineContext =
-      InlineContext(localScope = Some(LocalScope.root))
+  "Dataflow analysis" should {
+    "work properly for functions" in {
+      implicit val inlineContext: InlineContext =
+        InlineContext(
+          localScope       = Some(LocalScope.root),
+          isInTailPosition = Some(false)
+        )
 
-    val ir =
-      """
-        |x y = x -> x + y
-        |""".stripMargin.preprocessExpression.get.analyse
+      val ir =
+        """
+          |x (y=x) -> x + y
+          |""".stripMargin.preprocessExpression.get.analyse
 
-    val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
 
-    "properly update the analysis results" in {
-      pending
+      val fn = ir.asInstanceOf[IR.Function.Lambda]
+      val fnArgX =
+        fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+      val fnArgY =
+        fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
+      val fnArgYDefault = fnArgY.defaultValue.get.asInstanceOf[IR.Name.Literal]
+      val fnBody        = fn.body.asInstanceOf[IR.Application.Prefix]
+      val plusFn        = fnBody.function.asInstanceOf[IR.Name.Literal]
+      val plusArgX =
+        fnBody.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+      val plusArgXExpr = plusArgX.value.asInstanceOf[IR.Name.Literal]
+      val plusArgY =
+        fnBody.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+      val plusArgYExpr = plusArgY.value.asInstanceOf[IR.Name.Literal]
+
+      // Identifiers
+      val fnId            = mkStaticDep(fn.getId)
+      val fnArgXId        = mkStaticDep(fnArgX.getId)
+      val fnArgYId        = mkStaticDep(fnArgY.getId)
+      val fnArgYDefaultId = mkStaticDep(fnArgYDefault.getId)
+      val fnBodyId        = mkStaticDep(fnBody.getId)
+      val plusFnId        = mkStaticDep(plusFn.getId)
+      val plusArgXId      = mkStaticDep(plusArgX.getId)
+      val plusArgXExprId  = mkStaticDep(plusArgXExpr.getId)
+      val plusArgYId      = mkStaticDep(plusArgY.getId)
+      val plusArgYExprId  = mkStaticDep(plusArgYExpr.getId)
+
+      // Dynamic Symbols
+      val plusSym = mkDynamicDep("+")
+
+      // The Tests
+      depInfo.getDirect(fnId) should not be defined
+      depInfo.getDirect(fnArgXId) shouldEqual Some(
+        Set(plusArgXExprId, fnArgYDefaultId)
+      )
+      depInfo.getDirect(fnArgYId) shouldEqual Some(Set(plusArgYExprId))
+      depInfo.getDirect(fnArgYDefaultId) shouldEqual Some(Set(fnArgYId, fnId))
+      depInfo.getDirect(fnBodyId) shouldEqual Some(Set(fnId))
+      depInfo.getDirect(plusSym) shouldEqual Some(Set(plusFnId))
+      depInfo.getDirect(plusArgXId) shouldEqual Some(Set(fnBodyId))
+      depInfo.getDirect(plusArgXExprId) shouldEqual Some(Set(plusArgXId))
+      depInfo.getDirect(plusArgYId) shouldEqual Some(Set(fnBodyId))
+      depInfo.getDirect(plusArgYExprId) shouldEqual Some(Set(plusArgYId))
+    }
+
+    "work properly for prefix applications" in {
+      implicit val inlineContext: InlineContext = InlineContext(
+        localScope       = Some(LocalScope.root),
+        isInTailPosition = Some(false)
+      )
+
+      val ir =
+        """
+          |foo 10 (x -> x * x)
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+
+      val app   = ir.asInstanceOf[IR.Application.Prefix]
+      val appFn = app.function.asInstanceOf[IR.Name.Literal]
+      val appArg10 =
+        app.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+      val appArg10Expr = appArg10.value.asInstanceOf[IR.Literal.Number]
+      val appArgFn =
+        app.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+      val lam = appArgFn.value.asInstanceOf[IR.Function.Lambda]
+      val lamArgX =
+        lam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+      val mul   = lam.body.asInstanceOf[IR.Application.Prefix]
+      val mulFn = mul.function.asInstanceOf[IR.Name.Literal]
+      val mulArg1 =
+        mul.arguments.head.asInstanceOf[IR.CallArgument.Specified]
+      val mulArg1Expr = mulArg1.value.asInstanceOf[IR.Name.Literal]
+      val mulArg2     = mul.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+      val mulArg2Expr = mulArg2.value.asInstanceOf[IR.Name.Literal]
+
+      // Identifiers
+      val appId          = mkStaticDep(app.getId)
+      val appFnId        = mkStaticDep(appFn.getId)
+      val appArg10Id     = mkStaticDep(appArg10.getId)
+      val appArg10ExprId = mkStaticDep(appArg10Expr.getId)
+      val appArgFnId     = mkStaticDep(appArgFn.getId)
+      val lamId          = mkStaticDep(lam.getId)
+      val lamArgXId      = mkStaticDep(lamArgX.getId)
+      val mulId          = mkStaticDep(mul.getId)
+      val mulFnId        = mkStaticDep(mulFn.getId)
+      val mulArg1Id      = mkStaticDep(mulArg1.getId)
+      val mulArg1ExprId  = mkStaticDep(mulArg1Expr.getId)
+      val mulArg2Id      = mkStaticDep(mulArg2.getId)
+      val mulArg2ExprId  = mkStaticDep(mulArg2Expr.getId)
+
+      // Global Symbols
+      val mulSym = mkDynamicDep("*")
+
+      // The test
+      depInfo.getDirect(appId) should not be defined
+      depInfo.getDirect(appFnId) shouldEqual Some(Set(appId))
+      depInfo.getDirect(appArg10Id) shouldEqual Some(Set(appId))
+      depInfo.getDirect(appArg10ExprId) shouldEqual Some(Set(appArg10Id))
+      depInfo.getDirect(appArgFnId) shouldEqual Some(Set(appId))
+      depInfo.getDirect(lamId) shouldEqual Some(Set(appArgFnId))
+      depInfo.getDirect(lamArgXId) shouldEqual Some(
+        Set(mulArg1ExprId, mulArg2ExprId)
+      )
+      depInfo.getDirect(mulId) shouldEqual Some(Set(lamId))
+      depInfo.getDirect(mulFnId) shouldEqual Some(Set(mulId))
+      depInfo.getDirect(mulArg1Id) shouldEqual Some(Set(mulId))
+      depInfo.getDirect(mulArg1ExprId) shouldEqual Some(Set(mulArg1Id))
+      depInfo.getDirect(mulArg2Id) shouldEqual Some(Set(mulId))
+      depInfo.getDirect(mulArg2ExprId) shouldEqual Some(Set(mulArg2Id))
+
+      depInfo.getDirect(mulSym) shouldEqual Some(Set(mulFnId))
+    }
+
+    "work properly for forces" in {
+      implicit val inlineContext: InlineContext = InlineContext(
+        localScope       = Some(LocalScope.root),
+        isInTailPosition = Some(false)
+      )
+
+      val ir =
+        """
+          |~x -> x
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+
+      val lam = ir.asInstanceOf[IR.Function.Lambda]
+      val argX =
+        lam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+      val body = lam.body.asInstanceOf[IR.Application.Force]
+      val xUse = body.target.asInstanceOf[IR.Name.Literal]
+
+      // The IDs
+      val lamId  = mkStaticDep(lam.getId)
+      val argXId = mkStaticDep(argX.getId)
+      val bodyId = mkStaticDep(body.getId)
+      val xUseId = mkStaticDep(xUse.getId)
+
+      // The Test
+      depInfo.getDirect(argXId) shouldEqual Some(Set(xUseId))
+      depInfo.getDirect(xUseId) shouldEqual Some(Set(bodyId))
+      depInfo.getDirect(bodyId) shouldEqual Some(Set(lamId))
+    }
+
+    "work properly for blocks" in {
+      implicit val inlineContext: InlineContext = InlineContext(
+        localScope       = Some(LocalScope.root),
+        isInTailPosition = Some(false)
+      )
+
+      val ir =
+        """
+          |x = 10
+          |x
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+
+      val block     = ir.asInstanceOf[IR.Expression.Block]
+      val xBind     = block.expressions.head.asInstanceOf[IR.Expression.Binding]
+      val xBindName = xBind.name.asInstanceOf[IR.Name.Literal]
+      val xBindExpr = xBind.expression.asInstanceOf[IR.Literal.Number]
+      val xUse      = block.returnValue.asInstanceOf[IR.Name.Literal]
+
+      // The IDs
+      val blockId     = mkStaticDep(block.getId)
+      val xBindId     = mkStaticDep(xBind.getId)
+      val xBindNameId = mkStaticDep(xBindName.getId)
+      val xBindExprId = mkStaticDep(xBindExpr.getId)
+      val xUseId      = mkStaticDep(xUse.getId)
+
+      // The Test
+      depInfo.getDirect(blockId) should not be defined
+      depInfo.getDirect(xBindId) shouldEqual Some(Set(xUseId))
+      depInfo.getDirect(xBindNameId) shouldEqual Some(Set(xBindId))
+      depInfo.getDirect(xBindExprId) shouldEqual Some(Set(xBindId))
+      depInfo.getDirect(xUseId) shouldEqual Some(Set(blockId))
+    }
+
+    "work properly for bindings" in {
+      implicit val inlineContext: InlineContext = InlineContext(
+        localScope       = Some(LocalScope.root),
+        isInTailPosition = Some(false)
+      )
+
+      val ir =
+        """
+          |x = 10
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+
+      val binding     = ir.asInstanceOf[IR.Expression.Binding]
+      val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
+      val bindingExpr = binding.expression.asInstanceOf[IR.Literal.Number]
+
+      // The IDs
+      val bindingId     = mkStaticDep(binding.getId)
+      val bindingNameId = mkStaticDep(bindingName.getId)
+      val bindingExprId = mkStaticDep(bindingExpr.getId)
+
+      // The Test
+      depInfo.getDirect(bindingId) should not be defined
+      depInfo.getDirect(bindingNameId) shouldEqual Some(Set(bindingId))
+      depInfo.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
+    }
+
+    //    "work properly for case expressions" in {
+    //      pending
+    //    }
+
+    "have the result data associated with literals" in {
+      implicit val inlineContext: InlineContext = InlineContext(
+        localScope       = Some(LocalScope.root),
+        isInTailPosition = Some(false)
+      )
+
+      val ir = "10".preprocessExpression.get.analyse.asInstanceOf[IR.Literal]
+
+      ir.getMetadata[DataflowAnalysis.Metadata] shouldBe defined
     }
   }
-
-//  "Dataflow analysis" should {
-//    "work properly for functions" in {
-//      pending // TODO [AA] Default arguments
-//    }
-//
-//    "work properly for prefix applications" in {
-//      pending
-//    }
-//
-//    "work properly for forces" in {
-//      pending
-//    }
-//
-//    "work properly for names" in {
-//      pending
-//    }
-//
-//    "work properly for case expressions" in {
-//      pending
-//    }
-//
-//    "work properly for comments" in {
-//      pending
-//    }
-//
-//    "work properly for blocks" in {
-//      pending
-//    }
-//
-//    "work properly for bindings" in {
-//      pending
-//    }
-//
-//    "have the result data associated with literals" in {
-//      pending
-//    }
-//  }
 }
