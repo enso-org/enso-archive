@@ -13,7 +13,7 @@ trait BinaryEncoder[-A] {
     * Encodes a value of type 'A' to bytes.
     *
     * @param msg a message to encode
-    * @return a byte buffer
+    * @return a byte buffer containing serialized format of type `A`
     */
   def encode(msg: A): ByteBuffer
 

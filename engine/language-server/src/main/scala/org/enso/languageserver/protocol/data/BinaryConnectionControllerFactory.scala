@@ -7,7 +7,7 @@ import org.enso.languageserver.http.server.ConnectionControllerFactory
 /**
   * A factory for binary connection controllers.
   *
-  * @param system an actor system
+  * @param system an actor system that hosts created connection controllers
   */
 class BinaryConnectionControllerFactory()(implicit system: ActorSystem)
     extends ConnectionControllerFactory {

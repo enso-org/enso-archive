@@ -10,10 +10,10 @@ import java.nio.ByteBuffer
 trait BinaryDecoder[+A] {
 
   /**
-    * Decodes bytes.
+    * Decodes serialized format of type `A`.
     *
-    * @param bytes a byte buffer
-    * @return either decoding failure or a value of type `A`
+    * @param bytes a byte buffer containing serialized format of type `A`
+    * @return either a decoding failure or a value of type `A`
     */
   def decode(bytes: ByteBuffer): Either[DecodingFailure, A]
 

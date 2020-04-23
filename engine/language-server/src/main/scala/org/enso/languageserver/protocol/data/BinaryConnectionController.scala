@@ -37,9 +37,10 @@ import scala.annotation.unused
 
 /**
   * An actor handling data communications between a single client and the
-  * language server.
+  * language server. It acts as a front controller responsible for handling
+  * all incoming requests and dispatching commands.
   *
-  * @param clientIp a client ip address
+  * @param clientIp a client ip that the connection controller is created for
   */
 class BinaryConnectionController(clientIp: RemoteAddress.IP)
     extends Actor

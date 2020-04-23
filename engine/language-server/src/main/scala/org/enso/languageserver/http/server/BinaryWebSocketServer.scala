@@ -35,11 +35,12 @@ import scala.concurrent.{ExecutionContext, Future}
   * @param encoder an encoder for outbound packets
   * @param factory creates front controller per a single connection that is
   *                responsible for handling all incoming requests
-  * @param config a server config
-  * @param system an actor system
-  * @param materializer an actor materializer
-  * @tparam A a type of messages sent to connection controller
-  * @tparam B a type of messages received from connection controller
+  * @param config a configuration object for properties of the server
+  * @param system an actor system that hosts the server
+  * @param materializer an actor materializer that converts inbound and outbound
+  *                     flows into actors running these streams
+  * @tparam A a type of messages sent to a connection controller
+  * @tparam B a type of messages received from a connection controller
   */
 class BinaryWebSocketServer[A, B](
   decoder: BinaryDecoder[A],
@@ -150,7 +151,7 @@ class BinaryWebSocketServer[A, B](
 object BinaryWebSocketServer {
 
   /**
-    * A configuration object for properties of the JsonRpcServer.
+    * A configuration object for properties of the [[BinaryWebSocketServer]].
     *
     * @param outgoingBufferSize the number of messages buffered internally
     *                           if the downstream connection is lagging behind.

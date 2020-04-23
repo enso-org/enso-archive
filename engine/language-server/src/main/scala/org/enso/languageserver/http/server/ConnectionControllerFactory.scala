@@ -11,8 +11,8 @@ trait ConnectionControllerFactory {
   /**
     * Creates a connection controller that acts as front controller.
     *
-    * @param clientIp a client ip
-    * @return actor ref
+    * @param clientIp a client ip that the connection controller is created for
+    * @return actor ref of created connection controller
     */
   def createController(clientIp: RemoteAddress.IP): ActorRef
 
