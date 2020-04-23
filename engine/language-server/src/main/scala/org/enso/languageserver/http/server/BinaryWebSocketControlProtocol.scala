@@ -4,7 +4,7 @@ import akka.actor.ActorRef
 
 /**
   * A web socket control protocol used to manage connections created by
-  * [[BinaryWebSocketServer]].
+  * a [[BinaryWebSocketServer]].
   */
 object BinaryWebSocketControlProtocol {
 

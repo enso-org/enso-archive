@@ -36,7 +36,7 @@ import scala.concurrent.duration._
 /**
   * A main module containing all components of the server.
   *
-  * @param serverConfig a server config
+  * @param serverConfig configuration for the language server
   */
 class MainModule(serverConfig: LanguageServerConfig) {
 

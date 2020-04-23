@@ -74,7 +74,7 @@ class BinaryWebSocketServer[A, B](
     *
     * @param interface the interface to bind to.
     * @param port the port to bind to.
-    * @return a server binding object.
+    * @return a representation of the binding state of the server.
     */
   def bind(interface: String, port: Int): Future[Http.ServerBinding] =
     Http().bindAndHandle(route, interface, port)
