@@ -16,6 +16,7 @@ import org.enso.compiler.pass.desugar.{
   OperatorToFunction
 }
 import org.enso.compiler.test.CompilerTest
+import org.enso.interpreter.runtime.scope.LocalScope
 import org.scalatest.Assertion
 
 class DataflowAnalysisTest extends CompilerTest {
@@ -580,12 +581,22 @@ class DataflowAnalysisTest extends CompilerTest {
     }
   }
 
-//  "Dataflow analysis on expressions" should {
-//    "properly update the analysis results" in {
-//      pending
-//    }
-//  }
-//
+  "Dataflow analysis on expressions" should {
+    implicit val inlineContext =
+      InlineContext(localScope = Some(LocalScope.root))
+
+    val ir =
+      """
+        |x y = x -> x + y
+        |""".stripMargin.preprocessExpression.get.analyse
+
+    val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+
+    "properly update the analysis results" in {
+      pending
+    }
+  }
+
 //  "Dataflow analysis" should {
 //    "work properly for functions" in {
 //      pending // TODO [AA] Default arguments
