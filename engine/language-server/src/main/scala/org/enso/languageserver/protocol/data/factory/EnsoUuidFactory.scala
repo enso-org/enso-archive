@@ -11,8 +11,10 @@ object EnsoUuidFactory {
     * Creates EnsoUUID inside a [[FlatBufferBuilder]].
     *
     * @param uuid a uuid to serialize
-    * @param builder a builder
-    * @return offset
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def create(uuid: UUID)(implicit builder: FlatBufferBuilder): Int = {
     EnsoUUID.createEnsoUUID(
@@ -26,8 +28,10 @@ object EnsoUuidFactory {
     * Creates an [[EnsoUUID]] inside a [[FlatBufferBuilder]].
     *
     * @param uuid a uuid to serialize
-    * @param builder a builder
-    * @return offset
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def create(uuid: EnsoUUID)(implicit builder: FlatBufferBuilder): Int = {
     EnsoUUID.createEnsoUUID(

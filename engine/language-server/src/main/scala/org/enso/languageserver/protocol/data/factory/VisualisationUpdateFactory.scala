@@ -13,8 +13,10 @@ object VisualisationUpdateFactory {
     * Creates a [[VisualisationUpdate]] inside a [[FlatBufferBuilder]].
     *
     * @param update a visualisation update
-    * @param builder a flat buffers builder
-    * @return offset
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def create(update: VisualisationUpdate)(
     implicit builder: FlatBufferBuilder
@@ -34,8 +36,10 @@ object VisualisationUpdateFactory {
     * Creates a [[VisualisationContext]] inside a [[FlatBufferBuilder]].
     *
     * @param ctx a VisualisationContext
-    * @param builder a flat buffers builder
-    * @return offset
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def createVisualisationCtx(ctx: VisualisationContext)(
     implicit builder: FlatBufferBuilder

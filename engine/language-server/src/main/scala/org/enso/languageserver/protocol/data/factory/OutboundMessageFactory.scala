@@ -11,12 +11,16 @@ object OutboundMessageFactory {
   /**
     * Creates an [[OutboundMessage]] inside a [[FlatBufferBuilder]].
     *
-    * @param requestId a request id
-    * @param maybeCorrelationId a optional correlation id
-    * @param payloadType a payload type
-    * @param payload a message payload
-    * @param builder a flat buffer builder
-    * @return offset
+    * @param requestId a unique id of the request sent to the server
+    * @param maybeCorrelationId an optional correlation id used to correlate
+    *                           a response with a request
+    * @param payloadType a payload type indicating the type of the payload
+    *                    piggybacked by the [[OutboundMessage]]
+    * @param payload a message payload that carries requests sent by a client
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def create(
     requestId: UUID,

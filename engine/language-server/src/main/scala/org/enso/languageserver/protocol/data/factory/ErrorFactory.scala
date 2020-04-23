@@ -8,8 +8,10 @@ object ErrorFactory {
   /**
     * Creates a ReceivedCorruptedDataError inside a [[FlatBufferBuilder]].
     *
-    * @param builder a flat buffer builder
-    * @return offset
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def createReceivedCorruptedDataError()(
     implicit builder: FlatBufferBuilder
@@ -23,8 +25,10 @@ object ErrorFactory {
   /**
     * Creates a ReceivedEmptyPayloadError inside a [[FlatBufferBuilder]].
     *
-    * @param builder a flat buffer builder
-    * @return offset
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def createReceivedEmptyPayloadError()(
     implicit builder: FlatBufferBuilder
@@ -38,8 +42,10 @@ object ErrorFactory {
   /**
     * Creates a ServiceError inside a [[FlatBufferBuilder]].
     *
-    * @param builder a flat buffer builder
-    * @return offset
+    * @param builder a class that helps build a FlatBuffer representation of
+    *                complex objects
+    * @return an offset pointing to the FlatBuffer representation of the
+    *         created object
     */
   def createServiceError()(
     implicit builder: FlatBufferBuilder
