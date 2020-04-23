@@ -125,6 +125,7 @@ case object DataflowAnalysis extends IRPass {
 
         binding
           .copy(
+            name = name.addMetadata(info),
             expression = analyseExpression(expression, info)
           )
           .addMetadata(info)
@@ -136,7 +137,7 @@ case object DataflowAnalysis extends IRPass {
   /** Performs dataflow analysis on a function.
     *
     * The result of a function is dependent on the result from its body, as well
-    * as the definitions of its arguments.
+    * as the definitions of any defaults for its arguments.
     *
     * @param function the function to perform dataflow analysis on
     * @param info the dependency information for the module
@@ -149,7 +150,9 @@ case object DataflowAnalysis extends IRPass {
     function match {
       case lam @ IR.Function.Lambda(arguments, body, _, _, _) =>
         info.updateAt(body.getId, Set(lam.getId))
-        arguments.foreach(arg => info.updateAt(arg.getId, Set(lam.getId)))
+        arguments.foreach(arg =>
+          arg.defaultValue.foreach(d => info.updateAt(d.getId, Set(lam.getId)))
+        )
 
         lam
           .copy(

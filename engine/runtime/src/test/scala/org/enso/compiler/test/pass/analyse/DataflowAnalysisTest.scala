@@ -16,6 +16,7 @@ import org.enso.compiler.pass.desugar.{
   OperatorToFunction
 }
 import org.enso.compiler.test.CompilerTest
+import org.scalatest.Assertion
 
 class DataflowAnalysisTest extends CompilerTest {
 
@@ -86,6 +87,22 @@ class DataflowAnalysisTest extends CompilerTest {
       */
     def analyse(implicit inlineContext: InlineContext): IR.Expression = {
       DataflowAnalysis.runExpression(ir, inlineContext)
+    }
+  }
+
+  /** Adds an extension method to check whether the target IR node has
+    * associated dataflow analysis metadata.
+    *
+    * @param ir the IR node to check
+    */
+  implicit class HasDependencyInfo(ir: IR) {
+
+    /** Checks if [[ir]] has associated [[DataflowAnalysis.Metadata]].
+      *
+      * @return `true` if [[ir]] has the associated metadata, otherwise `false`
+      */
+    def hasDependencyInfo: Assertion = {
+      ir.getMetadata[DataflowAnalysis.Metadata] shouldBe defined
     }
   }
 
@@ -216,14 +233,17 @@ class DataflowAnalysisTest extends CompilerTest {
     // The method and body
     val method =
       ir.bindings.head.asInstanceOf[IR.Module.Scope.Definition.Method]
-    val fn     = method.body.asInstanceOf[IR.Function.Lambda]
-    val fnArgA = fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
-    val fnArgB = fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
+    val fn = method.body.asInstanceOf[IR.Function.Lambda]
+    val fnArgThis =
+      fn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnArgA = fn.arguments(1).asInstanceOf[IR.DefinitionArgument.Specified]
+    val fnArgB = fn.arguments(2).asInstanceOf[IR.DefinitionArgument.Specified]
     val fnBody = fn.body.asInstanceOf[IR.Expression.Block]
 
     // The `IO.println` expression
     val printlnExpr =
       fnBody.expressions.head.asInstanceOf[IR.Application.Prefix]
+    val printlnFn = printlnExpr.function.asInstanceOf[IR.Name.Literal]
     val printlnArgIO =
       printlnExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
     val printlnArgIOExpr = printlnArgIO.value.asInstanceOf[IR.Name.Literal]
@@ -265,6 +285,7 @@ class DataflowAnalysisTest extends CompilerTest {
     val fnArgBId           = mkStaticDep(fnArgB.getId)
     val fnBodyId           = mkStaticDep(fnBody.getId)
     val printlnExprId      = mkStaticDep(printlnExpr.getId)
+    val printlnFnId        = mkStaticDep(printlnFn.getId)
     val printlnArgIOId     = mkStaticDep(printlnArgIO.getId)
     val printlnArgIOExprId = mkStaticDep(printlnArgIOExpr.getId)
     val printlnArgBId      = mkStaticDep(printlnArgB.getId)
@@ -285,32 +306,278 @@ class DataflowAnalysisTest extends CompilerTest {
     val frobArgCExprId     = mkStaticDep(frobArgCExpr.getId)
 
     "correctly identify global symbol direct dependents" in {
-      pending
+      depInfo.getDirect(frobnicateSymbol) shouldEqual Some(Set(frobFnId))
+      depInfo.getDirect(ioSymbol) shouldEqual Some(Set(printlnArgIOExprId))
+      depInfo.getDirect(printlnSymbol) shouldEqual Some(Set(printlnFnId))
+      depInfo.getDirect(plusSymbol) shouldEqual Some(Set(plusExprFnId))
     }
 
     "correctly identify global symbol indirect dependents" in {
-      pending
+      depInfo.get(frobnicateSymbol) shouldEqual Some(
+        Set(frobFnId, frobExprId, fnBodyId, fnId, methodId)
+      )
+      depInfo.get(ioSymbol) shouldEqual Some(
+        Set(printlnArgIOExprId, printlnArgIOId, printlnExprId)
+      )
+      depInfo.get(printlnSymbol) shouldEqual Some(
+        Set(printlnFnId, printlnExprId)
+      )
+      depInfo.get(plusSymbol) shouldEqual Some(
+        Set(
+          plusExprFnId,
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
     }
 
-    "correctly identify local direct dependens" in {
+    "correctly identify local direct dependents" in {
       depInfo.getDirect(fnId) shouldEqual Some(Set(methodId))
+      depInfo.getDirect(fnArgAId) shouldEqual Some(
+        Set(plusExprArgAExprId, frobArgAExprId)
+      )
+      depInfo.getDirect(fnArgBId) shouldEqual Some(
+        Set(printlnArgBExprId, plusExprArgBExprId)
+      )
+      depInfo.getDirect(fnBodyId) shouldEqual Some(Set(fnId))
+
+      // The `IO.println` expression
+      depInfo.getDirect(printlnExprId) should not be defined
+      depInfo.getDirect(printlnFnId) shouldEqual Some(Set(printlnExprId))
+      depInfo.getDirect(printlnArgIOId) shouldEqual Some(Set(printlnExprId))
+      depInfo.getDirect(printlnArgIOExprId) shouldEqual Some(
+        Set(printlnArgIOId)
+      )
+      depInfo.getDirect(printlnArgBId) shouldEqual Some(Set(printlnExprId))
+      depInfo.getDirect(printlnArgBExprId) shouldEqual Some(
+        Set(printlnArgBId)
+      )
+
+      // The `c = ` expression
+      depInfo.getDirect(cBindExprId) shouldEqual Some(Set(frobArgCExprId))
+      depInfo.getDirect(cBindNameId) shouldEqual Some(Set(cBindExprId))
+      depInfo.getDirect(plusExprId) shouldEqual Some(Set(cBindExprId))
+      depInfo.getDirect(plusExprFnId) shouldEqual Some(Set(plusExprId))
+      depInfo.getDirect(plusExprArgAId) shouldEqual Some(Set(plusExprId))
+      depInfo.getDirect(plusExprArgAExprId) shouldEqual Some(
+        Set(plusExprArgAId)
+      )
+      depInfo.getDirect(plusExprArgBId) shouldEqual Some(Set(plusExprId))
+      depInfo.getDirect(plusExprArgBExprId) shouldEqual Some(
+        Set(plusExprArgBId)
+      )
+
+      // The `frobnicate` expression
+      depInfo.getDirect(frobExprId) shouldEqual Some(Set(fnBodyId))
+      depInfo.getDirect(frobFnId) shouldEqual Some(Set(frobExprId))
+      depInfo.getDirect(frobArgAId) shouldEqual Some(Set(frobExprId))
+      depInfo.getDirect(frobArgAExprId) shouldEqual Some(Set(frobArgAId))
+      depInfo.getDirect(frobArgCId) shouldEqual Some(Set(frobExprId))
+      depInfo.getDirect(frobArgCExprId) shouldEqual Some(Set(frobArgCId))
     }
 
     "correctly identify local indirect dependents" in {
-      pending
+      depInfo.get(fnId) shouldEqual Some(Set(methodId))
+      depInfo.get(fnArgAId) shouldEqual Some(
+        Set(
+          plusExprArgAExprId,
+          plusExprArgAId,
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobArgAExprId,
+          frobArgAId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(fnArgBId) shouldEqual Some(
+        Set(
+          printlnArgBExprId,
+          printlnArgBId,
+          printlnExprId,
+          plusExprArgBExprId,
+          plusExprArgBId,
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(fnBodyId) shouldEqual Some(Set(fnId, methodId))
+
+      // The `IO.println` expression
+      depInfo.get(printlnExprId) should not be defined
+      depInfo.get(printlnFnId) shouldEqual Some(Set(printlnExprId))
+      depInfo.get(printlnArgIOId) shouldEqual Some(Set(printlnExprId))
+      depInfo.get(printlnArgIOExprId) shouldEqual Some(
+        Set(printlnArgIOId, printlnExprId)
+      )
+      depInfo.get(printlnArgBId) shouldEqual Some(Set(printlnExprId))
+      depInfo.get(printlnArgBExprId) shouldEqual Some(
+        Set(printlnArgBId, printlnExprId)
+      )
+
+      // The `c = ` expression
+      depInfo.get(cBindExprId) shouldEqual Some(
+        Set(frobArgCExprId, frobArgCId, frobExprId, fnBodyId, fnId, methodId)
+      )
+      depInfo.get(cBindNameId) shouldEqual Some(
+        Set(
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(plusExprId) shouldEqual Some(
+        Set(
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(plusExprFnId) shouldEqual Some(
+        Set(
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(plusExprArgAId) shouldEqual Some(
+        Set(
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(plusExprArgAExprId) shouldEqual Some(
+        Set(
+          plusExprArgAId,
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+
+      depInfo.get(plusExprArgBId) shouldEqual Some(
+        Set(
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(plusExprArgBExprId) shouldEqual Some(
+        Set(
+          plusExprArgBId,
+          plusExprId,
+          cBindExprId,
+          frobArgCExprId,
+          frobArgCId,
+          frobExprId,
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+
+      // The `frobnicate` expression
+      depInfo.get(frobExprId) shouldEqual Some(
+        Set(
+          fnBodyId,
+          fnId,
+          methodId
+        )
+      )
+      depInfo.get(frobFnId) shouldEqual Some(
+        Set(frobExprId, fnBodyId, fnId, methodId)
+      )
+      depInfo.get(frobArgAId) shouldEqual Some(
+        Set(frobExprId, fnBodyId, fnId, methodId)
+      )
+      depInfo.get(frobArgAExprId) shouldEqual Some(
+        Set(frobArgAId, frobExprId, fnBodyId, fnId, methodId)
+      )
+      depInfo.get(frobArgCId) shouldEqual Some(
+        Set(frobExprId, fnBodyId, fnId, methodId)
+      )
+      depInfo.get(frobArgCExprId) shouldEqual Some(
+        Set(frobArgCId, frobExprId, fnBodyId, fnId, methodId)
+      )
     }
 
-//    "only store direct dependents for any given node" in {
-//      pending
-//    }
-//
-//    "correctly invalidate expressions on change" in {
-//      pending
-//    }
-//
-//    "associate the dependency info with every node in the IR" in {
-//      pending
-//    }
+    "associate the dependency info with every node in the IR" in {
+      ir.hasDependencyInfo
+      method.hasDependencyInfo
+      fn.hasDependencyInfo
+      fnArgThis.hasDependencyInfo
+      fnArgA.hasDependencyInfo
+      fnArgB.hasDependencyInfo
+      fnBody.hasDependencyInfo
+
+      printlnExpr.hasDependencyInfo
+      printlnFn.hasDependencyInfo
+      printlnArgIO.hasDependencyInfo
+      printlnArgIOExpr.hasDependencyInfo
+      printlnArgB.hasDependencyInfo
+      printlnArgBExpr.hasDependencyInfo
+
+      cBindExpr.hasDependencyInfo
+      cBindName.hasDependencyInfo
+      plusExpr.hasDependencyInfo
+      plusExprFn.hasDependencyInfo
+      plusExprArgA.hasDependencyInfo
+      plusExprArgAExpr.hasDependencyInfo
+      plusExprArgB.hasDependencyInfo
+      plusExprArgBExpr.hasDependencyInfo
+
+      frobExpr.hasDependencyInfo
+      frobFn.hasDependencyInfo
+      frobArgA.hasDependencyInfo
+      frobArgAExpr.hasDependencyInfo
+      frobArgC.hasDependencyInfo
+      frobArgCExpr.hasDependencyInfo
+    }
   }
 
 //  "Dataflow analysis on expressions" should {
@@ -321,7 +588,7 @@ class DataflowAnalysisTest extends CompilerTest {
 //
 //  "Dataflow analysis" should {
 //    "work properly for functions" in {
-//      pending
+//      pending // TODO [AA] Default arguments
 //    }
 //
 //    "work properly for prefix applications" in {
