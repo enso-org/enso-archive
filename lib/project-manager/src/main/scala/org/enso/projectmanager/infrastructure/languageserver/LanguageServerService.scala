@@ -18,11 +18,11 @@ import org.enso.projectmanager.model.Project
 trait LanguageServerService[F[+_, +_]] {
 
   /**
-    * Starts a lang. server.
+    * Starts a language server.
     *
     * @param clientId a requester id
     * @param project a project to start
-    * @return either failure or sockets
+    * @return either a failure or sockets that a language server listens on
     */
   def start(
     clientId: UUID,
