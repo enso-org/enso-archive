@@ -1335,6 +1335,7 @@ table SessionInit {
 table SessionInitResponse {}
 
 root_type SessionInit;
+root_type SessionInitResponse;
 ```
 
 ##### Result
