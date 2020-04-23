@@ -2383,12 +2383,12 @@ object IR {
         override protected var id: Identifier = randomId
 
         /** Creates a copy of `this`.
-         *
-         * @param invalidBinding the invalid binding
-         * @param passData the pass metadata for the error
-         * @param id the identifier for the new node
-         * @return a copy of `this`, updated with the specified values
-         */
+          *
+          * @param invalidBinding the invalid binding
+          * @param passData the pass metadata for the error
+          * @param id the identifier for the new node
+          * @return a copy of `this`, updated with the specified values
+          */
         def copy(
           invalidBinding: IR.Expression.Binding = invalidBinding,
           passData: ISet[Metadata]              = passData,
