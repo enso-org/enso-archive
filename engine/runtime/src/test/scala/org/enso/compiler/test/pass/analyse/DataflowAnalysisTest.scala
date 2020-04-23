@@ -804,9 +804,49 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.getDirect(bindingExprId) shouldEqual Some(Set(bindingId))
     }
 
-    //    "work properly for case expressions" in {
-    //      pending
-    //    }
+    "work properly for case expressions" in {
+      implicit val inlineContext: InlineContext = InlineContext(
+        localScope       = Some(LocalScope.root),
+        isInTailPosition = Some(false)
+      )
+
+      val ir =
+        """
+          |case foo x of
+          |    Cons a b -> a + b
+          |    _ -> 0
+          |""".stripMargin.preprocessExpression.get.analyse
+
+      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+
+      val caseExpr   = ir.asInstanceOf[IR.Case.Expr]
+      val scrutinee  = caseExpr.scrutinee.asInstanceOf[IR.Application.Prefix]
+      val consBranch = caseExpr.branches.head
+      val consBranchPattern =
+        consBranch.pattern.asInstanceOf[IR.Name.Literal]
+      val consBranchExpr =
+        consBranch.expression.asInstanceOf[IR.Function.Lambda]
+      val fallbackBranchExpr =
+        caseExpr.fallback.get.asInstanceOf[IR.Function.Lambda]
+
+      // The IDs
+      val caseExprId           = mkStaticDep(caseExpr.getId)
+      val scrutineeId          = mkStaticDep(scrutinee.getId)
+      val consBranchId         = mkStaticDep(consBranch.getId)
+      val consBranchPatternId  = mkStaticDep(consBranchPattern.getId)
+      val consBranchExprId     = mkStaticDep(consBranchExpr.getId)
+      val fallbackBranchExprId = mkStaticDep(fallbackBranchExpr.getId)
+
+      // The Test
+      depInfo.getDirect(caseExprId) should not be defined
+      depInfo.getDirect(scrutineeId) shouldEqual Some(Set(caseExprId))
+      depInfo.getDirect(consBranchId) shouldEqual Some(Set(caseExprId))
+      depInfo.getDirect(consBranchPatternId) shouldEqual Some(Set(consBranchId))
+      depInfo.getDirect(consBranchExprId) shouldEqual Some(Set(consBranchId))
+      depInfo.getDirect(fallbackBranchExprId) shouldEqual Some(
+        Set(caseExprId)
+      )
+    }
 
     "have the result data associated with literals" in {
       implicit val inlineContext: InlineContext = InlineContext(

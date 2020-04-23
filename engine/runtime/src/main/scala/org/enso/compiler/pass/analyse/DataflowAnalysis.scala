@@ -125,7 +125,7 @@ case object DataflowAnalysis extends IRPass {
 
         binding
           .copy(
-            name = name.addMetadata(info),
+            name       = name.addMetadata(info),
             expression = analyseExpression(expression, info)
           )
           .addMetadata(info)
@@ -333,7 +333,8 @@ case object DataflowAnalysis extends IRPass {
   /** Performs dependency analysis on a case expression.
     *
     * The value of a case expression is dependent on both its scrutinee and the
-    * definitions of its branches.
+    * definitions of its branches. The computation of the branches also depends
+    * on the scrutinee.
     *
     * @param cse the case expression to perform dataflow analysis on
     * @param info the dependency information for the module
@@ -349,8 +350,9 @@ case object DataflowAnalysis extends IRPass {
         expr
           .copy(
             scrutinee = analyseExpression(scrutinee, info),
-            branches  = branches.map(analyseCaseBranch(_, info)),
-            fallback  = fallback.map(analyseExpression(_, info))
+            branches =
+              branches.map(analyseCaseBranch(_, info)),
+            fallback = fallback.map(analyseExpression(_, info))
           )
           .addMetadata(info)
       case _: IR.Case.Branch =>
