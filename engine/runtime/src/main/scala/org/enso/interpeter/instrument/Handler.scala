@@ -167,9 +167,16 @@ final class Handler {
           unwind(xs, explicitCalls, id :: localCalls)
       }
     val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
-    val item                        = toExecutionItem(explicitCalls.head)
-    execute(item, localCalls, sendUpdate(contextId, _))
+    explicitCalls.headOption.foreach { item =>
+      execute(toExecutionItem(item), localCalls, sendUpdate(contextId, _))
+    }
   }
+
+  private def executeAll(): Unit =
+    contextManager.getAll
+      .filter(kv => kv._2.nonEmpty)
+      .mapValues(_.toList)
+      .foreach(Function.tupled(execute))
 
   private def toExecutionItem(
     call: Api.StackItem.ExplicitCall
@@ -261,14 +268,12 @@ final class Handler {
       case Api.OpenFileNotification(path, contents) =>
         executionService.setModuleSources(path, contents)
 
-      case Api.CreateFileNotification(path) =>
-        executionService.createModule(path)
-
       case Api.CloseFileNotification(path) =>
         executionService.resetModuleSources(path)
 
       case Api.EditFileNotification(path, edits) =>
         executionService.modifyModuleSources(path, edits.asJava)
+        withContext(executeAll())
     }
   }
 }
