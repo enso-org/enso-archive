@@ -214,7 +214,10 @@ class DataflowAnalysisTest extends CompilerTest {
       combinedModule.get(symbol2) shouldBe defined
       combinedModule.get(symbol3) shouldBe defined
 
-      combinedModule(symbol1) shouldEqual (symbol1DependentIdsInModule1 ++ symbol1DependentIdsInModule2)
+      val symbol1DependentIdsCombined =
+        symbol1DependentIdsInModule1 ++ symbol1DependentIdsInModule2
+
+      combinedModule(symbol1) shouldEqual symbol1DependentIdsCombined
       combinedModule(symbol2) shouldEqual symbol2DependentIdsInModule1
       combinedModule(symbol3) shouldEqual symbol3DependentIdsInModule2
     }
@@ -270,7 +273,8 @@ class DataflowAnalysisTest extends CompilerTest {
     val frobArgA =
       frobExpr.arguments.head.asInstanceOf[IR.CallArgument.Specified]
     val frobArgAExpr = frobArgA.value.asInstanceOf[IR.Name.Literal]
-    val frobArgC     = frobExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
+    val frobArgC =
+      frobExpr.arguments(1).asInstanceOf[IR.CallArgument.Specified]
     val frobArgCExpr = frobArgC.value.asInstanceOf[IR.Name.Literal]
 
     // The global symbols
@@ -647,9 +651,10 @@ class DataflowAnalysisTest extends CompilerTest {
         isInTailPosition = Some(false)
       )
 
+      // TODO [AA] Make this test by-name application
       val ir =
         """
-          |foo 10 (x -> x * x)
+          |foo (a = 10) (x -> x * x)
           |""".stripMargin.preprocessExpression.get.analyse
 
       val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
@@ -659,6 +664,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val appArg10 =
         app.arguments.head.asInstanceOf[IR.CallArgument.Specified]
       val appArg10Expr = appArg10.value.asInstanceOf[IR.Literal.Number]
+      val appArg10Name = appArg10.name.get.asInstanceOf[IR.Name.Literal]
       val appArgFn =
         app.arguments(1).asInstanceOf[IR.CallArgument.Specified]
       val lam = appArgFn.value.asInstanceOf[IR.Function.Lambda]
@@ -677,6 +683,7 @@ class DataflowAnalysisTest extends CompilerTest {
       val appFnId        = mkStaticDep(appFn.getId)
       val appArg10Id     = mkStaticDep(appArg10.getId)
       val appArg10ExprId = mkStaticDep(appArg10Expr.getId)
+      val appArg10NameId = mkStaticDep(appArg10Name.getId)
       val appArgFnId     = mkStaticDep(appArgFn.getId)
       val lamId          = mkStaticDep(lam.getId)
       val lamArgXId      = mkStaticDep(lamArgX.getId)
@@ -695,6 +702,7 @@ class DataflowAnalysisTest extends CompilerTest {
       depInfo.getDirect(appFnId) shouldEqual Some(Set(appId))
       depInfo.getDirect(appArg10Id) shouldEqual Some(Set(appId))
       depInfo.getDirect(appArg10ExprId) shouldEqual Some(Set(appArg10Id))
+      depInfo.getDirect(appArg10NameId) shouldEqual Some(Set(appArg10Id))
       depInfo.getDirect(appArgFnId) shouldEqual Some(Set(appId))
       depInfo.getDirect(lamId) shouldEqual Some(Set(appArgFnId))
       depInfo.getDirect(lamArgXId) shouldEqual Some(

@@ -115,10 +115,12 @@ prefix <- arguments
 ```
 
 #### Call Argument
-The value of a call argument is purely dependent on the value it is wrapping.
+The value of a call argument is dependent both on the value that it's wrapping,
+as well as the name it has, if it exists.
 
 ```
 callArgument <- argumentValue
+callArgument <- argumentName
 ```
 
 #### Forced Term

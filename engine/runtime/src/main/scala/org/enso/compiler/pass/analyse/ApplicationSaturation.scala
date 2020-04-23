@@ -2,7 +2,6 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
-import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.ApplicationSaturation.{
   CallSaturation,

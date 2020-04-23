@@ -350,9 +350,8 @@ case object DataflowAnalysis extends IRPass {
         expr
           .copy(
             scrutinee = analyseExpression(scrutinee, info),
-            branches =
-              branches.map(analyseCaseBranch(_, info)),
-            fallback = fallback.map(analyseExpression(_, info))
+            branches  = branches.map(analyseCaseBranch(_, info)),
+            fallback  = fallback.map(analyseExpression(_, info))
           )
           .addMetadata(info)
       case _: IR.Case.Branch =>
@@ -437,8 +436,8 @@ case object DataflowAnalysis extends IRPass {
 
   /** Performs dataflow analysis on a function call argument.
     *
-    * A function call argument is purely dependent on the expression value that
-    * it refers to.
+    * A function call argument is dependent both on the expression value that it
+    * is wrapping, as well as the name of the argument, if it exists.
     *
     * @param argument the call argument to perform dataflow analysis on
     * @param info the dependency information for the module
@@ -449,8 +448,9 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.CallArgument = {
     argument match {
-      case spec @ IR.CallArgument.Specified(_, value, _, _, _) =>
+      case spec @ IR.CallArgument.Specified(name, value, _, _, _) =>
         info.updateAt(value.getId, Set(spec.getId))
+        name.foreach(name => info.updateAt(name.getId, Set(spec.getId)))
 
         spec
           .copy(
