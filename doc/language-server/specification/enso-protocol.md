@@ -593,39 +593,61 @@ structure. There is a separate envelope for incoming and outgoing messages:
 ```idl
 namespace org.enso.languageserver.protocol.data.envelope;
 
+//A mapping between payload enum and inbound payload types.
 union InboundPayload {
   SESSION_INIT: org.enso.languageserver.protocol.data.session.SessionInit
 }
 
+//An envelope for inbound requests and commands.
 table InboundMessage {
+
+  //A unique id of the request sent to the server.
   requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An optional correlation id used to correlate a response with a request.
   correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+
+  //A message payload that carries requests sent by a client.
   payload: InboundPayload (required);
+
 }
 ```
 
 ```idl
-namespace org.enso.languageserver.protocol.data.envelope;
-
+//A mapping between payload enum and outbound payload types.
 union OutboundPayload {
   ERROR: org.enso.languageserver.protocol.data.util.Error,
   SESSION_INIT_RESPONSE: org.enso.languageserver.protocol.data.session.SessionInitResponse,
   VISUALISATION_UPDATE: org.enso.languageserver.protocol.data.executioncontext.VisualisationUpdate
 }
 
+//An envelope for outbound responses.
 table OutboundMessage {
+
+  //A unique id of the request sent to the server.
   requestId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An optional correlation id used to correlate a response with a request.
   correlationId: org.enso.languageserver.protocol.data.util.EnsoUUID;
+
+  //A message payload that carries responses and notifications sent by a server
   payload: OutboundPayload (required);
+
 }
 ```
 
 ```idl
 namespace org.enso.languageserver.protocol.data.util;
 
+//A generic error object.
 table Error {
+
+  //A unique error code identifying error type.
   code: int;
+
+  //An error message.
   message: string;
+
 }
 ```
 
@@ -1301,10 +1323,15 @@ client identifier can be correlated between the data and textual connections.
 ```idl
 namespace org.enso.languageserver.protocol.data.session;
 
+//A command initializing a data session.
 table SessionInit {
+
+  //A unique identifier of a client initializing the session.
   identifier: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
 }
 
+//A void response signaling that the session has been initialized.
 table SessionInitResponse {}
 
 root_type SessionInit;
@@ -2594,15 +2621,29 @@ transport is concerned, it is just a binary blob.
 ```idl
 namespace org.enso.languageserver.protocol.data.executioncontext;
 
+//A visualisation context identifying a concrete visualisation.
 table VisualisationContext {
+
+  //A visualisation identifier.
   visualisationId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //A context identifier.
   contextId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  //An expression identifier.
   expressionId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
 }
 
+//An event signaling visualisation update.
 table VisualisationUpdate {
+
+  //A visualisation context identifying a concrete visualisation.
   visualisationContext: VisualisationContext (required);
+
+  //A visualisation data.
   data: [ubyte] (required);
+
 }
 
 root_type VisualisationUpdate;
