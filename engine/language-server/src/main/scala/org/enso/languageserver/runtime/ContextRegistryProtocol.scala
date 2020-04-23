@@ -81,8 +81,7 @@ object ContextRegistryProtocol {
     *
     * @param client reference to the client
     * @param contextId execution context identifier
-    * @param invalidatedExpressions parameter specifying which expressions
-    * should be invalidated
+    * @param invalidatedExpressions the expressions that should be invalidated
     */
   case class RecomputeContextRequest(
     client: Client,
