@@ -54,12 +54,9 @@ case class ApplicationSaturation(
       case func @ IR.Application.Prefix(fn, args, _, _, meta) =>
         fn match {
           case name: IR.Name =>
-            val aliasInfo = name
-              .getMetadata[AliasAnalysis.Info.Occurrence]
-              .getOrElse(
-                throw new CompilerError(
-                  "Name occurrence with missing alias information."
-                )
+            val aliasInfo =
+              name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
+                "Name occurrence with missing alias information."
               )
 
             if (!aliasInfo.graph.linkedToShadowingBinding(aliasInfo.id)) {
