@@ -284,12 +284,20 @@ class DataflowAnalysisTest extends CompilerTest {
     val frobArgCId         = mkStaticDep(frobArgC.getId)
     val frobArgCExprId     = mkStaticDep(frobArgCExpr.getId)
 
-    "correctly identify global symbol dependents" in {
+    "correctly identify global symbol direct dependents" in {
       pending
     }
 
-    "correctly identify local dependents" in {
-      depInfo.get(fnId) shouldEqual Some(Set(methodId))
+    "correctly identify global symbol indirect dependents" in {
+      pending
+    }
+
+    "correctly identify local direct dependens" in {
+      depInfo.getDirect(fnId) shouldEqual Some(Set(methodId))
+    }
+
+    "correctly identify local indirect dependents" in {
+      pending
     }
 
 //    "only store direct dependents for any given node" in {
