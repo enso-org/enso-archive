@@ -182,8 +182,8 @@ jobs:
       uses: actions/cache@v1.1.2
       with:
         path: ./lib/logger/.jvm/target
-        key: ${{ runner.os }}-logger-${{ hashFiles('./lib/logger/src/**') }}
-        restore-keys: ${{ runner.os }}-logger-
+        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('./lib/logger/src/**') }}
+        restore-keys: ${{ runner.os }}-logger-jvm
 
     # Build
     - name: Build Enso
