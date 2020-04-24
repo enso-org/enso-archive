@@ -187,7 +187,7 @@ jobs:
 
     # Build
     - name: Build Enso
-      run: sbt --no-colors "logger/compile"
+      run: sbt "logger/compile"
       # run: sbt --no-colors compile
 
     # Artefacts
