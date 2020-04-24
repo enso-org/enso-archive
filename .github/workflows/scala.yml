@@ -112,6 +112,10 @@ jobs:
         key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
 
+    # Build
+    - name: Build Enso
+      run: sbt --no-colors compile
+
     # Tests
     - name: Test Enso
       run: sbt --no-colors test
@@ -229,7 +233,11 @@ jobs:
         key: ${{ runner.os }}-syntax-specialization-js-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
         restore-keys: ${{ runner.os }}-syntax-specialization-js-
 
-    # Builds
+    # Build
+    - name: Build Enso
+      run: sbt --no-colors compile
+
+    # Artefacts
     - name: Build the Uberjar
       run: sbt --no-colors runner/assembly
     - name: Publish the Uberjar
@@ -267,3 +275,4 @@ jobs:
         null
         text
         EOF
+
