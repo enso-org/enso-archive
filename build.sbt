@@ -109,6 +109,8 @@ lazy val enso = (project in file("."))
 //// Dependency Bundles ////
 ////////////////////////////
 
+val coursierCache = file("~/.cache/coursier/v1")
+
 val monocle = {
   val monocleVersion = "2.0.0"
   Seq(
