@@ -66,15 +66,21 @@ jobs:
     - name: Cache Ivy
       uses: actions/cache@v1.1.2
       with:
-        path: /home/runner/.ivy2/cache
+        path: ~/.ivy2/cache
         key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
         restore-keys: ${{ runner.os }}-ivy-
     - name: Cache SBT
       uses: actions/cache@v1.1.2
       with:
-        path: /home/runner/.sbt
-        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+        path: ~/.sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
         restore-keys: ${{ runner.os }}-sbt-
+    - name: Cache Coursier and Mill
+      uses: actions/cache@v1.1.2
+      with:
+        path: ~/.cache
+        key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
+        restore-keys: ${{ runner.os }}-coursier-
     - name: Cache SBT Project
       uses: actions/cache@v1.1.2
       with:
@@ -153,15 +159,21 @@ jobs:
     - name: Cache Ivy
       uses: actions/cache@v1.1.2
       with:
-        path: /home/runner/.ivy2/cache
+        path: ~/.ivy2/cache
         key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
         restore-keys: ${{ runner.os }}-ivy-
     - name: Cache SBT
       uses: actions/cache@v1.1.2
       with:
-        path: /home/runner/.sbt
-        key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+        path: ~/.sbt
+        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
         restore-keys: ${{ runner.os }}-sbt-
+    - name: Cache Coursier and Mill
+      uses: actions/cache@v1.1.2
+      with:
+        path: ~/.cache
+        key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
+        restore-keys: ${{ runner.os }}-coursier-
     - name: Cache SBT Project
       uses: actions/cache@v1.1.2
       with:
