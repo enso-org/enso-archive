@@ -178,16 +178,12 @@ jobs:
         path: ~/.cache
         key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
         restore-keys: ${{ runner.os }}-coursier-
-    # - name: Cache SBT Project
-      # uses: actions/cache@v1.1.2
-      # with:
-        # path: ./project/
-        # key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
-        # restore-keys: ${{ runner.os }}-sbt-project-
 
     # Build
     - name: Build Enso
-      run: sbt about
+      run: |
+        pwd
+        ls -la
       # run: sbt --no-colors compile
 
     # Artefacts
