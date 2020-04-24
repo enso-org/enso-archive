@@ -27,106 +27,106 @@ env:
 jobs:
 
   # This job is responsible for testing the codebase
-  test:
-    name: Test
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        os: [windows-latest, macOS-latest, ubuntu-latest]
-      fail-fast: false
-    steps:
-    - uses: actions/checkout@v2
-    - name: Setup conda
-      uses: s-weigand/setup-conda@v1
-      with:
-        update-conda: true
-        conda-channels: anaconda, conda-forge
-    - name: Setup Conda Environment on Windows
-      if: runner.os == 'Windows'
-      run: |
-        conda create --name enso
-        conda init powershell
-    - name: Activate Conda Environment on Windows
-      if: runner.os == 'Windows'
-      run: conda activate enso
-    - name: Install FlatBuffers Compiler
-      run: conda install flatbuffers=1.12.0
-    - name: Setup GraalVM Environment
-      uses: DeLaGuardo/setup-graalvm@2.0
-      with:
-        graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
-    - name: Set Up SBT
-      run: |
-        curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
-        tar -xzf sbt.tgz
-        echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
-
-    # Caches (fragile, depends on the dependencies of the parser)
-    - name: Cache Ivy
-      uses: actions/cache@v1.1.2
-      with:
-        path: ~/.ivy2/cache
-        key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
-        restore-keys: ${{ runner.os }}-ivy-
-    - name: Cache SBT
-      uses: actions/cache@v1.1.2
-      with:
-        path: ~/.sbt
-        key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
-        restore-keys: ${{ runner.os }}-sbt-
-    - name: Cache Coursier and Mill
-      uses: actions/cache@v1.1.2
-      with:
-        path: ~/.cache
-        key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
-        restore-keys: ${{ runner.os }}-coursier-
-    - name: Cache SBT Project
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./project/target
-        key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
-        restore-keys: ${{ runner.os }}-sbt-project-
-    - name: Cache Logger (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/logger/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('lib/logger/src/**') }}
-        restore-keys: ${{ runner.os }}-logger-jvm-
-    - name: Cache Flexer (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/flexer/.jvm
-        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('lib/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-flexer-jvm-
-    - name: Cache Syntax Definition (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/syntax/definition/.jvm
-        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('lib/syntax/definition/src/**') }}
-        restore-keys: ${{ runner.os }}-syntax-defintion-jvm-
-    - name: Cache Syntax Specialization (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/syntax/specialization/jvm
-        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
-        restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
+  # test:
+    # name: Test
+    # runs-on: ${{ matrix.os }}
+    # timeout-minutes: 30
+    # strategy:
+      # matrix:
+        # os: [windows-latest, macOS-latest, ubuntu-latest]
+      # fail-fast: false
+    # steps:
+    # - uses: actions/checkout@v2
+    # - name: Setup conda
+      # uses: s-weigand/setup-conda@v1
+      # with:
+        # update-conda: true
+        # conda-channels: anaconda, conda-forge
+    # - name: Setup Conda Environment on Windows
+      # if: runner.os == 'Windows'
+      # run: |
+        # conda create --name enso
+        # conda init powershell
+    # - name: Activate Conda Environment on Windows
+      # if: runner.os == 'Windows'
+      # run: conda activate enso
+    # - name: Install FlatBuffers Compiler
+      # run: conda install flatbuffers=1.12.0
+    # - name: Setup GraalVM Environment
+      # uses: DeLaGuardo/setup-graalvm@2.0
+      # with:
+        # graalvm-version: ${{ env.graalVersion }}.${{ env.javaVersion }}
+    # - name: Set Up SBT
+      # run: |
+        # curl -fSL -o sbt.tgz https://piccolo.link/sbt-${{env.sbtVersion}}.tgz
+        # tar -xzf sbt.tgz
+        # echo ::add-path::$GITHUB_WORKSPACE/sbt/bin/
+#
+    # # Caches (fragile, depends on the dependencies of the parser)
+    # - name: Cache Ivy
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ~/.ivy2/cache
+        # key: ${{ runner.os }}-ivy-${{ hashFiles('**/build.sbt') }}
+        # restore-keys: ${{ runner.os }}-ivy-
+    # - name: Cache SBT
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ~/.sbt
+        # key: ${{ runner.os }}-sbt-${{ hashFiles('project/**') }}
+        # restore-keys: ${{ runner.os }}-sbt-
+    # - name: Cache Coursier and Mill
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ~/.cache
+        # key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
+        # restore-keys: ${{ runner.os }}-coursier-
+    # - name: Cache SBT Project
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ./project/target
+        # key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
+        # restore-keys: ${{ runner.os }}-sbt-project-
+    # - name: Cache Logger (JVM)
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ./lib/logger/.jvm
+        # key: ${{ runner.os }}-logger-jvm-${{ hashFiles('lib/logger/src/**') }}
+        # restore-keys: ${{ runner.os }}-logger-jvm-
+    # - name: Cache Flexer (JVM)
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ./lib/flexer/.jvm
+        # key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('lib/flexer/src/**') }}
+        # restore-keys: ${{ runner.os }}-flexer-jvm-
+    # - name: Cache Syntax Definition (JVM)
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ./lib/syntax/definition/.jvm
+        # key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('lib/syntax/definition/src/**') }}
+        # restore-keys: ${{ runner.os }}-syntax-defintion-jvm-
+    # - name: Cache Syntax Specialization (JVM)
+      # uses: actions/cache@v1.1.2
+      # with:
+        # path: ./lib/syntax/specialization/jvm
+        # key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
+        # restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
 
     # Build
-    - name: Build Enso
-      run: sbt --no-colors compile
-
-    # Tests
-    - name: Test Enso
-      run: sbt --no-colors test
-    - name: Benchmark the Parser
-      run: sbt -no-colors syntax/bench
-    - name: Check Runtime Benchmark Compilation
-      run: sbt -no-colors runtime/Benchmark/compile
-    - name: Build the Uberjar
-      run: sbt -no-colors runner/assembly
-    - name: Test the Uberjar
-      run: ./enso.jar --run tools/ci/Test.enso
+    # - name: Build Enso
+      # run: sbt --no-colors compile
+#
+    # # Tests
+    # - name: Test Enso
+      # run: sbt --no-colors test
+    # - name: Benchmark the Parser
+      # run: sbt -no-colors syntax/bench
+    # - name: Check Runtime Benchmark Compilation
+      # run: sbt -no-colors runtime/Benchmark/compile
+    # - name: Build the Uberjar
+      # run: sbt -no-colors runner/assembly
+    # - name: Test the Uberjar
+      # run: ./enso.jar --run tools/ci/Test.enso
 
   # This job is responsible for building the artifacts
   build:
@@ -181,98 +181,50 @@ jobs:
     - name: Cache SBT Project
       uses: actions/cache@v1.1.2
       with:
-        path: ./project/target
+        path: ./project/
         key: ${{ runner.os }}-sbt-project-${{ hashFiles('project/**') }}
         restore-keys: ${{ runner.os }}-sbt-project-
-    - name: Cache Logger (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/logger/.jvm
-        key: ${{ runner.os }}-logger-jvm-${{ hashFiles('lib/logger/src/**') }}
-        restore-keys: ${{ runner.os }}-logger-jvm-
-    - name: Cache Flexer (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/flexer/.jvm
-        key: ${{ runner.os }}-flexer-jvm-${{ hashFiles('lib/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-flexer-jvm-
-    - name: Cache Syntax Definition (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/syntax/definition/.jvm
-        key: ${{ runner.os }}-syntax-definition-jvm-${{ hashFiles('lib/syntax/definition/src/**') }}
-        restore-keys: ${{ runner.os }}-syntax-defintion-jvm-
-    - name: Cache Syntax Specialization (JVM)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/syntax/specialization/jvm
-        key: ${{ runner.os }}-syntax-specialization-jvm-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
-        restore-keys: ${{ runner.os }}-syntax-specialization-jvm-
-    - name: Cache Logger (JS)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/logger/.js
-        key: ${{ runner.os }}-logger-js-${{ hashFiles('lib/logger/src/**') }}
-        restore-keys: ${{ runner.os }}-logger-js-
-    - name: Cache Flexer (JS)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/flexer/.js
-        key: ${{ runner.os }}-flexer-js-${{ hashFiles('lib/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-flexer-js-
-    - name: Cache Syntax Definition (JS)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/syntax/definition/.js
-        key: ${{ runner.os }}-syntax-definition-js-${{ hashFiles('lib/syntax/definition/src/**') }}
-        restore-keys: ${{ runner.os }}-syntax-defintion-js-
-    - name: Cache Syntax Specialization (JS)
-      uses: actions/cache@v1.1.2
-      with:
-        path: ./lib/syntax/specialization/js
-        key: ${{ runner.os }}-syntax-specialization-js-${{ hashFiles('lib/syntax/specialization/shared/src/**') }}
-        restore-keys: ${{ runner.os }}-syntax-specialization-js-
 
     # Build
     - name: Build Enso
       run: sbt --no-colors compile
 
     # Artefacts
-    - name: Build the Uberjar
-      run: sbt --no-colors runner/assembly
-    - name: Publish the Uberjar
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: Enso CLI
-        path: ./enso.jar
-    - name: Build the Parser JS Bundle
-      run: sbt -no-colors syntaxJS/fullOptJS
-    - name: Publish the Parser JS Bundle
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: Parser JS Bundle
-        path: ./target/scala-parser.js
-    - name: Prepare Parser JS Bundle for Upload
-      run: |
-        mkdir parser_upload
-        cp ./target/scala-parser.js parser_upload
-    - name: Prepare AWS Session
-      run: |
-        aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-        ${{ secrets.PARSER_S3_ACCESS_KEY_ID }}
-        ${{ secrets.PARSER_S3_SECRET_ACCESS_KEY }}
-        us-west-2
-        text
-        EOF
-    - name: Upload Parser JS Bundle to S3
-      run: |
-        aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
-    - name: Teardown AWS Session
-      run: |
-        aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
-        null
-        null
-        null
-        text
-        EOF
+    # - name: Build the Uberjar
+      # run: sbt --no-colors runner/assembly
+    # - name: Publish the Uberjar
+      # uses: actions/upload-artifact@v1.0.0
+      # with:
+        # name: Enso CLI
+        # path: ./enso.jar
+    # - name: Build the Parser JS Bundle
+      # run: sbt -no-colors syntaxJS/fullOptJS
+    # - name: Publish the Parser JS Bundle
+      # uses: actions/upload-artifact@v1.0.0
+      # with:
+        # name: Parser JS Bundle
+        # path: ./target/scala-parser.js
+    # - name: Prepare Parser JS Bundle for Upload
+      # run: |
+        # mkdir parser_upload
+        # cp ./target/scala-parser.js parser_upload
+    # - name: Prepare AWS Session
+      # run: |
+        # aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+        # ${{ secrets.PARSER_S3_ACCESS_KEY_ID }}
+        # ${{ secrets.PARSER_S3_SECRET_ACCESS_KEY }}
+        # us-west-2
+        # text
+        # EOF
+    # - name: Upload Parser JS Bundle to S3
+      # run: |
+        # aws s3 sync ./parser_upload s3://packages-luna/parser-js/nightly/`git rev-parse HEAD` --profile s3-upload --acl public-read --delete
+    # - name: Teardown AWS Session
+      # run: |
+        # aws configure --profile s3-upload <<-EOF > /dev/null 2>&1
+        # null
+        # null
+        # null
+        # text
+        # EOF
 
