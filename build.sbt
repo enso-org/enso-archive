@@ -88,19 +88,20 @@ lazy val buildNativeImage =
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    flexer.jvm,
-    `syntax-definition`.jvm,
-    syntax.jvm,
-    pkg,
-    runtime,
-    `polyglot-api`,
-    `parser-service`,
     `file-manager`,
-    `project-manager`,
-    graph,
-    runner,
     `language-server`,
-    `text-buffer`
+    `parser-service`,
+    `polyglot-api`,
+    `project-manager`,
+    `syntax-definition`.jvm,
+    `text-buffer`,
+    flexer.jvm,
+    graph,
+    logger.jvm,
+    pkg,
+    runner,
+    runtime,
+    syntax.jvm
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 

@@ -178,16 +178,16 @@ jobs:
         path: ~/.cache
         key: ${{ runner.os }}-coursier-${{ hashFiles('**build.sbt') }}
         restore-keys: ${{ runner.os }}-coursier-
-    - name: Cache Flexer
+    - name: Cache Logger
       uses: actions/cache@v1.1.2
       with:
-        path: ./lib/flexer/.jvm/target
-        key: ${{ runner.os }}-flexer-${{ hashFiles('./lib/flexer/src/**') }}
-        restore-keys: ${{ runner.os }}-flexer-
+        path: ./lib/logger/.jvm/target
+        key: ${{ runner.os }}-logger-${{ hashFiles('./lib/logger/src/**') }}
+        restore-keys: ${{ runner.os }}-logger-
 
     # Build
     - name: Build Enso
-      run: sbt --no-colors "flexer/compile"
+      run: sbt --no-colors "logger/compile"
       # run: sbt --no-colors compile
 
     # Artefacts
