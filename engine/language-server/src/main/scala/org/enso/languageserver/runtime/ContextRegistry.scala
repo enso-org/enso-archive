@@ -3,13 +3,18 @@ package org.enso.languageserver.runtime
 import java.util.UUID
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
-import org.enso.languageserver.data.{Client, Config}
+import org.enso.languageserver.data.{ClientId, Config}
 import org.enso.languageserver.filemanager.FileSystemFailure
-import org.enso.languageserver.runtime.ExecutionApi.ContextId
+import org.enso.languageserver.monitoring.MonitoringProtocol.{Ping, Pong}
+import org.enso.languageserver.runtime.VisualisationProtocol.{
+  AttachVisualisation,
+  DetachVisualisation,
+  ModifyVisualisation
+}
 import org.enso.languageserver.runtime.handler._
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.Api.ContextId
 
 /**
   * Registry handles execution context requests and communicates with runtime
@@ -71,21 +76,25 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       val listener =
         context.actorOf(ContextEventsListener.props(config, client, contextId))
       handler.forward(Api.CreateContextRequest(contextId))
-      context.become(withStore(store.addContext(client, contextId, listener)))
+      context.become(
+        withStore(store.addContext(client.clientId, contextId, listener))
+      )
 
     case DestroyContextRequest(client, contextId) =>
-      if (store.hasContext(client, contextId)) {
+      if (store.hasContext(client.clientId, contextId)) {
         val handler =
           context.actorOf(DestroyContextHandler.props(timeout, runtime))
         store.getListener(contextId).foreach(context.stop)
         handler.forward(Api.DestroyContextRequest(contextId))
-        context.become(withStore(store.removeContext(client, contextId)))
+        context.become(
+          withStore(store.removeContext(client.clientId, contextId))
+        )
       } else {
         sender() ! AccessDenied
       }
 
     case PushContextRequest(client, contextId, stackItem) =>
-      if (store.hasContext(client, contextId)) {
+      if (store.hasContext(client.clientId, contextId)) {
         getRuntimeStackItem(stackItem) match {
           case Right(stackItem) =>
             val handler =
@@ -99,7 +108,7 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       }
 
     case PopContextRequest(client, contextId) =>
-      if (store.hasContext(client, contextId)) {
+      if (store.hasContext(client.clientId, contextId)) {
         val handler = context.actorOf(PopContextHandler.props(timeout, runtime))
         handler.forward(Api.PopContextRequest(contextId))
       } else {
@@ -107,7 +116,7 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       }
 
     case RecomputeContextRequest(client, contextId, expressions) =>
-      if (store.hasContext(client, contextId)) {
+      if (store.hasContext(client.clientId, contextId)) {
         val handler =
           context.actorOf(RecomputeContextHandler.props(timeout, runtime))
         val invalidatedExpressions =
@@ -118,7 +127,61 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       } else {
         sender() ! AccessDenied
       }
+
+    case AttachVisualisation(clientId, visualisationId, expressionId, config) =>
+      if (store.hasContext(clientId, config.executionContextId)) {
+        val handler =
+          context.actorOf(AttachVisualisationHandler.props(timeout, runtime))
+
+        val configuration = convertVisualisationConfig(config)
+
+        handler.forward(
+          Api.AttachVisualisation(visualisationId, expressionId, configuration)
+        )
+      } else {
+        sender() ! AccessDenied
+      }
+
+    case DetachVisualisation(
+        clientId,
+        contextId,
+        visualisationId,
+        expressionId
+        ) =>
+      if (store.hasContext(clientId, contextId)) {
+        val handler =
+          context.actorOf(DetachVisualisationHandler.props(timeout, runtime))
+
+        handler.forward(
+          Api.DetachVisualisation(contextId, visualisationId, expressionId)
+        )
+      } else {
+        sender() ! AccessDenied
+      }
+
+    case ModifyVisualisation(clientId, visualisationId, config) =>
+      if (store.hasContext(clientId, config.executionContextId)) {
+        val handler =
+          context.actorOf(ModifyVisualisationHandler.props(timeout, runtime))
+
+        val configuration = convertVisualisationConfig(config)
+
+        handler.forward(
+          Api.ModifyVisualisation(visualisationId, configuration)
+        )
+      } else {
+        sender() ! AccessDenied
+      }
   }
+
+  private def convertVisualisationConfig(
+    config: VisualisationConfiguration
+  ): Api.VisualisationConfiguration =
+    Api.VisualisationConfiguration(
+      executionContextId  = config.executionContextId,
+      visualisationModule = config.visualisationModule,
+      expression          = config.expression
+    )
 
   private def getRuntimeStackItem(
     stackItem: StackItem
@@ -159,12 +222,12 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
 object ContextRegistry {
 
   private case class Store(
-    contexts: Map[Client, Set[ContextId]],
+    contexts: Map[ClientId, Set[ContextId]],
     listeners: Map[ContextId, ActorRef]
   ) {
 
     def addContext(
-      client: Client,
+      client: ClientId,
       contextId: ContextId,
       listener: ActorRef
     ): Store =
@@ -173,19 +236,19 @@ object ContextRegistry {
         listeners = listeners + (contextId -> listener)
       )
 
-    def removeContext(client: Client, contextId: ContextId): Store =
+    def removeContext(client: ClientId, contextId: ContextId): Store =
       copy(
         contexts  = contexts.updated(client, getContexts(client) - contextId),
         listeners = listeners - contextId
       )
 
-    def getContexts(client: Client): Set[ContextId] =
+    def getContexts(client: ClientId): Set[ContextId] =
       contexts.getOrElse(client, Set())
 
     def getListener(contextId: ContextId): Option[ActorRef] =
       listeners.get(contextId)
 
-    def hasContext(client: Client, contextId: ContextId): Boolean =
+    def hasContext(client: ClientId, contextId: ContextId): Boolean =
       getContexts(client).contains(contextId)
   }
 

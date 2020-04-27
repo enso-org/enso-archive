@@ -3,10 +3,9 @@ package org.enso.languageserver.boot
 import java.io.File
 import java.net.URI
 
-import akka.actor.{ActorSystem, Props}
+import akka.actor.ActorSystem
 import akka.stream.SystemMaterializer
 import org.enso.jsonrpc.JsonRpcServer
-import org.enso.languageserver.LanguageServer
 import org.enso.languageserver.capability.CapabilityRouter
 import org.enso.languageserver.data._
 import org.enso.languageserver.effect.ZioExec
@@ -67,12 +66,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
-  lazy val languageServer =
-    system.actorOf(
-      Props(new LanguageServer(languageServerConfig)),
-      "server"
-    )
-
   lazy val fileManager = system.actorOf(
     FileManager.pool(languageServerConfig, fileSystem, zioExec),
     "file-manager"
@@ -122,7 +115,6 @@ class MainModule(serverConfig: LanguageServerConfig) {
     .build()
 
   lazy val clientControllerFactory = new ServerClientControllerFactory(
-    languageServer,
     bufferRegistry,
     capabilityRouter,
     fileManager,

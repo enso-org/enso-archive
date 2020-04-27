@@ -3,9 +3,9 @@ package org.enso.languageserver.requesthandler.text
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc.{Id, Request, ResponseError, ResponseResult}
-import org.enso.languageserver.data.Client
 import org.enso.languageserver.filemanager.FileSystemFailureMapper
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.text.TextApi.OpenFile
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{
@@ -26,7 +26,7 @@ import scala.concurrent.duration.FiniteDuration
 class OpenFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
-  client: Client
+  client: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -49,7 +49,7 @@ class OpenFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Opening file for ${client.id} timed out")
+      log.error(s"Opening file for ${client.clientId} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -86,7 +86,7 @@ object OpenFileHandler {
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
-    client: Client
+    client: RpcSession
   ): Props = Props(new OpenFileHandler(bufferRegistry, requestTimeout, client))
 
 }

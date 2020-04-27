@@ -3,8 +3,8 @@ package org.enso.languageserver.requesthandler.text
 import akka.actor.{Actor, ActorLogging, ActorRef, Cancellable, Props}
 import org.enso.jsonrpc.Errors.ServiceError
 import org.enso.jsonrpc._
-import org.enso.languageserver.data.Client
 import org.enso.languageserver.requesthandler.RequestTimeout
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.text.TextApi.{CloseFile, FileNotOpenedError}
 import org.enso.languageserver.text.TextProtocol
 import org.enso.languageserver.text.TextProtocol.{FileClosed, FileNotOpened}
@@ -22,7 +22,7 @@ import scala.concurrent.duration.FiniteDuration
 class CloseFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
-  client: Client
+  client: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -33,7 +33,7 @@ class CloseFileHandler(
 
   private def requestStage: Receive = {
     case Request(CloseFile, id, params: CloseFile.Params) =>
-      bufferRegistry ! TextProtocol.CloseFile(client.id, params.path)
+      bufferRegistry ! TextProtocol.CloseFile(client.clientId, params.path)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -45,7 +45,7 @@ class CloseFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Closing file for ${client.id} timed out")
+      log.error(s"Closing file for ${client.clientId} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -74,7 +74,7 @@ object CloseFileHandler {
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
-    client: Client
+    client: RpcSession
   ): Props = Props(new CloseFileHandler(bufferRegistry, requestTimeout, client))
 
 }

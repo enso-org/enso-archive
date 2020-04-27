@@ -3,7 +3,6 @@ package org.enso.languageserver.websocket.rpc
 import java.nio.file.Files
 import java.util.UUID
 
-import akka.actor.Props
 import akka.testkit.TestProbe
 import io.circe.literal._
 import org.enso.jsonrpc.test.JsonRpcServerTestKit
@@ -22,7 +21,6 @@ import org.enso.languageserver.protocol.rpc.{
 }
 import org.enso.languageserver.runtime.ContextRegistry
 import org.enso.languageserver.text.BufferRegistry
-import org.enso.languageserver.{LanguageProtocol, LanguageServer}
 
 import scala.concurrent.duration._
 
@@ -43,8 +41,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
   override def protocol: Protocol = JsonRpc.protocol
 
   override def clientControllerFactory: ClientControllerFactory = {
-    val languageServer = system.actorOf(Props(new LanguageServer(config)))
-    languageServer ! LanguageProtocol.Initialize
     val zioExec = ZioExec(zio.Runtime.default)
     val fileManager =
       system.actorOf(FileManager.props(config, new FileSystem, zioExec))
@@ -64,7 +60,6 @@ class BaseServerTest extends JsonRpcServerTestKit {
       system.actorOf(CapabilityRouter.props(bufferRegistry, fileEventRegistry))
 
     new ServerClientControllerFactory(
-      languageServer,
       bufferRegistry,
       capabilityRouter,
       fileManager,

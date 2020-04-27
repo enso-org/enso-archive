@@ -1,8 +1,9 @@
 package org.enso.languageserver.runtime
 
 import akka.actor.{Actor, ActorLogging, Props}
-import org.enso.languageserver.data.{Client, Config}
+import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -17,7 +18,7 @@ import org.enso.polyglot.runtime.Runtime.Api
   */
 final class ContextEventsListener(
   config: Config,
-  client: Client,
+  client: RpcSession,
   contextId: ContextId
 ) extends Actor
     with ActorLogging
@@ -39,7 +40,7 @@ final class ContextEventsListener(
             runtimeUpdate
         }
       }
-      client.actor ! ContextRegistryProtocol
+      client.rpcController ! ContextRegistryProtocol
         .ExpressionValuesComputedNotification(
           contextId,
           updates
@@ -95,6 +96,7 @@ object ContextEventsListener {
     * @param client reference to the client
     * @param contextId exectuion context identifier
     */
-  def props(config: Config, client: Client, contextId: ContextId): Props =
+  def props(config: Config, client: RpcSession, contextId: ContextId): Props =
     Props(new ContextEventsListener(config, client, contextId))
+
 }

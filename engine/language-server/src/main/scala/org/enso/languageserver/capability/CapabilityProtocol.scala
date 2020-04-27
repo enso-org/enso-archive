@@ -1,7 +1,8 @@
 package org.enso.languageserver.capability
 
-import org.enso.languageserver.data.{CapabilityRegistration, Client}
+import org.enso.languageserver.data.CapabilityRegistration
 import org.enso.languageserver.filemanager.FileSystemFailure
+import org.enso.languageserver.session.RpcSession
 
 object CapabilityProtocol {
 
@@ -12,7 +13,7 @@ object CapabilityProtocol {
     * @param registration the capability to grant.
     */
   case class AcquireCapability(
-    client: Client,
+    client: RpcSession,
     registration: CapabilityRegistration
   )
 
@@ -46,7 +47,7 @@ object CapabilityProtocol {
     * @param capability the capability being released.
     */
   case class ReleaseCapability(
-    clientId: Client,
+    clientId: RpcSession,
     capability: CapabilityRegistration
   )
 
