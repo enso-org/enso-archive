@@ -135,7 +135,7 @@ class Compiler(
 
     generateIRInline(parsed).flatMap { ir =>
       val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
-      runErrorHandling(compilerOutput, source, inlineContext)
+      runErrorHandlingInline(compilerOutput, source, inlineContext)
       Some(truffleCodegenInline(compilerOutput, source, inlineContext))
     }
   }
@@ -222,7 +222,7 @@ class Compiler(
     * @param source the original source code.
     * @param inlineContext the inline compilation context.
     */
-  def runErrorHandling(
+  def runErrorHandlingInline(
     ir: IR.Expression,
     source: Source,
     inlineContext: InlineContext
@@ -270,7 +270,7 @@ class Compiler(
             val section = source
               .createSection(loc.location.start, loc.location.length)
             val locStr =
-              section.getStartLine + ":" +
+              "" + section.getStartLine + ":" +
               section.getStartColumn + "-" +
               section.getEndLine + ":" +
               section.getEndColumn
@@ -294,7 +294,6 @@ class Compiler(
     source: Source,
     scope: ModuleScope
   ): Unit = {
-
     new IRToTruffle(context, source, scope).run(ir)
   }
 
