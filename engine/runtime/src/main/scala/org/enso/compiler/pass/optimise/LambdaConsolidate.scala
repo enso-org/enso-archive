@@ -9,6 +9,7 @@ import org.enso.compiler.pass.IRPass
 //  make it a HSet?)
 // TODO [AA] Need to fix the hack in AliasAnalysis about this.
 // TODO [AA] Need a fresh name supply
+// TODO [AA] Add the concept of a `Warning` to the codebase
 case object LambdaConsolidate extends IRPass {
   override type Metadata = IR.Metadata.Empty
 

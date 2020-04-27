@@ -1,9 +1,8 @@
 package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.test.CompilerTest
-import shapeless.{::, =:!=, HList, HNil, IsDistinctConstraint, LUBConstraint}
-import shapeless.ops.hlist._
 
 class LambdaConsolidateTest extends CompilerTest {
   trait Foo extends IR.Metadata
@@ -22,11 +21,11 @@ class LambdaConsolidateTest extends CompilerTest {
     "thingy" in {
       val empty = IR
         .Empty(None)
-        .addMetadata(Bar(1))
-        .addMetadata(Baz(2))
-        .addMetadata(Quux(1))
+        .addMetadata[LambdaConsolidate.Metadata](Bar(1))
+        .addMetadata[LambdaConsolidate.Metadata](Baz(2))
+        .addMetadata[LambdaConsolidate.Metadata](Quux(1))
 
-      println(empty.passData.size)
+      val tmp = empty.getMetadata[Foo]
     }
   }
 
