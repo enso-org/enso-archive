@@ -1,7 +1,6 @@
 package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.test.CompilerTest
 
 class LambdaConsolidateTest extends CompilerTest {
@@ -21,11 +20,11 @@ class LambdaConsolidateTest extends CompilerTest {
     "thingy" in {
       val empty = IR
         .Empty(None)
-        .addMetadata[LambdaConsolidate.Metadata](Bar(1))
-        .addMetadata[LambdaConsolidate.Metadata](Baz(2))
-        .addMetadata[LambdaConsolidate.Metadata](Quux(1))
+        .addMetadata[Quux, Bar](Bar(1))
+        .addMetadata[Foo, Baz](Baz(2))
+        .addMetadata[Quux, Quux](Quux(1))
 
-      val tmp = empty.getMetadata[Foo]
+      println(empty.passData)
     }
   }
 

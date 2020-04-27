@@ -43,7 +43,7 @@ class Compiler(
     OperatorToFunction,
     AliasAnalysis,
     LambdaConsolidate,
-//    AliasAnalysis, // TODO [AA] Enable this
+//    AliasAnalysis,
     DemandAnalysis,
     ApplicationSaturation(),
     TailCall,

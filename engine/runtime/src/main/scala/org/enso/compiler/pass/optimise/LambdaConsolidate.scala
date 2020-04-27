@@ -4,9 +4,6 @@ import org.enso.compiler.InlineContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
-// TODO [AA] Need to be able to run alias analysis _again_ after this.
-// TODO [AA] Add primitives to the IR for overwriting pass metadata (need to
-//  make it a HSet?)
 // TODO [AA] Need to fix the hack in AliasAnalysis about this.
 // TODO [AA] Need a fresh name supply
 // TODO [AA] Add the concept of a `Warning` to the codebase
