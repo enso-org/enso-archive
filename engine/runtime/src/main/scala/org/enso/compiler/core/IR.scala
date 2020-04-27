@@ -53,6 +53,25 @@ sealed trait IR {
     ev2: M <:< T
   ): IR
 
+  def addMetadata2[T <: IR.Metadata : ClassTag](newData: IR.Metadata)(
+    implicit @unused ev1: T =:!= IR.Metadata
+  ): IR = new AddMetadataPartial[T].apply(newData)
+
+  private class AddMetadataPartial[T <: IR.Metadata : ClassTag](
+    implicit @unused ev1: T =:!= IR.Metadata
+  ) {
+    def apply[M <: IR.Metadata](
+      newData: M
+    )(implicit @unused ev1: M <:< T): IR = {
+      addMetadataImpl[T, M](newData)
+    }
+  }
+
+  def addMetadataImpl[T <: IR.Metadata: ClassTag, M <: IR.Metadata](newData: M)(
+    implicit ev1: T =:!= IR.Metadata,
+    ev2: M <:< T
+  ): IR
+
   /** Gets the metadata of the given type from the node, if it exists.
     *
     * @param ev ensures that the yser hasn't forgotten to specify the type
@@ -80,7 +99,7 @@ sealed trait IR {
     *         of type `T` removed
     */
   protected def addToMetadata[T <: IR.Metadata: ClassTag, M <: IR.Metadata](
-    newData: IR.Metadata
+    newData: M
   )(
     implicit @unused ev1: T =:!= IR.Metadata,
     @unused ev2: M <:< T
