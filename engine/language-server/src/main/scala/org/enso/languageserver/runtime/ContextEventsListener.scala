@@ -51,6 +51,9 @@ final class ContextEventsListener(
         )
       sessionRouter ! DeliverToDataController(rpcSession.clientId, payload)
 
+    case Api.VisualisationUpdate(_, _) =>
+    //ignored
+
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       val updates = apiUpdates.flatMap { update =>
         toRuntimeUpdate(update) match {
