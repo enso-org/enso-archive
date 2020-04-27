@@ -53,7 +53,7 @@ case object AliasAnalysis extends IRPass {
   /** Performs alias analysis on an inline expression, starting from the
     * provided scope.
     *
-    * @param ir the Enso IR to process
+    * @param ir            the Enso IR to process
     * @param inlineContext a context object that contains the information needed
     *                      for inline evaluation
     * @return `ir`, possibly having made transformations or annotations to that
@@ -65,9 +65,11 @@ case object AliasAnalysis extends IRPass {
   ): IR.Expression =
     inlineContext.localScope
       .map { localScope =>
-        val scope = localScope.scope.copy
-        val graph = localScope.aliasingGraph.copy
-        analyseExpression(ir, graph, scope)
+        val scope  = localScope.scope
+        val graph  = localScope.aliasingGraph
+        val result = analyseExpression(ir, graph, scope)
+
+        result
       }
       .getOrElse(
         throw new CompilerError(
@@ -125,13 +127,13 @@ case object AliasAnalysis extends IRPass {
     * It should be noted that not _all_ expressions are annotated with aliasing
     * information. Please see the pass header documentation for more details.
     *
-    * @param expression the expression to perform alias analysis on
-    * @param graph the aliasing graph in which the analysis is being performed
-    * @param parentScope the parent scope for this expression
+    * @param expression       the expression to perform alias analysis on
+    * @param graph            the aliasing graph in which the analysis is being performed
+    * @param parentScope      the parent scope for this expression
     * @param lambdaReuseScope whether to reuse the parent scope for a lambda
     *                         instead of creating a new scope
-    * @param blockReuseScope whether to reuse the parent scope for a block
-    *                        instead of creating a new scope
+    * @param blockReuseScope  whether to reuse the parent scope for a block
+    *                         instead of creating a new scope
     * @return `expression`, potentially with aliasing information attached
     */
   def analyseExpression(
@@ -208,8 +210,8 @@ case object AliasAnalysis extends IRPass {
 
   /** Performs alias analysis on a type-related expression.
     *
-    * @param value the ir to analyse
-    * @param graph the graph in which the analysis is taking place
+    * @param value       the ir to analyse
+    * @param graph       the graph in which the analysis is taking place
     * @param parentScope the parent scope in which `value` occurs
     * @return `value`, annotated with aliasing information
     */
@@ -254,10 +256,10 @@ case object AliasAnalysis extends IRPass {
     * name. Please note that this is _not representative_ of the intended
     * language semantics, and will need to be rectified at a later date.
     *
-    * @param args the list of arguments to perform analysis on
+    * @param args  the list of arguments to perform analysis on
     * @param graph the graph in which the analysis is taking place
     * @param scope the scope of the function for which `args` are being
-    *                      defined
+    *              defined
     * @return `args`, potentially
     */
   def analyseArgumentDefs(
@@ -298,8 +300,8 @@ case object AliasAnalysis extends IRPass {
   /** Performs alias analysis on a function application.
     *
     * @param application the function application to analyse
-    * @param graph the graph in which the analysis is taking place
-    * @param scope the scope in which the application is happening
+    * @param graph       the graph in which the analysis is taking place
+    * @param scope       the scope in which the application is happening
     * @return `application`, possibly with aliasing information attached
     */
   def analyseApplication(
@@ -325,8 +327,8 @@ case object AliasAnalysis extends IRPass {
 
   /** Performs alias analysis on function call arguments.
     *
-    * @param args the list of arguments to analyse
-    * @param graph the graph in which the analysis is taking place
+    * @param args        the list of arguments to analyse
+    * @param graph       the graph in which the analysis is taking place
     * @param parentScope the scope in which the arguments are defined
     * @return `args`, with aliasing information attached to each argument
     */
@@ -352,9 +354,9 @@ case object AliasAnalysis extends IRPass {
 
   /** Performs alias analysis on a function definition.
     *
-    * @param function the function to analyse
-    * @param graph the graph in which the analysis is taking place
-    * @param parentScope the scope in which the function is declared
+    * @param function         the function to analyse
+    * @param graph            the graph in which the analysis is taking place
+    * @param parentScope      the scope in which the function is declared
     * @param lambdaReuseScope whether or not the lambda should reuse the parent
     *                         scope or allocate a child of it
     * @return `function`, with alias analysis information attached
@@ -388,8 +390,8 @@ case object AliasAnalysis extends IRPass {
 
   /** Performs alias analysis for a name.
     *
-    * @param name the name to analyse
-    * @param graph the graph in which the analysis is taking place
+    * @param name        the name to analyse
+    * @param graph       the graph in which the analysis is taking place
     * @param parentScope the scope in which `name` is delcared
     * @return `name`, with alias analysis information attached
     */
@@ -409,8 +411,8 @@ case object AliasAnalysis extends IRPass {
 
   /** Performs alias analysis on a case expression.
     *
-    * @param ir the case expression to analyse
-    * @param graph the graph in which the analysis is taking place
+    * @param ir          the case expression to analyse
+    * @param graph       the graph in which the analysis is taking place
     * @param parentScope the scope in which the case expression occurs
     * @return `ir`, possibly with alias analysis information attached
     */

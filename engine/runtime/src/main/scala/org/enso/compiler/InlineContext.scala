@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
   * @param isInTailPosition whether or not the inline expression occurs in tail
   *                         position ([[None]] indicates no information)
   */
+// TODO [AA] doc this
 case class InlineContext(
   localScope: Option[LocalScope]    = None,
   moduleScope: Option[ModuleScope]  = None,
