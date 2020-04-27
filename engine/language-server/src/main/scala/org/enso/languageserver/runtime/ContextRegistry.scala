@@ -52,9 +52,13 @@ import org.enso.polyglot.runtime.Runtime.Api.ContextId
   *
   * @param config configuration
   * @param runtime reference to the [[RuntimeConnector]]
+  * @param sessionRouter the session router
   */
-final class ContextRegistry(config: Config, runtime: ActorRef)
-    extends Actor
+final class ContextRegistry(
+  config: Config,
+  runtime: ActorRef,
+  sessionRouter: ActorRef
+) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
@@ -74,7 +78,9 @@ final class ContextRegistry(config: Config, runtime: ActorRef)
       val handler =
         context.actorOf(CreateContextHandler.props(timeout, runtime))
       val listener =
-        context.actorOf(ContextEventsListener.props(config, client, contextId))
+        context.actorOf(
+          ContextEventsListener.props(config, client, contextId, sessionRouter)
+        )
       handler.forward(Api.CreateContextRequest(contextId))
       context.become(
         withStore(store.addContext(client.clientId, contextId, listener))
@@ -263,7 +269,8 @@ object ContextRegistry {
     *
     * @param config language server configuration
     * @param runtime reference to the [[RuntimeConnector]]
+    * @param sessionRouter the session router
     */
-  def props(config: Config, runtime: ActorRef): Props =
-    Props(new ContextRegistry(config, runtime))
+  def props(config: Config, runtime: ActorRef, sessionRouter: ActorRef): Props =
+    Props(new ContextRegistry(config, runtime, sessionRouter))
 }

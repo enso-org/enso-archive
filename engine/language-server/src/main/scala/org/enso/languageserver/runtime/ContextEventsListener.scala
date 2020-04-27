@@ -1,9 +1,10 @@
 package org.enso.languageserver.runtime
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
-import org.enso.languageserver.session.RpcSession
+import org.enso.languageserver.runtime.VisualisationProtocol.VisualisationContext
+import org.enso.languageserver.session.{RpcSession, SessionRouter}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
@@ -13,23 +14,41 @@ import org.enso.polyglot.runtime.Runtime.Api
   * only handles the notifications with the given `contextId`.
   *
   * @param config configuration
-  * @param client reference to the client
+  * @param rpcSession reference to the client
   * @param contextId exectuion context identifier
+  * @param sessionRouter the session router
   */
 final class ContextEventsListener(
   config: Config,
-  client: RpcSession,
-  contextId: ContextId
+  rpcSession: RpcSession,
+  contextId: ContextId,
+  sessionRouter: ActorRef
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
 
   override def preStart(): Unit = {
     context.system.eventStream
-      .subscribe(self, classOf[Api.ExpressionValuesComputed]): Unit
+      .subscribe(self, classOf[Api.ExpressionValuesComputed])
+    context.system.eventStream
+      .subscribe(self, classOf[Api.VisualisationUpdate])
   }
 
   override def receive: Receive = {
+    case Api.VisualisationUpdate(ctx, data) if ctx.contextId == contextId =>
+      val payload = VisualisationProtocol.VisualisationUpdate(
+        VisualisationContext(
+          ctx.visualisationId,
+          ctx.contextId,
+          ctx.expressionId
+        ),
+        data
+      )
+      sessionRouter ! SessionRouter.DeliverToDataController(
+        rpcSession.clientId,
+        payload
+      )
+
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       val updates = apiUpdates.flatMap { update =>
         toRuntimeUpdate(update) match {
@@ -40,7 +59,7 @@ final class ContextEventsListener(
             runtimeUpdate
         }
       }
-      client.rpcController ! ContextRegistryProtocol
+      rpcSession.rpcController ! ContextRegistryProtocol
         .ExpressionValuesComputedNotification(
           contextId,
           updates
@@ -95,8 +114,21 @@ object ContextEventsListener {
     * @param config configuration
     * @param client reference to the client
     * @param contextId exectuion context identifier
+    * @param sessionRouter the session router
     */
-  def props(config: Config, client: RpcSession, contextId: ContextId): Props =
-    Props(new ContextEventsListener(config, client, contextId))
+  def props(
+    config: Config,
+    client: RpcSession,
+    contextId: ContextId,
+    sessionRouter: ActorRef
+  ): Props =
+    Props(
+      new ContextEventsListener(
+        config,
+        client,
+        contextId,
+        sessionRouter: ActorRef
+      )
+    )
 
 }

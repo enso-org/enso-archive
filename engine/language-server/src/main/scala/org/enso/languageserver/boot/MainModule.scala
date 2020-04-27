@@ -24,6 +24,7 @@ import org.enso.languageserver.protocol.rpc.{
   ServerClientControllerFactory
 }
 import org.enso.languageserver.runtime.{ContextRegistry, RuntimeConnector}
+import org.enso.languageserver.session.SessionRouter
 import org.enso.languageserver.text.BufferRegistry
 import org.enso.languageserver.util.binary.BinaryEncoder
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions, RuntimeServerInfo}
@@ -63,6 +64,9 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   implicit val materializer = SystemMaterializer.get(system)
 
+  lazy val sessionRouter =
+    system.actorOf(SessionRouter.props(), "session-router")
+
   lazy val runtimeConnector =
     system.actorOf(RuntimeConnector.props, "runtime-connector")
 
@@ -92,7 +96,8 @@ class MainModule(serverConfig: LanguageServerConfig) {
 
   lazy val contextRegistry =
     system.actorOf(
-      ContextRegistry.props(languageServerConfig, runtimeConnector),
+      ContextRegistry
+        .props(languageServerConfig, runtimeConnector, sessionRouter),
       "context-registry"
     )
 

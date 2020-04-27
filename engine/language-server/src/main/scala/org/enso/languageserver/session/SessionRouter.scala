@@ -1,6 +1,6 @@
 package org.enso.languageserver.session
 
-import akka.actor.Actor
+import akka.actor.{Actor, Props}
 import org.enso.languageserver.data.ClientId
 import org.enso.languageserver.event.{
   DataSessionInitialized,
@@ -9,12 +9,16 @@ import org.enso.languageserver.event.{
   RpcSessionTerminated,
   SessionEvent
 }
-import org.enso.languageserver.session.SessionManager.{
+import org.enso.languageserver.session.SessionRouter.{
   DeliverToDataController,
   DeliverToRpcController
 }
 
-class SessionManager extends Actor {
+/**
+  * A content based router that routes arbitrary messages to the session
+  * controller identified by the client id.
+  */
+class SessionRouter extends Actor {
 
   override def preStart(): Unit = {
     context.system.eventStream.subscribe(self, classOf[SessionEvent])
@@ -35,6 +39,7 @@ class SessionManager extends Actor {
       val updatedSessions =
         (sessions + (clientId -> sessions(clientId).detachRpcSession()))
           .filterNot(_._2.isSessionTerminated)
+
       context.become(running(updatedSessions))
 
     case DataSessionInitialized(s @ DataSession(clientId, _)) =>
@@ -48,6 +53,7 @@ class SessionManager extends Actor {
       val updatedSessions =
         (sessions + (clientId -> sessions(clientId).detachDataSession()))
           .filterNot(_._2.isSessionTerminated)
+
       context.become(running(updatedSessions))
 
     case DeliverToRpcController(clientId, payload) =>
@@ -63,10 +69,33 @@ class SessionManager extends Actor {
 
 }
 
-object SessionManager {
+object SessionRouter {
 
+  /**
+    * A command used to deliver an arbitrary `payload` to a rpc controller
+    * identified by the client id.
+    *
+    * @param clientId the internal client identifier
+    * @param payload a payload that is delivered to the controller
+    * @tparam A a type of payload
+    */
   case class DeliverToRpcController[A](clientId: ClientId, payload: A)
 
+  /**
+    * A command used to deliver an arbitrary `payload` to a data controller
+    * identified by the client id.
+    *
+    * @param clientId the internal client identifier
+    * @param payload a payload that is delivered to the controller
+    * @tparam A a type of payload
+    */
   case class DeliverToDataController[A](clientId: ClientId, payload: A)
+
+  /**
+    * Creates configuration object used to create a [[SessionRouter]].
+    *
+    * @return a configuration object
+    */
+  def props(): Props = Props(new SessionRouter)
 
 }
