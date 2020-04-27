@@ -50,7 +50,25 @@ sealed trait IR {
     this.passData.collectFirst { case data: T => data }
   }
 
-  // TODO [AA] Use this throughout the passes
+  /** A helper function that ensures that there's only one metadata element of
+    * any given type in the metadata set.
+    *
+    * @param newData the new metadata to add
+    * @tparam T the concrete type of `newData`
+    * @return [[passData]] with `newData` added to it, and any existing members
+    *         of type `T` removed
+    */
+  protected def addToMetadata[T <: IR.Metadata: ClassTag](
+    newData: IR.Metadata
+  )(): Set[IR.Metadata] = {
+    val addTo = this.passData.collectFirst { case old: T => old } match {
+      case Some(v) => this.passData - v
+      case None    => this.passData
+    }
+
+    addTo + newData
+  }
+
   /** Gets the metadata of the given type from the node, throwing a fatal
     * compiler error with the specified message if it doesn't exist
     *
