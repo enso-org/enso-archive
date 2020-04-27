@@ -7,6 +7,8 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
 import org.enso.syntax.text.Debug
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
 /** This pass performs scope identification and analysis, as well as symbol
@@ -63,8 +65,8 @@ case object AliasAnalysis extends IRPass {
   ): IR.Expression =
     inlineContext.localScope
       .map { localScope =>
-        val scope = localScope.scope
-        val graph = localScope.aliasingGraph
+        val scope = localScope.scope.copy
+        val graph = localScope.aliasingGraph.copy
         analyseExpression(ir, graph, scope)
       }
       .getOrElse(
@@ -481,6 +483,29 @@ case object AliasAnalysis extends IRPass {
 
     private var nextIdCounter = 0
 
+    /** Creates a deep copy of the aliasing graph structure.
+      *
+      * @return a copy of the graph structure
+      */
+    def copy: Graph = {
+      val graph = new Graph
+      graph.links     = links
+      graph.rootScope = rootScope.copy
+
+      graph
+    }
+
+    /** Determines whether `this` is equal to `obj`.
+      *
+      * @param obj the object to compare against.
+      * @return `true` if `this == obj`, otherwise `false`
+      */
+    override def equals(obj: Any): Boolean = obj match {
+      case that: Graph =>
+        (this.links == that.links) && (this.rootScope == that.rootScope)
+      case _ => false
+    }
+
     /** Generates a new identifier for a node in the graph.
       *
       * @return a unique identifier for this graph
@@ -698,6 +723,36 @@ case object AliasAnalysis extends IRPass {
       var occurrences: Set[Occurrence] = Set()
     ) {
       var parent: Option[Scope] = None
+
+      /** Creates a structural copy of this scope.
+        *
+        * @return a copy of `this`
+        */
+      def copy: Scope = {
+        val childScopeCopies: mutable.ListBuffer[Scope] = ListBuffer()
+        this.childScopes.foreach(scope => childScopeCopies += scope.copy)
+
+        new Scope(childScopeCopies.toList, occurrences)
+      }
+
+      /** Checks whether `this` is equal to `obj`.
+        *
+        * @param obj the object to compare `this` against
+        * @return `true` if `this == obj`, otherwise `false`
+        */
+      override def equals(obj: Any): Boolean = obj match {
+        case that: Scope =>
+          if (this.childScopes.length == that.childScopes.length) {
+            val childScopesEqual =
+              this.childScopes.zip(that.childScopes).forall(t => t._1 == t._2)
+            val occurrencesEqual = this.occurrences == that.occurrences
+
+            childScopesEqual && occurrencesEqual
+          } else {
+            false
+          }
+        case _ => false
+      }
 
       /** Creates and returns a scope that is a child of this one.
         *

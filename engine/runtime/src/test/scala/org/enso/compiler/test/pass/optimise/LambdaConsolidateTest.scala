@@ -23,8 +23,6 @@ class LambdaConsolidateTest extends CompilerTest {
         .addMetadata[Foo, Bar](Bar(1))
         .addMetadata[Foo, Baz](Baz(2))
         .addMetadata[Quux, Quux](Quux(1))
-
-      println(empty.passData)
     }
   }
 

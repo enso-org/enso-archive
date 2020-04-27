@@ -175,6 +175,12 @@ class AliasAnalysisTest extends CompilerTest {
 
       complexScope.isChildOf(child1) shouldEqual false
     }
+
+    "allow itself to be copied deeply" in {
+      val complexScopeCopy = complexScope.copy
+
+      complexScopeCopy shouldEqual complexScope
+    }
   }
 
   "The Aliasing graph" should {
@@ -208,6 +214,12 @@ class AliasAnalysisTest extends CompilerTest {
     val use1Link = graph.resolveUsage(aUse1)
     val use2Link = graph.resolveUsage(aUse2)
     val cUseLink = graph.resolveUsage(cUse)
+
+    "allow itself to be deep copied" in {
+      val graphCopy = graph.copy
+
+      graphCopy shouldEqual graph
+    }
 
     "generate monotonically increasing identifiers" in {
       val ids       = List.fill(100)(graph.nextId())
