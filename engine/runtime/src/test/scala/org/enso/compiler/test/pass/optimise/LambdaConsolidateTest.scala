@@ -20,7 +20,7 @@ class LambdaConsolidateTest extends CompilerTest {
     "thingy" in {
       val empty = IR
         .Empty(None)
-        .addMetadata[Quux, Bar](Bar(1))
+        .addMetadata[Foo, Bar](Bar(1))
         .addMetadata[Foo, Baz](Baz(2))
         .addMetadata[Quux, Quux](Quux(1))
 

@@ -2,7 +2,7 @@ package org.enso.compiler.core
 
 import java.util.UUID
 
-import org.enso.compiler.core.IR.{Expression, IdentifiedLocation, Metadata}
+import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
 import org.enso.compiler.exception.CompilerError
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Debug, Location}
@@ -49,25 +49,6 @@ sealed trait IR {
     * @return the node, with `newData` added to its [[passData]]
     */
   def addMetadata[T <: IR.Metadata: ClassTag, M <: IR.Metadata](newData: M)(
-    implicit ev1: T =:!= IR.Metadata,
-    ev2: M <:< T
-  ): IR
-
-  def addMetadata2[T <: IR.Metadata : ClassTag](newData: IR.Metadata)(
-    implicit @unused ev1: T =:!= IR.Metadata
-  ): IR = new AddMetadataPartial[T].apply(newData)
-
-  private class AddMetadataPartial[T <: IR.Metadata : ClassTag](
-    implicit @unused ev1: T =:!= IR.Metadata
-  ) {
-    def apply[M <: IR.Metadata](
-      newData: M
-    )(implicit @unused ev1: M <:< T): IR = {
-      addMetadataImpl[T, M](newData)
-    }
-  }
-
-  def addMetadataImpl[T <: IR.Metadata: ClassTag, M <: IR.Metadata](newData: M)(
     implicit ev1: T =:!= IR.Metadata,
     ev2: M <:< T
   ): IR

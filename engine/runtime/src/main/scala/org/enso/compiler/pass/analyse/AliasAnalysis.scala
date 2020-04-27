@@ -100,7 +100,7 @@ case object AliasAnalysis extends IRPass {
                   blockReuseScope  = true
                 )
               )
-              .addMetadata[Metadata](Info.Scope.Root(topLevelGraph))
+              .addMetadata[Metadata, Metadata](Info.Scope.Root(topLevelGraph))
           case _ =>
             throw new CompilerError(
               "The body of a method should always be a function."
@@ -111,7 +111,7 @@ case object AliasAnalysis extends IRPass {
             arguments =
               analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
           )
-          .addMetadata[Metadata](Info.Scope.Root(topLevelGraph))
+          .addMetadata[Metadata, Metadata](Info.Scope.Root(topLevelGraph))
     }
   }
 
@@ -164,7 +164,9 @@ case object AliasAnalysis extends IRPass {
               currentScope
             )
           )
-          .addMetadata[Metadata](Info.Scope.Child(graph, currentScope))
+          .addMetadata[Metadata, Metadata](
+            Info.Scope.Child(graph, currentScope)
+          )
       case binding @ IR.Expression.Binding(name, expression, _, _) =>
         if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
           val isSuspended  = expression.isInstanceOf[IR.Expression.Block]
@@ -182,7 +184,9 @@ case object AliasAnalysis extends IRPass {
                 parentScope
               )
             )
-            .addMetadata[Metadata](Info.Occurrence(graph, occurrenceId))
+            .addMetadata[Metadata, Metadata](
+              Info.Occurrence(graph, occurrenceId)
+            )
         } else {
           IR.Error.Redefined.Binding(binding)
         }
@@ -228,7 +232,7 @@ case object AliasAnalysis extends IRPass {
             memberType = analyseExpression(memberType, graph, memberTypeScope),
             value      = analyseExpression(value, graph, valueScope)
           )
-          .addMetadata[Metadata](Info.Occurrence(graph, lblId))
+          .addMetadata[Metadata, Metadata](Info.Occurrence(graph, lblId))
       case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
@@ -279,7 +283,9 @@ case object AliasAnalysis extends IRPass {
                 )
               )
             )
-            .addMetadata[Metadata](Info.Occurrence(graph, occurrenceId))
+            .addMetadata[Metadata, Metadata](
+              Info.Occurrence(graph, occurrenceId)
+            )
         } else {
           IR.Error.Redefined.Argument(arg)
         }
@@ -336,7 +342,9 @@ case object AliasAnalysis extends IRPass {
 
         arg
           .copy(value = analyseExpression(expr, graph, currentScope))
-          .addMetadata[Metadata](Info.Scope.Child(graph, currentScope))
+          .addMetadata[Metadata, Metadata](
+            Info.Scope.Child(graph, currentScope)
+          )
     }
   }
 
@@ -370,7 +378,9 @@ case object AliasAnalysis extends IRPass {
               blockReuseScope = true
             )
           )
-          .addMetadata[Metadata](Info.Scope.Child(graph, currentScope))
+          .addMetadata[Metadata, Metadata](
+            Info.Scope.Child(graph, currentScope)
+          )
     }
   }
 
@@ -392,7 +402,7 @@ case object AliasAnalysis extends IRPass {
     parentScope.add(occurrence)
     graph.resolveUsage(occurrence)
 
-    name.addMetadata[Metadata](Info.Occurrence(graph, occurrenceId))
+    name.addMetadata[Metadata, Metadata](Info.Occurrence(graph, occurrenceId))
   }
 
   /** Performs alias analysis on a case expression.
