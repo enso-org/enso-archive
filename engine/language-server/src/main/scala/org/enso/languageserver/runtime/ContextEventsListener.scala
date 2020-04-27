@@ -7,8 +7,8 @@ import org.enso.languageserver.runtime.VisualisationProtocol.{
   VisualisationContext,
   VisualisationUpdate
 }
+import org.enso.languageserver.session.RpcSession
 import org.enso.languageserver.session.SessionRouter.DeliverToDataController
-import org.enso.languageserver.session.{RpcSession, SessionRouter}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
 
