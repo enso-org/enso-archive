@@ -55,6 +55,7 @@ class BaseServerTest extends JsonRpcServerTestKit {
       system.actorOf(
         ReceivesTreeUpdatesHandler.props(config, new FileSystem, zioExec)
       )
+
     val sessionRouter =
       system.actorOf(SessionRouter.props())
 

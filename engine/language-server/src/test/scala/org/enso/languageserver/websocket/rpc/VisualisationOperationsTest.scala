@@ -52,7 +52,7 @@ class VisualisationOperationsTest extends BaseServerTest {
         requestId,
         Api.VisualisationAttached()
       )
-      client.expectJson(ExecutionContextMessages.ok(1))
+      client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
     "reply with AccessDenied when context doesn't belong to client" in {
@@ -128,7 +128,7 @@ class VisualisationOperationsTest extends BaseServerTest {
         requestId,
         Api.VisualisationDetached()
       )
-      client.expectJson(ExecutionContextMessages.ok(1))
+      client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
     "reply with AccessDenied when context doesn't belong to client" in {
@@ -204,7 +204,7 @@ class VisualisationOperationsTest extends BaseServerTest {
         requestId,
         Api.VisualisationModified()
       )
-      client.expectJson(ExecutionContextMessages.ok(1))
+      client.expectJson(ExecutionContextJsonMessages.ok(1))
     }
 
     "reply with AccessDenied when context doesn't belong to client" in {
@@ -241,7 +241,7 @@ class VisualisationOperationsTest extends BaseServerTest {
   }
 
   private def createExecutionContext(client: WsTestClient): UUID = {
-    client.send(ExecutionContextMessages.executionContextCreateRequest(0))
+    client.send(ExecutionContextJsonMessages.executionContextCreateRequest(0))
     val (requestId, contextId) =
       runtimeConnectorProbe.receiveN(1).head match {
         case Api.Request(requestId, Api.CreateContextRequest(contextId)) =>
@@ -255,7 +255,7 @@ class VisualisationOperationsTest extends BaseServerTest {
       Api.CreateContextResponse(contextId)
     )
     client.expectJson(
-      ExecutionContextMessages.executionContextCreateResponse(0, contextId)
+      ExecutionContextJsonMessages.executionContextCreateResponse(0, contextId)
     )
     contextId
   }

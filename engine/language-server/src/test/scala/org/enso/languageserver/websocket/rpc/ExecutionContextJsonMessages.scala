@@ -3,7 +3,7 @@ package org.enso.languageserver.websocket.rpc
 import org.enso.polyglot.runtime.Runtime.Api
 import io.circe.literal._
 
-object ExecutionContextMessages {
+object ExecutionContextJsonMessages {
 
   def localCall(expressionId: Api.ExpressionId) =
     json"""
