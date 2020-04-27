@@ -3,7 +3,11 @@ package org.enso.languageserver.runtime
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import org.enso.languageserver.data.Config
 import org.enso.languageserver.runtime.ExecutionApi.ContextId
-import org.enso.languageserver.runtime.VisualisationProtocol.VisualisationContext
+import org.enso.languageserver.runtime.VisualisationProtocol.{
+  VisualisationContext,
+  VisualisationUpdate
+}
+import org.enso.languageserver.session.SessionRouter.DeliverToDataController
 import org.enso.languageserver.session.{RpcSession, SessionRouter}
 import org.enso.languageserver.util.UnhandledLogging
 import org.enso.polyglot.runtime.Runtime.Api
@@ -36,18 +40,16 @@ final class ContextEventsListener(
 
   override def receive: Receive = {
     case Api.VisualisationUpdate(ctx, data) if ctx.contextId == contextId =>
-      val payload = VisualisationProtocol.VisualisationUpdate(
-        VisualisationContext(
-          ctx.visualisationId,
-          ctx.contextId,
-          ctx.expressionId
-        ),
-        data
-      )
-      sessionRouter ! SessionRouter.DeliverToDataController(
-        rpcSession.clientId,
-        payload
-      )
+      val payload =
+        VisualisationUpdate(
+          VisualisationContext(
+            ctx.visualisationId,
+            ctx.contextId,
+            ctx.expressionId
+          ),
+          data
+        )
+      sessionRouter ! DeliverToDataController(rpcSession.clientId, payload)
 
     case Api.ExpressionValuesComputed(`contextId`, apiUpdates) =>
       val updates = apiUpdates.flatMap { update =>
