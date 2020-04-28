@@ -19,13 +19,13 @@ case object TailCall extends IRPass {
   override type Config = IRPass.Configuration.Default
 
   /** Analyses tail call state for expressions in a module.
-   *
-   * @param ir the Enso IR to process
-   * @param moduleContext a context object that contains the information needed
-   *                      to process a module
-   * @return `ir`, possibly having made transformations or annotations to that
-   *         IR.
-   */
+    *
+    * @param ir the Enso IR to process
+    * @param moduleContext a context object that contains the information needed
+    *                      to process a module
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
@@ -118,7 +118,8 @@ case object TailCall extends IRPass {
           .addMetadata[Metadata, TailPosition](
             TailPosition.fromBool(isInTailPosition)
           )
-      case err: IR.Error => err
+      case err: IR.Error =>
+        err.addMetadata(TailPosition.fromBool(isInTailPosition))
     }
   }
 

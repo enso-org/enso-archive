@@ -115,6 +115,18 @@ sealed trait IR {
     */
   def mapExpressions(fn: Expression => Expression): IR
 
+  /** Gets the list of all children IR nodes of this node.
+    *
+    * @return this node's children.
+    */
+  def children: List[IR]
+
+  /** Lists all the nodes in the preorder walk of the tree of this node.
+    *
+    * @return all the descendants of this node.
+    */
+  def preorder: List[IR] = this :: children.flatMap(_.preorder)
+
   /** Pretty prints the IR.
     *
     * @return a pretty-printed representation of the IR
@@ -227,6 +239,11 @@ object IR {
       |id = $id
       |)
       |""".toSingleLine
+
+    override def children: List[IR] = List()
+
+    override def message: String =
+      "Empty IR: Please report this as a compiler bug."
   }
 
   // === Module ===============================================================
@@ -283,6 +300,8 @@ object IR {
         bindings = bindings.map(_.mapExpressions(fn))
       )
     }
+
+    override def children: List[IR] = imports ++ bindings
 
     def transformExpressions(
       fn: PartialFunction[Expression, Expression]
@@ -367,6 +386,8 @@ object IR {
           |id = $id
           |)
           |""".toSingleLine
+
+        override def children: List[IR] = List()
       }
 
       /** A representation of top-level definitions. */
@@ -439,6 +460,8 @@ object IR {
             |id = $id
             |)
             |""".toSingleLine
+
+          override def children: List[IR] = name :: arguments
         }
 
         /** The definition of a method for a given constructor [[typeName]].
@@ -511,6 +534,8 @@ object IR {
             |id = $id
             |)
             |""".toSingleLine
+
+          override def children: List[IR] = List(typeName, methodName, body)
         }
       }
     }
@@ -610,6 +635,8 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = expressions :+ returnValue
     }
 
     /** A binding expression of the form `name = expr`
@@ -669,6 +696,8 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List(name, expression)
     }
   }
 
@@ -732,6 +761,8 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List()
     }
 
     /** A textual Enso literal.
@@ -783,6 +814,8 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List()
     }
   }
 
@@ -849,6 +882,8 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List()
     }
 
     /** A representation of the name `this`, used to refer to the current type.
@@ -896,6 +931,8 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List()
     }
 
     /** A representation of the name `here`, used to refer to the current
@@ -943,6 +980,8 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List()
     }
   }
 
@@ -1019,6 +1058,8 @@ object IR {
            |id = $id
            |)
            |""".stripMargin
+
+      override def children: List[IR] = List(typed, signature)
     }
     object Ascription extends Info {
       override val name: String = ":"
@@ -1081,6 +1122,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List(typed, context)
+
     }
     object Context extends Info {
       override val name: String = "in"
@@ -1162,6 +1206,9 @@ object IR {
           |id = $id
           |)
           |""".toSingleLine
+
+        override def children: List[IR] = List(label, memberType, value)
+
       }
       object Member extends Info {
         override val name: String = "_ : _ = _"
@@ -1225,6 +1272,9 @@ object IR {
           |passData = ${this.showPassData},
           |id = $id
           |""".toSingleLine
+
+        override def children: List[IR] = List(left, right)
+
       }
       object Subsumption extends Info {
         override val name: String = "<:"
@@ -1286,6 +1336,9 @@ object IR {
           |passData = ${this.showPassData},
           |id = $id
           |""".toSingleLine
+
+        override def children: List[IR] = List(left, right)
+
       }
       object Equality extends Info {
         override val name: String = "~"
@@ -1347,6 +1400,9 @@ object IR {
           |passData = ${this.showPassData},
           |id = $id
           |""".toSingleLine
+
+        override def children: List[IR] = List(left, right)
+
       }
       object Concat extends Info {
         override val name: String = ","
@@ -1408,6 +1464,9 @@ object IR {
           |passData = ${this.showPassData},
           |id = $id
           |""".toSingleLine
+
+        override def children: List[IR] = List(left, right)
+
       }
       object Union extends Info {
         override val name: String = "|"
@@ -1471,6 +1530,9 @@ object IR {
           |passData = ${this.showPassData},
           |id = $id
           |""".toSingleLine
+
+        override def children: List[IR] = List(left, right)
+
       }
       object Intersection extends Info {
         override val name: String = "&"
@@ -1534,6 +1596,9 @@ object IR {
           |passData = ${this.showPassData},
           |id = $id
           |""".toSingleLine
+
+        override def children: List[IR] = List(left, right)
+
       }
       object Subtraction extends Info {
         override val name: String = "\\"
@@ -1637,6 +1702,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = arguments :+ body
+
     }
   }
 
@@ -1722,6 +1790,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = name :: defaultValue.toList
+
     }
 
     // TODO [AA] Add support for `_` ignored arguments.
@@ -1804,6 +1875,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = function :: arguments
+
     }
 
     /** A representation of a term that is explicitly forced.
@@ -1858,6 +1932,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List(target)
+
     }
 
     /** Operator applications in Enso. */
@@ -1932,6 +2009,9 @@ object IR {
           |id = $id
           |)
           |""".toSingleLine
+
+        override def children: List[IR] = List(left, operator, right)
+
       }
     }
 
@@ -2027,6 +2107,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = name.toList :+ value
+
     }
 
     // TODO [AA] Add support for the `_` lambda shorthand argument (can be
@@ -2111,6 +2194,10 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] =
+        scrutinee :: branches.toList ++ fallback.toList
+
     }
 
     /** A branch in a case statement.
@@ -2170,6 +2257,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List(pattern, expression)
+
     }
 
     /** The different types of patterns that can occur in a match. */
@@ -2259,6 +2349,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List(commented)
+
     }
   }
 
@@ -2330,6 +2423,9 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List()
+
     }
   }
 
@@ -2342,6 +2438,11 @@ object IR {
     override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
       newData: M
     )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Error
+
+    /**
+      * @return a human-readable description of this error condition.
+      */
+    def message: String
   }
   object Error {
 
@@ -2363,29 +2464,33 @@ object IR {
     /** A representation of an Enso syntax error.
       *
       * @param ast the erroneous AST
+      * @param reason the cause of this error
       * @param passData the pass metadata associated with this node
       */
     sealed case class Syntax(
       ast: AST,
+      reason: Syntax.Reason,
       override val passData: ISet[Metadata] = ISet()
     ) extends Error
-        with Kind.Static
+        with Kind.Interactive
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
       /** Creates a copy of `this`.
         *
         * @param ast the erroneous AST
+        * @param reason the cause of this error
         * @param passData the pass metadata associated with this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
         ast: AST                 = ast,
+        reason: Syntax.Reason    = reason,
         passData: ISet[Metadata] = passData,
         id: Identifier           = id
       ): Syntax = {
-        val res = Syntax(ast, passData)
+        val res = Syntax(ast, reason, passData)
         res.id = id
         res
       }
@@ -2410,6 +2515,50 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List()
+
+      override def message: String = reason.explanation
+    }
+
+    object Syntax {
+
+      /**
+        * A common type for all syntax errors expected by the language.
+        */
+      sealed trait Reason {
+
+        /**
+          * @return a human-readable description of the error.
+          */
+        def explanation: String
+      }
+
+      case class UnsupportedSyntax(syntaxName: String) extends Reason {
+        override def explanation: String =
+          s"Syntax is not supported yet: $syntaxName."
+      }
+
+      case object EmptyParentheses extends Reason {
+        override def explanation: String = "Parentheses can't be empty."
+      }
+
+      case object UnexpectedExpression extends Reason {
+        override def explanation: String = "Unexpected expression."
+      }
+
+      case object UnrecognizedToken extends Reason {
+        override def explanation: String = "Unrecognized token."
+      }
+
+      case object InvalidSuffix extends Reason {
+        override def explanation: String = "Invalid suffix."
+      }
+
+      case object UnclosedTextLiteral extends Reason {
+        override def explanation: String = "Unclosed text literal."
+      }
+
     }
 
     /** A representation of an invalid piece of IR.
@@ -2462,6 +2611,12 @@ object IR {
         |id = $id
         |)
         |""".toSingleLine
+
+      override def children: List[IR] = List(ir)
+
+      override def message: String =
+        "InvalidIR: Please report this as a compiler bug."
+
     }
 
     /** Errors pertaining to the redefinition of language constructs that are
@@ -2476,7 +2631,7 @@ object IR {
         * @param passData the pass metadata for the error
         */
       sealed case class Argument(
-        invalidArgDef: IR.DefinitionArgument,
+        invalidArgDef: IR.DefinitionArgument.Specified,
         override val passData: ISet[Metadata] = ISet()
       ) extends Redefined
           with Kind.Static
@@ -2492,9 +2647,9 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          invalidArgDef: IR.DefinitionArgument = invalidArgDef,
-          passData: ISet[Metadata]             = passData,
-          id: Identifier                       = id
+          invalidArgDef: IR.DefinitionArgument.Specified = invalidArgDef,
+          passData: ISet[Metadata]                       = passData,
+          id: Identifier                                 = id
         ): Argument = {
           val res = Argument(invalidArgDef, passData)
           res.id = id
@@ -2524,6 +2679,12 @@ object IR {
           |id = $id
           |)
           |""".toSingleLine
+
+        override def children: List[IR] = List(invalidArgDef)
+
+        override def message: String =
+          s"Argument ${invalidArgDef.name.name} is being redefined."
+
       }
 
       /** An error representing the redefinition of a binding in a given scope.
@@ -2580,6 +2741,12 @@ object IR {
              |id = $id
              |)
              |""".stripMargin
+
+        override def children: List[IR] = List(invalidBinding)
+
+        override def message: String =
+          s"Variable ${invalidBinding.name.name} is being redefined."
+
       }
     }
   }
