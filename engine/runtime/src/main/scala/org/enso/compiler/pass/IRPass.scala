@@ -1,5 +1,7 @@
 package org.enso.compiler.pass
 
+import java.util.UUID
+
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 
@@ -7,8 +9,13 @@ import org.enso.compiler.core.IR
   *
   * Passes that depend on the metadata of other passes should pull this metadata
   * directly from the IR, and not depend on metadata available in the context.
+  *
+  * Every pass should be implemented as a `case object`.
   */
 trait IRPass {
+
+  /** An identifier for the pass. Useful for keying it in maps. */
+  val key: UUID = UUID.randomUUID()
 
   /** The type of the metadata object that the pass writes to the IR. */
   type Metadata <: IR.Metadata

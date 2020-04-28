@@ -33,7 +33,9 @@ class DataflowAnalysisTest extends CompilerTest {
     TailCall
   )
 
-  val passConfig = new PassConfiguration
+  val passConfig = new PassConfiguration(
+    List(AliasAnalysis.Configuration())
+  )
 
   implicit val passManager: PassManager =
     new PassManager(precursorPasses, passConfig)

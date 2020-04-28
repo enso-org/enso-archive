@@ -6,7 +6,11 @@ import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
 import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
@@ -34,7 +38,9 @@ class TailCallTest extends CompilerTest {
     AliasAnalysis
   )
 
-  val passConfiguration = new PassConfiguration
+  val passConfiguration = new PassConfiguration(
+    List(AliasAnalysis.Configuration())
+  )
 
   val passManager = new PassManager(precursorPasses, passConfiguration)
 

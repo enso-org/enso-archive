@@ -62,7 +62,10 @@ class Compiler(
 
   /** Configuration for the passes. */
   val passConfig = new PassConfiguration(
-    List(ApplicationSaturation.Configuration())
+    List(
+      ApplicationSaturation.Configuration(),
+      AliasAnalysis.Configuration()
+    )
   )
 
   /** The pass manager for running compiler passes. */

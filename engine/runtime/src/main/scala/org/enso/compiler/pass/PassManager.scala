@@ -1,7 +1,11 @@
 package org.enso.compiler.pass
 
+import java.util.UUID
+
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+
+import scala.collection.mutable
 
 // TODO [AA] Needs to set the 'writeToContext' flag in pass configuration for
 //  the last exec of each pass
@@ -14,6 +18,26 @@ class PassManager(
   passOrdering: List[IRPass],
   passConfiguration: PassConfiguration
 ) {
+  sealed case class PassCount(available: Int = 1, completed: Int = 0)
+
+  /** Calculates the number of times each pass occurs in the pass ordering.
+    *
+    * @return the a mapping from the pass identifier to the number of times the
+    *         pass occurs
+    */
+  def calculatePassCounts: mutable.Map[UUID, PassCount] = {
+    val passCounts: mutable.Map[UUID, PassCount] = mutable.Map()
+
+    for (pass <- passOrdering) {
+      passCounts.get(pass.key) match {
+        case Some(counts) =>
+          passCounts(pass.key) = counts.copy(available = counts.available + 1)
+        case None => passCounts(pass.key) = PassCount()
+      }
+    }
+
+    passCounts
+  }
 
   // TODO [AA] Refactor common from this
   /** Executes the passes on an [[IR.Module]].

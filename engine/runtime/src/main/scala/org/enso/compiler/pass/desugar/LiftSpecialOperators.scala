@@ -8,7 +8,6 @@ import org.enso.compiler.pass.IRPass
   * implementation) into their own special IR constructs.
   */
 case object LiftSpecialOperators extends IRPass {
-
   /** A desugaring pass does not output any data. */
   override type Metadata = IR.Metadata.Empty
   override type Config = IRPass.Configuration.Default

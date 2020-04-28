@@ -23,7 +23,7 @@ import org.enso.compiler.pass.IRPass
   */
 case object LambdaConsolidate extends IRPass {
   override type Metadata = IR.Metadata.Empty
-  override type Config = IRPass.Configuration.Default
+  override type Config   = IRPass.Configuration.Default
 
   override def runModule(
     ir: IR.Module,

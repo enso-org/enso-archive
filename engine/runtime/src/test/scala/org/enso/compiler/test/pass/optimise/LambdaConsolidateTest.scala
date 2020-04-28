@@ -1,6 +1,13 @@
 package org.enso.compiler.test.pass.optimise
 
+import org.enso.compiler.context.InlineContext
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.compiler.test.CompilerTest
 
 class LambdaConsolidateTest extends CompilerTest {
@@ -18,11 +25,25 @@ class LambdaConsolidateTest extends CompilerTest {
 
   "thing" should {
     "thingy" in {
-      val empty = IR
-        .Empty(None)
-        .addMetadata[Foo, Bar](Bar(1))
-        .addMetadata[Foo, Baz](Baz(2))
-        .addMetadata[Quux, Quux](Quux(1))
+      implicit val inlineContext: InlineContext = InlineContext()
+
+      val passes: List[IRPass] = List(
+        GenerateMethodBodies,
+        LiftSpecialOperators,
+        OperatorToFunction,
+        OperatorToFunction,
+        GenerateMethodBodies,
+        GenerateMethodBodies
+      )
+
+      val passConfig = new PassConfiguration
+
+      implicit val passManager: PassManager =
+        new PassManager(passes, passConfig)
+
+      """
+        |x -> x
+        |""".stripMargin.preprocessExpression
     }
   }
 

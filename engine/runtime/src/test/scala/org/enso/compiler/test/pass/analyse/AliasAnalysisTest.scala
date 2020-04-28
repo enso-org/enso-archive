@@ -25,7 +25,9 @@ class AliasAnalysisTest extends CompilerTest {
     OperatorToFunction
   )
 
-  val passConfig = new PassConfiguration
+  val passConfig = new PassConfiguration(
+    List(AliasAnalysis.Configuration(true))
+  )
 
   implicit val passManager: PassManager =
     new PassManager(precursorPasses, passConfig)
@@ -41,7 +43,10 @@ class AliasAnalysisTest extends CompilerTest {
       * @return [[ir]], with attached aliasing information
       */
     def analyse: IR.Module = {
-      AliasAnalysis.runModule(ir, ModuleContext())
+      AliasAnalysis.runModule(
+        ir,
+        ModuleContext(passConfiguration = Some(passConfig))
+      )
     }
   }
 

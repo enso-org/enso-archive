@@ -40,16 +40,16 @@ case object AliasAnalysis extends IRPass {
   /** Alias information for the IR. */
   override type Metadata = Info
 
-  override type Config = IRPass.Configuration.Default
+  override type Config = Configuration
 
   /** Performs alias analysis on a module.
-   *
-   * @param ir the Enso IR to process
-   * @param moduleContext a context object that contains the information needed
-   *                      to process a module
-   * @return `ir`, possibly having made transformations or annotations to that
-   *         IR.
-   */
+    *
+    * @param ir the Enso IR to process
+    * @param moduleContext a context object that contains the information needed
+    *                      to process a module
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
@@ -69,7 +69,16 @@ case object AliasAnalysis extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression =
+  ): IR.Expression = {
+    val shouldWriteState =
+      inlineContext.passConfiguration
+        .flatMap(config => config.get[Config])
+        .getOrElse(
+          throw new CompilerError(
+            "Alias analysis execution missing configuration."
+          )
+        )
+
     inlineContext.localScope
       .map { localScope =>
         val scope  = localScope.scope
@@ -83,6 +92,7 @@ case object AliasAnalysis extends IRPass {
           "Local scope must be provided for alias analysis."
         )
       )
+  }
 
   /** Performs alias analysis on the module-level definitions.
     *
@@ -1042,4 +1052,16 @@ case object AliasAnalysis extends IRPass {
       ) extends Occurrence
     }
   }
+
+  // === Pass Configuration ===================================================
+
+  /** Configuration for the alias analysis pass.
+    *
+    * @param shouldWriteToContext whether the pass should write its results to
+    *                             the context or not
+    */
+  sealed case class Configuration(
+    override var shouldWriteToContext: Boolean = false
+  ) extends IRPass.Configuration
+
 }
