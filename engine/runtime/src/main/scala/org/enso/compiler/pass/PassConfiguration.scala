@@ -40,6 +40,9 @@ class PassConfiguration(
 
   /** Gets the configuration for the specified pass.
     *
+    * The output cast is intentionally unchecked, so a bad cast will be a
+    * compiler bug.
+    *
     * @param pass the pass to get the configuration for
     * @tparam T the expected type of the configuration, must be provided
     * @return the configuration for `pass`, if it exists

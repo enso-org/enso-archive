@@ -1,9 +1,6 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{
-  InterpreterException,
-  InterpreterTest,
-}
+import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
@@ -21,9 +18,11 @@ class StrictCompileErrorsTest extends InterpreterTest {
         |    x = ()
         |    x = 5
         |    y = @
-        |""".stripMargin.lines.mkString("\n")
+        |""".stripMargin.linesIterator.mkString("\n")
 
-    the[InterpreterException] thrownBy eval(code) should have message "Compilation aborted due to errors."
+    the[InterpreterException] thrownBy eval(code) should have message
+    "Compilation aborted due to errors."
+
     val _ :: errors = consumeOut
     errors.toSet shouldEqual Set(
       "Test[2:9-2:10]: Parentheses can't be empty.",

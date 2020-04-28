@@ -119,7 +119,7 @@ case object TailCall extends IRPass {
             TailPosition.fromBool(isInTailPosition)
           )
       case err: IR.Error =>
-        err.addMetadata(TailPosition.fromBool(isInTailPosition))
+        err.addMetadata[Metadata, Metadata](TailPosition.fromBool(isInTailPosition))
     }
   }
 

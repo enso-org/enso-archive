@@ -9,18 +9,14 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
-import org.enso.compiler.pass.IRPass
-
-import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse._
-
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
   LiftSpecialOperators,
   OperatorToFunction
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
@@ -69,7 +65,7 @@ class Compiler(
   val passConfig = new PassConfiguration(
     Map(
       ApplicationSaturation -> ApplicationSaturation.Configuration(),
-      AliasAnalysis -> AliasAnalysis.Configuration()
+      AliasAnalysis         -> AliasAnalysis.Configuration()
     )
   )
 
@@ -87,10 +83,11 @@ class Compiler(
     *         executable functionality in the module corresponding to `source`.
     */
   def run(source: Source, scope: ModuleScope): Unit = {
+    val moduleContext  = ModuleContext(Some(freshNameSupply))
     val parsedAST      = parse(source)
     val expr           = generateIR(parsedAST)
-    val compilerOutput = runCompilerPhases(expr)
-    runErrorHandling(compilerOutput, source)
+    val compilerOutput = runCompilerPhases(expr, moduleContext)
+    runErrorHandling(compilerOutput, source, moduleContext)
     truffleCodegen(compilerOutput, source, scope)
   }
 
@@ -212,9 +209,10 @@ class Compiler(
     * @param ir the compiler intermediate representation to transform
     * @return the output result of the
     */
-  def runCompilerPhases(ir: IR.Module): IR.Module = {
-    val moduleContext = ModuleContext(Some(freshNameSupply))
-
+  def runCompilerPhases(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
     passManager.runPassesOnModule(ir, moduleContext)
   }
 
@@ -260,11 +258,16 @@ class Compiler(
     *
     * @param ir the IR after compilation passes.
     * @param source the original source code.
+    * @param moduleContext the module context
     */
-  def runErrorHandling(ir: IR.Module, source: Source): Unit =
+  def runErrorHandling(
+    ir: IR.Module,
+    source: Source,
+    moduleContext: ModuleContext
+  ): Unit =
     if (context.isStrictErrors) {
       val errors = GatherErrors
-        .runModule(ir)
+        .runModule(ir, moduleContext)
         .unsafeGetMetadata[GatherErrors.Errors](
           "No errors metadata right after the gathering pass."
         )

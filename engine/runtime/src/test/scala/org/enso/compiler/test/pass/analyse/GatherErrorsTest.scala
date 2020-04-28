@@ -1,6 +1,6 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.CallArgument
 import org.enso.compiler.pass.analyse.GatherErrors
@@ -11,7 +11,7 @@ class GatherErrorsTest extends CompilerTest {
   "Error Gathering" should {
     val error1 = IR.Error.Redefined.Argument(
       IR.DefinitionArgument
-        .Specified(IR.Name.Literal("foo", None), None, false, None)
+        .Specified(IR.Name.Literal("foo", None), None, suspended = false, None)
     )
     val error2 = IR.Error.Syntax(
       AST.Invalid.Unrecognized("@@"),
@@ -24,13 +24,18 @@ class GatherErrorsTest extends CompilerTest {
         CallArgument.Specified(None, error1, None),
         CallArgument.Specified(None, error2, None)
       ),
-      false,
+      hasDefaultsSuspended = false,
       None
     )
     val lam = IR.Function.Lambda(
       List(
         IR.DefinitionArgument
-          .Specified(IR.Name.Literal("bar", None), None, false, None)
+          .Specified(
+            IR.Name.Literal("bar", None),
+            None,
+            suspended = false,
+            None
+          )
       ),
       plusApp,
       None
@@ -68,7 +73,7 @@ class GatherErrorsTest extends CompilerTest {
             typeName,
             List(
               IR.DefinitionArgument
-                .Specified(fooName, Some(error3), false, None)
+                .Specified(fooName, Some(error3), suspended = false, None)
             ),
             None
           ),
@@ -78,7 +83,7 @@ class GatherErrorsTest extends CompilerTest {
         None
       )
 
-      val result = GatherErrors.runModule(module)
+      val result = GatherErrors.runModule(module, ModuleContext())
       val errors = result
         .unsafeGetMetadata[GatherErrors.Errors]("Impossible")
         .errors
