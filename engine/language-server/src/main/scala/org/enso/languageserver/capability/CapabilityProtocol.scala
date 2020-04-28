@@ -9,11 +9,11 @@ object CapabilityProtocol {
   /**
     * Requests the Language Server grant a new capability to a client.
     *
-    * @param client the client to grant the capability to.
+    * @param rpcSession the client to grant the capability to.
     * @param registration the capability to grant.
     */
   case class AcquireCapability(
-    client: RpcSession,
+    rpcSession: RpcSession,
     registration: CapabilityRegistration
   )
 
@@ -43,11 +43,11 @@ object CapabilityProtocol {
   /**
     * Notifies the Language Server about a client releasing a capability.
     *
-    * @param clientId the client releasing the capability.
+    * @param rpcSession the client releasing the capability.
     * @param capability the capability being released.
     */
   case class ReleaseCapability(
-    clientId: RpcSession,
+    rpcSession: RpcSession,
     capability: CapabilityRegistration
   )
 

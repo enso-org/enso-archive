@@ -75,13 +75,13 @@ object DestroyHandler {
     *
     * @param timeout request timeout
     * @param contextRegistry a reference to the context registry.
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     */
   def props(
     timeout: FiniteDuration,
     contextRegistry: ActorRef,
-    client: RpcSession
+    rpcSession: RpcSession
   ): Props =
-    Props(new DestroyHandler(timeout, contextRegistry, client))
+    Props(new DestroyHandler(timeout, contextRegistry, rpcSession))
 
 }

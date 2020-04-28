@@ -80,16 +80,16 @@ object ReleaseCapabilityHandler {
     *
     * @param capabilityRouter a router that dispatches capability requests
     * @param requestTimeout a request timeout
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     * @return a configuration object
     */
   def props(
     capabilityRouter: ActorRef,
     requestTimeout: FiniteDuration,
-    client: RpcSession
+    rpcSession: RpcSession
   ): Props =
     Props(
-      new ReleaseCapabilityHandler(capabilityRouter, requestTimeout, client)
+      new ReleaseCapabilityHandler(capabilityRouter, requestTimeout, rpcSession)
     )
 
 }
