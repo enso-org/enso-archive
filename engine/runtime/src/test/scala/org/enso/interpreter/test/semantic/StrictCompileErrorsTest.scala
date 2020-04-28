@@ -6,8 +6,6 @@ import org.enso.interpreter.test.{
 }
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.Context
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 
 class StrictCompileErrorsTest extends InterpreterTest {
   override val ctx: Context = Context

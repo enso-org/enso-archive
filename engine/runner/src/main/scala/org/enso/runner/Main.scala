@@ -212,7 +212,7 @@ object Main {
       mainFun.execute(mainCons.newInstance())
     } catch {
       case e: PolyglotException =>
-        println(e.getMessage)
+        System.err.println(e.getMessage)
         exitFail()
         throw new RuntimeException("Impossible to reach here.")
     }
