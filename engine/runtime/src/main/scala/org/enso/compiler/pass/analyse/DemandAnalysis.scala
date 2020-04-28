@@ -16,6 +16,7 @@ import org.enso.compiler.pass.IRPass
   */
 case object DemandAnalysis extends IRPass {
   override type Metadata = IR.Metadata.Empty
+  override type Config = IRPass.Configuration.Default
 
   /** Executes the demand analysis process on an Enso module.
    *

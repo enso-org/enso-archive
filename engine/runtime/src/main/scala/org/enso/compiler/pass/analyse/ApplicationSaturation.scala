@@ -14,12 +14,15 @@ import org.enso.interpreter.runtime.callable.argument.CallArgument
   * @param knownFunctions a mapping from known function names to information
   *                       about that function that can be used for optimisation
   */
+// TODO [AA] Use the new config mechanism
 case class ApplicationSaturation(
   knownFunctions: PassConfiguration = Default.Config
 ) extends IRPass {
 
   /** Information on the saturation state of a function. */
   override type Metadata = CallSaturation
+
+  override type Config = IRPass.Configuration.Default
 
   /** Executes the analysis pass, marking functions with information about their
     * argument saturation.

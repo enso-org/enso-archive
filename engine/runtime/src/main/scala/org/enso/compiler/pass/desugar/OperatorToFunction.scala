@@ -10,6 +10,8 @@ case object OperatorToFunction extends IRPass {
   /** A purely desugaring pass has no analysis output. */
   override type Metadata = IR.Metadata.Empty
 
+  override type Config = IRPass.Configuration.Default
+
   /** Executes the conversion pass.
    *
    * @param ir the Enso IR to process

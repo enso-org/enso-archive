@@ -18,6 +18,8 @@ case object GenerateMethodBodies extends IRPass {
   /** This is a desugaring pass and performs no analysis */
   override type Metadata = IR.Metadata.Empty
 
+  override type Config = IRPass.Configuration.Default
+
   /** Generates and consolidates method bodies.
    *
    * @param ir the Enso IR to process

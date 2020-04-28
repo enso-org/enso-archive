@@ -3,11 +3,18 @@ package org.enso.compiler.pass
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 
-/** A representation of a compiler pass that runs on the [[IR]] type. */
+/** A representation of a compiler pass that runs on the [[IR]] type.
+  *
+  * Passes that depend on the metadata of other passes should pull this metadata
+  * directly from the IR, and not depend on metadata available in the context.
+  */
 trait IRPass {
 
   /** The type of the metadata object that the pass writes to the IR. */
   type Metadata <: IR.Metadata
+
+  /** The type of configuration for the pass. */
+  type Config <: IRPass.Configuration
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
@@ -33,4 +40,18 @@ trait IRPass {
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression
+}
+object IRPass {
+
+  /** A representation of configuration for a given pass. */
+  trait Configuration {
+
+    /** Whether or not the pass should write to the context. */
+    val shouldWriteToContext: Boolean
+  }
+  object Configuration {
+    case class Default() extends Configuration {
+      override val shouldWriteToContext: Boolean = false
+    }
+  }
 }

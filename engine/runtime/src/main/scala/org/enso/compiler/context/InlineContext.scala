@@ -1,6 +1,5 @@
 package org.enso.compiler.context
 
-import org.enso.compiler.pass.FreshNameSupply
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** A type containing the information about the execution context for an inline

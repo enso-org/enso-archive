@@ -16,6 +16,8 @@ case object TailCall extends IRPass {
   /** The annotation metadata type associated with IR nodes by this pass. */
   override type Metadata = TailPosition
 
+  override type Config = IRPass.Configuration.Default
+
   /** Analyses tail call state for expressions in a module.
    *
    * @param ir the Enso IR to process

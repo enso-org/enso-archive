@@ -20,6 +20,7 @@ import scala.collection.mutable
 //noinspection DuplicatedCode
 case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
+  override type Config = IRPass.Configuration.Default
 
   /** Executes the dataflow analysis process on an Enso module.
    *

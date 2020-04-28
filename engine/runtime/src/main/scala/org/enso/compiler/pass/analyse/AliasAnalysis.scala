@@ -40,6 +40,8 @@ case object AliasAnalysis extends IRPass {
   /** Alias information for the IR. */
   override type Metadata = Info
 
+  override type Config = IRPass.Configuration.Default
+
   /** Performs alias analysis on a module.
    *
    * @param ir the Enso IR to process

@@ -4,10 +4,15 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
+/* TODO [AA] Need to run alias analysis multiple times.
+ *
+ * - The problem occurs in the inline flow, where it _mutates_ the provided
+ *   aliasing graph. This needs to happen _only_ on the last time.
+ */
+
 // TODO [AA] Add the concept of a `Warning` to the codebase
 // TODO [AA] Introduce a warning if a lambda chain shadows a var
 // TODO [AA] Account for defaults
-// TODO [AA] Re-make it possible to run alias analysis multiple times
 /** This pass consolidates chains of lambdas into multi-argument lambdas
   * internally.
   *
@@ -18,6 +23,7 @@ import org.enso.compiler.pass.IRPass
   */
 case object LambdaConsolidate extends IRPass {
   override type Metadata = IR.Metadata.Empty
+  override type Config = IRPass.Configuration.Default
 
   override def runModule(
     ir: IR.Module,
