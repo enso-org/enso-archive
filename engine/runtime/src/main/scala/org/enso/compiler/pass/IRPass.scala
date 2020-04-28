@@ -5,8 +5,6 @@ import java.util.UUID
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 
-import scala.reflect.ClassTag
-
 /** A representation of a compiler pass that runs on the [[IR]] type.
   *
   * Passes that depend on the metadata of other passes should pull this metadata
@@ -17,14 +15,13 @@ import scala.reflect.ClassTag
 trait IRPass {
 
   /** An identifier for the pass. Useful for keying it in maps. */
-  val key: UUID = UUID.randomUUID()
+  val key: IRPass.Identifier = IRPass.genId
 
   /** The type of the metadata object that the pass writes to the IR. */
   type Metadata <: IR.Metadata
 
   /** The type of configuration for the pass. */
   type Config <: IRPass.Configuration
-//  implicit val configClassTag: ClassTag[Config]
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
@@ -52,6 +49,16 @@ trait IRPass {
   ): IR.Expression
 }
 object IRPass {
+
+  type Identifier = UUID
+
+  /** Generates a pass identifier.
+   *
+   * @return a new pass identifier
+   */
+  def genId: Identifier = {
+    UUID.randomUUID()
+  }
 
   /** A representation of configuration for a given pass.
     *

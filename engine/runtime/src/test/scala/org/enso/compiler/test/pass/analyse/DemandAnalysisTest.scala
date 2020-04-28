@@ -25,7 +25,7 @@ class DemandAnalysisTest extends CompilerTest {
   )
 
   val passConfig = new PassConfiguration(
-    List(AliasAnalysis.Configuration())
+    Map(AliasAnalysis -> AliasAnalysis.Configuration())
   )
 
   implicit val passManager: PassManager =

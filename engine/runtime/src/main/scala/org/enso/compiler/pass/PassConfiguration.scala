@@ -3,79 +3,50 @@ package org.enso.compiler.pass
 import shapeless.=:!=
 
 import scala.annotation.unused
-import scala.reflect.ClassTag
 
 /** Stores configuration for the various compiler passes.
- *
- * @param config the initial pass configurations
- */
-class PassConfiguration(config: List[IRPass.Configuration] = List()){
-  private var configuration: List[IRPass.Configuration] = config
+  *
+  * @param config the initial pass configurations
+  */
+class PassConfiguration(
+  config: Map[IRPass, IRPass.Configuration] = Map()
+) {
+  private var configuration: Map[IRPass, IRPass.Configuration] =
+    config
 
-  /** Adds a new configuration entity to the pass configuration.
+  /** Adds a new configuration entity to the pass configuration, or updates it
+    * if it already exists for a given pass.
     *
-    * The configuration is added such that later-added configuration will be
-    * found first.
-    *
+    * @param pass the pass to add the configuration for
     * @param config the configuration to add
     */
-  def add(config: IRPass.Configuration): Unit = {
-    configuration = config :: configuration
+  def update(pass: IRPass, config: IRPass.Configuration): Unit = {
+    configuration = configuration + (pass -> config)
   }
 
-  /** Removes the first entry of type `T` from the list.
+  /** Removes the configuration for the specified pass from the list.
     *
-    * @param ev ensures that `T` is not inferred
-    * @tparam T the type of configuration to remove
-    * @return the removed configuration, if it exists
+    * @param pass the pass to remove configuration for
+    * @return the removed configuration for that pass, if it exists
     */
-  def remove[T <: IRPass.Configuration: ClassTag](
-    implicit @unused ev: T =:!= IRPass.Configuration
-  ): Option[T] = {
-    configuration.collectFirst { case c: T => c } match {
-      case r @ Some(config) =>
-        configuration = configuration.filterNot(_ == config)
-        r
+  def remove(pass: IRPass): Option[IRPass.Configuration] = {
+    configuration.get(pass) match {
+      case res @ Some(_) =>
+        configuration = configuration.filterNot(pair => pair._1 == pass)
+        res
       case None => None
     }
   }
 
-  /** Replaces the configuration specified by the type `T` with `ev`.
+  /** Gets the configuration for the specified pass.
     *
-    * @param config the updated configuration to replace `T` with
-    * @param ev ensures that `T` is not inferred
-    * @tparam T the type of configuration to replace
+    * @param pass the pass to get the configuration for
+    * @tparam T the expected type of the configuration, must be provided
+    * @return the configuration for `pass`, if it exists
     */
-  def replace[T <: IRPass.Configuration: ClassTag](
-    config: IRPass.Configuration
-  )(
-    implicit @unused ev: T =:!= IRPass.Configuration
-  ): Unit = {
-    remove[T]: Unit
-    add(config)
-  }
-
-  /** Gets the most recently added configuration of the specified type.
-    *
-    * @param ev ensures that the configuration type cannot be inferred
-    * @tparam T the type of configuration to get
-    * @return the configuration of type `T`, if it exists
-    */
-  def get[T <: IRPass.Configuration: ClassTag](
-    implicit @unused ev: T =:!= IRPass.Configuration
-  ): Option[T] = {
-    configuration.collectFirst { case c: T => c }
-  }
-
-  /** Gets all the configuration of the specified type.
-    *
-    * @param ev ensures that the configuration type cannot be inferred
-    * @tparam T the type of configuration to get
-    * @return all configuration of type `T`
-    */
-  def getAll[T <: IRPass.Configuration: ClassTag](
-    implicit @unused ev: T =:!= IRPass.Configuration
-  ): List[T] = {
-    configuration.collect { case c: T => c }
+  def get[T <: IRPass.Configuration](
+    pass: IRPass
+  )(implicit @unused ev: T =:!= IRPass.Configuration): Option[T] = {
+    configuration.get(pass).map(_.asInstanceOf[T])
   }
 }

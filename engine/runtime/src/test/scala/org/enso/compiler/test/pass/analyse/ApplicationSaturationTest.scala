@@ -3,7 +3,10 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Metadata
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, FunctionSpec}
+import org.enso.compiler.pass.analyse.ApplicationSaturation.{
+  CallSaturation,
+  FunctionSpec
+}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.pass.{PassConfiguration, PassManager}
@@ -58,7 +61,10 @@ class ApplicationSaturationTest extends CompilerTest {
   )
 
   val knownPassConfig = new PassConfiguration(
-    List(knownFunctions, AliasAnalysis.Configuration())
+    Map(
+      ApplicationSaturation -> knownFunctions,
+      AliasAnalysis         -> AliasAnalysis.Configuration()
+    )
   )
   val passManagerKnown = new PassManager(passes, knownPassConfig)
 

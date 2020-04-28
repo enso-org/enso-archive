@@ -72,7 +72,7 @@ case object AliasAnalysis extends IRPass {
   ): IR.Expression = {
     val shouldWriteState =
       inlineContext.passConfiguration
-        .flatMap(config => config.get[Config])
+        .flatMap(config => config.get[Config](this))
         .getOrElse(
           throw new CompilerError(
             "Alias analysis execution missing configuration."

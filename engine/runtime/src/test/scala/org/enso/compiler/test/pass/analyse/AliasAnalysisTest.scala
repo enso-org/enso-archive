@@ -26,7 +26,7 @@ class AliasAnalysisTest extends CompilerTest {
   )
 
   val passConfig = new PassConfiguration(
-    List(AliasAnalysis.Configuration(true))
+    Map(AliasAnalysis -> AliasAnalysis.Configuration(true))
   )
 
   implicit val passManager: PassManager =

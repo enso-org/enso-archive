@@ -78,9 +78,9 @@ class PassManager(
       val passCount = passCounts(pass.key)
 
       if (passCount.available - passCount.completed == 1) {
-        passConfiguration
-          .get[pass.Config]
-          .foreach(c => c.shouldWriteToContext = true)
+//        passConfiguration
+//          .get[pass.Config]
+//          .foreach(c => c.shouldWriteToContext = true)
       }
       val result = pass.runExpression(intermediateIR, newContext)
 
