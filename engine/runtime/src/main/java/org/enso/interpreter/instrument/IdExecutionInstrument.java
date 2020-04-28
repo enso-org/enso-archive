@@ -8,8 +8,11 @@ import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.HashMap;
+import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 
@@ -41,6 +44,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
   public static class ExpressionCall {
     private UUID expressionId;
     private FunctionCallInstrumentationNode.FunctionCall call;
+    private Module module;
 
     /**
      * Creates an instance of this class.
@@ -69,6 +73,26 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final UUID expressionId;
     private final String type;
     private final Object value;
+    private final FunctionCallInstrumentationNode.FunctionCall call;
+
+    /**
+     * Creates a new instance of this class.
+     *
+     * @param expressionId the id of the expression being computed.
+     * @param type of the computed expression.
+     * @param value the value returned by computing the expression.
+     * @param call the function call data.
+     */
+    public ExpressionValue(
+        UUID expressionId,
+        String type,
+        Object value,
+        FunctionCallInstrumentationNode.FunctionCall call) {
+      this.expressionId = expressionId;
+      this.type = type;
+      this.value = value;
+      this.call = call;
+    }
 
     /**
      * Creates a new instance of this class.
@@ -78,9 +102,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param value the value returned by computing the expression.
      */
     public ExpressionValue(UUID expressionId, String type, Object value) {
-      this.expressionId = expressionId;
-      this.type = type;
-      this.value = value;
+      this(expressionId, type, value, null);
     }
 
     /** @return the id of the expression computed. */
@@ -97,6 +119,11 @@ public class IdExecutionInstrument extends TruffleInstrument {
     /** @return the computed value of the expression. */
     public Object getValue() {
       return value;
+    }
+
+    /** @return the function call data. */
+    public FunctionCallInstrumentationNode.FunctionCall getCall() {
+      return call;
     }
   }
 
@@ -136,6 +163,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
+    private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls;
 
     /**
      * Creates a new listener.
@@ -151,6 +179,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       this.entryCallTarget = entryCallTarget;
       this.functionCallCallback = functionCallCallback;
       this.valueCallback = valueCallback;
+      this.calls = new HashMap<UUID, FunctionCallInstrumentationNode.FunctionCall>();
     }
 
     @Override
@@ -172,14 +201,17 @@ public class IdExecutionInstrument extends TruffleInstrument {
       Node node = context.getInstrumentedNode();
       if (node instanceof FunctionCallInstrumentationNode
           && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
-        functionCallCallback.accept(
+        ExpressionCall expressionCall =
             new ExpressionCall(
                 ((FunctionCallInstrumentationNode) node).getId(),
-                (FunctionCallInstrumentationNode.FunctionCall) result));
+                (FunctionCallInstrumentationNode.FunctionCall) result);
+        calls.put(expressionCall.getExpressionId(), expressionCall.getCall());
+        functionCallCallback.accept(expressionCall);
       } else if (node instanceof ExpressionNode) {
+        UUID nodeId = ((ExpressionNode) node).getId();
         valueCallback.accept(
             new ExpressionValue(
-                ((ExpressionNode) node).getId(), Types.getName(result).orElse(null), result));
+                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
       }
     }
 

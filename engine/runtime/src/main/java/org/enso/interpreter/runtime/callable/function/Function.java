@@ -27,6 +27,7 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
+import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
@@ -35,6 +36,7 @@ public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
+  private final QualifiedName moduleName;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
   private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
 
@@ -55,11 +57,13 @@ public final class Function implements TruffleObject {
       RootCallTarget callTarget,
       MaterializedFrame scope,
       FunctionSchema schema,
+      QualifiedName moduleName,
       Object[] preappliedArguments,
       Object[] oversaturatedArguments) {
     this.callTarget = callTarget;
     this.scope = scope;
     this.schema = schema;
+    this.moduleName = moduleName;
     this.preAppliedArguments = preappliedArguments;
     this.oversaturatedArguments = oversaturatedArguments;
   }
@@ -70,9 +74,21 @@ public final class Function implements TruffleObject {
    * @param callTarget the target containing the function's code
    * @param scope a frame representing the function's scope
    * @param schema the {@link FunctionSchema} with which the function was defined
+   * @param moduleName the module where the function was defined
+   */
+  public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema, QualifiedName moduleName) {
+    this(callTarget, scope, schema, moduleName, null, null);
+  }
+
+  /**
+   * Creates a new function without any partially applied arguments.
+   *
+   * @param callTarget the target containing the function's code
+   * @param scope a frame representing the function's scope
+   * @param schema the {@link FunctionSchema} with which the function was defined
    */
   public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema) {
-    this(callTarget, scope, schema, null, null);
+    this(callTarget, scope, schema, null, null, null);
   }
 
   /**
@@ -121,6 +137,11 @@ public final class Function implements TruffleObject {
   /** @return the name of this function. */
   public String getName() {
     return getCallTarget().getRootNode().getName();
+  }
+
+  /** @return the module where this function was defined. */
+  public QualifiedName getModuleName() {
+    return moduleName;
   }
 
   /** @return the source section this function was defined in. */

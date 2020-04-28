@@ -131,6 +131,14 @@ public class Module implements TruffleObject {
     this.isParsed = false;
   }
 
+  /** @return the location of this module. */
+  public String getPath() {
+    if (sourceFile != null) {
+      return sourceFile.getPath();
+    }
+    return null;
+  }
+
   /**
    * Parses the module sources. The results of this operation are cached.
    *

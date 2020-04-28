@@ -183,6 +183,9 @@ case class Package(root: File, config: Config) {
 case class QualifiedName(path: List[String], module: String) {
   override def toString: String =
     (path :+ module).mkString(qualifiedNameSeparator)
+
+  def getParent: Option[QualifiedName] =
+    path.headOption.map(QualifiedName(path.tail, _))
 }
 
 object QualifiedName {

@@ -14,7 +14,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 /** A representation of Enso's per-file top-level scope. */
 public class ModuleScope {
   private final AtomConstructor associatedType;
-  private Module module;
+  private final Module module;
   private Map<String, AtomConstructor> constructors = new HashMap<>();
   private Map<AtomConstructor, Map<String, Function>> methods = new HashMap<>();
   private Set<ModuleScope> imports = new HashSet<>();
@@ -41,6 +41,11 @@ public class ModuleScope {
   /** @return the associated type of this module. */
   public AtomConstructor getAssociatedType() {
     return associatedType;
+  }
+
+  /** @return the module associated with this scope. */
+  public Module getModule() {
+    return module;
   }
 
   /**
