@@ -43,15 +43,18 @@ trait IRPass {
 }
 object IRPass {
 
-  /** A representation of configuration for a given pass. */
+  /** A representation of configuration for a given pass.
+    *
+    * Configuration must be able to be compared for equality.
+    */
   trait Configuration {
 
     /** Whether or not the pass should write to the context. */
-    val shouldWriteToContext: Boolean
+    var shouldWriteToContext: Boolean
   }
   object Configuration {
     case class Default() extends Configuration {
-      override val shouldWriteToContext: Boolean = false
+      override var shouldWriteToContext: Boolean = false
     }
   }
 }

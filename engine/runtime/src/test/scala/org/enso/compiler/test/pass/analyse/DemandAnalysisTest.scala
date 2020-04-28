@@ -2,9 +2,13 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
@@ -13,12 +17,17 @@ class DemandAnalysisTest extends CompilerTest {
   // === Test Setup ===========================================================
 
   /** The passes that must be run before the demand analysis pass. */
-  implicit val precursorPasses: List[IRPass] = List(
+  val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis
   )
+
+  val passConfig = new PassConfiguration
+
+  implicit val passManager: PassManager =
+    new PassManager(precursorPasses, passConfig)
 
   /** Adds an extension method to run alias analysis on an [[IR.Module]].
     *

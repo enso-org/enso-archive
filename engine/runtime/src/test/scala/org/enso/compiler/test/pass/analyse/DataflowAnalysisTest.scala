@@ -2,10 +2,19 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
-import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, DemandAnalysis, TailCall}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.analyse.{
+  AliasAnalysis,
+  DataflowAnalysis,
+  DemandAnalysis,
+  TailCall
+}
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.scalatest.Assertion
@@ -15,7 +24,7 @@ class DataflowAnalysisTest extends CompilerTest {
   // === Test Setup ===========================================================
 
   /** The passes that must be run before the dataflow analysis pass. */
-  implicit val precursorPasses: List[IRPass] = List(
+  val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
@@ -23,6 +32,11 @@ class DataflowAnalysisTest extends CompilerTest {
     DemandAnalysis,
     TailCall
   )
+
+  val passConfig = new PassConfiguration
+
+  implicit val passManager: PassManager =
+    new PassManager(precursorPasses, passConfig)
 
   /** Generates an identifier dependency.
     *

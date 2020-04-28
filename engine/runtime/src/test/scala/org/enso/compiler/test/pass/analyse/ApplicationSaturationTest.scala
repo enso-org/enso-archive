@@ -1,11 +1,15 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.context.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Metadata
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, FunctionSpec, PassConfiguration}
+import org.enso.compiler.pass.analyse.ApplicationSaturation.{
+  CallSaturation,
+  FunctionSpec
+}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.{PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.node.ExpressionNode
 import org.enso.interpreter.runtime.callable.argument.CallArgument
@@ -41,11 +45,14 @@ class ApplicationSaturationTest extends CompilerTest {
   // The functions are unused, so left undefined for ease of testing
   def dummyFn(@unused args: List[CallArgument]): ExpressionNode = ???
 
-  val knownFunctions: PassConfiguration = Map(
-    "+"   -> FunctionSpec(2, dummyFn),
-    "baz" -> FunctionSpec(3, dummyFn),
-    "foo" -> FunctionSpec(4, dummyFn)
-  )
+  val knownFunctions: ApplicationSaturation.Configuration =
+    ApplicationSaturation.Configuration(
+      Map(
+        "+"   -> FunctionSpec(2, dummyFn),
+        "baz" -> FunctionSpec(3, dummyFn),
+        "foo" -> FunctionSpec(4, dummyFn)
+      )
+    )
 
   val passes = List(
     LiftSpecialOperators,
@@ -53,9 +60,17 @@ class ApplicationSaturationTest extends CompilerTest {
     AliasAnalysis
   )
 
-  val localScope = Some(LocalScope.root)
+  val knownPassConfig  = new PassConfiguration(List(knownFunctions))
+  val passManagerKnown = new PassManager(passes, knownPassConfig)
 
-  val ctx = new InlineContext(localScope = localScope)
+  val localScope: Option[LocalScope] = Some(LocalScope.root)
+
+  val knownCtx = new InlineContext(
+    localScope        = localScope,
+    passConfiguration = Some(knownPassConfig)
+  )
+
+  val moduleCtx = new ModuleContext(passConfiguration = Some(knownPassConfig))
 
   // === The Tests ============================================================
 
@@ -67,7 +82,7 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     val bazFn = IR.Application
@@ -77,7 +92,7 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     val fooFn = IR.Application
@@ -87,7 +102,7 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     val fooFnByName = IR.Application
@@ -97,12 +112,12 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     "be tagged with full saturation where possible" in {
       val resultIR =
-        ApplicationSaturation(knownFunctions).runExpression(plusFn, ctx)
+        ApplicationSaturation.runExpression(plusFn, knownCtx)
 
       resultIR.getMetadata[CallSaturation].foreach {
         case _: CallSaturation.Exact => succeed
@@ -112,7 +127,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "be tagged with partial saturation where possible" in {
       val resultIR =
-        ApplicationSaturation(knownFunctions).runExpression(bazFn, ctx)
+        ApplicationSaturation.runExpression(bazFn, knownCtx)
       val expected = Some(CallSaturation.Partial(1))
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
@@ -120,7 +135,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "be tagged with over saturation where possible" in {
       val resultIR =
-        ApplicationSaturation(knownFunctions).runExpression(fooFn, ctx)
+        ApplicationSaturation.runExpression(fooFn, knownCtx)
       val expected = Some(CallSaturation.Over(1))
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
@@ -128,7 +143,7 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "be tagged with by name if applied by name" in {
       val resultIR =
-        ApplicationSaturation(knownFunctions).runExpression(fooFnByName, ctx)
+        ApplicationSaturation.runExpression(fooFnByName, knownCtx)
       val expected = Some(CallSaturation.ExactButByName())
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
@@ -143,12 +158,12 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     "be tagged with unknown saturation" in {
       val resultIR =
-        ApplicationSaturation(knownFunctions).runExpression(unknownFn, ctx)
+        ApplicationSaturation.runExpression(unknownFn, knownCtx)
       val expected = Some(CallSaturation.Unknown())
 
       resultIR.getMetadata[CallSaturation] shouldEqual expected
@@ -164,7 +179,7 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     val undersaturatedPlus = IR.Application
@@ -174,7 +189,7 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     val oversaturatedPlus = IR.Application
@@ -184,7 +199,7 @@ class ApplicationSaturationTest extends CompilerTest {
         hasDefaultsSuspended = false,
         None
       )
-      .runPasses(passes, ctx)
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Application.Prefix]
 
     implicit class InnerMeta(ir: IR.Expression) {
@@ -209,16 +224,13 @@ class ApplicationSaturationTest extends CompilerTest {
           hasDefaultsSuspended = false,
           None
         )
-        .runPasses(passes, ctx)
+        .runPasses(passManagerKnown, knownCtx)
         .asInstanceOf[IR.Application.Prefix]
     }
 
     "have fully saturated applications tagged correctly" in {
       val result =
-        ApplicationSaturation(knownFunctions).runExpression(
-          outerPlus(knownPlus),
-          ctx
-        )
+        ApplicationSaturation.runExpression(outerPlus(knownPlus), knownCtx)
 
       // The outer should be reported as fully saturated
       result.getMetadata[CallSaturation].foreach {
@@ -235,9 +247,9 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "have non-fully saturated applications tagged correctly" in {
       val result =
-        ApplicationSaturation(knownFunctions).runExpression(
+        ApplicationSaturation.runExpression(
           outerPlus(undersaturatedPlus),
-          ctx
+          knownCtx
         )
       val expectedInnerMeta = CallSaturation.Partial(1)
 
@@ -255,9 +267,9 @@ class ApplicationSaturationTest extends CompilerTest {
 
     "have a mixture of application saturations tagged correctly" in {
       val result =
-        ApplicationSaturation(knownFunctions).runExpression(
+        ApplicationSaturation.runExpression(
           outerPlus(oversaturatedPlus),
-          ctx
+          knownCtx
         )
       val expectedInnerMeta = CallSaturation.Over(1)
 
@@ -281,14 +293,14 @@ class ApplicationSaturationTest extends CompilerTest {
         |    foo = x y z -> x + y + z
         |
         |    foo a b c
-        |""".stripMargin.toIR
+        |""".stripMargin.toIrExpression
 
-    val inputIR = rawIR
-      .runPasses(passes, ctx)
+    val inputIR = rawIR.get
+      .runPasses(passManagerKnown, knownCtx)
       .asInstanceOf[IR.Expression]
 
-    val result = ApplicationSaturation(knownFunctions)
-      .runExpression(inputIR, ctx)
+    val result = ApplicationSaturation
+      .runExpression(inputIR, knownCtx)
       .asInstanceOf[IR.Expression.Binding]
 
     "be tagged as unknown even if their name is known" in {

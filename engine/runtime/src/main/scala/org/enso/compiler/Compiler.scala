@@ -55,14 +55,17 @@ class Compiler(
     LambdaConsolidate,
     AliasAnalysis,
     DemandAnalysis,
-    // TODO [AA] Remove this param section
-    ApplicationSaturation(),
+    ApplicationSaturation,
     TailCall,
     DataflowAnalysis
   )
 
-  val passConfig = new PassConfiguration
+  /** Configuration for the passes. */
+  val passConfig = new PassConfiguration(
+    List(ApplicationSaturation.Configuration())
+  )
 
+  /** The pass manager for running compiler passes. */
   val passManager: PassManager =
     new PassManager(compilerPhaseOrdering, passConfig)
 

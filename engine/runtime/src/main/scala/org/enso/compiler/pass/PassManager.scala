@@ -3,10 +3,8 @@ package org.enso.compiler.pass
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 
-// TODO [AA] Passes should have a configuration
-// TODO [AA] Needs to set the 'writeToContext' flag in pass configuration for the last exec of each pass
-// TODO [AA] Create a `PassConfiguration` which is passed to the various passes.
-//  Should be keyed on the pass name
+// TODO [AA] Needs to set the 'writeToContext' flag in pass configuration for
+//  the last exec of each pass
 /** The pass manager is responsible for executing the provided passes in order.
   *
   * @param passOrdering the specification of the ordering for the passes
@@ -28,8 +26,11 @@ class PassManager(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
+    val newContext =
+      moduleContext.copy(passConfiguration = Some(passConfiguration))
+
     passOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runModule(intermediateIR, moduleContext)
+      pass.runModule(intermediateIR, newContext)
     )
   }
 
@@ -44,8 +45,11 @@ class PassManager(
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
+    val newContext =
+      inlineContext.copy(passConfiguration = Some(passConfiguration))
+
     passOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runExpression(intermediateIR, inlineContext)
+      pass.runExpression(intermediateIR, newContext)
     )
   }
 }

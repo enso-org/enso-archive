@@ -4,18 +4,10 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  ApplicationSaturation,
-  TailCall
-}
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LiftSpecialOperators,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
@@ -39,9 +31,12 @@ class TailCallTest extends CompilerTest {
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
-    AliasAnalysis,
-    ApplicationSaturation()
+    AliasAnalysis
   )
+
+  val passConfiguration = new PassConfiguration
+
+  val passManager = new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method to preprocess source code as an Enso module.
     *
@@ -55,7 +50,7 @@ class TailCallTest extends CompilerTest {
       */
     def runTCAModule: IR.Module = {
       val preprocessed = code.toIrModule
-        .runPasses(precursorPasses, tailCtx)
+        .runPasses(passManager, ModuleContext())
         .asInstanceOf[IR.Module]
 
       TailCall.runModule(preprocessed, modCtx)
@@ -77,7 +72,7 @@ class TailCallTest extends CompilerTest {
         .getOrElse(
           throw new CompilerError("Code was not a valid expression.")
         )
-        .runPasses(precursorPasses, context)
+        .runPasses(passManager, context)
         .asInstanceOf[IR.Expression]
 
       TailCall.runExpression(preprocessed, context)

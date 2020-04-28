@@ -3,11 +3,15 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.compiler.test.CompilerTest
 
 class AliasAnalysisTest extends CompilerTest {
@@ -15,11 +19,16 @@ class AliasAnalysisTest extends CompilerTest {
   // === Utilities ============================================================
 
   /** The passes that need to be run before the alias analysis pass. */
-  implicit val precursorPasses: List[IRPass] = List(
+  val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction
   )
+
+  val passConfig = new PassConfiguration
+
+  implicit val passManager: PassManager =
+    new PassManager(precursorPasses, passConfig)
 
   /** Adds an extension method to run alias analysis on an [[IR.Module]].
     *
