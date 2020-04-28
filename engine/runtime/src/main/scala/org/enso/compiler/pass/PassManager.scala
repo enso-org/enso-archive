@@ -7,13 +7,12 @@ import org.enso.compiler.core.IR
 
 import scala.collection.mutable
 
-// TODO [AA] Needs to set the 'writeToContext' flag in pass configuration for
-//  the last exec of each pass
 /** The pass manager is responsible for executing the provided passes in order.
   *
   * @param passOrdering the specification of the ordering for the passes
   * @param passConfiguration the configuration for the passes
   */
+//noinspection DuplicatedCode
 class PassManager(
   passOrdering: List[IRPass],
   passConfiguration: PassConfiguration
@@ -50,12 +49,27 @@ class PassManager(
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module = {
+    val passCounts = calculatePassCounts
+
     val newContext =
       moduleContext.copy(passConfiguration = Some(passConfiguration))
 
-    passOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runModule(intermediateIR, newContext)
-    )
+    passOrdering.foldLeft(ir)((intermediateIR, pass) => {
+      val passCount = passCounts(pass.key)
+
+      passConfiguration
+        .get[pass.Config](pass)
+        .foreach(c =>
+          c.shouldWriteToContext =
+            passCount.available - passCount.completed == 1
+        )
+
+      val result = pass.runModule(intermediateIR, newContext)
+
+      passCounts(pass.key) = passCount.copy(completed = passCount.completed + 1)
+
+      result
+    })
   }
 
   /** Executes the passes on an [[IR.Expression]].
@@ -77,11 +91,13 @@ class PassManager(
     passOrdering.foldLeft(ir)((intermediateIR, pass) => {
       val passCount = passCounts(pass.key)
 
-      if (passCount.available - passCount.completed == 1) {
-//        passConfiguration
-//          .get[pass.Config]
-//          .foreach(c => c.shouldWriteToContext = true)
-      }
+      passConfiguration
+        .get[pass.Config](pass)
+        .foreach(c =>
+          c.shouldWriteToContext =
+            passCount.available - passCount.completed == 1
+        )
+
       val result = pass.runExpression(intermediateIR, newContext)
 
       passCounts(pass.key) = passCount.copy(completed = passCount.completed + 1)

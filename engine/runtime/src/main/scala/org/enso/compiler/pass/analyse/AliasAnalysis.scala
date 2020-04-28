@@ -78,11 +78,15 @@ case object AliasAnalysis extends IRPass {
             "Alias analysis execution missing configuration."
           )
         )
+        .shouldWriteToContext
 
     inlineContext.localScope
       .map { localScope =>
-        val scope  = localScope.scope
-        val graph  = localScope.aliasingGraph
+        val scope =
+          if (shouldWriteState) localScope.scope else localScope.scope.copy
+        val graph =
+          if (shouldWriteState) localScope.aliasingGraph
+          else localScope.aliasingGraph.copy
         val result = analyseExpression(ir, graph, scope)
 
         result

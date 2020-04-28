@@ -52,6 +52,7 @@ class Compiler(
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
+    AliasAnalysis,
     LambdaConsolidate,
     AliasAnalysis,
     DemandAnalysis,
