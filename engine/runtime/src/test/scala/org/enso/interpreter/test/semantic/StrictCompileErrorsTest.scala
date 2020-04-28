@@ -21,7 +21,7 @@ class StrictCompileErrorsTest extends InterpreterTest {
         |    x = ()
         |    x = 5
         |    y = @
-        |""".stripMargin
+        |""".stripMargin.lines.mkString("\n")
 
     the[InterpreterException] thrownBy eval(code) should have message "Compilation aborted due to errors."
     val _ :: errors = consumeOut
