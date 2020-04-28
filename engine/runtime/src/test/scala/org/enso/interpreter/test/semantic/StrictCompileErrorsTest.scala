@@ -1,15 +1,36 @@
 package org.enso.interpreter.test.semantic
 
-import org.enso.interpreter.test.{InterpreterException, PackageTest}
+import org.enso.interpreter.test.{
+  InterpreterException,
+  InterpreterTest,
+}
+import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
+import org.graalvm.polyglot.Context
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
-class StrictCompileErrorsTest extends PackageTest {
+class StrictCompileErrorsTest extends InterpreterTest {
+  override val ctx: Context = Context
+    .newBuilder(LanguageInfo.ID)
+    .allowExperimentalOptions(true)
+    .option(RuntimeOptions.STRICT_ERRORS, "true")
+    .out(output)
+    .build()
+
   "Compile errors in batch mode" should "be reported and abort execution" in {
-    the[InterpreterException] thrownBy evalTestProject("TestCompileErrors") should have message "Compilation aborted due to errors."
+    val code =
+      """main =
+        |    x = ()
+        |    x = 5
+        |    y = @
+        |""".stripMargin
+
+    the[InterpreterException] thrownBy eval(code) should have message "Compilation aborted due to errors."
     val _ :: errors = consumeOut
     errors.toSet shouldEqual Set(
-      "Main.enso[2:9-2:10]: Parentheses can't be empty.",
-      "Main.enso[3:5-3:9]: Variable x is being redefined.",
-      "Main.enso[4:9-4:9]: Unrecognized token."
+      "Test[2:9-2:10]: Parentheses can't be empty.",
+      "Test[3:5-3:9]: Variable x is being redefined.",
+      "Test[4:9-4:9]: Unrecognized token."
     )
   }
 }
