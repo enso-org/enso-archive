@@ -9,15 +9,23 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.error.ModuleDoesNotExistException
-import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope, TopLevelScope}
+import org.enso.interpreter.runtime.scope.{
+  LocalScope,
+  ModuleScope,
+  TopLevelScope
+}
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.{AST, Parser}
 
@@ -47,10 +55,16 @@ class Compiler(
     LambdaConsolidate,
     AliasAnalysis,
     DemandAnalysis,
+    // TODO [AA] Remove this param section
     ApplicationSaturation(),
     TailCall,
     DataflowAnalysis
   )
+
+  val passConfig = new PassConfiguration
+
+  val passManager: PassManager =
+    new PassManager(compilerPhaseOrdering, passConfig)
 
   /**
     * Processes the provided language sources, registering any bindings in the
@@ -188,9 +202,7 @@ class Compiler(
   def runCompilerPhases(ir: IR.Module): IR.Module = {
     val moduleContext = ModuleContext(Some(freshNameSupply))
 
-    compilerPhaseOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runModule(intermediateIR, moduleContext)
-    )
+    passManager.runPassesOnModule(ir, moduleContext)
   }
 
   /** Runs the various compiler passes in an inline context.
@@ -204,9 +216,7 @@ class Compiler(
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
-    compilerPhaseOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runExpression(intermediateIR, inlineContext)
-    )
+    passManager.runPassesInline(ir, inlineContext)
   }
 
   /** Generates code for the truffle interpreter.

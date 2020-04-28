@@ -1,7 +1,10 @@
 package org.enso.compiler.pass
 
-import shapeless.HList
+class PassConfiguration {
+  private val configuration: List[IRPass.Configuration] = List()
 
-class PassConfiguration[C <: HList] {
-
+  // addConfiguration (to front, will be found first)
+  // removeConfiguration, removeAllConfiguration
+  // updateConfiguration
+  // getConfiguration
 }
