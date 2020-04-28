@@ -74,12 +74,12 @@ class CollaborativeBuffer(
   }
 
   private def waitingForFileContent(
-    client: RpcSession,
+    rpcSession: RpcSession,
     replyTo: ActorRef,
     timeoutCancellable: Cancellable
   ): Receive = {
     case ReadFileResult(Right(content)) =>
-      handleFileContent(client, replyTo, content)
+      handleFileContent(rpcSession, replyTo, content)
       unstashAll()
       timeoutCancellable.cancel(): Unit
 
@@ -265,15 +265,17 @@ class CollaborativeBuffer(
       TextEditValidationFailed(s"Invalid position: $position")
   }
 
-  private def readFile(client: RpcSession, path: Path): Unit = {
+  private def readFile(rpcSession: RpcSession, path: Path): Unit = {
     fileManager ! FileManagerProtocol.ReadFile(path)
     val timeoutCancellable = context.system.scheduler
       .scheduleOnce(timeout, self, IOTimeout)
-    context.become(waitingForFileContent(client, sender(), timeoutCancellable))
+    context.become(
+      waitingForFileContent(rpcSession, sender(), timeoutCancellable)
+    )
   }
 
   private def handleFileContent(
-    client: RpcSession,
+    rpcSession: RpcSession,
     originalSender: ActorRef,
     file: FileContent
   ): Unit = {
@@ -286,7 +288,11 @@ class CollaborativeBuffer(
       Api.OpenFileNotification(file.path, file.content)
     )
     context.become(
-      collaborativeEditing(buffer, Map(client.clientId -> client), Some(client))
+      collaborativeEditing(
+        buffer,
+        Map(rpcSession.clientId -> rpcSession),
+        Some(rpcSession)
+      )
     )
   }
 
@@ -294,7 +300,7 @@ class CollaborativeBuffer(
     buffer: Buffer,
     clients: Map[ClientId, RpcSession],
     lockHolder: Option[RpcSession],
-    client: RpcSession
+    rpcSession: RpcSession
   ): Unit = {
     val writeCapability =
       if (lockHolder.isEmpty)
@@ -305,7 +311,7 @@ class CollaborativeBuffer(
     context.become(
       collaborativeEditing(
         buffer,
-        clients + (client.clientId -> client),
+        clients + (rpcSession.clientId -> rpcSession),
         lockHolder
       )
     )

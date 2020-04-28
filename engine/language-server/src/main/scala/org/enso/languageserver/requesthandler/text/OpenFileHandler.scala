@@ -21,12 +21,12 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
-  * @param client an object representing a client connected to the language server
+  * @param rpcSession an object representing a client connected to the language server
   */
 class OpenFileHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
-  client: RpcSession
+  rpcSession: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -37,7 +37,7 @@ class OpenFileHandler(
 
   private def requestStage: Receive = {
     case Request(OpenFile, id, params: OpenFile.Params) =>
-      bufferRegistry ! TextProtocol.OpenFile(client, params.path)
+      bufferRegistry ! TextProtocol.OpenFile(rpcSession, params.path)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -49,7 +49,7 @@ class OpenFileHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Opening file for ${client.clientId} timed out")
+      log.error(s"Opening file for ${rpcSession.clientId} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -80,13 +80,14 @@ object OpenFileHandler {
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     * @return a configuration object
     */
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
-    client: RpcSession
-  ): Props = Props(new OpenFileHandler(bufferRegistry, requestTimeout, client))
+    rpcSession: RpcSession
+  ): Props =
+    Props(new OpenFileHandler(bufferRegistry, requestTimeout, rpcSession))
 
 }

@@ -17,12 +17,12 @@ import scala.concurrent.duration.FiniteDuration
   *
   * @param bufferRegistry a router that dispatches text editing requests
   * @param timeout a request timeout
-  * @param client an object representing a client connected to the language server
+  * @param rpcSession an object representing a client connected to the language server
   */
 class ApplyEditHandler(
   bufferRegistry: ActorRef,
   timeout: FiniteDuration,
-  client: RpcSession
+  rpcSession: RpcSession
 ) extends Actor
     with ActorLogging
     with UnhandledLogging {
@@ -33,7 +33,7 @@ class ApplyEditHandler(
 
   private def requestStage: Receive = {
     case Request(ApplyEdit, id, params: ApplyEdit.Params) =>
-      bufferRegistry ! TextProtocol.ApplyEdit(client.clientId, params.edit)
+      bufferRegistry ! TextProtocol.ApplyEdit(rpcSession.clientId, params.edit)
       val cancellable =
         context.system.scheduler.scheduleOnce(timeout, self, RequestTimeout)
       context.become(responseStage(id, sender(), cancellable))
@@ -45,7 +45,7 @@ class ApplyEditHandler(
     cancellable: Cancellable
   ): Receive = {
     case RequestTimeout =>
-      log.error(s"Applying edit for ${client.clientId} timed out")
+      log.error(s"Applying edit for ${rpcSession.clientId} timed out")
       replyTo ! ResponseError(Some(id), ServiceError)
       context.stop(self)
 
@@ -86,13 +86,14 @@ object ApplyEditHandler {
     *
     * @param bufferRegistry a router that dispatches text editing requests
     * @param requestTimeout a request timeout
-    * @param client an object representing a client connected to the language server
+    * @param rpcSession an object representing a client connected to the language server
     * @return a configuration object
     */
   def props(
     bufferRegistry: ActorRef,
     requestTimeout: FiniteDuration,
-    client: RpcSession
-  ): Props = Props(new ApplyEditHandler(bufferRegistry, requestTimeout, client))
+    rpcSession: RpcSession
+  ): Props =
+    Props(new ApplyEditHandler(bufferRegistry, requestTimeout, rpcSession))
 
 }

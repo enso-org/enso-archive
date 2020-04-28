@@ -117,20 +117,20 @@ object ContextEventsListener {
     * Creates a configuration object used to create a [[ContextEventsListener]].
     *
     * @param config configuration
-    * @param client reference to the client
+    * @param rpcSession reference to the client
     * @param contextId exectuion context identifier
     * @param sessionRouter the session router
     */
   def props(
     config: Config,
-    client: RpcSession,
+    rpcSession: RpcSession,
     contextId: ContextId,
     sessionRouter: ActorRef
   ): Props =
     Props(
       new ContextEventsListener(
         config,
-        client,
+        rpcSession,
         contextId,
         sessionRouter: ActorRef
       )

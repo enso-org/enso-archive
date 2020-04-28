@@ -8,10 +8,10 @@ object TextProtocol {
 
   /** Requests the language server to open a file on behalf of a given user.
     *
-    * @param client the client opening the file.
+    * @param rpcSession the client opening the file.
     * @param path the file path.
     */
-  case class OpenFile(client: RpcSession, path: Path)
+  case class OpenFile(rpcSession: RpcSession, path: Path)
 
   /** Sent by the server in response to [[OpenFile]]
     *
