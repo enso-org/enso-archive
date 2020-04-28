@@ -1,6 +1,6 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
@@ -22,6 +22,8 @@ import org.enso.interpreter.runtime.scope.LocalScope
 class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
+
+  val modCtx = ModuleContext()
 
   val tailCtx = InlineContext(
     localScope       = Some(LocalScope.root),
@@ -56,7 +58,7 @@ class TailCallTest extends CompilerTest {
         .runPasses(precursorPasses, tailCtx)
         .asInstanceOf[IR.Module]
 
-      TailCall.runModule(preprocessed)
+      TailCall.runModule(preprocessed, modCtx)
     }
   }
 

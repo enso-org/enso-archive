@@ -1,11 +1,15 @@
 package org.enso.compiler.test.pass.desugar
 
+import org.enso.compiler.context.ModuleContext
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.pass.desugar.GenerateMethodBodies
 import org.enso.compiler.test.CompilerTest
 
 class GenerateMethodBodiesTest extends CompilerTest {
+
+  // === Test Setup ===========================================================
+  val ctx = ModuleContext()
 
   // === The Tests ============================================================
 
@@ -16,7 +20,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |""".stripMargin.toIrModule
     val irMethod = ir.bindings.head.asInstanceOf[Method]
 
-    val irResult       = GenerateMethodBodies.runModule(ir)
+    val irResult       = GenerateMethodBodies.runModule(ir, ctx)
     val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
 
     "have the `this` argument prepended to the argument list" in {
@@ -47,7 +51,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
         |""".stripMargin.toIrModule
     val irMethod = ir.bindings.head.asInstanceOf[Method]
 
-    val irResult       = GenerateMethodBodies.runModule(ir)
+    val irResult       = GenerateMethodBodies.runModule(ir, ctx)
     val irResultMethod = irResult.bindings.head.asInstanceOf[Method]
 
     "have the expression converted into a function" in {

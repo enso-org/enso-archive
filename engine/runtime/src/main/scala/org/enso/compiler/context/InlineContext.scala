@@ -1,5 +1,6 @@
-package org.enso.compiler
+package org.enso.compiler.context
 
+import org.enso.compiler.pass.FreshNameSupply
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 
 /** A type containing the information about the execution context for an inline
@@ -10,12 +11,13 @@ import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
   *                    executed
   * @param isInTailPosition whether or not the inline expression occurs in tail
   *                         position ([[None]] indicates no information)
+  * @param freshNameSupply the compiler's supply of fresh names
   */
-// TODO [AA] doc this
 case class InlineContext(
-  localScope: Option[LocalScope]    = None,
-  moduleScope: Option[ModuleScope]  = None,
-  isInTailPosition: Option[Boolean] = None
+  localScope: Option[LocalScope]           = None,
+  moduleScope: Option[ModuleScope]         = None,
+  isInTailPosition: Option[Boolean]        = None,
+  freshNameSupply: Option[FreshNameSupply] = None
 )
 object InlineContext {
 
@@ -31,12 +33,14 @@ object InlineContext {
   def fromJava(
     localScope: LocalScope,
     moduleScope: ModuleScope,
-    isInTailPosition: Boolean
+    isInTailPosition: Boolean,
+    freshNameSupply: FreshNameSupply
   ): InlineContext = {
     InlineContext(
       Option(localScope),
       Option(moduleScope),
-      Option(isInTailPosition)
+      Option(isInTailPosition),
+      Option(freshNameSupply)
     )
   }
 }

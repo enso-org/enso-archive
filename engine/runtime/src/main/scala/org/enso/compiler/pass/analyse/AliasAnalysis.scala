@@ -1,6 +1,6 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -41,12 +41,17 @@ case object AliasAnalysis extends IRPass {
   override type Metadata = Info
 
   /** Performs alias analysis on a module.
-    *
-    * @param ir the Enso IR to process
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
-  override def runModule(ir: IR.Module): IR.Module = {
+   *
+   * @param ir the Enso IR to process
+   * @param moduleContext a context object that contains the information needed
+   *                      to process a module
+   * @return `ir`, possibly having made transformations or annotations to that
+   *         IR.
+   */
+  override def runModule(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
     ir.copy(bindings = ir.bindings.map(analyseModuleDefinition))
   }
 
@@ -241,20 +246,20 @@ case object AliasAnalysis extends IRPass {
     }
   }
 
-  // TODO [AA] Argument redefinition errors shouldn't work like this. Consider
-  //  the fact that multi-argument lambdas don't actually exist, so something
-  //  like `a b a -> a + b` is actually `a -> b -> a -> a + b`.
   // TODO [AA] make the redefinition a warning
   /** Performs alias analysis on the argument definitions for a function.
     *
     * Care is taken during this analysis to ensure that spurious resolutions do
     * not happen regarding the ordering of arguments. Only the arguments
     * declared _earlier_ in the arguments list are considered to be in scope for
+    * later arguments.
     *
     * This method _may_ replace an argument with a
     * [[IR.Error.Redefined.Argument]] error if `args` redefines an argument
-    * name. Please note that this is _not representative_ of the intended
-    * language semantics, and will need to be rectified at a later date.
+    * name. This is _only_ representative of intended language semantics in the
+    * case that the [[org.enso.compiler.pass.optimise.LambdaConsolidate]] pass
+    * has run before this pass, as it ensures that duplicated argument names
+    * reflect language semantics through renaming.
     *
     * @param args  the list of arguments to perform analysis on
     * @param graph the graph in which the analysis is taking place

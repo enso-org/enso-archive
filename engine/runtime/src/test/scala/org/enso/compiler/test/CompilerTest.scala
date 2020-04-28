@@ -2,8 +2,8 @@ package org.enso.compiler.test
 
 import java.util.UUID
 
-import org.enso.compiler.InlineContext
 import org.enso.compiler.codegen.AstToIR
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 import org.enso.syntax.text.{AST, Parser}
@@ -103,7 +103,7 @@ trait CompilerRunner {
         )
       case mod: IR.Module =>
         passes.foldLeft(mod)((intermediate, pass) =>
-          pass.runModule(intermediate)
+          pass.runModule(intermediate, ModuleContext())
         )
       case _ => throw new RuntimeException(s"Cannot run passes on $ir.")
     }

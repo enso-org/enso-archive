@@ -1,6 +1,6 @@
 package org.enso.compiler.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
@@ -22,11 +22,17 @@ case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
 
   /** Executes the dataflow analysis process on an Enso module.
-    *
-    * @param ir the Enso IR to process
-    * @return `ir`, annotated with data dependency information
-    */
-  override def runModule(ir: IR.Module): IR.Module = {
+   *
+   * @param ir the Enso IR to process
+   * @param moduleContext a context object that contains the information needed
+   *                      to process a module
+   * @return `ir`, possibly having made transformations or annotations to that
+   *         IR.
+   */
+  override def runModule(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module = {
     val dependencyInfo = new DependencyInfo
     ir.copy(
         bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))

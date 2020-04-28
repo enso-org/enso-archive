@@ -5,10 +5,11 @@ import java.io.StringReader
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
 import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.{FreshNameSupply, IRPass}
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -30,6 +31,8 @@ class Compiler(
   val topScope: TopLevelScope,
   val context: Context
 ) {
+
+  val freshNameSupply = new FreshNameSupply
 
   /** A list of the compiler phases, in the order they should be run.
     *
@@ -183,8 +186,10 @@ class Compiler(
     * @return the output result of the
     */
   def runCompilerPhases(ir: IR.Module): IR.Module = {
+    val moduleContext = ModuleContext(Some(freshNameSupply))
+
     compilerPhaseOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runModule(intermediateIR)
+      pass.runModule(intermediateIR, moduleContext)
     )
   }
 
