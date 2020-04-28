@@ -69,11 +69,24 @@ class PassManager(
     ir: IR.Expression,
     inlineContext: InlineContext
   ): IR.Expression = {
+    val passCounts = calculatePassCounts
+
     val newContext =
       inlineContext.copy(passConfiguration = Some(passConfiguration))
 
-    passOrdering.foldLeft(ir)((intermediateIR, pass) =>
-      pass.runExpression(intermediateIR, newContext)
-    )
+    passOrdering.foldLeft(ir)((intermediateIR, pass) => {
+      val passCount = passCounts(pass.key)
+
+      if (passCount.available - passCount.completed == 1) {
+        passConfiguration
+          .get[pass.Config]
+          .foreach(c => c.shouldWriteToContext = true)
+      }
+      val result = pass.runExpression(intermediateIR, newContext)
+
+      passCounts(pass.key) = passCount.copy(completed = passCount.completed + 1)
+
+      result
+    })
   }
 }

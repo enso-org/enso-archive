@@ -5,6 +5,8 @@ import java.util.UUID
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 
+import scala.reflect.ClassTag
+
 /** A representation of a compiler pass that runs on the [[IR]] type.
   *
   * Passes that depend on the metadata of other passes should pull this metadata
@@ -22,6 +24,7 @@ trait IRPass {
 
   /** The type of configuration for the pass. */
   type Config <: IRPass.Configuration
+//  implicit val configClassTag: ClassTag[Config]
 
   /** Executes the pass on the provided `ir`, and returns a possibly transformed
     * or annotated version of `ir`.
