@@ -40,7 +40,7 @@ jobs:
     - name: Setup conda
       uses: s-weigand/setup-conda@v1
       with:
-        update-conda: true
+        update-conda: false
         conda-channels: anaconda, conda-forge
     - name: Setup Conda Environment on Windows
       if: runner.os == 'Windows'
