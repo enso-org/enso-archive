@@ -92,16 +92,17 @@ class RuntimeServerTest
 
     val metadata = new Metadata
 
-    val idMainX = metadata.addItem(16, 5)
-    val idMainY = metadata.addItem(30, 7)
-    val idMainZ = metadata.addItem(46, 5)
-    val idFooY  = metadata.addItem(85, 8)
-    val idFooZ  = metadata.addItem(102, 5)
+    val idMainX = metadata.addItem(16, 1)
+    val idMainY = metadata.addItem(26, 7)
+    val idMainZ = metadata.addItem(42, 5)
+    val idFooY  = metadata.addItem(81, 8)
+    val idFooZ  = metadata.addItem(98, 5)
 
+    // x = 1 + 5
     val code = metadata.appendToCode(
       """
         |main =
-        |    x = 1 + 5
+        |    x = 6
         |    y = x.foo 5
         |    z = y + 5
         |    z
@@ -130,7 +131,7 @@ class RuntimeServerTest
           )
         )
 
-      def idMainY(contextId: UUID) =
+      def idMainY(contextId: UUID, file: File) =
         Api.Response(
           Api.ExpressionValuesComputed(
             contextId,
@@ -139,7 +140,7 @@ class RuntimeServerTest
                 Main.idMainY,
                 Some("Number"),
                 Some("45"),
-                None
+                Some(Api.MethodPointer(file,"Number","foo"))
               )
             )
           )
@@ -231,11 +232,12 @@ class RuntimeServerTest
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(Main.update.idMainX(contextId)),
-      Some(Main.update.idMainY(contextId)),
+      Some(Main.update.idMainY(contextId, mainFile)),
       Some(Main.update.idMainZ(contextId)),
       None
     )
 
+    /*
     // push foo call
     val item2 = Api.StackItem.LocalCall(Main.idMainY)
     context.send(
@@ -288,6 +290,7 @@ class RuntimeServerTest
       Some(Api.Response(requestId, Api.EmptyStackError(contextId))),
       None
     )
+    */
   }
 
   it should "support file modification operations" in {
@@ -377,7 +380,7 @@ class RuntimeServerTest
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(Main.update.idMainX(contextId)),
-      Some(Main.update.idMainY(contextId)),
+      Some(Main.update.idMainY(contextId, mainFile)),
       Some(Main.update.idMainZ(contextId)),
       None
     )
@@ -387,7 +390,7 @@ class RuntimeServerTest
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(Main.update.idMainX(contextId)),
-      Some(Main.update.idMainY(contextId)),
+      Some(Main.update.idMainY(contextId, mainFile)),
       Some(Main.update.idMainZ(contextId)),
       None
     )

@@ -92,9 +92,9 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(source: Source, moduleName: String): Unit = {
-    run(source, context.createScope(moduleName))
-  }
+  // def run(source: Source, moduleName: String): Unit = {
+  //   run(source, context.createScope(moduleName))
+  // }
 
   /**
     * Processes the language sources in the provided file, registering any
@@ -104,9 +104,9 @@ class Compiler(
     * @return an interpreter node whose execution corresponds to the top-level
     *         executable functionality in the module corresponding to `source`.
     */
-  def run(file: TruffleFile, moduleName: String): Unit = {
-    run(Source.newBuilder(LanguageInfo.ID, file).build, moduleName)
-  }
+  // def run(file: TruffleFile, moduleName: String): Unit = {
+  //   run(Source.newBuilder(LanguageInfo.ID, file).build, moduleName)
+  // }
 
   /**
     * Processes the language source, interpreting it as an expression.

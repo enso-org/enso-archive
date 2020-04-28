@@ -105,13 +105,25 @@ final class Handler {
               res.getExpressionId,
               OptionConverters.toScala(res.getType),
               Some(res.getValue.toString),
-              None
+              toMethodPointer(res)
             )
           )
         )
       )
     )
   }
+
+  private def toMethodPointer(
+    value: ExpressionValue
+  ): Option[Api.MethodPointer] =
+    for {
+      call       <- Option(value.getCall)
+      definition <- Option(call.getCall.getFunction.getDefinition)
+    } yield Api.MethodPointer(
+      definition.getFile,
+      definition.getDefinedOnType,
+      definition.getName
+    )
 
   @scala.annotation.tailrec
   private def execute(
@@ -122,8 +134,9 @@ final class Handler {
     var enterables: Map[UUID, FunctionCall] = Map()
     val valsCallback: Consumer[ExpressionValue] =
       if (callStack.isEmpty) valueCallback else _ => ()
-    val callablesCallback: Consumer[ExpressionCall] = fun =>
+    val callablesCallback: Consumer[ExpressionCall] = { fun =>
       enterables += fun.getExpressionId -> fun.getCall
+    }
     executionItem match {
       case ExecutionItem.Method(file, cons, function) =>
         executionService.execute(

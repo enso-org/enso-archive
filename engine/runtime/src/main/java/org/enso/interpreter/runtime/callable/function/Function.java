@@ -35,6 +35,7 @@ public final class Function implements TruffleObject {
   private final RootCallTarget callTarget;
   private final MaterializedFrame scope;
   private final FunctionSchema schema;
+  private final FunctionDefinition definition;
   private final @CompilerDirectives.CompilationFinal(dimensions = 1) Object[] preAppliedArguments;
   private final @CompilationFinal(dimensions = 1) Object[] oversaturatedArguments;
 
@@ -55,11 +56,13 @@ public final class Function implements TruffleObject {
       RootCallTarget callTarget,
       MaterializedFrame scope,
       FunctionSchema schema,
+      FunctionDefinition definition,
       Object[] preappliedArguments,
       Object[] oversaturatedArguments) {
     this.callTarget = callTarget;
     this.scope = scope;
     this.schema = schema;
+    this.definition = definition;
     this.preAppliedArguments = preappliedArguments;
     this.oversaturatedArguments = oversaturatedArguments;
   }
@@ -71,8 +74,19 @@ public final class Function implements TruffleObject {
    * @param scope a frame representing the function's scope
    * @param schema the {@link FunctionSchema} with which the function was defined
    */
+  public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema, FunctionDefinition definition) {
+    this(callTarget, scope, schema, definition, null, null);
+  }
+
+  /**
+   * Creates a new function without any partially applied arguments.
+   *
+   * @param callTarget the target containing the function's code
+   * @param scope a frame representing the function's scope
+   * @param schema the {@link FunctionSchema} with which the function was defined
+   */
   public Function(RootCallTarget callTarget, MaterializedFrame scope, FunctionSchema schema) {
-    this(callTarget, scope, schema, null, null);
+    this(callTarget, scope, schema, null, null, null);
   }
 
   /**
@@ -153,6 +167,15 @@ public final class Function implements TruffleObject {
    */
   public FunctionSchema getSchema() {
     return schema;
+  }
+
+  /**
+   * Gets the function's definition.
+   *
+   * @return the function's definition
+   */
+  public FunctionDefinition getDefinition() {
+    return definition;
   }
 
   /**

@@ -42,6 +42,7 @@ import org.enso.interpreter.runtime.callable.argument.{
 }
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
 import org.enso.interpreter.runtime.callable.function.{
+  FunctionDefinition,
   FunctionSchema,
   Function => RuntimeFunction
 }
@@ -216,13 +217,19 @@ class IRToTruffle(
 
       funNode.setTail(methodFunIsTail)
 
+      val sourcePath = Option(moduleScope.getModule)
+        .map(_.getSourceFile.getPath)
+        //.orElse(Option(source.getPath))
       val function = new RuntimeFunction(
         funNode.getCallTarget,
         null,
         new FunctionSchema(
           FunctionSchema.CallStrategy.CALL_LOOP,
           funNode.getArgs: _*
-        )
+        ),
+        sourcePath
+          .map(new FunctionDefinition(methodDef.methodName.name, typeName, _))
+          .orNull
       )
 
       val cons = moduleScope

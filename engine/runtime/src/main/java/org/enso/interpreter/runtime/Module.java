@@ -122,6 +122,15 @@ public class Module implements TruffleObject {
   }
 
   /**
+   * Gets a source file for the module.
+   *
+   * @return file the module source file.
+   */
+  public TruffleFile getSourceFile() {
+    return this.sourceFile;
+  }
+
+  /**
    * Parses the module sources. The results of this operation are cached.
    *
    * @param context context in which the parsing should take place

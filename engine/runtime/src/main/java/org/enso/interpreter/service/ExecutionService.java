@@ -46,12 +46,8 @@ public class ExecutionService {
   }
 
   private Optional<FunctionCallInstrumentationNode.FunctionCall> prepareFunctionCall(
-      String moduleName, String consName, String methodName) {
-    Optional<Module> moduleMay = context.getCompiler().topScope().getModule(moduleName);
-    if (!moduleMay.isPresent()) {
-      return Optional.empty();
-    }
-    ModuleScope scope = moduleMay.get().getScope(context);
+      Module module, String consName, String methodName) {
+    ModuleScope scope = module.getScope(context);
     Optional<AtomConstructor> atomConstructorMay = scope.getConstructor(consName);
     if (!atomConstructorMay.isPresent()) {
       return Optional.empty();
@@ -114,9 +110,8 @@ public class ExecutionService {
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
     Optional<FunctionCallInstrumentationNode.FunctionCall> callMay =
         context
-            .getModuleNameForFile(modulePath)
-            .flatMap(
-                moduleName -> prepareFunctionCall(moduleName.toString(), consName, methodName));
+            .getModuleForFile(modulePath)
+            .flatMap(module -> prepareFunctionCall(module, consName, methodName));
     if (!callMay.isPresent()) {
       return;
     }

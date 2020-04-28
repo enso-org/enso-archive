@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import org.enso.compiler.Compiler;
 import org.enso.interpreter.Language;
 import org.enso.interpreter.OptionsHelper;
+import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.scope.TopLevelScope;
@@ -121,7 +122,12 @@ public class Context {
    * @return a new module scope with automatic builtins dependency.
    */
   public ModuleScope createScope(String name) {
-    ModuleScope moduleScope = new ModuleScope(name);
+    ModuleScope moduleScope =
+        compiler
+            .topScope()
+            .getModule(name)
+            .map(ModuleScope::new)
+            .orElseGet(() -> new ModuleScope(name));
     initializeScope(moduleScope);
     return moduleScope;
   }

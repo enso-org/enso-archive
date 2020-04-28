@@ -8,6 +8,8 @@ import com.oracle.truffle.api.frame.FrameInstanceVisitor;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.instrumentation.*;
 import com.oracle.truffle.api.nodes.Node;
+import java.util.HashMap;
+import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
@@ -69,6 +71,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final UUID expressionId;
     private final String type;
     private final Object value;
+    private final ExpressionCall call;
 
     /**
      * Creates a new instance of this class.
@@ -77,10 +80,19 @@ public class IdExecutionInstrument extends TruffleInstrument {
      * @param type of the computed expression.
      * @param value the value returned by computing the expression.
      */
-    public ExpressionValue(UUID expressionId, String type, Object value) {
+    public ExpressionValue(
+        UUID expressionId,
+        String type,
+        Object value,
+        ExpressionCall call) {
       this.expressionId = expressionId;
       this.type = type;
       this.value = value;
+      this.call = call;
+    }
+
+    public ExpressionValue(UUID expressionId, String type, Object value) {
+      this(expressionId, type, value, null);
     }
 
     /** @return the id of the expression computed. */
@@ -97,6 +109,10 @@ public class IdExecutionInstrument extends TruffleInstrument {
     /** @return the computed value of the expression. */
     public Object getValue() {
       return value;
+    }
+
+    public ExpressionCall getCall() {
+      return call;
     }
   }
 
@@ -136,6 +152,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
+    private final Map<UUID, ExpressionCall> calls;
 
     /**
      * Creates a new listener.
@@ -151,6 +168,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       this.entryCallTarget = entryCallTarget;
       this.functionCallCallback = functionCallCallback;
       this.valueCallback = valueCallback;
+      this.calls = new HashMap<UUID, ExpressionCall>();
     }
 
     @Override
@@ -172,14 +190,17 @@ public class IdExecutionInstrument extends TruffleInstrument {
       Node node = context.getInstrumentedNode();
       if (node instanceof FunctionCallInstrumentationNode
           && result instanceof FunctionCallInstrumentationNode.FunctionCall) {
-        functionCallCallback.accept(
+        ExpressionCall expressionCall =
             new ExpressionCall(
                 ((FunctionCallInstrumentationNode) node).getId(),
-                (FunctionCallInstrumentationNode.FunctionCall) result));
+                (FunctionCallInstrumentationNode.FunctionCall) result);
+        calls.put(((FunctionCallInstrumentationNode) node).getId(), expressionCall);
+        functionCallCallback.accept(expressionCall);
       } else if (node instanceof ExpressionNode) {
+        UUID nodeId = ((ExpressionNode) node).getId();
         valueCallback.accept(
             new ExpressionValue(
-                ((ExpressionNode) node).getId(), Types.getName(result).orElse(null), result));
+                nodeId, Types.getName(result).orElse(null), result, calls.get(nodeId)));
       }
     }
 
