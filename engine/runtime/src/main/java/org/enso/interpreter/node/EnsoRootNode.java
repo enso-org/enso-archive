@@ -44,10 +44,8 @@ public abstract class EnsoRootNode extends RootNode {
     this.localScope = localScope;
     this.moduleScope = moduleScope;
     this.sourceSection = sourceSection;
-    this.stateFrameSlot = localScope.frameDescriptor().findOrAddFrameSlot(
-        "<<monadic_state>>",
-        FrameSlotKind.Object
-    );
+    this.stateFrameSlot =
+        localScope.frameDescriptor().findOrAddFrameSlot("<<monadic_state>>", FrameSlotKind.Object);
   }
 
   /**
@@ -82,18 +80,6 @@ public abstract class EnsoRootNode extends RootNode {
   @Override
   public String getName() {
     return this.name;
-  }
-
-  /**
-   * Returns a qualified name that uniquely identifies the node.
-   *
-   * @return a qualified name of this node.
-   */
-  @Override
-  public String getQualifiedName() {
-    String simpleName =
-        QualifiedName.fromString(getName()).map(QualifiedName::module).getOrElse(this::getName);
-    return moduleScope.getModule().getName().createChild(simpleName).toString();
   }
 
   /**

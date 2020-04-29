@@ -11,6 +11,7 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.pkg.QualifiedName;
 
 /**
  * This node represents the root of Enso closures and closure-like structures.
@@ -23,6 +24,7 @@ import org.enso.interpreter.runtime.state.Stateful;
 public class ClosureRootNode extends EnsoRootNode {
 
   @Child private ExpressionNode body;
+  private final QualifiedName qualifiedName;
 
   private ClosureRootNode(
       Language language,
@@ -33,6 +35,11 @@ public class ClosureRootNode extends EnsoRootNode {
       String name) {
     super(language, localScope, moduleScope, name, section);
     this.body = body;
+    this.qualifiedName =
+        QualifiedName.fromString(name)
+            .map(QualifiedName::module)
+            .map(moduleScope.getModule().getName()::createChild)
+            .getOrElse(() -> null);
   }
 
   /**
@@ -69,5 +76,18 @@ public class ClosureRootNode extends EnsoRootNode {
     Object result = body.executeGeneric(frame);
     state = FrameUtil.getObjectSafe(frame, this.getStateFrameSlot());
     return new Stateful(state, result);
+  }
+
+  /**
+   * Returns a qualified name that uniquely identifies the node.
+   *
+   * @return a qualified name of this node.
+   */
+  @Override
+  public String getQualifiedName() {
+    if (this.qualifiedName != null) {
+      return this.qualifiedName.toString();
+    }
+    return null;
   }
 }

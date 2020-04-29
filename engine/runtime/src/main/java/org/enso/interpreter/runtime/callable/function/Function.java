@@ -27,7 +27,6 @@ import org.enso.interpreter.runtime.callable.argument.ArgumentDefinition;
 import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.data.Vector;
 import org.enso.interpreter.runtime.type.Types;
-import org.enso.pkg.QualifiedName;
 import org.enso.polyglot.MethodNames;
 
 /** A runtime representation of a function object in Enso. */
