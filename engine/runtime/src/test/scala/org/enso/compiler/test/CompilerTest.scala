@@ -1,7 +1,5 @@
 package org.enso.compiler.test
 
-import java.util.UUID
-
 import org.enso.compiler.codegen.AstToIR
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
@@ -129,7 +127,7 @@ trait CompilerRunner {
     *
     * @return a random identifier
     */
-  def genID: IR.Identifier = UUID.randomUUID()
+  def genId: IR.Identifier = IR.randomId
 
   /** Creates an IR name from a string.
     *

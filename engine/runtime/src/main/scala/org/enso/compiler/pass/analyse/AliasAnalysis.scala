@@ -482,7 +482,11 @@ case object AliasAnalysis extends IRPass {
   // === Data Definitions =====================================================
 
   /** Information about the aliasing state for a given IR node. */
-  sealed trait Info extends IR.Metadata
+  sealed trait Info extends IR.Metadata {
+
+    /** The aliasing graph. */
+    val graph: Graph
+  }
   object Info {
     sealed trait Scope extends Info
     object Scope {
@@ -493,7 +497,7 @@ case object AliasAnalysis extends IRPass {
         *
         * @param graph the graph containing the alias information for that node
         */
-      sealed case class Root(graph: Graph) extends Scope {
+      sealed case class Root(override val graph: Graph) extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Root"
       }
 
@@ -502,7 +506,8 @@ case object AliasAnalysis extends IRPass {
         * @param graph the graph
         * @param scope the child scope in `graph`
         */
-      sealed case class Child(graph: Graph, scope: Graph.Scope) extends Scope {
+      sealed case class Child(override val graph: Graph, scope: Graph.Scope)
+          extends Scope {
         override val metadataName: String = "AliasAnalysis.Info.Scope.Child"
       }
     }
@@ -513,7 +518,8 @@ case object AliasAnalysis extends IRPass {
       * @param graph the graph in which this IR node can be found
       * @param id the identifier of this IR node in `graph`
       */
-    sealed case class Occurrence(graph: Graph, id: Graph.Id) extends Info {
+    sealed case class Occurrence(override val graph: Graph, id: Graph.Id)
+        extends Info {
       override val metadataName: String = "AliasAnalysis.Info.Occurrence"
     }
   }
@@ -681,7 +687,7 @@ case object AliasAnalysis extends IRPass {
       rootScope.maxNesting
     }
 
-    /** Determines if the provided ID shadows any other bindings.
+    /** Determines if the provided ID is capable of shadowing other bindings
       *
       * @param id the occurrence identifier
       * @return `true` if `id` shadows other bindings, otherwise `false`
@@ -697,13 +703,29 @@ case object AliasAnalysis extends IRPass {
         .isDefined
     }
 
-    /** Determines if the provided symbol shadows any other bindings.
+    /** Computes the bindings that are shadowed by the binding with the provided
+      * `definition`.
       *
-      * @param symbol the symbol
-      * @return `true` if `symbol` shadows other bindings, otherwise `false`
+      * @param definition the definition to find the 'shadowees' of
+      * @return the bindings shadowed by `definition`
       */
-    def shadows(symbol: Graph.Symbol): Boolean = {
-      scopesFor[Occurrence.Def](symbol).nonEmpty
+    def knownShadowedDefinitions(
+      definition: Occurrence
+    ): Set[Graph.Occurrence] = {
+      def getShadowedIds(scope: Graph.Scope): Set[Graph.Occurrence] = {
+        scope.occurrences.collect {
+          case d: Occurrence.Def if d.symbol == definition.symbol => d
+        } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
+      }
+
+      definition match {
+        case d: Occurrence.Def =>
+          scopeFor(d.id).flatMap(_.parent) match {
+            case Some(scope) => getShadowedIds(scope)
+            case None        => Set()
+          }
+        case _: Occurrence.Use => Set()
+      }
     }
 
     /** Determines if the provided id is linked to a binding that shadows
@@ -1041,7 +1063,6 @@ case object AliasAnalysis extends IRPass {
     sealed trait Occurrence {
       val id: Id
       val symbol: Graph.Symbol
-      val identifier: IR.Identifier
     }
     object Occurrence {
 
@@ -1055,7 +1076,7 @@ case object AliasAnalysis extends IRPass {
       sealed case class Def(
         override val id: Id,
         override val symbol: Graph.Symbol,
-        override val identifier: IR.Identifier,
+        identifier: IR.Identifier,
         isLazy: Boolean = false
       ) extends Occurrence
 
@@ -1072,7 +1093,18 @@ case object AliasAnalysis extends IRPass {
       sealed case class Use(
         override val id: Id,
         override val symbol: Graph.Symbol,
-        override val identifier: IR.Identifier
+        identifier: IR.Identifier
+      ) extends Occurrence
+
+      // TODO [AA] At some point the analysis should make use of these.
+      /** Represents a global symbol that has been _asked for_ in the program.
+       *
+       * @param id the identifier of the name in the graph
+       * @param symbol the text of the name
+       */
+      sealed case class Global(
+        override val id: Id,
+        override val symbol: Graph.Symbol
       ) extends Occurrence
     }
   }

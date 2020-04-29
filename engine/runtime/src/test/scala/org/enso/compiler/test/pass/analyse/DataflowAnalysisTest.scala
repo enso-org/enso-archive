@@ -45,7 +45,7 @@ class DataflowAnalysisTest extends CompilerTest {
     * @return a randomly generated identifier dependency
     */
   def genStaticDep: DependencyInfo.Type = {
-    DependencyInfo.Type.Static(genID)
+    DependencyInfo.Type.Static(genId)
   }
 
   /** Makes a statically known dependency from the included id.

@@ -2,7 +2,8 @@ package org.enso.compiler
 
 import org.enso.compiler.DependentMap.HasOutputType
 
-// TODO [AA] This file contains musings on how to improve some data storage.
+// TODO [AA] This file contains musings on how to improve some data storage. It
+//  will either be used or removed in the next PR.
 
 // TODO [AA] Can we do better?
 // TODO [AA] Can we get around HList's type erasure via expanded typeable?

@@ -81,19 +81,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childOfChildOfChild = childOfChild.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a", genID)
+    val aDef   = Occurrence.Def(aDefId, "a", genId)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b", genID)
+    val bDef   = Occurrence.Def(bDefId, "b", genId)
 
     val aUseId = graph.nextId()
-    val aUse   = Occurrence.Use(aUseId, "a", genID)
+    val aUse   = Occurrence.Use(aUseId, "a", genId)
 
     val bUseId = graph.nextId()
-    val bUse   = Occurrence.Use(bUseId, "b", genID)
+    val bUse   = Occurrence.Use(bUseId, "b", genId)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c", genID)
+    val cUse   = Occurrence.Use(cUseId, "c", genId)
 
     // Add occurrences to the scopes
     complexScope.add(aDef)
@@ -200,19 +200,19 @@ class AliasAnalysisTest extends CompilerTest {
     val childScope = rootScope.addChild()
 
     val aDefId = graph.nextId()
-    val aDef   = Occurrence.Def(aDefId, "a", genID)
+    val aDef   = Occurrence.Def(aDefId, "a", genId)
 
     val bDefId = graph.nextId()
-    val bDef   = Occurrence.Def(bDefId, "b", genID)
+    val bDef   = Occurrence.Def(bDefId, "b", genId)
 
     val aUse1Id = graph.nextId()
-    val aUse1   = Occurrence.Use(aUse1Id, "a", genID)
+    val aUse1   = Occurrence.Use(aUse1Id, "a", genId)
 
     val aUse2Id = graph.nextId()
-    val aUse2   = Occurrence.Use(aUse2Id, "a", genID)
+    val aUse2   = Occurrence.Use(aUse2Id, "a", genId)
 
     val cUseId = graph.nextId()
-    val cUse   = Occurrence.Use(cUseId, "c", genID)
+    val cUse   = Occurrence.Use(cUseId, "c", genId)
 
     rootScope.add(aDef)
     rootScope.add(aUse1)
@@ -310,9 +310,50 @@ class AliasAnalysisTest extends CompilerTest {
 
     "correctly determines whether an occurrence shadows other bindings" in {
       graph.shadows(aDefId) shouldEqual true
-      graph.shadows("a") shouldEqual true
       graph.shadows(aUse1Id) shouldEqual false
-      graph.shadows("c") shouldEqual false
+    }
+
+    "correctly determine the identifiers of bindings shadowed by a definition" in {
+      val graph = new Graph()
+
+      val rootScope  = graph.rootScope
+      val child1     = rootScope.addChild()
+      val child2     = rootScope.addChild()
+      val grandChild = child1.addChild()
+
+      val aDefInRootId = graph.nextId()
+      val aDefInRoot   = Occurrence.Def(aDefInRootId, "a", genId)
+      rootScope.add(aDefInRoot)
+
+      val aDefInChild1Id = graph.nextId()
+      val aDefInChild1   = Occurrence.Def(aDefInChild1Id, "a", genId)
+      child1.add(aDefInChild1)
+
+      val aDefInChild2Id = graph.nextId()
+      val aDefInChild2   = Occurrence.Def(aDefInChild2Id, "a", genId)
+      child2.add(aDefInChild2)
+
+      val aDefInGrandChildId = graph.nextId()
+      val aDefInGrandChild   = Occurrence.Def(aDefInGrandChildId, "a", genId)
+      grandChild.add(aDefInGrandChild)
+
+      val bDefInRootId = graph.nextId()
+      val bDefInRoot   = Occurrence.Def(bDefInRootId, "b", genId)
+      rootScope.add(bDefInRoot)
+
+      val bDefInChild2Id = graph.nextId()
+      val bDefInChild2   = Occurrence.Def(bDefInChild2Id, "b", genId)
+      child2.add(bDefInChild2)
+
+      graph.knownShadowedDefinitions(aDefInGrandChild) shouldEqual Set(
+        aDefInRoot,
+        aDefInChild1
+      )
+      graph.knownShadowedDefinitions(aDefInChild1) shouldEqual Set(aDefInRoot)
+      graph.knownShadowedDefinitions(aDefInRoot) shouldBe empty
+      graph.knownShadowedDefinitions(aDefInChild2) shouldEqual Set(aDefInRoot)
+      graph.knownShadowedDefinitions(bDefInChild2) shouldEqual Set(bDefInRoot)
+      graph.knownShadowedDefinitions(bDefInRoot) shouldBe empty
     }
 
     "correctly determine all symbols that occur in the graph" in {
