@@ -44,6 +44,10 @@ public abstract class InvokeCallableNode extends BaseNode {
     public boolean isIgnore() {
       return this == IGNORE;
     }
+
+    public boolean isExecute() {
+      return this == EXECUTE;
+    }
   }
 
   /** Denotes the mode of arguments execution for a function invocation */

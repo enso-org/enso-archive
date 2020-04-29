@@ -31,7 +31,7 @@ class LambdaChainingTest extends InterpreterTest {
       """
         |main =
         |    fn = a -> (b = a) -> (c = b + 1) -> b + c
-        |    (fn 3).call.call
+        |    fn 3
         |""".stripMargin
 
     eval(code) shouldEqual 7
