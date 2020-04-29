@@ -16,6 +16,7 @@ Truffle framework.
 - [Definition-Site Arguments Laziness](#definition-site-arguments-laziness)
 - [Currying and Eta-Expansion](#currying-and-eta-expansion)
 - [Dynamic Dispatch](#dynamic-dispatch)
+- [Defaulted Arguments and Application](#defaulted-arguments-and-application)
 - [Flow Diagram](#flow-diagram)
 
 <!-- /MarkdownTOC -->
@@ -117,6 +118,12 @@ functions, based on the (runtime) type of the first argument.
 
 This logic is fairly straightforward. It is triggered from `InvokeCallableNode`
 and performed (with caching) in the `MethodResolverNode`.
+
+## Defaulted Arguments and Application
+As we want to provide a consistent semantics in the language (especially with
+the use of multi-argument lambdas internally), a function returning a function
+that is fully saturated with defaults needs to ensure that the returned
+function is called at the result site.
 
 ## Flow Diagram
 
