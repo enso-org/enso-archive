@@ -38,7 +38,6 @@ class LambdaChainingTest extends InterpreterTest {
   }
 
   "Chains of lambdas with defaults and shadowed parameters" should "evaluate as expected" in {
-    pending
     val code =
       """
         |main =
@@ -47,6 +46,21 @@ class LambdaChainingTest extends InterpreterTest {
         |""".stripMargin
 
     eval(code) shouldEqual 7
+  }
+
+  "Chains of lambdas with lazy parameters" should "work properly" in {
+    val code =
+      """
+        |main =
+        |    fn = a -> ~b -> ~c ->
+        |        b
+        |        a
+        |
+        |    fn 10 (IO.println 10) (IO.println 20)
+        |""".stripMargin
+
+    eval(code) shouldEqual 10
+    consumeOut shouldEqual List("10")
   }
 
   "Chains of lambdas" should "work syntactically" in {
@@ -60,11 +74,6 @@ class LambdaChainingTest extends InterpreterTest {
         |""".stripMargin
 
     pending
-
     eval(code) shouldEqual 3
-  }
-
-  "Chains of lambdas with lazy parameters" should "work properly" in {
-    pending
   }
 }

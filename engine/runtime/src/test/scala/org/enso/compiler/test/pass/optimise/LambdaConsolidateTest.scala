@@ -85,14 +85,5 @@ class LambdaConsolidateTest extends CompilerTest {
     "maintain laziness of collapsed parameters" in {
       pending
     }
-
-    "do a thing" in {
-      val ir =
-        """
-          |a -> (b = a) -> a + b
-          |""".stripMargin.toIrExpression.get
-
-//      println(ir.pretty)
-    }
   }
 }
