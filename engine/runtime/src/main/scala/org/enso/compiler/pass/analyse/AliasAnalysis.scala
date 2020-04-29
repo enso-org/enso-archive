@@ -312,21 +312,17 @@ case object AliasAnalysis extends IRPass {
         val nameOccursInScope =
           scope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)
         if (!nameOccursInScope) {
+          val newDefault = value.map((ir: IR.Expression) =>
+            analyseExpression(ir, graph, scope)
+          )
+
           val occurrenceId = graph.nextId()
           scope.add(
             Graph.Occurrence.Def(occurrenceId, name.name, arg.getId, susp)
           )
 
           arg
-            .copy(
-              defaultValue = value.map((ir: IR.Expression) =>
-                analyseExpression(
-                  ir,
-                  graph,
-                  scope
-                )
-              )
-            )
+            .copy(defaultValue = newDefault)
             .addMetadata[Metadata, Metadata](
               Info.Occurrence(graph, occurrenceId)
             )
