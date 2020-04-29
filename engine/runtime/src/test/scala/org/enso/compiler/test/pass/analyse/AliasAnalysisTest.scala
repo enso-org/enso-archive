@@ -191,6 +191,14 @@ class AliasAnalysisTest extends CompilerTest {
 
       complexScopeCopy shouldEqual complexScope
     }
+
+    "count the number of scopes to the root" in {
+      childOfChildOfChild.scopesToRoot shouldEqual 3
+      childOfChild.scopesToRoot shouldEqual 2
+      child1.scopesToRoot shouldEqual 1
+      child2.scopesToRoot shouldEqual 1
+      complexScope.scopesToRoot shouldEqual 0
+    }
   }
 
   "The Aliasing graph" should {

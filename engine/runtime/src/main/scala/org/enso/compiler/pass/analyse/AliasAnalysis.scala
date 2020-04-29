@@ -534,9 +534,9 @@ case object AliasAnalysis extends IRPass {
     private var nextIdCounter = 0
 
     /** Registers a requested global symbol in the aliasing scope.
-     *
-     * @param sym the symbol occurrence
-     */
+      *
+      * @param sym the symbol occurrence
+      */
     def addGlobalSymbol(sym: Occurrence.Global): Unit = {
       if (!globalSymbols.contains(sym.symbol)) {
         globalSymbols = globalSymbols + (sym.symbol -> sym)
@@ -584,14 +584,20 @@ case object AliasAnalysis extends IRPass {
     def resolveUsage(
       occurrence: Graph.Occurrence.Use
     ): Option[Graph.Link] = {
-      val scope = scopeFor(occurrence.id)
-
-      scope.flatMap {
-        _.resolveUsage(occurrence)
-          .flatMap(link => {
-            links += link
-            Some(link)
-          })
+      scopeFor(occurrence.id) match {
+        case Some(scope) =>
+          scope.resolveUsage(occurrence) match {
+            case Some(link) =>
+              links += link
+              Some(link)
+            case None =>
+              globalSymbols
+                .get(occurrence.symbol)
+                .map(g =>
+                  Graph.Link(occurrence.id, scope.scopesToRoot + 1, g.id)
+                )
+          }
+        case None => None
       }
     }
 
@@ -718,6 +724,9 @@ case object AliasAnalysis extends IRPass {
     /** Computes the bindings that are shadowed by the binding with the provided
       * `definition`.
       *
+      * Please note that just because [[shadows]] states that an identifier is
+      * _capable_ of shadowing, that does not mean that it necessarily does.
+      *
       * @param definition the definition to find the 'shadowees' of
       * @return the bindings shadowed by `definition`
       */
@@ -727,6 +736,7 @@ case object AliasAnalysis extends IRPass {
       def getShadowedIds(scope: Graph.Scope): Set[Graph.Occurrence] = {
         scope.occurrences.collect {
           case d: Occurrence.Def if d.symbol == definition.symbol    => d
+          case g: Occurrence.Global if g.symbol == definition.symbol => g
         } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
       }
 
@@ -800,6 +810,16 @@ case object AliasAnalysis extends IRPass {
       var occurrences: Set[Occurrence] = Set()
     ) {
       var parent: Option[Scope] = None
+
+      /** Counts the number of scopes from this scope to the root.
+        *
+        * This count includes the root scope, but not the current scope.
+        *
+        * @return the number of scopes from this scope to the root
+        */
+      def scopesToRoot: Int = {
+        parent.flatMap(scope => Some(scope.scopesToRoot + 1)).getOrElse(0)
+      }
 
       /** Creates a structural copy of this scope.
         *

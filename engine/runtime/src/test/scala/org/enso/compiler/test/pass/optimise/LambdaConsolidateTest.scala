@@ -1,6 +1,6 @@
 package org.enso.compiler.test.pass.optimise
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -67,44 +67,48 @@ class LambdaConsolidateTest extends CompilerTest {
     }
   }
 
+  /** Makes a default inline context for testing with
+    *
+    * @return a default inline context
+    */
+  def mkContext: InlineContext = {
+    InlineContext(
+      localScope        = Some(LocalScope.root),
+      passConfiguration = Some(passConfiguration),
+      freshNameSupply   = Some(new FreshNameSupply)
+    )
+  }
+
   // === The Tests ============================================================
 
   "Lambda consolidation" should {
 
-//    "collapse chained lambdas into a single lambda" in {
-//      implicit val inlineContext: InlineContext =
-//        InlineContext(
-//          localScope        = Some(LocalScope.root),
-//          passConfiguration = Some(passConfiguration)
-//        )
-//
-//      val ir =
-//        """
-//          |x -> y -> z -> x + y + z
-//          |""".stripMargin.preprocessExpression.get.optimise
-//          .asInstanceOf[IR.Function.Lambda]
-//
-//      ir.arguments.length shouldEqual 3
-//      ir.body shouldBe an[IR.Application]
-//    }
-
-    "rename shadowed parameters" in {
-      implicit val inlineContext: InlineContext =
-        InlineContext(
-          localScope        = Some(LocalScope.root),
-          passConfiguration = Some(passConfiguration)
-        )
+    "collapse chained lambdas into a single lambda" in {
+      implicit val inlineContext: InlineContext = mkContext
 
       val ir =
         """
-          |x -> y -> x -> x + y
+          |x -> y -> z -> x + y + z
           |""".stripMargin.preprocessExpression.get.optimise
           .asInstanceOf[IR.Function.Lambda]
 
-//      ir.arguments.head
-//        .asInstanceOf[IR.DefinitionArgument.Specified]
-//        .name
-//        .name should not equal "x"
+      ir.arguments.length shouldEqual 3
+      ir.body shouldBe an[IR.Application]
+    }
+
+    "rename shadowed parameters" in {
+      implicit val inlineContext: InlineContext = mkContext
+
+      val ir =
+        """
+          |x -> z -> y -> x -> y -> x + y
+          |""".stripMargin.preprocessExpression.get.optimise
+          .asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name should not equal "x"
       ir.body
         .asInstanceOf[IR.Application.Prefix]
         .arguments
@@ -115,14 +119,28 @@ class LambdaConsolidateTest extends CompilerTest {
         .name shouldEqual "x"
     }
 
-//    "work properly with default arguments" in {
-//      pending
-//    }
-//
-//    "work properly with usages of shadowed parameters in default arguments" in {
-//      pending
-//    }
-//
+    "work properly with default arguments" in {
+      implicit val inlineContext: InlineContext = mkContext
+
+      val ir =
+        """
+          |x -> y -> (z = x) -> x + y + z
+          |""".stripMargin.preprocessExpression.get.optimise
+          .asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.length shouldEqual 3
+      ir.arguments(2).defaultValue shouldBe defined
+    }
+
+    "work properly with usages of shadowed parameters in default arguments" in {
+      implicit val inlineContext: InlineContext = mkContext
+
+      val ir =
+        """
+          |x -> (y = x) -> (x = x + 1) -> x + y
+          |""".stripMargin.preprocessExpression.get.optimise.asInstanceOf[IR.Function.Lambda]
+    }
+
 //    "output a warning when lambda chaining shadows a parameter definition" in {
 //      pending
 //    }

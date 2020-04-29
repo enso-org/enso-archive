@@ -1,7 +1,8 @@
 package org.enso.compiler.pass.optimise
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.syntax.text.Location
@@ -52,7 +53,10 @@ case object LambdaConsolidate extends IRPass {
     case x =>
       runExpression(
         x,
-        new InlineContext(passConfiguration = moduleContext.passConfiguration)
+        new InlineContext(
+          freshNameSupply   = moduleContext.freshNameSupply,
+          passConfiguration = moduleContext.passConfiguration
+        )
       )
   }
 
@@ -67,8 +71,16 @@ case object LambdaConsolidate extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir.transformExpressions {
-    case fn: IR.Function => collapseFunction(fn, inlineContext)
+  ): IR.Expression = {
+    val freshNameSupply = inlineContext.freshNameSupply.getOrElse(
+      throw new CompilerError(
+        "A fresh name supply is required for lambda consolidation."
+      )
+    )
+    ir.transformExpressions {
+      case fn: IR.Function =>
+        collapseFunction(fn, inlineContext, freshNameSupply)
+    }
   }
 
   /** Collapses chained lambdas for a function definition where possible.
@@ -79,7 +91,8 @@ case object LambdaConsolidate extends IRPass {
     */
   def collapseFunction(
     function: IR.Function,
-    inlineContext: InlineContext
+    inlineContext: InlineContext,
+    freshNameSupply: FreshNameSupply
   ): IR.Function = {
     // TODO [AA] Implement the pass
     // TODO [AA] Introduce a warning if a lambda chain shadows a var
@@ -95,41 +108,39 @@ case object LambdaConsolidate extends IRPass {
             xs ::: lam.arguments
           )
 
-        val shadows = chainedArgList.zipWithIndex.map {
-          case (spec: IR.DefinitionArgument.Specified, ix) =>
+        // TODO [AA] Need to compute if a binding is shadowed by another in the
+        //  list
+        val shadowedBindingIds = chainedArgList
+          .map {
+            case spec: IR.DefinitionArgument.Specified =>
+              val aliasInfo =
+                spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
+                  "Missing aliasing information for an argument definition."
+                )
+              aliasInfo.graph
+                .getOccurrence(aliasInfo.id)
+                .flatMap(occ =>
+                  Some(aliasInfo.graph.knownShadowedDefinitions(occ))
+                )
+                .getOrElse(Set())
+            case _: IR.Error.Redefined.Argument => Set()
+          }
+          .foldLeft(Set[AliasAnalysis.Graph.Occurrence]())(_ ++ _)
+          .map(_.id)
+
+        val isShadowed = chainedArgList.map {
+          case spec: IR.DefinitionArgument.Specified =>
             val aliasInfo =
               spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-                "Lambda argument definition missing aliasing information."
+                "Missing aliasing information for an argument definition."
               )
-            val aliasGraph: AliasAnalysis.Graph = aliasInfo.graph
-            val shadowedIds = if (aliasGraph.shadows(aliasInfo.id)) {
-
-            } else {
-              List()
-            }
-
-            false
-          case (_: IR.Error.Redefined.Argument, _) => false
+            shadowedBindingIds.contains(aliasInfo.id)
+          case _: IR.Error.Redefined.Argument => false
         }
 
-        // TODO [AA] This should use the alias analysis info, not do it ad hoc
-        val argIsShadowed: List[Boolean] =
-          for ((arg, ix) <- chainedArgList.zipWithIndex) yield {
-            val remainingList = chainedArgList.drop(ix + 1)
-
-            remainingList.exists {
-              case spec: IR.DefinitionArgument.Specified =>
-                arg match {
-                  case arg: IR.DefinitionArgument.Specified =>
-                    arg.name.name == spec.name.name
-                  case _ => throw new RuntimeException
-                }
-              case _ => throw new RuntimeException
-            }
-          }
-
         val processedArgList = renameShadowedArguments(
-          chainedArgList.zip(argIsShadowed)
+          chainedArgList.zip(isShadowed),
+          freshNameSupply
         )
 
         val newLocation = chainedLambdas.head.location match {
@@ -164,10 +175,26 @@ case object LambdaConsolidate extends IRPass {
     * @return `args`, with any shadowed arguments renamed
     */
   def renameShadowedArguments(
-    args: List[(IR.DefinitionArgument, Boolean)]
+    args: List[(IR.DefinitionArgument, Boolean)],
+    freshNameSupply: FreshNameSupply
   ): List[IR.DefinitionArgument] = {
-    // TODO [AA]
-    args.map(_._1)
+    args.map {
+      case (
+          spec @ IR.DefinitionArgument.Specified(name, default, _, _, _),
+          isShadowed
+          ) =>
+        // TODO [AA] Deal with usages of the argument
+        if (isShadowed) {
+          val newName = freshNameSupply.newName()
+
+          spec.copy(
+            name = newName.copy(location = name.location, id = name.getId)
+          )
+        } else {
+          spec
+        }
+      case (e: IR.Error.Redefined.Argument, _) => e
+    }
   }
 
   def replaceUsage(
