@@ -45,6 +45,11 @@ public abstract class InvokeCallableNode extends BaseNode {
       return this == IGNORE;
     }
 
+    /**
+     * Whether or not any default arguments be executed in this application position.
+     *
+     * @return {@code true} if the defaulted arguments should be executed, {@code false} otherwise
+     */
     public boolean isExecute() {
       return this == EXECUTE;
     }
