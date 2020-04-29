@@ -52,6 +52,7 @@ import org.enso.interpreter.runtime.error.{
 }
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
+import org.enso.pkg.QualifiedName
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -398,7 +399,8 @@ class IRToTruffle(
           moduleScope,
           blockNode,
           null,
-          s"default::$scopeName"
+          s"default::$scopeName",
+          null
         )
 
         val callTarget = Truffle.getRuntime.createCallTarget(defaultRootNode)
@@ -635,7 +637,12 @@ class IRToTruffle(
         moduleScope,
         fnBodyNode,
         makeSection(location),
-        scopeName
+        scopeName,
+        QualifiedName.fromString(scopeName)
+          .map(_.module)
+          .map(moduleScope.getModule.getName.createChild)
+          .map(_.toString)
+          .orNull
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 
@@ -785,7 +792,8 @@ class IRToTruffle(
               moduleScope,
               argumentExpression,
               section,
-              displayName
+              displayName,
+              null
             )
           )
 
@@ -860,7 +868,8 @@ class IRToTruffle(
             moduleScope,
             defaultExpression,
             null,
-            s"default::$scopeName::${arg.name}"
+            s"default::$scopeName::${arg.name}",
+            null
           )
 
           CreateThunkNode.build(
