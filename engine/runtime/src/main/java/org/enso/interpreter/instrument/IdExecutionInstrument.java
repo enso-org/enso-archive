@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
-import org.enso.interpreter.runtime.Module;
 import org.enso.interpreter.runtime.tag.IdentifiedTag;
 import org.enso.interpreter.runtime.type.Types;
 
@@ -44,7 +43,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
   public static class ExpressionCall {
     private UUID expressionId;
     private FunctionCallInstrumentationNode.FunctionCall call;
-    private Module module;
 
     /**
      * Creates an instance of this class.
