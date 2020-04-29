@@ -96,9 +96,6 @@ case object LambdaConsolidate extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Function = {
     // TODO [AA] Introduce a warning if a lambda chain shadows a var
-    // TODO [AA] Account for defaults
-    // TODO [AA] make sure to recurse through the body of the eventual function
-    //  and the argument defaults
 
     function match {
       case lam @ IR.Function.Lambda(_, body, _, _, _) =>
@@ -109,8 +106,7 @@ case object LambdaConsolidate extends IRPass {
           )
         val lastBody = chainedLambdas.last.body
 
-        // TODO [AA] Need to compute if a binding is shadowed by another in the
-        //  list
+        // Compute the set of all argument definitions that are shadowed
         val shadowedBindingIds = chainedArgList
           .map {
             case spec: IR.DefinitionArgument.Specified =>
@@ -141,7 +137,7 @@ case object LambdaConsolidate extends IRPass {
 
         val argsWithShadowed = chainedArgList.zip(argIsShadowed)
 
-        // TODO 1. Get the usage ids for shadowed arguments Map[Name, Set[ID]]
+        // Get the usage ids for shadowed arguments Map[Name, Set[ID]]
         val usageIdsForShadowed: List[Set[IR.Identifier]] =
           argsWithShadowed.map {
             case (spec: IR.DefinitionArgument.Specified, isShadowed) =>
@@ -169,7 +165,7 @@ case object LambdaConsolidate extends IRPass {
             case (_: IR.Error.Redefined.Argument, _) => Set()
           }
 
-        // TODO 2. Get the new names for the shadowed arguments List[IR.Name]
+        // Get the new names for the shadowed arguments List[IR.Name]
         val newNames: List[IR.DefinitionArgument] = argsWithShadowed.map {
           case (
               spec @ IR.DefinitionArgument.Specified(name, _, _, _, _),
@@ -193,11 +189,11 @@ case object LambdaConsolidate extends IRPass {
         var newBody     = lastBody
         var newDefaults = chainedArgList.map(_.defaultValue)
 
-        // TODO 2.5. Filter to just the ones needing replacement
+        // Filter to just the ones needing replacement
         val namesNeedingReplacement =
           newNames.zip(usageIdsForShadowed).filterNot(x => x._2.isEmpty)
 
-        // TODO 3. Replace all occurrences in the defaults and the body
+        // Replace all occurrences in the defaults and the body
         for ((arg, idents) <- namesNeedingReplacement) {
           val (updatedBody, updatedDefaults) =
             replaceUsages(newBody, newDefaults, arg, idents)
@@ -206,14 +202,14 @@ case object LambdaConsolidate extends IRPass {
           newDefaults = updatedDefaults
         }
 
-        // TODO 4. Reconstruct the arguments from the defaults)
+        // Reconstruct the arguments from the defaults)
         val processedArgList = newNames.zip(newDefaults).map {
           case (spec: IR.DefinitionArgument.Specified, default) =>
             spec.copy(defaultValue = default)
           case (e: IR.Error.Redefined.Argument, _) => e
         }
 
-        // TODO 5. Compute the new location
+        // Compute the new location
         val newLocation = chainedLambdas.head.location match {
           // TODO [MK] Marcin please check the handling of the location is
           //  correct, particularly the ID
@@ -258,8 +254,47 @@ case object LambdaConsolidate extends IRPass {
     body: IR.Expression,
     defaults: List[Option[IR.Expression]],
     argument: IR.DefinitionArgument,
-    ident: Set[IR.Identifier]
+    toReplaceExpressionIds: Set[IR.Identifier]
   ): (IR.Expression, List[Option[IR.Expression]]) = {
-    (body, defaults)
+    (
+      replaceInExpression(body, argument, toReplaceExpressionIds),
+      defaults.map(
+        _.map(replaceInExpression(_, argument, toReplaceExpressionIds))
+      )
+    )
+  }
+
+  // Use the fact that usages can only be names
+  def replaceInExpression(
+    expr: IR.Expression,
+    argument: IR.DefinitionArgument,
+    toReplaceExpressionIds: Set[IR.Identifier]
+  ): IR.Expression = {
+    expr.transformExpressions {
+      case name: IR.Name =>
+        replaceInName(name, argument, toReplaceExpressionIds)
+    }
+  }
+
+  def replaceInName(
+    name: IR.Name,
+    argument: IR.DefinitionArgument,
+    toReplaceExpressionIds: Set[IR.Identifier]
+  ): IR.Name = {
+    if (toReplaceExpressionIds.contains(name.getId)) {
+      name match {
+        case spec: IR.Name.Literal =>
+          spec.copy(
+            name = argument match {
+              case defSpec: IR.DefinitionArgument.Specified => defSpec.name.name
+              case _: IR.Error.Redefined.Argument           => spec.name
+            }
+          )
+        case ths: IR.Name.This  => ths
+        case here: IR.Name.Here => here
+      }
+    } else {
+      name
+    }
   }
 }

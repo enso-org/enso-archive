@@ -141,12 +141,56 @@ class LambdaConsolidateTest extends CompilerTest {
           |x -> (y = x) -> (x = x + 1) -> x + y
           |""".stripMargin.preprocessExpression.get.optimise
           .asInstanceOf[IR.Function.Lambda]
+
+      // Usages of `x` and `y` should be untouched
+      ir.body
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments
+        .head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual "x"
+      ir.body
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual "y"
+
+      // The first argument `x` should be renamed
+      val newXName = ir.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name
+
+      newXName should not equal "x"
+
+      // Usages of the first argument `x` should be replaced by the new name
+      ir.arguments(1)
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .defaultValue
+        .get
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual newXName
+      ir.arguments(2)
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .defaultValue
+        .get
+        .asInstanceOf[IR.Application.Prefix]
+        .arguments
+        .head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+        .name shouldEqual newXName
     }
 
-//    "output a warning when lambda chaining shadows a parameter definition" in {
-//      pending
-//    }
-//
+    "output a warning when lambda chaining shadows a parameter definition" in {
+      pending
+    }
+
 //    "maintain laziness of collapsed parameters" in {
 //      pending
 //    }
