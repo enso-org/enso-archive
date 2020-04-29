@@ -202,7 +202,7 @@ object IR {
     override val passData: ISet[Metadata] = ISet()
   ) extends IR
       with Expression
-      with Error
+      with Diagnostic
       with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
@@ -2429,22 +2429,22 @@ object IR {
     }
   }
 
-  // === Errors ===============================================================
+  // === Diagnostics ==========================================================
 
-  /** A trait for all errors in Enso's IR. */
-  sealed trait Error extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Error
+  /** A representation of various kinds of diagnostic in the IR. */
+  sealed trait Diagnostic extends Expression {
+    override def mapExpressions(fn: Expression => Expression): Diagnostic
 
     override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
       newData: M
-    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Error
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Diagnostic
 
     /**
       * @return a human-readable description of this error condition.
       */
     def message: String
   }
-  object Error {
+  object Diagnostic {
 
     /** Represents the various kinds of errors in the IR. */
     sealed trait Kind
@@ -2460,6 +2460,105 @@ object IR {
         */
       sealed trait Interactive extends Kind
     }
+  }
+
+  // === Warnings =============================================================
+
+  /** A trait for all warnings in Enso's IR. */
+  sealed trait Warning extends Diagnostic {
+
+    /** The expression that the warning is being attached to. */
+    val warnedExpr: IR.Expression
+
+    override def mapExpressions(fn: Expression => Expression): Warning
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Warning
+  }
+  object Warning {
+
+    /** Warnings about shadowing names. */
+    sealed trait Shadowed extends Warning {
+
+      /** The expression shadowing the warned expression. */
+      val shadower: IR.Expression
+
+      override def mapExpressions(fn: Expression => Expression): Shadowed
+
+      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+        newData: M
+      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Shadowed
+    }
+    object Shadowed {
+
+      /** A warning that a later-defined lambda parameter shadows an
+        * earlier-defined lambda parameter.
+        *
+        * @param warnedExpr the expression that the warning is attached to
+        * @param shadower the expression shadowing `warnedExpr`
+        * @param passData the pass data for the warning
+        */
+      sealed case class LambdaParam(
+        override val warnedExpr: IR.Expression,
+        override val shadower: IR.Expression,
+        override val passData: ISet[Metadata] = ISet()
+      ) extends Shadowed {
+        override protected var id: Identifier = randomId
+
+        override val location: Option[IdentifiedLocation] = warnedExpr.location
+
+        /** Creates a copy of `this`.
+         *
+         * @param warnedExpr the expression that the warning is attached to
+         * @param shadower the expression shadowing `warnedExpr`
+         * @param passData the pass data for the warning
+         * @param id the identifier for the new node
+         * @return a copy of `this`, updated with the specified values
+         */
+        def copy(
+          warnedExpr: IR.Expression            = warnedExpr,
+          shadower: IR.Expression              = shadower,
+          passData: ISet[Metadata]             = passData,
+          id: Identifier                       = id
+        ): LambdaParam = {
+          val res = LambdaParam(warnedExpr, shadower, passData)
+          res.id = id
+          res
+        }
+
+        override def mapExpressions(
+          fn: Expression => Expression
+        ): LambdaParam = {
+          copy(warnedExpr = fn(warnedExpr))
+        }
+
+        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+          newData: M
+        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): LambdaParam = {
+          copy(passData = addToMetadata[T, M](newData))
+        }
+
+        override def message: String =
+          s"The lambda parameter $warnedExpr is being shadowed by $shadower"
+
+        override def children: List[IR] = List(warnedExpr, shadower)
+      }
+
+    }
+  }
+
+  // === Errors ===============================================================
+
+  /** A trait for all errors in Enso's IR. */
+  sealed trait Error extends Diagnostic {
+    override def mapExpressions(fn: Expression => Expression): Error
+
+    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
+      newData: M
+    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Error
+  }
+  object Error {
 
     /** A representation of an Enso syntax error.
       *
@@ -2472,7 +2571,7 @@ object IR {
       reason: Syntax.Reason,
       override val passData: ISet[Metadata] = ISet()
     ) extends Error
-        with Kind.Interactive
+        with Diagnostic.Kind.Interactive
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -2570,7 +2669,7 @@ object IR {
       ir: IR,
       override val passData: ISet[Metadata] = ISet()
     ) extends Error
-        with Kind.Static
+        with Diagnostic.Kind.Static
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -2634,7 +2733,7 @@ object IR {
         invalidArgDef: IR.DefinitionArgument.Specified,
         override val passData: ISet[Metadata] = ISet()
       ) extends Redefined
-          with Kind.Static
+          with Diagnostic.Kind.Static
           with IRKind.Primitive
           with IR.DefinitionArgument {
         override protected var id: Identifier = randomId
@@ -2699,7 +2798,7 @@ object IR {
         invalidBinding: IR.Expression.Binding,
         override val passData: ISet[Metadata] = ISet()
       ) extends Redefined
-          with Kind.Static
+          with Diagnostic.Kind.Static
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -2842,4 +2941,5 @@ object IR {
       s"${lines.head}${body}${lines.last}"
     }
   }
+
 }

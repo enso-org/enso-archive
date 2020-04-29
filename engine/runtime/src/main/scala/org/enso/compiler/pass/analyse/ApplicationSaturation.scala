@@ -46,6 +46,7 @@ case object ApplicationSaturation extends IRPass {
     * @return `ir`, possibly having made transformations or annotations to that
     *         IR.
     */
+  //noinspection DuplicatedCode
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext

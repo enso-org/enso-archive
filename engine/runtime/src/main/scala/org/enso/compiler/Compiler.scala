@@ -243,13 +243,13 @@ class Compiler(
     source: Source,
     inlineContext: InlineContext
   ): Unit = if (context.isStrictErrors) {
-    val errors = GatherErrors
+    val errors = GatherDiagnostics
       .runExpression(ir, inlineContext)
-      .unsafeGetMetadata[GatherErrors.Errors](
+      .unsafeGetMetadata[GatherDiagnostics.Diagnostics](
         "No errors metadata right after the gathering pass."
       )
-      .errors
-    reportErrors(errors, source)
+      .diagnostics
+    reportDiagnostics(errors, source)
   }
 
   /**
@@ -266,43 +266,69 @@ class Compiler(
     moduleContext: ModuleContext
   ): Unit =
     if (context.isStrictErrors) {
-      val errors = GatherErrors
+      val errors = GatherDiagnostics
         .runModule(ir, moduleContext)
-        .unsafeGetMetadata[GatherErrors.Errors](
+        .unsafeGetMetadata[GatherDiagnostics.Diagnostics](
           "No errors metadata right after the gathering pass."
         )
-        .errors
-      reportErrors(errors, source)
+        .diagnostics
+      reportDiagnostics(errors, source)
     }
 
   /**
-    * Reports compilation errors to the standard output and throws an exception
-    * breaking the execution flow.
+    * Reports compilation diagnostics to the standard output and throws an
+    * exception breaking the execution flow if there are errors.
     *
-    * @param errors all the errors found in the program IR.
+    * @param diagnostics all the diagnostics found in the program IR.
     * @param source the original source code.
     */
-  def reportErrors(errors: List[IR.Error], source: Source): Unit =
+  def reportDiagnostics(
+    diagnostics: List[IR.Diagnostic],
+    source: Source
+  ): Unit = {
+    val errors   = diagnostics.collect { case e: IR.Error   => e }
+    val warnings = diagnostics.collect { case w: IR.Warning => w }
+
+    if (warnings.nonEmpty) {
+      context.getOut.println("Compiler encountered warnings:")
+      warnings.foreach { warning =>
+        context.getOut.println(formatDiagnostic(warning, source))
+      }
+    }
+
     if (errors.nonEmpty) {
       context.getOut.println("Compiler encountered errors:")
-      errors.foreach { err =>
-        val srcLocation = err.location
-          .map { loc =>
-            val section = source
-              .createSection(loc.location.start, loc.location.length)
-            val locStr =
-              "" + section.getStartLine + ":" +
-              section.getStartColumn + "-" +
-              section.getEndLine + ":" +
-              section.getEndColumn
-            "[" + locStr + "]"
-          }
-          .getOrElse("")
-        val fullMsg = source.getName + srcLocation + ": " + err.message
-        context.getOut.println(fullMsg)
+      errors.foreach { error =>
+        context.getOut.println(formatDiagnostic(error, source))
       }
       throw new CompilationAbortedException
     }
+  }
+
+  /** Pretty prints compiler diagnostics.
+    *
+    * @param diagnostic the diagnostic to pretty print
+    * @param source the original source code
+    * @return the result of pretty printing `diagnostic`
+    */
+  private def formatDiagnostic(
+    diagnostic: IR.Diagnostic,
+    source: Source
+  ): String = {
+    val srcLocation = diagnostic.location
+      .map { loc =>
+        val section =
+          source.createSection(loc.location.start, loc.location.length)
+        val locStr =
+          "" + section.getStartLine + ":" +
+          section.getStartColumn + "-" +
+          section.getEndLine + ":" +
+          section.getEndColumn
+        "[" + locStr + "]"
+      }
+      .getOrElse("")
+    source.getName + srcLocation + ": " + diagnostic.message
+  }
 
   /** Generates code for the truffle interpreter.
     *

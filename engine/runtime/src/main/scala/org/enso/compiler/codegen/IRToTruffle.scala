@@ -340,6 +340,7 @@ class IRToTruffle(
         case caseExpr: IR.Case              => processCase(caseExpr)
         case comment: IR.Comment            => processComment(comment)
         case err: IR.Error                  => processError(err)
+        case warning: IR.Warning            => processWarning(warning)
         case IR.Foreign.Definition(_, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
@@ -363,6 +364,10 @@ class IRToTruffle(
     }
 
     // === Processing =========================================================
+
+    def processWarning(warning: IR.Warning): RuntimeExpression = {
+      ???
+    }
 
     /** Performs code generation for any comments left in the Enso [[IR]].
       *
@@ -560,8 +565,6 @@ class IRToTruffle(
       */
     def processError(error: IR.Error): RuntimeExpression = {
       val payload: AnyRef = error match {
-        case IR.Empty(_, _) =>
-          throw new CompilerError("Unexpected Empty IR during codegen.")
         case Error.InvalidIR(_, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>

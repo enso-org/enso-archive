@@ -4,16 +4,15 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
-/**
-  * A pass that traverses the given root IR and accumulates all the encountered
-  * error nodes in the root.
+/** A pass that traverses the given root IR and accumulates all the encountered
+  * diagnostic nodes in the root.
   */
-case object GatherErrors extends IRPass {
+case object GatherDiagnostics extends IRPass {
 
-  override type Metadata = Errors
+  override type Metadata = Diagnostics
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
-    * errors to its metadata storage.
+    * diagnostics to its metadata storage.
     *
     * @param ir the Enso IR to process
     * @param moduleContext a context object that contains the information needed
@@ -28,7 +27,7 @@ case object GatherErrors extends IRPass {
     ir.addMetadata[Metadata, Metadata](gatherErrors(ir))
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
-    * errors to its metadata storage.
+    * diagnostics to its metadata storage.
     *
     * @param ir the IR to process
     * @param inlineContext a context object that contains the information needed
@@ -40,16 +39,16 @@ case object GatherErrors extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression = ir.addMetadata[Metadata, Metadata](gatherErrors(ir))
 
-  private def gatherErrors(ir: IR): Errors =
-    Errors(ir.preorder.collect { case err: IR.Error => err })
+  private def gatherErrors(ir: IR): Diagnostics =
+    Diagnostics(ir.preorder.collect { case err: IR.Diagnostic => err })
 
-  /** A container for errors found in the IR.
-   *
-   * @param errors a list of the errors found in the IR
-   */
-  case class Errors(errors: List[IR.Error]) extends IR.Metadata {
+  /** A container for diagnostics found in the IR.
+    *
+    * @param diagnostics a list of the errors found in the IR
+    */
+  case class Diagnostics(diagnostics: List[IR.Diagnostic]) extends IR.Metadata {
 
     /** The name of the metadata as a string. */
-    override val metadataName: String = "GatherErrors.Errors"
+    override val metadataName: String = "GatherDiagnostics.Diagnostics"
   }
 }

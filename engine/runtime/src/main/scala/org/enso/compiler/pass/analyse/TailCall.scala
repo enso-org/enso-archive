@@ -91,6 +91,8 @@ case object TailCall extends IRPass {
     isInTailPosition: Boolean
   ): IR.Expression = {
     expression match {
+      case empty: IR.Empty =>
+        empty.addMetadata[Metadata, Metadata](TailPosition.NotTail)
       case function: IR.Function => analyseFunction(function, isInTailPosition)
       case caseExpr: IR.Case     => analyseCase(caseExpr, isInTailPosition)
       case typ: IR.Type          => analyseType(typ, isInTailPosition)
@@ -118,8 +120,10 @@ case object TailCall extends IRPass {
           .addMetadata[Metadata, TailPosition](
             TailPosition.fromBool(isInTailPosition)
           )
-      case err: IR.Error =>
-        err.addMetadata[Metadata, Metadata](TailPosition.fromBool(isInTailPosition))
+      case err: IR.Diagnostic =>
+        err.addMetadata[Metadata, Metadata](
+          TailPosition.fromBool(isInTailPosition)
+        )
     }
   }
 

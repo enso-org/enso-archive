@@ -217,7 +217,8 @@ case object AliasAnalysis extends IRPass {
         }
       case app: IR.Application =>
         analyseApplication(app, graph, parentScope)
-      case tpe: IR.Type => analyseType(tpe, graph, parentScope)
+      case tpe: IR.Type     => analyseType(tpe, graph, parentScope)
+      case warn: IR.Warning => analyseWarning(warn, graph, parentScope)
       case x =>
         x.mapExpressions((expression: IR.Expression) =>
           analyseExpression(
@@ -226,6 +227,24 @@ case object AliasAnalysis extends IRPass {
             parentScope
           )
         )
+    }
+  }
+
+  /** Performs alias analysis on a warning.
+    *
+    * @param warning the warning to perform analysis on
+    * @param graph the graph in which the analysis is taking place
+    * @param scope the parent scope in which `warning` occurs
+    * @return `warning`, annotated with aliasing information
+    */
+  def analyseWarning(
+    warning: IR.Warning,
+    graph: Graph,
+    scope: Scope
+  ): IR.Warning = {
+    warning match {
+      case lp @ IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
+        lp.copy(warnedExpr = analyseExpression(warnedExpr, graph, scope))
     }
   }
 
@@ -1022,6 +1041,7 @@ case object AliasAnalysis extends IRPass {
     sealed trait Occurrence {
       val id: Id
       val symbol: Graph.Symbol
+      val identifier: IR.Identifier
     }
     object Occurrence {
 
@@ -1033,9 +1053,9 @@ case object AliasAnalysis extends IRPass {
         * @param isLazy whether or not the symbol is defined as lazy
         */
       sealed case class Def(
-        id: Id,
-        symbol: Graph.Symbol,
-        identifier: IR.Identifier,
+        override val id: Id,
+        override val symbol: Graph.Symbol,
+        override val identifier: IR.Identifier,
         isLazy: Boolean = false
       ) extends Occurrence
 
@@ -1050,9 +1070,9 @@ case object AliasAnalysis extends IRPass {
         * @param identifier the identifier of the symbol
         */
       sealed case class Use(
-        id: Id,
-        symbol: Graph.Symbol,
-        identifier: IR.Identifier
+        override val id: Id,
+        override val symbol: Graph.Symbol,
+        override val identifier: IR.Identifier
       ) extends Occurrence
     }
   }

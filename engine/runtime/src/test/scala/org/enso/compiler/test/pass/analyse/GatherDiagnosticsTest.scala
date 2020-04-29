@@ -3,11 +3,11 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.CallArgument
-import org.enso.compiler.pass.analyse.GatherErrors
+import org.enso.compiler.pass.analyse.GatherDiagnostics
 import org.enso.compiler.test.CompilerTest
 import org.enso.syntax.text.AST
 
-class GatherErrorsTest extends CompilerTest {
+class GatherDiagnosticsTest extends CompilerTest {
   "Error Gathering" should {
     val error1 = IR.Error.Redefined.Argument(
       IR.DefinitionArgument
@@ -42,10 +42,10 @@ class GatherErrorsTest extends CompilerTest {
     )
 
     "work with expression flow" in {
-      val result = GatherErrors.runExpression(lam, new InlineContext())
+      val result = GatherDiagnostics.runExpression(lam, new InlineContext())
       val errors = result
-        .unsafeGetMetadata[GatherErrors.Errors]("Impossible")
-        .errors
+        .unsafeGetMetadata[GatherDiagnostics.Diagnostics]("Impossible")
+        .diagnostics
 
       errors.toSet shouldEqual Set(error1, error2)
     }
@@ -83,10 +83,10 @@ class GatherErrorsTest extends CompilerTest {
         None
       )
 
-      val result = GatherErrors.runModule(module, ModuleContext())
+      val result = GatherDiagnostics.runModule(module, ModuleContext())
       val errors = result
-        .unsafeGetMetadata[GatherErrors.Errors]("Impossible")
-        .errors
+        .unsafeGetMetadata[GatherDiagnostics.Diagnostics]("Impossible")
+        .diagnostics
 
       errors.toSet shouldEqual Set(error1, error2, error3, error4)
     }

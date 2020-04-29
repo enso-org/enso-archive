@@ -4,7 +4,7 @@ import org.enso.interpreter.test.{InterpreterException, InterpreterTest}
 import org.enso.polyglot.{LanguageInfo, RuntimeOptions}
 import org.graalvm.polyglot.Context
 
-class StrictCompileErrorsTest extends InterpreterTest {
+class StrictCompileDiagnosticsTest extends InterpreterTest {
   override val ctx: Context = Context
     .newBuilder(LanguageInfo.ID)
     .allowExperimentalOptions(true)

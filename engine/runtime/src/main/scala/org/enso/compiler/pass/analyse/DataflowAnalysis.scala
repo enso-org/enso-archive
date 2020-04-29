@@ -20,16 +20,16 @@ import scala.collection.mutable
 //noinspection DuplicatedCode
 case object DataflowAnalysis extends IRPass {
   override type Metadata = DependencyInfo
-  override type Config = IRPass.Configuration.Default
+  override type Config   = IRPass.Configuration.Default
 
   /** Executes the dataflow analysis process on an Enso module.
-   *
-   * @param ir the Enso IR to process
-   * @param moduleContext a context object that contains the information needed
-   *                      to process a module
-   * @return `ir`, possibly having made transformations or annotations to that
-   *         IR.
-   */
+    *
+    * @param ir the Enso IR to process
+    * @param moduleContext a context object that contains the information needed
+    *                      to process a module
+    * @return `ir`, possibly having made transformations or annotations to that
+    *         IR.
+    */
   override def runModule(
     ir: IR.Module,
     moduleContext: ModuleContext
@@ -108,6 +108,7 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.Expression = {
     expression match {
+      case empty: IR.Empty       => empty.addMetadata[Metadata, Metadata](info)
       case function: IR.Function => analyseFunction(function, info)
       case app: IR.Application   => analyseApplication(app, info)
       case typ: IR.Type          => analyseType(typ, info)
@@ -139,7 +140,26 @@ case object DataflowAnalysis extends IRPass {
           )
           .addMetadata[Metadata, DependencyInfo](info)
 
-      case error: IR.Error => error
+      case warning: IR.Warning => analyseWarning(warning, info)
+      case error: IR.Error     => error
+    }
+  }
+
+  /** Performs dataflow analysis on a warning.
+    *
+    * A warning depends purely on the value of its `warnedExpr`.
+    *
+    * @param warning the warning to perform dataflow analysis on
+    * @param info the dependency information for the warning
+    * @return `warning`, with attached dependency information
+    */
+  def analyseWarning(warning: IR.Warning, info: DependencyInfo): IR.Warning = {
+    warning match {
+      case lp @ IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
+        info.updateAt(warnedExpr.getId, Set(lp.getId))
+
+        lp.copy(warnedExpr = analyseExpression(warnedExpr, info))
+          .addMetadata[Metadata, Metadata](info)
     }
   }
 
