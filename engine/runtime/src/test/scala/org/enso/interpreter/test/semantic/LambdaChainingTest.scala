@@ -63,6 +63,17 @@ class LambdaChainingTest extends InterpreterTest {
     consumeOut shouldEqual List("10")
   }
 
+  "Chains of lambdas with complex shadowing" should "work properly" in {
+    val code =
+      """
+        |main =
+        |    fn = x -> (y = x) -> (x = x + 1) -> x + y
+        |    fn 1
+        |""".stripMargin
+
+    eval(code) shouldEqual 3
+  }
+
   "Chains of lambdas" should "work syntactically" in {
     val code =
       """

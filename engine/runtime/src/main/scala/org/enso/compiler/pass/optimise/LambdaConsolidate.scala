@@ -95,8 +95,6 @@ case object LambdaConsolidate extends IRPass {
     inlineContext: InlineContext,
     freshNameSupply: FreshNameSupply
   ): IR.Function = {
-    // TODO [AA] Introduce a warning if a lambda chain shadows a var
-
     function match {
       case lam @ IR.Function.Lambda(_, body, _, _, _) =>
         val chainedLambdas = lam :: gatherChainedLambdas(body)

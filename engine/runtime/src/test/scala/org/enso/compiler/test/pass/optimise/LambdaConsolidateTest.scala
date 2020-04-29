@@ -135,7 +135,6 @@ class LambdaConsolidateTest extends CompilerTest {
     "work properly with usages of shadowed parameters in default arguments" in {
       implicit val inlineContext: InlineContext = mkContext
 
-      // TODO [AA] Add this as an execution test
       val ir =
         """
           |x -> (y = x) -> (x = x + 1) -> x + y
@@ -187,16 +186,80 @@ class LambdaConsolidateTest extends CompilerTest {
         .name shouldEqual newXName
     }
 
-    "output a warning when lambda chaining shadows a parameter definition" in {
-      pending
+    "maintain laziness of collapsed parameters" in {
+      implicit val inlineContext: InlineContext = mkContext
+
+      val ir =
+        """
+          |~x -> ~y -> x + y
+          |""".stripMargin.preprocessExpression.get.optimise
+          .asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.length shouldEqual 2
+      ir.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .suspended shouldEqual true
+      ir.arguments(1)
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .suspended shouldEqual true
     }
 
-//    "maintain laziness of collapsed parameters" in {
-//      pending
-//    }
-//
-//    "collapse lambdas with multiple parameters" in {
-//      pending
-//    }
+    "collapse lambdas with multiple parameters" in {
+      implicit val inlineContext: InlineContext = mkContext
+
+      val ir: IR.Function.Lambda = IR.Function
+        .Lambda(
+          List(
+            IR.DefinitionArgument
+              .Specified(
+                IR.Name.Literal("a", None),
+                None,
+                suspended = false,
+                None
+              ),
+            IR.DefinitionArgument.Specified(
+              IR.Name.Literal("b", None),
+              None,
+              suspended = false,
+              None
+            )
+          ),
+          IR.Function.Lambda(
+            List(
+              IR.DefinitionArgument.Specified(
+                IR.Name.Literal("c", None),
+                None,
+                suspended = false,
+                None
+              )
+            ),
+            IR.Name.Literal("c", None),
+            None
+          ),
+          None
+        )
+        .runPasses(passManager, inlineContext)
+        .optimise
+        .asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.length shouldEqual 3
+      ir.arguments.head
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name shouldEqual "a"
+      ir.arguments(1)
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name shouldEqual "b"
+      ir.arguments(2)
+        .asInstanceOf[IR.DefinitionArgument.Specified]
+        .name
+        .name shouldEqual "c"
+    }
+
+    "output a warning when lambda chaining shadows a parameter definition" in {
+      // TODO [AA] Need to rejig the diagnostics system before implementing this
+      pending
+    }
   }
 }
