@@ -50,7 +50,7 @@ class JsonSerializationTest extends InterpreterTest {
       """{"type":"Cons","fields":[1,{"type":"Cons","fields":["\"foo\"",{"type":
         |"Cons","fields":[{"type":"Unit","fields":[]},{"type":"Cons","fields":
         |[null,{"type":"Nil","fields":[]}]}]}]}]}""".stripMargin
-        .replaceAllLiterally("\n", "")
+        .replaceAllLiterally(System.lineSeparator(), "")
 
     eval(code) shouldEqual expectedResult
   }

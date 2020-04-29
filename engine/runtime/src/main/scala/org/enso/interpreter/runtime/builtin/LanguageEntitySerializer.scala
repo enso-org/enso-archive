@@ -26,7 +26,7 @@ object LanguageEntitySerializer {
     case atom: Atom =>
       Json.obj(
         "type"   -> Json.fromString(atom.getConstructor.getName),
-        "fields" -> Json.arr(atom.getFields.map(toJson): _*)
+        "fields" -> Json.arr(atom.getFields.map(toJson).toIndexedSeq: _*)
       )
     case _ => Json.Null
   }
