@@ -49,8 +49,8 @@ class JsonSerializationTest extends InterpreterTest {
     val expectedResult =
       """{"type":"Cons","fields":[1,{"type":"Cons","fields":["\"foo\"",{"type":
         |"Cons","fields":[{"type":"Unit","fields":[]},{"type":"Cons","fields":
-        |[null,{"type":"Nil","fields":[]}]}]}]}]}""".stripMargin
-        .replaceAllLiterally(System.lineSeparator(), "")
+        |[null,{"type":"Nil","fields":[]}]}]}]}]}""".stripMargin.linesIterator
+        .mkString("")
 
     eval(code) shouldEqual expectedResult
   }
