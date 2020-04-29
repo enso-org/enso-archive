@@ -1,5 +1,6 @@
 package org.enso.compiler.pass
 
+import org.enso.compiler.pass.PassConfiguration.ConfigMap
 import shapeless.=:!=
 
 import scala.annotation.unused
@@ -9,10 +10,9 @@ import scala.annotation.unused
   * @param config the initial pass configurations
   */
 class PassConfiguration(
-  config: Map[IRPass, IRPass.Configuration] = Map()
+  config: ConfigMap = Map()
 ) {
-  private var configuration: Map[IRPass, IRPass.Configuration] =
-    config
+  private var configuration: ConfigMap = config
 
   /** Adds a new configuration entity to the pass configuration, or updates it
     * if it already exists for a given pass.
@@ -52,4 +52,7 @@ class PassConfiguration(
   )(implicit @unused ev: T =:!= IRPass.Configuration): Option[T] = {
     configuration.get(pass).map(_.asInstanceOf[T])
   }
+}
+object PassConfiguration {
+  type ConfigMap = Map[IRPass, IRPass.Configuration]
 }

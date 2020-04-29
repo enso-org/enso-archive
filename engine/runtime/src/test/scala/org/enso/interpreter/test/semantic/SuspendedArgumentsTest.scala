@@ -2,8 +2,8 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.InterpreterTest
 
-class LazyArgumentsTest extends InterpreterTest {
-  val subject = "Lazy arguments"
+class SuspendedArgumentsTest extends InterpreterTest {
+  val subject = "Suspended arguments"
 
   subject should "work in basic expressions" in {
     val code =
