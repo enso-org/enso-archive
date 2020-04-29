@@ -16,6 +16,7 @@ import org.enso.interpreter.runtime.callable.argument.Thunk;
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor;
 import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.error.NotInvokableException;
+import org.enso.interpreter.runtime.interop.JavaObject;
 import org.enso.interpreter.runtime.state.Stateful;
 
 import java.util.UUID;
@@ -76,6 +77,7 @@ public abstract class InvokeCallableNode extends BaseNode {
 
   @Child private InvokeFunctionNode invokeFunctionNode;
   @Child private MethodResolverNode methodResolverNode;
+  @Child private InvokeJavaNode invokeJavaNode;
   @Child private ThunkExecutorNode thisExecutor;
 
   private final boolean canApplyThis;
@@ -106,6 +108,7 @@ public abstract class InvokeCallableNode extends BaseNode {
 
     this.invokeFunctionNode =
         InvokeFunctionNode.build(schema, defaultsExecutionMode, argumentsExecutionMode);
+    this.invokeJavaNode = new InvokeJavaNode(schema.length, thisArgumentPosition);
     this.methodResolverNode = MethodResolverNode.build();
   }
 
@@ -178,8 +181,12 @@ public abstract class InvokeCallableNode extends BaseNode {
         state = selfResult.getState();
         arguments[thisArgumentPosition] = selfArgument;
       }
+      //      if (selfArgument instanceof JavaObject) {
+      //        return invokeJavaNode.execute((JavaObject) selfArgument, symbol, arguments, state);
+      //      } else {
       Function function = methodResolverNode.execute(symbol, selfArgument);
       return this.invokeFunctionNode.execute(function, callerFrame, state, arguments);
+      //      }
     } else {
       throw new RuntimeException("Currying without `this` argument is not yet supported.");
     }

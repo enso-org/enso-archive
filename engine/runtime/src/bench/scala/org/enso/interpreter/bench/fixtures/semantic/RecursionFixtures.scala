@@ -89,4 +89,27 @@ class RecursionFixtures extends InterpreterRunner {
       |    State.get
       |""".stripMargin
   val nestedThunkSum = getMain(nestedThunkSumCode)
+
+//  val theJavaMethodCode =
+//    """
+//      |main =
+//      |    Java.add_to_class_path "/Users/marcinkostrzewa/code/javatests/"
+//      |    tester = Java.lookup_class "org.enso.xD.Tester"
+//      |    Java.get_member tester "addNumbers"
+//      |""".stripMargin
+//  val theJavaMethod = eval(theJavaMethodCode)
+//
+//  val sumWithJavaCode =
+//    """
+//      |main = javaMethod sumTo ->
+//      |    summator = acc current ->
+//      |        ifZero current acc (summator (Java.execute2 javaMethod current acc) current-1)
+//      |
+//      |    res = summator 0 sumTo
+//      |    res
+//      |""".stripMargin
+//
+//  val sumWithJava = getMain(sumWithJavaCode)
+
+
 }
