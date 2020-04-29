@@ -526,10 +526,22 @@ case object AliasAnalysis extends IRPass {
 
   /** A graph containing aliasing information for a given root scope in Enso. */
   sealed class Graph {
-    var links: Set[Graph.Link] = Set()
     var rootScope: Graph.Scope = new Graph.Scope()
+    var links: Set[Graph.Link] = Set()
+
+    private var globalSymbols: Map[Graph.Symbol, Occurrence.Global] = Map()
 
     private var nextIdCounter = 0
+
+    /** Registers a requested global symbol in the aliasing scope.
+     *
+     * @param sym the symbol occurrence
+     */
+    def addGlobalSymbol(sym: Occurrence.Global): Unit = {
+      if (!globalSymbols.contains(sym.symbol)) {
+        globalSymbols = globalSymbols + (sym.symbol -> sym)
+      }
+    }
 
     /** Creates a deep copy of the aliasing graph structure.
       *
@@ -714,17 +726,18 @@ case object AliasAnalysis extends IRPass {
     ): Set[Graph.Occurrence] = {
       def getShadowedIds(scope: Graph.Scope): Set[Graph.Occurrence] = {
         scope.occurrences.collect {
-          case d: Occurrence.Def if d.symbol == definition.symbol => d
+          case d: Occurrence.Def if d.symbol == definition.symbol    => d
         } ++ scope.parent.map(getShadowedIds).getOrElse(Set())
       }
 
       definition match {
         case d: Occurrence.Def =>
           scopeFor(d.id).flatMap(_.parent) match {
-            case Some(scope) => getShadowedIds(scope)
+            case Some(scope) => getShadowedIds(scope) // + globals
             case None        => Set()
           }
-        case _: Occurrence.Use => Set()
+        case _: Occurrence.Global => Set()
+        case _: Occurrence.Use    => Set()
       }
     }
 
@@ -1098,10 +1111,10 @@ case object AliasAnalysis extends IRPass {
 
       // TODO [AA] At some point the analysis should make use of these.
       /** Represents a global symbol that has been _asked for_ in the program.
-       *
-       * @param id the identifier of the name in the graph
-       * @param symbol the text of the name
-       */
+        *
+        * @param id the identifier of the name in the graph
+        * @param symbol the text of the name
+        */
       sealed case class Global(
         override val id: Id,
         override val symbol: Graph.Symbol
