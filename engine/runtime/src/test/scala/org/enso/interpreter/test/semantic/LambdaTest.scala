@@ -2,7 +2,7 @@ package org.enso.interpreter.test.semantic
 
 import org.enso.interpreter.test.InterpreterTest
 
-class LambdaArgumentsTest extends InterpreterTest {
+class LambdaTest extends InterpreterTest {
   "Functions" should "take arguments and use them in their bodies" in {
     val code =
       """
@@ -105,5 +105,36 @@ class LambdaArgumentsTest extends InterpreterTest {
         |""".stripMargin
 
     eval(code) shouldEqual 0
+  }
+
+  "Fully saturated returned lambdas" should "be called" in {
+    val code =
+      """
+        |main =
+        |    fn = a b ->
+        |        IO.println (a + b)
+        |        (x = a) -> a + 1
+        |
+        |    fn 1 2
+        |""".stripMargin
+
+    eval(code) shouldEqual 2
+
+    consumeOut shouldEqual List("3")
+  }
+
+  "Fully saturated returned lambdas in TCO" should "be called" in {
+    val code =
+      """
+        |Number.if_then_else = ~t ~f -> ifZero this t f
+        |
+        |main =
+        |    fn = a b ->
+        |        if a then (a + b) else (fn (a-1) b)
+        |
+        |    fn 10 10
+        |""".stripMargin
+
+    eval(code) shouldEqual 10
   }
 }
