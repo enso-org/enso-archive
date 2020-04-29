@@ -365,8 +365,16 @@ class IRToTruffle(
 
     // === Processing =========================================================
 
+    /** Performs code generation for any warnings left in the Enso [[IR]].
+     *
+     * @param warning the warning to generate code for
+     * @return the truffle nodes corresponding to `comment`
+     */
     def processWarning(warning: IR.Warning): RuntimeExpression = {
-      ???
+      warning match {
+        case IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
+          run(warnedExpr)
+      }
     }
 
     /** Performs code generation for any comments left in the Enso [[IR]].

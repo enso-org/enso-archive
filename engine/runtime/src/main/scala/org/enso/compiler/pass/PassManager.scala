@@ -38,7 +38,6 @@ class PassManager(
     passCounts
   }
 
-  // TODO [AA] Refactor common from this
   /** Executes the passes on an [[IR.Module]].
     *
     * @param ir the module to execute the compiler phases on
