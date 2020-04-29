@@ -135,10 +135,12 @@ class LambdaConsolidateTest extends CompilerTest {
     "work properly with usages of shadowed parameters in default arguments" in {
       implicit val inlineContext: InlineContext = mkContext
 
+      // TODO [AA] Add this as an execution test
       val ir =
         """
           |x -> (y = x) -> (x = x + 1) -> x + y
-          |""".stripMargin.preprocessExpression.get.optimise.asInstanceOf[IR.Function.Lambda]
+          |""".stripMargin.preprocessExpression.get.optimise
+          .asInstanceOf[IR.Function.Lambda]
     }
 
 //    "output a warning when lambda chaining shadows a parameter definition" in {

@@ -281,13 +281,15 @@ case object AliasAnalysis extends IRPass {
     }
   }
 
-  // TODO [AA] make the redefinition a warning
   /** Performs alias analysis on the argument definitions for a function.
     *
     * Care is taken during this analysis to ensure that spurious resolutions do
     * not happen regarding the ordering of arguments. Only the arguments
     * declared _earlier_ in the arguments list are considered to be in scope for
-    * later arguments.
+    * later arguments. This also means that the default for an argument must be
+    * resolved _before_ the argument name is defined, lest recursive definitions
+    * occur (e.g. `x = x + 1`, the `x` on the RHS must refer to an `x` outside
+    * the argument's scope).
     *
     * This method _may_ replace an argument with a
     * [[IR.Error.Redefined.Argument]] error if `args` redefines an argument
