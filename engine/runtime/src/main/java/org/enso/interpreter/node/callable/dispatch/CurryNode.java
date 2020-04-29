@@ -120,7 +120,6 @@ public class CurryNode extends BaseNode {
               function.getCallTarget(),
               function.getScope(),
               postApplicationSchema,
-              function.getModuleName(),
               arguments,
               oversaturatedArguments));
     }

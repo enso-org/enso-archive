@@ -118,8 +118,11 @@ final class Handler {
     value: ExpressionValue
   ): Option[Api.MethodPointer] =
     for {
-      call         <- Option(value.getCall)
-      moduleName   <- Option(call.getFunction.getModuleName)
+      call <- Option(value.getCall)
+      qualifiedName <- QualifiedName.fromString(
+        call.getFunction.getCallTarget.getRootNode.getQualifiedName
+      )
+      moduleName   <- qualifiedName.getParent
       functionName <- QualifiedName.fromString(call.getFunction.getName)
       typeName     <- functionName.getParent
       module <- OptionConverters.toScala(

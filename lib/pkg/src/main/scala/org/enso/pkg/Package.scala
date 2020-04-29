@@ -184,8 +184,22 @@ case class QualifiedName(path: List[String], module: String) {
   override def toString: String =
     (path :+ module).mkString(qualifiedNameSeparator)
 
+  /**
+   * Get the parent of this qualified name.
+   *
+   * @return the parent of this qualified name.
+   */
   def getParent: Option[QualifiedName] =
-    path.headOption.map(QualifiedName(path.tail, _))
+    path.lastOption.map(QualifiedName(path.init, _))
+
+  /**
+   * Create a child qualified name taking this name as a parent.
+   *
+   * @param name the name of a child node.
+   * @return a new qualified name based on this name.
+   */
+  def createChild(name: String): QualifiedName =
+    QualifiedName(path :+ module, name)
 }
 
 object QualifiedName {

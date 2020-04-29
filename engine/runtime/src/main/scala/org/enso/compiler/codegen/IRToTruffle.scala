@@ -223,8 +223,7 @@ class IRToTruffle(
         new FunctionSchema(
           FunctionSchema.CallStrategy.CALL_LOOP,
           funNode.getArgs: _*
-        ),
-        moduleScope.getModule.getName
+        )
       )
 
       val cons = moduleScope

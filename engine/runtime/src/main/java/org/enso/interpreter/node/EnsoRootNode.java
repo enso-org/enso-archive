@@ -11,6 +11,7 @@ import org.enso.interpreter.Language;
 import org.enso.interpreter.runtime.Context;
 import org.enso.interpreter.runtime.scope.LocalScope;
 import org.enso.interpreter.runtime.scope.ModuleScope;
+import org.enso.pkg.QualifiedName;
 
 /** A common base class for all kinds of root node in Enso. */
 @NodeInfo(shortName = "Root", description = "A root node for Enso computations")
@@ -81,6 +82,18 @@ public abstract class EnsoRootNode extends RootNode {
   @Override
   public String getName() {
     return this.name;
+  }
+
+  /**
+   * Returns a qualified name that uniquely identifies the node.
+   *
+   * @return a qualified name of this node.
+   */
+  @Override
+  public String getQualifiedName() {
+    String simpleName =
+        QualifiedName.fromString(getName()).map(QualifiedName::module).getOrElse(this::getName);
+    return moduleScope.getModule().getName().createChild(simpleName).toString();
   }
 
   /**
