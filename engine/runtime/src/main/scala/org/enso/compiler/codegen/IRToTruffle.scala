@@ -366,10 +366,10 @@ class IRToTruffle(
     // === Processing =========================================================
 
     /** Performs code generation for any warnings left in the Enso [[IR]].
-     *
-     * @param warning the warning to generate code for
-     * @return the truffle nodes corresponding to `comment`
-     */
+      *
+      * @param warning the warning to generate code for
+      * @return the truffle nodes corresponding to `comment`
+      */
     def processWarning(warning: IR.Warning): RuntimeExpression = {
       warning match {
         case IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
@@ -498,6 +498,13 @@ class IRToTruffle(
         function.unsafeGetMetadata[AliasAnalysis.Info.Scope.Child](
           "No scope info on a function."
         )
+
+      if (function.body.isInstanceOf[IR.Function]) {
+        throw new CompilerError(
+          "Lambda found directly as function body. It looks like Lambda " +
+            "Consolidation hasn't run."
+        )
+      }
 
       val scopeName = if (function.canBeTCO) {
         currentVarName
