@@ -117,18 +117,15 @@ final class Handler {
       contextManager.findVisualisation(contextId, value.getExpressionId)
     maybeVisualisation foreach { visualisation =>
       withContext {
-        val fun = executionService.evalExpr(
-          visualisation.module,
-          visualisation.expression
+        val result = executionService.callFn(
+          visualisation.visualisationCallback,
+          value.getValue
         )
-        val function = fun
-          .asInstanceOf[org.enso.interpreter.runtime.callable.function.Function]
-        val result = executionService.callFn(function, value.getValue)
-        println(s"result: $result")
         val data = result match {
           case txt: String      => txt.getBytes("UTF-8")
           case arr: Array[Byte] => arr
-          case other =>
+          case other            =>
+            //todo define error
             throw new RuntimeException(
               s"Cannot encode ${other.getClass} to byte array"
             )
@@ -250,7 +247,7 @@ final class Handler {
       call.methodPointer.name
     )
 
-  private def withContext(action: => Unit): Unit = {
+  private def withContext[A](action: => A): A = {
     val token = truffleContext.enter()
     try {
       action
@@ -355,20 +352,20 @@ final class Handler {
         withContext(executeAll())
 
       case Api.AttachVisualisation(visualisationId, expressionId, config) =>
-        println("received")
         if (contextManager.contains(config.executionContextId)) {
-          println("context")
-          var module = Optional.empty[Module]()
-          withContext {
-            module = executionService.findModule(config.visualisationModule)
-          }
+          val module =
+            withContext {
+              executionService.findModule(config.visualisationModule)
+            }
           if (module.isPresent) {
-            println("module")
+            val callable =
+              withContext {
+                executionService.evalExpr(module.get(), config.expression)
+              }
             val visualisation = Visualisation(
               visualisationId,
               expressionId,
-              module.get(),
-              config.expression
+              callable
             )
             contextManager.attachVisualisation(
               config.executionContextId,
@@ -377,8 +374,9 @@ final class Handler {
             endpoint.sendToClient(
               Api.Response(requestId, Api.VisualisationAttached())
             )
+            val stack = contextManager.getStack(config.executionContextId)
+            withContext(execute(config.executionContextId, stack.toList))
           } else {
-            println("no module")
             endpoint.sendToClient(
               Api.Response(
                 requestId,

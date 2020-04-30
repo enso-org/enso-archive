@@ -87,6 +87,10 @@ class RuntimeServerTest
       msg
     }
 
+    def drain(): Unit = {
+      messageQueue = List.empty
+    }
+
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
@@ -403,7 +407,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "emit visualisation updates when an expression in evaluated" in {
+  it should "emit visualisation update when visualisation is attached" in {
     val mainFile = context.writeMain(context.Main.code)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Main.visualisationCode)
@@ -425,6 +429,18 @@ class RuntimeServerTest
       Api.Response(requestId, Api.CreateContextResponse(contextId))
     )
 
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.drain()
+
     context.send(
       Api.Request(
         requestId,
@@ -439,20 +455,10 @@ class RuntimeServerTest
         )
       )
     )
-    Thread.sleep(1000)
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationAttached())
     )
-    // push main
-    val item1 = Api.StackItem.ExplicitCall(
-      Api.MethodPointer(mainFile, "Main", "main"),
-      None,
-      Vector()
-    )
-    context.send(
-      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
-    )
-    val received = Set.fill(5)(context.receive)
+    val received = Set.fill(4)(context.receive)
     val maybeVisualisationUpdate = received.collectFirst {
       case Some(Api.Response(None, update: VisualisationUpdate)) => update
     }
