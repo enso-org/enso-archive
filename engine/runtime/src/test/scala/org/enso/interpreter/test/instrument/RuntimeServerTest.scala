@@ -456,13 +456,14 @@ class RuntimeServerTest
     val maybeVisualisationUpdate = received.collectFirst {
       case Some(Api.Response(None, update: VisualisationUpdate)) => update
     }
+    val expectedExprId = context.Main.idMainX
     maybeVisualisationUpdate should matchPattern {
       case Some(
           Api.VisualisationUpdate(
             Api.VisualisationContext(
               `visualisationId`,
               `contextId`,
-              context.Main.idMainX
+              `expectedExprId`
             ),
             _
           )
