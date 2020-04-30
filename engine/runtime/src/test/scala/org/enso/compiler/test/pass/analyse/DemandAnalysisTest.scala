@@ -1,11 +1,14 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
-import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
-import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.desugar.{
+  GenerateMethodBodies,
+  LiftSpecialOperators,
+  OperatorToFunction
+}
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
@@ -18,8 +21,6 @@ class DemandAnalysisTest extends CompilerTest {
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
-    AliasAnalysis,
-    LambdaConsolidate,
     AliasAnalysis
   )
 
@@ -62,21 +63,35 @@ class DemandAnalysisTest extends CompilerTest {
     }
   }
 
+  /** Makes an inline context.
+    *
+    * @return a new inline context
+    */
+  def mkContext: InlineContext = {
+    InlineContext(
+      localScope      = Some(LocalScope.root),
+      freshNameSupply = Some(new FreshNameSupply)
+    )
+  }
+
   // === The Tests ============================================================
 
   "Suspended arguments" should {
     "be forced when assigned" in {
-      implicit val ctx: InlineContext =
-        InlineContext(localScope = Some(LocalScope.root))
+      implicit val ctx: InlineContext = mkContext
 
       val ir =
         """
-          |~x ~y z ->
+          |~x -> ~y -> z ->
           |    a = x
           |    z
           |""".stripMargin.preprocessExpression.get.analyse
 
       val boundX = ir
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Expression.Block]
@@ -90,36 +105,38 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "work correctly when deeply nested" in {
-      implicit val ctx: InlineContext =
-        InlineContext(localScope = Some(LocalScope.root))
+      implicit val ctx: InlineContext = mkContext
 
       val ir =
         """
           |~x -> b -> a -> x
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val xUsage =
-        ir.asInstanceOf[IR.Function.Lambda]
-          .body
-          .asInstanceOf[IR.Function.Lambda]
-          .body
-          .asInstanceOf[IR.Function.Lambda]
-          .body
+      val xUsage = ir
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
 
       xUsage shouldBe an[IR.Application.Force]
       xUsage.asInstanceOf[IR.Application.Force].target shouldBe an[IR.Name]
     }
 
     "not be forced when passed to functions" in {
-      implicit val ctx: InlineContext =
-        InlineContext(localScope = Some(LocalScope.root))
+      implicit val ctx: InlineContext = mkContext
 
       val ir =
         """
-          |~x ~y z -> foo x y z
+          |~x -> ~y -> z -> foo x y z
           |""".stripMargin.preprocessExpression.get.analyse
 
       val app = ir
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Application.Prefix]
@@ -135,15 +152,18 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext =
-        InlineContext(localScope = Some(LocalScope.root))
+      implicit val ctx: InlineContext = mkContext
 
       val ir =
         """
-          |~x ~y z -> foo x y z
+          |~x -> ~y -> z -> foo x y z
           |""".stripMargin.preprocessExpression.get.analyse
 
       val app = ir
+        .asInstanceOf[IR.Function.Lambda]
+        .body
+        .asInstanceOf[IR.Function.Lambda]
+        .body
         .asInstanceOf[IR.Function.Lambda]
         .body
         .asInstanceOf[IR.Application.Prefix]
@@ -160,16 +180,17 @@ class DemandAnalysisTest extends CompilerTest {
   }
 
   "Non-suspended arguments" should {
-    implicit val ctx: InlineContext =
-      InlineContext(localScope = Some(LocalScope.root))
+    implicit val ctx: InlineContext = mkContext
 
     val ir =
-      """x y ->
+      """x -> y ->
         |  a = x
         |  foo x a
         |""".stripMargin.preprocessExpression.get.analyse
 
     val body = ir
+      .asInstanceOf[IR.Function.Lambda]
+      .body
       .asInstanceOf[IR.Function.Lambda]
       .body
       .asInstanceOf[IR.Expression.Block]
@@ -209,8 +230,7 @@ class DemandAnalysisTest extends CompilerTest {
 
   "Suspended blocks" should {
     "be forced when used" in {
-      implicit val ctx: InlineContext =
-        InlineContext(localScope = Some(LocalScope.root))
+      implicit val ctx: InlineContext = mkContext
 
       val ir =
         """
@@ -235,8 +255,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "not be forced when passed to a function" in {
-      implicit val ctx: InlineContext =
-        InlineContext(localScope = Some(LocalScope.root))
+      implicit val ctx: InlineContext = mkContext
 
       val ir =
         """
@@ -258,8 +277,7 @@ class DemandAnalysisTest extends CompilerTest {
     }
 
     "be marked as not to suspend during codegen when passed to a function" in {
-      implicit val ctx: InlineContext =
-        InlineContext(localScope = Some(LocalScope.root))
+      implicit val ctx: InlineContext = mkContext
 
       val ir =
         """
