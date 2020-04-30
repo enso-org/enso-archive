@@ -92,114 +92,114 @@ class RuntimeServerTest
       out.reset()
       result.linesIterator.toList
     }
-  }
 
-  object Main {
+    object Main {
 
-    val metadata = new Metadata
+      val metadata = new Metadata
 
-    val idMainX = metadata.addItem(16, 5)
-    val idMainY = metadata.addItem(30, 7)
-    val idMainZ = metadata.addItem(46, 5)
-    val idFooY  = metadata.addItem(85, 8)
-    val idFooZ  = metadata.addItem(102, 5)
+      val idMainX = metadata.addItem(16, 1)
+      val idMainY = metadata.addItem(26, 7)
+      val idMainZ = metadata.addItem(42, 5)
+      val idFooY  = metadata.addItem(81, 8)
+      val idFooZ  = metadata.addItem(98, 5)
 
-    val code = metadata.appendToCode(
-      """
-        |main =
-        |    x = 1 + 5
-        |    y = x.foo 5
-        |    z = y + 5
-        |    z
-        |
-        |Number.foo = x ->
-        |    y = this + 3
-        |    z = y * x
-        |    z
-        |""".stripMargin
-    )
+      val code = metadata.appendToCode(
+        """
+          |main =
+          |    x = 6
+          |    y = x.foo 5
+          |    z = y + 5
+          |    z
+          |
+          |Number.foo = x ->
+          |    y = this + 3
+          |    z = y * x
+          |    z
+          |""".stripMargin
+      )
 
-    val visualisationCode =
-      """
-        |encode = x -> x.to_text
-        |""".stripMargin
+      val visualisationCode =
+        """
+          |encode = x -> x.to_text
+          |""".stripMargin
 
-    object update {
+      object update {
 
-      def idMainX(contextId: UUID) =
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                Main.idMainX,
-                Some("Number"),
-                Some("6"),
-                None
+        def idMainX(contextId: UUID) =
+          Api.Response(
+            Api.ExpressionValuesComputed(
+              contextId,
+              Vector(
+                Api.ExpressionValueUpdate(
+                  Main.idMainX,
+                  Some("Number"),
+                  Some("6"),
+                  None
+                )
               )
             )
           )
-        )
 
-      def idMainY(contextId: UUID) =
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                Main.idMainY,
-                Some("Number"),
-                Some("45"),
-                None
+        def idMainY(contextId: UUID) =
+          Api.Response(
+            Api.ExpressionValuesComputed(
+              contextId,
+              Vector(
+                Api.ExpressionValueUpdate(
+                  Main.idMainY,
+                  Some("Number"),
+                  Some("45"),
+                  Some(Api.MethodPointer(pkg.mainFile, "Number", "foo"))
+                )
               )
             )
           )
-        )
 
-      def idMainZ(contextId: UUID) =
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                Main.idMainZ,
-                Some("Number"),
-                Some("50"),
-                None
+        def idMainZ(contextId: UUID) =
+          Api.Response(
+            Api.ExpressionValuesComputed(
+              contextId,
+              Vector(
+                Api.ExpressionValueUpdate(
+                  Main.idMainZ,
+                  Some("Number"),
+                  Some("50"),
+                  None
+                )
               )
             )
           )
-        )
 
-      def idFooY(contextId: UUID) =
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                Main.idFooY,
-                Some("Number"),
-                Some("9"),
-                None
+        def idFooY(contextId: UUID) =
+          Api.Response(
+            Api.ExpressionValuesComputed(
+              contextId,
+              Vector(
+                Api.ExpressionValueUpdate(
+                  Main.idFooY,
+                  Some("Number"),
+                  Some("9"),
+                  None
+                )
               )
             )
           )
-        )
 
-      def idFooZ(contextId: UUID) =
-        Api.Response(
-          Api.ExpressionValuesComputed(
-            contextId,
-            Vector(
-              Api.ExpressionValueUpdate(
-                Main.idFooZ,
-                Some("Number"),
-                Some("45"),
-                None
+        def idFooZ(contextId: UUID) =
+          Api.Response(
+            Api.ExpressionValuesComputed(
+              contextId,
+              Vector(
+                Api.ExpressionValueUpdate(
+                  Main.idFooZ,
+                  Some("Number"),
+                  Some("45"),
+                  None
+                )
               )
             )
           )
-        )
+      }
     }
   }
 
@@ -209,7 +209,7 @@ class RuntimeServerTest
   }
 
   "RuntimeServer" should "push and pop functions on the stack" in {
-    val mainFile  = context.writeMain(Main.code)
+    val mainFile  = context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -220,7 +220,7 @@ class RuntimeServerTest
     )
 
     // push local item on top of the empty stack
-    val invalidLocalItem = Api.StackItem.LocalCall(Main.idMainY)
+    val invalidLocalItem = Api.StackItem.LocalCall(context.Main.idMainY)
     context.send(
       Api
         .Request(requestId, Api.PushContextRequest(contextId, invalidLocalItem))
@@ -241,21 +241,21 @@ class RuntimeServerTest
     )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(Main.update.idMainX(contextId)),
-      Some(Main.update.idMainY(contextId)),
-      Some(Main.update.idMainZ(contextId)),
+      Some(context.Main.update.idMainX(contextId)),
+      Some(context.Main.update.idMainY(contextId)),
+      Some(context.Main.update.idMainZ(contextId)),
       None
     )
 
     // push foo call
-    val item2 = Api.StackItem.LocalCall(Main.idMainY)
+    val item2 = Api.StackItem.LocalCall(context.Main.idMainY)
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
     Set.fill(4)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(Main.update.idFooY(contextId)),
-      Some(Main.update.idFooZ(contextId)),
+      Some(context.Main.update.idFooY(contextId)),
+      Some(context.Main.update.idFooZ(contextId)),
       None
     )
 
@@ -280,9 +280,9 @@ class RuntimeServerTest
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
-      Some(Main.update.idMainX(contextId)),
-      Some(Main.update.idMainY(contextId)),
-      Some(Main.update.idMainZ(contextId)),
+      Some(context.Main.update.idMainX(contextId)),
+      Some(context.Main.update.idMainY(contextId)),
+      Some(context.Main.update.idMainZ(contextId)),
       None
     )
 
@@ -363,7 +363,7 @@ class RuntimeServerTest
   }
 
   it should "recompute expressions" in {
-    val mainFile  = context.writeMain(Main.code)
+    val mainFile  = context.writeMain(context.Main.code)
     val contextId = UUID.randomUUID()
     val requestId = UUID.randomUUID()
 
@@ -384,9 +384,9 @@ class RuntimeServerTest
     )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
-      Some(Main.update.idMainX(contextId)),
-      Some(Main.update.idMainY(contextId)),
-      Some(Main.update.idMainZ(contextId)),
+      Some(context.Main.update.idMainX(contextId)),
+      Some(context.Main.update.idMainY(contextId)),
+      Some(context.Main.update.idMainZ(contextId)),
       None
     )
 
@@ -396,22 +396,22 @@ class RuntimeServerTest
     )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      Some(Main.update.idMainX(contextId)),
-      Some(Main.update.idMainY(contextId)),
-      Some(Main.update.idMainZ(contextId)),
+      Some(context.Main.update.idMainX(contextId)),
+      Some(context.Main.update.idMainY(contextId)),
+      Some(context.Main.update.idMainZ(contextId)),
       None
     )
   }
 
   it should "emit visualisation updates when an expression in evaluated" in {
-    val mainFile = context.writeMain(Main.code)
+    val mainFile = context.writeMain(context.Main.code)
     val visualisationFile =
-      context.writeInSrcDir("Visualisation", Main.visualisationCode)
+      context.writeInSrcDir("Visualisation", context.Main.visualisationCode)
 
     send(
       Api.OpenFileNotification(
         visualisationFile,
-        Main.visualisationCode
+        context.Main.visualisationCode
       )
     )
 
@@ -430,7 +430,7 @@ class RuntimeServerTest
         requestId,
         Api.AttachVisualisation(
           visualisationId,
-          Main.idMainX,
+          context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
             s"Test.Visualisation",
@@ -462,7 +462,7 @@ class RuntimeServerTest
             Api.VisualisationContext(
               `visualisationId`,
               `contextId`,
-              Main.idMainX
+              context.Main.idMainX
             ),
             _
           )
