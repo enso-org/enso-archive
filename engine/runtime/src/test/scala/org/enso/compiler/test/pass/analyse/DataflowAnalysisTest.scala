@@ -263,7 +263,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
     val ir =
       """
-        |M.foo = a b ->
+        |M.foo = a -> b ->
         |    IO.println b
         |    c = a + b
         |    frobnicate a c
@@ -628,7 +628,7 @@ class DataflowAnalysisTest extends CompilerTest {
 
       val ir =
         """
-          |x (y=x) -> x + y
+          |x -> (y=x) -> x + y
           |""".stripMargin.preprocessExpression.get.analyse
 
       val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get

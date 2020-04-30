@@ -72,7 +72,7 @@ class AtomFixtures extends InterpreterRunner {
       |        Cons h t -> fold f (f acc h) t
       |        _ -> acc
       |
-      |    res = fold (x y -> x + y) 0 list
+      |    res = fold (x -> y -> x + y) 0 list
       |    res
     """.stripMargin
   val sumListLeftFold = getMain(sumListLeftFoldCode)
