@@ -90,7 +90,7 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on modules" should {
     val ir =
       """
-        |Foo.bar = a b c ->
+        |Foo.bar = a -> b -> c ->
         |    d = a + b
         |
         |    case c of
@@ -114,7 +114,7 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on expressions" should {
     val code =
       """
-        |x y z -> x y z
+        |x -> y -> z -> x y z
         |""".stripMargin
 
     "mark the expression as tail if the context requires it" in {
@@ -133,7 +133,7 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on functions" should {
     val ir =
       """
-        |a b c ->
+        |a -> b -> c ->
         |    d = a + b
         |    e = a * c
         |    d + e
@@ -141,7 +141,12 @@ class TailCallTest extends CompilerTest {
         .runTCAExpression(tailCtx)
         .asInstanceOf[IR.Function.Lambda]
 
-    val fnBody = ir.body.asInstanceOf[IR.Expression.Block]
+    val fnBody = ir.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Expression.Block]
 
     "mark the last expression of the function as tail" in {
       fnBody.returnValue.getMetadata[TailCall.Metadata] shouldEqual Some(
@@ -292,13 +297,17 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on blocks" should {
     val ir =
       """
-        |Foo.bar = a b c ->
+        |Foo.bar = a -> b -> c ->
         |    d = a + b
-        |    mul = a b -> a * b
+        |    mul = a -> b -> a * b
         |    mul c d
         |""".stripMargin.runTCAModule.bindings.head.asInstanceOf[Method]
 
     val block = ir.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
       .asInstanceOf[IR.Function.Lambda]
       .body
       .asInstanceOf[IR.Expression.Block]

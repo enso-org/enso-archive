@@ -16,7 +16,7 @@ class GenerateMethodBodiesTest extends CompilerTest {
   "Methods with functions as bodies" should {
     val ir =
       """
-        |Unit.method = a b c -> a + b + c
+        |Unit.method = a -> b -> c -> a + b + c
         |""".stripMargin.toIrModule
     val irMethod = ir.bindings.head.asInstanceOf[Method]
 
