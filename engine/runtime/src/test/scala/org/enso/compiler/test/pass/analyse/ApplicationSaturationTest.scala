@@ -295,7 +295,7 @@ class ApplicationSaturationTest extends CompilerTest {
     val rawIR =
       """
         |main =
-        |    foo = x y z -> x + y + z
+        |    foo = x -> y -> z -> x + y + z
         |
         |    foo a b c
         |""".stripMargin.toIrExpression

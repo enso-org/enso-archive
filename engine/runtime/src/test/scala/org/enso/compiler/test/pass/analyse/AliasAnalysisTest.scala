@@ -1,17 +1,13 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.context.{InlineContext, ModuleContext}
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LiftSpecialOperators,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.test.CompilerTest
 
 class AliasAnalysisTest extends CompilerTest {
@@ -65,6 +61,14 @@ class AliasAnalysisTest extends CompilerTest {
     def analyse(inlineContext: InlineContext): IR.Expression = {
       AliasAnalysis.runExpression(ir, inlineContext)
     }
+  }
+
+  /** Makes a new module context for testing purposes.
+   *
+   * @return a module context
+   */
+  def mkModuleContext: ModuleContext = {
+    ModuleContext(freshNameSupply = Some(new FreshNameSupply))
   }
 
   // === The Tests ============================================================
@@ -388,6 +392,8 @@ class AliasAnalysisTest extends CompilerTest {
   }
 
   "Alias analysis for atom definitions" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
     val goodAtom =
       """
         |type MyAtom a b (c=a)
@@ -442,6 +448,8 @@ class AliasAnalysisTest extends CompilerTest {
   }
 
   "Alias analysis on function methods" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
     val methodWithLambda =
       """
         |Bar.foo = a b c ->
@@ -652,6 +660,8 @@ class AliasAnalysisTest extends CompilerTest {
   }
 
   "Alias analysis on block methods" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
     val methodWithBlock =
       """
         |Bar.foo =
@@ -710,6 +720,8 @@ class AliasAnalysisTest extends CompilerTest {
   }
 
   "Alias analysis on case expressions" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
     val methodWithCase =
       """
         |List.sum = a -> case a of
@@ -755,6 +767,8 @@ class AliasAnalysisTest extends CompilerTest {
 
   "Redefinitions" should {
     "be caught for argument lists" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
       val atom =
         """
           |type MyAtom a b a
@@ -766,6 +780,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "be caught for bindings" in {
+      implicit val ctx: ModuleContext = mkModuleContext
+
       val method =
         """
           |main =

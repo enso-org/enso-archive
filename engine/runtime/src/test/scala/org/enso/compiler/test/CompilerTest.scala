@@ -107,8 +107,8 @@ trait CompilerRunner {
       *
       * @return IR appropriate for testing the alias analysis pass as a module
       */
-    def preprocessModule: IR.Module = {
-      source.toIrModule.runPasses(passManager, ModuleContext())
+    def preprocessModule(implicit moduleContext: ModuleContext): IR.Module = {
+      source.toIrModule.runPasses(passManager, moduleContext)
     }
 
     /** Translates the source code into appropriate IR for testing this pass
