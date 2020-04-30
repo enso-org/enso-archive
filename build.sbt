@@ -13,9 +13,8 @@ import scala.sys.process._
 //// Global Configuration ////
 //////////////////////////////
 
-val scalacVersion = "2.13.1"
+val scalacVersion = "2.13.2"
 val graalVersion  = "20.0.0"
-val circeVersion  = "0.13.0"
 val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
@@ -136,6 +135,8 @@ val scala_compiler = Seq(
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
 
+val circeVersion  = "0.13.0"
+
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
@@ -160,7 +161,7 @@ val jmh = Seq(
   "org.openjdk.jmh" % "jmh-generator-annprocess" % "1.21" % Benchmark
 )
 
-val silencerVersion = "1.4.4"
+val splainVersion = "0.5.4"
 
 ////////////////////////////
 //// Internal Libraries ////
@@ -304,16 +305,10 @@ lazy val graph = (project in file("lib/graph/"))
       "com.github.julien-truffaut" %% "monocle-core" % "2.0.0",
       "org.apache.commons"         % "commons-lang3" % "3.9"
     ),
-    libraryDependencies ++= Seq(
-      compilerPlugin(
-        "com.github.ghik" % "silencer-plugin" % silencerVersion cross CrossVersion.full
-      ),
-      "com.github.ghik" % "silencer-lib" % silencerVersion % Provided cross CrossVersion.full
-    ),
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -433,7 +428,7 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -484,7 +479,7 @@ lazy val `polyglot-api` = project
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -574,7 +569,7 @@ lazy val runtime = (project in file("engine/runtime"))
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % "0.5.1" cross CrossVersion.patch),
+    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
