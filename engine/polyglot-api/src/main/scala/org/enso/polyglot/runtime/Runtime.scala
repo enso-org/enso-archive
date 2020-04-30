@@ -120,6 +120,18 @@ object Runtime {
         name  = "moduleNotFound"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationExpressionFailed],
+        name  = "visualisationExpressionFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationEvaluationFailed],
+        name  = "visualisationEvaluationFailed"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationNotFound],
+        name  = "visualisationNotFound"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.InvalidStackItemError],
         name  = "invalidStackItemError"
       ),
@@ -437,6 +449,12 @@ object Runtime {
     case class ContextNotExistError(contextId: ContextId) extends Error
 
     case class ModuleNotFound(moduleName: String) extends Error
+
+    case class VisualisationExpressionFailed(message: String) extends Error
+
+    case class VisualisationEvaluationFailed(message: String) extends Error
+
+    case class VisualisationNotFound() extends Error
 
     /**
       * An error response signifying that stack is empty.

@@ -3,7 +3,8 @@ package org.enso.interpeter.instrument
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
-  StackItem
+  StackItem,
+  VisualisationId
 }
 
 import scala.collection.mutable.Stack
@@ -93,7 +94,16 @@ class ExecutionContextManager {
     contexts += contextId -> state.addVisualisation(visualisation)
   }
 
-  def findVisualisation(
+  def findVisualisationById(
+    contextId: ContextId,
+    visualisationId: VisualisationId
+  ): Option[Visualisation] =
+    for {
+      state         <- contexts.get(contextId)
+      visualisation <- state.visualisations.values.find(_.id == visualisationId)
+    } yield visualisation
+
+  def findVisualisationByExprId(
     contextId: ContextId,
     expressionId: ExpressionId
   ): Option[Visualisation] =
