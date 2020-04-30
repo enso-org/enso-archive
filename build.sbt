@@ -68,7 +68,16 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-unused:locals",               // Warn if a local definition is unused.
   "-Ywarn-unused:patvars",              // Warn if a variable bound in a pattern is unused.
   "-Ywarn-unused:privates",             // Warn if a private member is unused.
-  "-Ywarn-unused:params"                // Warn if a value parameter is unused.
+  "-Ywarn-unused:params",               // Warn if a value parameter is unused.
+  "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto master (use @nowarn for local suppression)
+)
+
+// TODO [AA] Can I remove this?
+val jsSettings = Seq(
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
+  // FIXME workaround for scalajs bug:
+  //  https://github.com/scala-js/scala-js/issues/3673
+  testFrameworks := Nil
 )
 
 // ============================================================================
@@ -107,6 +116,25 @@ lazy val enso = (project in file("."))
 // ============================================================================
 // === Dependency Versions ====================================================
 // ============================================================================
+
+/* Note [Dependency Versions]
+ * ~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * Please maintain the following section in alphabetical order for the bundles
+ * of dependencies. Additionally, please keep the 'Other' subsection in
+ * alphabetical order.
+ *
+ * Furthermore, please keep the following in mind:
+ * - Wherever possible, we should use the same version of a dependency
+ *   throughout the project.
+ * - If you need to include a new dependency, please define its version in this
+ *   section.
+ * - If that version is not the latest, please include a note explaining why
+ *   this is the case.
+ * - If, for some reason, you need to use a dependency version other than the
+ *   global one, please include a note explaining why this is the case, and the
+ *   circumstances under which the dependency could be upgraded to use the
+ *   global version
+ */
 
 // === Akka ===================================================================
 
@@ -250,14 +278,6 @@ val typesafeConfigVersion       = "1.4.0"
 // ============================================================================
 // === Internal Libraries =====================================================
 // ============================================================================
-
-// TODO [AA] Can I remove this?
-val jsSettings = Seq(
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
-  // FIXME workaround for scalajs bug:
-  //  https://github.com/scala-js/scala-js/issues/3673
-  testFrameworks := Nil
-)
 
 lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .withoutSuffixFor(JVMPlatform)
