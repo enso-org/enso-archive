@@ -72,12 +72,8 @@ scalacOptions in ThisBuild ++= Seq(
   "-Xfatal-warnings"                    // Make warnings fatal so they don't make it onto master (use @nowarn for local suppression)
 )
 
-// TODO [AA] Can I remove this?
 val jsSettings = Seq(
-  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
-  // FIXME workaround for scalajs bug:
-  //  https://github.com/scala-js/scala-js/issues/3673
-  testFrameworks := Nil
+  scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) }
 )
 
 // ============================================================================
