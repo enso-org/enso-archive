@@ -19,7 +19,7 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.service.ExecutionService
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.runtime.Runtime.Api
+import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
@@ -387,7 +387,13 @@ final class Handler {
 
       case Api.AttachVisualisation(visualisationId, expressionId, config) =>
         if (contextManager.contains(config.executionContextId)) {
-          upsertVisualisation(requestId, visualisationId, expressionId, config)
+          upsertVisualisation(
+            requestId,
+            visualisationId,
+            expressionId,
+            config,
+            Api.VisualisationAttached()
+          )
         } else {
           endpoint.sendToClient(
             Api.Response(
@@ -431,8 +437,9 @@ final class Handler {
               upsertVisualisation(
                 requestId,
                 visualisationId,
-                visualisation.id,
-                config
+                visualisation.expressionId,
+                config,
+                Api.VisualisationModified()
               )
           }
 
@@ -451,7 +458,8 @@ final class Handler {
     requestId: Option[RequestId],
     visualisationId: VisualisationId,
     expressionId: ExpressionId,
-    config: Api.VisualisationConfiguration
+    config: Api.VisualisationConfiguration,
+    replyWith: ApiResponse
   ): Unit = {
     val maybeCallable =
       evaluateExpression(config.visualisationModule, config.expression)
@@ -484,7 +492,7 @@ final class Handler {
           visualisation
         )
         endpoint.sendToClient(
-          Api.Response(requestId, Api.VisualisationAttached())
+          Api.Response(requestId, replyWith)
         )
         val stack = contextManager.getStack(config.executionContextId)
         withContext(execute(config.executionContextId, stack.toList))

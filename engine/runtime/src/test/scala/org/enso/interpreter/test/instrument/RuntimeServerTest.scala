@@ -512,6 +512,107 @@ class RuntimeServerTest
 
   }
 
+  it should "be able to modify visualisations" in {
+    val mainFile = context.writeMain(context.Main.code)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    send(
+      Api.OpenFileNotification(
+        visualisationFile,
+        context.Visualisation.code
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+
+    context.drain()
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            s"Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    val expectedExprId = context.Main.idMainX
+    val data = context.expectMessage {
+      case Api.Response(
+          None,
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              `expectedExprId`
+            ),
+            data
+          )
+          ) =>
+        data
+    }
+    data.sameElements("6".getBytes) shouldBe true
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.ModifyVisualisation(
+          visualisationId,
+          Api.VisualisationConfiguration(
+            contextId,
+            s"Test.Visualisation",
+            "x -> here.incAndEncode x"
+          )
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationModified())
+    )
+    val dataAfterModification = context.expectMessage {
+      case Api.Response(
+          None,
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              `expectedExprId`
+            ),
+            data
+          )
+          ) =>
+        data
+    }
+    dataAfterModification.sameElements("7".getBytes) shouldBe true
+  }
+
   private def send(msg: ApiRequest): Unit =
     context.send(Api.Request(UUID.randomUUID(), msg))
 
