@@ -9,21 +9,22 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
 import scala.sys.process._
 
-//////////////////////////////
-//// Global Configuration ////
-//////////////////////////////
+// ============================================================================
+// === Global Configuration ===================================================
+// ============================================================================
 
 val scalacVersion = "2.13.2"
 val graalVersion  = "20.0.0"
 val ensoVersion   = "0.0.1"
 organization in ThisBuild := "org.enso"
 scalaVersion in ThisBuild := scalacVersion
+val coursierCache = file("~/.cache/coursier/v1")
 
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
-//////////////////////////
-//// Compiler Options ////
-//////////////////////////
+// ============================================================================
+// === Compiler Options =======================================================
+// ============================================================================
 
 javacOptions in ThisBuild ++= Seq(
   "-encoding",   // Provide explicit encoding (the next line)
@@ -70,9 +71,9 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-unused:params"                // Warn if a value parameter is unused.
 )
 
-/////////////////////////////////
-//// Benchmark Configuration ////
-/////////////////////////////////
+// ============================================================================
+// === Benchmark Configuration ================================================
+// ============================================================================
 
 lazy val Benchmark = config("bench") extend sbt.Test
 
@@ -80,14 +81,13 @@ lazy val Benchmark = config("bench") extend sbt.Test
 lazy val buildNativeImage =
   taskKey[Unit]("Build native image for the Enso executable")
 
-////////////////////////
-//// Global Project ////
-////////////////////////
+// ============================================================================
+// === Global Project =========================================================
+// ============================================================================
 
 lazy val enso = (project in file("."))
   .settings(version := "0.1")
   .aggregate(
-    `file-manager`,
     `language-server`,
     `parser-service`,
     `polyglot-api`,
@@ -104,20 +104,30 @@ lazy val enso = (project in file("."))
   )
   .settings(Global / concurrentRestrictions += Tags.exclusive(Exclusive))
 
-////////////////////////////
-//// Dependency Bundles ////
-////////////////////////////
+// ============================================================================
+// === Dependency Versions ====================================================
+// ============================================================================
 
-val coursierCache = file("~/.cache/coursier/v1")
+// === Akka ===================================================================
 
-val monocleVersion = "2.0.4"
-val monocle = {
-  Seq(
-    "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
-    "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
-    "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % "test"
-  )
-}
+def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
+def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
+val akkaURL                   = "com.typesafe.akka"
+val akkaVersion               = "2.6.4"
+val akkaHTTPVersion           = "10.2.0-M1"
+val akkaMockSchedulerVersion  = "0.5.5"
+val akkaActor                 = akkaPkg("actor")
+val akkaStream                = akkaPkg("stream")
+val akkaTyped                 = akkaPkg("actor-typed")
+val akkaTestkit               = akkaPkg("testkit")
+val akkaSLF4J                 = akkaPkg("slf4j")
+val akkaTestkitTyped          = akkaPkg("actor-testkit-typed") % Test
+val akkaHttp                  = akkaHTTPPkg("http")
+val akkaSpray                 = akkaHTTPPkg("http-spray-json")
+val akka =
+  Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
+
+// === Cats ===================================================================
 
 val catsVersion    = "2.2.0-M1"
 val kittensVersion = "2.1.0"
@@ -131,47 +141,15 @@ val cats = {
   )
 }
 
-val scalaCompiler = Seq(
-  "org.scala-lang" % "scala-reflect"  % scalacVersion,
-  "org.scala-lang" % "scala-compiler" % scalacVersion
-)
+// === Circe ==================================================================
 
-val circeVersion = "0.13.0"
+val circeVersion           = "0.13.0"
+val circeYamlVersion       = "0.12.0"
+val enumeratumCirceVersion = "1.5.23"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
-def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
-def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
-
-val akkaURL          = "com.typesafe.akka"
-val akkaVersion      = "2.6.4"
-val akkaHTTPVersion  = "10.2.0-M1"
-val akkaActor        = akkaPkg("actor")
-val akkaStream       = akkaPkg("stream")
-val akkaTyped        = akkaPkg("actor-typed")
-val akkaTestkit      = akkaPkg("testkit")
-val akkaSLF4J        = akkaPkg("slf4j")
-val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
-val akkaHttp         = akkaHTTPPkg("http")
-val akkaSpray        = akkaHTTPPkg("http-spray-json")
-val akka =
-  Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
-
-val jmhVersion = "1.23"
-val jmh = Seq(
-  "org.openjdk.jmh" % "jmh-core"                 % jmhVersion % Benchmark,
-  "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
-)
-
-val guavaVersion      = "29.0-jre"
-val splainVersion     = "0.5.4"
-val scalatagsVersion  = "0.9.0"
-val pprintVersion     = "0.5.9"
-val scalatestVersion  = "3.3.0-SNAP2"
-val scalameterVersion = "0.19"
-val scalacheckVersion = "1.14.3"
-val shapelessVersion  = "2.4.0-M1"
-val newtypeVersion    = "0.4.3"
+// === Commons ================================================================
 
 val commonsCollectionsVersion = "4.4"
 val commonsLangVersion        = "3.10"
@@ -179,20 +157,99 @@ val commonsIoVersion          = "2.6"
 val commonsTextVersion        = "1.8"
 val commonsMathVersion        = "3.6.1"
 val commonsCompressVersion    = "1.20"
+val commonsCliVersion         = "1.4"
 val commons = Seq(
   "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,
   "org.apache.commons" % "commons-lang3"        % commonsLangVersion,
   "commons-io"         % "commons-io"           % commonsIoVersion,
   "org.apache.commons" % "commons-text"         % commonsTextVersion,
   "org.apache.commons" % "commons-math3"        % commonsMathVersion,
-  "org.apache.commons" % "commons-compress"     % commonsCompressVersion
+  "commons-cli"        % "commons-cli"          % commonsCliVersion
 )
 
-val kindProjectorVersion = "0.11.0"
+// === Jackson ================================================================
 
-////////////////////////////
-//// Internal Libraries ////
-////////////////////////////
+val jacksonVersion = "2.10.3"
+val jackson = Seq(
+  "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % jacksonVersion,
+  "com.fasterxml.jackson.core"       % "jackson-databind"        % jacksonVersion,
+  "com.fasterxml.jackson.module"     %% "jackson-module-scala"   % jacksonVersion
+)
+
+// === JMH ====================================================================
+
+val jmhVersion = "1.23"
+val jmh = Seq(
+  "org.openjdk.jmh" % "jmh-core"                 % jmhVersion % Benchmark,
+  "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
+)
+
+// === Monocle ================================================================
+
+val monocleVersion = "2.0.4"
+val monocle = {
+  Seq(
+    "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
+    "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
+    "com.github.julien-truffaut" %% "monocle-law"   % monocleVersion % "test"
+  )
+}
+
+// === Scala Compiler =========================================================
+
+val scalaCompiler = Seq(
+  "org.scala-lang" % "scala-reflect"  % scalacVersion,
+  "org.scala-lang" % "scala-compiler" % scalacVersion
+)
+
+// === Splain =================================================================
+
+val splainVersion = "0.5.4"
+val splainOptions = Seq(
+  "-P:splain:infix:true",
+  "-P:splain:foundreq:true",
+  "-P:splain:implicits:true",
+  "-P:splain:tree:true"
+)
+
+// === ZIO ====================================================================
+
+val zioVersion            = "1.0.0-RC18-2"
+val zioInteropCatsVersion = "2.0.0.0-RC13"
+val zio = Seq(
+  "dev.zio" %% "zio"              % zioVersion,
+  "dev.zio" %% "zio-interop-cats" % zioInteropCatsVersion
+)
+
+// === Other ==================================================================
+
+val bcpkixJdk15Version          = "1.65"
+val declineVersion              = "1.2.0"
+val directoryWatcherVersion     = "0.9.9"
+val flatbuffersVersion          = "1.12.0"
+val guavaVersion                = "29.0-jre"
+val jlineVersion                = "3.14.1"
+val jupyterJvmBasekernelVersion = "2.3.0"
+val kindProjectorVersion        = "0.11.0"
+val logbackClassicVersion       = "1.2.3"
+val mockitoScalaVersion         = "1.14.0"
+val newtypeVersion              = "0.4.3"
+val pprintVersion               = "0.5.9"
+val pureconfigVersion           = "0.12.2"
+val refinedVersion              = "0.9.14"
+val scalacheckVersion           = "1.14.3"
+val scalacticVersion            = "3.3.0-SNAP2"
+val scalaLoggingVersion         = "3.9.2"
+val scalameterVersion           = "0.19"
+val scalatagsVersion            = "0.9.0"
+val scalatestVersion            = "3.3.0-SNAP2"
+val shapelessVersion            = "2.4.0-M1"
+val tikaVersion                 = "1.24.1"
+val typesafeConfigVersion       = "1.4.0"
+
+// ============================================================================
+// === Internal Libraries =====================================================
+// ============================================================================
 
 // TODO [AA] Can I remove this?
 val jsSettings = Seq(
@@ -340,12 +397,7 @@ lazy val graph = (project in file("lib/graph/"))
     addCompilerPlugin(
       "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
     ),
-    scalacOptions ++= Seq(
-      "-P:splain:infix:true",
-      "-P:splain:foundreq:true",
-      "-P:splain:implicits:true",
-      "-P:splain:tree:true"
-    )
+    scalacOptions ++= splainOptions
   )
 
 lazy val pkg = (project in file("lib/pkg"))
@@ -353,25 +405,9 @@ lazy val pkg = (project in file("lib/pkg"))
     mainClass in (Compile, run) := Some("org.enso.pkg.Main"),
     version := "0.1",
     libraryDependencies ++= circe ++ Seq(
-      "io.circe"   %% "circe-yaml" % "0.12.0", // separate from other circe deps because its independent project with its own versioning
-      "commons-io" % "commons-io"  % "2.6"
+      "io.circe"   %% "circe-yaml" % circeYamlVersion, // separate from other circe deps because its independent project with its own versioning
+      "commons-io" % "commons-io"  % commonsIoVersion
     )
-  )
-
-lazy val `file-manager` = (project in file("lib/file-manager"))
-  .settings(
-    (Compile / mainClass) := Some("org.enso.filemanager.FileManager")
-  )
-  .settings(
-    libraryDependencies ++= akka,
-    libraryDependencies += akkaSLF4J,
-    libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3",
-    libraryDependencies += "org.scalatest"  %% "scalatest"      % "3.2.0-M2" % Test,
-    libraryDependencies += "org.scalacheck" %% "scalacheck"     % "1.14.3" % Test,
-    libraryDependencies += akkaTestkitTyped,
-    libraryDependencies += "commons-io" % "commons-io" % "2.6",
-    // upgrade blocked by gmethvin/directory-watcher#49
-    libraryDependencies += "io.methvin" % "directory-watcher" % "0.9.6"
   )
 
 lazy val `project-manager` = (project in file("lib/project-manager"))
@@ -394,19 +430,19 @@ lazy val `project-manager` = (project in file("lib/project-manager"))
     libraryDependencies ++= akka,
     libraryDependencies ++= circe,
     libraryDependencies ++= Seq(
-      "com.typesafe"               % "config"               % "1.4.0",
-      "com.github.pureconfig"      %% "pureconfig"          % "0.12.2",
-      "ch.qos.logback"             % "logback-classic"      % "1.2.3",
-      "com.typesafe.scala-logging" %% "scala-logging"       % "3.9.2",
-      "dev.zio"                    %% "zio"                 % "1.0.0-RC18-2",
-      "dev.zio"                    %% "zio-interop-cats"    % "2.0.0.0-RC12",
-      "commons-io"                 % "commons-io"           % "2.6",
-      "com.beachape"               %% "enumeratum-circe"    % "1.5.23",
-      "com.miguno.akka"            %% "akka-mock-scheduler" % "0.5.5" % Test,
-      "org.mockito"                %% "mockito-scala"       % "1.13.7" % Test
+      "com.typesafe"               % "config"               % typesafeConfigVersion,
+      "com.github.pureconfig"      %% "pureconfig"          % pureconfigVersion,
+      "ch.qos.logback"             % "logback-classic"      % logbackClassicVersion,
+      "com.typesafe.scala-logging" %% "scala-logging"       % scalaLoggingVersion,
+      "dev.zio"                    %% "zio"                 % zioVersion,
+      "dev.zio"                    %% "zio-interop-cats"    % zioInteropCatsVersion,
+      "commons-io"                 % "commons-io"           % commonsIoVersion,
+      "com.beachape"               %% "enumeratum-circe"    % enumeratumCirceVersion,
+      "com.miguno.akka"            %% "akka-mock-scheduler" % akkaMockSchedulerVersion % Test,
+      "org.mockito"                %% "mockito-scala"       % mockitoScalaVersion % Test
     ),
     addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     )
   )
   .dependsOn(pkg)
@@ -422,7 +458,7 @@ lazy val `json-rpc-server` = project
     libraryDependencies ++= Seq(
       "io.circe"      %% "circe-literal" % circeVersion,
       akkaTestkit     % Test,
-      "org.scalatest" %% "scalatest" % "3.2.0-M2" % Test
+      "org.scalatest" %% "scalatest" % scalatestVersion % Test
     )
   )
 
@@ -434,7 +470,7 @@ lazy val `json-rpc-server-test` = project
     libraryDependencies ++= Seq(
       "io.circe" %% "circe-literal" % circeVersion,
       akkaTestkit,
-      "org.scalatest" %% "scalatest" % "3.2.0-M2"
+      "org.scalatest" %% "scalatest" % scalatestVersion
     )
   )
   .dependsOn(`json-rpc-server`)
@@ -449,32 +485,27 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
     logBuffered in Test := false,
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= jmh ++ Seq(
-      "com.chuusai"                %% "shapeless"    % "2.3.3",
-      "org.scalacheck"             %% "scalacheck"   % "1.14.3" % Test,
-      "org.scalactic"              %% "scalactic"    % "3.2.0-M2" % Test,
-      "org.scalatest"              %% "scalatest"    % "3.2.0-M2" % Test,
+      "com.chuusai"                %% "shapeless"    % shapelessVersion,
+      "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
+      "org.scalactic"              %% "scalactic"    % scalacticVersion % Test,
+      "org.scalatest"              %% "scalatest"    % scalatestVersion % Test,
       "org.typelevel"              %% "cats-core"    % catsVersion,
-      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0"
+      "com.github.julien-truffaut" %% "monocle-core" % monocleVersion
     ),
     addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
     addCompilerPlugin(
       "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
     ),
-    scalacOptions ++= Seq(
-      "-P:splain:infix:true",
-      "-P:splain:foundreq:true",
-      "-P:splain:implicits:true",
-      "-P:splain:tree:true"
-    )
+    scalacOptions ++= splainOptions
   )
   .dependsOn(graph)
   .dependsOn(syntax.jvm)
 
-//////////////////////
-//// Sub Projects ////
-//////////////////////
+// ============================================================================
+// === Sub-Projects ===========================================================
+// ============================================================================
 
 val truffleRunOptions = Seq(
   "-Dpolyglot.engine.IterativePartialEscape=true",
@@ -502,25 +533,18 @@ lazy val `polyglot-api` = project
         .mkString(File.pathSeparator)}"
     ),
     libraryDependencies ++= Seq(
-      "org.graalvm.sdk"                  % "polyglot-tck"            % graalVersion % "provided",
-      "org.scalatest"                    %% "scalatest"              % "3.2.0-M2" % Test,
-      "org.scalacheck"                   %% "scalacheck"             % "1.14.3" % Test,
-      "com.fasterxml.jackson.dataformat" % "jackson-dataformat-cbor" % "2.10.3",
-      "com.fasterxml.jackson.core"       % "jackson-databind"        % "2.10.3",
-      "com.fasterxml.jackson.module"     %% "jackson-module-scala"   % "2.10.3"
+      "org.graalvm.sdk" % "polyglot-tck" % graalVersion      % "provided",
+      "org.scalatest"   %% "scalatest"   % scalatestVersion  % Test,
+      "org.scalacheck"  %% "scalacheck"  % scalacheckVersion % Test
     ),
+    libraryDependencies ++= jackson,
     addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
     addCompilerPlugin(
       "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
     ),
-    scalacOptions ++= Seq(
-      "-P:splain:infix:true",
-      "-P:splain:foundreq:true",
-      "-P:splain:implicits:true",
-      "-P:splain:tree:true"
-    )
+    scalacOptions ++= splainOptions
   )
   .dependsOn(pkg)
   .dependsOn(`text-buffer`)
@@ -528,19 +552,19 @@ lazy val `polyglot-api` = project
 lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     libraryDependencies ++= akka ++ circe ++ Seq(
-      "ch.qos.logback"             % "logback-classic" % "1.2.3",
-      "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-      "io.circe"                   %% "circe-generic-extras" % "0.12.2",
+      "ch.qos.logback"             % "logback-classic" % logbackClassicVersion,
+      "com.typesafe.scala-logging" %% "scala-logging" % scalaLoggingVersion,
+      "io.circe"                   %% "circe-generic-extras" % circeVersion,
       "io.circe"                   %% "circe-literal" % circeVersion,
-      "org.bouncycastle"           % "bcpkix-jdk15on" % "1.64",
-      "dev.zio"                    %% "zio" % "1.0.0-RC18-2",
-      "io.methvin"                 % "directory-watcher" % "0.9.6",
-      "com.beachape"               %% "enumeratum-circe" % "1.5.23",
-      "com.google.flatbuffers"     % "flatbuffers-java" % "1.12.0",
+      "org.bouncycastle"           % "bcpkix-jdk15on" % bcpkixJdk15Version,
+      "dev.zio"                    %% "zio" % zioVersion,
+      "io.methvin"                 % "directory-watcher" % directoryWatcherVersion,
+      "com.beachape"               %% "enumeratum-circe" % enumeratumCirceVersion,
+      "com.google.flatbuffers"     % "flatbuffers-java" % flatbuffersVersion,
       akkaTestkit                  % Test,
-      "commons-io"                 % "commons-io" % "2.6",
-      "org.scalatest"              %% "scalatest" % "3.2.0-M2" % Test,
-      "org.scalacheck"             %% "scalacheck" % "1.14.0" % Test,
+      "commons-io"                 % "commons-io" % commonsIoVersion,
+      "org.scalatest"              %% "scalatest" % scalatestVersion % Test,
+      "org.scalacheck"             %% "scalacheck" % scalacheckVersion % Test,
       "org.graalvm.sdk"            % "polyglot-tck" % graalVersion % "provided"
     ),
     testOptions in Test += Tests
@@ -551,7 +575,7 @@ lazy val `language-server` = (project in file("engine/language-server"))
   .settings(
     inConfig(Benchmark)(Defaults.testSettings),
     bench := (test in Benchmark).value,
-    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.19" % "bench",
+    libraryDependencies += "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks ++= List(
       new TestFramework("org.scalameter.ScalaMeterFramework")
     )
@@ -573,21 +597,21 @@ lazy val runtime = (project in file("engine/runtime"))
     scalacOptions += "-Ymacro-annotations",
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
     libraryDependencies ++= circe ++ jmh ++ Seq(
-      "com.chuusai"         %% "shapeless"            % "2.3.3",
-      "org.apache.commons"  % "commons-lang3"         % "3.9",
-      "org.apache.tika"     % "tika-core"             % "1.23",
+      "com.chuusai"         %% "shapeless"            % shapelessVersion,
+      "org.apache.commons"  % "commons-lang3"         % commonsLangVersion,
+      "org.apache.tika"     % "tika-core"             % tikaVersion,
       "org.graalvm.sdk"     % "graal-sdk"             % graalVersion % "provided",
       "org.graalvm.sdk"     % "polyglot-tck"          % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-dsl-processor" % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-tck"           % graalVersion % "provided",
       "org.graalvm.truffle" % "truffle-tck-common"    % graalVersion % "provided",
-      "org.scalacheck"      %% "scalacheck"           % "1.14.3" % Test,
-      "org.scalactic"       %% "scalactic"            % "3.2.0-M2" % Test,
-      "org.scalatest"       %% "scalatest"            % "3.2.0-M2" % Test,
+      "org.scalacheck"      %% "scalacheck"           % scalacheckVersion % Test,
+      "org.scalactic"       %% "scalactic"            % scalacticVersion % Test,
+      "org.scalatest"       %% "scalatest"            % scalatestVersion % Test,
       "org.graalvm.truffle" % "truffle-api"           % graalVersion % Benchmark,
       "org.typelevel"       %% "cats-core"            % catsVersion,
-      "eu.timepit"          %% "refined"              % "0.9.12"
+      "eu.timepit"          %% "refined"              % refinedVersion
     ),
     // Note [Unmanaged Classpath]
     Compile / unmanagedClasspath += (`core-definition` / Compile / packageBin).value,
@@ -602,17 +626,12 @@ lazy val runtime = (project in file("engine/runtime"))
       (Compile / sourceManaged).value.getAbsolutePath
     ),
     addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
     addCompilerPlugin(
       "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
     ),
-    scalacOptions ++= Seq(
-      "-P:splain:infix:true",
-      "-P:splain:foundreq:true",
-      "-P:splain:implicits:true",
-      "-P:splain:tree:true"
-    )
+    scalacOptions ++= splainOptions
   )
   .settings(
     (Compile / compile) := (Compile / compile)
@@ -690,10 +709,11 @@ lazy val runner = project
     libraryDependencies ++= Seq(
       "org.graalvm.sdk"       % "polyglot-tck"           % graalVersion % "provided",
       "org.graalvm.truffle"   % "truffle-api"            % graalVersion % "provided",
-      "commons-cli"           % "commons-cli"            % "1.4",
-      "io.github.spencerpark" % "jupyter-jvm-basekernel" % "2.3.0",
-      "org.jline"             % "jline"                  % "3.13.3",
-      "org.typelevel"         %% "cats-core"             % "2.0.0"
+      "commons-cli"           % "commons-cli"            % commonsCliVersion,
+      "com.monovore"          %% "decline"               % declineVersion,
+      "io.github.spencerpark" % "jupyter-jvm-basekernel" % jupyterJvmBasekernelVersion,
+      "org.jline"             % "jline"                  % jlineVersion,
+      "org.typelevel"         %% "cats-core"             % catsVersion
     ),
     connectInput in run := true
   )
