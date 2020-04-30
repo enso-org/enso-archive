@@ -111,7 +111,7 @@ final class Handler {
     value: ExpressionValue
   ): Unit = {
     sendValueUpdate(contextId, value)
-    fireVisualisationComputations(contextId, value)
+    fireVisualisationUpdates(contextId, value)
   }
 
   private def sendValueUpdate(
@@ -135,7 +135,7 @@ final class Handler {
     )
   }
 
-  private def fireVisualisationComputations(
+  private def fireVisualisationUpdates(
     contextId: ContextId,
     value: ExpressionValue
   ): Unit = {
@@ -150,28 +150,33 @@ final class Handler {
           visualisation.expression,
           value.getValue
         )
-        val data = result match {
-          case txt: String      => txt.getBytes("UTF-8")
-          case arr: Array[Byte] => arr
-          case other            =>
-            //todo define error
-            throw new RuntimeException(
-              s"Cannot encode ${other.getClass} to byte array"
+        val errorMsgOrData = result match {
+          case text: String       => Right(text.getBytes("UTF-8"))
+          case bytes: Array[Byte] => Right(bytes)
+          case other =>
+            Left(s"Cannot encode ${other.getClass} to byte array")
+        }
+        errorMsgOrData match {
+          case Left(msg) =>
+            endpoint.sendToClient(
+              Api.Response(Api.VisualisationEvaluationFailed(msg))
+            )
+
+          case Right(data) =>
+            endpoint.sendToClient(
+              Api.Response(
+                Api.VisualisationUpdate(
+                  Api.VisualisationContext(
+                    visualisation.id,
+                    contextId,
+                    value.getExpressionId
+                  ),
+                  data
+                )
+              )
             )
         }
 
-        endpoint.sendToClient(
-          Api.Response(
-            Api.VisualisationUpdate(
-              Api.VisualisationContext(
-                visualisation.id,
-                contextId,
-                value.getExpressionId
-              ),
-              data
-            )
-          )
-        )
       }
     }
   }
@@ -382,7 +387,7 @@ final class Handler {
 
       case Api.AttachVisualisation(visualisationId, expressionId, config) =>
         if (contextManager.contains(config.executionContextId)) {
-          attachVisualisation(requestId, visualisationId, expressionId, config)
+          upsertVisualisation(requestId, visualisationId, expressionId, config)
         } else {
           endpoint.sendToClient(
             Api.Response(
@@ -423,7 +428,7 @@ final class Handler {
               )
 
             case Some(visualisation) =>
-              attachVisualisation(
+              upsertVisualisation(
                 requestId,
                 visualisationId,
                 visualisation.id,
@@ -442,7 +447,7 @@ final class Handler {
     }
   }
 
-  private def attachVisualisation(
+  private def upsertVisualisation(
     requestId: Option[RequestId],
     visualisationId: VisualisationId,
     expressionId: ExpressionId,
