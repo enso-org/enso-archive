@@ -111,7 +111,7 @@ lazy val enso = (project in file("."))
 val coursierCache = file("~/.cache/coursier/v1")
 
 val monocle = {
-  val monocleVersion = "2.0.0"
+  val monocleVersion = "2.0.4"
   Seq(
     "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
     "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
@@ -119,24 +119,24 @@ val monocle = {
   )
 }
 
-val catsVersion = "2.1.0"
+val catsVersion    = "2.2.0-M1"
+val kittensVersion = "2.1.0"
 val cats = {
   Seq(
     "org.typelevel" %% "cats-core"   % catsVersion,
     "org.typelevel" %% "cats-effect" % catsVersion,
     "org.typelevel" %% "cats-free"   % catsVersion,
     "org.typelevel" %% "cats-macros" % catsVersion,
-    "org.typelevel" %% "kittens"     % catsVersion
+    "org.typelevel" %% "kittens"     % kittensVersion
   )
 }
 
-val scala_compiler = Seq(
+val scalaCompiler = Seq(
   "org.scala-lang" % "scala-reflect"  % scalacVersion,
   "org.scala-lang" % "scala-compiler" % scalacVersion
 )
 
-val circeVersion  = "0.13.0"
-
+val circeVersion = "0.13.0"
 val circe = Seq("circe-core", "circe-generic", "circe-parser")
   .map("io.circe" %% _ % circeVersion)
 
@@ -144,8 +144,8 @@ def akkaPkg(name: String)     = akkaURL %% s"akka-$name" % akkaVersion
 def akkaHTTPPkg(name: String) = akkaURL %% s"akka-$name" % akkaHTTPVersion
 
 val akkaURL          = "com.typesafe.akka"
-val akkaVersion      = "2.6.3"
-val akkaHTTPVersion  = "10.1.11"
+val akkaVersion      = "2.6.4"
+val akkaHTTPVersion  = "10.2.0-M1"
 val akkaActor        = akkaPkg("actor")
 val akkaStream       = akkaPkg("stream")
 val akkaTyped        = akkaPkg("actor-typed")
@@ -154,19 +154,28 @@ val akkaSLF4J        = akkaPkg("slf4j")
 val akkaTestkitTyped = akkaPkg("actor-testkit-typed") % Test
 val akkaHttp         = akkaHTTPPkg("http")
 val akkaSpray        = akkaHTTPPkg("http-spray-json")
-val akka             = Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
+val akka =
+  Seq(akkaActor, akkaStream, akkaHttp, akkaSpray, akkaTyped)
 
+val jmhVersion = "1.23"
 val jmh = Seq(
-  "org.openjdk.jmh" % "jmh-core"                 % "1.21" % Benchmark,
-  "org.openjdk.jmh" % "jmh-generator-annprocess" % "1.21" % Benchmark
+  "org.openjdk.jmh" % "jmh-core"                 % jmhVersion % Benchmark,
+  "org.openjdk.jmh" % "jmh-generator-annprocess" % jmhVersion % Benchmark
 )
 
-val splainVersion = "0.5.4"
+val guavaVersion      = "29.0-jre"
+val splainVersion     = "0.5.4"
+val scalatagsVersion  = "0.9.0"
+val pprintVersion     = "0.5.9"
+val scalatestVersion  = "3.3.0-SNAP2"
+val scalameterVersion = "0.19"
+val scalacheckVersion = "1.14.3"
 
 ////////////////////////////
 //// Internal Libraries ////
 ////////////////////////////
 
+// TODO [AA] Can I remove this?
 val jsSettings = Seq(
   scalaJSLinkerConfig ~= { _.withModuleKind(ModuleKind.ESModule) },
   // FIXME workaround for scalajs bug:
@@ -180,7 +189,7 @@ lazy val logger = crossProject(JVMPlatform, JSPlatform)
   .in(file("lib/logger"))
   .settings(
     version := "0.1",
-    libraryDependencies ++= scala_compiler
+    libraryDependencies ++= scalaCompiler
   )
   .jsSettings(jsSettings)
 
@@ -192,10 +201,10 @@ lazy val flexer = crossProject(JVMPlatform, JSPlatform)
   .settings(
     version := "0.1",
     resolvers += Resolver.sonatypeRepo("releases"),
-    libraryDependencies ++= scala_compiler ++ Seq(
-      "com.google.guava" % "guava"       % "28.2-jre",
+    libraryDependencies ++= scalaCompiler ++ Seq(
+      "com.google.guava" % "guava"       % guavaVersion,
       "org.typelevel"    %%% "cats-core" % catsVersion,
-      "org.typelevel"    %%% "kittens"   % "2.0.0"
+      "org.typelevel"    %%% "kittens"   % kittensVersion
     )
   )
   .jsSettings(jsSettings)
@@ -207,10 +216,10 @@ lazy val `syntax-definition` = crossProject(JVMPlatform, JSPlatform)
   .dependsOn(logger, flexer)
   .settings(
     scalacOptions ++= Seq("-Ypatmat-exhaust-depth", "off"),
-    libraryDependencies ++= monocle ++ scala_compiler ++ Seq(
+    libraryDependencies ++= monocle ++ scalaCompiler ++ Seq(
       "org.typelevel" %%% "cats-core"     % catsVersion,
-      "org.typelevel" %%% "kittens"       % "2.0.0",
-      "com.lihaoyi"   %%% "scalatags"     % "0.8.5",
+      "org.typelevel" %%% "kittens"       % kittensVersion,
+      "com.lihaoyi"   %%% "scalatags"     % scalatagsVersion,
       "io.circe"      %%% "circe-core"    % circeVersion,
       "io.circe"      %%% "circe-generic" % circeVersion,
       "io.circe"      %%% "circe-parser"  % circeVersion
@@ -232,8 +241,8 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     version := "0.1",
     logBuffered := false,
     libraryDependencies ++= Seq(
-      "org.scalatest" %%% "scalatest"     % "3.1.0" % Test,
-      "com.lihaoyi"   %%% "pprint"        % "0.5.9",
+      "org.scalatest" %%% "scalatest"     % scalatestVersion % Test,
+      "com.lihaoyi"   %%% "pprint"        % pprintVersion,
       "io.circe"      %%% "circe-core"    % circeVersion,
       "io.circe"      %%% "circe-generic" % circeVersion,
       "io.circe"      %%% "circe-parser"  % circeVersion
@@ -255,7 +264,8 @@ lazy val syntax = crossProject(JVMPlatform, JSPlatform)
     inConfig(Benchmark)(Defaults.testSettings),
     unmanagedSourceDirectories in Benchmark +=
     baseDirectory.value.getParentFile / "shared/src/bench/scala",
-    libraryDependencies += "com.storm-enroute" %% "scalameter" % "0.19" % "bench",
+    libraryDependencies +=
+    "com.storm-enroute" %% "scalameter" % scalameterVersion % "bench",
     testFrameworks := List(
       new TestFramework("org.scalatest.tools.Framework"),
       new TestFramework("org.scalameter.ScalaMeterFramework")
@@ -282,8 +292,8 @@ lazy val `text-buffer` = project
   .settings(
     libraryDependencies ++= Seq(
       "org.typelevel"  %% "cats-core"  % catsVersion,
-      "org.scalatest"  %% "scalatest"  % "3.2.0-M2" % Test,
-      "org.scalacheck" %% "scalacheck" % "1.14.0" % Test
+      "org.scalatest"  %% "scalatest"  % scalatestVersion % Test,
+      "org.scalacheck" %% "scalacheck" % scalacheckVersion % Test
     )
   )
 
@@ -297,7 +307,7 @@ lazy val graph = (project in file("lib/graph/"))
       Resolver.sonatypeRepo("snapshots")
     ),
     scalacOptions += "-Ymacro-annotations",
-    libraryDependencies ++= scala_compiler ++ Seq(
+    libraryDependencies ++= scalaCompiler ++ Seq(
       "com.chuusai"                %% "shapeless"    % "2.3.3",
       "io.estatico"                %% "newtype"      % "0.4.3",
       "org.scalatest"              %% "scalatest"    % "3.2.0-M2" % Test,
@@ -308,7 +318,9 @@ lazy val graph = (project in file("lib/graph/"))
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
+    addCompilerPlugin(
+      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
+    ),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -428,7 +440,9 @@ lazy val `core-definition` = (project in file("lib/core-definition"))
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
+    addCompilerPlugin(
+      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
+    ),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -479,7 +493,9 @@ lazy val `polyglot-api` = project
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
+    addCompilerPlugin(
+      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
+    ),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
@@ -569,7 +585,9 @@ lazy val runtime = (project in file("engine/runtime"))
     addCompilerPlugin(
       "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
     ),
-    addCompilerPlugin("io.tryp" % "splain" % splainVersion cross CrossVersion.patch),
+    addCompilerPlugin(
+      "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
+    ),
     scalacOptions ++= Seq(
       "-P:splain:infix:true",
       "-P:splain:foundreq:true",
