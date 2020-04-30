@@ -4,11 +4,8 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, DemandAnalysis}
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  LiftSpecialOperators,
-  OperatorToFunction
-}
+import org.enso.compiler.pass.desugar.{GenerateMethodBodies, LiftSpecialOperators, OperatorToFunction}
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 
@@ -21,6 +18,8 @@ class DemandAnalysisTest extends CompilerTest {
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
+    AliasAnalysis,
+    LambdaConsolidate,
     AliasAnalysis
   )
 
