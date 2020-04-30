@@ -86,30 +86,39 @@ class ExecutionContextManager {
 
   def contains(contextId: ContextId): Boolean = contexts.contains(contextId)
 
-  def attachVisualisation(
+  def upsertVisualisation(
     contextId: ContextId,
     visualisation: Visualisation
   ): Unit = {
     val state = contexts(contextId)
-    contexts += contextId -> state.addVisualisation(visualisation)
+    state.visualisations.upsert(visualisation)
   }
 
-  def findVisualisationById(
+  def getVisualisationById(
     contextId: ContextId,
     visualisationId: VisualisationId
   ): Option[Visualisation] =
     for {
       state         <- contexts.get(contextId)
-      visualisation <- state.visualisations.values.find(_.id == visualisationId)
+      visualisation <- state.visualisations.getById(visualisationId)
     } yield visualisation
 
-  def findVisualisationByExprId(
+  def findVisualisationForExpression(
     contextId: ContextId,
     expressionId: ExpressionId
-  ): Option[Visualisation] =
+  ): List[Visualisation] =
     for {
-      state         <- contexts.get(contextId)
-      visualisation <- state.visualisations.get(expressionId)
+      state         <- contexts.get(contextId).toList
+      visualisation <- state.visualisations.find(expressionId)
     } yield visualisation
+
+  def removeVisualisation(
+    contextId: ContextId,
+    expressionId: ExpressionId,
+    visualisationId: VisualisationId
+  ): Unit = {
+    val state = contexts(contextId)
+    state.visualisations.remove(visualisationId, expressionId)
+  }
 
 }

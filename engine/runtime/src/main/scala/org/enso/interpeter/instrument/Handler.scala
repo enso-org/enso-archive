@@ -139,9 +139,12 @@ final class Handler {
     contextId: ContextId,
     value: ExpressionValue
   ): Unit = {
-    val maybeVisualisation =
-      contextManager.findVisualisationByExprId(contextId, value.getExpressionId)
-    maybeVisualisation foreach { visualisation =>
+    val visualisations =
+      contextManager.findVisualisationForExpression(
+        contextId,
+        value.getExpressionId
+      )
+    visualisations foreach { visualisation =>
       withContext {
         val result = executionService.callFn(
           visualisation.expression,
@@ -389,9 +392,27 @@ final class Handler {
           )
         }
 
+      case Api.DetachVisualisation(ctxId, visualisationId, exprId) =>
+        if (contextManager.contains(ctxId)) {
+          contextManager.removeVisualisation(ctxId, exprId, visualisationId)
+          endpoint.sendToClient(
+            Api.Response(
+              requestId,
+              Api.VisualisationDetached()
+            )
+          )
+        } else {
+          endpoint.sendToClient(
+            Api.Response(
+              requestId,
+              Api.ContextNotExistError(ctxId)
+            )
+          )
+        }
+
       case Api.ModifyVisualisation(visualisationId, config) =>
         if (contextManager.contains(config.executionContextId)) {
-          val maybeVisualisation = contextManager.findVisualisationById(
+          val maybeVisualisation = contextManager.getVisualisationById(
             config.executionContextId,
             visualisationId
           )
@@ -453,7 +474,7 @@ final class Handler {
           expressionId,
           callable
         )
-        contextManager.attachVisualisation(
+        contextManager.upsertVisualisation(
           config.executionContextId,
           visualisation
         )
