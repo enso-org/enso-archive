@@ -613,6 +613,82 @@ class RuntimeServerTest
     dataAfterModification.sameElements("7".getBytes) shouldBe true
   }
 
+  it should "not emit visualisation updates when visualisation is detached" in {
+    val mainFile = context.writeMain(context.Main.code)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
+
+    send(
+      Api.OpenFileNotification(
+        visualisationFile,
+        context.Visualisation.code
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          context.Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            s"Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    context.drain()
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.DetachVisualisation(
+          contextId,
+          visualisationId,
+          context.Main.idMainX
+        )
+      )
+    )
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationDetached())
+    )
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+    Set.fill(5)(context.receive) shouldEqual Set(
+      Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
+      Some(context.Main.update.idMainX(contextId)),
+      Some(context.Main.update.idMainY(contextId)),
+      Some(context.Main.update.idMainZ(contextId)),
+      None
+    )
+  }
+
   private def send(msg: ApiRequest): Unit =
     context.send(Api.Request(UUID.randomUUID(), msg))
 
