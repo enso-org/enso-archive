@@ -18,7 +18,7 @@ class LambdaTest extends InterpreterTest {
     val code =
       """
         |main = a ->
-        |    add = a b -> a + b
+        |    add = a -> b -> a + b
         |    adder = b -> add a b
         |    adder 2
       """.stripMargin
@@ -29,7 +29,7 @@ class LambdaTest extends InterpreterTest {
   "Lambdas" should "be callable directly without assignment" in {
     val code =
       """
-        |main = (x y -> x * y) 5 6
+        |main = (x -> y -> x * y) 5 6
         |""".stripMargin
     eval(code) shouldEqual 30
   }
@@ -60,7 +60,7 @@ class LambdaTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    f = x y -> w -> z -> x * y + w + z
+        |    f = x -> y -> w -> z -> x * y + w + z
         |    f 3 3 10 1
         |""".stripMargin
 
@@ -111,7 +111,7 @@ class LambdaTest extends InterpreterTest {
     val code =
       """
         |main =
-        |    fn = a b ->
+        |    fn = a -> b ->
         |        IO.println (a + b)
         |        (x = a) -> a + 1
         |
@@ -126,10 +126,10 @@ class LambdaTest extends InterpreterTest {
   "Fully saturated returned lambdas in TCO" should "be called" in {
     val code =
       """
-        |Number.if_then_else = ~t ~f -> ifZero this t f
+        |Number.if_then_else = ~t -> ~f -> ifZero this t f
         |
         |main =
-        |    fn = a b ->
+        |    fn = a -> b ->
         |        if a then (a + b) else (fn (a-1) b)
         |
         |    fn 10 10

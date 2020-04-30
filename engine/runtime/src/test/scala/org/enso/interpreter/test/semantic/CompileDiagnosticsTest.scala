@@ -8,7 +8,7 @@ class CompileDiagnosticsTest extends InterpreterTest {
       """
         |main =
         |    x = Panic.recover ()
-        |    x.catch err->
+        |    x.catch err ->
         |        case err of
         |            Syntax_Error msg -> "Oopsie, it's a syntax error: " + msg
         |""".stripMargin
