@@ -76,6 +76,10 @@ object Runtime {
         name  = "closeFileNotification"
       ),
       new JsonSubTypes.Type(
+        value = classOf[Api.VisualisationUpdate],
+        name  = "visualisationUpdate"
+      ),
+      new JsonSubTypes.Type(
         value = classOf[Api.AttachVisualisation],
         name  = "attachVisualisation"
       ),
@@ -110,6 +114,10 @@ object Runtime {
       new JsonSubTypes.Type(
         value = classOf[Api.EmptyStackError],
         name  = "emptyStackError"
+      ),
+      new JsonSubTypes.Type(
+        value = classOf[Api.ModuleNotFound],
+        name  = "moduleNotFound"
       ),
       new JsonSubTypes.Type(
         value = classOf[Api.InvalidStackItemError],
@@ -427,6 +435,8 @@ object Runtime {
       * @param contextId the context's id
       */
     case class ContextNotExistError(contextId: ContextId) extends Error
+
+    case class ModuleNotFound(moduleName: String) extends Error
 
     /**
       * An error response signifying that stack is empty.

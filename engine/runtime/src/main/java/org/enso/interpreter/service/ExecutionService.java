@@ -16,6 +16,8 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.scope.ModuleScope;
 
 import java.io.File;
+
+import org.enso.polyglot.MethodNames;
 import org.enso.text.buffer.Rope;
 import org.enso.text.editing.JavaEditorAdapter;
 import org.enso.text.editing.model;
@@ -32,6 +34,14 @@ public class ExecutionService {
   private final Context context;
   private final IdExecutionInstrument idExecutionInstrument;
   private InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
+
+  public Object evalExpr(Module module, String expression) throws Exception {
+     return interopLibrary.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
+  }
+
+  public Object callFn(Object fn, Object argument) throws Exception {
+     return interopLibrary.execute(fn, argument);
+  }
 
   /**
    * Creates a new instance of this service.
@@ -147,6 +157,10 @@ public class ExecutionService {
   public void resetModuleSources(File path) {
     Optional<Module> module = context.getModuleForFile(path);
     module.ifPresent(Module::unsetLiteralSource);
+  }
+
+  public Optional<Module> findModule(String moduleName) {
+    return context.findModule(moduleName);
   }
 
   /**

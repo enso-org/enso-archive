@@ -2,7 +2,7 @@ package org.enso.interpeter.instrument
 
 import java.io.File
 import java.nio.ByteBuffer
-import java.util.UUID
+import java.util.{Optional, UUID}
 import java.util.function.Consumer
 
 import com.oracle.truffle.api.TruffleContext
@@ -11,6 +11,7 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
   ExpressionValue
 }
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
+import org.enso.interpreter.runtime.Module
 import org.enso.interpreter.service.ExecutionService
 import org.enso.polyglot.runtime.Runtime.Api
 import org.graalvm.polyglot.io.MessageEndpoint
@@ -92,9 +93,9 @@ final class Handler {
     case class CallData(callData: FunctionCall) extends ExecutionItem
   }
 
-  private def sendUpdate(
+  private def onExpressionValueComputed(
     contextId: Api.ContextId,
-    res: ExpressionValue
+    value: ExpressionValue
   ): Unit = {
     endpoint.sendToClient(
       Api.Response(
@@ -102,15 +103,50 @@ final class Handler {
           contextId,
           Vector(
             Api.ExpressionValueUpdate(
-              res.getExpressionId,
-              OptionConverters.toScala(res.getType),
-              Some(res.getValue.toString),
+              value.getExpressionId,
+              OptionConverters.toScala(value.getType),
+              Some(value.getValue.toString),
               None
             )
           )
         )
       )
     )
+    val maybeVisualisation =
+      contextManager.findVisualisation(contextId, value.getExpressionId)
+    maybeVisualisation foreach { visualisation =>
+      withContext {
+        val fun = executionService.evalExpr(
+          visualisation.module,
+          visualisation.expression
+        )
+        val function = fun
+          .asInstanceOf[org.enso.interpreter.runtime.callable.function.Function]
+        val result = executionService.callFn(function, value.getValue)
+        println(s"result: $result")
+        val data = result match {
+          case txt: String      => txt.getBytes("UTF-8")
+          case arr: Array[Byte] => arr
+          case other =>
+            throw new RuntimeException(
+              s"Cannot encode ${other.getClass} to byte array"
+            )
+        }
+
+        endpoint.sendToClient(
+          Api.Response(
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                visualisation.id,
+                contextId,
+                value.getExpressionId
+              ),
+              data
+            )
+          )
+        )
+      }
+    }
   }
 
   @scala.annotation.tailrec
@@ -168,7 +204,11 @@ final class Handler {
       }
     val (explicitCalls, localCalls) = unwind(stack, Nil, Nil)
     explicitCalls.headOption.foreach { item =>
-      execute(toExecutionItem(item), localCalls, sendUpdate(contextId, _))
+      execute(
+        toExecutionItem(item),
+        localCalls,
+        onExpressionValueComputed(contextId, _)
+      )
     }
   }
 
@@ -290,6 +330,47 @@ final class Handler {
       case Api.EditFileNotification(path, edits) =>
         executionService.modifyModuleSources(path, edits.asJava)
         withContext(executeAll())
+
+      case Api.AttachVisualisation(visualisationId, expressionId, config) =>
+        println("received")
+        if (contextManager.contains(config.executionContextId)) {
+          println("context")
+          var module = Optional.empty[Module]()
+          withContext {
+            module = executionService.findModule(config.visualisationModule)
+          }
+          if (module.isPresent) {
+            println("module")
+            val visualisation = Visualisation(
+              visualisationId,
+              expressionId,
+              module.get(),
+              config.expression
+            )
+            contextManager.attachVisualisation(
+              config.executionContextId,
+              visualisation
+            )
+            endpoint.sendToClient(
+              Api.Response(requestId, Api.VisualisationAttached())
+            )
+          } else {
+            println("no module")
+            endpoint.sendToClient(
+              Api.Response(
+                requestId,
+                Api.ModuleNotFound(config.visualisationModule)
+              )
+            )
+          }
+        } else {
+          endpoint.sendToClient(
+            Api.Response(
+              requestId,
+              Api.ContextNotExistError(config.executionContextId)
+            )
+          )
+        }
     }
   }
 }

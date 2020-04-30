@@ -7,6 +7,7 @@ import java.util.UUID
 
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.Package
+import org.enso.polyglot.runtime.Runtime.Api.VisualisationUpdate
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
 import org.enso.polyglot.{
   LanguageInfo,
@@ -69,6 +70,11 @@ class RuntimeServerTest
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
 
+    def writeInSrcDir(moduleName: String, contents: String): File = {
+      val file = new File(pkg.sourceDir, s"$moduleName.enso")
+      Files.write(file.toPath, contents.getBytes).toFile
+    }
+
     def writeFile(file: File, contents: String): Unit = {
       Files.write(file.toPath, contents.getBytes): Unit
     }
@@ -112,6 +118,11 @@ class RuntimeServerTest
         |    z
         |""".stripMargin
     )
+
+    val visualisationCode =
+      """
+        |encode = x -> x.to_text
+        |""".stripMargin
 
     object update {
 
@@ -291,9 +302,6 @@ class RuntimeServerTest
   }
 
   it should "support file modification operations" in {
-    def send(msg: ApiRequest): Unit =
-      context.send(Api.Request(UUID.randomUUID(), msg))
-
     val fooFile   = new File(context.pkg.sourceDir, "Foo.enso")
     val contextId = UUID.randomUUID()
 
@@ -394,5 +402,76 @@ class RuntimeServerTest
       None
     )
   }
+
+  it should "emit visualisation updates when an expression in evaluated" in {
+    val mainFile = context.writeMain(Main.code)
+    val visualisationFile =
+      context.writeInSrcDir("Visualisation", Main.visualisationCode)
+
+    send(
+      Api.OpenFileNotification(
+        visualisationFile,
+        Main.visualisationCode
+      )
+    )
+
+    val contextId       = UUID.randomUUID()
+    val requestId       = UUID.randomUUID()
+    val visualisationId = UUID.randomUUID()
+
+    // create context
+    context.send(Api.Request(requestId, Api.CreateContextRequest(contextId)))
+    context.receive shouldEqual Some(
+      Api.Response(requestId, Api.CreateContextResponse(contextId))
+    )
+
+    context.send(
+      Api.Request(
+        requestId,
+        Api.AttachVisualisation(
+          visualisationId,
+          Main.idMainX,
+          Api.VisualisationConfiguration(
+            contextId,
+            s"Test.Visualisation",
+            "x -> here.encode x"
+          )
+        )
+      )
+    )
+    Thread.sleep(1000)
+    context.receive shouldBe Some(
+      Api.Response(requestId, Api.VisualisationAttached())
+    )
+    // push main
+    val item1 = Api.StackItem.ExplicitCall(
+      Api.MethodPointer(mainFile, "Main", "main"),
+      None,
+      Vector()
+    )
+    context.send(
+      Api.Request(requestId, Api.PushContextRequest(contextId, item1))
+    )
+    val received = Set.fill(5)(context.receive)
+    val maybeVisualisationUpdate = received.collectFirst {
+      case Some(Api.Response(None, update: VisualisationUpdate)) => update
+    }
+    maybeVisualisationUpdate should matchPattern {
+      case Some(
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              Main.idMainX
+            ),
+            _
+          )
+          ) =>
+    }
+    maybeVisualisationUpdate.get.data.sameElements("6".getBytes) shouldBe true
+  }
+
+  private def send(msg: ApiRequest): Unit =
+    context.send(Api.Request(UUID.randomUUID(), msg))
 
 }

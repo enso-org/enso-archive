@@ -1,6 +1,10 @@
 package org.enso.interpeter.instrument
 
-import org.enso.polyglot.runtime.Runtime.Api.{ContextId, StackItem}
+import org.enso.polyglot.runtime.Runtime.Api.{
+  ContextId,
+  ExpressionId,
+  StackItem
+}
 
 import scala.collection.mutable.Stack
 
@@ -8,7 +12,9 @@ import scala.collection.mutable.Stack
   * Storage for active execution contexts.
   */
 class ExecutionContextManager {
-  private var contexts: Map[ContextId, Stack[StackItem]] = Map()
+
+  private var contexts: Map[ContextId, ExecutionContextState] =
+    Map().withDefaultValue(ExecutionContextState.empty)
 
   /**
     * Creates a new context with a given id.
@@ -16,7 +22,7 @@ class ExecutionContextManager {
     * @param id the context id.
     */
   def create(id: ContextId): Unit =
-    contexts += id -> Stack.empty
+    contexts += id -> ExecutionContextState.empty
 
   /**
     * Destroys a context with a given id.
@@ -43,7 +49,7 @@ class ExecutionContextManager {
     * @return the stack.
     */
   def getStack(id: ContextId): Stack[StackItem] =
-    contexts.getOrElse(id, Stack())
+    contexts(id).stack
 
   /**
     * Gets all execution contexts.
@@ -51,7 +57,7 @@ class ExecutionContextManager {
     * @return all currently available execution contexsts.
     */
   def getAll: collection.MapView[ContextId, Stack[StackItem]] =
-    contexts.view
+    contexts.view.mapValues(_.stack)
 
   /**
     * If the context exists, push the item on the stack.
@@ -62,8 +68,8 @@ class ExecutionContextManager {
     */
   def push(id: ContextId, item: StackItem): Option[Unit] =
     for {
-      stack <- contexts.get(id)
-    } yield stack.push(item)
+      state <- contexts.get(id)
+    } yield state.stack.push(item)
 
   /**
     * If the context exists and stack not empty, pop the item from the stack.
@@ -73,7 +79,27 @@ class ExecutionContextManager {
     */
   def pop(id: ContextId): Option[StackItem] =
     for {
-      stack <- contexts.get(id)
-      if stack.nonEmpty
-    } yield stack.pop()
+      state <- contexts.get(id)
+      if state.stack.nonEmpty
+    } yield state.stack.pop()
+
+  def contains(contextId: ContextId): Boolean = contexts.contains(contextId)
+
+  def attachVisualisation(
+    contextId: ContextId,
+    visualisation: Visualisation
+  ): Unit = {
+    val state = contexts(contextId)
+    contexts += contextId -> state.addVisualisation(visualisation)
+  }
+
+  def findVisualisation(
+    contextId: ContextId,
+    expressionId: ExpressionId
+  ): Option[Visualisation] =
+    for {
+      state         <- contexts.get(contextId)
+      visualisation <- state.visualisations.get(expressionId)
+    } yield visualisation
+
 }
