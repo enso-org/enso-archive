@@ -91,6 +91,13 @@ class RuntimeServerTest
       messageQueue = List.empty
     }
 
+    def expectMessage[A](pf: PartialFunction[Api.Response, A]): A = {
+      val maybeMessage = messageQueue.collectFirst(pf)
+      maybeMessage.isDefined shouldBe true
+      drain()
+      maybeMessage.get
+    }
+
     def consumeOut: List[String] = {
       val result = out.toString
       out.reset()
@@ -207,7 +214,7 @@ class RuntimeServerTest
         """
           |encode = x -> x.to_text
           |
-          |incAndEncode = x -> encode $ x + 1
+          |incAndEncode = x -> here.encode(x + 1)
           |
           |""".stripMargin
 
@@ -415,7 +422,7 @@ class RuntimeServerTest
     )
   }
 
-  it should "emit visualisation update when visualisation is attached" in {
+  it should "emit visualisation update when expression is evaluated" in {
     val mainFile = context.writeMain(context.Main.code)
     val visualisationFile =
       context.writeInSrcDir("Visualisation", context.Visualisation.code)
@@ -466,24 +473,43 @@ class RuntimeServerTest
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationAttached())
     )
-    val received = Set.fill(4)(context.receive)
-    val maybeVisualisationUpdate = received.collectFirst {
-      case Some(Api.Response(None, update: VisualisationUpdate)) => update
-    }
     val expectedExprId = context.Main.idMainX
-    maybeVisualisationUpdate should matchPattern {
-      case Some(
+    val data = context.expectMessage {
+      case Api.Response(
+          None,
           Api.VisualisationUpdate(
             Api.VisualisationContext(
               `visualisationId`,
               `contextId`,
               `expectedExprId`
             ),
-            _
+            data
           )
           ) =>
+        data
     }
-    maybeVisualisationUpdate.get.data.sameElements("6".getBytes) shouldBe true
+    data.sameElements("6".getBytes) shouldBe true
+
+    // recompute
+    context.send(
+      Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
+    )
+    val data2 = context.expectMessage {
+      case Api.Response(
+          None,
+          Api.VisualisationUpdate(
+            Api.VisualisationContext(
+              `visualisationId`,
+              `contextId`,
+              `expectedExprId`
+            ),
+            data
+          )
+          ) =>
+        data
+    }
+    data2.sameElements("6".getBytes) shouldBe true
+
   }
 
   private def send(msg: ApiRequest): Unit =
