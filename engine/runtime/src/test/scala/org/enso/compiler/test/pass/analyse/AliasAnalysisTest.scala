@@ -325,8 +325,8 @@ class AliasAnalysisTest extends CompilerTest {
     }
 
     "correctly determines whether an occurrence shadows other bindings" in {
-      graph.shadows(aDefId) shouldEqual true
-      graph.shadows(aUse1Id) shouldEqual false
+      graph.canShadow(aDefId) shouldEqual true
+      graph.canShadow(aUse1Id) shouldEqual false
     }
 
     "correctly determine the identifiers of bindings shadowed by a definition" in {

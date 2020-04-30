@@ -708,7 +708,7 @@ case object AliasAnalysis extends IRPass {
       * @param id the occurrence identifier
       * @return `true` if `id` shadows other bindings, otherwise `false`
       */
-    def shadows(id: Graph.Id): Boolean = {
+    def canShadow(id: Graph.Id): Boolean = {
       scopeFor(id)
         .flatMap(
           _.getOccurrence(id).flatMap {
@@ -722,8 +722,9 @@ case object AliasAnalysis extends IRPass {
     /** Computes the bindings that are shadowed by the binding with the provided
       * `definition`.
       *
-      * Please note that just because [[shadows]] states that an identifier is
-      * _capable_ of shadowing, that does not mean that it necessarily does.
+      * Please note that just because [[canShadow]] states that an identifier is
+      * _capable_ of shadowing, that does not mean that it is necessarily known
+      * to do so.
       *
       * @param definition the definition to find the 'shadowees' of
       * @return the bindings shadowed by `definition`
