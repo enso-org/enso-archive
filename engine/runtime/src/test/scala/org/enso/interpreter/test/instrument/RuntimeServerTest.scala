@@ -122,11 +122,6 @@ class RuntimeServerTest
           |""".stripMargin
       )
 
-      val visualisationCode =
-        """
-          |encode = x -> x.to_text
-          |""".stripMargin
-
       object update {
 
         def idMainX(contextId: UUID) =
@@ -205,6 +200,19 @@ class RuntimeServerTest
           )
       }
     }
+
+    object Visualisation {
+
+      val code =
+        """
+          |encode = x -> x.to_text
+          |
+          |incAndEncode = x -> encode $ x + 1
+          |
+          |""".stripMargin
+
+    }
+
   }
 
   override protected def beforeEach(): Unit = {
@@ -410,12 +418,12 @@ class RuntimeServerTest
   it should "emit visualisation update when visualisation is attached" in {
     val mainFile = context.writeMain(context.Main.code)
     val visualisationFile =
-      context.writeInSrcDir("Visualisation", context.Main.visualisationCode)
+      context.writeInSrcDir("Visualisation", context.Visualisation.code)
 
     send(
       Api.OpenFileNotification(
         visualisationFile,
-        context.Main.visualisationCode
+        context.Visualisation.code
       )
     )
 
