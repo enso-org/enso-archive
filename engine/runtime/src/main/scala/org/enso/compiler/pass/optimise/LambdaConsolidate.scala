@@ -7,7 +7,6 @@ import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.syntax.text.Location
 
-// TODO [AA] Refactor the heck out of the massive function
 /** This pass consolidates chains of lambdas into multi-argument lambdas
   * internally.
   *
@@ -104,24 +103,7 @@ case object LambdaConsolidate extends IRPass {
           )
         val lastBody = chainedLambdas.last.body
 
-        // Compute the set of all argument definitions that are shadowed
-        val shadowedBindingIds = chainedArgList
-          .map {
-            case spec: IR.DefinitionArgument.Specified =>
-              val aliasInfo =
-                spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-                  "Missing aliasing information for an argument definition."
-                )
-              aliasInfo.graph
-                .getOccurrence(aliasInfo.id)
-                .flatMap(occ =>
-                  Some(aliasInfo.graph.knownShadowedDefinitions(occ))
-                )
-                .getOrElse(Set())
-            case _: IR.Error.Redefined.Argument => Set()
-          }
-          .foldLeft(Set[AliasAnalysis.Graph.Occurrence]())(_ ++ _)
-          .map(_.id)
+        val shadowedBindingIds = getShadowedBindingIds(chainedArgList)
 
         val argIsShadowed = chainedArgList.map {
           case spec: IR.DefinitionArgument.Specified =>
@@ -133,84 +115,15 @@ case object LambdaConsolidate extends IRPass {
           case _: IR.Error.Redefined.Argument => false
         }
 
-        val argsWithShadowed = chainedArgList.zip(argIsShadowed)
+        val argsWithShadowed    = chainedArgList.zip(argIsShadowed)
+        val usageIdsForShadowed = usageIdsForShadowedArgs(argsWithShadowed)
 
-        // Get the usage ids for shadowed arguments Map[Name, Set[ID]]
-        val usageIdsForShadowed: List[Set[IR.Identifier]] =
-          argsWithShadowed.map {
-            case (spec: IR.DefinitionArgument.Specified, isShadowed) =>
-              val aliasInfo =
-                spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-                  "Function argument definition is missing aliasing information."
-                )
+        val newArgNames = generateNewNames(argsWithShadowed, freshNameSupply)
 
-              // Empty set is used to indicate that it isn't shadowed
-              val usageIds =
-                if (isShadowed) {
-                  aliasInfo.graph
-                    .linksFor(aliasInfo.id)
-                    .filter(_.target == aliasInfo.id)
-                    .map(link => aliasInfo.graph.getOccurrence(link.source))
-                    .collect {
-                      case Some(
-                          AliasAnalysis.Graph.Occurrence.Use(_, _, identifier)
-                          ) =>
-                        identifier
-                    }
-                } else Set[IR.Identifier]()
+        val (processedArgList, newBody) =
+          computeReplacedExpressions(newArgNames, lastBody, usageIdsForShadowed)
 
-              usageIds
-            case (_: IR.Error.Redefined.Argument, _) => Set()
-          }
-
-        // Get the new names for the shadowed arguments List[IR.Name]
-        val newNames: List[IR.DefinitionArgument] = argsWithShadowed.map {
-          case (
-              spec @ IR.DefinitionArgument.Specified(name, _, _, _, _),
-              isShadowed
-              ) =>
-            val newName =
-              if (isShadowed) {
-                freshNameSupply
-                  .newName()
-                  .copy(
-                    location = name.location,
-                    passData = name.passData,
-                    id       = name.getId
-                  )
-              } else name
-
-            spec.copy(name = newName)
-          case (e: IR.Error.Redefined.Argument, _) => e
-        }
-
-        var newBody     = lastBody
-        var newDefaults = chainedArgList.map(_.defaultValue)
-
-        // Filter to just the ones needing replacement
-        val namesNeedingReplacement =
-          newNames.zip(usageIdsForShadowed).filterNot(x => x._2.isEmpty)
-
-        // Replace all occurrences in the defaults and the body
-        for ((arg, idents) <- namesNeedingReplacement) {
-          val (updatedBody, updatedDefaults) =
-            replaceUsages(newBody, newDefaults, arg, idents)
-
-          newBody     = updatedBody
-          newDefaults = updatedDefaults
-        }
-
-        // Reconstruct the arguments from the defaults)
-        val processedArgList = newNames.zip(newDefaults).map {
-          case (spec: IR.DefinitionArgument.Specified, default) =>
-            spec.copy(defaultValue = default)
-          case (e: IR.Error.Redefined.Argument, _) => e
-        }
-
-        // Compute the new location
         val newLocation = chainedLambdas.head.location match {
-          // TODO [MK] Marcin please check the handling of the location is
-          //  correct, particularly the ID
           case Some(location) =>
             Some(
               IR.IdentifiedLocation(
@@ -248,6 +161,17 @@ case object LambdaConsolidate extends IRPass {
     }
   }
 
+  /** Replaces all usages of an argument name in the function argument defaults
+    * and the function body.
+    *
+    * @param body the function body
+    * @param defaults the function argument defaults
+    * @param argument the argument to replace occurrences with
+    * @param toReplaceExpressionIds the identifiers of expressions needing
+    *                               replacemebt
+    * @return `body` and `defaults` with any occurrence of the old name replaced
+    *        by the new name
+    */
   def replaceUsages(
     body: IR.Expression,
     defaults: List[Option[IR.Expression]],
@@ -262,7 +186,17 @@ case object LambdaConsolidate extends IRPass {
     )
   }
 
-  // Use the fact that usages can only be names
+  /** Replaces usages of a name in an expression.
+    *
+    * As usages of a name can only be an [[IR.Name]], we can safely use the
+    * expression transformation mechanism to do this.
+    *
+    * @param expr the expression to replace usages in
+    * @param argument the argument whose usages are being replaced
+    * @param toReplaceExpressionIds the identifiers of expressions that need to
+    *                               be replaced
+    * @return `expr`, with occurrences of the symbol for `argument` replaced
+    */
   def replaceInExpression(
     expr: IR.Expression,
     argument: IR.DefinitionArgument,
@@ -274,6 +208,14 @@ case object LambdaConsolidate extends IRPass {
     }
   }
 
+  /** Replaces a name occurrence with a new name.
+    *
+    * @param name the IR name to replace the symbol in
+    * @param argument the argument to replace the symbol in `name` with
+    * @param toReplaceExpressionIds the identifiers of expressions that need
+    *                               replacement
+    * @return `name`, with the symbol replaced by `argument.name`
+    */
   def replaceInName(
     name: IR.Name,
     argument: IR.DefinitionArgument,
@@ -294,5 +236,134 @@ case object LambdaConsolidate extends IRPass {
     } else {
       name
     }
+  }
+
+  /** Computes the set of aliasing identifiers shadowed by the argument
+    * definitions.
+    *
+    * @param args the consolidated list of function arguments
+    * @return the set of aliasing identifiers shadowed by `args`
+    */
+  def getShadowedBindingIds(
+    args: List[IR.DefinitionArgument]
+  ): Set[AliasAnalysis.Graph.Id] = {
+    args
+      .map {
+        case spec: IR.DefinitionArgument.Specified =>
+          val aliasInfo =
+            spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
+              "Missing aliasing information for an argument definition."
+            )
+          aliasInfo.graph
+            .getOccurrence(aliasInfo.id)
+            .flatMap(occ => Some(aliasInfo.graph.knownShadowedDefinitions(occ)))
+            .getOrElse(Set())
+        case _: IR.Error.Redefined.Argument => Set()
+      }
+      .foldLeft(Set[AliasAnalysis.Graph.Occurrence]())(_ ++ _)
+      .map(_.id)
+  }
+
+  /** Computes the identifiers of expression that use a shadowed argument.
+    *
+    * @param argsWithShadowed the argument definitions with whether or not they
+    *                         are shadowed
+    * @return the set of usage IR identifiers for each shadowed argument, where
+    *         an empty set represents a non-shadowed argument
+    */
+  def usageIdsForShadowedArgs(
+    argsWithShadowed: List[(IR.DefinitionArgument, Boolean)]
+  ): List[Set[IR.Identifier]] = {
+    argsWithShadowed.map {
+      case (spec: IR.DefinitionArgument.Specified, isShadowed) =>
+        val aliasInfo =
+          spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
+            "Function argument definition is missing aliasing information."
+          )
+
+        // Empty set is used to indicate that it isn't shadowed
+        val usageIds =
+          if (isShadowed) {
+            aliasInfo.graph
+              .linksFor(aliasInfo.id)
+              .filter(_.target == aliasInfo.id)
+              .map(link => aliasInfo.graph.getOccurrence(link.source))
+              .collect {
+                case Some(
+                    AliasAnalysis.Graph.Occurrence.Use(_, _, identifier)
+                    ) =>
+                  identifier
+              }
+          } else Set[IR.Identifier]()
+
+        usageIds
+      case (_: IR.Error.Redefined.Argument, _) => Set()
+    }
+  }
+
+  /** Generates new names for the arguments that have been shadowed
+    *
+    * @param argsWithShadowed the args with whether or not they are shadowed
+    * @return a set of argument names, with shadowed arguments replaced
+    */
+  def generateNewNames(
+    argsWithShadowed: List[(IR.DefinitionArgument, Boolean)],
+    freshNameSupply: FreshNameSupply
+  ): List[IR.DefinitionArgument] = {
+    argsWithShadowed.map {
+      case (
+          spec @ IR.DefinitionArgument.Specified(name, _, _, _, _),
+          isShadowed
+          ) =>
+        val newName =
+          if (isShadowed) {
+            freshNameSupply
+              .newName()
+              .copy(
+                location = name.location,
+                passData = name.passData,
+                id       = name.getId
+              )
+          } else name
+
+        spec.copy(name = newName)
+      case (e: IR.Error.Redefined.Argument, _) => e
+    }
+  }
+
+  /** Computes the new arguments and new function body, replacing occurrences of
+    * renamed names as needed.
+    *
+    * @param args the arguments (already renamed)
+    * @param body the function body
+    * @param usageIdsForShadowed the identifiers for usages of shadowed names
+    * @return `args` and `body`, with any usages of shadowed symbols replaced
+    */
+  def computeReplacedExpressions(
+    args: List[IR.DefinitionArgument],
+    body: IR.Expression,
+    usageIdsForShadowed: List[Set[IR.Identifier]]
+  ): (List[IR.DefinitionArgument], IR.Expression) = {
+    var newBody     = body
+    var newDefaults = args.map(_.defaultValue)
+
+    val namesNeedingReplacement =
+      args.zip(usageIdsForShadowed).filterNot(x => x._2.isEmpty)
+
+    for ((arg, idents) <- namesNeedingReplacement) {
+      val (updatedBody, updatedDefaults) =
+        replaceUsages(newBody, newDefaults, arg, idents)
+
+      newBody     = updatedBody
+      newDefaults = updatedDefaults
+    }
+
+    val processedArgList = args.zip(newDefaults).map {
+      case (spec: IR.DefinitionArgument.Specified, default) =>
+        spec.copy(defaultValue = default)
+      case (e: IR.Error.Redefined.Argument, _) => e
+    }
+
+    (processedArgList, newBody)
   }
 }
