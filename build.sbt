@@ -110,8 +110,8 @@ lazy val enso = (project in file("."))
 
 val coursierCache = file("~/.cache/coursier/v1")
 
+val monocleVersion = "2.0.4"
 val monocle = {
-  val monocleVersion = "2.0.4"
   Seq(
     "com.github.julien-truffaut" %% "monocle-core"  % monocleVersion,
     "com.github.julien-truffaut" %% "monocle-macro" % monocleVersion,
@@ -170,6 +170,25 @@ val pprintVersion     = "0.5.9"
 val scalatestVersion  = "3.3.0-SNAP2"
 val scalameterVersion = "0.19"
 val scalacheckVersion = "1.14.3"
+val shapelessVersion  = "2.4.0-M1"
+val newtypeVersion    = "0.4.3"
+
+val commonsCollectionsVersion = "4.4"
+val commonsLangVersion        = "3.10"
+val commonsIoVersion          = "2.6"
+val commonsTextVersion        = "1.8"
+val commonsMathVersion        = "3.6.1"
+val commonsCompressVersion    = "1.20"
+val commons = Seq(
+  "org.apache.commons" % "commons-collections4" % commonsCollectionsVersion,
+  "org.apache.commons" % "commons-lang3"        % commonsLangVersion,
+  "commons-io"         % "commons-io"           % commonsIoVersion,
+  "org.apache.commons" % "commons-text"         % commonsTextVersion,
+  "org.apache.commons" % "commons-math3"        % commonsMathVersion,
+  "org.apache.commons" % "commons-compress"     % commonsCompressVersion
+)
+
+val kindProjectorVersion = "0.11.0"
 
 ////////////////////////////
 //// Internal Libraries ////
@@ -308,15 +327,15 @@ lazy val graph = (project in file("lib/graph/"))
     ),
     scalacOptions += "-Ymacro-annotations",
     libraryDependencies ++= scalaCompiler ++ Seq(
-      "com.chuusai"                %% "shapeless"    % "2.3.3",
-      "io.estatico"                %% "newtype"      % "0.4.3",
-      "org.scalatest"              %% "scalatest"    % "3.2.0-M2" % Test,
-      "org.scalacheck"             %% "scalacheck"   % "1.14.3" % Test,
-      "com.github.julien-truffaut" %% "monocle-core" % "2.0.0",
-      "org.apache.commons"         % "commons-lang3" % "3.9"
+      "com.chuusai"                %% "shapeless"    % shapelessVersion,
+      "io.estatico"                %% "newtype"      % newtypeVersion,
+      "org.scalatest"              %% "scalatest"    % scalatestVersion % Test,
+      "org.scalacheck"             %% "scalacheck"   % scalacheckVersion % Test,
+      "com.github.julien-truffaut" %% "monocle-core" % monocleVersion,
+      "org.apache.commons"         % "commons-lang3" % commonsLangVersion
     ),
     addCompilerPlugin(
-      "org.typelevel" %% "kind-projector" % "0.11.0" cross CrossVersion.full
+      "org.typelevel" %% "kind-projector" % kindProjectorVersion cross CrossVersion.full
     ),
     addCompilerPlugin(
       "io.tryp" % "splain" % splainVersion cross CrossVersion.patch
