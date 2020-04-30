@@ -371,7 +371,6 @@ case object TailCall extends IRPass {
           .addMetadata[Metadata, TailPosition.NotTail.type](
             TailPosition.NotTail
           )
-      case err: IR.Error.Redefined.Argument => err
     }
   }
 

@@ -129,10 +129,10 @@ class LambdaTest extends InterpreterTest {
         |Number.if_then_else = ~t -> ~f -> ifZero this t f
         |
         |main =
-        |    fn = a -> b ->
-        |        if a then (a + b) else (fn (a-1) b)
+        |    lam = (x = 10) -> x
+        |    fn = a -> if a then lam else fn (a-1)
         |
-        |    fn 10 10
+        |    fn 10
         |""".stripMargin
 
     eval(code) shouldEqual 10

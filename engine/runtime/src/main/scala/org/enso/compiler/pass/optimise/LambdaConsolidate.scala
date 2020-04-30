@@ -112,7 +112,6 @@ case object LambdaConsolidate extends IRPass {
                 "Missing aliasing information for an argument definition."
               )
             shadowedBindingIds.contains(aliasInfo.id)
-          case _: IR.Error.Redefined.Argument => false
         }
 
         val argsWithShadowed    = chainedArgList.zip(argIsShadowed)
@@ -227,7 +226,6 @@ case object LambdaConsolidate extends IRPass {
           spec.copy(
             name = argument match {
               case defSpec: IR.DefinitionArgument.Specified => defSpec.name.name
-              case _: IR.Error.Redefined.Argument           => spec.name
             }
           )
         case ths: IR.Name.This  => ths
@@ -258,7 +256,6 @@ case object LambdaConsolidate extends IRPass {
             .getOccurrence(aliasInfo.id)
             .flatMap(occ => Some(aliasInfo.graph.knownShadowedDefinitions(occ)))
             .getOrElse(Set())
-        case _: IR.Error.Redefined.Argument => Set()
       }
       .foldLeft(Set[AliasAnalysis.Graph.Occurrence]())(_ ++ _)
       .map(_.id)
@@ -297,7 +294,6 @@ case object LambdaConsolidate extends IRPass {
           } else Set[IR.Identifier]()
 
         usageIds
-      case (_: IR.Error.Redefined.Argument, _) => Set()
     }
   }
 
@@ -327,7 +323,6 @@ case object LambdaConsolidate extends IRPass {
           } else name
 
         spec.copy(name = newName)
-      case (e: IR.Error.Redefined.Argument, _) => e
     }
   }
 
@@ -361,7 +356,6 @@ case object LambdaConsolidate extends IRPass {
     val processedArgList = args.zip(newDefaults).map {
       case (spec: IR.DefinitionArgument.Specified, default) =>
         spec.copy(defaultValue = default)
-      case (e: IR.Error.Redefined.Argument, _) => e
     }
 
     (processedArgList, newBody)

@@ -62,7 +62,7 @@ public abstract class EvalNode extends BaseNode {
     Context context = lookupContextReference(Language.class).get();
     InlineContext inlineContext =
         InlineContext.fromJava(
-            localScope, moduleScope, isTail(), context.getCompiler().freshNameSupply());
+            localScope, moduleScope, isTail());
     ExpressionNode expr =
         lookupContextReference(Language.class)
             .get()

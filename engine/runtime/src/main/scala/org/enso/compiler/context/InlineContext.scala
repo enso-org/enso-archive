@@ -35,14 +35,12 @@ object InlineContext {
   def fromJava(
     localScope: LocalScope,
     moduleScope: ModuleScope,
-    isInTailPosition: Boolean,
-    freshNameSupply: FreshNameSupply
+    isInTailPosition: Boolean
   ): InlineContext = {
     InlineContext(
       localScope       = Option(localScope),
       moduleScope      = Option(moduleScope),
-      isInTailPosition = Option(isInTailPosition),
-      freshNameSupply  = Option(freshNameSupply)
+      isInTailPosition = Option(isInTailPosition)
     )
   }
 }

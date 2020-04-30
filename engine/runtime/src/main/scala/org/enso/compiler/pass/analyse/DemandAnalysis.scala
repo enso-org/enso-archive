@@ -308,7 +308,6 @@ case object DemandAnalysis extends IRPass {
             )
           )
         )
-      case redef: IR.Error.Redefined.Argument => redef
     }
   }
 

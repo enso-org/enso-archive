@@ -461,7 +461,6 @@ case object DataflowAnalysis extends IRPass {
             defaultValue = defValue.map(analyseExpression(_, info))
           )
           .addMetadata[Metadata, DependencyInfo](info)
-      case err: IR.Error.Redefined.Argument => err
     }
   }
 

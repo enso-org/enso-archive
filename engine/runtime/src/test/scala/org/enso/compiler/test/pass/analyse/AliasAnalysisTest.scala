@@ -3,7 +3,6 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
@@ -12,6 +11,7 @@ import org.enso.compiler.pass.desugar.{
   LiftSpecialOperators,
   OperatorToFunction
 }
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 
 class AliasAnalysisTest extends CompilerTest {
@@ -840,19 +840,6 @@ class AliasAnalysisTest extends CompilerTest {
   }
 
   "Redefinitions" should {
-    "be caught for argument lists" in {
-      implicit val ctx: ModuleContext = mkModuleContext
-
-      val atom =
-        """
-          |type MyAtom a b a
-          |""".stripMargin.preprocessModule.analyse.bindings.head
-          .asInstanceOf[Atom]
-
-      atom.arguments(2) shouldBe an[IR.Error.Redefined.Argument]
-      atLeast(1, atom.arguments) shouldBe an[IR.Error.Redefined.Argument]
-    }
-
     "be caught for bindings" in {
       implicit val ctx: ModuleContext = mkModuleContext
 

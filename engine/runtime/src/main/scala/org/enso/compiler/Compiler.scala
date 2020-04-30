@@ -117,6 +117,7 @@ class Compiler(
     srcString: String,
     inlineContext: InlineContext
   ): Option[RuntimeExpression] = {
+    val newContext = inlineContext.copy(freshNameSupply = Some(freshNameSupply))
     val source = Source
       .newBuilder(
         LanguageInfo.ID,
@@ -127,9 +128,9 @@ class Compiler(
     val parsed: AST = parse(source)
 
     generateIRInline(parsed).flatMap { ir =>
-      val compilerOutput = runCompilerPhasesInline(ir, inlineContext)
-      runErrorHandlingInline(compilerOutput, source, inlineContext)
-      Some(truffleCodegenInline(compilerOutput, source, inlineContext))
+      val compilerOutput = runCompilerPhasesInline(ir, newContext)
+      runErrorHandlingInline(compilerOutput, source, newContext)
+      Some(truffleCodegenInline(compilerOutput, source, newContext))
     }
   }
 

@@ -593,10 +593,6 @@ class IRToTruffle(
           context.getBuiltins
             .compileError()
             .newInstance(err.message)
-        case err: Error.Redefined.Argument =>
-          context.getBuiltins
-            .compileError()
-            .newInstance(err.message)
       }
       setLocation(ErrorNode.build(payload), error.location)
     }
@@ -907,11 +903,6 @@ class IRToTruffle(
           arg.name.name,
           defaultedValue,
           executionMode
-        )
-      case err: IR.Error.Redefined.Argument =>
-        throw new CompilerError(
-          s"Argument redefinition errors should not be present during " +
-          s"codegen, but found $err."
         )
     }
   }

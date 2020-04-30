@@ -329,9 +329,10 @@ case object AliasAnalysis extends IRPass {
               Info.Occurrence(graph, occurrenceId)
             )
         } else {
-          IR.Error.Redefined.Argument(arg)
+          throw new CompilerError(
+            "Arguments should never be redefined. This is a bug."
+          )
         }
-      case err: IR.Error.Redefined.Argument => err
     }
   }
 

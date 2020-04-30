@@ -2724,68 +2724,6 @@ object IR {
     sealed trait Redefined extends Error
     object Redefined {
 
-      /** An error representing the redefinition of a function argument.
-        *
-        * @param invalidArgDef the invalid definition
-        * @param passData the pass metadata for the error
-        */
-      sealed case class Argument(
-        invalidArgDef: IR.DefinitionArgument.Specified,
-        override val passData: ISet[Metadata] = ISet()
-      ) extends Redefined
-          with Diagnostic.Kind.Static
-          with IRKind.Primitive
-          with IR.DefinitionArgument {
-        override protected var id: Identifier = randomId
-
-        /** Creates a copy of `this`.
-          *
-          * @param invalidArgDef the invalid definition
-          * @param passData the pass metadata for the error
-          * @param id the identifier for the new node
-          * @return a copy of `this`, updated with the specified values
-          */
-        def copy(
-          invalidArgDef: IR.DefinitionArgument.Specified = invalidArgDef,
-          passData: ISet[Metadata]                       = passData,
-          id: Identifier                                 = id
-        ): Argument = {
-          val res = Argument(invalidArgDef, passData)
-          res.id = id
-          res
-        }
-
-        override val defaultValue: Option[Expression] = None
-        override val location: Option[IdentifiedLocation] =
-          invalidArgDef.location
-
-        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
-          newData: M
-        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Argument = {
-          copy(passData = addToMetadata[T, M](newData))
-        }
-
-        override def mapExpressions(
-          fn: Expression => Expression
-        ): Argument = this
-
-        override def toString: String =
-          s"""
-          |IR.Error.Redefined.Argument(
-          |invalidArgDef = $invalidArgDef,
-          |location = $location,
-          |passData = ${this.showPassData},
-          |id = $id
-          |)
-          |""".toSingleLine
-
-        override def children: List[IR] = List(invalidArgDef)
-
-        override def message: String =
-          s"Argument ${invalidArgDef.name.name} is being redefined."
-
-      }
-
       /** An error representing the redefinition of a binding in a given scope.
         *
         * While bindings in child scopes are allowed to _shadow_ bindings in
