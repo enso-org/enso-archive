@@ -2,12 +2,8 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.core.IR.Metadata
 import org.enso.compiler.pass.PassConfiguration._
-import org.enso.compiler.pass.analyse.ApplicationSaturation.{
-  CallSaturation,
-  FunctionSpec
-}
+import org.enso.compiler.pass.analyse.ApplicationSaturation.{CallSaturation, FunctionSpec, Metadata}
 import org.enso.compiler.pass.analyse.{AliasAnalysis, ApplicationSaturation}
 import org.enso.compiler.pass.desugar.{LiftSpecialOperators, OperatorToFunction}
 import org.enso.compiler.pass.{PassConfiguration, PassManager}

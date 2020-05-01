@@ -10,7 +10,7 @@ import org.enso.compiler.pass.IRPass
 case object LiftSpecialOperators extends IRPass {
 
   /** A desugaring pass does not output any data. */
-  override type Metadata = IR.Metadata.Empty
+  override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
   override def runModule(

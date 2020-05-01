@@ -36,7 +36,7 @@ import org.enso.syntax.text.Location
   * passes.
   */
 case object LambdaConsolidate extends IRPass {
-  override type Metadata = IR.Metadata.Empty
+  override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
   /** Performs lambda consolidation on a module.

@@ -8,7 +8,7 @@ import org.enso.compiler.pass.IRPass
 case object OperatorToFunction extends IRPass {
 
   /** A purely desugaring pass has no analysis output. */
-  override type Metadata = IR.Metadata.Empty
+  override type Metadata = IRPass.Metadata.Empty
 
   override type Config = IRPass.Configuration.Default
 

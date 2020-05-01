@@ -3,6 +3,7 @@ package org.enso.compiler.pass.analyse
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.pass
 import org.enso.compiler.pass.IRPass
 
 /** This pass performs tail call analysis on the Enso IR.
@@ -375,7 +376,7 @@ case object TailCall extends IRPass {
   }
 
   /** Expresses the tail call state of an IR Node. */
-  sealed trait TailPosition extends IR.Metadata {
+  sealed trait TailPosition extends IRPass.Metadata {
 
     /** A boolean representation of the expression's tail state. */
     def isTail: Boolean

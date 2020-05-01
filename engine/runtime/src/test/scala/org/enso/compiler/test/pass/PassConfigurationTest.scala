@@ -12,7 +12,7 @@ class PassConfigurationTest extends CompilerTest {
   // === Test Utilities =======================================================
 
   case object TestPass1 extends IRPass {
-    override type Metadata = IR.Metadata.Empty
+    override type Metadata = IRPass.Metadata.Empty
     override type Config   = Configuration1
 
     override def runModule(
@@ -31,7 +31,7 @@ class PassConfigurationTest extends CompilerTest {
   }
 
   case object TestPass2 extends IRPass {
-    override type Metadata = IR.Metadata.Empty
+    override type Metadata = IRPass.Metadata.Empty
     override type Config   = Configuration2
 
     override def runModule(

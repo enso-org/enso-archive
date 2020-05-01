@@ -26,7 +26,7 @@ class MetadataStorageTest extends CompilerTest {
       inlineContext: InlineContext
     ): IR.Expression = ir
 
-    sealed case class Metadata1() extends IR.Metadata {
+    sealed case class Metadata1() extends IRPass.Metadata {
       override val metadataName: String = "TestPass1.Metadata1"
     }
   }
@@ -45,7 +45,7 @@ class MetadataStorageTest extends CompilerTest {
       inlineContext: InlineContext
     ): IR.Expression = ir
 
-    sealed case class Metadata2() extends IR.Metadata {
+    sealed case class Metadata2() extends IRPass.Metadata {
       override val metadataName: String = "TestPass1.Metadata2"
     }
   }

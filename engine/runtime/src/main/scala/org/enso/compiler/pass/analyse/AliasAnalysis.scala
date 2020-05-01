@@ -455,7 +455,7 @@ case object AliasAnalysis extends IRPass {
   // === Data Definitions =====================================================
 
   /** Information about the aliasing state for a given IR node. */
-  sealed trait Info extends IR.Metadata {
+  sealed trait Info extends IRPass.Metadata {
 
     /** The aliasing graph. */
     val graph: Graph

@@ -162,7 +162,7 @@ case object ApplicationSaturation extends IRPass {
   type KnownFunctionsMapping = Map[String, FunctionSpec]
 
   /** Describes the saturation state of a function application. */
-  sealed trait CallSaturation extends IR.Metadata
+  sealed trait CallSaturation extends IRPass.Metadata
   object CallSaturation {
     sealed case class Over(additionalArgCount: Int) extends CallSaturation {
       override val metadataName: String =

@@ -16,7 +16,7 @@ import org.enso.compiler.pass.IRPass
 case object GenerateMethodBodies extends IRPass {
 
   /** This is a desugaring pass and performs no analysis */
-  override type Metadata = IR.Metadata.Empty
+  override type Metadata = IRPass.Metadata.Empty
 
   override type Config = IRPass.Configuration.Default
 

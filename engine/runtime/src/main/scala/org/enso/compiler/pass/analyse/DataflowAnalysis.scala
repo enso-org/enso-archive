@@ -481,7 +481,7 @@ case object DataflowAnalysis extends IRPass {
   sealed case class DependencyInfo(
     dependencies: mutable.Map[DependencyInfo.Type, Set[DependencyInfo.Type]] =
       mutable.Map()
-  ) extends IR.Metadata {
+  ) extends IRPass.Metadata {
     override val metadataName: String = "DataflowAnalysis.Dependencies"
 
     /** Returns the set of all dependents for the provided key.

@@ -51,7 +51,7 @@ case object GatherDiagnostics extends IRPass {
     * @param diagnostics a list of the errors found in the IR
     */
   case class DiagnosticsMeta(diagnostics: List[IR.Diagnostic])
-      extends IR.Metadata {
+      extends IRPass.Metadata {
 
     /** The name of the metadata as a string. */
     override val metadataName: String = "GatherDiagnostics.Diagnostics"
