@@ -218,7 +218,6 @@ case object AliasAnalysis extends IRPass {
       case app: IR.Application =>
         analyseApplication(app, graph, parentScope)
       case tpe: IR.Type     => analyseType(tpe, graph, parentScope)
-      case warn: IR.Warning => analyseWarning(warn, graph, parentScope)
       case x =>
         x.mapExpressions((expression: IR.Expression) =>
           analyseExpression(
@@ -227,24 +226,6 @@ case object AliasAnalysis extends IRPass {
             parentScope
           )
         )
-    }
-  }
-
-  /** Performs alias analysis on a warning.
-    *
-    * @param warning the warning to perform analysis on
-    * @param graph the graph in which the analysis is taking place
-    * @param scope the parent scope in which `warning` occurs
-    * @return `warning`, annotated with aliasing information
-    */
-  def analyseWarning(
-    warning: IR.Warning,
-    graph: Graph,
-    scope: Scope
-  ): IR.Warning = {
-    warning match {
-      case lp @ IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
-        lp.copy(warnedExpr = analyseExpression(warnedExpr, graph, scope))
     }
   }
 

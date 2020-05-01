@@ -88,8 +88,8 @@ class IRToTruffle(
     * before codegen runs, as they will cause a compiler error.
     *
     * In future, this restriction will be relaxed to admit errors that are
-    * members of [[IR.Error.Kind.Interactive]], such that we can display these
-    * to users during interactive execution.
+    * members of [[IR.Diagnostic.Kind.Interactive]], such that we can display
+    * these to users during interactive execution.
     *
     * @param ir the IR to generate code for
     */
@@ -341,7 +341,6 @@ class IRToTruffle(
         case caseExpr: IR.Case              => processCase(caseExpr)
         case comment: IR.Comment            => processComment(comment)
         case err: IR.Error                  => processError(err)
-        case warning: IR.Warning            => processWarning(warning)
         case IR.Foreign.Definition(_, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
@@ -365,18 +364,6 @@ class IRToTruffle(
     }
 
     // === Processing =========================================================
-
-    /** Performs code generation for any warnings left in the Enso [[IR]].
-      *
-      * @param warning the warning to generate code for
-      * @return the truffle nodes corresponding to `comment`
-      */
-    def processWarning(warning: IR.Warning): RuntimeExpression = {
-      warning match {
-        case IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
-          run(warnedExpr)
-      }
-    }
 
     /** Performs code generation for any comments left in the Enso [[IR]].
       *
@@ -504,7 +491,7 @@ class IRToTruffle(
       if (function.body.isInstanceOf[IR.Function]) {
         throw new CompilerError(
           "Lambda found directly as function body. It looks like Lambda " +
-            "Consolidation hasn't run."
+          "Consolidation hasn't run."
         )
       }
 
@@ -655,7 +642,10 @@ class IRToTruffle(
         fnBodyNode,
         makeSection(location),
         scopeName,
-        name.map(moduleScope.getModule.getName.createChild).map(_.toString).orNull
+        name
+          .map(moduleScope.getModule.getName.createChild)
+          .map(_.toString)
+          .orNull
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 

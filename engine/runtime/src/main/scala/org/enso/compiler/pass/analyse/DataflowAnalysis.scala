@@ -140,26 +140,7 @@ case object DataflowAnalysis extends IRPass {
           )
           .addMetadata[Metadata, DependencyInfo](info)
 
-      case warning: IR.Warning => analyseWarning(warning, info)
       case error: IR.Error     => error
-    }
-  }
-
-  /** Performs dataflow analysis on a warning.
-    *
-    * A warning depends purely on the value of its `warnedExpr`.
-    *
-    * @param warning the warning to perform dataflow analysis on
-    * @param info the dependency information for the warning
-    * @return `warning`, with attached dependency information
-    */
-  def analyseWarning(warning: IR.Warning, info: DependencyInfo): IR.Warning = {
-    warning match {
-      case lp @ IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
-        info.updateAt(warnedExpr.getId, Set(lp.getId))
-
-        lp.copy(warnedExpr = analyseExpression(warnedExpr, info))
-          .addMetadata[Metadata, Metadata](info)
     }
   }
 

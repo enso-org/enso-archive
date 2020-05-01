@@ -94,8 +94,6 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument = false
           )
         )
-      case warning: IR.Warning =>
-        analyseWarning(warning, isInsideApplication, isInsideCallArgument)
       case lit: IR.Literal     => lit
       case err: IR.Error       => err
       case foreign: IR.Foreign => foreign
@@ -104,32 +102,6 @@ case object DemandAnalysis extends IRPass {
           analyseExpression(
             x,
             isInsideApplication = false,
-            isInsideCallArgument
-          )
-        )
-    }
-  }
-
-  /** Performs demand analysis on a warning.
-    *
-    * @param warning the warning to perform demand analysis on
-    * @param isInsideApplication whether or not the warning occurs inside an
-    *                            application
-    * @param isInsideCallArgument whether or not the warning occurs inside a
-    *                             call argument
-    * @return `warning`, transformed by the demand analysis process
-    */
-  def analyseWarning(
-    warning: IR.Warning,
-    isInsideApplication: Boolean,
-    isInsideCallArgument: Boolean
-  ): IR.Warning = {
-    warning match {
-      case lp @ IR.Warning.Shadowed.LambdaParam(warnedExpr, _, _) =>
-        lp.copy(warnedExpr =
-          analyseExpression(
-            warnedExpr,
-            isInsideApplication,
             isInsideCallArgument
           )
         )

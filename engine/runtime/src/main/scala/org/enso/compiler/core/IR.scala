@@ -2432,17 +2432,15 @@ object IR {
   // === Diagnostics ==========================================================
 
   /** A representation of various kinds of diagnostic in the IR. */
-  sealed trait Diagnostic extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Diagnostic
-
-    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
-      newData: M
-    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Diagnostic
+  sealed trait Diagnostic {
 
     /**
       * @return a human-readable description of this error condition.
       */
     def message: String
+
+    /** The location at which the diagnostic occurs. */
+    val location: Option[IdentifiedLocation]
   }
   object Diagnostic {
 
@@ -2465,17 +2463,7 @@ object IR {
   // === Warnings =============================================================
 
   /** A trait for all warnings in Enso's IR. */
-  sealed trait Warning extends Diagnostic {
-
-    /** The expression that the warning is being attached to. */
-    val warnedExpr: IR.Expression
-
-    override def mapExpressions(fn: Expression => Expression): Warning
-
-    override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
-      newData: M
-    )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Warning
-  }
+  sealed trait Warning extends Diagnostic
   object Warning {
 
     /** Warnings about shadowing names. */
@@ -2483,66 +2471,23 @@ object IR {
 
       /** The expression shadowing the warned expression. */
       val shadower: IR.Expression
-
-      override def mapExpressions(fn: Expression => Expression): Shadowed
-
-      override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
-        newData: M
-      )(implicit ev1: T =:!= Metadata, ev2: M <:< T): Shadowed
     }
     object Shadowed {
 
       /** A warning that a later-defined lambda parameter shadows an
         * earlier-defined lambda parameter.
         *
-        * @param warnedExpr the expression that the warning is attached to
+        * @param shadowedName the name being shadowed
         * @param shadower the expression shadowing `warnedExpr`
-        * @param passData the pass data for the warning
         */
-      sealed case class LambdaParam(
-        override val warnedExpr: IR.Expression,
+      sealed case class FunctionParam(
+        shadowedName: String,
         override val shadower: IR.Expression,
-        override val passData: ISet[Metadata] = ISet()
+        override val location: Option[IdentifiedLocation]
       ) extends Shadowed {
-        override protected var id: Identifier = randomId
-
-        override val location: Option[IdentifiedLocation] = warnedExpr.location
-
-        /** Creates a copy of `this`.
-         *
-         * @param warnedExpr the expression that the warning is attached to
-         * @param shadower the expression shadowing `warnedExpr`
-         * @param passData the pass data for the warning
-         * @param id the identifier for the new node
-         * @return a copy of `this`, updated with the specified values
-         */
-        def copy(
-          warnedExpr: IR.Expression            = warnedExpr,
-          shadower: IR.Expression              = shadower,
-          passData: ISet[Metadata]             = passData,
-          id: Identifier                       = id
-        ): LambdaParam = {
-          val res = LambdaParam(warnedExpr, shadower, passData)
-          res.id = id
-          res
-        }
-
-        override def mapExpressions(
-          fn: Expression => Expression
-        ): LambdaParam = {
-          copy(warnedExpr = fn(warnedExpr))
-        }
-
-        override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
-          newData: M
-        )(implicit ev1: T =:!= Metadata, ev2: M <:< T): LambdaParam = {
-          copy(passData = addToMetadata[T, M](newData))
-        }
 
         override def message: String =
-          s"The lambda parameter $warnedExpr is being shadowed by $shadower"
-
-        override def children: List[IR] = List(warnedExpr, shadower)
+          s"The function parameter $shadowedName is being shadowed by $shadower"
       }
 
     }
@@ -2551,7 +2496,7 @@ object IR {
   // === Errors ===============================================================
 
   /** A trait for all errors in Enso's IR. */
-  sealed trait Error extends Diagnostic {
+  sealed trait Error extends Expression with Diagnostic {
     override def mapExpressions(fn: Expression => Expression): Error
 
     override def addMetadata[T <: Metadata: ClassTag, M <: Metadata](
