@@ -214,9 +214,12 @@ case object DemandAnalysis extends IRPass {
   def isUsageOfSuspendedTerm(expr: IR.Expression): Boolean = {
     expr match {
       case name: IR.Name =>
-        val aliasInfo = name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-          "Missing alias occurrence information for a name usage"
-        )
+        val aliasInfo = name
+          .unsafeGetMetadata(
+            AliasAnalysis,
+            "Missing alias occurrence information for a name usage"
+          )
+          .unsafeAs[AliasAnalysis.Info.Occurrence]
 
         aliasInfo.graph
           .defLinkFor(aliasInfo.id)

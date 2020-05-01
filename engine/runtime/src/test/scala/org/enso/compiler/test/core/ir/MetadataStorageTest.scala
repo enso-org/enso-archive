@@ -61,7 +61,7 @@ class MetadataStorageTest extends CompilerTest {
       val passMeta = TestPass1.Metadata1()
       val depPair  = pass -->> passMeta
 
-      meta.addPair(depPair)
+      meta.update(depPair)
       meta.get(pass) shouldEqual Some(passMeta)
     }
 
@@ -131,6 +131,14 @@ class MetadataStorageTest extends CompilerTest {
       meta2.update(TestPass1)(TestPass1.Metadata1())
 
       meta1 shouldEqual meta2
+    }
+
+    "allow mapping over the internal mapping to generate some output" in {
+      pending
+    }
+
+    "allow copying to create a new instance with the same data" in {
+      pending
     }
 
     "enforce safe construction" in {

@@ -3,6 +3,7 @@ package org.enso.compiler.pass.optimise
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.DefinitionArgument
+import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -108,10 +109,12 @@ case object LambdaConsolidate extends IRPass {
 
         val argIsShadowed = chainedArgList.map {
           case spec: IR.DefinitionArgument.Specified =>
-            val aliasInfo =
-              spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-                "Missing aliasing information for an argument definition."
+            val aliasInfo = spec
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "Missing aliasing information for an argument definition"
               )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
             shadowedBindingIds.contains(aliasInfo.id)
         }
 
@@ -144,7 +147,7 @@ case object LambdaConsolidate extends IRPass {
           body      = runExpression(newBody, inlineContext),
           location  = newLocation,
           canBeTCO  = chainedLambdas.last.canBeTCO,
-          passData  = Set()
+          passData  = MetadataStorage()
         )
     }
   }
@@ -296,9 +299,12 @@ case object LambdaConsolidate extends IRPass {
       .map {
         case spec: IR.DefinitionArgument.Specified =>
           val aliasInfo =
-            spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-              "Missing aliasing information for an argument definition."
-            )
+            spec
+              .unsafeGetMetadata(
+                AliasAnalysis,
+                "Missing aliasing information for an argument definition."
+              )
+              .unsafeAs[AliasAnalysis.Info.Occurrence]
           aliasInfo.graph
             .getOccurrence(aliasInfo.id)
             .flatMap(occ => Some(aliasInfo.graph.knownShadowedDefinitions(occ)))
@@ -321,9 +327,12 @@ case object LambdaConsolidate extends IRPass {
     argsWithShadowed.map {
       case (spec: IR.DefinitionArgument.Specified, isShadowed) =>
         val aliasInfo =
-          spec.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-            "Function argument definition is missing aliasing information."
-          )
+          spec
+            .unsafeGetMetadata(
+              AliasAnalysis,
+              "Missing aliasing information for an argument definition."
+            )
+            .unsafeAs[AliasAnalysis.Info.Occurrence]
 
         // Empty set is used to indicate that it isn't shadowed
         val usageIds =

@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.pass.IRPass
 
 /** A pass that traverses the given root IR and accumulates all the encountered
@@ -24,7 +25,7 @@ case object GatherDiagnostics extends IRPass {
     ir: IR.Module,
     moduleContext: ModuleContext
   ): IR.Module =
-    ir.addMetadata[Metadata, Metadata](gatherErrors(ir))
+    ir.updateMetadata(this -->> gatherErrors(ir))
 
   /** Executes the pass on the provided `ir`, and attaches all the encountered
     * diagnostics to its metadata storage.
@@ -37,7 +38,7 @@ case object GatherDiagnostics extends IRPass {
   override def runExpression(
     ir: IR.Expression,
     inlineContext: InlineContext
-  ): IR.Expression = ir.addMetadata[Metadata, Metadata](gatherErrors(ir))
+  ): IR.Expression = ir.updateMetadata(this -->> gatherErrors(ir))
 
   private def gatherErrors(ir: IR): DiagnosticsMeta = {
     DiagnosticsMeta(ir.preorder.collect {

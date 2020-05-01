@@ -4,6 +4,11 @@ import java.util.UUID
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.exception.CompilerError
+import shapeless.=:!=
+
+import scala.annotation.unused
+import scala.reflect.ClassTag
 
 /** A representation of a compiler pass that runs on the [[IR]] type.
   *
@@ -82,6 +87,39 @@ object IRPass {
 
     /** The name of the metadata as a string. */
     val metadataName: String
+
+    /** Casts the pass to the provided type.
+      *
+      * @param ev ensures that the pass type must be specified
+      * @tparam T the type to cast to
+      * @return `ev`, cast to `T` if it is a `T`
+      */
+    def as[T <: Metadata: ClassTag](
+      implicit @unused ev: T =:!= Metadata
+    ): Option[T] = {
+      this match {
+        case p: T => Some(p)
+        case _    => None
+      }
+    }
+
+    /** Unsafely casts the pass to the provided type.
+      *
+      * @param ev ensures that the pass type must be specified
+      * @tparam T the type to cast to
+      * @throws CompilerError if `this` is not a `T`
+      * @return `this` as a `T`
+      */
+    @throws[CompilerError]
+    def unsafeAs[T <: Metadata: ClassTag](
+      implicit @unused ev: T =:!= Metadata
+    ): T = {
+      this
+        .as[T]
+        .getOrElse(
+          throw new CompilerError(s"Cannot cast $this to the requested type.")
+        )
+    }
   }
   object Metadata {
 

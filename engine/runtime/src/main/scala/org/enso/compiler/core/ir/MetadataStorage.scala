@@ -24,7 +24,7 @@ class MetadataStorage(
     * @param metadataPair the pair to add to the storage
     * @tparam K the concrete type of the pass
     */
-  def addPair[K <: IRPass](metadataPair: MetadataPair[K]): Unit = {
+  def update[K <: IRPass](metadataPair: MetadataPair[K]): Unit = {
     update(metadataPair.pass)(metadataPair.metadata)
   }
 
@@ -88,6 +88,27 @@ class MetadataStorage(
   override def equals(obj: Any): Boolean = obj match {
     case that: MetadataStorage => this.metadata == that.metadata
     case _                     => false
+  }
+
+  /** Maps across the stored metadata, transforming it to an output map.
+    *
+    * @param f the function to apply over the metadata
+    * @tparam K the output key type
+    * @tparam V the output value type
+    * @return a map containing the results of transforming the metadata storage
+    */
+  def map[K, V](f: (IRPass, IRPass.Metadata) => (K, V)): Map[K, V] = {
+    metadata.asInstanceOf[Map[IRPass, IRPass.Metadata]].map(f.tupled)
+  }
+
+  /** Creates a copy of `this`.
+    *
+    * @return a copy of `this`
+    */
+  def copy: MetadataStorage = {
+    val res = new MetadataStorage
+    res.metadata = this.metadata
+    res
   }
 }
 object MetadataStorage extends MetadataStorageSyntax {

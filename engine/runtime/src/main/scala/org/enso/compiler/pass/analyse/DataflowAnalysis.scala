@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
@@ -38,7 +39,7 @@ case object DataflowAnalysis extends IRPass {
     ir.copy(
         bindings = ir.bindings.map(analyseModuleDefinition(_, dependencyInfo))
       )
-      .addMetadata[Metadata, DependencyInfo](dependencyInfo)
+      .updateMetadata(this -->> dependencyInfo)
   }
 
   /** Performs dataflow analysis on an inline expression.
@@ -83,14 +84,14 @@ case object DataflowAnalysis extends IRPass {
           .copy(
             arguments = arguments.map(analyseDefinitionArgument(_, info))
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case m @ IR.Module.Scope.Definition.Method(_, _, body, _, _, _) =>
         info.updateAt(body.getId, Set(m.getId))
 
         m.copy(
             body = analyseExpression(body, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
     }
   }
 
@@ -108,7 +109,7 @@ case object DataflowAnalysis extends IRPass {
     info: DependencyInfo
   ): IR.Expression = {
     expression match {
-      case empty: IR.Empty       => empty.addMetadata[Metadata, Metadata](info)
+      case empty: IR.Empty       => empty.updateMetadata(this -->> info)
       case function: IR.Function => analyseFunction(function, info)
       case app: IR.Application   => analyseApplication(app, info)
       case typ: IR.Type          => analyseType(typ, info)
@@ -116,9 +117,9 @@ case object DataflowAnalysis extends IRPass {
       case cse: IR.Case          => analyseCase(cse, info)
       case comment: IR.Comment   => analyseComment(comment, info)
       case literal: IR.Literal =>
-        literal.addMetadata[Metadata, DependencyInfo](info)
+        literal.updateMetadata(this -->> info)
       case foreign: IR.Foreign =>
-        foreign.addMetadata[Metadata, DependencyInfo](info)
+        foreign.updateMetadata(this -->> info)
 
       case block @ IR.Expression.Block(expressions, returnValue, _, _, _, _) =>
         info.updateAt(returnValue.getId, Set(block.getId))
@@ -128,17 +129,17 @@ case object DataflowAnalysis extends IRPass {
             expressions = expressions.map(analyseExpression(_, info)),
             returnValue = analyseExpression(returnValue, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case binding @ IR.Expression.Binding(name, expression, _, _, _) =>
         info.updateAt(expression.getId, Set(binding.getId))
         info.updateAt(name.getId, Set(binding.getId))
 
         binding
           .copy(
-            name       = name.addMetadata[Metadata, DependencyInfo](info),
+            name       = name.updateMetadata(this -->> info),
             expression = analyseExpression(expression, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
 
       case error: IR.Error => error
     }
@@ -169,7 +170,7 @@ case object DataflowAnalysis extends IRPass {
             arguments = arguments.map(analyseDefinitionArgument(_, info)),
             body      = analyseExpression(body, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
     }
   }
 
@@ -196,13 +197,13 @@ case object DataflowAnalysis extends IRPass {
             function  = analyseExpression(fn, info),
             arguments = args.map(analyseCallArgument(_, info))
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case force @ IR.Application.Force(target, _, _, _) =>
         info.updateAt(target.getId, Set(force.getId))
 
         force
           .copy(target = analyseExpression(target, info))
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case _: IR.Application.Operator =>
         throw new CompilerError("Unexpected operator during Dataflow Analysis.")
     }
@@ -227,7 +228,7 @@ case object DataflowAnalysis extends IRPass {
             typed     = analyseExpression(typed, info),
             signature = analyseExpression(signature, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case ctx @ IR.Type.Context(typed, context, _, _, _) =>
         info.updateAt(typed.getId, Set(ctx.getId))
         info.updateAt(context.getId, Set(ctx.getId))
@@ -237,7 +238,7 @@ case object DataflowAnalysis extends IRPass {
             typed   = analyseExpression(typed, info),
             context = analyseExpression(context, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case member @ IR.Type.Set.Member(_, memberType, value, _, _, _) =>
         info.updateAt(memberType.getId, Set(member.getId))
         info.updateAt(value.getId, Set(member.getId))
@@ -247,7 +248,7 @@ case object DataflowAnalysis extends IRPass {
             memberType = analyseExpression(memberType, info),
             value      = analyseExpression(value, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case concat @ IR.Type.Set.Concat(left, right, _, _, _) =>
         info.updateAt(left.getId, Set(concat.getId))
         info.updateAt(right.getId, Set(concat.getId))
@@ -257,7 +258,7 @@ case object DataflowAnalysis extends IRPass {
             left  = analyseExpression(left, info),
             right = analyseExpression(right, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case eq @ IR.Type.Set.Equality(left, right, _, _, _) =>
         info.updateAt(left.getId, Set(eq.getId))
         info.updateAt(right.getId, Set(eq.getId))
@@ -266,7 +267,7 @@ case object DataflowAnalysis extends IRPass {
             left  = analyseExpression(left, info),
             right = analyseExpression(right, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case intersect @ IR.Type.Set.Intersection(left, right, _, _, _) =>
         info.updateAt(left.getId, Set(intersect.getId))
         info.updateAt(right.getId, Set(intersect.getId))
@@ -276,7 +277,7 @@ case object DataflowAnalysis extends IRPass {
             left  = analyseExpression(left, info),
             right = analyseExpression(right, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case union @ IR.Type.Set.Union(left, right, _, _, _) =>
         info.updateAt(left.getId, Set(union.getId))
         info.updateAt(right.getId, Set(union.getId))
@@ -286,7 +287,7 @@ case object DataflowAnalysis extends IRPass {
             left  = analyseExpression(left, info),
             right = analyseExpression(right, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case subsumption @ IR.Type.Set.Subsumption(left, right, _, _, _) =>
         info.updateAt(left.getId, Set(subsumption.getId))
         info.updateAt(right.getId, Set(subsumption.getId))
@@ -296,7 +297,7 @@ case object DataflowAnalysis extends IRPass {
             left  = analyseExpression(left, info),
             right = analyseExpression(right, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case subtraction @ IR.Type.Set.Subtraction(left, right, _, _, _) =>
         info.updateAt(left.getId, Set(subtraction.getId))
         info.updateAt(right.getId, Set(subtraction.getId))
@@ -306,7 +307,7 @@ case object DataflowAnalysis extends IRPass {
             left  = analyseExpression(left, info),
             right = analyseExpression(right, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
     }
   }
 
@@ -322,9 +323,11 @@ case object DataflowAnalysis extends IRPass {
     * @return `name`, with attached dependency information
     */
   def analyseName(name: IR.Name, info: DependencyInfo): IR.Name = {
-    val aliasInfo = name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
-      "Name occurrence with missing aliasing information."
-    )
+    val aliasInfo = name.passData
+      .getUnsafe(AliasAnalysis)(
+        "Name occurrence with missing aliasing information."
+      )
+      .unsafeAs[AliasAnalysis.Info.Occurrence]
     val defIdForName = aliasInfo.graph.defLinkFor(aliasInfo.id)
     val key = defIdForName match {
       case Some(defLink) =>
@@ -339,7 +342,7 @@ case object DataflowAnalysis extends IRPass {
 
     info.updateAt(key, Set(name.getId))
 
-    name.addMetadata[Metadata, DependencyInfo](info)
+    name.updateMetadata(this -->> info)
   }
 
   /** Performs dependency analysis on a case expression.
@@ -365,7 +368,7 @@ case object DataflowAnalysis extends IRPass {
             branches  = branches.map(analyseCaseBranch(_, info)),
             fallback  = fallback.map(analyseExpression(_, info))
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
       case _: IR.Case.Branch =>
         throw new CompilerError("Unexpected case branch.")
     }
@@ -395,7 +398,7 @@ case object DataflowAnalysis extends IRPass {
         pattern    = analyseExpression(pattern, info),
         expression = analyseExpression(expression, info)
       )
-      .addMetadata[Metadata, DependencyInfo](info)
+      .updateMetadata(this -->> info)
   }
 
   /** Performs dataflow analysis on a comment entity.
@@ -416,7 +419,7 @@ case object DataflowAnalysis extends IRPass {
           .copy(
             commented = analyseExpression(commented, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
     }
   }
 
@@ -441,7 +444,7 @@ case object DataflowAnalysis extends IRPass {
           .copy(
             defaultValue = defValue.map(analyseExpression(_, info))
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
     }
   }
 
@@ -467,7 +470,7 @@ case object DataflowAnalysis extends IRPass {
           .copy(
             value = analyseExpression(value, info)
           )
-          .addMetadata[Metadata, DependencyInfo](info)
+          .updateMetadata(this -->> info)
     }
   }
 

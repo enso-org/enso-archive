@@ -221,8 +221,9 @@ class Compiler(
   ): Unit = if (context.isStrictErrors) {
     val errors = GatherDiagnostics
       .runExpression(ir, inlineContext)
-      .unsafeGetMetadata[GatherDiagnostics.DiagnosticsMeta](
-        "No errors metadata right after the gathering pass."
+      .unsafeGetMetadata(
+        GatherDiagnostics,
+        "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
     reportDiagnostics(errors, source)
@@ -244,8 +245,9 @@ class Compiler(
     if (context.isStrictErrors) {
       val errors = GatherDiagnostics
         .runModule(ir, moduleContext)
-        .unsafeGetMetadata[GatherDiagnostics.DiagnosticsMeta](
-          "No errors metadata right after the gathering pass."
+        .unsafeGetMetadata(
+          GatherDiagnostics,
+          "No diagnostics metadata right after the gathering pass."
         )
         .diagnostics
       reportDiagnostics(errors, source)

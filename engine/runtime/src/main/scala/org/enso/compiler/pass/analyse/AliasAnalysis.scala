@@ -2,6 +2,7 @@ package org.enso.compiler.pass.analyse
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.ir.MetadataStorage._
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Occurrence, Scope}
@@ -125,7 +126,7 @@ case object AliasAnalysis extends IRPass {
                   blockReuseScope  = true
                 )
               )
-              .addMetadata[Metadata, Metadata](Info.Scope.Root(topLevelGraph))
+              .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
           case _ =>
             throw new CompilerError(
               "The body of a method should always be a function."
@@ -136,7 +137,7 @@ case object AliasAnalysis extends IRPass {
             arguments =
               analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
           )
-          .addMetadata[Metadata, Metadata](Info.Scope.Root(topLevelGraph))
+          .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
     }
   }
 
@@ -189,9 +190,7 @@ case object AliasAnalysis extends IRPass {
               currentScope
             )
           )
-          .addMetadata[Metadata, Metadata](
-            Info.Scope.Child(graph, currentScope)
-          )
+          .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
       case binding @ IR.Expression.Binding(name, expression, _, _, _) =>
         if (!parentScope.hasSymbolOccurrenceAs[Occurrence.Def](name.name)) {
           val isSuspended  = expression.isInstanceOf[IR.Expression.Block]
@@ -209,15 +208,13 @@ case object AliasAnalysis extends IRPass {
                 parentScope
               )
             )
-            .addMetadata[Metadata, Metadata](
-              Info.Occurrence(graph, occurrenceId)
-            )
+            .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
         } else {
           IR.Error.Redefined.Binding(binding)
         }
       case app: IR.Application =>
         analyseApplication(app, graph, parentScope)
-      case tpe: IR.Type     => analyseType(tpe, graph, parentScope)
+      case tpe: IR.Type => analyseType(tpe, graph, parentScope)
       case x =>
         x.mapExpressions((expression: IR.Expression) =>
           analyseExpression(
@@ -257,7 +254,7 @@ case object AliasAnalysis extends IRPass {
             memberType = analyseExpression(memberType, graph, memberTypeScope),
             value      = analyseExpression(value, graph, valueScope)
           )
-          .addMetadata[Metadata, Metadata](Info.Occurrence(graph, lblId))
+          .updateMetadata(this -->> Info.Occurrence(graph, lblId))
       case x => x.mapExpressions(analyseExpression(_, graph, parentScope))
     }
   }
@@ -299,9 +296,7 @@ case object AliasAnalysis extends IRPass {
 
           arg
             .copy(defaultValue = newDefault)
-            .addMetadata[Metadata, Metadata](
-              Info.Occurrence(graph, occurrenceId)
-            )
+            .updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
         } else {
           throw new CompilerError(
             "Arguments should never be redefined. This is a bug."
@@ -359,9 +354,7 @@ case object AliasAnalysis extends IRPass {
 
         arg
           .copy(value = analyseExpression(expr, graph, currentScope))
-          .addMetadata[Metadata, Metadata](
-            Info.Scope.Child(graph, currentScope)
-          )
+          .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
     }
   }
 
@@ -395,9 +388,7 @@ case object AliasAnalysis extends IRPass {
               blockReuseScope = true
             )
           )
-          .addMetadata[Metadata, Metadata](
-            Info.Scope.Child(graph, currentScope)
-          )
+          .updateMetadata(this -->> Info.Scope.Child(graph, currentScope))
     }
   }
 
@@ -419,7 +410,7 @@ case object AliasAnalysis extends IRPass {
     parentScope.add(occurrence)
     graph.resolveUsage(occurrence)
 
-    name.addMetadata[Metadata, Metadata](Info.Occurrence(graph, occurrenceId))
+    name.updateMetadata(this -->> Info.Occurrence(graph, occurrenceId))
   }
 
   /** Performs alias analysis on a case expression.
