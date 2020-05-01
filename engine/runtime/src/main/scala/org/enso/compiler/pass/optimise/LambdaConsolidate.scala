@@ -2,6 +2,7 @@ package org.enso.compiler.pass.optimise
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.core.IR.DefinitionArgument
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.AliasAnalysis
@@ -114,7 +115,9 @@ case object LambdaConsolidate extends IRPass {
             shadowedBindingIds.contains(aliasInfo.id)
         }
 
-        val argsWithShadowed    = chainedArgList.zip(argIsShadowed)
+        val argsWithShadowed = attachShadowingWarnings(
+          chainedArgList.zip(argIsShadowed)
+        )
         val usageIdsForShadowed = usageIdsForShadowedArgs(argsWithShadowed)
 
         val newArgNames = generateNewNames(argsWithShadowed, freshNameSupply)
@@ -143,6 +146,50 @@ case object LambdaConsolidate extends IRPass {
           canBeTCO  = chainedLambdas.last.canBeTCO,
           passData  = Set()
         )
+    }
+  }
+
+  /** Attaches warnings to function parameters that are shadowed.
+    *
+    * These warnings contain the IR that is shadowing the parameter, as well as
+    * the original name of the parameter.
+    *
+    * @param argsWithShadowed the arguments, with whether or not they are
+    *                         shadowed
+    * @return the list of arguments, some with attached warnings, along with
+    *         whether or not they are shadowed
+    */
+  def attachShadowingWarnings(
+    argsWithShadowed: List[(IR.DefinitionArgument, Boolean)]
+  ): List[(IR.DefinitionArgument, Boolean)] = {
+    val args = argsWithShadowed.map(_._1)
+    val argsWithIndex =
+      argsWithShadowed.zipWithIndex.map(t => (t._1._1, t._1._2, t._2))
+
+    argsWithIndex.map {
+      case (arg, isShadowed, ix) =>
+        if (isShadowed) {
+          val restArgs = args.drop(ix + 1)
+          arg match {
+            case spec @ DefinitionArgument.Specified(argName, _, _, _, _, _) =>
+              val mShadower = restArgs.collectFirst {
+                case s @ IR.DefinitionArgument.Specified(sName, _, _, _, _, _)
+                    if sName.name == argName.name =>
+                  s
+              }
+
+              val shadower: IR = mShadower.getOrElse(IR.Empty(spec.location))
+
+              spec.diagnostics.add(
+                IR.Warning.Shadowed
+                  .FunctionParam(argName.name, shadower, spec.location)
+              )
+
+              (spec, isShadowed)
+          }
+        } else {
+          (arg, isShadowed)
+        }
     }
   }
 
@@ -297,7 +344,7 @@ case object LambdaConsolidate extends IRPass {
     }
   }
 
-  /** Generates new names for the arguments that have been shadowed
+  /** Generates new names for the arguments that have been shadowed.
     *
     * @param argsWithShadowed the args with whether or not they are shadowed
     * @return a set of argument names, with shadowed arguments replaced
@@ -316,9 +363,10 @@ case object LambdaConsolidate extends IRPass {
             freshNameSupply
               .newName()
               .copy(
-                location = name.location,
-                passData = name.passData,
-                id       = name.getId
+                location    = name.location,
+                passData    = name.passData,
+                diagnostics = name.diagnostics,
+                id          = name.getId
               )
           } else name
 

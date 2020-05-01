@@ -2639,8 +2639,8 @@ object IR {
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 
-      /** The expression shadowing the warned expression. */
-      val shadower: IR.Expression
+      /** The [[IR]] shadowing the warned expression. */
+      val shadower: IR
     }
     object Shadowed {
 
@@ -2652,7 +2652,7 @@ object IR {
         */
       sealed case class FunctionParam(
         shadowedName: String,
-        override val shadower: IR.Expression,
+        override val shadower: IR,
         override val location: Option[IdentifiedLocation]
       ) extends Shadowed {
 

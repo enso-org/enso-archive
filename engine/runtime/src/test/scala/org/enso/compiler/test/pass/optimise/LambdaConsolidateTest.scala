@@ -258,8 +258,21 @@ class LambdaConsolidateTest extends CompilerTest {
     }
 
     "output a warning when lambda chaining shadows a parameter definition" in {
-      // TODO [AA] Need to rejig the diagnostics system before implementing this
-      pending
+      implicit val inlineContext: InlineContext = mkContext
+
+      val ir =
+        """
+          |x -> x -> x
+          |""".stripMargin.preprocessExpression.get.optimise
+          .asInstanceOf[IR.Function.Lambda]
+
+      val warnings = ir.arguments.head.diagnostics.toList.collect {
+        case w: IR.Warning.Shadowed.FunctionParam => w
+      }
+
+      warnings should not be empty
+      warnings.head.shadowedName shouldEqual "x"
+      warnings.head.shadower shouldBe ir.arguments(1)
     }
   }
 }
