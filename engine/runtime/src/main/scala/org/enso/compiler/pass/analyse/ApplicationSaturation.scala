@@ -53,7 +53,7 @@ case object ApplicationSaturation extends IRPass {
   ): IR.Expression = {
     val knownFunctions =
       inlineContext.passConfiguration
-        .flatMap(configs => configs.get[Config](this))
+        .flatMap(configs => configs.get(this))
         .getOrElse(
           throw new CompilerError("Pass configuration is missing.")
         )
