@@ -1,14 +1,16 @@
 package org.enso.compiler.pass
 
-/** Stores configuration for the various compiler passes.
-  *
-  * @param config the initial pass configuration
-  */
+import shapeless.{HList, LUBConstraint}
+
+import scala.annotation.unused
+
+/** Stores configuration for the various compiler passes. */
 class PassConfiguration(
-  config: Map[IRPass, Any] = Map()
+  configs: Map[IRPass, Any] = Map()
 ) {
-  // TODO [AA] Ensure that the constructor is type safe
-  private var configuration: Map[IRPass, Any] = config
+  // TODO [AA] Ensure that the constructor is type safe (use hlists of
+  //  dependent pairs)
+  private var configuration: Map[IRPass, Any] = configs
 
   /** Adds a new configuration entity to the pass configuration, or updates it
     * if it already exists for a given pass.
@@ -48,12 +50,48 @@ class PassConfiguration(
   }
 
   /** Compares to pass configuration stores for equality.
-   *
-   * @param obj the object to compare against
-   * @return `true` if `this == obj`, otherwise `false`
-   */
+    *
+    * @param obj the object to compare against
+    * @return `true` if `this == obj`, otherwise `false`
+    */
   override def equals(obj: Any): Boolean = obj match {
     case that: PassConfiguration => this.configuration == that.configuration
-    case _ => false
+    case _                       => false
+  }
+}
+// TODO [AA] Organisation for better imports
+object PassConfiguration {
+
+  def apply[XS <: HList](
+    @unused pairs: XS
+  )(
+    ): PassConfiguration = {
+
+    new PassConfiguration
+  }
+
+  trait ConfigPair[P <: IRPass] {
+    val pass: P
+    val config: pass.Config
+
+    override def toString: String = s"ConfigPair(pass: $pass, config: $config)"
+  }
+  object ConfigPair {
+    def apply[P <: IRPass](newPass: P)(
+      configuration: newPass.Config
+    ): ConfigPair[newPass.type] = {
+      new ConfigPair[newPass.type] {
+        val pass   = newPass
+        val config = configuration
+      }
+    }
+
+    object syntax {
+      implicit class ToPair[P <: IRPass](val pass: P) {
+        def -->>(config: pass.Config): ConfigPair[pass.type] = {
+          ConfigPair(pass)(config)
+        }
+      }
+    }
   }
 }
