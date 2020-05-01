@@ -341,7 +341,7 @@ class IRToTruffle(
         case caseExpr: IR.Case              => processCase(caseExpr)
         case comment: IR.Comment            => processComment(comment)
         case err: IR.Error                  => processError(err)
-        case IR.Foreign.Definition(_, _, _, _) =>
+        case IR.Foreign.Definition(_, _, _, _, _) =>
           throw new CompilerError(
             s"Foreign expressions not yet implemented: $ir."
           )
@@ -420,7 +420,7 @@ class IRToTruffle(
       * @return the truffle nodes corresponding to `caseExpr`
       */
     def processCase(caseExpr: IR.Case): RuntimeExpression = caseExpr match {
-      case IR.Case.Expr(scrutinee, branches, fallback, location, _) =>
+      case IR.Case.Expr(scrutinee, branches, fallback, location, _, _) =>
         val targetNode = this.run(scrutinee)
 
         val cases = branches
@@ -444,7 +444,7 @@ class IRToTruffle(
 
         val matchExpr = MatchNode.build(cases, fallbackNode, targetNode)
         setLocation(matchExpr, location)
-      case IR.Case.Branch(_, _, _, _) =>
+      case IR.Case.Branch(_, _, _, _, _) =>
         throw new CompilerError("A CaseBranch should never occur here.")
     }
 
@@ -520,7 +520,7 @@ class IRToTruffle(
       */
     def processName(name: IR.Name): RuntimeExpression = {
       val nameExpr = name match {
-        case IR.Name.Literal(nameStr, _, _) =>
+        case IR.Name.Literal(nameStr, _, _, _) =>
           val useInfo = name.unsafeGetMetadata[AliasAnalysis.Info.Occurrence](
             "No occurence on variable usage."
           )
@@ -538,9 +538,9 @@ class IRToTruffle(
               UnresolvedSymbol.build(nameStr, moduleScope)
             )
           }
-        case IR.Name.Here(_, _) =>
+        case IR.Name.Here(_, _, _) =>
           ConstructorNode.build(moduleScope.getAssociatedType)
-        case IR.Name.This(location, passData) =>
+        case IR.Name.This(location, passData, _) =>
           processName(
             IR.Name.Literal(Constants.Names.THIS_ARGUMENT, location, passData)
           )
@@ -556,9 +556,9 @@ class IRToTruffle(
       */
     def processLiteral(literal: IR.Literal): RuntimeExpression =
       literal match {
-        case IR.Literal.Number(value, location, _) =>
+        case IR.Literal.Number(value, location, _, _) =>
           setLocation(IntegerLiteralNode.build(value.toLong), location)
-        case IR.Literal.Text(text, location, _) =>
+        case IR.Literal.Text(text, location, _, _) =>
           setLocation(TextLiteralNode.build(text), location)
       }
 
@@ -570,7 +570,7 @@ class IRToTruffle(
       */
     def processError(error: IR.Error): RuntimeExpression = {
       val payload: AnyRef = error match {
-        case Error.InvalidIR(_, _) =>
+        case Error.InvalidIR(_, _, _) =>
           throw new CompilerError("Unexpected Invalid IR during codegen.")
         case err: Error.Syntax =>
           context.getBuiltins
@@ -687,7 +687,7 @@ class IRToTruffle(
       */
     def processApplication(application: IR.Application): RuntimeExpression =
       application match {
-        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _) =>
+        case IR.Application.Prefix(fn, args, hasDefaultsSuspended, loc, _, _) =>
           val callArgFactory = new CallArgumentProcessor(scope, scopeName)
 
           val arguments = args
@@ -719,7 +719,7 @@ class IRToTruffle(
           }
 
           setLocation(appNode, loc)
-        case IR.Application.Force(expr, location, _) =>
+        case IR.Application.Force(expr, location, _, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
         case op: IR.Application.Operator.Binary =>
           throw new CompilerError(
@@ -752,7 +752,7 @@ class IRToTruffle(
       *         `arg`
       */
     def run(arg: IR.CallArgument, position: Int): CallArgument = arg match {
-      case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _) =>
+      case IR.CallArgument.Specified(name, value, _, shouldBeSuspended, _, _) =>
         val scopeInfo = arg.unsafeGetMetadata[AliasAnalysis.Info.Scope.Child](
           "No scope attached to a call argument."
         )

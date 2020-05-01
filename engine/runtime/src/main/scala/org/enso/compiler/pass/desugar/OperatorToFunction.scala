@@ -41,7 +41,7 @@ case object OperatorToFunction extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     ir.transformExpressions {
-      case IR.Application.Operator.Binary(l, op, r, loc, passData) =>
+      case IR.Application.Operator.Binary(l, op, r, loc, passData, _) =>
         IR.Application.Prefix(
           op,
           List(

@@ -95,7 +95,7 @@ case object LambdaConsolidate extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Function = {
     function match {
-      case lam @ IR.Function.Lambda(_, body, _, _, _) =>
+      case lam @ IR.Function.Lambda(_, body, _, _, _, _) =>
         val chainedLambdas = lam :: gatherChainedLambdas(body)
         val chainedArgList =
           chainedLambdas.foldLeft(List[IR.DefinitionArgument]())(
@@ -154,7 +154,7 @@ case object LambdaConsolidate extends IRPass {
     */
   def gatherChainedLambdas(body: IR.Expression): List[IR.Function.Lambda] = {
     body match {
-      case l @ IR.Function.Lambda(_, body, _, _, _) =>
+      case l @ IR.Function.Lambda(_, body, _, _, _, _) =>
         l :: gatherChainedLambdas(body)
       case _ => List()
     }
@@ -308,7 +308,7 @@ case object LambdaConsolidate extends IRPass {
   ): List[IR.DefinitionArgument] = {
     argsWithShadowed.map {
       case (
-          spec @ IR.DefinitionArgument.Specified(name, _, _, _, _),
+          spec @ IR.DefinitionArgument.Specified(name, _, _, _, _, _),
           isShadowed
           ) =>
         val newName =

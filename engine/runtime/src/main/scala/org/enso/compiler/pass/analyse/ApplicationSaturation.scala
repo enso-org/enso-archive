@@ -60,7 +60,7 @@ case object ApplicationSaturation extends IRPass {
         .knownFunctions
 
     ir.transformExpressions {
-      case func @ IR.Application.Prefix(fn, args, _, _, meta) =>
+      case func @ IR.Application.Prefix(fn, args, _, _, meta, _) =>
         fn match {
           case name: IR.Name =>
             val aliasInfo =

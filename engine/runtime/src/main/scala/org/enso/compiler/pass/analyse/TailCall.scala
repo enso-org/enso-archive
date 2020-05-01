@@ -64,13 +64,13 @@ case object TailCall extends IRPass {
     definition: IR.Module.Scope.Definition
   ): IR.Module.Scope.Definition = {
     definition match {
-      case method @ IR.Module.Scope.Definition.Method(_, _, body, _, _) =>
+      case method @ IR.Module.Scope.Definition.Method(_, _, body, _, _, _) =>
         method
           .copy(
             body = analyseExpression(body, isInTailPosition = true)
           )
           .addMetadata[Metadata, TailPosition](TailPosition.Tail)
-      case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _) =>
+      case atom @ IR.Module.Scope.Definition.Atom(_, args, _, _, _) =>
         atom
           .copy(
             arguments = args.map(analyseDefArgument)
@@ -102,7 +102,7 @@ case object TailCall extends IRPass {
         foreign.addMetadata[Metadata, TailPosition](TailPosition.NotTail)
       case literal: IR.Literal => analyseLiteral(literal, isInTailPosition)
       case comment: IR.Comment => analyseComment(comment, isInTailPosition)
-      case block @ IR.Expression.Block(expressions, returnValue, _, _, _) =>
+      case block @ IR.Expression.Block(expressions, returnValue, _, _, _, _) =>
         block
           .copy(
             expressions =
@@ -112,7 +112,7 @@ case object TailCall extends IRPass {
           .addMetadata[Metadata, TailPosition](
             TailPosition.fromBool(isInTailPosition)
           )
-      case binding @ IR.Expression.Binding(_, expression, _, _) =>
+      case binding @ IR.Expression.Binding(_, expression, _, _, _) =>
         binding
           .copy(
             expression = analyseExpression(expression, isInTailPosition)
@@ -150,7 +150,7 @@ case object TailCall extends IRPass {
     isInTailPosition: Boolean
   ): IR.Comment = {
     comment match {
-      case doc @ IR.Comment.Documentation(expr, _, _, _) =>
+      case doc @ IR.Comment.Documentation(expr, _, _, _, _) =>
         doc
           .copy(commented = analyseExpression(expr, isInTailPosition))
           .addMetadata[Metadata, TailPosition](
@@ -187,7 +187,7 @@ case object TailCall extends IRPass {
     isInTailPosition: Boolean
   ): IR.Application = {
     application match {
-      case app @ IR.Application.Prefix(fn, args, _, _, _) =>
+      case app @ IR.Application.Prefix(fn, args, _, _, _, _) =>
         app
           .copy(
             function  = analyseExpression(fn, isInTailPosition = false),
@@ -196,7 +196,7 @@ case object TailCall extends IRPass {
           .addMetadata[Metadata, TailPosition](
             TailPosition.fromBool(isInTailPosition)
           )
-      case force @ IR.Application.Force(target, _, _) =>
+      case force @ IR.Application.Force(target, _, _, _) =>
         force
           .copy(
             target = analyseExpression(target, isInTailPosition)
@@ -216,7 +216,7 @@ case object TailCall extends IRPass {
     */
   def analyseCallArg(argument: IR.CallArgument): IR.CallArgument = {
     argument match {
-      case arg @ IR.CallArgument.Specified(_, expr, _, _, _) =>
+      case arg @ IR.CallArgument.Specified(_, expr, _, _, _, _) =>
         arg
           .copy(
             // Note [Call Argument Tail Position]
@@ -273,7 +273,7 @@ case object TailCall extends IRPass {
     */
   def analyseCase(caseExpr: IR.Case, isInTailPosition: Boolean): IR.Case = {
     caseExpr match {
-      case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _) =>
+      case caseExpr @ IR.Case.Expr(scrutinee, branches, fallback, _, _, _) =>
         caseExpr
           .copy(
             scrutinee = analyseExpression(scrutinee, isInTailPosition = false),
@@ -339,7 +339,7 @@ case object TailCall extends IRPass {
     val markAsTail = (!canBeTCO && isInTailPosition) || canBeTCO
 
     val resultFunction = function match {
-      case lambda @ IR.Function.Lambda(args, body, _, _, _) =>
+      case lambda @ IR.Function.Lambda(args, body, _, _, _, _) =>
         lambda.copy(
           arguments = args.map(analyseDefArgument),
           body      = analyseExpression(body, isInTailPosition = markAsTail)
@@ -358,7 +358,7 @@ case object TailCall extends IRPass {
     */
   def analyseDefArgument(arg: IR.DefinitionArgument): IR.DefinitionArgument = {
     arg match {
-      case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _) =>
+      case arg @ IR.DefinitionArgument.Specified(_, default, _, _, _, _) =>
         arg
           .copy(
             defaultValue = default.map(x =>
