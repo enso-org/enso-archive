@@ -70,7 +70,7 @@ object PassConfiguration {
     new PassConfiguration
   }
 
-  trait ConfigPair[P <: IRPass] {
+  sealed trait ConfigPair[P <: IRPass] {
     val pass: P
     val config: pass.Config
 
@@ -87,7 +87,7 @@ object PassConfiguration {
     }
 
     object syntax {
-      implicit class ToPair[P <: IRPass](val pass: P) {
+      implicit final class ToPair[P <: IRPass](val pass: P) {
         def -->>(config: pass.Config): ConfigPair[pass.type] = {
           ConfigPair(pass)(config)
         }

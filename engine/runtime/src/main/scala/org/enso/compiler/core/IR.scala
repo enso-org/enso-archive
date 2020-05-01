@@ -3104,6 +3104,13 @@ object IR {
       case _                       => false
     }
 
+    /** Creates a string representation of `this` diagnostic storage.
+     *
+     * @return the string representation of `this`
+     */
+    override def toString: String =
+      s"DiagnosticStorage(diagnostics = $diagnostics)"
+
     /** Creates a list of the diagnostics contained in the diagnostics storage.
       *
       * @return a list of the diagnostics in the storage
