@@ -4,6 +4,7 @@ import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage._
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 import org.enso.compiler.test.CompilerTest
 import shapeless.test.illTyped
@@ -56,9 +57,9 @@ class MetadataStorageTest extends CompilerTest {
     "allow adding metadata pairs" in {
       val meta = MetadataStorage()
 
-      val pass = TestPass1
+      val pass     = TestPass1
       val passMeta = TestPass1.Metadata1()
-      val depPair = pass -->> passMeta
+      val depPair  = pass -->> passMeta
 
       meta.addPair(depPair)
       meta.get(pass) shouldEqual Some(passMeta)
@@ -78,11 +79,24 @@ class MetadataStorageTest extends CompilerTest {
     }
 
     "allow getting metadata" in {
-      val meta  = MetadataStorage()
+      val meta     = MetadataStorage()
       val passMeta = TestPass1.Metadata1()
 
       meta.update(TestPass1)(passMeta)
       meta.get(TestPass1) shouldEqual Some(passMeta)
+    }
+
+    "allow unsafely getting metadata" in {
+      val meta     = MetadataStorage()
+      val passMeta = TestPass1.Metadata1()
+
+      meta.update(TestPass1)(passMeta)
+      meta.getUnsafe(TestPass1)("aaaa") shouldEqual passMeta
+
+      def testThrow = meta.getUnsafe(TestPass2)("aaa")
+      val msg = "Compiler Internal Error: aaa"
+
+      the[CompilerError] thrownBy testThrow should have message msg
     }
 
     "allow updating metadata" in {

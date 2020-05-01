@@ -1,6 +1,7 @@
 package org.enso.compiler.core.ir
 
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
+import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
 /** Stores metadata for the various passes.
@@ -62,6 +63,21 @@ class MetadataStorage(
     */
   def get[K <: IRPass](pass: K): Option[pass.Metadata] = {
     metadata.get(pass).map(_.asInstanceOf[pass.Metadata])
+  }
+
+  /** Unsafely gets the metadata for the specified pass, if it exists.
+    *
+    * @param pass the pass to get metadata for
+    * @param msg the message to throw with if the unsafe get fails
+    * @tparam K the concrete type of `pass`
+    * @throws CompilerError if no metadata exists for `pass`
+    * @return the metadata for `pass`, if it exists
+    */
+  @throws[CompilerError]
+  def getUnsafe[K <: IRPass](
+    pass: K
+  )(msg: String = s"Missing metadata for pass $pass"): pass.Metadata = {
+    get(pass).getOrElse(throw new CompilerError(msg))
   }
 
   /** Compares to pass metadata stores for equality.
