@@ -2489,7 +2489,6 @@ object IR {
         override def message: String =
           s"The function parameter $shadowedName is being shadowed by $shadower"
       }
-
     }
   }
 
@@ -2823,6 +2822,105 @@ object IR {
 
       s"${lines.head}${body}${lines.last}"
     }
+  }
+
+  // ==========================================================================
+  // === Diagnostics Storage ==================================================
+  // ==========================================================================
+
+  /** Storage for diagnostics in IR nodes.
+    *
+    * @param initDiagnostics the initial diagnostics
+    */
+  sealed class DiagnosticStorage(initDiagnostics: List[Diagnostic] = List()) {
+    private var diagnostics: List[Diagnostic] = initDiagnostics
+
+    /** Adds a new diagnostic to the storage
+      *
+      * @param diagnostic the new diagnostic to store
+      */
+    def add(diagnostic: Diagnostic): Unit = {
+      diagnostics = diagnostic :: diagnostics
+    }
+
+    /** Adds new diagnostics to the storage.
+      *
+      * @param newDiagnostics the new diagnostics to store
+      */
+    def add(newDiagnostics: Seq[Diagnostic]): Unit = {
+      diagnostics = newDiagnostics.toList ::: diagnostics
+    }
+
+    /** Applies the function `f` across the diagnostic storage, producing a
+      * result sequence.
+      *
+      * @param f the function to apply
+      * @tparam R the result type of `f`
+      * @return the sequence that results from applying `f` over the storage
+      */
+    def map[R](f: IR.Diagnostic => R): Seq[R] = {
+      diagnostics.map(f)
+    }
+
+    /** Applies the function `f` across the diagnostic storage in place.
+      *
+      * @param f the function to apply
+      */
+    def mapInPlace(f: IR.Diagnostic => IR.Diagnostic): Unit = {
+      diagnostics = diagnostics.map(f)
+    }
+
+    /** Performs a collection operation on the diagnostics storage, producing
+      * a new sequence.
+      *
+      * @param pf the partial function to apply
+      * @tparam R the result type of the partial function
+      * @return the result of collecting across the storage with `pf`
+      */
+    def collect[R](pf: PartialFunction[IR.Diagnostic, R]): Seq[R] = {
+      diagnostics.collect(pf)
+    }
+
+    /** Filters the elements of the diagnostic storage using the predicate.
+      *
+      * @param pred the predicate to filter with
+      * @return a new diagnostic storage instance containing elements matching
+      *         `pred`
+      */
+    def filter(pred: IR.Diagnostic => Boolean): DiagnosticStorage = {
+      new DiagnosticStorage(diagnostics.filter(pred))
+    }
+
+    /** Filters the elements of the diagnostic storage in place using the
+      * predicate.
+      *
+      * @param pred the predicate to filter with
+      */
+    def filterInPlace(pred: IR.Diagnostic => Boolean): Unit = {
+      diagnostics = diagnostics.filter(pred)
+    }
+
+    /** Performs a left fold over the diagnostic storage to produce a result.
+      *
+      * @param init the starting value
+      * @param op the operator to use to fold
+      * @tparam L the result type of the fold
+      * @return the result of folding over the storage using `op` starting wit
+      *         `init`
+      */
+    def foldLeft[L](init: L)(op: (L, IR.Diagnostic) => L): L = {
+      diagnostics.foldLeft(init)(op)
+    }
+  }
+  object DiagnosticStorage {
+
+    /** Creates a new instance of the diagnostics storage.
+      *
+      * @param initDiagnostics the initial diagnostics to construct it with
+      * @return a new diagnostics storage instance
+      */
+    def apply(initDiagnostics: List[Diagnostic]): DiagnosticStorage =
+      new DiagnosticStorage(initDiagnostics)
   }
 
 }
