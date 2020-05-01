@@ -56,3 +56,4 @@ class PassConfiguration(
 object PassConfiguration {
   type ConfigMap = Map[IRPass, IRPass.Configuration]
 }
+
