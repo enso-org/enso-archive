@@ -152,6 +152,4 @@ class IRTest extends CompilerTest {
       }) shouldEqual "abcd"
     }
   }
-
-  "The IR metadata storage" should {}
 }

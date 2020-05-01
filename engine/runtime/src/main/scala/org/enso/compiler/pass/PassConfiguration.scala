@@ -2,13 +2,29 @@ package org.enso.compiler.pass
 
 import org.enso.compiler.pass.PassConfiguration.ConfigPair
 
-/** Stores configuration for the various compiler passes. */
+/** Stores configuration for the various passes.
+  *
+  * @param configs configuration mappings to initialise the configuration
+  *                storage with
+  */
+//noinspection DuplicatedCode
 class PassConfiguration(
   configs: Seq[ConfigPair[_]] = Seq()
 ) {
   private val pairs: Seq[(IRPass, Any)] =
     configs.map(_.asPair.asInstanceOf[(IRPass, Any)])
   private var configuration: Map[IRPass, Any] = Map(pairs: _*)
+
+  /** Adds a configuration pair to the pass configuration.
+   *
+   * This will overwrite any entry whose key matches [[ConfigPair#pass]].
+   *
+   * @param configPair the pair to add to the map
+   * @tparam K the concrete type of the pass
+   */
+  def addPair[K <: IRPass](configPair: ConfigPair[K]): Unit = {
+    update(configPair.pass)(configPair.config)
+  }
 
   /** Adds a new configuration entity to the pass configuration, or updates it
     * if it already exists for a given pass.
@@ -29,7 +45,7 @@ class PassConfiguration(
     */
   def remove[K <: IRPass](pass: K): Option[pass.Config] = {
     if (configuration.contains(pass)) {
-      val res = configuration.get(pass).map(_.asInstanceOf[pass.Config])
+      val res = get(pass)
       configuration = configuration.filter(t => t._1 != pass)
       res
     } else {
@@ -117,8 +133,8 @@ object PassConfiguration extends PassConfigurationSyntax {
       configuration: newPass.Config
     ): ConfigPair[newPass.type] = {
       new ConfigPair[newPass.type] {
-        val pass   = newPass
-        val config = configuration
+        val pass: newPass.type  = newPass
+        val config: pass.Config = configuration
       }
     }
   }
@@ -138,7 +154,7 @@ trait PassConfigurationSyntax {
     /** Concatenates [[pass]] with a configuration object for that pass.
       *
       * @param config the configuration to turn into a pair
-      * @return the pair of ([[pass]], configuration)
+      * @return the pair of ([[pass]], `configuration`)
       */
     def -->>(config: pass.Config): ConfigPair[pass.type] = {
       ConfigPair(pass)(config)

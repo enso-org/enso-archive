@@ -52,8 +52,19 @@ class PassConfigurationTest extends CompilerTest {
   // === The Tests ============================================================
 
   "The pass configuration" should {
+    "allow adding configuration pairs" in {
+      val config = PassConfiguration()
+
+      val pass = TestPass1
+      val passConfig = TestPass1.Configuration1()
+      val depPair = pass -->> passConfig
+
+      config.addPair(depPair)
+      config.get(pass) shouldEqual Some(passConfig)
+    }
+
     "allow adding configurations" in {
-      val config = new PassConfiguration
+      val config = PassConfiguration()
 
       val config1 = TestPass1.Configuration1()
       val config2 = TestPass2.Configuration2()
@@ -66,7 +77,7 @@ class PassConfigurationTest extends CompilerTest {
     }
 
     "allow getting configurations" in {
-      val config  = new PassConfiguration
+      val config  = PassConfiguration()
       val config1 = TestPass1.Configuration1()
 
       config.update(TestPass1)(config1)
@@ -74,7 +85,7 @@ class PassConfigurationTest extends CompilerTest {
     }
 
     "allow updating configurations" in {
-      val config = new PassConfiguration
+      val config = PassConfiguration()
 
       val config1 = TestPass1.Configuration1()
       val config2 = TestPass1.Configuration1()
@@ -86,7 +97,7 @@ class PassConfigurationTest extends CompilerTest {
     }
 
     "allow removing configurations" in {
-      val config = new PassConfiguration
+      val config = PassConfiguration()
 
       val config1 = TestPass1.Configuration1()
       config.update(TestPass1)(config1)
@@ -96,8 +107,8 @@ class PassConfigurationTest extends CompilerTest {
     }
 
     "compare equal when containing the same configurations" in {
-      val config1 = new PassConfiguration
-      val config2 = new PassConfiguration
+      val config1 = PassConfiguration()
+      val config2 = PassConfiguration()
 
       config1 shouldEqual config2
 

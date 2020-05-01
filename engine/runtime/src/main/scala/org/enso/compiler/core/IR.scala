@@ -8,6 +8,8 @@ import org.enso.compiler.core.IR.{
   IdentifiedLocation
 }
 import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.pass.{IRPass, PassConfiguration}
+import org.enso.compiler.pass.PassConfiguration.ConfigPair
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Debug, Location}
 import shapeless.=:!=
@@ -3105,9 +3107,9 @@ object IR {
     }
 
     /** Creates a string representation of `this` diagnostic storage.
-     *
-     * @return the string representation of `this`
-     */
+      *
+      * @return the string representation of `this`
+      */
     override def toString: String =
       s"DiagnosticStorage(diagnostics = $diagnostics)"
 
@@ -3129,10 +3131,5 @@ object IR {
     def apply(initDiagnostics: Seq[Diagnostic] = Seq()): DiagnosticStorage =
       new DiagnosticStorage(initDiagnostics)
   }
-
-
-  // ==========================================================================
-  // === Metadata Storage =====================================================
-  // ==========================================================================
 
 }
