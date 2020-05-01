@@ -45,7 +45,7 @@ class PassConfigurationTest extends CompilerTest {
     ): IR.Expression = ir
 
     sealed case class Configuration2() extends IRPass.Configuration {
-      override var shouldWriteToContext: Boolean = false
+      override var shouldWriteToContext: Boolean = true
     }
   }
 
@@ -59,7 +59,7 @@ class PassConfigurationTest extends CompilerTest {
       val passConfig = TestPass1.Configuration1()
       val depPair = pass -->> passConfig
 
-      config.addPair(depPair)
+      config.update(depPair)
       config.get(pass) shouldEqual Some(passConfig)
     }
 
@@ -116,6 +116,32 @@ class PassConfigurationTest extends CompilerTest {
       config2.update(TestPass1)(TestPass1.Configuration1())
 
       config1 shouldEqual config2
+    }
+
+    "allow mapping over the configuration to produce an output map" in {
+      val config = PassConfiguration(
+        TestPass1 -->> TestPass1.Configuration1(),
+        TestPass2 -->> TestPass2.Configuration2()
+      )
+
+      val expected = Map(TestPass1 -> false, TestPass2 -> true)
+
+      config.map((k, v) => (k, v.shouldWriteToContext)) shouldEqual expected
+    }
+
+    "be able to be copied to another instance with the same values" in {
+      val config = PassConfiguration(
+        TestPass1 -->> TestPass1.Configuration1(),
+        TestPass2 -->> TestPass2.Configuration2()
+      )
+
+      val expected = PassConfiguration(
+        TestPass1 -->> TestPass1.Configuration1(),
+        TestPass2 -->> TestPass2.Configuration2()
+      )
+
+      config.copy shouldEqual config
+      config.copy shouldEqual expected
     }
 
     "enforce safe construction" in {

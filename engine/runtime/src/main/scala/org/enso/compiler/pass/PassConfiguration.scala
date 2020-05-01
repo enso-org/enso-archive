@@ -16,13 +16,13 @@ class PassConfiguration(
   private var configuration: Map[IRPass, Any] = Map(pairs: _*)
 
   /** Adds a configuration pair to the pass configuration.
-   *
-   * This will overwrite any entry whose key matches [[ConfigPair#pass]].
-   *
-   * @param configPair the pair to add to the map
-   * @tparam K the concrete type of the pass
-   */
-  def addPair[K <: IRPass](configPair: ConfigPair[K]): Unit = {
+    *
+    * This will overwrite any entry whose key matches [[ConfigPair#pass]].
+    *
+    * @param configPair the pair to add to the map
+    * @tparam K the concrete type of the pass
+    */
+  def update[K <: IRPass](configPair: ConfigPair[K]): Unit = {
     update(configPair.pass)(configPair.config)
   }
 
@@ -71,6 +71,28 @@ class PassConfiguration(
   override def equals(obj: Any): Boolean = obj match {
     case that: PassConfiguration => this.configuration == that.configuration
     case _                       => false
+  }
+
+  /** Maps across the stored configuration, transforming it to an output map.
+    *
+    * @param f the function to apply over the configuration
+    * @tparam K the output key type
+    * @tparam V the output value type
+    * @return a map containing the results of transforming the configuration
+    *         storage
+    */
+  def map[K, V](f: (IRPass, IRPass.Configuration) => (K, V)): Map[K, V] = {
+    configuration.asInstanceOf[Map[IRPass, IRPass.Configuration]].map(f.tupled)
+  }
+
+  /** Creates a copy of `this`.
+    *
+    * @return a copy of `this`
+    */
+  def copy: PassConfiguration = {
+    val res = new PassConfiguration()
+    res.configuration = this.configuration
+    res
   }
 }
 object PassConfiguration extends PassConfigurationSyntax {

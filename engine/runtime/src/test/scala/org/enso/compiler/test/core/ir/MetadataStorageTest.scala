@@ -47,7 +47,7 @@ class MetadataStorageTest extends CompilerTest {
     ): IR.Expression = ir
 
     sealed case class Metadata2() extends IRPass.Metadata {
-      override val metadataName: String = "TestPass1.Metadata2"
+      override val metadataName: String = "TestPass2.Metadata2"
     }
   }
 
@@ -94,7 +94,7 @@ class MetadataStorageTest extends CompilerTest {
       meta.getUnsafe(TestPass1)("aaaa") shouldEqual passMeta
 
       def testThrow = meta.getUnsafe(TestPass2)("aaa")
-      val msg = "Compiler Internal Error: aaa"
+      val msg       = "Compiler Internal Error: aaa"
 
       the[CompilerError] thrownBy testThrow should have message msg
     }
@@ -134,11 +134,32 @@ class MetadataStorageTest extends CompilerTest {
     }
 
     "allow mapping over the internal mapping to generate some output" in {
-      pending
+      val meta = MetadataStorage(
+        TestPass1 -->> TestPass1.Metadata1(),
+        TestPass2 -->> TestPass2.Metadata2()
+      )
+
+      val expected = Map(
+        TestPass1 -> "TestPass1.Metadata1",
+        TestPass2 -> "TestPass2.Metadata2"
+      )
+
+      meta.map((p, m) => (p, m.metadataName)) shouldEqual expected
     }
 
     "allow copying to create a new instance with the same data" in {
-      pending
+      val meta = MetadataStorage(
+        TestPass1 -->> TestPass1.Metadata1(),
+        TestPass2 -->> TestPass2.Metadata2()
+      )
+
+      val expected = MetadataStorage(
+        TestPass1 -->> TestPass1.Metadata1(),
+        TestPass2 -->> TestPass2.Metadata2()
+      )
+
+      meta.copy shouldEqual meta
+      meta.copy shouldEqual expected
     }
 
     "enforce safe construction" in {
