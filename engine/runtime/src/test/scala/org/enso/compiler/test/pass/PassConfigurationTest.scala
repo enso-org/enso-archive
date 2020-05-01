@@ -2,11 +2,10 @@ package org.enso.compiler.test.pass
 
 import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.PassConfiguration.ConfigPair
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.{IRPass, PassConfiguration}
 import org.enso.compiler.test.CompilerTest
-import shapeless._
-import shapeless.syntax.singleton._
+import shapeless.test.illTyped
 
 class PassConfigurationTest extends CompilerTest {
 
@@ -109,14 +108,13 @@ class PassConfigurationTest extends CompilerTest {
     }
 
     "enforce safe construction" in {
-      import ConfigPair.syntax._
-
       val test1 = TestPass1 -->> TestPass1.Configuration1()
       val test2 = TestPass2 -->> TestPass2.Configuration2()
 
-      val configs = test1 :: test2 :: HNil
+      PassConfiguration(test1, test2)
 
-      PassConfiguration(configs)
+      illTyped("TestPass1 -->> TestPass2.Configuration2()")
+      illTyped("PassConfiguration(test1, (1, 1))")
     }
   }
 }

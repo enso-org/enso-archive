@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.optimise
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
@@ -10,9 +10,9 @@ import org.enso.compiler.pass.desugar.{
   OperatorToFunction
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
-
 class LambdaConsolidateTest extends CompilerTest {
 
   // === Test Setup ===========================================================
@@ -24,8 +24,8 @@ class LambdaConsolidateTest extends CompilerTest {
     AliasAnalysis
   )
 
-  val passConfiguration = new PassConfiguration(
-    Map(AliasAnalysis -> AliasAnalysis.Configuration())
+  val passConfiguration: PassConfiguration = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =

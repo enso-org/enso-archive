@@ -2,7 +2,7 @@ package org.enso.compiler.test.pass.analyse
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -16,6 +16,7 @@ import org.enso.compiler.pass.desugar.{
   OperatorToFunction
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.scalatest.Assertion
@@ -36,8 +37,8 @@ class DataflowAnalysisTest extends CompilerTest {
     TailCall
   )
 
-  val passConfig = new PassConfiguration(
-    Map(AliasAnalysis -> AliasAnalysis.Configuration())
+  val passConfig = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   implicit val passManager: PassManager =
@@ -121,9 +122,9 @@ class DataflowAnalysisTest extends CompilerTest {
   }
 
   /** Generates a new inline context for testing purposes.
-   *
-   * @return a new inline context
-   */
+    *
+    * @return a new inline context
+    */
   def mkInlineContext: InlineContext = {
     InlineContext(
       localScope       = Some(LocalScope.root),
@@ -133,9 +134,9 @@ class DataflowAnalysisTest extends CompilerTest {
   }
 
   /** Generates a new module context for testing purposes.
-   *
-   * @return a new module context
-   */
+    *
+    * @return a new module context
+    */
   def mkModuleContext: ModuleContext = {
     ModuleContext(
       freshNameSupply = Some(new FreshNameSupply)

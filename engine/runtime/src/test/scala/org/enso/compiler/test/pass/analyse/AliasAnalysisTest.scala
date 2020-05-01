@@ -3,6 +3,7 @@ package org.enso.compiler.test.pass.analyse
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.{Atom, Method}
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.AliasAnalysis
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
@@ -25,8 +26,8 @@ class AliasAnalysisTest extends CompilerTest {
     OperatorToFunction
   )
 
-  val passConfig = new PassConfiguration(
-    Map(AliasAnalysis -> AliasAnalysis.Configuration(true))
+  val passConfig = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration(true)
   )
 
   implicit val passManager: PassManager =

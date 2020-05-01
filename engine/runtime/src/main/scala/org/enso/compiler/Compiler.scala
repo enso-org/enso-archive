@@ -9,6 +9,7 @@ import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
@@ -62,11 +63,9 @@ class Compiler(
   )
 
   /** Configuration for the passes. */
-  val passConfig = new PassConfiguration(
-    Map(
-      ApplicationSaturation -> ApplicationSaturation.Configuration(),
-      AliasAnalysis         -> AliasAnalysis.Configuration()
-    )
+  val passConfig: PassConfiguration = PassConfiguration(
+    ApplicationSaturation -->> ApplicationSaturation.Configuration(),
+    AliasAnalysis         -->> AliasAnalysis.Configuration()
   )
 
   /** The pass manager for running compiler passes. */

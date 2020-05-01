@@ -1,16 +1,14 @@
 package org.enso.compiler.pass
 
-import shapeless.{HList, LUBConstraint}
-
-import scala.annotation.unused
+import org.enso.compiler.pass.PassConfiguration.ConfigPair
 
 /** Stores configuration for the various compiler passes. */
 class PassConfiguration(
-  configs: Map[IRPass, Any] = Map()
+  configs: Seq[ConfigPair[_]] = Seq()
 ) {
-  // TODO [AA] Ensure that the constructor is type safe (use hlists of
-  //  dependent pairs)
-  private var configuration: Map[IRPass, Any] = configs
+  private val pairs: Seq[(IRPass, Any)] =
+    configs.map(_.asPair.asInstanceOf[(IRPass, Any)])
+  private var configuration: Map[IRPass, Any] = Map(pairs: _*)
 
   /** Adds a new configuration entity to the pass configuration, or updates it
     * if it already exists for a given pass.
@@ -59,24 +57,62 @@ class PassConfiguration(
     case _                       => false
   }
 }
-// TODO [AA] Organisation for better imports
-object PassConfiguration {
+object PassConfiguration extends PassConfigurationSyntax {
 
-  def apply[XS <: HList](
-    @unused pairs: XS
-  )(
-    ): PassConfiguration = {
-
-    new PassConfiguration
+  /** Creates a new pass configuration safely.
+    *
+    * @param pairs the pairs of (pass, configuration)
+    * @return a new [[PassConfiguration]]
+    */
+  def apply(pairs: ConfigPair[_]*): PassConfiguration = {
+    new PassConfiguration(pairs)
   }
 
+  /** A dependent pair type for storing a pass and its configuration type.
+    *
+    * @tparam P the concrete pass type
+    */
   sealed trait ConfigPair[P <: IRPass] {
+
+    /** The pass itself. */
     val pass: P
+
+    /** The configuration instance for [[pass]]. */
     val config: pass.Config
 
+    /** Creates a string representation of the dependent pair.
+      *
+      * @return a string representation of `this`
+      */
     override def toString: String = s"ConfigPair(pass: $pass, config: $config)"
+
+    /** Determines whether two config pairs are equal.
+      *
+      * @param obj the object to check for equality against `this`
+      * @return `true` if `this == obj`, otherwise `false`
+      */
+    override def equals(obj: Any): Boolean = obj match {
+      case that: ConfigPair[_] =>
+        (this.pass == that.pass) && (this.config == that.config)
+      case _ => false
+    }
+
+    /** Converts the dependent pair into a standard pair ([[Tuple2]]).
+      *
+      * @return `this` as a pair
+      */
+    def asPair: (pass.type, pass.Config) = (pass, config)
   }
   object ConfigPair {
+
+    /** Constructs a new config pair from a pass and configuration for that
+      * pass.
+      *
+      * @param newPass the pass
+      * @param configuration the configuration for `pass`
+      * @tparam P the concrete type of `newPass`
+      * @return a config pair containing `newPass` and `configuration`
+      */
     def apply[P <: IRPass](newPass: P)(
       configuration: newPass.Config
     ): ConfigPair[newPass.type] = {
@@ -85,13 +121,27 @@ object PassConfiguration {
         val config = configuration
       }
     }
+  }
+}
 
-    object syntax {
-      implicit final class ToPair[P <: IRPass](val pass: P) {
-        def -->>(config: pass.Config): ConfigPair[pass.type] = {
-          ConfigPair(pass)(config)
-        }
-      }
+/** Useful syntax for working with pass configuration. */
+trait PassConfigurationSyntax {
+
+  /** Adds an extension method on passes for concatenating them into pairs with
+    * configuration for the pass.
+    *
+    * @param pass the pass to create a pair with
+    * @tparam P the concrete type of `pass`
+    */
+  implicit final class ToPair[P <: IRPass](val pass: P) {
+
+    /** Concatenates [[pass]] with a configuration object for that pass.
+      *
+      * @param config the configuration to turn into a pair
+      * @return the pair of ([[pass]], configuration)
+      */
+    def -->>(config: pass.Config): ConfigPair[pass.type] = {
+      ConfigPair(pass)(config)
     }
   }
 }

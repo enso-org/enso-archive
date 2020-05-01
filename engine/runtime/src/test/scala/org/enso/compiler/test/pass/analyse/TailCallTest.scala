@@ -14,19 +14,20 @@ import org.enso.compiler.pass.desugar.{
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.pass.PassConfiguration._
 
 class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val modCtx = ModuleContext()
+  val modCtx: ModuleContext = ModuleContext()
 
-  val tailCtx = InlineContext(
+  val tailCtx: InlineContext = InlineContext(
     localScope       = Some(LocalScope.root),
     isInTailPosition = Some(true)
   )
 
-  val noTailCtx = InlineContext(
+  val noTailCtx: InlineContext = InlineContext(
     localScope       = Some(LocalScope.root),
     isInTailPosition = Some(false)
   )
@@ -38,8 +39,8 @@ class TailCallTest extends CompilerTest {
     AliasAnalysis
   )
 
-  val passConfiguration = new PassConfiguration(
-    Map(AliasAnalysis -> AliasAnalysis.Configuration())
+  val passConfiguration: PassConfiguration = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 
   val passManager = new PassManager(precursorPasses, passConfiguration)
