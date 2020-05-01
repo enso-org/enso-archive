@@ -3095,13 +3095,21 @@ object IR {
     }
 
     /** Checks two diagnostics storages for equality.
-     *
-     * @param obj the object to check against `this`
-     * @return `true` if `this == obj`, otherwise `false`
-     */
+      *
+      * @param obj the object to check against `this`
+      * @return `true` if `this == obj`, otherwise `false`
+      */
     override def equals(obj: Any): Boolean = obj match {
       case that: DiagnosticStorage => this.diagnostics == that.diagnostics
-      case _ => false
+      case _                       => false
+    }
+
+    /** Creates a list of the diagnostics contained in the diagnostics storage.
+      *
+      * @return a list of the diagnostics in the storage
+      */
+    def toList: List[IR.Diagnostic] = {
+      diagnostics
     }
   }
   object DiagnosticStorage {
