@@ -53,8 +53,24 @@ class SectionsToBinOpTest extends CompilerTest {
           |(+)
           |""".stripMargin.preprocessExpression.get.desugar
 
-      ir shouldBe an[IR.Application.Prefix]
-      ir.asInstanceOf[IR.Application.Prefix].arguments.length shouldEqual 0
+      ir shouldBe an[IR.Function.Lambda]
+
+      val irLam = ir.asInstanceOf[IR.Function.Lambda]
+      irLam.arguments.length shouldEqual 1
+
+      val lamArgName =
+        irLam.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+
+      val lamBody = irLam.body.asInstanceOf[IR.Application.Prefix]
+      lamBody.arguments.length shouldEqual 1
+      val lamBodyFirstArg =
+        lamBody.arguments.head
+          .asInstanceOf[IR.CallArgument.Specified]
+          .value
+          .asInstanceOf[IR.Name.Literal]
+
+      lamBodyFirstArg.name shouldEqual lamArgName.name
+      lamBodyFirstArg.getId should not equal lamArgName.getId
     }
 
     "work for right sections" in {

@@ -59,12 +59,15 @@ case object SectionsToBinOp extends IRPass {
 
   /** Desugars operator sections to fully-saturated applications of operators.
     *
-    * For a left and sides sections it will generate a partially-applied
-    * function. For right sections it will generate a lambda.
+    * For a left sections it will generate a partially-applied function. For
+    * right sections it will generate a lambda. For sides sections it is forced
+    * to generate a lambda returning a partially applied function as we do not
+    * currently support partial application without the this argument.
     *
     * @param section the section to desugar
     * @return the result of desugaring `section`
     */
+  //noinspection DuplicatedCode
   def desugarSections(
     section: IR.Application.Operator.Section,
     freshNameSupply: FreshNameSupply
@@ -80,11 +83,31 @@ case object SectionsToBinOp extends IRPass {
           diagnostics
         )
       case Section.Sides(op, loc, passData, diagnostics) =>
-        IR.Application.Prefix(
+        val leftArgName = freshNameSupply.newName()
+        val leftCallArg =
+          IR.CallArgument.Specified(None, leftArgName, None, None)
+        val leftDefArg = IR.DefinitionArgument.Specified(
+          // Ensure it has a different identifier
+          leftArgName.copy(id = IR.randomId),
+          None,
+          suspended = false,
+          None
+        )
+
+        val opCall = IR.Application.Prefix(
           op,
-          List(),
+          List(leftCallArg),
           hasDefaultsSuspended = false,
           loc,
+          passData,
+          diagnostics
+        )
+
+        IR.Function.Lambda(
+          List(leftDefArg),
+          opCall,
+          loc,
+          canBeTCO = true,
           passData,
           diagnostics
         )
