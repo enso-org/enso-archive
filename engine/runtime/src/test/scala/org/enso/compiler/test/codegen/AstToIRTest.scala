@@ -122,6 +122,16 @@ class AstToIRTest extends CompilerTest {
         .asInstanceOf[IR.CallArgument.Specified]
         .value shouldBe an[IR.Expression.Blank]
     }
+
+    "allow functions in applications to be blanks" in {
+      val ir =
+        """
+          |_ a b c
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Prefix]
+
+      ir.function shouldBe an[IR.Expression.Blank]
+    }
   }
 
   "AST translation of case expressions" should {
