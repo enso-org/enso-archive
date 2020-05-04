@@ -105,6 +105,10 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument
           )
         )
+      case _: IR.Expression.Blank =>
+        throw new CompilerError(
+          "Blanks should not be present during demand analysis."
+        )
     }
   }
 

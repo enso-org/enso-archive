@@ -142,6 +142,10 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(this -->> info)
 
       case error: IR.Error => error
+      case _: IR.Expression.Blank =>
+        throw new CompilerError(
+          "Blanks should not be present during dataflow analysis."
+        )
     }
   }
 

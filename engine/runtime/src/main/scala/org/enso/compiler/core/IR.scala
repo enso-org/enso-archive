@@ -496,6 +496,47 @@ object IR {
   }
   object Expression {
 
+    /** Represents occurrences of blank (`_`) expressions.
+      *
+      * @param location the soure location that the node corresponds to.
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Blank(
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Expression
+        with IRKind.Sugar {
+      override protected var id: Identifier = randomId
+
+      def copy(
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Blank = {
+        val res = Blank(location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Expression =
+        this
+
+      override def toString: String =
+        s"""
+           |IR.Expression.Blank(
+           |location = $location,
+           |passData = $passData,
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".stripMargin
+
+      override def children: List[IR] = List()
+    }
+
     // TODO [AA] Remove suspended blocks from Enso.
     /** A block expression.
       *
@@ -2020,6 +2061,17 @@ object IR {
           override def mapExpressions(fn: Expression => Expression): Section =
             copy(operator = operator.mapExpressions(fn))
 
+          override def toString: String =
+            s"""
+            |IR.Application.Operator.Section.Centre(
+            |operator =  $operator,
+            |location = $location,
+            |passData = $passData,
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
           override def children: List[IR] = List(operator)
         }
 
@@ -2071,6 +2123,18 @@ object IR {
             )
           }
 
+          override def toString: String =
+            s"""
+            |IR.Application.Operator.Section.Right(
+            |operator =  $operator,
+            |arg = $arg,
+            |location = $location,
+            |passData = $passData,
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
           override def children: List[IR] = List(operator, arg)
         }
       }
@@ -2101,6 +2165,9 @@ object IR {
   object CallArgument {
 
     /** A representation of an argument at a function call site.
+      *
+      * A [[CallArgument]] where the `value` is an [[IR.Expression.Blank]] is a
+      * representation of a lambda shorthand argument.
       *
       * @param name the name of the argument being called, if present
       * @param value the expression being passed as the argument's value
@@ -2172,11 +2239,7 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = name.toList :+ value
-
     }
-
-    // TODO [AA] Add support for the `_` lambda shorthand argument (can be
-    //  called by name)
   }
 
   // === Case Expression ======================================================
