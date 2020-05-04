@@ -153,11 +153,13 @@ jobs:
     - name: Build Enso
       run: sbt --no-colors compile
 
-    # Artefacts
+    # Build Artefacts
     - name: Build the Uberjar
       run: sbt --no-colors runner/assembly
     - name: Build the Parser JS Bundle
       run: sbt -no-colors syntaxJS/fullOptJS
+
+    # Publish
     - name: Publish the Uberjar
       uses: actions/upload-artifact@v1.0.0
       with:
