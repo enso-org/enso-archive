@@ -2,6 +2,7 @@ package org.enso.compiler.codegen
 
 import cats.Foldable
 import cats.implicits._
+import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
@@ -414,11 +415,7 @@ object AstToIR {
         )
       case AST.App.Prefix(_, _) =>
         throw new UnhandledEntity(callable, "translateCallable")
-      case AST.App.Section.any(_) =>
-        Error.Syntax(
-          callable,
-          Error.Syntax.UnsupportedSyntax("operator sections")
-        )
+      case AST.App.Section.any(sec) => translateOperatorSection(sec)
       case AST.Mixfix(nameSegments, args) =>
         val realNameSegments = nameSegments.collect {
           case AST.Ident.Var.any(v)  => v.name
@@ -435,6 +432,58 @@ object AstToIR {
           getIdentifiedLocation(callable)
         )
       case _ => throw new UnhandledEntity(callable, "translateCallable")
+    }
+  }
+
+  /** Translates an operator section from its [[AST]] representation into the
+    * [[IR]] representation.
+    *
+    * @param section the operator section
+    * @return the [[IR]] representation of `section`
+    */
+  def translateOperatorSection(
+    section: AST.App.Section
+  ): Expression = {
+    section match {
+      case AST.App.Section.Left.any(left) =>
+        val leftArg = translateCallArgument(left.arg)
+
+        if (leftArg.name.isDefined) {
+          Error.Syntax(section, Error.Syntax.NamedArgInSection)
+        } else {
+          leftArg.value match {
+            case _: IR.Expression.Blank =>
+              Error.Syntax(section, Error.Syntax.BlankArgInSection)
+            case _ =>
+              Application.Operator.Section.Left(
+                leftArg,
+                Name.Literal(left.opr.name, getIdentifiedLocation(left.opr)),
+                getIdentifiedLocation(left)
+              )
+          }
+        }
+      case AST.App.Section.Sides.any(sides) =>
+        Application.Operator.Section.Sides(
+          Name.Literal(sides.opr.name, getIdentifiedLocation(sides.opr)),
+          getIdentifiedLocation(sides)
+        )
+      case AST.App.Section.Right.any(right) =>
+        val rightArg = translateCallArgument(right.arg)
+
+        if (rightArg.name.isDefined) {
+          Error.Syntax(section, Error.Syntax.NamedArgInSection)
+        } else {
+          rightArg.value match {
+            case _: IR.Expression.Blank =>
+              Error.Syntax(section, Error.Syntax.BlankArgInSection)
+            case _ =>
+              Application.Operator.Section.Right(
+                Name.Literal(right.opr.name, getIdentifiedLocation(right.opr)),
+                translateCallArgument(right.arg),
+                getIdentifiedLocation(right)
+              )
+          }
+        }
     }
   }
 
@@ -457,10 +506,7 @@ object AstToIR {
       case AST.Ident.Cons(name) =>
         Name.Literal(name, getIdentifiedLocation(identifier))
       case AST.Ident.Blank(_) =>
-        Error.Syntax(
-          identifier,
-          Error.Syntax.UnsupportedSyntax("blanks")
-        )
+        Expression.Blank(getIdentifiedLocation(identifier))
       case AST.Ident.Opr.any(_) =>
         Error.Syntax(
           identifier,

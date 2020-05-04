@@ -2021,14 +2021,14 @@ object IR {
           override def children: List[IR] = List(arg, operator)
         }
 
-        /** Represents a centre operator section of the form `(op)`
+        /** Represents a sides operator section of the form `(op)`
           *
           * @param operator the operator
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
           * @param diagnostics compiler diagnostics for this node
           */
-        sealed case class Centre(
+        sealed case class Sides(
           operator: IR.Name,
           override val location: Option[IdentifiedLocation],
           override val passData: MetadataStorage      = MetadataStorage(),
@@ -2052,8 +2052,8 @@ object IR {
             passData: MetadataStorage            = passData,
             diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
-          ): Centre = {
-            val res = Centre(operator, location, passData, diagnostics)
+          ): Sides = {
+            val res = Sides(operator, location, passData, diagnostics)
             res.id = id
             res
           }
@@ -2704,6 +2704,13 @@ object IR {
         override def explanation: String = "Unclosed text literal."
       }
 
+      case object NamedArgInSection extends Reason {
+        override def explanation: String = "Named argument in operator section."
+      }
+
+      case object BlankArgInSection extends Reason {
+        override def explanation: String = "Blank argument in operator section."
+      }
     }
 
     /** A representation of an invalid piece of IR.

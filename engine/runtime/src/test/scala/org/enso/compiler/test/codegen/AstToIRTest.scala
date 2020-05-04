@@ -31,4 +31,75 @@ class AstToIRTest extends CompilerTest {
         .body shouldBe an[IR.Function.Lambda]
     }
   }
+
+  "AST translation of operator sections" should {
+    "work properly for left sections" in {
+      val ir =
+        """
+          |(1 +)
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Application.Operator.Section.Left]
+    }
+
+    "work properly for sides sections" in {
+      val ir =
+        """
+          |(+)
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Application.Operator.Section.Sides]
+    }
+
+    "work properly for right sections" in {
+      val ir =
+        """
+          |(+ 1)
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Application.Operator.Section.Right]
+    }
+
+    "disallow sections with blank arguments" in {
+      val ir =
+        """
+          |(_ +)
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.BlankArgInSection.type]
+    }
+
+    "disallow sections with named arguments" in {
+      val ir =
+        """
+          |(+ (left=1))
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.NamedArgInSection.type]
+    }
+  }
+
+  "AST translation of function applications" should {
+    "allow use of blank arguments" in {
+      pending
+    }
+
+    "allow use of named blank arguments" in {
+      pending
+    }
+
+    "allow method-call syntax on a blank" in {
+      pending
+    }
+  }
+
+  "AST translation of case expressions" should {
+    "support a blank scrutinee" in {
+      pending
+    }
+  }
 }
