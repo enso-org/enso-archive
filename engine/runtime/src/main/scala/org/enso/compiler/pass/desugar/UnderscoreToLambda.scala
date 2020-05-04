@@ -86,31 +86,69 @@ case object UnderscoreToLambda extends IRPass {
     freshNameSupply: FreshNameSupply
   ): IR.Expression = {
     application match {
-      case p @ IR.Application.Prefix(_, args, _, _, _, _) =>
-        // TODO [AA] underscores can occur in the function position or the arg
-        //  positions
+      case p @ IR.Application.Prefix(fn, args, _, _, _, _) =>
         // TODO [AA] Be super careful about order (a _ _ c) needs to maintain
         //  the order of lam args (even in the named case)
-        // TODO [AA] I can (and should) generate single arg lambdas here.
 
         // Determine which arguments are lambda shorthand
         val argIsUnderscore = determineLambdaShorthand(args)
 
-        // TODO 2. For each underscore generate a new name instance, and replace
-        //  the arg value with it
-        @unused val updatedArgs =
+        // Generate a new name for the arg value for each shorthand arg
+        val updatedArgs =
           args.zip(argIsUnderscore).map(updateShorthandArg(_, freshNameSupply))
 
-        // TODO 3. Generate a definition arg instance for each call arg that
-        //  was an underscore
+        // Generate a definition arg instance for each shorthand arg
+        val defArgs = updatedArgs.zip(argIsUnderscore).map {
+          case (arg, isShorthand) => generateDefinitionArg(arg, isShorthand)
+        }
+        @unused val actualDefArgs = defArgs.collect {
+          case Some(defArg) => defArg
+        }
 
-        // TODO 4. Wrap the app in lambdas from right to left, one lambda per
-        //  underscore arg
+        // Determine whether or not the function itself is shorthand
+        val functionIsShorthand = fn.isInstanceOf[IR.Expression.Blank]
+        val (updatedFn, updatedName) = if (functionIsShorthand) {
+          val newFn = freshNameSupply
+            .newName()
+            .copy(
+              location    = fn.location,
+              passData    = fn.passData,
+              diagnostics = fn.diagnostics
+            )
+          val newName = newFn.name
+          (newFn, Some(newName))
+        } else (fn, None)
 
-        // TODO 5. If the function is a lambda, then do the same for the
-        //  function, wrapping it as the outermost arg
+        val processedApp = p.copy(
+          function  = updatedFn,
+          arguments = updatedArgs
+        )
 
-        p
+        // Wrap the app in lambdas from right to left, lambda / shorthand arg
+        val appResult =
+          actualDefArgs.foldRight(processedApp: IR.Expression)((arg, body) =>
+            IR.Function.Lambda(
+              List(arg),
+              body,
+              None
+            )
+          )
+
+        // If the function is shorthand, do the same
+        if (functionIsShorthand) {
+          IR.Function.Lambda(
+            List(
+              IR.DefinitionArgument.Specified(
+                IR.Name.Literal(updatedName.get, fn.location),
+                None,
+                suspended = false,
+                None
+              )
+            ),
+            appResult,
+            None
+          )
+        } else appResult
       case f @ IR.Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
       case _: IR.Application.Operator =>
@@ -168,6 +206,44 @@ case object UnderscoreToLambda extends IRPass {
         } else s
     }
   }
+
+  /** Generates a corresponding definition argument to a call argument that was
+    * previously lambda shorthand.
+    *
+    * @param arg the argument to generate a corresponding def argument to
+    * @param isShorthand whether or not `arg` was shorthand
+    * @return a corresponding definition argument if `arg` `isShorthand`,
+    *         otherwise [[None]]
+    */
+  def generateDefinitionArg(
+    @unused arg: IR.CallArgument,
+    isShorthand: Boolean
+  ): Option[IR.DefinitionArgument] = {
+    if (isShorthand) {
+      arg match {
+        case IR.CallArgument.Specified(_, value, _, _, _, _) =>
+          // Note [Safe Casting to IR.Name.Literal]
+          val defArgName =
+            IR.Name.Literal(value.asInstanceOf[IR.Name.Literal].name, None)
+
+          Some(
+            IR.DefinitionArgument.Specified(
+              defArgName,
+              None,
+              suspended = false,
+              None
+            )
+          )
+      }
+    } else None
+  }
+
+  /* Note [Safe Casting to IR.Name.Literal]
+   * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   * This cast is entirely safe here as, by construction in
+   * `updateShorthandArg`, any arg for which `isShorthand` is true has its
+   * value as an `IR.Name.Literal`.
+   */
 
   /** Performs desugaring of lambda shorthand arguments in a case expression.
     *
