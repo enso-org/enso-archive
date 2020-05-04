@@ -11,11 +11,8 @@ import org.enso.compiler.core.IR.{Expression, Module}
 import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
-import org.enso.compiler.pass.desugar.{
-  GenerateMethodBodies,
-  OperatorToFunction
-}
-import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.optimise._
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -50,6 +47,7 @@ class Compiler(
     */
   val compilerPhaseOrdering: List[IRPass] = List(
     GenerateMethodBodies,
+    SectionsToBinOp,
     OperatorToFunction,
     AliasAnalysis,
     LambdaConsolidate,
