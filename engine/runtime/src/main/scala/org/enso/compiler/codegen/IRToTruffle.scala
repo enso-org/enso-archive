@@ -740,6 +740,11 @@ class IRToTruffle(
           throw new CompilerError(
             s"Explicit operators not supported during codegen but $op found"
           )
+        case sec: IR.Application.Operator.Section =>
+          throw new CompilerError(
+            s"Explicit operator sections not supported during codegen but " +
+              s"$sec found"
+          )
       }
   }
 

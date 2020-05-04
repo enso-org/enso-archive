@@ -171,6 +171,7 @@ object IR {
       |IR.Empty(
       |location = $location,
       |passData = ${this.showPassData},
+      |diagnostics = $diagnostics,
       |id = $id
       |)
       |""".toSingleLine
@@ -251,6 +252,7 @@ object IR {
       |bindings = $bindings,
       |location = $location,
       |passData = ${this.showPassData},
+      |diagnostics = $diagnostics,
       |id = $id
       |)
       |""".toSingleLine
@@ -310,6 +312,7 @@ object IR {
           |name = $name,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |)
           |""".toSingleLine
@@ -378,6 +381,7 @@ object IR {
             |arguments = $arguments,
             |location = $location,
             |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
@@ -457,6 +461,7 @@ object IR {
             |body = $body,
             |location = $location,
             |passData = ${this.showPassData},
+            |diagnostics = $diagnostics,
             |id = $id
             |)
             |""".toSingleLine
@@ -559,6 +564,7 @@ object IR {
         |location = $location,
         |suspended = $suspended,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -618,6 +624,7 @@ object IR {
         |expression = $expression,
         |location = $location
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -677,6 +684,7 @@ object IR {
         |value = $value,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -728,6 +736,7 @@ object IR {
         |text = $text,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -790,6 +799,7 @@ object IR {
         |name = $name,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -837,6 +847,7 @@ object IR {
         |IR.Name.This(
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -884,6 +895,7 @@ object IR {
         s"""IR.Name.Here(
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -956,6 +968,7 @@ object IR {
            |signature = $signature,
            |location = $location,
            |passData = ${this.showPassData},
+           |diagnostics = $diagnostics,
            |id = $id
            |)
            |""".stripMargin
@@ -1018,6 +1031,7 @@ object IR {
         |context = $context,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1097,6 +1111,7 @@ object IR {
           |value = $value,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |)
           |""".toSingleLine
@@ -1162,6 +1177,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1224,6 +1240,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1286,6 +1303,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1348,6 +1366,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1412,6 +1431,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1476,6 +1496,7 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |""".toSingleLine
 
@@ -1576,6 +1597,7 @@ object IR {
         |location = $location,
         |canBeTCO = $canBeTCO,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1665,6 +1687,7 @@ object IR {
         |suspended = $suspended,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1751,6 +1774,7 @@ object IR {
         |hasDefaultsSuspended = $hasDefaultsSuspended,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1806,6 +1830,7 @@ object IR {
         |target = $target,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -1878,12 +1903,176 @@ object IR {
           |right = $right,
           |location = $location,
           |passData = ${this.showPassData},
+          |diagnostics = $diagnostics,
           |id = $id
           |)
           |""".toSingleLine
 
         override def children: List[IR] = List(left, operator, right)
 
+      }
+
+      /** Operator sections. */
+      sealed trait Section extends Operator {
+        override def mapExpressions(fn: Expression => Expression): Section
+      }
+      object Section {
+
+        /** Represents a left operator section of the form `(arg op)`.
+          *
+          * @param arg the argument (on the left of the operator)
+          * @param operator the operator
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Left(
+          arg: CallArgument,
+          operator: IR.Name,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Section
+            with IRKind.Sugar {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param arg the argument (on the left of the operator)
+            * @param operator the operator
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            arg: CallArgument                    = arg,
+            operator: IR.Name                    = operator,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: IR.Identifier                    = id
+          ): Left = {
+            val res = Left(arg, operator, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Section =
+            copy(
+              arg      = arg.mapExpressions(fn),
+              operator = operator.mapExpressions(fn)
+            )
+
+          override def toString: String =
+            s"""
+            |IR.Application.Operator.Section.Left(
+            |arg = $arg,
+            |operator =  $operator,
+            |location = $location,
+            |passData = $passData,
+            |diagnostics = $diagnostics,
+            |id = $id
+            |)
+            |""".toSingleLine
+
+          override def children: List[IR] = List(arg, operator)
+        }
+
+        /** Represents a centre operator section of the form `(op)`
+          *
+          * @param operator the operator
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
+        sealed case class Centre(
+          operator: IR.Name,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Section
+            with IRKind.Sugar {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+            *
+            * @param operator the operator
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
+          def copy(
+            operator: IR.Name                    = operator,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Centre = {
+            val res = Centre(operator, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Section =
+            copy(operator = operator.mapExpressions(fn))
+
+          override def children: List[IR] = List(operator)
+        }
+
+        /** Represents a right operator section of the form `(op arg)`
+         *
+         * @param operator the operator
+         * @param arg the argument (on the right of the operator)
+         * @param location the source location that the node corresponds to
+         * @param passData the pass metadata associated with this node
+         * @param diagnostics compiler diagnostics for this node
+         */
+        sealed case class Right(
+          operator: IR.Name,
+          arg: CallArgument,
+          override val location: Option[IdentifiedLocation],
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+        ) extends Section
+            with IRKind.Sugar {
+          override protected var id: Identifier = randomId
+
+          /** Creates a copy of `this`.
+           *
+           * @param operator the operator
+           * @param arg the argument (on the right of the operator)
+           * @param location the source location that the node corresponds to
+           * @param passData the pass metadata associated with this node
+           * @param diagnostics compiler diagnostics for this node
+           * @param id the identifier for the new node
+           * @return a copy of `this`, updated with the specified values
+           */
+          def copy(
+            operator: IR.Name                    = operator,
+            arg: CallArgument                    = arg,
+            location: Option[IdentifiedLocation] = location,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
+            id: Identifier                       = id
+          ): Right = {
+            val res = Right(operator, arg, location, passData, diagnostics)
+            res.id = id
+            res
+          }
+
+          override def mapExpressions(fn: Expression => Expression): Section = {
+            copy(
+              operator = operator.mapExpressions(fn),
+              arg      = arg.mapExpressions(fn)
+            )
+          }
+
+          override def children: List[IR] = List(operator, arg)
+        }
       }
     }
 
@@ -1977,6 +2166,7 @@ object IR {
         |location = $location,
         |shouldBeSuspended = $shouldBeSuspended,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2059,6 +2249,7 @@ object IR {
         |fallback = $fallback,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2120,6 +2311,7 @@ object IR {
         |expression = $expression,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2202,6 +2394,7 @@ object IR {
         |doc = $doc,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2270,6 +2463,7 @@ object IR {
         |code = $code,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2399,6 +2593,7 @@ object IR {
         |ast = $ast,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2493,6 +2688,7 @@ object IR {
         |ir = $ir,
         |location = $location,
         |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
         |id = $id
         |)
         |""".toSingleLine
@@ -2559,6 +2755,7 @@ object IR {
              |invalidBinding = $invalidBinding,
              |location = $location,
              |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
              |id = $id
              |)
              |""".stripMargin

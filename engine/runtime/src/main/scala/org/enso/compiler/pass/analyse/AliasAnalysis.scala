@@ -35,6 +35,9 @@ import scala.reflect.ClassTag
   *   the lambda.
   * - A method whose body is a lambda containing a block as its body allocates
   *   no additional scope for the lambda or the block.
+  *
+  * It doesn't need to cope with any syntactic sugar that can be removed without
+  * the need for aliasing information.
   */
 case object AliasAnalysis extends IRPass {
 
@@ -329,7 +332,10 @@ case object AliasAnalysis extends IRPass {
         throw new CompilerError(
           "Binary operator occurred during Alias Analysis."
         )
-
+      case _: IR.Application.Operator.Section =>
+        throw new CompilerError(
+          "Operator section occurred during Alias Analysis."
+        )
     }
   }
 
