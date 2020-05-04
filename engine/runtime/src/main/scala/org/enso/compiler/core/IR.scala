@@ -2139,8 +2139,6 @@ object IR {
         }
       }
     }
-
-    // TODO [AA] Add support for left, right, and centre sections
   }
 
   // === Call-Site Arguments ==================================================
