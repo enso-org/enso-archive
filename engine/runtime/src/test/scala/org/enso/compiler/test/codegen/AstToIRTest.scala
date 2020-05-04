@@ -98,17 +98,41 @@ class AstToIRTest extends CompilerTest {
     }
 
     "allow use of named blank arguments" in {
-      pending
+      val ir =
+        """
+          |a b (f = _) c
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Prefix]
+
+      ir.arguments(1) shouldBe an[IR.CallArgument.Specified]
+      ir.arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value shouldBe an[IR.Expression.Blank]
     }
 
     "allow method-call syntax on a blank" in {
-      pending
+      val ir =
+        """
+          |_.foo a b
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Prefix]
+
+      ir.arguments.head shouldBe an[IR.CallArgument.Specified]
+      ir.arguments.head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value shouldBe an[IR.Expression.Blank]
     }
   }
 
   "AST translation of case expressions" should {
     "support a blank scrutinee" in {
-      pending
+      val ir =
+        """
+          |case _ of
+          |    Cons a b -> a + b
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
+
+      ir.scrutinee shouldBe an[IR.Expression.Blank]
     }
   }
 }
