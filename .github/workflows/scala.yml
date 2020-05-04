@@ -156,13 +156,13 @@ jobs:
     # Artefacts
     - name: Build the Uberjar
       run: sbt --no-colors runner/assembly
+    - name: Build the Parser JS Bundle
+      run: sbt -no-colors syntaxJS/fullOptJS
     - name: Publish the Uberjar
       uses: actions/upload-artifact@v1.0.0
       with:
         name: Enso CLI
         path: ./enso.jar
-    - name: Build the Parser JS Bundle
-      run: sbt -no-colors syntaxJS/fullOptJS
     - name: Prepare the FlatBuffers Schemas for Upload
       run: |
         mkdir fbs-upload
