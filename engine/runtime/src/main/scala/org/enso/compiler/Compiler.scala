@@ -49,6 +49,7 @@ class Compiler(
     GenerateMethodBodies,
     SectionsToBinOp,
     OperatorToFunction,
+    UnderscoreToLambda,
     AliasAnalysis,
     LambdaConsolidate,
     AliasAnalysis,

@@ -19,13 +19,27 @@ class SectionsToBinOpTest extends CompilerTest {
   implicit val passManager: PassManager =
     new PassManager(passes, passConfiguration)
 
+  /** Adds an extension method for running desugaring on the input IR.
+    *
+    * @param ir the IR to desugar
+    */
   implicit class DesugarExpression(ir: IR.Expression) {
 
+    /** Runs section desugaring on [[ir]].
+      *
+      * @param inlineContext the inline context in which the desugaring takes
+      *                      place
+      * @return [[ir]], with all sections desugared
+      */
     def desugar(implicit inlineContext: InlineContext): IR.Expression = {
       SectionsToBinOp.runExpression(ir, inlineContext)
     }
   }
 
+  /** Makes an inline context.
+   *
+   * @return a new inline context
+   */
   def mkInlineContext: InlineContext = {
     InlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
