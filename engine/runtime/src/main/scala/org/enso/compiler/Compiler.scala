@@ -13,7 +13,6 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
-  LiftSpecialOperators,
   OperatorToFunction
 }
 import org.enso.compiler.pass.optimise.LambdaConsolidate
@@ -51,7 +50,6 @@ class Compiler(
     */
   val compilerPhaseOrdering: List[IRPass] = List(
     GenerateMethodBodies,
-    LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,
     LambdaConsolidate,

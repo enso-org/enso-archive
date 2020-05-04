@@ -407,9 +407,9 @@ object AstToIR {
         }
       case AST.App.Infix(left, fn, right) =>
         Application.Operator.Binary(
-          translateExpression(left),
+          translateCallArgument(left),
           Name.Literal(fn.name, getIdentifiedLocation(fn)),
-          translateExpression(right),
+          translateCallArgument(right),
           getIdentifiedLocation(callable)
         )
       case AST.App.Prefix(_, _) =>

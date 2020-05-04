@@ -1855,9 +1855,9 @@ object IR {
         * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Binary(
-        left: Expression,
+        left: CallArgument,
         operator: IR.Name,
-        right: Expression,
+        right: CallArgument,
         override val location: Option[IdentifiedLocation],
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1877,9 +1877,9 @@ object IR {
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
-          left: Expression                     = left,
+          left: CallArgument                   = left,
           operator: IR.Name                    = operator,
-          right: Expression                    = right,
+          right: CallArgument                  = right,
           location: Option[IdentifiedLocation] = location,
           passData: MetadataStorage            = passData,
           diagnostics: DiagnosticStorage       = diagnostics,
@@ -1892,7 +1892,7 @@ object IR {
         }
 
         override def mapExpressions(fn: Expression => Expression): Binary = {
-          copy(left = fn(left), right = fn(right))
+          copy(left = left.mapExpressions(fn), right = right.mapExpressions(fn))
         }
 
         override def toString: String =
@@ -2024,13 +2024,13 @@ object IR {
         }
 
         /** Represents a right operator section of the form `(op arg)`
-         *
-         * @param operator the operator
-         * @param arg the argument (on the right of the operator)
-         * @param location the source location that the node corresponds to
-         * @param passData the pass metadata associated with this node
-         * @param diagnostics compiler diagnostics for this node
-         */
+          *
+          * @param operator the operator
+          * @param arg the argument (on the right of the operator)
+          * @param location the source location that the node corresponds to
+          * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
+          */
         sealed case class Right(
           operator: IR.Name,
           arg: CallArgument,
@@ -2042,15 +2042,15 @@ object IR {
           override protected var id: Identifier = randomId
 
           /** Creates a copy of `this`.
-           *
-           * @param operator the operator
-           * @param arg the argument (on the right of the operator)
-           * @param location the source location that the node corresponds to
-           * @param passData the pass metadata associated with this node
-           * @param diagnostics compiler diagnostics for this node
-           * @param id the identifier for the new node
-           * @return a copy of `this`, updated with the specified values
-           */
+            *
+            * @param operator the operator
+            * @param arg the argument (on the right of the operator)
+            * @param location the source location that the node corresponds to
+            * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
+            * @param id the identifier for the new node
+            * @return a copy of `this`, updated with the specified values
+            */
           def copy(
             operator: IR.Name                    = operator,
             arg: CallArgument                    = arg,
