@@ -85,7 +85,16 @@ class AstToIRTest extends CompilerTest {
 
   "AST translation of function applications" should {
     "allow use of blank arguments" in {
-      pending
+      val ir =
+        """
+          |a b _ d
+          |""".stripMargin.toIrExpression.get
+          .asInstanceOf[IR.Application.Prefix]
+
+      ir.arguments(1) shouldBe an[IR.CallArgument.Specified]
+      ir.arguments(1)
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value shouldBe an[IR.Expression.Blank]
     }
 
     "allow use of named blank arguments" in {
