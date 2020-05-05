@@ -32,11 +32,11 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
     */
   implicit class DesugarExpression(ir: IR.Expression) {
 
-    /** Runs section desugaring on [[ir]].
+    /** Runs lambda shorthand desugaring on [[ir]].
       *
       * @param inlineContext the inline context in which the desugaring takes
       *                      place
-      * @return [[ir]], with all sections desugared
+      * @return [[ir]], with all lambda shorthand desugared
       */
     def desugar(implicit inlineContext: InlineContext): IR.Expression = {
       LambdaShorthandToLambda.runExpression(ir, inlineContext)
@@ -347,6 +347,41 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .asInstanceOf[IR.Name.Literal]
 
       nilBodyArgName.name shouldEqual nilBodyBodyArg1Name.name
+    }
+  }
+
+  "A single lambda shorthand" should {
+    "translate to `id` in general" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |x = _
+          |""".stripMargin.toIrExpression.get.desugar
+
+      ir shouldBe an[IR.Expression.Binding]
+      val expr = ir.asInstanceOf[IR.Expression.Binding].expression
+
+      expr shouldBe an[IR.Function.Lambda]
+    }
+
+    "translate to an `id` in argument defaults" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |(x = _) -> x
+          |""".stripMargin.toIrExpression.get.desugar
+
+      ir shouldBe an[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+
+      irFn.arguments.head shouldBe an[IR.DefinitionArgument.Specified]
+      val arg =
+        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified]
+
+      arg.defaultValue shouldBe defined
+      arg.defaultValue.get shouldBe an[IR.Function.Lambda]
     }
   }
 }

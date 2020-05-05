@@ -2,7 +2,11 @@ package org.enso.compiler.core
 
 import java.util.UUID
 
-import org.enso.compiler.core.IR.{DiagnosticStorage, Expression, IdentifiedLocation}
+import org.enso.compiler.core.IR.{
+  DiagnosticStorage,
+  Expression,
+  IdentifiedLocation
+}
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.exception.CompilerError
@@ -570,6 +574,9 @@ object IR {
 
     /** A binding expression of the form `name = expr`
       *
+      * To create a binding that binds no available name, set the name of the
+      * binding to an [[IR.Name.Blank]] (e.g. _ = foo a b).
+      *
       * @param name the name being bound to
       * @param expression the expression being bound to `name`
       * @param location the source location that the node corresponds to
@@ -763,7 +770,7 @@ object IR {
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name
         with IRKind.Sugar {
-      override val name: String = "_"
+      override val name: String             = "_"
       override protected var id: Identifier = randomId
 
       def copy(
@@ -1650,6 +1657,9 @@ object IR {
   /** Definition-site arguments in Enso. */
   sealed trait DefinitionArgument extends IR {
 
+    /** The name of the argument. */
+    val name: IR.Name
+
     /** The default value of the argument. */
     val defaultValue: Option[Expression]
 
@@ -1666,7 +1676,7 @@ object IR {
       * [[IR.Module.Scope.Definition.Atom]] definition site.
       *
       * To create an ignored argument, the argument name should be an
-      * [[IR.Expression.Blank]].
+      * [[IR.Name.Blank]].
       *
       * @param name the name of the argument
       * @param defaultValue the default value of the argument, if present
@@ -1676,7 +1686,7 @@ object IR {
       * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Specified(
-      name: IR.Name,
+      override val name: IR.Name,
       override val defaultValue: Option[Expression],
       override val suspended: Boolean,
       override val location: Option[IdentifiedLocation],
@@ -2166,7 +2176,7 @@ object IR {
 
     /** A representation of an argument at a function call site.
       *
-      * A [[CallArgument]] where the `value` is an [[IR.Expression.Blank]] is a
+      * A [[CallArgument]] where the `value` is an [[IR.Name.Blank]] is a
       * representation of a lambda shorthand argument.
       *
       * @param name the name of the argument being called, if present
@@ -2780,9 +2790,6 @@ object IR {
         *
         * While bindings in child scopes are allowed to _shadow_ bindings in
         * parent scopes, a binding cannot be redefined within a given scope.
-        *
-        * To create a binding that binds no available name, set the name of the
-        * binding to an [[IR.Expression.Blank]] (e.g. _ = foo a b).
         *
         * @param invalidBinding the invalid binding
         * @param passData the pass metadata for the error

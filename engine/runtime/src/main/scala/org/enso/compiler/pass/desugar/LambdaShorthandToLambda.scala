@@ -72,6 +72,35 @@ case object LambdaShorthandToLambda extends IRPass {
     ir.transformExpressions {
       case app: IR.Application    => desugarApplication(app, freshNameSupply)
       case caseExpr: IR.Case.Expr => desugarCaseExpr(caseExpr, freshNameSupply)
+      case name: IR.Name          => desugarName(name, freshNameSupply)
+    }
+  }
+
+  /** Desugars an arbitrary name occurrence, turning isolated occurrences of
+   * `_` into the `id` function.
+   *
+   * @param name the name to desugar
+   * @param supply the compiler's fresh name supply
+   * @return `name`, desugared where necessary
+   */
+  def desugarName(name: IR.Name, supply: FreshNameSupply): IR.Expression = {
+    name match {
+      case blank: IR.Name.Blank =>
+        val newName = supply.newName()
+
+        IR.Function.Lambda(
+          List(
+            IR.DefinitionArgument.Specified(
+              IR.Name.Literal(newName.name, None),
+              None,
+              suspended = false,
+              None
+            )
+          ),
+          newName,
+          blank.location
+        )
+      case _ => name
     }
   }
 
@@ -87,9 +116,6 @@ case object LambdaShorthandToLambda extends IRPass {
   ): IR.Expression = {
     application match {
       case p @ IR.Application.Prefix(fn, args, _, _, _, _) =>
-        // TODO [AA] Be super careful about order (a _ _ c) needs to maintain
-        //  the order of lam args (even in the named case)
-
         // Determine which arguments are lambda shorthand
         val argIsUnderscore = determineLambdaShorthand(args)
 

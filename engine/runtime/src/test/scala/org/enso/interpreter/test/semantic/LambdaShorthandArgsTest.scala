@@ -32,7 +32,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
   subject should "work for functions in applications" in {
     val code =
-    """
+      """
         |main =
         |    add = a -> b -> a + b
         |    sub = a -> b -> a - b
@@ -62,7 +62,7 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
   subject should "work with case expressions" in {
     val code =
-    """
+      """
         |main =
         |    f = case _ of
         |           Cons a b -> 10
@@ -73,5 +73,20 @@ class LambdaShorthandArgsTest extends InterpreterTest {
         |""".stripMargin
 
     eval(code) shouldEqual -10
+  }
+
+  subject should "mean id when used alone" in {
+    val code =
+      """
+        |main =
+        |    f = (x = _) -> x
+        |    g = f.call
+        |    h = _
+        |    res1 = g 10
+        |    res2 = h 10
+        |    res1 - res2
+        |""".stripMargin
+
+    eval(code) shouldEqual 0
   }
 }
