@@ -229,12 +229,32 @@ object ContextRegistryProtocol {
     data: Array[Byte]
   )
 
+  /**
+    * Signals that a module cannot be found.
+    *
+    * @param moduleName the module name
+    */
   case class ModuleNotFound(moduleName: String) extends Failure
 
+  /**
+    * Signals that visualisation cannot be found.
+    */
   case object VisualisationNotFound extends Failure
 
+  /**
+    * Signals that an expression specified in a [[AttachVisualisation]] or
+    * a [[ModifyVisualisation]] cannot be evaluated.
+    *
+    * @param message the reason of the failure
+    */
   case class VisualisationExpressionFailed(message: String) extends Failure
 
+  /**
+    * Signals that an evaluation of a code responsible for generating
+    * visualisation data failed.
+    *
+    * @param message the reason of the failure
+    */
   case class VisualisationEvaluationFailed(message: String) extends Failure
 
 }
