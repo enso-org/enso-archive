@@ -12,6 +12,7 @@ import org.enso.compiler.exception.{CompilationAbortedException, CompilerError}
 import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar._
+import org.enso.compiler.pass.lint.UnusedBindings
 import org.enso.compiler.pass.optimise._
 import org.enso.compiler.pass.resolve._
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
@@ -58,7 +59,8 @@ class Compiler(
     DemandAnalysis,
     ApplicationSaturation,
     TailCall,
-    DataflowAnalysis
+    DataflowAnalysis,
+    UnusedBindings
   )
 
   /** Configuration for the passes. */

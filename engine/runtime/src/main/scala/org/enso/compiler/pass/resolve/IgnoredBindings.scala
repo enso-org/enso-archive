@@ -208,17 +208,21 @@ case object IgnoredBindings extends IRPass {
   // === Pass Metadata ========================================================
 
   /** States whether or not the binding was ignored. */
-  sealed trait State extends IRPass.Metadata
+  sealed trait State extends IRPass.Metadata {
+    val isIgnored: Boolean
+  }
   object State {
 
     /** States that the binding is ignored. */
     case object Ignored extends State {
       override val metadataName: String = "IgnoredBindings.State.Ignored"
+      override val isIgnored: Boolean = true
     }
 
     /** States that the binding is not ignored. */
     case object NotIgnored extends State {
       override val metadataName: String = "IgnoredBindings.State.NotIgnored"
+      override val isIgnored: Boolean = false
     }
   }
 }

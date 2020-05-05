@@ -2,14 +2,22 @@ package org.enso.compiler.test.pass.lint
 
 import org.enso.compiler.context.{FreshNameSupply, InlineContext}
 import org.enso.compiler.core.IR
+import org.enso.compiler.pass.PassConfiguration._
+import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
-  LambdaShorthandToLambda
+  LambdaShorthandToLambda,
+  OperatorToFunction,
+  SectionsToBinOp
 }
 import org.enso.compiler.pass.lint.UnusedBindings
+import org.enso.compiler.pass.optimise.LambdaConsolidate
 import org.enso.compiler.pass.resolve.IgnoredBindings
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
+import org.enso.interpreter.runtime.scope.LocalScope
+
+import scala.annotation.unused
 
 class UnusedBindingsTest extends CompilerTest {
 
@@ -17,11 +25,23 @@ class UnusedBindingsTest extends CompilerTest {
 
   val passes: List[IRPass] = List(
     GenerateMethodBodies,
+    SectionsToBinOp,
+    OperatorToFunction,
     LambdaShorthandToLambda,
-    IgnoredBindings
+    IgnoredBindings,
+    AliasAnalysis,
+    LambdaConsolidate,
+    AliasAnalysis,
+    DemandAnalysis,
+    ApplicationSaturation,
+    TailCall,
+    DataflowAnalysis
   )
 
-  val passConfiguration: PassConfiguration = PassConfiguration()
+  val passConfiguration: PassConfiguration = PassConfiguration(
+    ApplicationSaturation -->> ApplicationSaturation.Configuration(),
+    AliasAnalysis         -->> AliasAnalysis.Configuration()
+  )
 
   implicit val passManager: PassManager =
     new PassManager(passes, passConfiguration)
@@ -48,26 +68,74 @@ class UnusedBindingsTest extends CompilerTest {
     * @return a new inline context
     */
   def mkInlineContext: InlineContext = {
-    InlineContext(freshNameSupply = Some(new FreshNameSupply))
+    InlineContext(
+      freshNameSupply  = Some(new FreshNameSupply),
+      localScope       = Some(LocalScope.root),
+      isInTailPosition = Some(false)
+    )
   }
 
   // === The Tests ============================================================
 
   "Unused bindings linting" should {
     "attach a warning to an unused function argument" in {
-      pending
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |x -> 10
+          |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[IR.Function.Lambda]
+
+      val lintMeta = ir.arguments.head.diagnostics.collect {
+        case u: IR.Warning.Unused.FunctionArgument => u
+      }
+
+      lintMeta should not be empty
+      lintMeta.head shouldBe an[IR.Warning.Unused.FunctionArgument]
+      lintMeta.head.name.name shouldEqual "x"
     }
 
     "not attach a warning to an unused function argument if it is an ignore" in {
-      pending
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |_ -> 10
+          |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.head.diagnostics.toList shouldBe empty
     }
 
     "attach a warning to an unused binding" in {
-      pending
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |a = 10
+          |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[IR.Expression.Binding]
+
+      val lintMeta = ir.diagnostics.collect {
+        case u: IR.Warning.Unused.Binding => u
+      }
+
+      lintMeta should not be empty
+      lintMeta.head shouldBe an[IR.Warning.Unused.Binding]
+      lintMeta.head.name.name shouldEqual "a"
     }
 
     "not attach a warning to an unused binding if it is an ignore" in {
-      pending
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |_ = 10
+          |""".stripMargin.preprocessExpression.get.lint
+          .asInstanceOf[IR.Expression.Binding]
+
+      ir.diagnostics.toList shouldBe empty
     }
   }
 }

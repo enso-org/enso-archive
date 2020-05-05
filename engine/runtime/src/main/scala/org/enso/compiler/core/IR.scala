@@ -2583,6 +2583,38 @@ object IR {
   sealed trait Warning extends Diagnostic
   object Warning {
 
+    /** Warnings about unused language entities. */
+    sealed trait Unused extends Warning {
+      val name: IR.Name
+    }
+    object Unused {
+
+      /** A warning about an unused function argument.
+        *
+        * @param name the name that is unused
+        */
+      sealed case class FunctionArgument(override val name: Name)
+          extends Unused {
+        override def message: String = s"Unused function argument ${name.name}."
+
+        override def toString: String = s"Unused.FunctionArgument(${name.name})"
+
+        override val location: Option[IdentifiedLocation] = name.location
+      }
+
+      /** A warning about an unused binding.
+        *
+        * @param name the name that is unused
+        */
+      sealed case class Binding(override val name: Name) extends Unused {
+        override def message: String = s"Unused bound name ${name.name}."
+
+        override def toString: String = s"Unused.Binding(${name.name})"
+
+        override val location: Option[IdentifiedLocation] = name.location
+      }
+    }
+
     /** Warnings about shadowing names. */
     sealed trait Shadowed extends Warning {
 
@@ -3048,6 +3080,25 @@ object IR {
   // ==========================================================================
   // === Useful Extension Methods =============================================
   // ==========================================================================
+
+  /** Adds extension methods for working directly with the diagnostics on the
+    * IR.
+    *
+    * @param ir the IR to add the methods to
+    * @tparam T the concrete type of the IR
+    */
+  implicit class AsDiagnostics[T <: IR](ir: T) {
+
+    /** Adds a new diagnostic entity to [[IR]].
+     *
+     * @param diagnostic the diagnostic to add
+     * @return [[ir]] with added diagnostics
+     */
+    def addDiagnostic(diagnostic: IR.Diagnostic): T = {
+      ir.diagnostics.add(diagnostic)
+      ir
+    }
+  }
 
   /** Adds extension methods for working directly with the metadata on the IR.
     *
