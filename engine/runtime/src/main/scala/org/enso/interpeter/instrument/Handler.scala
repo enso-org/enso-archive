@@ -19,13 +19,13 @@ import org.enso.interpreter.instrument.IdExecutionInstrument.{
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode.FunctionCall
 import org.enso.interpreter.service.ExecutionService
 import org.enso.pkg.QualifiedName
-import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 import org.enso.polyglot.runtime.Runtime.Api.{
   ContextId,
   ExpressionId,
   RequestId,
   VisualisationId
 }
+import org.enso.polyglot.runtime.Runtime.{Api, ApiResponse}
 import org.graalvm.polyglot.io.MessageEndpoint
 
 import scala.jdk.CollectionConverters._
@@ -145,39 +145,47 @@ final class Handler {
         value.getExpressionId
       )
     visualisations foreach { visualisation =>
-      withContext {
-        val result = executionService.callFn(
-          visualisation.expression,
-          value.getValue
-        )
-        val errorMsgOrData = result match {
-          case text: String       => Right(text.getBytes("UTF-8"))
-          case bytes: Array[Byte] => Right(bytes)
-          case other =>
-            Left(s"Cannot encode ${other.getClass} to byte array")
-        }
-        errorMsgOrData match {
-          case Left(msg) =>
-            endpoint.sendToClient(
-              Api.Response(Api.VisualisationEvaluationFailed(msg))
-            )
+      emitVisualisationUpdate(contextId, value, visualisation)
+    }
+  }
 
-          case Right(data) =>
-            endpoint.sendToClient(
-              Api.Response(
-                Api.VisualisationUpdate(
-                  Api.VisualisationContext(
-                    visualisation.id,
-                    contextId,
-                    value.getExpressionId
-                  ),
-                  data
-                )
+  private def emitVisualisationUpdate(
+    contextId: ContextId,
+    value: ExpressionValue,
+    visualisation: Visualisation
+  ): Unit = {
+    withContext {
+      val result = executionService.callFunction(
+        visualisation.expression,
+        value.getValue
+      )
+      val errorMsgOrData = result match {
+        case text: String       => Right(text.getBytes("UTF-8"))
+        case bytes: Array[Byte] => Right(bytes)
+        case other =>
+          Left(s"Cannot encode ${other.getClass} to byte array")
+      }
+      errorMsgOrData match {
+        case Left(msg) =>
+          endpoint.sendToClient(
+            Api.Response(Api.VisualisationEvaluationFailed(msg))
+          )
+
+        case Right(data) =>
+          endpoint.sendToClient(
+            Api.Response(
+              Api.VisualisationUpdate(
+                Api.VisualisationContext(
+                  visualisation.id,
+                  contextId,
+                  value.getExpressionId
+                ),
+                data
               )
             )
-        }
-
+          )
       }
+
     }
   }
 
@@ -517,7 +525,7 @@ final class Handler {
     notFoundOrModule.flatMap { module =>
       try {
         withContext {
-          executionService.evalExpr(module, expression).asRight
+          executionService.evaluateExpression(module, expression).asRight
         }
       } catch {
         case NonFatal(th) => EvaluationFailed(th.getMessage).asLeft

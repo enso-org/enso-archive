@@ -2,10 +2,7 @@ package org.enso.interpreter.service;
 
 import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
-import com.oracle.truffle.api.interop.ArityException;
-import com.oracle.truffle.api.interop.InteropLibrary;
-import com.oracle.truffle.api.interop.UnsupportedMessageException;
-import com.oracle.truffle.api.interop.UnsupportedTypeException;
+import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
@@ -34,14 +31,6 @@ public class ExecutionService {
   private final Context context;
   private final IdExecutionInstrument idExecutionInstrument;
   private InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
-
-  public Object evalExpr(Module module, String expression) throws Exception {
-     return interopLibrary.invokeMember(module, MethodNames.Module.EVAL_EXPRESSION, expression);
-  }
-
-  public Object callFn(Object fn, Object argument) throws Exception {
-     return interopLibrary.execute(fn, argument);
-  }
 
   /**
    * Creates a new instance of this service.
@@ -132,6 +121,22 @@ public class ExecutionService {
     }
     execute(callMay.get(), valueCallback, funCallCallback);
   }
+
+    public Object evaluateExpression(Module module, String expression)
+            throws UnsupportedMessageException, ArityException,
+            UnknownIdentifierException, UnsupportedTypeException {
+        return interopLibrary.invokeMember(
+                module,
+                MethodNames.Module.EVAL_EXPRESSION,
+                expression
+        );
+    }
+
+    public Object callFunction(Object fn, Object argument)
+            throws UnsupportedTypeException, ArityException,
+            UnsupportedMessageException {
+        return interopLibrary.execute(fn, argument);
+    }
 
   /**
    * Sets a module at a given path to use a literal source.
