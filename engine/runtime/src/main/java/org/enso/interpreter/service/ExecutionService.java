@@ -129,7 +129,7 @@ public class ExecutionService {
   }
 
     /**
-     * Evaluates expression in the scope of provided module.
+     * Evaluates an expression in the scope of the provided module.
      *
      * @param module the module providing a scope for the expression
      * @param expression the expression to evluated
@@ -184,6 +184,12 @@ public class ExecutionService {
     module.ifPresent(Module::unsetLiteralSource);
   }
 
+    /**
+     * Finds a module by qualified name.
+     *
+     * @param moduleName the qualified name of the module
+     * @return the relevant module, if exists
+     */
   public Optional<Module> findModule(String moduleName) {
     return context.findModule(moduleName);
   }
