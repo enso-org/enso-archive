@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 public class IdExecutionInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = "id-value-extractor";
 
+  private static final Map<UUID, Object> cache = new HashMap<>();
   private Env env;
 
   /**
@@ -149,7 +150,28 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
 
     @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {}
+    public Object onUnwind(EventContext context, VirtualFrame frame, Object info) {
+      return info;
+    }
+
+    @Override
+    public void onEnter(EventContext context, VirtualFrame frame) {
+      if (!isTopFrame(entryCallTarget)) {
+        return;
+      }
+      Node node = context.getInstrumentedNode();
+      UUID nodeId = null;
+      if (node instanceof FunctionCallInstrumentationNode) {
+        nodeId = ((FunctionCallInstrumentationNode) node).getId();
+      } else if (node instanceof ExpressionNode) {
+        nodeId = ((ExpressionNode) node).getId();
+      }
+
+      Object overrideValue = cache.get(nodeId);
+      if (overrideValue != null) {
+        throw context.createUnwind(overrideValue);
+      }
+    }
 
     /**
      * Triggered when a node (either a function call sentry or an identified expression) finishes
@@ -216,86 +238,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
     }
   }
 
-  /** Listener that overrides value of target node id. */
-  private static class ValueOverrideListener implements ExecutionEventListener {
-    private final UUID targetId;
-    private final Object overrideValue;
-
-    /**
-     * Creates a new listener.
-     *
-     * @param targetId the id which return value will be overridden.
-     * @param overrideValue the value to use as the override.
-     */
-    public ValueOverrideListener(UUID targetId, Object overrideValue) {
-      this.targetId = targetId;
-      this.overrideValue = overrideValue;
-    }
-
-    @Override
-    public Object onUnwind(EventContext context, VirtualFrame frame, Object info) {
-      return info;
-    }
-
-    @Override
-    public void onEnter(EventContext context, VirtualFrame frame) {
-      if (!isTopFrame()) {
-        return;
-      }
-      if (isTargetNode(context.getInstrumentedNode())) {
-        throw context.createUnwind(overrideValue);
-      }
-    }
-
-    @Override
-    public void onReturnValue(EventContext context, VirtualFrame frame, Object result) {}
-
-    @Override
-    public void onReturnExceptional(
-        EventContext context, VirtualFrame frame, Throwable exception) {}
-
-    /**
-     * Checks if we're not inside a recursive call, i.e. the node with {@link #targetId} only
-     * appears in the stack trace once.
-     *
-     * @return {@code true} if it's not a recursive call, {@code false} otherwise.
-     */
-    private boolean isTopFrame() {
-      Object result =
-          Truffle.getRuntime()
-              .iterateFrames(
-                  new FrameInstanceVisitor<Object>() {
-                    boolean seenFirst = false;
-
-                    @Override
-                    public Object visitFrame(FrameInstance frameInstance) {
-                      if (!isTargetNode(frameInstance.getCallNode())) {
-                        return null;
-                      }
-                      if (seenFirst) {
-                        return new Object();
-                      } else {
-                        seenFirst = true;
-                        return null;
-                      }
-                    }
-                  });
-      return result == null;
-    }
-
-    /** Checks if the node id is a {@link #targetId}. */
-    private boolean isTargetNode(Node node) {
-      UUID nodeId = null;
-      if (node instanceof FunctionCallInstrumentationNode) {
-        nodeId = ((FunctionCallInstrumentationNode) node).getId();
-      } else if (node instanceof ExpressionNode) {
-        nodeId = ((ExpressionNode) node).getId();
-      }
-
-      return targetId.equals(nodeId);
-    }
-  }
-
   /**
    * Attach a new listener to observe identified nodes within given function.
    *
@@ -335,12 +277,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param value the value to use as the override.
    */
   public void setOverride(UUID targetId, Object value) {
-    SourceSectionFilter filter =
-        SourceSectionFilter.newBuilder()
-            .tagIs(StandardTags.ExpressionTag.class, StandardTags.CallTag.class)
-            .tagIs(IdentifiedTag.class)
-            .build();
-    env.getInstrumenter()
-        .attachExecutionEventListener(filter, new ValueOverrideListener(targetId, value));
+    this.cache.put(targetId, value);
   }
 }
