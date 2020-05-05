@@ -301,28 +301,43 @@ object AstToIR {
   ): DefinitionArgument = {
     arg match {
       case AstView.LazyAssignedArgumentDefinition(name, value) =>
-        DefinitionArgument.Specified(
-          Name.Literal(name.name, getIdentifiedLocation(name)),
-          Some(translateExpression(value)),
-          suspended = true,
-          getIdentifiedLocation(arg)
-        )
+        translateIdent(name) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              Some(translateExpression(value)),
+              suspended = true,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case AstView.LazyArgument(arg) =>
         translateArgumentDefinition(arg, isSuspended = true)
       case AstView.DefinitionArgument(arg) =>
-        DefinitionArgument.Specified(
-          Name.Literal(arg.name, getIdentifiedLocation(arg)),
-          None,
-          isSuspended,
-          getIdentifiedLocation(arg)
-        )
+        translateIdent(arg) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              None,
+              isSuspended,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case AstView.AssignedArgument(name, value) =>
-        DefinitionArgument.Specified(
-          Name.Literal(name.name, getIdentifiedLocation(name)),
-          Some(translateExpression(value)),
-          isSuspended,
-          getIdentifiedLocation(arg)
-        )
+        translateIdent(name) match {
+          case name: IR.Name =>
+            DefinitionArgument.Specified(
+              name,
+              Some(translateExpression(value)),
+              isSuspended,
+              getIdentifiedLocation(arg)
+            )
+          case _ =>
+            throw new UnhandledEntity(arg, "translateArgumentDefinition")
+        }
       case _ =>
         throw new UnhandledEntity(arg, "translateArgumentDefinition")
     }

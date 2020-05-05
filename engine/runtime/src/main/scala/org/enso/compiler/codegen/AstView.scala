@@ -115,6 +115,7 @@ object AstView {
         case AST.Ident.Var.any(variable) => Some(variable)
         case AST.Ident.Cons.any(cons)    => Some(cons)
         case AST.Ident.Blank.any(blank)  => Some(blank)
+        case _ => None
       }
     }
   }
@@ -287,7 +288,7 @@ object AstView {
       * @return the name of the argument being declared and the expression of
       *         the default value being bound to it
       */
-    def unapply(ast: AST): Option[(AST.Ident.Var, AST)] = {
+    def unapply(ast: AST): Option[(AST.Ident, AST)] = {
       ast match {
         case MaybeParensed(
             Binding(
@@ -309,9 +310,9 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the name of the argument
       */
-    def unapply(ast: AST): Option[AST.Ident.Var] = ast match {
-      case MaybeParensed(AST.Ident.Var.any(ast)) => Some(ast)
-      case _                                     => None
+    def unapply(ast: AST): Option[AST.Ident] = ast match {
+      case MaybeParensed(MaybeBlankName(ast)) => Some(ast)
+      case _                                  => None
     }
   }
 
