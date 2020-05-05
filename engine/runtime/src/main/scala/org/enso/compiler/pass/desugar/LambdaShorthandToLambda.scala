@@ -5,14 +5,12 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.exception.CompilerError
 import org.enso.compiler.pass.IRPass
 
-import scala.annotation.unused
-
 /** This pass translates `_` arguments at application sites to lambda functions.
   *
   * It requires [[GenerateMethodBodies]], [[SectionsToBinOp]] and
   * [[OperatorToFunction]] to have run before it.
   */
-case object UnderscoreToLambda extends IRPass {
+case object LambdaShorthandToLambda extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
   override type Config   = IRPass.Configuration.Default
 
@@ -95,13 +93,19 @@ case object UnderscoreToLambda extends IRPass {
 
         // Generate a new name for the arg value for each shorthand arg
         val updatedArgs =
-          args.zip(argIsUnderscore).map(updateShorthandArg(_, freshNameSupply))
+          args
+            .zip(argIsUnderscore)
+            .map(updateShorthandArg(_, freshNameSupply))
+            .map {
+              case s @ IR.CallArgument.Specified(_, value, _, _, _, _) =>
+                s.copy(value = desugarExpression(value, freshNameSupply))
+            }
 
         // Generate a definition arg instance for each shorthand arg
         val defArgs = updatedArgs.zip(argIsUnderscore).map {
           case (arg, isShorthand) => generateDefinitionArg(arg, isShorthand)
         }
-        @unused val actualDefArgs = defArgs.collect {
+        val actualDefArgs = defArgs.collect {
           case Some(defArg) => defArg
         }
 
@@ -216,7 +220,7 @@ case object UnderscoreToLambda extends IRPass {
     *         otherwise [[None]]
     */
   def generateDefinitionArg(
-    @unused arg: IR.CallArgument,
+    arg: IR.CallArgument,
     isShorthand: Boolean
   ): Option[IR.DefinitionArgument] = {
     if (isShorthand) {
