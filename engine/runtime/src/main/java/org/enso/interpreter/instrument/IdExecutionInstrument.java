@@ -239,10 +239,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
     @Override
     public void onEnter(EventContext context, VirtualFrame frame) {
-      if (!isTopFrame()) {
-        return;
-      }
-      if (isTargetNode(context.getInstrumentedNode())) {
+      if (isTopFrame() && isTargetNode(context.getInstrumentedNode())) {
         throw context.createUnwind(overrideValue);
       }
     }
@@ -291,7 +288,6 @@ public class IdExecutionInstrument extends TruffleInstrument {
       } else if (node instanceof ExpressionNode) {
         nodeId = ((ExpressionNode) node).getId();
       }
-
       return targetId.equals(nodeId);
     }
   }
