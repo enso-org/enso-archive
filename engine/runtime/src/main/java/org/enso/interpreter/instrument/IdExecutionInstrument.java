@@ -131,52 +131,22 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
-    private final EventBinding<? extends ExecutionEventListener> binding;
     private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
 
     /**
-     * Creates a new listener and attaches it for an execution.
+     * Creates a new listener.
      *
-     * @param instrumenter instrumenter allowing to attach listeners for execution.
-     * @param sourceSectionFilter a filter of tagged source sections.
      * @param entryCallTarget the call target being observed.
      * @param functionCallCallback the consumer of function call events.
      * @param valueCallback the consumer of the node value events.
      */
-    private IdExecutionEventListener(
-        Instrumenter instrumenter,
-        SourceSectionFilter sourceSectionFilter,
+    public IdExecutionEventListener(
         CallTarget entryCallTarget,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> valueCallback) {
       this.entryCallTarget = entryCallTarget;
       this.functionCallCallback = functionCallCallback;
       this.valueCallback = valueCallback;
-      this.binding = instrumenter.attachExecutionEventListener(sourceSectionFilter, this);
-    }
-
-    /**
-     * Creates and attaches a new listener for an execution.
-     *
-     * @param instrumenter instrumenter allowing to attach listeners for execution.
-     * @param sourceSectionFilter a filter of tagged source sections.
-     * @param entryCallTarget the call target being observed.
-     * @param functionCallCallback the consumer of function call events.
-     * @param valueCallback the consumer of the node value events.
-     */
-    public static IdExecutionEventListener bind(
-        Instrumenter instrumenter,
-        SourceSectionFilter sourceSectionFilter,
-        CallTarget entryCallTarget,
-        Consumer<ExpressionCall> functionCallCallback,
-        Consumer<ExpressionValue> valueCallback) {
-      return new IdExecutionEventListener(
-          instrumenter, sourceSectionFilter, entryCallTarget, functionCallCallback, valueCallback);
-    }
-
-    /** @return the event binding resulting from attaching this listener. */
-    public EventBinding<? extends ExecutionEventListener> getBinding() {
-      return binding;
     }
 
     @Override
@@ -199,7 +169,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
 
       Object overrideValue = cache.get(nodeId);
       if (overrideValue != null) {
-        throw context.createUnwind(overrideValue, this.binding);
+        throw context.createUnwind(overrideValue);
       }
     }
 
@@ -278,7 +248,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param functionCallCallback the consumer of function call events.
    * @return a reference to the attached event listener.
    */
-  public EventBinding<? extends ExecutionEventListener> bind(
+  public EventBinding<ExecutionEventListener> bind(
       CallTarget entryCallTarget,
       int funSourceStart,
       int funSourceLength,
@@ -291,10 +261,12 @@ public class IdExecutionInstrument extends TruffleInstrument {
             .indexIn(funSourceStart, funSourceLength)
             .build();
 
-    IdExecutionEventListener listener =
-        IdExecutionEventListener.bind(
-            env.getInstrumenter(), filter, entryCallTarget, functionCallCallback, valueCallback);
-    return listener.getBinding();
+    EventBinding<ExecutionEventListener> binding =
+        env.getInstrumenter()
+            .attachExecutionEventListener(
+                filter,
+                new IdExecutionEventListener(entryCallTarget, functionCallCallback, valueCallback));
+    return binding;
   }
 
   /**

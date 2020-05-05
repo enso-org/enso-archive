@@ -85,7 +85,7 @@ public class ExecutionService {
     if (src == null) {
       return;
     }
-    EventBinding<? extends ExecutionEventListener> listener =
+    EventBinding<ExecutionEventListener> listener =
         idExecutionInstrument.bind(
             call.getFunction().getCallTarget(),
             src.getCharIndex(),
