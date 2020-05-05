@@ -538,8 +538,21 @@ final class Handler {
 
 object Handler {
 
+  /**
+    * Base trait for evaluation failures.
+    */
   sealed trait EvalFailure
-  case object ModuleNotFound               extends EvalFailure
+
+  /**
+    * Signals that a module cannto be found.
+    */
+  case object ModuleNotFound extends EvalFailure
+
+  /**
+    * Signals that an evaluation of an expression failed.
+    *
+    * @param msg the textual reason of a failure
+    */
   case class EvaluationFailed(msg: String) extends EvalFailure
 
 }

@@ -84,8 +84,20 @@ class ExecutionContextManager {
       if state.stack.nonEmpty
     } yield state.stack.pop()
 
+  /**
+    * Tests if a context specified by its id is stored by the manager.
+    *
+    * @param contextId the identifier of the execution context
+    * @return true if the context is stored or false otherwise
+    */
   def contains(contextId: ContextId): Boolean = contexts.contains(contextId)
 
+  /**
+    * Upserts a visualisation for the specified context.
+    *
+    * @param contextId the identifier of the execution context
+    * @param visualisation the visualisation to upsert
+    */
   def upsertVisualisation(
     contextId: ContextId,
     visualisation: Visualisation
@@ -94,6 +106,13 @@ class ExecutionContextManager {
     state.visualisations.upsert(visualisation)
   }
 
+  /**
+    * Returns a visualisation with the provided id.
+    *
+    * @param contextId the identifier of the execution context
+    * @param visualisationId the identifier of visualisation
+    * @return an option with visualisation
+    */
   def getVisualisationById(
     contextId: ContextId,
     visualisationId: VisualisationId
@@ -103,6 +122,13 @@ class ExecutionContextManager {
       visualisation <- state.visualisations.getById(visualisationId)
     } yield visualisation
 
+  /**
+    * Finds all visualisations attached to an expression.
+    *
+    * @param contextId the identifier of the execution context
+    * @param expressionId the unique identifier of the expression
+    * @return a list of matching visualisation
+    */
   def findVisualisationForExpression(
     contextId: ContextId,
     expressionId: ExpressionId
@@ -112,6 +138,14 @@ class ExecutionContextManager {
       visualisation <- state.visualisations.find(expressionId)
     } yield visualisation
 
+  /**
+    * Removes a visualisation from the holder.
+    *
+    * @param contextId the identifier of the execution context
+    * @param visualisationId the visualisation identifier
+    * @param expressionId the id of expression that the visualisation is
+    *                     attached to
+    */
   def removeVisualisation(
     contextId: ContextId,
     expressionId: ExpressionId,
