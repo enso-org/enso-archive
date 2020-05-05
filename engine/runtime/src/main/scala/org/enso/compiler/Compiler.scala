@@ -13,6 +13,7 @@ import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse._
 import org.enso.compiler.pass.desugar._
 import org.enso.compiler.pass.optimise._
+import org.enso.compiler.pass.resolve._
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.interpreter.Language
 import org.enso.interpreter.node.{ExpressionNode => RuntimeExpression}
@@ -50,6 +51,7 @@ class Compiler(
     SectionsToBinOp,
     OperatorToFunction,
     LambdaShorthandToLambda,
+    IgnoredBindings,
     AliasAnalysis,
     LambdaConsolidate,
     AliasAnalysis,

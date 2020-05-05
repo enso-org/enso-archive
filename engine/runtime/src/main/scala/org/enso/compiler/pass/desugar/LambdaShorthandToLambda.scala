@@ -57,6 +57,8 @@ case object LambdaShorthandToLambda extends IRPass {
     desugarExpression(ir, freshNameSupply)
   }
 
+  // === Pass Internals =======================================================
+
   /** Performs lambda shorthand desugaring on an arbitrary expression.
     *
     * @param ir the expression to desugar
