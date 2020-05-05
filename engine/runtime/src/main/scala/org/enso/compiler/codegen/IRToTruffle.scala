@@ -641,7 +641,10 @@ class IRToTruffle(
         fnBodyNode,
         makeSection(location),
         scopeName,
-        name.map(moduleScope.getModule.getName.createChild).map(_.toString).orNull
+        name
+          .map(moduleScope.getModule.getName.createChild)
+          .map(_.toString)
+          .orNull
       )
       val callTarget = Truffle.getRuntime.createCallTarget(fnRootNode)
 

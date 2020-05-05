@@ -31,7 +31,7 @@ import java.util.function.Consumer;
 public class ExecutionService {
   private final Context context;
   private final IdExecutionInstrument idExecutionInstrument;
-  private InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
+  private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
 
   /**
    * Creates a new instance of this service.
@@ -85,7 +85,7 @@ public class ExecutionService {
     if (src == null) {
       return;
     }
-    EventBinding<ExecutionEventListener> listener =
+    EventBinding<? extends ExecutionEventListener> listener =
         idExecutionInstrument.bind(
             call.getFunction().getCallTarget(),
             src.getCharIndex(),
