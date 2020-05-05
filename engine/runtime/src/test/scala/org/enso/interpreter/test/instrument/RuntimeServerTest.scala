@@ -67,7 +67,7 @@ class RuntimeServerTest
     )
     executionContext.context.initialize(LanguageInfo.ID)
 
-    def getInstrument =
+    val instrument =
       executionContext.context.getEngine.getInstruments
         .get(IdExecutionInstrument.INSTRUMENT_ID)
         .lookup(classOf[IdExecutionInstrument])
@@ -489,8 +489,7 @@ class RuntimeServerTest
     )
 
     // override
-    context.getInstrument
-      .setOverride(context.Main.idMainX, 1L.asInstanceOf[AnyRef])
+    context.instrument.setOverride(context.Main.idMainX, 1L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(
@@ -535,10 +534,8 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
 
     // override
-    context.getInstrument
-      .setOverride(context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
-    context.getInstrument
-      .setOverride(context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
+    context.instrument.setOverride(context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
+    context.instrument.setOverride(context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(
