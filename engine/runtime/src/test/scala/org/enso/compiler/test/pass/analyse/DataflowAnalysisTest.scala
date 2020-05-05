@@ -1,8 +1,8 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
-import org.enso.compiler.pass.IRPass
+import org.enso.compiler.pass.PassConfiguration._
 import org.enso.compiler.pass.analyse.DataflowAnalysis.DependencyInfo
 import org.enso.compiler.pass.analyse.{
   AliasAnalysis,
@@ -15,6 +15,8 @@ import org.enso.compiler.pass.desugar.{
   LiftSpecialOperators,
   OperatorToFunction
 }
+import org.enso.compiler.pass.optimise.LambdaConsolidate
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
 import org.scalatest.Assertion
@@ -24,21 +26,30 @@ class DataflowAnalysisTest extends CompilerTest {
   // === Test Setup ===========================================================
 
   /** The passes that must be run before the dataflow analysis pass. */
-  implicit val precursorPasses: List[IRPass] = List(
+  val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
     AliasAnalysis,
+    LambdaConsolidate,
+    AliasAnalysis,
     DemandAnalysis,
     TailCall
   )
+
+  val passConfig = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration()
+  )
+
+  implicit val passManager: PassManager =
+    new PassManager(precursorPasses, passConfig)
 
   /** Generates an identifier dependency.
     *
     * @return a randomly generated identifier dependency
     */
   def genStaticDep: DependencyInfo.Type = {
-    DependencyInfo.Type.Static(genID)
+    DependencyInfo.Type.Static(genId)
   }
 
   /** Makes a statically known dependency from the included id.
@@ -70,7 +81,10 @@ class DataflowAnalysisTest extends CompilerTest {
       * @return [[ir]], with attached data dependency information
       */
     def analyse: IR.Module = {
-      DataflowAnalysis.runModule(ir)
+      DataflowAnalysis.runModule(
+        ir,
+        ModuleContext(freshNameSupply = Some(new FreshNameSupply))
+      )
     }
   }
 
@@ -103,8 +117,30 @@ class DataflowAnalysisTest extends CompilerTest {
       * @return `true` if [[ir]] has the associated metadata, otherwise `false`
       */
     def hasDependencyInfo: Assertion = {
-      ir.getMetadata[DataflowAnalysis.Metadata] shouldBe defined
+      ir.getMetadata(DataflowAnalysis) shouldBe defined
     }
+  }
+
+  /** Generates a new inline context for testing purposes.
+    *
+    * @return a new inline context
+    */
+  def mkInlineContext: InlineContext = {
+    InlineContext(
+      localScope       = Some(LocalScope.root),
+      isInTailPosition = Some(false),
+      freshNameSupply  = Some(new FreshNameSupply)
+    )
+  }
+
+  /** Generates a new module context for testing purposes.
+    *
+    * @return a new module context
+    */
+  def mkModuleContext: ModuleContext = {
+    ModuleContext(
+      freshNameSupply = Some(new FreshNameSupply)
+    )
   }
 
   // === The Tests ============================================================
@@ -224,15 +260,17 @@ class DataflowAnalysisTest extends CompilerTest {
   }
 
   "Whole-module dataflow analysis" should {
+    implicit val ctx: ModuleContext = mkModuleContext
+
     val ir =
       """
-        |M.foo = a b ->
+        |M.foo = a -> b ->
         |    IO.println b
         |    c = a + b
         |    frobnicate a c
         |""".stripMargin.preprocessModule.analyse
 
-    val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+    val depInfo = ir.getMetadata(DataflowAnalysis).get
 
     // The method and body
     val method =
@@ -587,18 +625,14 @@ class DataflowAnalysisTest extends CompilerTest {
 
   "Dataflow analysis" should {
     "work properly for functions" in {
-      implicit val inlineContext: InlineContext =
-        InlineContext(
-          localScope       = Some(LocalScope.root),
-          isInTailPosition = Some(false)
-        )
+      implicit val inlineContext: InlineContext = mkInlineContext
 
       val ir =
         """
-          |x (y=x) -> x + y
+          |x -> (y=x) -> x + y
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val fn = ir.asInstanceOf[IR.Function.Lambda]
       val fnArgX =
@@ -646,10 +680,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "work properly for prefix applications" in {
-      implicit val inlineContext: InlineContext = InlineContext(
-        localScope       = Some(LocalScope.root),
-        isInTailPosition = Some(false)
-      )
+      implicit val inlineContext: InlineContext = mkInlineContext
 
       // TODO [AA] Make this test by-name application
       val ir =
@@ -657,7 +688,7 @@ class DataflowAnalysisTest extends CompilerTest {
           |foo (a = 10) (x -> x * x)
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val app   = ir.asInstanceOf[IR.Application.Prefix]
       val appFn = app.function.asInstanceOf[IR.Name.Literal]
@@ -719,17 +750,14 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "work properly for forces" in {
-      implicit val inlineContext: InlineContext = InlineContext(
-        localScope       = Some(LocalScope.root),
-        isInTailPosition = Some(false)
-      )
+      implicit val inlineContext: InlineContext = mkInlineContext
 
       val ir =
         """
           |~x -> x
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val lam = ir.asInstanceOf[IR.Function.Lambda]
       val argX =
@@ -750,10 +778,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "work properly for blocks" in {
-      implicit val inlineContext: InlineContext = InlineContext(
-        localScope       = Some(LocalScope.root),
-        isInTailPosition = Some(false)
-      )
+      implicit val inlineContext: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -761,7 +786,7 @@ class DataflowAnalysisTest extends CompilerTest {
           |x
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val block     = ir.asInstanceOf[IR.Expression.Block]
       val xBind     = block.expressions.head.asInstanceOf[IR.Expression.Binding]
@@ -785,17 +810,14 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "work properly for bindings" in {
-      implicit val inlineContext: InlineContext = InlineContext(
-        localScope       = Some(LocalScope.root),
-        isInTailPosition = Some(false)
-      )
+      implicit val inlineContext: InlineContext = mkInlineContext
 
       val ir =
         """
           |x = 10
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val binding     = ir.asInstanceOf[IR.Expression.Binding]
       val bindingName = binding.name.asInstanceOf[IR.Name.Literal]
@@ -813,10 +835,7 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "work properly for case expressions" in {
-      implicit val inlineContext: InlineContext = InlineContext(
-        localScope       = Some(LocalScope.root),
-        isInTailPosition = Some(false)
-      )
+      implicit val inlineContext: InlineContext = mkInlineContext
 
       val ir =
         """
@@ -825,7 +844,7 @@ class DataflowAnalysisTest extends CompilerTest {
           |    _ -> 0
           |""".stripMargin.preprocessExpression.get.analyse
 
-      val depInfo = ir.getMetadata[DataflowAnalysis.Metadata].get
+      val depInfo = ir.getMetadata(DataflowAnalysis).get
 
       val caseExpr   = ir.asInstanceOf[IR.Case.Expr]
       val scrutinee  = caseExpr.scrutinee.asInstanceOf[IR.Application.Prefix]
@@ -857,14 +876,11 @@ class DataflowAnalysisTest extends CompilerTest {
     }
 
     "have the result data associated with literals" in {
-      implicit val inlineContext: InlineContext = InlineContext(
-        localScope       = Some(LocalScope.root),
-        isInTailPosition = Some(false)
-      )
+      implicit val inlineContext: InlineContext = mkInlineContext
 
       val ir = "10".preprocessExpression.get.analyse.asInstanceOf[IR.Literal]
 
-      ir.getMetadata[DataflowAnalysis.Metadata] shouldBe defined
+      ir.getMetadata(DataflowAnalysis) shouldBe defined
     }
   }
 }

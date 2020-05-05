@@ -56,7 +56,7 @@ class MethodsTest extends InterpreterTest {
         |type Foo
         |type Bar
         |
-        |Foo.bar = a b -> a + b
+        |Foo.bar = a -> b -> a + b
         |Bar.constant = 10
         |
         |main = Foo.bar Bar.constant Bar.constant
@@ -104,7 +104,7 @@ class MethodsTest extends InterpreterTest {
   "Method call target" should "be passable by-name" in {
     val code =
       """
-        |Unit.testMethod = x y z -> x + y + z
+        |Unit.testMethod = x -> y -> z -> x + y + z
         |main = testMethod x=1 y=2 this=Unit z=3
         |""".stripMargin
     eval(code) shouldEqual 6
@@ -157,5 +157,23 @@ class MethodsTest extends InterpreterTest {
         |""".stripMargin
 
     eval(code) shouldEqual 6
+  }
+
+  "Methods" should "not be overloaded on a given atom" in {
+    val code =
+      """
+        |type MyAtom
+        |
+        |MyAtom.foo = a -> a
+        |MyAtom.foo = a -> b -> a + b
+        |
+        |main = foo MyAtom 1
+        |""".stripMargin
+
+    val msg =
+      "org.enso.interpreter.runtime.error.RedefinedMethodException: Methods " +
+        "cannot be overloaded, but you have tried to overload MyAtom.foo"
+
+    the[InterpreterException] thrownBy eval(code) should have message msg
   }
 }

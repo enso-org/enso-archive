@@ -1,34 +1,33 @@
 package org.enso.compiler.test.pass.analyse
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.Module.Scope.Definition.Method
 import org.enso.compiler.exception.CompilerError
-import org.enso.compiler.pass.IRPass
 import org.enso.compiler.pass.analyse.TailCall.TailPosition
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  ApplicationSaturation,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, TailCall}
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
   LiftSpecialOperators,
   OperatorToFunction
 }
+import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
 import org.enso.interpreter.runtime.scope.LocalScope
+import org.enso.compiler.pass.PassConfiguration._
 
 class TailCallTest extends CompilerTest {
 
   // === Test Setup ===========================================================
 
-  val tailCtx = InlineContext(
+  val modCtx: ModuleContext = ModuleContext()
+
+  val tailCtx: InlineContext = InlineContext(
     localScope       = Some(LocalScope.root),
     isInTailPosition = Some(true)
   )
 
-  val noTailCtx = InlineContext(
+  val noTailCtx: InlineContext = InlineContext(
     localScope       = Some(LocalScope.root),
     isInTailPosition = Some(false)
   )
@@ -37,9 +36,14 @@ class TailCallTest extends CompilerTest {
     GenerateMethodBodies,
     LiftSpecialOperators,
     OperatorToFunction,
-    AliasAnalysis,
-    ApplicationSaturation()
+    AliasAnalysis
   )
+
+  val passConfiguration: PassConfiguration = PassConfiguration(
+    AliasAnalysis -->> AliasAnalysis.Configuration()
+  )
+
+  val passManager = new PassManager(precursorPasses, passConfiguration)
 
   /** Adds an extension method to preprocess source code as an Enso module.
     *
@@ -53,10 +57,10 @@ class TailCallTest extends CompilerTest {
       */
     def runTCAModule: IR.Module = {
       val preprocessed = code.toIrModule
-        .runPasses(precursorPasses, tailCtx)
+        .runPasses(passManager, ModuleContext())
         .asInstanceOf[IR.Module]
 
-      TailCall.runModule(preprocessed)
+      TailCall.runModule(preprocessed, modCtx)
     }
   }
 
@@ -75,7 +79,7 @@ class TailCallTest extends CompilerTest {
         .getOrElse(
           throw new CompilerError("Code was not a valid expression.")
         )
-        .runPasses(precursorPasses, context)
+        .runPasses(passManager, context)
         .asInstanceOf[IR.Expression]
 
       TailCall.runExpression(preprocessed, context)
@@ -87,7 +91,7 @@ class TailCallTest extends CompilerTest {
   "Tail call analysis on modules" should {
     val ir =
       """
-        |Foo.bar = a b c ->
+        |Foo.bar = a -> b -> c ->
         |    d = a + b
         |
         |    case c of
@@ -99,38 +103,38 @@ class TailCallTest extends CompilerTest {
 
     "mark methods as tail" in {
       ir.bindings.head
-        .getMetadata[TailCall.Metadata] shouldEqual Some(TailPosition.Tail)
+        .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
     "mark atoms as tail" in {
       ir.bindings(1)
-        .getMetadata[TailCall.Metadata] shouldEqual Some(TailPosition.Tail)
+        .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
   }
 
   "Tail call analysis on expressions" should {
     val code =
       """
-        |x y z -> x y z
+        |x -> y -> z -> x y z
         |""".stripMargin
 
     "mark the expression as tail if the context requires it" in {
       val ir = code.runTCAExpression(tailCtx)
 
-      ir.getMetadata[TailCall.Metadata] shouldEqual Some(TailPosition.Tail)
+      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
     "not mark the expression as tail if the context doesn't require it" in {
       val ir = code.runTCAExpression(noTailCtx)
 
-      ir.getMetadata[TailCall.Metadata] shouldEqual Some(TailPosition.NotTail)
+      ir.getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
     }
   }
 
   "Tail call analysis on functions" should {
     val ir =
       """
-        |a b c ->
+        |a -> b -> c ->
         |    d = a + b
         |    e = a * c
         |    d + e
@@ -138,17 +142,22 @@ class TailCallTest extends CompilerTest {
         .runTCAExpression(tailCtx)
         .asInstanceOf[IR.Function.Lambda]
 
-    val fnBody = ir.body.asInstanceOf[IR.Expression.Block]
+    val fnBody = ir.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Expression.Block]
 
     "mark the last expression of the function as tail" in {
-      fnBody.returnValue.getMetadata[TailCall.Metadata] shouldEqual Some(
+      fnBody.returnValue.getMetadata(TailCall) shouldEqual Some(
         TailPosition.Tail
       )
     }
 
     "mark the other expressions in the function as not tail" in {
       fnBody.expressions.foreach(expr =>
-        expr.getMetadata[TailCall.Metadata] shouldEqual Some(
+        expr.getMetadata(TailCall) shouldEqual Some(
           TailPosition.NotTail
         )
       )
@@ -178,17 +187,17 @@ class TailCallTest extends CompilerTest {
         .expression
         .asInstanceOf[IR.Case.Expr]
 
-      caseExpr.getMetadata[TailCall.Metadata] shouldEqual Some(
+      caseExpr.getMetadata(TailCall) shouldEqual Some(
         TailPosition.NotTail
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
           branch.expression.asInstanceOf[IR.Function.Lambda]
 
-        branchExpression.getMetadata[TailPosition] shouldEqual Some(
+        branchExpression.getMetadata(TailCall) shouldEqual Some(
           TailPosition.NotTail
         )
-        branchExpression.body.getMetadata[TailPosition] shouldEqual Some(
+        branchExpression.body.getMetadata(TailCall) shouldEqual Some(
           TailPosition.NotTail
         )
       })
@@ -211,17 +220,17 @@ class TailCallTest extends CompilerTest {
         .returnValue
         .asInstanceOf[IR.Case.Expr]
 
-      caseExpr.getMetadata[TailCall.Metadata] shouldEqual Some(
+      caseExpr.getMetadata(TailCall) shouldEqual Some(
         TailPosition.Tail
       )
       caseExpr.branches.foreach(branch => {
         val branchExpression =
           branch.expression.asInstanceOf[IR.Function.Lambda]
 
-        branchExpression.getMetadata[TailPosition] shouldEqual Some(
+        branchExpression.getMetadata(TailCall) shouldEqual Some(
           TailPosition.Tail
         )
-        branchExpression.body.getMetadata[TailPosition] shouldEqual Some(
+        branchExpression.body.getMetadata(TailCall) shouldEqual Some(
           TailPosition.Tail
         )
       })
@@ -257,7 +266,7 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[IR.Application.Prefix]
         .arguments
         .foreach(arg =>
-          arg.getMetadata[TailCall.Metadata] shouldEqual Some(
+          arg.getMetadata(TailCall) shouldEqual Some(
             TailPosition.Tail
           )
         )
@@ -266,14 +275,14 @@ class TailCallTest extends CompilerTest {
         .asInstanceOf[IR.Application.Prefix]
         .arguments
         .foreach(arg =>
-          arg.getMetadata[TailCall.Metadata] shouldEqual Some(
+          arg.getMetadata(TailCall) shouldEqual Some(
             TailPosition.Tail
           )
         )
     }
 
     "mark the function call as tail if it is in a tail position" in {
-      tailCallBody.returnValue.getMetadata[TailCall.Metadata] shouldEqual Some(
+      tailCallBody.returnValue.getMetadata(TailCall) shouldEqual Some(
         TailPosition.Tail
       )
     }
@@ -282,20 +291,24 @@ class TailCallTest extends CompilerTest {
       nonTailCallBody.expressions.head
         .asInstanceOf[IR.Expression.Binding]
         .expression
-        .getMetadata[TailCall.Metadata] shouldEqual Some(TailPosition.NotTail)
+        .getMetadata(TailCall) shouldEqual Some(TailPosition.NotTail)
     }
   }
 
   "Tail call analysis on blocks" should {
     val ir =
       """
-        |Foo.bar = a b c ->
+        |Foo.bar = a -> b -> c ->
         |    d = a + b
-        |    mul = a b -> a * b
+        |    mul = a -> b -> a * b
         |    mul c d
         |""".stripMargin.runTCAModule.bindings.head.asInstanceOf[Method]
 
     val block = ir.body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
+      .asInstanceOf[IR.Function.Lambda]
+      .body
       .asInstanceOf[IR.Function.Lambda]
       .body
       .asInstanceOf[IR.Expression.Block]
@@ -307,25 +320,25 @@ class TailCallTest extends CompilerTest {
         .expression
         .asInstanceOf[IR.Function.Lambda]
         .body
-        .getMetadata[TailCall.Metadata] shouldEqual Some(TailPosition.Tail)
+        .getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
 
     "mark the block expressions as not tail" in {
       block.expressions.foreach(expr =>
-        expr.getMetadata[TailCall.Metadata] shouldEqual Some(
+        expr.getMetadata(TailCall) shouldEqual Some(
           TailPosition.NotTail
         )
       )
     }
 
     "mark the final expression of the block as tail" in {
-      block.returnValue.getMetadata[TailCall.Metadata] shouldEqual Some(
+      block.returnValue.getMetadata(TailCall) shouldEqual Some(
         TailPosition.Tail
       )
     }
 
     "mark the block as tail if it is in a tail position" in {
-      block.getMetadata[TailCall.Metadata] shouldEqual Some(TailPosition.Tail)
+      block.getMetadata(TailCall) shouldEqual Some(TailPosition.Tail)
     }
   }
 }

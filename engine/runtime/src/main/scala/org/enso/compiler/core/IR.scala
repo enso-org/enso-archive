@@ -2,13 +2,17 @@ package org.enso.compiler.core
 
 import java.util.UUID
 
-import org.enso.compiler.core.IR.{Expression, IdentifiedLocation}
+import org.enso.compiler.core.IR.{
+  DiagnosticStorage,
+  Expression,
+  IdentifiedLocation
+}
+import org.enso.compiler.core.ir.MetadataStorage
+import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.exception.CompilerError
+import org.enso.compiler.pass.IRPass
 import org.enso.syntax.text.ast.Doc
 import org.enso.syntax.text.{AST, Debug, Location}
-
-import scala.collection.immutable.{Set => ISet}
-import scala.reflect.ClassTag
 
 /** [[IR]] is a temporary and fairly unsophisticated internal representation
   * format for Enso programs.
@@ -29,38 +33,10 @@ import scala.reflect.ClassTag
   */
 sealed trait IR {
 
-  /** A list of metadata that the node has been tagged with as the result of
+  /** Storage for metadata that the node has been tagged with as the result of
     * various compiler passes.
     */
-  val passData: ISet[IR.Metadata]
-
-  /** Adds pass metadata to the IR node.
-    *
-    * @param newData the metadata to add
-    * @return the node, with `newData` added to its [[passData]]
-    */
-  def addMetadata(newData: IR.Metadata): IR
-
-  /** Gets the metadata of the given type from the node, if it exists.
-    *
-    * @tparam T the type of the metadata to be obtained
-    * @return the requested metadata
-    */
-  def getMetadata[T <: IR.Metadata: ClassTag]: Option[T] = {
-    this.passData.collectFirst { case data: T => data }
-  }
-
-  // TODO [AA] Use this throughout the passes
-  /** Gets the metadata of the given type from the node, throwing a fatal
-    * compiler error with the specified message if it doesn't exist
-    *
-    * @param message the message to throw on error
-    * @tparam T the type of the metadata to be obtained
-    * @return the requested metadata
-    */
-  def unsafeGetMetadata[T <: IR.Metadata: ClassTag](message: String): T = {
-    this.getMetadata[T].getOrElse(throw new CompilerError(message))
-  }
+  val passData: MetadataStorage
 
   /** The source location that the node corresponds to. */
   val location: Option[IdentifiedLocation]
@@ -99,6 +75,9 @@ sealed trait IR {
 
   /** A unique identifier for a piece of IR. */
   protected var id: IR.Identifier
+
+  /** Storage for compiler diagnostics related to the IR node. */
+  val diagnostics: DiagnosticStorage
 }
 object IR {
 
@@ -154,13 +133,15 @@ object IR {
     *
     * @param location the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
+    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Empty(
     override val location: Option[IdentifiedLocation],
-    override val passData: ISet[Metadata] = ISet()
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
       with Expression
-      with Error
+      with Diagnostic
       with IRKind.Primitive {
     override protected var id: Identifier = randomId
 
@@ -168,21 +149,19 @@ object IR {
       *
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       * @param id the identifier for the new node
       * @return a copy of `this` with the specified fields updated
       */
     def copy(
       location: Option[IdentifiedLocation] = location,
-      passData: ISet[Metadata]             = passData,
+      passData: MetadataStorage            = passData,
+      diagnostics: DiagnosticStorage       = diagnostics,
       id: Identifier                       = id
     ): Empty = {
-      val res = Empty(location, passData)
+      val res = Empty(location, passData, diagnostics)
       res.id = id
       res
-    }
-
-    override def addMetadata(newData: Metadata): Empty = {
-      copy(passData = this.passData + newData)
     }
 
     override def mapExpressions(fn: Expression => Expression): Empty = this
@@ -213,12 +192,14 @@ object IR {
     * @param bindings the top-level bindings for this module
     * @param location the source location that the node corresponds to
     * @param passData the pass metadata associated with this node
+    * @param diagnostics compiler diagnostics for this node
     */
   sealed case class Module(
     imports: List[Module.Scope.Import],
     bindings: List[Module.Scope.Definition],
     override val location: Option[IdentifiedLocation],
-    override val passData: ISet[Metadata] = ISet()
+    override val passData: MetadataStorage      = MetadataStorage(),
+    override val diagnostics: DiagnosticStorage = DiagnosticStorage()
   ) extends IR
       with IRKind.Primitive {
     override protected var id: Identifier = randomId
@@ -229,6 +210,7 @@ object IR {
       * @param bindings the top-level bindings for this module
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       * @param id the identifier for the new node
       * @return a copy of `this`, updated with the specified values
       */
@@ -236,16 +218,13 @@ object IR {
       imports: List[Module.Scope.Import]      = imports,
       bindings: List[Module.Scope.Definition] = bindings,
       location: Option[IdentifiedLocation]    = location,
-      passData: ISet[Metadata]                = passData,
+      passData: MetadataStorage               = passData,
+      diagnostics: DiagnosticStorage          = diagnostics,
       id: Identifier                          = id
     ): Module = {
-      val res = Module(imports, bindings, location, passData)
+      val res = Module(imports, bindings, location, passData, diagnostics)
       res.id = id
       res
-    }
-
-    override def addMetadata(newData: Metadata): Module = {
-      copy(passData = this.passData + newData)
     }
 
     override def mapExpressions(fn: Expression => Expression): Module = {
@@ -282,7 +261,6 @@ object IR {
       * module scope
       */
     sealed trait Scope extends IR {
-      override def addMetadata(newData: Metadata):               Scope
       override def mapExpressions(fn: Expression => Expression): Scope
     }
     object Scope {
@@ -292,11 +270,13 @@ object IR {
         * @param name the full `.`-separated path representing the import
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Import(
         name: String,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Scope
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -306,22 +286,20 @@ object IR {
           * @param name the full `.`-separated path representing the import
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
           name: String                         = name,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Import = {
-          val res = Import(name, location, passData)
+          val res = Import(name, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Import = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(fn: Expression => Expression): Import = this
@@ -341,7 +319,6 @@ object IR {
 
       /** A representation of top-level definitions. */
       sealed trait Definition extends Scope {
-        override def addMetadata(newData: Metadata):               Definition
         override def mapExpressions(fn: Expression => Expression): Definition
       }
       object Definition {
@@ -352,12 +329,14 @@ object IR {
           * @param arguments the arguments to the atom constructor
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           */
         sealed case class Atom(
           name: IR.Name,
           arguments: List[DefinitionArgument],
           override val location: Option[IdentifiedLocation],
-          override val passData: ISet[Metadata] = ISet()
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
         ) extends Definition
             with IRKind.Primitive {
           override protected var id: Identifier = randomId
@@ -368,6 +347,7 @@ object IR {
             * @param arguments the arguments to the atom constructor
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
             * @param id the identifier for the new node
             * @return a copy of `this`, updated with the specified values
             */
@@ -375,16 +355,13 @@ object IR {
             name: IR.Name                        = name,
             arguments: List[DefinitionArgument]  = arguments,
             location: Option[IdentifiedLocation] = location,
-            passData: ISet[Metadata]             = passData,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
           ): Atom = {
-            val res = Atom(name, arguments, location, passData)
+            val res = Atom(name, arguments, location, passData, diagnostics)
             res.id = id
             res
-          }
-
-          override def addMetadata(newData: Metadata): Atom = {
-            copy(passData = this.passData + newData)
           }
 
           override def mapExpressions(fn: Expression => Expression): Atom = {
@@ -416,6 +393,7 @@ object IR {
           * @param body the body of the method
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           */
         // TODO [AA] Separate Method into Method.Binding and Method.Explicit to
         //  account for syntax sugar later.
@@ -424,7 +402,8 @@ object IR {
           methodName: IR.Name,
           body: Expression,
           override val location: Option[IdentifiedLocation],
-          override val passData: ISet[Metadata] = ISet()
+          override val passData: MetadataStorage      = MetadataStorage(),
+          override val diagnostics: DiagnosticStorage = DiagnosticStorage()
         ) extends Definition
             with IRKind.Primitive {
           override protected var id: Identifier = _
@@ -437,6 +416,7 @@ object IR {
             * @param body the body of the method
             * @param location the source location that the node corresponds to
             * @param passData the pass metadata associated with this node
+            * @param diagnostics compiler diagnostics for this node
             * @param id the identifier for the new node
             * @return a copy of `this`, updated with the specified values
             */
@@ -445,16 +425,20 @@ object IR {
             methodName: IR.Name                  = methodName,
             body: Expression                     = body,
             location: Option[IdentifiedLocation] = location,
-            passData: ISet[Metadata]             = passData,
+            passData: MetadataStorage            = passData,
+            diagnostics: DiagnosticStorage       = diagnostics,
             id: Identifier                       = id
           ): Method = {
-            val res = Method(typeName, methodName, body, location, passData)
+            val res = Method(
+              typeName,
+              methodName,
+              body,
+              location,
+              passData,
+              diagnostics
+            )
             res.id = id
             res
-          }
-
-          override def addMetadata(newData: Metadata): Method = {
-            copy(passData = this.passData + newData)
           }
 
           override def mapExpressions(fn: Expression => Expression): Method = {
@@ -504,7 +488,6 @@ object IR {
     }
 
     override def mapExpressions(fn: Expression => Expression): Expression
-    override def addMetadata(newData: Metadata):               Expression
   }
   object Expression {
 
@@ -516,13 +499,15 @@ object IR {
       * @param location the source location that the node corresponds to
       * @param suspended whether or not the block is suspended
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Block(
       expressions: List[Expression],
       returnValue: Expression,
       override val location: Option[IdentifiedLocation],
-      suspended: Boolean                    = false,
-      override val passData: ISet[Metadata] = ISet()
+      suspended: Boolean                          = false,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Expression
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -534,6 +519,7 @@ object IR {
         * @param location the source location that the node corresponds to
         * @param suspended whether or not the block is suspended
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -542,16 +528,20 @@ object IR {
         returnValue: Expression              = returnValue,
         location: Option[IdentifiedLocation] = location,
         suspended: Boolean                   = suspended,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Block = {
-        val res = Block(expressions, returnValue, location, suspended, passData)
+        val res = Block(
+          expressions,
+          returnValue,
+          location,
+          suspended,
+          passData,
+          diagnostics
+        )
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Block = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Block = {
@@ -582,12 +572,14 @@ object IR {
       * @param expression the expression being bound to `name`
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Binding(
       name: IR.Name,
       expression: Expression,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Expression
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -598,6 +590,7 @@ object IR {
         * @param expression the expression being bound to `name`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -605,16 +598,13 @@ object IR {
         name: IR.Name                        = name,
         expression: Expression               = expression,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Binding = {
-        val res = Binding(name, expression, location, passData)
+        val res = Binding(name, expression, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Binding = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Binding = {
@@ -641,7 +631,6 @@ object IR {
   /** Enso literals. */
   sealed trait Literal extends Expression with IRKind.Primitive {
     override def mapExpressions(fn: Expression => Expression): Literal
-    override def addMetadata(newData: Metadata):               Literal
   }
   object Literal {
 
@@ -650,11 +639,13 @@ object IR {
       * @param value the textual representation of the numeric literal
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Number(
       value: String,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Literal {
       override protected var id: Identifier = randomId
 
@@ -663,22 +654,20 @@ object IR {
         * @param value the textual representation of the numeric literal
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
         value: String                        = value,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Number = {
-        val res = Number(value, location, passData)
+        val res = Number(value, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Number = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Number = this
@@ -700,11 +689,13 @@ object IR {
       * @param text the text of the literal
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Text(
       text: String,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Literal {
       override protected var id: Identifier = randomId
 
@@ -713,22 +704,20 @@ object IR {
         * @param text the text of the literal
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
         text: String                         = text,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Text = {
-        val res = Text(text, location, passData)
+        val res = Text(text, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Text = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Text = this
@@ -754,7 +743,6 @@ object IR {
     val name: String
 
     override def mapExpressions(fn: Expression => Expression): Name
-    override def addMetadata(newData: Metadata):               Name
   }
   object Name {
 
@@ -763,11 +751,13 @@ object IR {
       * @param name the literal text of the name
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Literal(
       override val name: String,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name {
       override protected var id: Identifier = randomId
 
@@ -776,22 +766,20 @@ object IR {
         * @param name the literal text of the name
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
         name: String                         = name,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Literal = {
-        val res = Literal(name, location, passData)
+        val res = Literal(name, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Name.Literal = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Literal = this
@@ -813,10 +801,12 @@ object IR {
       *
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class This(
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = "this"
@@ -825,21 +815,19 @@ object IR {
         *
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): This = {
-        val res = This(location, passData)
+        val res = This(location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): This = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): This = this
@@ -861,10 +849,12 @@ object IR {
       *
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Here(
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Name {
       override protected var id: Identifier = randomId
       override val name: String             = "here"
@@ -873,21 +863,19 @@ object IR {
         *
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Here = {
-        val res = Here(location, passData)
+        val res = Here(location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Here = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Here = this
@@ -909,7 +897,6 @@ object IR {
   /** Constructs that operate on types. */
   sealed trait Type extends Expression {
     override def mapExpressions(fn: Expression => Expression): Type
-    override def addMetadata(newData: Metadata):               Type
   }
   object Type {
 
@@ -924,12 +911,14 @@ object IR {
       * @param signature the signature being ascribed to `typed`
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Ascription(
       typed: Expression,
       signature: Expression,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Type
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -940,6 +929,7 @@ object IR {
         * @param signature the signature being ascribed to `typed`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -947,16 +937,13 @@ object IR {
         typed: Expression                    = typed,
         signature: Expression                = signature,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Ascription = {
-        val res = Ascription(typed, signature, location, passData)
+        val res = Ascription(typed, signature, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Ascription = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Ascription = {
@@ -986,12 +973,14 @@ object IR {
       * @param context the context being ascribed to `typed`
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Context(
       typed: Expression,
       context: Expression,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Type
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -1002,6 +991,7 @@ object IR {
         * @param context the context being ascribed to `typed`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -1009,16 +999,13 @@ object IR {
         typed: Expression                    = typed,
         context: Expression                  = context,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Context = {
-        val res = Context(typed, context, location, passData)
+        val res = Context(typed, context, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Context = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Context = {
@@ -1045,7 +1032,6 @@ object IR {
     /** IR nodes for dealing with typesets. */
     sealed trait Set extends Type {
       override def mapExpressions(fn: Expression => Expression): Set
-      override def addMetadata(newData: Metadata):               Set
     }
     object Set {
 
@@ -1056,13 +1042,15 @@ object IR {
         * @param value the member's value, if given
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Member(
         label: Name,
         memberType: Expression,
         value: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Set
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -1074,6 +1062,7 @@ object IR {
           * @param value the member's value, if given
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1082,16 +1071,14 @@ object IR {
           memberType: Expression               = memberType,
           value: Expression                    = value,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Member = {
-          val res = Member(label, memberType, value, location, passData)
+          val res =
+            Member(label, memberType, value, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Member = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(fn: Expression => Expression): Member = {
@@ -1127,12 +1114,14 @@ object IR {
         * @param right the right operand
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Subsumption(
         left: Expression,
         right: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Set
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -1143,6 +1132,7 @@ object IR {
           * @param right the right operand
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1150,16 +1140,13 @@ object IR {
           left: Expression                     = left,
           right: Expression                    = right,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Subsumption = {
-          val res = Subsumption(left, right, location, passData)
+          val res = Subsumption(left, right, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Subsumption = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(
@@ -1191,12 +1178,14 @@ object IR {
         * @param right the right operand
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Equality(
         left: Expression,
         right: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Set
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -1207,6 +1196,7 @@ object IR {
           * @param right the right operand
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1214,16 +1204,13 @@ object IR {
           left: Expression                     = left,
           right: Expression                    = right,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Equality = {
-          val res = Equality(left, right, location, passData)
+          val res = Equality(left, right, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Equality = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(fn: Expression => Expression): Equality = {
@@ -1253,12 +1240,14 @@ object IR {
         * @param right the right operand
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Concat(
         left: Expression,
         right: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Set
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -1269,6 +1258,7 @@ object IR {
           * @param right the right operand
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1276,16 +1266,13 @@ object IR {
           left: Expression                     = left,
           right: Expression                    = right,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Concat = {
-          val res = Concat(left, right, location, passData)
+          val res = Concat(left, right, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Concat = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(fn: Expression => Expression): Concat = {
@@ -1315,12 +1302,14 @@ object IR {
         * @param right the right operand
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Union(
         left: Expression,
         right: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Set
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -1331,6 +1320,7 @@ object IR {
           * @param right the right operand
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1338,16 +1328,13 @@ object IR {
           left: Expression                     = left,
           right: Expression                    = right,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Union = {
-          val res = Union(left, right, location, passData)
+          val res = Union(left, right, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Union = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(fn: Expression => Expression): Union = {
@@ -1377,12 +1364,14 @@ object IR {
         * @param right the right operand
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Intersection(
         left: Expression,
         right: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Set
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -1393,6 +1382,7 @@ object IR {
           * @param right the right operand
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1400,16 +1390,13 @@ object IR {
           left: Expression                     = left,
           right: Expression                    = right,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Intersection = {
-          val res = Intersection(left, right, location, passData)
+          val res = Intersection(left, right, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Intersection = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(
@@ -1441,12 +1428,14 @@ object IR {
         * @param right the right operand
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Subtraction(
         left: Expression,
         right: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Set
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
@@ -1457,6 +1446,7 @@ object IR {
           * @param right the right operand
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1464,16 +1454,13 @@ object IR {
           left: Expression                     = left,
           right: Expression                    = right,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Subtraction = {
-          val res = Subtraction(left, right, location, passData)
+          val res = Subtraction(left, right, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Subtraction = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(
@@ -1524,7 +1511,6 @@ object IR {
     val canBeTCO: Boolean
 
     override def mapExpressions(fn: Expression => Expression): Function
-    override def addMetadata(newData: Metadata):               Function
   }
   object Function {
 
@@ -1539,13 +1525,15 @@ object IR {
       * @param location the source location that the node corresponds to
       * @param canBeTCO whether or not the function can be tail-call optimised
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Lambda(
       override val arguments: List[DefinitionArgument],
       override val body: Expression,
       override val location: Option[IdentifiedLocation],
-      override val canBeTCO: Boolean        = true,
-      override val passData: ISet[Metadata] = ISet()
+      override val canBeTCO: Boolean              = true,
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Function
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -1557,6 +1545,7 @@ object IR {
         * @param location the source location that the node corresponds to
         * @param canBeTCO whether or not the function can be tail-call optimised
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -1565,16 +1554,14 @@ object IR {
         body: Expression                     = body,
         location: Option[IdentifiedLocation] = location,
         canBeTCO: Boolean                    = canBeTCO,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Lambda = {
-        val res = Lambda(arguments, body, location, canBeTCO, passData)
+        val res =
+          Lambda(arguments, body, location, canBeTCO, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Lambda = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Lambda = {
@@ -1607,8 +1594,6 @@ object IR {
     override def mapExpressions(
       fn: Expression => Expression
     ): DefinitionArgument
-
-    override def addMetadata(newData: Metadata): DefinitionArgument
   }
   object DefinitionArgument {
 
@@ -1620,13 +1605,15 @@ object IR {
       * @param suspended whether or not the argument has its execution suspended
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Specified(
       name: IR.Name,
       override val defaultValue: Option[Expression],
       suspended: Boolean,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends DefinitionArgument
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -1638,6 +1625,7 @@ object IR {
         * @param suspended whether or not the argument has its execution suspended
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -1646,16 +1634,20 @@ object IR {
         defaultValue: Option[Expression]     = defaultValue,
         suspended: Boolean                   = suspended,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Specified = {
-        val res = Specified(name, defaultValue, suspended, location, passData)
+        val res = Specified(
+          name,
+          defaultValue,
+          suspended,
+          location,
+          passData,
+          diagnostics
+        )
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Specified = {
-        copy(passData = this.passData + newData)
       }
 
       def mapExpressions(fn: Expression => Expression): Specified = {
@@ -1689,7 +1681,6 @@ object IR {
   /** All function applications in Enso. */
   sealed trait Application extends Expression {
     override def mapExpressions(fn: Expression => Expression): Application
-    override def addMetadata(newData: Metadata):               Application
   }
   object Application {
 
@@ -1701,13 +1692,15 @@ object IR {
       *                             argument defaults in `function` suspended
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Prefix(
       function: Expression,
       arguments: List[CallArgument],
       hasDefaultsSuspended: Boolean,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Application
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -1720,6 +1713,7 @@ object IR {
         *                             argument defaults in `function` suspended
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -1728,17 +1722,21 @@ object IR {
         arguments: List[CallArgument]        = arguments,
         hasDefaultsSuspended: Boolean        = hasDefaultsSuspended,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Prefix = {
         val res =
-          Prefix(function, arguments, hasDefaultsSuspended, location, passData)
+          Prefix(
+            function,
+            arguments,
+            hasDefaultsSuspended,
+            location,
+            passData,
+            diagnostics
+          )
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Prefix = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Prefix = {
@@ -1766,11 +1764,13 @@ object IR {
       * @param target the expression being forced
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Force(
       target: Expression,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Application
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -1780,22 +1780,20 @@ object IR {
         * @param target the expression being forced
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
         target: Expression                   = target,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Force = {
-        val res = Force(target, location, passData)
+        val res = Force(target, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Force = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Force = {
@@ -1819,7 +1817,6 @@ object IR {
     /** Operator applications in Enso. */
     sealed trait Operator extends Application {
       override def mapExpressions(fn: Expression => Expression): Operator
-      override def addMetadata(newData: Metadata):               Operator
     }
     object Operator {
 
@@ -1830,13 +1827,15 @@ object IR {
         * @param right the right operand to `operator`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Binary(
         left: Expression,
         operator: IR.Name,
         right: Expression,
         override val location: Option[IdentifiedLocation],
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Operator
           with IRKind.Sugar {
         override protected var id: Identifier = randomId
@@ -1848,6 +1847,7 @@ object IR {
           * @param right the right operand to `operator`
           * @param location the source location that the node corresponds to
           * @param passData the pass metadata associated with this node
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
@@ -1856,16 +1856,14 @@ object IR {
           operator: IR.Name                    = operator,
           right: Expression                    = right,
           location: Option[IdentifiedLocation] = location,
-          passData: ISet[Metadata]             = passData,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
           id: Identifier                       = id
         ): Binary = {
-          val res = Binary(left, operator, right, location, passData)
+          val res =
+            Binary(left, operator, right, location, passData, diagnostics)
           res.id = id
           res
-        }
-
-        override def addMetadata(newData: Metadata): Binary = {
-          copy(passData = this.passData + newData)
         }
 
         override def mapExpressions(fn: Expression => Expression): Binary = {
@@ -1910,7 +1908,6 @@ object IR {
     val shouldBeSuspended: Option[Boolean]
 
     override def mapExpressions(fn: Expression => Expression): CallArgument
-    override def addMetadata(newData: Metadata):               CallArgument
   }
   object CallArgument {
 
@@ -1922,13 +1919,15 @@ object IR {
       * @param shouldBeSuspended whether or not the argument should be passed
       *        suspended
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Specified(
       override val name: Option[IR.Name],
       value: Expression,
       override val location: Option[IdentifiedLocation],
       override val shouldBeSuspended: Option[Boolean] = None,
-      override val passData: ISet[Metadata]           = ISet()
+      override val passData: MetadataStorage          = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage     = DiagnosticStorage()
     ) extends CallArgument
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -1941,6 +1940,7 @@ object IR {
         * @param shouldBeSuspended whether or not the argument should be passed
         *        suspended
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -1949,16 +1949,20 @@ object IR {
         value: Expression                    = value,
         location: Option[IdentifiedLocation] = location,
         shouldBeSuspended: Option[Boolean]   = shouldBeSuspended,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Specified = {
-        val res = Specified(name, value, location, shouldBeSuspended, passData)
+        val res = Specified(
+          name,
+          value,
+          location,
+          shouldBeSuspended,
+          passData,
+          diagnostics
+        )
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Specified = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Specified = {
@@ -1990,7 +1994,6 @@ object IR {
   /** The Enso case expression. */
   sealed trait Case extends Expression {
     override def mapExpressions(fn: Expression => Expression): Case
-    override def addMetadata(newData: Metadata):               Case
   }
   object Case {
 
@@ -2001,13 +2004,15 @@ object IR {
       * @param fallback a fallback branch, if provided explicitly
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Expr(
       scrutinee: Expression,
       branches: Seq[Branch],
       fallback: Option[Expression],
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Case
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -2019,6 +2024,7 @@ object IR {
         * @param fallback a fallback branch, if provided explicitly
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -2027,16 +2033,14 @@ object IR {
         branches: Seq[Branch]                = branches,
         fallback: Option[Expression]         = fallback,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Expr = {
-        val res = Expr(scrutinee, branches, fallback, location, passData)
+        val res =
+          Expr(scrutinee, branches, fallback, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Expr = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Expr = {
@@ -2070,12 +2074,14 @@ object IR {
       * @param expression the expression that is executed if the pattern matches
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Branch(
       pattern: Expression,
       expression: Expression,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Case
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -2086,6 +2092,7 @@ object IR {
         * @param expression the expression that is executed if the pattern matches
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -2093,16 +2100,13 @@ object IR {
         pattern: Expression                  = pattern,
         expression: Expression               = expression,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Branch = {
-        val res = Branch(pattern, expression, location, passData)
+        val res = Branch(pattern, expression, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Branch = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Branch = {
@@ -2127,7 +2131,6 @@ object IR {
     /** The different types of patterns that can occur in a match. */
     sealed trait Pattern extends IR {
       override def mapExpressions(fn: Expression => Expression): Pattern
-      override def addMetadata(newData: Metadata):               Pattern
     }
     object Pattern {
       // TODO [AA] Better differentiate the types of patterns that can occur
@@ -2139,7 +2142,6 @@ object IR {
   /** Enso comment entities. */
   sealed trait Comment extends Expression {
     override def mapExpressions(fn: Expression => Expression): Comment
-    override def addMetadata(newData: Metadata):               Comment
 
     /** The expression being commented. */
     val commented: Expression
@@ -2152,12 +2154,14 @@ object IR {
       * @param doc the documentation of `commented`
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Documentation(
       override val commented: Expression,
       doc: Doc,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Comment
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -2168,6 +2172,7 @@ object IR {
         * @param doc the documentation of `commented`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -2175,16 +2180,13 @@ object IR {
         commented: Expression                = commented,
         doc: Doc                             = doc,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Documentation = {
-        val res = Documentation(commented, doc, location, passData)
+        val res = Documentation(commented, doc, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Documentation = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(
@@ -2214,7 +2216,6 @@ object IR {
   /** Foreign code entities. */
   sealed trait Foreign extends Expression {
     override def mapExpressions(fn: Expression => Expression): Foreign
-    override def addMetadata(newData: Metadata):               Foreign
   }
   object Foreign {
 
@@ -2224,12 +2225,14 @@ object IR {
       * @param code the code written in `lang`
       * @param location the source location that the node corresponds to
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Definition(
       lang: String,
       code: String,
       override val location: Option[IdentifiedLocation],
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Foreign
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
@@ -2240,6 +2243,7 @@ object IR {
         * @param code the code written in `lang`
         * @param location the source location that the node corresponds to
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
@@ -2247,16 +2251,13 @@ object IR {
         lang: String                         = lang,
         code: String                         = code,
         location: Option[IdentifiedLocation] = location,
-        passData: ISet[Metadata]             = passData,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
         id: Identifier                       = id
       ): Definition = {
-        val res = Definition(lang, code, location, passData)
+        val res = Definition(lang, code, location, passData, diagnostics)
         res.id = id
         res
-      }
-
-      override def addMetadata(newData: Metadata): Definition = {
-        copy(passData = this.passData + newData)
       }
 
       override def mapExpressions(fn: Expression => Expression): Definition =
@@ -2278,20 +2279,20 @@ object IR {
     }
   }
 
-  // === Errors ===============================================================
+  // === Diagnostics ==========================================================
 
-  /** A trait for all errors in Enso's IR. */
-  sealed trait Error extends Expression {
-    override def mapExpressions(fn: Expression => Expression): Error
-
-    override def addMetadata(newData: Metadata): Error
+  /** A representation of various kinds of diagnostic in the IR. */
+  sealed trait Diagnostic {
 
     /**
       * @return a human-readable description of this error condition.
       */
     def message: String
+
+    /** The location at which the diagnostic occurs. */
+    val location: Option[IdentifiedLocation]
   }
-  object Error {
+  object Diagnostic {
 
     /** Represents the various kinds of errors in the IR. */
     sealed trait Kind
@@ -2307,46 +2308,88 @@ object IR {
         */
       sealed trait Interactive extends Kind
     }
+  }
+
+  // === Warnings =============================================================
+
+  /** A trait for all warnings in Enso's IR. */
+  sealed trait Warning extends Diagnostic
+  object Warning {
+
+    /** Warnings about shadowing names. */
+    sealed trait Shadowed extends Warning {
+
+      /** The [[IR]] shadowing the warned expression. */
+      val shadower: IR
+    }
+    object Shadowed {
+
+      /** A warning that a later-defined lambda parameter shadows an
+        * earlier-defined lambda parameter.
+        *
+        * @param shadowedName the name being shadowed
+        * @param shadower the expression shadowing `warnedExpr`
+        */
+      sealed case class FunctionParam(
+        shadowedName: String,
+        override val shadower: IR,
+        override val location: Option[IdentifiedLocation]
+      ) extends Shadowed {
+
+        override def message: String =
+          s"The function parameter $shadowedName is being shadowed by $shadower"
+      }
+    }
+  }
+
+  // === Errors ===============================================================
+
+  /** A trait for all errors in Enso's IR. */
+  sealed trait Error extends Expression with Diagnostic {
+    override def mapExpressions(fn: Expression => Expression): Error
+  }
+  object Error {
 
     /** A representation of an Enso syntax error.
       *
       * @param ast the erroneous AST
       * @param reason the cause of this error
       * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class Syntax(
       ast: AST,
       reason: Syntax.Reason,
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Error
-        with Kind.Interactive
+        with Diagnostic.Kind.Interactive
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
       /** Creates a copy of `this`.
         *
         * @param ast the erroneous AST
+        * @param reason the cause of this error
         * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ast: AST                 = ast,
-        reason: Syntax.Reason    = reason,
-        passData: ISet[Metadata] = passData,
-        id: Identifier           = id
+        ast: AST                       = ast,
+        reason: Syntax.Reason          = reason,
+        passData: MetadataStorage      = passData,
+        diagnostics: DiagnosticStorage = diagnostics,
+        id: Identifier                 = id
       ): Syntax = {
-        val res = Syntax(ast, reason, passData)
+        val res = Syntax(ast, reason, passData, diagnostics)
         res.id = id
         res
       }
 
       override val location: Option[IdentifiedLocation] =
         ast.location.map(IdentifiedLocation(_, ast.id))
-
-      override def addMetadata(newData: Metadata): Syntax = {
-        copy(passData = this.passData + newData)
-      }
 
       override def mapExpressions(fn: Expression => Expression): Syntax = this
 
@@ -2409,12 +2452,14 @@ object IR {
       *
       * @param ir the IR that is invalid
       * @param passData any annotations from compiler passes
+      * @param diagnostics compiler diagnostics for this node
       */
     sealed case class InvalidIR(
       ir: IR,
-      override val passData: ISet[Metadata] = ISet()
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
     ) extends Error
-        with Kind.Static
+        with Diagnostic.Kind.Static
         with IRKind.Primitive {
       override protected var id: Identifier = randomId
 
@@ -2422,24 +2467,22 @@ object IR {
         *
         * @param ir the IR that is invalid
         * @param passData any annotations from compiler passes
+        * @param diagnostics compiler diagnostics for this node
         * @param id the identifier for the new node
         * @return a copy of `this`, updated with the specified values
         */
       def copy(
-        ir: IR                   = ir,
-        passData: ISet[Metadata] = passData,
-        id: Identifier           = id
+        ir: IR                         = ir,
+        passData: MetadataStorage      = passData,
+        diagnostics: DiagnosticStorage = diagnostics,
+        id: Identifier                 = id
       ): InvalidIR = {
-        val res = InvalidIR(ir, passData)
+        val res = InvalidIR(ir, passData, diagnostics)
         res.id = id
         res
       }
 
       override val location: Option[IdentifiedLocation] = ir.location
-
-      override def addMetadata(newData: Metadata): InvalidIR = {
-        copy(passData = this.passData + newData)
-      }
 
       override def mapExpressions(fn: Expression => Expression): InvalidIR =
         this
@@ -2467,66 +2510,6 @@ object IR {
     sealed trait Redefined extends Error
     object Redefined {
 
-      /** An error representing the redefinition of a function argument.
-        *
-        * @param invalidArgDef the invalid definition
-        * @param passData the pass metadata for the error
-        */
-      sealed case class Argument(
-        invalidArgDef: IR.DefinitionArgument.Specified,
-        override val passData: ISet[Metadata] = ISet()
-      ) extends Redefined
-          with Kind.Static
-          with IRKind.Primitive
-          with IR.DefinitionArgument {
-        override protected var id: Identifier = randomId
-
-        /** Creates a copy of `this`.
-          *
-          * @param invalidArgDef the invalid definition
-          * @param passData the pass metadata for the error
-          * @param id the identifier for the new node
-          * @return a copy of `this`, updated with the specified values
-          */
-        def copy(
-          invalidArgDef: IR.DefinitionArgument.Specified = invalidArgDef,
-          passData: ISet[Metadata]                       = passData,
-          id: Identifier                                 = id
-        ): Argument = {
-          val res = Argument(invalidArgDef, passData)
-          res.id = id
-          res
-        }
-
-        override val defaultValue: Option[Expression] = None
-        override val location: Option[IdentifiedLocation] =
-          invalidArgDef.location
-
-        override def addMetadata(newData: Metadata): Argument = {
-          copy(passData = this.passData + newData)
-        }
-
-        override def mapExpressions(
-          fn: Expression => Expression
-        ): Argument = this
-
-        override def toString: String =
-          s"""
-          |IR.Error.Redefined.Argument(
-          |invalidArgDef = $invalidArgDef,
-          |location = $location,
-          |passData = ${this.showPassData},
-          |id = $id
-          |)
-          |""".toSingleLine
-
-        override def children: List[IR] = List(invalidArgDef)
-
-        override def message: String =
-          s"Argument ${invalidArgDef.name.name} is being redefined."
-
-      }
-
       /** An error representing the redefinition of a binding in a given scope.
         *
         * While bindings in child scopes are allowed to _shadow_ bindings in
@@ -2534,12 +2517,14 @@ object IR {
         *
         * @param invalidBinding the invalid binding
         * @param passData the pass metadata for the error
+        * @param diagnostics compiler diagnostics for this node
         */
       sealed case class Binding(
         invalidBinding: IR.Expression.Binding,
-        override val passData: ISet[Metadata] = ISet()
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
-          with Kind.Static
+          with Diagnostic.Kind.Static
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -2547,25 +2532,23 @@ object IR {
           *
           * @param invalidBinding the invalid binding
           * @param passData the pass metadata for the error
+          * @param diagnostics compiler diagnostics for this node
           * @param id the identifier for the new node
           * @return a copy of `this`, updated with the specified values
           */
         def copy(
           invalidBinding: IR.Expression.Binding = invalidBinding,
-          passData: ISet[Metadata]              = passData,
+          passData: MetadataStorage             = passData,
+          diagnostics: DiagnosticStorage        = diagnostics,
           id: Identifier                        = id
         ): Binding = {
-          val res = Binding(invalidBinding, passData)
+          val res = Binding(invalidBinding, passData, diagnostics)
           res.id = id
           res
         }
 
         override val location: Option[IdentifiedLocation] =
           invalidBinding.location
-
-        override def addMetadata(newData: Metadata): Binding = {
-          copy(passData = this.passData + newData)
-        }
 
         override def mapExpressions(fn: Expression => Expression): Binding =
           this
@@ -2620,26 +2603,6 @@ object IR {
   }
 
   // ==========================================================================
-  // === Pass Metadata ========================================================
-  // ==========================================================================
-
-  /** This trait should be implemented by all metadata elements generated by
-    * passes such that it can be stored in each IR node.
-    */
-  trait Metadata {
-
-    /** The name of the metadata as a string. */
-    val metadataName: String
-  }
-  object Metadata {
-
-    /** An empty metadata type for passes that do not create any metadata. */
-    sealed case class Empty() extends Metadata {
-      override val metadataName: String = "Empty"
-    }
-  }
-
-  // ==========================================================================
   // === Extension Methods ====================================================
   // ==========================================================================
 
@@ -2655,7 +2618,7 @@ object IR {
       * @return a string representation of the pass data for [[ir]]
       */
     def showPassData: String = {
-      val metaString = ir.passData.map(_.metadataName)
+      val metaString = ir.passData.map((p, m) => (p, m.metadataName)).values
 
       s"$metaString"
     }
@@ -2677,7 +2640,181 @@ object IR {
 
       val body = lines.tail.dropRight(1).mkString(" ")
 
-      s"${lines.head}${body}${lines.last}"
+      s"${lines.head}$body${lines.last}"
+    }
+  }
+
+  // ==========================================================================
+  // === Diagnostics Storage ==================================================
+  // ==========================================================================
+
+  /** Storage for diagnostics in IR nodes.
+    *
+    * @param initDiagnostics the initial diagnostics
+    */
+  sealed class DiagnosticStorage(initDiagnostics: Seq[Diagnostic] = Seq()) {
+    private var diagnostics: List[Diagnostic] = initDiagnostics.toList
+
+    /** Adds a new diagnostic to the storage
+      *
+      * @param diagnostic the new diagnostic to store
+      */
+    def add(diagnostic: Diagnostic): Unit = {
+      diagnostics = diagnostic :: diagnostics
+    }
+
+    /** Adds new diagnostics to the storage.
+      *
+      * @param newDiagnostics the new diagnostics to store
+      */
+    def add(newDiagnostics: Seq[Diagnostic]): Unit = {
+      diagnostics = newDiagnostics.toList ::: diagnostics
+    }
+
+    /** Applies the function `f` across the diagnostic storage, producing a
+      * result sequence.
+      *
+      * @param f the function to apply
+      * @tparam R the result type of `f`
+      * @return the sequence that results from applying `f` over the storage
+      */
+    def map[R](f: IR.Diagnostic => R): Seq[R] = {
+      diagnostics.map(f)
+    }
+
+    /** Applies the function `f` across the diagnostic storage in place.
+      *
+      * @param f the function to apply
+      */
+    def mapInPlace(f: IR.Diagnostic => IR.Diagnostic): Unit = {
+      diagnostics = diagnostics.map(f)
+    }
+
+    /** Performs a collection operation on the diagnostics storage, producing
+      * a new sequence.
+      *
+      * @param pf the partial function to apply
+      * @tparam R the result type of the partial function
+      * @return the result of collecting across the storage with `pf`
+      */
+    def collect[R](pf: PartialFunction[IR.Diagnostic, R]): Seq[R] = {
+      diagnostics.collect(pf)
+    }
+
+    /** Filters the elements of the diagnostic storage using the predicate.
+      *
+      * @param pred the predicate to filter with
+      * @return a new diagnostic storage instance containing elements matching
+      *         `pred`
+      */
+    def filter(pred: IR.Diagnostic => Boolean): DiagnosticStorage = {
+      new DiagnosticStorage(diagnostics.filter(pred))
+    }
+
+    /** Filters the elements of the diagnostic storage in place using the
+      * predicate.
+      *
+      * @param pred the predicate to filter with
+      */
+    def filterInPlace(pred: IR.Diagnostic => Boolean): Unit = {
+      diagnostics = diagnostics.filter(pred)
+    }
+
+    /** Performs a left fold over the diagnostic storage to produce a result.
+      *
+      * @param init the starting value
+      * @param op the operator to use to fold
+      * @tparam L the result type of the fold
+      * @return the result of folding over the storage using `op` starting wit
+      *         `init`
+      */
+    def foldLeft[L](init: L)(op: (L, IR.Diagnostic) => L): L = {
+      diagnostics.foldLeft(init)(op)
+    }
+
+    /** Checks two diagnostics storages for equality.
+      *
+      * @param obj the object to check against `this`
+      * @return `true` if `this == obj`, otherwise `false`
+      */
+    override def equals(obj: Any): Boolean = obj match {
+      case that: DiagnosticStorage => this.diagnostics == that.diagnostics
+      case _                       => false
+    }
+
+    /** Creates a string representation of `this` diagnostic storage.
+      *
+      * @return the string representation of `this`
+      */
+    override def toString: String =
+      s"DiagnosticStorage(diagnostics = $diagnostics)"
+
+    /** Creates a list of the diagnostics contained in the diagnostics storage.
+      *
+      * @return a list of the diagnostics in the storage
+      */
+    def toList: List[IR.Diagnostic] = {
+      diagnostics
+    }
+  }
+  object DiagnosticStorage {
+
+    /** Creates a new instance of the diagnostics storage.
+      *
+      * @param initDiagnostics the initial diagnostics to construct it with
+      * @return a new diagnostics storage instance
+      */
+    def apply(initDiagnostics: Seq[Diagnostic] = Seq()): DiagnosticStorage =
+      new DiagnosticStorage(initDiagnostics)
+  }
+
+  // ==========================================================================
+  // === Useful Extension Methods =============================================
+  // ==========================================================================
+
+  /** Adds extension methods for working directly with the metadata on the IR.
+    *
+    * @param ir the IR to add the methods to
+    * @tparam T the concrete type of the IR
+    */
+  implicit class AsMetadata[T <: IR](ir: T) {
+
+    /** Adds a metadata pair to the node metadata.
+      *
+      * This will overwrite any entry whose key matches [[MetadataPair#pass]].
+      *
+      * @param metadataPair the pair to add to the storage
+      * @tparam K the concrete type of the pass
+      */
+    def updateMetadata[K <: IRPass](metadataPair: MetadataPair[K]): T = {
+      ir.passData.update(metadataPair)
+      ir
+    }
+
+    /** Gets the metadata for the specified pass.
+      *
+      * @param pass the pass to get the metadata for
+      * @tparam K the concrete type of `pass`
+      * @return the metadata for `pass`, if it exists
+      */
+    def getMetadata[K <: IRPass](pass: K): Option[pass.Metadata] = {
+      ir.passData.get(pass)
+    }
+
+    /** Unsafely gets the metadata for the specified pass, if it exists.
+      *
+      * @param pass the pass to get metadata for
+      * @param msg the message to throw with if the unsafe get fails
+      * @tparam K the concrete type of `pass`
+      * @throws CompilerError if no metadata exists for `pass`
+      * @return the metadata for `pass`, if it exists
+      */
+    @throws[CompilerError]
+    def unsafeGetMetadata[K <: IRPass](
+      pass: IRPass,
+      msg: String
+    ): pass.Metadata = {
+      ir.passData.getUnsafe(pass)(msg)
     }
   }
 }
