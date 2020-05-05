@@ -1652,7 +1652,12 @@ object IR {
 
   /** Definition-site arguments in Enso. */
   sealed trait DefinitionArgument extends IR {
+
+    /** The default value of the argument. */
     val defaultValue: Option[Expression]
+
+    /** Whether or not the argument is suspended. */
+    val suspended: Boolean
 
     override def mapExpressions(
       fn: Expression => Expression
@@ -1662,6 +1667,9 @@ object IR {
 
     /** The representation of an argument from a [[Function]] or
       * [[IR.Module.Scope.Definition.Atom]] definition site.
+      *
+      * To create an ignored argument, the argument name should be an
+      * [[IR.Expression.Blank]].
       *
       * @param name the name of the argument
       * @param defaultValue the default value of the argument, if present
@@ -1673,7 +1681,7 @@ object IR {
     sealed case class Specified(
       name: IR.Name,
       override val defaultValue: Option[Expression],
-      suspended: Boolean,
+      override val suspended: Boolean,
       override val location: Option[IdentifiedLocation],
       override val passData: MetadataStorage      = MetadataStorage(),
       override val diagnostics: DiagnosticStorage = DiagnosticStorage()
@@ -1734,10 +1742,7 @@ object IR {
         |""".toSingleLine
 
       override def children: List[IR] = name :: defaultValue.toList
-
     }
-
-    // TODO [AA] Add support for `_` ignored arguments.
   }
 
   // === Applications =========================================================
@@ -2778,6 +2783,9 @@ object IR {
         *
         * While bindings in child scopes are allowed to _shadow_ bindings in
         * parent scopes, a binding cannot be redefined within a given scope.
+        *
+        * To create a binding that binds no available name, set the name of the
+        * binding to an [[IR.Expression.Blank]] (e.g. _ = foo a b).
         *
         * @param invalidBinding the invalid binding
         * @param passData the pass metadata for the error

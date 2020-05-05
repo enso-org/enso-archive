@@ -145,4 +145,48 @@ class AstToIRTest extends CompilerTest {
       ir.scrutinee shouldBe an[IR.Expression.Blank]
     }
   }
+
+  "AST translation of function definitions" should {
+    "support ignored arguments" in {
+      pending
+      val ir =
+        """
+          |_ -> a -> a + 20
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.head shouldBe an[IR.DefinitionArgument.Specified]
+    }
+
+    "support suspended ignored arguments" in {
+      pending
+      val ir =
+        """
+          |~_ -> a -> a + 20
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.head shouldBe an[IR.DefinitionArgument.Specified]
+    }
+
+    "support ignored arguments with defaults" in {
+      pending
+      val ir =
+        """
+          |(_ = 10) -> a -> a + 20
+          |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Function.Lambda]
+
+      ir.arguments.head shouldBe an[IR.DefinitionArgument.Specified]
+    }
+  }
+
+  "AST translation of bindings" should {
+    "allow ignored bindings" in {
+      pending
+      val ir =
+        """
+          |_ = foo a b
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Expression.Binding]
+    }
+  }
 }
