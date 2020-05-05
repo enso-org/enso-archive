@@ -5,7 +5,10 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.UUID
 
-import org.enso.interpreter.instrument.IdExecutionInstrument
+import org.enso.interpreter.instrument.{
+  IdExecutionInstrument,
+  RuntimeServerInstrument
+}
 import org.enso.interpreter.test.Metadata
 import org.enso.pkg.Package
 import org.enso.polyglot.runtime.Runtime.{Api, ApiRequest}
@@ -67,10 +70,9 @@ class RuntimeServerTest
     )
     executionContext.context.initialize(LanguageInfo.ID)
 
-    val instrument =
-      executionContext.context.getEngine.getInstruments
-        .get(IdExecutionInstrument.INSTRUMENT_ID)
-        .lookup(classOf[IdExecutionInstrument])
+    val instrument = executionContext.context.getEngine.getInstruments
+      .get(RuntimeServerInfo.INSTRUMENT_NAME)
+      .lookup(classOf[RuntimeServerInstrument])
 
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
@@ -489,7 +491,8 @@ class RuntimeServerTest
     )
 
     // override
-    context.instrument.setOverride(context.Main.idMainX, 1L.asInstanceOf[AnyRef])
+    context.instrument.getHandler.cache
+      .put(context.Main.idMainX, 1L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(
@@ -534,8 +537,10 @@ class RuntimeServerTest
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
 
     // override
-    context.instrument.setOverride(context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
-    context.instrument.setOverride(context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
+    context.instrument.getHandler.cache
+      .put(context.Main2.idMainY, 1L.asInstanceOf[AnyRef])
+    context.instrument.getHandler.cache
+      .put(context.Main2.idMainZ, 10L.asInstanceOf[AnyRef])
 
     // recompute
     context.send(

@@ -26,7 +26,6 @@ import java.util.function.Consumer;
 public class IdExecutionInstrument extends TruffleInstrument {
   public static final String INSTRUMENT_ID = "id-value-extractor";
 
-  private static final Map<UUID, Object> cache = new HashMap<>();
   private Env env;
 
   /**
@@ -131,20 +130,24 @@ public class IdExecutionInstrument extends TruffleInstrument {
     private final CallTarget entryCallTarget;
     private final Consumer<ExpressionCall> functionCallCallback;
     private final Consumer<ExpressionValue> valueCallback;
+    private final Cache cache;
     private final Map<UUID, FunctionCallInstrumentationNode.FunctionCall> calls = new HashMap<>();
 
     /**
      * Creates a new listener.
      *
      * @param entryCallTarget the call target being observed.
+     * @param cache the precomputed expression values.
      * @param functionCallCallback the consumer of function call events.
      * @param valueCallback the consumer of the node value events.
      */
     public IdExecutionEventListener(
         CallTarget entryCallTarget,
+        Cache cache,
         Consumer<ExpressionCall> functionCallCallback,
         Consumer<ExpressionValue> valueCallback) {
       this.entryCallTarget = entryCallTarget;
+      this.cache = cache;
       this.functionCallCallback = functionCallCallback;
       this.valueCallback = valueCallback;
     }
@@ -244,6 +247,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
    * @param entryCallTarget the call target being observed.
    * @param funSourceStart the source start of the observed range of ids.
    * @param funSourceLength the length of the observed source range.
+   * @param cache the precomputed expression values.
    * @param valueCallback the consumer of the node value events.
    * @param functionCallCallback the consumer of function call events.
    * @return a reference to the attached event listener.
@@ -252,6 +256,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
       CallTarget entryCallTarget,
       int funSourceStart,
       int funSourceLength,
+      Cache cache,
       Consumer<ExpressionValue> valueCallback,
       Consumer<ExpressionCall> functionCallCallback) {
     SourceSectionFilter filter =
@@ -265,18 +270,7 @@ public class IdExecutionInstrument extends TruffleInstrument {
         env.getInstrumenter()
             .attachExecutionEventListener(
                 filter,
-                new IdExecutionEventListener(entryCallTarget, functionCallCallback, valueCallback));
+                new IdExecutionEventListener(entryCallTarget, cache, functionCallCallback, valueCallback));
     return binding;
-  }
-
-  /**
-   * Sets the return value of the target expression. Acts as a marker to interrupt the execution of
-   * the requested expression and return the provided value.
-   *
-   * @param targetId the id which return value will be overridden.
-   * @param value the value to use as the override.
-   */
-  public void setOverride(UUID targetId, Object value) {
-    this.cache.put(targetId, value);
   }
 }
