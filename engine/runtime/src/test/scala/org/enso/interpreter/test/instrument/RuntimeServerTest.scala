@@ -78,7 +78,7 @@ class RuntimeServerTest
     def writeMain(contents: String): File =
       Files.write(pkg.mainFile.toPath, contents.getBytes).toFile
 
-    def writeFile(file: File, contents: String): File = {
+    def writeFile(file: File, contents: String): File =
       Files.write(file.toPath, contents.getBytes).toFile
 
     def writeInSrcDir(moduleName: String, contents: String): File = {
@@ -226,7 +226,6 @@ class RuntimeServerTest
           |""".stripMargin
 
     }
-
 
     object Main2 {
 
@@ -840,9 +839,9 @@ class RuntimeServerTest
     )
     Set.fill(5)(context.receive) shouldEqual Set(
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
-      Some(context.Main.update.idMainX(contextId)),
-      Some(context.Main.update.idMainY(contextId)),
-      Some(context.Main.update.idMainZ(contextId)),
+      Some(context.Main.Update.mainX(contextId)),
+      Some(context.Main.Update.mainY(contextId)),
+      Some(context.Main.Update.mainZ(contextId)),
       None
     )
   }
