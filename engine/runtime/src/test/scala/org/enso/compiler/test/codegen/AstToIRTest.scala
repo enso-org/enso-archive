@@ -180,13 +180,15 @@ class AstToIRTest extends CompilerTest {
 
   "AST translation of bindings" should {
     "allow ignored bindings" in {
-      pending
       val ir =
         """
           |_ = foo a b
           |""".stripMargin.toIrExpression.get
 
       ir shouldBe an[IR.Expression.Binding]
+      val binding = ir.asInstanceOf[IR.Expression.Binding]
+
+      binding.name shouldBe an[IR.Name.Blank]
     }
   }
 }

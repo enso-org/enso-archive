@@ -1,7 +1,9 @@
 package org.enso.compiler.codegen
 
 import org.enso.data
+import org.enso.data.List1
 import org.enso.syntax.text.AST
+import org.enso.syntax.text.AST.Ident.{Opr, Var}
 
 /** This object contains view patterns that allow matching on the parser [[AST]]
   * for more sophisticated constructs.
@@ -43,7 +45,7 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the name to which the block is assigned, and the block itself
       */
-    def unapply(ast: AST): Option[(AST.Ident.Var, AST.Block)] = {
+    def unapply(ast: AST): Option[(AST.Ident, AST.Block)] = {
       ast match {
         case Assignment(name, AST.Block.any(block)) =>
           Some((name, block))
@@ -53,7 +55,7 @@ object AstView {
   }
 
   object Binding {
-    val bindingOpSym = AST.Ident.Opr("=")
+    val bindingOpSym: Opr = AST.Ident.Opr("=")
 
     /** Matches an arbitrary binding in the program source.
       *
@@ -82,7 +84,7 @@ object AstView {
   }
 
   object Assignment {
-    val assignmentOpSym = AST.Ident.Opr("=")
+    val assignmentOpSym: Opr = AST.Ident.Opr("=")
 
     /** Matches an assignment.
       *
@@ -92,16 +94,33 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the variable name assigned to, and the expression being assigned
       */
-    def unapply(ast: AST): Option[(AST.Ident.Var, AST)] = {
+    def unapply(ast: AST): Option[(AST.Ident, AST)] = {
       ast match {
-        case Binding(AST.Ident.Var.any(left), right) => Some((left, right))
-        case _                                       => None
+        case Binding(MaybeBlankName(left), right) => Some((left, right))
+        case _                                    => None
+      }
+    }
+  }
+
+  object MaybeBlankName {
+    val blankSym: String = "_"
+
+    /** Matches an identifier that may be a blank `_`.
+      *
+      * @param ast the structure to try and match on
+      * @return the identifier
+      */
+    def unapply(ast: AST): Option[AST.Ident] = {
+      ast match {
+        case AST.Ident.Var.any(variable) => Some(variable)
+        case AST.Ident.Cons.any(cons)    => Some(cons)
+        case AST.Ident.Blank.any(blank)  => Some(blank)
       }
     }
   }
 
   object Lambda {
-    val lambdaOpSym = AST.Ident.Opr("->")
+    val lambdaOpSym: Opr = AST.Ident.Opr("->")
 
     /** Matches a lambda expression in the program source.
       *
@@ -255,7 +274,7 @@ object AstView {
       * @param ast the structure to try and match on
       * @return the variable name and the expression being bound to it
       */
-    def unapply(ast: AST): Option[(AST.Ident.Var, AST)] =
+    def unapply(ast: AST): Option[(AST.Ident, AST)] =
       MaybeParensed.unapply(ast).flatMap(Assignment.unapply)
   }
 
@@ -521,7 +540,8 @@ object AstView {
   }
 
   object CaseExpression {
-    val caseName = data.List1(AST.Ident.Var("case"), AST.Ident.Var("of"))
+    val caseName: List1[Var] =
+      data.List1(AST.Ident.Var("case"), AST.Ident.Var("of"))
 
     /** Matches on a case expression.
       *

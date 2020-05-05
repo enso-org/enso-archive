@@ -535,15 +535,13 @@ object AstToIR {
     name: AST,
     expr: AST
   ): Expression.Binding = {
-    name match {
-      case v @ AST.Ident.Var(name) =>
-        Expression.Binding(
-          Name.Literal(name, getIdentifiedLocation(v)),
-          translateExpression(expr),
-          location
-        )
+    val irName = translateExpression(name)
+
+    irName match {
+      case n: IR.Name =>
+        Expression.Binding(n, translateExpression(expr), location)
       case _ =>
-        throw new UnhandledEntity(name, "translateAssignment")
+        throw new UnhandledEntity(name, "translateBinding")
     }
   }
 
