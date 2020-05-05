@@ -94,7 +94,7 @@ class AstToIRTest extends CompilerTest {
       ir.arguments(1) shouldBe an[IR.CallArgument.Specified]
       ir.arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Expression.Blank]
+        .value shouldBe an[IR.Name.Blank]
     }
 
     "allow use of named blank arguments" in {
@@ -107,7 +107,7 @@ class AstToIRTest extends CompilerTest {
       ir.arguments(1) shouldBe an[IR.CallArgument.Specified]
       ir.arguments(1)
         .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Expression.Blank]
+        .value shouldBe an[IR.Name.Blank]
     }
 
     "allow method-call syntax on a blank" in {
@@ -120,7 +120,7 @@ class AstToIRTest extends CompilerTest {
       ir.arguments.head shouldBe an[IR.CallArgument.Specified]
       ir.arguments.head
         .asInstanceOf[IR.CallArgument.Specified]
-        .value shouldBe an[IR.Expression.Blank]
+        .value shouldBe an[IR.Name.Blank]
     }
 
     "allow functions in applications to be blanks" in {
@@ -130,7 +130,7 @@ class AstToIRTest extends CompilerTest {
           |""".stripMargin.toIrExpression.get
           .asInstanceOf[IR.Application.Prefix]
 
-      ir.function shouldBe an[IR.Expression.Blank]
+      ir.function shouldBe an[IR.Name.Blank]
     }
   }
 
@@ -142,7 +142,7 @@ class AstToIRTest extends CompilerTest {
           |    Cons a b -> a + b
           |""".stripMargin.toIrExpression.get.asInstanceOf[IR.Case.Expr]
 
-      ir.scrutinee shouldBe an[IR.Expression.Blank]
+      ir.scrutinee shouldBe an[IR.Name.Blank]
     }
   }
 

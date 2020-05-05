@@ -452,7 +452,7 @@ object AstToIR {
           Error.Syntax(section, Error.Syntax.NamedArgInSection)
         } else {
           leftArg.value match {
-            case _: IR.Expression.Blank =>
+            case _: IR.Name.Blank =>
               Error.Syntax(section, Error.Syntax.BlankArgInSection)
             case _ =>
               Application.Operator.Section.Left(
@@ -474,7 +474,7 @@ object AstToIR {
           Error.Syntax(section, Error.Syntax.NamedArgInSection)
         } else {
           rightArg.value match {
-            case _: IR.Expression.Blank =>
+            case _: IR.Name.Blank =>
               Error.Syntax(section, Error.Syntax.BlankArgInSection)
             case _ =>
               Application.Operator.Section.Right(
@@ -506,7 +506,7 @@ object AstToIR {
       case AST.Ident.Cons(name) =>
         Name.Literal(name, getIdentifiedLocation(identifier))
       case AST.Ident.Blank(_) =>
-        Expression.Blank(getIdentifiedLocation(identifier))
+        Name.Blank(getIdentifiedLocation(identifier))
       case AST.Ident.Opr.any(_) =>
         Error.Syntax(
           identifier,

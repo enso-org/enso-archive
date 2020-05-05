@@ -142,10 +142,6 @@ case object DataflowAnalysis extends IRPass {
           .updateMetadata(this -->> info)
 
       case error: IR.Error => error
-      case _: IR.Expression.Blank =>
-        throw new CompilerError(
-          "Blanks should not be present during dataflow analysis."
-        )
     }
   }
 
@@ -332,21 +328,29 @@ case object DataflowAnalysis extends IRPass {
         "Name occurrence with missing aliasing information."
       )
       .unsafeAs[AliasAnalysis.Info.Occurrence]
-    val defIdForName = aliasInfo.graph.defLinkFor(aliasInfo.id)
-    val key = defIdForName match {
-      case Some(defLink) =>
-        aliasInfo.graph.getOccurrence(defLink.target) match {
-          case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, _)) =>
-            DependencyInfo.Type.Static(id)
-          case _ => DependencyInfo.Type.Dynamic(name.name)
+
+    name match {
+      case _: IR.Name.Blank =>
+        throw new CompilerError(
+          "Blanks should not be present during dataflow analysis."
+        )
+      case _ =>
+        val defIdForName = aliasInfo.graph.defLinkFor(aliasInfo.id)
+        val key = defIdForName match {
+          case Some(defLink) =>
+            aliasInfo.graph.getOccurrence(defLink.target) match {
+              case Some(AliasAnalysis.Graph.Occurrence.Def(_, _, id, _)) =>
+                DependencyInfo.Type.Static(id)
+              case _ => DependencyInfo.Type.Dynamic(name.name)
+            }
+
+          case None => DependencyInfo.Type.Dynamic(name.name)
         }
 
-      case None => DependencyInfo.Type.Dynamic(name.name)
+        info.updateAt(key, Set(name.getId))
+
+        name.updateMetadata(this -->> info)
     }
-
-    info.updateAt(key, Set(name.getId))
-
-    name.updateMetadata(this -->> info)
   }
 
   /** Performs dependency analysis on a case expression.

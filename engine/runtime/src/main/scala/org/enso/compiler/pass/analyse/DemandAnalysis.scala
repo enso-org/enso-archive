@@ -105,10 +105,6 @@ case object DemandAnalysis extends IRPass {
             isInsideCallArgument
           )
         )
-      case _: IR.Expression.Blank =>
-        throw new CompilerError(
-          "Blanks should not be present during demand analysis."
-        )
     }
   }
 
@@ -162,6 +158,10 @@ case object DemandAnalysis extends IRPass {
           case lit: IR.Name.Literal => lit.copy(location  = newNameLocation)
           case ths: IR.Name.This    => ths.copy(location  = newNameLocation)
           case here: IR.Name.Here   => here.copy(location = newNameLocation)
+          case _: IR.Name.Blank =>
+            throw new CompilerError(
+              "Blanks should not be present by the time demand analysis runs."
+            )
         }
 
         IR.Application.Force(newName, forceLocation)

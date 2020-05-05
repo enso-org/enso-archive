@@ -110,7 +110,7 @@ case object LambdaShorthandToLambda extends IRPass {
         }
 
         // Determine whether or not the function itself is shorthand
-        val functionIsShorthand = fn.isInstanceOf[IR.Expression.Blank]
+        val functionIsShorthand = fn.isInstanceOf[IR.Name.Blank]
         val (updatedFn, updatedName) = if (functionIsShorthand) {
           val newFn = freshNameSupply
             .newName()
@@ -174,8 +174,8 @@ case object LambdaShorthandToLambda extends IRPass {
     args.map {
       case IR.CallArgument.Specified(_, value, _, _, _, _) =>
         value match {
-          case _: IR.Expression.Blank => true
-          case _                      => false
+          case _: IR.Name.Blank => true
+          case _                => false
         }
     }
   }
@@ -269,7 +269,7 @@ case object LambdaShorthandToLambda extends IRPass {
       caseExpr.fallback.map(desugarExpression(_, freshNameSupply))
 
     caseExpr.scrutinee match {
-      case IR.Expression.Blank(loc, passData, diagnostics) =>
+      case IR.Name.Blank(loc, passData, diagnostics) =>
         val scrutineeName =
           freshNameSupply
             .newName()

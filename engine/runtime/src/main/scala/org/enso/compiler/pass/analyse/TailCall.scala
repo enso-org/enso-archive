@@ -119,10 +119,6 @@ case object TailCall extends IRPass {
           .updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
       case err: IR.Diagnostic =>
         err.updateMetadata(this -->> TailPosition.fromBool(isInTailPosition))
-      case _: IR.Expression.Blank =>
-        throw new CompilerError(
-          "Blanks should not be present by the point of tail call analysis."
-        )
     }
   }
 

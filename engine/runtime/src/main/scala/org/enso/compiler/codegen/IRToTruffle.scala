@@ -557,6 +557,10 @@ class IRToTruffle(
           processName(
             IR.Name.Literal(Constants.Names.THIS_ARGUMENT, location, passData)
           )
+        case _: IR.Name.Blank =>
+          throw new CompilerError(
+            "Blanks should not be present at codegen time."
+          )
       }
 
       setLocation(nameExpr, name.location)
@@ -743,7 +747,7 @@ class IRToTruffle(
         case sec: IR.Application.Operator.Section =>
           throw new CompilerError(
             s"Explicit operator sections not supported during codegen but " +
-              s"$sec found"
+            s"$sec found"
           )
       }
   }

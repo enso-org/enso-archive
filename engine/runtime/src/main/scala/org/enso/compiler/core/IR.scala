@@ -2,11 +2,7 @@ package org.enso.compiler.core
 
 import java.util.UUID
 
-import org.enso.compiler.core.IR.{
-  DiagnosticStorage,
-  Expression,
-  IdentifiedLocation
-}
+import org.enso.compiler.core.IR.{DiagnosticStorage, Expression, IdentifiedLocation}
 import org.enso.compiler.core.ir.MetadataStorage
 import org.enso.compiler.core.ir.MetadataStorage.MetadataPair
 import org.enso.compiler.exception.CompilerError
@@ -496,47 +492,6 @@ object IR {
   }
   object Expression {
 
-    /** Represents occurrences of blank (`_`) expressions.
-      *
-      * @param location the soure location that the node corresponds to.
-      * @param passData the pass metadata associated with this node
-      * @param diagnostics compiler diagnostics for this node
-      */
-    sealed case class Blank(
-      override val location: Option[IdentifiedLocation],
-      override val passData: MetadataStorage      = MetadataStorage(),
-      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
-    ) extends Expression
-        with IRKind.Sugar {
-      override protected var id: Identifier = randomId
-
-      def copy(
-        location: Option[IdentifiedLocation] = location,
-        passData: MetadataStorage            = passData,
-        diagnostics: DiagnosticStorage       = diagnostics,
-        id: Identifier                       = id
-      ): Blank = {
-        val res = Blank(location, passData, diagnostics)
-        res.id = id
-        res
-      }
-
-      override def mapExpressions(fn: Expression => Expression): Expression =
-        this
-
-      override def toString: String =
-        s"""
-           |IR.Expression.Blank(
-           |location = $location,
-           |passData = $passData,
-           |diagnostics = $diagnostics,
-           |id = $id
-           |)
-           |""".stripMargin
-
-      override def children: List[IR] = List()
-    }
-
     // TODO [AA] Remove suspended blocks from Enso.
     /** A block expression.
       *
@@ -795,6 +750,48 @@ object IR {
     override def mapExpressions(fn: Expression => Expression): Name
   }
   object Name {
+
+    /** Represents occurrences of blank (`_`) expressions.
+      *
+      * @param location the soure location that the node corresponds to.
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Blank(
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Name
+        with IRKind.Sugar {
+      override val name: String = "_"
+      override protected var id: Identifier = randomId
+
+      def copy(
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Blank = {
+        val res = Blank(location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def mapExpressions(fn: Expression => Expression): Blank =
+        this
+
+      override def toString: String =
+        s"""
+           |IR.Expression.Blank(
+           |location = $location,
+           |passData = $passData,
+           |diagnostics = $diagnostics,
+           |id = $id
+           |)
+           |""".stripMargin
+
+      override def children: List[IR] = List()
+    }
 
     /** The representation of a literal name.
       *
