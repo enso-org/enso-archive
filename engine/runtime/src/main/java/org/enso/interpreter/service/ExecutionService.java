@@ -4,6 +4,7 @@ import com.oracle.truffle.api.instrumentation.EventBinding;
 import com.oracle.truffle.api.instrumentation.ExecutionEventListener;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.source.SourceSection;
+import org.enso.interpreter.instrument.Cache;
 import org.enso.interpreter.instrument.IdExecutionInstrument;
 import org.enso.interpreter.node.callable.FunctionCallInstrumentationNode;
 import org.enso.interpreter.runtime.Context;
@@ -30,7 +31,7 @@ import java.util.function.Consumer;
 public class ExecutionService {
   private final Context context;
   private final IdExecutionInstrument idExecutionInstrument;
-  private InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
+  private final InteropLibrary interopLibrary = InteropLibrary.getFactory().getUncached();
 
   /**
    * Creates a new instance of this service.
@@ -71,11 +72,13 @@ public class ExecutionService {
    * Executes a function with given arguments, represented as runtime language-level objects.
    *
    * @param call the call metadata.
+   * @param cache the precomputed expression values.
    * @param valueCallback the consumer for expression value events.
    * @param funCallCallback the consumer for function call events.
    */
   public void execute(
       FunctionCallInstrumentationNode.FunctionCall call,
+      Cache cache,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
@@ -89,6 +92,7 @@ public class ExecutionService {
             call.getFunction().getCallTarget(),
             src.getCharIndex(),
             src.getCharLength(),
+            cache,
             valueCallback,
             funCallCallback);
     interopLibrary.execute(call);
@@ -102,6 +106,7 @@ public class ExecutionService {
    * @param modulePath the path to the module where the method is defined.
    * @param consName the name of the constructor the method is defined on.
    * @param methodName the method name.
+   * @param cache the precomputed expression values.
    * @param valueCallback the consumer for expression value events.
    * @param funCallCallback the consumer for function call events.
    */
@@ -109,6 +114,7 @@ public class ExecutionService {
       File modulePath,
       String consName,
       String methodName,
+      Cache cache,
       Consumer<IdExecutionInstrument.ExpressionValue> valueCallback,
       Consumer<IdExecutionInstrument.ExpressionCall> funCallCallback)
       throws UnsupportedMessageException, ArityException, UnsupportedTypeException {
@@ -119,7 +125,7 @@ public class ExecutionService {
     if (!callMay.isPresent()) {
       return;
     }
-    execute(callMay.get(), valueCallback, funCallCallback);
+    execute(callMay.get(), cache, valueCallback, funCallCallback);
   }
 
     /**
