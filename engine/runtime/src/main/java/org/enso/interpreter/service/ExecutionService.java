@@ -122,21 +122,35 @@ public class ExecutionService {
     execute(callMay.get(), valueCallback, funCallCallback);
   }
 
-    public Object evaluateExpression(Module module, String expression)
-            throws UnsupportedMessageException, ArityException,
-            UnknownIdentifierException, UnsupportedTypeException {
-        return interopLibrary.invokeMember(
-                module,
-                MethodNames.Module.EVAL_EXPRESSION,
-                expression
-        );
-    }
+    /**
+     * Evaluates expression in the scope of provided module.
+     *
+     * @param module the module providing a scope for the expression
+     * @param expression the expression to evluated
+     * @return a result of evaluation
+     */
+  public Object evaluateExpression(Module module, String expression)
+        throws UnsupportedMessageException, ArityException,
+        UnknownIdentifierException, UnsupportedTypeException {
+    return interopLibrary.invokeMember(
+            module,
+            MethodNames.Module.EVAL_EXPRESSION,
+            expression
+    );
+  }
 
-    public Object callFunction(Object fn, Object argument)
-            throws UnsupportedTypeException, ArityException,
-            UnsupportedMessageException {
-        return interopLibrary.execute(fn, argument);
-    }
+    /**
+     * Calls a function with the given argument.
+     *
+     * @param fn the function object
+     * @param argument the argument applied to the function
+     * @return the result of calling the function
+     */
+  public Object callFunction(Object fn, Object argument)
+        throws UnsupportedTypeException, ArityException,
+        UnsupportedMessageException {
+    return interopLibrary.execute(fn, argument);
+  }
 
   /**
    * Sets a module at a given path to use a literal source.
