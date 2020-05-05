@@ -1,6 +1,6 @@
 package org.enso.compiler.pass.desugar
 
-import org.enso.compiler.InlineContext
+import org.enso.compiler.context.{InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.pass.IRPass
 
@@ -10,15 +10,13 @@ import org.enso.compiler.pass.IRPass
 case object LiftSpecialOperators extends IRPass {
 
   /** A desugaring pass does not output any data. */
-  override type Metadata = IR.Metadata.Empty
+  override type Metadata = IRPass.Metadata.Empty
+  override type Config   = IRPass.Configuration.Default
 
-  /** Executes the lifting pass on a module.
-    *
-    * @param ir the Enso IR to process
-    * @return `ir`, possibly having made transformations or annotations to that
-    *         IR.
-    */
-  override def runModule(ir: IR.Module): IR.Module =
+  override def runModule(
+    ir: IR.Module,
+    moduleContext: ModuleContext
+  ): IR.Module =
     ir.transformExpressions({
       case x => runExpression(x, new InlineContext)
     })
@@ -36,7 +34,7 @@ case object LiftSpecialOperators extends IRPass {
     inlineContext: InlineContext
   ): IR.Expression =
     ir.transformExpressions({
-      case IR.Application.Operator.Binary(l, op, r, loc, meta) =>
+      case IR.Application.Operator.Binary(l, op, r, loc, meta, _) =>
         op.name match {
           case IR.Type.Ascription.name =>
             IR.Type.Ascription(
