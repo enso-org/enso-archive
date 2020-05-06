@@ -221,7 +221,7 @@ class RuntimeServerTest
         """
           |encode = x -> x.to_text
           |
-          |incAndEncode = x -> here.encode(x + 1)
+          |incAndEncode = x -> here.encode x+1
           |
           |""".stripMargin
 
