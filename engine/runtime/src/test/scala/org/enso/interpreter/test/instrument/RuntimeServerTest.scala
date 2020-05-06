@@ -623,7 +623,7 @@ class RuntimeServerTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            s"Test.Visualisation",
+            "Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -713,7 +713,7 @@ class RuntimeServerTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            s"Test.Visualisation",
+            "Test.Visualisation",
             "x -> here.encode x"
           )
         )
@@ -746,7 +746,7 @@ class RuntimeServerTest
           visualisationId,
           Api.VisualisationConfiguration(
             contextId,
-            s"Test.Visualisation",
+            "Test.Visualisation",
             "x -> here.incAndEncode x"
           )
         )
@@ -802,7 +802,7 @@ class RuntimeServerTest
           context.Main.idMainX,
           Api.VisualisationConfiguration(
             contextId,
-            s"Test.Visualisation",
+            "Test.Visualisation",
             "x -> here.encode x"
           )
         )
