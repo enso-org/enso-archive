@@ -1362,19 +1362,15 @@ object AST {
   final case class ASTOf[+T[_]](
     shape: T[AST],
     span: Int,
-    id: Option[ID]             = None,
+    id: ID                     = UUID.randomUUID(),
     location: Option[Location] = None
   ) {
     override def toString        = s"Node($id,$location,$shape)"
     override def hashCode(): Int = shape.hashCode()
 
-    def setID(newID: Option[ID]): ASTOf[T] = copy(id = newID)
-    def setID(newID: ID): ASTOf[T]         = setID(Some(newID))
-    def withNewID(): ASTOf[T]              = copy(id = Some(UUID.randomUUID()))
-    def withNewIDIfMissing(): ASTOf[T] = id match {
-      case Some(_) => this
-      case None    => this.withNewID()
-    }
+    def setID(newID: ID): ASTOf[T]  = copy(id = newID)
+    def withNewID(): ASTOf[T]       = copy(id = UUID.randomUUID())
+
     def setLocation(newLocation: Option[Location]): ASTOf[T] =
       copy(location = newLocation)
     def setLocation(newLocation: Location): ASTOf[T] =
@@ -1423,10 +1419,9 @@ object AST {
       import io.circe.syntax._
 
       val shape  = "shape" -> ev(ast.shape)
-      val id     = ast.id.map("id" -> _.asJson)
-      val span   = "span" -> ast.span.asJson
-      val fields = Seq(shape) ++ id.toSeq :+ span
-      Json.fromFields(fields)
+      val id     = "id"    -> ast.id.asJson
+      val span   = "span"  -> ast.span.asJson
+      Json.fromFields(Seq(shape, id, span))
     }
   }
 
@@ -1483,8 +1478,7 @@ object AST {
         val children = ast.zipWithOffset().toList.map {
           case (o, ast) => (o + off.asSize, ast)
         }
-        if (ast.id.nonEmpty)
-          ids +:= Span(off, ast) -> ast.id.get
+        ids +:= Span(off, ast) -> ast.id
         asts = children ++ asts.tail
       }
       ids.reverse

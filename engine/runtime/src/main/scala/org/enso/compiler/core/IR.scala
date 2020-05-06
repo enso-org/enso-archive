@@ -2389,7 +2389,7 @@ object IR {
       }
 
       override val location: Option[IdentifiedLocation] =
-        ast.location.map(IdentifiedLocation(_, ast.id))
+        ast.location.map(IdentifiedLocation(_, Some(ast.id)))
 
       override def mapExpressions(fn: Expression => Expression): Syntax = this
 

@@ -17,7 +17,7 @@ import org.enso.syntax.text.AST
   */
 object AstToIR {
   private def getIdentifiedLocation(ast: AST): Option[IdentifiedLocation] =
-    ast.location.map(IdentifiedLocation(_, ast.id))
+    ast.location.map(IdentifiedLocation(_, Some(ast.id)))
 
   /** Translates a program represented in the parser [[AST]] to the compiler's
     * [[Core]] internal representation.
