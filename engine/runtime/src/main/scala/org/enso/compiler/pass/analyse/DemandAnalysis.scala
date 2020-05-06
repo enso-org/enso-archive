@@ -10,9 +10,23 @@ import org.enso.compiler.pass.IRPass
   * Demand analysis is the process of determining _when_ a suspended term needs
   * to be forced (where the suspended value is _demanded_).
   *
-  * This pass needs to be run after [[AliasAnalysis]], and also assumes that
-  * all members of [[IR.IRKind.Primitive]] have been removed from the IR by the
-  * time that it runs.
+  * This pass requires the context to provide:
+  *
+  * - Nothing
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
+  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
+  * - [[org.enso.compiler.pass.resolve.IgnoredBindings]]
+  * - [[AliasAnalysis]]
+  * - [[org.enso.compiler.pass.optimise.LambdaConsolidate]]
+  * - [[org.enso.compiler.pass.resolve.OverloadsResolution]]
+  *
+  * Additionally, all members of [[IR.IRKind.Primitive]] must have been removed
+  * from the IR by the time it runs.
   */
 case object DemandAnalysis extends IRPass {
   override type Metadata = IRPass.Metadata.Empty

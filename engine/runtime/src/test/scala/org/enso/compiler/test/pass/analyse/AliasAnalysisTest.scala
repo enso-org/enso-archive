@@ -9,7 +9,9 @@ import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Link, Occurrence}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph, Info}
 import org.enso.compiler.pass.desugar.{
   GenerateMethodBodies,
-  OperatorToFunction
+  LambdaShorthandToLambda,
+  OperatorToFunction,
+  SectionsToBinOp
 }
 import org.enso.compiler.pass.{IRPass, PassConfiguration, PassManager}
 import org.enso.compiler.test.CompilerTest
@@ -21,10 +23,12 @@ class AliasAnalysisTest extends CompilerTest {
   /** The passes that need to be run before the alias analysis pass. */
   val precursorPasses: List[IRPass] = List(
     GenerateMethodBodies,
-    OperatorToFunction
+    SectionsToBinOp,
+    OperatorToFunction,
+    LambdaShorthandToLambda
   )
 
-  val passConfig = PassConfiguration(
+  val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration(true)
   )
 

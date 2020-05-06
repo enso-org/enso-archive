@@ -10,9 +10,16 @@ import org.enso.compiler.pass.IRPass
   * internally, as well as marks all bindings as whether or not they were
   * ignored.
   *
-  * It depends on [[org.enso.compiler.pass.desugar.GenerateMethodBodies]],
-  * [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]], and all complex
-  * function definition desugarings.
+  * This pass has no configuration.
+  *
+  * This pass requires the context to provide:
+  *
+  * - A [[FreshNameSupply]].
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
   */
 case object IgnoredBindings extends IRPass {
   override type Metadata = State
@@ -216,13 +223,13 @@ case object IgnoredBindings extends IRPass {
     /** States that the binding is ignored. */
     case object Ignored extends State {
       override val metadataName: String = "IgnoredBindings.State.Ignored"
-      override val isIgnored: Boolean = true
+      override val isIgnored: Boolean   = true
     }
 
     /** States that the binding is not ignored. */
     case object NotIgnored extends State {
       override val metadataName: String = "IgnoredBindings.State.NotIgnored"
-      override val isIgnored: Boolean = false
+      override val isIgnored: Boolean   = false
     }
   }
 }

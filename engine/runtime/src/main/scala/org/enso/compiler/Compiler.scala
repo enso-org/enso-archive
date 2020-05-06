@@ -55,6 +55,7 @@ class Compiler(
     IgnoredBindings,
     AliasAnalysis,
     LambdaConsolidate,
+    OverloadsResolution,
     AliasAnalysis,
     DemandAnalysis,
     ApplicationSaturation,

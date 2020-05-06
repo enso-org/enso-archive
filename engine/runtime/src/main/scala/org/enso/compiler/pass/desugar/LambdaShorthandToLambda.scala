@@ -7,8 +7,17 @@ import org.enso.compiler.pass.IRPass
 
 /** This pass translates `_` arguments at application sites to lambda functions.
   *
-  * It requires [[GenerateMethodBodies]], [[SectionsToBinOp]] and
-  * [[OperatorToFunction]] to have run before it.
+  * This pass has no configuration.
+  *
+  * This pass requires the context to provide:
+  *
+  * - A [[FreshNameSupply]]
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[GenerateMethodBodies]]
+  * - [[SectionsToBinOp]]
+  * - [[OperatorToFunction]]
   */
 case object LambdaShorthandToLambda extends IRPass {
   override type Metadata = IRPass.Metadata.Empty
@@ -77,12 +86,12 @@ case object LambdaShorthandToLambda extends IRPass {
   }
 
   /** Desugars an arbitrary name occurrence, turning isolated occurrences of
-   * `_` into the `id` function.
-   *
-   * @param name the name to desugar
-   * @param supply the compiler's fresh name supply
-   * @return `name`, desugared where necessary
-   */
+    * `_` into the `id` function.
+    *
+    * @param name the name to desugar
+    * @param supply the compiler's fresh name supply
+    * @return `name`, desugared where necessary
+    */
   def desugarName(name: IR.Name, supply: FreshNameSupply): IR.Expression = {
     name match {
       case blank: IR.Name.Blank =>

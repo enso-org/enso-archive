@@ -8,7 +8,14 @@ import org.enso.compiler.pass.IRPass
 
 /** This pass converts operator sections to applications of binary operators.
   *
-  * It depends on [[GenerateMethodBodies]] to run.
+  * This pass has no configuration.
+  *
+  * This pass requires the context to provide:
+  *
+  * - A [[FreshNameSupply]].
+  *
+  * It must have the following passes run before it:
+  * - [[GenerateMethodBodies]]
   */
 case object SectionsToBinOp extends IRPass {
   override type Metadata = IRPass.Metadata.Empty

@@ -35,7 +35,7 @@ class DataflowAnalysisTest extends CompilerTest {
     TailCall
   )
 
-  val passConfig = PassConfiguration(
+  val passConfig: PassConfiguration = PassConfiguration(
     AliasAnalysis -->> AliasAnalysis.Configuration()
   )
 

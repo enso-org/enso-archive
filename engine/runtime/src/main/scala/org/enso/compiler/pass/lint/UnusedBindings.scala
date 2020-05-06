@@ -11,7 +11,18 @@ import scala.annotation.unused
 /** This pass performs linting for unused names, generating warnings if it finds
   * any.
   *
-  * It should be run after all passes that aren't lints have completed.
+  * This pass requires the context to provide:
+  *
+  * - Nothing
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
+  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]]
+  * - [[IgnoredBindings]]
+  * - [[org.enso.compiler.pass.optimise.LambdaConsolidate]]
   */
 case object UnusedBindings extends IRPass {
   override type Metadata = IRPass.Metadata.Empty

@@ -7,49 +7,23 @@ import org.enso.compiler.core.IR.{Error, IdentifiedLocation}
 import org.enso.compiler.exception.{CompilerError, UnhandledEntity}
 import org.enso.compiler.pass.analyse.AliasAnalysis.Graph.{Scope => AliasScope}
 import org.enso.compiler.pass.analyse.AliasAnalysis.{Graph => AliasGraph}
-import org.enso.compiler.pass.analyse.{
-  AliasAnalysis,
-  ApplicationSaturation,
-  DataflowAnalysis,
-  TailCall
-}
+import org.enso.compiler.pass.analyse.{AliasAnalysis, DataflowAnalysis, TailCall}
+import org.enso.compiler.pass.optimise.ApplicationSaturation
 import org.enso.interpreter.node.callable.argument.ReadArgumentNode
-import org.enso.interpreter.node.callable.function.{
-  BlockNode,
-  CreateFunctionNode
-}
+import org.enso.interpreter.node.callable.function.{BlockNode, CreateFunctionNode}
 import org.enso.interpreter.node.callable.thunk.{CreateThunkNode, ForceNode}
 import org.enso.interpreter.node.callable.{ApplicationNode, InvokeCallableNode}
 import org.enso.interpreter.node.controlflow._
-import org.enso.interpreter.node.expression.constant.{
-  ConstructorNode,
-  DynamicSymbolNode,
-  ErrorNode
-}
-import org.enso.interpreter.node.expression.literal.{
-  IntegerLiteralNode,
-  TextLiteralNode
-}
+import org.enso.interpreter.node.expression.constant.{ConstructorNode, DynamicSymbolNode, ErrorNode}
+import org.enso.interpreter.node.expression.literal.{IntegerLiteralNode, TextLiteralNode}
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalTargetNode}
-import org.enso.interpreter.node.{
-  ClosureRootNode,
-  ExpressionNode => RuntimeExpression
-}
+import org.enso.interpreter.node.{ClosureRootNode, ExpressionNode => RuntimeExpression}
 import org.enso.interpreter.runtime.Context
 import org.enso.interpreter.runtime.callable.UnresolvedSymbol
-import org.enso.interpreter.runtime.callable.argument.{
-  ArgumentDefinition,
-  CallArgument
-}
+import org.enso.interpreter.runtime.callable.argument.{ArgumentDefinition, CallArgument}
 import org.enso.interpreter.runtime.callable.atom.AtomConstructor
-import org.enso.interpreter.runtime.callable.function.{
-  FunctionSchema,
-  Function => RuntimeFunction
-}
-import org.enso.interpreter.runtime.error.{
-  DuplicateArgumentNameException,
-  VariableDoesNotExistException
-}
+import org.enso.interpreter.runtime.callable.function.{FunctionSchema, Function => RuntimeFunction}
+import org.enso.interpreter.runtime.error.{DuplicateArgumentNameException, VariableDoesNotExistException}
 import org.enso.interpreter.runtime.scope.{LocalScope, ModuleScope}
 import org.enso.interpreter.{Constants, Language}
 
@@ -594,6 +568,14 @@ class IRToTruffle(
             .syntaxError()
             .newInstance(err.message)
         case err: Error.Redefined.Binding =>
+          context.getBuiltins
+            .compileError()
+            .newInstance(err.message)
+        case err: Error.Redefined.Method =>
+          context.getBuiltins
+            .compileError()
+            .newInstance(err.message)
+        case err: Error.Redefined.Atom =>
           context.getBuiltins
             .compileError()
             .newInstance(err.message)

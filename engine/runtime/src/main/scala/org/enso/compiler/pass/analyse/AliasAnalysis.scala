@@ -36,8 +36,20 @@ import scala.reflect.ClassTag
   * - A method whose body is a lambda containing a block as its body allocates
   *   no additional scope for the lambda or the block.
   *
-  * It doesn't need to cope with any syntactic sugar that can be removed without
-  * the need for aliasing information.
+  * Alias analysis requires its configuration to be in the configuration object.
+  *
+  * This pass requires the context to provide:
+  *
+  * - A [[org.enso.compiler.pass.PassConfiguration]] containing an instance of
+  *   [[AliasAnalysis.Configuration]].
+  * - A [[org.enso.interpreter.runtime.scope.LocalScope]], where relevant.
+  *
+  * It must have the following passes run before it:
+  *
+  * - [[org.enso.compiler.pass.desugar.GenerateMethodBodies]]
+  * - [[org.enso.compiler.pass.desugar.SectionsToBinOp]]
+  * - [[org.enso.compiler.pass.desugar.OperatorToFunction]]
+  * - [[org.enso.compiler.pass.desugar.LambdaShorthandToLambda]],
   */
 case object AliasAnalysis extends IRPass {
 
@@ -141,6 +153,7 @@ case object AliasAnalysis extends IRPass {
               analyseArgumentDefs(args, topLevelGraph, topLevelGraph.rootScope)
           )
           .updateMetadata(this -->> Info.Scope.Root(topLevelGraph))
+      case err: IR.Error.Redefined => err
     }
   }
 

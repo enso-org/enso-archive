@@ -1016,7 +1016,7 @@ object IR {
            |diagnostics = $diagnostics,
            |id = $id
            |)
-           |""".stripMargin
+           |""".toSingleLine
 
       override def children: List[IR] = List(typed, signature)
     }
@@ -2161,6 +2161,9 @@ object IR {
     /** The name of the argument, if present. */
     val name: Option[IR.Name]
 
+    /** The expression of the argument, if present. */
+    val value: Expression
+
     /** Whether or not the argument should be suspended at code generation time.
       *
       * A value of `Some(true)` implies that code generation should suspend the
@@ -2189,7 +2192,7 @@ object IR {
       */
     sealed case class Specified(
       override val name: Option[IR.Name],
-      value: Expression,
+      override val value: Expression,
       override val location: Option[IdentifiedLocation],
       override val shouldBeSuspended: Option[Boolean] = None,
       override val passData: MetadataStorage          = MetadataStorage(),
@@ -2818,6 +2821,136 @@ object IR {
     sealed trait Redefined extends Error
     object Redefined {
 
+      /** An error representing the redefinition of a method in a given module.
+        * This is also known as a method overload.
+        *
+        * @param atomName the name of the atom the method was being redefined on
+        * @param methodName the method name being redefined on `atomName`
+        * @param location the location in the source to which this error
+        *                 corresponds
+        * @param passData the pass metadata for the error
+        * @param diagnostics any diagnostics associated with this error.
+        */
+      sealed case class Method(
+        atomName: IR.Name,
+        methodName: IR.Name,
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Redefined
+          with Diagnostic.Kind.Interactive
+          with Module.Scope.Definition
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param atomName the name of the atom the method was being redefined on
+          * @param methodName the method name being redefined on `atomName`
+          * @param location the location in the source to which this error
+          *                 corresponds
+          * @param passData the pass metadata for the error
+          * @param diagnostics any diagnostics associated with this error.
+          * @param id the identifier for the node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          atomName: IR.Name                    = atomName,
+          methodName: IR.Name                  = methodName,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
+        ): Method = {
+          val res =
+            Method(atomName, methodName, location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def message: String =
+          s"Method overloads are not supported, but you've defined " +
+          s"${atomName.name}.${methodName.name} multiple times in this module."
+
+        override def mapExpressions(fn: Expression => Expression): Method = this
+
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.Method(
+             |atomName = $atomName,
+             |methodName = $methodName,
+             |location = $location,
+             |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
+             |id = $id
+             |)
+             |""".stripMargin
+
+        override def children: List[IR] = List(atomName, methodName)
+      }
+
+      /** An error representing the redefinition of an atom in a given module.
+        *
+        * @param atomName the name of the atom being redefined
+        * @param location the location in the source to which this error
+        *                 corresponds
+        * @param passData the pass metadata for the error
+        * @param diagnostics any diagnostics associated with this error.
+        */
+      sealed case class Atom(
+        atomName: IR.Name,
+        override val location: Option[IdentifiedLocation],
+        override val passData: MetadataStorage      = MetadataStorage(),
+        override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+      ) extends Redefined
+          with Diagnostic.Kind.Interactive
+          with Module.Scope.Definition
+          with IRKind.Primitive {
+        override protected var id: Identifier = randomId
+
+        /** Creates a copy of `this`.
+          *
+          * @param atomName the name of the atom the method was being redefined on
+          * @param location the location in the source to which this error
+          *                 corresponds
+          * @param passData the pass metadata for the error
+          * @param diagnostics any diagnostics associated with this error.
+          * @param id the identifier for the node
+          * @return a copy of `this`, updated with the specified values
+          */
+        def copy(
+          atomName: IR.Name                    = atomName,
+          location: Option[IdentifiedLocation] = location,
+          passData: MetadataStorage            = passData,
+          diagnostics: DiagnosticStorage       = diagnostics,
+          id: Identifier                       = id
+        ): Atom = {
+          val res =
+            Atom(atomName, location, passData, diagnostics)
+          res.id = id
+          res
+        }
+
+        override def message: String =
+          s"Redefining atoms is not supported, but you've defined " +
+          s"${atomName.name} multiple times in this module."
+
+        override def mapExpressions(fn: Expression => Expression): Atom = this
+
+        override def toString: String =
+          s"""
+             |IR.Error.Redefined.Atom(
+             |atomName = $atomName,
+             |location = $location,
+             |passData = ${this.showPassData},
+             |diagnostics = $diagnostics,
+             |id = $id
+             |)
+             |""".stripMargin
+
+        override def children: List[IR] = List(atomName)
+      }
+
       /** An error representing the redefinition of a binding in a given scope.
         *
         * While bindings in child scopes are allowed to _shadow_ bindings in
@@ -2832,7 +2965,7 @@ object IR {
         override val passData: MetadataStorage      = MetadataStorage(),
         override val diagnostics: DiagnosticStorage = DiagnosticStorage()
       ) extends Redefined
-          with Diagnostic.Kind.Static
+          with Diagnostic.Kind.Interactive
           with IRKind.Primitive {
         override protected var id: Identifier = randomId
 
@@ -3090,10 +3223,10 @@ object IR {
   implicit class AsDiagnostics[T <: IR](ir: T) {
 
     /** Adds a new diagnostic entity to [[IR]].
-     *
-     * @param diagnostic the diagnostic to add
-     * @return [[ir]] with added diagnostics
-     */
+      *
+      * @param diagnostic the diagnostic to add
+      * @return [[ir]] with added diagnostics
+      */
     def addDiagnostic(diagnostic: IR.Diagnostic): T = {
       ir.diagnostics.add(diagnostic)
       ir
