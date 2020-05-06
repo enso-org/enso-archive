@@ -156,38 +156,35 @@ final class Handler {
     value: ExpressionValue,
     visualisation: Visualisation
   ): Unit = {
-    withContext {
-      val result = executionService.callFunction(
-        visualisation.expression,
-        value.getValue
-      )
-      val errorMsgOrData = result match {
-        case text: String       => Right(text.getBytes("UTF-8"))
-        case bytes: Array[Byte] => Right(bytes)
-        case other =>
-          Left(s"Cannot encode ${other.getClass} to byte array")
-      }
-      errorMsgOrData match {
-        case Left(msg) =>
-          endpoint.sendToClient(
-            Api.Response(Api.VisualisationEvaluationFailed(msg))
-          )
+    val result = executionService.callFunction(
+      visualisation.expression,
+      value.getValue
+    )
+    val errorMsgOrData = result match {
+      case text: String       => Right(text.getBytes("UTF-8"))
+      case bytes: Array[Byte] => Right(bytes)
+      case other =>
+        Left(s"Cannot encode ${other.getClass} to byte array")
+    }
+    errorMsgOrData match {
+      case Left(msg) =>
+        endpoint.sendToClient(
+          Api.Response(Api.VisualisationEvaluationFailed(msg))
+        )
 
-        case Right(data) =>
-          endpoint.sendToClient(
-            Api.Response(
-              Api.VisualisationUpdate(
-                Api.VisualisationContext(
-                  visualisation.id,
-                  contextId,
-                  value.getExpressionId
-                ),
-                data
-              )
+      case Right(data) =>
+        endpoint.sendToClient(
+          Api.Response(
+            Api.VisualisationUpdate(
+              Api.VisualisationContext(
+                visualisation.id,
+                contextId,
+                value.getExpressionId
+              ),
+              data
             )
           )
-      }
-
+        )
     }
   }
 
