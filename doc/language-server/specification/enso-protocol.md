@@ -1998,8 +1998,7 @@ The language server also has a set of text editing operations to ensure that it
 stays in sync with the clients.
 
 #### `text/openFile`
-This request informs the language server that a client has opened the specified
-file.
+This requests the language server to open the specified file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2038,8 +2037,7 @@ the client that sent the `text/openFile` message.
 
 
 #### `text/closeFile`
-This request informs the language server that a client has closed the specified
-file.
+This requests the language server to close the specified file.
 
 - **Type:** Request
 - **Direction:** Client -> Server
