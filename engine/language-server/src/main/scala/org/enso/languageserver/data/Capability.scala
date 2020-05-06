@@ -43,7 +43,7 @@ case class CanModify(contextId: ContextId)
     extends Capability(CanModify.methodName)
 
 object CanModify {
-  val methodName = "canModify"
+  val methodName = "executionContext/canModify"
 }
 
 /**
