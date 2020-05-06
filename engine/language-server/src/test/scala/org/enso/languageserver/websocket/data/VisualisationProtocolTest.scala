@@ -82,7 +82,7 @@ class VisualisationProtocolTest extends BaseBinaryServerTest with Eventually {
     val inMsg = InboundMessageFactory.create(
       requestId,
       None,
-      InboundPayload.SESSION_INIT,
+      InboundPayload.INIT_SESSION_CMD,
       cmd
     )
     builder.finish(inMsg)

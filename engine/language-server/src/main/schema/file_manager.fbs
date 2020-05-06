@@ -1,0 +1,31 @@
+include "util.fbs";
+
+namespace org.enso.languageserver.protocol.data.filemanager;
+
+table Path {
+
+  rootId: org.enso.languageserver.protocol.data.util.EnsoUUID (required);
+
+  segments: [string] (required);
+
+}
+
+table WriteFileCommand {
+
+  path: org.enso.languageserver.protocol.data.filemanager.Path (required);
+
+  contents: [ubyte] (required);
+
+}
+
+table ReadFileCommand {
+
+  path: org.enso.languageserver.protocol.data.filemanager.Path (required);
+
+}
+
+table FileContentsReply {
+
+  contents: [ubyte] (required);
+
+}
