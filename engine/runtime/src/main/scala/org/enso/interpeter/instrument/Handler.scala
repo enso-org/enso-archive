@@ -467,8 +467,6 @@ final class Handler {
             )
           )
         }
-
-      case _ => throw new RuntimeException("Unhandled cases.")
     }
   }
 
