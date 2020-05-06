@@ -76,7 +76,7 @@ class PingHandlerSpec
     subsystem3.expectMsg(Ping)
     subsystem3.lastSender ! Pong
     //then
-    expectTerminated(actorUnderTest, 10.seconds)
+    expectTerminated(actorUnderTest)
     expectNoMessage()
     //teardown
     system.stop(actorUnderTest)
