@@ -1062,7 +1062,11 @@ interface File {
 
 #### `DirectoryTree`
 A directory tree is a recursive type used to represent tree structures of files
-and directories.
+and directories. It contains files and symlinks in the `files` section and
+directories in the `directories` section. When the tree was requested with the
+parameter limiting the maximum depth, the bottom of the `DirectoryTree` will
+contain `Directory` node in the `files` section indicating that there is a
+directory, but the contents are unknown because we've reached the maximum depth.
 
 ##### Format
 
@@ -1089,7 +1093,7 @@ may be expanded in future.
  * @param lastAccessTime last access time
  * @param lastModifiedTime last modified time
  * @param kind type of [[FileSystemObject]], can be:
- * `DirectoryTruncated`, `File`, `Other`
+ * `Directory`, `File`, `Other`
  * @param byteSize size in bytes
  */
 interface FileAttributes {
@@ -1218,7 +1222,6 @@ A representation of what kind of type a filesystem object can be.
 ```typescript
 type FileSystemObject
   = Directory
-  | DirectoryTruncated
   | SymlinkLoop
   | File
   | Other;
@@ -1230,17 +1233,6 @@ type FileSystemObject
  * @param path a path to the directory
  */
 interface Directory {
-  name: String;
-  path: Path;
-}
-
-/**
- * Represents a directory which contents have been truncated.
- *
- * @param name a name of the directory
- * @param path a path to the directory
- */
-interface DirectoryTruncated {
   name: String;
   path: Path;
 }
@@ -1782,9 +1774,6 @@ directory tree starting at a given path.
 - **Direction:** Client -> Server
 - **Connection:** Protocol
 - **Visibility:** Public
-
-For trees that exceed the provided `depth`, the result should be truncated, and
-the corresponding flag should be set.
 
 ##### Parameters
 
