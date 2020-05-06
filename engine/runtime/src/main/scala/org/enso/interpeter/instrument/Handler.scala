@@ -516,10 +516,7 @@ final class Handler {
     moduleName: String,
     expression: String
   ): Either[EvalFailure, AnyRef] = {
-    val maybeModule =
-      withContext {
-        executionService.findModule(moduleName)
-      }
+    val maybeModule = executionService.findModule(moduleName)
 
     val notFoundOrModule =
       if (maybeModule.isPresent) Right(maybeModule.get())
