@@ -66,6 +66,7 @@ services components, as well as any open questions that may remain.
     - [`Position`](#position)
     - [`Range`](#range)
     - [`TextEdit`](#textedit)
+    - [`SHA3-224`](#sha3-224)
     - [`FileEdit`](#fileedit)
     - [`FileContents`](#filecontents)
     - [`FileSystemObject`](#filesystemobject)
@@ -1173,10 +1174,20 @@ interface TextEdit {
 }
 ```
 
+#### `SHA3-224`
+The `SHA3-224` message digest encoded as a base16 string.
+
+##### Format
+
+``` typescript
+type SHA3-224 = String;
+```
+
 #### `FileEdit`
 A representation of a batch of edits to a file, versioned.
 
 ##### Format
+
 
 ```typescript
 interface FileEdit {
