@@ -19,7 +19,7 @@ sealed abstract class Capability(val method: String)
 case class CanEdit(path: Path) extends Capability(CanEdit.methodName)
 
 object CanEdit {
-  val methodName = "canEdit"
+  val methodName = "text/canEdit"
 }
 
 /**
