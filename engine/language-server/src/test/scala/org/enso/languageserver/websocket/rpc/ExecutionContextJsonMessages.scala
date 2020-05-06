@@ -40,8 +40,8 @@ object ExecutionContextJsonMessages {
                   "contextId" : $contextId
                 }
               },
-              "receivesEvents" : {
-                "method" : "receivesEvents",
+              "receivesUpdates" : {
+                "method" : "executionContext/receivesUpdates",
                 "registerOptions" : {
                   "contextId" : $contextId
                 }

@@ -82,7 +82,7 @@ services components, as well as any open questions that may remain.
     - [`text/canEdit`](#textcanedit)
     - [`file/receivesTreeUpdates`](#filereceivestreeupdates)
     - [`executionContext/canModify`](#executioncontextcanmodify)
-    - [`executionContext/receiveUpdates`](#executioncontextreceiveupdates)
+    - [`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
   - [File Management Operations](#file-management-operations)
     - [`file/write`](#filewrite)
     - [`file/read`](#fileread)
@@ -1516,11 +1516,11 @@ destroying the context.
 ##### Disables
 None
 
-#### `executionContext/receiveUpdates`
+#### `executionContext/receivesUpdates`
 This capability states that the client receives expression value updates from
 a given execution context.
 
-- **method:** `executionContext/receiveUpdates`
+- **method:** `executionContext/receivesUpdates`
 - **registerOptions:** `{  contextId: ContextId; }`
 
 ##### Enables
@@ -2341,7 +2341,7 @@ interface VisualisationConfiguration {
 #### `executionContext/create`
 Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
-[`executionContext/receivesEvents`](#executioncontextreceivesevents)
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
 containing freshly created [`ContextId`](#contextid)
 
 - **Type:** Request
@@ -2358,7 +2358,7 @@ null
 ```typescript
 {
   canModify: CapabilityRegistration;
-  receivesEvents: CapabilityRegistration;
+  receivesUpdates: CapabilityRegistration;
 }
 ```
 
@@ -2413,7 +2413,7 @@ an independent copy, containing all the data precomputed in the first one.
 ```typescript
 {
   canModify: CapabilityRegistration;
-  receivesEvents: CapabilityRegistration;
+  receivesUpdates: CapabilityRegistration;
 }
 ```
 
