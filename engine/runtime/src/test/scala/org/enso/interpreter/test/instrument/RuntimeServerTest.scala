@@ -98,7 +98,9 @@ class RuntimeServerTest
       messageQueue = List.empty
     }
 
-    def expectMessage[A](pf: PartialFunction[Api.Response, A]): A = {
+    def drainAndCollectFirstMatching[A](
+      pf: PartialFunction[Api.Response, A]
+    ): A = {
       val maybeMessage = messageQueue.collectFirst(pf)
       maybeMessage.isDefined shouldBe true
       drain()
@@ -631,7 +633,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.VisualisationAttached())
     )
     val expectedExprId = context.Main.idMainX
-    val data = context.expectMessage {
+    val data = context.drainAndCollectFirstMatching {
       case Api.Response(
           None,
           Api.VisualisationUpdate(
@@ -651,7 +653,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    val data2 = context.expectMessage {
+    val data2 = context.drainAndCollectFirstMatching {
       case Api.Response(
           None,
           Api.VisualisationUpdate(
@@ -721,7 +723,7 @@ class RuntimeServerTest
       Api.Response(requestId, Api.VisualisationAttached())
     )
     val expectedExprId = context.Main.idMainX
-    val data = context.expectMessage {
+    val data = context.drainAndCollectFirstMatching {
       case Api.Response(
           None,
           Api.VisualisationUpdate(
@@ -753,7 +755,7 @@ class RuntimeServerTest
     context.receive shouldBe Some(
       Api.Response(requestId, Api.VisualisationModified())
     )
-    val dataAfterModification = context.expectMessage {
+    val dataAfterModification = context.drainAndCollectFirstMatching {
       case Api.Response(
           None,
           Api.VisualisationUpdate(
