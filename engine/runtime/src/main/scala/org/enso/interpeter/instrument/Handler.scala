@@ -32,6 +32,7 @@ import org.graalvm.polyglot.io.MessageEndpoint
 import scala.jdk.CollectionConverters._
 import scala.jdk.javaapi.OptionConverters
 import scala.util.control.NonFatal
+import cats.implicits._
 
 /**
   * A message endpoint implementation used by the
@@ -156,17 +157,23 @@ final class Handler {
     value: ExpressionValue,
     visualisation: Visualisation
   ): Unit = {
-    val result = executionService.callFunction(
-      visualisation.expression,
-      value.getValue
-    )
-    val errorMsgOrData = result match {
-      case text: String       => Right(text.getBytes("UTF-8"))
-      case bytes: Array[Byte] => Right(bytes)
-      case other =>
-        Left(s"Cannot encode ${other.getClass} to byte array")
-    }
-    errorMsgOrData match {
+    val errorMsgOrVisualisationData =
+      Either
+        .catchNonFatal {
+          executionService.callFunction(
+            visualisation.callback,
+            value.getValue
+          )
+        }
+        .leftMap(_.getMessage)
+        .flatMap {
+          case text: String       => Right(text.getBytes("UTF-8"))
+          case bytes: Array[Byte] => Right(bytes)
+          case other =>
+            Left(s"Cannot encode ${other.getClass} to byte array")
+        }
+
+    errorMsgOrVisualisationData match {
       case Left(msg) =>
         endpoint.sendToClient(
           Api.Response(Api.VisualisationEvaluationFailed(msg))

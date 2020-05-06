@@ -8,10 +8,10 @@ import org.enso.polyglot.runtime.Runtime.Api.{ExpressionId, VisualisationId}
   * @param id the unique identifier of visualisation
   * @param expressionId the identifier of expression that the visualisation is
   *                     attached to
-  * @param expression the expression used to generate visualisation data
+  * @param callback the callable expression used to generate visualisation data
   */
 case class Visualisation(
   id: VisualisationId,
   expressionId: ExpressionId,
-  expression: AnyRef
+  callback: AnyRef
 )
