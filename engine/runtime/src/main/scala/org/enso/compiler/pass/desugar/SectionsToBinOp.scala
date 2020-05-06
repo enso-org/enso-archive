@@ -118,6 +118,24 @@ case object SectionsToBinOp extends IRPass {
           passData,
           diagnostics
         )
+
+      /* Note [Blanks in Right Sections]
+       * ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+       * While the naiive compositional translation of `(- _)` first translates
+       * the section into a function applying `-` to two arguments, one of which
+       * is a blank, the compositional nature of the blanks translation actually
+       * works against us here.
+       *
+       * As the `LambdaShorthandToLambda` pass can only operate on the
+       * application with the blanks, it can't know to push the blank outside
+       * that application chain. To that end, we have to handle this case
+       * specially here instead. What we want it to translate to is as follows:
+       *
+       * `(- _)` == `x -> (- x)` == `x -> y -> y - x`
+       *
+       * We implement this special case here.
+       */
+
       case Section.Right(op, arg, loc, passData, diagnostics) =>
         val leftArgName = freshNameSupply.newName()
         val leftCallArg =
@@ -131,23 +149,60 @@ case object SectionsToBinOp extends IRPass {
             None
           )
 
-        val opCall = IR.Application.Prefix(
-          op,
-          List(leftCallArg, arg),
-          hasDefaultsSuspended = false,
-          loc,
-          passData,
-          diagnostics
-        )
+        if (arg.value.isInstanceOf[IR.Name.Blank]) {
+          // Note [Blanks in Right Sections]
+          val rightArgName = freshNameSupply.newName()
+          val rightCallArg =
+            IR.CallArgument.Specified(None, rightArgName, None, None)
+          val rightDefArg = IR.DefinitionArgument.Specified(
+            rightArgName.copy(id = IR.randomId),
+            None,
+            suspended = false,
+            None
+          )
 
-        IR.Function.Lambda(
-          List(leftDefArg),
-          opCall,
-          loc,
-          canBeTCO = true,
-          passData,
-          diagnostics
-        )
+          val opCall = IR.Application.Prefix(
+            op,
+            List(leftCallArg, rightCallArg),
+            hasDefaultsSuspended = false,
+            loc,
+            passData,
+            diagnostics
+          )
+
+          val leftLam = IR.Function.Lambda(
+            List(leftDefArg),
+            opCall,
+            None
+          )
+
+          IR.Function.Lambda(
+            List(rightDefArg),
+            leftLam,
+            loc,
+            canBeTCO = true,
+            passData,
+            diagnostics
+          )
+        } else {
+          val opCall = IR.Application.Prefix(
+            op,
+            List(leftCallArg, arg),
+            hasDefaultsSuspended = false,
+            loc,
+            passData,
+            diagnostics
+          )
+
+          IR.Function.Lambda(
+            List(leftDefArg),
+            opCall,
+            loc,
+            canBeTCO = true,
+            passData,
+            diagnostics
+          )
+        }
     }
   }
 }

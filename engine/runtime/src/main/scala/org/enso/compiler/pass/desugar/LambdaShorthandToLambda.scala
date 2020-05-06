@@ -168,11 +168,7 @@ case object LambdaShorthandToLambda extends IRPass {
         // Wrap the app in lambdas from right to left, lambda / shorthand arg
         val appResult =
           actualDefArgs.foldRight(processedApp: IR.Expression)((arg, body) =>
-            IR.Function.Lambda(
-              List(arg),
-              body,
-              None
-            )
+            IR.Function.Lambda(List(arg), body, None)
           )
 
         // If the function is shorthand, do the same
@@ -194,8 +190,8 @@ case object LambdaShorthandToLambda extends IRPass {
         f.copy(target = desugarExpression(tgt, freshNameSupply))
       case _: IR.Application.Operator =>
         throw new CompilerError(
-          "Operators should be desugared by the point of underscore to " +
-          "lambda conversion."
+          "Operators should be desugared by the point of underscore " +
+          "to lambda conversion."
         )
     }
   }

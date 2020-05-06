@@ -3,7 +3,7 @@ package org.enso.compiler.test.codegen
 import org.enso.compiler.core.IR
 import org.enso.compiler.test.CompilerTest
 
-class AstToIRTest extends CompilerTest {
+class AstToIrTest extends CompilerTest {
 
   "AST translation of lambda definitions" should {
     "result in a syntax error when defined with multiple arguments" in {
@@ -29,6 +29,19 @@ class AstToIRTest extends CompilerTest {
         .body
         .asInstanceOf[IR.Function.Lambda]
         .body shouldBe an[IR.Function.Lambda]
+    }
+  }
+
+  "AST translation of operators" should {
+    "disallow named arguments to operators" in {
+      val ir =
+        """
+          |(a = 1) + 10
+          |""".stripMargin.toIrExpression.get
+
+      ir shouldBe an[IR.Error.Syntax]
+      ir.asInstanceOf[IR.Error.Syntax]
+        .reason shouldBe an[IR.Error.Syntax.NamedArgInOperator.type]
     }
   }
 
@@ -58,17 +71,6 @@ class AstToIRTest extends CompilerTest {
           |""".stripMargin.toIrExpression.get
 
       ir shouldBe an[IR.Application.Operator.Section.Right]
-    }
-
-    "disallow sections with blank arguments" in {
-      val ir =
-        """
-          |(_ +)
-          |""".stripMargin.toIrExpression.get
-
-      ir shouldBe an[IR.Error.Syntax]
-      ir.asInstanceOf[IR.Error.Syntax]
-        .reason shouldBe an[IR.Error.Syntax.BlankArgInSection.type]
     }
 
     "disallow sections with named arguments" in {

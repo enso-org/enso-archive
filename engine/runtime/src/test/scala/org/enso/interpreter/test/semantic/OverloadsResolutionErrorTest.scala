@@ -31,7 +31,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
     diagnostics
       .filterNot(_.contains("Compiler encountered"))
       .toSet shouldEqual Set(
-      "Test[3:1-3:13]: Method overloads are not supported, but you've defined Unit.foo multiple times in this module."
+      "Test[3:1-3:13]: Method overloads are not supported: Unit.foo is defined multiple times in this module."
     )
   }
 
@@ -49,7 +49,7 @@ class OverloadsResolutionErrorTest extends InterpreterTest {
     diagnostics
       .filterNot(_.contains("Compiler encountered"))
       .toSet shouldEqual Set(
-      "Test[3:1-3:11]: Redefining atoms is not supported, but you've defined MyAtom multiple times in this module."
+      "Test[3:1-3:11]: Redefining atoms is not supported: MyAtom is defined multiple times in this module."
     )
   }
 

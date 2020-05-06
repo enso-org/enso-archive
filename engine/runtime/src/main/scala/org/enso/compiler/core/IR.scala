@@ -1009,14 +1009,14 @@ object IR {
 
       override def toString: String =
         s"""IR.Type.Ascription(
-           |typed = $typed,
-           |signature = $signature,
-           |location = $location,
-           |passData = ${this.showPassData},
-           |diagnostics = $diagnostics,
-           |id = $id
-           |)
-           |""".toSingleLine
+        |typed = $typed,
+        |signature = $signature,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
 
       override def children: List[IR] = List(typed, signature)
     }
@@ -2610,7 +2610,7 @@ object IR {
         * @param name the name that is unused
         */
       sealed case class Binding(override val name: Name) extends Unused {
-        override def message: String = s"Unused bound name ${name.name}."
+        override def message: String = s"Unused variable ${name.name}."
 
         override def toString: String = s"Unused.Binding(${name.name})"
 
@@ -2639,7 +2639,7 @@ object IR {
       ) extends Shadowed {
 
         override def message: String =
-          s"The function parameter $shadowedName is being shadowed by $shadower"
+          s"The argument $shadowedName is shadowed by $shadower."
       }
     }
   }
@@ -2753,8 +2753,8 @@ object IR {
         override def explanation: String = "Named argument in operator section."
       }
 
-      case object BlankArgInSection extends Reason {
-        override def explanation: String = "Blank argument in operator section."
+      case object NamedArgInOperator extends Reason {
+        override def explanation: String = "Named argument in operator section."
       }
     }
 
@@ -2869,8 +2869,8 @@ object IR {
         }
 
         override def message: String =
-          s"Method overloads are not supported, but you've defined " +
-          s"${atomName.name}.${methodName.name} multiple times in this module."
+          s"Method overloads are not supported: ${atomName.name}." +
+          s"${methodName.name} is defined multiple times in this module."
 
         override def mapExpressions(fn: Expression => Expression): Method = this
 
@@ -2910,7 +2910,8 @@ object IR {
 
         /** Creates a copy of `this`.
           *
-          * @param atomName the name of the atom the method was being redefined on
+          * @param atomName the name of the atom the method was being redefined
+          *                 on
           * @param location the location in the source to which this error
           *                 corresponds
           * @param passData the pass metadata for the error
@@ -2932,8 +2933,9 @@ object IR {
         }
 
         override def message: String =
-          s"Redefining atoms is not supported, but you've defined " +
-          s"${atomName.name} multiple times in this module."
+          s"Redefining atoms is not supported: ${atomName.name} is " +
+          s"defined multiple times in this module."
+
 
         override def mapExpressions(fn: Expression => Expression): Atom = this
 

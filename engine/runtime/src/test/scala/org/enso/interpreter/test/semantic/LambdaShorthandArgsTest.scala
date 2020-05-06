@@ -89,4 +89,48 @@ class LambdaShorthandArgsTest extends InterpreterTest {
 
     eval(code) shouldEqual 0
   }
+
+  subject should "work with operators" in {
+    val code =
+      """
+        |main =
+        |     f = (_ + 10)
+        |     f 10
+        |""".stripMargin
+
+    eval(code) shouldEqual 20
+  }
+
+  subject should "work properly with left operator sections" in {
+    val code =
+      """
+        |main =
+        |    f = (_ -)
+        |    f 10 5
+        |""".stripMargin
+
+    eval(code) shouldEqual 5
+  }
+
+  subject should "work properly with centre operator sections" in {
+    val code =
+      """
+        |main =
+        |    f = _ - _
+        |    f 10 5
+        |""".stripMargin
+
+    eval(code) shouldEqual 5
+  }
+
+  subject should "work properly with right operator sections" in {
+    val code =
+      """
+        |main =
+        |    f = (- _)
+        |    f 10 5
+        |""".stripMargin
+
+    eval(code) shouldEqual -5
+  }
 }

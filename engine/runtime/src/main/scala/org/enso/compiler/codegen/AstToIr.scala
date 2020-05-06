@@ -16,7 +16,7 @@ import org.enso.syntax.text.AST
   * [[Core]] becomes implemented. Most function docs will refer to [[Core]]
   * now, as this will become true soon.
   */
-object AstToIR {
+object AstToIr {
   private def getIdentifiedLocation(ast: AST): Option[IdentifiedLocation] =
     ast.location.map(IdentifiedLocation(_, ast.id))
 
@@ -422,12 +422,21 @@ object AstToIR {
           Function.Lambda(realArgs, realBody, getIdentifiedLocation(callable))
         }
       case AST.App.Infix(left, fn, right) =>
-        Application.Operator.Binary(
-          translateCallArgument(left),
-          Name.Literal(fn.name, getIdentifiedLocation(fn)),
-          translateCallArgument(right),
-          getIdentifiedLocation(callable)
-        )
+        val leftArg  = translateCallArgument(left)
+        val rightArg = translateCallArgument(right)
+
+        if (leftArg.name.isDefined) {
+          IR.Error.Syntax(left, IR.Error.Syntax.NamedArgInOperator)
+        } else if (rightArg.name.isDefined) {
+          IR.Error.Syntax(right, IR.Error.Syntax.NamedArgInOperator)
+        } else {
+          Application.Operator.Binary(
+            leftArg,
+            Name.Literal(fn.name, getIdentifiedLocation(fn)),
+            rightArg,
+            getIdentifiedLocation(callable)
+          )
+        }
       case AST.App.Prefix(_, _) =>
         throw new UnhandledEntity(callable, "translateCallable")
       case AST.App.Section.any(sec) => translateOperatorSection(sec)
@@ -443,7 +452,7 @@ object AstToIR {
         Application.Prefix(
           translateExpression(functionName),
           args.map(translateCallArgument).toList,
-          false,
+          hasDefaultsSuspended = false,
           getIdentifiedLocation(callable)
         )
       case _ => throw new UnhandledEntity(callable, "translateCallable")
@@ -466,16 +475,11 @@ object AstToIR {
         if (leftArg.name.isDefined) {
           Error.Syntax(section, Error.Syntax.NamedArgInSection)
         } else {
-          leftArg.value match {
-            case _: IR.Name.Blank =>
-              Error.Syntax(section, Error.Syntax.BlankArgInSection)
-            case _ =>
-              Application.Operator.Section.Left(
-                leftArg,
-                Name.Literal(left.opr.name, getIdentifiedLocation(left.opr)),
-                getIdentifiedLocation(left)
-              )
-          }
+          Application.Operator.Section.Left(
+            leftArg,
+            Name.Literal(left.opr.name, getIdentifiedLocation(left.opr)),
+            getIdentifiedLocation(left)
+          )
         }
       case AST.App.Section.Sides.any(sides) =>
         Application.Operator.Section.Sides(
@@ -488,16 +492,11 @@ object AstToIR {
         if (rightArg.name.isDefined) {
           Error.Syntax(section, Error.Syntax.NamedArgInSection)
         } else {
-          rightArg.value match {
-            case _: IR.Name.Blank =>
-              Error.Syntax(section, Error.Syntax.BlankArgInSection)
-            case _ =>
-              Application.Operator.Section.Right(
-                Name.Literal(right.opr.name, getIdentifiedLocation(right.opr)),
-                translateCallArgument(right.arg),
-                getIdentifiedLocation(right)
-              )
-          }
+          Application.Operator.Section.Right(
+            Name.Literal(right.opr.name, getIdentifiedLocation(right.opr)),
+            translateCallArgument(right.arg),
+            getIdentifiedLocation(right)
+          )
         }
     }
   }

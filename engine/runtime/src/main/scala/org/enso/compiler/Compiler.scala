@@ -4,7 +4,7 @@ import java.io.StringReader
 
 import com.oracle.truffle.api.TruffleFile
 import com.oracle.truffle.api.source.Source
-import org.enso.compiler.codegen.{AstToIR, IRToTruffle}
+import org.enso.compiler.codegen.{AstToIr, IRToTruffle}
 import org.enso.compiler.context.{FreshNameSupply, InlineContext, ModuleContext}
 import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR.{Expression, Module}
@@ -170,7 +170,7 @@ class Compiler(
     * @return an IR representation of the program represented by `sourceAST`
     */
   def generateIR(sourceAST: AST): Module =
-    AstToIR.translate(sourceAST)
+    AstToIr.translate(sourceAST)
 
   /**
     * Lowers the input AST to the compiler's high-level intermediate
@@ -180,7 +180,7 @@ class Compiler(
     * @return an IR representation of the program represented by `sourceAST`
     */
   def generateIRInline(sourceAST: AST): Option[Expression] =
-    AstToIR.translateInline(sourceAST)
+    AstToIr.translateInline(sourceAST)
 
   /** Runs the various compiler passes.
     *

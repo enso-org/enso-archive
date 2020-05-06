@@ -60,7 +60,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |foo a _ b _
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
@@ -138,7 +138,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |_ a b
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
@@ -159,7 +159,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |if _ then a
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       val irFn = ir.asInstanceOf[IR.Function.Lambda]
@@ -200,6 +200,99 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         .asInstanceOf[IR.Name.Literal]
         .name shouldEqual lamArgName.name
     }
+
+    "work correctly for operators" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |(10 + _)
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      ir shouldBe an[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+
+      val argName =
+        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+
+      val body     = irFn.body.asInstanceOf[IR.Application.Prefix]
+      val rightArg = body.arguments(1).value.asInstanceOf[IR.Name.Literal]
+
+      argName.name shouldEqual rightArg.name
+    }
+
+    "work correctly for left operator sections" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |(_ +)
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      ir shouldBe an[IR.Function.Lambda]
+      val irFn    = ir.asInstanceOf[IR.Function.Lambda]
+      val argName = irFn.arguments.head.name
+      val body    = irFn.body.asInstanceOf[IR.Application.Prefix]
+
+      body.arguments.length shouldEqual 1
+
+      val leftArgName = body.arguments.head.value.asInstanceOf[IR.Name.Literal]
+
+      argName.name shouldEqual leftArgName.name
+    }
+
+    "work correctly for centre operator sections" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |(_ + _)
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      ir shouldBe an[IR.Function.Lambda]
+      val irFn     = ir.asInstanceOf[IR.Function.Lambda]
+      val arg1Name = irFn.arguments.head.name
+
+      val irFn2    = irFn.body.asInstanceOf[IR.Function.Lambda]
+      val arg2Name = irFn2.arguments.head.name
+
+      val app = irFn2.body.asInstanceOf[IR.Application.Prefix]
+      app.arguments.length shouldEqual 2
+
+      val leftArg  = app.arguments.head.value.asInstanceOf[IR.Name.Literal]
+      val rightArg = app.arguments(1).value.asInstanceOf[IR.Name.Literal]
+
+      arg1Name.name shouldEqual leftArg.name
+      arg2Name.name shouldEqual rightArg.name
+    }
+
+    "work correctly for right operator sections" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |(- _)
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      ir shouldBe an[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+      val rightArgName = irFn.arguments.head.name
+
+      irFn.body shouldBe an[IR.Function.Lambda]
+      val irFn2 = irFn.body.asInstanceOf[IR.Function.Lambda]
+      val leftArgName = irFn2.arguments.head.name
+
+      irFn2.body shouldBe an[IR.Application.Prefix]
+      val app = irFn2.body.asInstanceOf[IR.Application.Prefix]
+
+      app.arguments.length shouldEqual 2
+
+      val appLeftName = app.arguments.head.value.asInstanceOf[IR.Name.Literal]
+      val appRightName = app.arguments(1).value.asInstanceOf[IR.Name.Literal]
+
+      leftArgName.name shouldEqual appLeftName.name
+      rightArgName.name shouldEqual appRightName.name
+    }
   }
 
   "Nested underscore arguments" should {
@@ -209,7 +302,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |a _ (fn _ c)
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       ir.asInstanceOf[IR.Function.Lambda]
@@ -247,7 +340,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |a _ (fn (t = _) c)
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       ir.asInstanceOf[IR.Function.Lambda]
@@ -285,7 +378,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |a -> (b = f _ 1) -> f a
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       val bArgFn = ir
@@ -319,7 +412,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
         """
           |case _ of
           |    Nil -> f _ b
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       val nilBranch = ir
@@ -357,7 +450,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |x = _
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Expression.Binding]
       val expr = ir.asInstanceOf[IR.Expression.Binding].expression
@@ -371,7 +464,7 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       val ir =
         """
           |(x = _) -> x
-          |""".stripMargin.toIrExpression.get.desugar
+          |""".stripMargin.preprocessExpression.get.desugar
 
       ir shouldBe an[IR.Function.Lambda]
       val irFn = ir.asInstanceOf[IR.Function.Lambda]

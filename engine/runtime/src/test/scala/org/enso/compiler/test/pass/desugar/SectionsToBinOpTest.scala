@@ -37,9 +37,9 @@ class SectionsToBinOpTest extends CompilerTest {
   }
 
   /** Makes an inline context.
-   *
-   * @return a new inline context
-   */
+    *
+    * @return a new inline context
+    */
   def mkInlineContext: InlineContext = {
     InlineContext(freshNameSupply = Some(new FreshNameSupply))
   }
@@ -126,6 +126,42 @@ class SectionsToBinOpTest extends CompilerTest {
 
       ir.body shouldBe an[IR.Application.Prefix]
       ir.body.asInstanceOf[IR.Application.Prefix].arguments.length shouldEqual 1
+    }
+
+    "flip the arguments when a right section's argument is a blank" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |(- _)
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      ir shouldBe an[IR.Function.Lambda]
+      val irFn = ir.asInstanceOf[IR.Function.Lambda]
+
+      val rightArgName =
+        irFn.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+
+      irFn.body shouldBe an[IR.Function.Lambda]
+      val irFn2 = irFn.body.asInstanceOf[IR.Function.Lambda]
+
+      val leftArgName =
+        irFn2.arguments.head.asInstanceOf[IR.DefinitionArgument.Specified].name
+
+      irFn2.body shouldBe an[IR.Application.Prefix]
+      val app = irFn2.body.asInstanceOf[IR.Application.Prefix]
+
+      val appLeftName = app.arguments.head
+        .asInstanceOf[IR.CallArgument.Specified]
+        .value
+        .asInstanceOf[IR.Name.Literal]
+      val appRightName = app
+        .arguments(1)
+        .value
+        .asInstanceOf[IR.Name.Literal]
+
+      leftArgName.name shouldEqual appLeftName.name
+      rightArgName.name shouldEqual appRightName.name
     }
   }
 }
