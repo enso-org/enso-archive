@@ -1190,6 +1190,17 @@ type SHA3-224 = String;
 #### `FileEdit`
 A representation of a batch of edits to a file, versioned.
 
+`SHA3-224` represents hash of the file contents. `oldVersion` is the version
+you're applying your update on, `newVersion` is what you compute as the hash
+after applying the changes. In other words,
+
+``` python
+hash(origFile) == oldVersion
+hash(applyEdits(origFile, edits)) == newVersion
+```
+
+it's a sanity check to make sure that the diffs are applied consistently.
+
 ##### Format
 
 ```typescript
