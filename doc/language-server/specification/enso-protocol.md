@@ -15,7 +15,7 @@ services components, as well as any open questions that may remain.
 <!-- MarkdownTOC levels="2,3,4" autolink="true" -->
 
 - [Architecture](#architecture)
-  - [The Project Picker](#the-project-picker)
+  - [The Project Manager](#the-project-manager)
   - [Language Server](#language-server)
 - [Textual Protocol](#textual-protocol)
   - [Textual Protocol Communication Patterns](#textual-protocol-communication-patterns)
@@ -44,7 +44,7 @@ services components, as well as any open questions that may remain.
     - [`Path`](#path)
     - [`IPWithSocket`](#ipwithsocket)
     - [`EnsoUUID`](#ensouuid)
-- [Protocol Message Specification - Project Picker](#protocol-message-specification---project-picker)
+- [Protocol Message Specification - Project Manager](#protocol-message-specification---project-manager)
   - [Types](#types)
     - [`ProjectMetadata`](#projectmetadata)
   - [Project Management Operations](#project-management-operations)
@@ -137,7 +137,7 @@ Services.
 
 The engine services are divided into two main components:
 
-1. **The Project Picker:** This component is responsible for listing and
+1. **The Project Manager:** This component is responsible for listing and
    managing user projects, as well as spawning the language server for a given
    project when it is opened.
 2. **The Language Server:** This component is responsible for dealing with
@@ -148,8 +148,8 @@ Both components will be implemented as akka actors such that we can defer the
 decision as to run them in different processes until the requirements become
 more clear.
 
-### The Project Picker
-The project picker service is responsible for both allowing users to work with
+### The Project Manager
+The project manager service is responsible for both allowing users to work with
 their projects but also the setup and teardown of the language server itself.
 Its responsibilities can be summarised as follows:
 
@@ -796,9 +796,9 @@ struct EnsoUUID {
 }
 ```
 
-## Protocol Message Specification - Project Picker
+## Protocol Message Specification - Project Manager
 This section exists to contain a specification of each of the messages that the
-project picker supports. This is in order to aid in the proper creation of
+project manager supports. This is in order to aid in the proper creation of
 clients, and to serve as an agreed-upon definition for the protocol between the
 IDE and Engine teams.
 
@@ -825,11 +825,11 @@ interface ProjectMetadata {
 ```
 
 ### Project Management Operations
-The primary responsibility of the project pickers is to allow users to manage
+The primary responsibility of the project managers is to allow users to manage
 their projects.
 
 #### `project/open`
-This message requests that the project picker open a specified project. This
+This message requests that the project manager open a specified project. This
 operation also includes spawning an instance of the language server open on the
 specified project.
 
@@ -863,7 +863,7 @@ interface ProjectOpenResult {
 - [`ProjectOpenError`](#projectopenerror) to signal failures during server boot.
 
 #### `project/close`
-This message requests that the project picker close a specified project. This
+This message requests that the project manager close a specified project. This
 operation includes shutting down the language server gracefully so that it can
 persist state to disk as needed.
 
@@ -899,7 +899,7 @@ interface ProjectCloseRequest {
   that cannot close a project that is open by other clients.
 
 #### `project/listRecent`
-This message requests that the project picker lists the user's most recently
+This message requests that the project manager lists the user's most recently
 opened projects.
 
 - **Type:** Request
@@ -1019,7 +1019,7 @@ interface ProjectListSampleResponse {
 TBC
 
 ### Language Server Management
-The project picker is also responsible for managing the language server. This
+The project manager is also responsible for managing the language server. This
 means that it needs to be able to spawn the process, but also tell the process
 when to shut down.
 
@@ -1029,8 +1029,8 @@ when to shut down.
 >   relationship is going to work.
 
 ### Errors - Project Manager
-The project picker component also has its own set of errors. This section is not
-a complete specification and will be updated as new errors are added.
+The project manager component also has its own set of errors. This section is
+not a complete specification and will be updated as new errors are added.
 
 ## Protocol Message Specification - Language Server
 This section exists to contain a specification of each of the messages that the
