@@ -167,7 +167,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
               "method": "capability/acquire",
               "id": $reqId,
               "params": {
-                "method": "receivesTreeUpdates",
+                "method": "file/receivesTreeUpdates",
                 "registerOptions": {
                   "path": {
                     "rootId": $testContentRootId,
@@ -184,7 +184,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
               "method": "capability/acquire",
               "id": $reqId,
               "params": {
-                "method": "receivesTreeUpdates",
+                "method": "file/receivesTreeUpdates",
                 "registerOptions": {
                   "path": {
                     "rootId": $testContentRootId,
@@ -201,7 +201,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
             "method": "capability/release",
             "id": $reqId,
             "params": {
-              "method": "receivesTreeUpdates",
+              "method": "file/receivesTreeUpdates",
               "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,
@@ -218,7 +218,7 @@ class ReceivesTreeUpdatesHandlerTest extends BaseServerTest {
             "method": "capability/release",
             "id": $reqId,
             "params": {
-              "method": "receivesTreeUpdates",
+              "method": "file/receivesTreeUpdates",
               "registerOptions": {
                 "path": {
                   "rootId": $testContentRootId,

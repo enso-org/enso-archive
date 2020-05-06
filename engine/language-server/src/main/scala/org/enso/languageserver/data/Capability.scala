@@ -31,7 +31,7 @@ case class ReceivesTreeUpdates(path: Path)
     extends Capability(ReceivesTreeUpdates.methodName)
 
 object ReceivesTreeUpdates {
-  val methodName = "receivesTreeUpdates"
+  val methodName = "file/receivesTreeUpdates"
 }
 
 /**
