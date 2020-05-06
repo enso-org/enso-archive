@@ -1188,7 +1188,6 @@ A representation of a batch of edits to a file, versioned.
 
 ##### Format
 
-
 ```typescript
 interface FileEdit {
   path: Path;
