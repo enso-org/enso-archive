@@ -31,6 +31,25 @@ object Builtin {
       }
     }
 
+    val listLiteral = {
+      val items = Pattern.SepList(Pattern.ExprUntilOpr(","), Opr(",")).opt
+
+      Definition(
+        Opr("[") -> items,
+        Opr("]")
+      ) { ctx =>
+        ctx.body match {
+          case List(items, _) =>
+            val realItems =
+              items.body.toStream
+                .map(_.wrapped)
+                .filterNot(AST.Ident.Opr.unapply(_).contains(","))
+            AST.ListLiteral(realItems)
+          case _ => internalError
+        }
+      }
+    }
+
     val defn = Definition(Var("type") -> {
       val head = Pattern.Cons().or("missing name").tag("name")
       val args =
@@ -244,6 +263,7 @@ object Builtin {
 
     Registry(
       group,
+      listLiteral,
       case_of,
       if_then,
       if_then_else,
