@@ -201,7 +201,7 @@ type Maybe a
     Nothing
     type Just (value : a)
 
-    isJust = case self of
+    isJust = case this of
         Nothing -> False
         Just _ -> True
 
@@ -216,12 +216,12 @@ maybe a =
   { (Nothing | Just a), isJust: IsJust = isJust, nothing : Nothing = nothing }
 
 Nothing.isJust : Maybe a -> Bool
-Nothing.isJust self = case self of
+Nothing.isJust this = case this of
   Nothing -> False
   Just _ -> True
 
 Just.isJust : Maybe a -> Bool
-Just.isJust self = case self of
+Just.isJust this = case this of
   Nothing -> False
   Just _ -> True
 
@@ -359,11 +359,11 @@ type HasName
     name = "unnamed"
 
 type Vector a
-    self: HasName
+    this: HasName
     V2 x:a y:a
     V3 x:a y:a z:a
 
-name (self:Int) = "IntName"
+name (this:Int) = "IntName"
 
 greet (t:HasName) = print 'Hi, my name is `t.name`'
 
@@ -386,20 +386,20 @@ wrappers for the contained types. This is a big usability bonus for Enso.
 
 ```ruby
 type Wrapper
-    wrapped   : (lens s t a b) self.unwrapped
+    wrapped   : (lens s t a b) this.unwrapped
     unwrapped : t
     unwrapped = t # Default implementation based on inferred type.
 ```
 
 `Wrapper` is an interface implemented implicitly for all typesets, and boils
 down to delegating to the contained members if a given label is not found on
-the top typeset. This delegation only occurs on the self type.
+the top typeset. This delegation only occurs on the this type.
 
 A usage example is as follows:
 
 ```ruby
 type HasName a
-    self:Wrapper # The field 'unwrapped' uses default implementation.
+    this:Wrapper # The field 'unwrapped' uses default implementation.
     type Cons
         name    : String
         wrapped : a
@@ -447,11 +447,11 @@ An example use-case is as follows:
 type Vector a
     type V3 x:a y:a z:a
 
-    self : Convertible String
-    to = 'V3 `self.x` `self.y` `self.z`'
+    this : Convertible String
+    to = 'V3 `this.x` `this.y` `this.z`'
 
-    self : Convertible (a: Semigroup)
-    to = self.x + self.y + self.z
+    this : Convertible (a: Semigroup)
+    to = this.x + this.y + this.z
 
 test: Int -> String
 test i = print 'I got the magic value `i`!'
@@ -757,7 +757,7 @@ for usability, as users can write very flexible code that still plays nicely
 with the GUI.
 
 The current implementation of Enso supports single dispatch (dispatch purely on
-the type of `self`), but there are broader visions afoot for the final
+the type of `this`), but there are broader visions afoot for the final
 implementation of dynamic dispatch in Enso.
 
 > The actionables for this section include:
@@ -781,9 +781,9 @@ another.
   2. If not, find all functions with the matching name in the current module and
      all directly imported modules. These functions are the _candidates_.
   3. Eliminate any candidate `X` for which there is another candidate `Y` whose
-     `this` argument type is strictly more specific. That is, `Y` self type is a
-     substitution of `X` self type but not vice versa.
-  4. If not all of the remaining candidates have the same self type, the search
+     `this` argument type is strictly more specific. That is, `Y` this type is a
+     substitution of `X` this type but not vice versa.
+  4. If not all of the remaining candidates have the same this type, the search
      fails.
   5. Eliminate any candidate `X` for which there is another candidate `Y` which
      type signature is strictly more specific. That is, `Y` type signature is a
@@ -800,7 +800,7 @@ another.
 ### Multiple Dispatch
 It is an open question as to whether we want to support proper multiple dispatch
 in Enso. Multiple dispatch refers to the dynamic dispatch target being
-determined based not only on the type of the `self` argument, but the types of
+determined based not only on the type of the `this` argument, but the types of
 the other arguments to the function.
 
 To do multiple dispatch properly, it is very important to get a rigorous

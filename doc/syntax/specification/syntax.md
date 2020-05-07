@@ -22,13 +22,15 @@ dependently-typed world, they are just values.
 - [Naming](#naming)
   - [Localised Naming](#localised-naming)
   - [Operator Naming](#operator-naming)
+  - [Pattern Contexts](#pattern-contexts)
   - [Reserved Names](#reserved-names)
 - [Layout Rules](#layout-rules)
   - [Maximum Line Length](#maximum-line-length)
   - [Indented Blocks](#indented-blocks)
-- [Text Literals](#text-literals)
-  - [Inline Text Literals](#inline-text-literals)
-  - [Text Block Literals](#text-block-literals)
+- [Literals](#literals)
+  - [Numeric Literals](#numeric-literals)
+  - [Text Literals](#text-literals)
+  - [Vector Literals](#vector-literals)
 - [Types and Type Signatures](#types-and-type-signatures)
   - [Type Signatures](#type-signatures)
   - [Operations on Types](#operations-on-types)
@@ -95,13 +97,29 @@ following rules around naming:
 
 - All identifiers are named using `snake_case`.
 - This can also be written `Snake_Case`
+- Names of the first form can be colloquially referred to as 'variable
+  names', while names of the second form can be referred to as 'type names'.
+- No mixed-format names are allowed (e.g. `HTTP`, `foO`, `make_New`, or
+  `Make_new`). These will be rejected by the parser.
+- We _strongly encourage_ using capitalised identifiers to refer to atoms.
+
+Name resolution obeys the following rules:
+
 - In contexts where it is _ambiguous_ as to whether a name is fresh or should
   bind an identifier in scope, the second format refers to binding a name in
   scope, while the first refers to a fresh variable.
 - This behaviour _only_ occurs in ambiguous contexts. In all other contexts,
-  both conventions refer to that name already in scope
-- No mixed-format names are allowed.
-- We _strongly encourage_ using capitalised identifiers to refer to atoms.
+  both conventions refer to that name already in scope.
+- Operator names behave as variable names when placed in a prefix position
+  (e.g. `+ a b`).
+- Operator names behave as type names when placed in an infix position (e.g.
+  `a + b`).
+- All literals (e.g. `1` and `"Hello"`) are treated as constructor names.
+
+Identifiers are introduced by:
+
+- Naming them in a binding (assignments and function arguments).
+- Using them in a pattern matching context (free variables).
 
 While, through much of the language's history, we have used `camelCase` (with
 its disambiguating cousin `CamelCase`), this has been decided against for one
@@ -134,6 +152,44 @@ paraphrasing the [Idris wiki](https://github.com/idris-lang/Idris-dev/wiki/Unoff
 
 In essence, while the use of Unicode operators can make code look pretty, a font
 with well-defined ligatures can do the same.
+
+Operator names are those built solely from operator symbols (e.g. `+` or `<*>`).
+Operator symbols are defined as characters in the following set.
+
+```
+!$%&*+-/<>?^~|:\,.()[]{}=
+```
+
+Please note that not every sequence that can be created from the above is a
+_valid_ operator name, as some may collide with built-in language constructs
+(e.g. `[` and `]`, which starts and end a vector literal respectively).
+
+### Pattern Contexts
+A pattern context is a span in the code where variable identifiers (as described
+above) can be used to introduce new identifiers into the scope containing the
+pattern context. The following spans are pattern contexts:
+
+- The left-hand-side of the assignment operator (`=`).
+- The right-hand-side of the ascription operator (`:`).
+- The left-hand-side of the arrow operator (`->`).
+
+The following behaviours occur within a pattern context:
+
+- Variable names are matched against corresponding portions of the expression
+  and are introduced into scope.
+- Type names require that the matched value is of a given structure (be that
+  matching a typeset, atom, or some combination thereof), and allows for
+  matching these fields recursively.
+- Any literals (e.g. numbers) behave as type names.
+
+It should be noted that, in the core language, all non-trivial constructs are
+desugared to these constructs, as well as `case ... of` expressions, meaning
+that these are the only constructs which introduce pattern contexts.
+
+> Actionables for this section are:
+>
+> - Clarify exactly what "corresponding portions of the expression" actually
+>   means in a formal sense.
 
 ### Reserved Names
 Even though we do not intend to reserve any names at the level of the lexer or
@@ -266,7 +322,48 @@ validFunc = v -> v2 ->
     print v2
 ```
 
-## Text Literals
+## Literals
+Enso supports a small set of literals that allow the expression of some common
+types in literal form in the source code.
+
+### Numeric Literals
+Enso provides rich support for numeric literals, including literals that use
+different numeric bases. It does, of course, support floating point numerals as
+well.
+
+A numeric literal takes the form:
+
+```ebnf
+digit = "0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+hex = "a" | "b" | "c" | "d" | "e" | "f";
+number-digit = digit | hex;
+decimal-point = ".";
+
+float-digit = number-digit | decimal-point;
+
+base-specified = "B" | "H" | "O";
+
+numeric-literal = [base-specifier, "_"], { number-digit };
+```
+
+If no base is specified, it is inferred to be a standard base-10 numeral.
+
+Some examples of numeric literals follow:
+
+```ruby
+decimal          = 12345.39
+decimal_explicit = 10_1029301
+octal            = O_122137
+hex              = H_ae2f14
+binary           = B_10011101010
+```
+
+> Actionables for this section are:
+>
+> - Think about whether we want to support explicit fractional and complex
+>   literals, or whether these should be relegated to type constructors.
+
+### Text Literals
 Enso provides rich support for textual literals in the language, supporting both
 raw and interpolated strings natively.
 
@@ -287,7 +384,7 @@ raw and interpolated strings natively.
   fmt_string = 'Hello, my age is `time.now.year - person.birthday.year`'
   ```
 
-### Inline Text Literals
+#### Inline Text Literals
 In Enso, inline text literals are opened and closed using the corresponding
 quote type for the literal. They may contain escape sequences but may _not_ be
 broken across lines.
@@ -297,7 +394,7 @@ inline_raw = "Foo bar baz"
 inline_interpolated = 'Foo `bar` baz'
 ```
 
-### Text Block Literals
+#### Text Block Literals
 In Enso, text block literals rely on _layout_ to determine the end of the block,
 allowing users to only _open_ the literal. Block literals are opened with three
 of the relevant quote type, and the contents of the block are determined by the
@@ -319,6 +416,21 @@ block_raw = '''
 
 not_string_expr = foo bar
 ```
+
+### Vector Literals
+Enso also supports vector literals, which allow users to create literal vectors
+of elements.
+
+```ruby
+literal = [elem_1, elem_2, elem_3, ...]
+```
+
+A vector literal works as follows:
+
+- It is begun by the `[` character.
+- It is ended by the `]` character.
+- Elements in vector literals are concatenated using the `,` operator, which
+  acts as `cons` on vectors.
 
 ## Types and Type Signatures
 Enso is a statically typed language, meaning that every variable is associated
@@ -767,7 +879,9 @@ many other programming languages.
 - Precedence of an operator in Enso depends on whether a particular operator is
   surrounded by spaces or not. This means that the precedence of _any_ operator
   not surrounded by spaces is always higher than the precedence of any operator
-  surrounded by spaces.
+  surrounded by spaces. The only exception to this rule is the `,` operator,
+  which retains the same precedence level regardless of whether it is surrounded
+  by spaces or not.
 
 This space-based precedence may seem strange coming from other languages, but
 it allows for writing _far_ cleaner code than other functional languages. This

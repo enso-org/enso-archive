@@ -15,6 +15,7 @@ Enso.
 
 - [Scoping](#scoping)
   - [Scoping Rules](#scoping-rules)
+  - [Scoping of Type Signatures](#scoping-of-type-signatures)
 - [Strict Evaluation](#strict-evaluation)
   - [Optional Suspension](#optional-suspension)
 - [Bindings](#bindings)
@@ -27,12 +28,40 @@ languages that are immutable (or make heavy use of immutability). In essence,
 Enso is a lexically-scoped language where bindings may be shadowed in child
 scopes.
 
-- A name may not be redefined in the same scope that it was defined in.
-- A name may be redefined in any child of that scope. This redefinition shadows
-  the binding higher up the tree of scopes.
+A scope is the span in the code within which a set of visible, available
+identifiers occurs. A nested scope may:
+
+- Reference identifiers defined in parent scopes.
+- Shadow identifiers from parent scopes with a new binding.
+
+Identifier visibility behaves as follows:
+
+- Identifiers are bound by using a variable name in a pattern context (e.g. the
+  LHS of a binding, a function argument, or a case expression pattern).
+- Identifiers are accessible only _after_ they have been defined.
+- Identifiers introduced into a given scope `s` are visible in `s` and all the
+  children of `s`.
+
+> The actionables for this section are:
+> 
+> - In the future we may want to relax the forward-definition restriction for
+>   pure bindings, allowing a form of recursive pure binding hoisting (like a
+>   let block). 
 
 ### Scoping Rules
 The following constructs introduce new scopes in Enso:
+
+- **Modules:** Each module (file) introduces a new scope.
+- **The Function Arrow `(->)`:** The arrow operator introduces a new scope for
+  each of its operands. This is true both when it is used for a lambda (value
+  or type), and when used to denote case branches. This means that _function_
+  _arguments_ occur in their own scope.
+- **Blocks:** A block introduces a new scope. This scope is a child of the scope
+  in which the block is defined, or is the scope of the method being defined.
+
+There are other linguistic constructs that _behave_ as if they introduce a
+scope, but this is purely down to the fact that they desugar to one or more of
+the above constructs:
 
 - **Method Definitions:** A method definition introduces a new scope. These
   scopes are considered to be 'top-level' and hence have no parent other than
@@ -42,21 +71,29 @@ The following constructs introduce new scopes in Enso:
 - **Function Definitions:** A function definition introduces a new scope. This
   scope is either a child of the scope in which the function is defined, or is
   the scope of the method being defined. If the body of the function is a block,
-  the function scope should be _reused_ as the block scope.
-- **Blocks:** A block introduces a new scope. This scope is a child of the scope
-  in which the block is defined, or is the scope of the method being defined.
-- **Case Branches:** Each case branch introduces a new scope.
-- **Function Call Arguments:** In order to handle suspension of arguments
-  correctly, each argument used to call a function is evaluated in its own
-  scope. This scope is a direct child of the scope in which the function call is
-  taking place.
+  the function scope should be _reused_ as the block scope. 
 
 > The actionables for this section are:
 >
 > - Write this out in more detail when we have time. The above is only intended
 >   as a brief summary.
+> - Decide if we want to support local overloads at all (differing in the type
+>   of `this`).
+> - We need to refine the specification for body-signature mutual scoping.
 > - NOTE: The note about case-branch scoping needs to be refined as the
 >   implementation of `case` evolves.
+
+### Scoping of Type Signatures
+In order to enable much of the flexible metaprogramming ability that Enso aims
+for, we have an additional set of scoping rules for type signatures:
+
+- The top-level scope of the LHS of the type ascription operator, and the
+  top-level scope of the RHS of the type ascription operator are the same.
+
+> The actionables for this section are:
+> 
+> - Do we actually want to support this? 
+> - What complexities does this introduce wrt typechecking?
 
 ## Strict Evaluation
 Though Enso shares many syntactic similarities with Haskell, the most famous
