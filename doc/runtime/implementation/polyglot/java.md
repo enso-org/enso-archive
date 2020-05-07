@@ -5,8 +5,8 @@ Java in the runtime.
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Class Lookup](#class-lookup)
-- [Dynamic System](#dynamic-system)
-- [Static System](#static-system)
+- [Polyglot Library System](#polyglot-library-system)
+- [Polyglot Syntax System](#polyglot-syntax-system)
 
 <!-- /MarkdownTOC -->
 
@@ -25,7 +25,7 @@ Enso project. This directory has the following requirements placed on it.
 > - In future, we want to expand this to support `.class` files directly, and
 >   maybe even compiling Java code.
 
-## Dynamic System
+## Polyglot Library System
 The dynamic polyglot system is a dynamic runtime lookup for Java objects,
 allowing Enso code to work with them through a runtime reflection-style
 mechanism. It is comprised of the following components:
@@ -51,7 +51,7 @@ main =
 >
 > - Expand on the detail when there is time.
 
-## Static System
+## Polyglot Syntax System
 The static system, however, lets us do much better in terms of user experience.
 Instead of having to dynamically look things up at runtime, we can instead do
 the following:

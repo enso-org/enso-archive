@@ -5,9 +5,8 @@ of programming languages.
 
 It supports this through two main mechanisms:
 
-1. **Polyglot FFI:** The low-level polyglot support provides a fairly
-   close-to-the-metal, low syntax sugar system for working with values from
-   foreign languages.
+1. **Polyglot FFI:** The low-level polyglot support provides a fairly low-level
+   syntax sugar system for working with values from foreign languages.
 2. **Embedded Syntax:** This system allows users to write code from other
    languages directly in their `.enso` files, and to seamlessly share values
    between Enso and that foreign code.
@@ -15,8 +14,8 @@ It supports this through two main mechanisms:
 <!-- MarkdownTOC levels="2,3" autolink="true" -->
 
 - [Polyglot FFI](#polyglot-ffi)
-    - [Importing Polyglot Bindings](#importing-polyglot-bindings)
-    - [Using Polyglot Bindings](#using-polyglot-bindings)
+  - [Importing Polyglot Bindings](#importing-polyglot-bindings)
+  - [Using Polyglot Bindings](#using-polyglot-bindings)
 - [Embedded Syntax](#embedded-syntax)
 
 <!-- /MarkdownTOC -->

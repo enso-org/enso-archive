@@ -58,8 +58,6 @@ syntax will be accessible.
 - [Errors](#errors)
   - [Async Exceptions](#async-exceptions)
   - [Broken Values](#broken-values)
-- [Dynamic](#dynamic)
-  - [The Enso Boundary](#the-enso-boundary)
 - [Type Checking and Inference](#type-checking-and-inference)
   - [Maximal Inference Power](#maximal-inference-power)
 - [Dependency and Enso](#dependency-and-enso)
@@ -1023,48 +1021,6 @@ with an automatic propagation mechanism:
 > - Ensure that we are okay with initially designing everything around async
 >   exceptions as broken values are very hard to support without a type checker.
 > - Initially not supported for APIs.
-
-## Dynamic
-As Enso can seamlessly interoperate with other programming languages, we need a
-principled way of handling dynamic types that we don't really know anything
-about. This mechanism needs:
-
-- A way to record what properties we _expect_ from the dynamic.
-- A way to turn a dynamic into a well-principled type-system member without
-  having the dynamics pollute the whole type system. This may involve a 'trust
-  me' function, and potentially dynamicness-polymorphic types.
-- A way to understand as much as possible about what a dynamic _does_ provide.
-- A way to try and refine information about dynamics where possible.
-
-```ruby
-obj.model =
-    { atom  : Text
-    , dict  : Map Text Any
-    , info  :
-        { doc  : Text
-        , name : Text
-        , code : Text
-        , loc  : Location
-        }
-    , arg  : # used only when calling like a function
-        { doc     : Text
-        , default : Maybe Any
-        }
-    }
-```
-
-> The actionables for this section are:
->
-> - Work out how to do dynamic properly, keeping in mind that in a dynamic value
->   could self-modify underneath us.
-
-### The Enso Boundary
-Fortunately, we can at least avoid foreign languages modifying memory owned by
-the Enso interpreter. As part of the interop library, Graal lets us mark memory
-as read-only. This means that the majority of data passed out (from a functional
-language like Enso) is not at risk. However, if we _do_ allow data to be worked
-with mutably, when control is returned to Enso it needs to be treated as a
-dynamic as it may have been modified.
 
 ## Type Checking and Inference
 As a statically-typed language, Enso is built with a sophisticated type checker
