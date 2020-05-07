@@ -1,7 +1,7 @@
 # Polyglot Syntax
-Enso is a language with first-class polyglot support. In essence, this means 
+Enso is a language with first-class polyglot support. In essence, this means
 that Enso has first-class support for high-level interoperation with a variety
-of programming languages. 
+of programming languages.
 
 It supports this through two main mechanisms:
 
@@ -24,7 +24,7 @@ It supports this through two main mechanisms:
 ## Polyglot FFI
 The polyglot FFI is a low-level multi-language foreign function interface. It
 allows users to import bindings from other languages and call them through a
-generic mechanism. 
+generic mechanism.
 
 ### Importing Polyglot Bindings
 Polyglot bindings can be imported using a polyglot import directive. This is
@@ -48,7 +48,7 @@ polyglot c import struct NetworkPacket as NetworkPacketC
 ### Using Polyglot Bindings
 A polyglot binding is a polyglot object that has methods and/or fields defined
 on it. Due to an impedance mismatch between languages, Enso implements a
-variadic syntax for calling these polyglot bindings using vectors. 
+variadic syntax for calling these polyglot bindings using vectors.
 
 In essence, we have a primitive function as follows:
 
@@ -58,7 +58,7 @@ Polyglot.method : Polyglot.Object -> [Any] -> Any
 
 It works as follows:
 
-- It is a method called `method` defined on the `Polyglot` type. The name 
+- It is a method called `method` defined on the `Polyglot` type. The name
   `method` is, however, a stand-in for the name of the method in question.
 - It takes an object instance of the polyglot object.
 - It takes a vector of arguments (and is hence variadic).
@@ -83,11 +83,11 @@ introduced as follows:
 - The `polyglot` keyword starts a block.
 - This must be followed by a language identifier (e.g. `java`).
 - After the language identifier, the remaining syntax behaves like it is an
-  Enso function definition until the `=`. 
+  Enso function definition until the `=`.
 - After the `=`, the user may write their foreign code.
 
 ```ruby
-polyglot python concat a b = 
+polyglot python concat a b =
   def concat(a, b):
     str(a) + str(b)
 ```
@@ -96,5 +96,5 @@ In the above example, this defines a function `concat` that takes two arguments
 `a` and `b`, implemented in Python.
 
 > The actionables for this section are:
-> 
+>
 > - Greatly flesh out the syntax for the high-level polyglot functionality.

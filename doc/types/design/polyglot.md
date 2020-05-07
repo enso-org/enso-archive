@@ -18,6 +18,7 @@ polyglot boundary while ensuring that they aren't modified. This means that the
 typing information known about a value `v` _before_ it is passed to a polyglot
 call is valid after the polyglot call, as long as the following properties hold:
 
+- The polyglot call does not modify the entity.
 - 
 
 ## Polyglot Values
