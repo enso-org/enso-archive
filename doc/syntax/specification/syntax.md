@@ -554,6 +554,11 @@ document. This is as this document is a specification rather than a guide, and
 it is expected that you have read the above-linked document on the type-system
 design as well.
 
+Additionally, this document will colloquially refer to the left and right hand
+sides of the type ascription operator `:` as the 'term' and 'type' levels,
+respectively. In reality, there is no separation between the two in Enso, but it
+is a useful way of thinking about things when discussing type signatures.
+
 ### Type Signatures
 Enso allows users to provide explicit type signatures for values through use of
 the type ascription operator `:`. The expression `a : b` says that the value

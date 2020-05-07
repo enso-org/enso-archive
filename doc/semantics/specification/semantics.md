@@ -33,6 +33,7 @@ identifiers occurs. A nested scope may:
 
 - Reference identifiers defined in parent scopes.
 - Shadow identifiers from parent scopes with a new binding.
+- Ascribing a type identifier to a binding outside the current scope.
 
 Identifier visibility behaves as follows:
 
@@ -41,23 +42,34 @@ Identifier visibility behaves as follows:
 - Identifiers are accessible only _after_ they have been defined.
 - Identifiers introduced into a given scope `s` are visible in `s` and all the
   children of `s`.
+- If a scope uses an identifier defined in an outer scope, and then later (in
+  the thread of execution) shadows that variable, any usage before the shadowing
+  point refers to the occurrence in the outer scope.
+
+The term _accessible_ is defined to mean "can be referred to in the code as a
+valid entity," and hence implies "can have its value used."
 
 > The actionables for this section are:
 >
 > - In the future we may want to relax the forward-definition restriction for
 >   pure bindings, allowing a form of recursive pure binding hoisting (like a
 >   let block). This would use the monadic context's `fix` function.
+> - Once we are capable of supporting `fix` and recursive pure bindings in
+>   contexts, we need to revisit the above rules.
 
 ### Scoping Rules
 The following constructs introduce new scopes in Enso:
 
 - **Modules:** Each module (file) introduces a new scope.
-- **The Function Arrow `(->)`:** The arrow operator introduces a new scope for
-  each of its operands. This is true both when it is used for a lambda (value
-  or type), and when used to denote case branches. This means that _function_
-  _arguments_ occur in their own scope.
-- **Blocks:** A block introduces a new scope. This scope is a child of the scope
-  in which the block is defined, or is the scope of the method being defined.
+- **The Function Arrow `(->)`:** The arrow operator introduces a new scope that
+  is shared by both of its operands each of its operands. This is true both when
+  it is used for a lambda (value or type), and when used to denote case
+  branches.
+- **Code Blocks:** A code block introduces a new scope. This scope is a child of
+  the scope in which the block is defined, or is the scope of the function being
+  defined.
+- **The Type Ascription Operator:** The type ascription operator introduces a
+  new scope on its right hand side.
 
 There are other linguistic constructs that _behave_ as if they introduce a
 scope, but this is purely down to the fact that they desugar to one or more of
@@ -65,38 +77,38 @@ the above constructs:
 
 - **Method Definitions:** A method definition introduces a new scope. These
   scopes are considered to be 'top-level' and hence have no parent other than
-  the module scope. If the body of the method is a block or a function, the
-  scope of the method definition should be _reused_ as the scope of the
-  function or block.
+  the module scope. This is simply because the method definition desugars to a
+  lambda definition.
 - **Function Definitions:** A function definition introduces a new scope. This
-  scope is either a child of the scope in which the function is defined, or is
-  the scope of the method being defined. If the body of the function is a block,
-  the function scope should be _reused_ as the block scope.
+  is simply because the method definition desugars to a lambda definition.
 
 > The actionables for this section are:
 >
 > - Write this out in more detail when we have time. The above is only intended
 >   as a brief summary.
 > - Decide if we want to support local overloads at all (differing in the type
->   of `this`).
+>   of `this`). Local overloads are those that are not defined at the top level
+>   of a module, and are currently unsupported.
 > - We need to refine the specification for body-signature mutual scoping.
 > - NOTE: The note about case-branch scoping needs to be refined as the
 >   implementation of `case` evolves.
 
 ### Scoping of Type Signatures
-In order to enable much of the flexible metaprogramming ability that Enso aims
-for, we have an additional set of scoping rules for type signatures:
+Currently, type signatures in Enso obey a simple set of typing rules:
 
-- The top-level scope of the LHS of the type ascription operator, and the
-  top-level scope of the RHS of the type ascription operator are the same.
-- If two names are used on the type and term levels to refer to the same entity,
-  both are valid but this issues a warning.
-- Name clashes between different entities are disallowed.
-- Variables from the body are accessible in the type signature.
-- Variables from the type signature are accessible in the body.
+- The RHS of the type ascription introduces a new scope that is a child of the
+  scope in which the LHS of the type ascription exists.
 
 > The actionables for this section are:
 >
+> In order to enable much of the flexible metaprogramming ability that Enso aims
+> for, we have an additional set of scoping rules for type signatures:
+> - Both operands of the type ascription operator share a scope.
+> - If two names are used on the type and term levels to refer to the same entity,
+>   both are valid but this issues a warning. Referring to the same entity means
+>   that they are two names for the same underlying object.
+> - Name clashes are disallowed unless the clashing names refer to the same
+>   entity.
 > - Do we actually want to support this?
 > - What complexities does this introduce wrt typechecking?
 
