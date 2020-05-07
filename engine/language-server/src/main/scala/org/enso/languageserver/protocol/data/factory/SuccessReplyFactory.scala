@@ -1,7 +1,11 @@
 package org.enso.languageserver.protocol.data.factory
 
+import java.nio.ByteBuffer
+import java.util.UUID
+
 import com.google.flatbuffers.FlatBufferBuilder
-import org.enso.languageserver.protocol.data.util.Success
+import org.enso.languageserver.protocol.data.envelope.OutboundPayload
+import org.enso.languageserver.protocol.data.util.{EnsoUUID, Success}
 
 object SuccessReplyFactory {
 
@@ -16,6 +20,18 @@ object SuccessReplyFactory {
   def create()(implicit builder: FlatBufferBuilder): Int = {
     Success.startSuccess(builder)
     Success.endSuccess(builder)
+  }
+
+  def createPacket(requestId: EnsoUUID): ByteBuffer = {
+    implicit val builder = new FlatBufferBuilder(1024)
+    val outMsg = OutboundMessageFactory.create(
+      UUID.randomUUID(),
+      Some(requestId),
+      OutboundPayload.SUCCESS,
+      SuccessReplyFactory.create()
+    )
+    builder.finish(outMsg)
+    builder.dataBuffer()
   }
 
 }

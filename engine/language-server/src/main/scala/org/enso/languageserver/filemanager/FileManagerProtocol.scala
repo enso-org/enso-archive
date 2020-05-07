@@ -5,7 +5,9 @@ import java.util.UUID
 
 object FileManagerProtocol {
 
-  case class FileContent(path: File, content: String)
+  case class TextualFileContent(path: File, content: String)
+
+  case class BinaryFileContent(path: File, contents: Array[Byte])
 
   /**
     * Gets all content roots.
@@ -27,6 +29,8 @@ object FileManagerProtocol {
     */
   case class WriteFile(path: Path, content: String)
 
+  case class WriteBinaryFile(path: Path, contents: Array[Byte])
+
   /**
     * Signals file manipulation status.
     *
@@ -41,12 +45,20 @@ object FileManagerProtocol {
     */
   case class ReadFile(path: Path)
 
+  case class ReadBinaryFile(path: Path)
+
   /**
     * Returns a result of reading a file.
     *
     * @param result either file system failure or content of a file
     */
-  case class ReadFileResult(result: Either[FileSystemFailure, FileContent])
+  case class ReadTextualFileResult(
+    result: Either[FileSystemFailure, TextualFileContent]
+  )
+
+  case class ReadBinaryFileResult(
+    result: Either[FileSystemFailure, BinaryFileContent]
+  )
 
   /**
     * Requests the Language Server create a file system object.

@@ -5,6 +5,8 @@ import java.nio.file.Path
 import java.nio.file.attribute.{BasicFileAttributes, FileTime}
 import java.time.{OffsetDateTime, ZoneOffset}
 
+import org.enso.languageserver.effect.BlockingIO
+
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -28,6 +30,11 @@ trait FileSystemApi[F[_, _]] {
     content: String
   ): F[FileSystemFailure, Unit]
 
+  def writeBinary(
+    file: File,
+    contents: Array[Byte]
+  ): BlockingIO[FileSystemFailure, Unit]
+
   /**
     * Reads the contents of a textual file.
     *
@@ -35,6 +42,8 @@ trait FileSystemApi[F[_, _]] {
     * @return either [[FileSystemFailure]] or the content of a file as a String
     */
   def read(file: File): F[FileSystemFailure, String]
+
+  def readBinary(file: File): BlockingIO[FileSystemFailure, Array[Byte]]
 
   /**
     * Deletes the specified file or directory recursively.

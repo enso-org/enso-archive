@@ -177,8 +177,10 @@ class ClientController(
         .props(bufferRegistry, requestTimeout, rpcSession),
       SaveFile -> SaveFileHandler
         .props(bufferRegistry, requestTimeout, rpcSession),
-      WriteFile  -> file.WriteFileHandler.props(requestTimeout, fileManager),
-      ReadFile   -> file.ReadFileHandler.props(requestTimeout, fileManager),
+      WriteFile -> file.WriteTextualFileHandler
+        .props(requestTimeout, fileManager),
+      ReadFile -> file.ReadTextualFileHandler
+        .props(requestTimeout, fileManager),
       CreateFile -> file.CreateFileHandler.props(requestTimeout, fileManager),
       DeleteFile -> file.DeleteFileHandler.props(requestTimeout, fileManager),
       CopyFile   -> file.CopyFileHandler.props(requestTimeout, fileManager),

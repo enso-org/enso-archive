@@ -133,7 +133,7 @@ class MainModule(serverConfig: LanguageServerConfig) {
     new BinaryWebSocketServer(
       InboundMessageDecoder,
       BinaryEncoder.empty,
-      new BinaryConnectionControllerFactory
+      new BinaryConnectionControllerFactory(fileManager)
     )
 
 }

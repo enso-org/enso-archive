@@ -26,6 +26,22 @@ class FileSystemSpec extends AnyFlatSpec with Matchers with Effects {
     readTxtFile(path) shouldBe content
   }
 
+  it should "write binary contents to a file" in new TestCtx {
+    //given
+    val path    = Paths.get(testDirPath.toString, "foo.txt")
+    val content = Array(1.byteValue, 2.byteValue, 3.byteValue)
+    //when
+    val result =
+      objectUnderTest.writeBinary(path.toFile, content).unsafeRunSync()
+    val Right(savedContent) =
+      objectUnderTest.readBinary(path.toFile).unsafeRunSync()
+    //then
+    result shouldBe Right(())
+    (savedContent zip content) foreach {
+      case (value, expected) => value shouldBe expected
+    }
+  }
+
   it should "overwrite existing files" in new TestCtx {
     //given
     val path            = Paths.get(testDirPath.toString, "foo.txt")
