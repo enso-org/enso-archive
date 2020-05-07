@@ -2337,11 +2337,22 @@ interface ExpressionValueUpdate {
 ```
 
 ##### `VisualisationConfiguration`
+A configuration object for properties of the visualisation.
 
 ```typescript
 interface VisualisationConfiguration {
+  /**
+   * An execution context of the visualisation.
+   */
   executionContextId: UUID;
-  visualisationModule: QualifiedName;
+  /**
+   * A qualified name of the module containing the expression which creates
+   * visualisation.
+   */
+  visualisationModule: String;
+  /**
+   * The expression that creates a visualisation.
+   */
   expression: String;
 }
 ```
