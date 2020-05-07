@@ -2402,7 +2402,11 @@ null
 
 #### `executionContext/fork`
 Sent from the client to the server to duplicate an execution context, creating
-an independent copy, containing all the data precomputed in the first one.
+an independent copy, containing all the data precomputed in the first
+one. Return capabilities
+[`executionContext/canModify`](#executioncontextcanmodify) and
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
+containing freshly created [`ContextId`](#contextid)
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2413,7 +2417,6 @@ an independent copy, containing all the data precomputed in the first one.
 ```typescript
 {
   contextId: ContextId;
-  newContextId: ContextId;
 }
 ```
 
@@ -2565,9 +2568,9 @@ null
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-the visualisation cannot be found. 
+the visualisation cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-the expression specified in the `VisualisationConfiguration` cannot be 
+the expression specified in the `VisualisationConfiguration` cannot be
 evaluated.
 
 
@@ -2600,7 +2603,7 @@ null
   `executionContext/canModify` capability for this context.
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
-- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a 
+- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
 visualisation can not be found.
 
 #### `executionContext/modifyVisualisation`
@@ -2633,11 +2636,11 @@ null
 - [`ContextNotFoundError`](#contextnotfounderror) when context can not be found
   by provided id.
 - [`ModuleNotFoundError`](#modulenotfounderror) to signal that the module with
-the visualisation cannot be found. 
+the visualisation cannot be found.
 - [`VisualisationExpressionError`](#visualisationexpressionerror) to signal that
-the expression specified in the `VisualisationConfiguration` cannot be 
+the expression specified in the `VisualisationConfiguration` cannot be
 evaluated.
-- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a 
+- [`VisualisationNotFoundError`](#visualisationnotfounderror) when a
 visualisation can not be found.
 
 #### `executionContext/visualisationUpdate`
@@ -2825,7 +2828,7 @@ It signals that the visualisation cannot be found.
 ```
 
 ##### `VisualisationExpressionError`
-It signals that the expression specified in the `VisualisationConfiguration` 
+It signals that the expression specified in the `VisualisationConfiguration`
 cannot be evaluated.
 
 ```typescript
@@ -2836,7 +2839,7 @@ cannot be evaluated.
 ```
 
 ##### `VisualisationEvaluationError`
-It is a push message. It signals that an evaluation of a code responsible for 
+It is a push message. It signals that an evaluation of a code responsible for
 generating visualisation data failed.
 
 ```typescript
