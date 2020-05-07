@@ -31,6 +31,11 @@ dependently-typed world, they are just values.
   - [Numeric Literals](#numeric-literals)
   - [Text Literals](#text-literals)
   - [Vector Literals](#vector-literals)
+- [Assignment](#assignment)
+  - [Function Definitions](#function-definitions)
+  - [Pattern Match Bindings](#pattern-match-bindings)
+  - [Extension Methods](#extension-methods)
+  - [Top-Level Assignments](#top-level-assignments)
 - [Types and Type Signatures](#types-and-type-signatures)
   - [Type Signatures](#type-signatures)
   - [Operations on Types](#operations-on-types)
@@ -56,7 +61,6 @@ dependently-typed world, they are just values.
   - [Splats Arguments](#splats-arguments)
   - [Type Applications](#type-applications)
   - [Underscore Arguments](#underscore-arguments)
-- [Scoping Rules](#scoping-rules)
 - [Field Access](#field-access)
   - [Pattern Matching](#pattern-matching)
   - [Projections / Lenses](#projections--lenses)
@@ -181,6 +185,9 @@ The following behaviours occur within a pattern context:
   matching a typeset, atom, or some combination thereof), and allows for
   matching these fields recursively.
 - Any literals (e.g. numbers) behave as type names.
+- In any place where a variable identifier may be introduced in a pattern
+  context, an `_` (known as an ignore) may be substituted. This does _not_ bind
+  a new name, and hence cannot be used later.
 
 It should be noted that, in the core language, all non-trivial constructs are
 desugared to these constructs, as well as `case ... of` expressions, meaning
@@ -432,6 +439,109 @@ A vector literal works as follows:
 - Elements in vector literals are concatenated using the `,` operator, which
   acts as `cons` on vectors.
 
+## Assignment
+The assignment operator in Enso is a fairly magical construct, being the
+language's syntax for monadic bind. In essence, it operates as follows:
+
+- The left-hand-side introduces a pattern context.
+- The pattern on the left-hand-side is matched against (unified with) the value
+  that occurs on its right-hand-side.
+- A single line must contain at most one assignment.
+- It does _not_ yield the value that it assigned to it.
+
+The assignment operator has myriad uses, and is used to define variables,
+functions, extension methods, and to perform pattern matching. Each different
+case will see an appropriate desugaring applied (see below).
+
+### Function Definitions
+If the left hand side of an assignment is syntactically a prefix application
+chain, where the left-most name is a _variable_ name, the assignment is
+considered to introduce a _function definition_ (the syntax sugared version).
+
+For a prefix chain `a b c = ...`, this operates as follows:
+
+- The name `a` is bound in the enclosing scope, and is called the 'function
+  name'.
+- The names `b` and `c` (the 'function arguments') are converted into nested
+  lambda arguments in the function body.
+
+In essence, the above example is equivalent to:
+
+```ruby
+a = b -> c -> ...
+```
+
+Please note that by the rules of naming specified previously, if an operator
+occurs in the same position as `a` it will also be defined.
+
+### Pattern Match Bindings
+If the left hand side of an assignment is syntactically a prefix application
+chain, where the left-most name is a _type_ name, the assignment is considered
+to introduce a pattern match binding.
+
+For a prefix chain `A b c = expr`, with trailing code `tail...`, this operates
+as follows:
+
+- A case expression is created with scrutinee `expr`.
+- The matching names `A`, `b`, and `c` are used in a case expression branch's
+  pattern. The branch's expression is `tail...`.
+- A catch-call branch is created that has expression `error`.
+
+This desugaring means that the names `b` and `c` are made visible in the scope
+where the pattern match binding occurs.
+
+This also works for operators in an infix position, where its operands will be
+matched against.
+
+### Extension Methods
+There are two cases where an assignment creates an extension method:
+
+1. **Method Syntax:** If the left-hand-side of an assignment is syntactically a
+   prefix application chain where the left-most expression is an infix
+   application of `.`, this assignment is considered to introduce an extension
+   method.
+2. **Function Syntax:** If the left hand side of an assignment is syntactically
+  a prefix application chain where the left-most expression is a variable
+  identifier and the second expression from the left is a variable named `this`
+  with an explicit type ascription, this is also considered to introduce an
+  extension method.
+
+#### Method Syntax
+This syntax for extension methods works as follows:
+
+- The target of the method syntax (left argument to `.`) defines the type on
+  which the extension method is created.
+- An implicit `this` argument is inserted with that type at the start of the
+  arguments list.
+- All arguments are desugared to lambda arguments.
+
+```ruby
+My_Type.method_name a b c = ...
+```
+
+#### Function Syntax
+This syntax for extension methods works as follows:
+
+- The `this` argument type is used to define the type on which the extension
+  method is created.
+- `this` and all remaining arguments are desugared to lambda arguments.
+
+```ruby
+method_name (this : My_Type) a b c = ...
+```
+
+### Top-Level Assignments
+In order to aid with disambiguation, any binding made in the root scope without
+an explicit target is implicitly defined on a type representing the current
+module. For example, a binding `main = ...` is implicitly `here.main = ...`.
+
+This works as follows:
+
+- All non-extension methods defined at the top level are augmented with an
+  implicit first parameter `here`.
+- They are callable by `name` if not ambiguous, but can be disambiguated by
+  using `here.name` where necessary.
+
 ## Types and Type Signatures
 Enso is a statically typed language, meaning that every variable is associated
 with information about the possible values it can take. In Enso, the type
@@ -446,7 +556,7 @@ design as well.
 
 ### Type Signatures
 Enso allows users to provide explicit type signatures for values through use of
-the type attribution operator `:`. The expression `a : b` says that the value
+the type ascription operator `:`. The expression `a : b` says that the value
 `a` has the type `b` attributed to it.
 
 ```ruby
@@ -478,7 +588,29 @@ of a variable. This means that:
 
 - Enso will infer constraints on types that you haven't necessarily written.
 - Type signatures can act as a sanity check in that you can encode your
-  intention as a type
+  intention as a type.
+- If the value is of a (partially) known type, constraints will be introduced
+  on that type.
+- Where the type is known, ascription can be used to constrain that type
+  further.
+- It is legal to add constraints to an identifier using `:` in any scope in
+  which the identifier is visible.
+
+From a syntactic perspective, the type ascription operator `:` has the following
+properties:
+
+- The right hand operand to the operator introduces a pattern context.
+- The right hand side may declare fresh variables that occur in that scope.
+- It is not possible to ascribe a type to an identifier without also assigning
+  to that identifier.
+- Introduced identifiers will always shadow other identifiers in scope.
+- Constraint implication is purely feed-forward. The expression `b:A` only
+  introduces constraints to `b`.
+
+> The actionables for this section are:
+>
+> - How do signatures interact with function bodies in regards to scoping?
+> - Does this differ for root and non-root definitions?
 
 ### Operations on Types
 Enso also provides a set of rich operations on its underlying type-system notion
@@ -718,10 +850,25 @@ before each arrow.
 - If you want to define a multi-argument lambda, you can do it by having a
   lambda return another lambda (e.g. `a -> b -> a + b`).
 
+Additionally, lambdas in Enso have the following properties:
+
+- The left operand introduces a pattern context.
+- The right operand introduces a new scope.
+- If a lambda occurs in a pattern context, its left-hand-side identifiers are
+  introduced into the scope targeted by the outer pattern context. For example,
+  the following is valid `(a -> b) -> a.default + b`.
+- Lambdas cannot currently occur in a matching context.
+
+Please note that if a later lambda in a chain shadows an earlier lambda (e.g.
+`a -> a -> a`), the shadowed arguments by that name are inaccessible. If you
+want to unify later arguments with previous ones, you must employ the scope
+reference rule and write (in this case) `a -> A -> a`.
+
 > The actionables for this section are:
 >
-> - Clarify whether we _really_ want to disallow the `a b -> a + b` multi-arg
->   lambda syntax.
+> - In the future we want to be able to match on function types, so this
+>   restriction should be relaxed.
+> - Do we want any automated unification to take place in the shadowing case?
 
 ### Defining Functions
 A function definition is just syntactic sugar for the definition of a lambda,
@@ -840,6 +987,40 @@ layout of the code has no impact on semantics of the code:
     x = foo x y z
     x.do_thing
   ```
+
+The following rules apply to code blocks:
+
+- Code blocks are desugared into in-order applications of monadic bind (as in
+  keeping with the fact that all blocks are monadic contexts).
+- If an expression that returns a value is not assigned to an identifier, this
+  will issue a warning.
+- To suppress this warning you can assign it to a blank (`_`).
+
+```ruby
+test =
+    _ = expr1
+    expr2
+
+# Becomes
+test =
+    expr1 >>= (_ -> expr2)
+
+# Equivalent to
+test =
+    expr1 >> expr2
+```
+
+- If the trailing line of the block (the return value) is an assignment, it will
+  return `Nothing` as all assignments do.
+
+```ruby
+foo =
+    pat1 = expr1
+
+# Becomes
+foo =
+    expr1 >>= (pat1 -> Nothing)
+```
 
 ### Operators
 In Enso, an operator is a function with a non-alphanumeric name (e.g. `+`). We
@@ -1056,23 +1237,6 @@ call. It obeys the following rules.
 - When a function is provided multiple `_` arguments, they are desugared left to
   right as the arguments would be applied to the function definition, creating
   nested lambdas.
-
-## Scoping Rules
-Enso's scoping rules should be fairly familiar to most other programming
-languages, as it uses standard lexical scoping with shadowing. However, there
-are a few unique points to keep in mind:
-
-- There is no separation between the type and term levels. This means that, for
-  a given lexical scope, type, function and lambda variables exist in the same
-  name space.
-- This means that if different names are used on the type and value level to
-  refer to the same entity, both names are valid.
-- Name clashes between different entities are not allowed.
-- Shadowing between different lexical scopes occurs as standard.
-- Shadowing in the same lexical scope may only occur in a chain of lambdas, and
-  in such a case the shadowed variables must unify.
-- Variables from the body are accessible in the type signature.
-- Variables from the type signature are accessible in the body.
 
 ## Field Access
 Enso provides multiple ways for users to access data from their types. It has

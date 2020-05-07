@@ -43,10 +43,10 @@ Identifier visibility behaves as follows:
   children of `s`.
 
 > The actionables for this section are:
-> 
+>
 > - In the future we may want to relax the forward-definition restriction for
 >   pure bindings, allowing a form of recursive pure binding hoisting (like a
->   let block). 
+>   let block). This would use the monadic context's `fix` function.
 
 ### Scoping Rules
 The following constructs introduce new scopes in Enso:
@@ -71,7 +71,7 @@ the above constructs:
 - **Function Definitions:** A function definition introduces a new scope. This
   scope is either a child of the scope in which the function is defined, or is
   the scope of the method being defined. If the body of the function is a block,
-  the function scope should be _reused_ as the block scope. 
+  the function scope should be _reused_ as the block scope.
 
 > The actionables for this section are:
 >
@@ -89,10 +89,15 @@ for, we have an additional set of scoping rules for type signatures:
 
 - The top-level scope of the LHS of the type ascription operator, and the
   top-level scope of the RHS of the type ascription operator are the same.
+- If two names are used on the type and term levels to refer to the same entity,
+  both are valid but this issues a warning.
+- Name clashes between different entities are disallowed.
+- Variables from the body are accessible in the type signature.
+- Variables from the type signature are accessible in the body.
 
 > The actionables for this section are:
-> 
-> - Do we actually want to support this? 
+>
+> - Do we actually want to support this?
 > - What complexities does this introduce wrt typechecking?
 
 ## Strict Evaluation
