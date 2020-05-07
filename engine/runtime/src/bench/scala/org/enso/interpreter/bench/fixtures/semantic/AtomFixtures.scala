@@ -125,5 +125,4 @@ class AtomFixtures extends InterpreterRunner {
       |    res
       |""".stripMargin
   val mapReverseListCurry = getMain(mapReverseListCurryCode)
-
 }

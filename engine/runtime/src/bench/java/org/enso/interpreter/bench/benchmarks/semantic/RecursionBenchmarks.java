@@ -58,10 +58,4 @@ public class RecursionBenchmarks {
   public void benchNestedThunkSum() {
     runOnHundredMillion(recursionFixtures.nestedThunkSum());
   }
-
-//  @Benchmark
-//  public void benchSumWithJava() {
-//    InterpreterRunner.MainMethod meth = recursionFixtures.sumWithJava();
-//    meth.mainFunction().value().execute(meth.mainConstructor(), recursionFixtures.theJavaMethod(), recursionFixtures.hundredMillion());
-//  }
 }

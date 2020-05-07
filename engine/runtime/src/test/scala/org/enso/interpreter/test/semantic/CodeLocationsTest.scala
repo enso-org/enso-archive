@@ -150,7 +150,6 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(53, 5, classOf[ApplicationNode])
     instrumenter.assertNodeExists(53, 3, classOf[ReadLocalVariableNode])
     instrumenter.assertNodeExists(57, 1, classOf[ReadLocalVariableNode])
-
     eval(code)
     ()
   }

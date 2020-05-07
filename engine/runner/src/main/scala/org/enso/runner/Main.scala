@@ -206,16 +206,16 @@ object Main {
   }
 
   private def runMain(mainModule: Module): Value = {
-//    try {
-    val mainCons = mainModule.getAssociatedConstructor
-    val mainFun  = mainModule.getMethod(mainCons, "main")
-    mainFun.execute(mainCons.newInstance())
-//    } catch {
-//      case e: PolyglotException =>
-//        System.err.printhjjln(e.getMessage)
-//        exitFail()
-//        throw new RuntimeException("Impossible to reach here.")
-//    }
+    try {
+      val mainCons = mainModule.getAssociatedConstructor
+      val mainFun  = mainModule.getMethod(mainCons, "main")
+      mainFun.execute(mainCons.newInstance())
+    } catch {
+      case e: PolyglotException =>
+        System.err.println(e.getMessage)
+        exitFail()
+        throw new RuntimeException("Impossible to reach here.")
+    }
   }
 
   /**
