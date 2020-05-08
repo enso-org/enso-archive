@@ -2309,7 +2309,6 @@ object AST {
     def unapply(t: AST): Option[List[AST]] =
       Unapply[ListLiteral].run(_.items)(t)
     def apply(items: List[AST]): ListLiteral = Shape.ListLiteral(items)
-//    def apply(body: SAST): Group        = Group(body.wrapped)
   }
 
   //////////////////////////////////////////////////////////////////////////////
