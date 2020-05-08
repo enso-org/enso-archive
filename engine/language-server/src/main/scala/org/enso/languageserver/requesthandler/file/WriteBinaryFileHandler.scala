@@ -35,7 +35,9 @@ class WriteBinaryFileHandler(
       val payload =
         msg.payload(new WriteFileCommand).asInstanceOf[WriteFileCommand]
       val path     = PathUtils.convertBinaryPath(payload.path())
-      val contents = payload.contentsAsByteBuffer().array()
+      val bytes    = payload.contentsAsByteBuffer()
+      val contents = Array.fill[Byte](bytes.remaining())(0)
+      bytes.get(contents)
       fileManager ! FileManagerProtocol.WriteBinaryFile(path, contents)
       val cancellable = context.system.scheduler
         .scheduleOnce(requestTimeout, self, RequestTimeout)
