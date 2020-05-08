@@ -205,7 +205,7 @@ case object DemandAnalysis extends IRPass {
         items.map(
           analyseExpression(
             _,
-            isInsideCallArgument = true
+            isInsideCallArgument = false
           )
         )
       )

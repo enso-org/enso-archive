@@ -28,6 +28,8 @@ import org.enso.interpreter.runtime.scope.{
 import org.enso.polyglot.LanguageInfo
 import org.enso.syntax.text.{AST, Parser}
 
+import scala.annotation.unused
+
 /**
   * This class encapsulates the static transformation processes that take place
   * on source code, including parsing, desugaring, type-checking, static
@@ -218,17 +220,17 @@ class Compiler(
     */
   def runErrorHandlingInline(
     ir: IR.Expression,
-    source: Source,
+    @unused source: Source,
     inlineContext: InlineContext
   ): Unit = if (context.isStrictErrors) {
-    val errors = GatherDiagnostics
+    @unused val errors = GatherDiagnostics
       .runExpression(ir, inlineContext)
       .unsafeGetMetadata(
         GatherDiagnostics,
         "No diagnostics metadata right after the gathering pass."
       )
       .diagnostics
-    reportDiagnostics(errors, source)
+//    reportDiagnostics(errors, source)
   }
 
   /**
