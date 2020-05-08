@@ -2,9 +2,11 @@ package org.enso.interpreter.node.expression.literal;
 
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.nodes.ExplodeLoop;
+import com.oracle.truffle.api.nodes.NodeInfo;
 import org.enso.interpreter.node.ExpressionNode;
 import org.enso.interpreter.runtime.data.Vector;
 
+@NodeInfo(shortName = "[]", description = "Creates a vector from given expressions.")
 public class VectorLiteralNode extends ExpressionNode {
   private @Children ExpressionNode[] items;
 
@@ -12,10 +14,22 @@ public class VectorLiteralNode extends ExpressionNode {
     this.items = items;
   }
 
+  /**
+   * Creates a new instance of this node.
+   *
+   * @param items the expressions evaluating to the vector elements.
+   * @return a new instance of this node.
+   */
   public static VectorLiteralNode build(ExpressionNode[] items) {
     return new VectorLiteralNode(items);
   }
 
+  /**
+   * Executes the node.
+   *
+   * @param frame the stack frame for execution.
+   * @return a {@link Vector} containing the results of evaluating child expressions.
+   */
   @Override
   @ExplodeLoop
   public Object executeGeneric(VirtualFrame frame) {

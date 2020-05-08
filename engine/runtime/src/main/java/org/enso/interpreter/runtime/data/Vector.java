@@ -21,6 +21,7 @@ public class Vector implements TruffleObject {
     this.items = items;
   }
 
+  /** @return the elements of this vector as an array. */
   public Object[] getItems() {
     return items;
   }

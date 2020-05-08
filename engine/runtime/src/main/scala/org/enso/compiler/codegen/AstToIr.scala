@@ -6,7 +6,7 @@ import org.enso.compiler.core.IR
 import org.enso.compiler.core.IR._
 import org.enso.compiler.exception.UnhandledEntity
 import org.enso.interpreter.Constants
-import org.enso.syntax.text.{AST, Debug}
+import org.enso.syntax.text.AST
 
 /**
   * This file contains the functionality that translates from the parser's
@@ -157,7 +157,6 @@ object AstToIr {
     * @return the [[Core]] representation of `inputAST`
     */
   def translateExpression(inputAST: AST): Expression = {
-//    println(Debug.pretty(inputAST.toString))
     inputAST match {
       case AstView
             .SuspendedBlock(name, block @ AstView.Block(lines, lastLine)) =>
@@ -290,6 +289,11 @@ object AstToIr {
     }
   }
 
+  /**
+    * Translates a list literal into its [[Core]] counterpart.
+    * @param literal the literal to translate
+    * @return the [[Core]] representation of `literal`
+    */
   def translateListLiteral(literal: AST.ListLiteral): Expression = {
     IR.Application.Vector(
       literal.items.map(translateExpression),
