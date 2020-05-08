@@ -84,7 +84,7 @@ jobs:
 
     # Build
     - name: Build Enso
-      run: sbt --no-colors compile
+      run: sbt --no-colors clean compile
 
     # Tests
     - name: Test Enso
