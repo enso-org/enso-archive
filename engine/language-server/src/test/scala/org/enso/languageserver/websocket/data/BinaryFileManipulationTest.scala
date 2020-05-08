@@ -16,7 +16,6 @@ import org.enso.languageserver.websocket.data.factory.{
   WriteFileCommandFactory
 }
 
-import scala.annotation.unused
 import scala.io.Source
 
 class BinaryFileManipulationTest extends BaseBinaryServerTest {
@@ -26,12 +25,12 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest {
   "A WriteFileCommand" must {
 
     "persist file content" in {
+      //given
       val requestId = UUID.randomUUID()
       val filename  = "foo.bin"
-      @unused
-      val fooFile  = new File(testContentRoot.toFile, filename)
-      val contents = Array[Byte](65, 66, 67) //ABC
-      val client   = newWsClient()
+      val fooFile   = new File(testContentRoot.toFile, filename)
+      val contents  = Array[Byte](65, 66, 67) //ABC
+      val client    = newWsClient()
       client.send(createSessionInitCmd())
       client.expectFrame()
       val writeFileCommand = createWriteFileCmdPacket(
@@ -40,6 +39,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest {
         testContentRootId,
         contents
       )
+      //send
       client.send(writeFileCommand)
       val Right(msg) = client.receiveMessage[OutboundMessage]()
       //then
