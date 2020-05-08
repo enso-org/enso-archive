@@ -71,7 +71,6 @@ class BinaryConnectionController(
 
   private def connectionNotEstablished: Receive = {
     case OutboundStreamEstablished(outboundChannel) =>
-      log.info(s"Connection established [$clientIp]")
       unstashAll()
       context.become(
         connected(outboundChannel) orElse connectionEndHandler()
@@ -95,6 +94,7 @@ class BinaryConnectionController(
       outboundChannel ! responsePacket
       val session = DataSession(clientId, self)
       context.system.eventStream.publish(DataSessionInitialized(session))
+      log.info(s"Data session initialized for client: $clientId [$clientIp]")
       context.become(
         connectionEndHandler(Some(session))
         orElse initialized(
