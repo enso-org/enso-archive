@@ -6,6 +6,7 @@ import com.oracle.truffle.api.interop.InteropLibrary;
 import com.oracle.truffle.api.interop.UnsupportedMessageException;
 import com.oracle.truffle.api.interop.UnsupportedTypeException;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
@@ -15,12 +16,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
-@NodeInfo(
-    shortName = "Polyglot.instantiate0",
-    description = "Instantiates a zero-argument polyglot constructor.")
-public class Instantiate0Node extends BuiltinRootNode {
-  private Instantiate0Node(Language language) {
+@NodeInfo(shortName = "Polyglot.execute", description = "Executes a polyglot function.")
+public class ExecuteNode extends BuiltinRootNode {
+  private ExecuteNode(Language language) {
     super(language);
   }
 
@@ -36,10 +36,11 @@ public class Instantiate0Node extends BuiltinRootNode {
    */
   public static Function makeFunction(Language language) {
     return Function.fromBuiltinRootNode(
-        new Instantiate0Node(language),
+        new ExecuteNode(language),
         CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(1, "constructor", ArgumentDefinition.ExecutionMode.EXECUTE));
+        new ArgumentDefinition(1, "callable", ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(2, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
   /**
@@ -51,12 +52,16 @@ public class Instantiate0Node extends BuiltinRootNode {
   @Override
   public Stateful execute(VirtualFrame frame) {
     Object[] args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
-    Object constructor = args[1];
+    Object callable = args[1];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
-      Object res = library.instantiate(constructor);
+      Object[] arguments = TypesGen.expectVector(args[2]).getItems();
+      Object res = library.execute(callable, arguments);
       return new Stateful(state, res);
-    } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnsupportedTypeException
+        | UnexpectedResultException e) {
       err.enter();
       throw new PanicException(e.getMessage(), this);
     }
@@ -69,6 +74,6 @@ public class Instantiate0Node extends BuiltinRootNode {
    */
   @Override
   public String getName() {
-    return "Polyglot.instantiate0";
+    return "Polyglot.execute";
   }
 }

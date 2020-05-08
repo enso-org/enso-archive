@@ -3,6 +3,7 @@ package org.enso.interpreter.node.expression.builtin.interop.generic;
 import com.oracle.truffle.api.frame.VirtualFrame;
 import com.oracle.truffle.api.interop.*;
 import com.oracle.truffle.api.nodes.NodeInfo;
+import com.oracle.truffle.api.nodes.UnexpectedResultException;
 import com.oracle.truffle.api.profiles.BranchProfile;
 import org.enso.interpreter.Constants;
 import org.enso.interpreter.Language;
@@ -12,12 +13,11 @@ import org.enso.interpreter.runtime.callable.function.Function;
 import org.enso.interpreter.runtime.callable.function.FunctionSchema.CallStrategy;
 import org.enso.interpreter.runtime.error.PanicException;
 import org.enso.interpreter.runtime.state.Stateful;
+import org.enso.interpreter.runtime.type.TypesGen;
 
-@NodeInfo(
-    shortName = "Polyglot.execute2",
-    description = "Executes a two-arguments polyglot function.")
-public class Execute2Node extends BuiltinRootNode {
-  private Execute2Node(Language language) {
+@NodeInfo(shortName = "Polyglot.invoke", description = "Invokes a polyglot method.")
+public class InvokeNode extends BuiltinRootNode {
+  private InvokeNode(Language language) {
     super(language);
   }
 
@@ -33,12 +33,12 @@ public class Execute2Node extends BuiltinRootNode {
    */
   public static Function makeFunction(Language language) {
     return Function.fromBuiltinRootNode(
-        new Execute2Node(language),
+        new InvokeNode(language),
         CallStrategy.ALWAYS_DIRECT,
         new ArgumentDefinition(0, "this", ArgumentDefinition.ExecutionMode.EXECUTE),
         new ArgumentDefinition(1, "callable", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(2, "arg1", ArgumentDefinition.ExecutionMode.EXECUTE),
-        new ArgumentDefinition(3, "arg2", ArgumentDefinition.ExecutionMode.EXECUTE));
+        new ArgumentDefinition(2, "method_name", ArgumentDefinition.ExecutionMode.EXECUTE),
+        new ArgumentDefinition(3, "arguments", ArgumentDefinition.ExecutionMode.EXECUTE));
   }
 
   /**
@@ -51,13 +51,17 @@ public class Execute2Node extends BuiltinRootNode {
   public Stateful execute(VirtualFrame frame) {
     Object[] args = Function.ArgumentsHelper.getPositionalArguments(frame.getArguments());
     Object callable = args[1];
-    Object arg1 = args[2];
-    Object arg2 = args[3];
     Object state = Function.ArgumentsHelper.getState(frame.getArguments());
     try {
-      Object res = library.execute(callable, arg1, arg2);
+      String method = TypesGen.expectString(args[2]);
+      Object[] arguments = TypesGen.expectVector(args[3]).getItems();
+      Object res = library.invokeMember(callable, method, arguments);
       return new Stateful(state, res);
-    } catch (UnsupportedMessageException | ArityException | UnsupportedTypeException e) {
+    } catch (UnsupportedMessageException
+        | ArityException
+        | UnsupportedTypeException
+        | UnexpectedResultException
+        | UnknownIdentifierException e) {
       err.enter();
       throw new PanicException(e.getMessage(), this);
     }
@@ -70,6 +74,6 @@ public class Execute2Node extends BuiltinRootNode {
    */
   @Override
   public String getName() {
-    return "Polyglot.execute2";
+    return "Polyglot.invoke";
   }
 }

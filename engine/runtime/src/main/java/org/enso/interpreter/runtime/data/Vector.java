@@ -21,6 +21,10 @@ public class Vector implements TruffleObject {
     this.items = items;
   }
 
+  public Object[] getItems() {
+    return items;
+  }
+
   /**
    * Marks the object as array-like for Polyglot APIs.
    *
