@@ -21,7 +21,7 @@ object FileContentsReplyFactory {
     val outMsg = OutboundMessageFactory.create(
       UUID.randomUUID(),
       Some(correlationId),
-      OutboundPayload.SUCCESS,
+      OutboundPayload.FILE_CONTENTS_REPLY,
       reply
     )
     builder.finish(outMsg)
