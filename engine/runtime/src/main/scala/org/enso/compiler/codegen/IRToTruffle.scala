@@ -28,7 +28,8 @@ import org.enso.interpreter.node.expression.constant.{
 }
 import org.enso.interpreter.node.expression.literal.{
   IntegerLiteralNode,
-  TextLiteralNode
+  TextLiteralNode,
+  VectorLiteralNode
 }
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.node.{
@@ -748,6 +749,9 @@ class IRToTruffle(
           setLocation(appNode, loc)
         case IR.Application.Force(expr, location, _, _) =>
           setLocation(ForceNode.build(this.run(expr)), location)
+        case IR.Application.Vector(items, location, _, _) =>
+          val itemNodes = items.map(run).toArray
+          setLocation(VectorLiteralNode.build(itemNodes), location)
         case op: IR.Application.Operator.Binary =>
           throw new CompilerError(
             s"Explicit operators not supported during codegen but $op found"

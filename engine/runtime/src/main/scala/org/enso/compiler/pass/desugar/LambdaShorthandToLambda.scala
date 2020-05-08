@@ -188,6 +188,9 @@ case object LambdaShorthandToLambda extends IRPass {
         } else appResult
       case f @ IR.Application.Force(tgt, _, _, _) =>
         f.copy(target = desugarExpression(tgt, freshNameSupply))
+      case vector @ IR.Application.Vector(_, _, _, _) =>
+        //TODO[MK]: Handle underscores here
+        vector
       case _: IR.Application.Operator =>
         throw new CompilerError(
           "Operators should be desugared by the point of underscore " +

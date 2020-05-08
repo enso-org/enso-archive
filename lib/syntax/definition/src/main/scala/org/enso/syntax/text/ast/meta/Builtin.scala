@@ -33,7 +33,6 @@ object Builtin {
 
     val listLiteral = {
       val items = Pattern.SepList(Pattern.ExprUntilOpr(","), Opr(",")).opt
-
       Definition(
         Opr("[") -> items,
         Opr("]")

@@ -9,5 +9,6 @@ class ListLiteralsTest extends InterpreterTest {
         |main = IO.println [1, 2, 3]
         |""".stripMargin
     eval(code)
+    println(consumeOut)
   }
 }

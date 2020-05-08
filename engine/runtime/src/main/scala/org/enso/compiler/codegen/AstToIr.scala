@@ -201,11 +201,12 @@ object AstToIr {
           potentialFallback,
           getIdentifiedLocation(inputAST)
         )
-      case AST.App.any(inputAST)     => translateApplicationLike(inputAST)
-      case AST.Mixfix.any(inputAST)  => translateApplicationLike(inputAST)
-      case AST.Literal.any(inputAST) => translateLiteral(inputAST)
-      case AST.Group.any(inputAST)   => translateGroup(inputAST)
-      case AST.Ident.any(inputAST)   => translateIdent(inputAST)
+      case AST.App.any(inputAST)         => translateApplicationLike(inputAST)
+      case AST.Mixfix.any(inputAST)      => translateApplicationLike(inputAST)
+      case AST.Literal.any(inputAST)     => translateLiteral(inputAST)
+      case AST.Group.any(inputAST)       => translateGroup(inputAST)
+      case AST.Ident.any(inputAST)       => translateIdent(inputAST)
+      case AST.ListLiteral.any(inputAST) => translateListLiteral(inputAST)
       case AstView.Block(lines, retLine) =>
         Expression.Block(
           lines.map(translateExpression),
@@ -287,6 +288,13 @@ object AstToIr {
         }
       case _ => throw new UnhandledEntity(literal, "processLiteral")
     }
+  }
+
+  def translateListLiteral(literal: AST.ListLiteral): Expression = {
+    IR.Application.Vector(
+      literal.items.map(translateExpression),
+      getIdentifiedLocation(literal)
+    )
   }
 
   /** Translates an argument definition from [[AST]] into [[Core]].

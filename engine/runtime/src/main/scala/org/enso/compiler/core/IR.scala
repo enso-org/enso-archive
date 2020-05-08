@@ -1892,6 +1892,59 @@ object IR {
 
     }
 
+    /** A representation of a vector literal.
+      *
+      * @param items the items being put in the vector
+      * @param location the source location that the node corresponds to
+      * @param passData the pass metadata associated with this node
+      * @param diagnostics compiler diagnostics for this node
+      */
+    sealed case class Vector(
+      items: List[Expression],
+      override val location: Option[IdentifiedLocation],
+      override val passData: MetadataStorage      = MetadataStorage(),
+      override val diagnostics: DiagnosticStorage = DiagnosticStorage()
+    ) extends Application {
+      override protected var id: Identifier = randomId
+
+      override def mapExpressions(fn: Expression => Expression): Vector =
+        copy(items = items.map(fn))
+
+      /** Creates a copy of `this`.
+        *
+        * @param items the items held by this vector
+        * @param location the source location that the node corresponds to
+        * @param passData the pass metadata associated with this node
+        * @param diagnostics compiler diagnostics for this node
+        * @param id the identifier for the new node
+        * @return a copy of `this`, updated with the specified values
+        */
+      def copy(
+        items: List[Expression]              = items,
+        location: Option[IdentifiedLocation] = location,
+        passData: MetadataStorage            = passData,
+        diagnostics: DiagnosticStorage       = diagnostics,
+        id: Identifier                       = id
+      ): Vector = {
+        val res = Vector(items, location, passData, diagnostics)
+        res.id = id
+        res
+      }
+
+      override def toString: String =
+        s"""
+        |IR.Literal.Vector(
+        |text = $items,
+        |location = $location,
+        |passData = ${this.showPassData},
+        |diagnostics = $diagnostics,
+        |id = $id
+        |)
+        |""".toSingleLine
+
+      override def children: List[IR] = items
+    }
+
     /** Operator applications in Enso. */
     sealed trait Operator extends Application {
       override def mapExpressions(fn: Expression => Expression): Operator
@@ -2935,7 +2988,6 @@ object IR {
         override def message: String =
           s"Redefining atoms is not supported: ${atomName.name} is " +
           s"defined multiple times in this module."
-
 
         override def mapExpressions(fn: Expression => Expression): Atom = this
 
