@@ -18,6 +18,13 @@ import org.enso.languageserver.util.file.PathUtils
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for [[WriteFileCommand]].
+  *
+  * @param requestTimeout a request timeout
+  * @param fileManager a file system manager actor
+  * @param replyTo the outbound channel delivering replies to the client
+  */
 class WriteBinaryFileHandler(
   requestTimeout: FiniteDuration,
   fileManager: ActorRef,
@@ -83,6 +90,13 @@ class WriteBinaryFileHandler(
 
 object WriteBinaryFileHandler {
 
+  /**
+    * Creates a configuration object used to create a [[WriteBinaryFileHandler]]
+    *
+    * @param timeout a request timeout
+    * @param fileManager a file system manager actor
+    * @param replyTo the outbound channel delivering replies to the client
+    */
   def props(
     timeout: FiniteDuration,
     fileManager: ActorRef,

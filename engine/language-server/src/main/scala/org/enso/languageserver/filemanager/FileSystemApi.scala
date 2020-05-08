@@ -30,6 +30,13 @@ trait FileSystemApi[F[_, _]] {
     content: String
   ): F[FileSystemFailure, Unit]
 
+  /**
+    * Writes binary content to a file.
+    *
+    * @param file path to the file
+    * @param contents a binary content of the file
+    * @return either [[FileSystemFailure]] or Unit
+    */
   def writeBinary(
     file: File,
     contents: Array[Byte]
@@ -43,6 +50,13 @@ trait FileSystemApi[F[_, _]] {
     */
   def read(file: File): F[FileSystemFailure, String]
 
+  /**
+    * Reads the contents of a binary file.
+    *
+    * @param file path to the file
+    * @return either [[FileSystemFailure]] or the content of a file as a byte
+    *         array
+    */
   def readBinary(file: File): BlockingIO[FileSystemFailure, Array[Byte]]
 
   /**

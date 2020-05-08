@@ -10,6 +10,14 @@ import org.enso.languageserver.protocol.data.util.EnsoUUID
 
 object FileContentsReplyFactory {
 
+  /**
+    * Creates a [[FileContentsReply]] inside a [[FlatBufferBuilder]].
+    *
+    * @param contents the binary contents of a file
+    * @param correlationId correlation id used to correlate a response with a
+    *                      request
+    * @return an FlatBuffer representation of the created error
+    */
   def createPacket(
     contents: Array[Byte],
     correlationId: EnsoUUID

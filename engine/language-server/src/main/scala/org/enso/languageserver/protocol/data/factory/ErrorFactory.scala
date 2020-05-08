@@ -35,13 +35,23 @@ object ErrorFactory {
   ): ByteBuffer =
     createGenericError(0, "Service error", maybeCorrelationId)
 
+  /**
+    * Creates a generic error inside a [[FlatBufferBuilder]].
+    *
+    * @param code an error code
+    * @param message an error textual message
+    * @param maybeCorrelationId an optional correlation id used to correlate
+    *                           a response with a request
+    * @return an FlatBuffer representation of the created error
+    */
   def createGenericError(
     code: Int,
     message: String,
     maybeCorrelationId: Option[EnsoUUID] = None
   ): ByteBuffer = {
     implicit val builder = new FlatBufferBuilder(1024)
-    val offset           = Error.createError(builder, code, builder.createString(message))
+    val offset =
+      Error.createError(builder, code, builder.createString(message))
     val outMsg = OutboundMessageFactory.create(
       UUID.randomUUID(),
       maybeCorrelationId,

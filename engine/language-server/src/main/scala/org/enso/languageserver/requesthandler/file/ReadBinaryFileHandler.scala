@@ -18,6 +18,13 @@ import org.enso.languageserver.util.file.PathUtils
 
 import scala.concurrent.duration.FiniteDuration
 
+/**
+  * A request handler for [[ReadFileCommand]].
+  *
+  * @param requestTimeout a request timeout
+  * @param fileManager a file system manager actor
+  * @param replyTo the outbound channel delivering replies to the client
+  */
 class ReadBinaryFileHandler(
   requestTimeout: FiniteDuration,
   fileManager: ActorRef,
@@ -81,6 +88,13 @@ class ReadBinaryFileHandler(
 
 object ReadBinaryFileHandler {
 
+  /**
+    * Creates a configuration object used to create a [[ReadBinaryFileHandler]]
+    *
+    * @param timeout a request timeout
+    * @param fileManager a file system manager actor
+    * @param replyTo the outbound channel delivering replies to the client
+    */
   def props(
     timeout: FiniteDuration,
     fileManager: ActorRef,

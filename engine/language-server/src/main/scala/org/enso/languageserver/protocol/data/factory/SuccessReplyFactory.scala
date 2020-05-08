@@ -22,11 +22,18 @@ object SuccessReplyFactory {
     Success.endSuccess(builder)
   }
 
-  def createPacket(requestId: EnsoUUID): ByteBuffer = {
+  /**
+    * Creates a [[Success]] inside a [[FlatBufferBuilder]].
+    *
+    * @param correlationId correlation id used to correlate a response with a
+    *                      request
+    * @return an FlatBuffer representation of the created error
+    */
+  def createPacket(correlationId: EnsoUUID): ByteBuffer = {
     implicit val builder = new FlatBufferBuilder(1024)
     val outMsg = OutboundMessageFactory.create(
       UUID.randomUUID(),
-      Some(requestId),
+      Some(correlationId),
       OutboundPayload.SUCCESS,
       SuccessReplyFactory.create()
     )
