@@ -5,8 +5,20 @@ import java.util.UUID
 
 object FileManagerProtocol {
 
+  /**
+    * Transfer object containing textual contents of the file with its path.
+    *
+    * @param path a path to a file
+    * @param content the textual contents
+    */
   case class TextualFileContent(path: File, content: String)
 
+  /**
+    * Transfer object containing binary contents of the file with its path.
+    *
+    * @param path a path to a file
+    * @param contents the binary contents
+    */
   case class BinaryFileContent(path: File, contents: Array[Byte])
 
   /**
@@ -29,6 +41,12 @@ object FileManagerProtocol {
     */
   case class WriteFile(path: Path, content: String)
 
+  /**
+    * Requests the Language Server write binary contents to an arbitrary file.
+    *
+    * @param path a path to a file
+    * @param contents binary contents
+    */
   case class WriteBinaryFile(path: Path, contents: Array[Byte])
 
   /**
@@ -45,6 +63,11 @@ object FileManagerProtocol {
     */
   case class ReadFile(path: Path)
 
+  /**
+    * Requests the Language Server to read a binary content of a file.
+    *
+    * @param path a path to a file
+    */
   case class ReadBinaryFile(path: Path)
 
   /**
@@ -56,6 +79,11 @@ object FileManagerProtocol {
     result: Either[FileSystemFailure, TextualFileContent]
   )
 
+  /**
+    * Returns a result of reading binary contents of a file.
+    *
+    * @param result either file system failure or content of a file
+    */
   case class ReadBinaryFileResult(
     result: Either[FileSystemFailure, BinaryFileContent]
   )
