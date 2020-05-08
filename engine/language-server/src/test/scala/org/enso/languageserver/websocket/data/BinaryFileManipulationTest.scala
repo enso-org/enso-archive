@@ -24,7 +24,7 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest {
 
   "A WriteFileCommand" must {
 
-    "persist file content" in {
+    "persist binary contents of a file" in {
       //given
       val requestId = UUID.randomUUID()
       val filename  = "foo.bin"
@@ -52,6 +52,8 @@ class BinaryFileManipulationTest extends BaseBinaryServerTest {
         .mostSigBits() shouldBe requestId.getMostSignificantBits
       Source.fromFile(fooFile).mkString shouldBe "ABC"
     }
+
+    "read binary contents of a file" in {}
 
   }
 
