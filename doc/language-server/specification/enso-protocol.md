@@ -2650,8 +2650,10 @@ one. Return capabilities
 No known errors.
 
 #### `executionContext/push`
-Sent from the client to the server move the execution context to a new location
-deeper down the stack.
+Sent from the client to the server execute item and move the execution context
+to a new location deeper down the stack. If a stack item becomes invalid because
+of a text edit (e.g. the root function of the view was removed), it will stop
+executing. If the function reappears, execution should resume as normal.
 
 - **Type:** Request
 - **Direction:** Client -> Server
