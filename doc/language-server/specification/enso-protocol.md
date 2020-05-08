@@ -2270,6 +2270,188 @@ fine-grained control over program and expression execution to the clients of
 the language server. This is incredibly important for enabling the high levels
 of interactivity required by Enso Studio.
 
+#### Example
+
+Given the default project structure.
+
+``` text
+├── package.yaml
+└── src
+    └── Main.enso
+```
+
+##### Create Execution Context
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/create",
+  "id":0,
+  "params":null
+}
+```
+
+Return capabilities containing newly created `ContextId`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "id":0,
+  "result":{
+    "canModify":{
+      "method":"executionContext/canModify",
+      "registerOptions":{
+        "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+      }
+    },
+    "receivesUpdates":{
+      "method":"executionContext/receivesUpdates",
+      "registerOptions":{
+        "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+      }
+    }
+  }
+}
+```
+
+##### Push item
+
+Entering the `main` method. First item on the stack should always be an
+`ExplicitCall`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/push",
+  "id":0,
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "stackItem":{
+      "type":"ExplicitCall",
+      "methodPointer":{
+        "file":{
+          "rootId":"18f642a2-5f69-4fc8-add6-13bf199ca326",
+          "segments":[
+            "src",
+            "Main.enso"
+          ]
+        },
+        "definedOnType":"Main",
+        "name":"main"
+      },
+      "thisArgumentExpression":null,
+      "positionalArgumentsExpressions":[ ]
+    }
+  }
+}
+```
+
+Returns successful reponse.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "id":0,
+  "result":null
+}
+```
+
+And a value update, result of the method `foo` call defined on type `Number`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/expressionValuesComputed",
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "updates":[
+      {
+        "id":"37f284d4-c593-4e65-a4be-4948fbd2adfb",
+        "type":"Number",
+        "shortValue":"45",
+        "methodCall":{
+          "file":{
+            "rootId":"18f642a2-5f69-4fc8-add6-13bf199ca326",
+            "segments":[
+              "src",
+              "Main.enso"
+            ]
+          },
+          "definedOnType":"Number",
+          "name":"foo"
+        }
+      }
+    ]
+  }
+}
+```
+
+We can go deeper and evaluate the method `foo` call by pushing the `LocalCall`
+on the stack. In general, all consequent stack items should be `LocalCall`s.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/push",
+  "id":0,
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "stackItem":{
+      "type":"LocalCall",
+      "expressionId":"37f284d4-c593-4e65-a4be-4948fbd2adfb"
+    }
+  }
+}
+```
+
+Returns successful reponse.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "id":0,
+  "result":null
+}
+```
+
+And update of some value inside the function `foo`.
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/expressionValuesComputed",
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
+    "updates":[
+      {
+        "id":"1cda3676-bd62-41f8-b6a1-a1e1b7c73d18",
+        "type":"Number",
+        "shortValue":"9",
+        "methodCall":null
+      }
+    ]
+  }
+}
+```
+
+##### Pop item
+
+
+``` json
+{
+  "jsonrpc":"2.0",
+  "method":"executionContext/pop",
+  "id":0,
+  "params":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3"
+  }
+}
+```
+
+Popping one item will return us into the `main` method. Second call will clear
+the stack. Subsequent pop calls will result in an error indicating that the
+stack is empty.
+
 #### Types
 The execution management API exposes a set of common types used by many of its
 messages.
