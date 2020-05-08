@@ -2291,7 +2291,7 @@ Given the default project structure.
 }
 ```
 
-Return capabilities containing newly created `ContextId`.
+Return capabilities together with a newly created `ContextId`.
 
 ``` json
 {
