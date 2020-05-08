@@ -2298,6 +2298,7 @@ Return capabilities containing newly created `ContextId`.
   "jsonrpc":"2.0",
   "id":0,
   "result":{
+    "contextId":"1eb5ad04-4094-4c1f-be54-e9d29ddf19a3",
     "canModify":{
       "method":"executionContext/canModify",
       "registerOptions":{
@@ -2542,8 +2543,7 @@ interface VisualisationConfiguration {
 #### `executionContext/create`
 Sent from the client to the server to create a new execution context. Return
 capabilities [`executionContext/canModify`](#executioncontextcanmodify) and
-[`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
-containing freshly created [`ContextId`](#contextid)
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2558,6 +2558,7 @@ null
 ##### Result
 ```typescript
 {
+  contextId: ContextId;
   canModify: CapabilityRegistration;
   receivesUpdates: CapabilityRegistration;
 }
@@ -2598,8 +2599,7 @@ Sent from the client to the server to duplicate an execution context, creating
 an independent copy, containing all the data precomputed in the first
 one. Return capabilities
 [`executionContext/canModify`](#executioncontextcanmodify) and
-[`executionContext/receivesUpdates`](#executioncontextreceivesupdates)
-containing freshly created [`ContextId`](#contextid)
+[`executionContext/receivesUpdates`](#executioncontextreceivesupdates).
 
 - **Type:** Request
 - **Direction:** Client -> Server
@@ -2616,6 +2616,7 @@ containing freshly created [`ContextId`](#contextid)
 ##### Result
 ```typescript
 {
+  contextId: ContextId;
   canModify: CapabilityRegistration;
   receivesUpdates: CapabilityRegistration;
 }
