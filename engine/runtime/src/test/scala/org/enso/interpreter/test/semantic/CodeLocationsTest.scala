@@ -3,7 +3,10 @@ import org.enso.interpreter.node.callable.ApplicationNode
 import org.enso.interpreter.node.callable.function.CreateFunctionNode
 import org.enso.interpreter.node.callable.thunk.ForceNode
 import org.enso.interpreter.node.controlflow.MatchNode
-import org.enso.interpreter.node.expression.literal.IntegerLiteralNode
+import org.enso.interpreter.node.expression.literal.{
+  IntegerLiteralNode,
+  VectorLiteralNode
+}
 import org.enso.interpreter.node.scope.{AssignmentNode, ReadLocalVariableNode}
 import org.enso.interpreter.test.InterpreterTest
 
@@ -166,5 +169,22 @@ class CodeLocationsTest extends InterpreterTest {
     instrumenter.assertNodeExists(35, 1, classOf[ForceNode])
     eval(code)
     ()
+  }
+
+  "Code locations" should "be correct for vector literals" in
+  withLocationsInstrumenter { instrumenter =>
+    val code = "main = [11, 2 + 2, 31 * 42, [1,2,3] ]"
+    instrumenter.assertNodeExists( // outer list
+      7,
+      30,
+      classOf[VectorLiteralNode]
+    )
+    instrumenter.assertNodeExists( // inner list
+      28,
+      7,
+      classOf[VectorLiteralNode]
+    )
+    instrumenter.assertNodeExists(19, 7, classOf[ApplicationNode]) // 31 * 42
+    eval(code)
   }
 }

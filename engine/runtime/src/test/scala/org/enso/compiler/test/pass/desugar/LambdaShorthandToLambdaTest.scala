@@ -293,6 +293,24 @@ class LambdaShorthandToLambdaTest extends CompilerTest {
       leftArgName.name shouldEqual appLeftName.name
       rightArgName.name shouldEqual appRightName.name
     }
+
+    "work for vector literals" in {
+      implicit val ctx: InlineContext = mkInlineContext
+
+      val ir =
+        """
+          |[1, _, (3 + 4), _]
+          |""".stripMargin.preprocessExpression.get.desugar
+
+      val fun1 = ir.asInstanceOf[IR.Function.Lambda]
+      val fun2 = fun1.body.asInstanceOf[IR.Function.Lambda]
+      val vec = fun2.body.asInstanceOf[IR.Application.Vector]
+
+      fun1.arguments(0).name shouldEqual vec.items(1)
+      fun2.arguments(0).name shouldEqual vec.items(3)
+      vec.items(0) shouldBe an[IR.Literal.Number]
+      vec.items(2) shouldBe an[IR.Application.Prefix]
+    }
   }
 
   "Nested underscore arguments" should {
