@@ -295,12 +295,12 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
+    Set.fill(16)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
       Some(context.Main.Update.mainZ(contextId)),
-      None
+      None,
     )
 
     // push foo call
@@ -308,11 +308,11 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item2))
     )
-    Set.fill(4)(context.receive) shouldEqual Set(
+    Set.fill(15)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.fooY(contextId)),
       Some(context.Main.Update.fooZ(contextId)),
-      None
+      None,
     )
 
     // push method pointer on top of the non-empty stack
@@ -334,7 +334,7 @@ class RuntimeServerTest
 
     // pop foo call
     context.send(Api.Request(requestId, Api.PopContextRequest(contextId)))
-    Set.fill(5)(context.receive) shouldEqual Set(
+    Set.fill(16)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.PopContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
@@ -441,7 +441,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
+    Set.fill(16)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
@@ -453,7 +453,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
+    Set.fill(16)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
@@ -482,7 +482,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(5)(context.receive) shouldEqual Set(
+    Set.fill(16)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main.Update.mainX(contextId)),
       Some(context.Main.Update.mainY(contextId)),
@@ -499,11 +499,11 @@ class RuntimeServerTest
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
 
-    Set.fill(4)(context.receive) shouldEqual Set(
+    Set.fill(15)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       Some(context.Main.Update.mainY(contextId, value = "20")),
       Some(context.Main.Update.mainZ(contextId, value = "25")),
-      None
+      None,
     )
   }
 
@@ -527,11 +527,11 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.PushContextRequest(contextId, item1))
     )
-    Set.fill(4)(context.receive) shouldEqual Set(
+    Set.fill(16)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.PushContextResponse(contextId))),
       Some(context.Main2.Update.mainY(contextId)),
       Some(context.Main2.Update.mainZ(contextId)),
-      None
+      None,
     )
 
     context.consumeOut shouldEqual List("I'm expensive!", "I'm more expensive!")
@@ -546,8 +546,7 @@ class RuntimeServerTest
     context.send(
       Api.Request(requestId, Api.RecomputeContextRequest(contextId, None))
     )
-
-    Set.fill(2)(context.receive) shouldEqual Set(
+    Set.fill(8)(context.receive) should contain allOf (
       Some(Api.Response(requestId, Api.RecomputeContextResponse(contextId))),
       None
     )
